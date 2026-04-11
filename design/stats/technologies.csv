@@ -3,17 +3,17 @@ Crossbowman, Age of Kings, Castle, Archery Range, {"Food": 125; "Gold": 75}, 35,
 Thumb Ring, Age of Kings, Castle, Archery Range, {"Food": 300; "Wood": 250}, 45, Archer;Cavalry Archer, Faster reload time (10-20%) and 100% accuracy
 Arbalest, Age of Kings, Imperial, Archery Range, {"Food":350; "Gold": 300}, 50, Crossbowman, Upgrade to Arbalest
 Elite Skirmisher, Age of Kings, Imperial, Archery Range, {"Wood":250; "Gold": 160}, 50, Skirmisher, Upgrade to Elite Skirmisher
-Heavy Cavalry Archer, Age of Kings, Imperial, Archery Range, {"Food":900; "Gold": 500}, 50, Cavalry Archer, Upgrade to Cavalry Archer
-Parthian Tactics, Age of Kings, Imperial, Archery Range, {"Food":200; "Gold": 250}, 65, Cavalry Archer;Mangudai, +1/+2 AR and Cavalry Archer +4 and Mangudai +2 agains pikeman
-Man At Arms, Age of Kings, Feudal, Barracks, {"Food": 40; "Gold": 40}, 40, Militia, Upgrade to Man at Arms
+Heavy Cavalry Archer, Age of Kings, Imperial, Archery Range, {"Food":900; "Gold": 500}, 50, Cavalry Archer, Upgrade to Heavy Cavalry Archer
+Parthian Tactics, Age of Kings, Imperial, Archery Range, {"Food":200; "Gold": 250}, 65, Cavalry Archer;Mangudai, +1/+2 AR and Cavalry Archer +4 and Mangudai +2 against pikemen
+Man-at-Arms, Age of Kings, Feudal, Barracks, {"Food": 40; "Gold": 40}, 40, Militia, Upgrade to Man-at-Arms
 Tracking, Age of Kings, Feudal, Barracks, {"Food": 75}, 35, Infantry, +2 Line of Sight and +2 Search Radius
-Long Swordman, Age of Kings, Castle, Barracks, {"Food": 200; "Gold": 65},45, Man At Arms, Upgrade to Long Swordman
-Pikeman, Age of Kings, Castle, Barracks, {"Food": 215; "Gold": 90}, 45, Spearman, Upgrade to Spearman
+Long Swordsman, Age of Kings, Castle, Barracks, {"Food": 200; "Gold": 65},45, Man-at-Arms, Upgrade to Long Swordsman
+Pikeman, Age of Kings, Castle, Barracks, {"Food": 215; "Gold": 90}, 45, Spearman, Upgrade to Pikeman
 Squires, Age of Kings, Castle, Barracks, {"Food": 200}, 40, Infantry, Movement Rate * 1.1
-Champion, Age of Kings, Imperial, Barracks, {"Food": 750; "Gold": 350}, 100, Two Handed Swordsman, Upgrade to Champion
+Champion, Age of Kings, Imperial, Barracks, {"Food": 750; "Gold": 350}, 100, Two-Handed Swordsman, Upgrade to Champion
 Elite Eagle Warrior, The Conquerors, Imperial, Barracks, {"Food": 800; "Gold": 500}, 40, Eagle Warrior, Upgrade to Elite Eagle Warrior
 Halberdier, The Conquerors, Imperial, Barracks, {"Food": 300; "Gold": 600}, 50, Pikeman, Upgrade to Halberdier
-Two Handed Swordsman, Age of Kings, Imperial, Barracks, {"Food": 300; "Gold": 100}, 75, Long Swordman, Upgrade to Long Swordsman
+Two-Handed Swordsman, Age of Kings, Imperial, Barracks, {"Food": 300; "Gold": 100}, 75, Long Swordsman, Upgrade to Two-Handed Swordsman
 Fletching, Age of Kings, Feudal, Blacksmith, {"Food": 100; "Gold": 50}, 30, Arrow shooting units and structures, +1 attack +1 range +1 Line of sight +1 search radius
 Forging, Age of Kings, Feudal, Blacksmith, {"Food": 150}, 50, Infantry;Cavalry, +1 attack
 Padded Archer Armor, Age of Kings, Feudal, Blacksmith, {"Food": 100}, 40, Archer;Cavalry Archer;Skirmisher;Hand Cannoneer;Conquistador, +1/+1 armor
@@ -29,7 +29,7 @@ Bracer, Age of Kings, Imperial, Blacksmith, {"Food":300;"Gold":200}, 40, Arrow s
 Plate Barding Armor, Age of Kings, Imperial, Blacksmith, {"Food":350;"Gold":200}, 75, Cavalry, +1/+2 armor
 Plate Mail Armor, Age of Kings, Imperial, Blacksmith, {"Food": 300; "Gold": 150}, 70, Infantry, +1/+2 armor
 Ring Archer Armor, Age of Kings, Imperial, Blacksmith, {"Food": 250; "Gold": 250}, 70, Archer;Cavalry Archer;Skirmisher;Hand Cannoneer;Conquistador, +1/+2 armor
-Conscription, Age of Kings, Imperial, Castle, {"Food": 150; "Gold": 150}, 60, Barracks;Archer Range;Stable;Castle, Work Rate * 1.33 (Units created 25% faster)
+Conscription, Age of Kings, Imperial, Castle, {"Food": 150; "Gold": 150}, 60, Barracks;Archery Range;Stable;Castle, Work Rate * 1.33 (Units created 25% faster)
 Hoardings, Age of Kings, Imperial, Castle, {"Food": 400; "Gold": 400}, 75, Castle, +21% HP (HP*1.21 - 5808 HP)
 Sappers, Age of Kings, Imperial, Castle, {"Food": 400; "Gold": 200}, 10, Villagers, +15 attack vs buildings and stone defenses
 Spies, Age of Kings, Imperial, Castle, {"Gold": 200; "Enemy Villager": 1}, 1, Random map games, Show enemy line of sight
@@ -77,10 +77,10 @@ Siege Onager, Age of Kings, Imperial, Siege Workshop, {"Food": 1450; "Gold": 100
 Siege Ram, Age of Kings, Imperial, Siege Workshop, {"Food": 1000}, 75, Capped Ram, Upgrade to Siege Ram
 Bloodlines, Age of Kings, Feudal, Stable, {"Food": 150; "Gold": 100}, 50, Cavalry;Cavalry Archer;Conquistador, +20 hit points
 Husbandry, Age of Kings, Castle, Stable, {"Food": 250}, 50, Cavalry;Cavalry Archer;Conquistador, Movement rate * 1.1
-Ligth Cavalry, Age of Kings, Castle, Stable, {"Food": 150; "Gold": 50}, 45, Scout, Upgrade to Light Cavalry
+Light Cavalry, Age of Kings, Castle, Stable, {"Food": 150; "Gold": 50}, 45, Scout Cavalry, Upgrade to Light Cavalry
 Cavalier, Age of Kings, Imperial, Stable, {"Food": 300; "Gold": 300}, 100, Knight, Upgrade to Cavalier
 Heavy Camel, Age of Kings, Imperial, Stable, {"Food": 325; "Gold": 360}, 125, Camel, Upgrade to Heavy Camel
-Hussar, The Conquerors, Imperial, Stable, {"Food": 500; "Gold": 600}, 50, Ligth Cavalry, Upgrade to Hussar
+Hussar, The Conquerors, Imperial, Stable, {"Food": 500; "Gold": 600}, 50, Light Cavalry, Upgrade to Hussar
 Paladin, Age of Kings, Imperial, Stable, {"Food": 1300; "Gold": 750}, 170, Cavalier, Upgrade to Paladin
 Feudal Age, Age of Kings, Dark, Town Center, {"Food": 500}, 130,,Advance to the Feudal Age
 Loom, Age of Kings, Dark, Town Center, {"Gold": 50}, 25, Villager, +15 hit points +1/+2 armor

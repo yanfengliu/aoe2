@@ -5,15 +5,14 @@
 These facts came directly from inspecting `design/stats`:
 
 - `civilizations.csv` currently resolves to `30` unique civilization names.
-- `civilizations.csv` currently contains duplicate rows for at least:
-  - `Goths`
-  - `Japanese`
+- `civilizations.csv` no longer contains duplicate civilization names after local cleanup.
 - `civilizations.csv` currently includes expansion labels up through:
   - `Age of Kings`
   - `The Conquerors`
   - `Forgotten Empires`
   - `African Kingdoms`
   - `Rise of Rajas`
+- some civilization fields still encode multiple unique units or unique techs as semicolon-delimited strings inside one CSV cell
 - `units.csv` and `technologies.csv` are still dominated by the classic generic and AoC-era roster.
 - The local bundle therefore does not yet represent the full current live-DE roster.
 

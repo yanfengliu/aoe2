@@ -51,44 +51,11 @@ Train military → Research technologies → Engage enemies → Win
 
 ## 2. Match Structure
 
-### 2.1 Game Modes
+### 2.1 Game Mode: Random Map
 
-#### 2.1.1 Random Map (Standard)
 - Start: Dark Age, 1 Town Center, 3 Villagers, 1 Scout Cavalry (or Eagle Scout for Meso-American civs).
 - Starting resources: 200 Wood, 200 Food, 100 Gold, 200 Stone (Standard). Configurable: Medium (500W/500F/300G/400S), High (1000W/1000F/700G/800S).
 - Win by conquest, wonder, or relic victory.
-
-#### 2.1.2 Death Match
-- Start: Post-Imperial Age with all technologies researched.
-- Starting resources: 20,000 Wood, 20,000 Food, 10,000 Gold, 5,000 Stone (Standard).
-- Map starts as fully explored (fog, not black).
-- Default game speed: Fast (2.0x).
-
-#### 2.1.3 Regicide
-- Each player receives a King unit. Losing your King means defeat.
-- Extra starting units: 1 Castle, extra Villagers.
-- Starting resources: 500W, 500F, 0G, 150S.
-- King has 75 HP, 0 attack, 1.32 movement speed, 6 LoS.
-
-#### 2.1.4 Empire Wars
-- Start: Feudal Age with 27 pre-placed Villagers assigned to tasks (5 gold, 11 wood across 3 lumber camps, 11 food on farms/berries), 1 Scout.
-- Pre-built: TC, Barracks, Blacksmith, Lumber Camps, Farms, Houses. Loom pre-researched.
-- Starting resources: 200W, 200F, 100G, 200S. Fewer herdables, no boars.
-
-#### 2.1.5 King of the Hill
-- Neutral Monument at map center.
-- Capture by moving units near it; hold for ~550 in-game years (~9 real minutes at 1.0x speed).
-- Holding generates a trickle: 50 Food, 50 Wood, 50 Gold, 50 Stone per minute.
-
-#### 2.1.6 Wonder Race
-- All players are permanent allies.
-- First player to complete a Wonder wins.
-- Military splash-damage units disabled.
-
-#### 2.1.7 Capture the Relic
-- Single relic at map center, each player has a pre-built indestructible Monastery.
-- First monk to garrison the relic wins instantly.
-- Cannot build additional Monasteries.
 
 ### 2.2 Victory Conditions
 
@@ -922,7 +889,7 @@ Technologies form linear chains:
 | Conscription | Imperial | 150F/150G | Military buildings work 33% faster |
 | Hoardings | Imperial | 400F/400G | Castles +21% HP |
 | Sappers | Imperial | 400F/200G | Villagers +15 attack vs buildings |
-| Spies/Treason | Imperial | 200G×enemy vils / 400G | Reveals enemy LoS / King location |
+| Spies | Imperial | 200G × enemy villager count | Reveals all enemy units' LoS |
 
 Plus civilization-specific unique technologies (one Castle Age, one Imperial Age per civ). See `civilizations.csv` and `technologies.csv`.
 

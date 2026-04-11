@@ -114,11 +114,10 @@ The file currently resolves to `30` unique civilization names:
   - Khmer
   - Vietnamese
 
-Known issues in the current civ table:
+Current civ table notes:
 
-- `Goths` appears twice.
-- `Japanese` appears twice.
-- Some text fields contain typos such as `Calvary`, `availible`, and `Civilzation`.
+- several later-expansion civ rows encode multiple unique units or unique techs in a single semicolon-delimited cell
+- importers should trim whitespace around split civ tokens before matching them against `units.csv` and `technologies.csv`
 
 ### 3.2 What the Other Local Tables Currently Cover
 
@@ -548,16 +547,10 @@ Before using `design/stats` directly in-engine, normalize it into a clean intern
 
 ### 11.1 Required Cleanup
 
-- deduplicate civilization rows by name
-  - currently at least `Goths` and `Japanese`
-- normalize typos
-  - `Ligth Cavalry -> Light Cavalry`
-  - `Calvary -> Cavalry`
-  - `availible -> available`
-  - `Civilzation -> Civilization`
+- validate uniqueness of primary keys such as civilization names during import
 - split semicolon-delimited multi-value fields into arrays
-- normalize inconsistent spacing in CSV text
-- normalize building names across `created_in` and `develops_in`
+- trim and normalize inconsistent spacing in CSV text
+- validate canonical names across `created_in`, `develops_in`, `applies_to`, and civ reference fields
 - split range fields like `1-4` into `range_min` and `range_max`
 - parse embedded JSON-like cost blobs into structured resource records
 

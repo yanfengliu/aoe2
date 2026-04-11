@@ -46,3 +46,17 @@
 **Files changed:** `design/spec-claude.md`, `docs/devlog-detailed.md`
 **Reasoning:** User clarified the product scope is single-player only — one human player vs AI opponents. Multiplayer and campaign story modes are out of scope.
 **Notes:** Documentation-only change. No tests run.
+
+## [2026-04-10, UTC] — Remove non-standard game modes from spec-claude.md
+**Action:** Removed Death Match, Regicide, Empire Wars, King of the Hill, Wonder Race, and Capture the Relic game modes from `design/spec-claude.md`. Kept only Random Map (Standard) mode. Simplified Spies/Treason tech to Spies only (Treason is Regicide-specific).
+**Result:** Section 2.1 now describes only the standard Random Map mode. All mode-specific mechanics (King unit, Monument, pre-placed buildings) removed.
+**Files changed:** `design/spec-claude.md`, `docs/devlog-detailed.md`
+**Reasoning:** User requested only the standard Random Map mode be kept in scope.
+**Notes:** Documentation-only change. No tests run.
+
+## [2026-04-10 21:34, America/Los_Angeles] - Clean up local stats integrity issues
+**Action:** Corrected obvious integrity problems in `design/stats`: removed duplicate civilization rows, fixed civ and tech spelling/canonical-name drift, fixed the `Archer` hit-point/range field swap in `units.csv`, and normalized one semicolon-delimited civ token with stray whitespace. Updated `design/spec-codex.md` and `design/sources/05-findings-and-guidance.md` so they no longer document already-fixed duplicate-row issues.
+**Result:** The checked-in stats bundle is internally cleaner and less likely to break string-based joins during import. `civilizations.csv` now has unique civ names, the Barracks and Stable upgrade chain names line up with `units.csv`, and the most obvious bad unit stat row is corrected. The remaining gap is broader DE roster completeness: several later-expansion civ references still point at units and unique techs that are not yet represented in `units.csv` or `technologies.csv`.
+**Files changed:** `design/stats/civilizations.csv`, `design/stats/technologies.csv`, `design/stats/units.csv`, `design/spec-codex.md`, `design/sources/05-findings-and-guidance.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user asked to fix data problems in the local stats bundle. The safest high-confidence pass was to resolve verified duplicates, malformed text, canonical-name mismatches, and clearly wrong local values without inventing missing late-expansion DE content.
+**Notes:** No tests were run because this was a data and documentation cleanup pass. A follow-up sourced content pass is still required if the repo wants the later-expansion civ rows to be fully backed by local unit and technology records.
