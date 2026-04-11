@@ -30,6 +30,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - A minimal AI rush also fit inside ordinary world systems. Build-order policy, queue pressure, and attack-target bias can live in repo code without demanding a special engine-side AI framework too early.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
+- `EntityRef` solves a real RTS integration problem. Long-lived selection state, queued attack/build targets, and browser test harnesses all become safer once they stop assuming entity IDs stay stable across destruction and reuse.
 
 ## Friction observed
 
@@ -51,6 +52,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Build packaging still needs repo-level policy. The current warning-free Vite build is achieved by explicit vendor chunking and a chunk-size limit that acknowledges the real Phaser payload size.
 - Once villagers become commandable instead of scripted, path quality and occupancy will matter more than they do in the current one-tile-per-tick prototype movement.
 - The current production bundle is large because the runtime is still a single Phaser chunk. This is not a `civ-engine` problem, but it is part of the real integration cost.
+- External test fixtures and UI automation cannot safely treat `EntityId` as durable identity. The engine is right to recycle IDs; the repo has to own either semantic selectors or explicit `EntityRef` handling at those boundaries.
 
 ## Implications for next phases
 
@@ -70,5 +72,6 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 - military command and combat-state fan-out
 - AI combat command fan-out and building-target combat
 - building-target combat and defeat conditions
+- stable test-fixture seams that respect `EntityRef` semantics instead of assuming durable numeric IDs
 - fog-memory rules
 - save and load round-tripping

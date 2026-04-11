@@ -20,8 +20,11 @@ Current implementation status:
 - villagers can now build Mill, Lumber Camp, and Mining Camp, and completed drop-off buildings are used for resource returns instead of hardwiring all income through the Town Center
 - villagers can now build a Barracks, and completed Barracks can queue Militia through the same command-panel flow used by the Town Center
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
+- Militia can now be selected and right-clicked onto visible enemy buildings to destroy them through the same deterministic combat system
 - the first AI rush is now live: the enemy can build a House and Barracks, queue Militia, and pressure the human economy without player input
+- conquest-style victory and defeat now resolve inside the simulation and freeze the match when the outcome is final
 - the HUD includes a minimap driven from the same render frame as the main scene
+- startup is seedable through the page URL, which keeps browser gameplay fixtures deterministic during testing
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
 - automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, villager economy rules, production/building rules, and browser-level control/gameplay smoke tests through Playwright
@@ -48,13 +51,14 @@ The game currently starts directly into the prototype map. Use:
 - left click to select units and buildings
 - right click to issue context orders to the current selection
 - villagers use right click on visible resources to gather them explicitly
-- military units use right click on visible enemy units to attack them
+- military units use right click on visible enemy units and buildings to attack them
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
 - the selection panel to place Barracks with Villagers and queue Militia from completed Barracks
-- enemy AI currently runs a minimal scripted opening that builds out of population cap and sends Militia at the human villagers
+- enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches
+- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture` and `?seed=conquest-defeat-fixture`
 
 ## Verification
 
