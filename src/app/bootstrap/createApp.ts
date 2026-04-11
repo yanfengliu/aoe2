@@ -13,7 +13,8 @@ export function createApp(): Phaser.Game {
     throw new Error('Expected #game-root and #hud-root to exist.');
   }
 
-  const bridge = createSimulationBridge();
+  const seed = new URL(window.location.href).searchParams.get('seed')?.trim() || undefined;
+  const bridge = createSimulationBridge(seed);
   const scene = new GameScene(bridge);
   createHudController(hudRoot, bridge);
 

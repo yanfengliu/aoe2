@@ -5,9 +5,11 @@ import {
 } from 'civ-engine';
 
 import type {
+  BuildingType,
   ResourceKind,
   TerrainComponent,
   TerrainKind,
+  UnitType,
   VisionSourceComponent,
   WanderBoundsComponent,
 } from './types';
@@ -25,9 +27,8 @@ export interface TerrainCellSpec extends TerrainComponent {
 
 export interface ScenarioSpawnSpec {
   kind:
-    | 'town-center'
-    | 'villager'
-    | 'scout'
+    | BuildingType
+    | UnitType
     | ResourceKind;
   x: number;
   y: number;
@@ -133,6 +134,77 @@ const FOREST_PATCHES: Offset[][] = [
 ];
 
 const FORWARD_ENEMY_SCOUT_POSITION = { x: 13, y: 5 };
+const FORWARD_ENEMY_HOUSE_POSITION = { x: 12, y: 3 };
+
+function createConquestVictoryFixture(seed: string): PrototypeScenario {
+  const terrain = Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
+  );
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 8 } },
+      { owner: 2, townCenter: { x: 10, y: 8 } },
+    ],
+    spawns: [
+      {
+        kind: 'militia',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'house',
+        x: 10,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
+function createConquestDefeatFixture(seed: string): PrototypeScenario {
+  const terrain = Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
+  );
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      { owner: 2, townCenter: { x: 14, y: 8 } },
+    ],
+    spawns: [
+      {
+        kind: 'house',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'militia',
+        x: 11,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 5 },
+      },
+    ],
+  };
+}
 
 function seedToNumber(seed: string): number {
   let hash = 0;
@@ -289,6 +361,14 @@ function applyForestPatch(
 }
 
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
+  if (seed === 'conquest-victory-fixture') {
+    return createConquestVictoryFixture(seed);
+  }
+
+  if (seed === 'conquest-defeat-fixture') {
+    return createConquestDefeatFixture(seed);
+  }
+
   const terrain = createBaseTerrain(seed);
   const starts = createPlayerStarts();
   const spawns: ScenarioSpawnSpec[] = [];
@@ -387,6 +467,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
   }
 
   paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
+  paintDisc(terrain, FORWARD_ENEMY_HOUSE_POSITION, 2, 'grass');
+  spawns.push({
+    kind: 'house',
+    x: FORWARD_ENEMY_HOUSE_POSITION.x,
+    y: FORWARD_ENEMY_HOUSE_POSITION.y,
+    owner: 2,
+    baseOwner: 2,
+  });
   spawns.push({
     kind: 'scout',
     x: FORWARD_ENEMY_SCOUT_POSITION.x,

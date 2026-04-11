@@ -255,7 +255,66 @@ describe('createSimulationBridge', () => {
     }
 
     expect(
-      bridge.getEconomyState().units.some((unit) => unit.id === enemyScout?.id),
+      bridge.getEconomyState().units.some(
+        (unit) =>
+          unit.owner === 2
+          && unit.unitType === 'scout'
+          && unit.x === (enemyScout?.x ?? 13)
+          && unit.y === (enemyScout?.y ?? 5),
+      ),
+    ).toBe(false);
+  });
+
+  it('lets a selected Militia attack and destroy a visible enemy house', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+
+    for (let index = 0; index < 500; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(bridge.queueTrainUnit('militia')).toBe(true);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    const militia = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
+    const enemyHouse = bridge
+      .getEconomyState()
+      .buildings.find(
+        (building) =>
+          building.owner === 2
+          && building.buildingType === 'house'
+          && building.x === 12
+          && building.y === 3,
+      );
+
+    expect(militia).toBeDefined();
+    expect(enemyHouse).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(12, 3)).toBe(true);
+
+    for (let index = 0; index < 420; index += 1) {
+      bridge.step(100);
+    }
+
+    const postCombatState = bridge.getEconomyState();
+    expect(
+      postCombatState.buildings.some(
+        (building) =>
+          building.owner === 2
+          && building.buildingType === 'house'
+          && building.x === (enemyHouse?.x ?? 12)
+          && building.y === (enemyHouse?.y ?? 3),
+      ),
     ).toBe(false);
   });
 
@@ -279,4 +338,35 @@ describe('createSimulationBridge', () => {
       economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager').length,
     ).toBeLessThan(3);
   }, 10_000);
+
+  it('declares victory when the player destroys the last enemy structure in the conquest fixture', () => {
+    const bridge = createSimulationBridge('conquest-victory-fixture');
+
+    expect(bridge.getHudState().matchState.outcome).toBe('running');
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.issueContextCommand(10, 8)).toBe(true);
+
+    for (let index = 0; index < 220; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().matchState.outcome).toBe('victory');
+  });
+
+  it('declares defeat when the last human structure falls in the defeat fixture', () => {
+    const bridge = createSimulationBridge('conquest-defeat-fixture');
+
+    expect(bridge.getHudState().matchState.outcome).toBe('running');
+
+    for (let index = 0; index < 220; index += 1) {
+      bridge.step(100);
+    }
+
+    const hudState = bridge.getHudState();
+    expect(hudState.matchState.outcome).toBe('defeat');
+
+    const frozenTick = hudState.tick;
+    bridge.step(100);
+    expect(bridge.getHudState().tick).toBe(frozenTick);
+  });
 });

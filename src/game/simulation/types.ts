@@ -195,4 +195,10 @@ export interface HudState {
   seed: string;
   playerResources: PlayerResources;
   population: PopulationState;
+  matchState: MatchState;
+}
+
+export interface MatchState {
+  outcome: 'running' | 'victory' | 'defeat';
+  summary: string;
 }

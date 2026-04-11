@@ -29,14 +29,19 @@ describe('createPrototypeScenario', () => {
     const forwardEnemyScout = scenario.spawns.find(
       (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.x === 13 && spawn.y === 5,
     );
+    const forwardEnemyHouse = scenario.spawns.find(
+      (spawn) => spawn.kind === 'house' && spawn.owner === 2 && spawn.x === 12 && spawn.y === 3,
+    );
 
     expect(scenario.width).toBe(MAP_WIDTH);
     expect(scenario.height).toBe(MAP_HEIGHT);
     expect(countBy('town-center')).toBe(2);
     expect(countBy('villager')).toBe(6);
     expect(countBy('scout')).toBe(3);
+    expect(countBy('house')).toBe(1);
     expect(startingScouts).toHaveLength(2);
     expect(forwardEnemyScout).toBeDefined();
+    expect(forwardEnemyHouse).toBeDefined();
 
     for (const owner of [1, 2]) {
       expect(countBy('sheep', owner)).toBe(4);
@@ -67,5 +72,30 @@ describe('createPrototypeScenario', () => {
         }
       }
     }
+  });
+
+  it('provides focused conquest fixtures for deterministic win/loss tests', () => {
+    const victoryScenario = createPrototypeScenario('conquest-victory-fixture');
+    const defeatScenario = createPrototypeScenario('conquest-defeat-fixture');
+
+    expect(victoryScenario.starts).toHaveLength(2);
+    expect(
+      victoryScenario.spawns.some(
+        (spawn) => spawn.kind === 'militia' && spawn.owner === 1,
+      ),
+    ).toBe(true);
+    expect(
+      victoryScenario.spawns.some(
+        (spawn) => spawn.kind === 'house' && spawn.owner === 2,
+      ),
+    ).toBe(true);
+    expect(
+      defeatScenario.spawns.some(
+        (spawn) => spawn.kind === 'militia' && spawn.owner === 2,
+      ),
+    ).toBe(true);
+    expect(
+      defeatScenario.spawns.filter((spawn) => spawn.owner === 1 && spawn.kind === 'villager'),
+    ).toHaveLength(0);
   });
 });

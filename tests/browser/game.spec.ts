@@ -20,9 +20,13 @@ interface ScreenPoint {
 }
 
 async function waitForBoot(page: Page): Promise<void> {
-  await page.goto('/');
+  await waitForBootWithSeed(page, 'aoe2-prototype');
+}
+
+async function waitForBootWithSeed(page: Page, seed: string): Promise<void> {
+  await page.goto(`/?seed=${seed}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
-  await expect(page.locator('[data-hud="seed"]')).toHaveText('aoe2-prototype');
+  await expect(page.locator('[data-hud="seed"]')).toHaveText(seed);
   await expect.poll(async () => {
     const snapshot = await getSnapshot(page);
     return snapshot.hudState.tick;
@@ -389,7 +393,75 @@ test.describe('browser gameplay smoke tests', () => {
     );
 
     expect(
-      combatSnapshot.economyState.units.some((unit) => unit.id === enemyScout?.id),
+      combatSnapshot.economyState.units.some(
+        (unit) =>
+          unit.owner === 2
+          && unit.unitType === 'scout'
+          && unit.x === (enemyScout?.x ?? 13)
+          && unit.y === (enemyScout?.y ?? 5),
+      ),
+    ).toBe(false);
+  });
+
+  test('can command a Militia to destroy a visible enemy house', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await page.locator('[data-command="build-barracks"]').click();
+    await clickCell(page, 10, 5);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+
+    await clickCell(page, 10, 5);
+    await page.locator('[data-command="train-militia"]').click();
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
+
+    const trainedSnapshot = await getSnapshot(page);
+    const militia = trainedSnapshot.economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'militia',
+    );
+    const enemyHouse = trainedSnapshot.economyState.buildings.find(
+      (building) =>
+        building.owner === 2
+        && building.buildingType === 'house'
+        && building.x === 12
+        && building.y === 3,
+    );
+    expect(militia).toBeDefined();
+    expect(enemyHouse).toBeDefined();
+
+    const issuedAttack = await page.evaluate(
+      ({ militiaX, militiaY }) => {
+        const api = window.__AOE2_TEST__!;
+        api.clearSelection();
+        api.selectEntityAtCell(militiaX, militiaY);
+        return api.issueContextCommand(12, 3);
+      },
+      {
+        militiaX: militia?.x ?? 0,
+        militiaY: militia?.y ?? 0,
+      },
+    );
+    expect(issuedAttack).toBe(true);
+
+    const combatSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(420, 100),
+    );
+
+    expect(
+      combatSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 2
+          && building.buildingType === 'house'
+          && building.x === (enemyHouse?.x ?? 12)
+          && building.y === (enemyHouse?.y ?? 3),
+      ),
     ).toBe(false);
   });
 
@@ -415,5 +487,41 @@ test.describe('browser gameplay smoke tests', () => {
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ).length,
     ).toBeLessThan(3);
+  });
+
+  test('shows victory after the player destroys the last enemy structure in the conquest fixture', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'conquest-victory-fixture');
+
+    await clickCell(page, 8, 8);
+    await clickCell(page, 10, 8, 'right');
+
+    const snapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(220, 100),
+    );
+
+    await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Victory');
+    expect(snapshot.hudState.matchState.outcome).toBe('victory');
+  });
+
+  test('shows defeat and freezes the sim after the last human structure falls in the defeat fixture', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'conquest-defeat-fixture');
+
+    const snapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(220, 100),
+    );
+
+    await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Defeat');
+    expect(snapshot.hudState.matchState.outcome).toBe('defeat');
+
+    const frozenTick = snapshot.hudState.tick;
+    const nextSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+    );
+
+    expect(nextSnapshot.hudState.tick).toBe(frozenTick);
   });
 });

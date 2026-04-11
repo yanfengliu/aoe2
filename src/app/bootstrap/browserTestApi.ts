@@ -17,6 +17,9 @@ interface BrowserTestBridge {
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
+  selectEntityAtCell(x: number, y: number): boolean;
+  clearSelection(): void;
+  issueContextCommand(x: number, y: number): boolean;
 }
 
 export interface BrowserTestSnapshot {
@@ -35,6 +38,9 @@ export interface BrowserTestApi {
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
+  selectEntityAtCell(cellX: number, cellY: number): boolean;
+  clearSelection(): void;
+  issueContextCommand(cellX: number, cellY: number): boolean;
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
 }
@@ -78,6 +84,9 @@ export function installBrowserTestApi(
       }
       return point;
     },
+    selectEntityAtCell: (cellX: number, cellY: number) => bridge.selectEntityAtCell(cellX, cellY),
+    clearSelection: () => bridge.clearSelection(),
+    issueContextCommand: (cellX: number, cellY: number) => bridge.issueContextCommand(cellX, cellY),
     getSnapshot: () => getSnapshot(bridge, scene),
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));

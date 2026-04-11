@@ -173,6 +173,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <div class="hud-label">Seed</div>
           <div class="hud-value" data-hud="seed">-</div>
         </div>
+        <div class="hud-chip">
+          <div class="hud-label">Outcome</div>
+          <div class="hud-value" data-hud="match-outcome">Running</div>
+        </div>
       </div>
     </div>
     <div class="hud-bottom">
@@ -189,7 +193,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           data-hud="minimap"
         ></canvas>
       </div>
-      <div class="hud-footer">
+      <div class="hud-footer" data-hud="match-summary">
         Phase 3 slice: select units and buildings on the map, queue Villagers from
         the Town Center, place Houses, Dark Age drop-off buildings, and Barracks
         with Villagers, pan with arrow keys or WASD, and use the mouse wheel to
@@ -211,6 +215,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const exploredCells = root.querySelector<HTMLElement>('[data-hud="explored-cells"]');
   const tickMs = root.querySelector<HTMLElement>('[data-hud="tick-ms"]');
   const seed = root.querySelector<HTMLElement>('[data-hud="seed"]');
+  const matchOutcome = root.querySelector<HTMLElement>('[data-hud="match-outcome"]');
+  const matchSummary = root.querySelector<HTMLElement>('[data-hud="match-summary"]');
   const minimap = root.querySelector<HTMLCanvasElement>('[data-hud="minimap"]');
   const selectionPanel = root.querySelector<HTMLElement>('[data-hud="selection-panel"]');
 
@@ -320,6 +326,17 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     if (exploredCells) exploredCells.textContent = String(hudState.exploredCells);
     if (tickMs) tickMs.textContent = hudState.tickDurationMs.toFixed(2);
     if (seed) seed.textContent = hudState.seed;
+    if (matchOutcome) {
+      matchOutcome.textContent =
+        hudState.matchState.outcome === 'running'
+          ? 'Running'
+          : hudState.matchState.outcome === 'victory'
+            ? 'Victory'
+            : 'Defeat';
+    }
+    if (matchSummary) {
+      matchSummary.textContent = hudState.matchState.summary;
+    }
     renderSelectionPanel(selectionState);
 
     if (minimap && renderState.tick !== lastRenderedTick) {
