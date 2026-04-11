@@ -74,3 +74,10 @@
 **Files changed:** `design/spec-final.md`, `design/sources/README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The user asked for one official spec instead of two parallel documents. Consolidation removes ambiguity about which draft is authoritative and reduces the risk of future design drift between overlapping markdown files.
 **Notes:** `design/spec-codex.md` and `design/spec-claude.md` are retained as precursor drafts, but `design/spec-final.md` is now the canonical spec. No tests were run because this was a documentation-only change.
+
+## [2026-04-10 22:06, America/Los_Angeles] - Add implementation plan for building the game
+**Action:** Wrote `design/implementation-plan.md` as the execution plan for turning `design/spec-final.md` into a game, chose the default browser stack (`TypeScript`, `Vite`, `Phaser 3`, DOM HUD, `civ-engine` simulation core), defined the repository shape, phased milestones, testing strategy, and risk controls, and updated `README.md` to surface the official spec and implementation plan.
+**Result:** The repo now has a concrete greenfield delivery plan instead of only a rules spec. The plan explicitly sequences the work from project bootstrap and content normalization through playable economy, Feudal/Castle/Imperial slices, AI, save/load, and stability. It also frames the project correctly as a proof that `civ-engine` can support an AoE2-style RTS.
+**Files changed:** `design/implementation-plan.md`, `README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user asked for an implementation plan document, not more design prose. The right output is a plan that names the stack, boundaries, milestones, and validation gates so implementation can start without reopening foundational architecture questions.
+**Notes:** This was a documentation-only change. No tests were run.
