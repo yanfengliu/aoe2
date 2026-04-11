@@ -14,6 +14,11 @@ interface MinimapStats {
   nonBackgroundPixelCount: number;
 }
 
+interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
 async function waitForBoot(page: Page): Promise<void> {
   await page.goto('/');
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
@@ -57,6 +62,38 @@ async function getMinimapStats(
       height: canvas.height,
       nonBackgroundPixelCount,
     };
+  });
+}
+
+async function getScreenPointForCell(
+  page: Page,
+  cellX: number,
+  cellY: number,
+): Promise<ScreenPoint> {
+  return page.evaluate(
+    ({ cellX: x, cellY: y }) => window.__AOE2_TEST__!.worldToScreen(x, y),
+    { cellX, cellY },
+  );
+}
+
+async function clickCell(
+  page: Page,
+  cellX: number,
+  cellY: number,
+  button: 'left' | 'right' = 'left',
+): Promise<void> {
+  const point = await getScreenPointForCell(page, cellX, cellY);
+  const canvas = page.locator('#game-root canvas');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+
+  await canvas.click({
+    position: {
+      x: point.x - (bounds?.x ?? 0),
+      y: point.y - (bounds?.y ?? 0),
+    },
+    button,
+    force: true,
   });
 }
 
@@ -149,6 +186,70 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(true);
     expect(
       advancedSnapshot.economyState.villagers.every((villager) => villager.task !== 'idle'),
+    ).toBe(true);
+  });
+
+  test('can select the Town Center and train a villager through the command panel', async ({ page }) => {
+    await waitForBoot(page);
+
+    await clickCell(page, 8, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await page.locator('[data-command="train-villager"]').click();
+
+    await expect(page.locator('[data-hud="food"]')).toHaveText('150');
+    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+
+    const advancedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+    );
+
+    await expect(page.locator('[data-hud="pop"]')).toHaveText('5/5');
+    expect(
+      advancedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(4);
+  });
+
+  test('can place and complete a House with villager build controls', async ({ page }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-house"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
+
+    await clickCell(page, 10, 5);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('175');
+
+    const placedSnapshot = await getSnapshot(page);
+    expect(
+      placedSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'house'
+          && building.x === 10
+          && building.y === 5
+          && building.isComplete === false,
+      ),
+    ).toBe(true);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+
+    await expect(page.locator('[data-hud="pop"]')).toHaveText('4/10');
+    const completedSnapshot = await getSnapshot(page);
+    expect(
+      completedSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'house'
+          && building.isComplete,
+      ),
     ).toBe(true);
   });
 });

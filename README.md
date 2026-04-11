@@ -15,10 +15,11 @@ Current implementation status:
 - a deterministic 36x24 prototype map renders with terrain, Town Centers, Villagers, Scouts, and nearby starting resources
 - fog of war and explored-state shading now run through `civ-engine` `VisibilityMap`
 - villagers now run an autonomous gather-and-dropoff economy loop for food and wood
+- the player can now select Town Centers and Villagers, queue Villagers, place Houses, and raise population cap through completed construction
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
-- automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, villager economy rules, and browser-level control/gameplay smoke tests through Playwright
+- automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, villager economy rules, production/building rules, and browser-level control/gameplay smoke tests through Playwright
 
 ## Run locally
 
@@ -39,8 +40,12 @@ Setup:
 
 The game currently starts directly into the prototype map. Use:
 
+- left click to select units and buildings
+- right click to issue move orders to the current selection
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
+- the selection panel to queue Villagers from the Town Center
+- the selection panel to place Houses with Villagers
 
 ## Verification
 

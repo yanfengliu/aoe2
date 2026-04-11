@@ -70,11 +70,12 @@ body {
 }
 
 .hud-bottom {
-  justify-self: end;
+  justify-self: stretch;
   align-self: end;
-  display: grid;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
   gap: 10px;
-  justify-items: end;
 }
 
 .hud-panel {
@@ -88,6 +89,49 @@ body {
 .hud-panel--map {
   display: grid;
   gap: 8px;
+}
+
+.hud-panel--selection {
+  min-width: 240px;
+  max-width: 280px;
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.hud-selection-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f4ead1;
+}
+
+.hud-selection-meta {
+  color: #d9d0bd;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.hud-command-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hud-command-button {
+  pointer-events: auto;
+  border: 1px solid rgba(221, 196, 145, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #5b4633 0%, #3b2d22 100%);
+  color: #f4ead1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.hud-command-button:hover {
+  background: linear-gradient(180deg, #70563d 0%, #463224 100%);
 }
 
 .hud-minimap {
@@ -121,6 +165,16 @@ body {
   }
 
   .hud-footer {
+    max-width: 320px;
+  }
+
+  .hud-bottom {
+    flex-direction: column;
+    align-items: end;
+  }
+
+  .hud-panel--selection {
+    width: 100%;
     max-width: 320px;
   }
 }

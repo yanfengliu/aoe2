@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first player-commanded Dark Age slice. The player can now select Town Centers and Villagers, queue Villagers, place Houses, and increase population cap through completed construction. Automated coverage is now `3` Vitest files / `13` assertions plus `5` passing Playwright browser tests.
 2026-04-11 - Added Playwright browser gameplay tests plus a repo-wide `verify` command. Browser coverage now checks boot, minimap/HUD rendering, camera pan/zoom controls, and deterministic economy/exploration progression against the live game. Current automated total: `3` Vitest files / `11` assertions plus `3` passing Playwright browser tests.
 2026-04-10 - Expanded `README.md` with explicit local run instructions: prerequisites, `npm.cmd install`, `npm.cmd run dev`, the default local URL, controls, and the standard verification commands.
 2026-04-11 - Stopped tracking `generated/content/content.json` (gitignore + `git rm --cached`); build still generates it via `prebuild` / `content:build`.

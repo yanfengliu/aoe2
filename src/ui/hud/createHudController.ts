@@ -1,11 +1,17 @@
 import type {
+  BuildingType,
   HudState,
   RenderState,
+  SelectionState,
+  UnitType,
 } from '../../game/simulation/types';
 
 interface HudBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
+  getSelectionState(): SelectionState;
+  queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
+  beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean;
 }
 
 function tintToCss(tint: number): string {
@@ -82,6 +88,25 @@ function drawMinimap(canvas: HTMLCanvasElement, renderState: RenderState): void 
   }
 }
 
+function formatEntityName(entityType: SelectionState['selectedEntityType']): string {
+  if (!entityType) {
+    return 'No selection';
+  }
+
+  switch (entityType) {
+    case 'town-center':
+      return 'Town Center';
+    case 'house':
+      return 'House';
+    case 'villager':
+      return 'Villager';
+    case 'scout':
+      return 'Scout Cavalry';
+    default:
+      return entityType;
+  }
+}
+
 export function createHudController(root: HTMLElement, bridge: HudBridge): void {
   root.innerHTML = `
     <div class="hud-top">
@@ -141,6 +166,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
     </div>
     <div class="hud-bottom">
+      <div
+        class="hud-panel hud-panel--selection"
+        data-hud="selection-panel"
+      ></div>
       <div class="hud-panel hud-panel--map">
         <div class="hud-label">Minimap</div>
         <canvas
@@ -151,9 +180,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ></canvas>
       </div>
       <div class="hud-footer">
-        Phase 2 slice: deterministic starts, nearby resources, player fog of war,
-        and a minimap now ride the same civ-engine render frame. Use arrow keys or
-        WASD to pan and the mouse wheel to zoom.
+        Phase 3 slice: select units and buildings on the map, queue Villagers from
+        the Town Center, place Houses with Villagers, pan with arrow keys or WASD,
+        and use the mouse wheel to zoom.
       </div>
     </div>
   `;
@@ -172,12 +201,63 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const tickMs = root.querySelector<HTMLElement>('[data-hud="tick-ms"]');
   const seed = root.querySelector<HTMLElement>('[data-hud="seed"]');
   const minimap = root.querySelector<HTMLCanvasElement>('[data-hud="minimap"]');
+  const selectionPanel = root.querySelector<HTMLElement>('[data-hud="selection-panel"]');
 
   let lastRenderedTick = -1;
+  let lastSelectionSignature = '';
+
+  function renderSelectionPanel(selectionState: SelectionState): void {
+    if (!selectionPanel) {
+      return;
+    }
+
+    const signature = JSON.stringify(selectionState);
+    if (signature === lastSelectionSignature) {
+      return;
+    }
+    lastSelectionSignature = signature;
+
+    const queueText = selectionState.queue.length > 0
+      ? `${selectionState.queue.length} queued`
+      : 'Queue empty';
+    const placementText = selectionState.placementMode
+      ? `Placing: ${formatEntityName(selectionState.placementMode)}`
+      : 'Placement: Off';
+
+    selectionPanel.innerHTML = `
+      <div class="hud-label">Selection</div>
+      <div class="hud-selection-name" data-selection-name>${formatEntityName(selectionState.selectedEntityType)}</div>
+      <div class="hud-selection-meta">
+        ${selectionState.x === null || selectionState.y === null ? 'No active entity.' : `Tile ${selectionState.x}, ${selectionState.y}`}
+      </div>
+      <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
+      <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
+      <div class="hud-command-list">
+        ${selectionState.trainOptions.includes('villager')
+          ? '<button class="hud-command-button" data-command="train-villager" type="button">Train Villager</button>'
+          : ''}
+        ${selectionState.buildOptions.includes('house')
+          ? '<button class="hud-command-button" data-command="build-house" type="button">Build House</button>'
+          : ''}
+      </div>
+    `;
+
+    selectionPanel
+      .querySelector<HTMLButtonElement>('[data-command="train-villager"]')
+      ?.addEventListener('click', () => {
+        bridge.queueTrainUnit('villager');
+      });
+    selectionPanel
+      .querySelector<HTMLButtonElement>('[data-command="build-house"]')
+      ?.addEventListener('click', () => {
+        bridge.beginBuildingPlacement('house');
+      });
+  }
 
   function update(): void {
     const hudState = bridge.getHudState();
     const renderState = bridge.getRenderState();
+    const selectionState = bridge.getSelectionState();
 
     if (tick) tick.textContent = String(hudState.tick);
     if (entities) entities.textContent = String(hudState.entityCount);
@@ -192,6 +272,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     if (exploredCells) exploredCells.textContent = String(hudState.exploredCells);
     if (tickMs) tickMs.textContent = hudState.tickDurationMs.toFixed(2);
     if (seed) seed.textContent = hudState.seed;
+    renderSelectionPanel(selectionState);
 
     if (minimap && renderState.tick !== lastRenderedTick) {
       drawMinimap(minimap, renderState);

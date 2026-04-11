@@ -18,6 +18,7 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import type {
+  BuildingType,
   BuildingComponent,
   EconomyResourceKind,
   EconomyState,
@@ -25,14 +26,18 @@ import type {
   HudState,
   PlayerResources,
   PopulationState,
+  ProductionQueueEntry,
   ProjectedEntityView,
   ProjectedFrameView,
   RenderState,
   RenderableComponent,
   ResourceComponent,
   ResourceKind,
+  SelectionState,
   TerrainComponent,
   UnitComponent,
+  UnitTaskState,
+  UnitType,
   VelocityComponent,
   VisionSourceComponent,
   WanderBoundsComponent,
@@ -46,6 +51,13 @@ export interface SimulationBridge {
   getRenderState(): RenderState;
   getHudState(): HudState;
   getEconomyState(): EconomyState;
+  getSelectionState(): SelectionState;
+  selectEntityAtCell(x: number, y: number): boolean;
+  clearSelection(): void;
+  issueMoveCommand(x: number, y: number): boolean;
+  queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
+  beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean;
+  confirmBuildingPlacement(x: number, y: number): boolean;
 }
 
 const STANDARD_STARTING_RESOURCES: PlayerResources = {
@@ -56,6 +68,23 @@ const STANDARD_STARTING_RESOURCES: PlayerResources = {
 };
 
 const STANDARD_POPULATION_CAP = 5;
+const VILLAGER_TRAIN_TIME_TICKS = 250;
+const HOUSE_BUILD_TIME_TICKS = 120;
+
+interface UnitCommand {
+  type: 'move' | 'build';
+  target: Position;
+  buildingId?: number;
+}
+
+interface ConstructionState {
+  isComplete: boolean;
+  buildProgressTicks: number;
+  totalBuildTicks: number;
+  populationProvided: number;
+  width: number;
+  height: number;
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -169,14 +198,14 @@ function isResourceCandidate(
 function isEconomyVillager(
   entry: {
     owner: number;
-    task: GathererComponent['task'];
+    task: UnitTaskState;
     desiredResource: GathererComponent['desiredResource'];
     carriedResource: GathererComponent['carriedResource'];
     carriedAmount: number;
   } | null,
 ): entry is {
   owner: number;
-  task: GathererComponent['task'];
+  task: UnitTaskState;
   desiredResource: GathererComponent['desiredResource'];
   carriedResource: GathererComponent['carriedResource'];
   carriedAmount: number;
@@ -204,10 +233,110 @@ function isEconomyResourceEntry(
   return entry !== null;
 }
 
+function cloneQueue(queue: ProductionQueueEntry[]): ProductionQueueEntry[] {
+  return queue.map((entry) => ({ ...entry }));
+}
+
+function buildingFootprint(buildingType: BuildingType): { width: number; height: number } {
+  switch (buildingType) {
+    case 'house':
+      return { width: 2, height: 2 };
+    case 'town-center':
+      return { width: 1, height: 1 };
+  }
+}
+
+function buildingPopulationProvided(buildingType: BuildingType): number {
+  switch (buildingType) {
+    case 'house':
+      return 5;
+    case 'town-center':
+      return 0;
+  }
+}
+
+function buildingBuildTimeTicks(buildingType: BuildingType): number {
+  switch (buildingType) {
+    case 'house':
+      return HOUSE_BUILD_TIME_TICKS;
+    case 'town-center':
+      return 0;
+  }
+}
+
+function buildingSize(buildingType: BuildingType): number {
+  switch (buildingType) {
+    case 'house':
+      return 1.1;
+    case 'town-center':
+      return 1.4;
+  }
+}
+
+function buildingTint(
+  buildingType: BuildingType,
+  owner: number,
+  isComplete: boolean,
+): number {
+  if (buildingType === 'house') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xc8a15e : 0x6d593d
+      : isComplete ? 0xa66b6b : 0x6a4747;
+  }
+
+  return owner === HUMAN_PLAYER_ID
+    ? isComplete ? 0xd8b36c : 0x7d6545
+    : isComplete ? 0xa15c5c : 0x674040;
+}
+
+function canAfford(
+  resources: PlayerResources,
+  cost: Partial<PlayerResources>,
+): boolean {
+  return (
+    resources.food >= (cost.food ?? 0)
+    && resources.wood >= (cost.wood ?? 0)
+    && resources.gold >= (cost.gold ?? 0)
+    && resources.stone >= (cost.stone ?? 0)
+  );
+}
+
+function spendResources(
+  resources: PlayerResources,
+  cost: Partial<PlayerResources>,
+): void {
+  resources.food -= cost.food ?? 0;
+  resources.wood -= cost.wood ?? 0;
+  resources.gold -= cost.gold ?? 0;
+  resources.stone -= cost.stone ?? 0;
+}
+
+function trainingCost(unitType: Extract<UnitType, 'villager'>): Partial<PlayerResources> {
+  switch (unitType) {
+    case 'villager':
+      return { food: 50 };
+  }
+}
+
+function constructionCost(buildingType: Extract<BuildingType, 'house'>): Partial<PlayerResources> {
+  switch (buildingType) {
+    case 'house':
+      return { wood: 25 };
+  }
+}
+
+function trainingTimeTicks(unitType: Extract<UnitType, 'villager'>): number {
+  switch (unitType) {
+    case 'villager':
+      return VILLAGER_TRAIN_TIME_TICKS;
+  }
+}
+
 function createProjector(
   visibility: VisibilityMap,
   playerId: number,
   seed: string,
+  isSelected: (id: number) => boolean,
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -254,6 +383,7 @@ function createProjector(
       }
 
       return {
+        id: ref.id,
         kind: renderable.kind,
         layer: renderable.layer,
         entityType,
@@ -262,6 +392,7 @@ function createProjector(
         y: position.y,
         tint: renderable.tint,
         size: renderable.size,
+        selected: isSelected(ref.id),
       };
     },
     projectFrame(world) {
@@ -324,6 +455,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getEconomyState: () => EconomyState;
   getPopulationState: (playerId: number) => PopulationState;
   getPlayerResources: (playerId: number) => PlayerResources;
+  getSelectionState: () => SelectionState;
+  selectEntityAtCell: (x: number, y: number) => boolean;
+  clearSelection: () => void;
+  issueMoveCommand: (x: number, y: number) => boolean;
+  queueTrainUnit: (unitType: Extract<UnitType, 'villager'>) => boolean;
+  beginBuildingPlacement: (buildingType: Extract<BuildingType, 'house'>) => boolean;
+  confirmBuildingPlacement: (x: number, y: number) => boolean;
+  isSelected: (id: number) => boolean;
 } {
   const world = new World<GameEvents, GameCommands>({
     gridWidth: MAP_WIDTH,
@@ -337,6 +476,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const population = new Map<number, PopulationState>();
   const townCenterIds = new Map<number, number>();
   const villagerOrdinals = new Map<number, number>();
+  const unitCommands = new Map<number, UnitCommand>();
+  const productionQueues = new Map<number, ProductionQueueEntry[]>();
+  const constructionStates = new Map<number, ConstructionState>();
+  let selectedEntityId: number | null = null;
+  let placementMode: BuildingType | null = null;
 
   world.registerComponent<Position>('position');
   world.registerComponent<TerrainComponent>('terrain');
@@ -385,114 +529,310 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
   }
 
-  for (const spawn of scenario.spawns) {
+  function addUnitEntity(
+    owner: number,
+    unitType: UnitType,
+    position: Position,
+    vision?: VisionSourceComponent,
+  ): number {
     const entity = world.createEntity();
-    world.setPosition(entity, { x: spawn.x, y: spawn.y });
+    world.setPosition(entity, position);
+    world.addComponent(entity, 'unit', {
+      owner,
+      unitType,
+    });
+    world.addComponent(entity, 'renderable', {
+      kind: 'unit',
+      layer: 'unit',
+      tint:
+        unitType === 'villager'
+          ? owner === HUMAN_PLAYER_ID
+            ? 0xf3e2b7
+            : 0xf0b8b8
+          : owner === HUMAN_PLAYER_ID
+            ? 0xead74a
+            : 0xef7d57,
+      size: unitType === 'villager' ? 0.45 : 0.55,
+    });
 
+    const populationState = population.get(owner);
+    if (populationState) {
+      populationState.current += 1;
+    }
+
+    if (unitType === 'villager') {
+      const ordinal = villagerOrdinals.get(owner) ?? 0;
+      villagerOrdinals.set(owner, ordinal + 1);
+      world.addComponent(entity, 'gatherer', {
+        desiredResource: assignVillagerRole(owner, ordinal),
+        task: 'idle',
+        targetResourceId: null,
+        dropOffBuildingId: null,
+        carriedResource: null,
+        carriedAmount: 0,
+        carryCapacity: 10,
+        gatherProgressTicks: 0,
+      });
+    }
+
+    if (vision) {
+      world.addComponent(entity, 'visionSource', vision);
+    }
+
+    return entity;
+  }
+
+  function addBuildingEntity(
+    owner: number,
+    buildingType: BuildingType,
+    position: Position,
+    isComplete: boolean,
+    vision?: VisionSourceComponent,
+  ): number {
+    const entity = world.createEntity();
+    world.setPosition(entity, position);
+    world.addComponent(entity, 'building', {
+      owner,
+      buildingType,
+    });
+    world.addComponent(entity, 'renderable', {
+      kind: 'building',
+      layer: 'building',
+      tint: buildingTint(buildingType, owner, isComplete),
+      size: buildingSize(buildingType),
+    });
+
+    if (buildingType === 'town-center') {
+      townCenterIds.set(owner, entity);
+      if (!productionQueues.has(entity)) {
+        productionQueues.set(entity, []);
+      }
+    }
+
+    if (!isComplete) {
+      const footprint = buildingFootprint(buildingType);
+      constructionStates.set(entity, {
+        isComplete: false,
+        buildProgressTicks: 0,
+        totalBuildTicks: buildingBuildTimeTicks(buildingType),
+        populationProvided: buildingPopulationProvided(buildingType),
+        width: footprint.width,
+        height: footprint.height,
+      });
+    }
+
+    if (vision) {
+      world.addComponent(entity, 'visionSource', vision);
+    }
+
+    return entity;
+  }
+
+  function addResourceEntity(
+    resourceType: ResourceKind,
+    position: Position,
+    amount: number,
+    baseOwner: number | null,
+  ): number {
+    const entity = world.createEntity();
+    world.setPosition(entity, position);
+
+    const tintByResource: Record<ResourceComponent['resourceType'], number> = {
+      'berry-bush': 0x7a4c8e,
+      'gold-mine': 0xd8b44c,
+      'stone-mine': 0x8f9aa4,
+      boar: 0x6a3b2e,
+      sheep: 0xe7ece6,
+      tree: 0x214d2d,
+    };
+    const sizeByResource: Record<ResourceComponent['resourceType'], number> = {
+      'berry-bush': 0.45,
+      'gold-mine': 0.8,
+      'stone-mine': 0.8,
+      boar: 0.48,
+      sheep: 0.42,
+      tree: 0.58,
+    };
+
+    world.addComponent(entity, 'resource', {
+      resourceType,
+      amount,
+      maxAmount: amount,
+      baseOwner,
+    });
+    world.addComponent(entity, 'renderable', {
+      kind: 'resource',
+      layer: 'resource',
+      tint: tintByResource[resourceType],
+      size: sizeByResource[resourceType],
+    });
+
+    return entity;
+  }
+
+  for (const spawn of scenario.spawns) {
     if (spawn.kind === 'town-center') {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      townCenterIds.set(owner, entity);
-      world.addComponent(entity, 'building', {
-        owner,
-        buildingType: 'town-center',
-      });
-      world.addComponent(entity, 'renderable', {
-        kind: 'building',
-        layer: 'building',
-        tint: owner === HUMAN_PLAYER_ID ? 0xd8b36c : 0xa15c5c,
-        size: 1.4,
-      });
+      addBuildingEntity(owner, 'town-center', { x: spawn.x, y: spawn.y }, true, spawn.vision);
+      continue;
     }
 
     if (spawn.kind === 'villager' || spawn.kind === 'scout') {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      world.addComponent(entity, 'unit', {
-        owner,
-        unitType: spawn.kind,
-      });
-      world.addComponent(entity, 'renderable', {
-        kind: 'unit',
-        layer: 'unit',
-        tint:
-          spawn.kind === 'villager'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0xf3e2b7
-              : 0xf0b8b8
-            : owner === HUMAN_PLAYER_ID
-              ? 0xead74a
-              : 0xef7d57,
-        size: spawn.kind === 'villager' ? 0.45 : 0.55,
-      });
-
-      const populationState = population.get(owner);
-      if (populationState) {
-        populationState.current += 1;
+      const unitId = addUnitEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, spawn.vision);
+      if (spawn.velocity) {
+        world.addComponent(unitId, 'velocity', spawn.velocity);
       }
+      if (spawn.wanderBounds) {
+        world.addComponent(unitId, 'wanderBounds', spawn.wanderBounds);
+      }
+      continue;
+    }
 
-      if (spawn.kind === 'villager') {
-        const ordinal = villagerOrdinals.get(owner) ?? 0;
-        villagerOrdinals.set(owner, ordinal + 1);
-        world.addComponent(entity, 'gatherer', {
-          desiredResource: assignVillagerRole(owner, ordinal),
-          task: 'idle',
-          targetResourceId: null,
-          dropOffBuildingId: null,
-          carriedResource: null,
-          carriedAmount: 0,
-          carryCapacity: 10,
-          gatherProgressTicks: 0,
-        });
+    addResourceEntity(
+      spawn.kind,
+      { x: spawn.x, y: spawn.y },
+      spawn.amount ?? 0,
+      spawn.baseOwner,
+    );
+  }
+
+  function getUnitTaskState(id: number): UnitTaskState {
+    const command = unitCommands.get(id);
+    if (command) {
+      return command.type === 'move' ? 'moving' : 'building';
+    }
+
+    const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+    return gatherer?.task ?? 'idle';
+  }
+
+  function buildingOccupiesCell(buildingId: number, x: number, y: number): boolean {
+    const position = world.getComponent<Position>(buildingId, 'position');
+    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+    if (!position || !building) {
+      return false;
+    }
+
+    const construction = constructionStates.get(buildingId);
+    const footprint = construction ?? {
+      width: buildingFootprint(building.buildingType).width,
+      height: buildingFootprint(building.buildingType).height,
+    };
+
+    return (
+      x >= position.x
+      && x < position.x + footprint.width
+      && y >= position.y
+      && y < position.y + footprint.height
+    );
+  }
+
+  function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
+    for (let cellY = y; cellY < y + height; cellY += 1) {
+      for (let cellX = x; cellX < x + width; cellX += 1) {
+        if (cellX < 0 || cellX >= MAP_WIDTH || cellY < 0 || cellY >= MAP_HEIGHT) {
+          return true;
+        }
+
+        const tile = tiles[cellY]?.[cellX];
+        const terrain = tile === undefined ? null : world.getComponent<TerrainComponent>(tile, 'terrain');
+        if (!terrain?.buildable) {
+          return true;
+        }
+
+        for (const buildingId of world.query('building')) {
+          if (buildingOccupiesCell(buildingId, cellX, cellY)) {
+            return true;
+          }
+        }
+
+        for (const id of world.query('position', 'resource')) {
+          const position = world.getComponent<Position>(id, 'position');
+          if (position?.x === cellX && position.y === cellY) {
+            return true;
+          }
+        }
+
+        for (const id of world.query('position', 'unit')) {
+          const position = world.getComponent<Position>(id, 'position');
+          if (position?.x === cellX && position.y === cellY) {
+            return true;
+          }
+        }
       }
     }
 
-    if (
-      spawn.kind === 'berry-bush' ||
-      spawn.kind === 'gold-mine' ||
-      spawn.kind === 'stone-mine' ||
-      spawn.kind === 'boar' ||
-      spawn.kind === 'sheep' ||
-      spawn.kind === 'tree'
-    ) {
-      const tintByResource: Record<ResourceComponent['resourceType'], number> = {
-        'berry-bush': 0x7a4c8e,
-        'gold-mine': 0xd8b44c,
-        'stone-mine': 0x8f9aa4,
-        boar: 0x6a3b2e,
-        sheep: 0xe7ece6,
-        tree: 0x214d2d,
-      };
-      const sizeByResource: Record<ResourceComponent['resourceType'], number> = {
-        'berry-bush': 0.45,
-        'gold-mine': 0.8,
-        'stone-mine': 0.8,
-        boar: 0.48,
-        sheep: 0.42,
-        tree: 0.58,
-      };
+    return false;
+  }
 
-      world.addComponent(entity, 'resource', {
-        resourceType: spawn.kind,
-        amount: spawn.amount ?? 0,
-        maxAmount: spawn.amount ?? 0,
-        baseOwner: spawn.baseOwner,
-      });
-      world.addComponent(entity, 'renderable', {
-        kind: 'resource',
-        layer: 'resource',
-        tint: tintByResource[spawn.kind],
-        size: sizeByResource[spawn.kind],
-      });
+  function findSpawnPosition(origin: Position): Position {
+    const offsets = [
+      { x: -1, y: -1 },
+      { x: 0, y: -1 },
+      { x: 1, y: -1 },
+      { x: -1, y: 0 },
+      { x: 1, y: 0 },
+      { x: -1, y: 1 },
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: -2, y: 0 },
+      { x: 2, y: 0 },
+    ];
+
+    for (const offset of offsets) {
+      const candidate = {
+        x: clamp(origin.x + offset.x, 0, MAP_WIDTH - 1),
+        y: clamp(origin.y + offset.y, 0, MAP_HEIGHT - 1),
+      };
+      if (!isPlacementBlocked(candidate.x, candidate.y, 1, 1)) {
+        return candidate;
+      }
     }
 
-    if (spawn.velocity) {
-      world.addComponent(entity, 'velocity', spawn.velocity);
+    return origin;
+  }
+
+  function clearGathererOrder(id: number): void {
+    const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+    if (!gatherer) {
+      return;
     }
-    if (spawn.wanderBounds) {
-      world.addComponent(entity, 'wanderBounds', spawn.wanderBounds);
+
+    gatherer.task = 'idle';
+    gatherer.targetResourceId = null;
+    gatherer.gatherProgressTicks = 0;
+  }
+
+  function isVisibleToHuman(position: Position, owner: number | null): boolean {
+    return owner === HUMAN_PLAYER_ID || visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y);
+  }
+
+  function findSelectableEntityAtCell(x: number, y: number): number | null {
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (position?.x === x && position.y === y && isVisibleToHuman(position, unit?.owner ?? null)) {
+        return id;
+      }
     }
-    if (spawn.vision) {
-      world.addComponent(entity, 'visionSource', spawn.vision);
+
+    for (const id of world.query('position', 'building')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (position && building && buildingOccupiesCell(id, x, y) && isVisibleToHuman(position, building.owner)) {
+        return id;
+      }
     }
+
+    for (const id of world.query('position', 'resource')) {
+      const position = world.getComponent<Position>(id, 'position');
+      if (position?.x === x && position.y === y && visibility.isVisible(HUMAN_PLAYER_ID, x, y)) {
+        return id;
+      }
+    }
+
+    return null;
   }
 
   function assignNearestResource(
@@ -546,10 +886,120 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   world.registerSystem({
+    name: 'prototypePlayerCommands',
+    phase: 'update',
+    execute(activeWorld) {
+      for (const [id, command] of [...unitCommands.entries()]) {
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+        if (!position || !unit) {
+          unitCommands.delete(id);
+          continue;
+        }
+
+        if (command.type === 'move') {
+          if (isAtTarget(position, command.target)) {
+            unitCommands.delete(id);
+            continue;
+          }
+
+          activeWorld.setPosition(id, stepToward(position, command.target));
+          continue;
+        }
+
+        const buildingId = command.buildingId;
+        if (buildingId === undefined) {
+          unitCommands.delete(id);
+          continue;
+        }
+
+        const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
+        const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
+        const construction = constructionStates.get(buildingId);
+        if (!buildingPosition || !building || !construction || construction.isComplete) {
+          unitCommands.delete(id);
+          continue;
+        }
+
+        if (!isAtTarget(position, buildingPosition)) {
+          activeWorld.setPosition(id, stepToward(position, buildingPosition));
+          continue;
+        }
+
+        construction.buildProgressTicks += 1;
+        if (construction.buildProgressTicks >= construction.totalBuildTicks) {
+          construction.buildProgressTicks = construction.totalBuildTicks;
+          construction.isComplete = true;
+
+          const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');
+          if (renderable) {
+            renderable.tint = buildingTint(building.buildingType, building.owner, true);
+          }
+
+          const populationState = population.get(building.owner);
+          if (populationState) {
+            populationState.cap += construction.populationProvided;
+          }
+
+          unitCommands.delete(id);
+        }
+      }
+    },
+  });
+
+  world.registerSystem({
+    name: 'prototypeProductionQueues',
+    phase: 'update',
+    execute() {
+      for (const [buildingId, queue] of productionQueues.entries()) {
+        if (queue.length === 0) {
+          continue;
+        }
+
+        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+        const position = world.getComponent<Position>(buildingId, 'position');
+        if (!building || !position) {
+          productionQueues.set(buildingId, []);
+          continue;
+        }
+
+        const entry = queue[0];
+        const populationState = population.get(building.owner);
+        if (!populationState) {
+          continue;
+        }
+
+        if (populationState.current >= populationState.cap) {
+          entry.isBlocked = true;
+          continue;
+        }
+
+        entry.isBlocked = false;
+        entry.remainingTicks -= 1;
+
+        if (entry.remainingTicks > 0) {
+          continue;
+        }
+
+        const spawnPosition = findSpawnPosition(position);
+        addUnitEntity(building.owner, entry.unitType, spawnPosition, {
+          playerId: building.owner,
+          radius: 4,
+        });
+        queue.shift();
+      }
+    },
+  });
+
+  world.registerSystem({
     name: 'prototypeScoutMovement',
     phase: 'update',
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'velocity', 'wanderBounds')) {
+        if (unitCommands.has(id)) {
+          continue;
+        }
+
         const position = activeWorld.getComponent<Position>(id, 'position');
         const velocity = activeWorld.getComponent<VelocityComponent>(id, 'velocity');
         const bounds = activeWorld.getComponent<WanderBoundsComponent>(id, 'wanderBounds');
@@ -585,6 +1035,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     phase: 'update',
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
+        if (unitCommands.has(id)) {
+          continue;
+        }
+
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
         const position = activeWorld.getComponent<Position>(id, 'position');
         const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
@@ -708,6 +1162,179 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   syncVisibilitySources(world, visibility, trackedVisibilitySources);
 
+  function getSelectionState(): SelectionState {
+    if (selectedEntityId === null) {
+      return {
+        selectedEntityId: null,
+        selectedKind: null,
+        selectedEntityType: null,
+        owner: null,
+        x: null,
+        y: null,
+        buildOptions: [],
+        trainOptions: [],
+        queue: [],
+        placementMode,
+      };
+    }
+
+    const position = world.getComponent<Position>(selectedEntityId, 'position');
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (!position || (!unit && !building)) {
+      selectedEntityId = null;
+      return getSelectionState();
+    }
+
+    const trainOptions: UnitType[] =
+      building?.buildingType === 'town-center' && building.owner === HUMAN_PLAYER_ID
+        ? ['villager']
+        : [];
+    const buildOptions: BuildingType[] =
+      unit?.unitType === 'villager' && unit.owner === HUMAN_PLAYER_ID
+        ? ['house']
+        : [];
+
+    return {
+      selectedEntityId,
+      selectedKind: unit ? 'unit' : 'building',
+      selectedEntityType: unit?.unitType ?? building?.buildingType ?? null,
+      owner: unit?.owner ?? building?.owner ?? null,
+      x: position.x,
+      y: position.y,
+      buildOptions,
+      trainOptions,
+      queue: cloneQueue(productionQueues.get(selectedEntityId) ?? []),
+      placementMode,
+    };
+  }
+
+  function selectEntityAtCell(x: number, y: number): boolean {
+    const nextSelection = findSelectableEntityAtCell(x, y);
+    selectedEntityId = nextSelection;
+    if (nextSelection === null) {
+      placementMode = null;
+      return false;
+    }
+
+    return true;
+  }
+
+  function clearSelection(): void {
+    selectedEntityId = null;
+    placementMode = null;
+  }
+
+  function issueMoveCommand(x: number, y: number): boolean {
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+
+    placementMode = null;
+    clearGathererOrder(selectedEntityId);
+    unitCommands.set(selectedEntityId, {
+      type: 'move',
+      target: {
+        x: clamp(x, 0, MAP_WIDTH - 1),
+        y: clamp(y, 0, MAP_HEIGHT - 1),
+      },
+    });
+    return true;
+  }
+
+  function queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean {
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (!building || building.owner !== HUMAN_PLAYER_ID || building.buildingType !== 'town-center') {
+      return false;
+    }
+
+    const stockpile = playerResources.get(HUMAN_PLAYER_ID);
+    if (!stockpile) {
+      return false;
+    }
+
+    const cost = trainingCost(unitType);
+    if (!canAfford(stockpile, cost)) {
+      return false;
+    }
+
+    spendResources(stockpile, cost);
+    const queue = productionQueues.get(selectedEntityId) ?? [];
+    const totalTicks = trainingTimeTicks(unitType);
+    queue.push({
+      unitType,
+      remainingTicks: totalTicks,
+      totalTicks,
+      isBlocked: false,
+    });
+    productionQueues.set(selectedEntityId, queue);
+    return true;
+  }
+
+  function beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean {
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
+      return false;
+    }
+
+    placementMode = buildingType;
+    return true;
+  }
+
+  function confirmBuildingPlacement(x: number, y: number): boolean {
+    if (placementMode !== 'house' || selectedEntityId === null) {
+      return false;
+    }
+
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
+      return false;
+    }
+
+    const stockpile = playerResources.get(HUMAN_PLAYER_ID);
+    if (!stockpile) {
+      return false;
+    }
+
+    const anchor = {
+      x: clamp(x, 0, MAP_WIDTH - 1),
+      y: clamp(y, 0, MAP_HEIGHT - 1),
+    };
+    const footprint = buildingFootprint('house');
+    if (isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height)) {
+      return false;
+    }
+
+    const cost = constructionCost('house');
+    if (!canAfford(stockpile, cost)) {
+      return false;
+    }
+
+    spendResources(stockpile, cost);
+    const houseId = addBuildingEntity(HUMAN_PLAYER_ID, 'house', anchor, false);
+    clearGathererOrder(selectedEntityId);
+    unitCommands.set(selectedEntityId, {
+      type: 'build',
+      target: anchor,
+      buildingId: houseId,
+    });
+    placementMode = null;
+    return true;
+  }
+
   return {
     world,
     getEconomyState() {
@@ -721,7 +1348,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
           return {
             owner: unit.owner,
-            task: gatherer.task,
+            task: getUnitTaskState(id),
             desiredResource: gatherer.desiredResource,
             carriedResource: gatherer.carriedResource,
             carriedAmount: gatherer.carriedAmount,
@@ -748,6 +1375,53 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         })
         .filter(isEconomyResourceEntry);
 
+      const units = [...world.query('position', 'unit')]
+        .map((id) => {
+          const position = world.getComponent<Position>(id, 'position');
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          if (!position || !unit) {
+            return null;
+          }
+
+          return {
+            id,
+            owner: unit.owner,
+            unitType: unit.unitType,
+            x: position.x,
+            y: position.y,
+            task: getUnitTaskState(id),
+          };
+        })
+        .filter((entry): entry is EconomyState['units'][number] => entry !== null);
+
+      const buildings = [...world.query('position', 'building')]
+        .map((id) => {
+          const position = world.getComponent<Position>(id, 'position');
+          const building = world.getComponent<BuildingComponent>(id, 'building');
+          if (!position || !building) {
+            return null;
+          }
+
+          const construction = constructionStates.get(id);
+          return {
+            id,
+            owner: building.owner,
+            buildingType: building.buildingType,
+            x: position.x,
+            y: position.y,
+            isComplete: construction ? construction.isComplete : true,
+            buildProgressTicks: construction
+              ? construction.buildProgressTicks
+              : buildingBuildTimeTicks(building.buildingType),
+            totalBuildTicks: construction
+              ? construction.totalBuildTicks
+              : buildingBuildTimeTicks(building.buildingType),
+            populationProvided: buildingPopulationProvided(building.buildingType),
+            queue: cloneQueue(productionQueues.get(id) ?? []),
+          };
+        })
+        .filter((entry): entry is EconomyState['buildings'][number] => entry !== null);
+
       return {
         playerResources: Object.fromEntries(
           [...playerResources.entries()].map(([playerId, resources]) => [
@@ -763,6 +1437,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         ),
         villagers,
         resources,
+        units,
+        buildings,
       };
     },
     getPopulationState(playerId: number) {
@@ -773,18 +1449,41 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         playerResources.get(playerId) ?? STANDARD_STARTING_RESOURCES,
       );
     },
+    getSelectionState,
+    selectEntityAtCell,
+    clearSelection,
+    issueMoveCommand,
+    queueTrainUnit,
+    beginBuildingPlacement,
+    confirmBuildingPlacement,
+    isSelected(id: number) {
+      return selectedEntityId === id;
+    },
   };
 }
 
 export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
   const visibility = new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
-  const { world, getEconomyState, getPopulationState, getPlayerResources } =
+  const {
+    world,
+    getEconomyState,
+    getPopulationState,
+    getPlayerResources,
+    getSelectionState,
+    selectEntityAtCell,
+    clearSelection,
+    issueMoveCommand,
+    queueTrainUnit,
+    beginBuildingPlacement,
+    confirmBuildingPlacement,
+    isSelected,
+  } =
     createWorld(seed, visibility);
   const renderStore = new RenderStore();
   const debuggerView = new WorldDebugger({ world });
   const renderAdapter = new RenderAdapter({
     world,
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, seed),
+    projector: createProjector(visibility, HUMAN_PLAYER_ID, seed, isSelected),
     debug: debuggerView,
     send(message) {
       renderStore.apply(message);
@@ -833,5 +1532,12 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       };
     },
     getEconomyState,
+    getSelectionState,
+    selectEntityAtCell,
+    clearSelection,
+    issueMoveCommand,
+    queueTrainUnit,
+    beginBuildingPlacement,
+    confirmBuildingPlacement,
   };
 }

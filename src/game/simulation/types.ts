@@ -1,4 +1,6 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
+export type UnitType = 'villager' | 'scout';
+export type BuildingType = 'town-center' | 'house';
 export type ResourceKind =
   | 'berry-bush'
   | 'gold-mine'
@@ -28,12 +30,12 @@ export interface RenderableComponent {
 
 export interface UnitComponent {
   owner: number;
-  unitType: 'villager' | 'scout';
+  unitType: UnitType;
 }
 
 export interface BuildingComponent {
   owner: number;
-  buildingType: 'town-center';
+  buildingType: BuildingType;
 }
 
 export interface ResourceComponent {
@@ -72,6 +74,7 @@ export interface WanderBoundsComponent {
 }
 
 export interface ProjectedEntityView {
+  id: number;
   kind: 'tile' | 'unit' | 'building' | 'resource';
   layer: 'terrain' | 'resource' | 'building' | 'unit';
   entityType: TerrainKind | UnitComponent['unitType'] | BuildingComponent['buildingType'] | ResourceKind;
@@ -80,6 +83,7 @@ export interface ProjectedEntityView {
   y: number;
   tint: number;
   size: number;
+  selected: boolean;
 }
 
 export interface ProjectedFrameView {
@@ -110,12 +114,21 @@ export interface PopulationState {
   cap: number;
 }
 
+export type UnitTaskState = GatherTaskState | 'moving' | 'building';
+
+export interface ProductionQueueEntry {
+  unitType: Extract<UnitType, 'villager'>;
+  remainingTicks: number;
+  totalTicks: number;
+  isBlocked: boolean;
+}
+
 export interface EconomyState {
   playerResources: Record<number, PlayerResources>;
   population: Record<number, PopulationState>;
   villagers: Array<{
     owner: number;
-    task: GatherTaskState;
+    task: UnitTaskState;
     desiredResource: EconomyResourceKind;
     carriedResource: EconomyResourceKind | null;
     carriedAmount: number;
@@ -128,6 +141,39 @@ export interface EconomyState {
     x: number;
     y: number;
   }>;
+  units: Array<{
+    id: number;
+    owner: number;
+    unitType: UnitType;
+    x: number;
+    y: number;
+    task: UnitTaskState;
+  }>;
+  buildings: Array<{
+    id: number;
+    owner: number;
+    buildingType: BuildingType;
+    x: number;
+    y: number;
+    isComplete: boolean;
+    buildProgressTicks: number;
+    totalBuildTicks: number;
+    populationProvided: number;
+    queue: ProductionQueueEntry[];
+  }>;
+}
+
+export interface SelectionState {
+  selectedEntityId: number | null;
+  selectedKind: 'unit' | 'building' | null;
+  selectedEntityType: UnitType | BuildingType | null;
+  owner: number | null;
+  x: number | null;
+  y: number | null;
+  buildOptions: BuildingType[];
+  trainOptions: UnitType[];
+  queue: ProductionQueueEntry[];
+  placementMode: BuildingType | null;
 }
 
 export interface HudState {

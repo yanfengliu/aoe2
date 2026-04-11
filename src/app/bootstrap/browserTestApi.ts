@@ -4,6 +4,7 @@ import type {
   EconomyState,
   HudState,
   RenderState,
+  SelectionState,
 } from '../../game/simulation/types';
 import type {
   CameraState,
@@ -15,12 +16,14 @@ interface BrowserTestBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
+  getSelectionState(): SelectionState;
 }
 
 export interface BrowserTestSnapshot {
   hudState: HudState;
   renderState: RenderState;
   economyState: EconomyState;
+  selectionState: SelectionState;
   cameraState: CameraState | null;
 }
 
@@ -29,7 +32,9 @@ export interface BrowserTestApi {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
+  getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
+  worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
 }
@@ -48,6 +53,7 @@ function getSnapshot(
     hudState: bridge.getHudState(),
     renderState: bridge.getRenderState(),
     economyState: bridge.getEconomyState(),
+    selectionState: bridge.getSelectionState(),
     cameraState: scene.getCameraState(),
   };
 }
@@ -63,7 +69,15 @@ export function installBrowserTestApi(
     getHudState: () => bridge.getHudState(),
     getRenderState: () => bridge.getRenderState(),
     getEconomyState: () => bridge.getEconomyState(),
+    getSelectionState: () => bridge.getSelectionState(),
     getCameraState: () => scene.getCameraState(),
+    worldToScreen: (cellX: number, cellY: number) => {
+      const point = scene.getScreenPointForCell(cellX, cellY);
+      if (!point) {
+        throw new Error('Game scene is not ready to project screen coordinates.');
+      }
+      return point;
+    },
     getSnapshot: () => getSnapshot(bridge, scene),
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));

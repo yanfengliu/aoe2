@@ -83,4 +83,67 @@ describe('createSimulationBridge', () => {
       nextEconomyState.villagers.every((villager) => villager.task !== 'idle'),
     ).toBe(true);
   });
+
+  it('queues a villager at the Town Center and increases population when training completes', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      trainOptions: ['villager'],
+    });
+    expect(bridge.queueTrainUnit('villager')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(150);
+    expect(bridge.getSelectionState().queue).toHaveLength(1);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    const economyState = bridge.getEconomyState();
+    expect(
+      economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager'),
+    ).toHaveLength(4);
+    expect(bridge.getHudState().population).toEqual({
+      current: 5,
+      cap: 5,
+    });
+    expect(bridge.getSelectionState().queue).toHaveLength(0);
+  });
+
+  it('lets a selected villager place and complete a House that raises population cap', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'villager',
+      buildOptions: ['house'],
+    });
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    expect(bridge.getSelectionState().placementMode).toBe('house');
+    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    expect(bridge.getHudState().playerResources.wood).toBe(175);
+    expect(bridge.getHudState().population.cap).toBe(5);
+
+    const placedHouse = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
+    expect(placedHouse).toMatchObject({
+      owner: 1,
+      buildingType: 'house',
+      x: 10,
+      y: 5,
+      isComplete: false,
+    });
+
+    for (let index = 0; index < 400; index += 1) {
+      bridge.step(100);
+    }
+
+    const completedHouse = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
+    expect(completedHouse?.isComplete).toBe(true);
+    expect(bridge.getHudState().population.cap).toBe(10);
+  });
 });
