@@ -26,10 +26,10 @@
 Full architecture documentation lives in `docs/ARCHITECTURE.md`. Read it at session start alongside the devlog summary.
 
 Key directories:
-- `/src`: Application source code (main.rs, viewer.rs, decode.rs, nav.rs)
-- `/assets`: Static assets (WGSL shaders)
-- `/docs`: Project documentation, architecture, devlogs
-- `design`: Game mechanisms.
+- `/src`: Application source code.
+- `/assets`: Static assets such as images.
+- `/docs`: Project documentation, architecture, devlogs.
+- `design`: Game mechanisms and stats.
 
 ### Architecture Maintenance Rules
 - **Read `docs/ARCHITECTURE.md` before any structural change** — adding a module, creating a new service, changing data flow, or introducing a dependency.
@@ -76,5 +76,5 @@ This project uses a two-tier devlog for change tracking and agent context.
 
 ## Game Engine
 
-- This game is built using `civ-engine`. As you use the engine, constantly reflect on its strengths and weaknesses as an AI-native game engine for real-time 2D civilization simulation games. What works well and what don't? Improve the engine code if you have a good reason.
+- This game is built using `civ-engine`. As you use the engine, constantly reflect on its strengths and weaknesses as an AI-native game engine for real-time 2D civilization simulation games. What works well and what don't? Document it in `docs/engine-feedback.md` so that it can be implemented. If a feature is missing and blocking you, stop and let me know.
 - It should be in a local github repo `civ-engine`. Check its `docs` for guidance on how to use it.
