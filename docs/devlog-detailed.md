@@ -95,3 +95,10 @@
 **Files changed:** `AGENTS.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** Codex loads `AGENTS.md` by default; duplicating the canonical rules there avoids manual configuration and keeps behavior aligned with existing agent guidance.
 **Notes:** Documentation-only change; no tests run.
+
+## [2026-04-11, America/Los_Angeles] — Stop tracking generated content.json
+**Action:** Added `generated/content/content.json` to `.gitignore` (it was only present locally before) and ran `git rm --cached` so Git no longer tracks the build artifact; the file remains on disk for local development.
+**Result:** Regenerating content no longer shows as a dirty tracked file; clones get the file from `npm run content:build` / `prebuild` instead of the committed copy.
+**Files changed:** `.gitignore`, `generated/content/content.json` (removed from index), `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** Generated JSON churn should not appear in version control; `.gitignore` alone does not untrack files already committed.
+**Notes:** Ran `npx vitest run` after the change. Full `tsc` / `vite build` not re-verified in this session due to unrelated local WIP under `src/game/simulation/`.
