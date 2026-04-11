@@ -4,6 +4,7 @@
 ## Current
 2026-04-11 - Stopped tracking `generated/content/content.json` (gitignore + `git rm --cached`); build still generates it via `prebuild` / `content:build`.
 2026-04-10 - Added root `AGENTS.md` mirroring `CLAUDE.md` for OpenAI Codex automatic project instructions.
+2026-04-10 - Added the first Dark Age economy loop with tests first. Villagers now gather nearby food and wood, return to the Town Center, and update player stockpiles shown in the HUD. Automated coverage is now `3` test files / `11` tests, including deterministic economy behavior.
 2026-04-10 - Eliminated the current warning budget. `content:validate` now passes cleanly while reporting explicit content coverage (`18` supported civs, `12` unsupported), and the Vite build no longer emits the previous large-chunk warning because vendor chunking is now explicit.
 2026-04-10 - Added the Phase 2 map slice: deterministic player starts with nearby sheep/boar/berries/gold/stone, fog of war via `VisibilityMap`, and a minimap driven from the render frame. Automated coverage now spans `3` test files / `10` tests across content normalization, deterministic map generation, and visibility behavior.
 2026-04-10 - Added `design/implementation-plan.md` to turn the official spec into a game. The plan picks the default stack (`TypeScript` + `Vite` + `Phaser 3` + `civ-engine`), defines the repo/module layout, sequences the work into playable milestones, and surfaces the plan from `README.md`. Remaining gap: later-expansion civ references are still not fully backed by local unit and technology rows.

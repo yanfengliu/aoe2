@@ -21,6 +21,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - The component and query API is simple enough to stand up RTS entities quickly.
 - `RenderAdapter` gives a clean projection boundary. The game can keep Phaser-specific view logic out of the simulation.
 - `VisibilityMap` plugged into the same render frame cleanly; fog and minimap logic did not need to leak into Phaser scene state.
+- Simulation-side closed-over state for stockpiles and drop-off logic works fine with `World` systems. Not every RTS rule needs to be a first-class engine primitive to remain deterministic and testable.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
 
@@ -35,6 +36,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
   - pathfinding integration for moving unit groups around dynamic blockers
 - Fog memory for static enemy buildings/resources is still a game-level policy on top of the visibility primitive. The engine gives the visibility substrate, not the remembered-state rules.
 - Build packaging still needs repo-level policy. The current warning-free Vite build is achieved by explicit vendor chunking and a chunk-size limit that acknowledges the real Phaser payload size.
+- Once villagers become commandable instead of scripted, path quality and occupancy will matter more than they do in the current one-tile-per-tick prototype movement.
 - The current production bundle is large because the runtime is still a single Phaser chunk. This is not a `civ-engine` problem, but it is part of the real integration cost.
 
 ## Implications for next phases
@@ -43,6 +45,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Expand the content pipeline before widening gameplay breadth. The engine boundary is good enough to support that work.
 - Add debug overlays early. `WorldDebugger` already makes this cheaper.
 - Evaluate `civ-engine` pathfinding and occupancy primitives as soon as villagers and military movement become command-driven instead of scripted.
+- Keep expanding deterministic simulation tests alongside each slice. The current economy loop is simple, but the pattern of external stockpile state plus world-owned entities is holding up well.
 
 ## Current recommendation
 

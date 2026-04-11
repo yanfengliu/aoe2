@@ -105,7 +105,11 @@ export class GameScene extends Phaser.Scene {
 
       if (entity.kind === 'resource') {
         this.entityLayer.fillStyle(entity.tint, 1);
-        if (entity.entityType === 'gold-mine' || entity.entityType === 'stone-mine') {
+        if (
+          entity.entityType === 'gold-mine'
+          || entity.entityType === 'stone-mine'
+          || entity.entityType === 'tree'
+        ) {
           this.entityLayer.fillRect(
             px + CELL_SIZE * 0.1,
             py + CELL_SIZE * 0.1,

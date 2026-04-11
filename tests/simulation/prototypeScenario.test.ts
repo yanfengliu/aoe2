@@ -32,6 +32,7 @@ describe('createPrototypeScenario', () => {
       expect(countBy('sheep', owner)).toBe(4);
       expect(countBy('boar', owner)).toBe(2);
       expect(countBy('berry-bush', owner)).toBe(6);
+      expect(countBy('tree', owner)).toBe(24);
       expect(countBy('gold-mine', owner)).toBe(4);
       expect(countBy('stone-mine', owner)).toBe(4);
     }

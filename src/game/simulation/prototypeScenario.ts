@@ -266,10 +266,23 @@ function applyForestPatch(
   terrain: TerrainCellSpec[][],
   center: Position,
   offsets: Offset[],
+  baseOwner: number,
+  spawns: ScenarioSpawnSpec[],
 ): void {
   for (const offset of offsets) {
     const position = projectOffset(center, offset);
     setTerrainKind(terrain, position.x, position.y, 'forest');
+    if (!isInBounds(position.x, position.y)) {
+      continue;
+    }
+    spawns.push({
+      kind: 'tree',
+      x: position.x,
+      y: position.y,
+      owner: null,
+      baseOwner,
+      amount: 100,
+    });
   }
 }
 
@@ -367,7 +380,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     );
 
     for (const patch of FOREST_PATCHES) {
-      applyForestPatch(terrain, start.townCenter, patch);
+      applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
     }
   }
 

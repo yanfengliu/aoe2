@@ -99,8 +99,32 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <div class="hud-value" data-hud="projected">0</div>
         </div>
         <div class="hud-chip">
+          <div class="hud-label">Food</div>
+          <div class="hud-value" data-hud="food">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">Wood</div>
+          <div class="hud-value" data-hud="wood">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">Gold</div>
+          <div class="hud-value" data-hud="gold">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">Stone</div>
+          <div class="hud-value" data-hud="stone">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">Pop</div>
+          <div class="hud-value" data-hud="pop">0/0</div>
+        </div>
+        <div class="hud-chip">
           <div class="hud-label">Visible</div>
           <div class="hud-value" data-hud="visible-cells">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">World</div>
+          <div class="hud-value" data-hud="world">0x0</div>
         </div>
         <div class="hud-chip">
           <div class="hud-label">Explored</div>
@@ -137,7 +161,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const tick = root.querySelector<HTMLElement>('[data-hud="tick"]');
   const entities = root.querySelector<HTMLElement>('[data-hud="entities"]');
   const projected = root.querySelector<HTMLElement>('[data-hud="projected"]');
+  const food = root.querySelector<HTMLElement>('[data-hud="food"]');
+  const wood = root.querySelector<HTMLElement>('[data-hud="wood"]');
+  const gold = root.querySelector<HTMLElement>('[data-hud="gold"]');
+  const stone = root.querySelector<HTMLElement>('[data-hud="stone"]');
+  const pop = root.querySelector<HTMLElement>('[data-hud="pop"]');
   const visibleCells = root.querySelector<HTMLElement>('[data-hud="visible-cells"]');
+  const world = root.querySelector<HTMLElement>('[data-hud="world"]');
   const exploredCells = root.querySelector<HTMLElement>('[data-hud="explored-cells"]');
   const tickMs = root.querySelector<HTMLElement>('[data-hud="tick-ms"]');
   const seed = root.querySelector<HTMLElement>('[data-hud="seed"]');
@@ -152,7 +182,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     if (tick) tick.textContent = String(hudState.tick);
     if (entities) entities.textContent = String(hudState.entityCount);
     if (projected) projected.textContent = String(hudState.visibleEntities);
+    if (food) food.textContent = String(hudState.playerResources.food);
+    if (wood) wood.textContent = String(hudState.playerResources.wood);
+    if (gold) gold.textContent = String(hudState.playerResources.gold);
+    if (stone) stone.textContent = String(hudState.playerResources.stone);
+    if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
     if (visibleCells) visibleCells.textContent = String(hudState.visibleCells);
+    if (world) world.textContent = hudState.worldSize;
     if (exploredCells) exploredCells.textContent = String(hudState.exploredCells);
     if (tickMs) tickMs.textContent = hudState.tickDurationMs.toFixed(2);
     if (seed) seed.textContent = hudState.seed;

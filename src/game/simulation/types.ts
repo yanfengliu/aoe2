@@ -4,7 +4,14 @@ export type ResourceKind =
   | 'gold-mine'
   | 'stone-mine'
   | 'boar'
-  | 'sheep';
+  | 'sheep'
+  | 'tree';
+export type EconomyResourceKind = 'food' | 'wood' | 'gold' | 'stone';
+export type GatherTaskState =
+  | 'idle'
+  | 'to-resource'
+  | 'gathering'
+  | 'to-dropoff';
 
 export interface TerrainComponent {
   kind: TerrainKind;
@@ -32,7 +39,19 @@ export interface BuildingComponent {
 export interface ResourceComponent {
   resourceType: ResourceKind;
   amount: number;
+  maxAmount: number;
   baseOwner: number | null;
+}
+
+export interface GathererComponent {
+  desiredResource: EconomyResourceKind;
+  task: GatherTaskState;
+  targetResourceId: number | null;
+  dropOffBuildingId: number | null;
+  carriedResource: EconomyResourceKind | null;
+  carriedAmount: number;
+  carryCapacity: number;
+  gatherProgressTicks: number;
 }
 
 export interface VelocityComponent {
@@ -79,6 +98,38 @@ export interface RenderState {
   frame: ProjectedFrameView | null;
 }
 
+export interface PlayerResources {
+  food: number;
+  wood: number;
+  gold: number;
+  stone: number;
+}
+
+export interface PopulationState {
+  current: number;
+  cap: number;
+}
+
+export interface EconomyState {
+  playerResources: Record<number, PlayerResources>;
+  population: Record<number, PopulationState>;
+  villagers: Array<{
+    owner: number;
+    task: GatherTaskState;
+    desiredResource: EconomyResourceKind;
+    carriedResource: EconomyResourceKind | null;
+    carriedAmount: number;
+  }>;
+  resources: Array<{
+    resourceType: ResourceKind;
+    amount: number;
+    maxAmount: number;
+    baseOwner: number | null;
+    x: number;
+    y: number;
+  }>;
+}
+
 export interface HudState {
   tick: number;
   entityCount: number;
@@ -89,4 +140,6 @@ export interface HudState {
   fpsTarget: number;
   worldSize: string;
   seed: string;
+  playerResources: PlayerResources;
+  population: PopulationState;
 }

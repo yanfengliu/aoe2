@@ -44,5 +44,43 @@ describe('createSimulationBridge', () => {
     expect(hudState.worldSize).toBe('36x24');
     expect(hudState.visibleCells).toBeGreaterThan(0);
     expect(hudState.exploredCells).toBeGreaterThanOrEqual(hudState.visibleCells);
+    expect(hudState.playerResources).toEqual({
+      food: 200,
+      wood: 200,
+      gold: 100,
+      stone: 200,
+    });
+    expect(hudState.population).toEqual({
+      current: 4,
+      cap: 5,
+    });
+  });
+
+  it('runs a deterministic villager gather and drop-off loop', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const initialHudState = bridge.getHudState();
+    const initialEconomyState = bridge.getEconomyState();
+
+    for (let index = 0; index < 120; index += 1) {
+      bridge.step(100);
+    }
+
+    const nextHudState = bridge.getHudState();
+    const nextEconomyState = bridge.getEconomyState();
+
+    expect(nextHudState.playerResources.food).toBeGreaterThan(initialHudState.playerResources.food);
+    expect(nextHudState.playerResources.wood).toBeGreaterThan(initialHudState.playerResources.wood);
+    expect(
+      nextEconomyState.resources.some(
+        (resource) =>
+          resource.baseOwner === 1
+          && (resource.resourceType === 'sheep' || resource.resourceType === 'tree')
+          && resource.amount < resource.maxAmount,
+      ),
+    ).toBe(true);
+    expect(nextEconomyState.resources).toHaveLength(initialEconomyState.resources.length);
+    expect(
+      nextEconomyState.villagers.every((villager) => villager.task !== 'idle'),
+    ).toBe(true);
   });
 });
