@@ -40,7 +40,7 @@ These links were already present in this file before this edit:
 
 - <https://ageofempires.fandom.com/wiki/Technology_tree_(Age_of_Empires_II)>
   - Used for: building-by-building production and research relationships such as what the `Barracks`, `Archery Range`, `Stable`, `Dock`, `Market`, `Mill`, `Lumber Camp`, `Mining Camp`, `Monastery`, `University`, and `Siege Workshop` provide.
-  - Why it mattered: the spec revision needs explicit “this building trains these units and researches these upgrades” sections.
+  - Why it mattered: the spec revision needs explicit "this building trains these units and researches these upgrades" sections.
   - Caveat: the page reflects modern AoE2 overall, so DE-only entries must be filtered out when they do not belong to AoC.
 
 - <https://ageofempires.fandom.com/wiki/Town_Center_(Age_of_Empires_II)>
@@ -60,7 +60,7 @@ These links were already present in this file before this edit:
 
 - <https://strategywiki.org/wiki/Age_of_Empires_II%3A_The_Age_of_Kings/Turks>
   - Used for: checking pre-AoC civilization identity and understanding which military themes were already present before Conquerors changes.
-  - Why it mattered: helped separate “core civ fantasy” from later patch-layer details.
+  - Why it mattered: helped separate "core civ fantasy" from later patch-layer details.
 
 - <https://strategywiki.org/wiki/Age_of_Empires_II%3A_The_Age_of_Kings/Franks>
   - Used for: another AoK civ profile cross-check while building the civilization-differences section.
