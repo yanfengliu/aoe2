@@ -5,6 +5,7 @@
 Used for:
 
 - official DE mode framing
+- official single-player skirmish framing
 - official explanation of civilization-specific tech trees
 - official explanation that DE civilizations have unique units and unique technologies
 - official explanation that DE uses Castle Age and Imperial Age unique-tech slots
@@ -18,12 +19,11 @@ Why it mattered:
 Used for:
 
 - official DE product framing
-- official mention of `Empire Wars`
 - official confirmation that DE extends beyond the original classic content set
 
 Why it mattered:
 
-- the spec now treats DE as the product target and therefore needs to acknowledge DE-era game modes and expansion-driven extensibility
+- the spec now treats DE as the product target and therefore needs to acknowledge DE-era content extensibility without hard-coding the current local dataset as the full live roster
 
 ## <https://www.ageofempires.com/news/new-dlc-available-now-the-last-chieftains/>
 

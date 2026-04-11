@@ -8,7 +8,7 @@
 - Important distinction:
   - this document defines systems, data interpretation rules, and implementation boundaries
   - the CSVs define concrete content such as civ bonuses, exact unit lines, and exact research availability
-- Success criterion: another agent should be able to build a playable DE-style game from this document plus the local stats bundle without needing to reverse-engineer hidden assumptions from prose.
+- Success criterion: another agent should be able to build a playable DE-style single-player skirmish game against AI from this document plus the local stats bundle without needing to reverse-engineer hidden assumptions from prose.
 
 ## 1. Source-of-Truth Hierarchy
 
@@ -34,32 +34,30 @@ Interpretation rules:
 
 The game should feel like AoE2 DE in these ways:
 
-- skirmish and multiplayer-oriented RTS with the familiar four-resource economy
+- single-player skirmish RTS with the familiar four-resource economy
 - civilization-specific tech trees
 - unique units and unique technologies as core civ identity
-- DE-era expectations around alternate modes and content extensibility
+- DE-era expectations around content extensibility
 - modern data-driven content rather than a single hard-coded classic roster
 
 The implementation does not need to reproduce every current live-DE DLC immediately. It does need to support the systems that make DE possible.
 
 ### 2.2 Modes the Engine Should Support
 
-The official DE learn pages describe:
-
-- single-player skirmish
-- multiplayer
-  - ranked
-  - quick play
-  - custom games
-- campaigns
-
 For this repo, the core implementation target is:
 
-- Random Map skirmish
-- multiplayer-capable deterministic matches
-- replay support
+- single-player Random Map skirmish
+- one human-controlled player
+- AI opponents
+- optional AI allies
 
-Campaign scripting is optional and out of scope for v1.
+Explicitly out of scope for now:
+
+- multiplayer
+- ranked or quick-play flows
+- replay system requirements
+- campaign story mode
+- scenario scripting
 
 ### 2.3 Match Presets
 
@@ -68,15 +66,9 @@ The engine should support data-driven match presets, not just one start conditio
 Required preset support:
 
 - Standard Random Map start
-- Team games
+- AI team games
 - Regicide-capable starts
 - Wonder-capable starts
-
-Recommended future preset support:
-
-- Empire Wars style starts
-
-Empire Wars is an official DE mode and should be considered part of the product direction, but it does not need to block the standard-rules implementation.
 
 ## 3. Current Local Dataset Coverage
 
@@ -177,12 +169,12 @@ The core match loop remains the same as AoE2 across editions:
 8. pressure or defend
 9. win by conquest or configured alternate victory condition
 
-### 4.2 Player Count
+### 4.2 Match Participants
 
-- supported: `2-8` players
-- controller types:
-  - human
-  - AI
+- supported participants per match: `2-8`
+- current control model:
+  - exactly `1` human player
+  - all other participants are AI-controlled
 
 ### 4.3 Standard Resource Model
 
@@ -594,16 +586,12 @@ The content pipeline should fail validation when:
 - a tech references an unknown target
 - duplicate canonical IDs are produced after normalization
 
-## 12. Multiplayer, Replays, and Determinism
+## 12. Single-Player Simulation and Saveability
 
-- simulation must be fixed-step deterministic
-- networking should exchange commands, not full world snapshots
-- replay files should record:
-  - match settings
-  - seed
-  - player metadata
-  - command stream
-- periodic checksums should exist for desync detection
+- simulation should remain fixed-step and deterministic where practical because that simplifies AI debugging and future extensibility
+- no networking requirements are in scope
+- no replay feature is in scope
+- if save and load is implemented, it must serialize enough state to resume an in-progress AI skirmish accurately
 
 ## 13. AI Requirements
 
@@ -631,7 +619,7 @@ The implementation satisfies this spec when:
 - all generic units, buildings, and technologies in the local data load successfully
 - civilization selection is driven from the normalized civ table
 - unsupported civ content is reported as missing data rather than silently omitted
-- deterministic replays reproduce the same outcome
+- a saved single-player skirmish can be resumed without corrupting match state if save/load is implemented
 - the rules framework can represent DE-style multiple unique units and multiple unique-tech slots even if the current local data does not yet fill every slot
 
 ## 15. Non-Goals for This Revision
@@ -640,6 +628,8 @@ The implementation satisfies this spec when:
 - hand-copying every civ bonus, unit, and technology into markdown when it already exists in CSV
 - preserving the older AoC-only assumptions from the previous draft
 - silently filling data gaps with guessed civ content
+- multiplayer
+- campaign story mode
 
 ## 16. Immediate Next Steps
 

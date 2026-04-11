@@ -25,3 +25,10 @@
 **Files changed:** `design/sources.md`, `design/sources/README.md`, `design/sources/01-policy.md`, `design/sources/02-local-data.md`, `design/sources/03-official-de.md`, `design/sources/04-community-and-history.md`, `design/sources/05-findings-and-guidance.md`, `design/spec-codex.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The sources file had grown into several distinct concerns. Splitting it reduces merge pressure, makes the official and local source hierarchy easier to scan, and preserves backward compatibility for existing path references instead of leaving historical links dead.
 **Notes:** The spec still contains one pre-existing garbled quoted heading string in the DE section; the folder split itself is complete and the source references now resolve through the new index structure. No tests were run because this was a documentation-only change.
+
+## [2026-04-10 21:11, America/Los_Angeles] - Narrow scope to single-player AI skirmish
+**Action:** Removed multiplayer and campaign-story assumptions from `design/spec-codex.md` and updated the official DE source notes so they only justify the current single-player skirmish scope.
+**Result:** The spec now targets a single-player Random Map experience with one human player fighting AI opponents, allows optional AI allies, and explicitly marks multiplayer, ranked flows, replay requirements, and campaign story mode as out of scope. The simulation section no longer specifies networking or replay behavior.
+**Files changed:** `design/spec-codex.md`, `design/sources/03-official-de.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user clarified that the current product scope should be limited to fighting AI in single-player. Keeping multiplayer and campaign requirements in the spec would create false implementation pressure and muddy prioritization.
+**Notes:** This was a documentation-only change; no tests were run.

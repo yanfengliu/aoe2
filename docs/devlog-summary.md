@@ -2,3 +2,4 @@
 2026-04-10 - Rewrote `design/spec-codex.md` around `The Conquerors 1.0c`, added explicit building and civilization coverage, and documented research sources in `design/sources.md`.
 2026-04-10 - Retargeted `design/spec-codex.md` to AoE2 DE, made `design/stats` the content source of truth in the spec, and updated `design/sources.md` to prioritize official DE references plus local data coverage notes.
 2026-04-10 - Split `design/sources.md` into indexed topic files under `design/sources/`, kept `design/sources.md` as a compatibility pointer, and updated the spec to reference the new source locations.
+2026-04-10 - Narrowed `design/spec-codex.md` to single-player AI skirmish, removing multiplayer, replay, and campaign-story requirements from the current scope.
