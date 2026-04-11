@@ -18,6 +18,7 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import type {
+  BuildableBuildingType,
   BuildingType,
   BuildingComponent,
   EconomyResourceKind,
@@ -57,7 +58,7 @@ export interface SimulationBridge {
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
-  beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean;
+  beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
 
@@ -71,6 +72,7 @@ const STANDARD_STARTING_RESOURCES: PlayerResources = {
 const STANDARD_POPULATION_CAP = 5;
 const VILLAGER_TRAIN_TIME_TICKS = 250;
 const HOUSE_BUILD_TIME_TICKS = 120;
+const DROPOFF_BUILD_TIME_TICKS = 180;
 
 interface UnitCommand {
   type: 'move' | 'build';
@@ -238,9 +240,16 @@ function cloneQueue(queue: ProductionQueueEntry[]): ProductionQueueEntry[] {
   return queue.map((entry) => ({ ...entry }));
 }
 
+function manhattanDistance(left: Position, right: Position): number {
+  return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
+}
+
 function buildingFootprint(buildingType: BuildingType): { width: number; height: number } {
   switch (buildingType) {
     case 'house':
+    case 'mill':
+    case 'lumber-camp':
+    case 'mining-camp':
       return { width: 2, height: 2 };
     case 'town-center':
       return { width: 1, height: 1 };
@@ -251,6 +260,9 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
   switch (buildingType) {
     case 'house':
       return 5;
+    case 'mill':
+    case 'lumber-camp':
+    case 'mining-camp':
     case 'town-center':
       return 0;
   }
@@ -260,6 +272,10 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
   switch (buildingType) {
     case 'house':
       return HOUSE_BUILD_TIME_TICKS;
+    case 'mill':
+    case 'lumber-camp':
+    case 'mining-camp':
+      return DROPOFF_BUILD_TIME_TICKS;
     case 'town-center':
       return 0;
   }
@@ -269,6 +285,10 @@ function buildingSize(buildingType: BuildingType): number {
   switch (buildingType) {
     case 'house':
       return 1.1;
+    case 'mill':
+    case 'lumber-camp':
+    case 'mining-camp':
+      return 1.15;
     case 'town-center':
       return 1.4;
   }
@@ -285,9 +305,42 @@ function buildingTint(
       : isComplete ? 0xa66b6b : 0x6a4747;
   }
 
+  if (buildingType === 'mill') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xb18f54 : 0x625033
+      : isComplete ? 0x9e7161 : 0x654540;
+  }
+
+  if (buildingType === 'lumber-camp') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x6c9154 : 0x43573a
+      : isComplete ? 0x826c63 : 0x564642;
+  }
+
+  if (buildingType === 'mining-camp') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x7f8f9f : 0x4c5661
+      : isComplete ? 0x8a7582 : 0x5b4b54;
+  }
+
   return owner === HUMAN_PLAYER_ID
     ? isComplete ? 0xd8b36c : 0x7d6545
     : isComplete ? 0xa15c5c : 0x674040;
+}
+
+function canDropOffAt(
+  buildingType: BuildingType,
+  resourceKind: EconomyResourceKind,
+): boolean {
+  switch (resourceKind) {
+    case 'food':
+      return buildingType === 'town-center' || buildingType === 'mill';
+    case 'wood':
+      return buildingType === 'town-center' || buildingType === 'lumber-camp';
+    case 'gold':
+    case 'stone':
+      return buildingType === 'town-center' || buildingType === 'mining-camp';
+  }
 }
 
 function canAfford(
@@ -319,10 +372,14 @@ function trainingCost(unitType: Extract<UnitType, 'villager'>): Partial<PlayerRe
   }
 }
 
-function constructionCost(buildingType: Extract<BuildingType, 'house'>): Partial<PlayerResources> {
+function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerResources> {
   switch (buildingType) {
     case 'house':
       return { wood: 25 };
+    case 'mill':
+    case 'lumber-camp':
+    case 'mining-camp':
+      return { wood: 100 };
   }
 }
 
@@ -462,7 +519,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: Extract<UnitType, 'villager'>) => boolean;
-  beginBuildingPlacement: (buildingType: Extract<BuildingType, 'house'>) => boolean;
+  beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
 } {
@@ -482,7 +539,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const productionQueues = new Map<number, ProductionQueueEntry[]>();
   const constructionStates = new Map<number, ConstructionState>();
   let selectedEntityId: number | null = null;
-  let placementMode: BuildingType | null = null;
+  let placementMode: BuildableBuildingType | null = null;
 
   world.registerComponent<Position>('position');
   world.registerComponent<TerrainComponent>('terrain');
@@ -803,6 +860,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     gatherer.task = 'idle';
     gatherer.targetResourceId = null;
+    gatherer.dropOffBuildingId = null;
     gatherer.gatherProgressTicks = 0;
   }
 
@@ -855,6 +913,41 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
+  function findNearestDropOffBuilding(
+    activeWorld: World<GameEvents, GameCommands>,
+    owner: number,
+    resourceKind: EconomyResourceKind,
+    origin: Position,
+  ): number | null {
+    let nearestBuildingId: number | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const id of activeWorld.query('position', 'building')) {
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+      if (!position || !building || building.owner !== owner) {
+        continue;
+      }
+
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        continue;
+      }
+
+      if (!canDropOffAt(building.buildingType, resourceKind)) {
+        continue;
+      }
+
+      const distance = manhattanDistance(origin, position);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestBuildingId = id;
+      }
+    }
+
+    return nearestBuildingId;
+  }
+
   function assignNearestResource(
     activeWorld: World<GameEvents, GameCommands>,
     villagerId: number,
@@ -883,12 +976,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (leftPreferred !== rightPreferred) {
           return leftPreferred - rightPreferred;
         }
-        const leftDistance =
-          Math.abs(left.position.x - villagerPosition.x)
-          + Math.abs(left.position.y - villagerPosition.y);
-        const rightDistance =
-          Math.abs(right.position.x - villagerPosition.x)
-          + Math.abs(right.position.y - villagerPosition.y);
+        const leftDistance = manhattanDistance(left.position, villagerPosition);
+        const rightDistance = manhattanDistance(right.position, villagerPosition);
         return leftDistance - rightDistance;
       });
 
@@ -901,7 +990,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = target.id;
-    gatherer.dropOffBuildingId = townCenterIds.get(owner) ?? null;
+    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
+      activeWorld,
+      owner,
+      gatherer.desiredResource,
+      target.position,
+    );
     gatherer.gatherProgressTicks = 0;
   }
 
@@ -1141,7 +1235,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         if (gatherer.task === 'to-dropoff') {
-          const dropOffId = gatherer.dropOffBuildingId ?? townCenterIds.get(unit.owner) ?? null;
+          const dropOffId =
+            gatherer.carriedResource === null
+              ? null
+              : findNearestDropOffBuilding(
+                activeWorld,
+                unit.owner,
+                gatherer.carriedResource,
+                position,
+              );
+          gatherer.dropOffBuildingId = dropOffId;
           const dropOffPosition = dropOffId === null
             ? null
             : activeWorld.getComponent<Position>(dropOffId, 'position');
@@ -1210,9 +1313,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       building?.buildingType === 'town-center' && building.owner === HUMAN_PLAYER_ID
         ? ['villager']
         : [];
-    const buildOptions: BuildingType[] =
+    const buildOptions: BuildableBuildingType[] =
       unit?.unitType === 'villager' && unit.owner === HUMAN_PLAYER_ID
-        ? ['house']
+        ? ['house', 'mill', 'lumber-camp', 'mining-camp']
         : [];
 
     return {
@@ -1301,7 +1404,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = resourceId;
-    gatherer.dropOffBuildingId = townCenterIds.get(unit.owner) ?? null;
+    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
+      world,
+      unit.owner,
+      gatherer.desiredResource,
+      target,
+    );
     gatherer.gatherProgressTicks = 0;
     return true;
   }
@@ -1339,7 +1447,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
-  function beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean {
+  function beginBuildingPlacement(buildingType: BuildableBuildingType): boolean {
     if (selectedEntityId === null) {
       return false;
     }
@@ -1354,7 +1462,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   function confirmBuildingPlacement(x: number, y: number): boolean {
-    if (placementMode !== 'house' || selectedEntityId === null) {
+    if (placementMode === null || selectedEntityId === null) {
       return false;
     }
 
@@ -1372,23 +1480,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       x: clamp(x, 0, MAP_WIDTH - 1),
       y: clamp(y, 0, MAP_HEIGHT - 1),
     };
-    const footprint = buildingFootprint('house');
+    const footprint = buildingFootprint(placementMode);
     if (isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height)) {
       return false;
     }
 
-    const cost = constructionCost('house');
+    const cost = constructionCost(placementMode);
     if (!canAfford(stockpile, cost)) {
       return false;
     }
 
     spendResources(stockpile, cost);
-    const houseId = addBuildingEntity(HUMAN_PLAYER_ID, 'house', anchor, false);
+    const buildingId = addBuildingEntity(HUMAN_PLAYER_ID, placementMode, anchor, false);
     clearGathererOrder(selectedEntityId);
     unitCommands.set(selectedEntityId, {
       type: 'build',
       target: anchor,
-      buildingId: houseId,
+      buildingId,
     });
     placementMode = null;
     return true;

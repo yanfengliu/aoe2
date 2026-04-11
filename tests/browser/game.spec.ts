@@ -274,4 +274,45 @@ test.describe('browser gameplay smoke tests', () => {
     );
     expect(advancedSnapshot.hudState.playerResources.gold).toBeGreaterThan(100);
   });
+
+  test('can build a Mining Camp from the villager build panel and use it for gold drop-off', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-mining-camp"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Mining Camp');
+
+    await clickCell(page, 15, 7);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('100');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+
+    const completedSnapshot = await getSnapshot(page);
+    expect(
+      completedSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'mining-camp'
+          && building.isComplete,
+      ),
+    ).toBe(true);
+
+    await clickCell(page, 13, 7, 'right');
+    const incomeSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(67, 100),
+    );
+
+    await expect(page.locator('[data-hud="gold"]')).toHaveText(
+      String(incomeSnapshot.hudState.playerResources.gold),
+    );
+    expect(incomeSnapshot.hudState.playerResources.gold).toBeGreaterThan(100);
+  });
 });

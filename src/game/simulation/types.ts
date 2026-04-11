@@ -1,6 +1,7 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
 export type UnitType = 'villager' | 'scout';
-export type BuildingType = 'town-center' | 'house';
+export type BuildableBuildingType = 'house' | 'mill' | 'lumber-camp' | 'mining-camp';
+export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
   | 'gold-mine'
@@ -170,10 +171,10 @@ export interface SelectionState {
   owner: number | null;
   x: number | null;
   y: number | null;
-  buildOptions: BuildingType[];
+  buildOptions: BuildableBuildingType[];
   trainOptions: UnitType[];
   queue: ProductionQueueEntry[];
-  placementMode: BuildingType | null;
+  placementMode: BuildableBuildingType | null;
 }
 
 export interface HudState {

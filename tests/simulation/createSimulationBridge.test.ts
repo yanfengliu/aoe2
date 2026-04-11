@@ -117,7 +117,7 @@ describe('createSimulationBridge', () => {
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'villager',
-      buildOptions: ['house'],
+      buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp'],
     });
     expect(bridge.beginBuildingPlacement('house')).toBe(true);
     expect(bridge.getSelectionState().placementMode).toBe('house');
@@ -154,6 +154,34 @@ describe('createSimulationBridge', () => {
     expect(bridge.issueContextCommand(13, 7)).toBe(true);
 
     for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
+  });
+
+  it('uses a completed Mining Camp as the villager gold drop-off point', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('mining-camp')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(11, 7)).toBe(true);
+    expect(bridge.getHudState().playerResources.wood).toBe(100);
+
+    for (let index = 0; index < 400; index += 1) {
+      bridge.step(100);
+    }
+
+    const miningCamp = bridge
+      .getEconomyState()
+      .buildings.find(
+        (building) => building.owner === 1 && building.buildingType === 'mining-camp',
+      );
+    expect(miningCamp?.isComplete).toBe(true);
+
+    expect(bridge.issueContextCommand(13, 7)).toBe(true);
+
+    for (let index = 0; index < 67; index += 1) {
       bridge.step(100);
     }
 

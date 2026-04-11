@@ -1,5 +1,5 @@
 import type {
-  BuildingType,
+  BuildableBuildingType,
   HudState,
   RenderState,
   SelectionState,
@@ -11,7 +11,7 @@ interface HudBridge {
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
   queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
-  beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean;
+  beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
 function tintToCss(tint: number): string {
@@ -98,6 +98,12 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Town Center';
     case 'house':
       return 'House';
+    case 'mill':
+      return 'Mill';
+    case 'lumber-camp':
+      return 'Lumber Camp';
+    case 'mining-camp':
+      return 'Mining Camp';
     case 'villager':
       return 'Villager';
     case 'scout':
@@ -181,8 +187,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer">
         Phase 3 slice: select units and buildings on the map, queue Villagers from
-        the Town Center, place Houses with Villagers, pan with arrow keys or WASD,
-        and use the mouse wheel to zoom.
+        the Town Center, place Houses and Dark Age drop-off buildings with
+        Villagers, pan with arrow keys or WASD, and use the mouse wheel to zoom.
       </div>
     </div>
   `;
@@ -224,6 +230,20 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       ? `Placing: ${formatEntityName(selectionState.placementMode)}`
       : 'Placement: Off';
 
+    const buildButtons = selectionState.buildOptions
+      .map(
+        (buildingType) => `
+          <button
+            class="hud-command-button"
+            data-command="build-${buildingType}"
+            type="button"
+          >
+            Build ${formatEntityName(buildingType)}
+          </button>
+        `,
+      )
+      .join('');
+
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
       <div class="hud-selection-name" data-selection-name>${formatEntityName(selectionState.selectedEntityType)}</div>
@@ -236,9 +256,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ${selectionState.trainOptions.includes('villager')
           ? '<button class="hud-command-button" data-command="train-villager" type="button">Train Villager</button>'
           : ''}
-        ${selectionState.buildOptions.includes('house')
-          ? '<button class="hud-command-button" data-command="build-house" type="button">Build House</button>'
-          : ''}
+        ${buildButtons}
       </div>
     `;
 
@@ -248,9 +266,16 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         bridge.queueTrainUnit('villager');
       });
     selectionPanel
-      .querySelector<HTMLButtonElement>('[data-command="build-house"]')
-      ?.addEventListener('click', () => {
-        bridge.beginBuildingPlacement('house');
+      .querySelectorAll<HTMLButtonElement>('[data-command^="build-"]')
+      .forEach((button) => {
+        const buildingType = button.dataset.command?.replace('build-', '') as BuildableBuildingType | undefined;
+        if (!buildingType) {
+          return;
+        }
+
+        button.addEventListener('click', () => {
+          bridge.beginBuildingPlacement(buildingType);
+        });
       });
   }
 
