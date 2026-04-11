@@ -3,3 +3,4 @@
 
 ## Current
 2026-04-10 - Added `design/implementation-plan.md` to turn the official spec into a game. The plan picks the default stack (`TypeScript` + `Vite` + `Phaser 3` + `civ-engine`), defines the repo/module layout, sequences the work into playable milestones, and surfaces the plan from `README.md`. Remaining gap: later-expansion civ references are still not fully backed by local unit and technology rows.
+2026-04-10 - Started implementation. The repo now has a working `TypeScript` + `Vite` + `Phaser 3` + `civ-engine` bootstrap, a deterministic prototype map with HUD and camera controls, and a normalized content pipeline that writes `generated/content/content.json`. Verification passes for content validation, tests, lint, and build. Remaining gap: gameplay is still a prototype slice, and the content bundle still has `41` warning-level DE roster gaps for later civ unique units and unique techs.
