@@ -1,6 +1,6 @@
 # Sources Index
 
-This folder records the sources and source-handling rules used to maintain `design/spec-codex.md`.
+This folder records the sources and source-handling rules used to maintain `design/spec-final.md`.
 
 Read in this order:
 
@@ -19,3 +19,4 @@ Quick rules:
 Compatibility note:
 
 - `design/sources.md` now points here so older references do not break.
+- `design/spec-codex.md` and `design/spec-claude.md` remain as precursor drafts, but `design/spec-final.md` is now the canonical spec.

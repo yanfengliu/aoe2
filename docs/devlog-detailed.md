@@ -67,3 +67,10 @@
 **Files changed:** `design/spec-codex.md`, `design/spec-claude.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The user clarified that only standard mode should remain in scope. Leaving special-mode setup hooks in the spec would create false implementation requirements and conflict with the single-mode product target.
 **Notes:** Documentation-only change. No tests were run.
+
+## [2026-04-10 21:53, America/Los_Angeles] - Consolidate working specs into official final spec
+**Action:** Read `design/spec-codex.md` and `design/spec-claude.md`, merged their compatible content into a new canonical document at `design/spec-final.md`, and updated `design/sources/README.md` so the source index now points at the final spec instead of the older draft.
+**Result:** The repo now has a single official spec that keeps the strong source-of-truth and normalization rules from `spec-codex.md` while incorporating the fuller gameplay, economy, combat, UI, AI, and simulation guidance from `spec-claude.md`. The merged doc keeps standard Random Map single-player scope, avoids duplicating CSV-owned roster data, and adds a concise appendix of implementation-critical formulas and constants.
+**Files changed:** `design/spec-final.md`, `design/sources/README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user asked for one official spec instead of two parallel documents. Consolidation removes ambiguity about which draft is authoritative and reduces the risk of future design drift between overlapping markdown files.
+**Notes:** `design/spec-codex.md` and `design/spec-claude.md` are retained as precursor drafts, but `design/spec-final.md` is now the canonical spec. No tests were run because this was a documentation-only change.
