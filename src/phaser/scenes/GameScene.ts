@@ -16,6 +16,14 @@ interface SimulationBridge {
 
 const CELL_SIZE = 24;
 
+export interface CameraState {
+  scrollX: number;
+  scrollY: number;
+  zoom: number;
+  width: number;
+  height: number;
+}
+
 export class GameScene extends Phaser.Scene {
   private readonly bridge: SimulationBridge;
   private terrainLayer?: Phaser.GameObjects.Graphics;
@@ -174,5 +182,20 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  getCameraState(): CameraState | null {
+    if (!this.sys.isActive()) {
+      return null;
+    }
+
+    const camera = this.cameras.main;
+    return {
+      scrollX: camera.scrollX,
+      scrollY: camera.scrollY,
+      zoom: camera.zoom,
+      width: camera.width,
+      height: camera.height,
+    };
   }
 }

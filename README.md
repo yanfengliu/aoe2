@@ -18,7 +18,7 @@ Current implementation status:
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
-- automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, and villager economy rules
+- automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, villager economy rules, and browser-level control/gameplay smoke tests through Playwright
 
 ## Run locally
 
@@ -31,9 +31,11 @@ Setup:
 
 1. From the repo root, install dependencies:
    `npm.cmd install`
-2. Start the dev server:
+2. Install the Playwright Chromium runtime used by browser gameplay tests:
+   `npm.cmd run test:browser:install`
+3. Start the dev server:
    `npm.cmd run dev`
-3. Open the local Vite URL shown in the terminal. By default this is `http://127.0.0.1:5173`.
+4. Open the local Vite URL shown in the terminal. By default this is `http://127.0.0.1:5173`.
 
 The game currently starts directly into the prototype map. Use:
 
@@ -46,8 +48,10 @@ Run the standard project checks with:
 
 - `npm.cmd run content:validate`
 - `npm.cmd test`
+- `npm.cmd run test:browser`
 - `npm.cmd run lint`
 - `npm.cmd run build`
+- `npm.cmd run verify`
 
 ## Useful commands
 
@@ -55,5 +59,8 @@ Run the standard project checks with:
 - `npm.cmd run dev`
 - `npm.cmd run content:validate`
 - `npm.cmd test`
+- `npm.cmd run test:browser:install`
+- `npm.cmd run test:browser`
 - `npm.cmd run lint`
 - `npm.cmd run build`
+- `npm.cmd run verify`

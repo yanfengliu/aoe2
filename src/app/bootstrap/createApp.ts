@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { createSimulationBridge } from '../../game/simulation/createSimulationBridge';
 import { GameScene } from '../../phaser/scenes/GameScene';
 import { createHudController } from '../../ui/hud/createHudController';
+import { installBrowserTestApi } from './browserTestApi';
 
 export function createApp(): Phaser.Game {
   const gameRoot = document.getElementById('game-root');
@@ -13,9 +14,10 @@ export function createApp(): Phaser.Game {
   }
 
   const bridge = createSimulationBridge();
+  const scene = new GameScene(bridge);
   createHudController(hudRoot, bridge);
 
-  return new Phaser.Game({
+  const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: gameRoot,
     width: gameRoot.clientWidth,
@@ -29,6 +31,10 @@ export function createApp(): Phaser.Game {
       pixelArt: true,
       antialias: false,
     },
-    scene: [new GameScene(bridge)],
+    scene: [scene],
   });
+
+  installBrowserTestApi(window, game, bridge, scene);
+
+  return game;
 }
