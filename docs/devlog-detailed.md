@@ -88,3 +88,10 @@
 **Files changed:** `README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`, `docs/engine-feedback.md`, `package.json`, `package-lock.json`, `tsconfig.json`, `eslint.config.js`, `index.html`, `vite.config.ts`, `scripts/build-content.mjs`, `scripts/content-lib.mjs`, `scripts/content-lib.d.ts`, `scripts/validate-content.mjs`, `src/main.ts`, `src/styles.css`, `src/app/bootstrap/createApp.ts`, `src/game/simulation/createSimulationBridge.ts`, `src/game/simulation/renderStore.ts`, `src/game/simulation/types.ts`, `src/phaser/scenes/GameScene.ts`, `src/ui/hud/createHudController.ts`, `tests/content/content-lib.test.ts`, `generated/content/content.json`
 **Reasoning:** The implementation plan's first milestone is to prove the runtime shell, engine contract, and content pipeline before building deeper gameplay systems. This slice establishes that boundary and leaves the repo in a verified state that Phase 2 and Phase 3 can build on.
 **Notes:** Verification run: `npm.cmd run content:validate`, `npm.cmd test`, `npm.cmd run lint`, `npm.cmd run build`. The Vite production build succeeds, but it currently emits a large-chunk warning for the single bundled Phaser runtime (`~1.53 MB` minified JS). A misplaced content artifact created during an earlier buggy build was cleaned up from the parent `github/generated` directory after the output path was corrected.
+
+## [2026-04-10, America/Los_Angeles] — Add AGENTS.md for OpenAI Codex
+**Action:** Added repository-root `AGENTS.md` with the same project rules as `CLAUDE.md`, adjusted only in the Subagent section so subagent prompts reference `AGENTS.md` with a fallback to `CLAUDE.md`.
+**Result:** OpenAI Codex CLI will auto-discover project instructions via `AGENTS.md` while `CLAUDE.md` remains unchanged for other tooling.
+**Files changed:** `AGENTS.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** Codex loads `AGENTS.md` by default; duplicating the canonical rules there avoids manual configuration and keeps behavior aligned with existing agent guidance.
+**Notes:** Documentation-only change; no tests run.
