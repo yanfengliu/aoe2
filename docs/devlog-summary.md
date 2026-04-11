@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added a baseline AI rush. The enemy now builds a House and Barracks, queues Militia, and can kill at least one human villager in the live match loop; coverage is now `3` Vitest files / `18` assertions plus `10` passing Playwright browser tests.
 2026-04-11 - Added the first melee combat slice. Militia can now right-click visible enemy units, enter deterministic melee combat, and kill the forward enemy scout; coverage is now `3` Vitest files / `17` assertions plus `9` passing Playwright browser tests.
 2026-04-11 - Added Barracks and Militia production. Villagers can now build Barracks, completed Barracks can queue Militia, and coverage is now `3` Vitest files / `16` assertions plus `8` passing Playwright browser tests.
 2026-04-11 - Added Dark Age drop-off buildings. Villagers can now build Mill, Lumber Camp, and Mining Camp, and resource returns now route to the nearest completed valid drop-off building. Coverage is now `3` Vitest files / `15` assertions plus `7` passing Playwright browser tests.

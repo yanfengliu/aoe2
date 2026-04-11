@@ -258,4 +258,25 @@ describe('createSimulationBridge', () => {
       bridge.getEconomyState().units.some((unit) => unit.id === enemyScout?.id),
     ).toBe(false);
   });
+
+  it('lets the AI build a Barracks and kill a human villager', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    for (let index = 0; index < 1_200; index += 1) {
+      bridge.step(100);
+    }
+
+    const economyState = bridge.getEconomyState();
+    expect(
+      economyState.buildings.some(
+        (building) =>
+          building.owner === 2
+          && building.buildingType === 'barracks'
+          && building.isComplete,
+      ),
+    ).toBe(true);
+    expect(
+      economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager').length,
+    ).toBeLessThan(3);
+  }, 10_000);
 });

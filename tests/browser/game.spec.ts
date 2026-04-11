@@ -392,4 +392,28 @@ test.describe('browser gameplay smoke tests', () => {
       combatSnapshot.economyState.units.some((unit) => unit.id === enemyScout?.id),
     ).toBe(false);
   });
+
+  test('runs the baseline AI barracks rush through the live game loop', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const advancedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(1_200, 100),
+    );
+
+    expect(
+      advancedSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 2
+          && building.buildingType === 'barracks'
+          && building.isComplete,
+      ),
+    ).toBe(true);
+    expect(
+      advancedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ).length,
+    ).toBeLessThan(3);
+  });
 });

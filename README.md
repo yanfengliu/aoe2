@@ -20,6 +20,7 @@ Current implementation status:
 - villagers can now build Mill, Lumber Camp, and Mining Camp, and completed drop-off buildings are used for resource returns instead of hardwiring all income through the Town Center
 - villagers can now build a Barracks, and completed Barracks can queue Militia through the same command-panel flow used by the Town Center
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
+- the first AI rush is now live: the enemy can build a House and Barracks, queue Militia, and pressure the human economy without player input
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
@@ -53,6 +54,7 @@ The game currently starts directly into the prototype map. Use:
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
 - the selection panel to place Barracks with Villagers and queue Militia from completed Barracks
+- enemy AI currently runs a minimal scripted opening that builds out of population cap and sends Militia at the human villagers
 
 ## Verification
 
