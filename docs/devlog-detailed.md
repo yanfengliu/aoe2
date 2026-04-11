@@ -11,3 +11,10 @@
 **Files changed:** `design/spec-codex.md`, `design/sources.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The earlier draft was too high-level for concrete implementation and mixed some non-classic assumptions. The repo now contains structured local data tables, so the right move was to align the prose spec to a strict AoC baseline while using the CSVs as the exact stat and availability companion.
 **Notes:** The local CSVs mix classic and later-expansion data, so the prose spec intentionally filters back to the classic roster and mechanics. This was a documentation-only change; no code or tests were run.
+
+## [2026-04-10 20:59, America/Los_Angeles] - Retarget spec to DE and align with local stats
+**Action:** Reworked `design/spec-codex.md` from an AoC-focused roster dump into a DE-targeted systems spec that treats `design/stats` as the canonical content source, and rewrote `design/sources.md` to reflect the new source hierarchy and official DE references.
+**Result:** The spec now explicitly targets AoE2 DE, removes stale AoC-only assumptions, reduces redundant prose duplication of civ and tech data already present in CSVs, and documents the current gap between the local stats bundle and full live-DE content. The sources file now prioritizes local stats first, official DE sources second, and keeps older AoC references only as historical context.
+**Files changed:** `design/spec-codex.md`, `design/sources.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user clarified that the intended target is DE and that `design/stats` is now the source of truth. Given that, the previous hand-maintained AoC-centric prose was both redundant and partially incorrect. The revised spec defines the systems and data-interpretation rules while letting the structured data own the concrete roster.
+**Notes:** The local data currently covers 30 unique civ rows with duplicates and a mostly classic unit and tech bundle, so the spec calls out dataset incompleteness instead of guessing missing DE content. This was a documentation-only change; no tests were run.
