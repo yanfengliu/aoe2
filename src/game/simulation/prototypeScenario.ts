@@ -132,6 +132,8 @@ const FOREST_PATCHES: Offset[][] = [
   ],
 ];
 
+const FORWARD_ENEMY_SCOUT_POSITION = { x: 13, y: 5 };
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -383,6 +385,16 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
       applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
     }
   }
+
+  paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
+  spawns.push({
+    kind: 'scout',
+    x: FORWARD_ENEMY_SCOUT_POSITION.x,
+    y: FORWARD_ENEMY_SCOUT_POSITION.y,
+    owner: 2,
+    baseOwner: 2,
+    vision: { playerId: 2, radius: 6 },
+  });
 
   return {
     seed,

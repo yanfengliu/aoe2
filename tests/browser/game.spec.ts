@@ -351,4 +351,45 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toHaveLength(1);
   });
+
+  test('can command a Militia to attack and kill a visible enemy scout', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await page.locator('[data-command="build-barracks"]').click();
+    await clickCell(page, 10, 5);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+
+    await clickCell(page, 10, 5);
+    await page.locator('[data-command="train-militia"]').click();
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
+
+    const trainedSnapshot = await getSnapshot(page);
+    const militia = trainedSnapshot.economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'militia',
+    );
+    const enemyScout = trainedSnapshot.economyState.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'scout' && unit.x === 13 && unit.y === 5,
+    );
+    expect(militia).toBeDefined();
+    expect(enemyScout).toBeDefined();
+
+    await clickCell(page, militia?.x ?? 0, militia?.y ?? 0);
+    await clickCell(page, enemyScout?.x ?? 0, enemyScout?.y ?? 0, 'right');
+
+    const combatSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(220, 100),
+    );
+
+    expect(
+      combatSnapshot.economyState.units.some((unit) => unit.id === enemyScout?.id),
+    ).toBe(false);
+  });
 });

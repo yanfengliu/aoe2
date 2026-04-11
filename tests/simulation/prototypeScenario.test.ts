@@ -21,12 +21,22 @@ describe('createPrototypeScenario', () => {
       scenario.spawns.filter(
         (spawn) => spawn.kind === kind && (baseOwner === undefined || spawn.baseOwner === baseOwner),
       ).length;
+    const startingScouts = scenario.spawns.filter(
+      (spawn) =>
+        spawn.kind === 'scout'
+        && !(spawn.owner === 2 && spawn.x === 13 && spawn.y === 5),
+    );
+    const forwardEnemyScout = scenario.spawns.find(
+      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.x === 13 && spawn.y === 5,
+    );
 
     expect(scenario.width).toBe(MAP_WIDTH);
     expect(scenario.height).toBe(MAP_HEIGHT);
     expect(countBy('town-center')).toBe(2);
     expect(countBy('villager')).toBe(6);
-    expect(countBy('scout')).toBe(2);
+    expect(countBy('scout')).toBe(3);
+    expect(startingScouts).toHaveLength(2);
+    expect(forwardEnemyScout).toBeDefined();
 
     for (const owner of [1, 2]) {
       expect(countBy('sheep', owner)).toBe(4);

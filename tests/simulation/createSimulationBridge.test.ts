@@ -218,4 +218,44 @@ describe('createSimulationBridge', () => {
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'militia'),
     ).toHaveLength(1);
   });
+
+  it('lets a selected Militia attack and kill a visible enemy scout', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+
+    for (let index = 0; index < 500; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(bridge.queueTrainUnit('militia')).toBe(true);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    const militia = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
+    const enemyScout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout' && unit.x === 13 && unit.y === 5);
+
+    expect(militia).toBeDefined();
+    expect(enemyScout).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(enemyScout?.x ?? 0, enemyScout?.y ?? 0)).toBe(true);
+
+    for (let index = 0; index < 220; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some((unit) => unit.id === enemyScout?.id),
+    ).toBe(false);
+  });
 });

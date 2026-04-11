@@ -26,6 +26,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Context-sensitive right-click orders also fit that model well. The bridge can resolve "move vs gather" entirely inside the simulation boundary while Phaser stays input-only.
 - Resource-specific drop-off routing also stayed manageable in repo code. Querying the world for the nearest completed valid building was easy to express and easy to test.
 - Reusing the same queue system for Town Center and Barracks worked cleanly. The engine's ECS model is flexible enough that new producers do not require a new framework pattern each time.
+- The first combat slice also fit the same pattern cleanly. Repo-owned combat state plus `world.destroyEntity()` were enough to implement melee attack, death cleanup, and visibility updates without pushing combat ownership into Phaser.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
 
@@ -44,6 +45,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Building footprints, placement validation, and construction progress are currently repo-level policy layered on raw ECS state rather than engine helpers.
 - Fog memory for static enemy buildings/resources is still a game-level policy on top of the visibility primitive. The engine gives the visibility substrate, not the remembered-state rules.
 - Renderer-side coordinate projection is also repo-owned. Browser automation and map-click input needed explicit Phaser `worldView` handling to keep world-to-canvas translation correct.
+- Combat still needs repo-owned policy around target acquisition, cooldown state, and death-side cleanup across population, selection, and queued commands. The engine gives reliable entity cleanup primitives, but the RTS-specific consequences remain game code.
 - Build packaging still needs repo-level policy. The current warning-free Vite build is achieved by explicit vendor chunking and a chunk-size limit that acknowledges the real Phaser payload size.
 - Once villagers become commandable instead of scripted, path quality and occupancy will matter more than they do in the current one-tile-per-tick prototype movement.
 - The current production bundle is large because the runtime is still a single Phaser chunk. This is not a `civ-engine` problem, but it is part of the real integration cost.
@@ -64,5 +66,6 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 
 - broader building roster and drop-off rules
 - military command and combat-state fan-out
+- AI combat command fan-out and building-target combat
 - fog-memory rules
 - save and load round-tripping

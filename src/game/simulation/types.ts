@@ -121,7 +121,7 @@ export interface PopulationState {
   cap: number;
 }
 
-export type UnitTaskState = GatherTaskState | 'moving' | 'building';
+export type UnitTaskState = GatherTaskState | 'moving' | 'building' | 'attacking';
 
 export interface ProductionQueueEntry {
   unitType: TrainableUnitType;

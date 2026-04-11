@@ -19,6 +19,7 @@ Current implementation status:
 - right click now resolves context-sensitive villager orders, so visible resources can be explicitly targeted for gathering instead of only using the autonomous assignment loop
 - villagers can now build Mill, Lumber Camp, and Mining Camp, and completed drop-off buildings are used for resource returns instead of hardwiring all income through the Town Center
 - villagers can now build a Barracks, and completed Barracks can queue Militia through the same command-panel flow used by the Town Center
+- Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
@@ -46,6 +47,7 @@ The game currently starts directly into the prototype map. Use:
 - left click to select units and buildings
 - right click to issue context orders to the current selection
 - villagers use right click on visible resources to gather them explicitly
+- military units use right click on visible enemy units to attack them
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center

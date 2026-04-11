@@ -76,11 +76,13 @@ const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
 const MILITIA_TRAIN_TIME_TICKS = 210;
+const MELEE_ATTACK_RANGE = 1;
 
 interface UnitCommand {
-  type: 'move' | 'build';
+  type: 'move' | 'build' | 'attack';
   target: Position;
   buildingId?: number;
+  targetEntityId?: number;
 }
 
 interface ConstructionState {
@@ -90,6 +92,15 @@ interface ConstructionState {
   populationProvided: number;
   width: number;
   height: number;
+}
+
+interface CombatState {
+  currentHp: number;
+  maxHp: number;
+  attackDamage: number;
+  attackRange: number;
+  reloadTicks: number;
+  cooldownTicks: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -411,6 +422,39 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
   }
 }
 
+function unitMaxHp(unitType: UnitType): number {
+  switch (unitType) {
+    case 'villager':
+      return 25;
+    case 'scout':
+      return 45;
+    case 'militia':
+      return 40;
+  }
+}
+
+function unitAttackDamage(unitType: UnitType): number {
+  switch (unitType) {
+    case 'villager':
+      return 3;
+    case 'scout':
+      return 3;
+    case 'militia':
+      return 4;
+  }
+}
+
+function unitReloadTicks(unitType: UnitType): number {
+  switch (unitType) {
+    case 'villager':
+      return 12;
+    case 'scout':
+      return 12;
+    case 'militia':
+      return 10;
+  }
+}
+
 function createProjector(
   visibility: VisibilityMap,
   playerId: number,
@@ -559,6 +603,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const unitCommands = new Map<number, UnitCommand>();
   const productionQueues = new Map<number, ProductionQueueEntry[]>();
   const constructionStates = new Map<number, ConstructionState>();
+  const combatStates = new Map<number, CombatState>();
   let selectedEntityId: number | null = null;
   let placementMode: BuildableBuildingType | null = null;
 
@@ -643,6 +688,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     if (populationState) {
       populationState.current += 1;
     }
+
+    combatStates.set(entity, {
+      currentHp: unitMaxHp(unitType),
+      maxHp: unitMaxHp(unitType),
+      attackDamage: unitAttackDamage(unitType),
+      attackRange: MELEE_ATTACK_RANGE,
+      reloadTicks: unitReloadTicks(unitType),
+      cooldownTicks: 0,
+    });
 
     if (unitType === 'villager') {
       const ordinal = villagerOrdinals.get(owner) ?? 0;
@@ -787,7 +841,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function getUnitTaskState(id: number): UnitTaskState {
     const command = unitCommands.get(id);
     if (command) {
-      return command.type === 'move' ? 'moving' : 'building';
+      switch (command.type) {
+        case 'move':
+          return 'moving';
+        case 'build':
+          return 'building';
+        case 'attack':
+          return 'attacking';
+      }
     }
 
     const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
@@ -941,6 +1002,43 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
+  function findHostileUnitAtCell(x: number, y: number, attackerOwner: number): number | null {
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (
+        position?.x === x
+        && position.y === y
+        && unit
+        && unit.owner !== attackerOwner
+        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
+      ) {
+        return id;
+      }
+    }
+
+    return null;
+  }
+
+  function destroyUnitEntity(id: number): void {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    if (unit) {
+      const populationState = population.get(unit.owner);
+      if (populationState) {
+        populationState.current = Math.max(0, populationState.current - 1);
+      }
+    }
+
+    if (selectedEntityId === id) {
+      selectedEntityId = null;
+      placementMode = null;
+    }
+
+    unitCommands.delete(id);
+    combatStates.delete(id);
+    world.destroyEntity(id);
+  }
+
   function findNearestDropOffBuilding(
     activeWorld: World<GameEvents, GameCommands>,
     owner: number,
@@ -1036,6 +1134,45 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
         if (!position || !unit) {
           unitCommands.delete(id);
+          continue;
+        }
+
+        if (command.type === 'attack') {
+          const targetId = command.targetEntityId;
+          const attackerCombat = combatStates.get(id);
+          if (targetId === undefined || !attackerCombat) {
+            unitCommands.delete(id);
+            continue;
+          }
+
+          const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+          const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+          const targetCombat = combatStates.get(targetId);
+          if (!targetPosition || !targetUnit || !targetCombat || targetUnit.owner === unit.owner) {
+            unitCommands.delete(id);
+            continue;
+          }
+
+          if (attackerCombat.cooldownTicks > 0) {
+            attackerCombat.cooldownTicks -= 1;
+          }
+
+          if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
+            activeWorld.setPosition(id, stepToward(position, targetPosition));
+            continue;
+          }
+
+          if (attackerCombat.cooldownTicks > 0) {
+            continue;
+          }
+
+          targetCombat.currentHp -= attackerCombat.attackDamage;
+          attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+
+          if (targetCombat.currentHp <= 0) {
+            destroyUnitEntity(targetId);
+            unitCommands.delete(id);
+          }
           continue;
         }
 
@@ -1420,6 +1557,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       unit.unitType === 'villager'
         ? findResourceAtCell(target.x, target.y)
         : null;
+    const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
+
+    if (hostileUnitId !== null) {
+      placementMode = null;
+      unitCommands.set(selectedEntityId, {
+        type: 'attack',
+        target,
+        targetEntityId: hostileUnitId,
+      });
+      return true;
+    }
 
     if (resourceId === null) {
       return issueMoveCommand(target.x, target.y);
