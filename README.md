@@ -12,8 +12,11 @@ Current implementation status:
 
 - `TypeScript` + `Vite` + `Phaser 3` app shell is running
 - `civ-engine` owns the prototype simulation tick and render projection
-- a deterministic 36x24 prototype map renders with terrain, Town Centers, Villagers, and Scouts
+- a deterministic 36x24 prototype map renders with terrain, Town Centers, Villagers, Scouts, and nearby starting resources
+- fog of war and explored-state shading now run through `civ-engine` `VisibilityMap`
+- the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
+- automated coverage currently includes content normalization, deterministic scenario generation, and simulation visibility behavior
 
 Useful commands:
 

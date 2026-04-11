@@ -26,6 +26,7 @@ function destroyedKey(id: number, generation: number): string {
 export class RenderStore {
   private readonly entities = new Map<string, RenderEntity<ProjectedEntityView>>();
   private tick = 0;
+  private frame: ProjectedFrameView | null = null;
   private debug: WorldDebugSnapshot | null = null;
 
   apply(message: RenderMessage): void {
@@ -35,6 +36,7 @@ export class RenderStore {
         this.entities.set(renderKey(entity), entity);
       }
       this.tick = message.data.render.tick;
+      this.frame = message.data.render.frame;
       this.debug = message.data.debug;
       return;
     }
@@ -49,6 +51,7 @@ export class RenderStore {
       this.entities.delete(destroyedKey(ref.id, ref.generation));
     }
     this.tick = message.data.render.tick;
+    this.frame = message.data.render.frame;
     this.debug = message.data.debug;
   }
 
@@ -56,7 +59,7 @@ export class RenderStore {
     return [...this.entities.values()]
       .map((entity) => entity.view)
       .sort((left, right) => {
-        const layerOrder = ['terrain', 'building', 'unit'];
+        const layerOrder = ['terrain', 'resource', 'building', 'unit'];
         const layerDelta =
           layerOrder.indexOf(left.layer) - layerOrder.indexOf(right.layer);
         if (layerDelta !== 0) return layerDelta;
@@ -67,6 +70,10 @@ export class RenderStore {
 
   getTick(): number {
     return this.tick;
+  }
+
+  getFrame(): ProjectedFrameView | null {
+    return this.frame;
   }
 
   getDebug(): WorldDebugSnapshot | null {

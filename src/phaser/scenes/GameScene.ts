@@ -1,10 +1,17 @@
 import Phaser from 'phaser';
 
-import type { ProjectedEntityView } from '../../game/simulation/types';
+import {
+  MAP_HEIGHT,
+  MAP_WIDTH,
+} from '../../game/simulation/prototypeScenario';
+import type {
+  ProjectedFrameView,
+  RenderState,
+} from '../../game/simulation/types';
 
 interface SimulationBridge {
   step(deltaMs: number): void;
-  getRenderState(): { tick: number; entities: ProjectedEntityView[] };
+  getRenderState(): RenderState;
 }
 
 const CELL_SIZE = 24;
@@ -13,6 +20,7 @@ export class GameScene extends Phaser.Scene {
   private readonly bridge: SimulationBridge;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private entityLayer?: Phaser.GameObjects.Graphics;
+  private fogLayer?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private lastRenderedTick = -1;
@@ -25,9 +33,10 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.terrainLayer = this.add.graphics();
     this.entityLayer = this.add.graphics();
+    this.fogLayer = this.add.graphics();
 
     this.cameras.main.setBackgroundColor('#132224');
-    this.cameras.main.setBounds(0, 0, 36 * CELL_SIZE, 24 * CELL_SIZE);
+    this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
     this.cameras.main.setZoom(1.4);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
@@ -54,7 +63,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.lastRenderedTick = state.tick;
-    this.renderState(state.entities);
+    this.renderState(state);
   }
 
   private updateCamera(delta: number): void {
@@ -75,21 +84,41 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private renderState(entities: ProjectedEntityView[]): void {
-    if (!this.terrainLayer || !this.entityLayer) {
+  private renderState(state: RenderState): void {
+    if (!this.terrainLayer || !this.entityLayer || !this.fogLayer) {
       return;
     }
 
     this.terrainLayer.clear();
     this.entityLayer.clear();
+    this.fogLayer.clear();
 
-    for (const entity of entities) {
+    for (const entity of state.entities) {
       const px = entity.x * CELL_SIZE;
       const py = entity.y * CELL_SIZE;
 
       if (entity.layer === 'terrain') {
         this.terrainLayer.fillStyle(entity.tint, 1);
         this.terrainLayer.fillRect(px, py, CELL_SIZE + 1, CELL_SIZE + 1);
+        continue;
+      }
+
+      if (entity.kind === 'resource') {
+        this.entityLayer.fillStyle(entity.tint, 1);
+        if (entity.entityType === 'gold-mine' || entity.entityType === 'stone-mine') {
+          this.entityLayer.fillRect(
+            px + CELL_SIZE * 0.1,
+            py + CELL_SIZE * 0.1,
+            CELL_SIZE * entity.size,
+            CELL_SIZE * entity.size,
+          );
+        } else {
+          this.entityLayer.fillCircle(
+            px + CELL_SIZE * 0.5,
+            py + CELL_SIZE * 0.5,
+            CELL_SIZE * entity.size * 0.55,
+          );
+        }
         continue;
       }
 
@@ -111,6 +140,35 @@ export class GameScene extends Phaser.Scene {
         py + CELL_SIZE * 0.5,
         CELL_SIZE * entity.size * 0.5,
       );
+    }
+
+    if (state.frame) {
+      this.renderFog(state.frame);
+    }
+  }
+
+  private renderFog(frame: ProjectedFrameView): void {
+    if (!this.fogLayer) {
+      return;
+    }
+
+    const visible = new Set(frame.visibleCells);
+    const explored = new Set(frame.exploredCells);
+
+    for (let y = 0; y < frame.mapHeight; y += 1) {
+      for (let x = 0; x < frame.mapWidth; x += 1) {
+        const index = y * frame.mapWidth + x;
+        if (!explored.has(index)) {
+          this.fogLayer.fillStyle(0x081012, 0.94);
+          this.fogLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE + 1, CELL_SIZE + 1);
+          continue;
+        }
+
+        if (!visible.has(index)) {
+          this.fogLayer.fillStyle(0x0b1215, 0.58);
+          this.fogLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE + 1, CELL_SIZE + 1);
+        }
+      }
     }
   }
 }
