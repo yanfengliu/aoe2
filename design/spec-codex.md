@@ -19,8 +19,8 @@ Use sources in this order:
 3. `design/stats/units.csv`
 4. `design/stats/civilizations.csv`
 5. `design/spec-codex.md`
-6. Official Age of Empires DE references listed in `design/sources.md`
-7. Community references listed in `design/sources.md`
+6. Official Age of Empires DE references listed in `design/sources/03-official-de.md`
+7. Community and historical references listed in `design/sources/04-community-and-history.md`
 
 Interpretation rules:
 
