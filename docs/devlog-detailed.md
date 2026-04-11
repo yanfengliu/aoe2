@@ -32,3 +32,17 @@
 **Files changed:** `design/spec-codex.md`, `design/sources/03-official-de.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The user clarified that the current product scope should be limited to fighting AI in single-player. Keeping multiplayer and campaign requirements in the spec would create false implementation pressure and muddy prioritization.
 **Notes:** This was a documentation-only change; no tests were run.
+
+## [2026-04-10, UTC] — Write independent AoE2 DE game spec (spec-claude.md)
+**Action:** Created `design/spec-claude.md` — a comprehensive, implementation-ready game specification for Age of Empires II: Definitive Edition. Combined local CSV data (`design/stats/`) with extensive online research into combat mechanics, economy systems, map generation, building mechanics, tech trees, and UI/networking architecture.
+**Result:** Complete 17-section spec covering: game overview, match structure (7 game modes, 4 victory conditions), world/map generation (8 map types, terrain system, resource placement), economy (gather rates, trade formulas, market mechanics, tribute, relics), age progression, buildings (economy/military/defensive with all stats), units (all categories with upgrade chains), combat system (damage formula, armor classes, accuracy, elevation, blast damage, garrison arrows, conversion, healing), technology system (all blacksmith/university/monastery/dock/TC/castle techs), civilizations (30 civs across 5 expansions with bonuses), fog of war, pathfinding, AI behavior, UI layout, deterministic simulation model, multiplayer networking, and audio/visual design. Includes key formulas appendix.
+**Files changed:** `design/spec-claude.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user requested an independent spec (separate from `spec-codex.md`) based on original research. The spec was built by reading all local CSV data files first, then conducting three parallel research threads (combat mechanics, economy/maps, buildings/tech tree) using web sources to fill in implementation-level detail not captured in the CSVs.
+**Notes:** This spec targets the full DE product including multiplayer, unlike `spec-codex.md` which was narrowed to single-player AI skirmish. The spec defers to `design/stats/*.csv` for concrete numeric values and defines the rules/formulas that operate on that data.
+
+## [2026-04-10, UTC] — Narrow spec-claude.md to single-player vs AI
+**Action:** Removed multiplayer networking section (§16), lobby system, spectator mode, peer-to-peer lockstep, disconnect handling, and replay system from `design/spec-claude.md`. Reframed all remaining references from multiplayer to single-player with AI opponents/allies. Simplified simulation model section to tick-based simulation without lockstep networking concerns. Added scope declaration to header. Renumbered Audio and Visual from §17 to §16.
+**Result:** Spec now has 16 sections (down from 17). All "ally" references now specify "AI ally". Trade, tribute, and team bonus mechanics retained but scoped to AI partners. Game setup replaces lobby system.
+**Files changed:** `design/spec-claude.md`, `docs/devlog-detailed.md`
+**Reasoning:** User clarified the product scope is single-player only — one human player vs AI opponents. Multiplayer and campaign story modes are out of scope.
+**Notes:** Documentation-only change. No tests run.
