@@ -123,3 +123,10 @@
 **Files changed:** `README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`, `docs/engine-feedback.md`, `src/game/simulation/createSimulationBridge.ts`, `src/game/simulation/prototypeScenario.ts`, `src/game/simulation/types.ts`, `src/phaser/scenes/GameScene.ts`, `src/ui/hud/createHudController.ts`, `tests/simulation/createSimulationBridge.test.ts`, `tests/simulation/prototypeScenario.test.ts`
 **Reasoning:** The user asked to keep going toward a complete game and to stop treating tests as second-class citizens. The right next step was to implement one concrete Dark Age subsystem with failing tests first, then make the runtime satisfy those rules and keep all standard verification gates green.
 **Notes:** Verification run: `npm.cmd run content:validate`, `npm.cmd test`, `npm.cmd run lint`, `npm.cmd run build`. Current automated total: `3` test files and `11` passing tests. This slice is still scripted economy, not player-commanded villager control or full build/queue gameplay.
+
+## [2026-04-10 23:22, America/Los_Angeles] - Add explicit local run instructions to README
+**Action:** Expanded `README.md` with a concrete `Run locally` section covering prerequisites, dependency installation, starting the Vite dev server, the default local URL, and the current camera controls. Also split out a `Verification` section so the standard validation commands are easy to find.
+**Result:** A new contributor can now follow the README directly to boot the current prototype instead of inferring the run flow from the raw command list.
+**Files changed:** `README.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user asked for explicit instructions on how to run the game. The README already had command bullets, but it did not give a proper ordered run path or call out the local `civ-engine` dependency.
+**Notes:** Documentation-only change. No tests were run.

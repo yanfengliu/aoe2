@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-10 - Expanded `README.md` with explicit local run instructions: prerequisites, `npm.cmd install`, `npm.cmd run dev`, the default local URL, controls, and the standard verification commands.
 2026-04-11 - Stopped tracking `generated/content/content.json` (gitignore + `git rm --cached`); build still generates it via `prebuild` / `content:build`.
 2026-04-10 - Added root `AGENTS.md` mirroring `CLAUDE.md` for OpenAI Codex automatic project instructions.
 2026-04-10 - Added the first Dark Age economy loop with tests first. Villagers now gather nearby food and wood, return to the Town Center, and update player stockpiles shown in the HUD. Automated coverage is now `3` test files / `11` tests, including deterministic economy behavior.

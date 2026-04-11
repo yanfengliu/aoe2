@@ -20,10 +20,40 @@ Current implementation status:
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
 - automated coverage currently includes content normalization, deterministic scenario generation, visibility behavior, and villager economy rules
 
-Useful commands:
+## Run locally
 
-- `npm.cmd install`
+Requirements:
+
+- `Node.js 24+`
+- the sibling repo `../civ-engine` present on disk, because this project depends on it through a local `file:` dependency
+
+Setup:
+
+1. From the repo root, install dependencies:
+   `npm.cmd install`
+2. Start the dev server:
+   `npm.cmd run dev`
+3. Open the local Vite URL shown in the terminal. By default this is `http://127.0.0.1:5173`.
+
+The game currently starts directly into the prototype map. Use:
+
+- `W`, `A`, `S`, `D` or arrow keys to pan
+- mouse wheel to zoom
+
+## Verification
+
+Run the standard project checks with:
+
 - `npm.cmd run content:validate`
 - `npm.cmd test`
+- `npm.cmd run lint`
 - `npm.cmd run build`
+
+## Useful commands
+
+- `npm.cmd install`
 - `npm.cmd run dev`
+- `npm.cmd run content:validate`
+- `npm.cmd test`
+- `npm.cmd run lint`
+- `npm.cmd run build`
