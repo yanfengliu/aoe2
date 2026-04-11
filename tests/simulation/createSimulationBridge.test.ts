@@ -117,7 +117,7 @@ describe('createSimulationBridge', () => {
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'villager',
-      buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp'],
+      buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks'],
     });
     expect(bridge.beginBuildingPlacement('house')).toBe(true);
     expect(bridge.getSelectionState().placementMode).toBe('house');
@@ -186,5 +186,36 @@ describe('createSimulationBridge', () => {
     }
 
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
+  });
+
+  it('builds a Barracks and trains a Militia from it', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    expect(bridge.getHudState().playerResources.wood).toBe(25);
+
+    for (let index = 0; index < 500; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'barracks',
+      trainOptions: ['militia'],
+    });
+    const resourcesBeforeTraining = bridge.getHudState().playerResources;
+    expect(bridge.queueTrainUnit('militia')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(resourcesBeforeTraining.food - 60);
+    expect(bridge.getHudState().playerResources.gold).toBe(resourcesBeforeTraining.gold - 20);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'militia'),
+    ).toHaveLength(1);
   });
 });

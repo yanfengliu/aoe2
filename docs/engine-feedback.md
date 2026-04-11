@@ -25,6 +25,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - That same pattern also worked for the first commandable slice: production queues, construction progress, and selected-unit commands can remain simulation-owned without moving state into Phaser.
 - Context-sensitive right-click orders also fit that model well. The bridge can resolve "move vs gather" entirely inside the simulation boundary while Phaser stays input-only.
 - Resource-specific drop-off routing also stayed manageable in repo code. Querying the world for the nearest completed valid building was easy to express and easy to test.
+- Reusing the same queue system for Town Center and Barracks worked cleanly. The engine's ECS model is flexible enough that new producers do not require a new framework pattern each time.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
 
@@ -35,6 +36,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
   - production queues
   - context-sensitive command resolution
   - resource-to-drop-off capability rules
+  - producer-to-trainable-unit capability rules
   - command buffering
   - unit selection and command fan-out
   - formation and group movement behavior

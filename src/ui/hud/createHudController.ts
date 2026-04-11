@@ -3,14 +3,14 @@ import type {
   HudState,
   RenderState,
   SelectionState,
-  UnitType,
+  TrainableUnitType,
 } from '../../game/simulation/types';
 
 interface HudBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
-  queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
+  queueTrainUnit(unitType: TrainableUnitType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
@@ -104,8 +104,12 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Lumber Camp';
     case 'mining-camp':
       return 'Mining Camp';
+    case 'barracks':
+      return 'Barracks';
     case 'villager':
       return 'Villager';
+    case 'militia':
+      return 'Militia';
     case 'scout':
       return 'Scout Cavalry';
     default:
@@ -187,8 +191,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer">
         Phase 3 slice: select units and buildings on the map, queue Villagers from
-        the Town Center, place Houses and Dark Age drop-off buildings with
-        Villagers, pan with arrow keys or WASD, and use the mouse wheel to zoom.
+        the Town Center, place Houses, Dark Age drop-off buildings, and Barracks
+        with Villagers, pan with arrow keys or WASD, and use the mouse wheel to
+        zoom.
       </div>
     </div>
   `;
@@ -243,6 +248,19 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         `,
       )
       .join('');
+    const trainButtons = selectionState.trainOptions
+      .map(
+        (unitType) => `
+          <button
+            class="hud-command-button"
+            data-command="train-${unitType}"
+            type="button"
+          >
+            Train ${formatEntityName(unitType)}
+          </button>
+        `,
+      )
+      .join('');
 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
@@ -253,17 +271,22 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
       <div class="hud-command-list">
-        ${selectionState.trainOptions.includes('villager')
-          ? '<button class="hud-command-button" data-command="train-villager" type="button">Train Villager</button>'
-          : ''}
+        ${trainButtons}
         ${buildButtons}
       </div>
     `;
 
     selectionPanel
-      .querySelector<HTMLButtonElement>('[data-command="train-villager"]')
-      ?.addEventListener('click', () => {
-        bridge.queueTrainUnit('villager');
+      .querySelectorAll<HTMLButtonElement>('[data-command^="train-"]')
+      .forEach((button) => {
+        const unitType = button.dataset.command?.replace('train-', '') as TrainableUnitType | undefined;
+        if (!unitType) {
+          return;
+        }
+
+        button.addEventListener('click', () => {
+          bridge.queueTrainUnit(unitType);
+        });
       });
     selectionPanel
       .querySelectorAll<HTMLButtonElement>('[data-command^="build-"]')

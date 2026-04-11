@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added Barracks and Militia production. Villagers can now build Barracks, completed Barracks can queue Militia, and coverage is now `3` Vitest files / `16` assertions plus `8` passing Playwright browser tests.
 2026-04-11 - Added Dark Age drop-off buildings. Villagers can now build Mill, Lumber Camp, and Mining Camp, and resource returns now route to the nearest completed valid drop-off building. Coverage is now `3` Vitest files / `15` assertions plus `7` passing Playwright browser tests.
 2026-04-11 - Added explicit villager gather context orders. Right click now resolves to gather on visible resources or move otherwise, with coverage expanded to `3` Vitest files / `14` assertions plus `6` passing Playwright browser tests.
 2026-04-11 - Added the first player-commanded Dark Age slice. The player can now select Town Centers and Villagers, queue Villagers, place Houses, and increase population cap through completed construction. Automated coverage is now `3` Vitest files / `13` assertions plus `5` passing Playwright browser tests.

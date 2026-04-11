@@ -18,6 +18,7 @@ Current implementation status:
 - the player can now select Town Centers and Villagers, queue Villagers, place Houses, and raise population cap through completed construction
 - right click now resolves context-sensitive villager orders, so visible resources can be explicitly targeted for gathering instead of only using the autonomous assignment loop
 - villagers can now build Mill, Lumber Camp, and Mining Camp, and completed drop-off buildings are used for resource returns instead of hardwiring all income through the Town Center
+- villagers can now build a Barracks, and completed Barracks can queue Militia through the same command-panel flow used by the Town Center
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
@@ -49,6 +50,7 @@ The game currently starts directly into the prototype map. Use:
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
+- the selection panel to place Barracks with Villagers and queue Militia from completed Barracks
 
 ## Verification
 

@@ -1,6 +1,12 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
-export type UnitType = 'villager' | 'scout';
-export type BuildableBuildingType = 'house' | 'mill' | 'lumber-camp' | 'mining-camp';
+export type UnitType = 'villager' | 'scout' | 'militia';
+export type TrainableUnitType = 'villager' | 'militia';
+export type BuildableBuildingType =
+  | 'house'
+  | 'mill'
+  | 'lumber-camp'
+  | 'mining-camp'
+  | 'barracks';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -118,7 +124,7 @@ export interface PopulationState {
 export type UnitTaskState = GatherTaskState | 'moving' | 'building';
 
 export interface ProductionQueueEntry {
-  unitType: Extract<UnitType, 'villager'>;
+  unitType: TrainableUnitType;
   remainingTicks: number;
   totalTicks: number;
   isBlocked: boolean;
@@ -172,7 +178,7 @@ export interface SelectionState {
   x: number | null;
   y: number | null;
   buildOptions: BuildableBuildingType[];
-  trainOptions: UnitType[];
+  trainOptions: TrainableUnitType[];
   queue: ProductionQueueEntry[];
   placementMode: BuildableBuildingType | null;
 }

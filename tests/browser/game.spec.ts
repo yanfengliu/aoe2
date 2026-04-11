@@ -315,4 +315,40 @@ test.describe('browser gameplay smoke tests', () => {
     );
     expect(incomeSnapshot.hudState.playerResources.gold).toBeGreaterThan(100);
   });
+
+  test('can build a Barracks and train a Militia through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-barracks"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Barracks');
+
+    await clickCell(page, 10, 5);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('25');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+
+    await clickCell(page, 10, 5);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
+    await page.locator('[data-command="train-militia"]').click();
+    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+
+    const trainedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+    );
+
+    expect(
+      trainedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'militia',
+      ),
+    ).toHaveLength(1);
+  });
 });

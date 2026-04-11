@@ -36,6 +36,7 @@ import type {
   ResourceKind,
   SelectionState,
   TerrainComponent,
+  TrainableUnitType,
   UnitComponent,
   UnitTaskState,
   UnitType,
@@ -57,7 +58,7 @@ export interface SimulationBridge {
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
-  queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
+  queueTrainUnit(unitType: TrainableUnitType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
@@ -73,6 +74,8 @@ const STANDARD_POPULATION_CAP = 5;
 const VILLAGER_TRAIN_TIME_TICKS = 250;
 const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
+const BARRACKS_BUILD_TIME_TICKS = 240;
+const MILITIA_TRAIN_TIME_TICKS = 210;
 
 interface UnitCommand {
   type: 'move' | 'build';
@@ -250,6 +253,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'mill':
     case 'lumber-camp':
     case 'mining-camp':
+    case 'barracks':
       return { width: 2, height: 2 };
     case 'town-center':
       return { width: 1, height: 1 };
@@ -263,6 +267,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'mill':
     case 'lumber-camp':
     case 'mining-camp':
+    case 'barracks':
     case 'town-center':
       return 0;
   }
@@ -276,6 +281,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
     case 'lumber-camp':
     case 'mining-camp':
       return DROPOFF_BUILD_TIME_TICKS;
+    case 'barracks':
+      return BARRACKS_BUILD_TIME_TICKS;
     case 'town-center':
       return 0;
   }
@@ -289,6 +296,8 @@ function buildingSize(buildingType: BuildingType): number {
     case 'lumber-camp':
     case 'mining-camp':
       return 1.15;
+    case 'barracks':
+      return 1.2;
     case 'town-center':
       return 1.4;
   }
@@ -321,6 +330,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0x7f8f9f : 0x4c5661
       : isComplete ? 0x8a7582 : 0x5b4b54;
+  }
+
+  if (buildingType === 'barracks') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x9b7351 : 0x5b4636
+      : isComplete ? 0x8e6257 : 0x5c403b;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -365,10 +380,12 @@ function spendResources(
   resources.stone -= cost.stone ?? 0;
 }
 
-function trainingCost(unitType: Extract<UnitType, 'villager'>): Partial<PlayerResources> {
+function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
   switch (unitType) {
     case 'villager':
       return { food: 50 };
+    case 'militia':
+      return { food: 60, gold: 20 };
   }
 }
 
@@ -380,13 +397,17 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
     case 'lumber-camp':
     case 'mining-camp':
       return { wood: 100 };
+    case 'barracks':
+      return { wood: 175 };
   }
 }
 
-function trainingTimeTicks(unitType: Extract<UnitType, 'villager'>): number {
+function trainingTimeTicks(unitType: TrainableUnitType): number {
   switch (unitType) {
     case 'villager':
       return VILLAGER_TRAIN_TIME_TICKS;
+    case 'militia':
+      return MILITIA_TRAIN_TIME_TICKS;
   }
 }
 
@@ -518,7 +539,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
-  queueTrainUnit: (unitType: Extract<UnitType, 'villager'>) => boolean;
+  queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
@@ -608,10 +629,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           ? owner === HUMAN_PLAYER_ID
             ? 0xf3e2b7
             : 0xf0b8b8
+          : unitType === 'militia'
+            ? owner === HUMAN_PLAYER_ID
+              ? 0xd39a5a
+              : 0xd27c7c
           : owner === HUMAN_PLAYER_ID
             ? 0xead74a
             : 0xef7d57,
-      size: unitType === 'villager' ? 0.45 : 0.55,
+      size: unitType === 'villager' ? 0.45 : unitType === 'militia' ? 0.5 : 0.55,
     });
 
     const populationState = population.get(owner);
@@ -663,6 +688,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (buildingType === 'town-center') {
       townCenterIds.set(owner, entity);
+    }
+
+    if (buildingType === 'town-center' || buildingType === 'barracks') {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
       }
@@ -1309,13 +1337,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return getSelectionState();
     }
 
-    const trainOptions: UnitType[] =
-      building?.buildingType === 'town-center' && building.owner === HUMAN_PLAYER_ID
-        ? ['villager']
+    const trainOptions: TrainableUnitType[] =
+      building?.owner === HUMAN_PLAYER_ID
+        ? building.buildingType === 'town-center'
+          ? ['villager']
+          : building.buildingType === 'barracks'
+            ? ['militia']
+            : []
         : [];
     const buildOptions: BuildableBuildingType[] =
       unit?.unitType === 'villager' && unit.owner === HUMAN_PLAYER_ID
-        ? ['house', 'mill', 'lumber-camp', 'mining-camp']
+        ? ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks']
         : [];
 
     return {
@@ -1414,13 +1446,24 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
-  function queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean {
+  function queueTrainUnit(unitType: TrainableUnitType): boolean {
     if (selectedEntityId === null) {
       return false;
     }
 
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== HUMAN_PLAYER_ID || building.buildingType !== 'town-center') {
+    if (!building || building.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+    const construction = constructionStates.get(selectedEntityId);
+    if (construction && !construction.isComplete) {
+      return false;
+    }
+
+    const canTrainUnit =
+      (building.buildingType === 'town-center' && unitType === 'villager')
+      || (building.buildingType === 'barracks' && unitType === 'militia');
+    if (!canTrainUnit) {
       return false;
     }
 
