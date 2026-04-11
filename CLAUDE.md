@@ -1,6 +1,6 @@
 ## Coding
 
-- Adopt test driven development. Write tests first, then make them pass by implementing the feature.
+- Adopt test driven development. Write tests first, then make them pass without errors or warnings by implementing the feature.
 - Make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` all pass on every commit.
 - Remove dead code and extract reusable util functions when you see fit.
 - Prefer small functions.
