@@ -23,6 +23,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - `VisibilityMap` plugged into the same render frame cleanly; fog and minimap logic did not need to leak into Phaser scene state.
 - Simulation-side closed-over state for stockpiles and drop-off logic works fine with `World` systems. Not every RTS rule needs to be a first-class engine primitive to remain deterministic and testable.
 - That same pattern also worked for the first commandable slice: production queues, construction progress, and selected-unit commands can remain simulation-owned without moving state into Phaser.
+- Context-sensitive right-click orders also fit that model well. The bridge can resolve "move vs gather" entirely inside the simulation boundary while Phaser stays input-only.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
 
@@ -31,6 +32,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - There is no out-of-the-box Phaser renderer adapter, so the repo needs to own that bridge layer.
 - The engine exposes useful low-level primitives, but higher-level RTS helpers are still this repo's job:
   - production queues
+  - context-sensitive command resolution
   - command buffering
   - unit selection and command fan-out
   - formation and group movement behavior

@@ -16,6 +16,7 @@ Current implementation status:
 - fog of war and explored-state shading now run through `civ-engine` `VisibilityMap`
 - villagers now run an autonomous gather-and-dropoff economy loop for food and wood
 - the player can now select Town Centers and Villagers, queue Villagers, place Houses, and raise population cap through completed construction
+- right click now resolves context-sensitive villager orders, so visible resources can be explicitly targeted for gathering instead of only using the autonomous assignment loop
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
 - content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
@@ -41,7 +42,8 @@ Setup:
 The game currently starts directly into the prototype map. Use:
 
 - left click to select units and buildings
-- right click to issue move orders to the current selection
+- right click to issue context orders to the current selection
+- villagers use right click on visible resources to gather them explicitly
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center

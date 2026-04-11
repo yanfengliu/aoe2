@@ -54,6 +54,7 @@ export interface SimulationBridge {
   getSelectionState(): SelectionState;
   selectEntityAtCell(x: number, y: number): boolean;
   clearSelection(): void;
+  issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean;
   beginBuildingPlacement(buildingType: Extract<BuildingType, 'house'>): boolean;
@@ -458,6 +459,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getSelectionState: () => SelectionState;
   selectEntityAtCell: (x: number, y: number) => boolean;
   clearSelection: () => void;
+  issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: Extract<UnitType, 'villager'>) => boolean;
   beginBuildingPlacement: (buildingType: Extract<BuildingType, 'house'>) => boolean;
@@ -828,6 +830,24 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     for (const id of world.query('position', 'resource')) {
       const position = world.getComponent<Position>(id, 'position');
       if (position?.x === x && position.y === y && visibility.isVisible(HUMAN_PLAYER_ID, x, y)) {
+        return id;
+      }
+    }
+
+    return null;
+  }
+
+  function findResourceAtCell(x: number, y: number): number | null {
+    for (const id of world.query('position', 'resource')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (
+        position?.x === x
+        && position.y === y
+        && resource
+        && resource.amount > 0
+        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
+      ) {
         return id;
       }
     }
@@ -1247,6 +1267,45 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
+  function issueContextCommand(x: number, y: number): boolean {
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+
+    const target = {
+      x: clamp(x, 0, MAP_WIDTH - 1),
+      y: clamp(y, 0, MAP_HEIGHT - 1),
+    };
+    const resourceId =
+      unit.unitType === 'villager'
+        ? findResourceAtCell(target.x, target.y)
+        : null;
+
+    if (resourceId === null) {
+      return issueMoveCommand(target.x, target.y);
+    }
+
+    const gatherer = world.getComponent<GathererComponent>(selectedEntityId, 'gatherer');
+    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
+    if (!gatherer || !resource) {
+      return issueMoveCommand(target.x, target.y);
+    }
+
+    placementMode = null;
+    unitCommands.delete(selectedEntityId);
+    gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
+    gatherer.task = 'to-resource';
+    gatherer.targetResourceId = resourceId;
+    gatherer.dropOffBuildingId = townCenterIds.get(unit.owner) ?? null;
+    gatherer.gatherProgressTicks = 0;
+    return true;
+  }
+
   function queueTrainUnit(unitType: Extract<UnitType, 'villager'>): boolean {
     if (selectedEntityId === null) {
       return false;
@@ -1452,6 +1511,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     getSelectionState,
     selectEntityAtCell,
     clearSelection,
+    issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
     beginBuildingPlacement,
@@ -1472,6 +1532,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getSelectionState,
     selectEntityAtCell,
     clearSelection,
+    issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
     beginBuildingPlacement,
@@ -1535,6 +1596,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getSelectionState,
     selectEntityAtCell,
     clearSelection,
+    issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
     beginBuildingPlacement,

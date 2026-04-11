@@ -16,6 +16,7 @@ interface SimulationBridge {
   getSelectionState(): SelectionState;
   selectEntityAtCell(x: number, y: number): boolean;
   clearSelection(): void;
+  issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
@@ -76,7 +77,7 @@ export class GameScene extends Phaser.Scene {
       const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
 
       if (pointer.rightButtonDown()) {
-        this.bridge.issueMoveCommand(cellX, cellY);
+        this.bridge.issueContextCommand(cellX, cellY);
         return;
       }
 

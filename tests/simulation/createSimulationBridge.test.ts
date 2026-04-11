@@ -146,4 +146,17 @@ describe('createSimulationBridge', () => {
     expect(completedHouse?.isComplete).toBe(true);
     expect(bridge.getHudState().population.cap).toBe(10);
   });
+
+  it('redirects a selected villager to gather gold through an explicit context order', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.issueContextCommand(13, 7)).toBe(true);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
+  });
 });

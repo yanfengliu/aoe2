@@ -252,4 +252,26 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
   });
+
+  test('can right-click a visible resource to redirect villager gathering', async ({ page }) => {
+    await waitForBoot(page);
+
+    const villager = (await getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villager).toBeDefined();
+
+    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await clickCell(page, 13, 7, 'right');
+
+    const advancedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+    );
+
+    await expect(page.locator('[data-hud="gold"]')).toHaveText(
+      String(advancedSnapshot.hudState.playerResources.gold),
+    );
+    expect(advancedSnapshot.hudState.playerResources.gold).toBeGreaterThan(100);
+  });
 });
