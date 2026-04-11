@@ -59,16 +59,14 @@ Explicitly out of scope for now:
 - campaign story mode
 - scenario scripting
 
-### 2.3 Match Presets
+### 2.3 Standard Match Setup
 
-The engine should support data-driven match presets, not just one start condition.
-
-Required preset support:
+The engine should support one primary match setup path:
 
 - Standard Random Map start
-- AI team games
-- Regicide-capable starts
-- Wonder-capable starts
+- `1` human-controlled player
+- AI opponents
+- optional AI allies and team assignments
 
 ## 3. Current Local Dataset Coverage
 
@@ -166,7 +164,7 @@ The core match loop remains the same as AoE2 across editions:
 6. research upgrades
 7. train and control armies
 8. pressure or defend
-9. win by conquest or configured alternate victory condition
+9. win under the standard Random Map victory rules
 
 ### 4.2 Match Participants
 
@@ -195,17 +193,15 @@ The core age ladder is:
 
 Age progression is researched at the Town Center.
 
-### 4.5 Victory Modes
+### 4.5 Victory Conditions
 
-Required support:
+Required support is limited to the standard Random Map ruleset:
 
-- Conquest
-- Team Conquest
-- Last Man Standing
-- Wonder Victory
-- Regicide
-- King of the Hill
-- Score Victory with timer
+- Conquest defeat detection
+- the standard victory countdown paths used by Random Map skirmish when enabled in setup
+  - Wonder victory
+  - Relic victory
+  - Score timer
 
 ## 5. World and Simulation Model
 

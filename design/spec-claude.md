@@ -1192,7 +1192,7 @@ The simulation should be deterministic for reproducibility:
 
 ### 15.4 Game Setup
 
-- Player configures: map type, map size, game mode, victory conditions, population cap, game speed, number of AI opponents/allies, AI difficulty, team assignments, civilization selections.
+- Player configures: map type, map size, victory conditions, population cap, game speed, number of AI opponents/allies, AI difficulty, team assignments, civilization selections.
 - Random civilization is revealed at game start.
 
 ---

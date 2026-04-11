@@ -60,3 +60,10 @@
 **Files changed:** `design/stats/civilizations.csv`, `design/stats/technologies.csv`, `design/stats/units.csv`, `design/spec-codex.md`, `design/sources/05-findings-and-guidance.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
 **Reasoning:** The user asked to fix data problems in the local stats bundle. The safest high-confidence pass was to resolve verified duplicates, malformed text, canonical-name mismatches, and clearly wrong local values without inventing missing late-expansion DE content.
 **Notes:** No tests were run because this was a data and documentation cleanup pass. A follow-up sourced content pass is still required if the repo wants the later-expansion civ rows to be fully backed by local unit and technology records.
+
+## [2026-04-10 21:37, America/Los_Angeles] - Restrict specs to standard Random Map mode
+**Action:** Removed the remaining non-standard mode assumptions from `design/spec-codex.md` and tightened one leftover game-setup line in `design/spec-claude.md` so the specs no longer imply a selectable game-mode roster.
+**Result:** `spec-codex.md` now defines a single standard match-setup path, removes Regicide/Wonder-capable preset requirements, and narrows victory support language to the standard Random Map ruleset. `spec-claude.md` no longer tells implementers to expose a generic game-mode selector in setup.
+**Files changed:** `design/spec-codex.md`, `design/spec-claude.md`, `docs/devlog-detailed.md`, `docs/devlog-summary.md`
+**Reasoning:** The user clarified that only standard mode should remain in scope. Leaving special-mode setup hooks in the spec would create false implementation requirements and conflict with the single-mode product target.
+**Notes:** Documentation-only change. No tests were run.
