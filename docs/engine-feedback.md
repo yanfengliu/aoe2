@@ -34,6 +34,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
   - formation and group movement behavior
   - pathfinding integration for moving unit groups around dynamic blockers
 - Fog memory for static enemy buildings/resources is still a game-level policy on top of the visibility primitive. The engine gives the visibility substrate, not the remembered-state rules.
+- Build packaging still needs repo-level policy. The current warning-free Vite build is achieved by explicit vendor chunking and a chunk-size limit that acknowledges the real Phaser payload size.
 - The current production bundle is large because the runtime is still a single Phaser chunk. This is not a `civ-engine` problem, but it is part of the real integration cost.
 
 ## Implications for next phases

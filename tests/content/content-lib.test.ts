@@ -8,6 +8,21 @@ import {
   splitList,
 } from '../../scripts/content-lib.mjs';
 
+type ContentBundleLike = {
+  units: Array<{ id: string; name: string; sourceKind: string }>;
+  civilizations: Array<{
+    name: string;
+    playable: boolean;
+    missingUniqueUnits: string[];
+  }>;
+  coverage: {
+    supportedCivilizationCount: number;
+    unsupportedCivilizationCount: number;
+  };
+};
+
+type ValidationIssueLike = { code: string };
+
 describe('content-lib', () => {
   it('parses semicolon-delimited lists into trimmed arrays', () => {
     expect(splitList(' Kamayuk; Slinger ;Andean Sling ')).toEqual([
@@ -42,11 +57,11 @@ describe('content-lib', () => {
   });
 
   it('normalizes starter-only unit variants without duplicate-id errors', () => {
-    const bundle = buildContentBundle();
-    const scoutVariants: Array<{ id: string; sourceKind: string }> = bundle.units.filter(
+    const bundle: ContentBundleLike = buildContentBundle();
+    const scoutVariants = bundle.units.filter(
       (entry: { name: string }) => entry.name === 'Scout Cavalry',
     );
-    const issues: Array<{ code: string }> = collectValidationIssues(bundle);
+    const issues: ValidationIssueLike[] = collectValidationIssues(bundle);
 
     expect(scoutVariants.map((entry) => entry.id)).toEqual([
       'scout-cavalry-starting',
@@ -56,6 +71,25 @@ describe('content-lib', () => {
       'starting-unit',
       'trainable',
     ]);
-    expect(issues.some((issue) => issue.code === 'duplicate-unit-id')).toBe(false);
+    expect(bundle.coverage.supportedCivilizationCount).toBe(18);
+    expect(bundle.coverage.unsupportedCivilizationCount).toBe(12);
+    expect(
+      bundle.civilizations.find(
+        (entry: { name: string }) => entry.name === 'Aztecs',
+      )?.playable,
+    ).toBe(true);
+    expect(
+      bundle.civilizations.find(
+        (entry: { name: string }) => entry.name === 'Italians',
+      )?.missingUniqueUnits,
+    ).toEqual(['Genoese Crossbowman', 'Condottiero']);
+    expect(
+      issues.some((issue: ValidationIssueLike) => issue.code === 'duplicate-unit-id'),
+    ).toBe(false);
+    expect(
+      issues.some(
+        (issue: ValidationIssueLike) => issue.code === 'missing-civ-unique-unit',
+      ),
+    ).toBe(false);
   });
 });

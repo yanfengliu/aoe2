@@ -16,6 +16,7 @@ Current implementation status:
 - fog of war and explored-state shading now run through `civ-engine` `VisibilityMap`
 - the HUD includes a minimap driven from the same render frame as the main scene
 - normalized content is generated from `design/stats/*.csv` into `generated/content/content.json`
+- content validation now passes cleanly and reports explicit coverage instead of warning on known unsupported civs
 - automated coverage currently includes content normalization, deterministic scenario generation, and simulation visibility behavior
 
 Useful commands:

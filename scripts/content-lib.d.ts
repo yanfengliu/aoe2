@@ -99,6 +99,18 @@ export interface NormalizedCivilization {
   uniqueTechs: string[];
   teamBonuses: string[];
   civilizationBonuses: string[];
+  playable: boolean;
+  supportStatus: 'complete' | 'unsupported';
+  missingUniqueUnits: string[];
+  missingUniqueTechs: string[];
+}
+
+export interface ContentCoverage {
+  civilizationCount: number;
+  supportedCivilizationCount: number;
+  unsupportedCivilizationCount: number;
+  supportedCivilizationIds: string[];
+  unsupportedCivilizationIds: string[];
 }
 
 export interface ContentBundle {
@@ -108,6 +120,7 @@ export interface ContentBundle {
   units: NormalizedUnit[];
   technologies: NormalizedTechnology[];
   civilizations: NormalizedCivilization[];
+  coverage: ContentCoverage;
   indexes: {
     unitsByStructure: Record<string, string[]>;
     technologiesByStructure: Record<string, string[]>;

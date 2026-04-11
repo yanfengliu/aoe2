@@ -6,6 +6,9 @@ const issues = collectValidationIssues(bundle);
 
 if (issues.length === 0) {
   console.log('Content validation passed with no issues.');
+  console.log(
+    `Coverage: ${bundle.coverage.supportedCivilizationCount} supported civs, ${bundle.coverage.unsupportedCivilizationCount} unsupported civs.`,
+  );
   process.exit(0);
 }
 
@@ -14,6 +17,9 @@ const warnings = issues.filter((issue) => issue.severity === 'warn');
 
 console.log(
   `Content validation found ${errors.length} error(s) and ${warnings.length} warning(s).`,
+);
+console.log(
+  `Coverage: ${bundle.coverage.supportedCivilizationCount} supported civs, ${bundle.coverage.unsupportedCivilizationCount} unsupported civs.`,
 );
 for (const issue of issues) {
   console.log(`[${issue.severity}] ${issue.code}: ${issue.message}`);

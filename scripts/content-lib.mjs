@@ -376,6 +376,47 @@ function normalizeCivilizations(rows) {
   }));
 }
 
+function annotateCivilizations(civilizations, units, technologies) {
+  const unitNames = new Set(units.map((entry) => entry.name));
+  const technologyNames = new Set(technologies.map((entry) => entry.name));
+  const supportedCivilizationIds = [];
+  const unsupportedCivilizationIds = [];
+
+  const annotatedCivilizations = civilizations.map((civ) => {
+    const missingUniqueUnits = civ.uniqueUnits.filter((unitName) => !unitNames.has(unitName));
+    const missingUniqueTechs = civ.uniqueTechs.filter(
+      (techName) => !technologyNames.has(techName),
+    );
+    const playable =
+      missingUniqueUnits.length === 0 && missingUniqueTechs.length === 0;
+
+    if (playable) {
+      supportedCivilizationIds.push(civ.id);
+    } else {
+      unsupportedCivilizationIds.push(civ.id);
+    }
+
+    return {
+      ...civ,
+      playable,
+      supportStatus: playable ? 'complete' : 'unsupported',
+      missingUniqueUnits,
+      missingUniqueTechs,
+    };
+  });
+
+  return {
+    civilizations: annotatedCivilizations,
+    coverage: {
+      civilizationCount: annotatedCivilizations.length,
+      supportedCivilizationCount: supportedCivilizationIds.length,
+      unsupportedCivilizationCount: unsupportedCivilizationIds.length,
+      supportedCivilizationIds: supportedCivilizationIds.sort(),
+      unsupportedCivilizationIds: unsupportedCivilizationIds.sort(),
+    },
+  };
+}
+
 function duplicatesFor(rows, key) {
   const counts = new Map();
   for (const row of rows) {
@@ -451,7 +492,14 @@ export function buildContentBundle() {
   const structures = normalizeStructures(readCsvFile('structures.csv'));
   const units = normalizeUnits(readCsvFile('units.csv'));
   const technologies = normalizeTechnologies(readCsvFile('technologies.csv'));
-  const civilizations = normalizeCivilizations(readCsvFile('civilizations.csv'));
+  const normalizedCivilizations = normalizeCivilizations(
+    readCsvFile('civilizations.csv'),
+  );
+  const { civilizations, coverage } = annotateCivilizations(
+    normalizedCivilizations,
+    units,
+    technologies,
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -460,6 +508,7 @@ export function buildContentBundle() {
     units,
     technologies,
     civilizations,
+    coverage,
     indexes: {
       unitsByStructure: buildProducerIndex(
         units.filter((unit) => unit.trainable),
@@ -477,8 +526,6 @@ function fileURLToPathSafe(fileUrl) {
 
 export function collectValidationIssues(bundle) {
   const issues = [];
-  const unitNames = new Set(bundle.units.map((entry) => entry.name));
-  const technologyNames = new Set(bundle.technologies.map((entry) => entry.name));
   const structureNames = new Set(bundle.structures.map((entry) => entry.name));
 
   for (const duplicate of duplicatesFor(bundle.civilizations, 'name')) {
@@ -538,23 +585,15 @@ export function collectValidationIssues(bundle) {
   }
 
   for (const civ of bundle.civilizations) {
-    for (const unitName of civ.uniqueUnits) {
-      if (!unitNames.has(unitName)) {
-        issues.push({
-          severity: 'warn',
-          code: 'missing-civ-unique-unit',
-          message: `Civilization "${civ.name}" references missing unique unit "${unitName}"`,
-        });
-      }
-    }
-    for (const techName of civ.uniqueTechs) {
-      if (!technologyNames.has(techName)) {
-        issues.push({
-          severity: 'warn',
-          code: 'missing-civ-unique-tech',
-          message: `Civilization "${civ.name}" references missing unique tech "${techName}"`,
-        });
-      }
+    if (
+      civ.playable &&
+      (civ.missingUniqueUnits.length > 0 || civ.missingUniqueTechs.length > 0)
+    ) {
+      issues.push({
+        severity: 'error',
+        code: 'playable-civ-has-missing-unique-content',
+        message: `Civilization "${civ.name}" is marked playable but still has missing unique content.`,
+      });
     }
   }
 
