@@ -35,6 +35,10 @@ interface SimulationBridge {
 }
 
 const CELL_SIZE = 24;
+const EDGE_PAN_THRESHOLD_PX = 20;
+const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
+const EDGE_PAN_HOVER_DELAY_MS = 500;
+const MIDDLE_DRAG_PAN_MIN_DELTA_PX = 0.5;
 
 export interface CameraState {
   scrollX: number;
@@ -112,6 +116,18 @@ interface DragSelectionState {
   currentScreenY: number;
 }
 
+interface MiddleDragPanState {
+  pointerId: number;
+  lastScreenX: number;
+  lastScreenY: number;
+}
+
+interface EdgePanState {
+  dx: -1 | 0 | 1;
+  dy: -1 | 0 | 1;
+  sinceMs: number;
+}
+
 interface RecentFriendlyUnitClick {
   atMs: number;
   cellX: number;
@@ -136,6 +152,8 @@ export class GameScene extends Phaser.Scene {
   private lastRenderedTick = -1;
   private lastSelectionKey = '';
   private dragSelection: DragSelectionState | null = null;
+  private middleDragPan: MiddleDragPanState | null = null;
+  private edgePanState: EdgePanState | null = null;
   private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
   private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   private lastBuildingVisualStates: BuildingVisualState[] = [];
@@ -210,6 +228,17 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (pointer.middleButtonDown()) {
+        this.middleDragPan = {
+          pointerId: pointer.id,
+          lastScreenX: pointer.x,
+          lastScreenY: pointer.y,
+        };
+        this.dragSelection = null;
+        this.recentFriendlyUnitClick = null;
+        return;
+      }
+
       if (!pointer.leftButtonDown()) {
         return;
       }
@@ -228,6 +257,10 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.middleDragPan && pointer.id === this.middleDragPan.pointerId && pointer.middleButtonDown()) {
+        this.panCameraByMiddleDrag(pointer);
+      }
+
       if (!this.dragSelection || pointer.id !== this.dragSelection.pointerId || !pointer.leftButtonDown()) {
         return;
       }
@@ -237,6 +270,10 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button === 1 && this.middleDragPan && pointer.id === this.middleDragPan.pointerId) {
+        this.middleDragPan = null;
+      }
+
       if (pointer.button !== 0) {
         return;
       }
@@ -297,7 +334,7 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.bridge.step(delta);
-    this.updateCamera(delta);
+    this.updateCamera(_time, delta);
     this.syncFromBridge();
   }
 
@@ -318,9 +355,10 @@ export class GameScene extends Phaser.Scene {
     this.renderState(state, selectionState);
   }
 
-  private updateCamera(delta: number): void {
+  private updateCamera(time: number, delta: number): void {
     const camera = this.cameras.main;
     const speed = (delta / 1000) * 420;
+    const edgePanSpeed = (delta / 1000) * EDGE_PAN_SPEED_PX_PER_SECOND;
 
     if (this.cursors?.left.isDown || this.wasd?.A.isDown) {
       camera.scrollX -= speed;
@@ -333,6 +371,16 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.cursors?.down.isDown || this.wasd?.S.isDown) {
       camera.scrollY += speed;
+    }
+
+    if (!this.middleDragPan && !this.dragSelection) {
+      const edgePan = this.getEdgePanDelta(time);
+      if (edgePan.dx !== 0) {
+        camera.scrollX += edgePan.dx * edgePanSpeed;
+      }
+      if (edgePan.dy !== 0) {
+        camera.scrollY += edgePan.dy * edgePanSpeed;
+      }
     }
   }
 
@@ -652,6 +700,77 @@ export class GameScene extends Phaser.Scene {
       Math.abs(dragSelection.currentScreenX - dragSelection.startScreenX) >= DRAG_SELECTION_THRESHOLD_PX
       || Math.abs(dragSelection.currentScreenY - dragSelection.startScreenY) >= DRAG_SELECTION_THRESHOLD_PX
     );
+  }
+
+  private panCameraByMiddleDrag(pointer: Phaser.Input.Pointer): void {
+    if (!this.middleDragPan) {
+      return;
+    }
+
+    const deltaX = pointer.x - this.middleDragPan.lastScreenX;
+    const deltaY = pointer.y - this.middleDragPan.lastScreenY;
+    this.middleDragPan.lastScreenX = pointer.x;
+    this.middleDragPan.lastScreenY = pointer.y;
+
+    if (
+      Math.abs(deltaX) < MIDDLE_DRAG_PAN_MIN_DELTA_PX
+      && Math.abs(deltaY) < MIDDLE_DRAG_PAN_MIN_DELTA_PX
+    ) {
+      return;
+    }
+
+    const camera = this.cameras.main;
+    camera.scrollX -= deltaX / camera.zoom;
+    camera.scrollY -= deltaY / camera.zoom;
+  }
+
+  private getEdgePanDelta(time: number): { dx: -1 | 0 | 1; dy: -1 | 0 | 1 } {
+    const pointer = this.input.activePointer;
+    const width = this.scale.width;
+    const height = this.scale.height;
+    if (
+      pointer.isDown
+      || pointer.x < 0
+      || pointer.y < 0
+      || pointer.x > width
+      || pointer.y > height
+    ) {
+      this.edgePanState = null;
+      return { dx: 0, dy: 0 };
+    }
+
+    const dx =
+      pointer.x <= EDGE_PAN_THRESHOLD_PX ? -1
+      : pointer.x >= width - EDGE_PAN_THRESHOLD_PX ? 1
+      : 0;
+    const dy =
+      pointer.y <= EDGE_PAN_THRESHOLD_PX ? -1
+      : pointer.y >= height - EDGE_PAN_THRESHOLD_PX ? 1
+      : 0;
+
+    if (dx === 0 && dy === 0) {
+      this.edgePanState = null;
+      return { dx: 0, dy: 0 };
+    }
+
+    if (
+      this.edgePanState === null
+      || this.edgePanState.dx !== dx
+      || this.edgePanState.dy !== dy
+    ) {
+      this.edgePanState = {
+        dx,
+        dy,
+        sinceMs: time,
+      };
+      return { dx: 0, dy: 0 };
+    }
+
+    if (time - this.edgePanState.sinceMs < EDGE_PAN_HOVER_DELAY_MS) {
+      return { dx: 0, dy: 0 };
+    }
+
+    return { dx, dy };
   }
 
   getCameraState(): CameraState | null {

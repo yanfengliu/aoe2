@@ -71,6 +71,8 @@ The game currently starts directly into the prototype map. Use:
 - villagers can use right click on owned Town Centers or completed Watch Towers to garrison for safety
 - military units use right click on visible enemy units and buildings to attack them
 - `W`, `A`, `S`, `D` or arrow keys to pan
+- hold the middle mouse button and drag to pan the camera directly
+- hover the mouse near the edge of the screen to pan in that direction
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to research Feudal Age from the Town Center after two qualifying Dark Age buildings are complete, then research Castle Age after two qualifying Feudal buildings are complete

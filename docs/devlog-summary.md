@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-12 - Added RTS-style mouse camera panning. The game now supports middle-mouse drag panning plus edge-hover panning, README controls reflect it, browser coverage now isolates camera UX from broader gameplay assertions, and the full gate passes with `56` Vitest tests plus `44` Playwright browser gameplay tests.
 2026-04-12 - Added herdable ownership for sheep. Nearby player units now claim sheep in authoritative sim state, selected sheep expose active ownership in the HUD, a focused `sheep-ownership-fixture` covers dynamic claiming, and the full gate passes with `56` Vitest tests plus `42` Playwright browser gameplay tests.
 2026-04-12 - Enforced blocker-aware placement and movement. Houses now reject trees/mines/water/buildings/unit cells, units route around blocked terrain/resources/units, and the test suite now uses deterministic blocker-safe fixtures with `55` Vitest tests plus `41` Playwright browser gameplay tests passing.
 2026-04-12 - Added clickable minimap navigation and a live viewport rectangle. Clicking the minimap now recenters the camera on the chosen map region, the minimap renders the current camera coverage, and automated coverage is now `51` Vitest tests plus `39` Playwright browser gameplay tests.

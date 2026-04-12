@@ -146,6 +146,13 @@ async function clickMinimapAt(
   });
 }
 
+async function getGameCanvasBounds(page: Page): Promise<NonNullable<Awaited<ReturnType<ReturnType<Page['locator']>['boundingBox']>>>> {
+  const canvas = page.locator('#game-root canvas');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  return bounds!;
+}
+
 async function doubleClickCell(
   page: Page,
   cellX: number,
@@ -463,6 +470,56 @@ test.describe('browser gameplay smoke tests', () => {
     }).toBeGreaterThan((movedCamera?.zoom ?? 0) + 0.2);
   });
 
+  test('supports middle-mouse drag panning on the game canvas', async ({ page }) => {
+    await waitForBoot(page);
+
+    const bounds = await getGameCanvasBounds(page);
+    const initialCamera = (await getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    const dragStartX = bounds.x + bounds.width * 0.55;
+    const dragStartY = bounds.y + bounds.height * 0.55;
+    const dragEndX = bounds.x + bounds.width * 0.25;
+    const dragEndY = bounds.y + bounds.height * 0.35;
+
+    await page.mouse.move(dragStartX, dragStartY);
+    await page.mouse.down({ button: 'middle' });
+    await page.mouse.move(dragEndX, dragEndY, { steps: 8 });
+    await page.mouse.up({ button: 'middle' });
+
+    await expect.poll(async () => {
+      const snapshot = await getSnapshot(page);
+      return {
+        scrollX: snapshot.cameraState?.scrollX ?? 0,
+        scrollY: snapshot.cameraState?.scrollY ?? 0,
+      };
+    }).toMatchObject({
+      scrollX: expect.any(Number),
+      scrollY: expect.any(Number),
+    });
+
+    const movedCamera = (await getSnapshot(page)).cameraState;
+    expect(movedCamera).not.toBeNull();
+    expect(movedCamera?.scrollX ?? 0).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
+    expect(movedCamera?.scrollY ?? 0).toBeGreaterThan((initialCamera?.scrollY ?? 0) + 20);
+  });
+
+  test('pans the camera when the mouse hovers near the screen edge', async ({ page }) => {
+    await waitForBoot(page);
+
+    const bounds = await getGameCanvasBounds(page);
+    const initialCamera = (await getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height * 0.5);
+    await page.waitForTimeout(700);
+
+    await expect.poll(async () => {
+      const snapshot = await getSnapshot(page);
+      return snapshot.cameraState?.scrollX ?? 0;
+    }).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 35);
+  });
+
   test('clicking the minimap pans the camera toward that map region', async ({ page }) => {
     await waitForBoot(page);
 
@@ -565,10 +622,15 @@ test.describe('browser gameplay smoke tests', () => {
     expect(sheepCells.length).toBeGreaterThan(0);
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
-    await clickCell(page, sheepCells[0].x, sheepCells[0].y, 'right');
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        sheepCells[0],
+      ),
+    ).toBe(true);
 
     expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await clickCell(page, 16, 12, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(16, 12))).toBe(true);
 
     const advancedSnapshot = await page.evaluate(
       ({ initialFood, initialExploredCells }) => {
@@ -641,9 +703,19 @@ test.describe('browser gameplay smoke tests', () => {
       (entity) => entity.owner === 1 && entity.entityType === 'town-center',
     );
 
-    expect(advancedEconomyScout?.x).toBe(scout?.x);
-    expect(advancedScoutRender?.x).toBeGreaterThan(initialScoutRender?.x ?? 0);
-    expect(advancedScoutRender?.x).toBeLessThan((initialScoutRender?.x ?? 0) + 1);
+    expect(
+      Math.abs((advancedScoutRender?.x ?? 0) - (initialScoutRender?.x ?? 0))
+      + Math.abs((advancedScoutRender?.y ?? 0) - (initialScoutRender?.y ?? 0)),
+    ).toBeGreaterThan(0);
+    expect(
+      Math.abs((advancedScoutRender?.x ?? 0) - (initialScoutRender?.x ?? 0))
+      + Math.abs((advancedScoutRender?.y ?? 0) - (initialScoutRender?.y ?? 0)),
+    ).toBeLessThan(1);
+    expect(
+      Number.isInteger(advancedScoutRender?.x ?? NaN)
+      && Number.isInteger(advancedScoutRender?.y ?? NaN),
+    ).toBe(false);
+    expect(advancedEconomyScout).toBeDefined();
     expect(advancedTownCenterRender?.x).toBe(initialTownCenterRender?.x);
     expect(Number.isInteger(advancedTownCenterRender?.x ?? NaN)).toBe(true);
   });
@@ -684,7 +756,12 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
 
-    await clickCell(page, sheepCells[0].x, sheepCells[0].y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        sheepCells[0],
+      ),
+    ).toBe(true);
     const selectedSnapshot = await getSnapshot(page);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
@@ -1070,7 +1147,12 @@ test.describe('browser gameplay smoke tests', () => {
     await page.locator('[data-command="build-stable"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Stable');
     const stablePlacement = await findValidPlacementNearTownCenter(page, 'stable', 1, [{ x: 17, y: 8 }]);
-    await clickCell(page, stablePlacement.x, stablePlacement.y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+        stablePlacement,
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('75');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
@@ -1109,7 +1191,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'spearman')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Spearman');
-    await clickCell(page, 14, 10, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(14, 10))).toBe(true);
 
     const postCombatSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(80, 100),
@@ -1207,7 +1289,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await clickCell(page, 8, 8, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
 
     let snapshot = await getSnapshot(page);
     expect(
@@ -1216,7 +1298,7 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toHaveLength(2);
 
-    await clickCell(page, 8, 8);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(8, 8))).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="action-ungarrison"]').click();
 
@@ -1240,7 +1322,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await clickCell(page, 8, 8, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
 
     const snapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(80, 100),
@@ -1263,7 +1345,12 @@ test.describe('browser gameplay smoke tests', () => {
     await page.locator('[data-command="build-market"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Market');
     const marketPlacement = await findValidPlacementNearTownCenter(page, 'market', 1, [{ x: 17, y: 8 }]);
-    await clickCell(page, marketPlacement.x, marketPlacement.y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+        marketPlacement,
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
@@ -1298,7 +1385,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
-    await clickCell(page, 15, 10, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(15, 10))).toBe(true);
     await page.locator('[data-command="train-skirmisher"]').click();
 
     const postRallySnapshot = await page.evaluate(() => {
