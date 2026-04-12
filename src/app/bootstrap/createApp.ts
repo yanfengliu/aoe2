@@ -16,7 +16,13 @@ export function createApp(): Phaser.Game {
   const seed = new URL(window.location.href).searchParams.get('seed')?.trim() || undefined;
   const bridge = createSimulationBridge(seed);
   const scene = new GameScene(bridge);
-  createHudController(hudRoot, bridge);
+  createHudController(hudRoot, {
+    ...bridge,
+    getCameraState: () => scene.getCameraState(),
+    centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
+      scene.centerCameraOnWorldPosition(worldX, worldY);
+    },
+  });
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,

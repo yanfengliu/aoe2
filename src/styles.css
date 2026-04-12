@@ -89,6 +89,7 @@ body {
 .hud-panel--map {
   display: grid;
   gap: 8px;
+  pointer-events: auto;
 }
 
 .hud-panel--selection {
@@ -231,6 +232,8 @@ body {
   border: 1px solid rgba(221, 196, 145, 0.24);
   border-radius: 8px;
   background: rgba(8, 16, 18, 0.85);
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .hud-footer {

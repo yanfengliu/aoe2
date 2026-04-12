@@ -14,6 +14,14 @@ interface MinimapStats {
   nonBackgroundPixelCount: number;
 }
 
+interface MinimapViewportState {
+  active: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface ScreenPoint {
   x: number;
   y: number;
@@ -69,6 +77,25 @@ async function getMinimapStats(
   });
 }
 
+async function getMinimapViewportState(
+  page: Page,
+): Promise<MinimapViewportState | null> {
+  return page.locator('[data-hud="minimap"]').evaluate((canvas: HTMLCanvasElement) => {
+    const { viewportActive, viewportX, viewportY, viewportWidth, viewportHeight } = canvas.dataset;
+    if (viewportActive !== 'true') {
+      return null;
+    }
+
+    return {
+      active: true,
+      x: Number(viewportX),
+      y: Number(viewportY),
+      width: Number(viewportWidth),
+      height: Number(viewportHeight),
+    };
+  });
+}
+
 async function getScreenPointForCell(
   page: Page,
   cellX: number,
@@ -97,6 +124,24 @@ async function clickCell(
       y: point.y - (bounds?.y ?? 0),
     },
     button,
+    force: true,
+  });
+}
+
+async function clickMinimapAt(
+  page: Page,
+  normalizedX: number,
+  normalizedY: number,
+): Promise<void> {
+  const minimap = page.locator('[data-hud="minimap"]');
+  const bounds = await minimap.boundingBox();
+  expect(bounds).not.toBeNull();
+
+  await minimap.click({
+    position: {
+      x: (bounds?.width ?? 0) * normalizedX,
+      y: (bounds?.height ?? 0) * normalizedY,
+    },
     force: true,
   });
 }
@@ -415,6 +460,64 @@ test.describe('browser gameplay smoke tests', () => {
       const snapshot = await getSnapshot(page);
       return snapshot.cameraState?.zoom ?? 0;
     }).toBeGreaterThan((movedCamera?.zoom ?? 0) + 0.2);
+  });
+
+  test('clicking the minimap pans the camera toward that map region', async ({ page }) => {
+    await waitForBoot(page);
+
+    const gameCanvas = page.locator('#game-root canvas');
+    const canvasBox = await gameCanvas.boundingBox();
+    expect(canvasBox).not.toBeNull();
+
+    await page.mouse.move(
+      (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) * 0.5,
+      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) * 0.5,
+    );
+    await page.mouse.wheel(0, -1200);
+
+    const initialCamera = (await getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await clickMinimapAt(page, 0.84, 0.76);
+
+    await expect.poll(async () => {
+      const snapshot = await getSnapshot(page);
+      return {
+        scrollX: snapshot.cameraState?.scrollX ?? 0,
+        scrollY: snapshot.cameraState?.scrollY ?? 0,
+      };
+    }).toMatchObject({
+      scrollX: expect.any(Number),
+      scrollY: expect.any(Number),
+    });
+
+    const movedCamera = (await getSnapshot(page)).cameraState;
+    expect(movedCamera).not.toBeNull();
+    expect(movedCamera?.scrollX ?? 0).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
+    expect(movedCamera?.scrollY ?? 0).toBeGreaterThan((initialCamera?.scrollY ?? 0) + 40);
+  });
+
+  test('the minimap exposes a viewport rectangle that tracks the current camera coverage', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const initialViewport = await getMinimapViewportState(page);
+    expect(initialViewport).not.toBeNull();
+    expect(initialViewport?.width ?? 0).toBeGreaterThan(0);
+    expect(initialViewport?.height ?? 0).toBeGreaterThan(0);
+
+    const gameCanvas = page.locator('#game-root canvas');
+    await gameCanvas.click();
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(250);
+    await page.keyboard.up('KeyD');
+
+    const movedViewport = await getMinimapViewportState(page);
+    expect(movedViewport).not.toBeNull();
+    expect(movedViewport?.x ?? 0).toBeGreaterThan(initialViewport?.x ?? 0);
+    expect(movedViewport?.width).toBe(initialViewport?.width);
+    expect(movedViewport?.height).toBe(initialViewport?.height);
   });
 
   test('keeps human starting units idle until the player gives orders', async ({ page }) => {

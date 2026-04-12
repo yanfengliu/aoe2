@@ -669,6 +669,21 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  centerCameraOnWorldPosition(worldX: number, worldY: number): void {
+    if (!this.sys.isActive()) {
+      return;
+    }
+
+    const camera = this.cameras.main;
+    const visibleWorldWidth = camera.width / camera.zoom;
+    const visibleWorldHeight = camera.height / camera.zoom;
+    const maxScrollX = Math.max(0, MAP_WIDTH * CELL_SIZE - visibleWorldWidth);
+    const maxScrollY = Math.max(0, MAP_HEIGHT * CELL_SIZE - visibleWorldHeight);
+
+    camera.scrollX = Phaser.Math.Clamp(worldX - visibleWorldWidth * 0.5, 0, maxScrollX);
+    camera.scrollY = Phaser.Math.Clamp(worldY - visibleWorldHeight * 0.5, 0, maxScrollY);
+  }
+
   getScreenPointForCell(cellX: number, cellY: number): { x: number; y: number } | null {
     if (!this.sys.isActive() || !this.game.canvas) {
       return null;

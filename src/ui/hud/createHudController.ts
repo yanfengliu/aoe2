@@ -7,16 +7,27 @@ import type {
   ProductionQueueEntry,
   ResearchableTechnologyType,
   RenderState,
+  ProjectedFrameView,
   SelectionState,
   TrainableUnitType,
   UnitType,
 } from '../../game/simulation/types';
+
+interface HudCameraState {
+  scrollX: number;
+  scrollY: number;
+  zoom: number;
+  width: number;
+  height: number;
+}
 
 interface HudBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
+  getCameraState(): HudCameraState | null;
+  centerCameraOnWorldPosition(worldX: number, worldY: number): void;
   issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
@@ -24,19 +35,30 @@ interface HudBridge {
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
+interface MinimapLayout {
+  scale: number;
+  drawWidth: number;
+  drawHeight: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+interface MinimapViewportState {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const CELL_SIZE = 24;
+
 function tintToCss(tint: number): string {
   return `#${tint.toString(16).padStart(6, '0')}`;
 }
 
-function drawMinimap(canvas: HTMLCanvasElement, renderState: RenderState): void {
-  const frame = renderState.frame;
+function getMinimapLayout(canvas: HTMLCanvasElement, frame: RenderState['frame']): MinimapLayout | null {
   if (!frame) {
-    return;
-  }
-
-  const context = canvas.getContext('2d');
-  if (!context) {
-    return;
+    return null;
   }
 
   const scale = Math.min(
@@ -47,6 +69,74 @@ function drawMinimap(canvas: HTMLCanvasElement, renderState: RenderState): void 
   const drawHeight = frame.mapHeight * scale;
   const offsetX = (canvas.width - drawWidth) * 0.5;
   const offsetY = (canvas.height - drawHeight) * 0.5;
+
+  return {
+    scale,
+    drawWidth,
+    drawHeight,
+    offsetX,
+    offsetY,
+  };
+}
+
+function getMinimapViewportState(
+  layout: MinimapLayout,
+  frame: ProjectedFrameView,
+  cameraState: HudCameraState | null,
+): MinimapViewportState | null {
+  if (!cameraState) {
+    return null;
+  }
+
+  const worldWidth = frame.mapWidth * CELL_SIZE;
+  const worldHeight = frame.mapHeight * CELL_SIZE;
+  const visibleWorldWidth = cameraState.width / cameraState.zoom;
+  const visibleWorldHeight = cameraState.height / cameraState.zoom;
+  const minimapScaleX = layout.drawWidth / worldWidth;
+  const minimapScaleY = layout.drawHeight / worldHeight;
+
+  return {
+    x: layout.offsetX + cameraState.scrollX * minimapScaleX,
+    y: layout.offsetY + cameraState.scrollY * minimapScaleY,
+    width: visibleWorldWidth * minimapScaleX,
+    height: visibleWorldHeight * minimapScaleY,
+  };
+}
+
+function setMinimapViewportDataset(
+  canvas: HTMLCanvasElement,
+  viewportState: MinimapViewportState | null,
+): void {
+  canvas.dataset.viewportActive = viewportState ? 'true' : 'false';
+  canvas.dataset.viewportX = viewportState ? viewportState.x.toFixed(2) : '';
+  canvas.dataset.viewportY = viewportState ? viewportState.y.toFixed(2) : '';
+  canvas.dataset.viewportWidth = viewportState ? viewportState.width.toFixed(2) : '';
+  canvas.dataset.viewportHeight = viewportState ? viewportState.height.toFixed(2) : '';
+}
+
+function drawMinimap(
+  canvas: HTMLCanvasElement,
+  renderState: RenderState,
+  cameraState: HudCameraState | null,
+): void {
+  const frame = renderState.frame;
+  if (!frame) {
+    setMinimapViewportDataset(canvas, null);
+    return;
+  }
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return;
+  }
+
+  const layout = getMinimapLayout(canvas, frame);
+  if (!layout) {
+    setMinimapViewportDataset(canvas, null);
+    return;
+  }
+
+  const { scale, drawWidth, drawHeight, offsetX, offsetY } = layout;
   const visible = new Set(frame.visibleCells);
   const explored = new Set(frame.exploredCells);
 
@@ -95,6 +185,26 @@ function drawMinimap(canvas: HTMLCanvasElement, renderState: RenderState): void 
         context.fillRect(drawX, drawY, Math.ceil(scale), Math.ceil(scale));
       }
     }
+  }
+
+  const viewportState = getMinimapViewportState(layout, frame, cameraState);
+  setMinimapViewportDataset(canvas, viewportState);
+  if (viewportState) {
+    context.fillStyle = 'rgba(247, 229, 165, 0.08)';
+    context.fillRect(
+      viewportState.x,
+      viewportState.y,
+      viewportState.width,
+      viewportState.height,
+    );
+    context.strokeStyle = 'rgba(247, 229, 165, 0.95)';
+    context.lineWidth = 1.5;
+    context.strokeRect(
+      viewportState.x,
+      viewportState.y,
+      viewportState.width,
+      viewportState.height,
+    );
   }
 }
 
@@ -512,6 +622,45 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
 
   let lastRenderedTick = -1;
   let lastSelectionSignature = '';
+  let lastMinimapCameraSignature = '';
+  let latestRenderState: RenderState | null = null;
+
+  if (minimap) {
+    const handleMinimapPointer = (clientX: number, clientY: number): void => {
+      const frame = latestRenderState?.frame;
+      if (!frame) {
+        return;
+      }
+
+      const layout = getMinimapLayout(minimap, frame);
+      if (!layout) {
+        return;
+      }
+
+      const bounds = minimap.getBoundingClientRect();
+      const localX = clientX - bounds.left;
+      const localY = clientY - bounds.top;
+      if (
+        localX < layout.offsetX
+        || localX > layout.offsetX + layout.drawWidth
+        || localY < layout.offsetY
+        || localY > layout.offsetY + layout.drawHeight
+      ) {
+        return;
+      }
+
+      const normalizedX = (localX - layout.offsetX) / layout.drawWidth;
+      const normalizedY = (localY - layout.offsetY) / layout.drawHeight;
+      bridge.centerCameraOnWorldPosition(
+        normalizedX * frame.mapWidth * CELL_SIZE,
+        normalizedY * frame.mapHeight * CELL_SIZE,
+      );
+    };
+
+    minimap.addEventListener('pointerdown', (event) => {
+      handleMinimapPointer(event.clientX, event.clientY);
+    });
+  }
 
   function renderSelectionPanel(selectionState: SelectionState): void {
     if (!selectionPanel) {
@@ -720,7 +869,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   function update(): void {
     const hudState = bridge.getHudState();
     const renderState = bridge.getRenderState();
+    latestRenderState = renderState;
     const selectionState = bridge.getSelectionState();
+    const cameraState = bridge.getCameraState();
 
     if (tick) tick.textContent = String(hudState.tick);
     if (entities) entities.textContent = String(hudState.entityCount);
@@ -753,9 +904,16 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     }
     renderSelectionPanel(selectionState);
 
-    if (minimap && renderState.tick !== lastRenderedTick) {
-      drawMinimap(minimap, renderState);
+    const minimapCameraSignature = cameraState
+      ? `${cameraState.scrollX.toFixed(2)},${cameraState.scrollY.toFixed(2)},${cameraState.zoom.toFixed(3)}`
+      : 'none';
+    if (
+      minimap
+      && (renderState.tick !== lastRenderedTick || minimapCameraSignature !== lastMinimapCameraSignature)
+    ) {
+      drawMinimap(minimap, renderState, cameraState);
       lastRenderedTick = renderState.tick;
+      lastMinimapCameraSignature = minimapCameraSignature;
     }
 
     requestAnimationFrame(update);

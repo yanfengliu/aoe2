@@ -83,6 +83,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Sub-grid movement also exposed a real integration tax: once units can live between coarse cells visually, repo code has to be explicit about which systems read coarse `position` and which read fine transform state. Selection, attack range, occupancy, and fixture timing stay stable only if those boundaries are deliberate and tested.
 - Combat health bars reinforced the same rule. When health lives in repo-owned side maps instead of world components, the projector can still expose it cleanly, but the render path needs an explicit sync rule for those updates; the debugging guide's focus on render snapshots/diffs made that easier to diagnose.
 - The sub-grid movement guide mapped cleanly onto the current boundary. Keeping coarse `position` authoritative for visibility, occupancy, and command semantics while adding a repo-owned `unitTransform` for fine unit motion let the game gain smoother movement without pushing renderer concerns back into `civ-engine`.
+- HUD interaction bugs can sit entirely outside the engine boundary. The new minimap click-to-pan slice was blocked by DOM `pointer-events` on the HUD overlay even though the camera math and bridge contract were already correct, which is a useful reminder to check the DOM-overlay event contract before suspecting `civ-engine` or Phaser camera state.
 
 ## Implications for next phases
 
