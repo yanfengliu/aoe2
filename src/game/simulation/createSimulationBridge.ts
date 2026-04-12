@@ -63,6 +63,13 @@ export interface SimulationBridge {
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectOwnedUnitsByTypeInRect(
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
@@ -952,6 +959,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
+  selectOwnedUnitsByTypeInRect: (
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ) => boolean;
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
@@ -1565,17 +1579,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return position.x === x && position.y === y;
   }
 
-  function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
+  function getHumanUnitIdsInRect(
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+    unitType?: UnitType,
+  ): number[] {
     const clampedMinX = clamp(Math.min(minX, maxX), 0, MAP_WIDTH - 1);
     const clampedMaxX = clamp(Math.max(minX, maxX), 0, MAP_WIDTH - 1);
     const clampedMinY = clamp(Math.min(minY, maxY), 0, MAP_HEIGHT - 1);
     const clampedMaxY = clamp(Math.max(minY, maxY), 0, MAP_HEIGHT - 1);
 
-    const ids = [...world.query('position', 'unit')]
+    return [...world.query('position', 'unit')]
       .map((id) => ({
         id,
         position: world.getComponent<Position>(id, 'position'),
@@ -1588,6 +1604,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           entry.position !== undefined
           && entry.unit !== undefined
           && entry.unit.owner === HUMAN_PLAYER_ID
+          && (unitType === undefined || entry.unit.unitType === unitType)
           && entry.position.x >= clampedMinX
           && entry.position.x <= clampedMaxX
           && entry.position.y >= clampedMinY
@@ -1602,7 +1619,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return left.position.x - right.position.x;
       })
       .map((entry) => entry.id);
+  }
 
+  function selectUnitIds(ids: number[]): boolean {
     selectedEntityRefs = ids
       .map((id) => getEntityRef(id))
       .filter((ref): ref is EntityRef => ref !== null);
@@ -1615,6 +1634,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     placementMode = null;
     return true;
+  }
+
+  function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    const ids = getHumanUnitIdsInRect(minX, minY, maxX, maxY);
+    return selectUnitIds(ids);
+  }
+
+  function selectOwnedUnitsByTypeInRect(
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    const ids = getHumanUnitIdsInRect(minX, minY, maxX, maxY, unitType);
+    return selectUnitIds(ids);
   }
 
   function getSelectedEntityIds(): number[] {
@@ -3779,6 +3822,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     getSelectionState,
     getPlacementPreview,
     selectEntityAtCell,
+    selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
@@ -3807,6 +3851,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getSelectionState,
     getPlacementPreview,
     selectEntityAtCell,
+    selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
@@ -3882,6 +3927,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getSelectionState,
     getPlacementPreview,
     selectEntityAtCell,
+    selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,

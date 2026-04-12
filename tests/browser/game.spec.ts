@@ -101,6 +101,26 @@ async function clickCell(
   });
 }
 
+async function doubleClickCell(
+  page: Page,
+  cellX: number,
+  cellY: number,
+): Promise<void> {
+  const point = await getScreenPointForCell(page, cellX, cellY);
+  const canvas = page.locator('#game-root canvas');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+
+  await canvas.dblclick({
+    position: {
+      x: point.x - (bounds?.x ?? 0),
+      y: point.y - (bounds?.y ?? 0),
+    },
+    button: 'left',
+    force: true,
+  });
+}
+
 async function dragSelectCells(
   page: Page,
   startCellX: number,
@@ -421,6 +441,20 @@ test.describe('browser gameplay smoke tests', () => {
           && unit.y >= 11,
       ),
     ).toHaveLength(3);
+  });
+
+  test('double clicking a friendly unit selects same-type friendly units on screen', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'double-click-selection-fixture');
+
+    await doubleClickCell(page, 8, 10);
+
+    await expect(page.locator('[data-selection-name]')).toHaveText('3 Villagers Selected');
+
+    const selectedSnapshot = await getSnapshot(page);
+    expect(selectedSnapshot.selectionState.selectedCount).toBe(3);
+    expect(selectedSnapshot.selectionState.selectedEntityType).toBe('villager');
   });
 
   test('can research Feudal Age and train an Archer through the live command panel', async ({

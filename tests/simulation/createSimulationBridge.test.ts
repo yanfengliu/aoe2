@@ -231,6 +231,30 @@ describe('createSimulationBridge', () => {
     expect(movedVillagers).toHaveLength(3);
   });
 
+  it('can select all owned on-screen units of the same type without pulling in other unit types', () => {
+    const bridge = createSimulationBridge('double-click-selection-fixture');
+
+    expect(
+      (
+        bridge as unknown as {
+          selectOwnedUnitsByTypeInRect: (
+            unitType: 'villager' | 'scout',
+            minX: number,
+            minY: number,
+            maxX: number,
+            maxY: number,
+          ) => boolean;
+        }
+      ).selectOwnedUnitsByTypeInRect('villager', 0, 0, 23, 17),
+    ).toBe(true);
+
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBe(3);
+    expect(selectionState.selectedEntityIds).toHaveLength(3);
+    expect(selectionState.selectedEntityType).toBe('villager');
+    expect(selectionState.buildOptions).toContain('house');
+  });
+
   it('selects every friendly movable unit in the drag box while ignoring buildings', () => {
     const bridge = createSimulationBridge('mixed-selection-fixture');
 

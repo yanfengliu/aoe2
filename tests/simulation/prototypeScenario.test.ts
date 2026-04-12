@@ -114,6 +114,7 @@ describe('createPrototypeScenario', () => {
     const villagerSelectionScenario = createPrototypeScenario('villager-selection-fixture');
     const mixedSelectionScenario = createPrototypeScenario('mixed-selection-fixture');
     const tileSelectionCycleScenario = createPrototypeScenario('tile-selection-cycle-fixture');
+    const doubleClickSelectionScenario = createPrototypeScenario('double-click-selection-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -277,5 +278,15 @@ describe('createPrototypeScenario', () => {
         (spawn) => spawn.kind === 'sheep' && spawn.x === 10 && spawn.y === 10,
       ),
     ).toBe(true);
+    expect(
+      doubleClickSelectionScenario.spawns.filter(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager',
+      ),
+    ).toHaveLength(3);
+    expect(
+      doubleClickSelectionScenario.spawns.filter(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'scout',
+      ),
+    ).toHaveLength(1);
   });
 });

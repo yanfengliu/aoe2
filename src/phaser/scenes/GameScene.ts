@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 import {
+  HUMAN_PLAYER_ID,
   MAP_HEIGHT,
   MAP_WIDTH,
 } from '../../game/simulation/prototypeScenario';
@@ -9,6 +10,7 @@ import type {
   ProjectedFrameView,
   RenderState,
   SelectionState,
+  UnitType,
 } from '../../game/simulation/types';
 
 interface SimulationBridge {
@@ -17,6 +19,13 @@ interface SimulationBridge {
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectOwnedUnitsByTypeInRect(
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
@@ -62,7 +71,15 @@ interface DragSelectionState {
   currentScreenY: number;
 }
 
+interface RecentFriendlyUnitClick {
+  atMs: number;
+  cellX: number;
+  cellY: number;
+  unitType: UnitType;
+}
+
 const DRAG_SELECTION_THRESHOLD_PX = 8;
+const DOUBLE_CLICK_WINDOW_MS = 300;
 
 export class GameScene extends Phaser.Scene {
   private readonly bridge: SimulationBridge;
@@ -77,6 +94,30 @@ export class GameScene extends Phaser.Scene {
   private lastRenderedTick = -1;
   private lastSelectionKey = '';
   private dragSelection: DragSelectionState | null = null;
+  private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
+  private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
+    if (this.dragSelection || this.bridge.getSelectionState().placementMode) {
+      return;
+    }
+
+    const canvas = this.game.canvas;
+    if (!canvas) {
+      return;
+    }
+
+    const bounds = canvas.getBoundingClientRect();
+    const worldPoint = this.cameras.main.getWorldPoint(
+      event.clientX - bounds.left,
+      event.clientY - bounds.top,
+    );
+    const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
+    const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
+
+    if (this.trySelectSameTypeOnDoubleClick(cellX, cellY)) {
+      this.recentFriendlyUnitClick = null;
+      event.preventDefault();
+    }
+  };
 
   constructor(bridge: SimulationBridge) {
     super('game');
@@ -100,6 +141,10 @@ export class GameScene extends Phaser.Scene {
       'W,A,S,D',
     ) as Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
     this.input.mouse?.disableContextMenu();
+    this.game.canvas?.addEventListener('dblclick', this.handleNativeDoubleClick);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.canvas?.removeEventListener('dblclick', this.handleNativeDoubleClick);
+    });
 
     this.input.on(
       'wheel',
@@ -111,6 +156,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.rightButtonDown()) {
+        this.recentFriendlyUnitClick = null;
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
         const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
         const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
@@ -159,6 +205,7 @@ export class GameScene extends Phaser.Scene {
       const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
 
       if (this.bridge.getSelectionState().placementMode) {
+        this.recentFriendlyUnitClick = null;
         this.bridge.confirmBuildingPlacement(cellX, cellY);
         return;
       }
@@ -185,6 +232,7 @@ export class GameScene extends Phaser.Scene {
           Math.floor(selectionEnd.x / CELL_SIZE),
           Math.floor(selectionEnd.y / CELL_SIZE),
         );
+        this.recentFriendlyUnitClick = null;
         if (!didSelect) {
           this.bridge.clearSelection();
         }
@@ -192,8 +240,12 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (!this.bridge.selectEntityAtCell(cellX, cellY)) {
+        this.recentFriendlyUnitClick = null;
         this.bridge.clearSelection();
+        return;
       }
+
+      this.updateRecentFriendlyUnitClick(cellX, cellY);
     });
   }
 
@@ -528,5 +580,73 @@ export class GameScene extends Phaser.Scene {
     }
 
     return { ...previewState };
+  }
+
+  private trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {
+    const recentClick = this.recentFriendlyUnitClick;
+    if (
+      recentClick === null
+      || recentClick.cellX !== cellX
+      || recentClick.cellY !== cellY
+      || this.time.now - recentClick.atMs > DOUBLE_CLICK_WINDOW_MS
+    ) {
+      return false;
+    }
+
+    const bounds = this.getViewportCellBounds();
+    return this.bridge.selectOwnedUnitsByTypeInRect(
+      recentClick.unitType,
+      bounds.minX,
+      bounds.minY,
+      bounds.maxX,
+      bounds.maxY,
+    );
+  }
+
+  private updateRecentFriendlyUnitClick(cellX: number, cellY: number): void {
+    const selectionState = this.bridge.getSelectionState();
+    if (
+      selectionState.selectedKind !== 'unit'
+      || selectionState.owner !== HUMAN_PLAYER_ID
+      || selectionState.selectedCount !== 1
+      || !this.isUnitType(selectionState.selectedEntityType)
+    ) {
+      return;
+    }
+
+    this.recentFriendlyUnitClick = {
+      atMs: this.time.now,
+      cellX,
+      cellY,
+      unitType: selectionState.selectedEntityType,
+    };
+  }
+
+  private getViewportCellBounds(): {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } {
+    const worldView = this.cameras.main.worldView;
+
+    return {
+      minX: Phaser.Math.Clamp(Math.floor(worldView.x / CELL_SIZE), 0, MAP_WIDTH - 1),
+      minY: Phaser.Math.Clamp(Math.floor(worldView.y / CELL_SIZE), 0, MAP_HEIGHT - 1),
+      maxX: Phaser.Math.Clamp(Math.floor((worldView.right - 1) / CELL_SIZE), 0, MAP_WIDTH - 1),
+      maxY: Phaser.Math.Clamp(Math.floor((worldView.bottom - 1) / CELL_SIZE), 0, MAP_HEIGHT - 1),
+    };
+  }
+
+  private isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
+    return (
+      entityType === 'villager'
+      || entityType === 'scout'
+      || entityType === 'militia'
+      || entityType === 'spearman'
+      || entityType === 'archer'
+      || entityType === 'skirmisher'
+      || entityType === 'knight'
+    );
   }
 }
