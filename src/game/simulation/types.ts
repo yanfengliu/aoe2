@@ -120,6 +120,8 @@ export interface ProjectedEntityView {
   footprintHeight: number;
   visualVariant: RenderVisualVariant;
   selected: boolean;
+  currentHp: number | null;
+  maxHp: number | null;
 }
 
 export interface ProjectedFrameView {

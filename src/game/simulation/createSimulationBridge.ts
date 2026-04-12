@@ -895,6 +895,7 @@ function createProjector(
   playerId: number,
   seed: string,
   isSelected: (id: number) => boolean,
+  getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null,
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -914,6 +915,7 @@ function createProjector(
       const unit = world.getComponent<UnitComponent>(ref.id, 'unit');
       const building = world.getComponent<BuildingComponent>(ref.id, 'building');
       const resource = world.getComponent<ResourceComponent>(ref.id, 'resource');
+      const health = getEntityHealth(ref.id);
 
       let owner: number | null = null;
       let entityType: ProjectedEntityView['entityType'] = 'grass';
@@ -961,6 +963,8 @@ function createProjector(
         footprintHeight: renderable.footprintHeight,
         visualVariant: renderable.visualVariant,
         selected: isSelected(ref.id),
+        currentHp: health?.currentHp ?? null,
+        maxHp: health?.maxHp ?? null,
       };
     },
     projectFrame(world) {
@@ -1027,6 +1031,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
+  getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectOwnedUnitsByTypeInRect: (
     unitType: UnitType,
@@ -1081,6 +1086,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   let selectionFocusCell: Position | null = null;
   let placementMode: BuildableBuildingType | null = null;
   let hasOutOfBandRenderChange = false;
+
+  function markOutOfBandRenderChange(): void {
+    hasOutOfBandRenderChange = true;
+  }
 
   world.registerComponent<Position>('position');
   world.registerComponent<TerrainComponent>('terrain');
@@ -1144,6 +1153,36 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   function getEntityRef(id: number): EntityRef | null {
     return world.getEntityRef(id);
+  }
+
+  function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    if (unit) {
+      const combat = combatStates.get(id);
+      if (!combat) {
+        return null;
+      }
+
+      return {
+        currentHp: combat.currentHp,
+        maxHp: combat.maxHp,
+      };
+    }
+
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    if (building) {
+      const health = buildingHealthStates.get(id);
+      if (!health) {
+        return null;
+      }
+
+      return {
+        currentHp: health.currentHp,
+        maxHp: health.maxHp,
+      };
+    }
+
+    return null;
   }
 
   function getUnitTransform(id: number, activeWorld = world): UnitTransformComponent | null {
@@ -2024,6 +2063,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     unitCommands.delete(id);
     combatStates.delete(id);
     world.destroyEntity(id);
+    markOutOfBandRenderChange();
   }
 
   function destroyBuildingEntity(id: number): void {
@@ -2059,6 +2099,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
     world.destroyEntity(id);
+    markOutOfBandRenderChange();
   }
 
   function issueUnitMoveCommand(unitId: number, target: Position): boolean {
@@ -2288,7 +2329,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     selectedEntityRefs = [];
     selectionFocusCell = null;
     placementMode = null;
-    hasOutOfBandRenderChange = true;
+    markOutOfBandRenderChange();
     return true;
   }
 
@@ -2319,7 +2360,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     garrisonedByBuilding.delete(buildingId);
-    hasOutOfBandRenderChange = true;
+    markOutOfBandRenderChange();
     return true;
   }
 
@@ -2368,7 +2409,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       target: clampedAnchor,
       buildingRef,
     });
-    hasOutOfBandRenderChange = true;
+    markOutOfBandRenderChange();
     return true;
   }
 
@@ -2972,6 +3013,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             targetCombat.currentHp -=
               attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+            markOutOfBandRenderChange();
 
             if (targetCombat.currentHp <= 0) {
               destroyUnitEntity(targetId);
@@ -3004,6 +3046,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
           targetHealth.currentHp -= attackerCombat.attackDamage;
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+          markOutOfBandRenderChange();
 
           if (targetHealth.currentHp <= 0) {
             destroyBuildingEntity(targetId);
@@ -3389,6 +3432,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           }
 
           activeTargetCombat.currentHp -= buildingCombat.attackDamage;
+          markOutOfBandRenderChange();
           if (activeTargetCombat.currentHp <= 0) {
             destroyUnitEntity(targetId);
             break;
@@ -3995,6 +4039,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     },
     getSelectionState,
     getPlacementPreview,
+    getEntityHealth,
     selectEntityAtCell,
     selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
@@ -4029,6 +4074,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getMatchState,
     getSelectionState,
     getPlacementPreview,
+    getEntityHealth,
     selectEntityAtCell,
     selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
@@ -4049,7 +4095,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
   const debuggerView = new WorldDebugger({ world });
   const renderAdapter = new RenderAdapter({
     world,
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, seed, isSelected),
+    projector: createProjector(visibility, HUMAN_PLAYER_ID, seed, isSelected, getEntityHealth),
     debug: debuggerView,
     send(message) {
       renderStore.apply(message);

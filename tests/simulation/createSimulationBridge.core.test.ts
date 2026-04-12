@@ -5,6 +5,7 @@ import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import type { SelectionState } from '../../src/game/simulation/types';
 import {
   placeBuildingNearTownCenter,
+  stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge core systems', () => {
@@ -110,6 +111,55 @@ describe('createSimulationBridge core systems', () => {
     expect(tickOneRenderScout?.x).toBeLessThan((initialScoutRender?.x ?? 0) + 1);
     expect(tickOneTownCenter?.x).toBe(townCenter?.x);
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
+  });
+
+  it('projects health values for visible units and buildings and updates them during combat', () => {
+    const bridge = createSimulationBridge('conquest-victory-fixture');
+
+    const initialMilitia = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.owner === 1 && entity.kind === 'unit' && entity.entityType === 'militia',
+      );
+    const initialHouse = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.owner === 2 && entity.kind === 'building' && entity.entityType === 'house',
+      );
+
+    expect(initialMilitia).toMatchObject({
+      currentHp: 40,
+      maxHp: 40,
+    });
+    expect(initialHouse).toMatchObject({
+      currentHp: 75,
+      maxHp: 75,
+    });
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.issueContextCommand(10, 8)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const damagedHouse = bridge
+            .getRenderState()
+            .entities.find(
+              (entity) => entity.owner === 2 && entity.kind === 'building' && entity.entityType === 'house',
+            );
+          return (damagedHouse?.currentHp ?? 75) < (damagedHouse?.maxHp ?? 75);
+        },
+        { maxSteps: 220 },
+      ),
+    ).toBe(true);
+
+    const damagedHouse = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.owner === 2 && entity.kind === 'building' && entity.entityType === 'house',
+      );
+    expect(damagedHouse?.currentHp).toBeLessThan(damagedHouse?.maxHp ?? 75);
   });
 
   it('reports visibility metrics through the HUD state', () => {

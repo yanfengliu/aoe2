@@ -273,6 +273,39 @@ async function getBuildingVisualState(
   );
 }
 
+async function getEntityHealthBarState(
+  page: Page,
+  owner: number,
+  entityKind: 'unit' | 'building',
+  entityType: string,
+): Promise<{
+  currentHp: number;
+  maxHp: number;
+  fillRatio: number;
+  barX: number;
+  barY: number;
+  barWidthPx: number;
+  barHeightPx: number;
+  entityTopPx: number;
+} | null> {
+  return page.evaluate(
+    ({ owner: playerOwner, entityKind: expectedKind, entityType: expectedType }) =>
+      window.__AOE2_TEST__!
+        .getEntityHealthBarStates()
+        .find(
+          (state) =>
+            state.owner === playerOwner
+            && state.entityKind === expectedKind
+            && state.entityType === expectedType,
+        ) ?? null,
+    {
+      owner,
+      entityKind,
+      entityType,
+    },
+  );
+}
+
 async function findValidPlacementNearTownCenter(
   page: Page,
   buildingType: string,
@@ -1213,6 +1246,37 @@ test.describe('browser gameplay smoke tests', () => {
     });
     expect(completedHouseVisual?.widthPx).toBe(constructingHouseVisual?.widthPx);
     expect(completedHouseVisual?.heightPx).toBe(constructingHouseVisual?.heightPx);
+  });
+
+  test('renders health bars above units and buildings and updates them as health changes', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'conquest-victory-fixture');
+
+    const initialMilitiaBar = await getEntityHealthBarState(page, 1, 'unit', 'militia');
+    const initialHouseBar = await getEntityHealthBarState(page, 2, 'building', 'house');
+
+    expect(initialMilitiaBar).toMatchObject({
+      currentHp: 40,
+      maxHp: 40,
+      fillRatio: 1,
+    });
+    expect(initialHouseBar).toMatchObject({
+      currentHp: 75,
+      maxHp: 75,
+      fillRatio: 1,
+    });
+    expect(initialMilitiaBar?.barY ?? 0).toBeLessThan(initialMilitiaBar?.entityTopPx ?? 0);
+    expect(initialHouseBar?.barY ?? 0).toBeLessThan(initialHouseBar?.entityTopPx ?? 0);
+
+    await clickCell(page, 8, 8);
+    await clickCell(page, 10, 8, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+
+    const damagedHouseBar = await getEntityHealthBarState(page, 2, 'building', 'house');
+    expect(damagedHouseBar?.currentHp).toBeLessThan(damagedHouseBar?.maxHp ?? 75);
+    expect(damagedHouseBar?.fillRatio ?? 1).toBeLessThan(1);
+    expect(damagedHouseBar?.barY ?? 0).toBeLessThan(damagedHouseBar?.entityTopPx ?? 0);
   });
 
   test('shows valid and invalid building placement preview feedback before construction', async ({

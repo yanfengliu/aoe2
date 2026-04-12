@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-12 - Added entity health bars above units and buildings. Projected render entities now carry health values, the Phaser scene renders a dedicated health-bar overlay that updates during combat, and automated coverage is now `51` Vitest tests plus `37` Playwright browser gameplay tests.
 2026-04-12 - Added sub-grid unit movement by keeping coarse world positions for gameplay semantics and adding fine-grained unit transforms for rendering/motion. The bridge, sim tests, and browser tests now cover smoother unit travel without changing coarse building/resource snapping, and automated coverage is now `50` Vitest tests plus `36` Playwright browser gameplay tests.
 2026-04-12 - Strengthened building rendering so construction shows a clear foundation/scaffold phase and completion shows a distinct structure/roof silhouette, with browser assertions now locking that visual transition down.
 2026-04-12 - Centralized the building footprint source of truth, removed human scout roam state from the default scenario, and split the oversized simulation suite into focused files so `npx.cmd vitest run` now passes cleanly with `49` Vitest tests and `35` Playwright browser gameplay tests.
