@@ -113,6 +113,7 @@ describe('createPrototypeScenario', () => {
     const townCenterDefenseScenario = createPrototypeScenario('town-center-defense-fixture');
     const villagerSelectionScenario = createPrototypeScenario('villager-selection-fixture');
     const mixedSelectionScenario = createPrototypeScenario('mixed-selection-fixture');
+    const tileSelectionCycleScenario = createPrototypeScenario('tile-selection-cycle-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -264,6 +265,16 @@ describe('createPrototypeScenario', () => {
     expect(
       mixedSelectionScenario.spawns.some(
         (spawn) => spawn.owner === 1 && spawn.kind === 'house' && spawn.x === 9 && spawn.y === 9,
+      ),
+    ).toBe(true);
+    expect(
+      tileSelectionCycleScenario.spawns.filter(
+        (spawn) => spawn.x === 10 && spawn.y === 10,
+      ),
+    ).toHaveLength(3);
+    expect(
+      tileSelectionCycleScenario.spawns.some(
+        (spawn) => spawn.kind === 'sheep' && spawn.x === 10 && spawn.y === 10,
       ),
     ).toBe(true);
   });

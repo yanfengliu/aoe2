@@ -29,6 +29,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - The first combat slice also fit the same pattern cleanly. Repo-owned combat state plus `world.destroyEntity()` were enough to implement melee attack, death cleanup, and visibility updates without pushing combat ownership into Phaser.
 - A minimal AI rush also fit inside ordinary world systems. Build-order policy, queue pressure, and attack-target bias can live in repo code without demanding a special engine-side AI framework too early.
 - `WorldDebugger` is immediately useful for HUD metrics and future debug overlays.
+- The `civ-engine` debugging guide is pragmatic. `WorldDebugger` probes give the repo a clean way to expose selection, visibility, or occupancy state for AI/test diagnosis without leaking debug-only state into gameplay components or Phaser scene code.
 - The built-in grid and noise helpers were enough to get a deterministic prototype map online without extra infrastructure.
 - `EntityRef` solves a real RTS integration problem. Long-lived selection state, queued attack/build targets, and browser test harnesses all become safer once they stop assuming entity IDs stay stable across destruction and reuse.
 
@@ -72,12 +73,14 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Age-prerequisite logic is still repo policy spread across helper functions and switch sites. Adding `Castle Age` was manageable, but later Castle/Imperial unlock breadth will keep increasing the payoff of moving more producer and prerequisite rules into normalized content instead of code.
 - Some helper state still assumes one "primary" Town Center per owner. The current `townCenterRefs` usage is good enough for this slice, but deeper AI, economy, and fallback targeting will need to reason over multiple completed Town Centers instead of one cached reference.
 - Marquee UX is still entirely repo-owned. `civ-engine` makes the unit-selection rule easy to express, but the Phaser bridge still has to own drag thresholds, screen-to-world rectangle projection, and mixed-selection HUD policy.
+- Tile-inspection UX is also repo-owned. The engine correctly preserves entity identity through `EntityRef`, but stacked-tile cycling, resource inspection text, and any future selection-stack overlay still have to live in game/UI code rather than the engine.
 
 ## Implications for next phases
 
 - Keep all game rules inside the simulation bridge or deeper; do not move gameplay state into Phaser scenes.
 - Expand the content pipeline before widening gameplay breadth. The engine boundary is good enough to support that work.
 - Add debug overlays early. `WorldDebugger` already makes this cheaper.
+- When selection, fog, or occupancy bugs become less obvious than this slice, add a `WorldDebugger` probe instead of more ad hoc scene logging.
 - Evaluate `civ-engine` pathfinding and occupancy primitives as soon as villagers and military movement become command-driven instead of scripted.
 - Keep expanding deterministic simulation tests alongside each slice. The current economy loop is simple, but the pattern of external stockpile state plus world-owned entities is holding up well.
 - Start moving placement, footprint selection, and movement-heavy queries onto occupancy/path primitives before Castle Age-scale interactions make the current scan-heavy approach too brittle.

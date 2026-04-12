@@ -123,6 +123,18 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Blacksmith';
     case 'market':
       return 'Market';
+    case 'berry-bush':
+      return 'Berry Bush';
+    case 'gold-mine':
+      return 'Gold Mine';
+    case 'stone-mine':
+      return 'Stone Mine';
+    case 'boar':
+      return 'Boar';
+    case 'sheep':
+      return 'Sheep';
+    case 'tree':
+      return 'Tree';
     case 'villager':
       return 'Villager';
     case 'militia':
@@ -170,6 +182,18 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Blacksmiths';
     case 'market':
       return 'Markets';
+    case 'berry-bush':
+      return 'Berry Bushes';
+    case 'gold-mine':
+      return 'Gold Mines';
+    case 'stone-mine':
+      return 'Stone Mines';
+    case 'boar':
+      return 'Boars';
+    case 'sheep':
+      return 'Sheep';
+    case 'tree':
+      return 'Trees';
     case 'villager':
       return 'Villagers';
     case 'militia':
@@ -411,6 +435,18 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     const placementText = selectionState.placementMode
       ? `Placing: ${formatEntityName(selectionState.placementMode)}`
       : 'Placement: Off';
+    const selectionPositionText =
+      selectionState.tileX === null || selectionState.tileY === null
+        ? 'No active tile.'
+        : `Tile ${selectionState.tileX}, ${selectionState.tileY}`;
+    const selectionCycleText =
+      selectionState.tileEntityIndex === null || selectionState.tileEntityCount === 0
+        ? 'No tile stack.'
+        : `${selectionState.tileEntityIndex} of ${selectionState.tileEntityCount} on tile`;
+    const selectionResourceText =
+      selectionState.resourceAmount === null || selectionState.resourceMaxAmount === null
+        ? 'No resource stockpile.'
+        : `Remaining: ${selectionState.resourceAmount}/${selectionState.resourceMaxAmount}`;
 
     const buildButtons = selectionState.buildOptions
       .map(
@@ -481,9 +517,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
       <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
-      <div class="hud-selection-meta">
-        ${selectionState.x === null || selectionState.y === null ? 'No active entity.' : `Tile ${selectionState.x}, ${selectionState.y}`}
-      </div>
+      <div class="hud-selection-meta" data-selection-position>${selectionPositionText}</div>
+      <div class="hud-selection-meta" data-selection-cycle>${selectionCycleText}</div>
+      <div class="hud-selection-meta" data-selection-resource>${selectionResourceText}</div>
       <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
       <div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>

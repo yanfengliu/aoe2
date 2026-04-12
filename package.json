@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "pretest:browser": "npm run build",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install chromium",
     "test:watch": "vitest",

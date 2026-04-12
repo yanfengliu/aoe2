@@ -62,6 +62,7 @@ Setup:
 The game currently starts directly into the prototype map. Use:
 
 - left click to select units and buildings
+- repeated left click on the same tile to cycle through every selectable entity stacked there, including resources
 - left click and drag to box-select movable friendly units under your control
 - right click to issue context orders to the current selection
 - villagers use right click on visible resources to gather them explicitly
@@ -80,7 +81,7 @@ The game currently starts directly into the prototype map. Use:
 - right click with a selected production building now sets its rally point, so newly trained units walk toward that target automatically
 - completed Blacksmiths can now research Fletching, which currently buffs Archer attack damage and range
 - enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches
-- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-market-fixture`, `?seed=feudal-stable-fixture`, `?seed=castle-age-fixture`, `?seed=castle-town-center-fixture`, `?seed=feudal-spearman-fixture`, `?seed=feudal-skirmisher-fixture`, `?seed=feudal-watch-tower-fixture`, `?seed=town-center-defense-fixture`, `?seed=villager-selection-fixture`, and `?seed=mixed-selection-fixture`
+- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-market-fixture`, `?seed=feudal-stable-fixture`, `?seed=castle-age-fixture`, `?seed=castle-town-center-fixture`, `?seed=feudal-spearman-fixture`, `?seed=feudal-skirmisher-fixture`, `?seed=feudal-watch-tower-fixture`, `?seed=town-center-defense-fixture`, `?seed=villager-selection-fixture`, `?seed=mixed-selection-fixture`, and `?seed=tile-selection-cycle-fixture`
 
 ## Verification
 

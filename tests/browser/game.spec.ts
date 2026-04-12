@@ -316,6 +316,34 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveLength(4);
   });
 
+  test('can inspect visible resources through the HUD selection panel', async ({ page }) => {
+    await waitForBoot(page);
+
+    await clickCell(page, 10, 10);
+
+    await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
+    await expect(page.locator('[data-selection-position]')).toHaveText('Tile 10, 10');
+    await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 1 on tile');
+    await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
+  });
+
+  test('cycles through every selectable entity stacked on a clicked tile', async ({ page }) => {
+    await waitForBootWithSeed(page, 'tile-selection-cycle-fixture');
+
+    await clickCell(page, 10, 10);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
+    await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 3 on tile');
+
+    await clickCell(page, 10, 10);
+    await expect(page.locator('[data-selection-name]')).toHaveText('House');
+    await expect(page.locator('[data-selection-cycle]')).toHaveText('2 of 3 on tile');
+
+    await clickCell(page, 10, 10);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
+    await expect(page.locator('[data-selection-cycle]')).toHaveText('3 of 3 on tile');
+    await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
+  });
+
   test('shows a marquee while dragging and selects multiple villagers with one drag box', async ({
     page,
   }) => {

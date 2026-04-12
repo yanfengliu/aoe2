@@ -142,6 +142,12 @@ interface BuildingHealthState {
   maxHp: number;
 }
 
+interface SelectableEntityCandidate {
+  id: number;
+  kind: 'unit' | 'building' | 'resource';
+  owner: number | null;
+}
+
 interface BuildingCombatState {
   attackDamage: number;
   attackRange: number;
@@ -988,6 +994,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     summary: 'Battle in progress.',
   };
   let selectedEntityRefs: EntityRef[] = [];
+  let selectionFocusCell: Position | null = null;
   let placementMode: BuildableBuildingType | null = null;
 
   world.registerComponent<Position>('position');
@@ -1472,12 +1479,50 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return owner === HUMAN_PLAYER_ID || visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y);
   }
 
-  function findSelectableEntityAtCell(x: number, y: number): number | null {
+  function compareSelectableEntities(
+    left: SelectableEntityCandidate,
+    right: SelectableEntityCandidate,
+  ): number {
+    const kindPriority: Record<SelectableEntityCandidate['kind'], number> = {
+      unit: 0,
+      building: 1,
+      resource: 2,
+    };
+    const ownerPriority = (owner: number | null): number => {
+      if (owner === HUMAN_PLAYER_ID) {
+        return 0;
+      }
+      if (owner === null) {
+        return 2;
+      }
+      return 1;
+    };
+
+    const kindDelta = kindPriority[left.kind] - kindPriority[right.kind];
+    if (kindDelta !== 0) {
+      return kindDelta;
+    }
+
+    const ownerDelta = ownerPriority(left.owner) - ownerPriority(right.owner);
+    if (ownerDelta !== 0) {
+      return ownerDelta;
+    }
+
+    return left.id - right.id;
+  }
+
+  function getSelectableEntitiesAtCell(x: number, y: number): SelectableEntityCandidate[] {
+    const candidates: SelectableEntityCandidate[] = [];
+
     for (const id of world.query('position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (position?.x === x && position.y === y && isVisibleToHuman(position, unit?.owner ?? null)) {
-        return id;
+        candidates.push({
+          id,
+          kind: 'unit',
+          owner: unit?.owner ?? null,
+        });
       }
     }
 
@@ -1485,18 +1530,39 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       const position = world.getComponent<Position>(id, 'position');
       const building = world.getComponent<BuildingComponent>(id, 'building');
       if (position && building && buildingOccupiesCell(id, x, y) && isVisibleToHuman(position, building.owner)) {
-        return id;
+        candidates.push({
+          id,
+          kind: 'building',
+          owner: building.owner,
+        });
       }
     }
 
     for (const id of world.query('position', 'resource')) {
       const position = world.getComponent<Position>(id, 'position');
       if (position?.x === x && position.y === y && visibility.isVisible(HUMAN_PLAYER_ID, x, y)) {
-        return id;
+        candidates.push({
+          id,
+          kind: 'resource',
+          owner: null,
+        });
       }
     }
 
-    return null;
+    return candidates.sort(compareSelectableEntities);
+  }
+
+  function entityOccupiesCell(entityId: number, x: number, y: number): boolean {
+    const position = world.getComponent<Position>(entityId, 'position');
+    if (!position) {
+      return false;
+    }
+
+    if (world.getComponent<BuildingComponent>(entityId, 'building')) {
+      return buildingOccupiesCell(entityId, x, y);
+    }
+
+    return position.x === x && position.y === y;
   }
 
   function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {
@@ -1540,6 +1606,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     selectedEntityRefs = ids
       .map((id) => getEntityRef(id))
       .filter((ref): ref is EntityRef => ref !== null);
+    selectionFocusCell = null;
 
     if (selectedEntityRefs.length === 0) {
       placementMode = null;
@@ -1567,6 +1634,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     if (nextRefs.length !== selectedEntityRefs.length) {
       selectedEntityRefs = nextRefs;
       if (selectedEntityRefs.length === 0) {
+        selectionFocusCell = null;
         placementMode = null;
       }
     }
@@ -1582,6 +1650,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (selectedEntityRefs.length > 0) {
       selectedEntityRefs = [];
+      selectionFocusCell = null;
       placementMode = null;
     }
 
@@ -1596,6 +1665,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     selectedEntityRefs = nextRefs;
     if (selectedEntityRefs.length === 0) {
+      selectionFocusCell = null;
       placementMode = null;
     }
   }
@@ -1616,6 +1686,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return null;
+  }
+
+  function resolveSelectionTile(selectedEntityId: number, position: Position): Position {
+    if (
+      selectionFocusCell
+      && entityOccupiesCell(selectedEntityId, selectionFocusCell.x, selectionFocusCell.y)
+    ) {
+      return selectionFocusCell;
+    }
+
+    return position;
   }
 
   function findHostileUnitAtCell(x: number, y: number, attackerOwner: number): number | null {
@@ -2024,6 +2105,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     currentUnits.push(unitId);
     garrisonedByBuilding.set(buildingId, currentUnits);
     selectedEntityRefs = [];
+    selectionFocusCell = null;
     placementMode = null;
     return true;
   }
@@ -3142,6 +3224,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         owner: null,
         x: null,
         y: null,
+        tileX: null,
+        tileY: null,
+        tileEntityIndex: null,
+        tileEntityCount: 0,
+        resourceAmount: null,
+        resourceMaxAmount: null,
         actionOptions: [],
         buildOptions: [],
         marketOptions: [],
@@ -3155,10 +3243,25 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const position = world.getComponent<Position>(selectedEntityId, 'position');
     const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!position || (!unit && !building)) {
+    const resource = world.getComponent<ResourceComponent>(selectedEntityId, 'resource');
+    if (!position || (!unit && !building && !resource)) {
       selectedEntityRefs = [];
+      selectionFocusCell = null;
       return getSelectionState();
     }
+
+    const selectionTile = resolveSelectionTile(selectedEntityId, position);
+    const tileEntities =
+      selectedEntityIds.length === 1
+        ? getSelectableEntitiesAtCell(selectionTile.x, selectionTile.y)
+        : [];
+    const tileEntityIndex =
+      selectedEntityIds.length === 1
+        ? (() => {
+          const index = tileEntities.findIndex((candidate) => candidate.id === selectedEntityId);
+          return index >= 0 ? index + 1 : null;
+        })()
+        : null;
 
     const selectedUnits = selectedEntityIds
       .map((id) => ({
@@ -3201,20 +3304,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       selectedEntityId,
       selectedEntityIds,
       selectedCount: selectedEntityIds.length,
-      selectedKind: unit ? 'unit' : 'building',
+      selectedKind: unit ? 'unit' : building ? 'building' : 'resource',
       selectedEntityType:
         selectedEntityIds.length > 1 && !allSelectedUnitsShareType
           ? null
-          : unit?.unitType ?? building?.buildingType ?? null,
+          : unit?.unitType ?? building?.buildingType ?? resource?.resourceType ?? null,
       owner: unit?.owner ?? building?.owner ?? null,
       x: position.x,
       y: position.y,
+      tileX: selectionTile.x,
+      tileY: selectionTile.y,
+      tileEntityIndex,
+      tileEntityCount: tileEntities.length,
+      resourceAmount: resource?.amount ?? null,
+      resourceMaxAmount: resource?.maxAmount ?? null,
       actionOptions,
       buildOptions,
       marketOptions,
       trainOptions,
       researchOptions,
-      queue: cloneQueue(productionQueues.get(selectedEntityId) ?? []),
+      queue: building ? cloneQueue(productionQueues.get(selectedEntityId) ?? []) : [],
       placementMode,
     };
   }
@@ -3321,21 +3430,40 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    const nextSelection = findSelectableEntityAtCell(x, y);
+    const selectableEntities = getSelectableEntitiesAtCell(x, y);
+    const currentSelectionIds = getSelectedEntityIds();
+    const currentSelectionId = currentSelectionIds.length === 1 ? currentSelectionIds[0] : null;
+    const lastClickedSameCell =
+      selectionFocusCell !== null
+      && selectionFocusCell.x === x
+      && selectionFocusCell.y === y;
+    let nextSelection = selectableEntities[0]?.id ?? null;
+
+    if (lastClickedSameCell && currentSelectionId !== null && selectableEntities.length > 1) {
+      const currentIndex = selectableEntities.findIndex((candidate) => candidate.id === currentSelectionId);
+      if (currentIndex >= 0) {
+        nextSelection = selectableEntities[(currentIndex + 1) % selectableEntities.length]?.id ?? null;
+      }
+    }
+
     selectedEntityRefs =
       nextSelection === null
         ? []
         : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
     if (nextSelection === null) {
+      selectionFocusCell = null;
       placementMode = null;
       return false;
     }
 
+    selectionFocusCell = { x, y };
+    placementMode = null;
     return selectedEntityRefs.length > 0;
   }
 
   function clearSelection(): void {
     selectedEntityRefs = [];
+    selectionFocusCell = null;
     placementMode = null;
   }
 

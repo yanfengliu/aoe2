@@ -1022,6 +1022,66 @@ function createMixedSelectionFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createTileSelectionCycleFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'house',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'militia',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'sheep',
+        x: 10,
+        y: 10,
+        owner: null,
+        baseOwner: 1,
+        amount: 100,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -1235,6 +1295,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'mixed-selection-fixture') {
     return createMixedSelectionFixture(seed);
+  }
+
+  if (seed === 'tile-selection-cycle-fixture') {
+    return createTileSelectionCycleFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

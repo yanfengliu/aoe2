@@ -112,6 +112,66 @@ describe('createSimulationBridge', () => {
     expect(bridge.getSelectionState().queue).toHaveLength(0);
   });
 
+  it('selects visible resource entities and exposes their remaining amount', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'sheep',
+      owner: null,
+      x: 10,
+      y: 10,
+      actionOptions: [],
+      buildOptions: [],
+      marketOptions: [],
+      trainOptions: [],
+      researchOptions: [],
+      queue: [],
+      tileEntityIndex: 1,
+      tileEntityCount: 1,
+      resourceAmount: 100,
+      resourceMaxAmount: 100,
+    });
+  });
+
+  it('cycles through every selectable entity stacked on the same tile', () => {
+    const bridge = createSimulationBridge('tile-selection-cycle-fixture');
+
+    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'unit',
+      selectedEntityType: 'militia',
+      tileEntityIndex: 1,
+      tileEntityCount: 3,
+    });
+
+    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'building',
+      selectedEntityType: 'house',
+      tileEntityIndex: 2,
+      tileEntityCount: 3,
+    });
+
+    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'sheep',
+      tileEntityIndex: 3,
+      tileEntityCount: 3,
+      resourceAmount: 100,
+    });
+
+    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'unit',
+      selectedEntityType: 'militia',
+      tileEntityIndex: 1,
+      tileEntityCount: 3,
+    });
+  });
+
   it('can box-select multiple villagers and issue one move command to the whole group', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
