@@ -477,6 +477,39 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('can garrison and ungarrison a villager through the Town Center in the live game', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await clickCell(page, 8, 8, 'right');
+
+    let snapshot = await getSnapshot(page);
+    expect(
+      snapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(2);
+
+    await clickCell(page, 8, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await page.locator('[data-command="action-ungarrison"]').click();
+
+    snapshot = await getSnapshot(page);
+    const villagersAfterUngarrison = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villagersAfterUngarrison).toHaveLength(3);
+    expect(
+      villagersAfterUngarrison.some(
+        (villager) =>
+          villager.x !== 6 && villager.y !== 8 && Math.abs(villager.x - 8) <= 2 && Math.abs(villager.y - 8) <= 2,
+      ),
+    ).toBe(true);
+  });
+
   test('can build a Market and exchange resources through the live command panel', async ({
     page,
   }) => {

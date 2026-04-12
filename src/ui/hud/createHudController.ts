@@ -1,4 +1,5 @@
 import type {
+  ActionType,
   BuildableBuildingType,
   HudState,
   MarketActionType,
@@ -12,6 +13,7 @@ interface HudBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
+  issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -143,6 +145,13 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Feudal Age';
     case 'fletching':
       return 'Fletching';
+  }
+}
+
+function formatActionName(actionType: ActionType): string {
+  switch (actionType) {
+    case 'ungarrison':
+      return 'Ungarrison';
   }
 }
 
@@ -319,6 +328,19 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         `,
       )
       .join('');
+    const actionButtons = selectionState.actionOptions
+      .map(
+        (actionType) => `
+          <button
+            class="hud-command-button"
+            data-command="action-${actionType}"
+            type="button"
+          >
+            ${formatActionName(actionType)}
+          </button>
+        `,
+      )
+      .join('');
     const trainButtons = selectionState.trainOptions
       .map(
         (unitType) => `
@@ -368,6 +390,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
       <div class="hud-command-list">
+        ${actionButtons}
         ${trainButtons}
         ${marketButtons}
         ${researchButtons}
@@ -385,6 +408,18 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
 
         button.addEventListener('click', () => {
           bridge.queueTrainUnit(unitType);
+        });
+      });
+    selectionPanel
+      .querySelectorAll<HTMLButtonElement>('[data-command^="action-"]')
+      .forEach((button) => {
+        const actionType = button.dataset.command?.replace('action-', '') as ActionType | undefined;
+        if (!actionType) {
+          return;
+        }
+
+        button.addEventListener('click', () => {
+          bridge.issueAction(actionType);
         });
       });
     selectionPanel

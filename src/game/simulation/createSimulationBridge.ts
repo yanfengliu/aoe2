@@ -19,6 +19,7 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import type {
+  ActionType,
   AgeType,
   BuildableBuildingType,
   BuildingType,
@@ -63,6 +64,7 @@ export interface SimulationBridge {
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
+  issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -638,6 +640,20 @@ function createBuildingCombatState(buildingType: BuildingType): BuildingCombatSt
   };
 }
 
+function buildingGarrisonCapacity(buildingType: BuildingType): number {
+  switch (buildingType) {
+    case 'town-center':
+    case 'watch-tower':
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
+  return unitType === 'villager' && buildingGarrisonCapacity(buildingType) > 0;
+}
+
 function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): boolean {
   return (
     (buildingType === 'town-center' && unitType === 'villager')
@@ -874,6 +890,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
+  issueAction: (actionType: ActionType) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
   issueMarketAction: (actionType: MarketActionType) => boolean;
@@ -898,6 +915,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const villagerOrdinals = new Map<number, number>();
   const unitCommands = new Map<number, UnitCommand>();
   const rallyPoints = new Map<number, Position>();
+  const garrisonedByBuilding = new Map<number, number[]>();
+  const garrisonedUnitToBuilding = new Map<number, number>();
+  const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
   const productionQueues = new Map<number, ProductionQueueEntry[]>();
   const constructionStates = new Map<number, ConstructionState>();
   const combatStates = new Map<number, CombatState>();
@@ -1243,6 +1263,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   function getUnitTaskState(id: number): UnitTaskState {
+    if (isGarrisonedUnit(id)) {
+      return 'garrisoned';
+    }
+
     const command = unitCommands.get(id);
     if (command) {
       switch (command.type) {
@@ -1361,6 +1385,22 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     gatherer.gatherProgressTicks = 0;
   }
 
+  function isGarrisonedUnit(id: number): boolean {
+    return garrisonedUnitToBuilding.has(id);
+  }
+
+  function getActionOptions(owner: number, buildingType: BuildingType, buildingId: number): ActionType[] {
+    if (
+      owner === HUMAN_PLAYER_ID
+      && buildingGarrisonCapacity(buildingType) > 0
+      && (garrisonedByBuilding.get(buildingId)?.length ?? 0) > 0
+    ) {
+      return ['ungarrison'];
+    }
+
+    return [];
+  }
+
   function isVisibleToHuman(position: Position, owner: number | null): boolean {
     return owner === HUMAN_PLAYER_ID || visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y);
   }
@@ -1460,6 +1500,29 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
+  function findOwnedGarrisonBuildingAtCell(x: number, y: number, owner: number, unitType: UnitType): number | null {
+    for (const id of world.query('position', 'building')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (
+        position
+        && building
+        && building.owner === owner
+        && canGarrisonAt(building.buildingType, unitType)
+        && buildingOccupiesCell(id, x, y)
+      ) {
+        const construction = constructionStates.get(id);
+        if (construction && !construction.isComplete) {
+          continue;
+        }
+
+        return id;
+      }
+    }
+
+    return null;
+  }
+
   function distanceToBuilding(id: number, position: Position): number {
     const buildingPosition = world.getComponent<Position>(id, 'position');
     const building = world.getComponent<BuildingComponent>(id, 'building');
@@ -1518,6 +1581,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   function destroyUnitEntity(id: number): void {
+    const garrisonBuildingId = garrisonedUnitToBuilding.get(id) ?? null;
+    if (garrisonBuildingId !== null) {
+      const garrisonedUnits = garrisonedByBuilding.get(garrisonBuildingId) ?? [];
+      garrisonedByBuilding.set(
+        garrisonBuildingId,
+        garrisonedUnits.filter((candidateId) => candidateId !== id),
+      );
+      if ((garrisonedByBuilding.get(garrisonBuildingId)?.length ?? 0) === 0) {
+        garrisonedByBuilding.delete(garrisonBuildingId);
+      }
+      garrisonedUnitToBuilding.delete(id);
+      garrisonedUnitVisionSources.delete(id);
+    }
+
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (unit) {
       const populationState = population.get(unit.owner);
@@ -1539,6 +1616,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function destroyBuildingEntity(id: number): void {
     const building = world.getComponent<BuildingComponent>(id, 'building');
     const construction = constructionStates.get(id);
+    for (const garrisonedUnitId of garrisonedByBuilding.get(id) ?? []) {
+      destroyUnitEntity(garrisonedUnitId);
+    }
+    garrisonedByBuilding.delete(id);
+
     if (building?.buildingType === 'town-center') {
       const townCenterRef = townCenterRefs.get(building.owner) ?? null;
       if (isSameEntity(townCenterRef, id, world)) {
@@ -1764,6 +1846,66 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     stockpile[commodity] -= MARKET_TRANSACTION_AMOUNT;
     stockpile.gold += Math.floor(rate * (1 - MARKET_FEE_RATE));
     marketExchangeRates[commodity] = Math.max(MARKET_MIN_RATE, rate - MARKET_RATE_STEP);
+    return true;
+  }
+
+  function garrisonUnit(unitId: number, buildingId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+    const capacity = building ? buildingGarrisonCapacity(building.buildingType) : 0;
+    if (!unit || !building || unit.owner !== building.owner || !canGarrisonAt(building.buildingType, unit.unitType)) {
+      return false;
+    }
+
+    const currentUnits = garrisonedByBuilding.get(buildingId) ?? [];
+    if (currentUnits.length >= capacity || isGarrisonedUnit(unitId)) {
+      return false;
+    }
+
+    clearGathererOrder(unitId);
+    unitCommands.delete(unitId);
+
+    const visionSource = world.getComponent<VisionSourceComponent>(unitId, 'visionSource');
+    if (visionSource) {
+      garrisonedUnitVisionSources.set(unitId, { ...visionSource });
+      world.removeComponent(unitId, 'visionSource');
+    }
+
+    world.removeComponent(unitId, 'position');
+    garrisonedUnitToBuilding.set(unitId, buildingId);
+    currentUnits.push(unitId);
+    garrisonedByBuilding.set(buildingId, currentUnits);
+    selectedEntityRef = null;
+    placementMode = null;
+    return true;
+  }
+
+  function ungarrisonBuilding(buildingId: number): boolean {
+    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+    const buildingPosition = world.getComponent<Position>(buildingId, 'position');
+    const garrisonedUnits = garrisonedByBuilding.get(buildingId) ?? [];
+    if (!building || !buildingPosition || garrisonedUnits.length === 0) {
+      return false;
+    }
+
+    for (const unitId of garrisonedUnits) {
+      const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+      if (!unit) {
+        continue;
+      }
+
+      const spawnPosition = findSpawnPosition(buildingPosition);
+      world.setPosition(unitId, spawnPosition);
+      const storedVisionSource = garrisonedUnitVisionSources.get(unitId);
+      if (storedVisionSource) {
+        world.addComponent(unitId, 'visionSource', storedVisionSource);
+        garrisonedUnitVisionSources.delete(unitId);
+      }
+      garrisonedUnitToBuilding.delete(unitId);
+      clearGathererOrder(unitId);
+    }
+
+    garrisonedByBuilding.delete(buildingId);
     return true;
   }
 
@@ -2812,6 +2954,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         owner: null,
         x: null,
         y: null,
+        actionOptions: [],
         buildOptions: [],
         marketOptions: [],
         trainOptions: [],
@@ -2833,6 +2976,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       building?.owner === HUMAN_PLAYER_ID
         ? getTrainOptions(building.owner, building.buildingType)
         : [];
+    const actionOptions: ActionType[] =
+      building?.owner === HUMAN_PLAYER_ID
+        ? getActionOptions(building.owner, building.buildingType, selectedEntityId)
+        : [];
     const marketOptions: MarketActionType[] =
       building?.owner === HUMAN_PLAYER_ID
         ? getMarketOptions(building.owner, building.buildingType)
@@ -2853,6 +3000,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       owner: unit?.owner ?? building?.owner ?? null,
       x: position.x,
       y: position.y,
+      actionOptions,
       buildOptions,
       marketOptions,
       trainOptions,
@@ -2942,8 +3090,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       unit.unitType === 'villager'
         ? findResourceAtCell(target.x, target.y)
         : null;
+    const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType);
     const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
     const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
+
+    if (ownedGarrisonBuildingId !== null) {
+      placementMode = null;
+      return garrisonUnit(selectedEntityId, ownedGarrisonBuildingId);
+    }
 
     if (hostileUnitId !== null) {
       placementMode = null;
@@ -3023,6 +3177,27 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return enqueueResearch(selectedEntityId, technologyType);
+  }
+
+  function issueAction(actionType: ActionType): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    const selectedEntityId = getSelectedEntityId();
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (!building || building.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+
+    switch (actionType) {
+      case 'ungarrison':
+        return ungarrisonBuilding(selectedEntityId);
+    }
   }
 
   function issueMarketAction(actionType: MarketActionType): boolean {
@@ -3208,6 +3383,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     clearSelection,
     issueContextCommand,
     issueMoveCommand,
+    issueAction,
     queueTrainUnit,
     queueResearch,
     issueMarketAction,
@@ -3233,6 +3409,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     clearSelection,
     issueContextCommand,
     issueMoveCommand,
+    issueAction,
     queueTrainUnit,
     queueResearch,
     issueMarketAction,
@@ -3305,6 +3482,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     clearSelection,
     issueContextCommand,
     issueMoveCommand,
+    issueAction,
     queueTrainUnit,
     queueResearch,
     issueMarketAction,

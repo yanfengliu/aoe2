@@ -27,6 +27,7 @@ Current implementation status:
 - Feudal villagers can now place Blacksmiths, and Blacksmith research can modify Archer combat stats for both existing and newly trained units
 - Feudal villagers can now place Markets, and completed Markets can buy or sell food, wood, and stone against gold with dynamic exchange-rate movement
 - Feudal villagers with a completed Blacksmith can now place Watch Towers, and completed Watch Towers automatically fire on nearby enemy units
+- Villagers can now garrison inside Town Centers and completed Watch Towers, and defensive buildings can ungarrison them back onto nearby tiles through the command panel
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
 - Militia can now be selected and right-clicked onto visible enemy buildings to destroy them through the same deterministic combat system
 - the first AI rush is now live: the enemy can build a House and Barracks, queue Militia, and pressure the human economy without player input
@@ -59,6 +60,7 @@ The game currently starts directly into the prototype map. Use:
 - left click to select units and buildings
 - right click to issue context orders to the current selection
 - villagers use right click on visible resources to gather them explicitly
+- villagers can use right click on owned Town Centers or completed Watch Towers to garrison for safety
 - military units use right click on visible enemy units and buildings to attack them
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
@@ -67,6 +69,7 @@ The game currently starts directly into the prototype map. Use:
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
 - the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, Blacksmiths, Markets, and Watch Towers in Feudal Age, and queue Militia, Spearmen, Scout Cavalry, Archers, or Skirmishers from completed military buildings
 - completed Markets can use the selection panel to buy Food, Wood, or Stone with Gold, or sell those resources back for Gold
+- selected Town Centers and completed Watch Towers can use the selection panel to ungarrison housed Villagers
 - right click with a selected production building now sets its rally point, so newly trained units walk toward that target automatically
 - completed Blacksmiths can now research Fletching, which currently buffs Archer attack damage and range
 - enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches

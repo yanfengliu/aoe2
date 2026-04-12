@@ -608,6 +608,74 @@ describe('createSimulationBridge', () => {
     ).toBe(false);
   }, 15_000);
 
+  it('can garrison and ungarrison a villager through the Town Center', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.issueContextCommand(8, 8)).toBe(true);
+    expect(
+      bridge.getEconomyState().units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(2);
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      actionOptions: ['ungarrison'],
+    });
+    expect(bridge.issueAction('ungarrison')).toBe(true);
+
+    const villagersAfterUngarrison = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager');
+    expect(villagersAfterUngarrison).toHaveLength(3);
+    expect(
+      villagersAfterUngarrison.some(
+        (villager) =>
+          villager.x !== 6 && villager.y !== 8 && Math.abs(villager.x - 8) <= 2 && Math.abs(villager.y - 8) <= 2,
+      ),
+    ).toBe(true);
+  });
+
+  it('can garrison and ungarrison a villager through a completed Watch Tower', () => {
+    const bridge = createSimulationBridge('feudal-watch-tower-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.beginBuildingPlacement('watch-tower')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+
+    for (let index = 0; index < 360; index += 1) {
+      bridge.step(100);
+    }
+
+    const villager = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager');
+    expect(villager).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(villager?.x ?? 0, villager?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(14, 8)).toBe(true);
+    expect(
+      bridge.getEconomyState().units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(0);
+
+    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'watch-tower',
+      actionOptions: ['ungarrison'],
+    });
+    expect(bridge.issueAction('ungarrison')).toBe(true);
+
+    expect(
+      bridge.getEconomyState().units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(1);
+  }, 15_000);
+
   it('can build a Market in Feudal Age and exchange resources through market actions', () => {
     const bridge = createSimulationBridge('feudal-market-fixture');
 
