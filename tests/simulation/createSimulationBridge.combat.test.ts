@@ -5,6 +5,7 @@ import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import {
   placeBuildingNearTownCenter,
   selectOwnedBuildingDirect,
+  stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge combat and outcomes', () => {
@@ -90,59 +91,42 @@ describe('createSimulationBridge combat and outcomes', () => {
   }, 10_000);
 
   it('lets a selected Militia attack and destroy a visible enemy house', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
-
-    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    placeBuildingNearTownCenter(bridge, 'barracks');
-
-    for (let index = 0; index < 500; index += 1) {
-      bridge.step(100);
-    }
-
-    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
-    expect(bridge.queueTrainUnit('militia')).toBe(true);
-
-    for (let index = 0; index < 260; index += 1) {
-      bridge.step(100);
-    }
-
-    const militia = bridge
-      .getEconomyState()
-      .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
-    expect(militia).toBeDefined();
-    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
-    expect(bridge.issueMoveCommand(12, 5)).toBe(true);
-
-    for (let index = 0; index < 24; index += 1) {
-      bridge.step(100);
-    }
-
+    const bridge = createSimulationBridge('conquest-victory-fixture');
     const enemyHouse = bridge
       .getEconomyState()
       .buildings.find(
         (building) =>
           building.owner === 2
           && building.buildingType === 'house'
-          && building.x === 12
-          && building.y === 3,
+          && building.x === 10
+          && building.y === 8,
       );
     expect(enemyHouse).toBeDefined();
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.issueContextCommand(enemyHouse?.x ?? 10, enemyHouse?.y ?? 8)).toBe(true);
 
-    expect(bridge.selectEntityAtCell(12, 5)).toBe(true);
-    expect(bridge.issueContextCommand(12, 3)).toBe(true);
-
-    for (let index = 0; index < 420; index += 1) {
-      bridge.step(100);
-    }
-
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          !bridge.getEconomyState().buildings.some(
+            (building) =>
+              building.owner === 2
+              && building.buildingType === 'house'
+              && building.x === (enemyHouse?.x ?? 10)
+              && building.y === (enemyHouse?.y ?? 8),
+          ),
+        { maxSteps: 260 },
+      ),
+    ).toBe(true);
     const postCombatState = bridge.getEconomyState();
     expect(
       postCombatState.buildings.some(
         (building) =>
           building.owner === 2
           && building.buildingType === 'house'
-          && building.x === (enemyHouse?.x ?? 12)
-          && building.y === (enemyHouse?.y ?? 3),
+          && building.x === (enemyHouse?.x ?? 10)
+          && building.y === (enemyHouse?.y ?? 8),
       ),
     ).toBe(false);
   }, 10_000);

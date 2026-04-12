@@ -78,6 +78,40 @@ describe('createSimulationBridge core systems', () => {
     });
   });
 
+  it('renders unit motion on a finer sub-grid while buildings stay coarse-snapped', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const initialEconomyState = bridge.getEconomyState();
+    const initialRenderState = bridge.getRenderState();
+    const scout = initialEconomyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'scout',
+    );
+    const townCenter = initialRenderState.entities.find(
+      (entity) => entity.owner === 1 && entity.entityType === 'town-center',
+    );
+    const initialScoutRender = initialRenderState.entities.find((entity) => entity.id === scout?.id);
+
+    expect(scout).toBeDefined();
+    expect(townCenter).toBeDefined();
+    expect(initialScoutRender).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(scout?.x ?? 0, scout?.y ?? 0)).toBe(true);
+    expect(bridge.issueMoveCommand(14, 7)).toBe(true);
+
+    bridge.step(100);
+
+    const tickOneEconomyScout = bridge.getEconomyState().units.find((unit) => unit.id === scout?.id);
+    const tickOneRenderScout = bridge.getRenderState().entities.find((entity) => entity.id === scout?.id);
+    const tickOneTownCenter = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
+
+    expect(tickOneEconomyScout?.x).toBe(scout?.x);
+    expect(tickOneRenderScout?.x).toBeGreaterThan(initialScoutRender?.x ?? 0);
+    expect(tickOneRenderScout?.x).toBeLessThan((initialScoutRender?.x ?? 0) + 1);
+    expect(tickOneTownCenter?.x).toBe(townCenter?.x);
+    expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
+  });
+
   it('reports visibility metrics through the HUD state', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     const hudState = bridge.getHudState();

@@ -80,6 +80,8 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Tile-inspection UX is also repo-owned. The engine correctly preserves entity identity through `EntityRef`, but stacked-tile cycling, resource inspection text, and any future selection-stack overlay still have to live in game/UI code rather than the engine.
 - The `civ-engine` debugging guide was useful for this slice because it reinforced checking world state and render snapshots directly instead of guessing in Phaser. The remaining friction is repo integration: the game still lacks a lightweight live debug probe for ownership-specific roam state and footprint occupancy, so those invariants were easier to lock down in tests than inspect interactively.
 - Construction-vs-completion art state is also cleanly repo-owned. The engine only needs to expose semantic `visualVariant` and footprint data; the actual foundation scaffolding, finished-building silhouette, and browser-verifiable scene state belong in the renderer layer.
+- Sub-grid movement also exposed a real integration tax: once units can live between coarse cells visually, repo code has to be explicit about which systems read coarse `position` and which read fine transform state. Selection, attack range, occupancy, and fixture timing stay stable only if those boundaries are deliberate and tested.
+- The sub-grid movement guide mapped cleanly onto the current boundary. Keeping coarse `position` authoritative for visibility, occupancy, and command semantics while adding a repo-owned `unitTransform` for fine unit motion let the game gain smoother movement without pushing renderer concerns back into `civ-engine`.
 
 ## Implications for next phases
 
@@ -90,6 +92,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Evaluate `civ-engine` pathfinding and occupancy primitives as soon as villagers and military movement become command-driven instead of scripted.
 - Keep expanding deterministic simulation tests alongside each slice. The current economy loop is simple, but the pattern of external stockpile state plus world-owned entities is holding up well.
 - Start moving placement, footprint selection, and movement-heavy queries onto occupancy/path primitives before Castle Age-scale interactions make the current scan-heavy approach too brittle.
+- Add a lightweight debug probe for coarse-vs-fine unit position if sub-grid transforms remain part of the runtime; that will make future movement and selection bugs much easier to inspect live.
 
 ## Current recommendation
 

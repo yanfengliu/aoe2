@@ -86,3 +86,27 @@ export function placeBuildingNearTownCenter(
 
   throw new Error(`Expected a valid ${buildingType} placement near player ${owner}'s Town Center.`);
 }
+
+export function stepBridgeUntil(
+  bridge: Bridge,
+  predicate: () => boolean,
+  options: {
+    maxSteps?: number;
+    stepMs?: number;
+  } = {},
+): boolean {
+  const maxSteps = options.maxSteps ?? 1_000;
+  const stepMs = options.stepMs ?? 100;
+  if (predicate()) {
+    return true;
+  }
+
+  for (let index = 0; index < maxSteps; index += 1) {
+    bridge.step(stepMs);
+    if (predicate()) {
+      return true;
+    }
+  }
+
+  return false;
+}

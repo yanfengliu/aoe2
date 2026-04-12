@@ -46,6 +46,7 @@ import type {
   TerrainComponent,
   TrainableUnitType,
   UnitComponent,
+  UnitTransformComponent,
   UnitTaskState,
   UnitType,
   VelocityComponent,
@@ -116,6 +117,8 @@ const MARKET_BASE_RATE = 100;
 const MARKET_FEE_RATE = 0.3;
 const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
+const UNIT_SUBGRID_RESOLUTION = 4;
+const UNIT_SUBGRID_STEP_PER_TICK = 2;
 
 type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
@@ -280,6 +283,68 @@ function stepToward(current: Position, target: Position): Position {
 
 function isAtTarget(current: Position, target: Position): boolean {
   return current.x === target.x && current.y === target.y;
+}
+
+function createUnitTransform(position: Position): UnitTransformComponent {
+  return {
+    fineX: position.x * UNIT_SUBGRID_RESOLUTION,
+    fineY: position.y * UNIT_SUBGRID_RESOLUTION,
+  };
+}
+
+function projectUnitTransformCoordinate(fineCoordinate: number): number {
+  return fineCoordinate / UNIT_SUBGRID_RESOLUTION;
+}
+
+function clampUnitTransformToMap(transform: UnitTransformComponent): UnitTransformComponent {
+  return {
+    fineX: clamp(transform.fineX, 0, (MAP_WIDTH - 1) * UNIT_SUBGRID_RESOLUTION),
+    fineY: clamp(transform.fineY, 0, (MAP_HEIGHT - 1) * UNIT_SUBGRID_RESOLUTION),
+  };
+}
+
+function gridPositionFromUnitTransform(transform: UnitTransformComponent): Position {
+  return {
+    x: clamp(Math.floor(transform.fineX / UNIT_SUBGRID_RESOLUTION), 0, MAP_WIDTH - 1),
+    y: clamp(Math.floor(transform.fineY / UNIT_SUBGRID_RESOLUTION), 0, MAP_HEIGHT - 1),
+  };
+}
+
+function isUnitTransformAtTarget(transform: UnitTransformComponent, target: Position): boolean {
+  return (
+    transform.fineX === target.x * UNIT_SUBGRID_RESOLUTION
+    && transform.fineY === target.y * UNIT_SUBGRID_RESOLUTION
+  );
+}
+
+function stepUnitTransformToward(
+  transform: UnitTransformComponent,
+  target: Position,
+): UnitTransformComponent {
+  const targetFineX = target.x * UNIT_SUBGRID_RESOLUTION;
+  const targetFineY = target.y * UNIT_SUBGRID_RESOLUTION;
+
+  if (transform.fineX !== targetFineX) {
+    return {
+      fineX:
+        transform.fineX
+        + Math.sign(targetFineX - transform.fineX)
+          * Math.min(Math.abs(targetFineX - transform.fineX), UNIT_SUBGRID_STEP_PER_TICK),
+      fineY: transform.fineY,
+    };
+  }
+
+  if (transform.fineY !== targetFineY) {
+    return {
+      fineX: transform.fineX,
+      fineY:
+        transform.fineY
+        + Math.sign(targetFineY - transform.fineY)
+          * Math.min(Math.abs(targetFineY - transform.fineY), UNIT_SUBGRID_STEP_PER_TICK),
+    };
+  }
+
+  return transform;
 }
 
 function assignVillagerRole(owner: number, ordinal: number): EconomyResourceKind {
@@ -840,6 +905,7 @@ function createProjector(
     projectEntity(ref, world) {
       const position = world.getComponent<Position>(ref.id, 'position');
       const renderable = world.getComponent<RenderableComponent>(ref.id, 'renderable');
+      const unitTransform = world.getComponent<UnitTransformComponent>(ref.id, 'unitTransform');
       if (!position || !renderable) {
         return null;
       }
@@ -881,8 +947,14 @@ function createProjector(
         layer: renderable.layer,
         entityType,
         owner,
-        x: position.x,
-        y: position.y,
+        x:
+          unit && unitTransform
+            ? projectUnitTransformCoordinate(unitTransform.fineX)
+            : position.x,
+        y:
+          unit && unitTransform
+            ? projectUnitTransformCoordinate(unitTransform.fineY)
+            : position.y,
         tint: renderable.tint,
         size: renderable.size,
         footprintWidth: renderable.footprintWidth,
@@ -1014,6 +1086,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerComponent<TerrainComponent>('terrain');
   world.registerComponent<RenderableComponent>('renderable');
   world.registerComponent<UnitComponent>('unit');
+  world.registerComponent<UnitTransformComponent>('unitTransform');
   world.registerComponent<BuildingComponent>('building');
   world.registerComponent<ResourceComponent>('resource');
   world.registerComponent<GathererComponent>('gatherer');
@@ -1073,6 +1146,57 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return world.getEntityRef(id);
   }
 
+  function getUnitTransform(id: number, activeWorld = world): UnitTransformComponent | null {
+    return activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform') ?? null;
+  }
+
+  function syncUnitTransformToPosition(id: number, position: Position, activeWorld = world): void {
+    const transform = getUnitTransform(id, activeWorld);
+    if (!transform) {
+      return;
+    }
+
+    transform.fineX = position.x * UNIT_SUBGRID_RESOLUTION;
+    transform.fineY = position.y * UNIT_SUBGRID_RESOLUTION;
+  }
+
+  function moveUnitOneSubgridStep(
+    id: number,
+    target: Position,
+    activeWorld = world,
+  ): Position | null {
+    const transform = getUnitTransform(id, activeWorld);
+    if (!transform) {
+      return null;
+    }
+
+    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, target));
+    transform.fineX = nextTransform.fineX;
+    transform.fineY = nextTransform.fineY;
+
+    const nextGridPosition = gridPositionFromUnitTransform(nextTransform);
+    const currentGridPosition = activeWorld.getComponent<Position>(id, 'position');
+    if (
+      !currentGridPosition
+      || currentGridPosition.x !== nextGridPosition.x
+      || currentGridPosition.y !== nextGridPosition.y
+    ) {
+      activeWorld.setPosition(id, nextGridPosition);
+    }
+
+    return nextGridPosition;
+  }
+
+  function isUnitAtTarget(id: number, target: Position, activeWorld = world): boolean {
+    const transform = getUnitTransform(id, activeWorld);
+    if (!transform) {
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      return position ? isAtTarget(position, target) : false;
+    }
+
+    return isUnitTransformAtTarget(transform, target);
+  }
+
   function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
     return researchedTechnologies.get(owner)?.has(technologyType) ?? false;
   }
@@ -1107,6 +1231,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       owner,
       unitType,
     });
+    world.addComponent(entity, 'unitTransform', createUnitTransform(position));
     world.addComponent(entity, 'renderable', {
       kind: 'unit',
       layer: 'unit',
@@ -2183,6 +2308,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
       const spawnPosition = findSpawnPosition(buildingPosition);
       world.setPosition(unitId, spawnPosition);
+      syncUnitTransformToPosition(unitId, spawnPosition);
       const storedVisionSource = garrisonedUnitVisionSources.get(unitId);
       if (storedVisionSource) {
         world.addComponent(unitId, 'visionSource', storedVisionSource);
@@ -2835,7 +2961,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             }
 
             if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              activeWorld.setPosition(id, stepToward(position, targetPosition));
+              moveUnitOneSubgridStep(id, targetPosition, activeWorld);
               continue;
             }
 
@@ -2868,7 +2994,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               unitCommands.delete(id);
               continue;
             }
-            activeWorld.setPosition(id, stepToward(position, approachPosition));
+            moveUnitOneSubgridStep(id, approachPosition, activeWorld);
             continue;
           }
 
@@ -2887,12 +3013,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         if (command.type === 'move') {
-          if (isAtTarget(position, command.target)) {
+          if (isUnitAtTarget(id, command.target, activeWorld)) {
             unitCommands.delete(id);
             continue;
           }
 
-          activeWorld.setPosition(id, stepToward(position, command.target));
+          moveUnitOneSubgridStep(id, command.target, activeWorld);
           continue;
         }
 
@@ -2910,8 +3036,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        if (!isAtTarget(position, buildingPosition)) {
-          activeWorld.setPosition(id, stepToward(position, buildingPosition));
+        if (!isUnitAtTarget(id, buildingPosition, activeWorld)) {
+          moveUnitOneSubgridStep(id, buildingPosition, activeWorld);
           continue;
         }
 
@@ -3022,6 +3148,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const velocity = activeWorld.getComponent<VelocityComponent>(id, 'velocity');
         const bounds = activeWorld.getComponent<WanderBoundsComponent>(id, 'wanderBounds');
+        const transform = activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform');
         if (!position || !velocity || !bounds) {
           continue;
         }
@@ -3031,14 +3158,40 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        const nextX = position.x + velocity.dx;
-        const nextY = position.y + velocity.dy;
+        const currentFineX = transform?.fineX ?? position.x * UNIT_SUBGRID_RESOLUTION;
+        const currentFineY = transform?.fineY ?? position.y * UNIT_SUBGRID_RESOLUTION;
+        const nextX = currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK;
+        const nextY = currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK;
 
-        if (nextX < bounds.minX || nextX > bounds.maxX) {
+        if (
+          nextX < bounds.minX * UNIT_SUBGRID_RESOLUTION
+          || nextX > bounds.maxX * UNIT_SUBGRID_RESOLUTION
+        ) {
           velocity.dx *= -1;
         }
-        if (nextY < bounds.minY || nextY > bounds.maxY) {
+        if (
+          nextY < bounds.minY * UNIT_SUBGRID_RESOLUTION
+          || nextY > bounds.maxY * UNIT_SUBGRID_RESOLUTION
+        ) {
           velocity.dy *= -1;
+        }
+
+        if (transform) {
+          transform.fineX = clamp(
+            currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK,
+            bounds.minX * UNIT_SUBGRID_RESOLUTION,
+            bounds.maxX * UNIT_SUBGRID_RESOLUTION,
+          );
+          transform.fineY = clamp(
+            currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK,
+            bounds.minY * UNIT_SUBGRID_RESOLUTION,
+            bounds.maxY * UNIT_SUBGRID_RESOLUTION,
+          );
+          const nextGridPosition = gridPositionFromUnitTransform(transform);
+          if (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y) {
+            activeWorld.setPosition(id, nextGridPosition);
+          }
+          continue;
         }
 
         activeWorld.setPosition(id, {
@@ -3080,11 +3233,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           if (!targetPosition || !targetResource || targetResource.amount <= 0) {
             gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
             gatherer.targetResourceId = null;
-          } else if (isAtTarget(position, targetPosition)) {
+          } else if (isUnitAtTarget(id, targetPosition, activeWorld)) {
             gatherer.task = 'gathering';
             gatherer.gatherProgressTicks = 0;
           } else {
-            activeWorld.setPosition(id, stepToward(position, targetPosition));
+            moveUnitOneSubgridStep(id, targetPosition, activeWorld);
           }
         }
 
@@ -3105,7 +3258,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               !targetPosition
               || !targetResource
               || targetResource.amount <= 0
-              || !isAtTarget(position, targetPosition)
+              || !isUnitAtTarget(id, targetPosition, activeWorld)
             ) {
               gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
               gatherer.targetResourceId = null;
@@ -3158,7 +3311,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
-          } else if (isAtTarget(position, dropOffPosition)) {
+          } else if (isUnitAtTarget(id, dropOffPosition, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             if (stockpile) {
               stockpile[gatherer.carriedResource] += gatherer.carriedAmount;
@@ -3169,7 +3322,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             gatherer.targetResourceId = null;
             gatherer.gatherProgressTicks = 0;
           } else {
-            activeWorld.setPosition(id, stepToward(position, dropOffPosition));
+            moveUnitOneSubgridStep(id, dropOffPosition, activeWorld);
           }
         }
 

@@ -453,6 +453,41 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(true);
   });
 
+  test('renders units on a finer sub-grid while buildings stay snapped to coarse cells', async ({ page }) => {
+    await waitForBoot(page);
+
+    const initialSnapshot = await getSnapshot(page);
+    const scout = initialSnapshot.economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'scout',
+    );
+    const initialScoutRender = initialSnapshot.renderState.entities.find((entity) => entity.id === scout?.id);
+    const initialTownCenterRender = initialSnapshot.renderState.entities.find(
+      (entity) => entity.owner === 1 && entity.entityType === 'town-center',
+    );
+
+    expect(scout).toBeDefined();
+    expect(initialScoutRender).toBeDefined();
+    expect(initialTownCenterRender).toBeDefined();
+
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    await clickCell(page, 14, 7, 'right');
+
+    const advancedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+    );
+    const advancedScoutRender = advancedSnapshot.renderState.entities.find((entity) => entity.id === scout?.id);
+    const advancedEconomyScout = advancedSnapshot.economyState.units.find((unit) => unit.id === scout?.id);
+    const advancedTownCenterRender = advancedSnapshot.renderState.entities.find(
+      (entity) => entity.owner === 1 && entity.entityType === 'town-center',
+    );
+
+    expect(advancedEconomyScout?.x).toBe(scout?.x);
+    expect(advancedScoutRender?.x).toBeGreaterThan(initialScoutRender?.x ?? 0);
+    expect(advancedScoutRender?.x).toBeLessThan((initialScoutRender?.x ?? 0) + 1);
+    expect(advancedTownCenterRender?.x).toBe(initialTownCenterRender?.x);
+    expect(Number.isInteger(advancedTownCenterRender?.x ?? NaN)).toBe(true);
+  });
+
   test('can select the Town Center and train a villager through the command panel', async ({ page }) => {
     await waitForBoot(page);
 

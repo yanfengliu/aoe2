@@ -89,6 +89,11 @@ export interface VelocityComponent {
   dy: number;
 }
 
+export interface UnitTransformComponent {
+  fineX: number;
+  fineY: number;
+}
+
 export interface VisionSourceComponent {
   playerId: number;
   radius: number;
