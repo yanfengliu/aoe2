@@ -477,6 +477,31 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('can set a rally point on an Archery Range so newly trained units move to it automatically', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-skirmisher-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
+    await clickCell(page, 15, 10, 'right');
+    await page.locator('[data-command="train-skirmisher"]').click();
+
+    const postRallySnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(300, 100),
+    );
+
+    expect(
+      postRallySnapshot.economyState.units.some(
+        (unit) =>
+          unit.owner === 1
+          && unit.unitType === 'skirmisher'
+          && unit.x === 15
+          && unit.y === 10,
+      ),
+    ).toBe(true);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

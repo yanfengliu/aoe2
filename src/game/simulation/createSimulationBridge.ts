@@ -845,6 +845,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const townCenterRefs = new Map<number, EntityRef>();
   const villagerOrdinals = new Map<number, number>();
   const unitCommands = new Map<number, UnitCommand>();
+  const rallyPoints = new Map<number, Position>();
   const productionQueues = new Map<number, ProductionQueueEntry[]>();
   const constructionStates = new Map<number, ConstructionState>();
   const combatStates = new Map<number, CombatState>();
@@ -1507,6 +1508,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     productionQueues.delete(id);
+    rallyPoints.delete(id);
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
@@ -2413,10 +2415,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
         if (entry.kind === 'unit' && entry.unitType) {
           const spawnPosition = findSpawnPosition(position);
-          addUnitEntity(building.owner, entry.unitType, spawnPosition, {
+          const unitId = addUnitEntity(building.owner, entry.unitType, spawnPosition, {
             playerId: building.owner,
             radius: 4,
           });
+          const rallyPoint = rallyPoints.get(buildingId);
+          if (rallyPoint) {
+            issueUnitMoveCommand(unitId, rallyPoint);
+          }
         }
 
         if (entry.kind === 'technology' && entry.technologyType) {
@@ -2781,6 +2787,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const selectedEntityId = getSelectedEntityId();
     if (selectedEntityId === null) {
       return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (building && building.owner === HUMAN_PLAYER_ID) {
+      const construction = constructionStates.get(selectedEntityId);
+      if (construction && !construction.isComplete) {
+        return false;
+      }
+
+      rallyPoints.set(selectedEntityId, {
+        x: clamp(x, 0, MAP_WIDTH - 1),
+        y: clamp(y, 0, MAP_HEIGHT - 1),
+      });
+      placementMode = null;
+      return true;
     }
 
     const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');

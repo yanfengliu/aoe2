@@ -607,4 +607,26 @@ describe('createSimulationBridge', () => {
       ),
     ).toBe(false);
   }, 15_000);
+
+  it('can set a rally point on a selected Archery Range so newly trained units move to it automatically', () => {
+    const bridge = createSimulationBridge('feudal-skirmisher-fixture');
+
+    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(bridge.issueContextCommand(15, 10)).toBe(true);
+    expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
+
+    for (let index = 0; index < 300; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) =>
+          unit.owner === 1
+          && unit.unitType === 'skirmisher'
+          && unit.x === 15
+          && unit.y === 10,
+      ),
+    ).toBe(true);
+  }, 15_000);
 });
