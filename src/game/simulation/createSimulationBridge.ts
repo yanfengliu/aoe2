@@ -31,6 +31,7 @@ import type {
   MarketActionType,
   MatchState,
   PlayerResources,
+  PlacementPreviewState,
   PopulationState,
   ProductionQueueEntry,
   ProjectedEntityView,
@@ -60,6 +61,7 @@ export interface SimulationBridge {
   getHudState(): HudState;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
+  getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
@@ -942,6 +944,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getPlayerResources: (playerId: number) => PlayerResources;
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
+  getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   clearSelection: () => void;
@@ -3216,6 +3219,38 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     };
   }
 
+  function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
+    if (placementMode === null) {
+      return null;
+    }
+
+    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
+    if (selectedVillagerId === null) {
+      return null;
+    }
+
+    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
+      return null;
+    }
+
+    const anchor = {
+      x: clamp(x, 0, MAP_WIDTH - 1),
+      y: clamp(y, 0, MAP_HEIGHT - 1),
+    };
+    const footprint = buildingFootprint(placementMode);
+
+    return {
+      active: true,
+      buildingType: placementMode,
+      cellX: anchor.x,
+      cellY: anchor.y,
+      width: footprint.width,
+      height: footprint.height,
+      isValid: !isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height),
+    };
+  }
+
   function getSelectedHumanUnitIds(): number[] {
     return getSelectedEntityIds().filter((id) => {
       const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -3614,6 +3649,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return { ...matchState };
     },
     getSelectionState,
+    getPlacementPreview,
     selectEntityAtCell,
     selectUnitsInBox,
     clearSelection,
@@ -3641,6 +3677,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getPlayerResources,
     getMatchState,
     getSelectionState,
+    getPlacementPreview,
     selectEntityAtCell,
     selectUnitsInBox,
     clearSelection,
@@ -3715,6 +3752,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     },
     getEconomyState,
     getSelectionState,
+    getPlacementPreview,
     selectEntityAtCell,
     selectUnitsInBox,
     clearSelection,

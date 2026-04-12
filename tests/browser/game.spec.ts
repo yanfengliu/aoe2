@@ -116,6 +116,15 @@ async function dragSelectCells(
   await page.mouse.move(endPoint.x, endPoint.y, { steps: 6 });
 }
 
+async function moveMouseToCell(
+  page: Page,
+  cellX: number,
+  cellY: number,
+): Promise<void> {
+  const point = await getScreenPointForCell(page, cellX, cellY);
+  await page.mouse.move(point.x, point.y);
+}
+
 async function selectOwnedUnitDirect(
   page: Page,
   owner: number,
@@ -816,6 +825,54 @@ test.describe('browser gameplay smoke tests', () => {
           && building.isComplete,
       ),
     ).toBe(true);
+  });
+
+  test('shows valid and invalid building placement preview feedback before construction', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await page.locator('[data-command="build-house"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
+
+    await moveMouseToCell(page, 10, 5);
+    let previewState = await page.evaluate(
+      () => window.__AOE2_TEST__!.getPlacementPreviewState(),
+    );
+    expect(previewState).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 10,
+      cellY: 5,
+      width: 2,
+      height: 2,
+      isValid: true,
+    });
+
+    await moveMouseToCell(page, 8, 8);
+    previewState = await page.evaluate(
+      () => window.__AOE2_TEST__!.getPlacementPreviewState(),
+    );
+    expect(previewState).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 8,
+      cellY: 8,
+      width: 2,
+      height: 2,
+      isValid: false,
+    });
+
+    await clickCell(page, 8, 8);
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
+
+    const postInvalidClickSnapshot = await getSnapshot(page);
+    expect(
+      postInvalidClickSnapshot.economyState.buildings.some(
+        (building) => building.owner === 1 && building.buildingType === 'house',
+      ),
+    ).toBe(false);
   });
 
   test('can right-click a visible resource to redirect villager gathering', async ({ page }) => {

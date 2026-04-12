@@ -209,6 +209,20 @@ describe('createSimulationBridge', () => {
     expect(bridge.getHudState().population.cap).toBe(10);
   });
 
+  it('rejects invalid building placement and keeps placement mode active', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(8, 8)).toBe(false);
+    expect(bridge.getSelectionState().placementMode).toBe('house');
+    expect(
+      bridge.getEconomyState().buildings.some(
+        (building) => building.owner === 1 && building.buildingType === 'house',
+      ),
+    ).toBe(false);
+  });
+
   it('redirects a selected villager to gather gold through an explicit context order', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 

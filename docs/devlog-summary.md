@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added building placement preview feedback. Villager build mode now shows a green ghost for valid footprints and a red ghost for blocked footprints, and automated coverage is now `41` Vitest tests plus `28` Playwright browser gameplay tests.
 2026-04-11 - Added drag-box multi-selection with an on-map marquee. Left-drag now selects all owned movable units inside the box, mixed groups suppress incorrect villager build commands, and automated coverage is now `40` Vitest tests plus `27` Playwright browser gameplay tests.
 2026-04-11 - Made the production queue visible in the selection HUD. Queueing from the Town Center now renders a labeled queue card with progress instead of only a small count line, and automated coverage remains `38` Vitest tests plus `25` Playwright browser gameplay tests.
 2026-04-11 - Added the first Castle extra Town Center slice. Villagers can now place additional Town Centers in Castle Age, those Town Centers can train Villagers, and automated coverage is now `38` Vitest tests plus `25` Playwright browser gameplay tests.

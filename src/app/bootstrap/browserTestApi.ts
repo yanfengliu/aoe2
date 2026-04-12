@@ -3,12 +3,14 @@ import type Phaser from 'phaser';
 import type {
   EconomyState,
   HudState,
+  PlacementPreviewState,
   RenderState,
   SelectionState,
 } from '../../game/simulation/types';
 import type {
   CameraState,
   GameScene,
+  PlacementPreviewViewState,
   SelectionBoxState,
 } from '../../phaser/scenes/GameScene';
 
@@ -18,6 +20,7 @@ interface BrowserTestBridge {
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
+  getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
@@ -39,6 +42,7 @@ export interface BrowserTestApi {
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
   getSelectionBoxState(): SelectionBoxState | null;
+  getPlacementPreviewState(): PlacementPreviewViewState | null;
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   clearSelection(): void;
@@ -80,6 +84,7 @@ export function installBrowserTestApi(
     getSelectionState: () => bridge.getSelectionState(),
     getCameraState: () => scene.getCameraState(),
     getSelectionBoxState: () => scene.getSelectionBoxState(),
+    getPlacementPreviewState: () => scene.getPlacementPreviewState(),
     worldToScreen: (cellX: number, cellY: number) => {
       const point = scene.getScreenPointForCell(cellX, cellY);
       if (!point) {

@@ -211,6 +211,16 @@ export interface SelectionState {
   placementMode: BuildableBuildingType | null;
 }
 
+export interface PlacementPreviewState {
+  active: boolean;
+  buildingType: BuildableBuildingType;
+  cellX: number;
+  cellY: number;
+  width: number;
+  height: number;
+  isValid: boolean;
+}
+
 export interface HudState {
   tick: number;
   entityCount: number;

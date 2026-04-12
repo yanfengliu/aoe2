@@ -5,6 +5,7 @@ import {
   MAP_WIDTH,
 } from '../../game/simulation/prototypeScenario';
 import type {
+  PlacementPreviewState,
   ProjectedFrameView,
   RenderState,
   SelectionState,
@@ -14,6 +15,7 @@ interface SimulationBridge {
   step(deltaMs: number): void;
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
+  getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
@@ -42,6 +44,16 @@ export interface SelectionBoxState {
   height: number;
 }
 
+export interface PlacementPreviewViewState {
+  active: boolean;
+  buildingType: PlacementPreviewState['buildingType'];
+  cellX: number;
+  cellY: number;
+  width: number;
+  height: number;
+  isValid: boolean;
+}
+
 interface DragSelectionState {
   pointerId: number;
   startScreenX: number;
@@ -58,6 +70,7 @@ export class GameScene extends Phaser.Scene {
   private entityLayer?: Phaser.GameObjects.Graphics;
   private fogLayer?: Phaser.GameObjects.Graphics;
   private selectionLayer?: Phaser.GameObjects.Graphics;
+  private placementLayer?: Phaser.GameObjects.Graphics;
   private selectionBoxLayer?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
@@ -75,6 +88,7 @@ export class GameScene extends Phaser.Scene {
     this.entityLayer = this.add.graphics();
     this.fogLayer = this.add.graphics();
     this.selectionLayer = this.add.graphics();
+    this.placementLayer = this.add.graphics();
     this.selectionBoxLayer = this.add.graphics();
 
     this.cameras.main.setBackgroundColor('#132224');
@@ -223,6 +237,7 @@ export class GameScene extends Phaser.Scene {
       || !this.entityLayer
       || !this.fogLayer
       || !this.selectionLayer
+      || !this.placementLayer
       || !this.selectionBoxLayer
     ) {
       return;
@@ -232,6 +247,7 @@ export class GameScene extends Phaser.Scene {
     this.entityLayer.clear();
     this.fogLayer.clear();
     this.selectionLayer.clear();
+    this.placementLayer.clear();
     this.selectionBoxLayer.clear();
 
     for (const entity of state.entities) {
@@ -292,6 +308,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.renderSelection(state, selectionState);
+    this.renderPlacementPreview();
     this.renderSelectionBox();
   }
 
@@ -380,10 +397,39 @@ export class GameScene extends Phaser.Scene {
     this.selectionBoxLayer.strokeRect(worldStart.x, worldStart.y, width, height);
   }
 
+  private renderPlacementPreview(): void {
+    if (!this.placementLayer) {
+      return;
+    }
+
+    const previewState = this.getPlacementPreviewState();
+    if (!previewState?.active) {
+      return;
+    }
+
+    const tint = previewState.isValid ? 0x8fe388 : 0xe36f6f;
+    const alpha = previewState.isValid ? 0.24 : 0.28;
+    this.placementLayer.lineStyle(2, tint, 0.98);
+    this.placementLayer.fillStyle(tint, alpha);
+    this.placementLayer.fillRect(
+      previewState.cellX * CELL_SIZE,
+      previewState.cellY * CELL_SIZE,
+      previewState.width * CELL_SIZE,
+      previewState.height * CELL_SIZE,
+    );
+    this.placementLayer.strokeRect(
+      previewState.cellX * CELL_SIZE,
+      previewState.cellY * CELL_SIZE,
+      previewState.width * CELL_SIZE,
+      previewState.height * CELL_SIZE,
+    );
+  }
+
   private getSelectionKey(selectionState: SelectionState): string {
     const selectionIds = selectionState.selectedEntityIds.length > 0
       ? selectionState.selectedEntityIds.join(',')
       : 'none';
+    const placementPreviewState = this.getPlacementPreviewState();
     const selectionBoxState = this.getSelectionBoxState();
     const selectionBoxKey = selectionBoxState
       ? [
@@ -393,7 +439,17 @@ export class GameScene extends Phaser.Scene {
         selectionBoxState.currentY,
       ].join(',')
       : 'none';
-    return `${selectionIds}:${selectionState.placementMode ?? 'none'}:${selectionBoxKey}`;
+    const placementPreviewKey = placementPreviewState
+      ? [
+        placementPreviewState.buildingType,
+        placementPreviewState.cellX,
+        placementPreviewState.cellY,
+        placementPreviewState.width,
+        placementPreviewState.height,
+        placementPreviewState.isValid ? 'valid' : 'invalid',
+      ].join(',')
+      : 'none';
+    return `${selectionIds}:${selectionState.placementMode ?? 'none'}:${selectionBoxKey}:${placementPreviewKey}`;
   }
 
   private isDragSelectionActive(dragSelection: DragSelectionState): boolean {
@@ -454,5 +510,23 @@ export class GameScene extends Phaser.Scene {
       width,
       height,
     };
+  }
+
+  getPlacementPreviewState(): PlacementPreviewViewState | null {
+    const selectionState = this.bridge.getSelectionState();
+    if (!selectionState.placementMode) {
+      return null;
+    }
+
+    const pointer = this.input.activePointer;
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
+    const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
+    const previewState = this.bridge.getPlacementPreview(cellX, cellY);
+    if (!previewState) {
+      return null;
+    }
+
+    return { ...previewState };
   }
 }
