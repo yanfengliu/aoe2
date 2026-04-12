@@ -15,6 +15,7 @@
 - **NEVER use compound shell commands.** Do not use `&&`, `|`, or `;` to chain commands together in a single Bash execution.
 - If you need to run multiple commands (e.g., compiling then testing), execute them as separate, sequential tool calls.
 - Do not use command substitution $(...) because it prompts for my permission and interrupts your flow.
+- Always run all the tests instead of just a subset of tests.
 
 ## Git
 - Do not use worktrees or branches. Directly commit to `main`.
