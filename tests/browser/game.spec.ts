@@ -310,6 +310,51 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveLength(1);
   });
 
+  test('can research Fletching and buff both existing and newly trained Archers', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-blacksmith-fixture');
+
+    let snapshot = await getSnapshot(page);
+    expect(
+      snapshot.economyState.units.find((unit) => unit.owner === 1 && unit.unitType === 'archer'),
+    ).toMatchObject({
+      attackDamage: 4,
+      attackRange: 4,
+    });
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'blacksmith')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Blacksmith');
+    await page.locator('[data-command="research-fletching"]').click();
+    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
+
+    snapshot = await getSnapshot(page);
+    expect(
+      snapshot.economyState.units.find((unit) => unit.owner === 1 && unit.unitType === 'archer'),
+    ).toMatchObject({
+      attackDamage: 5,
+      attackRange: 5,
+    });
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
+    await page.locator('[data-command="train-archer"]').click();
+
+    snapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(380, 100),
+    );
+
+    const playerArchers = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'archer',
+    );
+    expect(playerArchers).toHaveLength(2);
+    expect(
+      playerArchers.every((unit) => unit.attackDamage === 5 && unit.attackRange === 5),
+    ).toBe(true);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

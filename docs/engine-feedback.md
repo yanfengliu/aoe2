@@ -56,6 +56,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - The Feudal slice showed that research queues fit naturally into the same repo-owned systems as unit production. The engine does not need a separate tech primitive for the game to stay deterministic and testable.
 - Semantic browser selectors are still repo-owned. When Villagers or builder-occupied footprints move between frames, stable automation requires page-local helpers that resolve against the current sim snapshot instead of cached screen coordinates.
 - Placement and footprint checks are still hand-rolled query scans. That is workable at prototype scale, but the engine's `OccupancyGrid` and RTS path helpers should replace more of this logic before the entity count grows.
+- Technology-driven stat mutation is still repo policy. Applying a tech like `Fletching` to both existing and future Archers was straightforward, but the engine currently leaves that sort of player-wide modifier propagation entirely to game code.
 
 ## Implications for next phases
 

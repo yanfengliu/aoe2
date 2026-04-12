@@ -81,9 +81,11 @@ const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
+const BLACKSMITH_BUILD_TIME_TICKS = 200;
 const MILITIA_TRAIN_TIME_TICKS = 210;
 const ARCHER_TRAIN_TIME_TICKS = 350;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
+const FLETCHING_RESEARCH_TIME_TICKS = 300;
 const MELEE_ATTACK_RANGE = 1;
 
 interface UnitCommand {
@@ -291,6 +293,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'mining-camp':
     case 'barracks':
     case 'archery-range':
+    case 'blacksmith':
       return { width: 2, height: 2 };
     case 'town-center':
       return { width: 1, height: 1 };
@@ -306,6 +309,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'mining-camp':
     case 'barracks':
     case 'archery-range':
+    case 'blacksmith':
     case 'town-center':
       return 0;
   }
@@ -323,6 +327,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return BARRACKS_BUILD_TIME_TICKS;
     case 'archery-range':
       return ARCHERY_RANGE_BUILD_TIME_TICKS;
+    case 'blacksmith':
+      return BLACKSMITH_BUILD_TIME_TICKS;
     case 'town-center':
       return 0;
   }
@@ -338,6 +344,7 @@ function buildingSize(buildingType: BuildingType): number {
       return 1.15;
     case 'barracks':
     case 'archery-range':
+    case 'blacksmith':
       return 1.2;
     case 'town-center':
       return 1.4;
@@ -383,6 +390,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0x7f6855 : 0x4f4034
       : isComplete ? 0x8b6660 : 0x5a433d;
+  }
+
+  if (buildingType === 'blacksmith') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x6f7682 : 0x434a54
+      : isComplete ? 0x8b6670 : 0x5a434b;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -442,6 +455,8 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
   switch (technologyType) {
     case 'feudal-age':
       return { food: 500 };
+    case 'fletching':
+      return { food: 100, gold: 50 };
   }
 }
 
@@ -456,6 +471,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
     case 'barracks':
     case 'archery-range':
       return { wood: 175 };
+    case 'blacksmith':
+      return { wood: 150 };
   }
 }
 
@@ -474,6 +491,8 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
   switch (technologyType) {
     case 'feudal-age':
       return FEUDAL_AGE_RESEARCH_TIME_TICKS;
+    case 'fletching':
+      return FLETCHING_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -487,6 +506,7 @@ function buildingMaxHp(buildingType: BuildingType): number {
       return 100;
     case 'barracks':
     case 'archery-range':
+    case 'blacksmith':
       return 175;
     case 'town-center':
       return 2400;
@@ -505,7 +525,10 @@ function canResearchAt(
   buildingType: BuildingType,
   technologyType: ResearchableTechnologyType,
 ): boolean {
-  return buildingType === 'town-center' && technologyType === 'feudal-age';
+  return (
+    (buildingType === 'town-center' && technologyType === 'feudal-age')
+    || (buildingType === 'blacksmith' && technologyType === 'fletching')
+  );
 }
 
 function unitMaxHp(unitType: UnitType): number {
@@ -712,6 +735,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   const trackedVisibilitySources = new Map<number, number>();
   const playerAges = new Map<number, AgeType>();
+  const researchedTechnologies = new Map<number, Set<ResearchableTechnologyType>>();
   const playerResources = new Map<number, PlayerResources>();
   const population = new Map<number, PopulationState>();
   const townCenterRefs = new Map<number, EntityRef>();
@@ -743,7 +767,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const tiles = createTileGrid(world);
 
   for (const start of scenario.starts) {
-    playerAges.set(start.owner, 'dark-age');
+    playerAges.set(start.owner, start.startingAge ?? 'dark-age');
+    researchedTechnologies.set(start.owner, new Set());
     playerResources.set(
       start.owner,
       cloneResources(start.startingResources ?? STANDARD_STARTING_RESOURCES),
@@ -785,6 +810,28 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   function getEntityRef(id: number): EntityRef | null {
     return world.getEntityRef(id);
+  }
+
+  function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
+    return researchedTechnologies.get(owner)?.has(technologyType) ?? false;
+  }
+
+  function createCombatState(owner: number, unitType: UnitType): CombatState {
+    const state: CombatState = {
+      currentHp: unitMaxHp(unitType),
+      maxHp: unitMaxHp(unitType),
+      attackDamage: unitAttackDamage(unitType),
+      attackRange: unitAttackRange(unitType),
+      reloadTicks: unitReloadTicks(unitType),
+      cooldownTicks: 0,
+    };
+
+    if (unitType === 'archer' && hasTechnology(owner, 'fletching')) {
+      state.attackDamage += 1;
+      state.attackRange += 1;
+    }
+
+    return state;
   }
 
   function addUnitEntity(
@@ -833,14 +880,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       populationState.current += 1;
     }
 
-    combatStates.set(entity, {
-      currentHp: unitMaxHp(unitType),
-      maxHp: unitMaxHp(unitType),
-      attackDamage: unitAttackDamage(unitType),
-      attackRange: unitAttackRange(unitType),
-      reloadTicks: unitReloadTicks(unitType),
-      cooldownTicks: 0,
-    });
+    combatStates.set(entity, createCombatState(owner, unitType));
 
     if (unitType === 'villager') {
       const ordinal = villagerOrdinals.get(owner) ?? 0;
@@ -899,6 +939,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       buildingType === 'town-center'
       || buildingType === 'barracks'
       || buildingType === 'archery-range'
+      || buildingType === 'blacksmith'
     ) {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
@@ -981,6 +1022,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'mining-camp'
       || spawn.kind === 'barracks'
       || spawn.kind === 'archery-range'
+      || spawn.kind === 'blacksmith'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
@@ -1659,6 +1701,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return ['feudal-age'];
     }
 
+    if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age' && !hasTechnology(owner, 'fletching')) {
+      return ['fletching'];
+    }
+
     return [];
   }
 
@@ -1677,6 +1723,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
       options.push('archery-range');
+      options.push('blacksmith');
     }
 
     return options;
@@ -1849,9 +1896,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
+    researchedTechnologies.get(owner)?.add(technologyType);
+
     switch (technologyType) {
       case 'feudal-age':
         playerAges.set(owner, 'feudal-age');
+        break;
+      case 'fletching':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || unit.unitType !== 'archer') {
+            continue;
+          }
+
+          combat.attackDamage = unitAttackDamage(unit.unitType) + 1;
+          combat.attackRange = unitAttackRange(unit.unitType) + 1;
+        }
         break;
     }
   }
@@ -2652,6 +2713,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         .map((id) => {
           const position = world.getComponent<Position>(id, 'position');
           const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
           if (!position || !unit) {
             return null;
           }
@@ -2663,6 +2725,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             x: position.x,
             y: position.y,
             task: getUnitTaskState(id),
+            attackDamage: combat?.attackDamage ?? unitAttackDamage(unit.unitType),
+            attackRange: combat?.attackRange ?? unitAttackRange(unit.unitType),
           };
         })
         .filter((entry): entry is EconomyState['units'][number] => entry !== null);

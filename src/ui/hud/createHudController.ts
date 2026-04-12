@@ -110,6 +110,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Barracks';
     case 'archery-range':
       return 'Archery Range';
+    case 'blacksmith':
+      return 'Blacksmith';
     case 'villager':
       return 'Villager';
     case 'militia':
@@ -127,6 +129,8 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
   switch (technologyType) {
     case 'feudal-age':
       return 'Feudal Age';
+    case 'fletching':
+      return 'Fletching';
   }
 }
 
@@ -224,10 +228,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ></canvas>
       </div>
       <div class="hud-footer" data-hud="match-summary">
-        Current slice: run the Dark Age economy, research Feudal Age from the
-        Town Center after two qualifying buildings, place military buildings with
-        Villagers, and command Militia or Archers while panning with WASD or the
-        arrow keys and zooming with the mouse wheel.
+        Current slice: run the Dark Age economy, reach Feudal Age, place
+        Archery Ranges and Blacksmiths, research ranged upgrades, and command
+        Militia or Archers while panning with WASD or the arrow keys and
+        zooming with the mouse wheel.
       </div>
     </div>
   `;

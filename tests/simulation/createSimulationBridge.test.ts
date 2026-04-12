@@ -422,4 +422,54 @@ describe('createSimulationBridge', () => {
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
     ).toHaveLength(1);
   }, 15_000);
+
+  it('can research Fletching and apply it to existing and newly trained Archers', () => {
+    const bridge = createSimulationBridge('feudal-blacksmith-fixture');
+
+    const startingArcher = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'archer');
+    expect(startingArcher).toMatchObject({
+      attackDamage: 4,
+      attackRange: 4,
+    });
+
+    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'blacksmith',
+      researchOptions: ['fletching'],
+    });
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 150,
+      gold: 200,
+    });
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    const upgradedArcher = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'archer');
+    expect(upgradedArcher).toMatchObject({
+      attackDamage: 5,
+      attackRange: 5,
+    });
+
+    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(bridge.queueTrainUnit('archer')).toBe(true);
+
+    for (let index = 0; index < 380; index += 1) {
+      bridge.step(100);
+    }
+
+    const playerArchers = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer');
+    expect(playerArchers).toHaveLength(2);
+    expect(
+      playerArchers.every((unit) => unit.attackDamage === 5 && unit.attackRange === 5),
+    ).toBe(true);
+  }, 15_000);
 });

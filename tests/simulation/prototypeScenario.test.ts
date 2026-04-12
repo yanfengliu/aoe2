@@ -102,6 +102,7 @@ describe('createPrototypeScenario', () => {
   it('provides focused Feudal fixtures for age-up gating and production tests', () => {
     const missingPrereqScenario = createPrototypeScenario('feudal-missing-prereq-fixture');
     const feudalScenario = createPrototypeScenario('feudal-age-fixture');
+    const blacksmithScenario = createPrototypeScenario('feudal-blacksmith-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -126,5 +127,13 @@ describe('createPrototypeScenario', () => {
       gold: 200,
       stone: 200,
     });
+    expect(
+      blacksmithScenario.starts.find((start) => start.owner === 1)?.startingAge,
+    ).toBe('feudal-age');
+    expect(
+      blacksmithScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'blacksmith',
+      ),
+    ).toBe(true);
   });
 });

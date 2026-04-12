@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first Feudal technology slice. Feudal villagers can now place Blacksmiths, completed Blacksmiths can research Fletching, and Fletching now buffs both existing and newly trained Archers; automated coverage is now `26` Vitest assertions plus `15` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal progression slice. Town Centers can now research Feudal Age after two qualifying Dark Age buildings, Feudal villagers can place Archery Ranges, completed Archery Ranges can queue Archers, and automated coverage is now `25` Vitest assertions plus `14` Playwright browser gameplay tests.
 2026-04-11 - Adopted `civ-engine` `EntityRef` semantics for long-lived selection/command targets, generalized building-target combat, and updated simulation/browser tests so they assert semantic world state instead of durable numeric IDs.
 2026-04-11 - Added conquest outcome handling with deterministic fixture seeds. The game now resolves victory/defeat for conquest-style endings, freezes the simulation after the result, boots from `?seed=...`, and is covered by `22` passing Vitest assertions plus `13` passing Playwright browser tests.

@@ -2,14 +2,15 @@ export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
 export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 export type UnitType = 'villager' | 'scout' | 'militia' | 'archer';
 export type TrainableUnitType = 'villager' | 'militia' | 'archer';
-export type ResearchableTechnologyType = 'feudal-age';
+export type ResearchableTechnologyType = 'feudal-age' | 'fletching';
 export type BuildableBuildingType =
   | 'house'
   | 'mill'
   | 'lumber-camp'
   | 'mining-camp'
   | 'barracks'
-  | 'archery-range';
+  | 'archery-range'
+  | 'blacksmith';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -162,6 +163,8 @@ export interface EconomyState {
     x: number;
     y: number;
     task: UnitTaskState;
+    attackDamage: number;
+    attackRange: number;
   }>;
   buildings: Array<{
     id: number;
