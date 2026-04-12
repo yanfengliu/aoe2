@@ -9,6 +9,7 @@ import {
   type RenderProjector,
 } from 'civ-engine';
 
+import { getBuildingFootprint } from '../content/buildingFootprints';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -361,22 +362,8 @@ function manhattanDistance(left: Position, right: Position): number {
   return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
 }
 
-const BUILDING_FOOTPRINTS: Record<BuildingType, { width: number; height: number }> = {
-  'town-center': { width: 4, height: 4 },
-  house: { width: 2, height: 2 },
-  mill: { width: 2, height: 2 },
-  'lumber-camp': { width: 2, height: 2 },
-  'mining-camp': { width: 2, height: 2 },
-  barracks: { width: 3, height: 3 },
-  'watch-tower': { width: 1, height: 1 },
-  stable: { width: 3, height: 3 },
-  'archery-range': { width: 3, height: 3 },
-  blacksmith: { width: 3, height: 3 },
-  market: { width: 4, height: 4 },
-};
-
 function buildingFootprint(buildingType: BuildingType): { width: number; height: number } {
-  return BUILDING_FOOTPRINTS[buildingType];
+  return getBuildingFootprint(buildingType);
 }
 
 function buildingPopulationProvided(buildingType: BuildingType): number {

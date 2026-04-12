@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest';
+
+import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
+import type { BuildingType } from '../../src/game/simulation/types';
+
+describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
+  it('pins the implemented building footprints used by gameplay and rendering', () => {
+    const expected: Record<BuildingType, { width: number; height: number }> = {
+      'town-center': { width: 4, height: 4 },
+      house: { width: 2, height: 2 },
+      mill: { width: 2, height: 2 },
+      'lumber-camp': { width: 2, height: 2 },
+      'mining-camp': { width: 2, height: 2 },
+      barracks: { width: 3, height: 3 },
+      'watch-tower': { width: 1, height: 1 },
+      stable: { width: 3, height: 3 },
+      'archery-range': { width: 3, height: 3 },
+      blacksmith: { width: 3, height: 3 },
+      market: { width: 4, height: 4 },
+    };
+
+    expect(AUTHORITATIVE_BUILDING_FOOTPRINTS).toEqual(expected);
+  });
+});

@@ -1242,6 +1242,39 @@ function projectOffset(center: Position, offset: Offset): Position {
   };
 }
 
+function createStartingScoutSpawn(
+  owner: number,
+  townCenter: Position,
+): ScenarioSpawnSpec {
+  const scoutPosition = projectOffset(townCenter, { x: 2, y: -1 });
+  if (owner === HUMAN_PLAYER_ID) {
+    return {
+      kind: 'scout',
+      x: scoutPosition.x,
+      y: scoutPosition.y,
+      owner,
+      baseOwner: owner,
+      vision: { playerId: owner, radius: 6 },
+    };
+  }
+
+  return {
+    kind: 'scout',
+    x: scoutPosition.x,
+    y: scoutPosition.y,
+    owner,
+    baseOwner: owner,
+    velocity: { dx: orientationFor(townCenter).x, dy: 0 },
+    wanderBounds: {
+      minX: Math.max(0, townCenter.x - 5),
+      maxX: Math.min(MAP_WIDTH - 1, townCenter.x + 6),
+      minY: Math.max(0, townCenter.y - 4),
+      maxY: Math.min(MAP_HEIGHT - 1, townCenter.y + 4),
+    },
+    vision: { playerId: owner, radius: 6 },
+  };
+}
+
 function createBaseTerrain(seed: string): TerrainCellSpec[][] {
   const noise2d = createNoise2D(seedToNumber(seed));
   const terrain: TerrainCellSpec[][] = [];
@@ -1421,23 +1454,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
       });
     }
 
-    const orientation = orientationFor(start.townCenter);
-    const scoutPosition = projectOffset(start.townCenter, { x: 2, y: -1 });
-    spawns.push({
-      kind: 'scout',
-      x: scoutPosition.x,
-      y: scoutPosition.y,
-      owner: start.owner,
-      baseOwner: start.owner,
-      velocity: { dx: orientation.x, dy: 0 },
-      wanderBounds: {
-        minX: Math.max(0, start.townCenter.x - 5),
-        maxX: Math.min(MAP_WIDTH - 1, start.townCenter.x + 6),
-        minY: Math.max(0, start.townCenter.y - 4),
-        maxY: Math.min(MAP_HEIGHT - 1, start.townCenter.y + 4),
-      },
-      vision: { playerId: start.owner, radius: 6 },
-    });
+    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
 
     applyResourcePatch(
       terrain,

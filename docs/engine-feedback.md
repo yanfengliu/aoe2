@@ -78,6 +78,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Some helper state still assumes one "primary" Town Center per owner. The current `townCenterRefs` usage is good enough for this slice, but deeper AI, economy, and fallback targeting will need to reason over multiple completed Town Centers instead of one cached reference.
 - Marquee UX is still entirely repo-owned. `civ-engine` makes the unit-selection rule easy to express, but the Phaser bridge still has to own drag thresholds, screen-to-world rectangle projection, and mixed-selection HUD policy.
 - Tile-inspection UX is also repo-owned. The engine correctly preserves entity identity through `EntityRef`, but stacked-tile cycling, resource inspection text, and any future selection-stack overlay still have to live in game/UI code rather than the engine.
+- The `civ-engine` debugging guide was useful for this slice because it reinforced checking world state and render snapshots directly instead of guessing in Phaser. The remaining friction is repo integration: the game still lacks a lightweight live debug probe for ownership-specific roam state and footprint occupancy, so those invariants were easier to lock down in tests than inspect interactively.
 
 ## Implications for next phases
 

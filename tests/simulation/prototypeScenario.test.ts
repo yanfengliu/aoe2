@@ -53,6 +53,24 @@ describe('createPrototypeScenario', () => {
     }
   });
 
+  it('spawns human starting units without autonomous roam state', () => {
+    const scenario = createPrototypeScenario(DEFAULT_SEED);
+    const humanScout = scenario.spawns.find(
+      (spawn) => spawn.kind === 'scout' && spawn.owner === 1,
+    );
+    const enemyScout = scenario.spawns.find(
+      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.x !== 13,
+    );
+
+    expect(humanScout).toBeDefined();
+    expect(humanScout?.velocity).toBeUndefined();
+    expect(humanScout?.wanderBounds).toBeUndefined();
+
+    expect(enemyScout).toBeDefined();
+    expect(enemyScout?.velocity).toBeDefined();
+    expect(enemyScout?.wanderBounds).toBeDefined();
+  });
+
   it('keeps the town-center area open and buildable', () => {
     const scenario = createPrototypeScenario(DEFAULT_SEED);
 
