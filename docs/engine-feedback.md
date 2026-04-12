@@ -37,6 +37,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 
 - There is no out-of-the-box Phaser renderer adapter, so the repo needs to own that bridge layer.
 - `RenderAdapter` streams the initial snapshot on `connect()` and then tick diffs. In the current same-process bridge, command handlers that mutate the world outside `world.step()` need an explicit snapshot resync or new visuals like fresh construction sites never reach the renderer. The engine contract is defensible, but the integration rule is easy to miss.
+- Herdable ownership hit the same seam from inside `world.step()`: when repo code mutates a projected component like resource ownership/tint in place, the renderer stays correct only if that mutation is treated as render-affecting state and explicitly surfaced. A lighter engine-level helper for render-relevant component mutation or a dedicated projector/debug probe for those changes would make this class of bug cheaper to catch.
 - The engine exposes useful low-level primitives, but higher-level RTS helpers are still this repo's job:
   - production queues
   - context-sensitive command resolution

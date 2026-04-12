@@ -239,7 +239,8 @@ async function getOwnedResourceCells(
         .getSnapshot()
         .economyState.resources.filter(
           (candidate) =>
-            candidate.baseOwner === playerOwner && candidate.resourceType === expectedResourceType,
+            candidate.resourceType === expectedResourceType
+            && (candidate.owner === playerOwner || candidate.baseOwner === playerOwner),
         )
         .map((resource) => ({ x: resource.x, y: resource.y })),
     { owner, resourceType },
@@ -676,12 +677,49 @@ test.describe('browser gameplay smoke tests', () => {
     const sheepCells = await getOwnedResourceCells(page, 1, 'sheep');
     expect(sheepCells.length).toBeGreaterThan(0);
 
+    const initialSnapshot = await getSnapshot(page);
+    expect(
+      initialSnapshot.economyState.resources.some(
+        (resource) => resource.resourceType === 'sheep' && resource.baseOwner === 1 && resource.owner === 1,
+      ),
+    ).toBe(true);
+
     await clickCell(page, sheepCells[0].x, sheepCells[0].y);
+    const selectedSnapshot = await getSnapshot(page);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
     await expect(page.locator('[data-selection-position]')).toHaveText(`Tile ${sheepCells[0].x}, ${sheepCells[0].y}`);
     await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 1 on tile');
     await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
+    expect(selectedSnapshot.selectionState.owner).toBe(1);
+  });
+
+  test('claims neutral sheep for the player once a nearby scout moves into range', async ({ page }) => {
+    await waitForBootWithSeed(page, 'sheep-ownership-fixture');
+
+    const initialSnapshot = await getSnapshot(page);
+    expect(
+      initialSnapshot.economyState.resources.find((resource) => resource.resourceType === 'sheep'),
+    ).toMatchObject({
+      owner: null,
+      baseOwner: null,
+      x: 10,
+      y: 8,
+    });
+
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    await clickCell(page, 7, 8, 'right');
+
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+      );
+      return snapshot.economyState.resources.find((resource) => resource.resourceType === 'sheep')?.owner ?? null;
+    }).toBe(1);
+
+    await clickCell(page, 10, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
+    await expect.poll(async () => (await getSnapshot(page)).selectionState.owner).toBe(1);
   });
 
   test('shows a unit icon for an individually selected unit', async ({ page }) => {

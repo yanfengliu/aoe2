@@ -269,6 +269,28 @@ function gatherAmountFor(kind: ResourceKind): number {
   }
 }
 
+function resourceTint(resourceType: ResourceKind, owner: number | null): number {
+  if (resourceType === 'sheep') {
+    if (owner === HUMAN_PLAYER_ID) {
+      return 0x8fb8ff;
+    }
+    if (owner !== null) {
+      return 0xd39191;
+    }
+  }
+
+  const tintByResource: Record<ResourceKind, number> = {
+    'berry-bush': 0x7a4c8e,
+    'gold-mine': 0xd8b44c,
+    'stone-mine': 0x8f9aa4,
+    boar: 0x6a3b2e,
+    sheep: 0xe7ece6,
+    tree: 0x214d2d,
+  };
+
+  return tintByResource[resourceType];
+}
+
 function stepToward(current: Position, target: Position): Position {
   if (current.x !== target.x) {
     return {
@@ -410,6 +432,7 @@ function isEconomyResourceEntry(
     resourceType: ResourceKind;
     amount: number;
     maxAmount: number;
+    owner: number | null;
     baseOwner: number | null;
     x: number;
     y: number;
@@ -418,6 +441,7 @@ function isEconomyResourceEntry(
   resourceType: ResourceKind;
   amount: number;
   maxAmount: number;
+  owner: number | null;
   baseOwner: number | null;
   x: number;
   y: number;
@@ -431,6 +455,12 @@ function cloneQueue(queue: ProductionQueueEntry[]): ProductionQueueEntry[] {
 
 function manhattanDistance(left: Position, right: Position): number {
   return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
+}
+
+function distanceSquared(left: Position, right: Position): number {
+  const dx = left.x - right.x;
+  const dy = left.y - right.y;
+  return dx * dx + dy * dy;
 }
 
 function buildingFootprint(buildingType: BuildingType): { width: number; height: number } {
@@ -938,6 +968,7 @@ function createProjector(
         entityType = building.buildingType;
       }
       if (resource) {
+        owner = resource.owner;
         entityType = resource.resourceType;
       }
 
@@ -1026,6 +1057,66 @@ function syncVisibilitySources(
   }
 
   visibility.update();
+}
+
+function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boolean {
+  let didChange = false;
+
+  for (const sheepId of activeWorld.query('position', 'resource', 'renderable')) {
+    const sheepPosition = activeWorld.getComponent<Position>(sheepId, 'position');
+    const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
+    const renderable = activeWorld.getComponent<RenderableComponent>(sheepId, 'renderable');
+    if (
+      !sheepPosition
+      || !resource
+      || !renderable
+      || resource.resourceType !== 'sheep'
+      || resource.amount <= 0
+    ) {
+      continue;
+    }
+
+    let claimedOwner = resource.owner;
+    let bestDistanceSquared = Number.POSITIVE_INFINITY;
+    let bestUnitId = Number.POSITIVE_INFINITY;
+
+    for (const unitId of activeWorld.query('position', 'unit', 'visionSource')) {
+      const unitPosition = activeWorld.getComponent<Position>(unitId, 'position');
+      const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
+      const visionSource = activeWorld.getComponent<VisionSourceComponent>(unitId, 'visionSource');
+      if (!unitPosition || !unit || !visionSource) {
+        continue;
+      }
+
+      const claimDistanceSquared = distanceSquared(unitPosition, sheepPosition);
+      if (claimDistanceSquared > visionSource.radius * visionSource.radius) {
+        continue;
+      }
+
+      if (
+        claimDistanceSquared < bestDistanceSquared
+        || (
+          claimDistanceSquared === bestDistanceSquared
+          && (
+            unit.owner < (claimedOwner ?? Number.POSITIVE_INFINITY)
+            || (unit.owner === claimedOwner && unitId < bestUnitId)
+          )
+        )
+      ) {
+        claimedOwner = unit.owner;
+        bestDistanceSquared = claimDistanceSquared;
+        bestUnitId = unitId;
+      }
+    }
+
+    if (resource.owner !== claimedOwner) {
+      resource.owner = claimedOwner;
+      renderable.tint = resourceTint(resource.resourceType, claimedOwner);
+      didChange = true;
+    }
+  }
+
+  return didChange;
 }
 
 function createWorld(seed: string, visibility: VisibilityMap): {
@@ -1449,14 +1540,6 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const entity = world.createEntity();
     world.setPosition(entity, position);
 
-    const tintByResource: Record<ResourceComponent['resourceType'], number> = {
-      'berry-bush': 0x7a4c8e,
-      'gold-mine': 0xd8b44c,
-      'stone-mine': 0x8f9aa4,
-      boar: 0x6a3b2e,
-      sheep: 0xe7ece6,
-      tree: 0x214d2d,
-    };
     const sizeByResource: Record<ResourceComponent['resourceType'], number> = {
       'berry-bush': 0.45,
       'gold-mine': 0.8,
@@ -1470,12 +1553,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       resourceType,
       amount,
       maxAmount: amount,
+      owner: null,
       baseOwner,
     });
     world.addComponent(entity, 'renderable', {
       kind: 'resource',
       layer: 'resource',
-      tint: tintByResource[resourceType],
+      tint: resourceTint(resourceType, null),
       size: sizeByResource[resourceType],
       footprintWidth: 1,
       footprintHeight: 1,
@@ -1531,6 +1615,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       spawn.baseOwner,
     );
   }
+
+  updateSheepOwnership(world);
 
   function getUnitTaskState(id: number): UnitTaskState {
     if (isGarrisonedUnit(id)) {
@@ -1995,11 +2081,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     for (const id of world.query('position', 'resource')) {
       const position = world.getComponent<Position>(id, 'position');
-      if (position?.x === x && position.y === y && visibility.isVisible(HUMAN_PLAYER_ID, x, y)) {
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (
+        position?.x === x
+        && position.y === y
+        && resource
+        && isVisibleToHuman(position, resource.owner)
+      ) {
         candidates.push({
           id,
           kind: 'resource',
-          owner: null,
+          owner: resource.owner,
         });
       }
     }
@@ -3020,8 +3112,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         (entry) => resourceKindToEconomyResource(entry.resource.resourceType) === gatherer.desiredResource,
       )
       .sort((left, right) => {
-        const leftPreferred = left.resource.baseOwner === owner ? 0 : 1;
-        const rightPreferred = right.resource.baseOwner === owner ? 0 : 1;
+        const leftPreferred =
+          left.resource.owner === owner ? 0
+          : left.resource.owner === null && left.resource.baseOwner === owner ? 1
+          : 2;
+        const rightPreferred =
+          right.resource.owner === owner ? 0
+          : right.resource.owner === null && right.resource.baseOwner === owner ? 1
+          : 2;
         if (leftPreferred !== rightPreferred) {
           return leftPreferred - rightPreferred;
         }
@@ -3644,6 +3742,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   });
 
   world.registerSystem({
+    name: 'prototypeHerdableOwnership',
+    phase: 'update',
+    execute(activeWorld) {
+      if (updateSheepOwnership(activeWorld)) {
+        markOutOfBandRenderChange();
+      }
+    },
+  });
+
+  world.registerSystem({
     name: 'prototypeVisibility',
     phase: 'update',
     execute(activeWorld) {
@@ -3833,7 +3941,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         selectedEntityIds.length > 1 && !allSelectedUnitsShareType
           ? null
           : unit?.unitType ?? building?.buildingType ?? resource?.resourceType ?? null,
-      owner: unit?.owner ?? building?.owner ?? null,
+      owner: unit?.owner ?? building?.owner ?? resource?.owner ?? null,
       x: position.x,
       y: position.y,
       tileX: selectionTile.x,
@@ -4210,6 +4318,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             resourceType: resource.resourceType,
             amount: resource.amount,
             maxAmount: resource.maxAmount,
+            owner: resource.owner,
             baseOwner: resource.baseOwner,
             x: position.x,
             y: position.y,

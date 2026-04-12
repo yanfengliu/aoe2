@@ -69,6 +69,7 @@ export interface ResourceComponent {
   resourceType: ResourceKind;
   amount: number;
   maxAmount: number;
+  owner: number | null;
   baseOwner: number | null;
 }
 
@@ -180,6 +181,7 @@ export interface EconomyState {
     resourceType: ResourceKind;
     amount: number;
     maxAmount: number;
+    owner: number | null;
     baseOwner: number | null;
     x: number;
     y: number;

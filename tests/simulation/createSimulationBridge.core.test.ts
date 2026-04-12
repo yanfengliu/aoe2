@@ -5,6 +5,7 @@ import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import type { SelectionState } from '../../src/game/simulation/types';
 import {
   placeBuildingNearTownCenter,
+  selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
@@ -12,6 +13,7 @@ describe('createSimulationBridge core systems', () => {
   it('starts with player-local visibility and nearby resources', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     const state = bridge.getRenderState();
+    const economyState = bridge.getEconomyState();
 
     expect(state.frame).not.toBeNull();
     expect(state.entities.some((entity) => entity.owner === 1 && entity.entityType === 'town-center')).toBe(
@@ -21,6 +23,16 @@ describe('createSimulationBridge core systems', () => {
       false,
     );
     expect(state.entities.some((entity) => entity.kind === 'resource')).toBe(true);
+    expect(
+      economyState.resources.some(
+        (resource) => resource.resourceType === 'sheep' && resource.baseOwner === 1 && resource.owner === 1,
+      ),
+    ).toBe(true);
+    expect(
+      economyState.resources.some(
+        (resource) => resource.resourceType === 'sheep' && resource.baseOwner === 2 && resource.owner === 2,
+      ),
+    ).toBe(true);
   });
 
   it('uses authoritative starting building footprints in economy and render state', () => {
@@ -187,7 +199,7 @@ describe('createSimulationBridge core systems', () => {
   });
 
   it('runs a deterministic AI villager gather and drop-off loop while human stockpiles stay unchanged', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const bridge = createSimulationBridge('ai-economy-fixture');
     const initialHudState = bridge.getHudState();
     const initialEconomyState = bridge.getEconomyState();
 
@@ -201,7 +213,7 @@ describe('createSimulationBridge core systems', () => {
     expect(nextHudState.playerResources).toEqual(initialHudState.playerResources);
     expect(nextEconomyState.playerResources[2]).toMatchObject({
       food: expect.any(Number),
-      wood: expect.any(Number),
+      wood: 200,
       gold: 100,
       stone: 200,
     });
@@ -210,7 +222,7 @@ describe('createSimulationBridge core systems', () => {
       nextEconomyState.resources.some(
         (resource) =>
           resource.baseOwner === 2
-          && (resource.resourceType === 'sheep' || resource.resourceType === 'tree')
+          && resource.resourceType === 'sheep'
           && resource.amount < resource.maxAmount,
       ),
     ).toBe(true);
@@ -218,7 +230,7 @@ describe('createSimulationBridge core systems', () => {
     expect(
       nextEconomyState.villagers
         .filter((villager) => villager.owner === 2)
-        .every((villager) => villager.task !== 'idle'),
+        .every((villager) => villager.task === 'to-resource' || villager.task === 'gathering' || villager.task === 'to-dropoff'),
     ).toBe(true);
   });
 
@@ -297,7 +309,7 @@ describe('createSimulationBridge core systems', () => {
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'resource',
       selectedEntityType: 'sheep',
-      owner: null,
+      owner: 1,
       x: sheep?.x,
       y: sheep?.y,
       actionOptions: [],
@@ -310,6 +322,48 @@ describe('createSimulationBridge core systems', () => {
       tileEntityCount: 1,
       resourceAmount: 100,
       resourceMaxAmount: 100,
+    });
+  });
+
+  it('claims neutral sheep for the player once a nearby unit moves into vision range', () => {
+    const bridge = createSimulationBridge('sheep-ownership-fixture');
+
+    expect(
+      bridge
+        .getEconomyState()
+        .resources.find((resource) => resource.resourceType === 'sheep'),
+    ).toMatchObject({
+      owner: null,
+      baseOwner: null,
+      x: 10,
+      y: 8,
+    });
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
+    expect(bridge.issueMoveCommand(7, 8)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge
+            .getEconomyState()
+            .resources.find((resource) => resource.resourceType === 'sheep')
+            ?.owner === 1,
+        { maxSteps: 40 },
+      ),
+    ).toBe(true);
+
+    const sheep = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'sheep');
+    expect(sheep?.owner).toBe(1);
+
+    expect(bridge.selectEntityAtCell(sheep?.x ?? 0, sheep?.y ?? 0)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'sheep',
+      owner: 1,
     });
   });
 

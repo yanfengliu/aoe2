@@ -1550,6 +1550,118 @@ function createTileSelectionCycleFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createAiEconomyFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'house',
+        x: 4,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'mill',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'villager',
+        x: 22,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 22,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'sheep',
+        x: 24,
+        y: 8,
+        owner: null,
+        baseOwner: 2,
+        amount: 100,
+      },
+      {
+        kind: 'sheep',
+        x: 24,
+        y: 9,
+        owner: null,
+        baseOwner: 2,
+        amount: 100,
+      },
+    ],
+  };
+}
+
+function createSheepOwnershipFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'scout',
+        x: 3,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'sheep',
+        x: 10,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'house',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -1810,6 +1922,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createOrdersFixture(seed);
   }
 
+  if (seed === 'ai-economy-fixture') {
+    return createAiEconomyFixture(seed);
+  }
+
   if (seed === 'villager-selection-fixture') {
     return createVillagerSelectionFixture(seed);
   }
@@ -1824,6 +1940,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'tile-selection-cycle-fixture') {
     return createTileSelectionCycleFixture(seed);
+  }
+
+  if (seed === 'sheep-ownership-fixture') {
+    return createSheepOwnershipFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);
