@@ -324,6 +324,7 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
     await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
     await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Villager');
+    await expect(page.locator('[data-selection-queue-item="0"]')).not.toContainText('ticks remaining');
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(260, 100),

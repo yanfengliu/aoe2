@@ -390,6 +390,10 @@ function formatQueueEntryName(entry: ProductionQueueEntry): string {
   return entry.label;
 }
 
+function formatQueueProgress(progressPercent: number): string {
+  return `${progressPercent}% complete`;
+}
+
 function formatAgeName(age: HudState['currentAge']): string {
   switch (age) {
     case 'dark-age':
@@ -538,7 +542,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           return `
             <div class="hud-queue-item" data-selection-queue-item="${index}">
               <div class="hud-queue-name">${formatQueueEntryName(entry)}</div>
-              <div class="hud-queue-meta">${entry.remainingTicks} ticks remaining</div>
+              <div class="hud-queue-meta">${formatQueueProgress(progress)}</div>
               <div class="hud-queue-progress">
                 <div class="hud-queue-progress-fill" style="width: ${progress}%"></div>
               </div>
