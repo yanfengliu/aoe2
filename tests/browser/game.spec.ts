@@ -310,6 +310,42 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveLength(1);
   });
 
+  test('can research Castle Age and train a Knight through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'castle-age-fixture');
+
+    await clickCell(page, 8, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await page.locator('[data-command="research-castle-age"]').click();
+    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+    await expect(page.locator('[data-hud="food"]')).toHaveText('200');
+    await expect(page.locator('[data-hud="gold"]')).toHaveText('200');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1620, 100));
+
+    await expect(page.locator('[data-hud="age"]')).toHaveText('Castle Age');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'stable')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Stable');
+    await page.locator('[data-command="train-knight"]').click();
+    await expect(page.locator('[data-hud="food"]')).toHaveText('140');
+    await expect(page.locator('[data-hud="gold"]')).toHaveText('125');
+
+    const trainedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
+    );
+
+    const playerKnights = trainedSnapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'knight',
+    );
+    expect(playerKnights).toHaveLength(1);
+    expect(playerKnights[0]).toMatchObject({
+      attackDamage: 10,
+      attackRange: 1,
+    });
+  });
+
   test('can research Fletching and buff both existing and newly trained Archers', async ({
     page,
   }) => {

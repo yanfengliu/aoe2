@@ -1,8 +1,8 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
 export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
-export type UnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher';
-export type TrainableUnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher';
-export type ResearchableTechnologyType = 'feudal-age' | 'fletching';
+export type UnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher' | 'knight';
+export type TrainableUnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher' | 'knight';
+export type ResearchableTechnologyType = 'feudal-age' | 'castle-age' | 'fletching';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

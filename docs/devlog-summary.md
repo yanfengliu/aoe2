@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first Castle Age progression slice. Town Centers can now research Castle Age after two qualifying Feudal buildings, completed Stables can queue Knights, and automated coverage is now `37` Vitest tests plus `24` Playwright browser gameplay tests.
 2026-04-11 - Added the first Town Center defensive-fire slice. Garrisoned Town Centers now auto-kill nearby enemy units through defensive arrows, and automated coverage is now `35` Vitest assertions plus `23` Playwright browser gameplay tests.
 2026-04-11 - Added the first defensive garrison slice. Villagers can now right click into owned Town Centers and completed Watch Towers, those buildings can ungarrison them through the command panel, and automated coverage is now `34` Vitest assertions plus `22` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal Market slice. Feudal villagers can now place Markets, completed Markets can buy or sell food, wood, and stone against gold with dynamic exchange-rate movement, and automated coverage is now `32` Vitest assertions plus `21` Playwright browser gameplay tests.

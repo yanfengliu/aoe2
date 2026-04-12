@@ -94,7 +94,9 @@ const SPEARMAN_TRAIN_TIME_TICKS = 220;
 const SCOUT_TRAIN_TIME_TICKS = 300;
 const ARCHER_TRAIN_TIME_TICKS = 350;
 const SKIRMISHER_TRAIN_TIME_TICKS = 220;
+const KNIGHT_TRAIN_TIME_TICKS = 300;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
+const CASTLE_AGE_RESEARCH_TIME_TICKS = 1600;
 const FLETCHING_RESEARCH_TIME_TICKS = 300;
 const MELEE_ATTACK_RANGE = 1;
 const MARKET_TRANSACTION_AMOUNT = 100;
@@ -537,6 +539,8 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { wood: 25, gold: 45 };
     case 'skirmisher':
       return { food: 35, wood: 25 };
+    case 'knight':
+      return { food: 60, gold: 75 };
   }
 }
 
@@ -544,6 +548,8 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
   switch (technologyType) {
     case 'feudal-age':
       return { food: 500 };
+    case 'castle-age':
+      return { food: 800, gold: 200 };
     case 'fletching':
       return { food: 100, gold: 50 };
   }
@@ -584,6 +590,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return ARCHER_TRAIN_TIME_TICKS;
     case 'skirmisher':
       return SKIRMISHER_TRAIN_TIME_TICKS;
+    case 'knight':
+      return KNIGHT_TRAIN_TIME_TICKS;
   }
 }
 
@@ -591,6 +599,8 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
   switch (technologyType) {
     case 'feudal-age':
       return FEUDAL_AGE_RESEARCH_TIME_TICKS;
+    case 'castle-age':
+      return CASTLE_AGE_RESEARCH_TIME_TICKS;
     case 'fletching':
       return FLETCHING_RESEARCH_TIME_TICKS;
   }
@@ -680,6 +690,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'barracks' && unitType === 'militia')
     || (buildingType === 'barracks' && unitType === 'spearman')
     || (buildingType === 'stable' && unitType === 'scout')
+    || (buildingType === 'stable' && unitType === 'knight')
     || (buildingType === 'archery-range' && unitType === 'archer')
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
   );
@@ -691,6 +702,7 @@ function canResearchAt(
 ): boolean {
   return (
     (buildingType === 'town-center' && technologyType === 'feudal-age')
+    || (buildingType === 'town-center' && technologyType === 'castle-age')
     || (buildingType === 'blacksmith' && technologyType === 'fletching')
   );
 }
@@ -709,6 +721,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 30;
     case 'skirmisher':
       return 30;
+    case 'knight':
+      return 100;
   }
 }
 
@@ -726,6 +740,8 @@ function unitAttackDamage(unitType: UnitType): number {
       return 4;
     case 'skirmisher':
       return 2;
+    case 'knight':
+      return 10;
   }
 }
 
@@ -743,6 +759,8 @@ function unitReloadTicks(unitType: UnitType): number {
       return 20;
     case 'skirmisher':
       return 20;
+    case 'knight':
+      return 18;
   }
 }
 
@@ -752,6 +770,7 @@ function unitAttackRange(unitType: UnitType): number {
     case 'scout':
     case 'militia':
     case 'spearman':
+    case 'knight':
       return MELEE_ATTACK_RANGE;
     case 'archer':
     case 'skirmisher':
@@ -762,6 +781,10 @@ function unitAttackRange(unitType: UnitType): number {
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
   if (attackerType === 'spearman' && targetType === 'scout') {
     return 12;
+  }
+
+  if (attackerType === 'spearman' && targetType === 'knight') {
+    return 15;
   }
 
   if (attackerType === 'skirmisher' && targetType === 'archer') {
@@ -777,6 +800,15 @@ function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
     || buildingType === 'lumber-camp'
     || buildingType === 'mining-camp'
     || buildingType === 'barracks'
+  );
+}
+
+function isFeudalAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return (
+    buildingType === 'stable'
+    || buildingType === 'archery-range'
+    || buildingType === 'blacksmith'
+    || buildingType === 'market'
   );
 }
 
@@ -1068,6 +1100,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             ? owner === HUMAN_PLAYER_ID
               ? 0x8fc2c3
               : 0xc18fa8
+          : unitType === 'knight'
+            ? owner === HUMAN_PLAYER_ID
+              ? 0xa6a08d
+              : 0xb27d67
           : owner === HUMAN_PLAYER_ID
             ? 0xead74a
             : 0xef7d57,
@@ -1082,6 +1118,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               ? 0.48
               : unitType === 'skirmisher'
                 ? 0.48
+              : unitType === 'knight'
+                ? 0.58
               : 0.55,
     });
 
@@ -1262,6 +1300,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'spearman'
       || spawn.kind === 'archer'
       || spawn.kind === 'skirmisher'
+      || spawn.kind === 'knight'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const unitId = addUnitEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, spawn.vision);
@@ -2100,6 +2139,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding) >= 2;
   }
 
+  function canAdvanceToCastleAge(owner: number): boolean {
+    if (getPlayerAge(owner) !== 'feudal-age') {
+      return false;
+    }
+
+    return countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding) >= 2;
+  }
+
   function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
     switch (buildingType) {
       case 'town-center':
@@ -2112,7 +2159,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return options;
       }
       case 'stable':
-        return getPlayerAge(owner) !== 'dark-age' ? ['scout'] : [];
+        return getPlayerAge(owner) === 'dark-age'
+          ? []
+          : getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age'
+            ? ['scout', 'knight']
+            : ['scout'];
       case 'archery-range':
         return getPlayerAge(owner) !== 'dark-age' ? ['archer', 'skirmisher'] : [];
       default:
@@ -2123,6 +2174,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function getResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
     if (buildingType === 'town-center' && canAdvanceToFeudalAge(owner)) {
       return ['feudal-age'];
+    }
+
+    if (buildingType === 'town-center' && canAdvanceToCastleAge(owner)) {
+      return ['castle-age'];
     }
 
     if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age' && !hasTechnology(owner, 'fletching')) {
@@ -2183,10 +2238,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return 2;
       case 'skirmisher':
         return 3;
-      case 'militia':
+      case 'knight':
         return 4;
-      case 'scout':
+      case 'militia':
         return 5;
+      case 'scout':
+        return 6;
     }
   }
 
@@ -2382,6 +2439,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     switch (technologyType) {
       case 'feudal-age':
         playerAges.set(owner, 'feudal-age');
+        break;
+      case 'castle-age':
+        playerAges.set(owner, 'castle-age');
         break;
       case 'fletching':
         for (const id of world.query('unit')) {

@@ -104,6 +104,7 @@ describe('createPrototypeScenario', () => {
     const feudalScenario = createPrototypeScenario('feudal-age-fixture');
     const blacksmithScenario = createPrototypeScenario('feudal-blacksmith-fixture');
     const stableScenario = createPrototypeScenario('feudal-stable-fixture');
+    const castleScenario = createPrototypeScenario('castle-age-fixture');
     const spearmanScenario = createPrototypeScenario('feudal-spearman-fixture');
     const skirmisherScenario = createPrototypeScenario('feudal-skirmisher-fixture');
     const towerScenario = createPrototypeScenario('feudal-watch-tower-fixture');
@@ -149,6 +150,27 @@ describe('createPrototypeScenario', () => {
         (spawn) => spawn.owner === 1 && spawn.kind === 'barracks',
       ),
     ).toBe(true);
+    expect(
+      castleScenario.starts.find((start) => start.owner === 1)?.startingAge,
+    ).toBe('feudal-age');
+    expect(
+      castleScenario.starts.find((start) => start.owner === 1)?.startingResources,
+    ).toEqual({
+      food: 1000,
+      wood: 300,
+      gold: 400,
+      stone: 200,
+    });
+    expect(
+      castleScenario.spawns.filter(
+        (spawn) =>
+          spawn.owner === 1
+          && (
+            spawn.kind === 'stable'
+            || spawn.kind === 'blacksmith'
+          ),
+      ),
+    ).toHaveLength(2);
     expect(
       spearmanScenario.starts.find((start) => start.owner === 1)?.startingAge,
     ).toBe('feudal-age');

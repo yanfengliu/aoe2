@@ -132,6 +132,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Archer';
     case 'skirmisher':
       return 'Skirmisher';
+    case 'knight':
+      return 'Knight';
     case 'scout':
       return 'Scout Cavalry';
     default:
@@ -143,6 +145,8 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
   switch (technologyType) {
     case 'feudal-age':
       return 'Feudal Age';
+    case 'castle-age':
+      return 'Castle Age';
     case 'fletching':
       return 'Fletching';
   }
@@ -266,11 +270,11 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ></canvas>
       </div>
       <div class="hud-footer" data-hud="match-summary">
-        Current slice: run the Dark Age economy, reach Feudal Age, place
-        Stables, Archery Ranges, Blacksmiths, and Markets, research ranged
-        upgrades, exchange resources, and command Militia, Scout Cavalry,
-        or Archers while panning with WASD or the arrow keys and zooming
-        with the mouse wheel.
+        Current slice: run the Dark Age economy, reach Feudal and Castle
+        Age, place Stables, Archery Ranges, Blacksmiths, and Markets,
+        research ranged upgrades, exchange resources, and command Militia,
+        Scout Cavalry, Archers, or Knights while panning with WASD or the
+        arrow keys and zooming with the mouse wheel.
       </div>
     </div>
   `;

@@ -423,6 +423,62 @@ describe('createSimulationBridge', () => {
     ).toHaveLength(1);
   }, 15_000);
 
+  it('does not offer Castle Age research until two qualifying Feudal buildings are complete', () => {
+    const bridge = createSimulationBridge('feudal-stable-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      researchOptions: [],
+    });
+    expect(bridge.queueResearch('castle-age')).toBe(false);
+  });
+
+  it('can research Castle Age and train a Knight', () => {
+    const bridge = createSimulationBridge('castle-age-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      researchOptions: ['castle-age'],
+    });
+    expect(bridge.queueResearch('castle-age')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 200,
+      gold: 200,
+    });
+
+    for (let index = 0; index < 1620; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().currentAge).toBe('castle-age');
+
+    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'stable',
+    });
+    expect(bridge.getSelectionState().trainOptions).toContain('knight');
+    expect(bridge.queueTrainUnit('knight')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 140,
+      gold: 125,
+    });
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    const playerKnights = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'knight');
+    expect(playerKnights).toHaveLength(1);
+    expect(playerKnights[0]).toMatchObject({
+      attackDamage: 10,
+      attackRange: 1,
+    });
+  }, 15_000);
+
   it('can research Fletching and apply it to existing and newly trained Archers', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
 
