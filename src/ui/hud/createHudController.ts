@@ -483,13 +483,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           data-hud="minimap"
         ></canvas>
       </div>
-      <div class="hud-footer" data-hud="match-summary">
-        Current slice: run the Dark Age economy, reach Feudal and Castle
-        Age, place Town Centers, Stables, Archery Ranges, Blacksmiths, and
-        Markets, research ranged upgrades, exchange resources, and command
-        Militia, Scout Cavalry, Archers, or Knights while panning with WASD
-        or the arrow keys and zooming with the mouse wheel.
-      </div>
+      <div class="hud-footer" data-hud="match-summary" hidden></div>
     </div>
   `;
 
@@ -747,7 +741,11 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
             : 'Defeat';
     }
     if (matchSummary) {
-      matchSummary.textContent = hudState.matchState.summary;
+      const shouldShowSummary =
+        hudState.matchState.outcome !== 'running'
+        && hudState.matchState.summary.trim().length > 0;
+      matchSummary.hidden = !shouldShowSummary;
+      matchSummary.textContent = shouldShowSummary ? hudState.matchState.summary : '';
     }
     renderSelectionPanel(selectionState);
 

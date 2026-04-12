@@ -241,6 +241,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(minimap.width).toBe(220);
     expect(minimap.height).toBe(160);
     expect(minimap.nonBackgroundPixelCount).toBeGreaterThan(1_000);
+    await expect(page.locator('[data-hud="match-summary"]')).toBeHidden();
   });
 
   test('supports camera panning and zoom with in-game controls', async ({ page }) => {
@@ -1185,7 +1186,11 @@ test.describe('browser gameplay smoke tests', () => {
     );
 
     await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Victory');
+    await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
+      'All enemy forces have been eliminated.',
+    );
     expect(snapshot.hudState.matchState.outcome).toBe('victory');
+    expect(snapshot.hudState.matchState.summary).toBe('All enemy forces have been eliminated.');
   });
 
   test('shows defeat and freezes the sim after the last human structure falls in the defeat fixture', async ({
@@ -1198,7 +1203,13 @@ test.describe('browser gameplay smoke tests', () => {
     );
 
     await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Defeat');
+    await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
+      'All of your units and buildings have been destroyed.',
+    );
     expect(snapshot.hudState.matchState.outcome).toBe('defeat');
+    expect(snapshot.hudState.matchState.summary).toBe(
+      'All of your units and buildings have been destroyed.',
+    );
 
     const frozenTick = snapshot.hudState.tick;
     const nextSnapshot = await page.evaluate(

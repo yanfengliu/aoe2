@@ -1005,7 +1005,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const buildingCombatStates = new Map<number, BuildingCombatState>();
   const matchState: MatchState = {
     outcome: 'running',
-    summary: 'Battle in progress.',
+    summary: '',
   };
   let selectedEntityRefs: EntityRef[] = [];
   let selectionFocusCell: Position | null = null;

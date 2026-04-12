@@ -55,6 +55,10 @@ describe('createSimulationBridge', () => {
       current: 4,
       cap: 5,
     });
+    expect(hudState.matchState).toEqual({
+      outcome: 'running',
+      summary: '',
+    });
   });
 
   it('runs a deterministic villager gather and drop-off loop', () => {

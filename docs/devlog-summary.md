@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Removed the always-visible running-state match summary footer. The bottom-right `Battle in progress.` block is now hidden during normal play and only appears for real victory/defeat summaries, with coverage added in both Vitest and Playwright.
 2026-04-11 - Added unit icons to the selection HUD. Single-unit and grouped unit selections now show simple unit badges with grouped counts, and automated coverage is now `45` Vitest tests plus `33` Playwright browser gameplay tests.
 2026-04-11 - Added true same-type double-click selection. Double clicking a friendly unit now selects all visible friendly units of the same type on screen, while ordinary repeated clicks still cycle stacked tiles, and automated coverage is now `45` Vitest tests plus `32` Playwright browser gameplay tests.
 2026-04-11 - Locked down military population accounting with tests. Military units already consumed population correctly; the repo now explicitly verifies that produced military units move the live `Pop` counter, and automated coverage is now `44` Vitest tests plus `31` Playwright browser gameplay tests.
