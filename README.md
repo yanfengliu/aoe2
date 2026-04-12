@@ -75,7 +75,7 @@ The game currently starts directly into the prototype map. Use:
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to research Feudal Age from the Town Center after two qualifying Dark Age buildings are complete, then research Castle Age after two qualifying Feudal buildings are complete
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
-- while placing a building, a green ghost shows a valid footprint and a red ghost shows an invalid blocked footprint
+- while placing a building, a green outlined footprint grid shows a valid placement area and a red footprint with blocked X markers shows an invalid area
 - the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, Blacksmiths, Markets, and Watch Towers in Feudal Age, then additional Town Centers in Castle Age, and queue Militia, Spearmen, Scout Cavalry, Archers, Skirmishers, or Knights from completed military buildings
 - completed Markets can use the selection panel to buy Food, Wood, or Stone with Gold, or sell those resources back for Gold
 - selected Town Centers and completed Watch Towers can use the selection panel to ungarrison housed Villagers

@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Strengthened building placement indicators. Valid placement now shows a clear green footprint grid, invalid placement shows red blocked X markers, and browser coverage now verifies rendered placement-visual state instead of only backend legality.
 2026-04-11 - Removed tick units from queue progress UI. Training and research queue cards now show percent-complete progress instead of `ticks remaining`, while keeping the visual progress bar and browser regression coverage.
 2026-04-11 - Removed the always-visible running-state match summary footer. The bottom-right `Battle in progress.` block is now hidden during normal play and only appears for real victory/defeat summaries, with coverage added in both Vitest and Playwright.
 2026-04-11 - Added unit icons to the selection HUD. Single-unit and grouped unit selections now show simple unit badges with grouped counts, and automated coverage is now `45` Vitest tests plus `33` Playwright browser gameplay tests.

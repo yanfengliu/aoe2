@@ -11,6 +11,7 @@ import type {
   CameraState,
   GameScene,
   PlacementPreviewViewState,
+  PlacementPreviewVisualState,
   SelectionBoxState,
 } from '../../phaser/scenes/GameScene';
 
@@ -43,6 +44,7 @@ export interface BrowserTestApi {
   getCameraState(): CameraState | null;
   getSelectionBoxState(): SelectionBoxState | null;
   getPlacementPreviewState(): PlacementPreviewViewState | null;
+  getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   clearSelection(): void;
@@ -85,6 +87,7 @@ export function installBrowserTestApi(
     getCameraState: () => scene.getCameraState(),
     getSelectionBoxState: () => scene.getSelectionBoxState(),
     getPlacementPreviewState: () => scene.getPlacementPreviewState(),
+    getPlacementPreviewVisualState: () => scene.getPlacementPreviewVisualState(),
     worldToScreen: (cellX: number, cellY: number) => {
       const point = scene.getScreenPointForCell(cellX, cellY);
       if (!point) {

@@ -63,6 +63,12 @@ export interface PlacementPreviewViewState {
   isValid: boolean;
 }
 
+export interface PlacementPreviewVisualState extends PlacementPreviewViewState {
+  strokeWidth: number;
+  cellOutlineCount: number;
+  blockedMarkerCount: number;
+}
+
 interface DragSelectionState {
   pointerId: number;
   startScreenX: number;
@@ -95,6 +101,7 @@ export class GameScene extends Phaser.Scene {
   private lastSelectionKey = '';
   private dragSelection: DragSelectionState | null = null;
   private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
+  private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     if (this.dragSelection || this.bridge.getSelectionState().placementMode) {
       return;
@@ -451,18 +458,23 @@ export class GameScene extends Phaser.Scene {
 
   private renderPlacementPreview(): void {
     if (!this.placementLayer) {
+      this.lastPlacementPreviewVisualState = null;
       return;
     }
 
     const previewState = this.getPlacementPreviewState();
     if (!previewState?.active) {
+      this.lastPlacementPreviewVisualState = null;
       return;
     }
 
     const tint = previewState.isValid ? 0x8fe388 : 0xe36f6f;
-    const alpha = previewState.isValid ? 0.24 : 0.28;
-    this.placementLayer.lineStyle(2, tint, 0.98);
-    this.placementLayer.fillStyle(tint, alpha);
+    const fillAlpha = previewState.isValid ? 0.32 : 0.36;
+    const strokeWidth = 3;
+    let cellOutlineCount = 0;
+    let blockedMarkerCount = 0;
+    this.placementLayer.lineStyle(strokeWidth, tint, 0.98);
+    this.placementLayer.fillStyle(tint, fillAlpha);
     this.placementLayer.fillRect(
       previewState.cellX * CELL_SIZE,
       previewState.cellY * CELL_SIZE,
@@ -475,6 +487,31 @@ export class GameScene extends Phaser.Scene {
       previewState.width * CELL_SIZE,
       previewState.height * CELL_SIZE,
     );
+
+    this.placementLayer.lineStyle(1, previewState.isValid ? 0xf6ffe9 : 0xfff0f0, 0.95);
+    for (let offsetY = 0; offsetY < previewState.height; offsetY += 1) {
+      for (let offsetX = 0; offsetX < previewState.width; offsetX += 1) {
+        const x = (previewState.cellX + offsetX) * CELL_SIZE;
+        const y = (previewState.cellY + offsetY) * CELL_SIZE;
+        this.placementLayer.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+        cellOutlineCount += 1;
+
+        if (!previewState.isValid) {
+          this.placementLayer.lineStyle(2, 0xfff6f6, 0.98);
+          this.placementLayer.lineBetween(x + 3, y + 3, x + CELL_SIZE - 3, y + CELL_SIZE - 3);
+          this.placementLayer.lineBetween(x + CELL_SIZE - 3, y + 3, x + 3, y + CELL_SIZE - 3);
+          blockedMarkerCount += 1;
+          this.placementLayer.lineStyle(1, 0xfff0f0, 0.95);
+        }
+      }
+    }
+
+    this.lastPlacementPreviewVisualState = {
+      ...previewState,
+      strokeWidth,
+      cellOutlineCount,
+      blockedMarkerCount,
+    };
   }
 
   private getSelectionKey(selectionState: SelectionState): string {
@@ -580,6 +617,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     return { ...previewState };
+  }
+
+  getPlacementPreviewVisualState(): PlacementPreviewVisualState | null {
+    return this.lastPlacementPreviewVisualState
+      ? { ...this.lastPlacementPreviewVisualState }
+      : null;
   }
 
   private trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {

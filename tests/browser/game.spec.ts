@@ -932,6 +932,9 @@ test.describe('browser gameplay smoke tests', () => {
     let previewState = await page.evaluate(
       () => window.__AOE2_TEST__!.getPlacementPreviewState(),
     );
+    let previewVisualState = await page.evaluate(
+      () => window.__AOE2_TEST__!.getPlacementPreviewVisualState(),
+    );
     expect(previewState).toMatchObject({
       active: true,
       buildingType: 'house',
@@ -941,10 +944,19 @@ test.describe('browser gameplay smoke tests', () => {
       height: 2,
       isValid: true,
     });
+    expect(previewVisualState).toMatchObject({
+      active: true,
+      isValid: true,
+      cellOutlineCount: 4,
+      blockedMarkerCount: 0,
+    });
 
     await moveMouseToCell(page, 8, 8);
     previewState = await page.evaluate(
       () => window.__AOE2_TEST__!.getPlacementPreviewState(),
+    );
+    previewVisualState = await page.evaluate(
+      () => window.__AOE2_TEST__!.getPlacementPreviewVisualState(),
     );
     expect(previewState).toMatchObject({
       active: true,
@@ -955,6 +967,12 @@ test.describe('browser gameplay smoke tests', () => {
       height: 2,
       isValid: false,
     });
+    expect(previewVisualState).toMatchObject({
+      active: true,
+      isValid: false,
+      cellOutlineCount: 4,
+    });
+    expect(previewVisualState?.blockedMarkerCount ?? 0).toBeGreaterThan(0);
 
     await clickCell(page, 8, 8);
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
