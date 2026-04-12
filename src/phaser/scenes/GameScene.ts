@@ -81,6 +81,10 @@ export interface BuildingVisualState {
   widthPx: number;
   heightPx: number;
   visualVariant: ProjectedEntityView['visualVariant'];
+  hasFoundationSlab: boolean;
+  hasScaffoldPosts: boolean;
+  hasStructureBody: boolean;
+  hasRoofAccent: boolean;
   hasConstructionIndicator: boolean;
   hasCompletionAccent: boolean;
 }
@@ -663,34 +667,24 @@ export class GameScene extends Phaser.Scene {
     this.entityLayer.fillRoundedRect(px, py, widthPx, heightPx, 6);
     this.entityLayer.strokeRoundedRect(px, py, widthPx, heightPx, 6);
 
+    let hasFoundationSlab = false;
+    let hasScaffoldPosts = false;
+    let hasStructureBody = false;
+    let hasRoofAccent = false;
     let hasConstructionIndicator = false;
     let hasCompletionAccent = false;
 
     if (isConstruction) {
-      this.entityLayer.lineStyle(2, 0xf5e9cf, 0.95);
-      this.entityLayer.lineBetween(px + 4, py + 4, px + widthPx - 4, py + heightPx - 4);
-      this.entityLayer.lineBetween(px + widthPx - 4, py + 4, px + 4, py + heightPx - 4);
-      this.entityLayer.lineBetween(px + widthPx * 0.5, py + 4, px + widthPx * 0.5, py + heightPx - 4);
-      this.entityLayer.lineBetween(px + 4, py + heightPx * 0.5, px + widthPx - 4, py + heightPx * 0.5);
+      this.renderBuildingFoundation(px, py, widthPx, heightPx);
+      this.renderConstructionPosts(px, py, widthPx, heightPx);
+      hasFoundationSlab = true;
+      hasScaffoldPosts = true;
       hasConstructionIndicator = true;
     } else {
-      const inset = 5;
-      this.entityLayer.fillStyle(0xf0d39a, 0.82);
-      this.entityLayer.fillRoundedRect(
-        px + inset,
-        py + inset,
-        Math.max(4, widthPx - inset * 2),
-        Math.max(4, heightPx - inset * 2),
-        4,
-      );
-      this.entityLayer.lineStyle(2, 0x5b4125, 0.9);
-      this.entityLayer.strokeRoundedRect(
-        px + inset,
-        py + inset,
-        Math.max(4, widthPx - inset * 2),
-        Math.max(4, heightPx - inset * 2),
-        4,
-      );
+      this.renderCompletedBuildingBody(px, py, widthPx, heightPx);
+      this.renderCompletedBuildingRoof(px, py, widthPx, heightPx);
+      hasStructureBody = true;
+      hasRoofAccent = true;
       hasCompletionAccent = true;
     }
 
@@ -705,9 +699,105 @@ export class GameScene extends Phaser.Scene {
       widthPx,
       heightPx,
       visualVariant: entity.visualVariant,
+      hasFoundationSlab,
+      hasScaffoldPosts,
+      hasStructureBody,
+      hasRoofAccent,
       hasConstructionIndicator,
       hasCompletionAccent,
     });
+  }
+
+  private renderBuildingFoundation(px: number, py: number, widthPx: number, heightPx: number): void {
+    if (!this.entityLayer) {
+      return;
+    }
+
+    const inset = 4;
+    const slabX = px + inset;
+    const slabY = py + inset;
+    const slabWidth = Math.max(8, widthPx - inset * 2);
+    const slabHeight = Math.max(8, heightPx - inset * 2);
+
+    this.entityLayer.fillStyle(0xc8bea8, 0.92);
+    this.entityLayer.fillRoundedRect(slabX, slabY, slabWidth, slabHeight, 3);
+    this.entityLayer.lineStyle(2, 0x6a6257, 0.95);
+    this.entityLayer.strokeRoundedRect(slabX, slabY, slabWidth, slabHeight, 3);
+
+    this.entityLayer.lineStyle(1, 0xece4d2, 0.7);
+    this.entityLayer.lineBetween(slabX + slabWidth * 0.5, slabY + 2, slabX + slabWidth * 0.5, slabY + slabHeight - 2);
+    this.entityLayer.lineBetween(slabX + 2, slabY + slabHeight * 0.5, slabX + slabWidth - 2, slabY + slabHeight * 0.5);
+  }
+
+  private renderConstructionPosts(px: number, py: number, widthPx: number, heightPx: number): void {
+    if (!this.entityLayer) {
+      return;
+    }
+
+    const postInset = 5;
+    const postHeight = Math.max(8, Math.min(16, heightPx * 0.45));
+    const topY = py + postInset;
+    const bottomY = topY + postHeight;
+    const leftX = px + postInset;
+    const rightX = px + widthPx - postInset;
+
+    this.entityLayer.lineStyle(2, 0x8d6c49, 0.95);
+    this.entityLayer.lineBetween(leftX, topY, leftX, bottomY);
+    this.entityLayer.lineBetween(rightX, topY, rightX, bottomY);
+    this.entityLayer.lineBetween(leftX, topY, rightX, topY);
+    this.entityLayer.lineStyle(2, 0xf5e9cf, 0.8);
+    this.entityLayer.lineBetween(leftX, bottomY, rightX, topY);
+    this.entityLayer.lineBetween(leftX, topY, rightX, bottomY);
+  }
+
+  private renderCompletedBuildingBody(px: number, py: number, widthPx: number, heightPx: number): void {
+    if (!this.entityLayer) {
+      return;
+    }
+
+    const insetX = Math.max(5, widthPx * 0.14);
+    const insetTop = Math.max(8, heightPx * 0.34);
+    const insetBottom = Math.max(4, heightPx * 0.14);
+    const bodyX = px + insetX;
+    const bodyY = py + insetTop;
+    const bodyWidth = Math.max(8, widthPx - insetX * 2);
+    const bodyHeight = Math.max(8, heightPx - insetTop - insetBottom);
+
+    this.entityLayer.fillStyle(0xf0d39a, 0.92);
+    this.entityLayer.fillRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 4);
+    this.entityLayer.lineStyle(2, 0x5b4125, 0.9);
+    this.entityLayer.strokeRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 4);
+
+    const doorWidth = Math.max(4, bodyWidth * 0.2);
+    const doorHeight = Math.max(6, bodyHeight * 0.45);
+    this.entityLayer.fillStyle(0x744d2d, 0.9);
+    this.entityLayer.fillRoundedRect(
+      bodyX + (bodyWidth - doorWidth) * 0.5,
+      bodyY + bodyHeight - doorHeight,
+      doorWidth,
+      doorHeight,
+      2,
+    );
+  }
+
+  private renderCompletedBuildingRoof(px: number, py: number, widthPx: number, heightPx: number): void {
+    if (!this.entityLayer) {
+      return;
+    }
+
+    const roofInset = Math.max(4, widthPx * 0.08);
+    const roofBaseY = py + Math.max(10, heightPx * 0.38);
+    const roofPeakY = py + Math.max(2, heightPx * 0.08);
+    const leftX = px + roofInset;
+    const rightX = px + widthPx - roofInset;
+    const centerX = px + widthPx * 0.5;
+
+    this.entityLayer.fillStyle(0x8d4f39, 0.96);
+    this.entityLayer.fillTriangle(leftX, roofBaseY, centerX, roofPeakY, rightX, roofBaseY);
+    this.entityLayer.lineStyle(2, 0x4c2418, 0.95);
+    this.entityLayer.strokeTriangle(leftX, roofBaseY, centerX, roofPeakY, rightX, roofBaseY);
+    this.entityLayer.lineStyle(1, 0xe7b07d, 0.65);
+    this.entityLayer.lineBetween(centerX, roofPeakY + 1, centerX, roofBaseY - 2);
   }
 
   private trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {

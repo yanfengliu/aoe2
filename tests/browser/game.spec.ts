@@ -246,6 +246,10 @@ async function getBuildingVisualState(
   widthPx: number;
   heightPx: number;
   visualVariant: string;
+  hasFoundationSlab: boolean;
+  hasScaffoldPosts: boolean;
+  hasStructureBody: boolean;
+  hasRoofAccent: boolean;
   hasConstructionIndicator: boolean;
   hasCompletionAccent: boolean;
 } | null> {
@@ -1099,6 +1103,10 @@ test.describe('browser gameplay smoke tests', () => {
       footprintWidthCells: 4,
       footprintHeightCells: 4,
       visualVariant: 'complete',
+      hasFoundationSlab: false,
+      hasScaffoldPosts: false,
+      hasStructureBody: true,
+      hasRoofAccent: true,
       hasConstructionIndicator: false,
       hasCompletionAccent: true,
     });
@@ -1137,6 +1145,10 @@ test.describe('browser gameplay smoke tests', () => {
       footprintWidthCells: 2,
       footprintHeightCells: 2,
       visualVariant: 'construction',
+      hasFoundationSlab: true,
+      hasScaffoldPosts: true,
+      hasStructureBody: false,
+      hasRoofAccent: false,
       hasConstructionIndicator: true,
       hasCompletionAccent: false,
     });
@@ -1157,6 +1169,10 @@ test.describe('browser gameplay smoke tests', () => {
       footprintWidthCells: 2,
       footprintHeightCells: 2,
       visualVariant: 'complete',
+      hasFoundationSlab: false,
+      hasScaffoldPosts: false,
+      hasStructureBody: true,
+      hasRoofAccent: true,
       hasConstructionIndicator: false,
       hasCompletionAccent: true,
     });
