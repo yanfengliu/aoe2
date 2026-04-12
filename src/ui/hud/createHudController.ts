@@ -1,6 +1,7 @@
 import type {
   BuildableBuildingType,
   HudState,
+  MarketActionType,
   ResearchableTechnologyType,
   RenderState,
   SelectionState,
@@ -13,6 +14,7 @@ interface HudBridge {
   getSelectionState(): SelectionState;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
+  issueMarketAction(actionType: MarketActionType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
@@ -116,6 +118,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Archery Range';
     case 'blacksmith':
       return 'Blacksmith';
+    case 'market':
+      return 'Market';
     case 'villager':
       return 'Villager';
     case 'militia':
@@ -139,6 +143,23 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Feudal Age';
     case 'fletching':
       return 'Fletching';
+  }
+}
+
+function formatMarketActionName(actionType: MarketActionType): string {
+  switch (actionType) {
+    case 'buy-food':
+      return 'Buy Food';
+    case 'sell-food':
+      return 'Sell Food';
+    case 'buy-wood':
+      return 'Buy Wood';
+    case 'sell-wood':
+      return 'Sell Wood';
+    case 'buy-stone':
+      return 'Buy Stone';
+    case 'sell-stone':
+      return 'Sell Stone';
   }
 }
 
@@ -216,9 +237,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <div class="hud-value" data-hud="seed">-</div>
         </div>
         <div class="hud-chip">
-          <div class="hud-label">Outcome</div>
-          <div class="hud-value" data-hud="match-outcome">Running</div>
-        </div>
+        <div class="hud-label">Outcome</div>
+        <div class="hud-value" data-hud="match-outcome">Running</div>
+      </div>
       </div>
     </div>
     <div class="hud-bottom">
@@ -237,9 +258,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer" data-hud="match-summary">
         Current slice: run the Dark Age economy, reach Feudal Age, place
-        Stables, Archery Ranges, and Blacksmiths, research ranged upgrades,
-        and command Militia, Scout Cavalry, or Archers while panning with
-        WASD or the arrow keys and zooming with the mouse wheel.
+        Stables, Archery Ranges, Blacksmiths, and Markets, research ranged
+        upgrades, exchange resources, and command Militia, Scout Cavalry,
+        or Archers while panning with WASD or the arrow keys and zooming
+        with the mouse wheel.
       </div>
     </div>
   `;
@@ -310,6 +332,19 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         `,
       )
       .join('');
+    const marketButtons = selectionState.marketOptions
+      .map(
+        (actionType) => `
+          <button
+            class="hud-command-button"
+            data-command="market-${actionType}"
+            type="button"
+          >
+            ${formatMarketActionName(actionType)}
+          </button>
+        `,
+      )
+      .join('');
     const researchButtons = selectionState.researchOptions
       .map(
         (technologyType) => `
@@ -334,6 +369,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
       <div class="hud-command-list">
         ${trainButtons}
+        ${marketButtons}
         ${researchButtons}
         ${buildButtons}
       </div>
@@ -349,6 +385,18 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
 
         button.addEventListener('click', () => {
           bridge.queueTrainUnit(unitType);
+        });
+      });
+    selectionPanel
+      .querySelectorAll<HTMLButtonElement>('[data-command^="market-"]')
+      .forEach((button) => {
+        const actionType = button.dataset.command?.replace('market-', '') as MarketActionType | undefined;
+        if (!actionType) {
+          return;
+        }
+
+        button.addEventListener('click', () => {
+          bridge.issueMarketAction(actionType);
         });
       });
     selectionPanel

@@ -107,6 +107,7 @@ describe('createPrototypeScenario', () => {
     const spearmanScenario = createPrototypeScenario('feudal-spearman-fixture');
     const skirmisherScenario = createPrototypeScenario('feudal-skirmisher-fixture');
     const towerScenario = createPrototypeScenario('feudal-watch-tower-fixture');
+    const marketScenario = createPrototypeScenario('feudal-market-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -169,6 +170,22 @@ describe('createPrototypeScenario', () => {
     expect(
       towerScenario.spawns.some(
         (spawn) => spawn.owner === 1 && spawn.kind === 'blacksmith',
+      ),
+    ).toBe(true);
+    expect(
+      marketScenario.starts.find((start) => start.owner === 1)?.startingAge,
+    ).toBe('feudal-age');
+    expect(
+      marketScenario.starts.find((start) => start.owner === 1)?.startingResources,
+    ).toEqual({
+      food: 700,
+      wood: 450,
+      gold: 200,
+      stone: 200,
+    });
+    expect(
+      marketScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'barracks',
       ),
     ).toBe(true);
   });

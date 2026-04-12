@@ -62,6 +62,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Shared producer-menu helpers are worth keeping. Once `Barracks` and `Archery Range` both had age-gated second units, pulling train-menu logic into one repo-owned helper cut down on drift between HUD rendering and queue validation.
 - Static-defense behavior also sits comfortably in repo code. `Watch Tower` auto-fire worked once building-owned combat state, sight radius, and targeting rules were modeled locally, which suggests the engine does not need a dedicated "tower" primitive but still leaves all defensive-structure policy in the game layer.
 - Generic rally points were similarly straightforward as repo policy. Producer-owned rally positions plus spawn-time move commands work cleanly, but the engine leaves producer command memory and any future formation/spawn-deconfliction behavior to the game layer.
+- Match-global Market exchange rates also fit cleanly as repo-owned state. The engine does not need a special economy-trading primitive for buy/sell actions, but commodity pricing rules, fees, and future market technologies remain application policy.
 
 ## Implications for next phases
 

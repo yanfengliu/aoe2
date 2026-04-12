@@ -608,6 +608,62 @@ describe('createSimulationBridge', () => {
     ).toBe(false);
   }, 15_000);
 
+  it('can build a Market in Feudal Age and exchange resources through market actions', () => {
+    const bridge = createSimulationBridge('feudal-market-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('market');
+    expect(bridge.beginBuildingPlacement('market')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(17, 8)).toBe(true);
+    expect(bridge.getHudState().playerResources.wood).toBe(275);
+
+    for (let index = 0; index < 280; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(18, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'market',
+      marketOptions: [
+        'buy-food',
+        'sell-food',
+        'buy-wood',
+        'sell-wood',
+        'buy-stone',
+        'sell-stone',
+      ],
+    });
+
+    const resourcesAfterBuild = bridge.getHudState().playerResources;
+    expect(bridge.issueMarketAction('sell-wood')).toBe(true);
+
+    const resourcesAfterFirstSale = bridge.getHudState().playerResources;
+    expect(resourcesAfterFirstSale.wood).toBe(resourcesAfterBuild.wood - 100);
+    expect(resourcesAfterFirstSale.gold).toBeGreaterThan(resourcesAfterBuild.gold);
+
+    expect(bridge.issueMarketAction('sell-wood')).toBe(true);
+
+    const resourcesAfterSecondSale = bridge.getHudState().playerResources;
+    expect(resourcesAfterSecondSale.wood).toBe(resourcesAfterFirstSale.wood - 100);
+    expect(resourcesAfterSecondSale.gold - resourcesAfterFirstSale.gold).toBeLessThan(
+      resourcesAfterFirstSale.gold - resourcesAfterBuild.gold,
+    );
+
+    expect(bridge.issueMarketAction('buy-food')).toBe(true);
+
+    const resourcesAfterFirstBuy = bridge.getHudState().playerResources;
+    expect(resourcesAfterFirstBuy.food).toBe(resourcesAfterSecondSale.food + 100);
+    expect(resourcesAfterSecondSale.gold - resourcesAfterFirstBuy.gold).toBeGreaterThan(0);
+
+    expect(bridge.issueMarketAction('buy-food')).toBe(true);
+
+    const resourcesAfterSecondBuy = bridge.getHudState().playerResources;
+    expect(resourcesAfterSecondBuy.food).toBe(resourcesAfterFirstBuy.food + 100);
+    expect(resourcesAfterFirstBuy.gold - resourcesAfterSecondBuy.gold).toBeGreaterThan(
+      resourcesAfterSecondSale.gold - resourcesAfterFirstBuy.gold,
+    );
+  }, 15_000);
+
   it('can set a rally point on a selected Archery Range so newly trained units move to it automatically', () => {
     const bridge = createSimulationBridge('feudal-skirmisher-fixture');
 

@@ -27,6 +27,7 @@ import type {
   EconomyState,
   GathererComponent,
   HudState,
+  MarketActionType,
   MatchState,
   PlayerResources,
   PopulationState,
@@ -64,6 +65,7 @@ export interface SimulationBridge {
   issueMoveCommand(x: number, y: number): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
+  issueMarketAction(actionType: MarketActionType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
@@ -84,6 +86,7 @@ const WATCH_TOWER_BUILD_TIME_TICKS = 220;
 const STABLE_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const BLACKSMITH_BUILD_TIME_TICKS = 200;
+const MARKET_BUILD_TIME_TICKS = 200;
 const MILITIA_TRAIN_TIME_TICKS = 210;
 const SPEARMAN_TRAIN_TIME_TICKS = 220;
 const SCOUT_TRAIN_TIME_TICKS = 300;
@@ -92,6 +95,13 @@ const SKIRMISHER_TRAIN_TIME_TICKS = 220;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
 const FLETCHING_RESEARCH_TIME_TICKS = 300;
 const MELEE_ATTACK_RANGE = 1;
+const MARKET_TRANSACTION_AMOUNT = 100;
+const MARKET_BASE_RATE = 100;
+const MARKET_FEE_RATE = 0.3;
+const MARKET_RATE_STEP = 3;
+const MARKET_MIN_RATE = 20;
+
+type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
 interface UnitCommand {
   type: 'move' | 'build' | 'attack';
@@ -157,6 +167,32 @@ function cloneResources(resources: PlayerResources): PlayerResources {
     gold: resources.gold,
     stone: resources.stone,
   };
+}
+
+function createInitialMarketRates(): Record<MarketCommodity, number> {
+  return {
+    food: MARKET_BASE_RATE,
+    wood: MARKET_BASE_RATE,
+    stone: MARKET_BASE_RATE,
+  };
+}
+
+function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {
+  switch (actionType) {
+    case 'buy-food':
+    case 'sell-food':
+      return 'food';
+    case 'buy-wood':
+    case 'sell-wood':
+      return 'wood';
+    case 'buy-stone':
+    case 'sell-stone':
+      return 'stone';
+  }
+}
+
+function isBuyMarketAction(actionType: MarketActionType): boolean {
+  return actionType === 'buy-food' || actionType === 'buy-wood' || actionType === 'buy-stone';
 }
 
 function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind {
@@ -308,6 +344,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
+    case 'market':
       return { width: 2, height: 2 };
     case 'town-center':
       return { width: 1, height: 1 };
@@ -326,6 +363,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
+    case 'market':
     case 'town-center':
       return 0;
   }
@@ -349,6 +387,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return ARCHERY_RANGE_BUILD_TIME_TICKS;
     case 'blacksmith':
       return BLACKSMITH_BUILD_TIME_TICKS;
+    case 'market':
+      return MARKET_BUILD_TIME_TICKS;
     case 'town-center':
       return 0;
   }
@@ -367,6 +407,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
+    case 'market':
       return 1.2;
     case 'town-center':
       return 1.4;
@@ -430,6 +471,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0x6f7682 : 0x434a54
       : isComplete ? 0x8b6670 : 0x5a434b;
+  }
+
+  if (buildingType === 'market') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xb68f52 : 0x6c5637
+      : isComplete ? 0xb07a66 : 0x6d4d43;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -514,6 +561,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { wood: 175 };
     case 'blacksmith':
       return { wood: 150 };
+    case 'market':
+      return { wood: 175 };
     case 'watch-tower':
       return { stone: 125 };
   }
@@ -558,6 +607,7 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
+    case 'market':
       return 175;
     case 'town-center':
       return 2400;
@@ -826,6 +876,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   issueMoveCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
+  issueMarketAction: (actionType: MarketActionType) => boolean;
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
@@ -841,6 +892,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const playerAges = new Map<number, AgeType>();
   const researchedTechnologies = new Map<number, Set<ResearchableTechnologyType>>();
   const playerResources = new Map<number, PlayerResources>();
+  const marketExchangeRates = createInitialMarketRates();
   const population = new Map<number, PopulationState>();
   const townCenterRefs = new Map<number, EntityRef>();
   const villagerOrdinals = new Map<number, number>();
@@ -1059,6 +1111,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || buildingType === 'stable'
       || buildingType === 'archery-range'
       || buildingType === 'blacksmith'
+      || buildingType === 'market'
     ) {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
@@ -1155,6 +1208,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'stable'
       || spawn.kind === 'archery-range'
       || spawn.kind === 'blacksmith'
+      || spawn.kind === 'market'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
@@ -1664,6 +1718,55 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
+  function executeMarketAction(actionType: MarketActionType): boolean {
+    const selectedEntityId = getSelectedEntityId();
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (!building || building.owner !== HUMAN_PLAYER_ID || building.buildingType !== 'market') {
+      return false;
+    }
+
+    const construction = constructionStates.get(selectedEntityId);
+    if (construction && !construction.isComplete) {
+      return false;
+    }
+
+    if (!getMarketOptions(building.owner, building.buildingType).includes(actionType)) {
+      return false;
+    }
+
+    const stockpile = playerResources.get(building.owner);
+    if (!stockpile) {
+      return false;
+    }
+
+    const commodity = marketCommodityForAction(actionType);
+    const rate = marketExchangeRates[commodity];
+    if (isBuyMarketAction(actionType)) {
+      const goldCost = Math.ceil(rate * (1 + MARKET_FEE_RATE));
+      if (stockpile.gold < goldCost) {
+        return false;
+      }
+
+      stockpile.gold -= goldCost;
+      stockpile[commodity] += MARKET_TRANSACTION_AMOUNT;
+      marketExchangeRates[commodity] = rate + MARKET_RATE_STEP;
+      return true;
+    }
+
+    if (stockpile[commodity] < MARKET_TRANSACTION_AMOUNT) {
+      return false;
+    }
+
+    stockpile[commodity] -= MARKET_TRANSACTION_AMOUNT;
+    stockpile.gold += Math.floor(rate * (1 - MARKET_FEE_RATE));
+    marketExchangeRates[commodity] = Math.max(MARKET_MIN_RATE, rate - MARKET_RATE_STEP);
+    return true;
+  }
+
   function startConstruction(
     builderId: number,
     buildingType: BuildableBuildingType,
@@ -1867,6 +1970,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return [];
   }
 
+  function getMarketOptions(owner: number, buildingType: BuildingType): MarketActionType[] {
+    if (buildingType !== 'market' || getPlayerAge(owner) === 'dark-age') {
+      return [];
+    }
+
+    return [
+      'buy-food',
+      'sell-food',
+      'buy-wood',
+      'sell-wood',
+      'buy-stone',
+      'sell-stone',
+    ];
+  }
+
   function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
     if (unitType !== 'villager') {
       return [];
@@ -1884,6 +2002,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       options.push('stable');
       options.push('archery-range');
       options.push('blacksmith');
+      options.push('market');
       if (hasCompletedBuilding(owner, 'blacksmith')) {
         options.push('watch-tower');
       }
@@ -2694,6 +2813,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         x: null,
         y: null,
         buildOptions: [],
+        marketOptions: [],
         trainOptions: [],
         researchOptions: [],
         queue: [],
@@ -2713,6 +2833,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       building?.owner === HUMAN_PLAYER_ID
         ? getTrainOptions(building.owner, building.buildingType)
         : [];
+    const marketOptions: MarketActionType[] =
+      building?.owner === HUMAN_PLAYER_ID
+        ? getMarketOptions(building.owner, building.buildingType)
+        : [];
     const buildOptions: BuildableBuildingType[] =
       unit && unit.owner === HUMAN_PLAYER_ID
         ? getBuildOptions(unit.owner, unit.unitType)
@@ -2730,6 +2854,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       x: position.x,
       y: position.y,
       buildOptions,
+      marketOptions,
       trainOptions,
       researchOptions,
       queue: cloneQueue(productionQueues.get(selectedEntityId) ?? []),
@@ -2898,6 +3023,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return enqueueResearch(selectedEntityId, technologyType);
+  }
+
+  function issueMarketAction(actionType: MarketActionType): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    return executeMarketAction(actionType);
   }
 
   function beginBuildingPlacement(buildingType: BuildableBuildingType): boolean {
@@ -3077,6 +3210,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     issueMoveCommand,
     queueTrainUnit,
     queueResearch,
+    issueMarketAction,
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected(id: number) {
@@ -3101,6 +3235,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     issueMoveCommand,
     queueTrainUnit,
     queueResearch,
+    issueMarketAction,
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected,
@@ -3172,6 +3307,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     issueMoveCommand,
     queueTrainUnit,
     queueResearch,
+    issueMarketAction,
     beginBuildingPlacement,
     confirmBuildingPlacement,
   };

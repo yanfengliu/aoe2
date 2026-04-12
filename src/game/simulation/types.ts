@@ -3,6 +3,13 @@ export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 export type UnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher';
 export type TrainableUnitType = 'villager' | 'scout' | 'militia' | 'spearman' | 'archer' | 'skirmisher';
 export type ResearchableTechnologyType = 'feudal-age' | 'fletching';
+export type MarketActionType =
+  | 'buy-food'
+  | 'sell-food'
+  | 'buy-wood'
+  | 'sell-wood'
+  | 'buy-stone'
+  | 'sell-stone';
 export type BuildableBuildingType =
   | 'house'
   | 'mill'
@@ -12,7 +19,8 @@ export type BuildableBuildingType =
   | 'watch-tower'
   | 'stable'
   | 'archery-range'
-  | 'blacksmith';
+  | 'blacksmith'
+  | 'market';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -190,6 +198,7 @@ export interface SelectionState {
   x: number | null;
   y: number | null;
   buildOptions: BuildableBuildingType[];
+  marketOptions: MarketActionType[];
   trainOptions: TrainableUnitType[];
   researchOptions: ResearchableTechnologyType[];
   queue: ProductionQueueEntry[];

@@ -477,6 +477,44 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('can build a Market and exchange resources through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-market-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-market"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Market');
+
+    await clickCell(page, 17, 8);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'market')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Market');
+
+    const afterBuild = await getSnapshot(page);
+    await page.locator('[data-command="market-sell-wood"]').click();
+    const afterFirstSale = await getSnapshot(page);
+    expect(afterFirstSale.hudState.playerResources.wood).toBe(
+      afterBuild.hudState.playerResources.wood - 100,
+    );
+    expect(afterFirstSale.hudState.playerResources.gold).toBeGreaterThan(
+      afterBuild.hudState.playerResources.gold,
+    );
+
+    await page.locator('[data-command="market-buy-food"]').click();
+    const afterFirstBuy = await getSnapshot(page);
+    expect(afterFirstBuy.hudState.playerResources.food).toBe(
+      afterFirstSale.hudState.playerResources.food + 100,
+    );
+    expect(afterFirstBuy.hudState.playerResources.gold).toBeLessThan(
+      afterFirstSale.hudState.playerResources.gold,
+    );
+  });
+
   test('can set a rally point on an Archery Range so newly trained units move to it automatically', async ({
     page,
   }) => {

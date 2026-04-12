@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first Feudal Market slice. Feudal villagers can now place Markets, completed Markets can buy or sell food, wood, and stone against gold with dynamic exchange-rate movement, and automated coverage is now `32` Vitest assertions plus `21` Playwright browser gameplay tests.
 2026-04-11 - Added generic rally-point support for production buildings. Right click on a selected owned producer now sets its rally point, newly trained units inherit a move order to that target, and automated coverage is now `31` Vitest assertions plus `20` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal static-defense slice. Feudal villagers with a completed Blacksmith can now place Watch Towers, completed Watch Towers auto-fire on nearby enemy units, and automated coverage is now `30` Vitest assertions plus `19` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal ranged counter-unit slice. Feudal Archery Ranges can now queue Skirmishers, Skirmishers apply an anti-archer combat bonus, and automated coverage is now `29` Vitest assertions plus `18` Playwright browser gameplay tests.
