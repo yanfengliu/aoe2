@@ -106,6 +106,7 @@ describe('createPrototypeScenario', () => {
     const stableScenario = createPrototypeScenario('feudal-stable-fixture');
     const spearmanScenario = createPrototypeScenario('feudal-spearman-fixture');
     const skirmisherScenario = createPrototypeScenario('feudal-skirmisher-fixture');
+    const towerScenario = createPrototypeScenario('feudal-watch-tower-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -160,6 +161,14 @@ describe('createPrototypeScenario', () => {
     expect(
       skirmisherScenario.spawns.some(
         (spawn) => spawn.owner === 2 && spawn.kind === 'archer',
+      ),
+    ).toBe(true);
+    expect(
+      towerScenario.starts.find((start) => start.owner === 1)?.startingAge,
+    ).toBe('feudal-age');
+    expect(
+      towerScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'blacksmith',
       ),
     ).toBe(true);
   });

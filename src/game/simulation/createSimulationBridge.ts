@@ -80,6 +80,7 @@ const VILLAGER_TRAIN_TIME_TICKS = 250;
 const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
+const WATCH_TOWER_BUILD_TIME_TICKS = 220;
 const STABLE_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const BLACKSMITH_BUILD_TIME_TICKS = 200;
@@ -121,6 +122,13 @@ interface CombatState {
 interface BuildingHealthState {
   currentHp: number;
   maxHp: number;
+}
+
+interface BuildingCombatState {
+  attackDamage: number;
+  attackRange: number;
+  reloadTicks: number;
+  cooldownTicks: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -296,6 +304,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'watch-tower':
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
@@ -313,6 +322,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'watch-tower':
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
@@ -331,6 +341,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return DROPOFF_BUILD_TIME_TICKS;
     case 'barracks':
       return BARRACKS_BUILD_TIME_TICKS;
+    case 'watch-tower':
+      return WATCH_TOWER_BUILD_TIME_TICKS;
     case 'stable':
       return STABLE_BUILD_TIME_TICKS;
     case 'archery-range':
@@ -351,6 +363,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'mining-camp':
       return 1.15;
     case 'barracks':
+    case 'watch-tower':
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
@@ -399,6 +412,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0xa07b4f : 0x624b34
       : isComplete ? 0x996763 : 0x604340;
+  }
+
+  if (buildingType === 'watch-tower') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x8d9aa7 : 0x56606a
+      : isComplete ? 0xa3848f : 0x654e58;
   }
 
   if (buildingType === 'archery-range') {
@@ -495,6 +514,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { wood: 175 };
     case 'blacksmith':
       return { wood: 150 };
+    case 'watch-tower':
+      return { stone: 125 };
   }
 }
 
@@ -533,6 +554,7 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'mining-camp':
       return 100;
     case 'barracks':
+    case 'watch-tower':
     case 'stable':
     case 'archery-range':
     case 'blacksmith':
@@ -540,6 +562,30 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'town-center':
       return 2400;
   }
+}
+
+function buildingVisionRadius(buildingType: BuildingType): number | null {
+  switch (buildingType) {
+    case 'town-center':
+      return 7;
+    case 'watch-tower':
+      return 8;
+    default:
+      return null;
+  }
+}
+
+function createBuildingCombatState(buildingType: BuildingType): BuildingCombatState | null {
+  if (buildingType !== 'watch-tower') {
+    return null;
+  }
+
+  return {
+    attackDamage: 5,
+    attackRange: 7,
+    reloadTicks: 12,
+    cooldownTicks: 0,
+  };
 }
 
 function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): boolean {
@@ -803,6 +849,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const constructionStates = new Map<number, ConstructionState>();
   const combatStates = new Map<number, CombatState>();
   const buildingHealthStates = new Map<number, BuildingHealthState>();
+  const buildingCombatStates = new Map<number, BuildingCombatState>();
   const matchState: MatchState = {
     outcome: 'running',
     summary: 'Battle in progress.',
@@ -1017,6 +1064,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
     }
 
+    const defaultVisionRadius = buildingVisionRadius(buildingType);
+    if (vision) {
+      world.addComponent(entity, 'visionSource', vision);
+    } else if (isComplete && defaultVisionRadius !== null) {
+      world.addComponent(entity, 'visionSource', {
+        playerId: owner,
+        radius: defaultVisionRadius,
+      });
+    }
+
+    const buildingCombatState = createBuildingCombatState(buildingType);
+    if (isComplete && buildingCombatState) {
+      buildingCombatStates.set(entity, buildingCombatState);
+    }
+
     const populationState = population.get(owner);
     const populationProvided = buildingPopulationProvided(buildingType);
     if (isComplete && populationState && populationProvided > 0) {
@@ -1033,10 +1095,6 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         width: footprint.width,
         height: footprint.height,
       });
-    }
-
-    if (vision) {
-      world.addComponent(entity, 'visionSource', vision);
     }
 
     return entity;
@@ -1092,6 +1150,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'lumber-camp'
       || spawn.kind === 'mining-camp'
       || spawn.kind === 'barracks'
+      || spawn.kind === 'watch-tower'
       || spawn.kind === 'stable'
       || spawn.kind === 'archery-range'
       || spawn.kind === 'blacksmith'
@@ -1450,6 +1509,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     productionQueues.delete(id);
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
+    buildingCombatStates.delete(id);
     world.destroyEntity(id);
   }
 
@@ -1822,6 +1882,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       options.push('stable');
       options.push('archery-range');
       options.push('blacksmith');
+      if (hasCompletedBuilding(owner, 'blacksmith')) {
+        options.push('watch-tower');
+      }
     }
 
     return options;
@@ -1859,6 +1922,39 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           && entry.unit !== undefined
           && entry.unit.owner !== viewerOwner
           && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
+      )
+      .sort((left, right) => {
+        const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+
+        return manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position);
+      });
+
+    return candidates[0]?.id ?? null;
+  }
+
+  function findPreferredVisibleEnemyUnitInRange(
+    viewerOwner: number,
+    origin: Position,
+    range: number,
+  ): number | null {
+    const candidates = [...world.query('position', 'unit')]
+      .map((id) => ({
+        id,
+        position: world.getComponent<Position>(id, 'position'),
+        unit: world.getComponent<UnitComponent>(id, 'unit'),
+      }))
+      .filter(
+        (
+          entry,
+        ): entry is { id: number; position: Position; unit: UnitComponent } =>
+          entry.position !== undefined
+          && entry.unit !== undefined
+          && entry.unit.owner !== viewerOwner
+          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y)
+          && manhattanDistance(origin, entry.position) <= range,
       )
       .sort((left, right) => {
         const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
@@ -2252,6 +2348,22 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             renderable.tint = buildingTint(building.buildingType, building.owner, true);
           }
 
+          const defaultVisionRadius = buildingVisionRadius(building.buildingType);
+          if (
+            defaultVisionRadius !== null
+            && !activeWorld.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
+          ) {
+            activeWorld.addComponent(buildingId, 'visionSource', {
+              playerId: building.owner,
+              radius: defaultVisionRadius,
+            });
+          }
+
+          const buildingCombatState = createBuildingCombatState(building.buildingType);
+          if (buildingCombatState) {
+            buildingCombatStates.set(buildingId, buildingCombatState);
+          }
+
           const populationState = population.get(building.owner);
           if (populationState) {
             populationState.cap += construction.populationProvided;
@@ -2491,6 +2603,53 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     phase: 'update',
     execute(activeWorld) {
       syncVisibilitySources(activeWorld, visibility, trackedVisibilitySources);
+    },
+  });
+
+  world.registerSystem({
+    name: 'prototypeTowerCombat',
+    phase: 'update',
+    execute(activeWorld) {
+      for (const id of activeWorld.query('position', 'building')) {
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+        const construction = constructionStates.get(id);
+        const buildingCombat = buildingCombatStates.get(id);
+
+        if (
+          !position
+          || !building
+          || !buildingCombat
+          || (construction && !construction.isComplete)
+        ) {
+          continue;
+        }
+
+        if (buildingCombat.cooldownTicks > 0) {
+          buildingCombat.cooldownTicks -= 1;
+        }
+
+        const targetId = findPreferredVisibleEnemyUnitInRange(
+          building.owner,
+          position,
+          buildingCombat.attackRange,
+        );
+        if (targetId === null || buildingCombat.cooldownTicks > 0) {
+          continue;
+        }
+
+        const targetCombat = combatStates.get(targetId);
+        if (!targetCombat) {
+          continue;
+        }
+
+        targetCombat.currentHp -= buildingCombat.attackDamage;
+        buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
+
+        if (targetCombat.currentHp <= 0) {
+          destroyUnitEntity(targetId);
+        }
+      }
     },
   });
 

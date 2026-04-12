@@ -445,6 +445,38 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('can build a Watch Tower and let it automatically kill a nearby visible Scout', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-watch-tower-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-watch-tower"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Watch Tower');
+
+    await clickCell(page, 14, 8);
+    await expect(page.locator('[data-hud="stone"]')).toHaveText('75');
+
+    const postTowerSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(360, 100),
+    );
+
+    expect(
+      postTowerSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'watch-tower'
+          && building.isComplete,
+      ),
+    ).toBe(true);
+    expect(
+      postTowerSnapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

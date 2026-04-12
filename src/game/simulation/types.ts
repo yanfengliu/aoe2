@@ -9,6 +9,7 @@ export type BuildableBuildingType =
   | 'lumber-camp'
   | 'mining-camp'
   | 'barracks'
+  | 'watch-tower'
   | 'stable'
   | 'archery-range'
   | 'blacksmith';

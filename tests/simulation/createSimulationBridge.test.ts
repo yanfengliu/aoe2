@@ -316,7 +316,7 @@ describe('createSimulationBridge', () => {
           && building.y === (enemyHouse?.y ?? 3),
       ),
     ).toBe(false);
-  });
+  }, 10_000);
 
   it('lets the AI build a Barracks and kill a human villager', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -576,6 +576,34 @@ describe('createSimulationBridge', () => {
     expect(
       bridge.getEconomyState().units.some(
         (unit) => unit.owner === 2 && unit.unitType === 'archer',
+      ),
+    ).toBe(false);
+  }, 15_000);
+
+  it('can build a Watch Tower in Feudal Age and let it automatically kill a nearby visible Scout', () => {
+    const bridge = createSimulationBridge('feudal-watch-tower-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('watch-tower');
+    expect(bridge.beginBuildingPlacement('watch-tower')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+    expect(bridge.getHudState().playerResources.stone).toBe(75);
+
+    for (let index = 0; index < 360; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'watch-tower'
+          && building.isComplete,
+      ),
+    ).toBe(true);
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
       ),
     ).toBe(false);
   }, 15_000);

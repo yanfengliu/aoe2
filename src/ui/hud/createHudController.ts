@@ -108,6 +108,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Mining Camp';
     case 'barracks':
       return 'Barracks';
+    case 'watch-tower':
+      return 'Watch Tower';
     case 'stable':
       return 'Stable';
     case 'archery-range':

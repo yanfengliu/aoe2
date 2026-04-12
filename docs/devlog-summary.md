@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first Feudal static-defense slice. Feudal villagers with a completed Blacksmith can now place Watch Towers, completed Watch Towers auto-fire on nearby enemy units, and automated coverage is now `30` Vitest assertions plus `19` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal ranged counter-unit slice. Feudal Archery Ranges can now queue Skirmishers, Skirmishers apply an anti-archer combat bonus, and automated coverage is now `29` Vitest assertions plus `18` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal counter-unit slice. Feudal Barracks can now queue Spearmen, Spearmen apply an anti-scout combat bonus, and automated coverage is now `28` Vitest assertions plus `17` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal cavalry-production slice. Feudal villagers can now place Stables, completed Stables can queue Scout Cavalry, and automated coverage is now `27` Vitest assertions plus `16` Playwright browser gameplay tests.
