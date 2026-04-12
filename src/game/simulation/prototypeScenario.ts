@@ -538,6 +538,58 @@ function createCastleAgeFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createCastleTownCenterFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        startingResources: {
+          food: 200,
+          wood: 700,
+          gold: 100,
+          stone: 350,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -1022,6 +1074,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'castle-age-fixture') {
     return createCastleAgeFixture(seed);
+  }
+
+  if (seed === 'castle-town-center-fixture') {
+    return createCastleTownCenterFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {

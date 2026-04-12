@@ -29,6 +29,7 @@ Current implementation status:
 - Feudal villagers with a completed Blacksmith can now place Watch Towers, and completed Watch Towers automatically fire on nearby enemy units
 - Feudal Town Centers can now research Castle Age once the player has two qualifying Feudal buildings
 - completed Stables in Castle Age can now queue Knights
+- villagers in Castle Age can now place additional Town Centers, and those Town Centers can train Villagers through the same command-panel flow as the starting one
 - Villagers can now garrison inside Town Centers and completed Watch Towers, and defensive buildings can ungarrison them back onto nearby tiles through the command panel
 - Garrisoned Town Centers can now auto-fire defensive arrows at nearby enemy units, so housed Villagers contribute directly to early defense
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
@@ -70,14 +71,14 @@ The game currently starts directly into the prototype map. Use:
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to research Feudal Age from the Town Center after two qualifying Dark Age buildings are complete, then research Castle Age after two qualifying Feudal buildings are complete
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
-- the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, Blacksmiths, Markets, and Watch Towers in Feudal Age, and queue Militia, Spearmen, Scout Cavalry, Archers, Skirmishers, or Knights from completed military buildings
+- the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, Blacksmiths, Markets, and Watch Towers in Feudal Age, then additional Town Centers in Castle Age, and queue Militia, Spearmen, Scout Cavalry, Archers, Skirmishers, or Knights from completed military buildings
 - completed Markets can use the selection panel to buy Food, Wood, or Stone with Gold, or sell those resources back for Gold
 - selected Town Centers and completed Watch Towers can use the selection panel to ungarrison housed Villagers
 - in the focused Town Center defense fixture, garrisoning a Villager now causes the Town Center to auto-kill the nearby enemy Scout
 - right click with a selected production building now sets its rally point, so newly trained units walk toward that target automatically
 - completed Blacksmiths can now research Fletching, which currently buffs Archer attack damage and range
 - enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches
-- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-market-fixture`, `?seed=feudal-stable-fixture`, `?seed=castle-age-fixture`, `?seed=feudal-spearman-fixture`, `?seed=feudal-skirmisher-fixture`, `?seed=feudal-watch-tower-fixture`, and `?seed=town-center-defense-fixture`
+- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-market-fixture`, `?seed=feudal-stable-fixture`, `?seed=castle-age-fixture`, `?seed=castle-town-center-fixture`, `?seed=feudal-spearman-fixture`, `?seed=feudal-skirmisher-fixture`, `?seed=feudal-watch-tower-fixture`, and `?seed=town-center-defense-fixture`
 
 ## Verification
 

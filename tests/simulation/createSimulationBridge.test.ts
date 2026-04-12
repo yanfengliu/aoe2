@@ -479,6 +479,51 @@ describe('createSimulationBridge', () => {
     });
   }, 15_000);
 
+  it('can build an additional Town Center in Castle Age and use it to train a Villager', () => {
+    const bridge = createSimulationBridge('castle-town-center-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('town-center');
+    expect(bridge.beginBuildingPlacement('town-center')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      wood: 425,
+      stone: 250,
+    });
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().buildings.filter(
+        (building) => building.owner === 1 && building.buildingType === 'town-center',
+      ),
+    ).toHaveLength(2);
+
+    expect(bridge.issueMoveCommand(16, 10)).toBe(true);
+    for (let index = 0; index < 40; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+    });
+    expect(bridge.queueTrainUnit('villager')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(150);
+
+    for (let index = 0; index < 260; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(2);
+  }, 15_000);
+
   it('can research Fletching and apply it to existing and newly trained Archers', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
 

@@ -346,6 +346,45 @@ test.describe('browser gameplay smoke tests', () => {
     });
   });
 
+  test('can build an additional Town Center in Castle Age and use it to train a villager', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'castle-town-center-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-town-center"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Town Center');
+
+    await clickCell(page, 14, 8);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('425');
+    await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
+    await clickCell(page, 16, 10, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(40, 100));
+
+    await clickCell(page, 14, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await page.locator('[data-command="train-villager"]').click();
+    await expect(page.locator('[data-hud="food"]')).toHaveText('150');
+
+    const trainedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+    );
+
+    expect(
+      trainedSnapshot.economyState.buildings.filter(
+        (building) => building.owner === 1 && building.buildingType === 'town-center',
+      ),
+    ).toHaveLength(2);
+    expect(
+      trainedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager',
+      ),
+    ).toHaveLength(2);
+  });
+
   test('can research Fletching and buff both existing and newly trained Archers', async ({
     page,
   }) => {

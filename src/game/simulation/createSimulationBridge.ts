@@ -81,6 +81,7 @@ const STANDARD_STARTING_RESOURCES: PlayerResources = {
 
 const STANDARD_POPULATION_CAP = 5;
 const VILLAGER_TRAIN_TIME_TICKS = 250;
+const TOWN_CENTER_BUILD_TIME_TICKS = 300;
 const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
@@ -375,6 +376,8 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
 
 function buildingBuildTimeTicks(buildingType: BuildingType): number {
   switch (buildingType) {
+    case 'town-center':
+      return TOWN_CENTER_BUILD_TIME_TICKS;
     case 'house':
       return HOUSE_BUILD_TIME_TICKS;
     case 'mill':
@@ -393,8 +396,6 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return BLACKSMITH_BUILD_TIME_TICKS;
     case 'market':
       return MARKET_BUILD_TIME_TICKS;
-    case 'town-center':
-      return 0;
   }
 }
 
@@ -557,6 +558,8 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
 
 function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerResources> {
   switch (buildingType) {
+    case 'town-center':
+      return { wood: 275, stone: 100 };
     case 'house':
       return { wood: 25 };
     case 'mill':
@@ -2223,6 +2226,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (hasCompletedBuilding(owner, 'blacksmith')) {
         options.push('watch-tower');
       }
+    }
+
+    if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
+      options.push('town-center');
     }
 
     return options;

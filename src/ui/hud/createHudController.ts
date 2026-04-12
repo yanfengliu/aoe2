@@ -271,10 +271,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer" data-hud="match-summary">
         Current slice: run the Dark Age economy, reach Feudal and Castle
-        Age, place Stables, Archery Ranges, Blacksmiths, and Markets,
-        research ranged upgrades, exchange resources, and command Militia,
-        Scout Cavalry, Archers, or Knights while panning with WASD or the
-        arrow keys and zooming with the mouse wheel.
+        Age, place Town Centers, Stables, Archery Ranges, Blacksmiths, and
+        Markets, research ranged upgrades, exchange resources, and command
+        Militia, Scout Cavalry, Archers, or Knights while panning with WASD
+        or the arrow keys and zooming with the mouse wheel.
       </div>
     </div>
   `;

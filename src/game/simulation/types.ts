@@ -12,6 +12,7 @@ export type MarketActionType =
   | 'buy-stone'
   | 'sell-stone';
 export type BuildableBuildingType =
+  | 'town-center'
   | 'house'
   | 'mill'
   | 'lumber-camp'
