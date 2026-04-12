@@ -531,6 +531,65 @@ function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createFeudalSkirmisherFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'feudal-age',
+        startingResources: {
+          food: 250,
+          wood: 250,
+          gold: 100,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'archery-range',
+        x: 11,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'archer',
+        x: 14,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 6 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -712,6 +771,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'feudal-spearman-fixture') {
     return createFeudalSpearmanFixture(seed);
+  }
+
+  if (seed === 'feudal-skirmisher-fixture') {
+    return createFeudalSkirmisherFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

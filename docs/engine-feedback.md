@@ -59,6 +59,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Technology-driven stat mutation is still repo policy. Applying a tech like `Fletching` to both existing and future Archers was straightforward, but the engine currently leaves that sort of player-wide modifier propagation entirely to game code.
 - Producer capability remains repo policy too. Adding `Stable` plus `Scout Cavalry` was easy within the current ECS model, but the engine still leaves producer-to-unit menus and producer queue policy to game code across several switch-based call sites.
 - Counter-damage rules are also repo policy. The new `Spearman` anti-scout bonus fits cleanly into the current sim loop, but attack bonuses by attacker/target class still need to be modeled explicitly in game code rather than declared through an engine-level combat rules layer.
+- Shared producer-menu helpers are worth keeping. Once `Barracks` and `Archery Range` both had age-gated second units, pulling train-menu logic into one repo-owned helper cut down on drift between HUD rendering and queue validation.
 
 ## Implications for next phases
 

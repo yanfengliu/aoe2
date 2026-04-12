@@ -410,8 +410,8 @@ describe('createSimulationBridge', () => {
     expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'archery-range',
-      trainOptions: ['archer'],
     });
+    expect(bridge.getSelectionState().trainOptions).toContain('archer');
     expect(bridge.queueTrainUnit('archer')).toBe(true);
 
     for (let index = 0; index < 380; index += 1) {
@@ -540,6 +540,42 @@ describe('createSimulationBridge', () => {
     expect(
       bridge.getEconomyState().units.some(
         (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  }, 15_000);
+
+  it('can train a Skirmisher in Feudal Age and use its anti-archer bonus to kill a visible Archer quickly', () => {
+    const bridge = createSimulationBridge('feudal-skirmisher-fixture');
+
+    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'archery-range',
+    });
+    expect(bridge.getSelectionState().trainOptions).toContain('skirmisher');
+    expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 215,
+      wood: 225,
+    });
+
+    for (let index = 0; index < 240; index += 1) {
+      bridge.step(100);
+    }
+
+    const skirmisher = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'skirmisher');
+    expect(skirmisher).toBeDefined();
+    expect(bridge.selectEntityAtCell(skirmisher?.x ?? 0, skirmisher?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(14, 10)).toBe(true);
+
+    for (let index = 0; index < 120; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'archer',
       ),
     ).toBe(false);
   }, 15_000);

@@ -417,6 +417,34 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('can train a Skirmisher and use it to kill a visible Archer through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-skirmisher-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
+    await page.locator('[data-command="train-skirmisher"]').click();
+    await expect(page.locator('[data-hud="food"]')).toHaveText('215');
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('225');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(240, 100));
+
+    expect(await selectOwnedUnitDirect(page, 1, 'skirmisher')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Skirmisher');
+    await clickCell(page, 14, 10, 'right');
+
+    const postCombatSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
+    );
+
+    expect(
+      postCombatSnapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'archer',
+      ),
+    ).toBe(false);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

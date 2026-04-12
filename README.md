@@ -22,6 +22,7 @@ Current implementation status:
 - completed Barracks in Feudal Age can now also queue Spearmen, and Spearmen now apply a fast anti-scout bonus in combat
 - Town Centers can now research Feudal Age once the player has two qualifying Dark Age buildings
 - Feudal villagers can now place Archery Ranges, and completed Archery Ranges can queue Archers
+- completed Archery Ranges in Feudal Age can now also queue Skirmishers, and Skirmishers now apply a fast anti-archer bonus in combat
 - Feudal villagers can now place Stables, and completed Stables can queue Scout Cavalry
 - Feudal villagers can now place Blacksmiths, and Blacksmith research can modify Archer combat stats for both existing and newly trained units
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
@@ -62,10 +63,10 @@ The game currently starts directly into the prototype map. Use:
 - the selection panel to queue Villagers from the Town Center
 - the selection panel to research Feudal Age from the Town Center after two qualifying Dark Age buildings are complete
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
-- the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, and Blacksmiths in Feudal Age, and queue Militia, Spearmen, Scout Cavalry, or Archers from completed military buildings
+- the selection panel to place Barracks in Dark Age, then Stables, Archery Ranges, and Blacksmiths in Feudal Age, and queue Militia, Spearmen, Scout Cavalry, Archers, or Skirmishers from completed military buildings
 - completed Blacksmiths can now research Fletching, which currently buffs Archer attack damage and range
 - enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches
-- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-stable-fixture`, and `?seed=feudal-spearman-fixture`
+- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, `?seed=feudal-age-fixture`, `?seed=feudal-blacksmith-fixture`, `?seed=feudal-stable-fixture`, `?seed=feudal-spearman-fixture`, and `?seed=feudal-skirmisher-fixture`
 
 ## Verification
 

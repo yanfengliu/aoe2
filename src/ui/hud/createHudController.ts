@@ -122,6 +122,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Spearman';
     case 'archer':
       return 'Archer';
+    case 'skirmisher':
+      return 'Skirmisher';
     case 'scout':
       return 'Scout Cavalry';
     default:

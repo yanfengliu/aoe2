@@ -87,6 +87,7 @@ const MILITIA_TRAIN_TIME_TICKS = 210;
 const SPEARMAN_TRAIN_TIME_TICKS = 220;
 const SCOUT_TRAIN_TIME_TICKS = 300;
 const ARCHER_TRAIN_TIME_TICKS = 350;
+const SKIRMISHER_TRAIN_TIME_TICKS = 220;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
 const FLETCHING_RESEARCH_TIME_TICKS = 300;
 const MELEE_ATTACK_RANGE = 1;
@@ -466,6 +467,8 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { food: 35, wood: 25 };
     case 'archer':
       return { wood: 25, gold: 45 };
+    case 'skirmisher':
+      return { food: 35, wood: 25 };
   }
 }
 
@@ -507,6 +510,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return SPEARMAN_TRAIN_TIME_TICKS;
     case 'archer':
       return ARCHER_TRAIN_TIME_TICKS;
+    case 'skirmisher':
+      return SKIRMISHER_TRAIN_TIME_TICKS;
   }
 }
 
@@ -544,6 +549,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'barracks' && unitType === 'spearman')
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'archery-range' && unitType === 'archer')
+    || (buildingType === 'archery-range' && unitType === 'skirmisher')
   );
 }
 
@@ -569,6 +575,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 45;
     case 'archer':
       return 30;
+    case 'skirmisher':
+      return 30;
   }
 }
 
@@ -584,6 +592,8 @@ function unitAttackDamage(unitType: UnitType): number {
       return 3;
     case 'archer':
       return 4;
+    case 'skirmisher':
+      return 2;
   }
 }
 
@@ -599,6 +609,8 @@ function unitReloadTicks(unitType: UnitType): number {
       return 10;
     case 'archer':
       return 20;
+    case 'skirmisher':
+      return 20;
   }
 }
 
@@ -610,6 +622,7 @@ function unitAttackRange(unitType: UnitType): number {
     case 'spearman':
       return MELEE_ATTACK_RANGE;
     case 'archer':
+    case 'skirmisher':
       return 4;
   }
 }
@@ -617,6 +630,10 @@ function unitAttackRange(unitType: UnitType): number {
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
   if (attackerType === 'spearman' && targetType === 'scout') {
     return 12;
+  }
+
+  if (attackerType === 'skirmisher' && targetType === 'archer') {
+    return 4;
   }
 
   return 0;
@@ -907,6 +924,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             ? owner === HUMAN_PLAYER_ID
               ? 0x84b6d7
               : 0xb38ad6
+          : unitType === 'skirmisher'
+            ? owner === HUMAN_PLAYER_ID
+              ? 0x8fc2c3
+              : 0xc18fa8
           : owner === HUMAN_PLAYER_ID
             ? 0xead74a
             : 0xef7d57,
@@ -919,6 +940,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               ? 0.5
             : unitType === 'archer'
               ? 0.48
+              : unitType === 'skirmisher'
+                ? 0.48
               : 0.55,
     });
 
@@ -1084,6 +1107,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'militia'
       || spawn.kind === 'spearman'
       || spawn.kind === 'archer'
+      || spawn.kind === 'skirmisher'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const unitId = addUnitEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, spawn.vision);
@@ -1763,7 +1787,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'stable':
         return getPlayerAge(owner) !== 'dark-age' ? ['scout'] : [];
       case 'archery-range':
-        return getPlayerAge(owner) !== 'dark-age' ? ['archer'] : [];
+        return getPlayerAge(owner) !== 'dark-age' ? ['archer', 'skirmisher'] : [];
       default:
         return [];
     }
@@ -1811,10 +1835,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return 1;
       case 'spearman':
         return 2;
-      case 'militia':
+      case 'skirmisher':
         return 3;
-      case 'scout':
+      case 'militia':
         return 4;
+      case 'scout':
+        return 5;
     }
   }
 
