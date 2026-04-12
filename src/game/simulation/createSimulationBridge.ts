@@ -80,9 +80,11 @@ const VILLAGER_TRAIN_TIME_TICKS = 250;
 const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
+const STABLE_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const BLACKSMITH_BUILD_TIME_TICKS = 200;
 const MILITIA_TRAIN_TIME_TICKS = 210;
+const SCOUT_TRAIN_TIME_TICKS = 300;
 const ARCHER_TRAIN_TIME_TICKS = 350;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
 const FLETCHING_RESEARCH_TIME_TICKS = 300;
@@ -292,6 +294,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'stable':
     case 'archery-range':
     case 'blacksmith':
       return { width: 2, height: 2 };
@@ -308,6 +311,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'stable':
     case 'archery-range':
     case 'blacksmith':
     case 'town-center':
@@ -325,6 +329,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return DROPOFF_BUILD_TIME_TICKS;
     case 'barracks':
       return BARRACKS_BUILD_TIME_TICKS;
+    case 'stable':
+      return STABLE_BUILD_TIME_TICKS;
     case 'archery-range':
       return ARCHERY_RANGE_BUILD_TIME_TICKS;
     case 'blacksmith':
@@ -343,6 +349,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'mining-camp':
       return 1.15;
     case 'barracks':
+    case 'stable':
     case 'archery-range':
     case 'blacksmith':
       return 1.2;
@@ -384,6 +391,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0x9b7351 : 0x5b4636
       : isComplete ? 0x8e6257 : 0x5c403b;
+  }
+
+  if (buildingType === 'stable') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xa07b4f : 0x624b34
+      : isComplete ? 0x996763 : 0x604340;
   }
 
   if (buildingType === 'archery-range') {
@@ -444,6 +457,8 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
   switch (unitType) {
     case 'villager':
       return { food: 50 };
+    case 'scout':
+      return { food: 80 };
     case 'militia':
       return { food: 60, gold: 20 };
     case 'archer':
@@ -469,6 +484,7 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
     case 'mining-camp':
       return { wood: 100 };
     case 'barracks':
+    case 'stable':
     case 'archery-range':
       return { wood: 175 };
     case 'blacksmith':
@@ -480,6 +496,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
   switch (unitType) {
     case 'villager':
       return VILLAGER_TRAIN_TIME_TICKS;
+    case 'scout':
+      return SCOUT_TRAIN_TIME_TICKS;
     case 'militia':
       return MILITIA_TRAIN_TIME_TICKS;
     case 'archer':
@@ -505,6 +523,7 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'mining-camp':
       return 100;
     case 'barracks':
+    case 'stable':
     case 'archery-range':
     case 'blacksmith':
       return 175;
@@ -517,6 +536,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
   return (
     (buildingType === 'town-center' && unitType === 'villager')
     || (buildingType === 'barracks' && unitType === 'militia')
+    || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'archery-range' && unitType === 'archer')
   );
 }
@@ -938,6 +958,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     if (
       buildingType === 'town-center'
       || buildingType === 'barracks'
+      || buildingType === 'stable'
       || buildingType === 'archery-range'
       || buildingType === 'blacksmith'
     ) {
@@ -1021,6 +1042,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'lumber-camp'
       || spawn.kind === 'mining-camp'
       || spawn.kind === 'barracks'
+      || spawn.kind === 'stable'
       || spawn.kind === 'archery-range'
       || spawn.kind === 'blacksmith'
     ) {
@@ -1722,6 +1744,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     ];
 
     if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
+      options.push('stable');
       options.push('archery-range');
       options.push('blacksmith');
     }
@@ -2447,6 +2470,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           ? ['villager']
           : building.buildingType === 'barracks'
             ? ['militia']
+            : building.buildingType === 'stable'
+              ? ['scout']
             : building.buildingType === 'archery-range'
               ? ['archer']
             : []

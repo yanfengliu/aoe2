@@ -108,6 +108,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Mining Camp';
     case 'barracks':
       return 'Barracks';
+    case 'stable':
+      return 'Stable';
     case 'archery-range':
       return 'Archery Range';
     case 'blacksmith':
@@ -229,9 +231,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer" data-hud="match-summary">
         Current slice: run the Dark Age economy, reach Feudal Age, place
-        Archery Ranges and Blacksmiths, research ranged upgrades, and command
-        Militia or Archers while panning with WASD or the arrow keys and
-        zooming with the mouse wheel.
+        Stables, Archery Ranges, and Blacksmiths, research ranged upgrades,
+        and command Militia, Scout Cavalry, or Archers while panning with
+        WASD or the arrow keys and zooming with the mouse wheel.
       </div>
     </div>
   `;

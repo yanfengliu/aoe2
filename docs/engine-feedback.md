@@ -57,6 +57,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Semantic browser selectors are still repo-owned. When Villagers or builder-occupied footprints move between frames, stable automation requires page-local helpers that resolve against the current sim snapshot instead of cached screen coordinates.
 - Placement and footprint checks are still hand-rolled query scans. That is workable at prototype scale, but the engine's `OccupancyGrid` and RTS path helpers should replace more of this logic before the entity count grows.
 - Technology-driven stat mutation is still repo policy. Applying a tech like `Fletching` to both existing and future Archers was straightforward, but the engine currently leaves that sort of player-wide modifier propagation entirely to game code.
+- Producer capability remains repo policy too. Adding `Stable` plus `Scout Cavalry` was easy within the current ECS model, but the engine still leaves producer-to-unit menus and producer queue policy to game code across several switch-based call sites.
 
 ## Implications for next phases
 

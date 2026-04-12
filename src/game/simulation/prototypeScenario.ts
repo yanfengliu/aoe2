@@ -413,6 +413,65 @@ function createFeudalBlacksmithFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createFeudalStableFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'feudal-age',
+        startingResources: {
+          food: 250,
+          wood: 250,
+          gold: 150,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'barracks',
+        x: 11,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -586,6 +645,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'feudal-blacksmith-fixture') {
     return createFeudalBlacksmithFixture(seed);
+  }
+
+  if (seed === 'feudal-stable-fixture') {
+    return createFeudalStableFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

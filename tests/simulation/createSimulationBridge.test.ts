@@ -472,4 +472,39 @@ describe('createSimulationBridge', () => {
       playerArchers.every((unit) => unit.attackDamage === 5 && unit.attackRange === 5),
     ).toBe(true);
   }, 15_000);
+
+  it('can build a Stable in Feudal Age and train a Scout Cavalry from it', () => {
+    const bridge = createSimulationBridge('feudal-stable-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('stable');
+    expect(bridge.beginBuildingPlacement('stable')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(17, 8)).toBe(true);
+    expect(bridge.getHudState().playerResources.wood).toBe(75);
+
+    for (let index = 0; index < 280; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(18, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'stable',
+      trainOptions: ['scout'],
+    });
+    expect(bridge.queueTrainUnit('scout')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(170);
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    const playerScouts = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(playerScouts).toHaveLength(1);
+    expect(playerScouts[0]).toMatchObject({
+      attackDamage: 3,
+      attackRange: 1,
+    });
+  }, 15_000);
 });

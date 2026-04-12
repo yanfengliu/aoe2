@@ -355,6 +355,40 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(true);
   });
 
+  test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-stable-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-stable"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Stable');
+
+    await clickCell(page, 18, 8);
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('75');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'stable')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Stable');
+    await page.locator('[data-command="train-scout"]').click();
+    await expect(page.locator('[data-hud="food"]')).toHaveText('170');
+
+    const trainedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
+    );
+
+    const playerScouts = trainedSnapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'scout',
+    );
+    expect(playerScouts).toHaveLength(1);
+    expect(playerScouts[0]).toMatchObject({
+      attackDamage: 3,
+      attackRange: 1,
+    });
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

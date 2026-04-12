@@ -1,7 +1,7 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
 export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 export type UnitType = 'villager' | 'scout' | 'militia' | 'archer';
-export type TrainableUnitType = 'villager' | 'militia' | 'archer';
+export type TrainableUnitType = 'villager' | 'scout' | 'militia' | 'archer';
 export type ResearchableTechnologyType = 'feudal-age' | 'fletching';
 export type BuildableBuildingType =
   | 'house'
@@ -9,6 +9,7 @@ export type BuildableBuildingType =
   | 'lumber-camp'
   | 'mining-camp'
   | 'barracks'
+  | 'stable'
   | 'archery-range'
   | 'blacksmith';
 export type BuildingType = 'town-center' | BuildableBuildingType;
