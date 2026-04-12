@@ -112,6 +112,33 @@ describe('createSimulationBridge', () => {
     expect(bridge.getSelectionState().queue).toHaveLength(0);
   });
 
+  it('counts newly trained military units toward population', () => {
+    const bridge = createSimulationBridge('feudal-spearman-fixture');
+
+    expect(bridge.getHudState().population).toEqual({
+      current: 0,
+      cap: 5,
+    });
+
+    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(bridge.getSelectionState().trainOptions).toContain('spearman');
+    expect(bridge.queueTrainUnit('spearman')).toBe(true);
+
+    for (let index = 0; index < 230; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'spearman',
+      ),
+    ).toHaveLength(1);
+    expect(bridge.getHudState().population).toEqual({
+      current: 1,
+      cap: 5,
+    });
+  });
+
   it('selects visible resource entities and exposes their remaining amount', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 

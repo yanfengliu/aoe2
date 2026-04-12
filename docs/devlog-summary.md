@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Locked down military population accounting with tests. Military units already consumed population correctly; the repo now explicitly verifies that produced military units move the live `Pop` counter, and automated coverage is now `44` Vitest tests plus `31` Playwright browser gameplay tests.
 2026-04-11 - Added stacked-tile entity inspection and stabilized browser testing. Repeated left click now cycles through every selectable entity on a tile, resources can be selected and inspected in the HUD, Playwright now serves a built preview app instead of the dev server, and automated coverage is now `43` Vitest tests plus `30` Playwright browser gameplay tests.
 2026-04-11 - Added building placement preview feedback. Villager build mode now shows a green ghost for valid footprints and a red ghost for blocked footprints, and automated coverage is now `41` Vitest tests plus `28` Playwright browser gameplay tests.
 2026-04-11 - Added drag-box multi-selection with an on-map marquee. Left-drag now selects all owned movable units inside the box, mixed groups suppress incorrect villager build commands, and automated coverage is now `40` Vitest tests plus `27` Playwright browser gameplay tests.

@@ -642,6 +642,19 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('shows military units consuming population in the live HUD', async ({ page }) => {
+    await waitForBootWithSeed(page, 'feudal-spearman-fixture');
+
+    await expect(page.locator('[data-hud="pop"]')).toHaveText('0/5');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
+    await page.locator('[data-command="train-spearman"]').click();
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(230, 100));
+
+    await expect(page.locator('[data-hud="pop"]')).toHaveText('1/5');
+  });
+
   test('can train a Skirmisher and use it to kill a visible Archer through the live command panel', async ({
     page,
   }) => {
