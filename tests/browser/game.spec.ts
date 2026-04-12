@@ -101,6 +101,21 @@ async function clickCell(
   });
 }
 
+async function dragSelectCells(
+  page: Page,
+  startCellX: number,
+  startCellY: number,
+  endCellX: number,
+  endCellY: number,
+): Promise<void> {
+  const startPoint = await getScreenPointForCell(page, startCellX, startCellY);
+  const endPoint = await getScreenPointForCell(page, endCellX, endCellY);
+
+  await page.mouse.move(startPoint.x, startPoint.y);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(endPoint.x, endPoint.y, { steps: 6 });
+}
+
 async function selectOwnedUnitDirect(
   page: Page,
   owner: number,
@@ -117,6 +132,24 @@ async function selectOwnedUnitDirect(
         );
       return unit ? api.selectEntityAtCell(unit.x, unit.y) : false;
     },
+    { owner, unitType },
+  );
+}
+
+async function getOwnedUnitCells(
+  page: Page,
+  owner: number,
+  unitType: string,
+): Promise<Array<{ x: number; y: number }>> {
+  return page.evaluate(
+    ({ owner: playerOwner, unitType: expectedUnitType }) =>
+      window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.units.filter(
+          (candidate) =>
+            candidate.owner === playerOwner && candidate.unitType === expectedUnitType,
+        )
+        .map((unit) => ({ x: unit.x, y: unit.y })),
     { owner, unitType },
   );
 }
@@ -272,6 +305,85 @@ test.describe('browser gameplay smoke tests', () => {
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ),
     ).toHaveLength(4);
+  });
+
+  test('shows a marquee while dragging and selects multiple villagers with one drag box', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'villager-selection-fixture');
+
+    const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
+    expect(villagerCells).toHaveLength(3);
+    await dragSelectCells(page, 7, 9, 10, 10);
+
+    const marqueeState = await page.evaluate(
+      () => (window.__AOE2_TEST__ as { getSelectionBoxState: () => {
+        active: boolean;
+        width: number;
+        height: number;
+      } | null }).getSelectionBoxState(),
+    );
+    expect(marqueeState).not.toBeNull();
+    expect(marqueeState?.active).toBe(true);
+    expect(marqueeState?.width ?? 0).toBeGreaterThan(0);
+    expect(marqueeState?.height ?? 0).toBeGreaterThan(0);
+
+    await page.mouse.up({ button: 'left' });
+
+    await expect(page.locator('[data-selection-name]')).toHaveText(`${villagerCells.length} Villagers Selected`);
+
+    const selectedSnapshot = await getSnapshot(page);
+    expect((selectedSnapshot.selectionState as { selectedCount?: number }).selectedCount).toBe(villagerCells.length);
+
+    await clickCell(page, 10, 12, 'right');
+
+    const movedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(40, 100),
+    );
+
+    expect(
+      movedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+      ),
+    ).toHaveLength(villagerCells.length);
+  });
+
+  test('drag-selects every friendly movable unit in the box while ignoring buildings', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'mixed-selection-fixture');
+
+    await dragSelectCells(page, 7, 9, 10, 10);
+
+    const marqueeState = await page.evaluate(
+      () => window.__AOE2_TEST__!.getSelectionBoxState(),
+    );
+    expect(marqueeState).not.toBeNull();
+    expect(marqueeState?.active).toBe(true);
+
+    await page.mouse.up({ button: 'left' });
+
+    await expect(page.locator('[data-selection-name]')).toHaveText('3 Units Selected');
+
+    const selectedSnapshot = await getSnapshot(page);
+    expect(selectedSnapshot.selectionState.selectedCount).toBe(3);
+    expect(selectedSnapshot.selectionState.selectedEntityType).toBeNull();
+
+    await clickCell(page, 14, 12, 'right');
+
+    const movedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(40, 100),
+    );
+
+    expect(
+      movedSnapshot.economyState.units.filter(
+        (unit) =>
+          unit.owner === 1
+          && ['villager', 'militia', 'scout'].includes(unit.unitType)
+          && unit.x >= 13
+          && unit.y >= 11,
+      ),
+    ).toHaveLength(3);
   });
 
   test('can research Feudal Age and train an Archer through the live command panel', async ({

@@ -111,6 +111,8 @@ describe('createPrototypeScenario', () => {
     const towerScenario = createPrototypeScenario('feudal-watch-tower-fixture');
     const marketScenario = createPrototypeScenario('feudal-market-fixture');
     const townCenterDefenseScenario = createPrototypeScenario('town-center-defense-fixture');
+    const villagerSelectionScenario = createPrototypeScenario('villager-selection-fixture');
+    const mixedSelectionScenario = createPrototypeScenario('mixed-selection-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -241,6 +243,27 @@ describe('createPrototypeScenario', () => {
     expect(
       townCenterDefenseScenario.spawns.some(
         (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 6 && spawn.y === 8,
+      ),
+    ).toBe(true);
+    expect(
+      villagerSelectionScenario.spawns.filter(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager',
+      ),
+    ).toHaveLength(3);
+    expect(
+      mixedSelectionScenario.spawns.filter(
+        (spawn) =>
+          spawn.owner === 1
+          && (
+            spawn.kind === 'villager'
+            || spawn.kind === 'militia'
+            || spawn.kind === 'scout'
+          ),
+      ),
+    ).toHaveLength(3);
+    expect(
+      mixedSelectionScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'house' && spawn.x === 9 && spawn.y === 9,
       ),
     ).toBe(true);
   });

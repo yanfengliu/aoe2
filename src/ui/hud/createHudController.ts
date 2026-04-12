@@ -142,6 +142,65 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
   }
 }
 
+function formatEntityPluralName(entityType: SelectionState['selectedEntityType']): string {
+  if (!entityType) {
+    return 'Units';
+  }
+
+  switch (entityType) {
+    case 'town-center':
+      return 'Town Centers';
+    case 'house':
+      return 'Houses';
+    case 'mill':
+      return 'Mills';
+    case 'lumber-camp':
+      return 'Lumber Camps';
+    case 'mining-camp':
+      return 'Mining Camps';
+    case 'barracks':
+      return 'Barracks';
+    case 'watch-tower':
+      return 'Watch Towers';
+    case 'stable':
+      return 'Stables';
+    case 'archery-range':
+      return 'Archery Ranges';
+    case 'blacksmith':
+      return 'Blacksmiths';
+    case 'market':
+      return 'Markets';
+    case 'villager':
+      return 'Villagers';
+    case 'militia':
+      return 'Militia';
+    case 'spearman':
+      return 'Spearmen';
+    case 'archer':
+      return 'Archers';
+    case 'skirmisher':
+      return 'Skirmishers';
+    case 'knight':
+      return 'Knights';
+    case 'scout':
+      return 'Scout Cavalry';
+    default:
+      return `${entityType}s`;
+  }
+}
+
+function formatSelectionName(selectionState: SelectionState): string {
+  if (selectionState.selectedCount <= 1) {
+    return formatEntityName(selectionState.selectedEntityType);
+  }
+
+  const label =
+    selectionState.selectedEntityType === null
+      ? 'Units'
+      : formatEntityPluralName(selectionState.selectedEntityType);
+  return `${selectionState.selectedCount} ${label} Selected`;
+}
+
 function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
   switch (technologyType) {
     case 'feudal-age':
@@ -421,7 +480,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
-      <div class="hud-selection-name" data-selection-name>${formatEntityName(selectionState.selectedEntityType)}</div>
+      <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
       <div class="hud-selection-meta">
         ${selectionState.x === null || selectionState.y === null ? 'No active entity.' : `Tile ${selectionState.x}, ${selectionState.y}`}
       </div>

@@ -15,6 +15,7 @@ interface SimulationBridge {
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
@@ -31,16 +32,38 @@ export interface CameraState {
   height: number;
 }
 
+export interface SelectionBoxState {
+  active: boolean;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  width: number;
+  height: number;
+}
+
+interface DragSelectionState {
+  pointerId: number;
+  startScreenX: number;
+  startScreenY: number;
+  currentScreenX: number;
+  currentScreenY: number;
+}
+
+const DRAG_SELECTION_THRESHOLD_PX = 8;
+
 export class GameScene extends Phaser.Scene {
   private readonly bridge: SimulationBridge;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private entityLayer?: Phaser.GameObjects.Graphics;
   private fogLayer?: Phaser.GameObjects.Graphics;
   private selectionLayer?: Phaser.GameObjects.Graphics;
+  private selectionBoxLayer?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private lastRenderedTick = -1;
   private lastSelectionKey = '';
+  private dragSelection: DragSelectionState | null = null;
 
   constructor(bridge: SimulationBridge) {
     super('game');
@@ -52,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     this.entityLayer = this.add.graphics();
     this.fogLayer = this.add.graphics();
     this.selectionLayer = this.add.graphics();
+    this.selectionBoxLayer = this.add.graphics();
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
@@ -72,17 +96,84 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
-      const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
-
       if (pointer.rightButtonDown()) {
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
+        const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
         this.bridge.issueContextCommand(cellX, cellY);
         return;
       }
 
+      if (!pointer.leftButtonDown()) {
+        return;
+      }
+
+      if (this.bridge.getSelectionState().placementMode) {
+        return;
+      }
+
+      this.dragSelection = {
+        pointerId: pointer.id,
+        startScreenX: pointer.x,
+        startScreenY: pointer.y,
+        currentScreenX: pointer.x,
+        currentScreenY: pointer.y,
+      };
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.dragSelection || pointer.id !== this.dragSelection.pointerId || !pointer.leftButtonDown()) {
+        return;
+      }
+
+      this.dragSelection.currentScreenX = pointer.x;
+      this.dragSelection.currentScreenY = pointer.y;
+    });
+
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) {
+        return;
+      }
+
+      if (this.dragSelection && pointer.id === this.dragSelection.pointerId) {
+        this.dragSelection.currentScreenX = pointer.x;
+        this.dragSelection.currentScreenY = pointer.y;
+      }
+
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
+      const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
+
       if (this.bridge.getSelectionState().placementMode) {
         this.bridge.confirmBuildingPlacement(cellX, cellY);
+        return;
+      }
+
+      if (!this.dragSelection || pointer.id !== this.dragSelection.pointerId) {
+        return;
+      }
+
+      const dragSelection = this.dragSelection;
+      this.dragSelection = null;
+
+      if (this.isDragSelectionActive(dragSelection)) {
+        const selectionStart = this.cameras.main.getWorldPoint(
+          dragSelection.startScreenX,
+          dragSelection.startScreenY,
+        );
+        const selectionEnd = this.cameras.main.getWorldPoint(
+          dragSelection.currentScreenX,
+          dragSelection.currentScreenY,
+        );
+        const didSelect = this.bridge.selectUnitsInBox(
+          Math.floor(selectionStart.x / CELL_SIZE),
+          Math.floor(selectionStart.y / CELL_SIZE),
+          Math.floor(selectionEnd.x / CELL_SIZE),
+          Math.floor(selectionEnd.y / CELL_SIZE),
+        );
+        if (!didSelect) {
+          this.bridge.clearSelection();
+        }
         return;
       }
 
@@ -97,14 +188,15 @@ export class GameScene extends Phaser.Scene {
     this.updateCamera(delta);
 
     const state = this.bridge.getRenderState();
-    const selectionKey = this.getSelectionKey();
+    const selectionState = this.bridge.getSelectionState();
+    const selectionKey = this.getSelectionKey(selectionState);
     if (state.tick === this.lastRenderedTick && selectionKey === this.lastSelectionKey) {
       return;
     }
 
     this.lastRenderedTick = state.tick;
     this.lastSelectionKey = selectionKey;
-    this.renderState(state, this.bridge.getSelectionState());
+    this.renderState(state, selectionState);
   }
 
   private updateCamera(delta: number): void {
@@ -126,7 +218,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderState(state: RenderState, selectionState: SelectionState): void {
-    if (!this.terrainLayer || !this.entityLayer || !this.fogLayer || !this.selectionLayer) {
+    if (
+      !this.terrainLayer
+      || !this.entityLayer
+      || !this.fogLayer
+      || !this.selectionLayer
+      || !this.selectionBoxLayer
+    ) {
       return;
     }
 
@@ -134,6 +232,7 @@ export class GameScene extends Phaser.Scene {
     this.entityLayer.clear();
     this.fogLayer.clear();
     this.selectionLayer.clear();
+    this.selectionBoxLayer.clear();
 
     for (const entity of state.entities) {
       const px = entity.x * CELL_SIZE;
@@ -193,6 +292,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.renderSelection(state, selectionState);
+    this.renderSelectionBox();
   }
 
   private renderFog(frame: ProjectedFrameView): void {
@@ -221,40 +321,86 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderSelection(state: RenderState, selectionState: SelectionState): void {
-    if (!this.selectionLayer || selectionState.selectedEntityId === null) {
+    if (!this.selectionLayer || selectionState.selectedEntityIds.length === 0) {
       return;
     }
 
-    const entity = state.entities.find((candidate) => candidate.id === selectionState.selectedEntityId);
-    if (!entity) {
-      return;
-    }
-
-    const px = entity.x * CELL_SIZE;
-    const py = entity.y * CELL_SIZE;
     this.selectionLayer.lineStyle(2, 0xf7e5a5, 0.9);
+    const selectedIds = new Set(selectionState.selectedEntityIds);
 
-    if (entity.kind === 'building') {
-      this.selectionLayer.strokeRoundedRect(
-        px - CELL_SIZE * 0.25,
-        py - CELL_SIZE * 0.25,
-        CELL_SIZE * entity.size + CELL_SIZE * 0.2,
-        CELL_SIZE * entity.size + CELL_SIZE * 0.2,
-        6,
+    for (const entity of state.entities) {
+      if (!selectedIds.has(entity.id)) {
+        continue;
+      }
+
+      const px = entity.x * CELL_SIZE;
+      const py = entity.y * CELL_SIZE;
+
+      if (entity.kind === 'building') {
+        this.selectionLayer.strokeRoundedRect(
+          px - CELL_SIZE * 0.25,
+          py - CELL_SIZE * 0.25,
+          CELL_SIZE * entity.size + CELL_SIZE * 0.2,
+          CELL_SIZE * entity.size + CELL_SIZE * 0.2,
+          6,
+        );
+        continue;
+      }
+
+      this.selectionLayer.strokeCircle(
+        px + CELL_SIZE * 0.5,
+        py + CELL_SIZE * 0.5,
+        CELL_SIZE * Math.max(entity.size, 0.55),
       );
-      return;
     }
-
-    this.selectionLayer.strokeCircle(
-      px + CELL_SIZE * 0.5,
-      py + CELL_SIZE * 0.5,
-      CELL_SIZE * Math.max(entity.size, 0.55),
-    );
   }
 
-  private getSelectionKey(): string {
-    const selectionState = this.bridge.getSelectionState();
-    return `${selectionState.selectedEntityId ?? 'none'}:${selectionState.placementMode ?? 'none'}`;
+  private renderSelectionBox(): void {
+    if (!this.selectionBoxLayer) {
+      return;
+    }
+
+    const selectionBoxState = this.getSelectionBoxState();
+    if (!selectionBoxState?.active) {
+      return;
+    }
+
+    const minX = Math.min(selectionBoxState.startX, selectionBoxState.currentX);
+    const minY = Math.min(selectionBoxState.startY, selectionBoxState.currentY);
+    const maxX = Math.max(selectionBoxState.startX, selectionBoxState.currentX);
+    const maxY = Math.max(selectionBoxState.startY, selectionBoxState.currentY);
+    const worldStart = this.cameras.main.getWorldPoint(minX, minY);
+    const worldEnd = this.cameras.main.getWorldPoint(maxX, maxY);
+    const width = Math.max(1, worldEnd.x - worldStart.x);
+    const height = Math.max(1, worldEnd.y - worldStart.y);
+
+    this.selectionBoxLayer.lineStyle(2, 0xf7e5a5, 0.98);
+    this.selectionBoxLayer.fillStyle(0xf7e5a5, 0.18);
+    this.selectionBoxLayer.fillRect(worldStart.x, worldStart.y, width, height);
+    this.selectionBoxLayer.strokeRect(worldStart.x, worldStart.y, width, height);
+  }
+
+  private getSelectionKey(selectionState: SelectionState): string {
+    const selectionIds = selectionState.selectedEntityIds.length > 0
+      ? selectionState.selectedEntityIds.join(',')
+      : 'none';
+    const selectionBoxState = this.getSelectionBoxState();
+    const selectionBoxKey = selectionBoxState
+      ? [
+        selectionBoxState.startX,
+        selectionBoxState.startY,
+        selectionBoxState.currentX,
+        selectionBoxState.currentY,
+      ].join(',')
+      : 'none';
+    return `${selectionIds}:${selectionState.placementMode ?? 'none'}:${selectionBoxKey}`;
+  }
+
+  private isDragSelectionActive(dragSelection: DragSelectionState): boolean {
+    return (
+      Math.abs(dragSelection.currentScreenX - dragSelection.startScreenX) >= DRAG_SELECTION_THRESHOLD_PX
+      || Math.abs(dragSelection.currentScreenY - dragSelection.startScreenY) >= DRAG_SELECTION_THRESHOLD_PX
+    );
   }
 
   getCameraState(): CameraState | null {
@@ -288,6 +434,25 @@ export class GameScene extends Phaser.Scene {
     return {
       x: bounds.left + (worldX - worldView.x) * scaleX,
       y: bounds.top + (worldY - worldView.y) * scaleY,
+    };
+  }
+
+  getSelectionBoxState(): SelectionBoxState | null {
+    if (!this.dragSelection || !this.isDragSelectionActive(this.dragSelection)) {
+      return null;
+    }
+
+    const width = Math.abs(this.dragSelection.currentScreenX - this.dragSelection.startScreenX);
+    const height = Math.abs(this.dragSelection.currentScreenY - this.dragSelection.startScreenY);
+
+    return {
+      active: true,
+      startX: this.dragSelection.startScreenX,
+      startY: this.dragSelection.startScreenY,
+      currentX: this.dragSelection.currentScreenX,
+      currentY: this.dragSelection.currentScreenY,
+      width,
+      height,
     };
   }
 }

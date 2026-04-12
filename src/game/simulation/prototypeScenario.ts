@@ -893,6 +893,135 @@ function createTownCenterDefenseFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createVillagerSelectionFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 9,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+function createMixedSelectionFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'house',
+        x: 9,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'militia',
+        x: 9,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'scout',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -1098,6 +1227,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'town-center-defense-fixture') {
     return createTownCenterDefenseFixture(seed);
+  }
+
+  if (seed === 'villager-selection-fixture') {
+    return createVillagerSelectionFixture(seed);
+  }
+
+  if (seed === 'mixed-selection-fixture') {
+    return createMixedSelectionFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

@@ -61,6 +61,7 @@ export interface SimulationBridge {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
@@ -942,6 +943,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   selectEntityAtCell: (x: number, y: number) => boolean;
+  selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
@@ -982,7 +984,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     outcome: 'running',
     summary: 'Battle in progress.',
   };
-  let selectedEntityRef: EntityRef | null = null;
+  let selectedEntityRefs: EntityRef[] = [];
   let placementMode: BuildableBuildingType | null = null;
 
   world.registerComponent<Position>('position');
@@ -1494,18 +1496,105 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
-  function getSelectedEntityId(): number | null {
-    const id = getCurrentEntityId(selectedEntityRef);
-    if (id !== null) {
-      return id;
+  function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {
+    if (!isMatchRunning()) {
+      return false;
     }
 
-    if (selectedEntityRef !== null) {
-      selectedEntityRef = null;
+    const clampedMinX = clamp(Math.min(minX, maxX), 0, MAP_WIDTH - 1);
+    const clampedMaxX = clamp(Math.max(minX, maxX), 0, MAP_WIDTH - 1);
+    const clampedMinY = clamp(Math.min(minY, maxY), 0, MAP_HEIGHT - 1);
+    const clampedMaxY = clamp(Math.max(minY, maxY), 0, MAP_HEIGHT - 1);
+
+    const ids = [...world.query('position', 'unit')]
+      .map((id) => ({
+        id,
+        position: world.getComponent<Position>(id, 'position'),
+        unit: world.getComponent<UnitComponent>(id, 'unit'),
+      }))
+      .filter(
+        (
+          entry,
+        ): entry is { id: number; position: Position; unit: UnitComponent } =>
+          entry.position !== undefined
+          && entry.unit !== undefined
+          && entry.unit.owner === HUMAN_PLAYER_ID
+          && entry.position.x >= clampedMinX
+          && entry.position.x <= clampedMaxX
+          && entry.position.y >= clampedMinY
+          && entry.position.y <= clampedMaxY,
+      )
+      .sort((left, right) => {
+        const yDelta = left.position.y - right.position.y;
+        if (yDelta !== 0) {
+          return yDelta;
+        }
+
+        return left.position.x - right.position.x;
+      })
+      .map((entry) => entry.id);
+
+    selectedEntityRefs = ids
+      .map((id) => getEntityRef(id))
+      .filter((ref): ref is EntityRef => ref !== null);
+
+    if (selectedEntityRefs.length === 0) {
+      placementMode = null;
+      return false;
+    }
+
+    placementMode = null;
+    return true;
+  }
+
+  function getSelectedEntityIds(): number[] {
+    const ids: number[] = [];
+    const nextRefs: EntityRef[] = [];
+
+    for (const ref of selectedEntityRefs) {
+      const id = getCurrentEntityId(ref);
+      if (id === null || ids.includes(id)) {
+        continue;
+      }
+
+      ids.push(id);
+      nextRefs.push(ref);
+    }
+
+    if (nextRefs.length !== selectedEntityRefs.length) {
+      selectedEntityRefs = nextRefs;
+      if (selectedEntityRefs.length === 0) {
+        placementMode = null;
+      }
+    }
+
+    return ids;
+  }
+
+  function getSelectedEntityId(): number | null {
+    const ids = getSelectedEntityIds();
+    if (ids.length > 0) {
+      return ids[0];
+    }
+
+    if (selectedEntityRefs.length > 0) {
+      selectedEntityRefs = [];
       placementMode = null;
     }
 
     return null;
+  }
+
+  function removeSelectedEntity(id: number): void {
+    const nextRefs = selectedEntityRefs.filter((ref) => getCurrentEntityId(ref) !== id);
+    if (nextRefs.length === selectedEntityRefs.length) {
+      return;
+    }
+
+    selectedEntityRefs = nextRefs;
+    if (selectedEntityRefs.length === 0) {
+      placementMode = null;
+    }
   }
 
   function findResourceAtCell(x: number, y: number): number | null {
@@ -1665,10 +1754,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
     }
 
-    if (isSameEntity(selectedEntityRef, id, world)) {
-      selectedEntityRef = null;
-      placementMode = null;
-    }
+    removeSelectedEntity(id);
 
     unitCommands.delete(id);
     combatStates.delete(id);
@@ -1700,10 +1786,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
     }
 
-    if (isSameEntity(selectedEntityRef, id, world)) {
-      selectedEntityRef = null;
-      placementMode = null;
-    }
+    removeSelectedEntity(id);
 
     productionQueues.delete(id);
     rallyPoints.delete(id);
@@ -1937,7 +2020,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     garrisonedUnitToBuilding.set(unitId, buildingId);
     currentUnits.push(unitId);
     garrisonedByBuilding.set(buildingId, currentUnits);
-    selectedEntityRef = null;
+    selectedEntityRefs = [];
     placementMode = null;
     return true;
   }
@@ -3044,10 +3127,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   syncVisibilitySources(world, visibility, trackedVisibilitySources);
 
   function getSelectionState(): SelectionState {
-    const selectedEntityId = getSelectedEntityId();
+    const selectedEntityIds = getSelectedEntityIds();
+    const selectedEntityId = selectedEntityIds[0] ?? null;
     if (selectedEntityId === null) {
       return {
         selectedEntityId: null,
+        selectedEntityIds: [],
+        selectedCount: 0,
         selectedKind: null,
         selectedEntityType: null,
         owner: null,
@@ -3067,10 +3153,24 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!position || (!unit && !building)) {
-      selectedEntityRef = null;
+      selectedEntityRefs = [];
       return getSelectionState();
     }
 
+    const selectedUnits = selectedEntityIds
+      .map((id) => ({
+        id,
+        unit: world.getComponent<UnitComponent>(id, 'unit'),
+      }))
+      .filter((entry): entry is { id: number; unit: UnitComponent } => entry.unit !== undefined);
+    const allSelectedUnitsAreHumanVillagers =
+      selectedUnits.length === selectedEntityIds.length
+      && selectedUnits.length > 0
+      && selectedUnits.every((entry) => entry.unit.owner === HUMAN_PLAYER_ID && entry.unit.unitType === 'villager');
+    const allSelectedUnitsShareType =
+      selectedUnits.length === selectedEntityIds.length
+      && selectedUnits.length > 0
+      && selectedUnits.every((entry) => entry.unit.unitType === selectedUnits[0].unit.unitType);
     const trainOptions: TrainableUnitType[] =
       building?.owner === HUMAN_PLAYER_ID
         ? getTrainOptions(building.owner, building.buildingType)
@@ -3084,7 +3184,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         ? getMarketOptions(building.owner, building.buildingType)
         : [];
     const buildOptions: BuildableBuildingType[] =
-      unit && unit.owner === HUMAN_PLAYER_ID
+      allSelectedUnitsAreHumanVillagers
+        ? getBuildOptions(HUMAN_PLAYER_ID, 'villager')
+        : selectedEntityIds.length === 1 && unit && unit.owner === HUMAN_PLAYER_ID
         ? getBuildOptions(unit.owner, unit.unitType)
         : [];
     const researchOptions: ResearchableTechnologyType[] =
@@ -3094,8 +3196,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     return {
       selectedEntityId,
+      selectedEntityIds,
+      selectedCount: selectedEntityIds.length,
       selectedKind: unit ? 'unit' : 'building',
-      selectedEntityType: unit?.unitType ?? building?.buildingType ?? null,
+      selectedEntityType:
+        selectedEntityIds.length > 1 && !allSelectedUnitsShareType
+          ? null
+          : unit?.unitType ?? building?.buildingType ?? null,
       owner: unit?.owner ?? building?.owner ?? null,
       x: position.x,
       y: position.y,
@@ -3109,23 +3216,91 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     };
   }
 
+  function getSelectedHumanUnitIds(): number[] {
+    return getSelectedEntityIds().filter((id) => {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      return unit?.owner === HUMAN_PLAYER_ID;
+    });
+  }
+
+  function getSelectedHumanVillagerIds(): number[] {
+    return getSelectedHumanUnitIds().filter((id) => {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      return unit?.unitType === 'villager';
+    });
+  }
+
+  function issueUnitContextCommand(unitId: number, target: Position): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+
+    const resourceId =
+      unit.unitType === 'villager'
+        ? findResourceAtCell(target.x, target.y)
+        : null;
+    const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType);
+    const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
+    const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
+
+    if (ownedGarrisonBuildingId !== null) {
+      return garrisonUnit(unitId, ownedGarrisonBuildingId);
+    }
+
+    if (hostileUnitId !== null) {
+      return issueUnitAttackCommand(unitId, hostileUnitId, 'unit');
+    }
+
+    if (hostileBuildingId !== null) {
+      return issueUnitAttackCommand(unitId, hostileBuildingId, 'building');
+    }
+
+    if (resourceId === null) {
+      return issueUnitMoveCommand(unitId, target);
+    }
+
+    const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
+    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
+    if (!gatherer || !resource) {
+      return issueUnitMoveCommand(unitId, target);
+    }
+
+    clearGathererOrder(unitId);
+    unitCommands.delete(unitId);
+    gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
+    gatherer.task = 'to-resource';
+    gatherer.targetResourceId = resourceId;
+    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
+      world,
+      unit.owner,
+      gatherer.desiredResource,
+      target,
+    );
+    gatherer.gatherProgressTicks = 0;
+    return true;
+  }
+
   function selectEntityAtCell(x: number, y: number): boolean {
     if (!isMatchRunning()) {
       return false;
     }
 
     const nextSelection = findSelectableEntityAtCell(x, y);
-    selectedEntityRef = nextSelection === null ? null : getEntityRef(nextSelection);
+    selectedEntityRefs =
+      nextSelection === null
+        ? []
+        : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
     if (nextSelection === null) {
       placementMode = null;
       return false;
     }
 
-    return selectedEntityRef !== null;
+    return selectedEntityRefs.length > 0;
   }
 
   function clearSelection(): void {
-    selectedEntityRef = null;
+    selectedEntityRefs = [];
     placementMode = null;
   }
 
@@ -3134,21 +3309,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
+    const selectedUnitIds = getSelectedHumanUnitIds();
+    if (selectedUnitIds.length === 0) {
       return false;
     }
 
     placementMode = null;
-    return issueUnitMoveCommand(selectedEntityId, {
-      x,
-      y,
-    });
+    let didIssue = false;
+    for (const unitId of selectedUnitIds) {
+      didIssue = issueUnitMoveCommand(unitId, {
+        x,
+        y,
+      }) || didIssue;
+    }
+
+    return didIssue;
   }
 
   function issueContextCommand(x: number, y: number): boolean {
@@ -3162,7 +3337,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (building && building.owner === HUMAN_PLAYER_ID) {
+    if (building && building.owner === HUMAN_PLAYER_ID && getSelectedEntityIds().length === 1) {
       const construction = constructionStates.get(selectedEntityId);
       if (construction && !construction.isComplete) {
         return false;
@@ -3176,8 +3351,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return true;
     }
 
-    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
+    const selectedUnitIds = getSelectedHumanUnitIds();
+    if (selectedUnitIds.length === 0) {
       return false;
     }
 
@@ -3185,52 +3360,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       x: clamp(x, 0, MAP_WIDTH - 1),
       y: clamp(y, 0, MAP_HEIGHT - 1),
     };
-    const resourceId =
-      unit.unitType === 'villager'
-        ? findResourceAtCell(target.x, target.y)
-        : null;
-    const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType);
-    const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
-    const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
-
-    if (ownedGarrisonBuildingId !== null) {
-      placementMode = null;
-      return garrisonUnit(selectedEntityId, ownedGarrisonBuildingId);
-    }
-
-    if (hostileUnitId !== null) {
-      placementMode = null;
-      return issueUnitAttackCommand(selectedEntityId, hostileUnitId, 'unit');
-    }
-
-    if (hostileBuildingId !== null) {
-      placementMode = null;
-      return issueUnitAttackCommand(selectedEntityId, hostileBuildingId, 'building');
-    }
-
-    if (resourceId === null) {
-      return issueMoveCommand(target.x, target.y);
-    }
-
-    const gatherer = world.getComponent<GathererComponent>(selectedEntityId, 'gatherer');
-    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    if (!gatherer || !resource) {
-      return issueMoveCommand(target.x, target.y);
-    }
-
     placementMode = null;
-    unitCommands.delete(selectedEntityId);
-    gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
-    gatherer.task = 'to-resource';
-    gatherer.targetResourceId = resourceId;
-    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
-      world,
-      unit.owner,
-      gatherer.desiredResource,
-      target,
-    );
-    gatherer.gatherProgressTicks = 0;
-    return true;
+    let didIssue = false;
+    for (const unitId of selectedUnitIds) {
+      didIssue = issueUnitContextCommand(unitId, target) || didIssue;
+    }
+
+    return didIssue;
   }
 
   function queueTrainUnit(unitType: TrainableUnitType): boolean {
@@ -3312,12 +3448,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
+    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
+    if (selectedVillagerId === null) {
       return false;
     }
 
-    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
     if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
       return false;
     }
@@ -3331,12 +3467,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    const selectedEntityId = getSelectedEntityId();
-    if (placementMode === null || selectedEntityId === null) {
+    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
+    if (placementMode === null || selectedVillagerId === null) {
       return false;
     }
 
-    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
     if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
       return false;
     }
@@ -3346,7 +3482,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       y: clamp(y, 0, MAP_HEIGHT - 1),
     };
     const buildingType = placementMode;
-    const didStartConstruction = startConstruction(selectedEntityId, buildingType, anchor);
+    const didStartConstruction = startConstruction(selectedVillagerId, buildingType, anchor);
     if (didStartConstruction) {
       placementMode = null;
     }
@@ -3479,6 +3615,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     },
     getSelectionState,
     selectEntityAtCell,
+    selectUnitsInBox,
     clearSelection,
     issueContextCommand,
     issueMoveCommand,
@@ -3489,7 +3626,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected(id: number) {
-      return isSameEntity(selectedEntityRef, id, world);
+      return getSelectedEntityIds().includes(id);
     },
   };
 }
@@ -3505,6 +3642,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getMatchState,
     getSelectionState,
     selectEntityAtCell,
+    selectUnitsInBox,
     clearSelection,
     issueContextCommand,
     issueMoveCommand,
@@ -3578,6 +3716,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getEconomyState,
     getSelectionState,
     selectEntityAtCell,
+    selectUnitsInBox,
     clearSelection,
     issueContextCommand,
     issueMoveCommand,

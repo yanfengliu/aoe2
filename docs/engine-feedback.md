@@ -67,8 +67,10 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Extending the existing building-combat loop to Town Centers was low-friction once garrison state existed. The engine does not need a bespoke "defensive arrow" primitive for this scale, but richer projectile rules, multiple targets, and true arrow-count formulas will still live in repo combat policy.
 - Castle Age plus `Knight` also fit the current repo-owned queue model cleanly. Reusing the Town Center research queue and Stable producer menu was straightforward, which is a good sign that age progression and unit-roster growth do not require new engine primitives each time.
 - Additional Town Centers also fit the existing build-and-produce seams cleanly. Reusing Villager placement, construction completion, and the Town Center production queue was straightforward even though the original prototype only had one Town Center per owner.
+- Multi-unit box selection fit the current engine boundary well. Querying owned units by world position and issuing one fan-out move/context command stayed simulation-owned, which is a good sign for future control groups and formation work.
 - Age-prerequisite logic is still repo policy spread across helper functions and switch sites. Adding `Castle Age` was manageable, but later Castle/Imperial unlock breadth will keep increasing the payoff of moving more producer and prerequisite rules into normalized content instead of code.
 - Some helper state still assumes one "primary" Town Center per owner. The current `townCenterRefs` usage is good enough for this slice, but deeper AI, economy, and fallback targeting will need to reason over multiple completed Town Centers instead of one cached reference.
+- Marquee UX is still entirely repo-owned. `civ-engine` makes the unit-selection rule easy to express, but the Phaser bridge still has to own drag thresholds, screen-to-world rectangle projection, and mixed-selection HUD policy.
 
 ## Implications for next phases
 

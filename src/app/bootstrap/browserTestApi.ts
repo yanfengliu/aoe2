@@ -9,6 +9,7 @@ import type {
 import type {
   CameraState,
   GameScene,
+  SelectionBoxState,
 } from '../../phaser/scenes/GameScene';
 
 interface BrowserTestBridge {
@@ -37,6 +38,7 @@ export interface BrowserTestApi {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
+  getSelectionBoxState(): SelectionBoxState | null;
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   clearSelection(): void;
@@ -77,6 +79,7 @@ export function installBrowserTestApi(
     getEconomyState: () => bridge.getEconomyState(),
     getSelectionState: () => bridge.getSelectionState(),
     getCameraState: () => scene.getCameraState(),
+    getSelectionBoxState: () => scene.getSelectionBoxState(),
     worldToScreen: (cellX: number, cellY: number) => {
       const point = scene.getScreenPointForCell(cellX, cellY);
       if (!point) {

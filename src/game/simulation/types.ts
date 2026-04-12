@@ -195,6 +195,8 @@ export interface EconomyState {
 
 export interface SelectionState {
   selectedEntityId: number | null;
+  selectedEntityIds: number[];
+  selectedCount: number;
   selectedKind: 'unit' | 'building' | null;
   selectedEntityType: UnitType | BuildingType | null;
   owner: number | null;

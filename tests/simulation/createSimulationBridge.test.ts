@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
+import type { SelectionState } from '../../src/game/simulation/types';
 
 describe('createSimulationBridge', () => {
   it('starts with player-local visibility and nearby resources', () => {
@@ -109,6 +110,67 @@ describe('createSimulationBridge', () => {
       cap: 5,
     });
     expect(bridge.getSelectionState().queue).toHaveLength(0);
+  });
+
+  it('can box-select multiple villagers and issue one move command to the whole group', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(
+      (
+        bridge as unknown as {
+          selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
+        }
+      ).selectUnitsInBox(5, 7, 7, 9),
+    ).toBe(true);
+
+    const selectionState = bridge.getSelectionState() as SelectionState & {
+      selectedCount?: number;
+      selectedEntityIds?: number[];
+    };
+    expect(selectionState.selectedCount).toBe(3);
+    expect(selectionState.selectedEntityIds).toHaveLength(3);
+
+    expect(bridge.issueMoveCommand(10, 12)).toBe(true);
+
+    for (let index = 0; index < 40; index += 1) {
+      bridge.step(100);
+    }
+
+    const movedVillagers = bridge
+      .getEconomyState()
+      .units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+      );
+    expect(movedVillagers).toHaveLength(3);
+  });
+
+  it('selects every friendly movable unit in the drag box while ignoring buildings', () => {
+    const bridge = createSimulationBridge('mixed-selection-fixture');
+
+    expect(bridge.selectUnitsInBox(7, 9, 10, 10)).toBe(true);
+
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBe(3);
+    expect(selectionState.selectedEntityIds).toHaveLength(3);
+    expect(selectionState.selectedEntityType).toBeNull();
+    expect(selectionState.buildOptions).toEqual([]);
+
+    expect(bridge.issueMoveCommand(14, 12)).toBe(true);
+
+    for (let index = 0; index < 40; index += 1) {
+      bridge.step(100);
+    }
+
+    const movedUnits = bridge
+      .getEconomyState()
+      .units.filter(
+        (unit) =>
+          unit.owner === 1
+          && ['villager', 'militia', 'scout'].includes(unit.unitType)
+          && unit.x >= 13
+          && unit.y >= 11,
+      );
+    expect(movedUnits).toHaveLength(3);
   });
 
   it('lets a selected villager place and complete a House that raises population cap', () => {
