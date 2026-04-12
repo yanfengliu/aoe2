@@ -389,6 +389,34 @@ test.describe('browser gameplay smoke tests', () => {
     });
   });
 
+  test('can train a Spearman and use it to kill a visible Scout through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-spearman-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
+    await page.locator('[data-command="train-spearman"]').click();
+    await expect(page.locator('[data-hud="food"]')).toHaveText('215');
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('125');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(240, 100));
+
+    expect(await selectOwnedUnitDirect(page, 1, 'spearman')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Spearman');
+    await clickCell(page, 14, 10, 'right');
+
+    const postCombatSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(80, 100),
+    );
+
+    expect(
+      postCombatSnapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 

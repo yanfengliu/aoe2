@@ -84,6 +84,7 @@ const STABLE_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const BLACKSMITH_BUILD_TIME_TICKS = 200;
 const MILITIA_TRAIN_TIME_TICKS = 210;
+const SPEARMAN_TRAIN_TIME_TICKS = 220;
 const SCOUT_TRAIN_TIME_TICKS = 300;
 const ARCHER_TRAIN_TIME_TICKS = 350;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
@@ -461,6 +462,8 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { food: 80 };
     case 'militia':
       return { food: 60, gold: 20 };
+    case 'spearman':
+      return { food: 35, wood: 25 };
     case 'archer':
       return { wood: 25, gold: 45 };
   }
@@ -500,6 +503,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return SCOUT_TRAIN_TIME_TICKS;
     case 'militia':
       return MILITIA_TRAIN_TIME_TICKS;
+    case 'spearman':
+      return SPEARMAN_TRAIN_TIME_TICKS;
     case 'archer':
       return ARCHER_TRAIN_TIME_TICKS;
   }
@@ -536,6 +541,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
   return (
     (buildingType === 'town-center' && unitType === 'villager')
     || (buildingType === 'barracks' && unitType === 'militia')
+    || (buildingType === 'barracks' && unitType === 'spearman')
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'archery-range' && unitType === 'archer')
   );
@@ -559,6 +565,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 45;
     case 'militia':
       return 40;
+    case 'spearman':
+      return 45;
     case 'archer':
       return 30;
   }
@@ -572,6 +580,8 @@ function unitAttackDamage(unitType: UnitType): number {
       return 3;
     case 'militia':
       return 4;
+    case 'spearman':
+      return 3;
     case 'archer':
       return 4;
   }
@@ -585,6 +595,8 @@ function unitReloadTicks(unitType: UnitType): number {
       return 12;
     case 'militia':
       return 10;
+    case 'spearman':
+      return 10;
     case 'archer':
       return 20;
   }
@@ -595,10 +607,19 @@ function unitAttackRange(unitType: UnitType): number {
     case 'villager':
     case 'scout':
     case 'militia':
+    case 'spearman':
       return MELEE_ATTACK_RANGE;
     case 'archer':
       return 4;
   }
+}
+
+function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
+  if (attackerType === 'spearman' && targetType === 'scout') {
+    return 12;
+  }
+
+  return 0;
 }
 
 function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
@@ -878,6 +899,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             ? owner === HUMAN_PLAYER_ID
               ? 0xd39a5a
               : 0xd27c7c
+          : unitType === 'spearman'
+            ? owner === HUMAN_PLAYER_ID
+              ? 0x8bb271
+              : 0xc88770
           : unitType === 'archer'
             ? owner === HUMAN_PLAYER_ID
               ? 0x84b6d7
@@ -890,6 +915,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           ? 0.45
           : unitType === 'militia'
             ? 0.5
+            : unitType === 'spearman'
+              ? 0.5
             : unitType === 'archer'
               ? 0.48
               : 0.55,
@@ -1055,6 +1082,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       spawn.kind === 'villager'
       || spawn.kind === 'scout'
       || spawn.kind === 'militia'
+      || spawn.kind === 'spearman'
       || spawn.kind === 'archer'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
@@ -1470,7 +1498,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    if (!canTrainAt(building.buildingType, unitType)) {
+    if (
+      !canTrainAt(building.buildingType, unitType)
+      || !getTrainOptions(building.owner, building.buildingType).includes(unitType)
+    ) {
       return false;
     }
 
@@ -1718,6 +1749,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding) >= 2;
   }
 
+  function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
+    switch (buildingType) {
+      case 'town-center':
+        return ['villager'];
+      case 'barracks': {
+        const options: TrainableUnitType[] = ['militia'];
+        if (getPlayerAge(owner) !== 'dark-age') {
+          options.push('spearman');
+        }
+        return options;
+      }
+      case 'stable':
+        return getPlayerAge(owner) !== 'dark-age' ? ['scout'] : [];
+      case 'archery-range':
+        return getPlayerAge(owner) !== 'dark-age' ? ['archer'] : [];
+      default:
+        return [];
+    }
+  }
+
   function getResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
     if (buildingType === 'town-center' && canAdvanceToFeudalAge(owner)) {
       return ['feudal-age'];
@@ -1758,10 +1809,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return 0;
       case 'archer':
         return 1;
-      case 'militia':
+      case 'spearman':
         return 2;
-      case 'scout':
+      case 'militia':
         return 3;
+      case 'scout':
+        return 4;
     }
   }
 
@@ -2091,7 +2144,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               continue;
             }
 
-            targetCombat.currentHp -= attackerCombat.attackDamage;
+            targetCombat.currentHp -=
+              attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
 
             if (targetCombat.currentHp <= 0) {
@@ -2466,15 +2520,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     const trainOptions: TrainableUnitType[] =
       building?.owner === HUMAN_PLAYER_ID
-        ? building.buildingType === 'town-center'
-          ? ['villager']
-          : building.buildingType === 'barracks'
-            ? ['militia']
-            : building.buildingType === 'stable'
-              ? ['scout']
-            : building.buildingType === 'archery-range'
-              ? ['archer']
-            : []
+        ? getTrainOptions(building.owner, building.buildingType)
         : [];
     const buildOptions: BuildableBuildingType[] =
       unit && unit.owner === HUMAN_PLAYER_ID

@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-11 - Added the first Feudal counter-unit slice. Feudal Barracks can now queue Spearmen, Spearmen apply an anti-scout combat bonus, and automated coverage is now `28` Vitest assertions plus `17` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal cavalry-production slice. Feudal villagers can now place Stables, completed Stables can queue Scout Cavalry, and automated coverage is now `27` Vitest assertions plus `16` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal technology slice. Feudal villagers can now place Blacksmiths, completed Blacksmiths can research Fletching, and Fletching now buffs both existing and newly trained Archers; automated coverage is now `26` Vitest assertions plus `15` Playwright browser gameplay tests.
 2026-04-11 - Added the first Feudal progression slice. Town Centers can now research Feudal Age after two qualifying Dark Age buildings, Feudal villagers can place Archery Ranges, completed Archery Ranges can queue Archers, and automated coverage is now `25` Vitest assertions plus `14` Playwright browser gameplay tests.

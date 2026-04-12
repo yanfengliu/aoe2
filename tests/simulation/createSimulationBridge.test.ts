@@ -507,4 +507,40 @@ describe('createSimulationBridge', () => {
       attackRange: 1,
     });
   }, 15_000);
+
+  it('can train a Spearman in Feudal Age and use its anti-scout bonus to kill a visible Scout quickly', () => {
+    const bridge = createSimulationBridge('feudal-spearman-fixture');
+
+    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'barracks',
+    });
+    expect(bridge.getSelectionState().trainOptions).toContain('spearman');
+    expect(bridge.queueTrainUnit('spearman')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 215,
+      wood: 125,
+    });
+
+    for (let index = 0; index < 240; index += 1) {
+      bridge.step(100);
+    }
+
+    const spearman = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'spearman');
+    expect(spearman).toBeDefined();
+    expect(bridge.selectEntityAtCell(spearman?.x ?? 0, spearman?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(14, 10)).toBe(true);
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  }, 15_000);
 });
