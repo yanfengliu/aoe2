@@ -40,52 +40,31 @@ describe('createSimulationBridge combat and outcomes', () => {
   });
 
   it('lets a selected Militia attack and kill a visible enemy scout', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
-
-    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    placeBuildingNearTownCenter(bridge, 'barracks');
-
-    for (let index = 0; index < 500; index += 1) {
-      bridge.step(100);
-    }
-
-    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
-    expect(bridge.queueTrainUnit('militia')).toBe(true);
-
-    for (let index = 0; index < 260; index += 1) {
-      bridge.step(100);
-    }
+    const bridge = createSimulationBridge('militia-combat-fixture');
 
     const militia = bridge
       .getEconomyState()
       .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
     expect(militia).toBeDefined();
     expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
-    expect(bridge.issueMoveCommand(12, 5)).toBe(true);
-
-    for (let index = 0; index < 24; index += 1) {
-      bridge.step(100);
-    }
 
     const enemyScout = bridge
       .getEconomyState()
       .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout');
     expect(enemyScout).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(12, 5)).toBe(true);
     expect(bridge.issueContextCommand(enemyScout?.x ?? 0, enemyScout?.y ?? 0)).toBe(true);
-
-    for (let index = 0; index < 320; index += 1) {
-      bridge.step(100);
-    }
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => !bridge.getEconomyState().units.some((unit) => unit.id === (enemyScout?.id ?? -1)),
+        { maxSteps: 480 },
+      ),
+    ).toBe(true);
 
     expect(
       bridge.getEconomyState().units.some(
-        (unit) =>
-          unit.owner === 2
-          && unit.unitType === 'scout'
-          && unit.x === (enemyScout?.x ?? 13)
-          && unit.y === (enemyScout?.y ?? 5),
+        (unit) => unit.id === (enemyScout?.id ?? -1),
       ),
     ).toBe(false);
   }, 10_000);
@@ -132,11 +111,26 @@ describe('createSimulationBridge combat and outcomes', () => {
   }, 10_000);
 
   it('lets the AI build a Barracks and kill a human villager', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const bridge = createSimulationBridge('ai-rush-fixture');
 
-    for (let index = 0; index < 1_200; index += 1) {
-      bridge.step(100);
-    }
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const economyState = bridge.getEconomyState();
+          const aiBarracksComplete = economyState.buildings.some(
+            (building) =>
+              building.owner === 2
+              && building.buildingType === 'barracks'
+              && building.isComplete,
+          );
+          const villagerLossOccurred =
+            economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager').length < 3;
+          return aiBarracksComplete && villagerLossOccurred;
+        },
+        { maxSteps: 2_000 },
+      ),
+    ).toBe(true);
 
     const economyState = bridge.getEconomyState();
     expect(

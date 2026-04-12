@@ -557,7 +557,7 @@ test.describe('browser gameplay smoke tests', () => {
   });
 
   test('advances human economy and exploration only after explicit gather and move orders', async ({ page }) => {
-    await waitForBoot(page);
+    await waitForBootWithSeed(page, 'orders-fixture');
 
     const initialSnapshot = await getSnapshot(page);
     const sheepCells = await getOwnedResourceCells(page, 1, 'sheep');
@@ -567,10 +567,33 @@ test.describe('browser gameplay smoke tests', () => {
     await clickCell(page, sheepCells[0].x, sheepCells[0].y, 'right');
 
     expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await clickCell(page, 14, 7, 'right');
+    await clickCell(page, 16, 12, 'right');
 
     const advancedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
+      ({ initialFood, initialExploredCells }) => {
+        const api = window.__AOE2_TEST__!;
+        let snapshot = api.getSnapshot();
+        for (let index = 0; index < 320; index += 1) {
+          snapshot = api.advanceTicks(1, 100);
+          const foodIncreased = snapshot.hudState.playerResources.food > initialFood;
+          const exploredIncreased =
+            (snapshot.renderState.frame?.exploredCells.length ?? 0) > initialExploredCells;
+          const sheepHarvested = snapshot.economyState.resources.some(
+            (resource) =>
+              resource.baseOwner === 1
+              && resource.resourceType === 'sheep'
+              && resource.amount < resource.maxAmount,
+          );
+          if (foodIncreased && exploredIncreased && sheepHarvested) {
+            break;
+          }
+        }
+        return snapshot;
+      },
+      {
+        initialFood: initialSnapshot.hudState.playerResources.food,
+        initialExploredCells: initialSnapshot.renderState.frame?.exploredCells.length ?? 0,
+      },
     );
 
     expect(advancedSnapshot.hudState.playerResources.food).toBeGreaterThan(
@@ -606,7 +629,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(initialTownCenterRender).toBeDefined();
 
     expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await clickCell(page, 14, 7, 'right');
+    await clickCell(page, 12, 7, 'right');
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(1, 100),
@@ -735,9 +758,22 @@ test.describe('browser gameplay smoke tests', () => {
 
     await clickCell(page, 10, 12, 'right');
 
-    const movedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(40, 100),
-    );
+    const movedSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+
+      for (let index = 0; index < 80; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const arrivedCount = snapshot.economyState.units.filter(
+          (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+        ).length;
+        if (arrivedCount === 3) {
+          break;
+        }
+      }
+
+      return snapshot;
+    });
 
     expect(
       movedSnapshot.economyState.units.filter(
@@ -901,7 +937,22 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-hud="wood"]')).toHaveText('425');
     await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
+    await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      for (let index = 0; index < 420; index += 1) {
+        const snapshot = api.advanceTicks(1, 100);
+        const townCenter = snapshot.economyState.buildings.find(
+          (building) =>
+            building.owner === 1
+            && building.buildingType === 'town-center'
+            && building.x === 14
+            && building.y === 8,
+        );
+        if (townCenter?.isComplete) {
+          break;
+        }
+      }
+    });
     await clickCell(page, 18, 10, 'right');
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
 
@@ -1212,17 +1263,30 @@ test.describe('browser gameplay smoke tests', () => {
     await clickCell(page, 15, 10, 'right');
     await page.locator('[data-command="train-skirmisher"]').click();
 
-    const postRallySnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(300, 100),
-    );
+    const postRallySnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let index = 0; index < 360; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const ralliedUnit = snapshot.economyState.units.find(
+          (unit) =>
+            unit.owner === 1
+            && unit.unitType === 'skirmisher'
+            && Math.abs(unit.x - 15) + Math.abs(unit.y - 10) <= 1,
+        );
+        if (ralliedUnit) {
+          break;
+        }
+      }
+      return snapshot;
+    });
 
     expect(
       postRallySnapshot.economyState.units.some(
         (unit) =>
           unit.owner === 1
           && unit.unitType === 'skirmisher'
-          && unit.x === 15
-          && unit.y === 10,
+          && Math.abs(unit.x - 15) + Math.abs(unit.y - 10) <= 1,
       ),
     ).toBe(true);
   });
@@ -1250,7 +1314,23 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      for (let index = 0; index < 700; index += 1) {
+        const snapshot = api.advanceTicks(1, 100);
+        const isComplete = snapshot.economyState.buildings.some(
+          (building) =>
+            building.owner === 1
+            && building.buildingType === 'mining-camp'
+            && building.isComplete,
+        );
+        if (isComplete) {
+          return snapshot;
+        }
+      }
+
+      return api.getSnapshot();
+    });
 
     await expect(page.locator('[data-hud="pop"]')).toHaveText('4/10');
     const completedSnapshot = await getSnapshot(page);
@@ -1448,6 +1528,73 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(false);
   });
 
+  test('shows house placement as invalid on blocked terrain, resources, buildings, and units', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'blocking-rules-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await page.locator('[data-command="build-house"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
+
+    const blockedAnchors = [
+      { x: 10, y: 5 },
+      { x: 12, y: 5 },
+      { x: 14, y: 5 },
+      { x: 8, y: 13 },
+      { x: 7, y: 13 },
+      { x: 4, y: 8 },
+    ];
+
+    for (const anchor of blockedAnchors) {
+      const preview = await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.getPlacementPreviewAt(x, y),
+        anchor,
+      );
+      expect(preview).toMatchObject({
+        active: true,
+        buildingType: 'house',
+        cellX: anchor.x,
+        cellY: anchor.y,
+        isValid: false,
+      });
+    }
+  });
+
+  test('routes movement around blocked terrain and units instead of walking through them', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'blocking-rules-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    await clickCell(page, 10, 13, 'right');
+
+    const visitedCells = await page.evaluate(() => {
+      const blocked = new Set(['7,13', '8,13', '10,5', '12,5', '14,5']);
+      const api = window.__AOE2_TEST__!;
+      const visited: string[] = [];
+
+      for (let index = 0; index < 80; index += 1) {
+        const snapshot = api.advanceTicks(1, 100);
+        const scout = snapshot.economyState.units.find(
+          (unit) => unit.owner === 1 && unit.unitType === 'scout',
+        );
+        if (!scout) {
+          throw new Error('Expected the human scout to exist.');
+        }
+        const key = `${scout.x},${scout.y}`;
+        if (blocked.has(key)) {
+          throw new Error(`Scout entered blocked cell ${key}.`);
+        }
+        visited.push(key);
+      }
+
+      return visited;
+    });
+
+    expect(visitedCells).toContain('10,13');
+  });
+
   test('can right-click a visible resource to redirect villager gathering', async ({ page }) => {
     await waitForBoot(page);
 
@@ -1468,7 +1615,7 @@ test.describe('browser gameplay smoke tests', () => {
   test('can build a Mining Camp from the villager build panel and use it for gold drop-off', async ({
     page,
   }) => {
-    await waitForBoot(page);
+    await waitForBootWithSeed(page, 'mining-camp-fixture');
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
@@ -1539,42 +1686,36 @@ test.describe('browser gameplay smoke tests', () => {
   test('can command a Militia to attack and kill a visible enemy scout', async ({
     page,
   }) => {
-    await waitForBoot(page);
-
-    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
-    await page.locator('[data-command="build-barracks"]').click();
-    const barracksPlacement = await findValidPlacementNearTownCenter(page, 'barracks');
-    await clickCell(page, barracksPlacement.x, barracksPlacement.y);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
-
-    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
-    await page.locator('[data-command="train-militia"]').click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
+    await waitForBootWithSeed(page, 'militia-combat-fixture');
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
-    await clickCell(page, 12, 5, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(24, 100));
-
     const stagedSnapshot = await getSnapshot(page);
     const enemyScout = stagedSnapshot.economyState.units.find(
-      (unit) => unit.owner === 2 && unit.unitType === 'scout' && unit.x === 13 && unit.y === 5,
+      (unit) => unit.owner === 2 && unit.unitType === 'scout',
     );
     expect(enemyScout).toBeDefined();
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
     await clickCell(page, enemyScout?.x ?? 0, enemyScout?.y ?? 0, 'right');
 
-    const combatSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
-    );
+    const combatSnapshot = await page.evaluate((targetScoutId) => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let index = 0; index < 480; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const scoutStillAlive = snapshot.economyState.units.some(
+          (unit) => unit.id === targetScoutId,
+        );
+        if (!scoutStillAlive) {
+          break;
+        }
+      }
+      return snapshot;
+    }, enemyScout?.id ?? -1);
 
     expect(
       combatSnapshot.economyState.units.some(
-        (unit) =>
-          unit.owner === 2
-          && unit.unitType === 'scout'
-          && unit.x === (enemyScout?.x ?? 13)
-          && unit.y === (enemyScout?.y ?? 5),
+        (unit) => unit.id === (enemyScout?.id ?? -1),
       ),
     ).toBe(false);
   });
@@ -1630,11 +1771,29 @@ test.describe('browser gameplay smoke tests', () => {
   test('runs the baseline AI barracks rush through the live game loop', async ({
     page,
   }) => {
-    await waitForBoot(page);
+    await waitForBootWithSeed(page, 'ai-rush-fixture');
 
-    const advancedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(1_200, 100),
-    );
+    const advancedSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let index = 0; index < 2_000; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const aiBarracksComplete = snapshot.economyState.buildings.some(
+          (building) =>
+            building.owner === 2
+            && building.buildingType === 'barracks'
+            && building.isComplete,
+        );
+        const villagerLossOccurred =
+          snapshot.economyState.units.filter(
+            (unit) => unit.owner === 1 && unit.unitType === 'villager',
+          ).length < 3;
+        if (aiBarracksComplete && villagerLossOccurred) {
+          break;
+        }
+      }
+      return snapshot;
+    });
 
     expect(
       advancedSnapshot.economyState.buildings.some(

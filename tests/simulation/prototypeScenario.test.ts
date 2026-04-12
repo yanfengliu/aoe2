@@ -1,13 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
+import { getBuildingFootprint } from '../../src/game/content/buildingFootprints';
 import {
   DEFAULT_SEED,
   MAP_HEIGHT,
   MAP_WIDTH,
   createPrototypeScenario,
 } from '../../src/game/simulation/prototypeScenario';
+import type { BuildingType } from '../../src/game/simulation/types';
 
 describe('createPrototypeScenario', () => {
+  const BUILDING_KINDS = new Set<BuildingType>([
+    'town-center',
+    'house',
+    'mill',
+    'lumber-camp',
+    'mining-camp',
+    'barracks',
+    'watch-tower',
+    'stable',
+    'archery-range',
+    'blacksmith',
+    'market',
+  ]);
+
   it('builds the same map and spawns for the same seed', () => {
     const left = createPrototypeScenario(DEFAULT_SEED);
     const right = createPrototypeScenario(DEFAULT_SEED);
@@ -306,5 +322,45 @@ describe('createPrototypeScenario', () => {
         (spawn) => spawn.owner === 1 && spawn.kind === 'scout',
       ),
     ).toHaveLength(1);
+  });
+
+  it('keeps focused fixture unit spawns outside building footprints', () => {
+    const fixtureNames = [
+      'orders-fixture',
+      'militia-combat-fixture',
+      'ai-rush-fixture',
+      'castle-town-center-fixture',
+      'mining-camp-fixture',
+    ] as const;
+
+    for (const fixtureName of fixtureNames) {
+      const scenario = createPrototypeScenario(fixtureName);
+      const buildingSpawns = scenario.spawns.filter(
+        (spawn): spawn is typeof spawn & { kind: BuildingType } => BUILDING_KINDS.has(spawn.kind as BuildingType),
+      );
+      const unitSpawns = scenario.spawns.filter(
+        (spawn) =>
+          spawn.kind === 'villager'
+          || spawn.kind === 'militia'
+          || spawn.kind === 'scout'
+          || spawn.kind === 'archer'
+          || spawn.kind === 'skirmisher'
+          || spawn.kind === 'spearman'
+          || spawn.kind === 'knight',
+      );
+
+      for (const unitSpawn of unitSpawns) {
+        const overlapsBuilding = buildingSpawns.some((buildingSpawn) => {
+          const footprint = getBuildingFootprint(buildingSpawn.kind);
+          return (
+            unitSpawn.x >= buildingSpawn.x
+            && unitSpawn.x < buildingSpawn.x + footprint.width
+            && unitSpawn.y >= buildingSpawn.y
+            && unitSpawn.y < buildingSpawn.y + footprint.height
+          );
+        });
+        expect(overlapsBuilding, `${fixtureName} spawned ${unitSpawn.kind} inside a building`).toBe(false);
+      }
+    }
   });
 });

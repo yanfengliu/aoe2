@@ -5,6 +5,7 @@ import {
   placeBuildingNearTownCenter,
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
+  stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge progression systems', () => {
@@ -128,9 +129,21 @@ describe('createSimulationBridge progression systems', () => {
       stone: 250,
     });
 
-    for (let index = 0; index < 320; index += 1) {
-      bridge.step(100);
-    }
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge.getEconomyState().buildings.some(
+            (building) =>
+              building.owner === 1
+              && building.buildingType === 'town-center'
+              && building.x === 14
+              && building.y === 8
+              && building.isComplete,
+          ),
+        { maxSteps: 420 },
+      ),
+    ).toBe(true);
 
     expect(
       bridge.getEconomyState().buildings.filter(
@@ -500,17 +513,26 @@ describe('createSimulationBridge progression systems', () => {
     expect(bridge.issueContextCommand(15, 10)).toBe(true);
     expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
 
-    for (let index = 0; index < 300; index += 1) {
-      bridge.step(100);
-    }
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge.getEconomyState().units.some(
+            (unit) =>
+              unit.owner === 1
+              && unit.unitType === 'skirmisher'
+              && Math.abs(unit.x - 15) + Math.abs(unit.y - 10) <= 1,
+          ),
+        { maxSteps: 360 },
+      ),
+    ).toBe(true);
 
     expect(
       bridge.getEconomyState().units.some(
         (unit) =>
           unit.owner === 1
           && unit.unitType === 'skirmisher'
-          && unit.x === 15
-          && unit.y === 10,
+          && Math.abs(unit.x - 15) + Math.abs(unit.y - 10) <= 1,
       ),
     ).toBe(true);
   }, 15_000);

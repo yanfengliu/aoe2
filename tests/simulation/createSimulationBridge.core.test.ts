@@ -96,7 +96,7 @@ describe('createSimulationBridge core systems', () => {
     expect(initialScoutRender).toBeDefined();
 
     expect(bridge.selectEntityAtCell(scout?.x ?? 0, scout?.y ?? 0)).toBe(true);
-    expect(bridge.issueMoveCommand(14, 7)).toBe(true);
+    expect(bridge.issueMoveCommand(12, 7)).toBe(true);
 
     bridge.step(100);
 
@@ -355,14 +355,14 @@ describe('createSimulationBridge core systems', () => {
   });
 
   it('can box-select multiple villagers and issue one move command to the whole group', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const bridge = createSimulationBridge('villager-selection-fixture');
 
     expect(
       (
         bridge as unknown as {
           selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
         }
-      ).selectUnitsInBox(5, 7, 7, 9),
+      ).selectUnitsInBox(5, 10, 7, 11),
     ).toBe(true);
 
     const selectionState = bridge.getSelectionState() as SelectionState & {
@@ -374,16 +374,18 @@ describe('createSimulationBridge core systems', () => {
 
     expect(bridge.issueMoveCommand(10, 12)).toBe(true);
 
-    for (let index = 0; index < 40; index += 1) {
-      bridge.step(100);
-    }
-
-    const movedVillagers = bridge
-      .getEconomyState()
-      .units.filter(
-        (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
-      );
-    expect(movedVillagers).toHaveLength(3);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge
+            .getEconomyState()
+            .units.filter(
+              (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+            ).length === 3,
+        { maxSteps: 80 },
+      ),
+    ).toBe(true);
   });
 
   it('can select all owned on-screen units of the same type without pulling in other unit types', () => {
@@ -542,6 +544,103 @@ describe('createSimulationBridge core systems', () => {
     ).toBe(false);
   });
 
+  it('rejects house placement on blocked terrain, resources, buildings, and units', () => {
+    const bridge = createSimulationBridge('blocking-rules-fixture');
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+
+    expect(bridge.getPlacementPreview(10, 5)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 10,
+      cellY: 5,
+      isValid: false,
+    });
+    expect(bridge.getPlacementPreview(12, 5)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 12,
+      cellY: 5,
+      isValid: false,
+    });
+    expect(bridge.getPlacementPreview(14, 5)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 14,
+      cellY: 5,
+      isValid: false,
+    });
+    expect(bridge.getPlacementPreview(8, 13)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 8,
+      cellY: 13,
+      isValid: false,
+    });
+    expect(bridge.getPlacementPreview(7, 13)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 7,
+      cellY: 13,
+      isValid: false,
+    });
+    expect(bridge.getPlacementPreview(4, 8)).toMatchObject({
+      active: true,
+      buildingType: 'house',
+      cellX: 4,
+      cellY: 8,
+      isValid: false,
+    });
+  });
+
+  it('routes units around impassable terrain and occupied cells without entering blocked cells', () => {
+    const bridge = createSimulationBridge('blocking-rules-fixture');
+
+    expect(bridge.selectEntityAtCell(6, 13)).toBe(true);
+    expect(bridge.issueMoveCommand(10, 13)).toBe(true);
+
+    const blockedCells = new Set(['7,13', '8,13', '10,5', '12,5', '14,5']);
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+      const scout = bridge
+        .getEconomyState()
+        .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+      expect(scout).toBeDefined();
+      expect(blockedCells.has(`${scout?.x},${scout?.y}`)).toBe(false);
+    }
+
+    const scout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(scout).toMatchObject({
+      x: 10,
+      y: 13,
+    });
+  });
+
+  it('moves to the nearest reachable cell instead of entering a blocked resource tile', () => {
+    const bridge = createSimulationBridge('blocking-rules-fixture');
+
+    expect(bridge.selectEntityAtCell(6, 13)).toBe(true);
+    expect(bridge.issueMoveCommand(12, 5)).toBe(true);
+
+    for (let index = 0; index < 120; index += 1) {
+      bridge.step(100);
+    }
+
+    const scout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(scout).toBeDefined();
+    expect(scout).not.toMatchObject({
+      x: 12,
+      y: 5,
+    });
+    expect(Math.abs((scout?.x ?? 0) - 12) + Math.abs((scout?.y ?? 0) - 5)).toBe(1);
+  });
+
   it('redirects a selected villager to gather gold through an explicit context order', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
@@ -556,7 +655,7 @@ describe('createSimulationBridge core systems', () => {
   });
 
   it('uses a completed Mining Camp as the villager gold drop-off point', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const bridge = createSimulationBridge('mining-camp-fixture');
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     placeBuildingNearTownCenter(bridge, 'mining-camp', 1, [
@@ -566,16 +665,21 @@ describe('createSimulationBridge core systems', () => {
     ]);
     expect(bridge.getHudState().playerResources.wood).toBe(100);
 
-    for (let index = 0; index < 400; index += 1) {
-      bridge.step(100);
-    }
-
-    const miningCamp = bridge
-      .getEconomyState()
-      .buildings.find(
-        (building) => building.owner === 1 && building.buildingType === 'mining-camp',
-      );
-    expect(miningCamp?.isComplete).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge
+            .getEconomyState()
+            .buildings.some(
+              (building) =>
+                building.owner === 1
+                && building.buildingType === 'mining-camp'
+                && building.isComplete,
+            ),
+        { maxSteps: 700 },
+      ),
+    ).toBe(true);
 
     expect(bridge.issueContextCommand(13, 7)).toBe(true);
 

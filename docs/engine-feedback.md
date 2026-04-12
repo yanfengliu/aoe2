@@ -84,6 +84,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Combat health bars reinforced the same rule. When health lives in repo-owned side maps instead of world components, the projector can still expose it cleanly, but the render path needs an explicit sync rule for those updates; the debugging guide's focus on render snapshots/diffs made that easier to diagnose.
 - The sub-grid movement guide mapped cleanly onto the current boundary. Keeping coarse `position` authoritative for visibility, occupancy, and command semantics while adding a repo-owned `unitTransform` for fine unit motion let the game gain smoother movement without pushing renderer concerns back into `civ-engine`.
 - HUD interaction bugs can sit entirely outside the engine boundary. The new minimap click-to-pan slice was blocked by DOM `pointer-events` on the HUD overlay even though the camera math and bridge contract were already correct, which is a useful reminder to check the DOM-overlay event contract before suspecting `civ-engine` or Phaser camera state.
+- Stricter blocker-aware pathing exposed a fixture-validation gap more than an engine bug. `civ-engine` was right to reject blocked starts/goals and path through occupancy honestly, but the repo had several old fixtures with units spawned inside building footprints or tests that depended on random-map passability. A lightweight engine-side scenario validator or occupancy probe would make that class of integration mistake cheaper to catch.
 
 ## Implications for next phases
 
@@ -95,6 +96,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Keep expanding deterministic simulation tests alongside each slice. The current economy loop is simple, but the pattern of external stockpile state plus world-owned entities is holding up well.
 - Start moving placement, footprint selection, and movement-heavy queries onto occupancy/path primitives before Castle Age-scale interactions make the current scan-heavy approach too brittle.
 - Add a lightweight debug probe for coarse-vs-fine unit position if sub-grid transforms remain part of the runtime; that will make future movement and selection bugs much easier to inspect live.
+- Add a cheap fixture-validation pass around occupancy and start-cell legality before using scenarios in tests. The current blocker rules are good; the missing piece was faster detection of invalid test setups.
 
 ## Current recommendation
 

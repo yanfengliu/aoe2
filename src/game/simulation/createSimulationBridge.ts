@@ -1,4 +1,5 @@
 import {
+  findGridPath,
   RenderAdapter,
   VisibilityMap,
   World,
@@ -164,6 +165,11 @@ interface BuildingCombatState {
   attackRange: number;
   reloadTicks: number;
   cooldownTicks: number;
+}
+
+interface UnitMovementPlan {
+  destination: Position;
+  nextStep: Position;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -1551,9 +1557,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return matchState.outcome === 'running';
   }
 
-  function buildingOccupiesCell(buildingId: number, x: number, y: number): boolean {
-    const position = world.getComponent<Position>(buildingId, 'position');
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+  function buildingOccupiesCell(
+    buildingId: number,
+    x: number,
+    y: number,
+    activeWorld = world,
+  ): boolean {
+    const position = activeWorld.getComponent<Position>(buildingId, 'position');
+    const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
     if (!position || !building) {
       return false;
     }
@@ -1572,6 +1583,71 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     );
   }
 
+  function isTerrainPassableForUnit(x: number, y: number, activeWorld = world): boolean {
+    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+      return false;
+    }
+
+    const tile = tiles[y]?.[x];
+    const terrain = tile === undefined ? null : activeWorld.getComponent<TerrainComponent>(tile, 'terrain');
+    return terrain ? terrain.kind !== 'water' && terrain.kind !== 'forest' : false;
+  }
+
+  function isCellBlockedByBuilding(x: number, y: number, activeWorld = world): boolean {
+    for (const buildingId of activeWorld.query('building')) {
+      if (buildingOccupiesCell(buildingId, x, y, activeWorld)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function isCellBlockedByResource(x: number, y: number, activeWorld = world): boolean {
+    for (const id of activeWorld.query('position', 'resource')) {
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      if (position?.x === x && position.y === y) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function isCellOccupiedByUnit(
+    x: number,
+    y: number,
+    ignoredUnitId: number | null = null,
+    activeWorld = world,
+  ): boolean {
+    for (const id of activeWorld.query('position', 'unit')) {
+      if (ignoredUnitId !== null && id === ignoredUnitId) {
+        continue;
+      }
+
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      if (position?.x === x && position.y === y) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function isCellPassableForUnit(
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld = world,
+  ): boolean {
+    return (
+      isTerrainPassableForUnit(x, y, activeWorld)
+      && !isCellBlockedByBuilding(x, y, activeWorld)
+      && !isCellBlockedByResource(x, y, activeWorld)
+      && !isCellOccupiedByUnit(x, y, unitId, activeWorld)
+    );
+  }
+
   function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
     for (let cellY = y; cellY < y + height; cellY += 1) {
       for (let cellX = x; cellX < x + width; cellX += 1) {
@@ -1579,35 +1655,223 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           return true;
         }
 
-        const tile = tiles[cellY]?.[cellX];
-        const terrain = tile === undefined ? null : world.getComponent<TerrainComponent>(tile, 'terrain');
-        if (!terrain?.buildable) {
+        if (!isTerrainPassableForUnit(cellX, cellY)) {
           return true;
         }
 
-        for (const buildingId of world.query('building')) {
-          if (buildingOccupiesCell(buildingId, cellX, cellY)) {
-            return true;
-          }
-        }
-
-        for (const id of world.query('position', 'resource')) {
-          const position = world.getComponent<Position>(id, 'position');
-          if (position?.x === cellX && position.y === cellY) {
-            return true;
-          }
-        }
-
-        for (const id of world.query('position', 'unit')) {
-          const position = world.getComponent<Position>(id, 'position');
-          if (position?.x === cellX && position.y === cellY) {
-            return true;
-          }
+        if (
+          isCellBlockedByBuilding(cellX, cellY)
+          || isCellBlockedByResource(cellX, cellY)
+          || isCellOccupiedByUnit(cellX, cellY)
+        ) {
+          return true;
         }
       }
     }
 
     return false;
+  }
+
+  function uniquePositions(positions: Position[]): Position[] {
+    const seen = new Set<string>();
+    const unique: Position[] = [];
+
+    for (const position of positions) {
+      const key = `${position.x},${position.y}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      unique.push(position);
+    }
+
+    return unique;
+  }
+
+  function getCellsWithinRange(center: Position, range: number): Position[] {
+    const cells: Position[] = [];
+
+    for (let y = center.y - range; y <= center.y + range; y += 1) {
+      for (let x = center.x - range; x <= center.x + range; x += 1) {
+        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+          continue;
+        }
+
+        const distance = Math.abs(center.x - x) + Math.abs(center.y - y);
+        if (distance > range) {
+          continue;
+        }
+
+        cells.push({ x, y });
+      }
+    }
+
+    return cells;
+  }
+
+  function getApproachCellsForFootprint(anchor: Position, width: number, height: number, range = 1): Position[] {
+    const candidates: Position[] = [];
+    const minX = anchor.x - range;
+    const maxX = anchor.x + width - 1 + range;
+    const minY = anchor.y - range;
+    const maxY = anchor.y + height - 1 + range;
+
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+          continue;
+        }
+
+        const dx =
+          x < anchor.x ? anchor.x - x
+          : x > anchor.x + width - 1 ? x - (anchor.x + width - 1)
+          : 0;
+        const dy =
+          y < anchor.y ? anchor.y - y
+          : y > anchor.y + height - 1 ? y - (anchor.y + height - 1)
+          : 0;
+        const distance = dx + dy;
+        if (distance === 0 || distance > range) {
+          continue;
+        }
+
+        candidates.push({ x, y });
+      }
+    }
+
+    return uniquePositions(candidates);
+  }
+
+  function getNearestMoveCandidates(target: Position): Position[] {
+    const candidates: Position[] = [];
+    const maxRadius = Math.max(MAP_WIDTH, MAP_HEIGHT);
+
+    for (let radius = 0; radius <= maxRadius; radius += 1) {
+      for (let y = target.y - radius; y <= target.y + radius; y += 1) {
+        for (let x = target.x - radius; x <= target.x + radius; x += 1) {
+          if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+            continue;
+          }
+
+          const distance = Math.abs(target.x - x) + Math.abs(target.y - y);
+          if (distance !== radius) {
+            continue;
+          }
+
+          candidates.push({ x, y });
+        }
+      }
+    }
+
+    return uniquePositions(candidates);
+  }
+
+  function findMovementPlan(
+    unitId: number,
+    start: Position,
+    candidates: Position[],
+    preferCurrentCell: boolean,
+    activeWorld = world,
+  ): UnitMovementPlan | null {
+    const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
+      isCellPassableForUnit(unitId, candidate.x, candidate.y, activeWorld),
+    );
+
+    if (preferCurrentCell) {
+      const currentCellCandidate = uniqueCandidates.find(
+        (candidate) => candidate.x === start.x && candidate.y === start.y,
+      );
+      if (currentCellCandidate) {
+        return {
+          destination: currentCellCandidate,
+          nextStep: currentCellCandidate,
+        };
+      }
+    }
+
+    for (const destination of uniqueCandidates) {
+      const pathResult = findGridPath({
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
+        start,
+        goal: destination,
+        blocked: (x, y) => !isCellPassableForUnit(unitId, x, y, activeWorld),
+      });
+      if (!pathResult) {
+        continue;
+      }
+
+      return {
+        destination,
+        nextStep: pathResult.path[1] ?? destination,
+      };
+    }
+
+    return null;
+  }
+
+  function findMovePlan(unitId: number, target: Position, activeWorld = world): UnitMovementPlan | null {
+    const position = activeWorld.getComponent<Position>(unitId, 'position');
+    if (!position) {
+      return null;
+    }
+
+    return findMovementPlan(unitId, position, getNearestMoveCandidates(target), false, activeWorld);
+  }
+
+  function findResourceApproachPlan(unitId: number, resourceId: number, activeWorld = world): UnitMovementPlan | null {
+    const position = activeWorld.getComponent<Position>(unitId, 'position');
+    const resourcePosition = activeWorld.getComponent<Position>(resourceId, 'position');
+    if (!position || !resourcePosition) {
+      return null;
+    }
+
+    return findMovementPlan(
+      unitId,
+      position,
+      getApproachCellsForFootprint(resourcePosition, 1, 1, 1),
+      true,
+      activeWorld,
+    );
+  }
+
+  function findBuildingApproachPlan(
+    unitId: number,
+    buildingId: number,
+    range = 1,
+    activeWorld = world,
+  ): UnitMovementPlan | null {
+    const position = activeWorld.getComponent<Position>(unitId, 'position');
+    const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
+    const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
+    if (!position || !buildingPosition || !building) {
+      return null;
+    }
+
+    const footprint = buildingFootprint(building.buildingType);
+    return findMovementPlan(
+      unitId,
+      position,
+      getApproachCellsForFootprint(buildingPosition, footprint.width, footprint.height, range),
+      true,
+      activeWorld,
+    );
+  }
+
+  function findUnitRangePlan(
+    unitId: number,
+    targetPosition: Position,
+    range: number,
+    activeWorld = world,
+  ): UnitMovementPlan | null {
+    const position = activeWorld.getComponent<Position>(unitId, 'position');
+    if (!position) {
+      return null;
+    }
+
+    const candidates = getCellsWithinRange(targetPosition, range)
+      .filter((candidate) => !(candidate.x === targetPosition.x && candidate.y === targetPosition.y));
+    return findMovementPlan(unitId, position, candidates, true, activeWorld);
   }
 
   function findSpawnPosition(origin: Position): Position {
@@ -2001,38 +2265,6 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       : 0;
 
     return dx + dy;
-  }
-
-  function getBuildingApproachPosition(id: number, from: Position): Position | null {
-    const buildingPosition = world.getComponent<Position>(id, 'position');
-    const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (!buildingPosition || !building) {
-      return null;
-    }
-
-    const footprint = buildingFootprint(building.buildingType);
-    const candidates: Position[] = [];
-
-    for (let x = buildingPosition.x; x < buildingPosition.x + footprint.width; x += 1) {
-      candidates.push({ x, y: buildingPosition.y - 1 });
-      candidates.push({ x, y: buildingPosition.y + footprint.height });
-    }
-
-    for (let y = buildingPosition.y; y < buildingPosition.y + footprint.height; y += 1) {
-      candidates.push({ x: buildingPosition.x - 1, y });
-      candidates.push({ x: buildingPosition.x + footprint.width, y });
-    }
-
-    const inBoundsCandidates = candidates.filter(
-      (candidate) =>
-        candidate.x >= 0
-        && candidate.x < MAP_WIDTH
-        && candidate.y >= 0
-        && candidate.y < MAP_HEIGHT,
-    );
-
-    inBoundsCandidates.sort((left, right) => manhattanDistance(from, left) - manhattanDistance(from, right));
-    return inBoundsCandidates[0] ?? null;
   }
 
   function destroyUnitEntity(id: number): void {
@@ -3002,7 +3234,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             }
 
             if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              moveUnitOneSubgridStep(id, targetPosition, activeWorld);
+              const unitRangePlan = findUnitRangePlan(
+                id,
+                targetPosition,
+                attackerCombat.attackRange,
+                activeWorld,
+              );
+              if (!unitRangePlan) {
+                unitCommands.delete(id);
+                continue;
+              }
+              moveUnitOneSubgridStep(id, unitRangePlan.nextStep, activeWorld);
               continue;
             }
 
@@ -3031,12 +3273,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           }
 
           if (distanceToBuilding(targetId, position) > attackerCombat.attackRange) {
-            const approachPosition = getBuildingApproachPosition(targetId, position);
-            if (!approachPosition) {
+            const buildingApproachPlan = findBuildingApproachPlan(
+              id,
+              targetId,
+              attackerCombat.attackRange,
+              activeWorld,
+            );
+            if (!buildingApproachPlan) {
               unitCommands.delete(id);
               continue;
             }
-            moveUnitOneSubgridStep(id, approachPosition, activeWorld);
+            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
             continue;
           }
 
@@ -3056,12 +3303,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         if (command.type === 'move') {
-          if (isUnitAtTarget(id, command.target, activeWorld)) {
+          const movePlan = findMovePlan(id, command.target, activeWorld);
+          if (!movePlan) {
             unitCommands.delete(id);
             continue;
           }
 
-          moveUnitOneSubgridStep(id, command.target, activeWorld);
+          if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
+            unitCommands.delete(id);
+            continue;
+          }
+
+          moveUnitOneSubgridStep(id, movePlan.nextStep, activeWorld);
           continue;
         }
 
@@ -3071,16 +3324,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
         const construction = constructionStates.get(buildingId);
-        if (!buildingPosition || !building || !construction || construction.isComplete) {
+        const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
+        if (!building || !construction || construction.isComplete || !buildingApproachPlan) {
           unitCommands.delete(id);
           continue;
         }
 
-        if (!isUnitAtTarget(id, buildingPosition, activeWorld)) {
-          moveUnitOneSubgridStep(id, buildingPosition, activeWorld);
+        if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
+          moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
           continue;
         }
 
@@ -3231,16 +3484,24 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             bounds.maxY * UNIT_SUBGRID_RESOLUTION,
           );
           const nextGridPosition = gridPositionFromUnitTransform(transform);
-          if (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y) {
+          if (
+            (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y)
+            && isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld)
+          ) {
             activeWorld.setPosition(id, nextGridPosition);
+          } else {
+            syncUnitTransformToPosition(id, position, activeWorld);
           }
           continue;
         }
 
-        activeWorld.setPosition(id, {
+        const nextPosition = {
           x: clamp(position.x + velocity.dx, bounds.minX, bounds.maxX),
           y: clamp(position.y + velocity.dy, bounds.minY, bounds.maxY),
-        });
+        };
+        if (isCellPassableForUnit(id, nextPosition.x, nextPosition.y, activeWorld)) {
+          activeWorld.setPosition(id, nextPosition);
+        }
       }
     },
   });
@@ -3266,21 +3527,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         if (gatherer.task === 'to-resource') {
-          const targetPosition = gatherer.targetResourceId === null
-            ? null
-            : activeWorld.getComponent<Position>(gatherer.targetResourceId, 'position');
           const targetResource = gatherer.targetResourceId === null
             ? null
             : activeWorld.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
+          const resourceApproachPlan = gatherer.targetResourceId === null
+            ? null
+            : findResourceApproachPlan(id, gatherer.targetResourceId, activeWorld);
 
-          if (!targetPosition || !targetResource || targetResource.amount <= 0) {
+          if (!targetResource || targetResource.amount <= 0 || !resourceApproachPlan) {
             gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
             gatherer.targetResourceId = null;
-          } else if (isUnitAtTarget(id, targetPosition, activeWorld)) {
+          } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
             gatherer.task = 'gathering';
             gatherer.gatherProgressTicks = 0;
           } else {
-            moveUnitOneSubgridStep(id, targetPosition, activeWorld);
+            moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
           }
         }
 
@@ -3296,12 +3557,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               gatherer.targetResourceId,
               'resource',
             );
+            const resourceApproachPlan = findResourceApproachPlan(
+              id,
+              gatherer.targetResourceId,
+              activeWorld,
+            );
 
             if (
               !targetPosition
               || !targetResource
               || targetResource.amount <= 0
-              || !isUnitAtTarget(id, targetPosition, activeWorld)
+              || !resourceApproachPlan
+              || !isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)
             ) {
               gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
               gatherer.targetResourceId = null;
@@ -3346,15 +3613,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
                 position,
               );
           gatherer.dropOffBuildingId = dropOffId;
-          const dropOffPosition = dropOffId === null
+          const dropOffPlan = dropOffId === null
             ? null
-            : activeWorld.getComponent<Position>(dropOffId, 'position');
+            : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
 
-          if (!dropOffPosition || gatherer.carriedResource === null || gatherer.carriedAmount <= 0) {
+          if (!dropOffPlan || gatherer.carriedResource === null || gatherer.carriedAmount <= 0) {
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
-          } else if (isUnitAtTarget(id, dropOffPosition, activeWorld)) {
+          } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             if (stockpile) {
               stockpile[gatherer.carriedResource] += gatherer.carriedAmount;
@@ -3365,7 +3632,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             gatherer.targetResourceId = null;
             gatherer.gatherProgressTicks = 0;
           } else {
-            moveUnitOneSubgridStep(id, dropOffPosition, activeWorld);
+            moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
           }
         }
 

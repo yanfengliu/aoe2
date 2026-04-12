@@ -229,6 +229,248 @@ function createConquestDefeatFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createBlockingRulesFixture(seed: string): PrototypeScenario {
+  const terrain = createGrassFixtureTerrain();
+  setTerrainKind(terrain, 8, 13, 'water');
+  setTerrainKind(terrain, 10, 5, 'forest');
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 8 },
+        startingResources: {
+          food: 200,
+          wood: 400,
+          gold: 200,
+          stone: 200,
+        },
+      },
+      { owner: 2, townCenter: { x: 28, y: 16 } },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'scout',
+        x: 6,
+        y: 13,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'villager',
+        x: 7,
+        y: 13,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'tree',
+        x: 10,
+        y: 5,
+        owner: null,
+        baseOwner: 1,
+        amount: 100,
+      },
+      {
+        kind: 'gold-mine',
+        x: 12,
+        y: 5,
+        owner: null,
+        baseOwner: 1,
+        amount: 800,
+      },
+      {
+        kind: 'stone-mine',
+        x: 14,
+        y: 5,
+        owner: null,
+        baseOwner: 1,
+        amount: 350,
+      },
+    ],
+  };
+}
+
+function createMiningCampFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingResources: {
+          food: 200,
+          wood: 200,
+          gold: 100,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'gold-mine',
+        x: 13,
+        y: 7,
+        owner: null,
+        baseOwner: 1,
+        amount: 800,
+      },
+      {
+        kind: 'gold-mine',
+        x: 14,
+        y: 7,
+        owner: null,
+        baseOwner: 1,
+        amount: 800,
+      },
+      {
+        kind: 'gold-mine',
+        x: 13,
+        y: 8,
+        owner: null,
+        baseOwner: 1,
+        amount: 800,
+      },
+      {
+        kind: 'gold-mine',
+        x: 14,
+        y: 8,
+        owner: null,
+        baseOwner: 1,
+        amount: 800,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+function createOrdersFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingResources: {
+          food: 200,
+          wood: 200,
+          gold: 100,
+          stone: 100,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'scout',
+        x: 7,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'sheep',
+        x: 12,
+        y: 9,
+        owner: null,
+        baseOwner: 1,
+        amount: 100,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createGrassFixtureTerrain(): TerrainCellSpec[][] {
   return Array.from({ length: MAP_HEIGHT }, (_, y) =>
     Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
@@ -591,7 +833,7 @@ function createCastleTownCenterFixture(seed: string): PrototypeScenario {
       },
       {
         kind: 'villager',
-        x: 8,
+        x: 6,
         y: 10,
         owner: 1,
         baseOwner: 1,
@@ -727,6 +969,59 @@ function createFeudalSkirmisherFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createMilitiaCombatFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'militia',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'scout',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 6 },
+      },
+    ],
+  };
+}
+
 function createFeudalWatchTowerFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -795,6 +1090,91 @@ function createFeudalWatchTowerFixture(seed: string): PrototypeScenario {
         y: 8,
         owner: 2,
         baseOwner: 2,
+      },
+    ],
+  };
+}
+
+function createAiRushFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 7,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 22,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 22,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 23,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
       },
     ],
   };
@@ -1366,6 +1746,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createConquestDefeatFixture(seed);
   }
 
+  if (seed === 'blocking-rules-fixture') {
+    return createBlockingRulesFixture(seed);
+  }
+
   if (seed === 'feudal-missing-prereq-fixture') {
     return createFeudalMissingPrereqFixture(seed);
   }
@@ -1398,8 +1782,16 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createFeudalSkirmisherFixture(seed);
   }
 
+  if (seed === 'militia-combat-fixture') {
+    return createMilitiaCombatFixture(seed);
+  }
+
   if (seed === 'feudal-watch-tower-fixture') {
     return createFeudalWatchTowerFixture(seed);
+  }
+
+  if (seed === 'ai-rush-fixture') {
+    return createAiRushFixture(seed);
   }
 
   if (seed === 'feudal-market-fixture') {
@@ -1408,6 +1800,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'town-center-defense-fixture') {
     return createTownCenterDefenseFixture(seed);
+  }
+
+  if (seed === 'mining-camp-fixture') {
+    return createMiningCampFixture(seed);
+  }
+
+  if (seed === 'orders-fixture') {
+    return createOrdersFixture(seed);
   }
 
   if (seed === 'villager-selection-fixture') {
