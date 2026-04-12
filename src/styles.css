@@ -111,6 +111,45 @@ body {
   line-height: 1.4;
 }
 
+.hud-queue-list {
+  display: grid;
+  gap: 8px;
+}
+
+.hud-queue-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(221, 196, 145, 0.22);
+  border-radius: 8px;
+  background: rgba(38, 28, 20, 0.65);
+}
+
+.hud-queue-name {
+  color: #f4ead1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hud-queue-meta {
+  color: #d9d0bd;
+  font-size: 12px;
+}
+
+.hud-queue-progress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(12, 18, 19, 0.9);
+}
+
+.hud-queue-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c4ae7a 0%, #f0d89a 100%);
+}
+
 .hud-command-list {
   display: flex;
   flex-wrap: wrap;

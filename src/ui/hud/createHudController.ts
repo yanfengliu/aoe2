@@ -3,6 +3,7 @@ import type {
   BuildableBuildingType,
   HudState,
   MarketActionType,
+  ProductionQueueEntry,
   ResearchableTechnologyType,
   RenderState,
   SelectionState,
@@ -176,6 +177,18 @@ function formatMarketActionName(actionType: MarketActionType): string {
   }
 }
 
+function formatQueueEntryName(entry: ProductionQueueEntry): string {
+  if (entry.kind === 'unit' && entry.unitType) {
+    return `Training: ${formatEntityName(entry.unitType)}`;
+  }
+
+  if (entry.kind === 'technology' && entry.technologyType) {
+    return `Researching: ${formatTechnologyName(entry.technologyType)}`;
+  }
+
+  return entry.label;
+}
+
 function formatAgeName(age: HudState['currentAge']): string {
   switch (age) {
     case 'dark-age':
@@ -315,6 +328,27 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     const queueText = selectionState.queue.length > 0
       ? `${selectionState.queue.length} queued`
       : 'Queue empty';
+    const queueItems = selectionState.queue.length > 0
+      ? selectionState.queue
+        .map((entry, index) => {
+          const progress = entry.totalTicks <= 0
+            ? 100
+            : Math.max(
+              0,
+              Math.min(100, Math.round(((entry.totalTicks - entry.remainingTicks) / entry.totalTicks) * 100)),
+            );
+          return `
+            <div class="hud-queue-item" data-selection-queue-item="${index}">
+              <div class="hud-queue-name">${formatQueueEntryName(entry)}</div>
+              <div class="hud-queue-meta">${entry.remainingTicks} ticks remaining</div>
+              <div class="hud-queue-progress">
+                <div class="hud-queue-progress-fill" style="width: ${progress}%"></div>
+              </div>
+            </div>
+          `;
+        })
+        .join('')
+      : '<div class="hud-selection-meta">No queued actions.</div>';
     const placementText = selectionState.placementMode
       ? `Placing: ${formatEntityName(selectionState.placementMode)}`
       : 'Placement: Off';
@@ -392,6 +426,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ${selectionState.x === null || selectionState.y === null ? 'No active entity.' : `Tile ${selectionState.x}, ${selectionState.y}`}
       </div>
       <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
+      <div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
       <div class="hud-command-list">
         ${actionButtons}
