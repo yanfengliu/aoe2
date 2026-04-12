@@ -628,16 +628,25 @@ function buildingVisionRadius(buildingType: BuildingType): number | null {
 }
 
 function createBuildingCombatState(buildingType: BuildingType): BuildingCombatState | null {
-  if (buildingType !== 'watch-tower') {
-    return null;
+  if (buildingType === 'town-center') {
+    return {
+      attackDamage: 5,
+      attackRange: 6,
+      reloadTicks: 12,
+      cooldownTicks: 0,
+    };
   }
 
-  return {
-    attackDamage: 5,
-    attackRange: 7,
-    reloadTicks: 12,
-    cooldownTicks: 0,
-  };
+  if (buildingType === 'watch-tower') {
+    return {
+      attackDamage: 5,
+      attackRange: 7,
+      reloadTicks: 12,
+      cooldownTicks: 0,
+    };
+  }
+
+  return null;
 }
 
 function buildingGarrisonCapacity(buildingType: BuildingType): number {
@@ -652,6 +661,17 @@ function buildingGarrisonCapacity(buildingType: BuildingType): number {
 
 function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
   return unitType === 'villager' && buildingGarrisonCapacity(buildingType) > 0;
+}
+
+function buildingArrowCount(buildingType: BuildingType, garrisonedUnits: number): number {
+  switch (buildingType) {
+    case 'town-center':
+      return garrisonedUnits > 0 ? 1 + Math.min(garrisonedUnits, 4) : 0;
+    case 'watch-tower':
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): boolean {
@@ -2896,12 +2916,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           buildingCombat.cooldownTicks -= 1;
         }
 
+        const arrowCount = buildingArrowCount(
+          building.buildingType,
+          garrisonedByBuilding.get(id)?.length ?? 0,
+        );
         const targetId = findPreferredVisibleEnemyUnitInRange(
           building.owner,
           position,
           buildingCombat.attackRange,
         );
-        if (targetId === null || buildingCombat.cooldownTicks > 0) {
+        if (targetId === null || buildingCombat.cooldownTicks > 0 || arrowCount <= 0) {
           continue;
         }
 
@@ -2910,12 +2934,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        targetCombat.currentHp -= buildingCombat.attackDamage;
-        buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
+        for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
+          const activeTargetCombat = combatStates.get(targetId);
+          if (!activeTargetCombat) {
+            break;
+          }
 
-        if (targetCombat.currentHp <= 0) {
-          destroyUnitEntity(targetId);
+          activeTargetCombat.currentHp -= buildingCombat.attackDamage;
+          if (activeTargetCombat.currentHp <= 0) {
+            destroyUnitEntity(targetId);
+            break;
+          }
         }
+
+        buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
       }
     },
   });

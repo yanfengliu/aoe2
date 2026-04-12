@@ -676,6 +676,23 @@ describe('createSimulationBridge', () => {
     ).toHaveLength(1);
   }, 15_000);
 
+  it('lets a garrisoned Town Center automatically kill a nearby enemy scout', () => {
+    const bridge = createSimulationBridge('town-center-defense-fixture');
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.issueContextCommand(8, 8)).toBe(true);
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  });
+
   it('can build a Market in Feudal Age and exchange resources through market actions', () => {
     const bridge = createSimulationBridge('feudal-market-fixture');
 

@@ -510,6 +510,26 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(true);
   });
 
+  test('lets a garrisoned Town Center automatically kill a nearby enemy scout', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'town-center-defense-fixture');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await clickCell(page, 8, 8, 'right');
+
+    const snapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(80, 100),
+    );
+
+    expect(
+      snapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+  });
+
   test('can build a Market and exchange resources through the live command panel', async ({
     page,
   }) => {

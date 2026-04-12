@@ -64,6 +64,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Generic rally points were similarly straightforward as repo policy. Producer-owned rally positions plus spawn-time move commands work cleanly, but the engine leaves producer command memory and any future formation/spawn-deconfliction behavior to the game layer.
 - Match-global Market exchange rates also fit cleanly as repo-owned state. The engine does not need a special economy-trading primitive for buy/sell actions, but commodity pricing rules, fees, and future market technologies remain application policy.
 - Garrisoning also fit well with the current engine surface by removing and restoring `position`/`visionSource` locally. That is a pragmatic approach for prototype-scale defensive structures, but richer transport, packed units, or building-arrow integration will still need clearer repo-level policy on hidden-but-alive entities.
+- Extending the existing building-combat loop to Town Centers was low-friction once garrison state existed. The engine does not need a bespoke "defensive arrow" primitive for this scale, but richer projectile rules, multiple targets, and true arrow-count formulas will still live in repo combat policy.
 
 ## Implications for next phases
 

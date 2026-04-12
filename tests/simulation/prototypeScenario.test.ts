@@ -108,6 +108,7 @@ describe('createPrototypeScenario', () => {
     const skirmisherScenario = createPrototypeScenario('feudal-skirmisher-fixture');
     const towerScenario = createPrototypeScenario('feudal-watch-tower-fixture');
     const marketScenario = createPrototypeScenario('feudal-market-fixture');
+    const townCenterDefenseScenario = createPrototypeScenario('town-center-defense-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -186,6 +187,16 @@ describe('createPrototypeScenario', () => {
     expect(
       marketScenario.spawns.some(
         (spawn) => spawn.owner === 1 && spawn.kind === 'barracks',
+      ),
+    ).toBe(true);
+    expect(
+      townCenterDefenseScenario.spawns.some(
+        (spawn) => spawn.owner === 2 && spawn.kind === 'scout' && spawn.x === 12 && spawn.y === 8,
+      ),
+    ).toBe(true);
+    expect(
+      townCenterDefenseScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 6 && spawn.y === 8,
       ),
     ).toBe(true);
   });
