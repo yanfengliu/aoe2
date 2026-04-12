@@ -1,6 +1,7 @@
 import type {
   ActionType,
   BuildableBuildingType,
+  EconomyState,
   HudState,
   MarketActionType,
   ProductionQueueEntry,
@@ -8,11 +9,13 @@ import type {
   RenderState,
   SelectionState,
   TrainableUnitType,
+  UnitType,
 } from '../../game/simulation/types';
 
 interface HudBridge {
   getHudState(): HudState;
   getRenderState(): RenderState;
+  getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
@@ -225,6 +228,121 @@ function formatSelectionName(selectionState: SelectionState): string {
   return `${selectionState.selectedCount} ${label} Selected`;
 }
 
+function isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
+  return (
+    entityType === 'villager'
+    || entityType === 'scout'
+    || entityType === 'militia'
+    || entityType === 'spearman'
+    || entityType === 'archer'
+    || entityType === 'skirmisher'
+    || entityType === 'knight'
+  );
+}
+
+function formatUnitIcon(unitType: UnitType): string {
+  switch (unitType) {
+    case 'villager':
+      return 'V';
+    case 'scout':
+      return 'SC';
+    case 'militia':
+      return 'M';
+    case 'spearman':
+      return 'SP';
+    case 'archer':
+      return 'A';
+    case 'skirmisher':
+      return 'SK';
+    case 'knight':
+      return 'K';
+  }
+}
+
+function formatUnitIconAccent(unitType: UnitType): string {
+  switch (unitType) {
+    case 'villager':
+      return '#8fc6a3';
+    case 'scout':
+      return '#c9a160';
+    case 'militia':
+      return '#d07a66';
+    case 'spearman':
+      return '#d2b16a';
+    case 'archer':
+      return '#7fb3d5';
+    case 'skirmisher':
+      return '#7ec7c0';
+    case 'knight':
+      return '#c4b0dc';
+  }
+}
+
+function renderSelectedUnitIcons(
+  selectionState: SelectionState,
+  economyState: EconomyState,
+): string {
+  if (selectionState.selectedEntityIds.length === 0) {
+    return '';
+  }
+
+  const unitsById = new Map(economyState.units.map((unit) => [unit.id, unit]));
+  const counts = new Map<UnitType, number>();
+  const orderedUnitTypes: UnitType[] = [];
+
+  for (const id of selectionState.selectedEntityIds) {
+    const unit = unitsById.get(id);
+    if (!unit) {
+      continue;
+    }
+
+    if (!counts.has(unit.unitType)) {
+      orderedUnitTypes.push(unit.unitType);
+      counts.set(unit.unitType, 0);
+    }
+
+    counts.set(unit.unitType, (counts.get(unit.unitType) ?? 0) + 1);
+  }
+
+  if (orderedUnitTypes.length === 0) {
+    if (!isUnitType(selectionState.selectedEntityType)) {
+      return '';
+    }
+
+    orderedUnitTypes.push(selectionState.selectedEntityType);
+    counts.set(selectionState.selectedEntityType, Math.max(selectionState.selectedCount, 1));
+  }
+
+  const chips = orderedUnitTypes
+    .map((unitType) => {
+      const count = counts.get(unitType) ?? 1;
+      const countMarkup =
+        count > 1
+          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${unitType}">x${count}</div>`
+          : '';
+      return `
+        <div
+          class="hud-selection-unit-chip"
+          data-selection-unit-chip="${unitType}"
+          style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+        >
+          <div class="hud-selection-unit-badge" data-selection-unit-icon="${unitType}">
+            ${formatUnitIcon(unitType)}
+          </div>
+          <div class="hud-selection-unit-meta">
+            <div class="hud-selection-unit-label" data-selection-unit-label="${unitType}">
+              ${formatEntityName(unitType)}
+            </div>
+            ${countMarkup}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `<div class="hud-selection-unit-list" data-selection-unit-icons>${chips}</div>`;
+}
+
 function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
   switch (technologyType) {
     case 'feudal-age':
@@ -408,6 +526,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     }
     lastSelectionSignature = signature;
 
+    const economyState = bridge.getEconomyState();
+    const unitIcons = renderSelectedUnitIcons(selectionState, economyState);
+
     const queueText = selectionState.queue.length > 0
       ? `${selectionState.queue.length} queued`
       : 'Queue empty';
@@ -517,6 +638,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
       <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
+      ${unitIcons}
       <div class="hud-selection-meta" data-selection-position>${selectionPositionText}</div>
       <div class="hud-selection-meta" data-selection-cycle>${selectionCycleText}</div>
       <div class="hud-selection-meta" data-selection-resource>${selectionResourceText}</div>

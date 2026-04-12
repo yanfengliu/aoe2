@@ -65,6 +65,7 @@ The game currently starts directly into the prototype map. Use:
 - repeated left click on the same tile to cycle through every selectable entity stacked there, including resources
 - double click a friendly unit to select all visible friendly units of the same type on screen
 - left click and drag to box-select movable friendly units under your control
+- the selection panel now shows simple unit icons for single-unit selections and grouped unit selections
 - right click to issue context orders to the current selection
 - villagers use right click on visible resources to gather them explicitly
 - villagers can use right click on owned Town Centers or completed Watch Towers to garrison for safety

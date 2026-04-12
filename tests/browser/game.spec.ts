@@ -347,6 +347,16 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
   });
 
+  test('shows a unit icon for an individually selected unit', async ({ page }) => {
+    await waitForBootWithSeed(page, 'villager-selection-fixture');
+
+    await clickCell(page, 8, 10);
+
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
+    await expect(page.locator('[data-selection-unit-label="villager"]')).toHaveText('Villager');
+  });
+
   test('cycles through every selectable entity stacked on a clicked tile', async ({ page }) => {
     await waitForBootWithSeed(page, 'tile-selection-cycle-fixture');
 
@@ -388,6 +398,8 @@ test.describe('browser gameplay smoke tests', () => {
     await page.mouse.up({ button: 'left' });
 
     await expect(page.locator('[data-selection-name]')).toHaveText(`${villagerCells.length} Villagers Selected`);
+    await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
+    await expect(page.locator('[data-selection-unit-count="villager"]')).toHaveText('x3');
 
     const selectedSnapshot = await getSnapshot(page);
     expect((selectedSnapshot.selectionState as { selectedCount?: number }).selectedCount).toBe(villagerCells.length);
@@ -421,6 +433,9 @@ test.describe('browser gameplay smoke tests', () => {
     await page.mouse.up({ button: 'left' });
 
     await expect(page.locator('[data-selection-name]')).toHaveText('3 Units Selected');
+    await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
+    await expect(page.locator('[data-selection-unit-icon="militia"]')).toHaveText('M');
+    await expect(page.locator('[data-selection-unit-icon="scout"]')).toHaveText('SC');
 
     const selectedSnapshot = await getSnapshot(page);
     expect(selectedSnapshot.selectionState.selectedCount).toBe(3);
