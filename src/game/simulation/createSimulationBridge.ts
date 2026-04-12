@@ -294,6 +294,13 @@ function assignVillagerRole(owner: number, ordinal: number): EconomyResourceKind
   return owner === HUMAN_PLAYER_ID ? 'food' : 'wood';
 }
 
+function shouldMaintainGatheringOrder(
+  owner: number,
+  gatherer: GathererComponent,
+): boolean {
+  return owner !== HUMAN_PLAYER_ID || gatherer.hasExplicitGatherOrder;
+}
+
 function isResourceCandidate(
   entry: {
     id: number;
@@ -354,22 +361,22 @@ function manhattanDistance(left: Position, right: Position): number {
   return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
 }
 
+const BUILDING_FOOTPRINTS: Record<BuildingType, { width: number; height: number }> = {
+  'town-center': { width: 4, height: 4 },
+  house: { width: 2, height: 2 },
+  mill: { width: 2, height: 2 },
+  'lumber-camp': { width: 2, height: 2 },
+  'mining-camp': { width: 2, height: 2 },
+  barracks: { width: 3, height: 3 },
+  'watch-tower': { width: 1, height: 1 },
+  stable: { width: 3, height: 3 },
+  'archery-range': { width: 3, height: 3 },
+  blacksmith: { width: 3, height: 3 },
+  market: { width: 4, height: 4 },
+};
+
 function buildingFootprint(buildingType: BuildingType): { width: number; height: number } {
-  switch (buildingType) {
-    case 'house':
-    case 'mill':
-    case 'lumber-camp':
-    case 'mining-camp':
-    case 'barracks':
-    case 'watch-tower':
-    case 'stable':
-    case 'archery-range':
-    case 'blacksmith':
-    case 'market':
-      return { width: 2, height: 2 };
-    case 'town-center':
-      return { width: 1, height: 1 };
-  }
+  return BUILDING_FOOTPRINTS[buildingType];
 }
 
 function buildingPopulationProvided(buildingType: BuildingType): number {
@@ -891,6 +898,9 @@ function createProjector(
         y: position.y,
         tint: renderable.tint,
         size: renderable.size,
+        footprintWidth: renderable.footprintWidth,
+        footprintHeight: renderable.footprintHeight,
+        visualVariant: renderable.visualVariant,
         selected: isSelected(ref.id),
       };
     },
@@ -977,6 +987,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
+  consumeOutOfBandRenderChange: () => boolean;
 } {
   const world = new World<GameEvents, GameCommands>({
     gridWidth: MAP_WIDTH,
@@ -1010,6 +1021,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   let selectedEntityRefs: EntityRef[] = [];
   let selectionFocusCell: Position | null = null;
   let placementMode: BuildableBuildingType | null = null;
+  let hasOutOfBandRenderChange = false;
 
   world.registerComponent<Position>('position');
   world.registerComponent<TerrainComponent>('terrain');
@@ -1059,6 +1071,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         layer: 'terrain',
         tint: tintByKind[cell.kind],
         size: 1,
+        footprintWidth: 1,
+        footprintHeight: 1,
+        visualVariant: 'default',
       });
     }
   }
@@ -1146,10 +1161,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             : unitType === 'archer'
               ? 0.48
               : unitType === 'skirmisher'
-                ? 0.48
+              ? 0.48
               : unitType === 'knight'
                 ? 0.58
               : 0.55,
+      footprintWidth: 1,
+      footprintHeight: 1,
+      visualVariant: 'default',
     });
 
     const populationState = population.get(owner);
@@ -1164,6 +1182,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       villagerOrdinals.set(owner, ordinal + 1);
       world.addComponent(entity, 'gatherer', {
         desiredResource: assignVillagerRole(owner, ordinal),
+        hasExplicitGatherOrder: false,
         task: 'idle',
         targetResourceId: null,
         dropOffBuildingId: null,
@@ -1188,6 +1207,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     isComplete: boolean,
     vision?: VisionSourceComponent,
   ): number {
+    const footprint = buildingFootprint(buildingType);
     const entity = world.createEntity();
     world.setPosition(entity, position);
     world.addComponent(entity, 'building', {
@@ -1199,6 +1219,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       layer: 'building',
       tint: buildingTint(buildingType, owner, isComplete),
       size: buildingSize(buildingType),
+      footprintWidth: footprint.width,
+      footprintHeight: footprint.height,
+      visualVariant: isComplete ? 'complete' : 'construction',
     });
     buildingHealthStates.set(entity, {
       currentHp: buildingMaxHp(buildingType),
@@ -1247,7 +1270,6 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     if (!isComplete) {
-      const footprint = buildingFootprint(buildingType);
       constructionStates.set(entity, {
         isComplete: false,
         buildProgressTicks: 0,
@@ -1298,6 +1320,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       layer: 'resource',
       tint: tintByResource[resourceType],
       size: sizeByResource[resourceType],
+      footprintWidth: 1,
+      footprintHeight: 1,
+      visualVariant: 'default',
     });
 
     return entity;
@@ -1467,6 +1492,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return;
     }
 
+    gatherer.hasExplicitGatherOrder = false;
     gatherer.task = 'idle';
     gatherer.targetResourceId = null;
     gatherer.dropOffBuildingId = null;
@@ -2150,6 +2176,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     selectedEntityRefs = [];
     selectionFocusCell = null;
     placementMode = null;
+    hasOutOfBandRenderChange = true;
     return true;
   }
 
@@ -2179,6 +2206,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     garrisonedByBuilding.delete(buildingId);
+    hasOutOfBandRenderChange = true;
     return true;
   }
 
@@ -2227,6 +2255,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       target: clampedAnchor,
       buildingRef,
     });
+    hasOutOfBandRenderChange = true;
     return true;
   }
 
@@ -2907,6 +2936,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');
           if (renderable) {
             renderable.tint = buildingTint(building.buildingType, building.owner, true);
+            renderable.visualVariant = 'complete';
           }
 
           const defaultVisionRadius = buildingVisionRadius(building.buildingType);
@@ -3010,7 +3040,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        if (!unit || unit.unitType !== 'scout') {
+        if (!unit || unit.unitType !== 'scout' || unit.owner === HUMAN_PLAYER_ID) {
           continue;
         }
 
@@ -3048,7 +3078,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        if (gatherer.task === 'idle') {
+        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
           assignNearestResource(activeWorld, id, gatherer, unit.owner);
         }
 
@@ -3156,7 +3186,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           }
         }
 
-        if (gatherer.task === 'idle') {
+        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
           assignNearestResource(activeWorld, id, gatherer, unit.owner);
         }
       }
@@ -3454,6 +3484,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     clearGathererOrder(unitId);
+    gatherer.hasExplicitGatherOrder = true;
     unitCommands.delete(unitId);
     gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
     gatherer.task = 'to-resource';
@@ -3766,12 +3797,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           }
 
           const construction = constructionStates.get(id);
+          const footprint = buildingFootprint(building.buildingType);
           return {
             id,
             owner: building.owner,
             buildingType: building.buildingType,
             x: position.x,
             y: position.y,
+            footprintWidth: footprint.width,
+            footprintHeight: footprint.height,
             isComplete: construction ? construction.isComplete : true,
             buildProgressTicks: construction
               ? construction.buildProgressTicks
@@ -3836,6 +3870,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     isSelected(id: number) {
       return getSelectedEntityIds().includes(id);
     },
+    consumeOutOfBandRenderChange() {
+      const didChange = hasOutOfBandRenderChange;
+      hasOutOfBandRenderChange = false;
+      return didChange;
+    },
   };
 }
 
@@ -3863,6 +3902,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected,
+    consumeOutOfBandRenderChange,
   } =
     createWorld(seed, visibility);
   const renderStore = new RenderStore();
@@ -3878,10 +3918,22 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
 
   renderAdapter.connect();
 
+  function refreshRenderProjection(): void {
+    renderAdapter.disconnect();
+    renderAdapter.connect();
+  }
+
+  function flushOutOfBandRenderChange(): void {
+    if (consumeOutOfBandRenderChange()) {
+      refreshRenderProjection();
+    }
+  }
+
   let accumulatorMs = 0;
 
   return {
     step(deltaMs: number) {
+      flushOutOfBandRenderChange();
       if (getMatchState().outcome !== 'running') {
         return;
       }
@@ -3895,6 +3947,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       }
     },
     getRenderState() {
+      flushOutOfBandRenderChange();
       return {
         tick: renderStore.getTick(),
         entities: renderStore.getEntities(),
@@ -3930,13 +3983,25 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
     clearSelection,
-    issueContextCommand,
+    issueContextCommand(x: number, y: number) {
+      const didIssue = issueContextCommand(x, y);
+      flushOutOfBandRenderChange();
+      return didIssue;
+    },
     issueMoveCommand,
-    issueAction,
+    issueAction(actionType: ActionType) {
+      const didIssue = issueAction(actionType);
+      flushOutOfBandRenderChange();
+      return didIssue;
+    },
     queueTrainUnit,
     queueResearch,
     issueMarketAction,
     beginBuildingPlacement,
-    confirmBuildingPlacement,
+    confirmBuildingPlacement(x: number, y: number) {
+      const didConfirm = confirmBuildingPlacement(x, y);
+      flushOutOfBandRenderChange();
+      return didConfirm;
+    },
   };
 }

@@ -128,7 +128,7 @@ describe('createPrototypeScenario', () => {
     ).toHaveLength(2);
     expect(
       feudalScenario.spawns.some(
-        (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 8 && spawn.y === 10,
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 6 && spawn.y === 10,
       ),
     ).toBe(true);
     expect(
@@ -265,17 +265,17 @@ describe('createPrototypeScenario', () => {
     ).toHaveLength(3);
     expect(
       mixedSelectionScenario.spawns.some(
-        (spawn) => spawn.owner === 1 && spawn.kind === 'house' && spawn.x === 9 && spawn.y === 9,
+        (spawn) => spawn.owner === 1 && spawn.kind === 'house' && spawn.x === 12 && spawn.y === 12,
       ),
     ).toBe(true);
     expect(
       tileSelectionCycleScenario.spawns.filter(
-        (spawn) => spawn.x === 10 && spawn.y === 10,
+        (spawn) => spawn.x === 13 && spawn.y === 12,
       ),
     ).toHaveLength(3);
     expect(
       tileSelectionCycleScenario.spawns.some(
-        (spawn) => spawn.kind === 'sheep' && spawn.x === 10 && spawn.y === 10,
+        (spawn) => spawn.kind === 'sheep' && spawn.x === 13 && spawn.y === 12,
       ),
     ).toBe(true);
     expect(

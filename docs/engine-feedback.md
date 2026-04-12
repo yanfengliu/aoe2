@@ -36,6 +36,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 ## Friction observed
 
 - There is no out-of-the-box Phaser renderer adapter, so the repo needs to own that bridge layer.
+- `RenderAdapter` streams the initial snapshot on `connect()` and then tick diffs. In the current same-process bridge, command handlers that mutate the world outside `world.step()` need an explicit snapshot resync or new visuals like fresh construction sites never reach the renderer. The engine contract is defensible, but the integration rule is easy to miss.
 - The engine exposes useful low-level primitives, but higher-level RTS helpers are still this repo's job:
   - production queues
   - context-sensitive command resolution

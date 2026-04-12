@@ -8,6 +8,7 @@ import {
 import type {
   PlacementPreviewState,
   ProjectedFrameView,
+  ProjectedEntityView,
   RenderState,
   SelectionState,
   UnitType,
@@ -69,6 +70,21 @@ export interface PlacementPreviewVisualState extends PlacementPreviewViewState {
   blockedMarkerCount: number;
 }
 
+export interface BuildingVisualState {
+  id: number;
+  buildingType: ProjectedEntityView['entityType'];
+  owner: number | null;
+  cellX: number;
+  cellY: number;
+  footprintWidthCells: number;
+  footprintHeightCells: number;
+  widthPx: number;
+  heightPx: number;
+  visualVariant: ProjectedEntityView['visualVariant'];
+  hasConstructionIndicator: boolean;
+  hasCompletionAccent: boolean;
+}
+
 interface DragSelectionState {
   pointerId: number;
   startScreenX: number;
@@ -102,6 +118,7 @@ export class GameScene extends Phaser.Scene {
   private dragSelection: DragSelectionState | null = null;
   private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
   private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
+  private lastBuildingVisualStates: BuildingVisualState[] = [];
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     if (this.dragSelection || this.bridge.getSelectionState().placementMode) {
       return;
@@ -259,11 +276,18 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.bridge.step(delta);
     this.updateCamera(delta);
+    this.syncFromBridge();
+  }
+
+  syncFromBridge(force = false): void {
+    if (!this.sys.isActive()) {
+      return;
+    }
 
     const state = this.bridge.getRenderState();
     const selectionState = this.bridge.getSelectionState();
     const selectionKey = this.getSelectionKey(selectionState);
-    if (state.tick === this.lastRenderedTick && selectionKey === this.lastSelectionKey) {
+    if (!force && state.tick === this.lastRenderedTick && selectionKey === this.lastSelectionKey) {
       return;
     }
 
@@ -308,6 +332,7 @@ export class GameScene extends Phaser.Scene {
     this.selectionLayer.clear();
     this.placementLayer.clear();
     this.selectionBoxLayer.clear();
+    this.lastBuildingVisualStates = [];
 
     for (const entity of state.entities) {
       const px = entity.x * CELL_SIZE;
@@ -343,14 +368,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (entity.kind === 'building') {
-        this.entityLayer.fillStyle(entity.tint, 1);
-        this.entityLayer.fillRoundedRect(
-          px - CELL_SIZE * 0.2,
-          py - CELL_SIZE * 0.2,
-          CELL_SIZE * entity.size,
-          CELL_SIZE * entity.size,
-          6,
-        );
+        this.renderBuildingEntity(entity, px, py);
         continue;
       }
 
@@ -413,11 +431,13 @@ export class GameScene extends Phaser.Scene {
       const py = entity.y * CELL_SIZE;
 
       if (entity.kind === 'building') {
+        const widthPx = entity.footprintWidth * CELL_SIZE;
+        const heightPx = entity.footprintHeight * CELL_SIZE;
         this.selectionLayer.strokeRoundedRect(
-          px - CELL_SIZE * 0.25,
-          py - CELL_SIZE * 0.25,
-          CELL_SIZE * entity.size + CELL_SIZE * 0.2,
-          CELL_SIZE * entity.size + CELL_SIZE * 0.2,
+          px,
+          py,
+          widthPx,
+          heightPx,
           6,
         );
         continue;
@@ -623,6 +643,71 @@ export class GameScene extends Phaser.Scene {
     return this.lastPlacementPreviewVisualState
       ? { ...this.lastPlacementPreviewVisualState }
       : null;
+  }
+
+  getBuildingVisualStates(): BuildingVisualState[] {
+    return this.lastBuildingVisualStates.map((state) => ({ ...state }));
+  }
+
+  private renderBuildingEntity(entity: ProjectedEntityView, px: number, py: number): void {
+    if (!this.entityLayer || entity.kind !== 'building') {
+      return;
+    }
+
+    const widthPx = entity.footprintWidth * CELL_SIZE;
+    const heightPx = entity.footprintHeight * CELL_SIZE;
+    const isConstruction = entity.visualVariant === 'construction';
+
+    this.entityLayer.lineStyle(3, isConstruction ? 0xf7e6c3 : 0x2b2117, 0.98);
+    this.entityLayer.fillStyle(entity.tint, isConstruction ? 0.62 : 1);
+    this.entityLayer.fillRoundedRect(px, py, widthPx, heightPx, 6);
+    this.entityLayer.strokeRoundedRect(px, py, widthPx, heightPx, 6);
+
+    let hasConstructionIndicator = false;
+    let hasCompletionAccent = false;
+
+    if (isConstruction) {
+      this.entityLayer.lineStyle(2, 0xf5e9cf, 0.95);
+      this.entityLayer.lineBetween(px + 4, py + 4, px + widthPx - 4, py + heightPx - 4);
+      this.entityLayer.lineBetween(px + widthPx - 4, py + 4, px + 4, py + heightPx - 4);
+      this.entityLayer.lineBetween(px + widthPx * 0.5, py + 4, px + widthPx * 0.5, py + heightPx - 4);
+      this.entityLayer.lineBetween(px + 4, py + heightPx * 0.5, px + widthPx - 4, py + heightPx * 0.5);
+      hasConstructionIndicator = true;
+    } else {
+      const inset = 5;
+      this.entityLayer.fillStyle(0xf0d39a, 0.82);
+      this.entityLayer.fillRoundedRect(
+        px + inset,
+        py + inset,
+        Math.max(4, widthPx - inset * 2),
+        Math.max(4, heightPx - inset * 2),
+        4,
+      );
+      this.entityLayer.lineStyle(2, 0x5b4125, 0.9);
+      this.entityLayer.strokeRoundedRect(
+        px + inset,
+        py + inset,
+        Math.max(4, widthPx - inset * 2),
+        Math.max(4, heightPx - inset * 2),
+        4,
+      );
+      hasCompletionAccent = true;
+    }
+
+    this.lastBuildingVisualStates.push({
+      id: entity.id,
+      buildingType: entity.entityType,
+      owner: entity.owner,
+      cellX: entity.x,
+      cellY: entity.y,
+      footprintWidthCells: entity.footprintWidth,
+      footprintHeightCells: entity.footprintHeight,
+      widthPx,
+      heightPx,
+      visualVariant: entity.visualVariant,
+      hasConstructionIndicator,
+      hasCompletionAccent,
+    });
   }
 
   private trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {

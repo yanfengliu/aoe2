@@ -8,6 +8,7 @@ import type {
   SelectionState,
 } from '../../game/simulation/types';
 import type {
+  BuildingVisualState,
   CameraState,
   GameScene,
   PlacementPreviewViewState,
@@ -22,6 +23,7 @@ interface BrowserTestBridge {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
+  confirmBuildingPlacement(x: number, y: number): boolean;
   selectEntityAtCell(x: number, y: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
@@ -45,7 +47,10 @@ export interface BrowserTestApi {
   getSelectionBoxState(): SelectionBoxState | null;
   getPlacementPreviewState(): PlacementPreviewViewState | null;
   getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
+  getPlacementPreviewAt(cellX: number, cellY: number): PlacementPreviewState | null;
+  getBuildingVisualStates(): BuildingVisualState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
+  confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   clearSelection(): void;
   issueContextCommand(cellX: number, cellY: number): boolean;
@@ -63,6 +68,7 @@ function getSnapshot(
   bridge: BrowserTestBridge,
   scene: GameScene,
 ): BrowserTestSnapshot {
+  scene.syncFromBridge(true);
   return {
     hudState: bridge.getHudState(),
     renderState: bridge.getRenderState(),
@@ -84,20 +90,51 @@ export function installBrowserTestApi(
     getRenderState: () => bridge.getRenderState(),
     getEconomyState: () => bridge.getEconomyState(),
     getSelectionState: () => bridge.getSelectionState(),
-    getCameraState: () => scene.getCameraState(),
+    getCameraState: () => {
+      scene.syncFromBridge(true);
+      return scene.getCameraState();
+    },
     getSelectionBoxState: () => scene.getSelectionBoxState(),
-    getPlacementPreviewState: () => scene.getPlacementPreviewState(),
-    getPlacementPreviewVisualState: () => scene.getPlacementPreviewVisualState(),
+    getPlacementPreviewState: () => {
+      scene.syncFromBridge(true);
+      return scene.getPlacementPreviewState();
+    },
+    getPlacementPreviewVisualState: () => {
+      scene.syncFromBridge(true);
+      return scene.getPlacementPreviewVisualState();
+    },
+    getPlacementPreviewAt: (cellX: number, cellY: number) => bridge.getPlacementPreview(cellX, cellY),
+    getBuildingVisualStates: () => {
+      scene.syncFromBridge(true);
+      return scene.getBuildingVisualStates();
+    },
     worldToScreen: (cellX: number, cellY: number) => {
+      scene.syncFromBridge(true);
       const point = scene.getScreenPointForCell(cellX, cellY);
       if (!point) {
         throw new Error('Game scene is not ready to project screen coordinates.');
       }
       return point;
     },
-    selectEntityAtCell: (cellX: number, cellY: number) => bridge.selectEntityAtCell(cellX, cellY),
-    clearSelection: () => bridge.clearSelection(),
-    issueContextCommand: (cellX: number, cellY: number) => bridge.issueContextCommand(cellX, cellY),
+    selectEntityAtCell: (cellX: number, cellY: number) => {
+      const didSelect = bridge.selectEntityAtCell(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didSelect;
+    },
+    confirmBuildingPlacement: (cellX: number, cellY: number) => {
+      const didPlace = bridge.confirmBuildingPlacement(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didPlace;
+    },
+    clearSelection: () => {
+      bridge.clearSelection();
+      scene.syncFromBridge(true);
+    },
+    issueContextCommand: (cellX: number, cellY: number) => {
+      const didIssue = bridge.issueContextCommand(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didIssue;
+    },
     getSnapshot: () => getSnapshot(bridge, scene),
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));
@@ -107,6 +144,7 @@ export function installBrowserTestApi(
         bridge.step(safeDeltaMs);
       }
 
+      scene.syncFromBridge(true);
       return getSnapshot(bridge, scene);
     },
   };

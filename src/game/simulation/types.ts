@@ -37,6 +37,7 @@ export type GatherTaskState =
   | 'to-resource'
   | 'gathering'
   | 'to-dropoff';
+export type RenderVisualVariant = 'default' | 'construction' | 'complete';
 
 export interface TerrainComponent {
   kind: TerrainKind;
@@ -49,6 +50,9 @@ export interface RenderableComponent {
   layer: 'terrain' | 'resource' | 'building' | 'unit';
   tint: number;
   size: number;
+  footprintWidth: number;
+  footprintHeight: number;
+  visualVariant: RenderVisualVariant;
 }
 
 export interface UnitComponent {
@@ -70,6 +74,7 @@ export interface ResourceComponent {
 
 export interface GathererComponent {
   desiredResource: EconomyResourceKind;
+  hasExplicitGatherOrder: boolean;
   task: GatherTaskState;
   targetResourceId: number | null;
   dropOffBuildingId: number | null;
@@ -106,6 +111,9 @@ export interface ProjectedEntityView {
   y: number;
   tint: number;
   size: number;
+  footprintWidth: number;
+  footprintHeight: number;
+  visualVariant: RenderVisualVariant;
   selected: boolean;
 }
 
@@ -185,6 +193,8 @@ export interface EconomyState {
     buildingType: BuildingType;
     x: number;
     y: number;
+    footprintWidth: number;
+    footprintHeight: number;
     isComplete: boolean;
     buildProgressTicks: number;
     totalBuildTicks: number;

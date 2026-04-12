@@ -4,6 +4,88 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import type { SelectionState } from '../../src/game/simulation/types';
 
+function selectOwnedBuildingDirect(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  owner: number,
+  buildingType: string,
+): boolean {
+  const building = bridge
+    .getEconomyState()
+    .buildings.find((candidate) => candidate.owner === owner && candidate.buildingType === buildingType);
+  if (!building) {
+    return false;
+  }
+
+  for (let offsetY = 0; offsetY < building.footprintHeight; offsetY += 1) {
+    for (let offsetX = 0; offsetX < building.footprintWidth; offsetX += 1) {
+      if (bridge.selectEntityAtCell(building.x + offsetX, building.y + offsetY)) {
+        const selectionState = bridge.getSelectionState();
+        if (selectionState.selectedEntityType === buildingType) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function selectOwnedUnitDirect(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  owner: number,
+  unitType: string,
+): boolean {
+  const unit = bridge
+    .getEconomyState()
+    .units.find((candidate) => candidate.owner === owner && candidate.unitType === unitType);
+  return unit ? bridge.selectEntityAtCell(unit.x, unit.y) : false;
+}
+
+function placeBuildingNearTownCenter(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  buildingType: 'house' | 'mill' | 'lumber-camp' | 'mining-camp' | 'barracks' | 'watch-tower' | 'stable' | 'archery-range' | 'blacksmith' | 'market' | 'town-center',
+  owner = 1,
+  preferredAnchors: Array<{ x: number; y: number }> = [],
+): { x: number; y: number } {
+  const townCenter = bridge
+    .getEconomyState()
+    .buildings.find((building) => building.owner === owner && building.buildingType === 'town-center');
+  expect(townCenter).toBeDefined();
+  expect(bridge.beginBuildingPlacement(buildingType)).toBe(true);
+
+  for (const anchor of preferredAnchors) {
+    const preview = bridge.getPlacementPreview(anchor.x, anchor.y);
+    if (!preview?.isValid) {
+      continue;
+    }
+
+    expect(bridge.confirmBuildingPlacement(anchor.x, anchor.y)).toBe(true);
+    return anchor;
+  }
+
+  for (let radius = 1; radius <= 12; radius += 1) {
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        if (Math.abs(offsetX) !== radius && Math.abs(offsetY) !== radius) {
+          continue;
+        }
+
+        const x = (townCenter?.x ?? 0) + offsetX;
+        const y = (townCenter?.y ?? 0) + offsetY;
+        const preview = bridge.getPlacementPreview(x, y);
+        if (!preview?.isValid) {
+          continue;
+        }
+
+        expect(bridge.confirmBuildingPlacement(x, y)).toBe(true);
+        return { x, y };
+      }
+    }
+  }
+
+  throw new Error(`Expected a valid ${buildingType} placement near player ${owner}'s Town Center.`);
+}
+
 describe('createSimulationBridge', () => {
   it('starts with player-local visibility and nearby resources', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -19,22 +101,60 @@ describe('createSimulationBridge', () => {
     expect(state.entities.some((entity) => entity.kind === 'resource')).toBe(true);
   });
 
-  it('grows explored territory as the scout moves across ticks', () => {
+  it('uses authoritative starting building footprints in economy and render state', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    const economyTownCenter = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 1 && building.buildingType === 'town-center');
+    const renderTownCenter = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
+
+    expect(economyTownCenter).toMatchObject({
+      footprintWidth: 4,
+      footprintHeight: 4,
+    });
+    expect(renderTownCenter).toMatchObject({
+      footprintWidth: 4,
+      footprintHeight: 4,
+    });
+  });
+
+  it('keeps human starting units idle and stationary until commanded', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     const initialFrame = bridge.getRenderState().frame;
+    const initialHudState = bridge.getHudState();
+    const initialEconomyState = bridge.getEconomyState();
     expect(initialFrame).not.toBeNull();
+    const initialHumanScout = initialEconomyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'scout',
+    );
+    expect(initialHumanScout).toBeDefined();
 
-    for (let index = 0; index < 12; index += 1) {
+    for (let index = 0; index < 120; index += 1) {
       bridge.step(100);
     }
 
+    const nextHudState = bridge.getHudState();
     const nextState = bridge.getRenderState();
+    const nextEconomyState = bridge.getEconomyState();
     const nextFrame = nextState.frame;
     expect(nextFrame).not.toBeNull();
-    expect(nextState.tick).toBe(12);
-    expect(nextFrame!.exploredCells.length).toBeGreaterThan(
+    expect(nextState.tick).toBe(120);
+    expect(nextHudState.playerResources).toEqual(initialHudState.playerResources);
+    expect(nextFrame!.exploredCells.length).toBe(
       initialFrame!.exploredCells.length,
     );
+    const humanVillagers = nextEconomyState.villagers.filter((villager) => villager.owner === 1);
+    expect(humanVillagers.length).toBeGreaterThan(0);
+    expect(humanVillagers.every((villager) => villager.task === 'idle')).toBe(true);
+    expect(
+      nextEconomyState.units.find((unit) => unit.owner === 1 && unit.unitType === 'scout'),
+    ).toMatchObject({
+      x: initialHumanScout?.x,
+      y: initialHumanScout?.y,
+    });
   });
 
   it('reports visibility metrics through the HUD state', () => {
@@ -61,7 +181,7 @@ describe('createSimulationBridge', () => {
     });
   });
 
-  it('runs a deterministic villager gather and drop-off loop', () => {
+  it('runs a deterministic AI villager gather and drop-off loop while human stockpiles stay unchanged', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     const initialHudState = bridge.getHudState();
     const initialEconomyState = bridge.getEconomyState();
@@ -73,19 +193,27 @@ describe('createSimulationBridge', () => {
     const nextHudState = bridge.getHudState();
     const nextEconomyState = bridge.getEconomyState();
 
-    expect(nextHudState.playerResources.food).toBeGreaterThan(initialHudState.playerResources.food);
-    expect(nextHudState.playerResources.wood).toBeGreaterThan(initialHudState.playerResources.wood);
+    expect(nextHudState.playerResources).toEqual(initialHudState.playerResources);
+    expect(nextEconomyState.playerResources[2]).toMatchObject({
+      food: expect.any(Number),
+      wood: expect.any(Number),
+      gold: 100,
+      stone: 200,
+    });
+    expect(nextEconomyState.playerResources[2].food).toBeGreaterThan(initialEconomyState.playerResources[2].food);
     expect(
       nextEconomyState.resources.some(
         (resource) =>
-          resource.baseOwner === 1
+          resource.baseOwner === 2
           && (resource.resourceType === 'sheep' || resource.resourceType === 'tree')
           && resource.amount < resource.maxAmount,
       ),
     ).toBe(true);
     expect(nextEconomyState.resources).toHaveLength(initialEconomyState.resources.length);
     expect(
-      nextEconomyState.villagers.every((villager) => villager.task !== 'idle'),
+      nextEconomyState.villagers
+        .filter((villager) => villager.owner === 2)
+        .every((villager) => villager.task !== 'idle'),
     ).toBe(true);
   });
 
@@ -124,7 +252,7 @@ describe('createSimulationBridge', () => {
       cap: 5,
     });
 
-    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('spearman');
     expect(bridge.queueTrainUnit('spearman')).toBe(true);
 
@@ -145,14 +273,18 @@ describe('createSimulationBridge', () => {
 
   it('selects visible resource entities and exposes their remaining amount', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
+    const sheep = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'sheep' && resource.baseOwner === 1);
+    expect(sheep).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.selectEntityAtCell(sheep?.x ?? 0, sheep?.y ?? 0)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'resource',
       selectedEntityType: 'sheep',
       owner: null,
-      x: 10,
-      y: 10,
+      x: sheep?.x,
+      y: sheep?.y,
       actionOptions: [],
       buildOptions: [],
       marketOptions: [],
@@ -168,8 +300,12 @@ describe('createSimulationBridge', () => {
 
   it('cycles through every selectable entity stacked on the same tile', () => {
     const bridge = createSimulationBridge('tile-selection-cycle-fixture');
+    const stackCell = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
+    expect(stackCell).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.selectEntityAtCell(stackCell?.x ?? 0, stackCell?.y ?? 0)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'unit',
       selectedEntityType: 'militia',
@@ -177,7 +313,7 @@ describe('createSimulationBridge', () => {
       tileEntityCount: 3,
     });
 
-    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.selectEntityAtCell(stackCell?.x ?? 0, stackCell?.y ?? 0)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'building',
       selectedEntityType: 'house',
@@ -185,7 +321,7 @@ describe('createSimulationBridge', () => {
       tileEntityCount: 3,
     });
 
-    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.selectEntityAtCell(stackCell?.x ?? 0, stackCell?.y ?? 0)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'resource',
       selectedEntityType: 'sheep',
@@ -194,7 +330,7 @@ describe('createSimulationBridge', () => {
       resourceAmount: 100,
     });
 
-    expect(bridge.selectEntityAtCell(10, 10)).toBe(true);
+    expect(bridge.selectEntityAtCell(stackCell?.x ?? 0, stackCell?.y ?? 0)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedKind: 'unit',
       selectedEntityType: 'militia',
@@ -261,8 +397,17 @@ describe('createSimulationBridge', () => {
 
   it('selects every friendly movable unit in the drag box while ignoring buildings', () => {
     const bridge = createSimulationBridge('mixed-selection-fixture');
+    const friendlyUnits = bridge
+      .getEconomyState()
+      .units.filter(
+        (unit) => unit.owner === 1 && ['villager', 'militia', 'scout'].includes(unit.unitType),
+      );
+    const minX = Math.min(...friendlyUnits.map((unit) => unit.x));
+    const maxX = Math.max(...friendlyUnits.map((unit) => unit.x));
+    const minY = Math.min(...friendlyUnits.map((unit) => unit.y));
+    const maxY = Math.max(...friendlyUnits.map((unit) => unit.y));
 
-    expect(bridge.selectUnitsInBox(7, 9, 10, 10)).toBe(true);
+    expect(bridge.selectUnitsInBox(minX, minY, maxX, maxY)).toBe(true);
 
     const selectionState = bridge.getSelectionState();
     expect(selectionState.selectedCount).toBe(3);
@@ -324,6 +469,50 @@ describe('createSimulationBridge', () => {
     expect(bridge.getHudState().population.cap).toBe(10);
   });
 
+  it('projects construction and completion building visuals into render state for newly placed buildings', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+
+    bridge.step(100);
+
+    const constructingHouse = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) =>
+          entity.owner === 1
+          && entity.entityType === 'house'
+          && entity.x === 10
+          && entity.y === 5,
+      );
+    expect(constructingHouse).toMatchObject({
+      footprintWidth: 2,
+      footprintHeight: 2,
+      visualVariant: 'construction',
+    });
+
+    for (let index = 0; index < 400; index += 1) {
+      bridge.step(100);
+    }
+
+    const completedHouse = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) =>
+          entity.owner === 1
+          && entity.entityType === 'house'
+          && entity.x === 10
+          && entity.y === 5,
+      );
+    expect(completedHouse).toMatchObject({
+      footprintWidth: 2,
+      footprintHeight: 2,
+      visualVariant: 'complete',
+    });
+  });
+
   it('rejects invalid building placement and keeps placement mode active', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
@@ -355,8 +544,11 @@ describe('createSimulationBridge', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.beginBuildingPlacement('mining-camp')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(11, 7)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'mining-camp', 1, [
+      { x: 15, y: 7 },
+      { x: 15, y: 8 },
+      { x: 15, y: 6 },
+    ]);
     expect(bridge.getHudState().playerResources.wood).toBe(100);
 
     for (let index = 0; index < 400; index += 1) {
@@ -372,7 +564,7 @@ describe('createSimulationBridge', () => {
 
     expect(bridge.issueContextCommand(13, 7)).toBe(true);
 
-    for (let index = 0; index < 67; index += 1) {
+    for (let index = 0; index < 120; index += 1) {
       bridge.step(100);
     }
 
@@ -383,15 +575,14 @@ describe('createSimulationBridge', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'barracks');
     expect(bridge.getHudState().playerResources.wood).toBe(25);
 
     for (let index = 0; index < 500; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'barracks',
       trainOptions: ['militia'],
@@ -414,14 +605,13 @@ describe('createSimulationBridge', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'barracks');
 
     for (let index = 0; index < 500; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueTrainUnit('militia')).toBe(true);
 
     for (let index = 0; index < 260; index += 1) {
@@ -431,17 +621,23 @@ describe('createSimulationBridge', () => {
     const militia = bridge
       .getEconomyState()
       .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
+    expect(militia).toBeDefined();
+    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.issueMoveCommand(12, 5)).toBe(true);
+
+    for (let index = 0; index < 24; index += 1) {
+      bridge.step(100);
+    }
+
     const enemyScout = bridge
       .getEconomyState()
-      .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout' && unit.x === 13 && unit.y === 5);
-
-    expect(militia).toBeDefined();
+      .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout');
     expect(enemyScout).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.selectEntityAtCell(12, 5)).toBe(true);
     expect(bridge.issueContextCommand(enemyScout?.x ?? 0, enemyScout?.y ?? 0)).toBe(true);
 
-    for (let index = 0; index < 220; index += 1) {
+    for (let index = 0; index < 320; index += 1) {
       bridge.step(100);
     }
 
@@ -454,20 +650,19 @@ describe('createSimulationBridge', () => {
           && unit.y === (enemyScout?.y ?? 5),
       ),
     ).toBe(false);
-  });
+  }, 10_000);
 
   it('lets a selected Militia attack and destroy a visible enemy house', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.beginBuildingPlacement('barracks')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'barracks');
 
     for (let index = 0; index < 500; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(10, 5)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueTrainUnit('militia')).toBe(true);
 
     for (let index = 0; index < 260; index += 1) {
@@ -477,6 +672,14 @@ describe('createSimulationBridge', () => {
     const militia = bridge
       .getEconomyState()
       .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
+    expect(militia).toBeDefined();
+    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.issueMoveCommand(12, 5)).toBe(true);
+
+    for (let index = 0; index < 24; index += 1) {
+      bridge.step(100);
+    }
+
     const enemyHouse = bridge
       .getEconomyState()
       .buildings.find(
@@ -486,11 +689,9 @@ describe('createSimulationBridge', () => {
           && building.x === 12
           && building.y === 3,
       );
-
-    expect(militia).toBeDefined();
     expect(enemyHouse).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(bridge.selectEntityAtCell(12, 5)).toBe(true);
     expect(bridge.issueContextCommand(12, 3)).toBe(true);
 
     for (let index = 0; index < 420; index += 1) {
@@ -589,16 +790,15 @@ describe('createSimulationBridge', () => {
 
     expect(bridge.getHudState().currentAge).toBe('feudal-age');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('archery-range');
-    expect(bridge.beginBuildingPlacement('archery-range')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(13, 8)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'archery-range');
 
     for (let index = 0; index < 280; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'archery-range',
     });
@@ -645,7 +845,7 @@ describe('createSimulationBridge', () => {
 
     expect(bridge.getHudState().currentAge).toBe('castle-age');
 
-    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'stable',
     });
@@ -673,7 +873,7 @@ describe('createSimulationBridge', () => {
   it('can build an additional Town Center in Castle Age and use it to train a Villager', () => {
     const bridge = createSimulationBridge('castle-town-center-fixture');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('town-center');
     expect(bridge.beginBuildingPlacement('town-center')).toBe(true);
     expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
@@ -726,7 +926,7 @@ describe('createSimulationBridge', () => {
       attackRange: 4,
     });
 
-    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'blacksmith',
       researchOptions: ['fletching'],
@@ -749,7 +949,7 @@ describe('createSimulationBridge', () => {
       attackRange: 5,
     });
 
-    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.queueTrainUnit('archer')).toBe(true);
 
     for (let index = 0; index < 380; index += 1) {
@@ -768,17 +968,16 @@ describe('createSimulationBridge', () => {
   it('can build a Stable in Feudal Age and train a Scout Cavalry from it', () => {
     const bridge = createSimulationBridge('feudal-stable-fixture');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('stable');
-    expect(bridge.beginBuildingPlacement('stable')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(17, 8)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'stable', 1, [{ x: 17, y: 8 }]);
     expect(bridge.getHudState().playerResources.wood).toBe(75);
 
     for (let index = 0; index < 280; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(18, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'stable',
       trainOptions: ['scout'],
@@ -803,7 +1002,7 @@ describe('createSimulationBridge', () => {
   it('can train a Spearman in Feudal Age and use its anti-scout bonus to kill a visible Scout quickly', () => {
     const bridge = createSimulationBridge('feudal-spearman-fixture');
 
-    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'barracks',
     });
@@ -839,7 +1038,7 @@ describe('createSimulationBridge', () => {
   it('can train a Skirmisher in Feudal Age and use its anti-archer bonus to kill a visible Archer quickly', () => {
     const bridge = createSimulationBridge('feudal-skirmisher-fixture');
 
-    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'archery-range',
     });
@@ -875,13 +1074,17 @@ describe('createSimulationBridge', () => {
   it('can build a Watch Tower in Feudal Age and let it automatically kill a nearby visible Scout', () => {
     const bridge = createSimulationBridge('feudal-watch-tower-fixture');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('watch-tower');
-    expect(bridge.beginBuildingPlacement('watch-tower')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'watch-tower', 1, [
+      { x: 14, y: 11 },
+      { x: 12, y: 10 },
+      { x: 12, y: 11 },
+      { x: 16, y: 10 },
+    ]);
     expect(bridge.getHudState().playerResources.stone).toBe(75);
 
-    for (let index = 0; index < 360; index += 1) {
+    for (let index = 0; index < 520; index += 1) {
       bridge.step(100);
     }
 
@@ -933,9 +1136,13 @@ describe('createSimulationBridge', () => {
   it('can garrison and ungarrison a villager through a completed Watch Tower', () => {
     const bridge = createSimulationBridge('feudal-watch-tower-fixture');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
-    expect(bridge.beginBuildingPlacement('watch-tower')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    const watchTowerAnchor = placeBuildingNearTownCenter(bridge, 'watch-tower', 1, [
+      { x: 14, y: 11 },
+      { x: 12, y: 10 },
+      { x: 12, y: 11 },
+      { x: 16, y: 10 },
+    ]);
 
     for (let index = 0; index < 360; index += 1) {
       bridge.step(100);
@@ -947,14 +1154,14 @@ describe('createSimulationBridge', () => {
     expect(villager).toBeDefined();
 
     expect(bridge.selectEntityAtCell(villager?.x ?? 0, villager?.y ?? 0)).toBe(true);
-    expect(bridge.issueContextCommand(14, 8)).toBe(true);
+    expect(bridge.issueContextCommand(watchTowerAnchor.x, watchTowerAnchor.y)).toBe(true);
     expect(
       bridge.getEconomyState().units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ),
     ).toHaveLength(0);
 
-    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.selectEntityAtCell(watchTowerAnchor.x, watchTowerAnchor.y)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'watch-tower',
       actionOptions: ['ungarrison'],
@@ -988,17 +1195,16 @@ describe('createSimulationBridge', () => {
   it('can build a Market in Feudal Age and exchange resources through market actions', () => {
     const bridge = createSimulationBridge('feudal-market-fixture');
 
-    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('market');
-    expect(bridge.beginBuildingPlacement('market')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(17, 8)).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'market', 1, [{ x: 17, y: 8 }]);
     expect(bridge.getHudState().playerResources.wood).toBe(275);
 
     for (let index = 0; index < 280; index += 1) {
       bridge.step(100);
     }
 
-    expect(bridge.selectEntityAtCell(18, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'market',
       marketOptions: [
@@ -1044,7 +1250,7 @@ describe('createSimulationBridge', () => {
   it('can set a rally point on a selected Archery Range so newly trained units move to it automatically', () => {
     const bridge = createSimulationBridge('feudal-skirmisher-fixture');
 
-    expect(bridge.selectEntityAtCell(11, 8)).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.issueContextCommand(15, 10)).toBe(true);
     expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
 

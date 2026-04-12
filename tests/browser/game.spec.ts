@@ -183,6 +183,24 @@ async function getOwnedUnitCells(
   );
 }
 
+async function getOwnedResourceCells(
+  page: Page,
+  owner: number,
+  resourceType: string,
+): Promise<Array<{ x: number; y: number }>> {
+  return page.evaluate(
+    ({ owner: playerOwner, resourceType: expectedResourceType }) =>
+      window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.resources.filter(
+          (candidate) =>
+            candidate.baseOwner === playerOwner && candidate.resourceType === expectedResourceType,
+        )
+        .map((resource) => ({ x: resource.x, y: resource.y })),
+    { owner, resourceType },
+  );
+}
+
 async function selectOwnedBuildingDirect(
   page: Page,
   owner: number,
@@ -201,17 +219,12 @@ async function selectOwnedBuildingDirect(
         return false;
       }
 
-      const offsets = [
-        { x: 0, y: 0 },
-        { x: 1, y: 0 },
-        { x: 0, y: 1 },
-        { x: 1, y: 1 },
-      ];
-
-      for (const offset of offsets) {
-        api.selectEntityAtCell(building.x + offset.x, building.y + offset.y);
-        if (api.getSelectionState().selectedEntityType === expectedBuildingType) {
-          return true;
+      for (let offsetY = 0; offsetY < building.footprintHeight; offsetY += 1) {
+        for (let offsetX = 0; offsetX < building.footprintWidth; offsetX += 1) {
+          api.selectEntityAtCell(building.x + offsetX, building.y + offsetY);
+          if (api.getSelectionState().selectedEntityType === expectedBuildingType) {
+            return true;
+          }
         }
       }
 
@@ -219,6 +232,94 @@ async function selectOwnedBuildingDirect(
     },
     { owner, buildingType },
   );
+}
+
+async function getBuildingVisualState(
+  page: Page,
+  owner: number,
+  buildingType: string,
+  cellX: number,
+  cellY: number,
+): Promise<{
+  footprintWidthCells: number;
+  footprintHeightCells: number;
+  widthPx: number;
+  heightPx: number;
+  visualVariant: string;
+  hasConstructionIndicator: boolean;
+  hasCompletionAccent: boolean;
+} | null> {
+  return page.evaluate(
+    ({ owner: playerOwner, buildingType: expectedBuildingType, cellX: targetX, cellY: targetY }) =>
+      window.__AOE2_TEST__!
+        .getBuildingVisualStates()
+        .find(
+          (building) =>
+            building.owner === playerOwner
+            && building.buildingType === expectedBuildingType
+            && building.cellX === targetX
+            && building.cellY === targetY,
+        ) ?? null,
+    {
+      owner,
+      buildingType,
+      cellX,
+      cellY,
+    },
+  );
+}
+
+async function findValidPlacementNearTownCenter(
+  page: Page,
+  buildingType: string,
+  owner = 1,
+  preferredAnchors: Array<{ x: number; y: number }> = [],
+): Promise<{ x: number; y: number }> {
+  const townCenter = await page.evaluate(
+    (playerOwner) =>
+      window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.buildings.find(
+          (building) => building.owner === playerOwner && building.buildingType === 'town-center',
+        ) ?? null,
+    owner,
+  );
+
+  if (!townCenter) {
+    throw new Error(`Expected Town Center for player ${owner}.`);
+  }
+
+  const isValidAnchor = async (x: number, y: number): Promise<boolean> => {
+    const preview = await page.evaluate(
+      ({ anchorX, anchorY }) => window.__AOE2_TEST__!.getPlacementPreviewAt(anchorX, anchorY),
+      { anchorX: x, anchorY: y },
+    );
+    return preview?.isValid === true;
+  };
+
+  for (const anchor of preferredAnchors) {
+    if (await isValidAnchor(anchor.x, anchor.y)) {
+      return anchor;
+    }
+  }
+
+  for (let radius = 1; radius <= 12; radius += 1) {
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        if (Math.abs(offsetX) !== radius && Math.abs(offsetY) !== radius) {
+          continue;
+        }
+
+        const x = townCenter.x + offsetX;
+        const y = townCenter.y + offsetY;
+        if (await isValidAnchor(x, y)) {
+          return { x, y };
+        }
+      }
+    }
+  }
+
+  throw new Error(`Expected a valid ${buildingType} placement near player ${owner}'s Town Center.`);
 }
 
 test.describe('browser gameplay smoke tests', () => {
@@ -279,10 +380,14 @@ test.describe('browser gameplay smoke tests', () => {
     }).toBeGreaterThan((movedCamera?.zoom ?? 0) + 0.2);
   });
 
-  test('can fast-forward deterministic economy and exploration behavior', async ({ page }) => {
+  test('keeps human starting units idle until the player gives orders', async ({ page }) => {
     await waitForBoot(page);
 
     const initialSnapshot = await getSnapshot(page);
+    const initialHumanScout = initialSnapshot.economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'scout',
+    );
+    expect(initialHumanScout).toBeDefined();
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(120, 100),
@@ -292,11 +397,44 @@ test.describe('browser gameplay smoke tests', () => {
       .poll(async () => page.locator('[data-hud="food"]').textContent())
       .toBe(String(advancedSnapshot.hudState.playerResources.food));
 
+    expect(advancedSnapshot.hudState.playerResources).toEqual(
+      initialSnapshot.hudState.playerResources,
+    );
+    expect(advancedSnapshot.renderState.frame?.exploredCells.length ?? 0).toBe(
+      initialSnapshot.renderState.frame?.exploredCells.length ?? 0,
+    );
+    expect(
+      advancedSnapshot.economyState.villagers
+        .filter((villager) => villager.owner === 1)
+        .every((villager) => villager.task === 'idle'),
+    ).toBe(true);
+    expect(
+      advancedSnapshot.economyState.units.find((unit) => unit.owner === 1 && unit.unitType === 'scout'),
+    ).toMatchObject({
+      x: initialHumanScout?.x,
+      y: initialHumanScout?.y,
+    });
+  });
+
+  test('advances human economy and exploration only after explicit gather and move orders', async ({ page }) => {
+    await waitForBoot(page);
+
+    const initialSnapshot = await getSnapshot(page);
+    const sheepCells = await getOwnedResourceCells(page, 1, 'sheep');
+    expect(sheepCells.length).toBeGreaterThan(0);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await clickCell(page, sheepCells[0].x, sheepCells[0].y, 'right');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    await clickCell(page, 14, 7, 'right');
+
+    const advancedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
+    );
+
     expect(advancedSnapshot.hudState.playerResources.food).toBeGreaterThan(
       initialSnapshot.hudState.playerResources.food,
-    );
-    expect(advancedSnapshot.hudState.playerResources.wood).toBeGreaterThan(
-      initialSnapshot.hudState.playerResources.wood,
     );
     expect(advancedSnapshot.renderState.frame?.exploredCells.length ?? 0).toBeGreaterThan(
       initialSnapshot.renderState.frame?.exploredCells.length ?? 0,
@@ -305,19 +443,16 @@ test.describe('browser gameplay smoke tests', () => {
       advancedSnapshot.economyState.resources.some(
         (resource) =>
           resource.baseOwner === 1
-          && (resource.resourceType === 'sheep' || resource.resourceType === 'tree')
+          && resource.resourceType === 'sheep'
           && resource.amount < resource.maxAmount,
       ),
-    ).toBe(true);
-    expect(
-      advancedSnapshot.economyState.villagers.every((villager) => villager.task !== 'idle'),
     ).toBe(true);
   });
 
   test('can select the Town Center and train a villager through the command panel', async ({ page }) => {
     await waitForBoot(page);
 
-    await clickCell(page, 8, 8);
+    expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="train-villager"]').click();
 
@@ -340,19 +475,23 @@ test.describe('browser gameplay smoke tests', () => {
 
   test('can inspect visible resources through the HUD selection panel', async ({ page }) => {
     await waitForBoot(page);
+    const sheepCells = await getOwnedResourceCells(page, 1, 'sheep');
+    expect(sheepCells.length).toBeGreaterThan(0);
 
-    await clickCell(page, 10, 10);
+    await clickCell(page, sheepCells[0].x, sheepCells[0].y);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
-    await expect(page.locator('[data-selection-position]')).toHaveText('Tile 10, 10');
+    await expect(page.locator('[data-selection-position]')).toHaveText(`Tile ${sheepCells[0].x}, ${sheepCells[0].y}`);
     await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 1 on tile');
     await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
   });
 
   test('shows a unit icon for an individually selected unit', async ({ page }) => {
     await waitForBootWithSeed(page, 'villager-selection-fixture');
+    const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
+    expect(villagerCells.length).toBeGreaterThan(0);
 
-    await clickCell(page, 8, 10);
+    await clickCell(page, villagerCells[0].x, villagerCells[0].y);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
@@ -361,16 +500,25 @@ test.describe('browser gameplay smoke tests', () => {
 
   test('cycles through every selectable entity stacked on a clicked tile', async ({ page }) => {
     await waitForBootWithSeed(page, 'tile-selection-cycle-fixture');
+    const stackCell = await page.evaluate(() => {
+      const house = window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.buildings.find(
+          (building) => building.owner === 1 && building.buildingType === 'house',
+        );
+      return house ? { x: house.x, y: house.y } : null;
+    });
+    expect(stackCell).not.toBeNull();
 
-    await clickCell(page, 10, 10);
+    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 3 on tile');
 
-    await clickCell(page, 10, 10);
+    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('House');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('2 of 3 on tile');
 
-    await clickCell(page, 10, 10);
+    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('3 of 3 on tile');
     await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
@@ -383,7 +531,11 @@ test.describe('browser gameplay smoke tests', () => {
 
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
     expect(villagerCells).toHaveLength(3);
-    await dragSelectCells(page, 7, 9, 10, 10);
+    const minX = Math.min(...villagerCells.map((unit) => unit.x));
+    const maxX = Math.max(...villagerCells.map((unit) => unit.x));
+    const minY = Math.min(...villagerCells.map((unit) => unit.y));
+    const maxY = Math.max(...villagerCells.map((unit) => unit.y));
+    await dragSelectCells(page, minX, minY, maxX, maxY === minY ? maxY + 1 : maxY);
 
     const marqueeState = await page.evaluate(
       () => (window.__AOE2_TEST__ as { getSelectionBoxState: () => {
@@ -423,8 +575,19 @@ test.describe('browser gameplay smoke tests', () => {
     page,
   }) => {
     await waitForBootWithSeed(page, 'mixed-selection-fixture');
-
-    await dragSelectCells(page, 7, 9, 10, 10);
+    const movableCells = await page.evaluate(() =>
+      window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.units.filter(
+          (unit) => unit.owner === 1 && ['villager', 'militia', 'scout'].includes(unit.unitType),
+        )
+        .map((unit) => ({ x: unit.x, y: unit.y })),
+    );
+    const minX = Math.min(...movableCells.map((unit) => unit.x));
+    const maxX = Math.max(...movableCells.map((unit) => unit.x));
+    const minY = Math.min(...movableCells.map((unit) => unit.y));
+    const maxY = Math.max(...movableCells.map((unit) => unit.y));
+    await dragSelectCells(page, minX, minY, maxX, maxY);
 
     const marqueeState = await page.evaluate(
       () => window.__AOE2_TEST__!.getSelectionBoxState(),
@@ -464,8 +627,10 @@ test.describe('browser gameplay smoke tests', () => {
     page,
   }) => {
     await waitForBootWithSeed(page, 'double-click-selection-fixture');
+    const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
+    expect(villagerCells).toHaveLength(3);
 
-    await doubleClickCell(page, 8, 10);
+    await doubleClickCell(page, villagerCells[0].x, villagerCells[0].y);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('3 Villagers Selected');
 
@@ -479,7 +644,7 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBootWithSeed(page, 'feudal-age-fixture');
 
-    await clickCell(page, 8, 8);
+    expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-feudal-age"]').click();
     await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
@@ -492,8 +657,8 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-archery-range"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Archery Range');
-
-    await clickCell(page, 14, 8);
+    const archeryRangePlacement = await findValidPlacementNearTownCenter(page, 'archery-range');
+    await clickCell(page, archeryRangePlacement.x, archeryRangePlacement.y);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
 
     expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
@@ -516,7 +681,7 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBootWithSeed(page, 'castle-age-fixture');
 
-    await clickCell(page, 8, 8);
+    expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-castle-age"]').click();
     await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
@@ -562,8 +727,8 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
-    await clickCell(page, 16, 10, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(40, 100));
+    await clickCell(page, 18, 10, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
 
     await clickCell(page, 14, 8);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
@@ -571,7 +736,7 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
 
     const trainedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
     );
 
     expect(
@@ -640,8 +805,8 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-stable"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Stable');
-
-    await clickCell(page, 18, 8);
+    const stablePlacement = await findValidPlacementNearTownCenter(page, 'stable', 1, [{ x: 17, y: 8 }]);
+    await clickCell(page, stablePlacement.x, stablePlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('75');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
@@ -743,12 +908,17 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-watch-tower"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Watch Tower');
-
-    await clickCell(page, 14, 8);
+    const watchTowerPlacement = await findValidPlacementNearTownCenter(page, 'watch-tower', 1, [
+      { x: 14, y: 11 },
+      { x: 12, y: 10 },
+      { x: 12, y: 11 },
+      { x: 16, y: 10 },
+    ]);
+    await clickCell(page, watchTowerPlacement.x, watchTowerPlacement.y);
     await expect(page.locator('[data-hud="stone"]')).toHaveText('75');
 
     const postTowerSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(360, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(520, 100),
     );
 
     expect(
@@ -828,8 +998,8 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-market"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Market');
-
-    await clickCell(page, 17, 8);
+    const marketPlacement = await findValidPlacementNearTownCenter(page, 'market', 1, [{ x: 17, y: 8 }]);
+    await clickCell(page, marketPlacement.x, marketPlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
@@ -917,6 +1087,81 @@ test.describe('browser gameplay smoke tests', () => {
           && building.isComplete,
       ),
     ).toBe(true);
+  });
+
+  test('renders construction and completion building visuals with authoritative footprint sizing', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const townCenterVisual = await getBuildingVisualState(page, 1, 'town-center', 8, 8);
+    expect(townCenterVisual).toMatchObject({
+      footprintWidthCells: 4,
+      footprintHeightCells: 4,
+      visualVariant: 'complete',
+      hasConstructionIndicator: false,
+      hasCompletionAccent: true,
+    });
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await page.locator('[data-command="build-house"]').click();
+    const housePlacement = await findValidPlacementNearTownCenter(page, 'house', 1, [{ x: 10, y: 5 }]);
+    const didPlaceHouse = await page.evaluate(
+      ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+      housePlacement,
+    );
+    expect(didPlaceHouse).toBe(true);
+
+    const placedSnapshot = await getSnapshot(page);
+    expect(
+      placedSnapshot.economyState.buildings.some(
+        (building) =>
+          building.owner === 1
+          && building.buildingType === 'house'
+          && building.x === housePlacement.x
+          && building.y === housePlacement.y
+          && building.isComplete === false,
+      ),
+    ).toBe(true);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+
+    const constructingHouseVisual = await getBuildingVisualState(
+      page,
+      1,
+      'house',
+      housePlacement.x,
+      housePlacement.y,
+    );
+    expect(constructingHouseVisual).toMatchObject({
+      footprintWidthCells: 2,
+      footprintHeightCells: 2,
+      visualVariant: 'construction',
+      hasConstructionIndicator: true,
+      hasCompletionAccent: false,
+    });
+    expect(constructingHouseVisual?.widthPx).toBe((constructingHouseVisual?.heightPx ?? 0));
+    expect(townCenterVisual?.widthPx).toBe((constructingHouseVisual?.widthPx ?? 0) * 2);
+    expect(townCenterVisual?.heightPx).toBe((constructingHouseVisual?.heightPx ?? 0) * 2);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+
+    const completedHouseVisual = await getBuildingVisualState(
+      page,
+      1,
+      'house',
+      housePlacement.x,
+      housePlacement.y,
+    );
+    expect(completedHouseVisual).toMatchObject({
+      footprintWidthCells: 2,
+      footprintHeightCells: 2,
+      visualVariant: 'complete',
+      hasConstructionIndicator: false,
+      hasCompletionAccent: true,
+    });
+    expect(completedHouseVisual?.widthPx).toBe(constructingHouseVisual?.widthPx);
+    expect(completedHouseVisual?.heightPx).toBe(constructingHouseVisual?.heightPx);
   });
 
   test('shows valid and invalid building placement preview feedback before construction', async ({
@@ -1011,8 +1256,12 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-mining-camp"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Mining Camp');
-
-    await clickCell(page, 15, 7);
+    const miningCampPlacement = await findValidPlacementNearTownCenter(page, 'mining-camp', 1, [
+      { x: 15, y: 7 },
+      { x: 15, y: 8 },
+      { x: 15, y: 6 },
+    ]);
+    await clickCell(page, miningCampPlacement.x, miningCampPlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('100');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
@@ -1029,7 +1278,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     await clickCell(page, 13, 7, 'right');
     const incomeSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(67, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
     );
 
     await expect(page.locator('[data-hud="gold"]')).toHaveText(
@@ -1047,8 +1296,8 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-barracks"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Barracks');
-
-    await clickCell(page, 10, 5);
+    const barracksPlacement = await findValidPlacementNearTownCenter(page, 'barracks');
+    await clickCell(page, barracksPlacement.x, barracksPlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('25');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
@@ -1076,28 +1325,29 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await page.locator('[data-command="build-barracks"]').click();
-    await clickCell(page, 10, 5);
+    const barracksPlacement = await findValidPlacementNearTownCenter(page, 'barracks');
+    await clickCell(page, barracksPlacement.x, barracksPlacement.y);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
 
     expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await page.locator('[data-command="train-militia"]').click();
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
 
-    const trainedSnapshot = await getSnapshot(page);
-    const militia = trainedSnapshot.economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'militia',
-    );
-    const enemyScout = trainedSnapshot.economyState.units.find(
+    expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
+    await clickCell(page, 12, 5, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(24, 100));
+
+    const stagedSnapshot = await getSnapshot(page);
+    const enemyScout = stagedSnapshot.economyState.units.find(
       (unit) => unit.owner === 2 && unit.unitType === 'scout' && unit.x === 13 && unit.y === 5,
     );
-    expect(militia).toBeDefined();
     expect(enemyScout).toBeDefined();
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
     await clickCell(page, enemyScout?.x ?? 0, enemyScout?.y ?? 0, 'right');
 
     const combatSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(220, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
     );
 
     expect(
@@ -1118,43 +1368,34 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await page.locator('[data-command="build-barracks"]').click();
-    await clickCell(page, 10, 5);
+    const barracksPlacement = await findValidPlacementNearTownCenter(page, 'barracks');
+    await clickCell(page, barracksPlacement.x, barracksPlacement.y);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
 
     expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await page.locator('[data-command="train-militia"]').click();
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
 
-    const trainedSnapshot = await getSnapshot(page);
-    const militia = trainedSnapshot.economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'militia',
-    );
-    const enemyHouse = trainedSnapshot.economyState.buildings.find(
+    expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
+    await clickCell(page, 12, 5, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(24, 100));
+
+    const stagedSnapshot = await getSnapshot(page);
+    const enemyHouse = stagedSnapshot.economyState.buildings.find(
       (building) =>
         building.owner === 2
         && building.buildingType === 'house'
         && building.x === 12
         && building.y === 3,
     );
-    expect(militia).toBeDefined();
     expect(enemyHouse).toBeDefined();
 
-    const issuedAttack = await page.evaluate(
-      ({ militiaX, militiaY }) => {
-        const api = window.__AOE2_TEST__!;
-        api.clearSelection();
-        api.selectEntityAtCell(militiaX, militiaY);
-        return api.issueContextCommand(12, 3);
-      },
-      {
-        militiaX: militia?.x ?? 0,
-        militiaY: militia?.y ?? 0,
-      },
-    );
+    expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
+    const issuedAttack = await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(12, 3));
     expect(issuedAttack).toBe(true);
 
     const combatSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(420, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(620, 100),
     );
 
     expect(
