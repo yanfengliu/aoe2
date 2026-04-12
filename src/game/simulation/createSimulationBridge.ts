@@ -19,6 +19,7 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import type {
+  AgeType,
   BuildableBuildingType,
   BuildingType,
   BuildingComponent,
@@ -32,6 +33,7 @@ import type {
   ProductionQueueEntry,
   ProjectedEntityView,
   ProjectedFrameView,
+  ResearchableTechnologyType,
   RenderState,
   RenderableComponent,
   ResourceComponent,
@@ -61,6 +63,7 @@ export interface SimulationBridge {
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
+  queueResearch(technologyType: ResearchableTechnologyType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
@@ -77,7 +80,10 @@ const VILLAGER_TRAIN_TIME_TICKS = 250;
 const HOUSE_BUILD_TIME_TICKS = 120;
 const DROPOFF_BUILD_TIME_TICKS = 180;
 const BARRACKS_BUILD_TIME_TICKS = 240;
+const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const MILITIA_TRAIN_TIME_TICKS = 210;
+const ARCHER_TRAIN_TIME_TICKS = 350;
+const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
 const MELEE_ATTACK_RANGE = 1;
 
 interface UnitCommand {
@@ -284,6 +290,7 @@ function buildingFootprint(buildingType: BuildingType): { width: number; height:
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'archery-range':
       return { width: 2, height: 2 };
     case 'town-center':
       return { width: 1, height: 1 };
@@ -298,6 +305,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'lumber-camp':
     case 'mining-camp':
     case 'barracks':
+    case 'archery-range':
     case 'town-center':
       return 0;
   }
@@ -313,6 +321,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return DROPOFF_BUILD_TIME_TICKS;
     case 'barracks':
       return BARRACKS_BUILD_TIME_TICKS;
+    case 'archery-range':
+      return ARCHERY_RANGE_BUILD_TIME_TICKS;
     case 'town-center':
       return 0;
   }
@@ -327,6 +337,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'mining-camp':
       return 1.15;
     case 'barracks':
+    case 'archery-range':
       return 1.2;
     case 'town-center':
       return 1.4;
@@ -366,6 +377,12 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0x9b7351 : 0x5b4636
       : isComplete ? 0x8e6257 : 0x5c403b;
+  }
+
+  if (buildingType === 'archery-range') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x7f6855 : 0x4f4034
+      : isComplete ? 0x8b6660 : 0x5a433d;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -416,6 +433,15 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { food: 50 };
     case 'militia':
       return { food: 60, gold: 20 };
+    case 'archer':
+      return { wood: 25, gold: 45 };
+  }
+}
+
+function researchCost(technologyType: ResearchableTechnologyType): Partial<PlayerResources> {
+  switch (technologyType) {
+    case 'feudal-age':
+      return { food: 500 };
   }
 }
 
@@ -428,6 +454,7 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
     case 'mining-camp':
       return { wood: 100 };
     case 'barracks':
+    case 'archery-range':
       return { wood: 175 };
   }
 }
@@ -438,6 +465,15 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return VILLAGER_TRAIN_TIME_TICKS;
     case 'militia':
       return MILITIA_TRAIN_TIME_TICKS;
+    case 'archer':
+      return ARCHER_TRAIN_TIME_TICKS;
+  }
+}
+
+function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
+  switch (technologyType) {
+    case 'feudal-age':
+      return FEUDAL_AGE_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -450,6 +486,7 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'mining-camp':
       return 100;
     case 'barracks':
+    case 'archery-range':
       return 175;
     case 'town-center':
       return 2400;
@@ -460,7 +497,15 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
   return (
     (buildingType === 'town-center' && unitType === 'villager')
     || (buildingType === 'barracks' && unitType === 'militia')
+    || (buildingType === 'archery-range' && unitType === 'archer')
   );
+}
+
+function canResearchAt(
+  buildingType: BuildingType,
+  technologyType: ResearchableTechnologyType,
+): boolean {
+  return buildingType === 'town-center' && technologyType === 'feudal-age';
 }
 
 function unitMaxHp(unitType: UnitType): number {
@@ -471,6 +516,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 45;
     case 'militia':
       return 40;
+    case 'archer':
+      return 30;
   }
 }
 
@@ -481,6 +528,8 @@ function unitAttackDamage(unitType: UnitType): number {
     case 'scout':
       return 3;
     case 'militia':
+      return 4;
+    case 'archer':
       return 4;
   }
 }
@@ -493,7 +542,29 @@ function unitReloadTicks(unitType: UnitType): number {
       return 12;
     case 'militia':
       return 10;
+    case 'archer':
+      return 20;
   }
+}
+
+function unitAttackRange(unitType: UnitType): number {
+  switch (unitType) {
+    case 'villager':
+    case 'scout':
+    case 'militia':
+      return MELEE_ATTACK_RANGE;
+    case 'archer':
+      return 4;
+  }
+}
+
+function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return (
+    buildingType === 'mill'
+    || buildingType === 'lumber-camp'
+    || buildingType === 'mining-camp'
+    || buildingType === 'barracks'
+  );
 }
 
 function createProjector(
@@ -618,6 +689,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world: World<GameEvents, GameCommands>;
   getEconomyState: () => EconomyState;
   getPopulationState: (playerId: number) => PopulationState;
+  getPlayerAge: (playerId: number) => AgeType;
   getPlayerResources: (playerId: number) => PlayerResources;
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
@@ -626,6 +698,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   issueContextCommand: (x: number, y: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
+  queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
@@ -638,6 +711,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   });
 
   const trackedVisibilitySources = new Map<number, number>();
+  const playerAges = new Map<number, AgeType>();
   const playerResources = new Map<number, PlayerResources>();
   const population = new Map<number, PopulationState>();
   const townCenterRefs = new Map<number, EntityRef>();
@@ -669,7 +743,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const tiles = createTileGrid(world);
 
   for (const start of scenario.starts) {
-    playerResources.set(start.owner, cloneResources(STANDARD_STARTING_RESOURCES));
+    playerAges.set(start.owner, 'dark-age');
+    playerResources.set(
+      start.owner,
+      cloneResources(start.startingResources ?? STANDARD_STARTING_RESOURCES),
+    );
     population.set(start.owner, {
       current: 0,
       cap: STANDARD_POPULATION_CAP,
@@ -733,10 +811,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             ? owner === HUMAN_PLAYER_ID
               ? 0xd39a5a
               : 0xd27c7c
+          : unitType === 'archer'
+            ? owner === HUMAN_PLAYER_ID
+              ? 0x84b6d7
+              : 0xb38ad6
           : owner === HUMAN_PLAYER_ID
             ? 0xead74a
             : 0xef7d57,
-      size: unitType === 'villager' ? 0.45 : unitType === 'militia' ? 0.5 : 0.55,
+      size:
+        unitType === 'villager'
+          ? 0.45
+          : unitType === 'militia'
+            ? 0.5
+            : unitType === 'archer'
+              ? 0.48
+              : 0.55,
     });
 
     const populationState = population.get(owner);
@@ -748,7 +837,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       currentHp: unitMaxHp(unitType),
       maxHp: unitMaxHp(unitType),
       attackDamage: unitAttackDamage(unitType),
-      attackRange: MELEE_ATTACK_RANGE,
+      attackRange: unitAttackRange(unitType),
       reloadTicks: unitReloadTicks(unitType),
       cooldownTicks: 0,
     });
@@ -806,7 +895,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
     }
 
-    if (buildingType === 'town-center' || buildingType === 'barracks') {
+    if (
+      buildingType === 'town-center'
+      || buildingType === 'barracks'
+      || buildingType === 'archery-range'
+    ) {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
       }
@@ -887,13 +980,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'lumber-camp'
       || spawn.kind === 'mining-camp'
       || spawn.kind === 'barracks'
+      || spawn.kind === 'archery-range'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
       continue;
     }
 
-    if (spawn.kind === 'villager' || spawn.kind === 'scout' || spawn.kind === 'militia') {
+    if (
+      spawn.kind === 'villager'
+      || spawn.kind === 'scout'
+      || spawn.kind === 'militia'
+      || spawn.kind === 'archer'
+    ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const unitId = addUnitEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, spawn.vision);
       if (spawn.velocity) {
@@ -1325,7 +1424,57 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const queue = productionQueues.get(buildingId) ?? [];
     const totalTicks = trainingTimeTicks(unitType);
     queue.push({
+      kind: 'unit',
+      label: unitType,
       unitType,
+      remainingTicks: totalTicks,
+      totalTicks,
+      isBlocked: false,
+    });
+    productionQueues.set(buildingId, queue);
+    return true;
+  }
+
+  function enqueueResearch(buildingId: number, technologyType: ResearchableTechnologyType): boolean {
+    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+    if (!building) {
+      return false;
+    }
+
+    const construction = constructionStates.get(buildingId);
+    if (construction && !construction.isComplete) {
+      return false;
+    }
+
+    if (!canResearchAt(building.buildingType, technologyType)) {
+      return false;
+    }
+
+    if (!getResearchOptions(building.owner, building.buildingType).includes(technologyType)) {
+      return false;
+    }
+
+    const queue = productionQueues.get(buildingId) ?? [];
+    if (queue.some((entry) => entry.kind === 'technology' && entry.technologyType === technologyType)) {
+      return false;
+    }
+
+    const stockpile = playerResources.get(building.owner);
+    if (!stockpile) {
+      return false;
+    }
+
+    const cost = researchCost(technologyType);
+    if (!canAfford(stockpile, cost)) {
+      return false;
+    }
+
+    spendResources(stockpile, cost);
+    const totalTicks = researchTimeTicks(technologyType);
+    queue.push({
+      kind: 'technology',
+      label: technologyType,
+      technologyType,
       remainingTicks: totalTicks,
       totalTicks,
       isBlocked: false,
@@ -1341,6 +1490,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   ): boolean {
     const unit = world.getComponent<UnitComponent>(builderId, 'unit');
     if (!unit || unit.unitType !== 'villager') {
+      return false;
+    }
+
+    if (!getBuildOptions(unit.owner, unit.unitType).includes(buildingType)) {
       return false;
     }
 
@@ -1449,7 +1602,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   function countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number {
     const queue = productionQueues.get(buildingId) ?? [];
-    return queue.filter((entry) => entry.unitType === unitType).length;
+    return queue.filter((entry) => entry.kind === 'unit' && entry.unitType === unitType).length;
   }
 
   function countOwnedUnits(owner: number, unitType: UnitType): number {
@@ -1465,14 +1618,80 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return count;
   }
 
+  function countCompletedOwnedBuildings(owner: number, filter: (buildingType: BuildingType) => boolean): number {
+    let count = 0;
+
+    for (const id of world.query('building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== owner || !filter(building.buildingType)) {
+        continue;
+      }
+
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        continue;
+      }
+
+      count += 1;
+    }
+
+    return count;
+  }
+
+  function hasCompletedBuilding(owner: number, buildingType: BuildingType): boolean {
+    return countCompletedOwnedBuildings(owner, (candidate) => candidate === buildingType) > 0;
+  }
+
+  function getPlayerAge(owner: number): AgeType {
+    return playerAges.get(owner) ?? 'dark-age';
+  }
+
+  function canAdvanceToFeudalAge(owner: number): boolean {
+    if (getPlayerAge(owner) !== 'dark-age') {
+      return false;
+    }
+
+    return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding) >= 2;
+  }
+
+  function getResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
+    if (buildingType === 'town-center' && canAdvanceToFeudalAge(owner)) {
+      return ['feudal-age'];
+    }
+
+    return [];
+  }
+
+  function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
+    if (unitType !== 'villager') {
+      return [];
+    }
+
+    const options: BuildableBuildingType[] = [
+      'house',
+      'mill',
+      'lumber-camp',
+      'mining-camp',
+      'barracks',
+    ];
+
+    if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
+      options.push('archery-range');
+    }
+
+    return options;
+  }
+
   function targetPriority(unitType: UnitType): number {
     switch (unitType) {
       case 'villager':
         return 0;
-      case 'militia':
+      case 'archer':
         return 1;
-      case 'scout':
+      case 'militia':
         return 2;
+      case 'scout':
+        return 3;
     }
   }
 
@@ -1627,6 +1846,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return false;
+  }
+
+  function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
+    switch (technologyType) {
+      case 'feudal-age':
+        playerAges.set(owner, 'feudal-age');
+        break;
+    }
   }
 
   world.registerSystem({
@@ -1889,14 +2116,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         const entry = queue[0];
-        const populationState = population.get(building.owner);
-        if (!populationState) {
-          continue;
-        }
+        if (entry.kind === 'unit') {
+          const populationState = population.get(building.owner);
+          if (!populationState || !entry.unitType) {
+            continue;
+          }
 
-        if (populationState.current >= populationState.cap) {
-          entry.isBlocked = true;
-          continue;
+          if (populationState.current >= populationState.cap) {
+            entry.isBlocked = true;
+            continue;
+          }
         }
 
         entry.isBlocked = false;
@@ -1906,11 +2135,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        const spawnPosition = findSpawnPosition(position);
-        addUnitEntity(building.owner, entry.unitType, spawnPosition, {
-          playerId: building.owner,
-          radius: 4,
-        });
+        if (entry.kind === 'unit' && entry.unitType) {
+          const spawnPosition = findSpawnPosition(position);
+          addUnitEntity(building.owner, entry.unitType, spawnPosition, {
+            playerId: building.owner,
+            radius: 4,
+          });
+        }
+
+        if (entry.kind === 'technology' && entry.technologyType) {
+          applyTechnology(building.owner, entry.technologyType);
+        }
+
         queue.shift();
       }
     },
@@ -2130,6 +2366,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         y: null,
         buildOptions: [],
         trainOptions: [],
+        researchOptions: [],
         queue: [],
         placementMode,
       };
@@ -2149,11 +2386,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           ? ['villager']
           : building.buildingType === 'barracks'
             ? ['militia']
+            : building.buildingType === 'archery-range'
+              ? ['archer']
             : []
         : [];
     const buildOptions: BuildableBuildingType[] =
-      unit?.unitType === 'villager' && unit.owner === HUMAN_PLAYER_ID
-        ? ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks']
+      unit && unit.owner === HUMAN_PLAYER_ID
+        ? getBuildOptions(unit.owner, unit.unitType)
+        : [];
+    const researchOptions: ResearchableTechnologyType[] =
+      building?.owner === HUMAN_PLAYER_ID
+        ? getResearchOptions(building.owner, building.buildingType)
         : [];
 
     return {
@@ -2165,6 +2408,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       y: position.y,
       buildOptions,
       trainOptions,
+      researchOptions,
       queue: cloneQueue(productionQueues.get(selectedEntityId) ?? []),
       placementMode,
     };
@@ -2293,6 +2537,29 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return enqueueTraining(selectedEntityId, unitType);
+  }
+
+  function queueResearch(technologyType: ResearchableTechnologyType): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    const selectedEntityId = getSelectedEntityId();
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (!building || building.owner !== HUMAN_PLAYER_ID) {
+      return false;
+    }
+
+    const construction = constructionStates.get(selectedEntityId);
+    if (construction && !construction.isComplete) {
+      return false;
+    }
+
+    return enqueueResearch(selectedEntityId, technologyType);
   }
 
   function beginBuildingPlacement(buildingType: BuildableBuildingType): boolean {
@@ -2429,6 +2696,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         .filter((entry): entry is EconomyState['buildings'][number] => entry !== null);
 
       return {
+        ages: Object.fromEntries(
+          [...playerAges.entries()].map(([playerId, age]) => [playerId, age]),
+        ),
         playerResources: Object.fromEntries(
           [...playerResources.entries()].map(([playerId, resources]) => [
             playerId,
@@ -2450,6 +2720,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     getPopulationState(playerId: number) {
       return { ...(population.get(playerId) ?? { current: 0, cap: 0 }) };
     },
+    getPlayerAge,
     getPlayerResources(playerId: number) {
       return cloneResources(
         playerResources.get(playerId) ?? STANDARD_STARTING_RESOURCES,
@@ -2464,6 +2735,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
+    queueResearch,
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected(id: number) {
@@ -2478,6 +2750,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     world,
     getEconomyState,
     getPopulationState,
+    getPlayerAge,
     getPlayerResources,
     getMatchState,
     getSelectionState,
@@ -2486,6 +2759,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
+    queueResearch,
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected,
@@ -2543,6 +2817,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
         fpsTarget: TPS,
         worldSize: `${MAP_WIDTH}x${MAP_HEIGHT}`,
         seed,
+        currentAge: getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: getPlayerResources(HUMAN_PLAYER_ID),
         population: getPopulationState(HUMAN_PLAYER_ID),
         matchState: getMatchState(),
@@ -2555,6 +2830,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     issueContextCommand,
     issueMoveCommand,
     queueTrainUnit,
+    queueResearch,
     beginBuildingPlacement,
     confirmBuildingPlacement,
   };

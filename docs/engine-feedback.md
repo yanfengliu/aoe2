@@ -53,6 +53,9 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Once villagers become commandable instead of scripted, path quality and occupancy will matter more than they do in the current one-tile-per-tick prototype movement.
 - The current production bundle is large because the runtime is still a single Phaser chunk. This is not a `civ-engine` problem, but it is part of the real integration cost.
 - External test fixtures and UI automation cannot safely treat `EntityId` as durable identity. The engine is right to recycle IDs; the repo has to own either semantic selectors or explicit `EntityRef` handling at those boundaries.
+- The Feudal slice showed that research queues fit naturally into the same repo-owned systems as unit production. The engine does not need a separate tech primitive for the game to stay deterministic and testable.
+- Semantic browser selectors are still repo-owned. When Villagers or builder-occupied footprints move between frames, stable automation requires page-local helpers that resolve against the current sim snapshot instead of cached screen coordinates.
+- Placement and footprint checks are still hand-rolled query scans. That is workable at prototype scale, but the engine's `OccupancyGrid` and RTS path helpers should replace more of this logic before the entity count grows.
 
 ## Implications for next phases
 
@@ -61,10 +64,11 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Add debug overlays early. `WorldDebugger` already makes this cheaper.
 - Evaluate `civ-engine` pathfinding and occupancy primitives as soon as villagers and military movement become command-driven instead of scripted.
 - Keep expanding deterministic simulation tests alongside each slice. The current economy loop is simple, but the pattern of external stockpile state plus world-owned entities is holding up well.
+- Start moving placement, footprint selection, and movement-heavy queries onto occupancy/path primitives before Castle Age-scale interactions make the current scan-heavy approach too brittle.
 
 ## Current recommendation
 
-Continue with the planned Phase 2 and Phase 3 work on top of `civ-engine`.
+Continue with the planned Feudal and Castle Age work on top of `civ-engine`.
 
 There is no evidence yet that the engine is the blocker. The next real proof points are:
 

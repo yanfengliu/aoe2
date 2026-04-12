@@ -1,12 +1,15 @@
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
-export type UnitType = 'villager' | 'scout' | 'militia';
-export type TrainableUnitType = 'villager' | 'militia';
+export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
+export type UnitType = 'villager' | 'scout' | 'militia' | 'archer';
+export type TrainableUnitType = 'villager' | 'militia' | 'archer';
+export type ResearchableTechnologyType = 'feudal-age';
 export type BuildableBuildingType =
   | 'house'
   | 'mill'
   | 'lumber-camp'
   | 'mining-camp'
-  | 'barracks';
+  | 'barracks'
+  | 'archery-range';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -124,13 +127,17 @@ export interface PopulationState {
 export type UnitTaskState = GatherTaskState | 'moving' | 'building' | 'attacking';
 
 export interface ProductionQueueEntry {
-  unitType: TrainableUnitType;
+  kind: 'unit' | 'technology';
+  label: string;
+  unitType?: TrainableUnitType;
+  technologyType?: ResearchableTechnologyType;
   remainingTicks: number;
   totalTicks: number;
   isBlocked: boolean;
 }
 
 export interface EconomyState {
+  ages: Record<number, AgeType>;
   playerResources: Record<number, PlayerResources>;
   population: Record<number, PopulationState>;
   villagers: Array<{
@@ -179,6 +186,7 @@ export interface SelectionState {
   y: number | null;
   buildOptions: BuildableBuildingType[];
   trainOptions: TrainableUnitType[];
+  researchOptions: ResearchableTechnologyType[];
   queue: ProductionQueueEntry[];
   placementMode: BuildableBuildingType | null;
 }
@@ -193,6 +201,7 @@ export interface HudState {
   fpsTarget: number;
   worldSize: string;
   seed: string;
+  currentAge: AgeType;
   playerResources: PlayerResources;
   population: PopulationState;
   matchState: MatchState;

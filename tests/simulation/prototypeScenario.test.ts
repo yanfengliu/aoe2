@@ -98,4 +98,33 @@ describe('createPrototypeScenario', () => {
       defeatScenario.spawns.filter((spawn) => spawn.owner === 1 && spawn.kind === 'villager'),
     ).toHaveLength(0);
   });
+
+  it('provides focused Feudal fixtures for age-up gating and production tests', () => {
+    const missingPrereqScenario = createPrototypeScenario('feudal-missing-prereq-fixture');
+    const feudalScenario = createPrototypeScenario('feudal-age-fixture');
+
+    expect(
+      missingPrereqScenario.spawns.filter(
+        (spawn) => spawn.owner === 1 && (spawn.kind === 'mill' || spawn.kind === 'barracks'),
+      ),
+    ).toHaveLength(1);
+    expect(
+      feudalScenario.spawns.filter(
+        (spawn) => spawn.owner === 1 && (spawn.kind === 'mill' || spawn.kind === 'barracks'),
+      ),
+    ).toHaveLength(2);
+    expect(
+      feudalScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 8 && spawn.y === 10,
+      ),
+    ).toBe(true);
+    expect(
+      feudalScenario.starts.find((start) => start.owner === 1)?.startingResources,
+    ).toEqual({
+      food: 700,
+      wood: 375,
+      gold: 200,
+      stone: 200,
+    });
+  });
 });

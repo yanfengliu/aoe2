@@ -369,4 +369,57 @@ describe('createSimulationBridge', () => {
     bridge.step(100);
     expect(bridge.getHudState().tick).toBe(frozenTick);
   });
+
+  it('does not offer Feudal Age research until two qualifying Dark Age buildings are complete', () => {
+    const bridge = createSimulationBridge('feudal-missing-prereq-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      researchOptions: [],
+    });
+    expect(bridge.queueResearch('feudal-age')).toBe(false);
+  });
+
+  it('can research Feudal Age, build an Archery Range, and train an Archer', () => {
+    const bridge = createSimulationBridge('feudal-age-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      researchOptions: ['feudal-age'],
+    });
+    expect(bridge.queueResearch('feudal-age')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(200);
+
+    for (let index = 0; index < 1320; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().currentAge).toBe('feudal-age');
+
+    expect(bridge.selectEntityAtCell(8, 10)).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('archery-range');
+    expect(bridge.beginBuildingPlacement('archery-range')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(13, 8)).toBe(true);
+
+    for (let index = 0; index < 280; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.selectEntityAtCell(14, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'archery-range',
+      trainOptions: ['archer'],
+    });
+    expect(bridge.queueTrainUnit('archer')).toBe(true);
+
+    for (let index = 0; index < 380; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
+    ).toHaveLength(1);
+  }, 15_000);
 });

@@ -101,6 +101,64 @@ async function clickCell(
   });
 }
 
+async function selectOwnedUnitDirect(
+  page: Page,
+  owner: number,
+  unitType: string,
+): Promise<boolean> {
+  return page.evaluate(
+    ({ owner: playerOwner, unitType: expectedUnitType }) => {
+      const api = window.__AOE2_TEST__!;
+      const unit = api
+        .getSnapshot()
+        .economyState.units.find(
+          (candidate) =>
+            candidate.owner === playerOwner && candidate.unitType === expectedUnitType,
+        );
+      return unit ? api.selectEntityAtCell(unit.x, unit.y) : false;
+    },
+    { owner, unitType },
+  );
+}
+
+async function selectOwnedBuildingDirect(
+  page: Page,
+  owner: number,
+  buildingType: string,
+): Promise<boolean> {
+  return page.evaluate(
+    ({ owner: playerOwner, buildingType: expectedBuildingType }) => {
+      const api = window.__AOE2_TEST__!;
+      const building = api
+        .getSnapshot()
+        .economyState.buildings.find(
+          (candidate) =>
+            candidate.owner === playerOwner && candidate.buildingType === expectedBuildingType,
+        );
+      if (!building) {
+        return false;
+      }
+
+      const offsets = [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ];
+
+      for (const offset of offsets) {
+        api.selectEntityAtCell(building.x + offset.x, building.y + offset.y);
+        if (api.getSelectionState().selectedEntityType === expectedBuildingType) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    { owner, buildingType },
+  );
+}
+
 test.describe('browser gameplay smoke tests', () => {
   test('boots into a live simulation and renders the HUD/minimap', async ({ page }) => {
     await waitForBoot(page);
@@ -215,15 +273,47 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveLength(4);
   });
 
+  test('can research Feudal Age and train an Archer through the live command panel', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'feudal-age-fixture');
+
+    await clickCell(page, 8, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await page.locator('[data-command="research-feudal-age"]').click();
+    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1320, 100));
+
+    await expect(page.locator('[data-hud="age"]')).toHaveText('Feudal Age');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await page.locator('[data-command="build-archery-range"]').click();
+    await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Archery Range');
+
+    await clickCell(page, 14, 8);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
+    await page.locator('[data-command="train-archer"]').click();
+
+    const trainedSnapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(380, 100),
+    );
+
+    expect(
+      trainedSnapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.unitType === 'archer',
+      ),
+    ).toHaveLength(1);
+  });
+
   test('can place and complete a House with villager build controls', async ({ page }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-house"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
@@ -260,12 +350,7 @@ test.describe('browser gameplay smoke tests', () => {
   test('can right-click a visible resource to redirect villager gathering', async ({ page }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await clickCell(page, 13, 7, 'right');
 
@@ -284,12 +369,7 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-mining-camp"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Mining Camp');
@@ -325,12 +405,7 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await page.locator('[data-command="build-barracks"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Barracks');
@@ -340,7 +415,7 @@ test.describe('browser gameplay smoke tests', () => {
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
 
-    await clickCell(page, 10, 5);
+    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
     await page.locator('[data-command="train-militia"]').click();
     await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
@@ -361,17 +436,12 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await page.locator('[data-command="build-barracks"]').click();
     await clickCell(page, 10, 5);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
 
-    await clickCell(page, 10, 5);
+    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await page.locator('[data-command="train-militia"]').click();
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
 
@@ -385,7 +455,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(militia).toBeDefined();
     expect(enemyScout).toBeDefined();
 
-    await clickCell(page, militia?.x ?? 0, militia?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
     await clickCell(page, enemyScout?.x ?? 0, enemyScout?.y ?? 0, 'right');
 
     const combatSnapshot = await page.evaluate(
@@ -408,17 +478,12 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBoot(page);
 
-    const villager = (await getSnapshot(page)).economyState.units.find(
-      (unit) => unit.owner === 1 && unit.unitType === 'villager',
-    );
-    expect(villager).toBeDefined();
-
-    await clickCell(page, villager?.x ?? 0, villager?.y ?? 0);
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await page.locator('[data-command="build-barracks"]').click();
     await clickCell(page, 10, 5);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
 
-    await clickCell(page, 10, 5);
+    expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await page.locator('[data-command="train-militia"]').click();
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
 

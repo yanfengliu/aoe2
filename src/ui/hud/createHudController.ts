@@ -1,6 +1,7 @@
 import type {
   BuildableBuildingType,
   HudState,
+  ResearchableTechnologyType,
   RenderState,
   SelectionState,
   TrainableUnitType,
@@ -11,6 +12,7 @@ interface HudBridge {
   getRenderState(): RenderState;
   getSelectionState(): SelectionState;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
+  queueResearch(technologyType: ResearchableTechnologyType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
@@ -106,14 +108,38 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Mining Camp';
     case 'barracks':
       return 'Barracks';
+    case 'archery-range':
+      return 'Archery Range';
     case 'villager':
       return 'Villager';
     case 'militia':
       return 'Militia';
+    case 'archer':
+      return 'Archer';
     case 'scout':
       return 'Scout Cavalry';
     default:
       return entityType;
+  }
+}
+
+function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
+  switch (technologyType) {
+    case 'feudal-age':
+      return 'Feudal Age';
+  }
+}
+
+function formatAgeName(age: HudState['currentAge']): string {
+  switch (age) {
+    case 'dark-age':
+      return 'Dark Age';
+    case 'feudal-age':
+      return 'Feudal Age';
+    case 'castle-age':
+      return 'Castle Age';
+    case 'imperial-age':
+      return 'Imperial Age';
   }
 }
 
@@ -148,6 +174,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         <div class="hud-chip">
           <div class="hud-label">Stone</div>
           <div class="hud-value" data-hud="stone">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="hud-label">Age</div>
+          <div class="hud-value" data-hud="age">Dark Age</div>
         </div>
         <div class="hud-chip">
           <div class="hud-label">Pop</div>
@@ -194,10 +224,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         ></canvas>
       </div>
       <div class="hud-footer" data-hud="match-summary">
-        Phase 3 slice: select units and buildings on the map, queue Villagers from
-        the Town Center, place Houses, Dark Age drop-off buildings, and Barracks
-        with Villagers, pan with arrow keys or WASD, and use the mouse wheel to
-        zoom.
+        Current slice: run the Dark Age economy, research Feudal Age from the
+        Town Center after two qualifying buildings, place military buildings with
+        Villagers, and command Militia or Archers while panning with WASD or the
+        arrow keys and zooming with the mouse wheel.
       </div>
     </div>
   `;
@@ -209,6 +239,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const wood = root.querySelector<HTMLElement>('[data-hud="wood"]');
   const gold = root.querySelector<HTMLElement>('[data-hud="gold"]');
   const stone = root.querySelector<HTMLElement>('[data-hud="stone"]');
+  const age = root.querySelector<HTMLElement>('[data-hud="age"]');
   const pop = root.querySelector<HTMLElement>('[data-hud="pop"]');
   const visibleCells = root.querySelector<HTMLElement>('[data-hud="visible-cells"]');
   const world = root.querySelector<HTMLElement>('[data-hud="world"]');
@@ -267,6 +298,19 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         `,
       )
       .join('');
+    const researchButtons = selectionState.researchOptions
+      .map(
+        (technologyType) => `
+          <button
+            class="hud-command-button"
+            data-command="research-${technologyType}"
+            type="button"
+          >
+            Research ${formatTechnologyName(technologyType)}
+          </button>
+        `,
+      )
+      .join('');
 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
@@ -278,6 +322,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
       <div class="hud-command-list">
         ${trainButtons}
+        ${researchButtons}
         ${buildButtons}
       </div>
     `;
@@ -292,6 +337,21 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
 
         button.addEventListener('click', () => {
           bridge.queueTrainUnit(unitType);
+        });
+      });
+    selectionPanel
+      .querySelectorAll<HTMLButtonElement>('[data-command^="research-"]')
+      .forEach((button) => {
+        const technologyType = button.dataset.command?.replace(
+          'research-',
+          '',
+        ) as ResearchableTechnologyType | undefined;
+        if (!technologyType) {
+          return;
+        }
+
+        button.addEventListener('click', () => {
+          bridge.queueResearch(technologyType);
         });
       });
     selectionPanel
@@ -320,6 +380,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     if (wood) wood.textContent = String(hudState.playerResources.wood);
     if (gold) gold.textContent = String(hudState.playerResources.gold);
     if (stone) stone.textContent = String(hudState.playerResources.stone);
+    if (age) age.textContent = formatAgeName(hudState.currentAge);
     if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
     if (visibleCells) visibleCells.textContent = String(hudState.visibleCells);
     if (world) world.textContent = hudState.worldSize;

@@ -6,6 +6,7 @@ import {
 
 import type {
   BuildingType,
+  PlayerResources,
   ResourceKind,
   TerrainComponent,
   TerrainKind,
@@ -43,6 +44,7 @@ export interface ScenarioSpawnSpec {
 export interface PlayerStartSpec {
   owner: number;
   townCenter: Position;
+  startingResources?: PlayerResources;
 }
 
 export interface PrototypeScenario {
@@ -201,6 +203,135 @@ function createConquestDefeatFixture(seed: string): PrototypeScenario {
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 5 },
+      },
+    ],
+  };
+}
+
+function createGrassFixtureTerrain(): TerrainCellSpec[][] {
+  return Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
+  );
+}
+
+function createFeudalMissingPrereqFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingResources: {
+          food: 700,
+          wood: 375,
+          gold: 200,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mill',
+        x: 5,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+function createFeudalAgeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingResources: {
+          food: 700,
+          wood: 375,
+          gold: 200,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mill',
+        x: 5,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'barracks',
+        x: 11,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
       },
     ],
   };
@@ -367,6 +498,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'conquest-defeat-fixture') {
     return createConquestDefeatFixture(seed);
+  }
+
+  if (seed === 'feudal-missing-prereq-fixture') {
+    return createFeudalMissingPrereqFixture(seed);
+  }
+
+  if (seed === 'feudal-age-fixture') {
+    return createFeudalAgeFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

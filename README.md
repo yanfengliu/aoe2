@@ -19,6 +19,8 @@ Current implementation status:
 - right click now resolves context-sensitive villager orders, so visible resources can be explicitly targeted for gathering instead of only using the autonomous assignment loop
 - villagers can now build Mill, Lumber Camp, and Mining Camp, and completed drop-off buildings are used for resource returns instead of hardwiring all income through the Town Center
 - villagers can now build a Barracks, and completed Barracks can queue Militia through the same command-panel flow used by the Town Center
+- Town Centers can now research Feudal Age once the player has two qualifying Dark Age buildings
+- Feudal villagers can now place Archery Ranges, and completed Archery Ranges can queue Archers
 - Militia can now be selected and right-clicked onto visible enemy units to run the first deterministic melee-combat loop
 - Militia can now be selected and right-clicked onto visible enemy buildings to destroy them through the same deterministic combat system
 - the first AI rush is now live: the enemy can build a House and Barracks, queue Militia, and pressure the human economy without player input
@@ -55,10 +57,11 @@ The game currently starts directly into the prototype map. Use:
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - mouse wheel to zoom
 - the selection panel to queue Villagers from the Town Center
+- the selection panel to research Feudal Age from the Town Center after two qualifying Dark Age buildings are complete
 - the selection panel to place Houses, Mills, Lumber Camps, and Mining Camps with Villagers
-- the selection panel to place Barracks with Villagers and queue Militia from completed Barracks
+- the selection panel to place Barracks in Dark Age, then Archery Ranges in Feudal Age, and queue Militia or Archers from completed military buildings
 - enemy AI currently runs a minimal scripted opening that builds out of population cap, sends Militia at the human economy, and can finish conquest-style matches
-- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture` and `?seed=conquest-defeat-fixture`
+- for deterministic test fixtures, the dev server also accepts `?seed=conquest-victory-fixture`, `?seed=conquest-defeat-fixture`, `?seed=feudal-missing-prereq-fixture`, and `?seed=feudal-age-fixture`
 
 ## Verification
 
