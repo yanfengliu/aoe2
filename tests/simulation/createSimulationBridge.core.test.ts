@@ -174,6 +174,59 @@ describe('createSimulationBridge core systems', () => {
     expect(damagedHouse?.currentHp).toBeLessThan(damagedHouse?.maxHp ?? 75);
   });
 
+  it('can issue a context command against an exact hostile entity id', () => {
+    const bridge = createSimulationBridge('moving-enemy-attack-fixture');
+    const enemyScout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout');
+
+    expect(enemyScout).toBeDefined();
+    expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
+
+    bridge.step(100);
+
+    expect(
+      (
+        bridge as unknown as {
+          issueContextCommandAtEntity: (entityId: number) => boolean;
+        }
+      ).issueContextCommandAtEntity(enemyScout?.id ?? -1),
+    ).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          !bridge
+            .getEconomyState()
+            .units.some((unit) => unit.id === (enemyScout?.id ?? -1)),
+        { maxSteps: 480 },
+      ),
+    ).toBe(true);
+  });
+
+  it('renders wandering enemy scouts on a sub-grid instead of snapping them back to coarse cells each tick', () => {
+    const bridge = createSimulationBridge('moving-enemy-attack-fixture');
+    const initialSnapshot = bridge.getRenderState();
+    const enemyScout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 2 && unit.unitType === 'scout');
+    const initialRenderedScout = initialSnapshot.entities.find((entity) => entity.id === enemyScout?.id);
+
+    expect(enemyScout).toBeDefined();
+    expect(initialRenderedScout).toBeDefined();
+
+    bridge.step(100);
+
+    const steppedSnapshot = bridge.getRenderState();
+    const steppedRenderedScout = steppedSnapshot.entities.find((entity) => entity.id === enemyScout?.id);
+
+    expect(steppedRenderedScout).toBeDefined();
+    expect(steppedRenderedScout?.x).toBeGreaterThan(enemyScout?.x ?? 0);
+    expect(steppedRenderedScout?.x).toBeLessThan((enemyScout?.x ?? 0) + 1);
+    expect(steppedRenderedScout?.y).toBe(initialRenderedScout?.y);
+  });
+
   it('reports visibility metrics through the HUD state', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     const hudState = bridge.getHudState();

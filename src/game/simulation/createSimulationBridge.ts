@@ -76,6 +76,7 @@ export interface SimulationBridge {
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
+  issueContextCommandAtEntity(entityId: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
@@ -1140,6 +1141,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
+  issueContextCommandAtEntity: (entityId: number) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
@@ -3587,7 +3589,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             && isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld)
           ) {
             activeWorld.setPosition(id, nextGridPosition);
-          } else {
+          } else if (
+            nextGridPosition.x !== position.x
+            || nextGridPosition.y !== position.y
+          ) {
             syncUnitTransformToPosition(id, position, activeWorld);
           }
           continue;
@@ -4036,10 +4041,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return issueUnitMoveCommand(unitId, target);
     }
 
+    if (!issueUnitGatherCommand(unitId, resourceId)) {
+      return issueUnitMoveCommand(unitId, target);
+    }
+
+    return true;
+  }
+
+  function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
     const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    if (!gatherer || !resource) {
-      return issueUnitMoveCommand(unitId, target);
+    const targetPosition = world.getComponent<Position>(resourceId, 'position');
+    if (!unit || !gatherer || !resource || !targetPosition) {
+      return false;
     }
 
     clearGathererOrder(unitId);
@@ -4052,10 +4067,44 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       world,
       unit.owner,
       gatherer.desiredResource,
-      target,
+      targetPosition,
     );
     gatherer.gatherProgressTicks = 0;
     return true;
+  }
+
+  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
+    if (!unit || unit.owner !== HUMAN_PLAYER_ID || !targetPosition) {
+      return false;
+    }
+
+    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
+    if (targetUnit && targetUnit.owner !== unit.owner) {
+      return issueUnitAttackCommand(unitId, targetEntityId, 'unit');
+    }
+
+    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
+    if (targetBuilding) {
+      if (targetBuilding.owner !== unit.owner) {
+        return issueUnitAttackCommand(unitId, targetEntityId, 'building');
+      }
+
+      const construction = constructionStates.get(targetEntityId);
+      if (
+        canGarrisonAt(targetBuilding.buildingType, unit.unitType)
+        && (!construction || construction.isComplete)
+      ) {
+        return garrisonUnit(unitId, targetEntityId);
+      }
+    }
+
+    if (unit.unitType === 'villager' && issueUnitGatherCommand(unitId, targetEntityId)) {
+      return true;
+    }
+
+    return issueUnitMoveCommand(unitId, targetPosition);
   }
 
   function selectEntityAtCell(x: number, y: number): boolean {
@@ -4160,6 +4209,50 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue = issueUnitContextCommand(unitId, target) || didIssue;
+    }
+
+    return didIssue;
+  }
+
+  function issueContextCommandAtEntityInternal(entityId: number): boolean {
+    if (!isMatchRunning()) {
+      return false;
+    }
+
+    const targetPosition = world.getComponent<Position>(entityId, 'position');
+    if (!targetPosition) {
+      return false;
+    }
+
+    const selectedEntityId = getSelectedEntityId();
+    if (selectedEntityId === null) {
+      return false;
+    }
+
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    if (building && building.owner === HUMAN_PLAYER_ID && getSelectedEntityIds().length === 1) {
+      const construction = constructionStates.get(selectedEntityId);
+      if (construction && !construction.isComplete) {
+        return false;
+      }
+
+      rallyPoints.set(selectedEntityId, {
+        x: clamp(targetPosition.x, 0, MAP_WIDTH - 1),
+        y: clamp(targetPosition.y, 0, MAP_HEIGHT - 1),
+      });
+      placementMode = null;
+      return true;
+    }
+
+    const selectedUnitIds = getSelectedHumanUnitIds();
+    if (selectedUnitIds.length === 0) {
+      return false;
+    }
+
+    placementMode = null;
+    let didIssue = false;
+    for (const unitId of selectedUnitIds) {
+      didIssue = issueUnitContextCommandAtEntity(unitId, entityId) || didIssue;
     }
 
     return didIssue;
@@ -4421,6 +4514,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
+    issueContextCommandAtEntity: issueContextCommandAtEntityInternal,
     issueMoveCommand,
     issueAction,
     queueTrainUnit,
@@ -4456,6 +4550,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
+    issueContextCommandAtEntity: issueContextCommandAtEntityInternal,
     issueMoveCommand,
     issueAction,
     queueTrainUnit,
@@ -4492,6 +4587,15 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
   }
 
   let accumulatorMs = 0;
+
+  const issueContextCommandAtEntity = (entityId: number): boolean => {
+    const didIssue = issueContextCommandAtEntityInternal(entityId);
+    if (!didIssue) {
+      return false;
+    }
+    flushOutOfBandRenderChange();
+    return true;
+  };
 
   return {
     step(deltaMs: number) {
@@ -4550,6 +4654,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       flushOutOfBandRenderChange();
       return didIssue;
     },
+    issueContextCommandAtEntity,
     issueMoveCommand,
     issueAction(actionType: ActionType) {
       const didIssue = issueAction(actionType);

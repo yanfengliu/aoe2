@@ -13,6 +13,7 @@ import type {
   SelectionState,
   UnitType,
 } from '../../game/simulation/types';
+import { findEntityAtWorldPoint } from './entityHitTest';
 
 interface SimulationBridge {
   step(deltaMs: number): void;
@@ -30,6 +31,7 @@ interface SimulationBridge {
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
+  issueContextCommandAtEntity(entityId: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
 }
@@ -224,7 +226,15 @@ export class GameScene extends Phaser.Scene {
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
         const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
         const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
-        this.bridge.issueContextCommand(cellX, cellY);
+        const targetEntity = findEntityAtWorldPoint(
+          this.bridge.getRenderState(),
+          worldPoint.x,
+          worldPoint.y,
+          CELL_SIZE,
+        );
+        if (!targetEntity || !this.bridge.issueContextCommandAtEntity(targetEntity.id)) {
+          this.bridge.issueContextCommand(cellX, cellY);
+        }
         return;
       }
 

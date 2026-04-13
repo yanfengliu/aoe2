@@ -149,6 +149,7 @@ describe('createPrototypeScenario', () => {
     const mixedSelectionScenario = createPrototypeScenario('mixed-selection-fixture');
     const tileSelectionCycleScenario = createPrototypeScenario('tile-selection-cycle-fixture');
     const doubleClickSelectionScenario = createPrototypeScenario('double-click-selection-fixture');
+    const movingEnemyAttackScenario = createPrototypeScenario('moving-enemy-attack-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -322,12 +323,28 @@ describe('createPrototypeScenario', () => {
         (spawn) => spawn.owner === 1 && spawn.kind === 'scout',
       ),
     ).toHaveLength(1);
+    expect(
+      movingEnemyAttackScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'militia',
+      ),
+    ).toBe(true);
+    expect(
+      movingEnemyAttackScenario.spawns.some(
+        (spawn) =>
+          spawn.owner === 2
+          && spawn.kind === 'scout'
+          && spawn.velocity?.dx === 1
+          && spawn.wanderBounds?.minX === 15
+          && spawn.wanderBounds?.maxX === 17,
+      ),
+    ).toBe(true);
   });
 
   it('keeps focused fixture unit spawns outside building footprints', () => {
     const fixtureNames = [
       'orders-fixture',
       'militia-combat-fixture',
+      'moving-enemy-attack-fixture',
       'ai-rush-fixture',
       'castle-town-center-fixture',
       'mining-camp-fixture',

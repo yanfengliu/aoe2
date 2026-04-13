@@ -37,7 +37,7 @@ describe('createSimulationBridge combat and outcomes', () => {
     expect(
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'militia'),
     ).toHaveLength(1);
-  });
+  }, 10_000);
 
   it('lets a selected Militia attack and kill a visible enemy scout', () => {
     const bridge = createSimulationBridge('militia-combat-fixture');

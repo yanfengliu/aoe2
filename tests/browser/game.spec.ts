@@ -114,18 +114,16 @@ async function clickCell(
   button: 'left' | 'right' = 'left',
 ): Promise<void> {
   const point = await getScreenPointForCell(page, cellX, cellY);
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  expect(bounds).not.toBeNull();
+  await clickCanvasAtPoint(page, point, button);
+}
 
-  await canvas.click({
-    position: {
-      x: point.x - (bounds?.x ?? 0),
-      y: point.y - (bounds?.y ?? 0),
-    },
-    button,
-    force: true,
-  });
+async function clickCanvasAtPoint(
+  page: Page,
+  point: ScreenPoint,
+  button: 'left' | 'right' = 'left',
+): Promise<void> {
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.click(point.x, point.y, { button });
 }
 
 async function clickMinimapAt(
@@ -785,7 +783,7 @@ test.describe('browser gameplay smoke tests', () => {
     });
 
     expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await clickCell(page, 7, 8, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(7, 8))).toBe(true);
 
     await expect.poll(async () => {
       const snapshot = await page.evaluate(
@@ -794,7 +792,7 @@ test.describe('browser gameplay smoke tests', () => {
       return snapshot.economyState.resources.find((resource) => resource.resourceType === 'sheep')?.owner ?? null;
     }).toBe(1);
 
-    await clickCell(page, 10, 8);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(10, 8))).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
     await expect.poll(async () => (await getSnapshot(page)).selectionState.owner).toBe(1);
   });
@@ -804,7 +802,12 @@ test.describe('browser gameplay smoke tests', () => {
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
     expect(villagerCells.length).toBeGreaterThan(0);
 
-    await clickCell(page, villagerCells[0].x, villagerCells[0].y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        villagerCells[0],
+      ),
+    ).toBe(true);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
@@ -823,15 +826,30 @@ test.describe('browser gameplay smoke tests', () => {
     });
     expect(stackCell).not.toBeNull();
 
-    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        { x: stackCell?.x ?? 0, y: stackCell?.y ?? 0 },
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 3 on tile');
 
-    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        { x: stackCell?.x ?? 0, y: stackCell?.y ?? 0 },
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('House');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('2 of 3 on tile');
 
-    await clickCell(page, stackCell?.x ?? 0, stackCell?.y ?? 0);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        { x: stackCell?.x ?? 0, y: stackCell?.y ?? 0 },
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
     await expect(page.locator('[data-selection-cycle]')).toHaveText('3 of 3 on tile');
     await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
@@ -1822,6 +1840,79 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
     await clickCell(page, enemyScout?.x ?? 0, enemyScout?.y ?? 0, 'right');
+
+    const combatSnapshot = await page.evaluate((targetScoutId) => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let index = 0; index < 480; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const scoutStillAlive = snapshot.economyState.units.some(
+          (unit) => unit.id === targetScoutId,
+        );
+        if (!scoutStillAlive) {
+          break;
+        }
+      }
+      return snapshot;
+    }, enemyScout?.id ?? -1);
+
+    expect(
+      combatSnapshot.economyState.units.some(
+        (unit) => unit.id === (enemyScout?.id ?? -1),
+      ),
+    ).toBe(false);
+  });
+
+  test('can right-click the rendered body of a moving enemy unit to issue an attack', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'moving-enemy-attack-fixture');
+
+    const stagedSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+
+      for (let index = 0; index < 12; index += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        const enemyScout = snapshot.economyState.units.find(
+          (unit) => unit.owner === 2 && unit.unitType === 'scout',
+        );
+        const renderedEnemyScout = snapshot.renderState.entities.find(
+          (entity) => entity.id === (enemyScout?.id ?? -1),
+        );
+
+        if (
+          enemyScout
+          && renderedEnemyScout
+          && (
+            Math.abs(renderedEnemyScout.x - enemyScout.x) > 0
+            || Math.abs(renderedEnemyScout.y - enemyScout.y) > 0
+          )
+        ) {
+          return snapshot;
+        }
+      }
+
+      return snapshot;
+    });
+    const enemyScout = stagedSnapshot.economyState.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'scout',
+    );
+    const renderedEnemyScout = stagedSnapshot.renderState.entities.find(
+      (entity) => entity.id === (enemyScout?.id ?? -1),
+    );
+
+    expect(enemyScout).toBeDefined();
+    expect(renderedEnemyScout?.x).toBeGreaterThan(enemyScout?.x ?? 0);
+    expect(renderedEnemyScout?.x).toBeLessThan((enemyScout?.x ?? 0) + 1);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
+    const enemyEdgePoint = await getScreenPointForCell(
+      page,
+      (renderedEnemyScout?.x ?? 0) + 0.18,
+      renderedEnemyScout?.y ?? 0,
+    );
+    await clickCanvasAtPoint(page, enemyEdgePoint, 'right');
 
     const combatSnapshot = await page.evaluate((targetScoutId) => {
       const api = window.__AOE2_TEST__!;

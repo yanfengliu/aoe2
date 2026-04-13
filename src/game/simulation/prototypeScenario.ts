@@ -1022,6 +1022,66 @@ function createMilitiaCombatFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createMovingEnemyAttackFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'militia',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'scout',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        velocity: { dx: 1, dy: 0 },
+        wanderBounds: {
+          minX: 15,
+          maxX: 17,
+          minY: 8,
+          maxY: 8,
+        },
+        vision: { playerId: 2, radius: 6 },
+      },
+    ],
+  };
+}
+
 function createFeudalWatchTowerFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -1896,6 +1956,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'militia-combat-fixture') {
     return createMilitiaCombatFixture(seed);
+  }
+
+  if (seed === 'moving-enemy-attack-fixture') {
+    return createMovingEnemyAttackFixture(seed);
   }
 
   if (seed === 'feudal-watch-tower-fixture') {
