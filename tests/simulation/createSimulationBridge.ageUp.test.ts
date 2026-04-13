@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'vitest';
+
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import {
+  placeBuildingNearTownCenter,
+  selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
+} from './createSimulationBridge.helpers';
+
+describe('createSimulationBridge age-up progression', () => {
+  it('does not offer Feudal Age research until two qualifying Dark Age buildings are complete', () => {
+    const bridge = createSimulationBridge('feudal-missing-prereq-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['feudal-age'],
+      researchOptions: [],
+    });
+    expect(bridge.queueResearch('feudal-age')).toBe(false);
+  });
+
+  it('can research Feudal Age, build an Archery Range, and train an Archer', () => {
+    const bridge = createSimulationBridge('feudal-age-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['feudal-age'],
+      researchOptions: ['feudal-age'],
+    });
+    expect(bridge.queueResearch('feudal-age')).toBe(true);
+    expect(bridge.getHudState().playerResources.food).toBe(200);
+
+    for (let index = 0; index < 1320; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().currentAge).toBe('feudal-age');
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('archery-range');
+    placeBuildingNearTownCenter(bridge, 'archery-range');
+
+    for (let index = 0; index < 280; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'archery-range',
+    });
+    expect(bridge.getSelectionState().trainOptions).toContain('archer');
+    expect(bridge.queueTrainUnit('archer')).toBe(true);
+
+    for (let index = 0; index < 380; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
+    ).toHaveLength(1);
+  }, 40_000);
+
+  it('does not offer Castle Age research until two qualifying Feudal buildings are complete', () => {
+    const bridge = createSimulationBridge('feudal-stable-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['castle-age'],
+      researchOptions: [],
+    });
+    expect(bridge.queueResearch('castle-age')).toBe(false);
+  });
+
+  it('can research Castle Age and train a Knight', () => {
+    const bridge = createSimulationBridge('castle-age-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['castle-age'],
+      researchOptions: ['castle-age'],
+    });
+    expect(bridge.queueResearch('castle-age')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 200,
+      gold: 200,
+    });
+
+    for (let index = 0; index < 1620; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().currentAge).toBe('castle-age');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'stable',
+    });
+    expect(bridge.getSelectionState().trainOptions).toContain('knight');
+    expect(bridge.queueTrainUnit('knight')).toBe(true);
+    expect(bridge.getHudState().playerResources).toMatchObject({
+      food: 140,
+      gold: 125,
+    });
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    const playerKnights = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'knight');
+    expect(playerKnights).toHaveLength(1);
+    expect(playerKnights[0]).toMatchObject({
+      attackDamage: 10,
+      attackRange: 1,
+    });
+  }, 40_000);
+});

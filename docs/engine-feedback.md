@@ -132,3 +132,8 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 
 - The Town Center age-up bug was not an engine limitation. The missing piece was a repo-owned UI contract that distinguishes `visible commands` from `currently queueable commands`. Once that split existed, the bridge could expose locked-but-relevant research actions cleanly without changing `civ-engine` behavior.
 - This is a good reminder to keep command discoverability concerns above the engine boundary. `civ-engine` correctly owns world state and system execution; player HUD affordances such as disabled-but-visible buttons should stay in the game layer.
+
+## 2026-04-12 - Larger default world and test seams
+
+- Enlarging the default map for minimap usability immediately increased the cost of any test that advances the live simulation on the default seed. The engine handled the bigger world correctly, but the repo-owned test layout needed to change: long browser and Vitest files had to be split into smaller suites with realistic time budgets.
+- The useful takeaway is that `civ-engine` scales adequately for this prototype, but the repo should avoid coupling too many long-running gameplay flows to one seed/file. Deterministic fixture slicing matters more as map size grows.

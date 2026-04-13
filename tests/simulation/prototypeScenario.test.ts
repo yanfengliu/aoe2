@@ -51,8 +51,8 @@ describe('createPrototypeScenario', () => {
 
     expect(scenario.width).toBe(MAP_WIDTH);
     expect(scenario.height).toBe(MAP_HEIGHT);
-    expect(MAP_WIDTH).toBe(44);
-    expect(MAP_HEIGHT).toBe(28);
+    expect(MAP_WIDTH).toBe(60);
+    expect(MAP_HEIGHT).toBe(36);
     expect(countBy('town-center')).toBe(2);
     expect(countBy('villager')).toBe(6);
     expect(countBy('scout')).toBe(3);
@@ -62,10 +62,10 @@ describe('createPrototypeScenario', () => {
     expect(forwardEnemyHouse).toBeDefined();
     expect(humanStart).toBeDefined();
     expect(enemyStart).toBeDefined();
-    expect((enemyStart?.townCenter.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(24);
-    expect((enemyStart?.townCenter.y ?? 0) - (humanStart?.townCenter.y ?? 0)).toBeGreaterThanOrEqual(9);
-    expect((forwardEnemyScout?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(18);
-    expect((forwardEnemyHouse?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(18);
+    expect((enemyStart?.townCenter.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(36);
+    expect((enemyStart?.townCenter.y ?? 0) - (humanStart?.townCenter.y ?? 0)).toBeGreaterThanOrEqual(14);
+    expect((forwardEnemyScout?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(30);
+    expect((forwardEnemyHouse?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(28);
 
     for (const owner of [1, 2]) {
       expect(countBy('sheep', owner)).toBe(4);

@@ -555,7 +555,7 @@ test.describe('browser gameplay smoke tests', () => {
     const minimap = await getMinimapStats(page);
 
     expect(snapshot.hudState.tick).toBeGreaterThan(0);
-    expect(snapshot.hudState.worldSize).toBe('44x28');
+    expect(snapshot.hudState.worldSize).toBe('60x36');
     expect(snapshot.hudState.playerResources).toEqual({
       food: 200,
       wood: 200,
@@ -1018,6 +1018,7 @@ test.describe('browser gameplay smoke tests', () => {
   });
 
   test('renders shoreline fish on water and lets villagers gather food from them', async ({ page }) => {
+    test.slow();
     await waitForBootWithSeed(page, 'fish-fixture');
 
     const fish = await page.evaluate(() =>
@@ -1050,14 +1051,14 @@ test.describe('browser gameplay smoke tests', () => {
         () => window.__AOE2_TEST__!.advanceTicks(1, 100),
       );
       return snapshot.hudState.playerResources.food;
-    }).toBeGreaterThan(0);
+    }, { timeout: 15_000 }).toBeGreaterThan(0);
 
     await expect.poll(async () => {
       const snapshot = await page.evaluate(
         () => window.__AOE2_TEST__!.advanceTicks(1, 100),
       );
       return snapshot.economyState.resources.find((resource) => resource.resourceType === 'fish')?.amount ?? 0;
-    }).toBeLessThan(fish?.amount ?? 0);
+    }, { timeout: 15_000 }).toBeLessThan(fish?.amount ?? 0);
   });
 
   test('removes depleted resources from the live world instead of rendering zero-amount nodes', async ({ page }) => {
@@ -1809,6 +1810,7 @@ test.describe('browser gameplay smoke tests', () => {
   });
 
   test('can place and complete a House with villager build controls', async ({ page }) => {
+    test.slow();
     await waitForBoot(page);
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
@@ -1838,7 +1840,7 @@ test.describe('browser gameplay smoke tests', () => {
         const isComplete = snapshot.economyState.buildings.some(
           (building) =>
             building.owner === 1
-            && building.buildingType === 'mining-camp'
+            && building.buildingType === 'house'
             && building.isComplete,
         );
         if (isComplete) {
@@ -2237,6 +2239,7 @@ test.describe('browser gameplay smoke tests', () => {
   test('can build a Barracks and train a Militia through the live command panel', async ({
     page,
   }) => {
+    test.slow();
     await waitForBoot(page);
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
