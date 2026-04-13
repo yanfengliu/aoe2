@@ -63,34 +63,17 @@ body {
   min-width: var(--hud-chip-width, 76px);
 }
 
-.hud-chip[data-hud-chip="tick"],
 .hud-chip[data-hud-chip="food"],
 .hud-chip[data-hud-chip="wood"],
 .hud-chip[data-hud-chip="gold"],
 .hud-chip[data-hud-chip="stone"],
-.hud-chip[data-hud-chip="pop"] {
+.hud-chip[data-hud-chip="pop"],
+.hud-chip[data-hud-chip="time"] {
   --hud-chip-width: 72px;
-}
-
-.hud-chip[data-hud-chip="entities"],
-.hud-chip[data-hud-chip="projected"],
-.hud-chip[data-hud-chip="visible-cells"],
-.hud-chip[data-hud-chip="explored-cells"],
-.hud-chip[data-hud-chip="tick-ms"] {
-  --hud-chip-width: 84px;
-}
-
-.hud-chip[data-hud-chip="world"],
-.hud-chip[data-hud-chip="match-outcome"] {
-  --hud-chip-width: 92px;
 }
 
 .hud-chip[data-hud-chip="age"] {
   --hud-chip-width: 108px;
-}
-
-.hud-chip[data-hud-chip="seed"] {
-  --hud-chip-width: 190px;
 }
 
 .hud-label {

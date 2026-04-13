@@ -521,22 +521,22 @@ function formatAgeName(age: HudState['currentAge']): string {
   }
 }
 
+function formatMatchTime(tick: number, ticksPerSecond: number): string {
+  if (ticksPerSecond <= 0) {
+    return '00:00';
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(tick / ticksPerSecond));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 export function createHudController(root: HTMLElement, bridge: HudBridge): void {
   root.innerHTML = `
     <div class="hud-top">
       <div class="hud-bar">
-        <div class="hud-chip" data-hud-chip="tick">
-          <div class="hud-label">Tick</div>
-          <div class="hud-value" data-hud="tick">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="entities">
-          <div class="hud-label">Entities</div>
-          <div class="hud-value" data-hud="entities">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="projected">
-          <div class="hud-label">Projected</div>
-          <div class="hud-value" data-hud="projected">0</div>
-        </div>
         <div class="hud-chip" data-hud-chip="food">
           <div class="hud-label">Food</div>
           <div class="hud-value" data-hud="food">0</div>
@@ -561,29 +561,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <div class="hud-label">Pop</div>
           <div class="hud-value" data-hud="pop">0/0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="visible-cells">
-          <div class="hud-label">Visible</div>
-          <div class="hud-value" data-hud="visible-cells">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="world">
-          <div class="hud-label">World</div>
-          <div class="hud-value" data-hud="world">0x0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="explored-cells">
-          <div class="hud-label">Explored</div>
-          <div class="hud-value" data-hud="explored-cells">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="tick-ms">
-          <div class="hud-label">Tick ms</div>
-          <div class="hud-value" data-hud="tick-ms">0.00</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="seed">
-          <div class="hud-label">Seed</div>
-          <div class="hud-value" data-hud="seed">-</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="match-outcome">
-          <div class="hud-label">Outcome</div>
-          <div class="hud-value" data-hud="match-outcome">Running</div>
+        <div class="hud-chip" data-hud-chip="time">
+          <div class="hud-label">Time</div>
+          <div class="hud-value" data-hud="time">00:00</div>
         </div>
       </div>
     </div>
@@ -605,21 +585,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     </div>
   `;
 
-  const tick = root.querySelector<HTMLElement>('[data-hud="tick"]');
-  const entities = root.querySelector<HTMLElement>('[data-hud="entities"]');
-  const projected = root.querySelector<HTMLElement>('[data-hud="projected"]');
   const food = root.querySelector<HTMLElement>('[data-hud="food"]');
   const wood = root.querySelector<HTMLElement>('[data-hud="wood"]');
   const gold = root.querySelector<HTMLElement>('[data-hud="gold"]');
   const stone = root.querySelector<HTMLElement>('[data-hud="stone"]');
   const age = root.querySelector<HTMLElement>('[data-hud="age"]');
   const pop = root.querySelector<HTMLElement>('[data-hud="pop"]');
-  const visibleCells = root.querySelector<HTMLElement>('[data-hud="visible-cells"]');
-  const world = root.querySelector<HTMLElement>('[data-hud="world"]');
-  const exploredCells = root.querySelector<HTMLElement>('[data-hud="explored-cells"]');
-  const tickMs = root.querySelector<HTMLElement>('[data-hud="tick-ms"]');
-  const seed = root.querySelector<HTMLElement>('[data-hud="seed"]');
-  const matchOutcome = root.querySelector<HTMLElement>('[data-hud="match-outcome"]');
+  const time = root.querySelector<HTMLElement>('[data-hud="time"]');
   const matchSummary = root.querySelector<HTMLElement>('[data-hud="match-summary"]');
   const minimap = root.querySelector<HTMLCanvasElement>('[data-hud="minimap"]');
   const selectionPanel = root.querySelector<HTMLElement>('[data-hud="selection-panel"]');
@@ -877,28 +849,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     const selectionState = bridge.getSelectionState();
     const cameraState = bridge.getCameraState();
 
-    if (tick) tick.textContent = String(hudState.tick);
-    if (entities) entities.textContent = String(hudState.entityCount);
-    if (projected) projected.textContent = String(hudState.visibleEntities);
     if (food) food.textContent = String(hudState.playerResources.food);
     if (wood) wood.textContent = String(hudState.playerResources.wood);
     if (gold) gold.textContent = String(hudState.playerResources.gold);
     if (stone) stone.textContent = String(hudState.playerResources.stone);
     if (age) age.textContent = formatAgeName(hudState.currentAge);
     if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
-    if (visibleCells) visibleCells.textContent = String(hudState.visibleCells);
-    if (world) world.textContent = hudState.worldSize;
-    if (exploredCells) exploredCells.textContent = String(hudState.exploredCells);
-    if (tickMs) tickMs.textContent = hudState.tickDurationMs.toFixed(2);
-    if (seed) seed.textContent = hudState.seed;
-    if (matchOutcome) {
-      matchOutcome.textContent =
-        hudState.matchState.outcome === 'running'
-          ? 'Running'
-          : hudState.matchState.outcome === 'victory'
-            ? 'Victory'
-            : 'Defeat';
-    }
+    if (time) time.textContent = formatMatchTime(hudState.tick, hudState.fpsTarget);
     if (matchSummary) {
       const shouldShowSummary =
         hudState.matchState.outcome !== 'running'

@@ -32,6 +32,14 @@ interface HudChipRect {
   width: number;
 }
 
+async function getHudChipKeys(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-hud-chip]'))
+      .map((chip) => chip.dataset.hudChip ?? '')
+      .filter((value) => value.length > 0),
+  );
+}
+
 async function waitForBoot(page: Page): Promise<void> {
   await waitForBootWithSeed(page, 'aoe2-prototype');
 }
@@ -39,7 +47,7 @@ async function waitForBoot(page: Page): Promise<void> {
 async function waitForBootWithSeed(page: Page, seed: string): Promise<void> {
   await page.goto(`/?seed=${seed}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
-  await expect(page.locator('[data-hud="seed"]')).toHaveText(seed);
+  await expect.poll(async () => (await getSnapshot(page)).hudState.seed).toBe(seed);
   await expect.poll(async () => {
     const snapshot = await getSnapshot(page);
     return snapshot.hudState.tick;
@@ -465,7 +473,17 @@ test.describe('browser gameplay smoke tests', () => {
   test('keeps top status-bar chip positions stable as live values change', async ({ page }) => {
     await waitForBoot(page);
 
-    const trackedKeys = ['food', 'wood', 'gold', 'stone', 'age', 'pop'];
+    await expect.poll(async () => getHudChipKeys(page)).toEqual([
+      'food',
+      'wood',
+      'gold',
+      'stone',
+      'age',
+      'pop',
+      'time',
+    ]);
+
+    const trackedKeys = ['food', 'wood', 'gold', 'stone', 'age', 'pop', 'time'];
     const initialRects = await getHudChipRects(page, trackedKeys);
 
     expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
@@ -474,6 +492,7 @@ test.describe('browser gameplay smoke tests', () => {
     await page.locator('[data-command="train-villager"]').click();
 
     await expect(page.locator('[data-hud="food"]')).toHaveText('50');
+    await expect(page.locator('[data-hud="time"]')).toHaveText('00:00');
 
     const updatedRects = await getHudChipRects(page, trackedKeys);
 
@@ -2162,7 +2181,6 @@ test.describe('browser gameplay smoke tests', () => {
       () => window.__AOE2_TEST__!.advanceTicks(220, 100),
     );
 
-    await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Victory');
     await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
       'All enemy forces have been eliminated.',
     );
@@ -2179,7 +2197,6 @@ test.describe('browser gameplay smoke tests', () => {
       () => window.__AOE2_TEST__!.advanceTicks(220, 100),
     );
 
-    await expect(page.locator('[data-hud="match-outcome"]')).toHaveText('Defeat');
     await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
       'All of your units and buildings have been destroyed.',
     );
