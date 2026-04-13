@@ -29,6 +29,7 @@ export type ResourceKind =
   | 'gold-mine'
   | 'stone-mine'
   | 'boar'
+  | 'fish'
   | 'sheep'
   | 'tree';
 export type EconomyResourceKind = 'food' | 'wood' | 'gold' | 'stone';

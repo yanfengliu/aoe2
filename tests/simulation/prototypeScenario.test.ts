@@ -67,6 +67,12 @@ describe('createPrototypeScenario', () => {
       expect(countBy('gold-mine', owner)).toBe(4);
       expect(countBy('stone-mine', owner)).toBe(4);
     }
+    expect(countBy('fish')).toBeGreaterThan(0);
+    for (const fish of scenario.spawns.filter((spawn) => spawn.kind === 'fish')) {
+      expect(scenario.terrain[fish.y][fish.x]?.kind).toBe('water');
+      expect(fish.owner).toBeNull();
+      expect(fish.baseOwner).toBeNull();
+    }
   });
 
   it('spawns human starting units without autonomous roam state', () => {
@@ -150,6 +156,7 @@ describe('createPrototypeScenario', () => {
     const tileSelectionCycleScenario = createPrototypeScenario('tile-selection-cycle-fixture');
     const doubleClickSelectionScenario = createPrototypeScenario('double-click-selection-fixture');
     const movingEnemyAttackScenario = createPrototypeScenario('moving-enemy-attack-fixture');
+    const fishScenario = createPrototypeScenario('fish-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -336,6 +343,18 @@ describe('createPrototypeScenario', () => {
           && spawn.velocity?.dx === 1
           && spawn.wanderBounds?.minX === 15
           && spawn.wanderBounds?.maxX === 17,
+      ),
+    ).toBe(true);
+    expect(
+      fishScenario.spawns.some(
+        (spawn) =>
+          spawn.kind === 'fish'
+          && fishScenario.terrain[spawn.y][spawn.x]?.kind === 'water',
+      ),
+    ).toBe(true);
+    expect(
+      fishScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager',
       ),
     ).toBe(true);
   });

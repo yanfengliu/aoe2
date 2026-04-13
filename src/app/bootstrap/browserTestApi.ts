@@ -28,6 +28,7 @@ interface BrowserTestBridge {
   selectEntityAtCell(x: number, y: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
+  issueMoveCommand(x: number, y: number): boolean;
 }
 
 export interface BrowserTestSnapshot {
@@ -56,6 +57,8 @@ export interface BrowserTestApi {
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   clearSelection(): void;
   issueContextCommand(cellX: number, cellY: number): boolean;
+  issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
+  issueMoveCommand(cellX: number, cellY: number): boolean;
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
 }
@@ -138,6 +141,16 @@ export function installBrowserTestApi(
     },
     issueContextCommand: (cellX: number, cellY: number) => {
       const didIssue = bridge.issueContextCommand(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didIssue;
+    },
+    issueContextCommandAtWorldPosition: (worldX: number, worldY: number) => {
+      const didIssue = scene.issueContextCommandAtWorldPosition(worldX, worldY);
+      scene.syncFromBridge(true);
+      return didIssue;
+    },
+    issueMoveCommand: (cellX: number, cellY: number) => {
+      const didIssue = bridge.issueMoveCommand(cellX, cellY);
       scene.syncFromBridge(true);
       return didIssue;
     },

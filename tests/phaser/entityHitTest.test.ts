@@ -74,4 +74,13 @@ describe('entityHitTest', () => {
     expect(isWorldPointInsideEntity(renderState.entities[1], pointX, pointY, CELL_SIZE)).toBe(true);
     expect(findEntityAtWorldPoint(renderState, pointX, pointY, CELL_SIZE)?.id).toBe(2);
   });
+
+  it('still resolves a moving unit with wider live-click drift from a stale rendered frame', () => {
+    const renderState = createRenderState();
+    const pointX = 15.5 * CELL_SIZE + CELL_SIZE * 0.5 + 10;
+    const pointY = 8 * CELL_SIZE + CELL_SIZE * 0.5;
+
+    expect(isWorldPointInsideEntity(renderState.entities[1], pointX, pointY, CELL_SIZE)).toBe(true);
+    expect(findEntityAtWorldPoint(renderState, pointX, pointY, CELL_SIZE)?.id).toBe(2);
+  });
 });

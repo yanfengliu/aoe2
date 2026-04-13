@@ -224,17 +224,10 @@ export class GameScene extends Phaser.Scene {
       if (pointer.rightButtonDown()) {
         this.recentFriendlyUnitClick = null;
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-        const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
-        const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
-        const targetEntity = findEntityAtWorldPoint(
-          this.bridge.getRenderState(),
-          worldPoint.x,
-          worldPoint.y,
-          CELL_SIZE,
+        this.issueContextCommandAtWorldPosition(
+          worldPoint.x / CELL_SIZE,
+          worldPoint.y / CELL_SIZE,
         );
-        if (!targetEntity || !this.bridge.issueContextCommandAtEntity(targetEntity.id)) {
-          this.bridge.issueContextCommand(cellX, cellY);
-        }
         return;
       }
 
@@ -830,6 +823,27 @@ export class GameScene extends Phaser.Scene {
       x: bounds.left + (worldX - worldView.x) * scaleX,
       y: bounds.top + (worldY - worldView.y) * scaleY,
     };
+  }
+
+  issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean {
+    if (!this.sys.isActive()) {
+      return false;
+    }
+
+    const clampedCellX = Phaser.Math.Clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
+    const clampedCellY = Phaser.Math.Clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
+    const targetEntity = findEntityAtWorldPoint(
+      this.bridge.getRenderState(),
+      worldX * CELL_SIZE,
+      worldY * CELL_SIZE,
+      CELL_SIZE,
+    );
+
+    if (targetEntity && this.bridge.issueContextCommandAtEntity(targetEntity.id)) {
+      return true;
+    }
+
+    return this.bridge.issueContextCommand(clampedCellX, clampedCellY);
   }
 
   getSelectionBoxState(): SelectionBoxState | null {

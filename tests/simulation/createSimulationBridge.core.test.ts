@@ -420,6 +420,39 @@ describe('createSimulationBridge core systems', () => {
     });
   });
 
+  it('lets a villager gather food from shoreline fish on water-adjacent cells', () => {
+    const bridge = createSimulationBridge('fish-fixture');
+    const initialFood = bridge.getHudState().playerResources.food;
+    const fish = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'fish');
+    expect(fish).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(fish?.x ?? 0, fish?.y ?? 0)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'fish',
+      resourceAmount: fish?.amount,
+    });
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.issueContextCommand(fish?.x ?? 0, fish?.y ?? 0)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getHudState().playerResources.food > initialFood,
+        { maxSteps: 220 },
+      ),
+    ).toBe(true);
+
+    const updatedFish = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'fish');
+    expect(bridge.getHudState().playerResources.food).toBeGreaterThan(initialFood);
+    expect(updatedFish?.amount).toBeLessThan(fish?.amount ?? 0);
+  });
+
   it('cycles through every selectable entity stacked on the same tile', () => {
     const bridge = createSimulationBridge('tile-selection-cycle-fixture');
     const stackCell = bridge

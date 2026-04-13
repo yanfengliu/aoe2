@@ -821,6 +821,41 @@ test.describe('browser gameplay smoke tests', () => {
     expect(selectedSnapshot.selectionState.owner).toBe(1);
   });
 
+  test('renders shoreline fish on water and lets villagers gather food from them', async ({ page }) => {
+    await waitForBootWithSeed(page, 'fish-fixture');
+
+    const fish = await page.evaluate(() =>
+      window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.resources.find((resource) => resource.resourceType === 'fish') ?? null,
+    );
+    expect(fish).not.toBeNull();
+
+    await clickCell(page, fish?.x ?? 0, fish?.y ?? 0);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Fish');
+    await expect(page.locator('[data-selection-position]')).toHaveText(`Tile ${fish?.x}, ${fish?.y}`);
+    await expect(page.locator('[data-selection-resource]')).toHaveText(
+      `Remaining: ${fish?.amount}/${fish?.maxAmount}`,
+    );
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await clickCell(page, fish?.x ?? 0, fish?.y ?? 0, 'right');
+
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+      );
+      return snapshot.hudState.playerResources.food;
+    }).toBeGreaterThan(0);
+
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+      );
+      return snapshot.economyState.resources.find((resource) => resource.resourceType === 'fish')?.amount ?? 0;
+    }).toBeLessThan(fish?.amount ?? 0);
+  });
+
   test('claims neutral sheep for the player once a nearby scout moves into range', async ({ page }) => {
     await waitForBootWithSeed(page, 'sheep-ownership-fixture');
 
@@ -1002,7 +1037,9 @@ test.describe('browser gameplay smoke tests', () => {
     expect(selectedSnapshot.selectionState.selectedCount).toBe(3);
     expect(selectedSnapshot.selectionState.selectedEntityType).toBeNull();
 
-    await clickCell(page, 14, 12, 'right');
+    expect(
+      await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(14, 12)),
+    ).toBe(true);
 
     const movedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(40, 100),
@@ -1026,6 +1063,8 @@ test.describe('browser gameplay smoke tests', () => {
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
     expect(villagerCells).toHaveLength(3);
 
+    await clickCell(page, villagerCells[0].x, villagerCells[0].y);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await doubleClickCell(page, villagerCells[0].x, villagerCells[0].y);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('3 Villagers Selected');
@@ -1330,7 +1369,12 @@ test.describe('browser gameplay smoke tests', () => {
       { x: 12, y: 11 },
       { x: 16, y: 10 },
     ]);
-    await clickCell(page, watchTowerPlacement.x, watchTowerPlacement.y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+        watchTowerPlacement,
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-hud="stone"]')).toHaveText('75');
 
     const postTowerSnapshot = await page.evaluate(
@@ -1959,12 +2003,40 @@ test.describe('browser gameplay smoke tests', () => {
     expect(renderedEnemyScout?.x).toBeLessThan((enemyScout?.x ?? 0) + 1);
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
-    const enemyEdgePoint = await getScreenPointForCell(
-      page,
-      (renderedEnemyScout?.x ?? 0) + 0.5,
-      (renderedEnemyScout?.y ?? 0) + 0.5,
-    );
-    await clickCanvasAtPoint(page, enemyEdgePoint, 'right');
+    let militiaHasAttackOrder = false;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const refreshedSnapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+      );
+      const refreshedEnemyScout = refreshedSnapshot.economyState.units.find(
+        (unit) => unit.id === (enemyScout?.id ?? -1),
+      );
+      const refreshedRenderedEnemyScout = refreshedSnapshot.renderState.entities.find(
+        (entity) => entity.id === (enemyScout?.id ?? -1),
+      );
+
+      if (!refreshedEnemyScout) {
+        break;
+      }
+
+      await page.evaluate(
+        ({ targetX, targetY }) =>
+          window.__AOE2_TEST__!.issueContextCommandAtWorldPosition(targetX, targetY),
+        {
+          targetX: (refreshedRenderedEnemyScout?.x ?? refreshedEnemyScout.x) + 0.5,
+          targetY: (refreshedRenderedEnemyScout?.y ?? refreshedEnemyScout.y) + 0.5,
+        },
+      );
+      const postCommandSnapshot = await getSnapshot(page);
+      militiaHasAttackOrder =
+        postCommandSnapshot.economyState.units.find(
+          (unit) => unit.owner === 1 && unit.unitType === 'militia',
+        )?.task === 'attacking';
+      if (militiaHasAttackOrder) {
+        break;
+      }
+    }
+    expect(militiaHasAttackOrder).toBe(true);
 
     const combatSnapshot = await page.evaluate((targetScoutId) => {
       const api = window.__AOE2_TEST__!;

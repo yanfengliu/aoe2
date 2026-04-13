@@ -103,6 +103,7 @@ const STARTING_STONE: Offset[] = [
   { x: 0, y: 6 },
   { x: 1, y: 6 },
 ];
+const SHORE_FISH_AMOUNT = 225;
 
 const FOREST_PATCHES: Offset[][] = [
   [
@@ -399,6 +400,72 @@ function createMiningCampFixture(seed: string): PrototypeScenario {
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+function createFishFixture(seed: string): PrototypeScenario {
+  const terrain = createGrassFixtureTerrain();
+  for (let y = 7; y <= 9; y += 1) {
+    for (let x = 11; x <= 13; x += 1) {
+      setTerrainKind(terrain, x, y, 'water');
+    }
+  }
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 8 },
+        startingResources: {
+          food: 0,
+          wood: 200,
+          gold: 100,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 9,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'fish',
+        x: 11,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: SHORE_FISH_AMOUNT,
+      },
+      {
+        kind: 'house',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
       },
     ],
   };
@@ -1779,6 +1846,12 @@ function paintDisc(
   }
 }
 
+function distanceSquared(left: Position, right: Position): number {
+  const dx = left.x - right.x;
+  const dy = left.y - right.y;
+  return dx * dx + dy * dy;
+}
+
 function orientationFor(center: Position): { x: 1 | -1; y: 1 | -1 } {
   return {
     x: center.x < MAP_WIDTH / 2 ? 1 : -1,
@@ -1909,6 +1982,87 @@ function applyForestPatch(
   }
 }
 
+function isAccessibleShorelineCell(terrain: TerrainCellSpec[][], x: number, y: number): boolean {
+  if (!isInBounds(x, y) || terrain[y][x]?.kind !== 'water') {
+    return false;
+  }
+
+  const orthogonalOffsets: Offset[] = [
+    { x: -1, y: 0 },
+    { x: 1, y: 0 },
+    { x: 0, y: -1 },
+    { x: 0, y: 1 },
+  ];
+
+  return orthogonalOffsets.some((offset) => {
+    const shoreX = x + offset.x;
+    const shoreY = y + offset.y;
+    if (!isInBounds(shoreX, shoreY)) {
+      return false;
+    }
+    const shorelineCell = terrain[shoreY][shoreX];
+    return shorelineCell.kind !== 'water' && shorelineCell.kind !== 'forest';
+  });
+}
+
+function applyShoreFishPatches(
+  terrain: TerrainCellSpec[][],
+  starts: PlayerStartSpec[],
+  seed: string,
+  spawns: ScenarioSpawnSpec[],
+): void {
+  const candidates: Position[] = [];
+  for (let y = 0; y < MAP_HEIGHT; y += 1) {
+    for (let x = 0; x < MAP_WIDTH; x += 1) {
+      if (!isAccessibleShorelineCell(terrain, x, y)) {
+        continue;
+      }
+      if (starts.some((start) => distanceSquared(start.townCenter, { x, y }) <= 81)) {
+        continue;
+      }
+      candidates.push({ x, y });
+    }
+  }
+
+  if (candidates.length === 0) {
+    return;
+  }
+
+  const placed: Position[] = [];
+  const targetCount = Math.min(14, Math.max(4, Math.floor(candidates.length / 12)));
+  const startIndex = seedToNumber(seed) % candidates.length;
+  const stride = Math.max(3, Math.floor(candidates.length / Math.max(targetCount, 1)));
+
+  for (let attempt = 0; attempt < candidates.length && placed.length < targetCount; attempt += 1) {
+    const candidate = candidates[(startIndex + attempt * stride) % candidates.length];
+    if (placed.some((position) => distanceSquared(position, candidate) < 9)) {
+      continue;
+    }
+
+    spawns.push({
+      kind: 'fish',
+      x: candidate.x,
+      y: candidate.y,
+      owner: null,
+      baseOwner: null,
+      amount: SHORE_FISH_AMOUNT,
+    });
+    placed.push(candidate);
+  }
+
+  if (placed.length === 0) {
+    const fallback = candidates[0];
+    spawns.push({
+      kind: 'fish',
+      x: fallback.x,
+      y: fallback.y,
+      owner: null,
+      baseOwner: null,
+      amount: SHORE_FISH_AMOUNT,
+    });
+  }
+}
+
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
   if (seed === 'conquest-victory-fixture') {
     return createConquestVictoryFixture(seed);
@@ -1980,6 +2134,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'mining-camp-fixture') {
     return createMiningCampFixture(seed);
+  }
+
+  if (seed === 'fish-fixture') {
+    return createFishFixture(seed);
   }
 
   if (seed === 'orders-fixture') {
@@ -2090,6 +2248,8 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
       applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
     }
   }
+
+  applyShoreFishPatches(terrain, starts, seed, spawns);
 
   paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
   paintDisc(terrain, FORWARD_ENEMY_HOUSE_POSITION, 2, 'grass');

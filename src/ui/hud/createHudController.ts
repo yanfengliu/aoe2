@@ -244,6 +244,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Stone Mine';
     case 'boar':
       return 'Boar';
+    case 'fish':
+      return 'Fish';
     case 'sheep':
       return 'Sheep';
     case 'tree':
@@ -303,6 +305,8 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Stone Mines';
     case 'boar':
       return 'Boars';
+    case 'fish':
+      return 'Fish';
     case 'sheep':
       return 'Sheep';
     case 'tree':

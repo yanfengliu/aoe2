@@ -237,6 +237,7 @@ function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind 
       return 'wood';
     case 'berry-bush':
     case 'boar':
+    case 'fish':
     case 'sheep':
       return 'food';
   }
@@ -246,6 +247,7 @@ function gatherTicksFor(kind: ResourceKind): number {
   switch (kind) {
     case 'sheep':
     case 'berry-bush':
+    case 'fish':
       return 4;
     case 'boar':
     case 'tree':
@@ -260,6 +262,7 @@ function gatherAmountFor(kind: ResourceKind): number {
   switch (kind) {
     case 'sheep':
     case 'berry-bush':
+    case 'fish':
     case 'tree':
       return 1;
     case 'boar':
@@ -285,6 +288,7 @@ function resourceTint(resourceType: ResourceKind, owner: number | null): number 
     'gold-mine': 0xd8b44c,
     'stone-mine': 0x8f9aa4,
     boar: 0x6a3b2e,
+    fish: 0x6fb5d8,
     sheep: 0xe7ece6,
     tree: 0x214d2d,
   };
@@ -1547,6 +1551,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       'gold-mine': 0.8,
       'stone-mine': 0.8,
       boar: 0.48,
+      fish: 0.42,
       sheep: 0.42,
       tree: 0.58,
     };
