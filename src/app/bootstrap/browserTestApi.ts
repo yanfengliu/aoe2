@@ -9,6 +9,7 @@ import type {
 } from '../../game/simulation/types';
 import type {
   BuildingVisualState,
+  DisplayedEntityState,
   EntityHealthBarState,
   CameraState,
   GameScene,
@@ -21,6 +22,7 @@ interface BrowserTestBridge {
   step(deltaMs: number): void;
   getHudState(): HudState;
   getRenderState(): RenderState;
+  getRenderInterpolationAlpha(): number;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
@@ -52,6 +54,7 @@ export interface BrowserTestApi {
   getPlacementPreviewAt(cellX: number, cellY: number): PlacementPreviewState | null;
   getBuildingVisualStates(): BuildingVisualState[];
   getEntityHealthBarStates(): EntityHealthBarState[];
+  getDisplayedEntities(): DisplayedEntityState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
@@ -116,6 +119,10 @@ export function installBrowserTestApi(
     getEntityHealthBarStates: () => {
       scene.syncFromBridge(true);
       return scene.getEntityHealthBarStates();
+    },
+    getDisplayedEntities: () => {
+      scene.syncFromBridge(true);
+      return scene.getDisplayedEntities();
     },
     worldToScreen: (cellX: number, cellY: number) => {
       scene.syncFromBridge(true);

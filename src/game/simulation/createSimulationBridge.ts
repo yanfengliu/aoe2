@@ -75,6 +75,7 @@ type GameWorld = World<GameEvents, GameCommands, GameComponents>;
 export interface SimulationBridge {
   step(deltaMs: number): void;
   getRenderState(): RenderState;
+  getRenderInterpolationAlpha(): number;
   getHudState(): HudState;
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
@@ -4906,6 +4907,14 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
         entities: renderStore.getEntities(),
         frame: renderStore.getFrame(),
       };
+    },
+    getRenderInterpolationAlpha() {
+      const tickMs = 1000 / TPS;
+      if (tickMs <= 0) {
+        return 1;
+      }
+
+      return clamp(accumulatorMs / tickMs, 0, 1);
     },
     getHudState() {
       const debugState = renderStore.getDebug();

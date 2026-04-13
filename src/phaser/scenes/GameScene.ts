@@ -13,11 +13,13 @@ import type {
   SelectionState,
   UnitType,
 } from '../../game/simulation/types';
-import { findEntityAtWorldPoint } from './entityHitTest';
+import { findEntityAtWorldPointInEntities } from './entityHitTest';
+import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 interface SimulationBridge {
   step(deltaMs: number): void;
   getRenderState(): RenderState;
+  getRenderInterpolationAlpha(): number;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
@@ -110,6 +112,15 @@ export interface EntityHealthBarState {
   entityTopPx: number;
 }
 
+export interface DisplayedEntityState {
+  id: number;
+  kind: ProjectedEntityView['kind'];
+  entityType: ProjectedEntityView['entityType'];
+  owner: number | null;
+  x: number;
+  y: number;
+}
+
 interface DragSelectionState {
   pointerId: number;
   startScreenX: number;
@@ -152,7 +163,11 @@ export class GameScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private lastRenderedTick = -1;
+  private lastRenderedInterpolationAlpha = Number.NaN;
   private lastSelectionKey = '';
+  private lastProjectedEntities: ProjectedEntityView[] = [];
+  private previousUnitProjectedPositions = new Map<number, { x: number; y: number }>();
+  private displayedEntities: ProjectedEntityView[] = [];
   private dragSelection: DragSelectionState | null = null;
   private middleDragPan: MiddleDragPanState | null = null;
   private edgePanState: EdgePanState | null = null;
@@ -353,14 +368,30 @@ export class GameScene extends Phaser.Scene {
 
     const state = this.bridge.getRenderState();
     const selectionState = this.bridge.getSelectionState();
+    const interpolationAlpha = this.bridge.getRenderInterpolationAlpha();
     const selectionKey = this.getSelectionKey(selectionState);
-    if (!force && state.tick === this.lastRenderedTick && selectionKey === this.lastSelectionKey) {
+    if (
+      !force
+      && state.tick === this.lastRenderedTick
+      && selectionKey === this.lastSelectionKey
+      && Math.abs(interpolationAlpha - this.lastRenderedInterpolationAlpha) < 0.001
+    ) {
       return;
     }
 
+    if (state.tick !== this.lastRenderedTick) {
+      this.previousUnitProjectedPositions = new Map(
+        this.lastProjectedEntities
+          .filter((entity) => entity.kind === 'unit')
+          .map((entity) => [entity.id, { x: entity.x, y: entity.y }]),
+      );
+      this.lastProjectedEntities = state.entities.map((entity) => ({ ...entity }));
+    }
+
     this.lastRenderedTick = state.tick;
+    this.lastRenderedInterpolationAlpha = interpolationAlpha;
     this.lastSelectionKey = selectionKey;
-    this.renderState(state, selectionState);
+    this.renderState(state, selectionState, interpolationAlpha);
   }
 
   private updateCamera(time: number, delta: number): void {
@@ -392,7 +423,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private renderState(state: RenderState, selectionState: SelectionState): void {
+  private renderState(
+    state: RenderState,
+    selectionState: SelectionState,
+    interpolationAlpha: number,
+  ): void {
     if (
       !this.terrainLayer
       || !this.entityLayer
@@ -414,8 +449,13 @@ export class GameScene extends Phaser.Scene {
     this.selectionBoxLayer.clear();
     this.lastBuildingVisualStates = [];
     this.lastEntityHealthBarStates = [];
+    this.displayedEntities = interpolateProjectedEntities(
+      state.entities,
+      this.previousUnitProjectedPositions,
+      interpolationAlpha,
+    );
 
-    for (const entity of state.entities) {
+    for (const entity of this.displayedEntities) {
       const px = entity.x * CELL_SIZE;
       const py = entity.y * CELL_SIZE;
 
@@ -465,18 +505,18 @@ export class GameScene extends Phaser.Scene {
       this.renderFog(state.frame);
     }
 
-    this.renderEntityHealthBars(state);
-    this.renderSelection(state, selectionState);
+    this.renderEntityHealthBars(this.displayedEntities);
+    this.renderSelection(this.displayedEntities, selectionState);
     this.renderPlacementPreview();
     this.renderSelectionBox();
   }
 
-  private renderEntityHealthBars(state: RenderState): void {
+  private renderEntityHealthBars(entities: ProjectedEntityView[]): void {
     if (!this.healthBarLayer) {
       return;
     }
 
-    for (const entity of state.entities) {
+    for (const entity of entities) {
       if (
         (entity.kind !== 'unit' && entity.kind !== 'building')
         || entity.currentHp === null
@@ -556,7 +596,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private renderSelection(state: RenderState, selectionState: SelectionState): void {
+  private renderSelection(entities: ProjectedEntityView[], selectionState: SelectionState): void {
     if (!this.selectionLayer || selectionState.selectedEntityIds.length === 0) {
       return;
     }
@@ -564,7 +604,7 @@ export class GameScene extends Phaser.Scene {
     this.selectionLayer.lineStyle(2, 0xf7e5a5, 0.9);
     const selectedIds = new Set(selectionState.selectedEntityIds);
 
-    for (const entity of state.entities) {
+    for (const entity of entities) {
       if (!selectedIds.has(entity.id)) {
         continue;
       }
@@ -837,12 +877,21 @@ export class GameScene extends Phaser.Scene {
 
     const clampedCellX = Phaser.Math.Clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
     const clampedCellY = Phaser.Math.Clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
-    const targetEntity = findEntityAtWorldPoint(
-      this.bridge.getRenderState(),
+    const displayedTargetEntity = findEntityAtWorldPointInEntities(
+      this.displayedEntities,
       worldX * CELL_SIZE,
       worldY * CELL_SIZE,
       CELL_SIZE,
     );
+    const projectedTargetEntity = displayedTargetEntity
+      ? null
+      : findEntityAtWorldPointInEntities(
+        this.bridge.getRenderState().entities,
+        worldX * CELL_SIZE,
+        worldY * CELL_SIZE,
+        CELL_SIZE,
+      );
+    const targetEntity = displayedTargetEntity ?? projectedTargetEntity;
 
     if (targetEntity && this.bridge.issueContextCommandAtEntity(targetEntity.id)) {
       return true;
@@ -900,6 +949,17 @@ export class GameScene extends Phaser.Scene {
 
   getEntityHealthBarStates(): EntityHealthBarState[] {
     return this.lastEntityHealthBarStates.map((state) => ({ ...state }));
+  }
+
+  getDisplayedEntities(): DisplayedEntityState[] {
+    return this.displayedEntities.map((entity) => ({
+      id: entity.id,
+      kind: entity.kind,
+      entityType: entity.entityType,
+      owner: entity.owner,
+      x: entity.x,
+      y: entity.y,
+    }));
   }
 
   private getHealthBarLayout(

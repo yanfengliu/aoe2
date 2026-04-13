@@ -32,6 +32,15 @@ interface HudChipRect {
   width: number;
 }
 
+interface DisplayedEntityState {
+  id: number;
+  kind: 'tile' | 'unit' | 'building' | 'resource';
+  entityType: string;
+  owner: number | null;
+  x: number;
+  y: number;
+}
+
 async function expectSelectionDetail(
   page: Page,
   key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
@@ -448,6 +457,34 @@ async function getEntityHealthBarState(
   );
 }
 
+async function getDisplayedEntityState(
+  page: Page,
+  owner: number,
+  entityKind: 'unit' | 'building',
+  entityType: string,
+): Promise<DisplayedEntityState | null> {
+  return page.evaluate(
+    ({ owner: playerOwner, entityKind: expectedKind, entityType: expectedType }) =>
+      (
+        window.__AOE2_TEST__ as unknown as {
+          getDisplayedEntities: () => DisplayedEntityState[];
+        }
+      )
+        .getDisplayedEntities()
+        .find(
+          (entity) =>
+            entity.owner === playerOwner
+            && entity.kind === expectedKind
+            && entity.entityType === expectedType,
+        ) ?? null,
+    {
+      owner,
+      entityKind,
+      entityType,
+    },
+  );
+}
+
 async function findValidPlacementNearTownCenter(
   page: Page,
   buildingType: string,
@@ -841,6 +878,28 @@ test.describe('browser gameplay smoke tests', () => {
     expect(advancedEconomyScout).toBeDefined();
     expect(advancedTownCenterRender?.x).toBe(initialTownCenterRender?.x);
     expect(Number.isInteger(advancedTownCenterRender?.x ?? NaN)).toBe(true);
+  });
+
+  test('interpolates live unit visuals between simulation ticks instead of only snapping to tick positions', async ({ page }) => {
+    await waitForBoot(page);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(12, 7))).toBe(true);
+
+    await expect.poll(async () => {
+      const displayedScout = await getDisplayedEntityState(page, 1, 'unit', 'scout');
+      const projectedScout = (await getSnapshot(page)).renderState.entities.find(
+        (entity) => entity.owner === 1 && entity.kind === 'unit' && entity.entityType === 'scout',
+      );
+      if (!displayedScout || !projectedScout) {
+        return 0;
+      }
+
+      return (
+        Math.abs(displayedScout.x - projectedScout.x)
+        + Math.abs(displayedScout.y - projectedScout.y)
+      );
+    }).toBeGreaterThan(0);
   });
 
   test('can select the Town Center and train a villager through the command panel', async ({ page }) => {

@@ -95,7 +95,16 @@ export function findEntityAtWorldPoint(
   worldY: number,
   cellSize: number,
 ): ProjectedEntityView | null {
-  const candidates = renderState.entities
+  return findEntityAtWorldPointInEntities(renderState.entities, worldX, worldY, cellSize);
+}
+
+export function findEntityAtWorldPointInEntities(
+  entities: ProjectedEntityView[],
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+): ProjectedEntityView | null {
+  const candidates = entities
     .filter((entity) => entity.kind !== 'tile')
     .filter((entity) => isWorldPointInsideEntity(entity, worldX, worldY, cellSize))
     .sort((left, right) => LAYER_PRIORITY[right.kind] - LAYER_PRIORITY[left.kind]);
