@@ -31,6 +31,7 @@ export type ResourceKind =
   | 'boar'
   | 'fish'
   | 'sheep'
+  | 'wolf'
   | 'tree';
 export type EconomyResourceKind = 'food' | 'wood' | 'gold' | 'stone';
 export type GatherTaskState =

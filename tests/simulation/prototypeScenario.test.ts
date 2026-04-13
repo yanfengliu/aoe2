@@ -159,6 +159,8 @@ describe('createPrototypeScenario', () => {
     const fishScenario = createPrototypeScenario('fish-fixture');
     const blockedStableSpawnScenario = createPrototypeScenario('blocked-stable-spawn-fixture');
     const isolatedScoutSpawnScenario = createPrototypeScenario('isolated-scout-spawn-fixture');
+    const boarAggroScenario = createPrototypeScenario('boar-aggro-fixture');
+    const wolfAggroScenario = createPrototypeScenario('wolf-aggro-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -374,6 +376,16 @@ describe('createPrototypeScenario', () => {
           && spawn.kind === 'scout'
           && spawn.x === 12
           && spawn.y === 10,
+      ),
+    ).toBe(true);
+    expect(
+      boarAggroScenario.spawns.some(
+        (spawn) => spawn.kind === 'boar' && spawn.x === 13 && spawn.y === 8,
+      ),
+    ).toBe(true);
+    expect(
+      wolfAggroScenario.spawns.some(
+        (spawn) => spawn.kind === 'wolf' && spawn.x === 13 && spawn.y === 8,
       ),
     ).toBe(true);
   });

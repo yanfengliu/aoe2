@@ -434,8 +434,8 @@ async function getBuildingVisualState(
 
 async function getEntityHealthBarState(
   page: Page,
-  owner: number,
-  entityKind: 'unit' | 'building',
+  owner: number | null,
+  entityKind: 'unit' | 'building' | 'resource',
   entityType: string,
 ): Promise<{
   currentHp: number;
@@ -1964,6 +1964,71 @@ test.describe('browser gameplay smoke tests', () => {
     expect(damagedHouseBar?.currentHp).toBeLessThan(damagedHouseBar?.maxHp ?? 75);
     expect(damagedHouseBar?.fillRatio ?? 1).toBeLessThan(1);
     expect(damagedHouseBar?.barY ?? 0).toBeLessThan(damagedHouseBar?.entityTopPx ?? 0);
+  });
+
+  test('shows player-facing boar details and a wildlife health bar when a boar is selected', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'boar-aggro-fixture');
+
+    await clickCell(page, 13, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Boar');
+    await expectSelectionDetail(page, 'health', '75 / 75');
+    await expectSelectionDetail(page, 'attack', '7');
+    await expectSelectionDetail(page, 'armor', '0');
+    await expectSelectionDetail(page, 'faction', 'Gaia');
+    await expectSelectionDetailAbsent(page, 'civ');
+    await expectSelectionDetail(page, 'inventory', '340 / 340 food remaining');
+
+    const boarBar = await getEntityHealthBarState(page, null, 'resource', 'boar');
+    expect(boarBar).toMatchObject({
+      currentHp: 75,
+      maxHp: 75,
+      fillRatio: 1,
+    });
+    expect(boarBar?.barY ?? 0).toBeLessThan(boarBar?.entityTopPx ?? 0);
+
+    const initialVillagerBar = await getEntityHealthBarState(page, 1, 'unit', 'villager');
+    expect(initialVillagerBar?.currentHp).toBe(25);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+
+    const idleVillagerBar = await getEntityHealthBarState(page, 1, 'unit', 'villager');
+    expect(idleVillagerBar?.currentHp).toBe(25);
+  });
+
+  test('renders a wolf health bar and lets hostile wildlife auto-aggro nearby human units', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'wolf-aggro-fixture');
+
+    const initialWolfBar = await getEntityHealthBarState(page, null, 'resource', 'wolf');
+    const initialVillagerBar = await getEntityHealthBarState(page, 1, 'unit', 'villager');
+
+    expect(initialWolfBar).toMatchObject({
+      currentHp: 25,
+      maxHp: 25,
+      fillRatio: 1,
+    });
+    expect(initialVillagerBar).toMatchObject({
+      currentHp: 25,
+      maxHp: 25,
+      fillRatio: 1,
+    });
+    expect(initialWolfBar?.barY ?? 0).toBeLessThan(initialWolfBar?.entityTopPx ?? 0);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(120, 100));
+
+    const damagedVillagerBar = await getEntityHealthBarState(page, 1, 'unit', 'villager');
+    if (!damagedVillagerBar) {
+      const survivingVillager = await page.evaluate(() =>
+        window.__AOE2_TEST__!.getRenderState().entities.find(
+          (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+        ) ?? null);
+      expect(survivingVillager).toBeNull();
+    } else {
+      expect(damagedVillagerBar.currentHp).toBeLessThan(damagedVillagerBar.maxHp);
+    }
   });
 
   test('shows valid and invalid building placement preview feedback before construction', async ({

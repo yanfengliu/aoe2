@@ -526,6 +526,112 @@ function createFishFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createBoarAggroFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 16 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 10,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'boar',
+        x: 13,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 340,
+      },
+      {
+        kind: 'house',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
+function createWolfAggroFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 16 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 10,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'wolf',
+        x: 13,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 0,
+      },
+      {
+        kind: 'house',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
 function createOrdersFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -2412,6 +2518,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'fish-fixture') {
     return createFishFixture(seed);
+  }
+
+  if (seed === 'boar-aggro-fixture') {
+    return createBoarAggroFixture(seed);
+  }
+
+  if (seed === 'wolf-aggro-fixture') {
+    return createWolfAggroFixture(seed);
   }
 
   if (seed === 'orders-fixture') {

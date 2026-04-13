@@ -99,7 +99,7 @@ export interface BuildingVisualState {
 
 export interface EntityHealthBarState {
   id: number;
-  entityKind: 'unit' | 'building';
+  entityKind: 'unit' | 'building' | 'resource';
   entityType: ProjectedEntityView['entityType'];
   owner: number | null;
   currentHp: number;
@@ -518,7 +518,7 @@ export class GameScene extends Phaser.Scene {
 
     for (const entity of entities) {
       if (
-        (entity.kind !== 'unit' && entity.kind !== 'building')
+        (entity.kind !== 'unit' && entity.kind !== 'building' && entity.kind !== 'resource')
         || entity.currentHp === null
         || entity.maxHp === null
         || entity.maxHp <= 0

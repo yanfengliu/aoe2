@@ -454,6 +454,28 @@ describe('createSimulationBridge core systems', () => {
     });
   });
 
+  it('projects health and attack for wild boar resources in the selection HUD', () => {
+    const bridge = createSimulationBridge('boar-aggro-fixture');
+
+    expect(bridge.selectEntityAtCell(13, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'boar',
+      owner: null,
+      health: {
+        current: 75,
+        max: 75,
+      },
+      attack: 7,
+      armor: 0,
+      faction: 'Gaia',
+      civ: null,
+      inventory: '340 / 340 food remaining',
+      resourceAmount: 340,
+      resourceMaxAmount: 340,
+    });
+  });
+
   it('claims neutral sheep for the player once a nearby unit moves into vision range', () => {
     const bridge = createSimulationBridge('sheep-ownership-fixture');
 
@@ -519,6 +541,90 @@ describe('createSimulationBridge core systems', () => {
       .getEconomyState()
       .resources.find((resource) => resource.resourceType === 'sheep');
     expect(sheep?.owner).toBe(1);
+  });
+
+  it('makes hostile wolves auto-aggro nearby human units and damage them', () => {
+    const bridge = createSimulationBridge('wolf-aggro-fixture');
+
+    const initialVillager = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+      );
+
+    expect(initialVillager).toMatchObject({
+      currentHp: 25,
+      maxHp: 25,
+    });
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const villager = bridge
+            .getRenderState()
+            .entities.find(
+              (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+            );
+          return (villager?.currentHp ?? 25) < 25;
+        },
+        { maxSteps: 120 },
+      ),
+    ).toBe(true);
+
+    const damagedVillager = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+      );
+    expect(damagedVillager?.currentHp).toBeLessThan(25);
+  });
+
+  it('keeps boars neutral until provoked, then lets them retaliate against the attacker', () => {
+    const bridge = createSimulationBridge('boar-aggro-fixture');
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+    }
+
+    const idleVillager = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+      );
+    expect(idleVillager?.currentHp).toBe(25);
+
+    expect(bridge.selectEntityAtCell(10, 8)).toBe(true);
+    expect(bridge.issueContextCommand(13, 8)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const villager = bridge
+            .getRenderState()
+            .entities.find(
+              (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+            );
+          return (villager?.currentHp ?? 25) < 25;
+        },
+        { maxSteps: 160 },
+      ),
+    ).toBe(true);
+
+    const damagedVillager = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+      );
+    expect(damagedVillager?.currentHp).toBeLessThan(25);
+
+    const damagedBoar = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'resource' && entity.entityType === 'boar',
+      );
+    expect(damagedBoar?.currentHp).toBeLessThan(75);
   });
 
   it('lets a villager gather food from shoreline fish on water-adjacent cells', () => {

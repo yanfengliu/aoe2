@@ -157,7 +157,7 @@ interface UnitCommand {
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
-  targetEntityKind?: 'unit' | 'building';
+  targetEntityKind?: 'unit' | 'building' | 'resource';
 }
 
 interface ConstructionState {
@@ -194,6 +194,14 @@ interface BuildingCombatState {
   attackRange: number;
   reloadTicks: number;
   cooldownTicks: number;
+}
+
+interface WildlifeState extends CombatState {
+  autoAggro: boolean;
+  isAlive: boolean;
+  corpsePersists: boolean;
+  aggroRange: number;
+  targetEntityRef: EntityRef | null;
 }
 
 interface UnitMovementPlan {
@@ -265,6 +273,7 @@ function inventoryResourceName(resourceType: ResourceKind): string {
     case 'boar':
     case 'fish':
     case 'sheep':
+    case 'wolf':
       return 'food';
   }
 }
@@ -308,7 +317,7 @@ function isBuyMarketAction(actionType: MarketActionType): boolean {
   return actionType === 'buy-food' || actionType === 'buy-wood' || actionType === 'buy-stone';
 }
 
-function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind {
+function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind | null {
   switch (kind) {
     case 'gold-mine':
       return 'gold';
@@ -321,6 +330,8 @@ function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind 
     case 'fish':
     case 'sheep':
       return 'food';
+    case 'wolf':
+      return null;
   }
 }
 
@@ -336,6 +347,8 @@ function gatherTicksFor(kind: ResourceKind): number {
     case 'gold-mine':
     case 'stone-mine':
       return 6;
+    case 'wolf':
+      throw new Error('Wolves are not harvestable resources.');
   }
 }
 
@@ -351,6 +364,8 @@ function gatherAmountFor(kind: ResourceKind): number {
     case 'gold-mine':
     case 'stone-mine':
       return 1;
+    case 'wolf':
+      throw new Error('Wolves are not harvestable resources.');
   }
 }
 
@@ -371,6 +386,7 @@ function resourceTint(resourceType: ResourceKind, owner: number | null): number 
     boar: 0x6a3b2e,
     fish: 0x6fb5d8,
     sheep: 0xe7ece6,
+    wolf: 0x7f8894,
     tree: 0x214d2d,
   };
 
@@ -994,6 +1010,70 @@ function unitAttackRange(unitType: UnitType): number {
   }
 }
 
+function isWildlifeResourceType(resourceType: ResourceKind): resourceType is 'boar' | 'wolf' {
+  return resourceType === 'boar' || resourceType === 'wolf';
+}
+
+function wildlifeMaxHp(resourceType: 'boar' | 'wolf'): number {
+  switch (resourceType) {
+    case 'boar':
+      return 75;
+    case 'wolf':
+      return 25;
+  }
+}
+
+function wildlifeAttackDamage(resourceType: 'boar' | 'wolf'): number {
+  switch (resourceType) {
+    case 'boar':
+      return 7;
+    case 'wolf':
+      return 3;
+  }
+}
+
+function wildlifeReloadTicks(resourceType: 'boar' | 'wolf'): number {
+  switch (resourceType) {
+    case 'boar':
+      return 14;
+    case 'wolf':
+      return 12;
+  }
+}
+
+function wildlifeAggroRange(resourceType: 'boar' | 'wolf'): number {
+  switch (resourceType) {
+    case 'boar':
+      return 3;
+    case 'wolf':
+      return 5;
+  }
+}
+
+function wildlifeCorpsePersists(resourceType: 'boar' | 'wolf'): boolean {
+  return resourceType === 'boar';
+}
+
+function wildlifeHasAutoAggro(resourceType: 'boar' | 'wolf'): boolean {
+  return resourceType === 'wolf';
+}
+
+function createWildlifeState(resourceType: 'boar' | 'wolf'): WildlifeState {
+  return {
+    currentHp: wildlifeMaxHp(resourceType),
+    maxHp: wildlifeMaxHp(resourceType),
+    attackDamage: wildlifeAttackDamage(resourceType),
+    attackRange: MELEE_ATTACK_RANGE,
+    reloadTicks: wildlifeReloadTicks(resourceType),
+    cooldownTicks: 0,
+    autoAggro: wildlifeHasAutoAggro(resourceType),
+    isAlive: true,
+    corpsePersists: wildlifeCorpsePersists(resourceType),
+    aggroRange: wildlifeAggroRange(resourceType),
+    targetEntityRef: null,
+  };
+}
+
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
   if (attackerType === 'spearman' && targetType === 'scout') {
     return 12;
@@ -1286,6 +1366,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const combatStates = new Map<number, CombatState>();
   const buildingHealthStates = new Map<number, BuildingHealthState>();
   const buildingCombatStates = new Map<number, BuildingCombatState>();
+  const wildlifeStates = new Map<number, WildlifeState>();
   const matchState: MatchState = {
     outcome: 'running',
     summary: '',
@@ -1391,6 +1472,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       };
     }
 
+    const resource = world.getComponent<ResourceComponent>(id, 'resource');
+    if (resource) {
+      const wildlife = wildlifeStates.get(id);
+      if (!wildlife || !wildlife.isAlive) {
+        return null;
+      }
+
+      return {
+        currentHp: wildlife.currentHp,
+        maxHp: wildlife.maxHp,
+      };
+    }
+
     return null;
   }
 
@@ -1410,6 +1504,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     id: number,
     unit: UnitComponent | undefined,
     building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
   ): number | null {
     if (unit) {
       return combatStates.get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
@@ -1419,14 +1514,29 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return buildingCombatStates.get(id)?.attackDamage ?? null;
     }
 
+    if (resource) {
+      const wildlife = wildlifeStates.get(id);
+      return wildlife?.isAlive ? wildlife.attackDamage : null;
+    }
+
     return null;
   }
 
   function getSelectionArmor(
     unit: UnitComponent | undefined,
     building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+    id: number,
   ): number | null {
-    return unit || building ? 0 : null;
+    if (unit || building) {
+      return 0;
+    }
+
+    if (resource) {
+      return wildlifeStates.get(id)?.isAlive ? 0 : null;
+    }
+
+    return null;
   }
 
   function getSelectionCiv(
@@ -1447,6 +1557,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     resource: ResourceComponent | undefined,
   ): string | null {
     if (resource) {
+      if (resource.resourceType === 'wolf') {
+        return null;
+      }
       return `${resource.amount} / ${resource.maxAmount} ${inventoryResourceName(resource.resourceType)} remaining`;
     }
 
@@ -1753,6 +1866,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       boar: 0.48,
       fish: 0.42,
       sheep: 0.42,
+      wolf: 0.46,
       tree: 0.58,
     };
 
@@ -1772,6 +1886,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       footprintHeight: 1,
       visualVariant: 'default',
     });
+
+    if (isWildlifeResourceType(resourceType)) {
+      wildlifeStates.set(entity, createWildlifeState(resourceType));
+    }
 
     return entity;
   }
@@ -1914,9 +2032,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function isCellBlockedByResource(
     x: number,
     y: number,
+    ignoredResourceId: number | null = null,
     activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     for (const id of activeWorld.query('position', 'resource')) {
+      if (ignoredResourceId !== null && id === ignoredResourceId) {
+        continue;
+      }
+
       const position = activeWorld.getComponent<Position>(id, 'position');
       if (position?.x === x && position.y === y) {
         return true;
@@ -1956,7 +2079,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return (
       isTerrainPassableForUnit(x, y, activeWorld)
       && !isCellBlockedByBuilding(x, y, activeWorld)
-      && !isCellBlockedByResource(x, y, activeWorld)
+      && !isCellBlockedByResource(x, y, null, activeWorld)
     );
   }
 
@@ -1967,6 +2090,35 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     return isCellPassableForSpawn(x, y, unitId, activeWorld);
+  }
+
+  function isCellPassableForWildlife(
+    resourceId: number,
+    x: number,
+    y: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): boolean {
+    return (
+      isTerrainPassableForUnit(x, y, activeWorld)
+      && !isCellBlockedByBuilding(x, y, activeWorld)
+      && !isCellBlockedByResource(x, y, resourceId, activeWorld)
+    );
+  }
+
+  function isHarvestableResource(
+    resourceId: number,
+    resource: ResourceComponent,
+  ): boolean {
+    if (resource.amount <= 0) {
+      return false;
+    }
+
+    const wildlife = wildlifeStates.get(resourceId);
+    if (!wildlife) {
+      return true;
+    }
+
+    return !wildlife.isAlive && resource.resourceType !== 'wolf';
   }
 
   function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
@@ -2093,9 +2245,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     candidates: Position[],
     preferCurrentCell: boolean,
     activeWorld: World<GameEvents, GameCommands> = world,
+    isPassable: (
+      entityId: number,
+      x: number,
+      y: number,
+      worldState: World<GameEvents, GameCommands>,
+    ) => boolean = isCellPassableForUnit,
   ): UnitMovementPlan | null {
     const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
-      isCellPassableForUnit(unitId, candidate.x, candidate.y, activeWorld),
+      isPassable(unitId, candidate.x, candidate.y, activeWorld),
     );
 
     if (preferCurrentCell) {
@@ -2116,7 +2274,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         height: MAP_HEIGHT,
         start,
         goal: destination,
-        blocked: (x, y) => !isCellPassableForUnit(unitId, x, y, activeWorld),
+        blocked: (x, y) => !isPassable(unitId, x, y, activeWorld),
       });
       if (!pathResult) {
         continue;
@@ -2201,6 +2359,29 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const candidates = getCellsWithinRange(targetPosition, range)
       .filter((candidate) => !(candidate.x === targetPosition.x && candidate.y === targetPosition.y));
     return findMovementPlan(unitId, position, candidates, true, activeWorld);
+  }
+
+  function findWildlifeRangePlan(
+    resourceId: number,
+    targetPosition: Position,
+    range: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): UnitMovementPlan | null {
+    const position = activeWorld.getComponent<Position>(resourceId, 'position');
+    if (!position) {
+      return null;
+    }
+
+    const candidates = getCellsWithinRange(targetPosition, range)
+      .filter((candidate) => !(candidate.x === targetPosition.x && candidate.y === targetPosition.y));
+    return findMovementPlan(
+      resourceId,
+      position,
+      candidates,
+      true,
+      activeWorld,
+      isCellPassableForWildlife,
+    );
   }
 
   function hasSpawnEgress(
@@ -2578,6 +2759,25 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
+  function findHostileWildlifeAtCell(x: number, y: number): number | null {
+    for (const id of world.query('position', 'resource')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      const wildlife = wildlifeStates.get(id);
+      if (
+        position?.x === x
+        && position.y === y
+        && resource
+        && wildlife?.isAlive
+        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
+      ) {
+        return id;
+      }
+    }
+
+    return null;
+  }
+
   function findOwnedGarrisonBuildingAtCell(x: number, y: number, owner: number, unitType: UnitType): number | null {
     for (const id of world.query('position', 'building')) {
       const position = world.getComponent<Position>(id, 'position');
@@ -2693,8 +2893,29 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     markOutOfBandRenderChange();
   }
 
+  function killWildlifeEntity(id: number): void {
+    const resource = world.getComponent<ResourceComponent>(id, 'resource');
+    const wildlife = wildlifeStates.get(id);
+    if (!resource || !wildlife) {
+      return;
+    }
+
+    wildlife.currentHp = 0;
+    wildlife.cooldownTicks = 0;
+    wildlife.isAlive = false;
+    wildlife.targetEntityRef = null;
+
+    if (!wildlife.corpsePersists || resource.amount <= 0) {
+      destroyResourceEntity(id);
+      return;
+    }
+
+    markOutOfBandRenderChange();
+  }
+
   function destroyResourceEntity(id: number): void {
     removeSelectedEntity(id);
+    wildlifeStates.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -2719,7 +2940,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function issueUnitAttackCommand(
     unitId: number,
     targetEntityId: number,
-    targetEntityKind: 'unit' | 'building',
+    targetEntityKind: 'unit' | 'building' | 'resource',
   ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
@@ -2732,9 +2953,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (!targetUnit || targetUnit.owner === unit.owner) {
         return false;
       }
-    } else {
+    } else if (targetEntityKind === 'building') {
       const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
       if (!targetBuilding || targetBuilding.owner === unit.owner) {
+        return false;
+      }
+    } else {
+      const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
+      const wildlife = wildlifeStates.get(targetEntityId);
+      if (!targetResource || !wildlife || !wildlife.isAlive) {
         return false;
       }
     }
@@ -3396,7 +3623,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         resource: activeWorld.getComponent<ResourceComponent>(id, 'resource'),
       }))
       .filter(isResourceCandidate)
-      .filter((entry) => entry.resource.amount > 0)
+      .filter((entry) => isHarvestableResource(entry.id, entry.resource))
       .filter(
         (entry) => resourceKindToEconomyResource(entry.resource.resourceType) === gatherer.desiredResource,
       )
@@ -3433,6 +3660,41 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       target.position,
     );
     gatherer.gatherProgressTicks = 0;
+  }
+
+  function findNearestHostileWildlifeTarget(
+    origin: Position,
+    aggroRange: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): number | null {
+    let bestUnitId: number | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const unitId of (activeWorld as GameWorld).queryInRadius(
+      origin.x,
+      origin.y,
+      aggroRange,
+      'unit',
+    )) {
+      const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
+      const position = activeWorld.getComponent<Position>(unitId, 'position');
+      const combat = combatStates.get(unitId);
+      if (!unit || !position || !combat || combat.currentHp <= 0) {
+        continue;
+      }
+
+      const distance = manhattanDistance(origin, position);
+      if (distance > aggroRange) {
+        continue;
+      }
+
+      if (distance < bestDistance || (distance === bestDistance && unitId < (bestUnitId ?? Number.POSITIVE_INFINITY))) {
+        bestDistance = distance;
+        bestUnitId = unitId;
+      }
+    }
+
+    return bestUnitId;
   }
 
   function playerHasConquestPresence(owner: number): boolean {
@@ -3554,7 +3816,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
                 currentCommand.targetEntityKind === 'building'
                 && activeWorld.getComponent<BuildingComponent>(targetId, 'building')
                 && activeWorld.getComponent<Position>(targetId, 'position');
-              if (hasUnitTarget || hasBuildingTarget) {
+              const hasResourceTarget =
+                currentCommand.targetEntityKind === 'resource'
+                && activeWorld.getComponent<ResourceComponent>(targetId, 'resource')
+                && wildlifeStates.get(targetId)?.isAlive
+                && activeWorld.getComponent<Position>(targetId, 'position');
+              if (hasUnitTarget || hasBuildingTarget || hasResourceTarget) {
                 continue;
               }
             }
@@ -3647,6 +3914,46 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
             if (targetCombat.currentHp <= 0) {
               destroyUnitEntity(targetId);
+              unitCommands.delete(id);
+            }
+            continue;
+          }
+
+          if (command.targetEntityKind === 'resource') {
+            const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+            const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
+            const targetWildlife = wildlifeStates.get(targetId);
+            if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
+              unitCommands.delete(id);
+              continue;
+            }
+
+            if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
+              const wildlifeRangePlan = findUnitRangePlan(
+                id,
+                targetPosition,
+                attackerCombat.attackRange,
+                activeWorld,
+              );
+              if (!wildlifeRangePlan) {
+                unitCommands.delete(id);
+                continue;
+              }
+              moveUnitOneSubgridStep(id, wildlifeRangePlan.nextStep, activeWorld);
+              continue;
+            }
+
+            if (attackerCombat.cooldownTicks > 0) {
+              continue;
+            }
+
+            targetWildlife.currentHp -= attackerCombat.attackDamage;
+            targetWildlife.targetEntityRef = getEntityRef(id);
+            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+            markOutOfBandRenderChange();
+
+            if (targetWildlife.currentHp <= 0) {
+              killWildlifeEntity(targetId);
               unitCommands.delete(id);
             }
             continue;
@@ -3936,7 +4243,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             ? null
             : findResourceApproachPlan(id, gatherer.targetResourceId, activeWorld);
 
-          if (!targetResource || targetResource.amount <= 0 || !resourceApproachPlan) {
+          if (
+            !targetResource
+            || !isHarvestableResource(gatherer.targetResourceId ?? -1, targetResource)
+            || !resourceApproachPlan
+          ) {
             gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
             gatherer.targetResourceId = null;
           } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
@@ -3968,7 +4279,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             if (
               !targetPosition
               || !targetResource
-              || targetResource.amount <= 0
+              || !isHarvestableResource(gatherer.targetResourceId, targetResource)
               || !resourceApproachPlan
               || !isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)
             ) {
@@ -3982,15 +4293,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
                 >= gatherTicksFor(targetResource.resourceType)
               ) {
                 gatherer.gatherProgressTicks = 0;
+                const carriedResource = resourceKindToEconomyResource(targetResource.resourceType);
+                if (carriedResource === null) {
+                  gatherer.task = 'idle';
+                  gatherer.targetResourceId = null;
+                  continue;
+                }
                 const gatherAmount = Math.min(
                   gatherAmountFor(targetResource.resourceType),
                   targetResource.amount,
                   gatherer.carryCapacity - gatherer.carriedAmount,
                 );
                 targetResource.amount -= gatherAmount;
-                gatherer.carriedResource = resourceKindToEconomyResource(
-                  targetResource.resourceType,
-                );
+                gatherer.carriedResource = carriedResource;
                 gatherer.carriedAmount += gatherAmount;
 
                 if (targetResource.amount <= 0) {
@@ -4051,9 +4366,77 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   });
 
   world.registerSystem({
+    name: 'prototypeWildlifeCombat',
+    phase: 'update',
+    after: ['prototypeVillagerEconomy'],
+    execute(activeWorld) {
+      for (const id of activeWorld.query('position', 'resource')) {
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
+        const wildlife = wildlifeStates.get(id);
+        if (!position || !resource || !wildlife?.isAlive) {
+          continue;
+        }
+
+        if (wildlife.cooldownTicks > 0) {
+          wildlife.cooldownTicks -= 1;
+        }
+
+        let targetId = currentEntityId(activeWorld, wildlife.targetEntityRef);
+        let targetPosition = targetId === null
+          ? null
+          : activeWorld.getComponent<Position>(targetId, 'position');
+        let targetCombat = targetId === null ? null : combatStates.get(targetId);
+
+        if (!targetPosition || !targetCombat || targetCombat.currentHp <= 0) {
+          wildlife.targetEntityRef = null;
+          targetId = null;
+        }
+
+        if (targetId === null && wildlife.autoAggro) {
+          targetId = findNearestHostileWildlifeTarget(position, wildlife.aggroRange, activeWorld);
+          wildlife.targetEntityRef = targetId === null ? null : getEntityRef(targetId);
+          targetPosition = targetId === null
+            ? null
+            : activeWorld.getComponent<Position>(targetId, 'position');
+          targetCombat = targetId === null ? null : combatStates.get(targetId);
+        }
+
+        if (!targetId || !targetPosition || !targetCombat) {
+          continue;
+        }
+
+        if (manhattanDistance(position, targetPosition) > wildlife.attackRange) {
+          const movePlan = findWildlifeRangePlan(id, targetPosition, wildlife.attackRange, activeWorld);
+          if (!movePlan) {
+            wildlife.targetEntityRef = null;
+            continue;
+          }
+
+          activeWorld.setPosition(id, movePlan.nextStep);
+          continue;
+        }
+
+        if (wildlife.cooldownTicks > 0) {
+          continue;
+        }
+
+        targetCombat.currentHp -= wildlife.attackDamage;
+        wildlife.cooldownTicks = wildlife.reloadTicks;
+        markOutOfBandRenderChange();
+
+        if (targetCombat.currentHp <= 0) {
+          destroyUnitEntity(targetId);
+          wildlife.targetEntityRef = null;
+        }
+      }
+    },
+  });
+
+  world.registerSystem({
     name: 'prototypeHerdableOwnership',
     phase: 'update',
-    after: ['prototypeScoutMovement', 'prototypeVillagerEconomy'],
+    after: ['prototypeWildlifeCombat'],
     execute(activeWorld) {
       if (updateSheepOwnership(activeWorld)) {
         markOutOfBandRenderChange();
@@ -4263,8 +4646,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           : unit?.unitType ?? building?.buildingType ?? resource?.resourceType ?? null,
       owner,
       health: selectedEntityIds.length === 1 ? getSelectionHealth(selectedEntityId) : null,
-      attack: selectedEntityIds.length === 1 ? getSelectionAttack(selectedEntityId, unit, building) : null,
-      armor: selectedEntityIds.length === 1 ? getSelectionArmor(unit, building) : null,
+      attack: selectedEntityIds.length === 1 ? getSelectionAttack(selectedEntityId, unit, building, resource) : null,
+      armor: selectedEntityIds.length === 1 ? getSelectionArmor(unit, building, resource, selectedEntityId) : null,
       faction: selectedEntityIds.length === 1 ? factionName(owner) : null,
       civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
       inventory:
@@ -4348,6 +4731,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType);
     const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
     const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
+    const hostileWildlifeId = findHostileWildlifeAtCell(target.x, target.y);
 
     if (ownedGarrisonBuildingId !== null) {
       return garrisonUnit(unitId, ownedGarrisonBuildingId);
@@ -4359,6 +4743,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (hostileBuildingId !== null) {
       return issueUnitAttackCommand(unitId, hostileBuildingId, 'building');
+    }
+
+    if (hostileWildlifeId !== null) {
+      return issueUnitAttackCommand(unitId, hostileWildlifeId, 'resource');
     }
 
     if (resourceId === null) {
@@ -4381,16 +4769,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
+    const economyResource = resourceKindToEconomyResource(resource.resourceType);
+    if (economyResource === null || !isHarvestableResource(resourceId, resource)) {
+      return false;
+    }
+
     clearGathererOrder(unitId);
     gatherer.hasExplicitGatherOrder = true;
     unitCommands.delete(unitId);
-    gatherer.desiredResource = resourceKindToEconomyResource(resource.resourceType);
+    gatherer.desiredResource = economyResource;
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = resourceId;
     gatherer.dropOffBuildingId = findNearestDropOffBuilding(
       world,
       unit.owner,
-      gatherer.desiredResource,
+      economyResource,
       targetPosition,
     );
     gatherer.gatherProgressTicks = 0;
@@ -4422,6 +4815,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       ) {
         return garrisonUnit(unitId, targetEntityId);
       }
+    }
+
+    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
+    const wildlife = wildlifeStates.get(targetEntityId);
+    if (targetResource && wildlife?.isAlive) {
+      return issueUnitAttackCommand(unitId, targetEntityId, 'resource');
     }
 
     if (unit.unitType === 'villager' && issueUnitGatherCommand(unitId, targetEntityId)) {

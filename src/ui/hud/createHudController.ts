@@ -248,6 +248,8 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Fish';
     case 'sheep':
       return 'Sheep';
+    case 'wolf':
+      return 'Wolf';
     case 'tree':
       return 'Tree';
     case 'villager':
@@ -309,6 +311,8 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Fish';
     case 'sheep':
       return 'Sheep';
+    case 'wolf':
+      return 'Wolves';
     case 'tree':
       return 'Trees';
     case 'villager':
@@ -428,6 +432,8 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'F';
     case 'sheep':
       return 'SH';
+    case 'wolf':
+      return 'WO';
     case 'tree':
       return 'T';
     default:
@@ -471,6 +477,8 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#73b9d6';
     case 'sheep':
       return '#d9e0e5';
+    case 'wolf':
+      return '#9ca6b2';
     case 'tree':
       return '#7fb07a';
     default:
