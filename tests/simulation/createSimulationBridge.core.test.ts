@@ -554,6 +554,43 @@ describe('createSimulationBridge core systems', () => {
     expect(updatedFish?.amount).toBeLessThan(fish?.amount ?? 0);
   });
 
+  it('removes depleted resources from economy and render state instead of leaving zero-amount nodes behind', () => {
+    const bridge = createSimulationBridge('resource-depletion-fixture');
+    const initialTree = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'tree');
+    expect(initialTree).toMatchObject({
+      amount: 1,
+      x: 12,
+      y: 8,
+    });
+
+    expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
+    expect(bridge.issueContextCommand(12, 8)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          !bridge
+            .getEconomyState()
+            .resources.some((resource) => resource.resourceType === 'tree' && resource.x === 12 && resource.y === 8),
+        { maxSteps: 240 },
+      ),
+    ).toBe(true);
+
+    expect(
+      bridge
+        .getEconomyState()
+        .resources.some((resource) => resource.resourceType === 'tree' && resource.x === 12 && resource.y === 8),
+    ).toBe(false);
+    expect(
+      bridge
+        .getRenderState()
+        .entities.some((entity) => entity.kind === 'resource' && entity.entityType === 'tree' && entity.x === 12 && entity.y === 8),
+    ).toBe(false);
+  });
+
   it('cycles through every selectable entity stacked on the same tile', () => {
     const bridge = createSimulationBridge('tile-selection-cycle-fixture');
     const stackCell = bridge

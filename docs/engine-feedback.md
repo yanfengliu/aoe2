@@ -96,6 +96,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - The file-linked package workflow has one sharp edge: `aoe2` consumes `civ-engine` through its built `dist` entrypoint, so docs/source can expose new 0.3.0 APIs before the linked package's JS and `.d.ts` are rebuilt. The symptom was "documented API exists in source but not at runtime/typecheck" until `npm run build` was rerun in the linked engine package.
 - The debugging guide was useful again on the selection-panel slice because it made it easy to confirm the projected selection state was correct before touching UI code. The remaining flaky part was not world state but browser interaction semantics, which still need a repo-owned seam on top of `civ-engine` for exact selection and click-flow tests.
 - The sub-grid movement guide was the right architectural boundary for smoother motion. Keeping `civ-engine` authoritative on coarse simulation cells while interpolating unit positions in Phaser delivered the visual result without destabilizing pathing, occupancy, or save-state semantics. The remaining engine gap is that interpolation-aware hit testing is still repo-owned glue, not a shared engine helper.
+- Resource depletion cleanup is still repo policy layered on top of `world.destroyEntity()`. The engine-side primitive is correct and low-friction, but deciding when a spent tree or fish node should disappear from economy state, selection, and render projections remains a game rule that needs explicit deterministic tests.
 
 ## Implications for next phases
 

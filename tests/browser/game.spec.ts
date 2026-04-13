@@ -1013,6 +1013,36 @@ test.describe('browser gameplay smoke tests', () => {
     }).toBeLessThan(fish?.amount ?? 0);
   });
 
+  test('removes depleted resources from the live world instead of rendering zero-amount nodes', async ({ page }) => {
+    await waitForBootWithSeed(page, 'resource-depletion-fixture');
+
+    await clickCell(page, 12, 8);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Tree');
+    await expectSelectionDetail(page, 'inventory', '1 / 1 wood remaining');
+
+    expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(12, 8))).toBe(true);
+
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      return snapshot.economyState.resources.some(
+        (resource) => resource.resourceType === 'tree' && resource.x === 12 && resource.y === 8,
+      );
+    }).toBe(false);
+
+    const depletedSnapshot = await getSnapshot(page);
+    expect(
+      depletedSnapshot.economyState.resources.some(
+        (resource) => resource.resourceType === 'tree' && resource.x === 12 && resource.y === 8,
+      ),
+    ).toBe(false);
+    expect(
+      depletedSnapshot.renderState.entities.some(
+        (entity) => entity.kind === 'resource' && entity.entityType === 'tree' && entity.x === 10 && entity.y === 8,
+      ),
+    ).toBe(false);
+  });
+
   test('claims neutral sheep for the player once a nearby scout moves into range', async ({ page }) => {
     await waitForBootWithSeed(page, 'sheep-ownership-fixture');
 

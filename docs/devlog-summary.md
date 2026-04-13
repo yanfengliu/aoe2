@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-12 - Removed depleted resource nodes. Exhausted trees now disappear from both the authoritative economy snapshot and the rendered world instead of lingering as zero-amount resources, and the full gate passes with `71` Vitest tests plus `49` Playwright browser tests.
 2026-04-12 - Added render-time unit interpolation. The live Phaser scene now interpolates unit positions between projected tick states while buildings/resources stay coarse-snapped, click hit-testing prefers displayed entities so player input stays aligned with visuals, and the full gate passes with `70` Vitest tests plus `48` Playwright browser tests.
 2026-04-12 - Finalized the player-facing selection panel. Single selections now show name, icon, health, attack, armor, faction, civ, and inventory instead of debug metadata, and the full gate passes with `68` Vitest tests plus `47` Playwright browser tests.
 2026-04-12 - Trimmed the top HUD to player-facing status only. The top bar now shows only `food`, `wood`, `gold`, `stone`, `age`, `pop`, and `time`, with elapsed match time formatted as `MM:SS`, and the full gate passes with `66` Vitest tests plus `47` Playwright browser tests.

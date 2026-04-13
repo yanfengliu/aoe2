@@ -2669,6 +2669,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     markOutOfBandRenderChange();
   }
 
+  function destroyResourceEntity(id: number): void {
+    removeSelectedEntity(id);
+    world.destroyEntity(id);
+    markOutOfBandRenderChange();
+  }
+
   function issueUnitMoveCommand(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) {
@@ -3962,10 +3968,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
                 );
                 gatherer.carriedAmount += gatherAmount;
 
-                if (
-                  targetResource.amount <= 0
-                  || gatherer.carriedAmount >= gatherer.carryCapacity
-                ) {
+                if (targetResource.amount <= 0) {
+                  const depletedResourceId = gatherer.targetResourceId;
+                  gatherer.targetResourceId = null;
+                  if (depletedResourceId !== null) {
+                    destroyResourceEntity(depletedResourceId);
+                  }
+                }
+
+                if (targetResource.amount <= 0 || gatherer.carriedAmount >= gatherer.carryCapacity) {
                   gatherer.task = 'to-dropoff';
                 }
               }
