@@ -57,6 +57,20 @@ import type {
 
 type GameEvents = Record<string, never>;
 type GameCommands = Record<string, never>;
+type GameComponents = {
+  position: Position;
+  terrain: TerrainComponent;
+  renderable: RenderableComponent;
+  unit: UnitComponent;
+  unitTransform: UnitTransformComponent;
+  building: BuildingComponent;
+  resource: ResourceComponent;
+  gatherer: GathererComponent;
+  velocity: VelocityComponent;
+  visionSource: VisionSourceComponent;
+  wanderBounds: WanderBoundsComponent;
+};
+type GameWorld = World<GameEvents, GameCommands, GameComponents>;
 
 export interface SimulationBridge {
   step(deltaMs: number): void;
@@ -121,6 +135,7 @@ const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
 const UNIT_SUBGRID_RESOLUTION = 4;
 const UNIT_SUBGRID_STEP_PER_TICK = 2;
+const MAX_HERDABLE_CLAIM_RADIUS = 6;
 const CARDINAL_NEIGHBOR_OFFSETS: Position[] = [
   { x: 1, y: 0 },
   { x: -1, y: 0 },
@@ -187,7 +202,11 @@ function toCellIndex(x: number, y: number): number {
   return y * MAP_WIDTH + x;
 }
 
-function isSameEntity(ref: EntityRef | null, id: number, world: World<GameEvents, GameCommands>): boolean {
+function isSameEntity(
+  ref: EntityRef | null,
+  id: number,
+  world: World<GameEvents, GameCommands>,
+): boolean {
   return ref !== null && world.isCurrent(ref) && ref.id === id;
 }
 
@@ -1071,12 +1090,13 @@ function syncVisibilitySources(
 }
 
 function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boolean {
+  const typedWorld = activeWorld as GameWorld;
   let didChange = false;
 
-  for (const sheepId of activeWorld.query('position', 'resource', 'renderable')) {
-    const sheepPosition = activeWorld.getComponent<Position>(sheepId, 'position');
-    const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
-    const renderable = activeWorld.getComponent<RenderableComponent>(sheepId, 'renderable');
+  for (const sheepId of typedWorld.query('position', 'resource', 'renderable')) {
+    const sheepPosition = typedWorld.getComponent(sheepId, 'position');
+    const resource = typedWorld.getComponent(sheepId, 'resource');
+    const renderable = typedWorld.getComponent(sheepId, 'renderable');
     if (
       !sheepPosition
       || !resource
@@ -1091,10 +1111,16 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
     let bestDistanceSquared = Number.POSITIVE_INFINITY;
     let bestUnitId = Number.POSITIVE_INFINITY;
 
-    for (const unitId of activeWorld.query('position', 'unit', 'visionSource')) {
-      const unitPosition = activeWorld.getComponent<Position>(unitId, 'position');
-      const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
-      const visionSource = activeWorld.getComponent<VisionSourceComponent>(unitId, 'visionSource');
+    for (const unitId of typedWorld.queryInRadius(
+      sheepPosition.x,
+      sheepPosition.y,
+      MAX_HERDABLE_CLAIM_RADIUS,
+      'unit',
+      'visionSource',
+    )) {
+      const unitPosition = typedWorld.getComponent(unitId, 'position');
+      const unit = typedWorld.getComponent(unitId, 'unit');
+      const visionSource = typedWorld.getComponent(unitId, 'visionSource');
       if (!unitPosition || !unit || !visionSource) {
         continue;
       }
@@ -1131,7 +1157,7 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
 }
 
 function createWorld(seed: string, visibility: VisibilityMap): {
-  world: World<GameEvents, GameCommands>;
+  world: GameWorld;
   getEconomyState: () => EconomyState;
   getPopulationState: (playerId: number) => PopulationState;
   getPlayerAge: (playerId: number) => AgeType;
@@ -1162,7 +1188,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   isSelected: (id: number) => boolean;
   consumeOutOfBandRenderChange: () => boolean;
 } {
-  const world = new World<GameEvents, GameCommands>({
+  const world = new World<GameEvents, GameCommands, GameComponents>({
     gridWidth: MAP_WIDTH,
     gridHeight: MAP_HEIGHT,
     tps: TPS,
@@ -1294,11 +1320,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
-  function getUnitTransform(id: number, activeWorld = world): UnitTransformComponent | null {
+  function getUnitTransform(
+    id: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): UnitTransformComponent | null {
     return activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform') ?? null;
   }
 
-  function syncUnitTransformToPosition(id: number, position: Position, activeWorld = world): void {
+  function syncUnitTransformToPosition(
+    id: number,
+    position: Position,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): void {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) {
       return;
@@ -1311,7 +1344,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function moveUnitOneSubgridStep(
     id: number,
     target: Position,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) {
@@ -1335,7 +1368,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return nextGridPosition;
   }
 
-  function isUnitAtTarget(id: number, target: Position, activeWorld = world): boolean {
+  function isUnitAtTarget(
+    id: number,
+    target: Position,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): boolean {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) {
       const position = activeWorld.getComponent<Position>(id, 'position');
@@ -1667,7 +1704,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     buildingId: number,
     x: number,
     y: number,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     const position = activeWorld.getComponent<Position>(buildingId, 'position');
     const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
@@ -1689,7 +1726,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     );
   }
 
-  function isTerrainPassableForUnit(x: number, y: number, activeWorld = world): boolean {
+  function isTerrainPassableForUnit(
+    x: number,
+    y: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): boolean {
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
       return false;
     }
@@ -1699,7 +1740,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return terrain ? terrain.kind !== 'water' && terrain.kind !== 'forest' : false;
   }
 
-  function isCellBlockedByBuilding(x: number, y: number, activeWorld = world): boolean {
+  function isCellBlockedByBuilding(
+    x: number,
+    y: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): boolean {
     for (const buildingId of activeWorld.query('building')) {
       if (buildingOccupiesCell(buildingId, x, y, activeWorld)) {
         return true;
@@ -1709,7 +1754,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return false;
   }
 
-  function isCellBlockedByResource(x: number, y: number, activeWorld = world): boolean {
+  function isCellBlockedByResource(
+    x: number,
+    y: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): boolean {
     for (const id of activeWorld.query('position', 'resource')) {
       const position = activeWorld.getComponent<Position>(id, 'position');
       if (position?.x === x && position.y === y) {
@@ -1724,7 +1773,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     x: number,
     y: number,
     ignoredUnitId: number | null = null,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     for (const id of activeWorld.query('position', 'unit')) {
       if (ignoredUnitId !== null && id === ignoredUnitId) {
@@ -1744,7 +1793,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     x: number,
     y: number,
     ignoredUnitId: number | null = null,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     return (
       isTerrainPassableForUnit(x, y, activeWorld)
@@ -1758,7 +1807,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     unitId: number,
     x: number,
     y: number,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     return isCellPassableForSpawn(x, y, unitId, activeWorld);
   }
@@ -1886,7 +1935,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     start: Position,
     candidates: Position[],
     preferCurrentCell: boolean,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): UnitMovementPlan | null {
     const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
       isCellPassableForUnit(unitId, candidate.x, candidate.y, activeWorld),
@@ -1925,7 +1974,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
-  function findMovePlan(unitId: number, target: Position, activeWorld = world): UnitMovementPlan | null {
+  function findMovePlan(
+    unitId: number,
+    target: Position,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     if (!position) {
       return null;
@@ -1934,7 +1987,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return findMovementPlan(unitId, position, getNearestMoveCandidates(target), false, activeWorld);
   }
 
-  function findResourceApproachPlan(unitId: number, resourceId: number, activeWorld = world): UnitMovementPlan | null {
+  function findResourceApproachPlan(
+    unitId: number,
+    resourceId: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     const resourcePosition = activeWorld.getComponent<Position>(resourceId, 'position');
     if (!position || !resourcePosition) {
@@ -1954,7 +2011,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     unitId: number,
     buildingId: number,
     range = 1,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
@@ -1977,7 +2034,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     unitId: number,
     targetPosition: Position,
     range: number,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     if (!position) {
@@ -1992,7 +2049,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function hasSpawnEgress(
     candidate: Position,
     ignoredUnitId: number | null = null,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
     if (!isCellPassableForSpawn(candidate.x, candidate.y, ignoredUnitId, activeWorld)) {
       return false;
@@ -2006,7 +2063,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function findSafeSpawnPosition(
     candidates: Position[],
     ignoredUnitId: number | null = null,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
     for (const candidate of uniquePositions(candidates)) {
       if (!hasSpawnEgress(candidate, ignoredUnitId, activeWorld)) {
@@ -2019,7 +2076,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return null;
   }
 
-  function findScenarioSpawnPosition(origin: Position, activeWorld = world): Position | null {
+  function findScenarioSpawnPosition(
+    origin: Position,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): Position | null {
     return findSafeSpawnPosition(getNearestMoveCandidates(origin), null, activeWorld);
   }
 
@@ -2027,7 +2087,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     anchor: Position,
     buildingType: BuildingType,
     ignoredUnitId: number | null = null,
-    activeWorld = world,
+    activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
     const footprint = buildingFootprint(buildingType);
     return findSafeSpawnPosition(
@@ -3071,7 +3131,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     origin: Position,
     range: number,
   ): number | null {
-    const candidates = [...world.query('position', 'unit')]
+    const candidates = [...world.queryInRadius(origin.x, origin.y, range, 'position', 'unit')]
       .map((id) => ({
         id,
         position: world.getComponent<Position>(id, 'position'),
@@ -3367,6 +3427,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypePlayerCommands',
     phase: 'update',
+    after: ['prototypeAi'],
     execute(activeWorld) {
       for (const [id, command] of [...unitCommands.entries()]) {
         const position = activeWorld.getComponent<Position>(id, 'position');
@@ -3542,6 +3603,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeProductionQueues',
     phase: 'update',
+    after: ['prototypePlayerCommands'],
     execute() {
       for (const [buildingId, queue] of productionQueues.entries()) {
         if (queue.length === 0) {
@@ -3606,6 +3668,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeScoutMovement',
     phase: 'update',
+    after: ['prototypePlayerCommands'],
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'velocity', 'wanderBounds')) {
         if (unitCommands.has(id)) {
@@ -3683,6 +3746,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeVillagerEconomy',
     phase: 'update',
+    after: ['prototypePlayerCommands'],
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
         if (unitCommands.has(id)) {
@@ -3820,6 +3884,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeHerdableOwnership',
     phase: 'update',
+    after: ['prototypeScoutMovement', 'prototypeVillagerEconomy'],
     execute(activeWorld) {
       if (updateSheepOwnership(activeWorld)) {
         markOutOfBandRenderChange();
@@ -3830,6 +3895,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeVisibility',
     phase: 'update',
+    after: ['prototypeHerdableOwnership'],
     execute(activeWorld) {
       syncVisibilitySources(activeWorld, visibility, trackedVisibilitySources);
     },
@@ -3838,6 +3904,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeTowerCombat',
     phase: 'update',
+    after: ['prototypeVisibility'],
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'building')) {
         const position = activeWorld.getComponent<Position>(id, 'position');

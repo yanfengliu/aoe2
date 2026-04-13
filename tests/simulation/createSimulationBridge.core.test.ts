@@ -448,6 +448,31 @@ describe('createSimulationBridge core systems', () => {
     });
   });
 
+  it('updates sheep ownership in the same tick that a scout enters claim range', () => {
+    const bridge = createSimulationBridge('sheep-ownership-fixture');
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
+    expect(bridge.issueMoveCommand(7, 8)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const scout = bridge
+            .getEconomyState()
+            .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+          return scout?.x === 6 && scout.y === 8;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+
+    const sheep = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'sheep');
+    expect(sheep?.owner).toBe(1);
+  });
+
   it('lets a villager gather food from shoreline fish on water-adjacent cells', () => {
     const bridge = createSimulationBridge('fish-fixture');
     const initialFood = bridge.getHudState().playerResources.food;

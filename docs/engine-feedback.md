@@ -92,6 +92,8 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - The sub-grid movement guide was directionally correct, but this slice showed an easy integration trap: repo systems must not eagerly snap fine transform state back to coarse `position` each tick or the renderer loses the smooth movement benefit even though the simulation is otherwise valid. A small engine-level debug probe for coarse vs fine position would make that class of mistake much faster to spot.
 - Smooth sub-grid visuals also need a repo-owned hit-tolerance policy. Once units move between coarse cells, exact render-geometry clicks are brittle for live targeting even when the simulation is correct; the renderer/input seam needs a small amount of pointer forgiveness to match what the player perceives on screen.
 - Safe unit spawning is still repo-owned RTS policy. `civ-engine` path/passability primitives were enough to fix trapped Scouts, blocked Stable queues, and partial ungarrison behavior, but the engine does not yet offer a higher-level "find nearest legal spawn with egress" helper for producer or scenario spawns.
+- `civ-engine 0.3.0` materially improves the bridge ergonomics where it is fully available: typed component registries make the owned world and helper functions clearer, and `before`/`after` system ordering finally lets same-tick rules like movement -> herdable ownership -> visibility be declared instead of implied by registration order.
+- The file-linked package workflow has one sharp edge: `aoe2` consumes `civ-engine` through its built `dist` entrypoint, so docs/source can expose new 0.3.0 APIs before the linked package's JS and `.d.ts` are rebuilt. The symptom was "documented API exists in source but not at runtime/typecheck" until `npm run build` was rerun in the linked engine package.
 
 ## Implications for next phases
 
@@ -104,6 +106,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Start moving placement, footprint selection, and movement-heavy queries onto occupancy/path primitives before Castle Age-scale interactions make the current scan-heavy approach too brittle.
 - Add a lightweight debug probe for coarse-vs-fine unit position if sub-grid transforms remain part of the runtime; that will make future movement and selection bugs much easier to inspect live.
 - Add a cheap fixture-validation pass around occupancy and start-cell legality before using scenarios in tests. The current blocker rules are good; the missing piece was faster detection of invalid test setups.
+- Rebuild the linked `civ-engine` package immediately after engine upgrades before debugging game-side type/runtime failures. Without that step, bridge work can end up diagnosing stale dist artifacts instead of real gameplay bugs.
 
 ## Current recommendation
 
