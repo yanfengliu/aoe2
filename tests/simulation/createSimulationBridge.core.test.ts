@@ -202,6 +202,51 @@ describe('createSimulationBridge core systems', () => {
     expect(damagedHouse?.currentHp).toBeLessThan(damagedHouse?.maxHp ?? 75);
   });
 
+  it('projects player-facing unit selection details for the HUD', () => {
+    const bridge = createSimulationBridge('villager-selection-fixture');
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'unit',
+      selectedEntityType: 'villager',
+      health: {
+        current: 25,
+        max: 25,
+      },
+      attack: 3,
+      armor: 0,
+      faction: 'Player',
+      civ: 'Britons',
+      inventory: 'Empty',
+    });
+  });
+
+  it('projects player-facing building selection details for the HUD', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    const townCenter = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 1 && building.buildingType === 'town-center');
+    expect(townCenter).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(townCenter?.x ?? 0, townCenter?.y ?? 0)).toBe(true);
+
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'building',
+      selectedEntityType: 'town-center',
+      health: {
+        current: 2400,
+        max: 2400,
+      },
+      attack: 5,
+      armor: 0,
+      faction: 'Player',
+      civ: 'Britons',
+      inventory: '0 / 5 garrisoned',
+    });
+  });
+
   it('can issue a context command against an exact hostile entity id', () => {
     const bridge = createSimulationBridge('moving-enemy-attack-fixture');
     const enemyScout = bridge
@@ -403,6 +448,9 @@ describe('createSimulationBridge core systems', () => {
       tileEntityCount: 1,
       resourceAmount: 100,
       resourceMaxAmount: 100,
+      faction: 'Player',
+      civ: null,
+      inventory: '100 / 100 food remaining',
     });
   });
 

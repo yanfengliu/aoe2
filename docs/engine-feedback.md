@@ -94,6 +94,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Safe unit spawning is still repo-owned RTS policy. `civ-engine` path/passability primitives were enough to fix trapped Scouts, blocked Stable queues, and partial ungarrison behavior, but the engine does not yet offer a higher-level "find nearest legal spawn with egress" helper for producer or scenario spawns.
 - `civ-engine 0.3.0` materially improves the bridge ergonomics where it is fully available: typed component registries make the owned world and helper functions clearer, and `before`/`after` system ordering finally lets same-tick rules like movement -> herdable ownership -> visibility be declared instead of implied by registration order.
 - The file-linked package workflow has one sharp edge: `aoe2` consumes `civ-engine` through its built `dist` entrypoint, so docs/source can expose new 0.3.0 APIs before the linked package's JS and `.d.ts` are rebuilt. The symptom was "documented API exists in source but not at runtime/typecheck" until `npm run build` was rerun in the linked engine package.
+- The debugging guide was useful again on the selection-panel slice because it made it easy to confirm the projected selection state was correct before touching UI code. The remaining flaky part was not world state but browser interaction semantics, which still need a repo-owned seam on top of `civ-engine` for exact selection and click-flow tests.
 
 ## Implications for next phases
 

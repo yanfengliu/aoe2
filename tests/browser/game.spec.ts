@@ -32,6 +32,21 @@ interface HudChipRect {
   width: number;
 }
 
+async function expectSelectionDetail(
+  page: Page,
+  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  value: string,
+): Promise<void> {
+  await expect(page.locator(`[data-selection-detail-value="${key}"]`)).toHaveText(value);
+}
+
+async function expectSelectionDetailAbsent(
+  page: Page,
+  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+): Promise<void> {
+  await expect(page.locator(`[data-selection-detail-value="${key}"]`)).toHaveCount(0);
+}
+
 async function getHudChipKeys(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLElement>('[data-hud-chip]'))
@@ -194,18 +209,9 @@ async function doubleClickCell(
   cellY: number,
 ): Promise<void> {
   const point = await getScreenPointForCell(page, cellX, cellY);
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  expect(bounds).not.toBeNull();
-
-  await canvas.dblclick({
-    position: {
-      x: point.x - (bounds?.x ?? 0),
-      y: point.y - (bounds?.y ?? 0),
-    },
-    button: 'left',
-    force: true,
-  });
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.click(point.x, point.y, { button: 'left' });
+  await page.mouse.click(point.x, point.y, { button: 'left' });
 }
 
 async function dragSelectCells(
@@ -319,6 +325,54 @@ async function selectOwnedBuildingDirect(
       return false;
     },
     { owner, buildingType },
+  );
+}
+
+async function selectOwnedBuildingAtDirect(
+  page: Page,
+  owner: number,
+  buildingType: string,
+  cellX: number,
+  cellY: number,
+): Promise<boolean> {
+  return page.evaluate(
+    ({
+      owner: playerOwner,
+      buildingType: expectedBuildingType,
+      cellX: targetX,
+      cellY: targetY,
+    }) => {
+      const api = window.__AOE2_TEST__!;
+      const building = api
+        .getSnapshot()
+        .economyState.buildings.find(
+          (candidate) =>
+            candidate.owner === playerOwner
+            && candidate.buildingType === expectedBuildingType
+            && candidate.x === targetX
+            && candidate.y === targetY,
+        );
+      if (!building) {
+        return false;
+      }
+
+      for (let offsetY = 0; offsetY < building.footprintHeight; offsetY += 1) {
+        for (let offsetX = 0; offsetX < building.footprintWidth; offsetX += 1) {
+          api.selectEntityAtCell(building.x + offsetX, building.y + offsetY);
+          if (api.getSelectionState().selectedEntityId === building.id) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    {
+      owner,
+      buildingType,
+      cellX,
+      cellY,
+    },
   );
 }
 
@@ -794,10 +848,20 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+    await expect(page.locator('[data-selection-entity-icon="town-center"]')).toHaveText('TC');
+    await expectSelectionDetail(page, 'health', '2400 / 2400');
+    await expectSelectionDetail(page, 'attack', '5');
+    await expectSelectionDetail(page, 'armor', '0');
+    await expectSelectionDetail(page, 'faction', 'Player');
+    await expectSelectionDetail(page, 'civ', 'Britons');
+    await expectSelectionDetail(page, 'inventory', '0 / 5 garrisoned');
+    await expect(page.locator('[data-selection-position]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-cycle]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-resource]')).toHaveCount(0);
+    await expect(page.locator('[data-placement-mode]')).toHaveCount(0);
     await page.locator('[data-command="train-villager"]').click();
 
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
-    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
     await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Villager');
     await expect(page.locator('[data-selection-queue-item="0"]')).not.toContainText('ticks remaining');
 
@@ -834,9 +898,16 @@ test.describe('browser gameplay smoke tests', () => {
     const selectedSnapshot = await getSnapshot(page);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
-    await expect(page.locator('[data-selection-position]')).toHaveText(`Tile ${sheepCells[0].x}, ${sheepCells[0].y}`);
-    await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 1 on tile');
-    await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
+    await expect(page.locator('[data-selection-entity-icon="sheep"]')).toHaveText('SH');
+    await expectSelectionDetail(page, 'faction', 'Player');
+    await expectSelectionDetail(page, 'inventory', '100 / 100 food remaining');
+    await expectSelectionDetailAbsent(page, 'health');
+    await expectSelectionDetailAbsent(page, 'attack');
+    await expectSelectionDetailAbsent(page, 'armor');
+    await expectSelectionDetailAbsent(page, 'civ');
+    await expect(page.locator('[data-selection-position]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-cycle]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-resource]')).toHaveCount(0);
     expect(selectedSnapshot.selectionState.owner).toBe(1);
   });
 
@@ -852,13 +923,21 @@ test.describe('browser gameplay smoke tests', () => {
 
     await clickCell(page, fish?.x ?? 0, fish?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Fish');
-    await expect(page.locator('[data-selection-position]')).toHaveText(`Tile ${fish?.x}, ${fish?.y}`);
-    await expect(page.locator('[data-selection-resource]')).toHaveText(
-      `Remaining: ${fish?.amount}/${fish?.maxAmount}`,
-    );
+    await expect(page.locator('[data-selection-entity-icon="fish"]')).toHaveText('F');
+    await expectSelectionDetail(page, 'faction', 'Gaia');
+    await expectSelectionDetail(page, 'inventory', `${fish?.amount} / ${fish?.maxAmount} food remaining`);
+    await expectSelectionDetailAbsent(page, 'health');
+    await expectSelectionDetailAbsent(page, 'attack');
+    await expectSelectionDetailAbsent(page, 'armor');
+    await expectSelectionDetailAbsent(page, 'civ');
 
     expect(await selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
-    await clickCell(page, fish?.x ?? 0, fish?.y ?? 0, 'right');
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        { x: fish?.x ?? 0, y: fish?.y ?? 0 },
+      ),
+    ).toBe(true);
 
     await expect.poll(async () => {
       const snapshot = await page.evaluate(
@@ -903,7 +982,7 @@ test.describe('browser gameplay smoke tests', () => {
     await expect.poll(async () => (await getSnapshot(page)).selectionState.owner).toBe(1);
   });
 
-  test('shows a unit icon for an individually selected unit', async ({ page }) => {
+  test('shows a player-facing info card for an individually selected unit', async ({ page }) => {
     await waitForBootWithSeed(page, 'villager-selection-fixture');
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
     expect(villagerCells.length).toBeGreaterThan(0);
@@ -918,6 +997,16 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
     await expect(page.locator('[data-selection-unit-label="villager"]')).toHaveText('Villager');
+    await expectSelectionDetail(page, 'health', '25 / 25');
+    await expectSelectionDetail(page, 'attack', '3');
+    await expectSelectionDetail(page, 'armor', '0');
+    await expectSelectionDetail(page, 'faction', 'Player');
+    await expectSelectionDetail(page, 'civ', 'Britons');
+    await expectSelectionDetail(page, 'inventory', 'Empty');
+    await expect(page.locator('[data-selection-position]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-cycle]')).toHaveCount(0);
+    await expect(page.locator('[data-selection-resource]')).toHaveCount(0);
+    await expect(page.locator('[data-placement-mode]')).toHaveCount(0);
   });
 
   test('cycles through every selectable entity stacked on a clicked tile', async ({ page }) => {
@@ -939,7 +1028,7 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
-    await expect(page.locator('[data-selection-cycle]')).toHaveText('1 of 3 on tile');
+    await expectSelectionDetail(page, 'attack', '4');
 
     expect(
       await page.evaluate(
@@ -948,7 +1037,7 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('House');
-    await expect(page.locator('[data-selection-cycle]')).toHaveText('2 of 3 on tile');
+    await expect(page.locator('[data-selection-entity-icon="house"]')).toHaveText('H');
 
     expect(
       await page.evaluate(
@@ -957,8 +1046,7 @@ test.describe('browser gameplay smoke tests', () => {
       ),
     ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
-    await expect(page.locator('[data-selection-cycle]')).toHaveText('3 of 3 on tile');
-    await expect(page.locator('[data-selection-resource]')).toHaveText('Remaining: 100/100');
+    await expectSelectionDetail(page, 'inventory', '100 / 100 food remaining');
   });
 
   test('shows a marquee while dragging and selects multiple villagers with one drag box', async ({
@@ -1082,8 +1170,6 @@ test.describe('browser gameplay smoke tests', () => {
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
     expect(villagerCells).toHaveLength(3);
 
-    await clickCell(page, villagerCells[0].x, villagerCells[0].y);
-    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     await doubleClickCell(page, villagerCells[0].x, villagerCells[0].y);
 
     await expect(page.locator('[data-selection-name]')).toHaveText('3 Villagers Selected');
@@ -1101,7 +1187,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-feudal-age"]').click();
-    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Feudal Age');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1320, 100));
 
@@ -1112,7 +1198,12 @@ test.describe('browser gameplay smoke tests', () => {
     await page.locator('[data-command="build-archery-range"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Archery Range');
     const archeryRangePlacement = await findValidPlacementNearTownCenter(page, 'archery-range');
-    await clickCell(page, archeryRangePlacement.x, archeryRangePlacement.y);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+        archeryRangePlacement,
+      ),
+    ).toBe(true);
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
 
     expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
@@ -1138,7 +1229,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-castle-age"]').click();
-    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Castle Age');
     await expect(page.locator('[data-hud="food"]')).toHaveText('200');
     await expect(page.locator('[data-hud="gold"]')).toHaveText('200');
 
@@ -1176,7 +1267,13 @@ test.describe('browser gameplay smoke tests', () => {
     await page.locator('[data-command="build-town-center"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Town Center');
 
-    await clickCell(page, 14, 8);
+    const townCenterPlacement = await findValidPlacementNearTownCenter(page, 'town-center', 1, [{ x: 14, y: 8 }]);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.confirmBuildingPlacement(x, y),
+        townCenterPlacement,
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('425');
     await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
 
@@ -1199,7 +1296,15 @@ test.describe('browser gameplay smoke tests', () => {
     await clickCell(page, 18, 10, 'right');
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
 
-    await clickCell(page, 14, 8);
+    expect(
+      await selectOwnedBuildingAtDirect(
+        page,
+        1,
+        'town-center',
+        townCenterPlacement.x,
+        townCenterPlacement.y,
+      ),
+    ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="train-villager"]').click();
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
@@ -1236,7 +1341,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await selectOwnedBuildingDirect(page, 1, 'blacksmith')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Blacksmith');
     await page.locator('[data-command="research-fletching"]').click();
-    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Fletching');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
 
@@ -1752,7 +1857,7 @@ test.describe('browser gameplay smoke tests', () => {
       blockedMarkerCount: 0,
     });
 
-    await moveMouseToCell(page, 8, 8);
+    await moveMouseToCell(page, 13, 7);
     previewState = await page.evaluate(
       () => window.__AOE2_TEST__!.getPlacementPreviewState(),
     );
@@ -1762,8 +1867,8 @@ test.describe('browser gameplay smoke tests', () => {
     expect(previewState).toMatchObject({
       active: true,
       buildingType: 'house',
-      cellX: 8,
-      cellY: 8,
+      cellX: 13,
+      cellY: 7,
       width: 2,
       height: 2,
       isValid: false,
@@ -1825,7 +1930,7 @@ test.describe('browser gameplay smoke tests', () => {
     await waitForBootWithSeed(page, 'blocking-rules-fixture');
 
     expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await clickCell(page, 10, 13, 'right');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(10, 13))).toBe(true);
 
     const visitedCells = await page.evaluate(() => {
       const blocked = new Set(['7,13', '8,13', '10,5', '12,5', '14,5']);
@@ -1928,7 +2033,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
     await page.locator('[data-command="train-militia"]').click();
-    await expect(page.locator('[data-selection-queue]')).toHaveText('1 queued');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Militia');
 
     const trainedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(260, 100),

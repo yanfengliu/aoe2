@@ -392,7 +392,120 @@ function formatUnitIconAccent(unitType: UnitType): string {
   }
 }
 
-function renderSelectedUnitIcons(
+function formatEntityIcon(entityType: SelectionState['selectedEntityType']): string {
+  switch (entityType) {
+    case 'town-center':
+      return 'TC';
+    case 'house':
+      return 'H';
+    case 'mill':
+      return 'ML';
+    case 'lumber-camp':
+      return 'LC';
+    case 'mining-camp':
+      return 'MC';
+    case 'barracks':
+      return 'BA';
+    case 'watch-tower':
+      return 'WT';
+    case 'stable':
+      return 'ST';
+    case 'archery-range':
+      return 'AR';
+    case 'blacksmith':
+      return 'BS';
+    case 'market':
+      return 'MK';
+    case 'berry-bush':
+      return 'BB';
+    case 'gold-mine':
+      return 'G';
+    case 'stone-mine':
+      return 'S';
+    case 'boar':
+      return 'BO';
+    case 'fish':
+      return 'F';
+    case 'sheep':
+      return 'SH';
+    case 'tree':
+      return 'T';
+    default:
+      return entityType ? formatUnitIcon(entityType) : '?';
+  }
+}
+
+function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']): string {
+  switch (entityType) {
+    case 'town-center':
+      return '#cfb56f';
+    case 'house':
+      return '#c39355';
+    case 'mill':
+      return '#b79a5f';
+    case 'lumber-camp':
+      return '#7ca46a';
+    case 'mining-camp':
+      return '#9daabd';
+    case 'barracks':
+      return '#b78363';
+    case 'watch-tower':
+      return '#b6a7be';
+    case 'stable':
+      return '#bf9463';
+    case 'archery-range':
+      return '#a6866f';
+    case 'blacksmith':
+      return '#8f98aa';
+    case 'market':
+      return '#c4a166';
+    case 'berry-bush':
+      return '#a16a89';
+    case 'gold-mine':
+      return '#d7c46a';
+    case 'stone-mine':
+      return '#b8c0cf';
+    case 'boar':
+      return '#bf7d68';
+    case 'fish':
+      return '#73b9d6';
+    case 'sheep':
+      return '#d9e0e5';
+    case 'tree':
+      return '#7fb07a';
+    default:
+      return entityType && isUnitType(entityType)
+        ? formatUnitIconAccent(entityType)
+        : '#c4ae7a';
+  }
+}
+
+function renderSingleSelectionIcon(
+  entityType: SelectionState['selectedEntityType'],
+): string {
+  if (!entityType) {
+    return '';
+  }
+
+  return `
+    <div
+      class="hud-selection-unit-list"
+      data-selection-unit-icons
+      style="--unit-icon-accent: ${formatEntityIconAccent(entityType)}"
+    >
+      <div class="hud-selection-unit-chip">
+        <div class="hud-selection-unit-badge" data-selection-entity-icon="${entityType}">
+          ${formatEntityIcon(entityType)}
+        </div>
+        <div class="hud-selection-unit-meta">
+          <div class="hud-selection-unit-label">${formatEntityName(entityType)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSelectionIcons(
   selectionState: SelectionState,
   economyState: EconomyState,
 ): string {
@@ -419,6 +532,10 @@ function renderSelectedUnitIcons(
   }
 
   if (orderedUnitTypes.length === 0) {
+    if (selectionState.selectedCount === 1) {
+      return renderSingleSelectionIcon(selectionState.selectedEntityType);
+    }
+
     if (!isUnitType(selectionState.selectedEntityType)) {
       return '';
     }
@@ -455,6 +572,59 @@ function renderSelectedUnitIcons(
     .join('');
 
   return `<div class="hud-selection-unit-list" data-selection-unit-icons>${chips}</div>`;
+}
+
+function renderSelectionDetail(
+  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  label: string,
+  value: string,
+): string {
+  return `
+    <div class="hud-selection-detail" data-selection-detail="${key}">
+      <div class="hud-selection-detail-label">${label}</div>
+      <div class="hud-selection-detail-value" data-selection-detail-value="${key}">${value}</div>
+    </div>
+  `;
+}
+
+function renderSelectionDetails(selectionState: SelectionState): string {
+  const details: string[] = [];
+
+  if (selectionState.health) {
+    details.push(
+      renderSelectionDetail(
+        'health',
+        'Health',
+        `${selectionState.health.current} / ${selectionState.health.max}`,
+      ),
+    );
+  }
+
+  if (selectionState.attack !== null) {
+    details.push(renderSelectionDetail('attack', 'Attack', String(selectionState.attack)));
+  }
+
+  if (selectionState.armor !== null) {
+    details.push(renderSelectionDetail('armor', 'Armor', String(selectionState.armor)));
+  }
+
+  if (selectionState.faction) {
+    details.push(renderSelectionDetail('faction', 'Faction', selectionState.faction));
+  }
+
+  if (selectionState.civ) {
+    details.push(renderSelectionDetail('civ', 'Civ', selectionState.civ));
+  }
+
+  if (selectionState.inventory) {
+    details.push(renderSelectionDetail('inventory', 'Inventory', selectionState.inventory));
+  }
+
+  if (details.length === 0) {
+    return '';
+  }
+
+  return `<div class="hud-selection-details" data-selection-details>${details.join('')}</div>`;
 }
 
 function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
@@ -650,11 +820,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     lastSelectionSignature = signature;
 
     const economyState = bridge.getEconomyState();
-    const unitIcons = renderSelectedUnitIcons(selectionState, economyState);
+    const selectionIcons = renderSelectionIcons(selectionState, economyState);
+    const selectionDetails = renderSelectionDetails(selectionState);
 
-    const queueText = selectionState.queue.length > 0
-      ? `${selectionState.queue.length} queued`
-      : 'Queue empty';
     const queueItems = selectionState.queue.length > 0
       ? selectionState.queue
         .map((entry, index) => {
@@ -675,22 +843,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           `;
         })
         .join('')
-      : '<div class="hud-selection-meta">No queued actions.</div>';
-    const placementText = selectionState.placementMode
-      ? `Placing: ${formatEntityName(selectionState.placementMode)}`
-      : 'Placement: Off';
-    const selectionPositionText =
-      selectionState.tileX === null || selectionState.tileY === null
-        ? 'No active tile.'
-        : `Tile ${selectionState.tileX}, ${selectionState.tileY}`;
-    const selectionCycleText =
-      selectionState.tileEntityIndex === null || selectionState.tileEntityCount === 0
-        ? 'No tile stack.'
-        : `${selectionState.tileEntityIndex} of ${selectionState.tileEntityCount} on tile`;
-    const selectionResourceText =
-      selectionState.resourceAmount === null || selectionState.resourceMaxAmount === null
-        ? 'No resource stockpile.'
-        : `Remaining: ${selectionState.resourceAmount}/${selectionState.resourceMaxAmount}`;
+      : '';
+    const placementMarkup = selectionState.placementMode
+      ? `<div class="hud-selection-meta" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</div>`
+      : '';
 
     const buildButtons = selectionState.buildOptions
       .map(
@@ -761,13 +917,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     selectionPanel.innerHTML = `
       <div class="hud-label">Selection</div>
       <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
-      ${unitIcons}
-      <div class="hud-selection-meta" data-selection-position>${selectionPositionText}</div>
-      <div class="hud-selection-meta" data-selection-cycle>${selectionCycleText}</div>
-      <div class="hud-selection-meta" data-selection-resource>${selectionResourceText}</div>
-      <div class="hud-selection-meta" data-selection-queue>${queueText}</div>
-      <div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>
-      <div class="hud-selection-meta" data-placement-mode>${placementText}</div>
+      ${selectionIcons}
+      ${selectionDetails}
+      ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
+      ${placementMarkup}
       <div class="hud-command-list">
         ${actionButtons}
         ${trainButtons}

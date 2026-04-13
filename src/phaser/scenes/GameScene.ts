@@ -331,6 +331,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (this.trySelectSameTypeOnDoubleClick(cellX, cellY)) {
+        this.recentFriendlyUnitClick = null;
+        return;
+      }
+
       this.updateRecentFriendlyUnitClick(cellX, cellY);
     });
   }

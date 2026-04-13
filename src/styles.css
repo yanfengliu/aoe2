@@ -95,7 +95,7 @@ body {
   justify-self: stretch;
   align-self: end;
   display: flex;
-  justify-content: space-between;
+  justify-content: end;
   align-items: end;
   gap: 10px;
 }
@@ -115,10 +115,18 @@ body {
 }
 
 .hud-panel--selection {
+  margin-left: auto;
   min-width: 240px;
-  max-width: 280px;
+  max-width: 320px;
+  max-height: min(72vh, 620px);
   display: grid;
   gap: 8px;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.hud-panel--selection .hud-command-list,
+.hud-panel--selection .hud-command-button {
   pointer-events: auto;
 }
 
@@ -183,6 +191,36 @@ body {
   color: #d9d0bd;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.hud-selection-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hud-selection-detail {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid rgba(221, 196, 145, 0.2);
+  border-radius: 8px;
+  background: rgba(31, 22, 16, 0.58);
+}
+
+.hud-selection-detail-label {
+  color: #c4ae7a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hud-selection-detail-value {
+  color: #f4ead1;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .hud-queue-list {
@@ -269,7 +307,7 @@ body {
   line-height: 1.45;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   #hud-root {
     padding: 10px;
   }
@@ -277,6 +315,10 @@ body {
   .hud-minimap {
     width: 180px;
     height: 132px;
+  }
+
+  .hud-selection-details {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hud-footer {
@@ -289,6 +331,7 @@ body {
   }
 
   .hud-panel--selection {
+    margin-left: 0;
     width: 100%;
     max-width: 320px;
   }

@@ -226,6 +226,55 @@ function cloneResources(resources: PlayerResources): PlayerResources {
   };
 }
 
+function defaultCivilizationName(owner: number): string {
+  if (owner === HUMAN_PLAYER_ID) {
+    return 'Britons';
+  }
+
+  if (owner === 2) {
+    return 'Franks';
+  }
+
+  return `Player ${owner}`;
+}
+
+function factionName(owner: number | null): string | null {
+  if (owner === null) {
+    return 'Gaia';
+  }
+
+  return owner === HUMAN_PLAYER_ID ? 'Player' : 'Enemy';
+}
+
+function inventoryResourceName(resourceType: ResourceKind): string {
+  switch (resourceType) {
+    case 'tree':
+      return 'wood';
+    case 'gold-mine':
+      return 'gold';
+    case 'stone-mine':
+      return 'stone';
+    case 'berry-bush':
+    case 'boar':
+    case 'fish':
+    case 'sheep':
+      return 'food';
+  }
+}
+
+function economyResourceLabel(resource: EconomyResourceKind): string {
+  switch (resource) {
+    case 'food':
+      return 'Food';
+    case 'wood':
+      return 'Wood';
+    case 'gold':
+      return 'Gold';
+    case 'stone':
+      return 'Stone';
+  }
+}
+
 function createInitialMarketRates(): Record<MarketCommodity, number> {
   return {
     food: MARKET_BASE_RATE,
@@ -1197,6 +1246,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   const trackedVisibilitySources = new Map<number, number>();
   const playerAges = new Map<number, AgeType>();
+  const playerCivilizations = new Map<number, string>();
   const researchedTechnologies = new Map<number, Set<ResearchableTechnologyType>>();
   const playerResources = new Map<number, PlayerResources>();
   const marketExchangeRates = createInitialMarketRates();
@@ -1243,6 +1293,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
   for (const start of scenario.starts) {
     playerAges.set(start.owner, start.startingAge ?? 'dark-age');
+    playerCivilizations.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
     researchedTechnologies.set(start.owner, new Set());
     playerResources.set(
       start.owner,
@@ -1315,6 +1366,87 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         currentHp: health.currentHp,
         maxHp: health.maxHp,
       };
+    }
+
+    return null;
+  }
+
+  function getSelectionHealth(id: number): SelectionState['health'] {
+    const health = getEntityHealth(id);
+    if (!health) {
+      return null;
+    }
+
+    return {
+      current: health.currentHp,
+      max: health.maxHp,
+    };
+  }
+
+  function getSelectionAttack(
+    id: number,
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+  ): number | null {
+    if (unit) {
+      return combatStates.get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
+    }
+
+    if (building) {
+      return buildingCombatStates.get(id)?.attackDamage ?? null;
+    }
+
+    return null;
+  }
+
+  function getSelectionArmor(
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+  ): number | null {
+    return unit || building ? 0 : null;
+  }
+
+  function getSelectionCiv(
+    owner: number | null,
+    kind: SelectionState['selectedKind'],
+  ): string | null {
+    if (kind === 'resource' || owner === null) {
+      return null;
+    }
+
+    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
+  }
+
+  function getSelectionInventory(
+    id: number,
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+  ): string | null {
+    if (resource) {
+      return `${resource.amount} / ${resource.maxAmount} ${inventoryResourceName(resource.resourceType)} remaining`;
+    }
+
+    if (unit) {
+      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+      if (!gatherer) {
+        return null;
+      }
+
+      if (!gatherer.carriedResource || gatherer.carriedAmount <= 0) {
+        return 'Empty';
+      }
+
+      return `${gatherer.carriedAmount} ${economyResourceLabel(gatherer.carriedResource)}`;
+    }
+
+    if (building) {
+      const capacity = buildingGarrisonCapacity(building.buildingType);
+      if (capacity <= 0) {
+        return null;
+      }
+
+      return `${garrisonedByBuilding.get(id)?.length ?? 0} / ${capacity} garrisoned`;
     }
 
     return null;
@@ -3997,6 +4129,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         selectedKind: null,
         selectedEntityType: null,
         owner: null,
+        health: null,
+        attack: null,
+        armor: null,
+        faction: null,
+        civ: null,
+        inventory: null,
         x: null,
         y: null,
         tileX: null,
@@ -4074,17 +4212,28 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       building?.owner === HUMAN_PLAYER_ID
         ? getResearchOptions(building.owner, building.buildingType)
         : [];
+    const selectedKind = unit ? 'unit' : building ? 'building' : 'resource';
+    const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
 
     return {
       selectedEntityId,
       selectedEntityIds,
       selectedCount: selectedEntityIds.length,
-      selectedKind: unit ? 'unit' : building ? 'building' : 'resource',
+      selectedKind,
       selectedEntityType:
         selectedEntityIds.length > 1 && !allSelectedUnitsShareType
           ? null
           : unit?.unitType ?? building?.buildingType ?? resource?.resourceType ?? null,
-      owner: unit?.owner ?? building?.owner ?? resource?.owner ?? null,
+      owner,
+      health: selectedEntityIds.length === 1 ? getSelectionHealth(selectedEntityId) : null,
+      attack: selectedEntityIds.length === 1 ? getSelectionAttack(selectedEntityId, unit, building) : null,
+      armor: selectedEntityIds.length === 1 ? getSelectionArmor(unit, building) : null,
+      faction: selectedEntityIds.length === 1 ? factionName(owner) : null,
+      civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
+      inventory:
+        selectedEntityIds.length === 1
+          ? getSelectionInventory(selectedEntityId, unit, building, resource)
+          : null,
       x: position.x,
       y: position.y,
       tileX: selectionTile.x,

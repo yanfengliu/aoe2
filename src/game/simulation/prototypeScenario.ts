@@ -46,6 +46,7 @@ export interface ScenarioSpawnSpec {
 export interface PlayerStartSpec {
   owner: number;
   townCenter: Position;
+  civilization?: string;
   startingAge?: AgeType;
   startingResources?: PlayerResources;
 }
@@ -2081,8 +2082,8 @@ function createBaseTerrain(seed: string): TerrainCellSpec[][] {
 
 function createPlayerStarts(): PlayerStartSpec[] {
   return [
-    { owner: 1, townCenter: { x: 8, y: 8 } },
-    { owner: 2, townCenter: { x: 27, y: 15 } },
+    { owner: 1, townCenter: { x: 8, y: 8 }, civilization: 'Britons' },
+    { owner: 2, townCenter: { x: 27, y: 15 }, civilization: 'Franks' },
   ];
 }
 

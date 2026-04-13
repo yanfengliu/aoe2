@@ -220,6 +220,15 @@ export interface SelectionState {
   selectedKind: 'unit' | 'building' | 'resource' | null;
   selectedEntityType: UnitType | BuildingType | ResourceKind | null;
   owner: number | null;
+  health: {
+    current: number;
+    max: number;
+  } | null;
+  attack: number | null;
+  armor: number | null;
+  faction: string | null;
+  civ: string | null;
+  inventory: string | null;
   x: number | null;
   y: number | null;
   tileX: number | null;
