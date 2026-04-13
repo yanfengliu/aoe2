@@ -125,6 +125,34 @@ describe('createSimulationBridge core systems', () => {
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
   });
 
+  it('relocates an initial unit spawn if the requested cell would trap it', () => {
+    const bridge = createSimulationBridge('isolated-scout-spawn-fixture');
+
+    const scout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+
+    expect(scout).toBeDefined();
+    expect(scout).not.toMatchObject({ x: 12, y: 10 });
+    expect(bridge.selectEntityAtCell(scout?.x ?? 0, scout?.y ?? 0)).toBe(true);
+    expect(bridge.issueMoveCommand(16, 10)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const movedScout = bridge
+            .getEconomyState()
+            .units.find((unit) => unit.id === scout?.id);
+          return (
+            movedScout !== undefined
+            && Math.abs(movedScout.x - 16) + Math.abs(movedScout.y - 10) <= 1
+          );
+        },
+        { maxSteps: 240 },
+      ),
+    ).toBe(true);
+  });
+
   it('projects health values for visible units and buildings and updates them during combat', () => {
     const bridge = createSimulationBridge('conquest-victory-fixture');
 

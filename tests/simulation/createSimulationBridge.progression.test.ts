@@ -256,6 +256,49 @@ describe('createSimulationBridge progression systems', () => {
       attackDamage: 3,
       attackRange: 1,
     });
+
+    const scout = playerScouts[0];
+    expect(bridge.selectEntityAtCell(scout.x, scout.y)).toBe(true);
+    expect(bridge.issueMoveCommand(21, 12)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const movedScout = bridge
+            .getEconomyState()
+            .units.find((unit) => unit.id === scout.id);
+          return (
+            movedScout !== undefined
+            && Math.abs(movedScout.x - 21) + Math.abs(movedScout.y - 12) <= 1
+          );
+        },
+        { maxSteps: 240 },
+      ),
+    ).toBe(true);
+  }, 15_000);
+
+  it('blocks Stable production when no safe spawn tile is available', () => {
+    const bridge = createSimulationBridge('blocked-stable-spawn-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueTrainUnit('scout')).toBe(true);
+
+    for (let index = 0; index < 320; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(
+      bridge.getEconomyState().units.some(
+        (unit) => unit.owner === 1 && unit.unitType === 'scout',
+      ),
+    ).toBe(false);
+    expect(bridge.getSelectionState().queue).toHaveLength(1);
+    expect(bridge.getSelectionState().queue[0]).toMatchObject({
+      kind: 'unit',
+      unitType: 'scout',
+      isBlocked: true,
+      remainingTicks: 0,
+    });
   }, 15_000);
 
   it('can train a Spearman in Feudal Age and use its anti-scout bonus to kill a visible Scout quickly', () => {

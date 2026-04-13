@@ -157,6 +157,8 @@ describe('createPrototypeScenario', () => {
     const doubleClickSelectionScenario = createPrototypeScenario('double-click-selection-fixture');
     const movingEnemyAttackScenario = createPrototypeScenario('moving-enemy-attack-fixture');
     const fishScenario = createPrototypeScenario('fish-fixture');
+    const blockedStableSpawnScenario = createPrototypeScenario('blocked-stable-spawn-fixture');
+    const isolatedScoutSpawnScenario = createPrototypeScenario('isolated-scout-spawn-fixture');
 
     expect(
       missingPrereqScenario.spawns.filter(
@@ -357,6 +359,23 @@ describe('createPrototypeScenario', () => {
         (spawn) => spawn.owner === 1 && spawn.kind === 'villager',
       ),
     ).toBe(true);
+    expect(
+      blockedStableSpawnScenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'stable',
+      ),
+    ).toBe(true);
+    expect(
+      blockedStableSpawnScenario.spawns.filter((spawn) => spawn.kind === 'tree'),
+    ).toHaveLength(16);
+    expect(
+      isolatedScoutSpawnScenario.spawns.some(
+        (spawn) =>
+          spawn.owner === 1
+          && spawn.kind === 'scout'
+          && spawn.x === 12
+          && spawn.y === 10,
+      ),
+    ).toBe(true);
   });
 
   it('keeps focused fixture unit spawns outside building footprints', () => {
@@ -367,6 +386,8 @@ describe('createPrototypeScenario', () => {
       'ai-rush-fixture',
       'castle-town-center-fixture',
       'mining-camp-fixture',
+      'blocked-stable-spawn-fixture',
+      'isolated-scout-spawn-fixture',
     ] as const;
 
     for (const fixtureName of fixtureNames) {

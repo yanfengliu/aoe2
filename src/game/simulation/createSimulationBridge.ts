@@ -121,6 +121,12 @@ const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
 const UNIT_SUBGRID_RESOLUTION = 4;
 const UNIT_SUBGRID_STEP_PER_TICK = 2;
+const CARDINAL_NEIGHBOR_OFFSETS: Position[] = [
+  { x: 1, y: 0 },
+  { x: -1, y: 0 },
+  { x: 0, y: 1 },
+  { x: 0, y: -1 },
+];
 
 type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
@@ -1605,7 +1611,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'knight'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      const unitId = addUnitEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, spawn.vision);
+      const spawnPosition = spawn.requiresSafeSpawn
+        ? findScenarioSpawnPosition({ x: spawn.x, y: spawn.y })
+        : { x: spawn.x, y: spawn.y };
+      if (!spawnPosition) {
+        throw new Error(`Expected a safe spawn position for initial ${spawn.kind} at ${spawn.x},${spawn.y}.`);
+      }
+
+      const unitId = addUnitEntity(owner, spawn.kind, spawnPosition, spawn.vision);
       if (spawn.velocity) {
         world.addComponent(unitId, 'velocity', spawn.velocity);
       }
@@ -1727,18 +1740,27 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return false;
   }
 
-  function isCellPassableForUnit(
-    unitId: number,
+  function isCellPassableForSpawn(
     x: number,
     y: number,
+    ignoredUnitId: number | null = null,
     activeWorld = world,
   ): boolean {
     return (
       isTerrainPassableForUnit(x, y, activeWorld)
       && !isCellBlockedByBuilding(x, y, activeWorld)
       && !isCellBlockedByResource(x, y, activeWorld)
-      && !isCellOccupiedByUnit(x, y, unitId, activeWorld)
+      && !isCellOccupiedByUnit(x, y, ignoredUnitId, activeWorld)
     );
+  }
+
+  function isCellPassableForUnit(
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld = world,
+  ): boolean {
+    return isCellPassableForSpawn(x, y, unitId, activeWorld);
   }
 
   function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
@@ -1967,31 +1989,52 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return findMovementPlan(unitId, position, candidates, true, activeWorld);
   }
 
-  function findSpawnPosition(origin: Position): Position {
-    const offsets = [
-      { x: -1, y: -1 },
-      { x: 0, y: -1 },
-      { x: 1, y: -1 },
-      { x: -1, y: 0 },
-      { x: 1, y: 0 },
-      { x: -1, y: 1 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { x: -2, y: 0 },
-      { x: 2, y: 0 },
-    ];
-
-    for (const offset of offsets) {
-      const candidate = {
-        x: clamp(origin.x + offset.x, 0, MAP_WIDTH - 1),
-        y: clamp(origin.y + offset.y, 0, MAP_HEIGHT - 1),
-      };
-      if (!isPlacementBlocked(candidate.x, candidate.y, 1, 1)) {
-        return candidate;
-      }
+  function hasSpawnEgress(
+    candidate: Position,
+    ignoredUnitId: number | null = null,
+    activeWorld = world,
+  ): boolean {
+    if (!isCellPassableForSpawn(candidate.x, candidate.y, ignoredUnitId, activeWorld)) {
+      return false;
     }
 
-    return origin;
+    return CARDINAL_NEIGHBOR_OFFSETS.some((offset) =>
+      isCellPassableForSpawn(candidate.x + offset.x, candidate.y + offset.y, ignoredUnitId, activeWorld),
+    );
+  }
+
+  function findSafeSpawnPosition(
+    candidates: Position[],
+    ignoredUnitId: number | null = null,
+    activeWorld = world,
+  ): Position | null {
+    for (const candidate of uniquePositions(candidates)) {
+      if (!hasSpawnEgress(candidate, ignoredUnitId, activeWorld)) {
+        continue;
+      }
+
+      return candidate;
+    }
+
+    return null;
+  }
+
+  function findScenarioSpawnPosition(origin: Position, activeWorld = world): Position | null {
+    return findSafeSpawnPosition(getNearestMoveCandidates(origin), null, activeWorld);
+  }
+
+  function findBuildingSpawnPosition(
+    anchor: Position,
+    buildingType: BuildingType,
+    ignoredUnitId: number | null = null,
+    activeWorld = world,
+  ): Position | null {
+    const footprint = buildingFootprint(buildingType);
+    return findSafeSpawnPosition(
+      getApproachCellsForFootprint(anchor, footprint.width, footprint.height, 1),
+      ignoredUnitId,
+      activeWorld,
+    );
   }
 
   function clearGathererOrder(id: number): void {
@@ -2672,13 +2715,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
+    const remainingGarrisonedUnits: number[] = [];
+    let didUngarrisonUnit = false;
+
     for (const unitId of garrisonedUnits) {
       const unit = world.getComponent<UnitComponent>(unitId, 'unit');
       if (!unit) {
         continue;
       }
 
-      const spawnPosition = findSpawnPosition(buildingPosition);
+      const spawnPosition = findBuildingSpawnPosition(buildingPosition, building.buildingType);
+      if (!spawnPosition) {
+        remainingGarrisonedUnits.push(unitId);
+        continue;
+      }
+
       world.setPosition(unitId, spawnPosition);
       syncUnitTransformToPosition(unitId, spawnPosition);
       const storedVisionSource = garrisonedUnitVisionSources.get(unitId);
@@ -2688,11 +2739,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
       garrisonedUnitToBuilding.delete(unitId);
       clearGathererOrder(unitId);
+      didUngarrisonUnit = true;
     }
 
-    garrisonedByBuilding.delete(buildingId);
-    markOutOfBandRenderChange();
-    return true;
+    if (remainingGarrisonedUnits.length > 0) {
+      garrisonedByBuilding.set(buildingId, remainingGarrisonedUnits);
+    } else {
+      garrisonedByBuilding.delete(buildingId);
+    }
+
+    if (didUngarrisonUnit) {
+      markOutOfBandRenderChange();
+    }
+    return didUngarrisonUnit;
   }
 
   function startConstruction(
@@ -3510,14 +3569,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
 
         entry.isBlocked = false;
-        entry.remainingTicks -= 1;
-
         if (entry.remainingTicks > 0) {
-          continue;
+          entry.remainingTicks -= 1;
+          if (entry.remainingTicks > 0) {
+            continue;
+          }
         }
 
         if (entry.kind === 'unit' && entry.unitType) {
-          const spawnPosition = findSpawnPosition(position);
+          const spawnPosition = findBuildingSpawnPosition(position, building.buildingType);
+          if (!spawnPosition) {
+            entry.isBlocked = true;
+            entry.remainingTicks = 0;
+            continue;
+          }
+
           const unitId = addUnitEntity(building.owner, entry.unitType, spawnPosition, {
             playerId: building.owner,
             radius: 4,

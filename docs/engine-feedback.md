@@ -91,6 +91,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Exact-entity commands became necessary once units had sub-grid motion and tiles could stack resources, units, and buildings. `civ-engine` gives the right low-level pieces, but the repo still has to bridge projected render geometry back into semantic entity targeting; without that seam, cell-based right-click resolution is too coarse for reliable attack and gather UX.
 - The sub-grid movement guide was directionally correct, but this slice showed an easy integration trap: repo systems must not eagerly snap fine transform state back to coarse `position` each tick or the renderer loses the smooth movement benefit even though the simulation is otherwise valid. A small engine-level debug probe for coarse vs fine position would make that class of mistake much faster to spot.
 - Smooth sub-grid visuals also need a repo-owned hit-tolerance policy. Once units move between coarse cells, exact render-geometry clicks are brittle for live targeting even when the simulation is correct; the renderer/input seam needs a small amount of pointer forgiveness to match what the player perceives on screen.
+- Safe unit spawning is still repo-owned RTS policy. `civ-engine` path/passability primitives were enough to fix trapped Scouts, blocked Stable queues, and partial ungarrison behavior, but the engine does not yet offer a higher-level "find nearest legal spawn with egress" helper for producer or scenario spawns.
 
 ## Implications for next phases
 

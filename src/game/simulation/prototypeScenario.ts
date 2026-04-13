@@ -40,6 +40,7 @@ export interface ScenarioSpawnSpec {
   velocity?: { dx: number; dy: number };
   wanderBounds?: WanderBoundsComponent;
   vision?: VisionSourceComponent;
+  requiresSafeSpawn?: boolean;
 }
 
 export interface PlayerStartSpec {
@@ -795,6 +796,158 @@ function createFeudalStableFixture(seed: string): PrototypeScenario {
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+function createBlockedStableSpawnFixture(seed: string): PrototypeScenario {
+  const stableAnchor = { x: 12, y: 8 };
+  const ringTreeSpawns: ScenarioSpawnSpec[] = [];
+
+  for (let y = stableAnchor.y - 1; y <= stableAnchor.y + 3; y += 1) {
+    for (let x = stableAnchor.x - 1; x <= stableAnchor.x + 3; x += 1) {
+      const insideStable = x >= stableAnchor.x && x <= stableAnchor.x + 2
+        && y >= stableAnchor.y && y <= stableAnchor.y + 2;
+      if (insideStable) {
+        continue;
+      }
+
+      ringTreeSpawns.push({
+        kind: 'tree',
+        x,
+        y,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      });
+    }
+  }
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'feudal-age',
+        startingResources: {
+          food: 250,
+          wood: 200,
+          gold: 100,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 16 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'stable',
+        x: stableAnchor.x,
+        y: stableAnchor.y,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      ...ringTreeSpawns,
+    ],
+  };
+}
+
+function createIsolatedScoutSpawnFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 16 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'tree',
+        x: 11,
+        y: 10,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'tree',
+        x: 13,
+        y: 10,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'tree',
+        x: 12,
+        y: 9,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'tree',
+        x: 12,
+        y: 11,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'scout',
+        x: 12,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+        requiresSafeSpawn: true,
       },
     ],
   };
@@ -1880,6 +2033,7 @@ function createStartingScoutSpawn(
       owner,
       baseOwner: owner,
       vision: { playerId: owner, radius: 6 },
+      requiresSafeSpawn: true,
     };
   }
 
@@ -1897,6 +2051,7 @@ function createStartingScoutSpawn(
       maxY: Math.min(MAP_HEIGHT - 1, townCenter.y + 4),
     },
     vision: { playerId: owner, radius: 6 },
+    requiresSafeSpawn: true,
   };
 }
 
@@ -2092,6 +2247,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createFeudalStableFixture(seed);
   }
 
+  if (seed === 'blocked-stable-spawn-fixture') {
+    return createBlockedStableSpawnFixture(seed);
+  }
+
+  if (seed === 'isolated-scout-spawn-fixture') {
+    return createIsolatedScoutSpawnFixture(seed);
+  }
+
   if (seed === 'castle-age-fixture') {
     return createCastleAgeFixture(seed);
   }
@@ -2184,20 +2347,6 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
       vision: { playerId: start.owner, radius: 7 },
     });
 
-    for (const offset of STARTING_VILLAGERS) {
-      const position = projectOffset(start.townCenter, offset);
-      spawns.push({
-        kind: 'villager',
-        x: position.x,
-        y: position.y,
-        owner: start.owner,
-        baseOwner: start.owner,
-        vision: { playerId: start.owner, radius: 4 },
-      });
-    }
-
-    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
-
     applyResourcePatch(
       terrain,
       start.townCenter,
@@ -2247,6 +2396,21 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     for (const patch of FOREST_PATCHES) {
       applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
     }
+
+    for (const offset of STARTING_VILLAGERS) {
+      const position = projectOffset(start.townCenter, offset);
+      spawns.push({
+        kind: 'villager',
+        x: position.x,
+        y: position.y,
+        owner: start.owner,
+        baseOwner: start.owner,
+        vision: { playerId: start.owner, radius: 4 },
+        requiresSafeSpawn: true,
+      });
+    }
+
+    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
   }
 
   applyShoreFishPatches(terrain, starts, seed, spawns);
