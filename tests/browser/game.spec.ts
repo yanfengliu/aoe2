@@ -27,6 +27,11 @@ interface ScreenPoint {
   y: number;
 }
 
+interface HudChipRect {
+  left: number;
+  width: number;
+}
+
 async function waitForBoot(page: Page): Promise<void> {
   await waitForBootWithSeed(page, 'aoe2-prototype');
 }
@@ -45,6 +50,30 @@ async function getSnapshot(
   page: Page,
 ): Promise<BrowserTestSnapshot> {
   return page.evaluate(() => window.__AOE2_TEST__!.getSnapshot());
+}
+
+async function getHudChipRects(
+  page: Page,
+  keys: string[],
+): Promise<Record<string, HudChipRect | null>> {
+  return page.evaluate((requestedKeys) => {
+    const result: Record<string, HudChipRect | null> = {};
+
+    for (const key of requestedKeys) {
+      const value = document.querySelector<HTMLElement>(`[data-hud="${key}"]`);
+      const chip = value?.closest<HTMLElement>('.hud-chip');
+      const rect = chip?.getBoundingClientRect();
+
+      result[key] = rect
+        ? {
+          left: rect.left,
+          width: rect.width,
+        }
+        : null;
+    }
+
+    return result;
+  }, keys);
 }
 
 async function getMinimapStats(
@@ -431,6 +460,29 @@ test.describe('browser gameplay smoke tests', () => {
     expect(minimap.height).toBe(160);
     expect(minimap.nonBackgroundPixelCount).toBeGreaterThan(1_000);
     await expect(page.locator('[data-hud="match-summary"]')).toBeHidden();
+  });
+
+  test('keeps top status-bar chip positions stable as live values change', async ({ page }) => {
+    await waitForBoot(page);
+
+    const trackedKeys = ['food', 'wood', 'gold', 'stone', 'age', 'pop'];
+    const initialRects = await getHudChipRects(page, trackedKeys);
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
+    await page.locator('[data-command="train-villager"]').click();
+    await page.locator('[data-command="train-villager"]').click();
+    await page.locator('[data-command="train-villager"]').click();
+
+    await expect(page.locator('[data-hud="food"]')).toHaveText('50');
+
+    const updatedRects = await getHudChipRects(page, trackedKeys);
+
+    for (const key of trackedKeys) {
+      expect(initialRects[key]).not.toBeNull();
+      expect(updatedRects[key]).not.toBeNull();
+      expect(updatedRects[key]?.left ?? 0).toBeCloseTo(initialRects[key]?.left ?? 0, 1);
+      expect(updatedRects[key]?.width ?? 0).toBeCloseTo(initialRects[key]?.width ?? 0, 1);
+    }
   });
 
   test('supports camera panning and zoom with in-game controls', async ({ page }) => {
@@ -1909,8 +1961,8 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
     const enemyEdgePoint = await getScreenPointForCell(
       page,
-      (renderedEnemyScout?.x ?? 0) + 0.18,
-      renderedEnemyScout?.y ?? 0,
+      (renderedEnemyScout?.x ?? 0) + 0.5,
+      (renderedEnemyScout?.y ?? 0) + 0.5,
     );
     await clickCanvasAtPoint(page, enemyEdgePoint, 'right');
 

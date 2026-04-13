@@ -6,6 +6,7 @@ const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
   building: 2,
   unit: 3,
 };
+const UNIT_HIT_TEST_PADDING_CELLS = 0.12;
 
 function isRectangleResource(resourceType: ProjectedEntityView['entityType']): resourceType is ResourceKind {
   return resourceType === 'gold-mine' || resourceType === 'stone-mine' || resourceType === 'tree';
@@ -47,7 +48,7 @@ export function isWorldPointInsideEntity(
     return containsCircle(
       px + cellSize * 0.5,
       py + cellSize * 0.5,
-      cellSize * entity.size * 0.5,
+      cellSize * (entity.size * 0.5 + UNIT_HIT_TEST_PADDING_CELLS),
       worldX,
       worldY,
     );

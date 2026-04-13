@@ -521,66 +521,66 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   root.innerHTML = `
     <div class="hud-top">
       <div class="hud-bar">
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="tick">
           <div class="hud-label">Tick</div>
           <div class="hud-value" data-hud="tick">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="entities">
           <div class="hud-label">Entities</div>
           <div class="hud-value" data-hud="entities">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="projected">
           <div class="hud-label">Projected</div>
           <div class="hud-value" data-hud="projected">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="food">
           <div class="hud-label">Food</div>
           <div class="hud-value" data-hud="food">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="wood">
           <div class="hud-label">Wood</div>
           <div class="hud-value" data-hud="wood">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="gold">
           <div class="hud-label">Gold</div>
           <div class="hud-value" data-hud="gold">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="stone">
           <div class="hud-label">Stone</div>
           <div class="hud-value" data-hud="stone">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="age">
           <div class="hud-label">Age</div>
           <div class="hud-value" data-hud="age">Dark Age</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="pop">
           <div class="hud-label">Pop</div>
           <div class="hud-value" data-hud="pop">0/0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="visible-cells">
           <div class="hud-label">Visible</div>
           <div class="hud-value" data-hud="visible-cells">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="world">
           <div class="hud-label">World</div>
           <div class="hud-value" data-hud="world">0x0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="explored-cells">
           <div class="hud-label">Explored</div>
           <div class="hud-value" data-hud="explored-cells">0</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="tick-ms">
           <div class="hud-label">Tick ms</div>
           <div class="hud-value" data-hud="tick-ms">0.00</div>
         </div>
-        <div class="hud-chip">
+        <div class="hud-chip" data-hud-chip="seed">
           <div class="hud-label">Seed</div>
           <div class="hud-value" data-hud="seed">-</div>
         </div>
-        <div class="hud-chip">
-        <div class="hud-label">Outcome</div>
-        <div class="hud-value" data-hud="match-outcome">Running</div>
-      </div>
+        <div class="hud-chip" data-hud-chip="match-outcome">
+          <div class="hud-label">Outcome</div>
+          <div class="hud-value" data-hud="match-outcome">Running</div>
+        </div>
       </div>
     </div>
     <div class="hud-bottom">

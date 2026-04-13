@@ -37,23 +37,60 @@ body {
 }
 
 .hud-top {
-  justify-self: start;
+  justify-self: stretch;
+  min-width: 0;
 }
 
 .hud-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
+  max-width: 100%;
   padding: 10px 14px;
   border: 1px solid rgba(221, 196, 145, 0.35);
   border-radius: 10px;
   background: rgba(17, 24, 26, 0.86);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 .hud-chip {
   display: grid;
   gap: 2px;
+  flex: 0 0 var(--hud-chip-width, 76px);
+  min-width: var(--hud-chip-width, 76px);
+}
+
+.hud-chip[data-hud-chip="tick"],
+.hud-chip[data-hud-chip="food"],
+.hud-chip[data-hud-chip="wood"],
+.hud-chip[data-hud-chip="gold"],
+.hud-chip[data-hud-chip="stone"],
+.hud-chip[data-hud-chip="pop"] {
+  --hud-chip-width: 72px;
+}
+
+.hud-chip[data-hud-chip="entities"],
+.hud-chip[data-hud-chip="projected"],
+.hud-chip[data-hud-chip="visible-cells"],
+.hud-chip[data-hud-chip="explored-cells"],
+.hud-chip[data-hud-chip="tick-ms"] {
+  --hud-chip-width: 84px;
+}
+
+.hud-chip[data-hud-chip="world"],
+.hud-chip[data-hud-chip="match-outcome"] {
+  --hud-chip-width: 92px;
+}
+
+.hud-chip[data-hud-chip="age"] {
+  --hud-chip-width: 108px;
+}
+
+.hud-chip[data-hud-chip="seed"] {
+  --hud-chip-width: 190px;
 }
 
 .hud-label {
@@ -67,6 +104,8 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: #f4ead1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .hud-bottom {

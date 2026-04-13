@@ -65,4 +65,13 @@ describe('entityHitTest', () => {
 
     expect(findEntityAtWorldPoint(renderState, pointX, pointY, CELL_SIZE)?.kind).toBe('unit');
   });
+
+  it('allows slight pointer drift when hit-testing moving units', () => {
+    const renderState = createRenderState();
+    const pointX = 15.5 * CELL_SIZE + CELL_SIZE * 0.5 + 8.5;
+    const pointY = 8 * CELL_SIZE + CELL_SIZE * 0.5;
+
+    expect(isWorldPointInsideEntity(renderState.entities[1], pointX, pointY, CELL_SIZE)).toBe(true);
+    expect(findEntityAtWorldPoint(renderState, pointX, pointY, CELL_SIZE)?.id).toBe(2);
+  });
 });

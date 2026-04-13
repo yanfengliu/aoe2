@@ -2,6 +2,7 @@
 2026-04-10 - Initialized project: created baseline AoE2 spec (`design/aoe2-game-spec.md`), devlog files, research sources. Iterated spec through AoC baseline → DE target → single-player AI skirmish scope. Split sources into `design/sources/` folder. `design/stats/*.csv` established as content source of truth.
 
 ## Current
+2026-04-12 - Stabilized the top HUD status bar. Resource/age/pop chips now keep fixed positions and widths as values change, the bar stays on a single scrollable row instead of stealing command-panel space, and the full gate passes with `61` Vitest tests plus `46` Playwright browser tests.
 2026-04-12 - Fixed exact-entity right-click combat. Friendly units now attack the actual hovered enemy entity instead of only a coarse tile target, moving enemy sub-grid clicks are covered by deterministic fixtures, and the full gate passes with `60` Vitest tests plus `45` Playwright browser tests.
 2026-04-12 - Rewrote root `AGENTS.md` and `CLAUDE.md` into a shorter unified instruction set, removed duplication and encoding noise, and made the missing `docs/ARCHITECTURE.md` reference explicit.
 2026-04-12 - Added RTS-style mouse camera panning. The game now supports middle-mouse drag panning plus edge-hover panning, README controls reflect it, browser coverage now isolates camera UX from broader gameplay assertions, and the full gate passes with `56` Vitest tests plus `44` Playwright browser gameplay tests.
