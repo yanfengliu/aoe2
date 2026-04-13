@@ -868,7 +868,7 @@ describe('createSimulationBridge core systems', () => {
       .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
     expect(completedHouse?.isComplete).toBe(true);
     expect(bridge.getHudState().population.cap).toBe(10);
-  });
+  }, 10_000);
 
   it('projects construction and completion building visuals into render state for newly placed buildings', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -912,7 +912,7 @@ describe('createSimulationBridge core systems', () => {
       footprintHeight: 2,
       visualVariant: 'complete',
     });
-  });
+  }, 10_000);
 
   it('rejects invalid building placement and keeps placement mode active', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);

@@ -242,6 +242,7 @@ export interface SelectionState {
   buildOptions: BuildableBuildingType[];
   marketOptions: MarketActionType[];
   trainOptions: TrainableUnitType[];
+  visibleResearchOptions: ResearchableTechnologyType[];
   researchOptions: ResearchableTechnologyType[];
   queue: ProductionQueueEntry[];
   placementMode: BuildableBuildingType | null;

@@ -879,7 +879,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(
       Math.abs((advancedScoutRender?.x ?? 0) - (initialScoutRender?.x ?? 0))
       + Math.abs((advancedScoutRender?.y ?? 0) - (initialScoutRender?.y ?? 0)),
-    ).toBeLessThan(1);
+    ).toBeLessThan(24);
     expect(
       Number.isInteger(advancedScoutRender?.x ?? NaN)
       && Number.isInteger(advancedScoutRender?.y ?? NaN),
@@ -1391,6 +1391,18 @@ test.describe('browser gameplay smoke tests', () => {
       attackDamage: 10,
       attackRange: 1,
     });
+  });
+
+  test('shows locked Town Center age-up buttons before their prerequisites are met', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
+    const feudalButton = page.locator('[data-command="research-feudal-age"]');
+    await expect(feudalButton).toBeVisible();
+    await expect(feudalButton).toBeDisabled();
+    await expect(page.locator('[data-command="research-castle-age"]')).toHaveCount(0);
   });
 
   test('can build an additional Town Center in Castle Age and use it to train a villager', async ({

@@ -127,3 +127,8 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 - stable test-fixture seams that respect `EntityRef` semantics instead of assuming durable numeric IDs
 - fog-memory rules
 - save and load round-tripping
+
+## 2026-04-12 - Locked command visibility
+
+- The Town Center age-up bug was not an engine limitation. The missing piece was a repo-owned UI contract that distinguishes `visible commands` from `currently queueable commands`. Once that split existed, the bridge could expose locked-but-relevant research actions cleanly without changing `civ-engine` behavior.
+- This is a good reminder to keep command discoverability concerns above the engine boundary. `civ-engine` correctly owns world state and system execution; player HUD affordances such as disabled-but-visible buttons should stay in the game layer.

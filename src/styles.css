@@ -285,6 +285,13 @@ body {
   background: linear-gradient(180deg, #70563d 0%, #463224 100%);
 }
 
+.hud-command-button:disabled {
+  cursor: not-allowed;
+  border-color: rgba(163, 149, 124, 0.2);
+  background: linear-gradient(180deg, #352c25 0%, #251d18 100%);
+  color: rgba(244, 234, 209, 0.5);
+}
+
 .hud-minimap {
   display: block;
   width: 220px;

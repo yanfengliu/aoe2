@@ -3424,6 +3424,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return [];
   }
 
+  function getVisibleResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
+    if (buildingType === 'town-center') {
+      const age = getPlayerAge(owner);
+      if (age === 'dark-age') {
+        return ['feudal-age'];
+      }
+      if (age === 'feudal-age') {
+        return ['castle-age'];
+      }
+      return [];
+    }
+
+    return getResearchOptions(owner, buildingType);
+  }
+
   function getMarketOptions(owner: number, buildingType: BuildingType): MarketActionType[] {
     if (buildingType !== 'market' || getPlayerAge(owner) === 'dark-age') {
       return [];
@@ -4567,6 +4582,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         buildOptions: [],
         marketOptions: [],
         trainOptions: [],
+        visibleResearchOptions: [],
         researchOptions: [],
         queue: [],
         placementMode,
@@ -4632,6 +4648,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       building?.owner === HUMAN_PLAYER_ID
         ? getResearchOptions(building.owner, building.buildingType)
         : [];
+    const visibleResearchOptions: ResearchableTechnologyType[] =
+      building?.owner === HUMAN_PLAYER_ID
+        ? getVisibleResearchOptions(building.owner, building.buildingType)
+        : [];
     const selectedKind = unit ? 'unit' : building ? 'building' : 'resource';
     const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
 
@@ -4666,6 +4686,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       buildOptions,
       marketOptions,
       trainOptions,
+      visibleResearchOptions,
       researchOptions,
       queue: building ? cloneQueue(productionQueues.get(selectedEntityId) ?? []) : [],
       placementMode,

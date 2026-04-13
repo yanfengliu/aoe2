@@ -908,18 +908,20 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         `,
       )
       .join('');
-    const researchButtons = selectionState.researchOptions
-      .map(
-        (technologyType) => `
+    const researchButtons = selectionState.visibleResearchOptions
+      .map((technologyType) => {
+        const isAvailable = selectionState.researchOptions.includes(technologyType);
+        return `
           <button
             class="hud-command-button"
             data-command="research-${technologyType}"
             type="button"
+            ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
           >
             Research ${formatTechnologyName(technologyType)}
           </button>
-        `,
-      )
+        `;
+      })
       .join('');
 
     selectionPanel.innerHTML = `

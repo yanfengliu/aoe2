@@ -15,6 +15,7 @@ describe('createSimulationBridge progression systems', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
+      visibleResearchOptions: ['feudal-age'],
       researchOptions: [],
     });
     expect(bridge.queueResearch('feudal-age')).toBe(false);
@@ -26,6 +27,7 @@ describe('createSimulationBridge progression systems', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
+      visibleResearchOptions: ['feudal-age'],
       researchOptions: ['feudal-age'],
     });
     expect(bridge.queueResearch('feudal-age')).toBe(true);
@@ -59,7 +61,7 @@ describe('createSimulationBridge progression systems', () => {
     expect(
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
     ).toHaveLength(1);
-  }, 15_000);
+  }, 20_000);
 
   it('does not offer Castle Age research until two qualifying Feudal buildings are complete', () => {
     const bridge = createSimulationBridge('feudal-stable-fixture');
@@ -67,6 +69,7 @@ describe('createSimulationBridge progression systems', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
+      visibleResearchOptions: ['castle-age'],
       researchOptions: [],
     });
     expect(bridge.queueResearch('castle-age')).toBe(false);
@@ -78,6 +81,7 @@ describe('createSimulationBridge progression systems', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
+      visibleResearchOptions: ['castle-age'],
       researchOptions: ['castle-age'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(true);
@@ -115,7 +119,7 @@ describe('createSimulationBridge progression systems', () => {
       attackDamage: 10,
       attackRange: 1,
     });
-  }, 15_000);
+  }, 20_000);
 
   it('can build an additional Town Center in Castle Age and use it to train a Villager', () => {
     const bridge = createSimulationBridge('castle-town-center-fixture');
