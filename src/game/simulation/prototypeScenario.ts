@@ -324,6 +324,59 @@ function createBlockingRulesFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createUnitSharingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 2, y: 2 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 16 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 2,
+        y: 2,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 16,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'scout',
+        x: 6,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'villager',
+        x: 7,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+    ],
+  };
+}
+
 function createMiningCampFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -2283,6 +2336,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'blocking-rules-fixture') {
     return createBlockingRulesFixture(seed);
+  }
+
+  if (seed === 'unit-sharing-fixture') {
+    return createUnitSharingFixture(seed);
   }
 
   if (seed === 'feudal-missing-prereq-fixture') {

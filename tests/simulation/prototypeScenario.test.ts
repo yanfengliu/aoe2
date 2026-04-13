@@ -388,6 +388,7 @@ describe('createPrototypeScenario', () => {
       'mining-camp-fixture',
       'blocked-stable-spawn-fixture',
       'isolated-scout-spawn-fixture',
+      'unit-sharing-fixture',
     ] as const;
 
     for (const fixtureName of fixtureNames) {
@@ -419,5 +420,31 @@ describe('createPrototypeScenario', () => {
         expect(overlapsBuilding, `${fixtureName} spawned ${unitSpawn.kind} inside a building`).toBe(false);
       }
     }
+  });
+
+  it('provides a unit-sharing fixture with adjacent friendly units and no Town Center overlap', () => {
+    const scenario = createPrototypeScenario('unit-sharing-fixture');
+
+    expect(
+      scenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'scout' && spawn.x === 6 && spawn.y === 10,
+      ),
+    ).toBe(true);
+    expect(
+      scenario.spawns.some(
+        (spawn) => spawn.owner === 1 && spawn.kind === 'villager' && spawn.x === 7 && spawn.y === 10,
+      ),
+    ).toBe(true);
+    expect(
+      scenario.spawns.some(
+        (spawn) =>
+          spawn.owner === 1
+          && spawn.kind === 'town-center'
+          && 7 >= spawn.x
+          && 7 < spawn.x + 4
+          && 10 >= spawn.y
+          && 10 < spawn.y + 4,
+      ),
+    ).toBe(false);
   });
 });

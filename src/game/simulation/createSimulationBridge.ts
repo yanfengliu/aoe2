@@ -136,6 +136,12 @@ const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
 const UNIT_SUBGRID_RESOLUTION = 4;
 const UNIT_SUBGRID_STEP_PER_TICK = 2;
+const UNIT_CELL_SLOT_OFFSETS: ReadonlyArray<{ x: number; y: number }> = [
+  { x: 0, y: 0 },
+  { x: 0.5, y: 0 },
+  { x: 0, y: 0.5 },
+  { x: 0.5, y: 0.5 },
+];
 const MAX_HERDABLE_CLAIM_RADIUS = 6;
 const CARDINAL_NEIGHBOR_OFFSETS: Position[] = [
   { x: 1, y: 0 },
@@ -393,10 +399,21 @@ function isAtTarget(current: Position, target: Position): boolean {
   return current.x === target.x && current.y === target.y;
 }
 
-function createUnitTransform(position: Position): UnitTransformComponent {
+function getUnitCellSlotOffset(unitId: number): { x: number; y: number } {
+  const normalizedIndex =
+    ((unitId % UNIT_CELL_SLOT_OFFSETS.length) + UNIT_CELL_SLOT_OFFSETS.length)
+    % UNIT_CELL_SLOT_OFFSETS.length;
+  return UNIT_CELL_SLOT_OFFSETS[normalizedIndex] ?? UNIT_CELL_SLOT_OFFSETS[0]!;
+}
+
+function getUnitTargetTransformForCell(
+  unitId: number,
+  position: Position,
+): UnitTransformComponent {
+  const slotOffset = getUnitCellSlotOffset(unitId);
   return {
-    fineX: position.x * UNIT_SUBGRID_RESOLUTION,
-    fineY: position.y * UNIT_SUBGRID_RESOLUTION,
+    fineX: (position.x + slotOffset.x) * UNIT_SUBGRID_RESOLUTION,
+    fineY: (position.y + slotOffset.y) * UNIT_SUBGRID_RESOLUTION,
   };
 }
 
@@ -406,8 +423,8 @@ function projectUnitTransformCoordinate(fineCoordinate: number): number {
 
 function clampUnitTransformToMap(transform: UnitTransformComponent): UnitTransformComponent {
   return {
-    fineX: clamp(transform.fineX, 0, (MAP_WIDTH - 1) * UNIT_SUBGRID_RESOLUTION),
-    fineY: clamp(transform.fineY, 0, (MAP_HEIGHT - 1) * UNIT_SUBGRID_RESOLUTION),
+    fineX: clamp(transform.fineX, 0, MAP_WIDTH * UNIT_SUBGRID_RESOLUTION - 1),
+    fineY: clamp(transform.fineY, 0, MAP_HEIGHT * UNIT_SUBGRID_RESOLUTION - 1),
   };
 }
 
@@ -418,19 +435,24 @@ function gridPositionFromUnitTransform(transform: UnitTransformComponent): Posit
   };
 }
 
-function isUnitTransformAtTarget(transform: UnitTransformComponent, target: Position): boolean {
+function isUnitTransformAtTarget(
+  transform: UnitTransformComponent,
+  unitId: number,
+  target: Position,
+): boolean {
+  const targetTransform = getUnitTargetTransformForCell(unitId, target);
   return (
-    transform.fineX === target.x * UNIT_SUBGRID_RESOLUTION
-    && transform.fineY === target.y * UNIT_SUBGRID_RESOLUTION
+    transform.fineX === targetTransform.fineX
+    && transform.fineY === targetTransform.fineY
   );
 }
 
 function stepUnitTransformToward(
   transform: UnitTransformComponent,
-  target: Position,
+  targetTransform: UnitTransformComponent,
 ): UnitTransformComponent {
-  const targetFineX = target.x * UNIT_SUBGRID_RESOLUTION;
-  const targetFineY = target.y * UNIT_SUBGRID_RESOLUTION;
+  const targetFineX = targetTransform.fineX;
+  const targetFineY = targetTransform.fineY;
 
   if (transform.fineX !== targetFineX) {
     return {
@@ -1470,8 +1492,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return;
     }
 
-    transform.fineX = position.x * UNIT_SUBGRID_RESOLUTION;
-    transform.fineY = position.y * UNIT_SUBGRID_RESOLUTION;
+    const targetTransform = getUnitTargetTransformForCell(id, position);
+    transform.fineX = targetTransform.fineX;
+    transform.fineY = targetTransform.fineY;
   }
 
   function moveUnitOneSubgridStep(
@@ -1484,7 +1507,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return null;
     }
 
-    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, target));
+    const targetTransform = getUnitTargetTransformForCell(id, target);
+    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, targetTransform));
     transform.fineX = nextTransform.fineX;
     transform.fineY = nextTransform.fineY;
 
@@ -1512,7 +1536,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return position ? isAtTarget(position, target) : false;
     }
 
-    return isUnitTransformAtTarget(transform, target);
+    return isUnitTransformAtTarget(transform, id, target);
   }
 
   function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
@@ -1549,7 +1573,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       owner,
       unitType,
     });
-    world.addComponent(entity, 'unitTransform', createUnitTransform(position));
+    world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
     world.addComponent(entity, 'renderable', {
       kind: 'unit',
       layer: 'unit',
@@ -1928,11 +1952,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     ignoredUnitId: number | null = null,
     activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
+    void ignoredUnitId;
     return (
       isTerrainPassableForUnit(x, y, activeWorld)
       && !isCellBlockedByBuilding(x, y, activeWorld)
       && !isCellBlockedByResource(x, y, activeWorld)
-      && !isCellOccupiedByUnit(x, y, ignoredUnitId, activeWorld)
     );
   }
 
@@ -3827,8 +3851,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
-        const currentFineX = transform?.fineX ?? position.x * UNIT_SUBGRID_RESOLUTION;
-        const currentFineY = transform?.fineY ?? position.y * UNIT_SUBGRID_RESOLUTION;
+        const slottedPosition = getUnitTargetTransformForCell(id, position);
+        const currentFineX = transform?.fineX ?? slottedPosition.fineX;
+        const currentFineY = transform?.fineY ?? slottedPosition.fineY;
         const nextX = currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK;
         const nextY = currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK;
 

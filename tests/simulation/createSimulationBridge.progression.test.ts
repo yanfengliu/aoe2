@@ -258,7 +258,7 @@ describe('createSimulationBridge progression systems', () => {
     });
 
     const scout = playerScouts[0];
-    expect(bridge.selectEntityAtCell(scout.x, scout.y)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
     expect(bridge.issueMoveCommand(21, 12)).toBe(true);
     expect(
       stepBridgeUntil(

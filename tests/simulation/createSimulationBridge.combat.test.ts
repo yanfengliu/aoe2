@@ -5,6 +5,7 @@ import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import {
   placeBuildingNearTownCenter,
   selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
@@ -46,7 +47,7 @@ describe('createSimulationBridge combat and outcomes', () => {
       .getEconomyState()
       .units.find((unit) => unit.owner === 1 && unit.unitType === 'militia');
     expect(militia).toBeDefined();
-    expect(bridge.selectEntityAtCell(militia?.x ?? 0, militia?.y ?? 0)).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
 
     const enemyScout = bridge
       .getEconomyState()

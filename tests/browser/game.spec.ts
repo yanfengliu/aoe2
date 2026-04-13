@@ -261,7 +261,15 @@ async function selectOwnedUnitDirect(
           (candidate) =>
             candidate.owner === playerOwner && candidate.unitType === expectedUnitType,
         );
-      return unit ? api.selectEntityAtCell(unit.x, unit.y) : false;
+      if (!unit) {
+        return false;
+      }
+
+      if (api.selectOwnedUnitsByTypeInRect(expectedUnitType as never, unit.x, unit.y, unit.x, unit.y)) {
+        return api.getSelectionState().selectedEntityType === expectedUnitType;
+      }
+
+      return api.selectEntityAtCell(unit.x, unit.y);
     },
     { owner, unitType },
   );
@@ -900,6 +908,44 @@ test.describe('browser gameplay smoke tests', () => {
         + Math.abs(displayedScout.y - projectedScout.y)
       );
     }).toBeGreaterThan(0);
+  });
+
+  test('lets multiple friendly units share one coarse cell while rendering them at distinct sub-grid positions', async ({ page }) => {
+    await waitForBootWithSeed(page, 'unit-sharing-fixture');
+
+    const initialSnapshot = await getSnapshot(page);
+    const initialUnits = initialSnapshot.economyState.units.filter((unit) => unit.owner === 1);
+    expect(initialUnits).toHaveLength(2);
+
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.clearSelection())).toBeUndefined();
+    await dragSelectCells(page, 5, 9, 8, 11);
+    await page.mouse.up({ button: 'left' });
+    await expect(page.locator('[data-selection-name]')).toHaveText('2 Units Selected');
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(7, 10))).toBe(true);
+
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      return snapshot.economyState.units.filter(
+        (unit) => unit.owner === 1 && unit.x === 7 && unit.y === 10,
+      ).length;
+    }).toBe(2);
+
+    const displayedUnits = await page.evaluate(() =>
+      window.__AOE2_TEST__!
+        .getDisplayedEntities()
+        .filter(
+          (entity) =>
+            entity.kind === 'unit'
+            && entity.owner === 1
+            && Math.floor(entity.x) === 7
+            && Math.floor(entity.y) === 10,
+        ),
+    );
+    expect(displayedUnits).toHaveLength(2);
+    expect(
+      Math.abs((displayedUnits[0]?.x ?? 0) - (displayedUnits[1]?.x ?? 0))
+      + Math.abs((displayedUnits[0]?.y ?? 0) - (displayedUnits[1]?.y ?? 0)),
+    ).toBeGreaterThan(0.05);
   });
 
   test('can select the Town Center and train a villager through the command panel', async ({ page }) => {
@@ -1554,17 +1600,23 @@ test.describe('browser gameplay smoke tests', () => {
 
     expect(await selectOwnedUnitDirect(page, 1, 'skirmisher')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Skirmisher');
-    await clickCell(page, 14, 10, 'right');
-
-    const postCombatSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
-    );
-
+    const enemyArcher = await getDisplayedEntityState(page, 2, 'unit', 'archer');
+    expect(enemyArcher).not.toBeNull();
     expect(
-      postCombatSnapshot.economyState.units.some(
-        (unit) => unit.owner === 2 && unit.unitType === 'archer',
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommandAtWorldPosition(x + 0.5, y + 0.5),
+        { x: enemyArcher?.x ?? 14, y: enemyArcher?.y ?? 10 },
       ),
-    ).toBe(false);
+    ).toBe(true);
+
+    await expect.poll(async () => {
+      const postCombatSnapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+      );
+      return postCombatSnapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'archer',
+      );
+    }, { timeout: 20_000 }).toBe(false);
   });
 
   test('can build a Watch Tower and let it automatically kill a nearby visible Scout', async ({
@@ -2013,7 +2065,7 @@ test.describe('browser gameplay smoke tests', () => {
     }
   });
 
-  test('routes movement around blocked terrain and units instead of walking through them', async ({
+  test('routes movement around blocked terrain and resources without treating units as hard blockers', async ({
     page,
   }) => {
     await waitForBootWithSeed(page, 'blocking-rules-fixture');
@@ -2022,7 +2074,7 @@ test.describe('browser gameplay smoke tests', () => {
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(10, 13))).toBe(true);
 
     const visitedCells = await page.evaluate(() => {
-      const blocked = new Set(['7,13', '8,13', '10,5', '12,5', '14,5']);
+      const blocked = new Set(['8,13', '10,5', '12,5', '14,5']);
       const api = window.__AOE2_TEST__!;
       const visited: string[] = [];
 
@@ -2303,22 +2355,42 @@ test.describe('browser gameplay smoke tests', () => {
     expect(enemyHouse).toBeDefined();
 
     expect(await selectOwnedUnitDirect(page, 1, 'militia')).toBe(true);
-    const issuedAttack = await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(12, 3));
+    const enemyHouseRender = stagedSnapshot.renderState.entities.find(
+      (entity) =>
+        entity.owner === 2
+        && entity.kind === 'building'
+        && entity.entityType === 'house'
+        && entity.x === (enemyHouse?.x ?? 12)
+        && entity.y === (enemyHouse?.y ?? 3),
+    );
+    expect(enemyHouseRender).toBeDefined();
+    const issuedAttack = await page.evaluate(
+      ({ x, y, width, height }) =>
+        window.__AOE2_TEST__!.issueContextCommandAtWorldPosition(
+          x + width * 0.5,
+          y + height * 0.5,
+        ),
+      {
+        x: enemyHouseRender?.x ?? 12,
+        y: enemyHouseRender?.y ?? 3,
+        width: enemyHouseRender?.footprintWidth ?? 2,
+        height: enemyHouseRender?.footprintHeight ?? 2,
+      },
+    );
     expect(issuedAttack).toBe(true);
 
-    const combatSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(620, 100),
-    );
-
-    expect(
-      combatSnapshot.economyState.buildings.some(
+    await expect.poll(async () => {
+      const combatSnapshot = await page.evaluate(
+        () => window.__AOE2_TEST__!.advanceTicks(10, 100),
+      );
+      return combatSnapshot.economyState.buildings.some(
         (building) =>
           building.owner === 2
           && building.buildingType === 'house'
           && building.x === (enemyHouse?.x ?? 12)
           && building.y === (enemyHouse?.y ?? 3),
-      ),
-    ).toBe(false);
+      );
+    }, { timeout: 20_000 }).toBe(false);
   });
 
   test('runs the baseline AI barracks rush through the live game loop', async ({

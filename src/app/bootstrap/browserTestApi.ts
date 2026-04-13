@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 
 import type {
+  UnitType,
   EconomyState,
   HudState,
   PlacementPreviewState,
@@ -28,6 +29,13 @@ interface BrowserTestBridge {
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   confirmBuildingPlacement(x: number, y: number): boolean;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectOwnedUnitsByTypeInRect(
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
@@ -58,6 +66,13 @@ export interface BrowserTestApi {
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
+  selectOwnedUnitsByTypeInRect(
+    unitType: UnitType,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ): boolean;
   clearSelection(): void;
   issueContextCommand(cellX: number, cellY: number): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
@@ -134,6 +149,11 @@ export function installBrowserTestApi(
     },
     selectEntityAtCell: (cellX: number, cellY: number) => {
       const didSelect = bridge.selectEntityAtCell(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didSelect;
+    },
+    selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => {
+      const didSelect = bridge.selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
       scene.syncFromBridge(true);
       return didSelect;
     },

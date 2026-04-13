@@ -295,9 +295,9 @@ describe('createSimulationBridge core systems', () => {
     const steppedRenderedScout = steppedSnapshot.entities.find((entity) => entity.id === enemyScout?.id);
 
     expect(steppedRenderedScout).toBeDefined();
-    expect(steppedRenderedScout?.x).toBeGreaterThan(enemyScout?.x ?? 0);
-    expect(steppedRenderedScout?.x).toBeLessThan((enemyScout?.x ?? 0) + 1);
-    expect(steppedRenderedScout?.y).toBe(initialRenderedScout?.y);
+    expect(steppedRenderedScout?.x).toBeGreaterThan(initialRenderedScout?.x ?? 0);
+    expect(steppedRenderedScout?.x).toBeLessThan((initialRenderedScout?.x ?? 0) + 1);
+    expect(Math.floor(steppedRenderedScout?.y ?? -1)).toBe(Math.floor(initialRenderedScout?.y ?? -1));
   });
 
   it('reports visibility metrics through the HUD state', () => {
@@ -872,13 +872,13 @@ describe('createSimulationBridge core systems', () => {
     });
   });
 
-  it('routes units around impassable terrain and occupied cells without entering blocked cells', () => {
+  it('routes units around impassable terrain and resource blockers without treating other units as hard blockers', () => {
     const bridge = createSimulationBridge('blocking-rules-fixture');
 
     expect(bridge.selectEntityAtCell(6, 13)).toBe(true);
     expect(bridge.issueMoveCommand(10, 13)).toBe(true);
 
-    const blockedCells = new Set(['7,13', '8,13', '10,5', '12,5', '14,5']);
+    const blockedCells = new Set(['8,13', '10,5', '12,5', '14,5']);
 
     for (let index = 0; index < 80; index += 1) {
       bridge.step(100);
@@ -896,6 +896,46 @@ describe('createSimulationBridge core systems', () => {
       x: 10,
       y: 13,
     });
+  });
+
+  it('lets multiple friendly units share the same coarse cell while keeping distinct sub-grid render positions', () => {
+    const bridge = createSimulationBridge('unit-sharing-fixture');
+
+    expect(bridge.selectUnitsInBox(5, 9, 8, 11)).toBe(true);
+    expect(bridge.issueMoveCommand(7, 10)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const sharedCellUnits = bridge
+            .getEconomyState()
+            .units.filter((unit) => unit.owner === 1 && unit.x === 7 && unit.y === 10);
+          return sharedCellUnits.length === 2;
+        },
+        { maxSteps: 80 },
+      ),
+    ).toBe(true);
+
+    const sharedCellUnits = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.x === 7 && unit.y === 10);
+    expect(sharedCellUnits).toHaveLength(2);
+
+    const renderedUnits = bridge
+      .getRenderState()
+      .entities.filter(
+        (entity) =>
+          entity.kind === 'unit'
+          && entity.owner === 1
+          && Math.floor(entity.x) === 7
+          && Math.floor(entity.y) === 10,
+      );
+    expect(renderedUnits).toHaveLength(2);
+    expect(
+      Math.abs((renderedUnits[0]?.x ?? 0) - (renderedUnits[1]?.x ?? 0))
+      + Math.abs((renderedUnits[0]?.y ?? 0) - (renderedUnits[1]?.y ?? 0)),
+    ).toBeGreaterThan(0.05);
   });
 
   it('moves to the nearest reachable cell instead of entering a blocked resource tile', () => {

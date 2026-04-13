@@ -39,7 +39,18 @@ export function selectOwnedUnitDirect(
   const unit = bridge
     .getEconomyState()
     .units.find((candidate) => candidate.owner === owner && candidate.unitType === unitType);
-  return unit ? bridge.selectEntityAtCell(unit.x, unit.y) : false;
+  if (!unit) {
+    return false;
+  }
+
+  if (bridge.selectOwnedUnitsByTypeInRect(unitType as never, unit.x, unit.y, unit.x, unit.y)) {
+    const selectionState = bridge.getSelectionState();
+    if (selectionState.selectedEntityType === unitType) {
+      return true;
+    }
+  }
+
+  return bridge.selectEntityAtCell(unit.x, unit.y);
 }
 
 export function placeBuildingNearTownCenter(
