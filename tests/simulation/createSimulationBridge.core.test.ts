@@ -305,7 +305,7 @@ describe('createSimulationBridge core systems', () => {
     const hudState = bridge.getHudState();
 
     expect(hudState.seed).toBe(DEFAULT_SEED);
-    expect(hudState.worldSize).toBe('36x24');
+    expect(hudState.worldSize).toBe('44x28');
     expect(hudState.visibleCells).toBeGreaterThan(0);
     expect(hudState.exploredCells).toBeGreaterThanOrEqual(hudState.visibleCells);
     expect(hudState.playerResources).toEqual({

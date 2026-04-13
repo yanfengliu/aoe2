@@ -33,31 +33,39 @@ describe('createPrototypeScenario', () => {
 
   it('creates the expected standard two-player opening package', () => {
     const scenario = createPrototypeScenario(DEFAULT_SEED);
+    const humanStart = scenario.starts.find((start) => start.owner === 1);
+    const enemyStart = scenario.starts.find((start) => start.owner === 2);
     const countBy = (kind: string, baseOwner?: number) =>
       scenario.spawns.filter(
         (spawn) => spawn.kind === kind && (baseOwner === undefined || spawn.baseOwner === baseOwner),
       ).length;
     const startingScouts = scenario.spawns.filter(
-      (spawn) =>
-        spawn.kind === 'scout'
-        && !(spawn.owner === 2 && spawn.x === 13 && spawn.y === 5),
+      (spawn) => spawn.kind === 'scout' && spawn.wanderBounds !== undefined,
     );
     const forwardEnemyScout = scenario.spawns.find(
-      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.x === 13 && spawn.y === 5,
+      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.wanderBounds === undefined,
     );
     const forwardEnemyHouse = scenario.spawns.find(
-      (spawn) => spawn.kind === 'house' && spawn.owner === 2 && spawn.x === 12 && spawn.y === 3,
+      (spawn) => spawn.kind === 'house' && spawn.owner === 2,
     );
 
     expect(scenario.width).toBe(MAP_WIDTH);
     expect(scenario.height).toBe(MAP_HEIGHT);
+    expect(MAP_WIDTH).toBe(44);
+    expect(MAP_HEIGHT).toBe(28);
     expect(countBy('town-center')).toBe(2);
     expect(countBy('villager')).toBe(6);
     expect(countBy('scout')).toBe(3);
     expect(countBy('house')).toBe(1);
-    expect(startingScouts).toHaveLength(2);
+    expect(startingScouts).toHaveLength(1);
     expect(forwardEnemyScout).toBeDefined();
     expect(forwardEnemyHouse).toBeDefined();
+    expect(humanStart).toBeDefined();
+    expect(enemyStart).toBeDefined();
+    expect((enemyStart?.townCenter.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(24);
+    expect((enemyStart?.townCenter.y ?? 0) - (humanStart?.townCenter.y ?? 0)).toBeGreaterThanOrEqual(9);
+    expect((forwardEnemyScout?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(18);
+    expect((forwardEnemyHouse?.x ?? 0) - (humanStart?.townCenter.x ?? 0)).toBeGreaterThanOrEqual(18);
 
     for (const owner of [1, 2]) {
       expect(countBy('sheep', owner)).toBe(4);
@@ -81,7 +89,7 @@ describe('createPrototypeScenario', () => {
       (spawn) => spawn.kind === 'scout' && spawn.owner === 1,
     );
     const enemyScout = scenario.spawns.find(
-      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.x !== 13,
+      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.wanderBounds !== undefined,
     );
 
     expect(humanScout).toBeDefined();

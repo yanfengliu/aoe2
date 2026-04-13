@@ -16,8 +16,8 @@ import type {
   WanderBoundsComponent,
 } from './types';
 
-export const MAP_WIDTH = 36;
-export const MAP_HEIGHT = 24;
+export const MAP_WIDTH = 44;
+export const MAP_HEIGHT = 28;
 export const TPS = 10;
 export const DEFAULT_SEED = 'aoe2-prototype';
 export const HUMAN_PLAYER_ID = 1;
@@ -140,8 +140,8 @@ const FOREST_PATCHES: Offset[][] = [
   ],
 ];
 
-const FORWARD_ENEMY_SCOUT_POSITION = { x: 13, y: 5 };
-const FORWARD_ENEMY_HOUSE_POSITION = { x: 12, y: 3 };
+const FORWARD_ENEMY_SCOUT_POSITION = { x: 31, y: 14 };
+const FORWARD_ENEMY_HOUSE_POSITION = { x: 29, y: 12 };
 const FIXTURE_NEARBY_VILLAGER_POSITION = { x: 6, y: 10 };
 const FIXTURE_PRIMARY_BUILDING_POSITION = { x: 13, y: 8 };
 const FIXTURE_SECONDARY_BUILDING_POSITION = { x: 17, y: 8 };
@@ -2295,7 +2295,7 @@ function createBaseTerrain(seed: string): TerrainCellSpec[][] {
 function createPlayerStarts(): PlayerStartSpec[] {
   return [
     { owner: 1, townCenter: { x: 8, y: 8 }, civilization: 'Britons' },
-    { owner: 2, townCenter: { x: 27, y: 15 }, civilization: 'Franks' },
+    { owner: 2, townCenter: { x: 35, y: 18 }, civilization: 'Franks' },
   ];
 }
 
