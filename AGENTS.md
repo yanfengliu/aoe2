@@ -53,4 +53,4 @@ Primary directories: `src/`, `assets/`, `docs/`, `design/`.
 
 ## Subagents
 
-- If a subagent cannot read repo instructions itself, include the relevant instructions from `AGENTS.md` or `CLAUDE.md` in its prompt.
+- If you dispatch a subagent that cannot read repository instructions on its own, include the relevant instructions from this file and any nested instruction files in its prompt.
