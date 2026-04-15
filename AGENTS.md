@@ -46,11 +46,11 @@ Primary directories: `src/`, `assets/`, `docs/`, `design/`.
 - Keep summary entries factual and compact: one line per action, no reasoning, under 80 lines. When needed, compress older items into a `Prior work` section.
 - When compacting, keep the devlog file paths and the instruction to read the summary at session start.
 
-## Engine Feedback
-
-- Record `civ-engine` strengths, weaknesses, and missing ergonomics in `docs/engine-feedback.md` as you work.
-- If a missing engine feature blocks the task, stop and report it.
-
 ## Subagents
 
 - If you dispatch a subagent that cannot read repository instructions on its own, include the relevant instructions from this file and any nested instruction files in its prompt.
+
+## Engine Feedback
+
+- Record `civ-engine` strengths, weaknesses, and missing ergonomics in `docs/engine-feedback.md` as you work.
+- If a missing engine feature blocks the task, stop your work and report it to the user. But do not modify the `civ-engine` repo directly.
