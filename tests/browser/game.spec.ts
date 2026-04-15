@@ -192,17 +192,55 @@ async function clickMinimapAt(
   normalizedX: number,
   normalizedY: number,
 ): Promise<void> {
-  const minimap = page.locator('[data-hud="minimap"]');
-  const bounds = await minimap.boundingBox();
-  expect(bounds).not.toBeNull();
+  const point = await getMinimapPoint(page, normalizedX, normalizedY);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.click(point.x, point.y, { button: 'left' });
+}
 
-  await minimap.click({
-    position: {
-      x: (bounds?.width ?? 0) * normalizedX,
-      y: (bounds?.height ?? 0) * normalizedY,
+async function getMinimapPoint(
+  page: Page,
+  normalizedX: number,
+  normalizedY: number,
+): Promise<ScreenPoint> {
+  return page.locator('[data-hud="minimap"]').evaluate(
+    (canvas: HTMLCanvasElement, point: { x: number; y: number }) => {
+      const frame = window.__AOE2_TEST__!.getSnapshot().renderState.frame;
+      if (!frame) {
+        throw new Error('Expected the minimap frame to exist.');
+      }
+
+      const bounds = canvas.getBoundingClientRect();
+      const scale = Math.min(canvas.width / frame.mapWidth, canvas.height / frame.mapHeight);
+      const drawWidth = frame.mapWidth * scale;
+      const drawHeight = frame.mapHeight * scale;
+      const offsetX = (canvas.width - drawWidth) * 0.5;
+      const offsetY = (canvas.height - drawHeight) * 0.5;
+      const cssScaleX = bounds.width / canvas.width;
+      const cssScaleY = bounds.height / canvas.height;
+
+      return {
+        x: bounds.left + (offsetX + drawWidth * point.x) * cssScaleX,
+        y: bounds.top + (offsetY + drawHeight * point.y) * cssScaleY,
+      };
     },
-    force: true,
-  });
+    { x: normalizedX, y: normalizedY },
+  );
+}
+
+async function dragMinimapTo(
+  page: Page,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+): Promise<void> {
+  const startPoint = await getMinimapPoint(page, startX, startY);
+  const endPoint = await getMinimapPoint(page, endX, endY);
+
+  await page.mouse.move(startPoint.x, startPoint.y);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(endPoint.x, endPoint.y, { steps: 10 });
+  await page.mouse.up({ button: 'left' });
 }
 
 async function getGameCanvasBounds(page: Page): Promise<NonNullable<Awaited<ReturnType<ReturnType<Page['locator']>['boundingBox']>>>> {
@@ -210,6 +248,37 @@ async function getGameCanvasBounds(page: Page): Promise<NonNullable<Awaited<Retu
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
   return bounds!;
+}
+
+async function getGameCanvasMetrics(page: Page): Promise<{
+  canvasWidth: number;
+  canvasHeight: number;
+  rootWidth: number;
+  rootHeight: number;
+  boundsWidth: number;
+  boundsHeight: number;
+  boundsLeft: number;
+  boundsTop: number;
+}> {
+  return page.evaluate(() => {
+    const root = document.getElementById('game-root');
+    const canvas = document.querySelector<HTMLCanvasElement>('#game-root canvas');
+    if (!root || !canvas) {
+      throw new Error('Expected #game-root and its canvas to exist.');
+    }
+
+    const bounds = canvas.getBoundingClientRect();
+    return {
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      rootWidth: root.clientWidth,
+      rootHeight: root.clientHeight,
+      boundsWidth: bounds.width,
+      boundsHeight: bounds.height,
+      boundsLeft: bounds.left,
+      boundsTop: bounds.top,
+    };
+  });
 }
 
 async function doubleClickCell(
@@ -707,21 +776,56 @@ test.describe('browser gameplay smoke tests', () => {
 
     await clickMinimapAt(page, 0.84, 0.76);
 
-    await expect.poll(async () => {
-      const snapshot = await getSnapshot(page);
-      return {
-        scrollX: snapshot.cameraState?.scrollX ?? 0,
-        scrollY: snapshot.cameraState?.scrollY ?? 0,
-      };
-    }).toMatchObject({
-      scrollX: expect.any(Number),
-      scrollY: expect.any(Number),
-    });
+    await expect.poll(async () => (await getSnapshot(page)).cameraState?.scrollX ?? 0)
+      .toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
 
-    const movedCamera = (await getSnapshot(page)).cameraState;
+    const movedSnapshot = await getSnapshot(page);
+    const movedCamera = movedSnapshot.cameraState;
+    const frame = movedSnapshot.renderState.frame;
     expect(movedCamera).not.toBeNull();
+    expect(frame).not.toBeNull();
     expect(movedCamera?.scrollX ?? 0).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
     expect(movedCamera?.scrollY ?? 0).toBeGreaterThan((initialCamera?.scrollY ?? 0) + 40);
+
+    const visibleWorldWidth = movedCamera?.viewWidth ?? 0;
+    const visibleWorldHeight = movedCamera?.viewHeight ?? 0;
+    const centerX = (movedCamera?.viewX ?? 0) + visibleWorldWidth * 0.5;
+    const centerY = (movedCamera?.viewY ?? 0) + visibleWorldHeight * 0.5;
+    const worldWidth = (frame?.mapWidth ?? 0) * 24;
+    const worldHeight = (frame?.mapHeight ?? 0) * 24;
+
+    expect(centerX / worldWidth).toBeGreaterThan(0.82);
+    expect(centerY / worldHeight).toBeGreaterThan(0.7);
+    expect(centerX).toBeLessThanOrEqual(worldWidth - visibleWorldWidth * 0.5 + 0.5);
+    expect(centerY).toBeLessThanOrEqual(worldHeight - visibleWorldHeight * 0.5 + 0.5);
+  });
+
+  test('dragging across the minimap continuously pans the camera', async ({ page }) => {
+    await waitForBoot(page);
+
+    const initialCamera = (await getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await dragMinimapTo(page, 0.2, 0.2, 0.82, 0.78);
+
+    await expect.poll(async () => (await getSnapshot(page)).cameraState?.scrollX ?? 0)
+      .toBeGreaterThan((initialCamera?.scrollX ?? 0) + 120);
+
+    const movedSnapshot = await getSnapshot(page);
+    const movedCamera = movedSnapshot.cameraState;
+    const frame = movedSnapshot.renderState.frame;
+    expect(movedCamera).not.toBeNull();
+    expect(frame).not.toBeNull();
+
+    const visibleWorldWidth = movedCamera?.viewWidth ?? 0;
+    const visibleWorldHeight = movedCamera?.viewHeight ?? 0;
+    const centerX = (movedCamera?.viewX ?? 0) + visibleWorldWidth * 0.5;
+    const centerY = (movedCamera?.viewY ?? 0) + visibleWorldHeight * 0.5;
+    const worldWidth = (frame?.mapWidth ?? 0) * 24;
+    const worldHeight = (frame?.mapHeight ?? 0) * 24;
+
+    expect(centerX / worldWidth).toBeGreaterThan(0.72);
+    expect(centerY / worldHeight).toBeGreaterThan(0.68);
   });
 
   test('the minimap exposes a viewport rectangle that tracks the current camera coverage', async ({
@@ -729,22 +833,133 @@ test.describe('browser gameplay smoke tests', () => {
   }) => {
     await waitForBoot(page);
 
-    const initialViewport = await getMinimapViewportState(page);
-    expect(initialViewport).not.toBeNull();
-    expect(initialViewport?.width ?? 0).toBeGreaterThan(0);
-    expect(initialViewport?.height ?? 0).toBeGreaterThan(0);
-
     const gameCanvas = page.locator('#game-root canvas');
     await gameCanvas.click();
-    await page.keyboard.down('KeyD');
-    await page.waitForTimeout(250);
-    await page.keyboard.up('KeyD');
+    const canvasBounds = await getGameCanvasBounds(page);
+    await page.mouse.move(
+      canvasBounds.x + canvasBounds.width * 0.5,
+      canvasBounds.y + canvasBounds.height * 0.5,
+    );
+    await page.mouse.wheel(0, -275);
 
-    const movedViewport = await getMinimapViewportState(page);
-    expect(movedViewport).not.toBeNull();
-    expect(movedViewport?.x ?? 0).toBeGreaterThan(initialViewport?.x ?? 0);
-    expect(movedViewport?.width).toBe(initialViewport?.width);
-    expect(movedViewport?.height).toBe(initialViewport?.height);
+    await page.mouse.down({ button: 'middle' });
+    await page.mouse.move(
+      canvasBounds.x + canvasBounds.width * 0.5 + 73,
+      canvasBounds.y + canvasBounds.height * 0.5 + 41,
+      { steps: 6 },
+    );
+    await page.mouse.up({ button: 'middle' });
+
+    await expect.poll(async () => {
+      const viewport = await getMinimapViewportState(page);
+      const snapshot = await getSnapshot(page);
+      const frame = snapshot.renderState.frame;
+      const camera = snapshot.cameraState;
+      const minimap = await getMinimapStats(page);
+
+      if (!viewport || !frame || !camera) {
+        return false;
+      }
+
+      const worldWidth = frame.mapWidth * 24;
+      const worldHeight = frame.mapHeight * 24;
+      const scale = Math.min(
+        minimap.width / frame.mapWidth,
+        minimap.height / frame.mapHeight,
+      );
+      const drawWidth = frame.mapWidth * scale;
+      const drawHeight = frame.mapHeight * scale;
+      const offsetX = (minimap.width - drawWidth) * 0.5;
+      const offsetY = (minimap.height - drawHeight) * 0.5;
+      const expectedViewport = {
+        active: true,
+        x: Number((offsetX + (camera.viewX / worldWidth) * drawWidth).toFixed(2)),
+        y: Number((offsetY + (camera.viewY / worldHeight) * drawHeight).toFixed(2)),
+        width: Number(((camera.viewWidth / worldWidth) * drawWidth).toFixed(2)),
+        height: Number(((camera.viewHeight / worldHeight) * drawHeight).toFixed(2)),
+      };
+
+      return JSON.stringify(viewport) === JSON.stringify(expectedViewport);
+    }).toBe(true);
+  });
+
+  test('keeps the canvas and camera aligned after the browser viewport shrinks', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    await page.setViewportSize({
+      width: 520,
+      height: 560,
+    });
+
+    await expect.poll(async () => {
+      const metrics = await getGameCanvasMetrics(page);
+      const camera = (await getSnapshot(page)).cameraState;
+
+      return {
+        rootWidth: metrics.rootWidth,
+        rootHeight: metrics.rootHeight,
+        canvasWidth: metrics.canvasWidth,
+        canvasHeight: metrics.canvasHeight,
+        cameraWidth: Math.round(camera?.width ?? -1),
+        cameraHeight: Math.round(camera?.height ?? -1),
+      };
+    }).toEqual({
+      rootWidth: 520,
+      rootHeight: 560,
+      canvasWidth: 520,
+      canvasHeight: 560,
+      cameraWidth: 520,
+      cameraHeight: 560,
+    });
+
+    const metrics = await getGameCanvasMetrics(page);
+    expect(metrics.boundsLeft).toBeGreaterThanOrEqual(0);
+    expect(metrics.boundsTop).toBeGreaterThanOrEqual(0);
+    expect(metrics.boundsWidth).toBe(520);
+    expect(metrics.boundsHeight).toBe(560);
+  });
+
+  test('prevents zooming out beyond the playable map bounds', async ({ page }) => {
+    await waitForBoot(page);
+
+    await clickMinimapAt(page, 0.88, 0.82);
+
+    const gameCanvas = page.locator('#game-root canvas');
+    const canvasBox = await gameCanvas.boundingBox();
+    expect(canvasBox).not.toBeNull();
+    await page.mouse.move(
+      (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) * 0.5,
+      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) * 0.5,
+    );
+
+    for (let index = 0; index < 6; index += 1) {
+      await page.mouse.wheel(0, 1200);
+    }
+
+    const snapshot = await getSnapshot(page);
+    const camera = snapshot.cameraState;
+    const frame = snapshot.renderState.frame;
+    expect(camera).not.toBeNull();
+    expect(frame).not.toBeNull();
+
+    const worldWidth = (frame?.mapWidth ?? 0) * 24;
+    const worldHeight = (frame?.mapHeight ?? 0) * 24;
+    const visibleWorldWidth = (camera?.width ?? 0) / (camera?.zoom ?? 1);
+    const visibleWorldHeight = (camera?.height ?? 0) / (camera?.zoom ?? 1);
+    const minZoomToFitWorld = Math.max(
+      (camera?.width ?? 0) / worldWidth,
+      (camera?.height ?? 0) / worldHeight,
+    );
+
+    expect(camera?.zoom ?? 0).toBeGreaterThanOrEqual(minZoomToFitWorld - 0.001);
+    expect(visibleWorldWidth).toBeLessThanOrEqual(worldWidth + 0.5);
+    expect(visibleWorldHeight).toBeLessThanOrEqual(worldHeight + 0.5);
+    expect(camera?.scrollX ?? 0).toBeGreaterThanOrEqual(-0.5);
+    expect(camera?.scrollY ?? 0).toBeGreaterThanOrEqual(-0.5);
+    expect((camera?.scrollX ?? 0) + visibleWorldWidth).toBeLessThanOrEqual(worldWidth + 0.5);
+    expect((camera?.scrollY ?? 0) + visibleWorldHeight).toBeLessThanOrEqual(worldHeight + 0.5);
   });
 
   test('keeps human starting units idle until the player gives orders', async ({ page }) => {

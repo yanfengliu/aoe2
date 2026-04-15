@@ -19,6 +19,10 @@ interface HudCameraState {
   zoom: number;
   width: number;
   height: number;
+  viewX: number;
+  viewY: number;
+  viewWidth: number;
+  viewHeight: number;
 }
 
 interface HudBridge {
@@ -90,16 +94,14 @@ function getMinimapViewportState(
 
   const worldWidth = frame.mapWidth * CELL_SIZE;
   const worldHeight = frame.mapHeight * CELL_SIZE;
-  const visibleWorldWidth = cameraState.width / cameraState.zoom;
-  const visibleWorldHeight = cameraState.height / cameraState.zoom;
   const minimapScaleX = layout.drawWidth / worldWidth;
   const minimapScaleY = layout.drawHeight / worldHeight;
 
   return {
-    x: layout.offsetX + cameraState.scrollX * minimapScaleX,
-    y: layout.offsetY + cameraState.scrollY * minimapScaleY,
-    width: visibleWorldWidth * minimapScaleX,
-    height: visibleWorldHeight * minimapScaleY,
+    x: layout.offsetX + cameraState.viewX * minimapScaleX,
+    y: layout.offsetY + cameraState.viewY * minimapScaleY,
+    width: cameraState.viewWidth * minimapScaleX,
+    height: cameraState.viewHeight * minimapScaleY,
   };
 }
 
@@ -778,6 +780,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   let lastSelectionSignature = '';
   let lastMinimapCameraSignature = '';
   let latestRenderState: RenderState | null = null;
+  let isMinimapDragActive = false;
 
   if (minimap) {
     const handleMinimapPointer = (clientX: number, clientY: number): void => {
@@ -811,9 +814,35 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       );
     };
 
-    minimap.addEventListener('pointerdown', (event) => {
+    const handleTrackedMinimapMouseMove = (event: MouseEvent): void => {
+      if (!isMinimapDragActive) {
+        return;
+      }
+
+      if ((event.buttons & 1) === 0) {
+        isMinimapDragActive = false;
+        return;
+      }
+
+      handleMinimapPointer(event.clientX, event.clientY);
+    };
+
+    const handleTrackedMinimapMouseEnd = (): void => {
+      isMinimapDragActive = false;
+    };
+
+    minimap.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      isMinimapDragActive = true;
+      event.preventDefault();
       handleMinimapPointer(event.clientX, event.clientY);
     });
+    minimap.addEventListener('mousemove', handleTrackedMinimapMouseMove);
+    window.addEventListener('mousemove', handleTrackedMinimapMouseMove);
+    window.addEventListener('mouseup', handleTrackedMinimapMouseEnd);
   }
 
   function renderSelectionPanel(selectionState: SelectionState): void {

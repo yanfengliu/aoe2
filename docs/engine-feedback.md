@@ -137,3 +137,8 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 
 - Enlarging the default map for minimap usability immediately increased the cost of any test that advances the live simulation on the default seed. The engine handled the bigger world correctly, but the repo-owned test layout needed to change: long browser and Vitest files had to be split into smaller suites with realistic time budgets.
 - The useful takeaway is that `civ-engine` scales adequately for this prototype, but the repo should avoid coupling too many long-running gameplay flows to one seed/file. Deterministic fixture slicing matters more as map size grows.
+
+## 2026-04-13 - Phaser rendered camera view
+
+- For HUD-facing viewport work, Phaser's rendered `camera.worldView` is the safer source of truth than reconstructing the visible world from `scrollX`, `scrollY`, `width`, and `zoom`. The approximation is close, but it can drift enough to make an overlay like the minimap viewport box disagree with what the player actually sees.
+- Browser helpers that synthesize minimap clicks also need to use the same canvas draw-area math as the HUD itself. Using outer element bounds alone was close, but not exact enough for deterministic viewport-target assertions.

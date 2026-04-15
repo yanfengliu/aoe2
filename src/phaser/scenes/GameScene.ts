@@ -43,6 +43,8 @@ const EDGE_PAN_THRESHOLD_PX = 20;
 const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
 const EDGE_PAN_HOVER_DELAY_MS = 500;
 const MIDDLE_DRAG_PAN_MIN_DELTA_PX = 0.5;
+const MIN_CAMERA_ZOOM = 0.7;
+const MAX_CAMERA_ZOOM = 2.4;
 
 export interface CameraState {
   scrollX: number;
@@ -50,6 +52,10 @@ export interface CameraState {
   zoom: number;
   width: number;
   height: number;
+  viewX: number;
+  viewY: number;
+  viewWidth: number;
+  viewHeight: number;
 }
 
 export interface SelectionBoxState {
@@ -215,7 +221,7 @@ export class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
-    this.cameras.main.setZoom(1.4);
+    this.setCameraZoom(1.4);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasd = this.input.keyboard?.addKeys(
@@ -230,8 +236,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on(
       'wheel',
       (_pointer: Phaser.Input.Pointer, _objects: unknown, _dx: number, dy: number) => {
-        const nextZoom = Phaser.Math.Clamp(this.cameras.main.zoom - dy * 0.001, 0.7, 2.4);
-        this.cameras.main.setZoom(nextZoom);
+        this.setCameraZoom(this.cameras.main.zoom - dy * 0.001);
       },
     );
 
@@ -366,6 +371,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.clampCameraToWorld();
+
     const state = this.bridge.getRenderState();
     const selectionState = this.bridge.getSelectionState();
     const interpolationAlpha = this.bridge.getRenderInterpolationAlpha();
@@ -421,6 +428,8 @@ export class GameScene extends Phaser.Scene {
         camera.scrollY += edgePan.dy * edgePanSpeed;
       }
     }
+
+    this.clampCameraToWorld();
   }
 
   private renderState(
@@ -770,6 +779,7 @@ export class GameScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.scrollX -= deltaX / camera.zoom;
     camera.scrollY -= deltaY / camera.zoom;
+    this.clampCameraToWorld();
   }
 
   private getEdgePanDelta(time: number): { dx: -1 | 0 | 1; dy: -1 | 0 | 1 } {
@@ -826,13 +836,20 @@ export class GameScene extends Phaser.Scene {
       return null;
     }
 
+    this.clampCameraToWorld();
+
     const camera = this.cameras.main;
+
     return {
       scrollX: camera.scrollX,
       scrollY: camera.scrollY,
       zoom: camera.zoom,
       width: camera.width,
       height: camera.height,
+      viewX: camera.worldView.x,
+      viewY: camera.worldView.y,
+      viewWidth: camera.worldView.width,
+      viewHeight: camera.worldView.height,
     };
   }
 
@@ -842,13 +859,70 @@ export class GameScene extends Phaser.Scene {
     }
 
     const camera = this.cameras.main;
-    const visibleWorldWidth = camera.width / camera.zoom;
-    const visibleWorldHeight = camera.height / camera.zoom;
-    const maxScrollX = Math.max(0, MAP_WIDTH * CELL_SIZE - visibleWorldWidth);
-    const maxScrollY = Math.max(0, MAP_HEIGHT * CELL_SIZE - visibleWorldHeight);
+    const { visibleWorldWidth, visibleWorldHeight, maxScrollX, maxScrollY } = this.getCameraWorldMetrics(camera);
 
     camera.scrollX = Phaser.Math.Clamp(worldX - visibleWorldWidth * 0.5, 0, maxScrollX);
     camera.scrollY = Phaser.Math.Clamp(worldY - visibleWorldHeight * 0.5, 0, maxScrollY);
+    this.clampCameraToWorld();
+  }
+
+  private setCameraZoom(nextZoom: number): void {
+    const camera = this.cameras.main;
+    const minimumZoom = this.getMinimumCameraZoom(camera);
+    const clampedZoom = Phaser.Math.Clamp(nextZoom, minimumZoom, MAX_CAMERA_ZOOM);
+    camera.setZoom(clampedZoom);
+    this.clampCameraToWorld();
+  }
+
+  private clampCameraToWorld(): void {
+    if (!this.sys.isActive()) {
+      return;
+    }
+
+    const camera = this.cameras.main;
+    const minimumZoom = this.getMinimumCameraZoom(camera);
+    if (camera.zoom < minimumZoom || camera.zoom > MAX_CAMERA_ZOOM) {
+      camera.setZoom(Phaser.Math.Clamp(camera.zoom, minimumZoom, MAX_CAMERA_ZOOM));
+    }
+
+    const { maxScrollX, maxScrollY } = this.getCameraWorldMetrics(camera);
+    camera.scrollX = Phaser.Math.Clamp(camera.scrollX, 0, maxScrollX);
+    camera.scrollY = Phaser.Math.Clamp(camera.scrollY, 0, maxScrollY);
+  }
+
+  private getMinimumCameraZoom(camera: Phaser.Cameras.Scene2D.Camera): number {
+    return Math.max(
+      MIN_CAMERA_ZOOM,
+      camera.width / this.getWorldWidthPx(),
+      camera.height / this.getWorldHeightPx(),
+    );
+  }
+
+  private getCameraWorldMetrics(camera: Phaser.Cameras.Scene2D.Camera): {
+    visibleWorldWidth: number;
+    visibleWorldHeight: number;
+    maxScrollX: number;
+    maxScrollY: number;
+  } {
+    const visibleWorldWidth = camera.width / camera.zoom;
+    const visibleWorldHeight = camera.height / camera.zoom;
+    const maxScrollX = Math.max(0, this.getWorldWidthPx() - visibleWorldWidth);
+    const maxScrollY = Math.max(0, this.getWorldHeightPx() - visibleWorldHeight);
+
+    return {
+      visibleWorldWidth,
+      visibleWorldHeight,
+      maxScrollX,
+      maxScrollY,
+    };
+  }
+
+  private getWorldWidthPx(): number {
+    return MAP_WIDTH * CELL_SIZE;
+  }
+
+  private getWorldHeightPx(): number {
+    return MAP_HEIGHT * CELL_SIZE;
   }
 
   getScreenPointForCell(cellX: number, cellY: number): { x: number; y: number } | null {
