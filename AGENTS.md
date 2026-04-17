@@ -47,7 +47,7 @@
   - files changed
   - reasoning
   - notes
-- Keep `docs/devlog/summary.md` current after every 5 detailed entries or at the end of a session.
+- Keep `docs/devlog/summary.md` current after updating the detailed log. Always remove outdated info. Compact when it grows larger than 50 lines.
 - If a subagent handles summary work, it should extract facts only and avoid interpretation.
 
 ## Code Review
