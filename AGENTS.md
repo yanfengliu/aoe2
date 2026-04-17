@@ -53,7 +53,7 @@
 ## Code Review
 
 - Use 3 code reviewer subagents to review every change. One for correctness and clean code; one for design and efficiency; one for bugs.
-- Also use Codex to get a different perspective.
+- Also use other AI services (Claude/Codex/Gemini) to get a different perspective.
 - The reviewers should check `docs/learning/lessons.md`.
 
 ## civ-engine
