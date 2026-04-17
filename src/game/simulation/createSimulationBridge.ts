@@ -1170,14 +1170,12 @@ function createProjector(
         layer: renderable.layer,
         entityType,
         owner,
-        x:
-          unit && unitTransform
-            ? projectUnitTransformCoordinate(unitTransform.fineX)
-            : position.x,
-        y:
-          unit && unitTransform
-            ? projectUnitTransformCoordinate(unitTransform.fineY)
-            : position.y,
+        x: unitTransform
+          ? projectUnitTransformCoordinate(unitTransform.fineX)
+          : position.x,
+        y: unitTransform
+          ? projectUnitTransformCoordinate(unitTransform.fineY)
+          : position.y,
         tint: renderable.tint,
         size: renderable.size,
         footprintWidth: renderable.footprintWidth,
