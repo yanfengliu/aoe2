@@ -1,7 +1,11 @@
 ## Core rules
 
 - Use test-driven development for behavior changes: write or update tests first, then make them pass.
-- Before finishing a code task, make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
+- Before implementing a change, write a plan.
+- Use a subagent to implement the plan. It should make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
+- Use 3 code reviewer subagents to review every change. One for correctness and clean code; one for design and efficiency; one for bugs.
+- Also use other AI services (Claude/Codex/Gemini) to get a different perspective.
+- The reviewers should check `docs/learning/lessons.md`.
 - Prefer small functions, reusable utilities, composition over inheritance, and dead-code cleanup.
 - Do not change game mechanics or behavior unless explicitly asked.
 
@@ -49,12 +53,6 @@
   - notes
 - Keep `docs/devlog/summary.md` current after updating the detailed log. Always remove outdated info. Compact when it grows larger than 50 lines.
 - If a subagent handles summary work, it should extract facts only and avoid interpretation.
-
-## Code Review
-
-- Use 3 code reviewer subagents to review every change. One for correctness and clean code; one for design and efficiency; one for bugs.
-- Also use other AI services (Claude/Codex/Gemini) to get a different perspective.
-- The reviewers should check `docs/learning/lessons.md`.
 
 ## civ-engine
 
