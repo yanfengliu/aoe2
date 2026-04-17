@@ -1263,7 +1263,7 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
       continue;
     }
 
-    let claimedOwner = resource.owner;
+    let claimedOwner: number | null = resource.owner;
     let bestDistanceSquared = Number.POSITIVE_INFINITY;
     let bestUnitId = Number.POSITIVE_INFINITY;
 
