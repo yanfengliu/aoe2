@@ -4581,6 +4581,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           continue;
         }
 
+        // The path planner picks the nearest passable cell when the requested
+        // target is itself blocked. If we have already arrived at that planner
+        // destination, treat the order as complete instead of re-planning the
+        // same dead-end every tick.
+        if (isUnitTransformAtTarget(transform, sheepId, plan.destination)) {
+          sheepMoveOrders.delete(sheepId);
+          continue;
+        }
+
         moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
         markOutOfBandRenderChange();
       }
@@ -4746,12 +4755,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         unit: world.getComponent<UnitComponent>(id, 'unit'),
       }))
       .filter((entry): entry is { id: number; unit: UnitComponent } => entry.unit !== undefined);
+    // Owned sheep can ride along in a drag-box selection alongside units; for the
+    // purpose of build/train eligibility they should be transparent — the unit
+    // members of the selection still drive the available actions.
+    const ownedSheepCountInSelection = selectedEntityIds.filter((id) => {
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      return (
+        resource !== undefined
+        && resource.resourceType === 'sheep'
+        && resource.owner === HUMAN_PLAYER_ID
+      );
+    }).length;
+    const nonSheepNonUnitMembers =
+      selectedEntityIds.length - selectedUnits.length - ownedSheepCountInSelection;
+    const selectedUnitsAndOwnedSheepCoverSelection = nonSheepNonUnitMembers === 0;
     const allSelectedUnitsAreHumanVillagers =
-      selectedUnits.length === selectedEntityIds.length
+      selectedUnitsAndOwnedSheepCoverSelection
       && selectedUnits.length > 0
       && selectedUnits.every((entry) => entry.unit.owner === HUMAN_PLAYER_ID && entry.unit.unitType === 'villager');
     const allSelectedUnitsShareType =
-      selectedUnits.length === selectedEntityIds.length
+      selectedUnitsAndOwnedSheepCoverSelection
       && selectedUnits.length > 0
       && selectedUnits.every((entry) => entry.unit.unitType === selectedUnits[0].unit.unitType);
     const trainOptions: TrainableUnitType[] =

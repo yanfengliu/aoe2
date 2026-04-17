@@ -250,6 +250,71 @@ describe('sheep movement', () => {
     }
   });
 
+  it('clears the order when the requested cell is blocked but the planner finishes adjacent', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+
+    expect(
+      stepBridgeUntil(bridge, () => findHumanClaimedSheep(bridge) !== undefined, { maxSteps: 20 }),
+    ).toBe(true);
+
+    const sheep = findHumanClaimedSheep(bridge)!;
+    // Right-click onto the human Town Center cell (a building footprint is
+    // blocked). The planner picks an adjacent free cell as the actual
+    // destination; the order must clear once the sheep reaches it instead
+    // of looping forever trying to reach the blocked target.
+    expect(selectSheepAt(bridge, sheep.x, sheep.y)).toBe(true);
+    expect(bridge.issueMoveCommand(4, 4)).toBe(true);
+
+    // Step long enough for the sheep to reach its planner destination, then
+    // poll for position stability (10 consecutive identical-position samples)
+    // to prove the order cleared rather than oscillated.
+    let lastX = sheep.x;
+    let lastY = sheep.y;
+    let stableTicks = 0;
+    for (let i = 0; i < 600; i += 1) {
+      bridge.step(100);
+      const current = findHumanClaimedSheep(bridge)!;
+      if (current.x === lastX && current.y === lastY) {
+        stableTicks += 1;
+      } else {
+        stableTicks = 0;
+        lastX = current.x;
+        lastY = current.y;
+      }
+      if (stableTicks >= 10) {
+        break;
+      }
+    }
+    expect(stableTicks).toBeGreaterThanOrEqual(10);
+
+    // The sheep should have ended adjacent to the Town Center footprint.
+    const settled = findHumanClaimedSheep(bridge)!;
+    expect(Math.abs(settled.x - 4) + Math.abs(settled.y - 4)).toBeLessThanOrEqual(3);
+  });
+
+  it('keeps villager build options available when a herd is part of the same drag-box selection', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().resources.filter(
+          (r) => r.resourceType === 'sheep' && r.owner === 1,
+        ).length >= 2,
+        { maxSteps: 30 },
+      ),
+    ).toBe(true);
+
+    // Drag-box across the human villager AND the cluster of owned sheep.
+    expect(bridge.selectUnitsInBox(18, 17, 21, 20)).toBe(true);
+
+    // Even with sheep in the selection, the villager should still expose
+    // its Dark-Age build options (House at minimum).
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.buildOptions.length).toBeGreaterThan(0);
+    expect(selectionState.buildOptions).toContain('house');
+  });
+
   it('moves an owned sheep at half villager speed', () => {
     const bridge = createSimulationBridge('sheep-movement-fixture');
     expect(
