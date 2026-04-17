@@ -3,7 +3,12 @@
 - Use test-driven development for behavior changes: write or update tests first, then make them pass.
 - Before implementing a change, write a plan.
 - Use a subagent to implement the plan. It should make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
-- Use code reviewer subagent to review every change on: correctness, clean code, design, efficiency, bugs. Use all three AI services (Claude/Codex/Gemini) to get different perspectives.
+- Use Codex code reviewer subagents to review every change on: (design) -> (correctness) -> (clean code, efficiency, memory leaks) -> (documentation). Each round of review should be done by a new subagent in series.
+- Example commands to use Codex for code review:
+  - `codex exec "Review my code for bugs and security issues"`
+  - `codex exec review uncommitted`
+  - `codex exec review base-branch main`
+  - `codex exec review commit <sha>`
 - The reviewers should check `docs/learning/lessons.md`.
 - Prefer small functions, reusable utilities, composition over inheritance, and dead-code cleanup.
 - Do not change game mechanics or behavior unless explicitly asked.
@@ -17,7 +22,7 @@
 - For all git commands, always use `git -C <path> <command>`.
 - Never use `cd ... && git ...`; that triggers the CLI security block.
 - Commit durable docs you add if you are not planning to remove them.
-- Commit early, commit often.
+- Commit as soon as you have a coherent, self-contained unit of change.
 
 ## Subagents
 
