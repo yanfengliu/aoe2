@@ -2125,7 +2125,10 @@ function createSheepMovementFixture(seed: string): PrototypeScenario {
         y: 4,
         owner: 1,
         baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
+        // Large vision so that unclaimed and enemy sheep elsewhere on the map
+        // are selectable from the test (visibility-gated). TCs do not have a
+        // `unit` component, so this does not affect proximity-based ownership.
+        vision: { playerId: 1, radius: 50 },
       },
       {
         kind: 'villager',
@@ -2147,6 +2150,14 @@ function createSheepMovementFixture(seed: string): PrototypeScenario {
         kind: 'scout',
         x: 21,
         y: 19,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'scout',
+        x: 36,
+        y: 25,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },

@@ -136,6 +136,7 @@ const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
 const UNIT_SUBGRID_RESOLUTION = 4;
 const UNIT_SUBGRID_STEP_PER_TICK = 2;
+const SHEEP_SUBGRID_STEP_PER_TICK = 1;
 const UNIT_CELL_SLOT_OFFSETS: ReadonlyArray<{ x: number; y: number }> = [
   { x: 0, y: 0 },
   { x: 0.5, y: 0 },
@@ -1362,6 +1363,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const townCenterRefs = new Map<number, EntityRef>();
   const villagerOrdinals = new Map<number, number>();
   const unitCommands = new Map<number, UnitCommand>();
+  const sheepMoveOrders = new Map<number, Position>();
   const rallyPoints = new Map<number, Position>();
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
@@ -2947,6 +2949,44 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
+  function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
+    const resource = world.getComponent<ResourceComponent>(sheepId, 'resource');
+    if (
+      !resource
+      || resource.resourceType !== 'sheep'
+      || resource.owner !== HUMAN_PLAYER_ID
+      || resource.amount <= 0
+    ) {
+      return false;
+    }
+
+    sheepMoveOrders.set(sheepId, {
+      x: clamp(target.x, 0, MAP_WIDTH - 1),
+      y: clamp(target.y, 0, MAP_HEIGHT - 1),
+    });
+    return true;
+  }
+
+  function getSelectedOwnedSheepId(): number | null {
+    const selectedIds = getSelectedEntityIds();
+    if (selectedIds.length !== 1) {
+      return null;
+    }
+
+    const onlyId = selectedIds[0]!;
+    const resource = world.getComponent<ResourceComponent>(onlyId, 'resource');
+    if (
+      !resource
+      || resource.resourceType !== 'sheep'
+      || resource.owner !== HUMAN_PLAYER_ID
+      || resource.amount <= 0
+    ) {
+      return null;
+    }
+
+    return onlyId;
+  }
+
   function issueUnitAttackCommand(
     unitId: number,
     targetEntityId: number,
@@ -4470,6 +4510,50 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   });
 
   world.registerSystem({
+    name: 'prototypeHerdableMovement',
+    phase: 'update',
+    after: ['prototypeHerdableOwnership'],
+    execute(activeWorld) {
+      for (const [sheepId, target] of [...sheepMoveOrders.entries()]) {
+        const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
+        const transform = getUnitTransform(sheepId, activeWorld);
+        if (
+          !resource
+          || !transform
+          || resource.resourceType !== 'sheep'
+          || resource.amount <= 0
+          || resource.owner === null
+        ) {
+          sheepMoveOrders.delete(sheepId);
+          continue;
+        }
+
+        if (isUnitTransformAtTarget(transform, sheepId, target)) {
+          sheepMoveOrders.delete(sheepId);
+          continue;
+        }
+
+        const start = gridPositionFromUnitTransform(transform);
+        const plan = findMovementPlan(
+          sheepId,
+          start,
+          getNearestMoveCandidates(target),
+          false,
+          activeWorld,
+          isCellPassableForWildlife,
+        );
+        if (!plan) {
+          sheepMoveOrders.delete(sheepId);
+          continue;
+        }
+
+        moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
+        markOutOfBandRenderChange();
+      }
+    },
+  });
+
+  world.registerSystem({
     name: 'prototypeVisibility',
     phase: 'update',
     after: ['prototypeHerdableOwnership'],
@@ -4908,6 +4992,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
+    const ownedSheepId = getSelectedOwnedSheepId();
+    if (ownedSheepId !== null) {
+      placementMode = null;
+      return issueSheepMoveCommand(ownedSheepId, { x, y });
+    }
+
     const selectedUnitIds = getSelectedHumanUnitIds();
     if (selectedUnitIds.length === 0) {
       return false;
@@ -4928,6 +5018,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function issueContextCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) {
       return false;
+    }
+
+    const ownedSheepId = getSelectedOwnedSheepId();
+    if (ownedSheepId !== null) {
+      placementMode = null;
+      return issueSheepMoveCommand(ownedSheepId, { x, y });
     }
 
     const selectedEntityId = getSelectedEntityId();
@@ -4976,6 +5072,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     const targetPosition = world.getComponent<Position>(entityId, 'position');
     if (!targetPosition) {
       return false;
+    }
+
+    const ownedSheepId = getSelectedOwnedSheepId();
+    if (ownedSheepId !== null) {
+      placementMode = null;
+      return issueSheepMoveCommand(ownedSheepId, targetPosition);
     }
 
     const selectedEntityId = getSelectedEntityId();
