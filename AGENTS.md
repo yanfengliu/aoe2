@@ -56,7 +56,7 @@
 
 ## civ-engine
 
-- Record `civ-engine` strengths, weaknesses, and missing ergonomics in `docs/engine-feedback.md` as you work.
+- Record `civ-engine` weaknesses and misses in `docs/engine-feedback.md` as you work. Before you write to it, use a subagent to audit if its content is still valid and up to date. If too long, stale, or the issues are already addressed, it should be adjusted.
 - If a missing engine feature blocks the task, stop your work and report it to the user. But do not modify the `civ-engine` repo directly.
 
 ## Debugging
