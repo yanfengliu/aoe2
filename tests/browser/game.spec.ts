@@ -1379,6 +1379,45 @@ test.describe('browser gameplay smoke tests', () => {
     await expect.poll(async () => (await getSnapshot(page)).selectionState.owner).toBe(1);
   });
 
+  test('lets the player right-click an owned sheep to walk it to a destination', async ({ page }) => {
+    test.slow();
+    await waitForBootWithSeed(page, 'sheep-movement-fixture');
+
+    // Wait for the human villager to claim its adjacent sheep at (20, 19).
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      return snapshot.economyState.resources.find(
+        (resource) => resource.resourceType === 'sheep' && resource.x === 20 && resource.y === 19,
+      )?.owner ?? null;
+    }).toBe(1);
+
+    // Select the now-owned sheep at its current cell.
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(20, 19))).toBe(true);
+
+    // Right-click a destination several tiles away on open terrain.
+    const targetX = 14;
+    const targetY = 19;
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        { x: targetX, y: targetY },
+      ),
+    ).toBe(true);
+
+    // Advance enough ticks for the sheep to make visible progress and assert the cell
+    // position has shifted toward the target.
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
+      const sheep = snapshot.economyState.resources.find(
+        (resource) => resource.resourceType === 'sheep' && resource.owner === 1,
+      );
+      if (!sheep) {
+        return Number.POSITIVE_INFINITY;
+      }
+      return Math.abs(sheep.x - targetX) + Math.abs(sheep.y - targetY);
+    }).toBeLessThan(Math.abs(20 - targetX) + Math.abs(19 - targetY));
+  });
+
   test('shows a player-facing info card for an individually selected unit', async ({ page }) => {
     await waitForBootWithSeed(page, 'villager-selection-fixture');
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');
