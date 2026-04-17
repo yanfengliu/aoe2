@@ -466,6 +466,7 @@ function isUnitTransformAtTarget(
 function stepUnitTransformToward(
   transform: UnitTransformComponent,
   targetTransform: UnitTransformComponent,
+  stepUnits: number = UNIT_SUBGRID_STEP_PER_TICK,
 ): UnitTransformComponent {
   const targetFineX = targetTransform.fineX;
   const targetFineY = targetTransform.fineY;
@@ -475,7 +476,7 @@ function stepUnitTransformToward(
       fineX:
         transform.fineX
         + Math.sign(targetFineX - transform.fineX)
-          * Math.min(Math.abs(targetFineX - transform.fineX), UNIT_SUBGRID_STEP_PER_TICK),
+          * Math.min(Math.abs(targetFineX - transform.fineX), stepUnits),
       fineY: transform.fineY,
     };
   }
@@ -486,7 +487,7 @@ function stepUnitTransformToward(
       fineY:
         transform.fineY
         + Math.sign(targetFineY - transform.fineY)
-          * Math.min(Math.abs(targetFineY - transform.fineY), UNIT_SUBGRID_STEP_PER_TICK),
+          * Math.min(Math.abs(targetFineY - transform.fineY), stepUnits),
     };
   }
 
@@ -1618,6 +1619,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     id: number,
     target: Position,
     activeWorld: World<GameEvents, GameCommands> = world,
+    stepUnits: number = UNIT_SUBGRID_STEP_PER_TICK,
   ): Position | null {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) {
@@ -1625,7 +1627,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     const targetTransform = getUnitTargetTransformForCell(id, target);
-    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, targetTransform));
+    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, targetTransform, stepUnits));
     transform.fineX = nextTransform.fineX;
     transform.fineY = nextTransform.fineY;
 
