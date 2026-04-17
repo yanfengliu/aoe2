@@ -2178,6 +2178,24 @@ function createSheepMovementFixture(seed: string): PrototypeScenario {
         baseOwner: null,
         amount: 100,
       },
+      // Two extra human-owned sheep adjacent to the human villager so the
+      // group-selection test can drag-box several owned sheep at once.
+      {
+        kind: 'sheep',
+        x: 19,
+        y: 18,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'sheep',
+        x: 19,
+        y: 19,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
     ],
   };
 }

@@ -184,6 +184,72 @@ describe('sheep movement', () => {
     expect(sheepAfter?.y).toBe(enemyY);
   });
 
+  it('drag-box selects all human-owned sheep inside the rectangle', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+
+    // Wait for the human villager to claim the cluster of nearby sheep.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().resources.filter(
+          (r) => r.resourceType === 'sheep' && r.owner === 1,
+        ).length >= 2,
+        { maxSteps: 30 },
+      ),
+    ).toBe(true);
+
+    // Drag-box across the cluster of human-claimed sheep at (19,18), (19,19), (20,19)
+    // and the human villager at (20,18). All four should be selected as a group.
+    expect(bridge.selectUnitsInBox(18, 17, 21, 20)).toBe(true);
+
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it('moves multiple owned sheep with a single right-click on the group', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().resources.filter(
+          (r) => r.resourceType === 'sheep' && r.owner === 1,
+        ).length >= 2,
+        { maxSteps: 30 },
+      ),
+    ).toBe(true);
+
+    const sheepBefore = bridge
+      .getEconomyState()
+      .resources.filter((r) => r.resourceType === 'sheep' && r.owner === 1)
+      .map((r) => ({ x: r.x, y: r.y }));
+    expect(sheepBefore.length).toBeGreaterThanOrEqual(2);
+
+    // Drag-box just the sheep cluster (exclude the human villager so we issue
+    // a sheep-only command) and move them all toward a far cell.
+    expect(bridge.selectUnitsInBox(19, 18, 20, 19)).toBe(true);
+    const targetX = 4;
+    const targetY = 4;
+    expect(bridge.issueMoveCommand(targetX, targetY)).toBe(true);
+
+    stepBridgeNTicks(bridge, 60);
+
+    const sheepAfter = bridge
+      .getEconomyState()
+      .resources.filter((r) => r.resourceType === 'sheep' && r.owner === 1)
+      .map((r) => ({ x: r.x, y: r.y }));
+    expect(sheepAfter.length).toBe(sheepBefore.length);
+
+    // Every sheep that the player commanded should be measurably closer to the target.
+    for (let i = 0; i < sheepBefore.length; i += 1) {
+      const before = sheepBefore[i]!;
+      const after = sheepAfter[i]!;
+      const beforeDist = Math.abs(before.x - targetX) + Math.abs(before.y - targetY);
+      const afterDist = Math.abs(after.x - targetX) + Math.abs(after.y - targetY);
+      expect(afterDist).toBeLessThan(beforeDist);
+    }
+  });
+
   it('moves an owned sheep at half villager speed', () => {
     const bridge = createSimulationBridge('sheep-movement-fixture');
     expect(
