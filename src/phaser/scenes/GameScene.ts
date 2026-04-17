@@ -45,6 +45,7 @@ const EDGE_PAN_HOVER_DELAY_MS = 500;
 const MIDDLE_DRAG_PAN_MIN_DELTA_PX = 0.5;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 2.4;
+const INITIAL_CAMERA_ZOOM = 1.4;
 
 export interface CameraState {
   scrollX: number;
@@ -192,10 +193,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     const bounds = canvas.getBoundingClientRect();
-    const worldPoint = this.cameras.main.getWorldPoint(
-      event.clientX - bounds.left,
-      event.clientY - bounds.top,
-    );
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return;
+    }
+    const canvasX = (event.clientX - bounds.left) * (canvas.width / bounds.width);
+    const canvasY = (event.clientY - bounds.top) * (canvas.height / bounds.height);
+    const worldPoint = this.cameras.main.getWorldPoint(canvasX, canvasY);
     const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
     const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
 
@@ -221,7 +224,7 @@ export class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
-    this.setCameraZoom(1.4);
+    this.setCameraZoom(INITIAL_CAMERA_ZOOM);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasd = this.input.keyboard?.addKeys(
@@ -786,8 +789,11 @@ export class GameScene extends Phaser.Scene {
     const pointer = this.input.activePointer;
     const width = this.scale.width;
     const height = this.scale.height;
+    // activePointer defaults to (0, 0), which is inside the NW edge zone. Wait
+    // for a real mousemove on the canvas before trusting it.
     if (
-      pointer.isDown
+      pointer.moveTime === 0
+      || pointer.isDown
       || pointer.x < 0
       || pointer.y < 0
       || pointer.x > width
@@ -839,6 +845,10 @@ export class GameScene extends Phaser.Scene {
     this.clampCameraToWorld();
 
     const camera = this.cameras.main;
+    const viewWidth = camera.width / camera.zoom;
+    const viewHeight = camera.height / camera.zoom;
+    const viewX = camera.scrollX + (camera.width - viewWidth) * 0.5;
+    const viewY = camera.scrollY + (camera.height - viewHeight) * 0.5;
 
     return {
       scrollX: camera.scrollX,
@@ -846,10 +856,10 @@ export class GameScene extends Phaser.Scene {
       zoom: camera.zoom,
       width: camera.width,
       height: camera.height,
-      viewX: camera.worldView.x,
-      viewY: camera.worldView.y,
-      viewWidth: camera.worldView.width,
-      viewHeight: camera.worldView.height,
+      viewX,
+      viewY,
+      viewWidth,
+      viewHeight,
     };
   }
 
@@ -858,17 +868,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const camera = this.cameras.main;
-    const { visibleWorldWidth, visibleWorldHeight, maxScrollX, maxScrollY } = this.getCameraWorldMetrics(camera);
-
-    camera.scrollX = Phaser.Math.Clamp(worldX - visibleWorldWidth * 0.5, 0, maxScrollX);
-    camera.scrollY = Phaser.Math.Clamp(worldY - visibleWorldHeight * 0.5, 0, maxScrollY);
+    this.cameras.main.centerOn(worldX, worldY);
     this.clampCameraToWorld();
   }
 
   private setCameraZoom(nextZoom: number): void {
     const camera = this.cameras.main;
-    const minimumZoom = this.getMinimumCameraZoom(camera);
+    const minimumZoom = this.getMinimumCameraZoom();
     const clampedZoom = Phaser.Math.Clamp(nextZoom, minimumZoom, MAX_CAMERA_ZOOM);
     camera.setZoom(clampedZoom);
     this.clampCameraToWorld();
@@ -880,17 +886,19 @@ export class GameScene extends Phaser.Scene {
     }
 
     const camera = this.cameras.main;
-    const minimumZoom = this.getMinimumCameraZoom(camera);
-    if (camera.zoom < minimumZoom || camera.zoom > MAX_CAMERA_ZOOM) {
-      camera.setZoom(Phaser.Math.Clamp(camera.zoom, minimumZoom, MAX_CAMERA_ZOOM));
+    const minimumZoom = this.getMinimumCameraZoom();
+    const clampedZoom = Phaser.Math.Clamp(camera.zoom, minimumZoom, MAX_CAMERA_ZOOM);
+    if (camera.zoom !== clampedZoom) {
+      camera.setZoom(clampedZoom);
     }
 
-    const { maxScrollX, maxScrollY } = this.getCameraWorldMetrics(camera);
-    camera.scrollX = Phaser.Math.Clamp(camera.scrollX, 0, maxScrollX);
-    camera.scrollY = Phaser.Math.Clamp(camera.scrollY, 0, maxScrollY);
+    const { minScrollX, maxScrollX, minScrollY, maxScrollY } = this.getCameraScrollBounds(camera);
+    camera.scrollX = Phaser.Math.Clamp(camera.scrollX, minScrollX, maxScrollX);
+    camera.scrollY = Phaser.Math.Clamp(camera.scrollY, minScrollY, maxScrollY);
   }
 
-  private getMinimumCameraZoom(camera: Phaser.Cameras.Scene2D.Camera): number {
+  private getMinimumCameraZoom(): number {
+    const camera = this.cameras.main;
     return Math.max(
       MIN_CAMERA_ZOOM,
       camera.width / this.getWorldWidthPx(),
@@ -898,22 +906,24 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private getCameraWorldMetrics(camera: Phaser.Cameras.Scene2D.Camera): {
-    visibleWorldWidth: number;
-    visibleWorldHeight: number;
+  private getCameraScrollBounds(camera: Phaser.Cameras.Scene2D.Camera): {
+    minScrollX: number;
     maxScrollX: number;
+    minScrollY: number;
     maxScrollY: number;
   } {
-    const visibleWorldWidth = camera.width / camera.zoom;
-    const visibleWorldHeight = camera.height / camera.zoom;
-    const maxScrollX = Math.max(0, this.getWorldWidthPx() - visibleWorldWidth);
-    const maxScrollY = Math.max(0, this.getWorldHeightPx() - visibleWorldHeight);
+    const viewWidth = camera.width / camera.zoom;
+    const viewHeight = camera.height / camera.zoom;
+    const minScrollX = (viewWidth - camera.width) * 0.5;
+    const maxScrollX = this.getWorldWidthPx() - (camera.width + viewWidth) * 0.5;
+    const minScrollY = (viewHeight - camera.height) * 0.5;
+    const maxScrollY = this.getWorldHeightPx() - (camera.height + viewHeight) * 0.5;
 
     return {
-      visibleWorldWidth,
-      visibleWorldHeight,
-      maxScrollX,
-      maxScrollY,
+      minScrollX,
+      maxScrollX: Math.max(minScrollX, maxScrollX),
+      minScrollY,
+      maxScrollY: Math.max(minScrollY, maxScrollY),
     };
   }
 

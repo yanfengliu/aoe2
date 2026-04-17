@@ -784,8 +784,6 @@ test.describe('browser gameplay smoke tests', () => {
     const frame = movedSnapshot.renderState.frame;
     expect(movedCamera).not.toBeNull();
     expect(frame).not.toBeNull();
-    expect(movedCamera?.scrollX ?? 0).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
-    expect(movedCamera?.scrollY ?? 0).toBeGreaterThan((initialCamera?.scrollY ?? 0) + 40);
 
     const visibleWorldWidth = movedCamera?.viewWidth ?? 0;
     const visibleWorldHeight = movedCamera?.viewHeight ?? 0;
@@ -794,10 +792,49 @@ test.describe('browser gameplay smoke tests', () => {
     const worldWidth = (frame?.mapWidth ?? 0) * 24;
     const worldHeight = (frame?.mapHeight ?? 0) * 24;
 
-    expect(centerX / worldWidth).toBeGreaterThan(0.82);
-    expect(centerY / worldHeight).toBeGreaterThan(0.7);
+    const expectedCenterX = Math.min(0.84 * worldWidth, worldWidth - visibleWorldWidth * 0.5);
+    const expectedCenterY = Math.min(0.76 * worldHeight, worldHeight - visibleWorldHeight * 0.5);
+    expect(Math.abs(centerX - expectedCenterX)).toBeLessThan(10);
+    expect(Math.abs(centerY - expectedCenterY)).toBeLessThan(10);
     expect(centerX).toBeLessThanOrEqual(worldWidth - visibleWorldWidth * 0.5 + 0.5);
     expect(centerY).toBeLessThanOrEqual(worldHeight - visibleWorldHeight * 0.5 + 0.5);
+  });
+
+  test('clicking the minimap centers the camera exactly on the clicked world position', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    const gameCanvas = page.locator('#game-root canvas');
+    const canvasBox = await gameCanvas.boundingBox();
+    expect(canvasBox).not.toBeNull();
+    await page.mouse.move(
+      (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) * 0.5,
+      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) * 0.5,
+    );
+    await page.mouse.wheel(0, -800);
+
+    await clickMinimapAt(page, 0.5, 0.5);
+
+    await expect.poll(async () => {
+      const snapshot = await getSnapshot(page);
+      const camera = snapshot.cameraState;
+      const frame = snapshot.renderState.frame;
+      if (!camera || !frame) {
+        return null;
+      }
+      return {
+        centerX: Math.round(camera.viewX + camera.viewWidth / 2),
+        centerY: Math.round(camera.viewY + camera.viewHeight / 2),
+        worldCenterX: Math.round((frame.mapWidth * 24) / 2),
+        worldCenterY: Math.round((frame.mapHeight * 24) / 2),
+      };
+    }).toMatchObject({
+      centerX: 720,
+      centerY: 432,
+      worldCenterX: 720,
+      worldCenterY: 432,
+    });
   });
 
   test('dragging across the minimap continuously pans the camera', async ({ page }) => {
@@ -809,7 +846,7 @@ test.describe('browser gameplay smoke tests', () => {
     await dragMinimapTo(page, 0.2, 0.2, 0.82, 0.78);
 
     await expect.poll(async () => (await getSnapshot(page)).cameraState?.scrollX ?? 0)
-      .toBeGreaterThan((initialCamera?.scrollX ?? 0) + 120);
+      .toBeGreaterThan((initialCamera?.scrollX ?? 0) + 60);
 
     const movedSnapshot = await getSnapshot(page);
     const movedCamera = movedSnapshot.cameraState;
@@ -824,8 +861,10 @@ test.describe('browser gameplay smoke tests', () => {
     const worldWidth = (frame?.mapWidth ?? 0) * 24;
     const worldHeight = (frame?.mapHeight ?? 0) * 24;
 
-    expect(centerX / worldWidth).toBeGreaterThan(0.72);
-    expect(centerY / worldHeight).toBeGreaterThan(0.68);
+    const expectedCenterX = Math.min(0.82 * worldWidth, worldWidth - visibleWorldWidth * 0.5);
+    const expectedCenterY = Math.min(0.78 * worldHeight, worldHeight - visibleWorldHeight * 0.5);
+    expect(Math.abs(centerX - expectedCenterX)).toBeLessThan(10);
+    expect(Math.abs(centerY - expectedCenterY)).toBeLessThan(10);
   });
 
   test('the minimap exposes a viewport rectangle that tracks the current camera coverage', async ({
@@ -883,10 +922,15 @@ test.describe('browser gameplay smoke tests', () => {
     }).toBe(true);
   });
 
-  test('keeps the canvas and camera aligned after the browser viewport shrinks', async ({
+  test('preserves the game aspect ratio with letterboxing after the browser viewport shrinks', async ({
     page,
   }) => {
     await waitForBoot(page);
+
+    const initialSnapshot = await getSnapshot(page);
+    const worldAspect =
+      (initialSnapshot.renderState.frame?.mapWidth ?? 0)
+      / (initialSnapshot.renderState.frame?.mapHeight ?? 1);
 
     await page.setViewportSize({
       width: 520,
@@ -907,18 +951,19 @@ test.describe('browser gameplay smoke tests', () => {
       };
     }).toEqual({
       rootWidth: 520,
-      rootHeight: 560,
+      rootHeight: 312,
       canvasWidth: 520,
-      canvasHeight: 560,
+      canvasHeight: 312,
       cameraWidth: 520,
-      cameraHeight: 560,
+      cameraHeight: 312,
     });
 
     const metrics = await getGameCanvasMetrics(page);
     expect(metrics.boundsLeft).toBeGreaterThanOrEqual(0);
     expect(metrics.boundsTop).toBeGreaterThanOrEqual(0);
     expect(metrics.boundsWidth).toBe(520);
-    expect(metrics.boundsHeight).toBe(560);
+    expect(metrics.boundsHeight).toBe(312);
+    expect(metrics.boundsWidth / metrics.boundsHeight).toBeCloseTo(worldAspect, 2);
   });
 
   test('prevents zooming out beyond the playable map bounds', async ({ page }) => {
@@ -956,10 +1001,10 @@ test.describe('browser gameplay smoke tests', () => {
     expect(camera?.zoom ?? 0).toBeGreaterThanOrEqual(minZoomToFitWorld - 0.001);
     expect(visibleWorldWidth).toBeLessThanOrEqual(worldWidth + 0.5);
     expect(visibleWorldHeight).toBeLessThanOrEqual(worldHeight + 0.5);
-    expect(camera?.scrollX ?? 0).toBeGreaterThanOrEqual(-0.5);
-    expect(camera?.scrollY ?? 0).toBeGreaterThanOrEqual(-0.5);
-    expect((camera?.scrollX ?? 0) + visibleWorldWidth).toBeLessThanOrEqual(worldWidth + 0.5);
-    expect((camera?.scrollY ?? 0) + visibleWorldHeight).toBeLessThanOrEqual(worldHeight + 0.5);
+    expect(camera?.viewX ?? 0).toBeGreaterThanOrEqual(-0.5);
+    expect(camera?.viewY ?? 0).toBeGreaterThanOrEqual(-0.5);
+    expect((camera?.viewX ?? 0) + (camera?.viewWidth ?? 0)).toBeLessThanOrEqual(worldWidth + 0.5);
+    expect((camera?.viewY ?? 0) + (camera?.viewHeight ?? 0)).toBeLessThanOrEqual(worldHeight + 0.5);
   });
 
   test('keeps human starting units idle until the player gives orders', async ({ page }) => {

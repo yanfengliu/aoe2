@@ -795,8 +795,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       }
 
       const bounds = minimap.getBoundingClientRect();
-      const localX = clientX - bounds.left;
-      const localY = clientY - bounds.top;
+      if (bounds.width <= 0 || bounds.height <= 0) {
+        return;
+      }
+      const canvasScaleX = minimap.width / bounds.width;
+      const canvasScaleY = minimap.height / bounds.height;
+      const localX = (clientX - bounds.left) * canvasScaleX;
+      const localY = (clientY - bounds.top) * canvasScaleY;
       if (
         localX < layout.offsetX
         || localX > layout.offsetX + layout.drawWidth
