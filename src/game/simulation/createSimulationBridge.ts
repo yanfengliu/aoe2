@@ -2928,6 +2928,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   function destroyResourceEntity(id: number): void {
     removeSelectedEntity(id);
     wildlifeStates.delete(id);
+    sheepMoveOrders.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
