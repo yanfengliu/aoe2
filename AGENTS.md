@@ -3,8 +3,7 @@
 - Use test-driven development for behavior changes: write or update tests first, then make them pass.
 - Before implementing a change, write a plan.
 - Use a subagent to implement the plan. It should make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
-- Use 3 code reviewer subagents to review every change. One for correctness and clean code; one for design and efficiency; one for bugs.
-- Also use other AI services (Claude/Codex/Gemini) to get a different perspective.
+- Use code reviewer subagent to review every change on: correctness, clean code, design, efficiency, bugs. Use all three AI services (Claude/Codex/Gemini) to get different perspectives.
 - The reviewers should check `docs/learning/lessons.md`.
 - Prefer small functions, reusable utilities, composition over inheritance, and dead-code cleanup.
 - Do not change game mechanics or behavior unless explicitly asked.
