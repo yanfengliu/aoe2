@@ -52,7 +52,9 @@
 
 ## Code Review
 
-- After you make any change, use a code reviewer subagent to review your work. The subagent should check `docs/learning/lessons.md`.
+- Use 3 code reviewer subagents to review every change. One for correctness and clean code; one for design and efficiency; one for bugs.
+- Also use Codex to get a different perspective.
+- The reviewers should check `docs/learning/lessons.md`.
 
 ## civ-engine
 
