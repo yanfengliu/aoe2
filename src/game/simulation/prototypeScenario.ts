@@ -2102,6 +2102,75 @@ function createSheepOwnershipFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createSheepMovementFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 30 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 20,
+        y: 18,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'sheep',
+        x: 20,
+        y: 19,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+      {
+        kind: 'scout',
+        x: 21,
+        y: 19,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'sheep',
+        x: 35,
+        y: 25,
+        owner: 2,
+        baseOwner: 2,
+        amount: 100,
+      },
+      {
+        kind: 'sheep',
+        x: 45,
+        y: 25,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      },
+    ],
+  };
+}
+
 function createResourceDepletionFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -2554,6 +2623,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'sheep-ownership-fixture') {
     return createSheepOwnershipFixture(seed);
+  }
+
+  if (seed === 'sheep-movement-fixture') {
+    return createSheepMovementFixture(seed);
   }
 
   if (seed === 'resource-depletion-fixture') {
