@@ -1887,6 +1887,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       visualVariant: 'default',
     });
 
+    if (resourceType === 'sheep') {
+      world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
+    }
+
     if (isWildlifeResourceType(resourceType)) {
       wildlifeStates.set(entity, createWildlifeState(resourceType));
     }
