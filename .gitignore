@@ -140,6 +140,7 @@ vite.config.ts.timestamp-*
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/*.lock
 generated/content/content.json
 playwright-report/
 test-results/
