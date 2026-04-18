@@ -1812,6 +1812,259 @@ function createCamelVsRamFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 5 fixture: Castle-Age human start with a completed Monastery and a
+// nearby neutral relic. Used for Monastery train-menu, Monk build placement,
+// pickup, and deposit tests without waiting for placement. Player 2 starts
+// with a standard TC for containment and owns a wounded Spearman (heal
+// target) and a Militia (convert target) close by.
+function createMonasteryFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        startingResources: {
+          food: 500,
+          wood: 500,
+          gold: 500,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monastery',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'relic',
+        x: 14,
+        y: 12,
+        owner: null,
+        baseOwner: null,
+        amount: 0,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 5 fixture for Monk heal: player-1 Monk adjacent to a friendly wounded
+// Spearman. Spearman starts damaged (we damage it in the test prelude); heal
+// system restores HP over ticks.
+function createMonkHealFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'spearman',
+        x: 15,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 5 fixture for Monk convert: player-1 Monk adjacent to an enemy
+// Militia. After about 50 ticks the Militia flips to player 1.
+function createMonkConvertFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'militia',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 5 fixture for Monk relic pickup + deposit: player-1 Monk, a neutral
+// relic adjacent, and a player-1 Monastery 4 cells away. Used for pickup,
+// follow, deposit, and gold-income tests.
+function createMonkRelicFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monastery',
+        x: 18,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'relic',
+        x: 15,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 0,
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Castle-Age combat fixture: a player-1 Camel stationed next to an enemy
 // (player 2) Knight and Scout, used to assert the Camel's +9 anti-cavalry
 // bonus without pursuit / pathing noise. All three units start in Castle
@@ -3590,6 +3843,22 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'camel-vs-ram-fixture') {
     return createCamelVsRamFixture(seed);
+  }
+
+  if (seed === 'monastery-fixture') {
+    return createMonasteryFixture(seed);
+  }
+
+  if (seed === 'monk-heal-fixture') {
+    return createMonkHealFixture(seed);
+  }
+
+  if (seed === 'monk-convert-fixture') {
+    return createMonkConvertFixture(seed);
+  }
+
+  if (seed === 'monk-relic-fixture') {
+    return createMonkRelicFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {

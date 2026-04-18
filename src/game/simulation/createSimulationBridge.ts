@@ -154,6 +154,18 @@ const CAVALRY_ARCHER_TRAIN_TIME_TICKS = 340;
 const MANGONEL_TRAIN_TIME_TICKS = 460;
 const SCORPION_TRAIN_TIME_TICKS = 300;
 const BATTERING_RAM_TRAIN_TIME_TICKS = 360;
+const MONASTERY_BUILD_TIME_TICKS = 280;
+const MONK_TRAIN_TIME_TICKS = 510;
+// Deterministic per-tick increments for Monk conversion and heal (Slice 5).
+// Conversion flips target ownership at 50 progress; heal restores 1 HP per
+// 10 ticks. These values are intentionally v1 "easy-to-observe" rates — real
+// AoE2 uses per-tick conversion chance plus faith; out-of-scope here.
+const MONK_HEAL_TICK_INTERVAL = 10;
+const MONK_HEAL_HP_PER_INTERVAL = 1;
+const MONK_CONVERT_PROGRESS_PER_TICK = 1;
+const MONK_CONVERT_FLIP_THRESHOLD = 50;
+const MONK_ACTION_RANGE = 4;
+const MONK_VISION_RADIUS = 9;
 const CROSSBOWMAN_UPGRADE_RESEARCH_TIME_TICKS = 350;
 const PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS = 450;
 const LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS = 450;
@@ -188,6 +200,15 @@ interface UnitCommand {
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';
+}
+
+// Slice 5 Monk task. A Monk can heal a friendly wounded unit, convert an
+// enemy unit, pick up a neutral relic, or deposit a carried relic in a
+// friendly Monastery. The task encodes the target by stable EntityRef so
+// cleanup is automatic when the target is destroyed.
+interface MonkTask {
+  kind: 'heal' | 'convert' | 'pickup' | 'deposit';
+  targetEntityRef: EntityRef;
 }
 
 interface ConstructionState {
@@ -305,6 +326,12 @@ function inventoryResourceName(resourceType: ResourceKind): string {
     case 'sheep':
     case 'wolf':
       return 'food';
+    // Relics are not harvestable — they carry no inventory amount. This
+    // branch should never fire because getSelectionInventory is only called
+    // for resource entities with an amount, but the exhaustive switch needs
+    // to cover every ResourceKind.
+    case 'relic':
+      return 'relic';
   }
 }
 
@@ -361,6 +388,9 @@ function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind 
     case 'sheep':
       return 'food';
     case 'wolf':
+    // Relics are picked up by Monks via dedicated pickup/deposit commands;
+    // they are not part of the gather-drop economy loop.
+    case 'relic':
       return null;
   }
 }
@@ -379,6 +409,8 @@ function gatherTicksFor(kind: ResourceKind): number {
       return 6;
     case 'wolf':
       throw new Error('Wolves are not harvestable resources.');
+    case 'relic':
+      throw new Error('Relics are not harvestable resources; use the Monk pickup flow.');
   }
 }
 
@@ -396,6 +428,8 @@ function gatherAmountFor(kind: ResourceKind): number {
       return 1;
     case 'wolf':
       throw new Error('Wolves are not harvestable resources.');
+    case 'relic':
+      throw new Error('Relics are not harvestable resources; use the Monk pickup flow.');
   }
 }
 
@@ -418,6 +452,7 @@ function resourceTint(resourceType: ResourceKind, owner: number | null): number 
     sheep: 0xe7ece6,
     wolf: 0x7f8894,
     tree: 0x214d2d,
+    relic: 0xf5d680,
   };
 
   return tintByResource[resourceType];
@@ -630,6 +665,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'blacksmith':
     case 'market':
     case 'siege-workshop':
+    case 'monastery':
     case 'town-center':
       return 0;
   }
@@ -659,6 +695,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return MARKET_BUILD_TIME_TICKS;
     case 'siege-workshop':
       return SIEGE_WORKSHOP_BUILD_TIME_TICKS;
+    case 'monastery':
+      return MONASTERY_BUILD_TIME_TICKS;
   }
 }
 
@@ -677,6 +715,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'blacksmith':
     case 'market':
     case 'siege-workshop':
+    case 'monastery':
       return 1.2;
     case 'town-center':
       return 1.4;
@@ -754,6 +793,12 @@ function buildingTint(
       : isComplete ? 0x8b6a55 : 0x57413a;
   }
 
+  if (buildingType === 'monastery') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xcfc3a8 : 0x6f6757
+      : isComplete ? 0xc3a8b6 : 0x6e5862;
+  }
+
   return owner === HUMAN_PLAYER_ID
     ? isComplete ? 0xd8b36c : 0x7d6545
     : isComplete ? 0xa15c5c : 0x674040;
@@ -824,6 +869,8 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { wood: 80, gold: 60 };
     case 'battering-ram':
       return { wood: 160, gold: 75 };
+    case 'monk':
+      return { gold: 100 };
   }
 }
 
@@ -866,6 +913,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { stone: 125 };
     case 'siege-workshop':
       return { wood: 200 };
+    case 'monastery':
+      return { wood: 175 };
   }
 }
 
@@ -901,6 +950,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return SCORPION_TRAIN_TIME_TICKS;
     case 'battering-ram':
       return BATTERING_RAM_TRAIN_TIME_TICKS;
+    case 'monk':
+      return MONK_TRAIN_TIME_TICKS;
   }
 }
 
@@ -938,6 +989,8 @@ function buildingMaxHp(buildingType: BuildingType): number {
       return 175;
     case 'siege-workshop':
       return 2000;
+    case 'monastery':
+      return 2100;
     case 'town-center':
       return 2400;
   }
@@ -1018,6 +1071,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'siege-workshop' && unitType === 'mangonel')
     || (buildingType === 'siege-workshop' && unitType === 'scorpion')
     || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
+    || (buildingType === 'monastery' && unitType === 'monk')
   );
 }
 
@@ -1067,6 +1121,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 40;
     case 'battering-ram':
       return 175;
+    case 'monk':
+      return 30;
   }
 }
 
@@ -1102,6 +1158,12 @@ function unitAttackDamage(unitType: UnitType): number {
       return 12;
     case 'battering-ram':
       return 2;
+    // Monks have no combat damage; they heal and convert via dedicated
+    // per-tick systems, not the standard attack loop. Returning 0 keeps the
+    // attack branch harmless if a Monk is ever assigned an attack command
+    // (the combat state still exists but the hit does nothing).
+    case 'monk':
+      return 0;
   }
 }
 
@@ -1137,6 +1199,11 @@ function unitReloadTicks(unitType: UnitType): number {
       return 35;
     case 'battering-ram':
       return 50;
+    // Monks never trigger the combat attack branch (attackDamage 0, range 0)
+    // so the reload value is irrelevant; pick a small positive number to keep
+    // the CombatState non-zero and avoid spurious divide-by-zero risk.
+    case 'monk':
+      return 10;
   }
 }
 
@@ -1161,6 +1228,10 @@ function unitAttackRange(unitType: UnitType): number {
     case 'mangonel':
     case 'scorpion':
       return 7;
+    // Monks never close to attack (damage is 0) — the heal/convert systems
+    // read MONK_ACTION_RANGE directly, not this function.
+    case 'monk':
+      return 0;
   }
 }
 
@@ -1186,6 +1257,8 @@ function isWildlifeResourceType(resourceType: ResourceKind): resourceType is 'bo
 // safe to cache in fog memory. Sheep and any wildlife (boar, wolf) are movable
 // and would yield a stale ghost at their old cell once they leave vision; fish
 // stay put but are also excluded so the predicate stays explicit and exhaustive.
+// Relics are also excluded — while neutral relics stay put, a carried relic
+// tracks the Monk and would leave a stale ghost at its last-seen cell.
 function isStaticMemorableResourceType(
   resourceType: ResourceKind,
 ): resourceType is 'tree' | 'berry-bush' | 'gold-mine' | 'stone-mine' {
@@ -1199,6 +1272,7 @@ function isStaticMemorableResourceType(
     case 'boar':
     case 'wolf':
     case 'fish':
+    case 'relic':
       return false;
   }
 }
@@ -1296,6 +1370,8 @@ function unitTint(unitType: UnitType, owner: number): number {
       return isHuman ? 0x9a854e : 0x996453;
     case 'battering-ram':
       return isHuman ? 0x6e543a : 0x6e4239;
+    case 'monk':
+      return isHuman ? 0xe3d9b5 : 0xd6aab6;
   }
 }
 
@@ -1327,6 +1403,8 @@ function unitSize(unitType: UnitType): number {
       return 0.6;
     case 'battering-ram':
       return 0.75;
+    case 'monk':
+      return 0.48;
   }
 }
 
@@ -1361,6 +1439,8 @@ function unitVisionRadius(unitType: UnitType): number {
       return 9;
     case 'battering-ram':
       return 3;
+    case 'monk':
+      return MONK_VISION_RADIUS;
   }
 }
 
@@ -1743,6 +1823,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const unitCommands = new Map<number, UnitCommand>();
   const sheepMoveOrders = new Map<number, Position>();
   const rallyPoints = new Map<number, Position>();
+  // Slice 5 Monk state. Monks operate outside the standard attack loop: the
+  // `monkTasks` map records what each selected Monk should do on the next tick
+  // (heal a friendly wounded unit, convert an enemy unit, pickup a neutral
+  // relic, or deposit a carried relic in a friendly Monastery). The system
+  // `prototypeMonkBehavior` reads these per tick.
+  const monkTasks = new Map<number, MonkTask>();
+  // Convert progress per target entity id. Ticks up by
+  // `MONK_CONVERT_PROGRESS_PER_TICK` while a Monk is in range and targeting
+  // the enemy; when progress reaches `MONK_CONVERT_FLIP_THRESHOLD` the target
+  // flips to the Monk's owner and this map entry clears.
+  const conversionState = new Map<number, { byOwner: number; progress: number }>();
+  // Which relic entity (if any) each Monk is carrying. Per tick the relic
+  // entity's position is moved to the Monk's cell.
+  const monkCarriedRelic = new Map<number, number>();
+  // Per-Monastery count of deposited relics. Per tick, every owner gets +1
+  // gold for each relic deposited in their Monasteries (see prototypeRelicGold).
+  const relicsInMonastery = new Map<number, number>();
   // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
   // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
   // visible to the player; read at render-projection time for cells that are
@@ -2015,6 +2112,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (resource.resourceType === 'wolf') {
         return null;
       }
+      // Relics have no harvestable amount; show a flavor string instead of
+      // "0 / 0" which would otherwise imply an empty resource patch.
+      if (resource.resourceType === 'relic') {
+        return 'Deposit in a Monastery for gold';
+      }
       return `${resource.amount} / ${resource.maxAmount} ${inventoryResourceName(resource.resourceType)} remaining`;
     }
 
@@ -2225,6 +2327,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || buildingType === 'archery-range'
       || buildingType === 'blacksmith'
       || buildingType === 'market'
+      || buildingType === 'siege-workshop'
+      || buildingType === 'monastery'
     ) {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
@@ -2284,6 +2388,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       sheep: 0.42,
       wolf: 0.46,
       tree: 0.58,
+      relic: 0.5,
     };
 
     world.addComponent(entity, 'resource', {
@@ -2328,6 +2433,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'blacksmith'
       || spawn.kind === 'market'
       || spawn.kind === 'siege-workshop'
+      || spawn.kind === 'monastery'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
@@ -2350,6 +2456,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'mangonel'
       || spawn.kind === 'scorpion'
       || spawn.kind === 'battering-ram'
+      || spawn.kind === 'monk'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -2539,6 +2646,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     resource: ResourceComponent,
   ): boolean {
     if (resource.amount <= 0) {
+      return false;
+    }
+
+    // Relics are never harvestable via the gather-drop economy; Monks pick
+    // them up through a dedicated command flow (Slice 5).
+    if (resource.resourceType === 'relic') {
       return false;
     }
 
@@ -4009,6 +4122,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         }
         return ['mangonel', 'scorpion', 'battering-ram'];
       }
+      case 'monastery': {
+        // Monastery is Castle-Age+ only; Monks are the sole trainable unit
+        // in v1 (research techs like Faith / Sanctity are out of scope).
+        if (!isAtLeastAge(owner, 'castle-age')) {
+          return [];
+        }
+        return ['monk'];
+      }
       default:
         return [];
     }
@@ -4110,6 +4231,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
       options.push('town-center');
       options.push('siege-workshop');
+      options.push('monastery');
     }
 
     return options;
@@ -4143,6 +4265,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'mangonel':
       case 'scorpion':
       case 'battering-ram':
+        return 7;
+      // Monks have no combat damage but convert and heal; AI should treat them
+      // as a high-value backline target roughly on par with siege.
+      case 'monk':
         return 7;
     }
   }

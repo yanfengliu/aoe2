@@ -15,7 +15,8 @@ export type UnitType =
   | 'cavalry-archer'
   | 'mangonel'
   | 'scorpion'
-  | 'battering-ram';
+  | 'battering-ram'
+  | 'monk';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -31,7 +32,8 @@ export type TrainableUnitType =
   | 'cavalry-archer'
   | 'mangonel'
   | 'scorpion'
-  | 'battering-ram';
+  | 'battering-ram'
+  | 'monk';
 export type ResearchableTechnologyType =
   | 'feudal-age'
   | 'castle-age'
@@ -59,7 +61,8 @@ export type BuildableBuildingType =
   | 'archery-range'
   | 'blacksmith'
   | 'market'
-  | 'siege-workshop';
+  | 'siege-workshop'
+  | 'monastery';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -69,7 +72,8 @@ export type ResourceKind =
   | 'fish'
   | 'sheep'
   | 'wolf'
-  | 'tree';
+  | 'tree'
+  | 'relic';
 export type EconomyResourceKind = 'food' | 'wood' | 'gold' | 'stone';
 export type GatherTaskState =
   | 'idle'

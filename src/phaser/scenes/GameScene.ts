@@ -1328,6 +1328,7 @@ export class GameScene extends Phaser.Scene {
       || entityType === 'light-cavalry'
       || entityType === 'camel'
       || entityType === 'cavalry-archer'
+      || entityType === 'monk'
     );
   }
 }

@@ -286,6 +286,12 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Battering Ram';
     case 'siege-workshop':
       return 'Siege Workshop';
+    case 'monastery':
+      return 'Monastery';
+    case 'monk':
+      return 'Monk';
+    case 'relic':
+      return 'Relic';
     default:
       return entityType;
   }
@@ -367,6 +373,12 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Battering Rams';
     case 'siege-workshop':
       return 'Siege Workshops';
+    case 'monastery':
+      return 'Monasteries';
+    case 'monk':
+      return 'Monks';
+    case 'relic':
+      return 'Relics';
     default:
       return `${entityType}s`;
   }
@@ -401,6 +413,7 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'mangonel'
     || entityType === 'scorpion'
     || entityType === 'battering-ram'
+    || entityType === 'monk'
   );
 }
 
@@ -436,6 +449,8 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'Sc';
     case 'battering-ram':
       return 'Rm';
+    case 'monk':
+      return 'Mn';
   }
 }
 
@@ -471,6 +486,8 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#b09862';
     case 'battering-ram':
       return '#8f6a4a';
+    case 'monk':
+      return '#e3d9b5';
   }
 }
 
@@ -500,6 +517,10 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'MK';
     case 'siege-workshop':
       return 'SW';
+    case 'monastery':
+      return 'My';
+    case 'relic':
+      return 'Rl';
     case 'berry-bush':
       return 'BB';
     case 'gold-mine':
@@ -547,6 +568,10 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#c4a166';
     case 'siege-workshop':
       return '#98856a';
+    case 'monastery':
+      return '#cfc3a8';
+    case 'relic':
+      return '#f5d680';
     case 'berry-bush':
       return '#a16a89';
     case 'gold-mine':
