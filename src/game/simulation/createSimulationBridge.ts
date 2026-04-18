@@ -985,6 +985,9 @@ function canResearchAt(
     (buildingType === 'town-center' && technologyType === 'feudal-age')
     || (buildingType === 'town-center' && technologyType === 'castle-age')
     || (buildingType === 'blacksmith' && technologyType === 'fletching')
+    || (buildingType === 'archery-range' && technologyType === 'crossbowman-upgrade')
+    || (buildingType === 'barracks' && technologyType === 'pikeman-upgrade')
+    || (buildingType === 'stable' && technologyType === 'light-cavalry-upgrade')
   );
 }
 
@@ -3658,6 +3661,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return ['fletching'];
     }
 
+    if (
+      buildingType === 'archery-range'
+      && getPlayerAge(owner) === 'castle-age'
+      && !hasTechnology(owner, 'crossbowman-upgrade')
+    ) {
+      return ['crossbowman-upgrade'];
+    }
+
+    if (
+      buildingType === 'barracks'
+      && getPlayerAge(owner) === 'castle-age'
+      && !hasTechnology(owner, 'pikeman-upgrade')
+    ) {
+      return ['pikeman-upgrade'];
+    }
+
+    if (
+      buildingType === 'stable'
+      && getPlayerAge(owner) === 'castle-age'
+      && !hasTechnology(owner, 'light-cavalry-upgrade')
+    ) {
+      return ['light-cavalry-upgrade'];
+    }
+
     return [];
   }
 
@@ -3970,6 +3997,32 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return false;
   }
 
+  function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
+    for (const id of world.query('unit')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!unit || unit.owner !== owner || unit.unitType !== from) {
+        continue;
+      }
+
+      const combat = combatStates.get(id);
+      const hpRatio = combat && combat.maxHp > 0 ? combat.currentHp / combat.maxHp : 1;
+      unit.unitType = to;
+
+      const renderable = world.getComponent<RenderableComponent>(id, 'renderable');
+      if (renderable) {
+        renderable.tint = unitTint(to, owner);
+        renderable.size = unitSize(to);
+      }
+
+      const nextCombat = createCombatState(owner, to);
+      if (combat) {
+        nextCombat.cooldownTicks = combat.cooldownTicks;
+      }
+      nextCombat.currentHp = Math.max(1, Math.min(nextCombat.maxHp, Math.round(nextCombat.maxHp * hpRatio)));
+      combatStates.set(id, nextCombat);
+    }
+  }
+
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
     researchedTechnologies.get(owner)?.add(technologyType);
 
@@ -3991,6 +4044,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           combat.attackDamage = unitAttackDamage(unit.unitType) + 1;
           combat.attackRange = unitAttackRange(unit.unitType) + 1;
         }
+        break;
+      case 'crossbowman-upgrade':
+        upgradeOwnedUnits(owner, 'archer', 'crossbowman');
+        break;
+      case 'pikeman-upgrade':
+        upgradeOwnedUnits(owner, 'spearman', 'pikeman');
+        break;
+      case 'light-cavalry-upgrade':
+        upgradeOwnedUnits(owner, 'scout', 'light-cavalry');
         break;
     }
   }
