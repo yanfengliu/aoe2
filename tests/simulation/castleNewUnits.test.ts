@@ -260,4 +260,81 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     const hpAfter = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
     expect(hpAfter).toBe(44);
   }, 10_000);
+
+  it('applies Fletching +1 attack / +1 range to Cavalry Archers when Fletching is researched BEFORE the unit is trained', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    // Research Fletching first.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const archer = findFirstOwnedUnit(bridge, 1, 'archer');
+          return !!archer && archer.attackDamage === 5 && archer.attackRange === 5;
+        },
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    // Now train a Cavalry Archer; it should spawn with base (6/4) + Fletching (+1/+1) = 7/5.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueTrainUnit('cavalry-archer')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'cavalry-archer') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const ca = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(ca).toMatchObject({
+      unitType: 'cavalry-archer',
+      attackDamage: 7,
+      attackRange: 5,
+    });
+  }, 30_000);
+
+  it('applies Fletching +1 attack / +1 range to existing Cavalry Archers when Fletching is researched AFTER the unit is trained', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    // Train a Cavalry Archer first (base 6/4).
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueTrainUnit('cavalry-archer')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'cavalry-archer') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const caBefore = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(caBefore).toMatchObject({
+      attackDamage: 6,
+      attackRange: 4,
+    });
+
+    // Now research Fletching — the existing CA should pick up +1/+1.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const ca = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+          return !!ca && ca.attackDamage === 7 && ca.attackRange === 5;
+        },
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const caAfter = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(caAfter).toMatchObject({
+      attackDamage: 7,
+      attackRange: 5,
+    });
+  }, 30_000);
 });
