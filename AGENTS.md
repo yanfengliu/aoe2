@@ -1,6 +1,7 @@
 ## Core rules
 
 - Use test-driven development for behavior changes: write or update tests first, then make them pass.
+- For each desired change, make the change easy, then make the easy change.
 - Before implementing a change, write a plan.
 - Use a subagent to implement the plan. It should make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
 - Use Codex code reviewer subagents to review every change on: (design) -> (correctness) -> (clean code, efficiency, memory leaks) -> (documentation). Each round of review should be done by a new subagent in series.
@@ -67,5 +68,5 @@
 
 - Read `docs/guides/debugging.md` in the `civ-engine` package if the bug seems engine related.
 - When debugging, use `docs/debugging/template.md` to record your process. Create a new file per debugging session and use it to iterate until you solve the problem.
-- Clean up the dump files created during debugging after you are done, but keep the `.md` files.
+- Clean up the stackdump files created during debugging after you are done, but keep the `.md` files.
 - Write learnings into `docs/learning/lessons.md`.
