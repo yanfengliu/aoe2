@@ -268,6 +268,12 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Knight';
     case 'scout':
       return 'Scout Cavalry';
+    case 'crossbowman':
+      return 'Crossbowman';
+    case 'pikeman':
+      return 'Pikeman';
+    case 'light-cavalry':
+      return 'Light Cavalry';
     default:
       return entityType;
   }
@@ -331,6 +337,12 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Knights';
     case 'scout':
       return 'Scout Cavalry';
+    case 'crossbowman':
+      return 'Crossbowmen';
+    case 'pikeman':
+      return 'Pikemen';
+    case 'light-cavalry':
+      return 'Light Cavalry';
     default:
       return `${entityType}s`;
   }
@@ -357,6 +369,9 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'archer'
     || entityType === 'skirmisher'
     || entityType === 'knight'
+    || entityType === 'crossbowman'
+    || entityType === 'pikeman'
+    || entityType === 'light-cavalry'
   );
 }
 
@@ -376,6 +391,12 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'SK';
     case 'knight':
       return 'K';
+    case 'crossbowman':
+      return 'CB';
+    case 'pikeman':
+      return 'PK';
+    case 'light-cavalry':
+      return 'LC';
   }
 }
 
@@ -395,6 +416,12 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#7ec7c0';
     case 'knight':
       return '#c4b0dc';
+    case 'crossbowman':
+      return '#6ba0cc';
+    case 'pikeman':
+      return '#a7c98a';
+    case 'light-cavalry':
+      return '#d7b87c';
   }
 }
 
@@ -645,6 +672,12 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Castle Age';
     case 'fletching':
       return 'Fletching';
+    case 'crossbowman-upgrade':
+      return 'Crossbowman';
+    case 'pikeman-upgrade':
+      return 'Pikeman';
+    case 'light-cavalry-upgrade':
+      return 'Light Cavalry';
   }
 }
 

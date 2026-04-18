@@ -145,6 +145,12 @@ const KNIGHT_TRAIN_TIME_TICKS = 300;
 const FEUDAL_AGE_RESEARCH_TIME_TICKS = 1300;
 const CASTLE_AGE_RESEARCH_TIME_TICKS = 1600;
 const FLETCHING_RESEARCH_TIME_TICKS = 300;
+const CROSSBOWMAN_TRAIN_TIME_TICKS = 270;
+const PIKEMAN_TRAIN_TIME_TICKS = 220;
+const LIGHT_CAVALRY_TRAIN_TIME_TICKS = 300;
+const CROSSBOWMAN_UPGRADE_RESEARCH_TIME_TICKS = 350;
+const PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS = 450;
+const LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS = 450;
 const MELEE_ATTACK_RANGE = 1;
 const MARKET_TRANSACTION_AMOUNT = 100;
 const MARKET_BASE_RATE = 100;
@@ -790,6 +796,12 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { food: 35, wood: 25 };
     case 'knight':
       return { food: 60, gold: 75 };
+    case 'crossbowman':
+      return { wood: 25, gold: 45 };
+    case 'pikeman':
+      return { food: 35, wood: 25 };
+    case 'light-cavalry':
+      return { food: 80 };
   }
 }
 
@@ -801,6 +813,12 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
       return { food: 800, gold: 200 };
     case 'fletching':
       return { food: 100, gold: 50 };
+    case 'crossbowman-upgrade':
+      return { food: 125, gold: 75 };
+    case 'pikeman-upgrade':
+      return { food: 215, gold: 90 };
+    case 'light-cavalry-upgrade':
+      return { food: 150, gold: 50 };
   }
 }
 
@@ -843,6 +861,12 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return SKIRMISHER_TRAIN_TIME_TICKS;
     case 'knight':
       return KNIGHT_TRAIN_TIME_TICKS;
+    case 'crossbowman':
+      return CROSSBOWMAN_TRAIN_TIME_TICKS;
+    case 'pikeman':
+      return PIKEMAN_TRAIN_TIME_TICKS;
+    case 'light-cavalry':
+      return LIGHT_CAVALRY_TRAIN_TIME_TICKS;
   }
 }
 
@@ -854,6 +878,12 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
       return CASTLE_AGE_RESEARCH_TIME_TICKS;
     case 'fletching':
       return FLETCHING_RESEARCH_TIME_TICKS;
+    case 'crossbowman-upgrade':
+      return CROSSBOWMAN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'pikeman-upgrade':
+      return PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'light-cavalry-upgrade':
+      return LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -974,6 +1004,12 @@ function unitMaxHp(unitType: UnitType): number {
       return 30;
     case 'knight':
       return 100;
+    case 'crossbowman':
+      return 35;
+    case 'pikeman':
+      return 55;
+    case 'light-cavalry':
+      return 60;
   }
 }
 
@@ -993,6 +1029,12 @@ function unitAttackDamage(unitType: UnitType): number {
       return 2;
     case 'knight':
       return 10;
+    case 'crossbowman':
+      return 5;
+    case 'pikeman':
+      return 4;
+    case 'light-cavalry':
+      return 7;
   }
 }
 
@@ -1012,6 +1054,12 @@ function unitReloadTicks(unitType: UnitType): number {
       return 20;
     case 'knight':
       return 18;
+    case 'crossbowman':
+      return 20;
+    case 'pikeman':
+      return 10;
+    case 'light-cavalry':
+      return 12;
   }
 }
 
@@ -1022,10 +1070,14 @@ function unitAttackRange(unitType: UnitType): number {
     case 'militia':
     case 'spearman':
     case 'knight':
+    case 'pikeman':
+    case 'light-cavalry':
       return MELEE_ATTACK_RANGE;
     case 'archer':
     case 'skirmisher':
       return 4;
+    case 'crossbowman':
+      return 5;
   }
 }
 
@@ -1093,8 +1145,55 @@ function createWildlifeState(resourceType: 'boar' | 'wolf'): WildlifeState {
   };
 }
 
+function unitTint(unitType: UnitType, owner: number): number {
+  const isHuman = owner === HUMAN_PLAYER_ID;
+  switch (unitType) {
+    case 'villager':
+      return isHuman ? 0xf3e2b7 : 0xf0b8b8;
+    case 'militia':
+      return isHuman ? 0xd39a5a : 0xd27c7c;
+    case 'spearman':
+      return isHuman ? 0x8bb271 : 0xc88770;
+    case 'archer':
+      return isHuman ? 0x84b6d7 : 0xb38ad6;
+    case 'skirmisher':
+      return isHuman ? 0x8fc2c3 : 0xc18fa8;
+    case 'knight':
+      return isHuman ? 0xa6a08d : 0xb27d67;
+    case 'crossbowman':
+      return isHuman ? 0x6fa0c7 : 0x9e74c8;
+    case 'pikeman':
+      return isHuman ? 0x6f9c5a : 0xb76e58;
+    case 'light-cavalry':
+      return isHuman ? 0xb89868 : 0xc18a6a;
+    case 'scout':
+      return isHuman ? 0xead74a : 0xef7d57;
+  }
+}
+
+function unitSize(unitType: UnitType): number {
+  switch (unitType) {
+    case 'villager':
+      return 0.45;
+    case 'militia':
+    case 'spearman':
+    case 'pikeman':
+      return 0.5;
+    case 'archer':
+    case 'skirmisher':
+    case 'crossbowman':
+      return 0.48;
+    case 'knight':
+      return 0.58;
+    case 'light-cavalry':
+      return 0.56;
+    case 'scout':
+      return 0.55;
+  }
+}
+
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
-  if (attackerType === 'spearman' && targetType === 'scout') {
+  if (attackerType === 'spearman' && (targetType === 'scout' || targetType === 'light-cavalry')) {
     return 12;
   }
 
@@ -1102,7 +1201,15 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
     return 15;
   }
 
-  if (attackerType === 'skirmisher' && targetType === 'archer') {
+  if (attackerType === 'pikeman' && (targetType === 'scout' || targetType === 'light-cavalry')) {
+    return 19;
+  }
+
+  if (attackerType === 'pikeman' && targetType === 'knight') {
+    return 22;
+  }
+
+  if (attackerType === 'skirmisher' && (targetType === 'archer' || targetType === 'crossbowman')) {
     return 4;
   }
 
@@ -1777,48 +1884,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     world.addComponent(entity, 'renderable', {
       kind: 'unit',
       layer: 'unit',
-      tint:
-        unitType === 'villager'
-          ? owner === HUMAN_PLAYER_ID
-            ? 0xf3e2b7
-            : 0xf0b8b8
-          : unitType === 'militia'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0xd39a5a
-              : 0xd27c7c
-          : unitType === 'spearman'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0x8bb271
-              : 0xc88770
-          : unitType === 'archer'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0x84b6d7
-              : 0xb38ad6
-          : unitType === 'skirmisher'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0x8fc2c3
-              : 0xc18fa8
-          : unitType === 'knight'
-            ? owner === HUMAN_PLAYER_ID
-              ? 0xa6a08d
-              : 0xb27d67
-          : owner === HUMAN_PLAYER_ID
-            ? 0xead74a
-            : 0xef7d57,
-      size:
-        unitType === 'villager'
-          ? 0.45
-          : unitType === 'militia'
-            ? 0.5
-            : unitType === 'spearman'
-              ? 0.5
-            : unitType === 'archer'
-              ? 0.48
-              : unitType === 'skirmisher'
-              ? 0.48
-              : unitType === 'knight'
-                ? 0.58
-              : 0.55,
+      tint: unitTint(unitType, owner),
+      size: unitSize(unitType),
       footprintWidth: 1,
       footprintHeight: 1,
       visualVariant: 'default',
@@ -2012,6 +2079,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'archer'
       || spawn.kind === 'skirmisher'
       || spawn.kind === 'knight'
+      || spawn.kind === 'crossbowman'
+      || spawn.kind === 'pikeman'
+      || spawn.kind === 'light-cavalry'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -3656,8 +3726,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'villager':
         return 0;
       case 'archer':
+      case 'crossbowman':
         return 1;
       case 'spearman':
+      case 'pikeman':
         return 2;
       case 'skirmisher':
         return 3;
@@ -3666,6 +3738,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'militia':
         return 5;
       case 'scout':
+      case 'light-cavalry':
         return 6;
     }
   }
