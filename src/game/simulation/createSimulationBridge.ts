@@ -2635,6 +2635,70 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return owner === HUMAN_PLAYER_ID || visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y);
   }
 
+  // Returns true if any cell of an entity's footprint is currently visible to the
+  // human player. Owned entities are always considered visible. Multi-tile buildings
+  // (e.g. the 4x4 Town Center) count as visible if any one of their footprint cells
+  // is in vision; single-cell entities behave identically to `isVisibleToHuman`.
+  function isEntityFootprintVisibleToHuman(
+    position: Position,
+    owner: number | null,
+    footprintWidth: number,
+    footprintHeight: number,
+  ): boolean {
+    if (owner === HUMAN_PLAYER_ID) {
+      return true;
+    }
+    const anchorX = Math.floor(position.x);
+    const anchorY = Math.floor(position.y);
+    for (let offsetY = 0; offsetY < footprintHeight; offsetY += 1) {
+      for (let offsetX = 0; offsetX < footprintWidth; offsetX += 1) {
+        if (visibility.isVisible(HUMAN_PLAYER_ID, anchorX + offsetX, anchorY + offsetY)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Resolve an entity's owner, anchor position, and footprint. Returns null if the
+  // entity has no position component (e.g. the entity has been destroyed).
+  function getEntityVisibilityProbe(entityId: number): {
+    position: Position;
+    owner: number | null;
+    footprintWidth: number;
+    footprintHeight: number;
+  } | null {
+    const position = world.getComponent<Position>(entityId, 'position');
+    if (!position) {
+      return null;
+    }
+    const unit = world.getComponent<UnitComponent>(entityId, 'unit');
+    const building = world.getComponent<BuildingComponent>(entityId, 'building');
+    const resource = world.getComponent<ResourceComponent>(entityId, 'resource');
+    const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
+    let footprintWidth = 1;
+    let footprintHeight = 1;
+    if (building) {
+      const footprint = buildingFootprint(building.buildingType);
+      footprintWidth = footprint.width;
+      footprintHeight = footprint.height;
+    }
+    return { position, owner, footprintWidth, footprintHeight };
+  }
+
+  function isEntityVisibleToHuman(entityId: number): boolean {
+    const probe = getEntityVisibilityProbe(entityId);
+    if (!probe) {
+      return false;
+    }
+    return isEntityFootprintVisibleToHuman(
+      probe.position,
+      probe.owner,
+      probe.footprintWidth,
+      probe.footprintHeight,
+    );
+  }
+
   function compareSelectableEntities(
     left: SelectableEntityCandidate,
     right: SelectableEntityCandidate,
@@ -5440,6 +5504,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     const targetPosition = world.getComponent<Position>(entityId, 'position');
     if (!targetPosition) {
+      return false;
+    }
+
+    // Memory entities (explored-but-not-visible) can show up in the projector's render
+    // frame, which means hit-testing in the scene can resolve a fog-hidden entity id.
+    // Reject those commands here so the player cannot gather, attack, or otherwise
+    // interact with anything they cannot currently see. Owned entities skip this
+    // check via `isEntityFootprintVisibleToHuman`.
+    if (!isEntityVisibleToHuman(entityId)) {
       return false;
     }
 

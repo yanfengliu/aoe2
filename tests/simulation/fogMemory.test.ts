@@ -162,4 +162,68 @@ describe('fog memory', () => {
     expect(memoryMine).toBeDefined();
     expect(memoryMine!.isMemory).toBe(true);
   });
+
+  it('rejects entity commands targeting a fog-of-war-hidden enemy entity', () => {
+    const bridge = createSimulationBridge('fog-memory-fixture');
+
+    for (let i = 0; i < 2; i += 1) {
+      bridge.step(100);
+    }
+
+    // The enemy house starts visible to the scout; capture its id while it's still
+    // in the live render frame.
+    const initialHouse = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'building' && entity.entityType === 'house' && entity.owner === 2,
+      );
+    expect(initialHouse).toBeDefined();
+    const houseId = initialHouse!.id;
+
+    // Walk the scout back so the house cell exits vision and becomes a memory entity.
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
+    expect(bridge.issueMoveCommand(4, 5)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const scout = bridge
+            .getEconomyState()
+            .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+          if (!scout) {
+            return false;
+          }
+          return Math.abs(scout.x - 4) + Math.abs(scout.y - 5) <= 1;
+        },
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+    for (let i = 0; i < 5; i += 1) {
+      bridge.step(100);
+    }
+
+    // Sanity: the house is now a memory entity.
+    const memoryHouse = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.id === houseId);
+    expect(memoryHouse).toBeDefined();
+    expect(memoryHouse!.isMemory).toBe(true);
+
+    // With the scout still selected, an explicit context command against the house id
+    // must be rejected (the player can't see it). The scout's task must stay 'idle'.
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
+    const scoutBefore = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(scoutBefore).toBeDefined();
+    const taskBefore = scoutBefore!.task;
+
+    expect(bridge.issueContextCommandAtEntity(houseId)).toBe(false);
+
+    const scoutAfter = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(scoutAfter).toBeDefined();
+    expect(scoutAfter!.task).toBe(taskBefore);
+  });
 });
