@@ -1252,6 +1252,30 @@ function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
   );
 }
 
+// Returns true if any cell of an entity's footprint is currently visible to the
+// given player. Single-cell entities (resources, units, 1x1 buildings) check the
+// anchor cell only; multi-cell buildings (e.g. the 4x4 Town Center) count as
+// visible when even one of their cells is in vision.
+function isFootprintVisible(
+  visibility: VisibilityMap,
+  playerId: number,
+  anchorX: number,
+  anchorY: number,
+  footprintWidth: number,
+  footprintHeight: number,
+): boolean {
+  const flooredX = Math.floor(anchorX);
+  const flooredY = Math.floor(anchorY);
+  for (let offsetY = 0; offsetY < footprintHeight; offsetY += 1) {
+    for (let offsetX = 0; offsetX < footprintWidth; offsetX += 1) {
+      if (visibility.isVisible(playerId, flooredX + offsetX, flooredY + offsetY)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function isFeudalAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
   return (
     buildingType === 'stable'
@@ -1310,7 +1334,14 @@ function createProjector(
       if (
         renderable.kind !== 'tile' &&
         owner !== playerId &&
-        !visibility.isVisible(playerId, position.x, position.y)
+        !isFootprintVisible(
+          visibility,
+          playerId,
+          position.x,
+          position.y,
+          renderable.footprintWidth,
+          renderable.footprintHeight,
+        )
       ) {
         return null;
       }
@@ -2669,16 +2700,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     if (owner === HUMAN_PLAYER_ID) {
       return true;
     }
-    const anchorX = Math.floor(position.x);
-    const anchorY = Math.floor(position.y);
-    for (let offsetY = 0; offsetY < footprintHeight; offsetY += 1) {
-      for (let offsetX = 0; offsetX < footprintWidth; offsetX += 1) {
-        if (visibility.isVisible(HUMAN_PLAYER_ID, anchorX + offsetX, anchorY + offsetY)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return isFootprintVisible(
+      visibility,
+      HUMAN_PLAYER_ID,
+      position.x,
+      position.y,
+      footprintWidth,
+      footprintHeight,
+    );
   }
 
   // Resolve an entity's owner, anchor position, and footprint. Returns null if the
@@ -5948,6 +5977,8 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       // transform each tick, so the adapter re-runs the visibility check on them as a
       // side-effect of component changes. Sheep carry a fractional subgrid x/y when
       // moving, so floor to an integer cell before querying the visibility grid.
+      // Buildings can span multiple cells, so check the full footprint — a Town
+      // Center with one corner in vision must render as live, not memory.
       const liveEntitiesRaw = renderStore.getEntities();
       const liveEntities = liveEntitiesRaw.filter((entity) => {
         if (entity.kind !== 'building' && entity.kind !== 'resource') {
@@ -5956,10 +5987,13 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
         if (entity.owner === HUMAN_PLAYER_ID) {
           return true;
         }
-        return visibility.isVisible(
+        return isFootprintVisible(
+          visibility,
           HUMAN_PLAYER_ID,
-          Math.floor(entity.x),
-          Math.floor(entity.y),
+          entity.x,
+          entity.y,
+          entity.footprintWidth,
+          entity.footprintHeight,
         );
       });
       const liveIds = new Set<number>(liveEntities.map((entity) => entity.id));

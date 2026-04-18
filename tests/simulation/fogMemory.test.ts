@@ -209,6 +209,31 @@ describe('fog memory', () => {
     expect(stillRenderedBoar).toBeUndefined();
   });
 
+  it('treats a multi-tile building as live when any cell of its footprint is visible', () => {
+    const bridge = createSimulationBridge('building-footprint-vision-fixture');
+
+    // Step a few ticks so visibility propagates and the projector emits initial views.
+    for (let i = 0; i < 3; i += 1) {
+      bridge.step(100);
+    }
+
+    const enemyTc = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) =>
+          entity.kind === 'building' && entity.entityType === 'town-center' && entity.owner === 2,
+      );
+    expect(enemyTc).toBeDefined();
+
+    // The TC anchor (13, 10) sits well outside the scout's radius-1 vision around
+    // (16, 13); only the bottom-right corner is visible. With the footprint-aware
+    // visibility check, the TC must render as a live entity (isMemory: false), not
+    // as a memory entity, because at least one of its cells is in vision.
+    expect(enemyTc!.isMemory).toBe(false);
+    expect(enemyTc!.x).toBe(13);
+    expect(enemyTc!.y).toBe(10);
+  });
+
   it('rejects entity commands targeting a fog-of-war-hidden enemy entity', () => {
     const bridge = createSimulationBridge('fog-memory-fixture');
 

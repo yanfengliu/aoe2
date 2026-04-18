@@ -2433,6 +2433,63 @@ function createFogMemoryFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createBuildingFootprintVisionFixture(seed: string): PrototypeScenario {
+  // Layout designed so that an enemy 4x4 Town Center has only a single corner
+  // cell inside the human player's vision. The human TC sits at (1, 1) with a
+  // small radius-1 vision, and the human scout sits at (16, 13) (also radius 1)
+  // adjacent to the enemy TC's bottom-right corner. The enemy TC anchor is at
+  // (13, 10), so its footprint covers (13..16, 10..13).
+  //
+  // From the scout at (16, 13), squared distance to each TC cell:
+  //   (13,10) anchor    : 9 + 9 = 18  (NOT visible at radius 1)
+  //   (16, 13)  corner  : 0           (visible)
+  //   (15, 13), (16, 12): 1           (visible)
+  // The TC anchor itself sits well outside the scout's vision, so a top-left
+  // -only check would treat the TC as hidden; the corrected check sees the
+  // bottom-right corner is visible and renders the TC as live.
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 1, y: 1 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 13, y: 10 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 1,
+        y: 1,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 1 },
+      },
+      {
+        kind: 'scout',
+        x: 16,
+        y: 13,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 1 },
+      },
+      {
+        kind: 'town-center',
+        x: 13,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -2848,6 +2905,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'fog-memory-fixture') {
     return createFogMemoryFixture(seed);
+  }
+
+  if (seed === 'building-footprint-vision-fixture') {
+    return createBuildingFootprintVisionFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);
