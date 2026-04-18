@@ -1927,6 +1927,16 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
     return 22;
   }
 
+  // Halberdier inherits the anti-cavalry counter-role from Pikeman but with a
+  // uniformly larger bonus that scales across every cavalry tier (Scout /
+  // Light Cav / Hussar / Knight / Cavalier). Using the isCavalryTarget helper
+  // keeps the Imperial successors (Hussar, Cavalier) covered without adding
+  // more cases, and the flat +28 is strictly greater than Pikeman's tiered
+  // +19 / +22 so Halberdiers are a clear upgrade in every matchup.
+  if (attackerType === 'halberdier' && isCavalryTarget(targetType)) {
+    return 28;
+  }
+
   if (attackerType === 'skirmisher' && isArcherLineUnit(targetType)) {
     return 4;
   }

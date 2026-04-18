@@ -1695,6 +1695,120 @@ function createImperialHalberdierFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 7B combat fixture: player-1 Pikeman adjacent to a player-2 Knight.
+// Used to compare damage-per-hit against the Halberdier-vs-Knight fixture
+// so the Halberdier anti-cavalry bonus must exceed the Pikeman's.
+function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'pikeman',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'knight',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
+// Slice 7B combat fixture: mirror of pikeman-vs-knight-fixture with a
+// Halberdier in place of the Pikeman.
+function createHalberdierVsKnightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'halberdier',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'knight',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
 
 // Slice 4 fixture: Castle-Age human with a completed Siege Workshop, used to
 // assert that the Siege Workshop train menu offers Mangonel / Scorpion /
@@ -5458,6 +5572,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'imperial-halberdier-fixture') {
     return createImperialHalberdierFixture(seed);
+  }
+
+  if (seed === 'pikeman-vs-knight-fixture') {
+    return createPikemanVsKnightFixture(seed);
+  }
+
+  if (seed === 'halberdier-vs-knight-fixture') {
+    return createHalberdierVsKnightFixture(seed);
   }
 
 

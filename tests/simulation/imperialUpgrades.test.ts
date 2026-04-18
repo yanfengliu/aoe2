@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
@@ -18,6 +19,13 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
   return bridge
     .getEconomyState()
     .units.find((unit) => unit.owner === owner && unit.unitType === unitType);
+}
+
+function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {
+  if (!bridge.selectEntityAtCell(x, y)) {
+    return null;
+  }
+  return bridge.getSelectionState().health?.current ?? null;
 }
 
 describe('Imperial-Age Archery Range upgrades', () => {
@@ -278,3 +286,59 @@ describe('Imperial-Age Barracks upgrades', () => {
   }, 30_000);
 });
 
+describe('Halberdier anti-cavalry bonus', () => {
+  it('deals more damage to a Knight than a Pikeman does', () => {
+    // Pikeman: base 4 atk + 22 vs knight = 26; Knight (100 HP) -> 74.
+    // Halberdier: base 6 atk + 28 vs knight = 34; Knight (100 HP) -> 66.
+    // The Halberdier must leave the Knight with strictly less HP after the
+    // first hit than the Pikeman does.
+
+    const pikemanBridge = createSimulationBridge('pikeman-vs-knight-fixture');
+    const pikemanKnight = findFirstOwnedUnit(pikemanBridge, 2, 'knight');
+    expect(pikemanKnight).toBeDefined();
+
+    expect(selectOwnedUnitDirect(pikemanBridge, 1, 'pikeman')).toBe(true);
+    expect(pikemanBridge.issueContextCommand(pikemanKnight!.x, pikemanKnight!.y)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        pikemanBridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(pikemanBridge, pikemanKnight!.x, pikemanKnight!.y);
+          return hp !== null && hp < 100;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+    const pikemanKnightHp = getHealthOfUnitAtCell(
+      pikemanBridge,
+      pikemanKnight!.x,
+      pikemanKnight!.y,
+    );
+
+    const halbBridge = createSimulationBridge('halberdier-vs-knight-fixture');
+    const halbKnight = findFirstOwnedUnit(halbBridge, 2, 'knight');
+    expect(halbKnight).toBeDefined();
+
+    expect(selectOwnedUnitDirect(halbBridge, 1, 'halberdier')).toBe(true);
+    expect(halbBridge.issueContextCommand(halbKnight!.x, halbKnight!.y)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        halbBridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(halbBridge, halbKnight!.x, halbKnight!.y);
+          return hp !== null && hp < 100;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+    const halbKnightHp = getHealthOfUnitAtCell(halbBridge, halbKnight!.x, halbKnight!.y);
+
+    expect(pikemanKnightHp).not.toBeNull();
+    expect(halbKnightHp).not.toBeNull();
+    expect(halbKnightHp!).toBeLessThan(pikemanKnightHp!);
+
+    // Exact values: Pikeman 26 dmg -> 74 HP; Halberdier 34 dmg -> 66 HP.
+    expect(pikemanKnightHp).toBe(74);
+    expect(halbKnightHp).toBe(66);
+  }, 30_000);
+});
