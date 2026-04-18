@@ -4169,6 +4169,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return playerAges.get(owner) ?? 'dark-age';
   }
 
+  // Returns the owner's civilization name (as stored from the scenario
+  // `starts` table). Used to gate civ-specific unique content (e.g.
+  // Slice 6 Britons → Longbowman). Falls back to the default naming
+  // scheme when unknown so the result is never `undefined`.
+  function getPlayerCivilization(owner: number): string {
+    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
+  }
+
   // Returns true when the owner has reached AT LEAST the given age. Used to
   // gate features that unlock in one age and remain available in every later
   // age (e.g., Castle-Age production-line upgrades that must stay researchable
@@ -4250,6 +4258,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           return [];
         }
         return ['monk'];
+      }
+      case 'castle': {
+        // Castle is Castle-Age+ and only trains the owner's civ unique
+        // unit. For Slice 6 only Britons ship their unique Longbowman;
+        // other civs' Castles are still constructible (for defensive
+        // fire and garrison) but produce nothing. Elite Longbowman comes
+        // in Slice 7 with Imperial progression.
+        if (!isAtLeastAge(owner, 'castle-age')) {
+          return [];
+        }
+        if (getPlayerCivilization(owner) === 'Britons') {
+          return ['longbowman'];
+        }
+        return [];
       }
       default:
         return [];
@@ -4353,6 +4375,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       options.push('town-center');
       options.push('siege-workshop');
       options.push('monastery');
+      options.push('castle');
     }
 
     return options;

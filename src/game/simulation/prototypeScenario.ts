@@ -2398,6 +2398,376 @@ function createMonkRelicFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 6 fixture: Franks human (player 1) with a completed Castle.
+// Used to pin the contract that a non-Britons Castle offers NO train
+// options in v1 (only Britons ship a unique unit yet).
+function createCastleNonBritonsFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Franks',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 6 fixture: Britons human player with a completed Castle, a
+// nearby villager, and generous resources so the test can queue a
+// Longbowman immediately. Explicitly sets civilization to Britons to
+// stay robust against changes to `defaultCivilizationName`.
+function createCastleUniqueFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+        startingResources: {
+          food: 500,
+          wood: 500,
+          gold: 500,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Franks',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 6 fixture: player-1 Castle at (14, 6) with an enemy Spearman in
+// range-8 reach so the test can assert defensive auto-fire lands damage
+// over a few ticks. The Spearman is at (21, 8) — straight-line distance 7
+// from Castle center, within the Castle's attack range of 8. The
+// Castle owner is Britons (default for player 1) and has vision 11 so
+// the target is always visible.
+function createCastleDefensiveFireFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      // Spearman at (21, 8). Castle footprint is 4x4 anchored at (14, 6),
+      // so its south-east edge sits at (17, 9). Distance from (17, 9)
+      // to (21, 8) is 4 + 1 = 5 — well within the Castle's attack range
+      // of 8. The Spearman stands still (no enemy AI structure to trigger
+      // retaliation or movement).
+      {
+        kind: 'spearman',
+        x: 21,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 6 fixture: a player-1 Longbowman stationed exactly 6 tiles from a
+// stationary enemy Spearman. Used to assert ranged combat at the Longbow's
+// canonical Castle-Age attack range without pursuit.
+function createLongbowmanRangedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'longbowman',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      // Spearman at (20, 8). Manhattan distance from (14, 8) = 6, exactly
+      // at the Longbow's canonical Castle-Age range.
+      {
+        kind: 'spearman',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 6 fixture: Britons human with a completed Castle AND Blacksmith
+// so the test can research Fletching, train a Longbowman, and assert the
+// +1/+1 buff lands on the Castle-Age Britons unique.
+function createCastleFletchingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+        startingResources: {
+          food: 500,
+          wood: 500,
+          gold: 500,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'blacksmith',
+        x: 20,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 6 fixture: Britons human with a completed Castle and 20 villagers
+// adjacent to it, used to assert that up to 20 villagers can garrison a
+// Castle (canonical capacity) — well above the Town Center / Watch Tower
+// 5-unit cap.
+function createCastleGarrisonFixture(seed: string): PrototypeScenario {
+  const villagerSpawns: ScenarioSpawnSpec[] = [];
+  // Place 20 villagers on a grid around (20, 10) — clear of the Castle
+  // at (14, 6). Each villager gets a unique cell so no two share a slot.
+  for (let i = 0; i < 20; i += 1) {
+    const offsetX = i % 5;
+    const offsetY = Math.floor(i / 5);
+    villagerSpawns.push({
+      kind: 'villager',
+      x: 20 + offsetX,
+      y: 10 + offsetY,
+      owner: 1,
+      baseOwner: 1,
+    });
+  }
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      ...villagerSpawns,
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Castle-Age combat fixture: a player-1 Camel stationed next to an enemy
 // (player 2) Knight and Scout, used to assert the Camel's +9 anti-cavalry
 // bonus without pursuit / pathing noise. All three units start in Castle
@@ -4210,6 +4580,24 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createMonkConvertFixture(seed);
   }
 
+  if (seed === 'castle-unique-fixture') {
+    return createCastleUniqueFixture(seed);
+  }
+  if (seed === 'castle-non-britons-fixture') {
+    return createCastleNonBritonsFixture(seed);
+  }
+  if (seed === 'castle-defensive-fire-fixture') {
+    return createCastleDefensiveFireFixture(seed);
+  }
+  if (seed === 'longbowman-ranged-fixture') {
+    return createLongbowmanRangedFixture(seed);
+  }
+  if (seed === 'castle-fletching-fixture') {
+    return createCastleFletchingFixture(seed);
+  }
+  if (seed === 'castle-garrison-fixture') {
+    return createCastleGarrisonFixture(seed);
+  }
   if (seed === 'monk-relic-fixture') {
     return createMonkRelicFixture(seed);
   }
