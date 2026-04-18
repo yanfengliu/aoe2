@@ -1286,6 +1286,13 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        kind: 'blacksmith',
+        x: 4,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
         kind: 'archer',
         x: 10,
         y: 10,

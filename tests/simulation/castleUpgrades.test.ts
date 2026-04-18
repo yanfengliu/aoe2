@@ -228,4 +228,72 @@ describe('Castle-Age production-line upgrades', () => {
     expect(bridge.getSelectionState().researchOptions).not.toContain('crossbowman-upgrade');
     expect(bridge.queueResearch('crossbowman-upgrade')).toBe(false);
   });
+
+  it('preserves the Fletching +1 attack / +1 range on Crossbowmen when Fletching was researched BEFORE the upgrade', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const archer = findFirstOwnedUnit(bridge, 1, 'archer');
+          return !!archer && archer.attackDamage === 5 && archer.attackRange === 5;
+        },
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'crossbowman') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const upgraded = findFirstOwnedUnit(bridge, 1, 'crossbowman');
+    expect(upgraded).toMatchObject({
+      unitType: 'crossbowman',
+      attackDamage: 6,
+      attackRange: 6,
+    });
+  }, 20_000);
+
+  it('applies the Fletching +1 attack / +1 range to Crossbowmen when Fletching is researched AFTER the upgrade', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'crossbowman') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const xbow = findFirstOwnedUnit(bridge, 1, 'crossbowman');
+          return !!xbow && xbow.attackDamage === 6 && xbow.attackRange === 6;
+        },
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const upgraded = findFirstOwnedUnit(bridge, 1, 'crossbowman');
+    expect(upgraded).toMatchObject({
+      unitType: 'crossbowman',
+      attackDamage: 6,
+      attackRange: 6,
+    });
+  }, 20_000);
 });

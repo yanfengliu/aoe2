@@ -1087,6 +1087,14 @@ function unitAttackRange(unitType: UnitType): number {
   }
 }
 
+// Fletching is a one-shot Blacksmith upgrade that buffs the entire archer line
+// (+1 attack / +1 range). When Crossbowman (or a future Arbalest) upgrade
+// arrives, createCombatState is re-run for the new unitType so the buff must
+// still fire for any archer-line unitType, not just `archer`.
+function isArcherLineUnit(unitType: UnitType): boolean {
+  return unitType === 'archer' || unitType === 'crossbowman';
+}
+
 function isWildlifeResourceType(resourceType: ResourceKind): resourceType is 'boar' | 'wolf' {
   return resourceType === 'boar' || resourceType === 'wolf';
 }
@@ -1953,7 +1961,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       cooldownTicks: 0,
     };
 
-    if (unitType === 'archer' && hasTechnology(owner, 'fletching')) {
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'fletching')) {
       state.attackDamage += 1;
       state.attackRange += 1;
     }
@@ -4201,7 +4209,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
           const combat = combatStates.get(id);
-          if (!unit || !combat || unit.owner !== owner || unit.unitType !== 'archer') {
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
 
