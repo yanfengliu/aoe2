@@ -4352,6 +4352,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
             gatherer.task = 'gathering';
             gatherer.gatherProgressTicks = 0;
+            // A villager that has reached a sheep to harvest pins the sheep in place.
+            // Any outstanding player move order on that sheep would otherwise keep
+            // walking the sheep away each tick, thrashing the gather loop between
+            // 'gathering' and 're-approach'. The player can re-issue the move order
+            // after the villager finishes the sheep or moves off.
+            if (gatherer.targetResourceId !== null) {
+              sheepMoveOrders.delete(gatherer.targetResourceId);
+            }
           } else {
             moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
           }
