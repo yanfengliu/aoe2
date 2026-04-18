@@ -6202,21 +6202,46 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return true;
   }
 
-  // Resolves the cell a Monk context-clicked into a specific entity id, in
-  // Monk priority order: friendly wounded unit (heal) > enemy unit (convert)
-  // > neutral relic (pickup) > friendly Monastery when carrying (deposit).
-  // Returns null when no relevant entity is at the cell so the caller can
-  // fall back to a plain move.
+  // Resolves the cell a Monk context-clicked into a specific entity id.
+  // Priority: friendly wounded unit (heal) > enemy unit (convert)
+  //         > neutral relic (pickup) > friendly Monastery (deposit).
+  // Two-pass iteration so an overlapping friendly+enemy on the same cell
+  // prefers the heal target over the convert target (see Gemini review
+  // finding). Enemy targets are rejected if not currently visible to the
+  // Monk's owner — the player shouldn't be able to convert fog-hidden
+  // enemies. Friendly and owned targets skip the visibility guard (they're
+  // the player's own units and always "visible" to them), and relic /
+  // Monastery lookups likewise reference owned or world entities that fog
+  // memory already surfaces.
   function findMonkContextTargetAtCell(
     x: number,
     y: number,
     monkOwner: number,
   ): number | null {
-    // Friendly unit: heal takes priority. Enemy unit: convert.
+    // Pass 1: friendly unit at this cell (heal priority).
     for (const id of world.query('position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (!position || !unit || position.x !== x || position.y !== y) {
+        continue;
+      }
+      if (unit.owner === monkOwner) {
+        return id;
+      }
+    }
+
+    // Pass 2: enemy unit at this cell (convert) — only if currently visible
+    // to the Monk's owner.
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!position || !unit || position.x !== x || position.y !== y) {
+        continue;
+      }
+      if (unit.owner === monkOwner) {
+        continue;
+      }
+      if (!visibility.isVisible(monkOwner, x, y)) {
         continue;
       }
       return id;

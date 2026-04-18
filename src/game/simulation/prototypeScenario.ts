@@ -2333,6 +2333,70 @@ function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 5 fixture for Monk-in-fog: player-1 Monk at home with short Town
+// Center and Monk vision. Enemy Militia spawns just outside Monk vision but
+// inside the Monk's conversion range. Used to verify the cell-based context
+// resolver rejects fog-hidden enemy targets so the fallback is a plain move,
+// not a convert.
+function createMonkFogFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'monk',
+        x: 8,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        // Small vision so the adjacent enemy Militia is in fog.
+        vision: { playerId: 1, radius: 1 },
+      },
+      {
+        // Distance 3 from the Monk (manhattan) → within MONK_ACTION_RANGE = 4
+        // but outside Monk's radius-1 vision; the TC's radius-3 vision from
+        // (8, 8) also does not reach. Fog hides the unit from the human.
+        kind: 'militia',
+        x: 11,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 5 fixture for Monk relic pickup + deposit: player-1 Monk, a neutral
 // relic adjacent, and a player-1 Monastery 4 cells away. Used for pickup,
 // follow, deposit, and gold-income tests.
@@ -4580,6 +4644,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-convert-fixture') {
     return createMonkConvertFixture(seed);
+  }
+
+  if (seed === 'monk-fog-fixture') {
+    return createMonkFogFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {

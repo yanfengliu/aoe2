@@ -190,6 +190,34 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     ).toBe(true);
   }, 20_000);
 
+  it('does not start a convert task when a Monk right-clicks a fog-hidden enemy cell', () => {
+    const bridge = createSimulationBridge('monk-fog-fixture');
+
+    // Enemy Militia at (25, 10) — outside the Monk's radius-2 vision.
+    const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(enemyMilitia).toBeDefined();
+    const militiaCell = { x: enemyMilitia!.x, y: enemyMilitia!.y };
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    const monkBefore = findFirstOwnedUnit(bridge, 1, 'monk');
+    expect(monkBefore).toBeDefined();
+
+    // Right-click the cell the enemy Militia occupies. The scene would
+    // normally issue a cell-based context command because the renderer does
+    // not emit a live entity for fog-hidden enemies.
+    expect(bridge.issueContextCommand(militiaCell.x, militiaCell.y)).toBe(true);
+
+    // Advance a few ticks. The Monk must NOT be flagged for a convert task;
+    // the fallback path is a plain move, which leaves the Militia unconverted.
+    for (let i = 0; i < 80; i += 1) {
+      bridge.step(100);
+    }
+
+    const militiaAfter = findUnitById(bridge, enemyMilitia!.id);
+    expect(militiaAfter).toBeDefined();
+    expect(militiaAfter!.owner).toBe(2);
+  }, 30_000);
+
   it('syncs population counts when a Monk converts an enemy unit', () => {
     const bridge = createSimulationBridge('monk-convert-fixture');
 
