@@ -41,6 +41,14 @@ export interface ScenarioSpawnSpec {
   wanderBounds?: WanderBoundsComponent;
   vision?: VisionSourceComponent;
   requiresSafeSpawn?: boolean;
+  // Building-only. Starts deposited relics inside a Monastery. Lets
+  // tests exercise the "destroy the Monastery, drop the relics" flow
+  // without driving a full pickup-and-deposit cycle.
+  startingRelicsInMonastery?: number;
+  // Building-only. Overrides the building's starting HP so tests can
+  // make siege scenarios resolve in a handful of ticks. Ignored if
+  // unset or larger than the building's default max HP.
+  startHp?: number;
 }
 
 export interface PlayerStartSpec {
@@ -2456,6 +2464,69 @@ function createMonkConvertCleanupFixture(seed: string): PrototypeScenario {
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 5 fixture for relic drop on Monastery destruction: a player-2
+// Monastery at (18, 8) pre-seeded with one deposited relic, its HP
+// knocked down to 10 so a single-hit destroy is deterministic, and a
+// player-1 Pikeman adjacent for the human test to command into an
+// attack. When the Monastery dies, the relic should drop back onto
+// the map near the footprint.
+function createMonkRelicDropFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monastery',
+        x: 18,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+        startingRelicsInMonastery: 1,
+        startHp: 10,
+      },
+      {
+        kind: 'pikeman',
+        x: 17,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
       },
       {
         kind: 'town-center',
@@ -4934,6 +5005,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-convert-cleanup-fixture') {
     return createMonkConvertCleanupFixture(seed);
+  }
+
+  if (seed === 'monk-relic-drop-fixture') {
+    return createMonkRelicDropFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {

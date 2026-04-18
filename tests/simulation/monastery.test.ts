@@ -570,6 +570,55 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(rAfter!.y).toBe(mAfter!.y);
   }, 30_000);
 
+  it('drops deposited relics back onto the map when the Monastery is destroyed', () => {
+    const bridge = createSimulationBridge('monk-relic-drop-fixture');
+
+    const monastery = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 2 && b.buildingType === 'monastery');
+    expect(monastery).toBeDefined();
+    const monasteryAnchor = { x: monastery!.x, y: monastery!.y };
+    const monasteryId = monastery!.id;
+
+    // Sanity: no relic entity exists in the world yet (it is deposited
+    // inside the Monastery via the scenario's startingRelicsInMonastery
+    // hook).
+    expect(findFirstResource(bridge, 'relic')).toBeUndefined();
+
+    // Pikeman attacks the low-HP Monastery. The Monastery starts at 10 HP
+    // so the Pikeman's first hit drops it below zero and destroys it.
+    expect(selectOwnedUnitDirect(bridge, 1, 'pikeman')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(monasteryId)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const still = bridge
+            .getEconomyState()
+            .buildings.find(
+              (b) =>
+                b.owner === 2
+                && b.buildingType === 'monastery'
+                && b.x === monasteryAnchor.x
+                && b.y === monasteryAnchor.y,
+            );
+          return still === undefined;
+        },
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
+
+    // Destroyed Monastery must have dropped its relic back to the map
+    // near where it stood.
+    const droppedRelic = findFirstResource(bridge, 'relic');
+    expect(droppedRelic).toBeDefined();
+    const distance =
+      Math.abs(droppedRelic!.x - monasteryAnchor.x)
+      + Math.abs(droppedRelic!.y - monasteryAnchor.y);
+    expect(distance).toBeLessThanOrEqual(4);
+  }, 30_000);
+
   it('deposits a carried relic in a friendly Monastery and earns +1 gold per tick afterwards', () => {
     const bridge = createSimulationBridge('monk-relic-fixture');
 

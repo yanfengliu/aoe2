@@ -2539,7 +2539,25 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'castle'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
+      const buildingId = addBuildingEntity(
+        owner,
+        spawn.kind,
+        { x: spawn.x, y: spawn.y },
+        true,
+        spawn.vision,
+      );
+      // Test-only scenario knobs: lower starting HP (lets combat scenes
+      // resolve in a few ticks) and seed relic count on a Monastery so
+      // destroy-drop tests can skip the full pickup/deposit cycle.
+      if (typeof spawn.startHp === 'number') {
+        const healthState = buildingHealthStates.get(buildingId);
+        if (healthState) {
+          healthState.currentHp = Math.max(1, Math.min(healthState.maxHp, spawn.startHp));
+        }
+      }
+      if (typeof spawn.startingRelicsInMonastery === 'number' && spawn.kind === 'monastery') {
+        relicsInMonastery.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery));
+      }
       continue;
     }
 
@@ -3651,9 +3669,51 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
-    // Destroyed Monastery stops generating relic gold.
+    // Destroyed Monastery stops generating relic gold. Any stored relics
+    // spill back onto the map at free cells near the footprint so the
+    // player (or an enemy Monk) can pick them up again. Matches canonical
+    // AoE2 behavior. Capture the spawn anchors before destroying the
+    // entity so the footprint is still valid.
+    const storedRelicCount = relicsInMonastery.get(id) ?? 0;
     relicsInMonastery.delete(id);
+    const relicDropPositions: Position[] = [];
+    if (storedRelicCount > 0 && building) {
+      const position = world.getComponent<Position>(id, 'position');
+      if (position) {
+        const footprint = buildingFootprint(building.buildingType);
+        const searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
+        const candidates = getApproachCellsForFootprint(
+          position,
+          footprint.width,
+          footprint.height,
+          searchRange,
+        );
+        for (const candidate of candidates) {
+          if (relicDropPositions.length >= storedRelicCount) {
+            break;
+          }
+          if (!isTerrainPassableForUnit(candidate.x, candidate.y)) {
+            continue;
+          }
+          if (isCellBlockedByBuilding(candidate.x, candidate.y)) {
+            continue;
+          }
+          if (isCellBlockedByResource(candidate.x, candidate.y)) {
+            continue;
+          }
+          if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {
+            continue;
+          }
+          relicDropPositions.push(candidate);
+        }
+      }
+    }
     world.destroyEntity(id);
+    // Spawn the dropped relics after the source entity is gone so the
+    // building's cells are no longer blocked by its footprint.
+    for (const dropPosition of relicDropPositions) {
+      addResourceEntity('relic', dropPosition, 0, null);
+    }
     markOutOfBandRenderChange();
   }
 
