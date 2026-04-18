@@ -95,6 +95,7 @@ export interface SimulationBridge {
   getRenderInterpolationAlpha(): number;
   getHudState(): HudState;
   getEconomyState(): EconomyState;
+  getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
@@ -5102,6 +5103,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   // Monk heal counter per monk: ticks up each tick while in heal range of a
   // friendly wounded target, applies 1 HP every MONK_HEAL_TICK_INTERVAL ticks.
   const monkHealCounters = new Map<number, number>();
+  // Per-tick "already progressed this tick" guard for convert. Multiple
+  // Monks targeting the same enemy would otherwise stack progress each
+  // tick, violating the fixed-rate contract in the spec. Cleared at the
+  // start of every prototypeMonkBehavior pass.
+  const monkConvertProcessedThisTick = new Set<number>();
 
   function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
     const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
@@ -5149,6 +5155,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       state.byOwner = monkUnit.owner;
       state.progress = 0;
     }
+    // Only one Monk may add progress per tick. Additional Monks targeting
+    // the same unit contribute nothing beyond keeping the target's progress
+    // from timing out — the spec locks conversion to a fixed rate.
+    if (monkConvertProcessedThisTick.has(targetId)) {
+      conversionState.set(targetId, state);
+      return;
+    }
+    monkConvertProcessedThisTick.add(targetId);
     state.progress += MONK_CONVERT_PROGRESS_PER_TICK;
     if (state.progress >= MONK_CONVERT_FLIP_THRESHOLD) {
       // Flip ownership. Move the living unit between population books: the
@@ -5180,8 +5194,34 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (renderable) {
         renderable.tint = unitTint(targetUnit.unitType, monkUnit.owner);
       }
-      // Clean up any active attack command targeting a now-friendly unit.
+      // Post-conversion cleanup. Drop any order the now-friendly unit was
+      // carrying out for its former owner and any task or command that
+      // targeted it as an enemy:
+      //   1. Its own unitCommands / monkTasks entries become meaningless
+      //      (it no longer has an enemy to gather against or convert).
+      //   2. Its GathererComponent resets to idle; a captured villager
+      //      should not auto-resume harvesting a former-enemy resource.
+      //   3. Any attack command from the NEW owner's units against this
+      //      entity must be purged so they do not keep hitting a teammate.
       unitCommands.delete(targetId);
+      monkTasks.delete(targetId);
+      const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
+      if (targetGatherer) {
+        clearGathererOrder(targetId);
+      }
+      for (const [commanderId, command] of unitCommands) {
+        if (command.type !== 'attack' || !command.targetEntityRef) {
+          continue;
+        }
+        const resolved = currentEntityId(activeWorld, command.targetEntityRef);
+        if (resolved !== targetId) {
+          continue;
+        }
+        const commander = activeWorld.getComponent<UnitComponent>(commanderId, 'unit');
+        if (commander && commander.owner === monkUnit.owner) {
+          unitCommands.delete(commanderId);
+        }
+      }
       conversionState.delete(targetId);
       clearMonkTask(monkId);
       markOutOfBandRenderChange();
@@ -5239,6 +5279,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute(activeWorld) {
+      // Reset the per-tick "convert progress already applied" guard so
+      // every target starts the tick eligible for exactly one progress
+      // increment, no matter how many Monks are in range.
+      monkConvertProcessedThisTick.clear();
       // Iterate over a snapshot because some tasks (deposit / pickup) mutate
       // the map (clear on completion or destroy the relic entity).
       for (const [monkId, task] of [...monkTasks.entries()]) {

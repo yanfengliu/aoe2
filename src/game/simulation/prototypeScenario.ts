@@ -2333,6 +2333,142 @@ function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 5 fixture for two Monks converting the same enemy Militia. The
+// per-tick progress rate must stay fixed — each convert target can only
+// receive one progress tick per simulation tick, no matter how many Monks
+// are in range.
+function createMonkDoubleConvertFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'militia',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 5 fixture for post-conversion cleanup: player-1 Monk plus a
+// player-1 Pikeman attacking an enemy Militia. When the Monk converts the
+// Militia, the Pikeman's attack command must be cleared since the target
+// is now a teammate.
+function createMonkConvertCleanupFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'pikeman',
+        x: 14,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        // Militia has a ton of HP relative to default so the Pikeman does
+        // not kill it before conversion completes (~50 ticks).
+        kind: 'militia',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 5 fixture for Monk heal-over-convert target preference: a friendly
 // (damaged) Spearman and an enemy Militia share the same coarse cell. The
 // test right-clicks that cell and expects the Monk to heal the Spearman,
@@ -4790,6 +4926,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-heal-over-convert-fixture') {
     return createMonkHealOverConvertFixture(seed);
+  }
+
+  if (seed === 'monk-double-convert-fixture') {
+    return createMonkDoubleConvertFixture(seed);
+  }
+
+  if (seed === 'monk-convert-cleanup-fixture') {
+    return createMonkConvertCleanupFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {

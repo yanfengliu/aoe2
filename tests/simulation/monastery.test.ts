@@ -317,6 +317,98 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(militiaAfter!.owner).toBe(2);
   }, 30_000);
 
+  it('applies one convert progress per tick regardless of how many Monks target the same unit', () => {
+    const bridge = createSimulationBridge('monk-double-convert-fixture');
+
+    const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(enemyMilitia).toBeDefined();
+    const militiaId = enemyMilitia!.id;
+
+    // Both Monks target the same Militia. Select each and issue its convert
+    // task individually; they both walk into range and tick progress in the
+    // same simulation tick. With stacking, conversion would complete in ~25
+    // ticks; without stacking, still ~50 ticks.
+    const monks = bridge
+      .getEconomyState()
+      .units.filter((u) => u.owner === 1 && u.unitType === 'monk');
+    expect(monks).toHaveLength(2);
+
+    for (const monk of monks) {
+      expect(bridge.selectEntityAtCell(monk.x, monk.y)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(militiaId)).toBe(true);
+    }
+
+    // After 30 ticks the Militia must still belong to player 2 because the
+    // fixed 1-progress-per-tick rate puts the threshold at ~50 ticks.
+    bridge.step(30 * 100);
+    const midMilitia = findUnitById(bridge, militiaId);
+    expect(midMilitia).toBeDefined();
+    expect(midMilitia!.owner).toBe(2);
+
+    // After 60 ticks total (at 1 progress / tick the flip lands near 50)
+    // the Militia should be player 1's.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const m = findUnitById(bridge, militiaId);
+          return m !== undefined && m.owner === 1;
+        },
+        { maxSteps: 40 },
+      ),
+    ).toBe(true);
+  }, 30_000);
+
+  it('clears a friendly attack command against the target after a Monk converts it', () => {
+    const bridge = createSimulationBridge('monk-convert-cleanup-fixture');
+
+    const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
+    const friendlyPikeman = findFirstOwnedUnit(bridge, 1, 'pikeman');
+    expect(enemyMilitia).toBeDefined();
+    expect(friendlyPikeman).toBeDefined();
+    const militiaId = enemyMilitia!.id;
+    const pikemanId = friendlyPikeman!.id;
+
+    // Pikeman attacks the Militia.
+    expect(selectOwnedUnitDirect(bridge, 1, 'pikeman')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(militiaId)).toBe(true);
+
+    // Monk issues a convert order.
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(militiaId)).toBe(true);
+
+    // Run until the Militia flips. It must still be alive.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const m = findUnitById(bridge, militiaId);
+          return m !== undefined && m.owner === 1;
+        },
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
+
+    const convertedMilitia = findUnitById(bridge, militiaId);
+    expect(convertedMilitia).toBeDefined();
+
+    // Record the Militia's HP. Step a few more ticks; the Pikeman's attack
+    // command should have been cleared at conversion time so the Militia's
+    // HP does not continue to fall.
+    const militiaCombatBefore = bridge.getSelectionState();
+    bridge.selectEntityAtCell(convertedMilitia!.x, convertedMilitia!.y);
+    const hpImmediatelyAfter = bridge.getSelectionState().health?.current ?? null;
+    bridge.step(20 * 100);
+    bridge.selectEntityAtCell(convertedMilitia!.x, convertedMilitia!.y);
+    const hpLater = bridge.getSelectionState().health?.current ?? null;
+
+    expect(hpImmediatelyAfter).not.toBeNull();
+    expect(hpLater).not.toBeNull();
+    // HP should not have dropped further — Pikeman's attack order is gone.
+    expect(hpLater!).toBeGreaterThanOrEqual(hpImmediatelyAfter!);
+    void militiaCombatBefore;
+  }, 30_000);
+
   it('does not start a convert task when a Monk right-clicks a fog-hidden enemy cell', () => {
     const bridge = createSimulationBridge('monk-fog-fixture');
 
