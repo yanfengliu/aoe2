@@ -1091,6 +1091,27 @@ function isWildlifeResourceType(resourceType: ResourceKind): resourceType is 'bo
   return resourceType === 'boar' || resourceType === 'wolf';
 }
 
+// A "static" resource sits on its cell forever (until depleted) and is therefore
+// safe to cache in fog memory. Sheep and any wildlife (boar, wolf) are movable
+// and would yield a stale ghost at their old cell once they leave vision; fish
+// stay put but are also excluded so the predicate stays explicit and exhaustive.
+function isStaticMemorableResourceType(
+  resourceType: ResourceKind,
+): resourceType is 'tree' | 'berry-bush' | 'gold-mine' | 'stone-mine' {
+  switch (resourceType) {
+    case 'tree':
+    case 'berry-bush':
+    case 'gold-mine':
+    case 'stone-mine':
+      return true;
+    case 'sheep':
+    case 'boar':
+    case 'wolf':
+    case 'fish':
+      return false;
+  }
+}
+
 function wildlifeMaxHp(resourceType: 'boar' | 'wolf'): number {
   switch (resourceType) {
     case 'boar':
@@ -4653,8 +4674,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             // Any outstanding player move order on that sheep would otherwise keep
             // walking the sheep away each tick, thrashing the gather loop between
             // 'gathering' and 're-approach'. The player can re-issue the move order
-            // after the villager finishes the sheep or moves off.
-            if (gatherer.targetResourceId !== null) {
+            // after the villager finishes the sheep or moves off. Guard on the
+            // resource type so the delete is a no-op for non-sheep gather targets
+            // (ids are globally unique so it would be a no-op anyway, but the
+            // guarded version makes intent explicit).
+            if (
+              gatherer.targetResourceId !== null
+              && targetResource.resourceType === 'sheep'
+            ) {
               sheepMoveOrders.delete(gatherer.targetResourceId);
             }
           } else {
@@ -4944,9 +4971,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         });
       }
 
-      // Refresh every static resource the human player currently sees. Sheep are
-      // movable and therefore excluded — their last-seen position would go stale
-      // the moment they leave vision and walk away.
+      // Refresh every static resource the human player currently sees. Sheep,
+      // boars, wolves, and fish are movable or otherwise mobile and therefore
+      // excluded — their last-seen position would go stale the moment they leave
+      // vision and walk away. Only tree / berry-bush / gold-mine / stone-mine
+      // qualify (see `isStaticMemorableResourceType`).
       for (const id of activeWorld.query('position', 'resource', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
@@ -4954,7 +4983,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (!position || !resource || !renderable) {
           continue;
         }
-        if (resource.resourceType === 'sheep') {
+        if (!isStaticMemorableResourceType(resource.resourceType)) {
           continue;
         }
         if (!visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y)) {

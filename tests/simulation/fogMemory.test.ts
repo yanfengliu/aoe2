@@ -163,6 +163,52 @@ describe('fog memory', () => {
     expect(memoryMine!.isMemory).toBe(true);
   });
 
+  it('does not memorize a boar after it exits the scout\'s vision', () => {
+    const bridge = createSimulationBridge('fog-memory-fixture');
+
+    for (let i = 0; i < 2; i += 1) {
+      bridge.step(100);
+    }
+
+    // The boar at (13, 11) starts within scout vision; capture its id from the live
+    // render frame.
+    const initialBoar = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.kind === 'resource' && entity.entityType === 'boar');
+    expect(initialBoar).toBeDefined();
+    const boarId = initialBoar!.id;
+    expect(initialBoar!.isMemory).toBe(false);
+
+    // Walk the scout back to (4, 5) so the boar's cell exits vision.
+    expect(selectOwnedUnitDirect(bridge, 1, 'scout')).toBe(true);
+    expect(bridge.issueMoveCommand(4, 5)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const scout = bridge
+            .getEconomyState()
+            .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+          if (!scout) {
+            return false;
+          }
+          return Math.abs(scout.x - 4) + Math.abs(scout.y - 5) <= 1;
+        },
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+    for (let i = 0; i < 5; i += 1) {
+      bridge.step(100);
+    }
+
+    // The boar must not appear as either a live or a memory entity in the render
+    // frame: live because the scout no longer sees it, and memory because boars
+    // are wildlife and excluded from fog memory.
+    const afterEntities = bridge.getRenderState().entities;
+    const stillRenderedBoar = afterEntities.find((entity) => entity.id === boarId);
+    expect(stillRenderedBoar).toBeUndefined();
+  });
+
   it('rejects entity commands targeting a fog-of-war-hidden enemy entity', () => {
     const bridge = createSimulationBridge('fog-memory-fixture');
 

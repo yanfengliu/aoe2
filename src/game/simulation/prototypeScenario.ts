@@ -2409,6 +2409,19 @@ function createFogMemoryFixture(seed: string): PrototypeScenario {
         amount: 500,
       },
       {
+        // A wandering boar that is currently inside the scout's radius-4 vision
+        // (distance 3.16 from (10, 10)) and outside the human TC's radius-7 vision
+        // (distance >11). Used to assert that wildlife is NOT memorized when it
+        // exits vision — its position would otherwise go stale immediately because
+        // it walks around.
+        kind: 'boar',
+        x: 13,
+        y: 11,
+        owner: null,
+        baseOwner: null,
+        amount: 340,
+      },
+      {
         kind: 'town-center',
         x: 50,
         y: 30,
