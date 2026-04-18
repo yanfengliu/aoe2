@@ -10,7 +10,9 @@ export type UnitType =
   | 'knight'
   | 'crossbowman'
   | 'pikeman'
-  | 'light-cavalry';
+  | 'light-cavalry'
+  | 'camel'
+  | 'cavalry-archer';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -21,7 +23,9 @@ export type TrainableUnitType =
   | 'knight'
   | 'crossbowman'
   | 'pikeman'
-  | 'light-cavalry';
+  | 'light-cavalry'
+  | 'camel'
+  | 'cavalry-archer';
 export type ResearchableTechnologyType =
   | 'feudal-age'
   | 'castle-age'

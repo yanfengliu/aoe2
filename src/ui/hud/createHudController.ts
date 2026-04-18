@@ -274,6 +274,10 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Pikeman';
     case 'light-cavalry':
       return 'Light Cavalry';
+    case 'camel':
+      return 'Camel';
+    case 'cavalry-archer':
+      return 'Cavalry Archer';
     default:
       return entityType;
   }
@@ -343,6 +347,10 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Pikemen';
     case 'light-cavalry':
       return 'Light Cavalry';
+    case 'camel':
+      return 'Camels';
+    case 'cavalry-archer':
+      return 'Cavalry Archers';
     default:
       return `${entityType}s`;
   }
@@ -372,6 +380,8 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'crossbowman'
     || entityType === 'pikeman'
     || entityType === 'light-cavalry'
+    || entityType === 'camel'
+    || entityType === 'cavalry-archer'
   );
 }
 
@@ -397,6 +407,10 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'PK';
     case 'light-cavalry':
       return 'LC';
+    case 'camel':
+      return 'Cm';
+    case 'cavalry-archer':
+      return 'CA';
   }
 }
 
@@ -422,6 +436,10 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#a7c98a';
     case 'light-cavalry':
       return '#d7b87c';
+    case 'camel':
+      return '#d8c18a';
+    case 'cavalry-archer':
+      return '#8ca6c8';
   }
 }
 
