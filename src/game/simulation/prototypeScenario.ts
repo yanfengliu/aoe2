@@ -1544,6 +1544,158 @@ function createImperialUpgradesFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 7B fixture: Imperial-Age human with a completed Archery Range and
+// Blacksmith plus one pre-existing Crossbowman and one pre-existing
+// Cavalry Archer. Exercises the Arbalest and Heavy Cavalry Archer upgrades
+// (research + mutation + train-menu swap) and the Fletching-stacks-on-
+// Arbalest path.
+function createImperialArbalestFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 2000,
+          wood: 500,
+          gold: 2000,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'archery-range',
+        x: 12,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'blacksmith',
+        x: 4,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'crossbowman',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'cavalry-archer',
+        x: 12,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 7B fixture: Imperial-Age human with a completed Barracks and one
+// pre-existing Militia and one pre-existing Pikeman. Exercises the
+// Halberdier and Champion upgrades.
+function createImperialHalberdierFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 2000,
+          wood: 500,
+          gold: 2000,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'barracks',
+        x: 16,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'militia',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'pikeman',
+        x: 12,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+
 // Slice 4 fixture: Castle-Age human with a completed Siege Workshop, used to
 // assert that the Siege Workshop train menu offers Mangonel / Scorpion /
 // Battering Ram and that the producer flow works end-to-end.
@@ -5299,6 +5451,15 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
   if (seed === 'imperial-missing-prereq-fixture') {
     return createImperialMissingPrereqFixture(seed);
   }
+
+  if (seed === 'imperial-arbalest-fixture') {
+    return createImperialArbalestFixture(seed);
+  }
+
+  if (seed === 'imperial-halberdier-fixture') {
+    return createImperialHalberdierFixture(seed);
+  }
+
 
   if (seed === 'camel-vs-cavalry-fixture') {
     return createCamelVsCavalryFixture(seed);

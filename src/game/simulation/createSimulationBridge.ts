@@ -1261,6 +1261,8 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'barracks' && unitType === 'militia')
     || (buildingType === 'barracks' && unitType === 'spearman')
     || (buildingType === 'barracks' && unitType === 'pikeman')
+    || (buildingType === 'barracks' && unitType === 'halberdier')
+    || (buildingType === 'barracks' && unitType === 'champion')
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'stable' && unitType === 'knight')
     || (buildingType === 'stable' && unitType === 'light-cavalry')
@@ -1269,6 +1271,8 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
     || (buildingType === 'archery-range' && unitType === 'crossbowman')
     || (buildingType === 'archery-range' && unitType === 'cavalry-archer')
+    || (buildingType === 'archery-range' && unitType === 'arbalest')
+    || (buildingType === 'archery-range' && unitType === 'heavy-cavalry-archer')
     || (buildingType === 'siege-workshop' && unitType === 'mangonel')
     || (buildingType === 'siege-workshop' && unitType === 'scorpion')
     || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
@@ -1287,7 +1291,11 @@ function canResearchAt(
     || (buildingType === 'town-center' && technologyType === 'imperial-age')
     || (buildingType === 'blacksmith' && technologyType === 'fletching')
     || (buildingType === 'archery-range' && technologyType === 'crossbowman-upgrade')
+    || (buildingType === 'archery-range' && technologyType === 'arbalest-upgrade')
+    || (buildingType === 'archery-range' && technologyType === 'heavy-cavalry-archer-upgrade')
     || (buildingType === 'barracks' && technologyType === 'pikeman-upgrade')
+    || (buildingType === 'barracks' && technologyType === 'halberdier-upgrade')
+    || (buildingType === 'barracks' && technologyType === 'champion-upgrade')
     || (buildingType === 'stable' && technologyType === 'light-cavalry-upgrade')
   );
 }
@@ -4692,9 +4700,21 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'town-center':
         return ['villager'];
       case 'barracks': {
-        const options: TrainableUnitType[] = ['militia'];
+        // Militia → Champion on champion-upgrade; Spearman → Pikeman on
+        // pikeman-upgrade → Halberdier on halberdier-upgrade. Only one of each
+        // line is exposed at any given time so the train menu always shows the
+        // newest tier and drops the predecessor.
+        const militiaLine: TrainableUnitType = hasTechnology(owner, 'champion-upgrade')
+          ? 'champion'
+          : 'militia';
+        const options: TrainableUnitType[] = [militiaLine];
         if (getPlayerAge(owner) !== 'dark-age') {
-          options.push(hasTechnology(owner, 'pikeman-upgrade') ? 'pikeman' : 'spearman');
+          const spearmanLine: TrainableUnitType = hasTechnology(owner, 'halberdier-upgrade')
+            ? 'halberdier'
+            : hasTechnology(owner, 'pikeman-upgrade')
+              ? 'pikeman'
+              : 'spearman';
+          options.push(spearmanLine);
         }
         return options;
       }
@@ -4714,12 +4734,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
         }
-        const archerLine: TrainableUnitType = hasTechnology(owner, 'crossbowman-upgrade')
-          ? 'crossbowman'
-          : 'archer';
+        // Archer → Crossbowman → Arbalest chain; only the latest-researched tier
+        // is exposed at any time. Cavalry Archer → Heavy Cavalry Archer swap is
+        // gated on heavy-cavalry-archer-upgrade (Imperial).
+        const archerLine: TrainableUnitType = hasTechnology(owner, 'arbalest-upgrade')
+          ? 'arbalest'
+          : hasTechnology(owner, 'crossbowman-upgrade')
+            ? 'crossbowman'
+            : 'archer';
         const options: TrainableUnitType[] = [archerLine, 'skirmisher'];
         if (isAtLeastAge(owner, 'castle-age')) {
-          options.push('cavalry-archer');
+          const cavArcherLine: TrainableUnitType = hasTechnology(
+            owner,
+            'heavy-cavalry-archer-upgrade',
+          )
+            ? 'heavy-cavalry-archer'
+            : 'cavalry-archer';
+          options.push(cavArcherLine);
         }
         return options;
       }
@@ -4778,20 +4809,40 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return ['fletching'];
     }
 
-    if (
-      buildingType === 'archery-range'
-      && isAtLeastAge(owner, 'castle-age')
-      && !hasTechnology(owner, 'crossbowman-upgrade')
-    ) {
-      return ['crossbowman-upgrade'];
+    if (buildingType === 'archery-range' && isAtLeastAge(owner, 'castle-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'crossbowman-upgrade')) {
+        options.push('crossbowman-upgrade');
+      }
+      if (isAtLeastAge(owner, 'imperial-age')) {
+        if (!hasTechnology(owner, 'arbalest-upgrade')) {
+          options.push('arbalest-upgrade');
+        }
+        if (!hasTechnology(owner, 'heavy-cavalry-archer-upgrade')) {
+          options.push('heavy-cavalry-archer-upgrade');
+        }
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
-    if (
-      buildingType === 'barracks'
-      && isAtLeastAge(owner, 'castle-age')
-      && !hasTechnology(owner, 'pikeman-upgrade')
-    ) {
-      return ['pikeman-upgrade'];
+    if (buildingType === 'barracks' && isAtLeastAge(owner, 'castle-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'pikeman-upgrade')) {
+        options.push('pikeman-upgrade');
+      }
+      if (isAtLeastAge(owner, 'imperial-age')) {
+        if (!hasTechnology(owner, 'halberdier-upgrade')) {
+          options.push('halberdier-upgrade');
+        }
+        if (!hasTechnology(owner, 'champion-upgrade')) {
+          options.push('champion-upgrade');
+        }
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
     if (
@@ -5273,17 +5324,34 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         upgradeOwnedUnits(owner, 'scout', 'light-cavalry');
         rewriteQueuedPredecessorUnits(owner, 'scout', 'light-cavalry');
         break;
-      // Slice 7A: placeholder branches for the Imperial upgrade + blacksmith
-      // tech set. The actual effects (upgradeOwnedUnits for each line,
-      // per-line attack / armor bumps, queued-unit rewrites) land in 7B/7C/
-      // 7D; 7A just records that the tech was researched so downstream code
-      // can read `hasTechnology` without adding new cases each slice.
+      // Slice 7B: Archery Range Imperial upgrades. Each mutates the
+      // predecessor line in place and rewrites any queued predecessor
+      // training entries so the research swap is effectively instant.
       case 'arbalest-upgrade':
-      case 'halberdier-upgrade':
-      case 'hussar-upgrade':
+        upgradeOwnedUnits(owner, 'crossbowman', 'arbalest');
+        rewriteQueuedPredecessorUnits(owner, 'crossbowman', 'arbalest');
+        break;
       case 'heavy-cavalry-archer-upgrade':
-      case 'cavalier-upgrade':
+        upgradeOwnedUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
+        rewriteQueuedPredecessorUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
+        break;
+      // Slice 7B: Barracks Imperial upgrades. Halberdier replaces Pikeman
+      // and Champion replaces Militia directly (the intermediate Man-at-
+      // Arms / Long Swordsman / Two-Handed tiers are compressed per the
+      // Slice 7 spec's v1 simplification).
+      case 'halberdier-upgrade':
+        upgradeOwnedUnits(owner, 'pikeman', 'halberdier');
+        rewriteQueuedPredecessorUnits(owner, 'pikeman', 'halberdier');
+        break;
       case 'champion-upgrade':
+        upgradeOwnedUnits(owner, 'militia', 'champion');
+        rewriteQueuedPredecessorUnits(owner, 'militia', 'champion');
+        break;
+      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
+      // techs. Stable / Castle / Siege Workshop lines and blacksmith tier
+      // effects land in 7C / 7D; 7B only wires Archery Range + Barracks.
+      case 'hussar-upgrade':
+      case 'cavalier-upgrade':
       case 'elite-longbowman-upgrade':
       case 'onager-upgrade':
       case 'heavy-scorpion-upgrade':
