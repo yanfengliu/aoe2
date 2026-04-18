@@ -2113,10 +2113,6 @@ test.describe('browser gameplay smoke tests', () => {
       .toBe(true);
 
     // Record gold before deposit.
-    const goldBeforeDeposit = await page.evaluate(
-      () => window.__AOE2_TEST__!.getHudState().playerResources.gold,
-    );
-
     // Right-click the Monastery to deposit. Use the Monastery anchor cell.
     const monasteryAnchor = await page.evaluate(() => {
       const monastery = window.__AOE2_TEST__!
@@ -2145,12 +2141,28 @@ test.describe('browser gameplay smoke tests', () => {
       }, { timeout: 30_000 })
       .toBe(true);
 
-    // Let 20 ticks pass; gold should grow by exactly 20 (one per tick).
+    // Sample gold and tick together so we can isolate exactly how many
+    // simulation ticks pass alongside the advanceTicks(20, 100) call.
+    // Phaser's render loop keeps running between page.evaluate() calls,
+    // so a plain "advance 20, diff the gold totals" assertion would pick
+    // up 1-2 extra ticks of jitter. Capturing the tick counter at both
+    // endpoints pins the expectation to exactly the ticks that elapsed.
+    const depositBaseline = await page.evaluate(() => {
+      const hud = window.__AOE2_TEST__!.getHudState();
+      return { tick: hud.tick, gold: hud.playerResources.gold };
+    });
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
-    const goldAfter = await page.evaluate(
-      () => window.__AOE2_TEST__!.getHudState().playerResources.gold,
-    );
-    expect(goldAfter - goldBeforeDeposit).toBe(20);
+    const depositAfter = await page.evaluate(() => {
+      const hud = window.__AOE2_TEST__!.getHudState();
+      return { tick: hud.tick, gold: hud.playerResources.gold };
+    });
+    const ticksElapsed = depositAfter.tick - depositBaseline.tick;
+    // At least the 20 ticks from advanceTicks, allow up to a few more
+    // from Phaser's own update loop running between evaluate() calls.
+    expect(ticksElapsed).toBeGreaterThanOrEqual(20);
+    expect(ticksElapsed).toBeLessThanOrEqual(25);
+    // Gold income is exactly +1 per tick per stored relic.
+    expect(depositAfter.gold - depositBaseline.gold).toBe(ticksElapsed);
   });
 
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
