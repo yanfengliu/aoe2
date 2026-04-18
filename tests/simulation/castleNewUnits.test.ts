@@ -161,6 +161,47 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     }
   }, 10_000);
 
+  it('lets a Cavalry Archer hit a distant target at range 4 without closing to melee', () => {
+    const bridge = createSimulationBridge('cavalry-archer-ranged-fixture');
+
+    const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(enemyMilitia).toBeDefined();
+    const enemyHpBefore = getHealthOfUnitAtCell(bridge, enemyMilitia!.x, enemyMilitia!.y);
+    expect(enemyHpBefore).toBe(40);
+
+    const ca = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(ca).toBeDefined();
+    // Manhattan distance should already match the CA's range (4 tiles).
+    const distance = Math.abs(ca!.x - enemyMilitia!.x) + Math.abs(ca!.y - enemyMilitia!.y);
+    expect(distance).toBe(4);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'cavalry-archer')).toBe(true);
+    expect(bridge.issueContextCommand(enemyMilitia!.x, enemyMilitia!.y)).toBe(true);
+
+    // Advance ticks; the first hit lands after one reload at range without
+    // needing to approach.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(bridge, enemyMilitia!.x, enemyMilitia!.y);
+          return hp !== null && hp < 40;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+
+    // Cavalry Archer base attack is 6; Militia has 0 pierce armor in our model,
+    // so one hit brings 40 -> 34 HP. The Cavalry Archer should still be at
+    // the original position (it did not need to close in).
+    const enemyHpAfter = getHealthOfUnitAtCell(bridge, enemyMilitia!.x, enemyMilitia!.y);
+    expect(enemyHpAfter).toBe(34);
+
+    const caAfter = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(caAfter?.x).toBe(ca!.x);
+    expect(caAfter?.y).toBe(ca!.y);
+  }, 10_000);
+
   it('does NOT apply the Spearman anti-cavalry bonus to a Camel target', () => {
     // Spearman's +12 vs Scout / Light-Cavalry and +15 vs Knight bonuses
     // must not extend to Camels. Camels are anti-cavalry, not cavalry.

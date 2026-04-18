@@ -1531,6 +1531,64 @@ function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Castle-Age ranged combat fixture: a player-1 Cavalry Archer stationed
+// exactly 4 tiles (its attack range) away from a stationary enemy Militia.
+// Used to assert the Cavalry Archer fires at range without closing.
+function createCavalryArcherRangedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'cavalry-archer',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'militia',
+        x: 16,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
 function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -3031,6 +3089,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'spearman-vs-camel-fixture') {
     return createSpearmanVsCamelFixture(seed);
+  }
+
+  if (seed === 'cavalry-archer-ranged-fixture') {
+    return createCavalryArcherRangedFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {
