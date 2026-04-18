@@ -2022,6 +2022,36 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveText('Mg');
   });
 
+  test('can train a Longbowman at a Britons Castle in Castle Age and render its HUD label', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'castle-unique-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'castle')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Castle');
+    await expect(page.locator('[data-command="train-longbowman"]')).toBeVisible();
+
+    await page.locator('[data-command="train-longbowman"]').click();
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+
+    const snapshot = await getSnapshot(page);
+    const longbows = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'longbowman',
+    );
+    expect(longbows).toHaveLength(1);
+    expect(longbows[0]).toMatchObject({
+      attackDamage: 6,
+      attackRange: 6,
+    });
+
+    expect(await selectOwnedUnitDirect(page, 1, 'longbowman')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Longbowman');
+    await expect(
+      page.locator('[data-selection-unit-icon="longbowman"]'),
+    ).toHaveText('LB');
+  });
+
   test('can train a Monk at the Monastery, pick up a relic, deposit it, and earn gold income', async ({
     page,
   }) => {
