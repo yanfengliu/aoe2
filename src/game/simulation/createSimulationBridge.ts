@@ -1394,6 +1394,18 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
   return 0;
 }
 
+// Unit-vs-building bonus damage. The unit-vs-unit combat and unit-vs-building
+// combat paths are separate in this codebase (different target-kind branches
+// inside prototypePlayerCommands), so building bonuses are modeled separately
+// from anti-unit bonuses. Only the Battering Ram carries one in v1 (+75 vs
+// every building type); siege upgrades in Slice 7 will extend this helper.
+function attackBonusAgainstBuilding(attackerType: UnitType): number {
+  if (attackerType === 'battering-ram') {
+    return 75;
+  }
+  return 0;
+}
+
 function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
   return (
     buildingType === 'mill'
@@ -4694,7 +4706,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             continue;
           }
 
-          targetHealth.currentHp -= attackerCombat.attackDamage;
+          targetHealth.currentHp -=
+            attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType);
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
           markOutOfBandRenderChange();
 

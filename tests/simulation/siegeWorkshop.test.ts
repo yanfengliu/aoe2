@@ -104,6 +104,55 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(mangonelAfter?.y).toBe(mangonel!.y);
   }, 20_000);
 
+  it('deals +75 bonus damage when a Battering Ram attacks a building', () => {
+    // Ram base attack is 2 + 75 anti-building bonus = 77 damage per hit. A
+    // House has 75 HP, so a single hit destroys it. The v1 combat model has
+    // no building-armor reduction (only unit armor for ranged/melee).
+    const bridge = createSimulationBridge('ram-vs-building-fixture');
+
+    const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
+    expect(house).toBeDefined();
+
+    const ram = findFirstOwnedUnit(bridge, 1, 'battering-ram');
+    expect(ram).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'battering-ram')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house') === undefined,
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
+  }, 20_000);
+
+  it('deals only base damage when a Battering Ram attacks a villager (no +75 bonus vs units)', () => {
+    const bridge = createSimulationBridge('ram-vs-villager-fixture');
+
+    const villager = findFirstOwnedUnit(bridge, 2, 'villager');
+    expect(villager).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'battering-ram')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(villager!.id)).toBe(true);
+
+    // Step exactly one tick so the Ram's first hit lands before the enemy AI
+    // can move the villager (player 2 villager starts the house-build loop
+    // and walks away otherwise). The Ram's attack-command was set before any
+    // step and fires on tick 1 at the pre-AI villager position (15, 8).
+    bridge.step(100);
+
+    // Locate the villager by id since it may have moved off its spawn cell.
+    const vAfter = bridge.getEconomyState().units.find((u) => u.id === villager!.id);
+    expect(vAfter).toBeDefined();
+    const villagerHpAfter = getHealthOfUnitAtCell(bridge, vAfter!.x, vAfter!.y);
+    // Ram base attack 2, NO +75 vs unit target. Villager: 25 -> 23. If the
+    // building bonus bled into the unit path the villager would be at -52
+    // (destroyed on tick 1).
+    expect(villagerHpAfter).toBe(23);
+  }, 10_000);
+
   it('lets a Scorpion hit a distant Spearman at range 7 without closing', () => {
     const bridge = createSimulationBridge('scorpion-ranged-fixture');
 
