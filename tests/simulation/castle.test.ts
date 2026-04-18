@@ -66,6 +66,124 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(trainOptions).toEqual([]);
   });
 
+  it('Longbowman hits a target at range 6 without closing', () => {
+    // longbowman-ranged-fixture plants a player-1 Longbowman at (14, 8)
+    // and an enemy Spearman at (20, 8) — distance exactly 6. Assert the
+    // Longbow lands damage without moving from its starting cell.
+    const bridge = createSimulationBridge('longbowman-ranged-fixture');
+
+    const longbow = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(longbow).toBeDefined();
+    const spearmanBefore = findFirstOwnedUnit(bridge, 2, 'spearman');
+    expect(spearmanBefore).toBeDefined();
+    expect(Math.abs(longbow!.x - spearmanBefore!.x) + Math.abs(longbow!.y - spearmanBefore!.y)).toBe(6);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'longbowman')).toBe(true);
+    expect(bridge.issueContextCommand(spearmanBefore!.x, spearmanBefore!.y)).toBe(true);
+
+    // Longbow attack 6 pierce / reload 20. Spearman 45 HP → ~8 shots
+    // dead. Assert at minimum damage lands and the Longbow did not move.
+    const hitLanded = stepBridgeUntil(
+      bridge,
+      () => {
+        const s = findFirstOwnedUnit(bridge, 2, 'spearman');
+        if (!s) {
+          return true;
+        }
+        const hp = getHealthOfUnitAtCell(bridge, s.x, s.y);
+        return hp !== null && hp < 45;
+      },
+      { maxSteps: 120 },
+    );
+    expect(hitLanded).toBe(true);
+
+    const longbowAfter = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(longbowAfter?.x).toBe(longbow!.x);
+    expect(longbowAfter?.y).toBe(longbow!.y);
+  }, 20_000);
+
+  it('Fletching researched before training a Longbowman applies +1/+1 to the Longbowman', () => {
+    // castle-fletching-fixture puts Britons Castle + Blacksmith under the
+    // human player. Research Fletching first, then train a Longbowman,
+    // then assert the Longbow spawns with damage 7 / range 7 (6+1 / 6+1).
+    const bridge = createSimulationBridge('castle-fletching-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+
+    expect(
+      stepBridgeUntil(bridge, () => {
+        return bridge
+          .getEconomyState()
+          .buildings.find((b) => b.owner === 1 && b.buildingType === 'blacksmith')
+          ?.queue.length === 0;
+      }, { maxSteps: 500 }),
+    ).toBe(true);
+
+    // Now train a Longbowman.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.queueTrainUnit('longbowman')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'longbowman') === 1,
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    const longbow = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(longbow).toMatchObject({
+      unitType: 'longbowman',
+      attackDamage: 7,
+      attackRange: 7,
+    });
+  }, 40_000);
+
+  it('Fletching researched after training a Longbowman upgrades the existing Longbowman to 7/7', () => {
+    // Same Britons Castle + Blacksmith fixture, but train the Longbow
+    // first (base 6/6), then research Fletching, and assert the Longbow
+    // was updated in place.
+    const bridge = createSimulationBridge('castle-fletching-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.queueTrainUnit('longbowman')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'longbowman') === 1,
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    const longbowBefore = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(longbowBefore).toMatchObject({
+      unitType: 'longbowman',
+      attackDamage: 6,
+      attackRange: 6,
+    });
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+
+    expect(
+      stepBridgeUntil(bridge, () => {
+        return bridge
+          .getEconomyState()
+          .buildings.find((b) => b.owner === 1 && b.buildingType === 'blacksmith')
+          ?.queue.length === 0;
+      }, { maxSteps: 500 }),
+    ).toBe(true);
+
+    const longbowAfter = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(longbowAfter).toMatchObject({
+      unitType: 'longbowman',
+      attackDamage: 7,
+      attackRange: 7,
+    });
+  }, 40_000);
+
   it('Castle auto-fires on a visible enemy unit within range 8 over a few ticks', () => {
     // castle-defensive-fire-fixture plants a completed player-1 Castle at
     // (14, 6) with an enemy Spearman at (21, 8) — within the Castle's
