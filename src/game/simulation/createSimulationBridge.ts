@@ -1015,6 +1015,9 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
     || (buildingType === 'archery-range' && unitType === 'crossbowman')
     || (buildingType === 'archery-range' && unitType === 'cavalry-archer')
+    || (buildingType === 'siege-workshop' && unitType === 'mangonel')
+    || (buildingType === 'siege-workshop' && unitType === 'scorpion')
+    || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
   );
 }
 
@@ -3979,6 +3982,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           options.push('cavalry-archer');
         }
         return options;
+      }
+      case 'siege-workshop': {
+        // Siege Workshop is Castle-Age+ only; if the player somehow reaches
+        // it earlier (shouldn't happen in v1 content) no units are trainable.
+        if (!isAtLeastAge(owner, 'castle-age')) {
+          return [];
+        }
+        return ['mangonel', 'scorpion', 'battering-ram'];
       }
       default:
         return [];
