@@ -2483,6 +2483,115 @@ function createMonkConvertCleanupFixture(seed: string): PrototypeScenario {
 // player-1 Pikeman adjacent for the human test to command into an
 // attack. When the Monastery dies, the relic should drop back onto
 // the map near the footprint.
+// Slice 6 review fix: a Monastery with 2 stored relics, completely
+// surrounded by trees on every cell at manhattan distance 1 and 2 of
+// the footprint. The existing radius-capped drop search (range 2)
+// finds zero free approach cells in this scenario, so pre-fix the
+// stored relics vanish on destruction. A Mangonel sits beyond the
+// tree ring and shells the Monastery into the ground from range, so
+// the destruction itself does not require an open approach.
+function createMonkRelicDropCrampedFixture(seed: string): PrototypeScenario {
+  const monasteryAnchor = { x: 10, y: 10 };
+  const footprintMinX = monasteryAnchor.x;
+  const footprintMaxX = monasteryAnchor.x + 1;
+  const footprintMinY = monasteryAnchor.y;
+  const footprintMaxY = monasteryAnchor.y + 1;
+  const blockerRange = 2;
+  const blockerSpawns: ScenarioSpawnSpec[] = [];
+  for (let y = footprintMinY - blockerRange; y <= footprintMaxY + blockerRange; y += 1) {
+    for (let x = footprintMinX - blockerRange; x <= footprintMaxX + blockerRange; x += 1) {
+      const insideFootprint = x >= footprintMinX && x <= footprintMaxX
+        && y >= footprintMinY && y <= footprintMaxY;
+      if (insideFootprint) {
+        continue;
+      }
+      const dx =
+        x < footprintMinX ? footprintMinX - x
+        : x > footprintMaxX ? x - footprintMaxX
+        : 0;
+      const dy =
+        y < footprintMinY ? footprintMinY - y
+        : y > footprintMaxY ? y - footprintMaxY
+        : 0;
+      const distance = dx + dy;
+      if (distance === 0 || distance > blockerRange) {
+        continue;
+      }
+      blockerSpawns.push({
+        kind: 'tree',
+        x,
+        y,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      });
+    }
+  }
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 20 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        // Wide vision so the Mangonel sees its target without having
+        // to drive its own LOS forward through the tree ring.
+        vision: { playerId: 1, radius: 18 },
+      },
+      // Hostile Monastery — owns 2 relics deposited ahead of time;
+      // extremely low HP so the Mangonel one-shots it.
+      {
+        kind: 'monastery',
+        x: monasteryAnchor.x,
+        y: monasteryAnchor.y,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+        startingRelicsInMonastery: 2,
+        startHp: 10,
+      },
+      ...blockerSpawns,
+      // Mangonel parked beyond the tree ring at manhattan distance 5
+      // from the nearest Monastery cell (well within range 7 and
+      // outside min range 3).
+      {
+        kind: 'mangonel',
+        x: 10,
+        y: 16,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 20,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createMonkRelicDropFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -5085,6 +5194,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-relic-drop-fixture') {
     return createMonkRelicDropFixture(seed);
+  }
+
+  if (seed === 'monk-relic-drop-cramped-fixture') {
+    return createMonkRelicDropCrampedFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {

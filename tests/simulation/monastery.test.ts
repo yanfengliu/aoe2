@@ -609,6 +609,54 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(rAfter!.y).toBe(mAfter!.y);
   }, 30_000);
 
+  it('preserves every relic when the Monastery is destroyed in a fully blocked footprint', () => {
+    // Slice 6 review fix: pre-fix, the relic-drop loop deleted the
+    // relicsInMonastery entry up front and only spawned relics for
+    // approach cells that were free in the radius-2 search. With the
+    // approach cells walled off, NO relics spawned. Post-fix, the
+    // search either grows outward to find more cells or falls back to
+    // anchor-stacking — every relic is guaranteed to make it to the
+    // world.
+    const bridge = createSimulationBridge('monk-relic-drop-cramped-fixture');
+
+    const monastery = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 2 && b.buildingType === 'monastery');
+    expect(monastery).toBeDefined();
+    const monasteryId = monastery!.id;
+
+    // Sanity: 2 relics are deposited inside the Monastery and no
+    // relic entity exists yet in the world.
+    expect(
+      bridge.getEconomyState().resources.filter((r) => r.resourceType === 'relic'),
+    ).toHaveLength(0);
+
+    // Mangonel attacks the Monastery from outside the tree ring.
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(monasteryId)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const still = bridge
+            .getEconomyState()
+            .buildings.find((b) => b.id === monasteryId);
+          return still === undefined;
+        },
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    // Both relics must exist somewhere in the world. Position is
+    // intentionally not asserted — anchor-stacking is acceptable per
+    // the fix design.
+    const droppedRelics = bridge
+      .getEconomyState()
+      .resources.filter((r) => r.resourceType === 'relic');
+    expect(droppedRelics).toHaveLength(2);
+  }, 60_000);
+
   it('drops deposited relics back onto the map when the Monastery is destroyed', () => {
     const bridge = createSimulationBridge('monk-relic-drop-fixture');
 

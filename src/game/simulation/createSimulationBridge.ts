@@ -3670,44 +3670,68 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
     // Destroyed Monastery stops generating relic gold. Any stored relics
-    // spill back onto the map at free cells near the footprint so the
-    // player (or an enemy Monk) can pick them up again. Matches canonical
-    // AoE2 behavior. Capture the spawn anchors before destroying the
-    // entity so the footprint is still valid.
+    // spill back onto the map. Matches canonical AoE2 behavior. We must
+    // guarantee that every stored relic survives — Codex P2 review caught
+    // a path where a cramped layout (every approach cell within radius 2
+    // blocked by trees / buildings / impassable terrain) silently lost
+    // relics because the bookkeeping entry was deleted up front and the
+    // search was capped at radius 2.
+    //
+    // Strategy: grow the search outward until enough free cells are
+    // collected, capped at MAP_WIDTH + MAP_HEIGHT so we never spin on a
+    // pathological scenario. If even that fails, fall back to stacking
+    // every remaining relic on the destroyed Monastery's anchor cell —
+    // relic resources don't claim unit occupancy, so visual overlap is
+    // tolerated. relicsInMonastery is cleared only after the drop list
+    // is built so the bookkeeping never gets ahead of the world.
     const storedRelicCount = relicsInMonastery.get(id) ?? 0;
-    relicsInMonastery.delete(id);
     const relicDropPositions: Position[] = [];
     if (storedRelicCount > 0 && building) {
       const position = world.getComponent<Position>(id, 'position');
       if (position) {
         const footprint = buildingFootprint(building.buildingType);
-        const searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
-        const candidates = getApproachCellsForFootprint(
-          position,
-          footprint.width,
-          footprint.height,
-          searchRange,
-        );
-        for (const candidate of candidates) {
-          if (relicDropPositions.length >= storedRelicCount) {
-            break;
+        const maxSearchRange = MAP_WIDTH + MAP_HEIGHT;
+        for (
+          let searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
+          searchRange <= maxSearchRange && relicDropPositions.length < storedRelicCount;
+          searchRange += 1
+        ) {
+          const candidates = getApproachCellsForFootprint(
+            position,
+            footprint.width,
+            footprint.height,
+            searchRange,
+          );
+          for (const candidate of candidates) {
+            if (relicDropPositions.length >= storedRelicCount) {
+              break;
+            }
+            if (!isTerrainPassableForUnit(candidate.x, candidate.y)) {
+              continue;
+            }
+            if (isCellBlockedByBuilding(candidate.x, candidate.y)) {
+              continue;
+            }
+            if (isCellBlockedByResource(candidate.x, candidate.y)) {
+              continue;
+            }
+            if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {
+              continue;
+            }
+            relicDropPositions.push(candidate);
           }
-          if (!isTerrainPassableForUnit(candidate.x, candidate.y)) {
-            continue;
-          }
-          if (isCellBlockedByBuilding(candidate.x, candidate.y)) {
-            continue;
-          }
-          if (isCellBlockedByResource(candidate.x, candidate.y)) {
-            continue;
-          }
-          if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {
-            continue;
-          }
-          relicDropPositions.push(candidate);
+        }
+        // Anchor-stacking fallback: if nothing on the map is free
+        // (genuinely possible on a tiny test fixture or a fully walled-in
+        // build), stack the remaining relics on the Monastery's anchor
+        // cell. Relics are resources without unit-occupancy semantics, so
+        // overlap is acceptable.
+        while (relicDropPositions.length < storedRelicCount) {
+          relicDropPositions.push({ x: position.x, y: position.y });
         }
       }
     }
+    relicsInMonastery.delete(id);
     world.destroyEntity(id);
     // Spawn the dropped relics after the source entity is gone so the
     // building's cells are no longer blocked by its footprint.
