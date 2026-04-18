@@ -156,6 +156,11 @@ const SCORPION_TRAIN_TIME_TICKS = 300;
 const BATTERING_RAM_TRAIN_TIME_TICKS = 360;
 const MONASTERY_BUILD_TIME_TICKS = 280;
 const MONK_TRAIN_TIME_TICKS = 510;
+// Slice 6: Castle is a much larger structure than a Siege Workshop or TC and
+// takes longer to erect. Longbowman is a Britons civ unique ranged unit that
+// trains at the Castle when the owner's civ is Britons.
+const CASTLE_BUILD_TIME_TICKS = 560;
+const LONGBOWMAN_TRAIN_TIME_TICKS = 300;
 // Deterministic per-tick increments for Monk conversion and heal (Slice 5).
 // Conversion flips target ownership at 50 progress; heal restores 1 HP per
 // 10 ticks. These values are intentionally v1 "easy-to-observe" rates — real
@@ -666,6 +671,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'market':
     case 'siege-workshop':
     case 'monastery':
+    case 'castle':
     case 'town-center':
       return 0;
   }
@@ -697,6 +703,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return SIEGE_WORKSHOP_BUILD_TIME_TICKS;
     case 'monastery':
       return MONASTERY_BUILD_TIME_TICKS;
+    case 'castle':
+      return CASTLE_BUILD_TIME_TICKS;
   }
 }
 
@@ -719,6 +727,8 @@ function buildingSize(buildingType: BuildingType): number {
       return 1.2;
     case 'town-center':
       return 1.4;
+    case 'castle':
+      return 1.5;
   }
 }
 
@@ -799,6 +809,12 @@ function buildingTint(
       : isComplete ? 0xc3a8b6 : 0x6e5862;
   }
 
+  if (buildingType === 'castle') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xa09f9c : 0x605d59
+      : isComplete ? 0xaa7a7a : 0x604545;
+  }
+
   return owner === HUMAN_PLAYER_ID
     ? isComplete ? 0xd8b36c : 0x7d6545
     : isComplete ? 0xa15c5c : 0x674040;
@@ -871,6 +887,9 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { wood: 160, gold: 75 };
     case 'monk':
       return { gold: 100 };
+    case 'longbowman':
+      // Britons-unique; AoE2 DE Castle-Age Longbowman costs 35 food / 40 gold.
+      return { food: 35, gold: 40 };
   }
 }
 
@@ -915,6 +934,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { wood: 200 };
     case 'monastery':
       return { wood: 175 };
+    case 'castle':
+      return { stone: 650 };
   }
 }
 
@@ -952,6 +973,8 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return BATTERING_RAM_TRAIN_TIME_TICKS;
     case 'monk':
       return MONK_TRAIN_TIME_TICKS;
+    case 'longbowman':
+      return LONGBOWMAN_TRAIN_TIME_TICKS;
   }
 }
 
@@ -993,6 +1016,8 @@ function buildingMaxHp(buildingType: BuildingType): number {
       return 2100;
     case 'town-center':
       return 2400;
+    case 'castle':
+      return 4800;
   }
 }
 
@@ -1002,6 +1027,8 @@ function buildingVisionRadius(buildingType: BuildingType): number | null {
       return 7;
     case 'watch-tower':
       return 8;
+    case 'castle':
+      return 11;
     default:
       return null;
   }
@@ -1026,6 +1053,20 @@ function createBuildingCombatState(buildingType: BuildingType): BuildingCombatSt
     };
   }
 
+  // Castle fires a strong pierce arrow at long range. Canonical AoE2 DE is
+  // 11 damage / range 8 / ~2s reload. The defensive-fire loop itself lives
+  // in `prototypeTowerCombat`, which routes every building with a combat
+  // state through the same target-pick + shoot logic; extending this helper
+  // is enough to make Castles shoot.
+  if (buildingType === 'castle') {
+    return {
+      attackDamage: 11,
+      attackRange: 8,
+      reloadTicks: 20,
+      cooldownTicks: 0,
+    };
+  }
+
   return null;
 }
 
@@ -1034,6 +1075,8 @@ function buildingGarrisonCapacity(buildingType: BuildingType): number {
     case 'town-center':
     case 'watch-tower':
       return 5;
+    case 'castle':
+      return 20;
     default:
       return 0;
   }
@@ -1048,6 +1091,12 @@ function buildingArrowCount(buildingType: BuildingType, garrisonedUnits: number)
     case 'town-center':
       return garrisonedUnits > 0 ? 1 + Math.min(garrisonedUnits, 4) : 0;
     case 'watch-tower':
+      return 1;
+    case 'castle':
+      // Castle fires a strong arrow even without garrison. Canonical AoE2 DE
+      // has garrisoned archers each add an extra arrow (max 5 visible), but
+      // that garrisoned-archer-extra-arrows behavior is explicitly out of
+      // scope in Slice 6 — Slice 7 follow-up.
       return 1;
     default:
       return 0;
@@ -1072,6 +1121,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'siege-workshop' && unitType === 'scorpion')
     || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
     || (buildingType === 'monastery' && unitType === 'monk')
+    || (buildingType === 'castle' && unitType === 'longbowman')
   );
 }
 
@@ -1123,6 +1173,8 @@ function unitMaxHp(unitType: UnitType): number {
       return 175;
     case 'monk':
       return 30;
+    case 'longbowman':
+      return 35;
   }
 }
 
@@ -1164,6 +1216,8 @@ function unitAttackDamage(unitType: UnitType): number {
     // (the combat state still exists but the hit does nothing).
     case 'monk':
       return 0;
+    case 'longbowman':
+      return 6;
   }
 }
 
@@ -1204,6 +1258,8 @@ function unitReloadTicks(unitType: UnitType): number {
     // the CombatState non-zero and avoid spurious divide-by-zero risk.
     case 'monk':
       return 10;
+    case 'longbowman':
+      return 20;
   }
 }
 
@@ -1225,6 +1281,10 @@ function unitAttackRange(unitType: UnitType): number {
       return 4;
     case 'crossbowman':
       return 5;
+    case 'longbowman':
+      // Britons-unique Longbowman gets range 6 at Castle Age (Imperial
+      // Elite Longbowman reaches 7 in Slice 7). This is the Castle Age value.
+      return 6;
     case 'mangonel':
     case 'scorpion':
       return 7;
@@ -1257,6 +1317,7 @@ function isArcherLineUnit(unitType: UnitType): boolean {
     unitType === 'archer'
     || unitType === 'crossbowman'
     || unitType === 'cavalry-archer'
+    || unitType === 'longbowman'
   );
 }
 
@@ -1383,6 +1444,8 @@ function unitTint(unitType: UnitType, owner: number): number {
       return isHuman ? 0x6e543a : 0x6e4239;
     case 'monk':
       return isHuman ? 0xe3d9b5 : 0xd6aab6;
+    case 'longbowman':
+      return isHuman ? 0x5f9057 : 0xa86d91;
   }
 }
 
@@ -1416,6 +1479,8 @@ function unitSize(unitType: UnitType): number {
       return 0.75;
     case 'monk':
       return 0.48;
+    case 'longbowman':
+      return 0.5;
   }
 }
 
@@ -1452,6 +1517,8 @@ function unitVisionRadius(unitType: UnitType): number {
       return 3;
     case 'monk':
       return MONK_VISION_RADIUS;
+    case 'longbowman':
+      return 7;
   }
 }
 
@@ -2362,6 +2429,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || buildingType === 'market'
       || buildingType === 'siege-workshop'
       || buildingType === 'monastery'
+      || buildingType === 'castle'
     ) {
       if (!productionQueues.has(entity)) {
         productionQueues.set(entity, []);
@@ -2467,6 +2535,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'market'
       || spawn.kind === 'siege-workshop'
       || spawn.kind === 'monastery'
+      || spawn.kind === 'castle'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
@@ -2490,6 +2559,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'scorpion'
       || spawn.kind === 'battering-ram'
       || spawn.kind === 'monk'
+      || spawn.kind === 'longbowman'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -4309,6 +4379,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'crossbowman':
       case 'cavalry-archer':
       case 'skirmisher':
+      case 'longbowman':
         return 2;
       case 'militia':
       case 'spearman':

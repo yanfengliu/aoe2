@@ -16,7 +16,8 @@ export type UnitType =
   | 'mangonel'
   | 'scorpion'
   | 'battering-ram'
-  | 'monk';
+  | 'monk'
+  | 'longbowman';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -33,7 +34,8 @@ export type TrainableUnitType =
   | 'mangonel'
   | 'scorpion'
   | 'battering-ram'
-  | 'monk';
+  | 'monk'
+  | 'longbowman';
 export type ResearchableTechnologyType =
   | 'feudal-age'
   | 'castle-age'
@@ -62,7 +64,8 @@ export type BuildableBuildingType =
   | 'blacksmith'
   | 'market'
   | 'siege-workshop'
-  | 'monastery';
+  | 'monastery'
+  | 'castle';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'

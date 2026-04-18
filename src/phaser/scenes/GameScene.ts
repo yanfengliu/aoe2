@@ -1332,6 +1332,7 @@ export class GameScene extends Phaser.Scene {
       || entityType === 'mangonel'
       || entityType === 'scorpion'
       || entityType === 'battering-ram'
+      || entityType === 'longbowman'
     );
   }
 }

@@ -292,6 +292,10 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Monk';
     case 'relic':
       return 'Relic';
+    case 'castle':
+      return 'Castle';
+    case 'longbowman':
+      return 'Longbowman';
     default:
       return entityType;
   }
@@ -379,6 +383,10 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Monks';
     case 'relic':
       return 'Relics';
+    case 'castle':
+      return 'Castles';
+    case 'longbowman':
+      return 'Longbowmen';
     default:
       return `${entityType}s`;
   }
@@ -414,6 +422,7 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'scorpion'
     || entityType === 'battering-ram'
     || entityType === 'monk'
+    || entityType === 'longbowman'
   );
 }
 
@@ -451,6 +460,8 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'Rm';
     case 'monk':
       return 'Mn';
+    case 'longbowman':
+      return 'LB';
   }
 }
 
@@ -488,6 +499,8 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#8f6a4a';
     case 'monk':
       return '#e3d9b5';
+    case 'longbowman':
+      return '#6fa070';
   }
 }
 
@@ -519,6 +532,8 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'SW';
     case 'monastery':
       return 'My';
+    case 'castle':
+      return 'Ct';
     case 'relic':
       return 'Rl';
     case 'berry-bush':
@@ -570,6 +585,8 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#98856a';
     case 'monastery':
       return '#cfc3a8';
+    case 'castle':
+      return '#a09f9c';
     case 'relic':
       return '#f5d680';
     case 'berry-bush':
