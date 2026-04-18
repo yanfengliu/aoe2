@@ -1235,6 +1235,17 @@ function unitAttackRange(unitType: UnitType): number {
   }
 }
 
+// Minimum attack range ("dead zone" under which a ranged attacker must hold
+// fire). Only the Mangonel carries one in v1 — its boulder arc cannot land
+// at adjacent cells. Returns 0 for every other unit so the combat-tick
+// check below is a no-op for them.
+function unitMinAttackRange(unitType: UnitType): number {
+  if (unitType === 'mangonel') {
+    return 3;
+  }
+  return 0;
+}
+
 // Fletching is a one-shot Blacksmith upgrade that buffs the entire archer line
 // (+1 attack / +1 range). When Crossbowman (or a future Arbalest) upgrade
 // arrives, createCombatState is re-run for the new unitType so the buff must
@@ -4794,6 +4805,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               continue;
             }
 
+            // Minimum-range dead zone: Mangonel arcs cannot land at
+            // adjacent cells (min range 3). If the target is inside max
+            // range but closer than the attacker's min range, simply
+            // skip the tick — the target can walk out or close for melee
+            // on its own; v1 does not auto-reposition the siege unit.
+            if (
+              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
+            ) {
+              continue;
+            }
+
             if (attackerCombat.cooldownTicks > 0) {
               continue;
             }
@@ -4834,6 +4856,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               continue;
             }
 
+            // Mangonel min-range dead zone (see the unit branch above) —
+            // applies equally to wildlife / resource targets.
+            if (
+              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
+            ) {
+              continue;
+            }
+
             if (attackerCombat.cooldownTicks > 0) {
               continue;
             }
@@ -4870,6 +4900,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
               continue;
             }
             moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
+            continue;
+          }
+
+          // Mangonel min-range dead zone (see the unit branch above) —
+          // also applies when a Mangonel is targeting a building it
+          // somehow ended up standing on top of.
+          if (
+            distanceToBuilding(targetId, position) < unitMinAttackRange(unit.unitType)
+          ) {
             continue;
           }
 

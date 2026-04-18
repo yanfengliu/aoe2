@@ -1652,6 +1652,129 @@ function createMangonelVsKnightFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 4 review fixture: player-1 Mangonel with a stationary enemy
+// Spearman TWO cells away — well inside the Mangonel's max range 7 but
+// inside its minimum range 3. The Mangonel must refuse to fire (its
+// boulders can't arc in that close) and hold its position.
+function createMangonelMinRangeBlockedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mangonel',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // Spearman at distance 2 from the Mangonel — inside the min-range 3
+      // dead zone. The test issues an attack command; the Mangonel should
+      // hold fire (no cooldown consumed) and the Spearman's HP must stay
+      // pinned at 45. A stray shot would drop it to 0 (40 + 10 infantry).
+      {
+        kind: 'spearman',
+        x: 12,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
+// Slice 4 review fixture: player-1 Mangonel with a stationary enemy
+// Spearman at distance 5 — OUTSIDE min range 3 and WELL INSIDE max range
+// 7. Positive control for the min-range test: under identical stats the
+// Mangonel must fire and destroy the Spearman with 40 + 10 = 50 damage
+// on one tick.
+function createMangonelOutsideMinRangeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mangonel',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'spearman',
+        x: 15,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
 // Slice 4 review fixture: player-1 Watch Tower with both an enemy Mangonel
 // and an enemy Militia inside its attack range. Used to assert siege is the
 // highest-priority target for defensive buildings (the tower must fire on
@@ -4049,6 +4172,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'mangonel-vs-knight-fixture') {
     return createMangonelVsKnightFixture(seed);
+  }
+
+  if (seed === 'mangonel-min-range-blocked-fixture') {
+    return createMangonelMinRangeBlockedFixture(seed);
+  }
+
+  if (seed === 'mangonel-outside-min-range-fixture') {
+    return createMangonelOutsideMinRangeFixture(seed);
   }
 
   if (seed === 'ram-vs-building-fixture') {

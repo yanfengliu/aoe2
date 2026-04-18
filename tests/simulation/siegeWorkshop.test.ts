@@ -197,6 +197,54 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(ramHpAfter).toBe(170);
   }, 10_000);
 
+  it('holds Mangonel fire when the target is inside its minimum range of 3', () => {
+    // Slice 4 review Fix 3: Mangonel range is 7 with a minimum of 3 —
+    // boulders cannot arc in to an adjacent cell. At distance 2 the
+    // Mangonel must refuse to attack rather than dealing damage. The
+    // fixture places a Spearman at distance 2; after 20 ticks (well past
+    // two reload cycles of 6s) the Spearman's HP must still be 45.
+    const bridge = createSimulationBridge('mangonel-min-range-blocked-fixture');
+
+    const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
+    expect(spearman).toBeDefined();
+    const spearmanIdBefore = spearman!.id;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(spearmanIdBefore)).toBe(true);
+
+    // Run for longer than a single reload cycle (60 ticks is full reload);
+    // if the min-range check is missing, the Mangonel will fire on tick 1.
+    for (let index = 0; index < 20; index += 1) {
+      bridge.step(100);
+    }
+
+    const spearmanAfter = bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore);
+    expect(spearmanAfter).toBeDefined();
+    const spearmanHp = getHealthOfUnitAtCell(bridge, spearmanAfter!.x, spearmanAfter!.y);
+    expect(spearmanHp).toBe(45); // untouched — Mangonel held fire
+  }, 10_000);
+
+  it('fires normally once the target is outside the Mangonel minimum range', () => {
+    // Slice 4 review Fix 3 positive control: identical fixture but with
+    // the Spearman at distance 5, outside the min-range 3 dead zone. The
+    // Mangonel must fire on tick 1 and destroy the Spearman (40 base + 10
+    // infantry bonus = 50 damage, Spearman has 45 HP).
+    const bridge = createSimulationBridge('mangonel-outside-min-range-fixture');
+
+    const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
+    expect(spearman).toBeDefined();
+    const spearmanIdBefore = spearman!.id;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(spearmanIdBefore)).toBe(true);
+
+    bridge.step(100);
+
+    expect(
+      bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore),
+    ).toBeUndefined();
+  }, 10_000);
+
   it('makes a Watch Tower prefer a Mangonel over a closer Militia in range (siege-first priority)', () => {
     // Slice 4 review Fix 1: siege units must be the highest-priority target
     // for defensive buildings so towers do not burn their shots on infantry
