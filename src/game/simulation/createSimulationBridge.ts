@@ -3502,6 +3502,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     unitCommands.delete(id);
     combatStates.delete(id);
+    monkTasks.delete(id);
+    // If the dying unit was a Monk carrying a relic, drop the relic at the
+    // Monk's last cell so the carry state doesn't leak.
+    const carriedRelicId = monkCarriedRelic.get(id);
+    if (carriedRelicId !== undefined) {
+      monkCarriedRelic.delete(id);
+    }
+    conversionState.delete(id);
+    monkHealCounters.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -3538,6 +3547,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
+    // Destroyed Monastery stops generating relic gold.
+    relicsInMonastery.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -3566,6 +3577,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     removeSelectedEntity(id);
     wildlifeStates.delete(id);
     sheepMoveOrders.delete(id);
+    // If any Monk was carrying this resource (relic), drop the carry state
+    // so the follow loop doesn't dangle on a destroyed entity.
+    for (const [monkId, carriedId] of monkCarriedRelic.entries()) {
+      if (carriedId === id) {
+        monkCarriedRelic.delete(monkId);
+      }
+    }
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -4923,6 +4941,228 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     },
   });
 
+  // Monk heal counter per monk: ticks up each tick while in heal range of a
+  // friendly wounded target, applies 1 HP every MONK_HEAL_TICK_INTERVAL ticks.
+  const monkHealCounters = new Map<number, number>();
+
+  function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
+    const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
+    const targetCombat = combatStates.get(targetId);
+    if (!targetUnit || !targetCombat || targetUnit.owner !== monkUnit.owner) {
+      clearMonkTask(monkId);
+      monkHealCounters.delete(monkId);
+      return;
+    }
+    if (targetCombat.currentHp >= targetCombat.maxHp) {
+      clearMonkTask(monkId);
+      monkHealCounters.delete(monkId);
+      return;
+    }
+    const counter = (monkHealCounters.get(monkId) ?? 0) + 1;
+    if (counter >= MONK_HEAL_TICK_INTERVAL) {
+      targetCombat.currentHp = Math.min(
+        targetCombat.maxHp,
+        targetCombat.currentHp + MONK_HEAL_HP_PER_INTERVAL,
+      );
+      markOutOfBandRenderChange();
+      monkHealCounters.set(monkId, 0);
+    } else {
+      monkHealCounters.set(monkId, counter);
+    }
+  }
+
+  function applyMonkConvert(
+    monkId: number,
+    targetId: number,
+    monkUnit: UnitComponent,
+    activeWorld: World<GameEvents, GameCommands>,
+  ): void {
+    const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+    if (!targetUnit || targetUnit.owner === monkUnit.owner) {
+      clearMonkTask(monkId);
+      conversionState.delete(targetId);
+      return;
+    }
+    const state = conversionState.get(targetId) ?? { byOwner: monkUnit.owner, progress: 0 };
+    // If a different player's Monk is already converting this target, reset
+    // progress in favor of the latest converter so the ownership handoff is
+    // deterministic.
+    if (state.byOwner !== monkUnit.owner) {
+      state.byOwner = monkUnit.owner;
+      state.progress = 0;
+    }
+    state.progress += MONK_CONVERT_PROGRESS_PER_TICK;
+    if (state.progress >= MONK_CONVERT_FLIP_THRESHOLD) {
+      // Flip ownership.
+      targetUnit.owner = monkUnit.owner;
+      const renderable = activeWorld.getComponent<RenderableComponent>(targetId, 'renderable');
+      if (renderable) {
+        renderable.tint = unitTint(targetUnit.unitType, monkUnit.owner);
+      }
+      // Clean up any active attack command targeting a now-friendly unit.
+      unitCommands.delete(targetId);
+      conversionState.delete(targetId);
+      clearMonkTask(monkId);
+      markOutOfBandRenderChange();
+      return;
+    }
+    conversionState.set(targetId, state);
+  }
+
+  function applyMonkPickup(monkId: number, relicId: number): void {
+    const relic = world.getComponent<ResourceComponent>(relicId, 'resource');
+    if (!relic || relic.resourceType !== 'relic') {
+      clearMonkTask(monkId);
+      return;
+    }
+    // Record carry state; the per-tick follow loop keeps the relic glued to
+    // the Monk. Clear any other Monk currently claiming this relic (should
+    // not happen under v1 but guard for safety).
+    for (const [otherMonkId, carriedId] of monkCarriedRelic.entries()) {
+      if (carriedId === relicId && otherMonkId !== monkId) {
+        monkCarriedRelic.delete(otherMonkId);
+      }
+    }
+    monkCarriedRelic.set(monkId, relicId);
+    clearMonkTask(monkId);
+    markOutOfBandRenderChange();
+  }
+
+  function applyMonkDeposit(
+    monkId: number,
+    monasteryId: number,
+    monkUnit: UnitComponent,
+    activeWorld: World<GameEvents, GameCommands>,
+  ): void {
+    const relicId = monkCarriedRelic.get(monkId);
+    const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');
+    if (
+      relicId === undefined
+      || !building
+      || building.buildingType !== 'monastery'
+      || building.owner !== monkUnit.owner
+    ) {
+      clearMonkTask(monkId);
+      return;
+    }
+    // Destroy the relic entity and credit the Monastery.
+    destroyResourceEntity(relicId);
+    monkCarriedRelic.delete(monkId);
+    relicsInMonastery.set(monasteryId, (relicsInMonastery.get(monasteryId) ?? 0) + 1);
+    clearMonkTask(monkId);
+    markOutOfBandRenderChange();
+  }
+
+  world.registerSystem({
+    name: 'prototypeMonkBehavior',
+    phase: 'update',
+    after: ['prototypePlayerCommands'],
+    execute(activeWorld) {
+      // Iterate over a snapshot because some tasks (deposit / pickup) mutate
+      // the map (clear on completion or destroy the relic entity).
+      for (const [monkId, task] of [...monkTasks.entries()]) {
+        const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
+        const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
+        if (!monkUnit || !monkPosition || monkUnit.unitType !== 'monk') {
+          monkTasks.delete(monkId);
+          continue;
+        }
+
+        const targetId = currentEntityId(activeWorld, task.targetEntityRef);
+        if (targetId === null) {
+          monkTasks.delete(monkId);
+          continue;
+        }
+
+        const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+        if (!targetPosition) {
+          monkTasks.delete(monkId);
+          continue;
+        }
+
+        // Build-target deposit: the Monastery uses its footprint for range.
+        const distance =
+          task.kind === 'deposit'
+            ? distanceToBuilding(targetId, monkPosition)
+            : manhattanDistance(monkPosition, targetPosition);
+
+        if (distance > MONK_ACTION_RANGE) {
+          // Walk toward the target. For deposit we use the building-approach
+          // plan so the Monk clears the footprint cells.
+          const plan =
+            task.kind === 'deposit'
+              ? findBuildingApproachPlan(monkId, targetId, MONK_ACTION_RANGE, activeWorld)
+              : findUnitRangePlan(monkId, targetPosition, MONK_ACTION_RANGE, activeWorld);
+          if (!plan) {
+            monkTasks.delete(monkId);
+            continue;
+          }
+          moveUnitOneSubgridStep(monkId, plan.nextStep, activeWorld);
+          continue;
+        }
+
+        if (task.kind === 'heal') {
+          applyMonkHeal(monkId, targetId, monkUnit);
+          continue;
+        }
+
+        if (task.kind === 'convert') {
+          applyMonkConvert(monkId, targetId, monkUnit, activeWorld);
+          continue;
+        }
+
+        if (task.kind === 'pickup') {
+          applyMonkPickup(monkId, targetId);
+          continue;
+        }
+
+        if (task.kind === 'deposit') {
+          applyMonkDeposit(monkId, targetId, monkUnit, activeWorld);
+          continue;
+        }
+      }
+
+      // Relic follow: every Monk carrying a relic this tick moves the relic
+      // entity to the Monk's current cell so the rendered position tracks.
+      for (const [monkId, relicId] of [...monkCarriedRelic.entries()]) {
+        const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
+        const relicPosition = activeWorld.getComponent<Position>(relicId, 'position');
+        if (!monkPosition || !relicPosition) {
+          monkCarriedRelic.delete(monkId);
+          continue;
+        }
+        if (relicPosition.x !== monkPosition.x || relicPosition.y !== monkPosition.y) {
+          activeWorld.setPosition(relicId, { x: monkPosition.x, y: monkPosition.y });
+        }
+      }
+    },
+  });
+
+  world.registerSystem({
+    name: 'prototypeRelicGold',
+    phase: 'update',
+    after: ['prototypeMonkBehavior'],
+    execute(activeWorld) {
+      // Per tick, every owner with deposited relics gets +1 gold per relic.
+      // Iterate Monasteries and accumulate into each owner's resource bank.
+      for (const [monasteryId, count] of relicsInMonastery.entries()) {
+        if (count <= 0) {
+          continue;
+        }
+        const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');
+        if (!building || building.buildingType !== 'monastery') {
+          relicsInMonastery.delete(monasteryId);
+          continue;
+        }
+        const stockpile = playerResources.get(building.owner);
+        if (!stockpile) {
+          continue;
+        }
+        stockpile.gold += count;
+      }
+    },
+  });
+
   world.registerSystem({
     name: 'prototypeProductionQueues',
     phase: 'update',
@@ -5820,6 +6060,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
+    // Monks never enter the attack-command flow. Their context command routes
+    // to heal (friendly wounded unit), convert (enemy unit), pickup (neutral
+    // relic), or deposit (friendly Monastery). Anything that doesn't match
+    // one of those falls back to a plain move order.
+    if (unit.unitType === 'monk') {
+      return issueMonkContextCommandAtEntity(unitId, targetEntityId, unit, targetPosition);
+    }
+
     const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
     if (targetUnit && targetUnit.owner !== unit.owner) {
       return issueUnitAttackCommand(unitId, targetEntityId, 'unit');
@@ -5851,6 +6099,72 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return issueUnitMoveCommand(unitId, targetPosition);
+  }
+
+  function issueMonkContextCommandAtEntity(
+    monkId: number,
+    targetEntityId: number,
+    monkUnit: UnitComponent,
+    targetPosition: Position,
+  ): boolean {
+    const targetEntityRef = getEntityRef(targetEntityId);
+    if (!targetEntityRef) {
+      return false;
+    }
+
+    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
+    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
+    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
+
+    if (targetUnit) {
+      if (targetUnit.owner === monkUnit.owner) {
+        const combat = combatStates.get(targetEntityId);
+        if (combat && combat.currentHp < combat.maxHp) {
+          return setMonkTask(monkId, 'heal', targetEntityRef);
+        }
+        return issueUnitMoveCommand(monkId, targetPosition);
+      }
+
+      // Enemy unit: convert. Skip conversion on other Monks (no canonical
+      // rule against it but v1 keeps the target set simple — convert only
+      // "normal" units).
+      return setMonkTask(monkId, 'convert', targetEntityRef);
+    }
+
+    if (
+      targetResource
+      && targetResource.resourceType === 'relic'
+      && monkCarriedRelic.get(monkId) === undefined
+    ) {
+      return setMonkTask(monkId, 'pickup', targetEntityRef);
+    }
+
+    if (
+      targetBuilding
+      && targetBuilding.owner === monkUnit.owner
+      && targetBuilding.buildingType === 'monastery'
+      && monkCarriedRelic.get(monkId) !== undefined
+    ) {
+      return setMonkTask(monkId, 'deposit', targetEntityRef);
+    }
+
+    return issueUnitMoveCommand(monkId, targetPosition);
+  }
+
+  function setMonkTask(
+    monkId: number,
+    kind: MonkTask['kind'],
+    targetEntityRef: EntityRef,
+  ): boolean {
+    // Clear any lingering combat/move command on the Monk; the behaviour
+    // system will drive movement for the duration of the task.
+    unitCommands.delete(monkId);
+    monkTasks.set(monkId, { kind, targetEntityRef });
+    return true;
+  }
+
+  function clearMonkTask(monkId: number): void {
+    monkTasks.delete(monkId);
   }
 
   function selectEntityAtCell(x: number, y: number): boolean {

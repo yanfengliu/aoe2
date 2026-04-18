@@ -142,6 +142,14 @@ const FOREST_PATCHES: Offset[][] = [
 
 const FORWARD_ENEMY_SCOUT_POSITION = { x: 41, y: 20 };
 const FORWARD_ENEMY_HOUSE_POSITION = { x: 39, y: 18 };
+// Slice 5: two neutral relics on the default map. Placed on the center line
+// midway between the two player starts so both players have a roughly
+// symmetric path to claim them. Positions avoid resource patches and the
+// default forest strips.
+const DEFAULT_RELIC_POSITIONS: Position[] = [
+  { x: 24, y: 24 },
+  { x: 36, y: 10 },
+];
 const FIXTURE_NEARBY_VILLAGER_POSITION = { x: 6, y: 10 };
 const FIXTURE_PRIMARY_BUILDING_POSITION = { x: 13, y: 8 };
 const FIXTURE_SECONDARY_BUILDING_POSITION = { x: 17, y: 8 };
@@ -1885,9 +1893,11 @@ function createMonasteryFixture(seed: string): PrototypeScenario {
   };
 }
 
-// Slice 5 fixture for Monk heal: player-1 Monk adjacent to a friendly wounded
-// Spearman. Spearman starts damaged (we damage it in the test prelude); heal
-// system restores HP over ticks.
+// Slice 5 fixture for Monk heal: player-1 Monk adjacent to a friendly
+// Spearman with a neutral wolf close enough to auto-aggro the Spearman when
+// the test walks the wolf into aggro range. The wolf applies damage over a
+// few ticks, letting the test observe a wounded Spearman before issuing the
+// heal order.
 function createMonkHealFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -1930,6 +1940,18 @@ function createMonkHealFixture(seed: string): PrototypeScenario {
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
+      },
+      {
+        // Wolf auto-aggros on the nearest player unit within its aggro range;
+        // placed at (17, 8) → range 2 from the Spearman at (15, 8). Wolf
+        // attack 3 / reload 12, so HP accrues slowly and we can stop combat
+        // by killing the wolf once it's done some damage.
+        kind: 'wolf',
+        x: 17,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 0,
       },
       {
         kind: 'town-center',
@@ -4054,6 +4076,20 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     baseOwner: 2,
     vision: { playerId: 2, radius: 6 },
   });
+
+  // Slice 5: neutral relics between the two bases. Not harvestable; only a
+  // Monk can pick them up and deposit them in a friendly Monastery.
+  for (const relicPosition of DEFAULT_RELIC_POSITIONS) {
+    paintDisc(terrain, relicPosition, 1, 'grass');
+    spawns.push({
+      kind: 'relic',
+      x: relicPosition.x,
+      y: relicPosition.y,
+      owner: null,
+      baseOwner: null,
+      amount: 0,
+    });
+  }
 
   return {
     seed,
