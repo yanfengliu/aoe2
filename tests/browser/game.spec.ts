@@ -1454,6 +1454,62 @@ test.describe('browser gameplay smoke tests', () => {
     expect(selectedSnapshot.selectionState.owner).toBe(1);
   });
 
+  test('remembers an enemy house with reduced-opacity memory rendering after the scout walks away', async ({ page }) => {
+    test.slow();
+    await waitForBootWithSeed(page, 'fog-memory-fixture');
+
+    // Warm up a couple of ticks so visibility updates run.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(3, 100));
+
+    // Confirm the enemy house starts in live vision (non-memory).
+    const initialHouse = await page.evaluate(() =>
+      window
+        .__AOE2_TEST__!.getRenderState()
+        .entities.find(
+          (entity) =>
+            entity.kind === 'building'
+            && entity.entityType === 'house'
+            && entity.owner === 2,
+        ),
+    );
+    expect(initialHouse).toBeTruthy();
+    expect(initialHouse!.isMemory).toBe(false);
+
+    // Select the scout and walk it back near the human TC so the house leaves vision.
+    expect(await selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(4, 5))).toBe(true);
+
+    // Poll until the scout arrives (it can take many ticks).
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
+      const scout = snapshot.economyState.units.find(
+        (unit) => unit.owner === 1 && unit.unitType === 'scout',
+      );
+      if (!scout) {
+        return Number.POSITIVE_INFINITY;
+      }
+      return Math.abs(scout.x - 4) + Math.abs(scout.y - 5);
+    }).toBeLessThanOrEqual(1);
+
+    // A few more ticks for visibility to settle.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(5, 100));
+
+    const memoryHouse = await page.evaluate(() =>
+      window
+        .__AOE2_TEST__!.getRenderState()
+        .entities.find(
+          (entity) =>
+            entity.kind === 'building'
+            && entity.entityType === 'house'
+            && entity.owner === 2,
+        ),
+    );
+    expect(memoryHouse).toBeTruthy();
+    expect(memoryHouse!.isMemory).toBe(true);
+    expect(memoryHouse!.x).toBe(14);
+    expect(memoryHouse!.y).toBe(10);
+  });
+
   test('shows a player-facing info card for an individually selected unit', async ({ page }) => {
     await waitForBootWithSeed(page, 'villager-selection-fixture');
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');

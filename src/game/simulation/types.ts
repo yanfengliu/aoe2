@@ -125,6 +125,10 @@ export interface ProjectedEntityView {
   selected: boolean;
   currentHp: number | null;
   maxHp: number | null;
+  // Memory entities are last-seen snapshots of static buildings or resources from
+  // cells that are now explored-but-not-visible. They render at reduced opacity and
+  // do not participate in selection or live HUD interactions.
+  isMemory: boolean;
 }
 
 export interface ProjectedFrameView {

@@ -2253,6 +2253,75 @@ function createResourceDepletionFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createFogMemoryFixture(seed: string): PrototypeScenario {
+  // Layout: human scout at (10, 10) with vision radius 4, enemy house at (14, 10)
+  // placed two tiles outside the human TC's footprint vision (TC radius 7 around
+  // (4, 4) so its view ends at (11, 11)). Initially the enemy house is visible to
+  // the scout (distance 4). Once the scout walks back to (4, 4), the house cell
+  // (14, 10) is outside both the TC's and scout's vision, so it should become
+  // explored-but-not-visible — the exact condition fog memory tests.
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 30 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'scout',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'house',
+        x: 14,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        // A resource patch at a cell that starts outside human vision. The test
+        // can use a human unit's vision to reveal it, then leave to observe
+        // memory behavior.
+        kind: 'gold-mine',
+        x: 14,
+        y: 12,
+        owner: null,
+        baseOwner: null,
+        amount: 500,
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 30,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
@@ -2660,6 +2729,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'resource-depletion-fixture') {
     return createResourceDepletionFixture(seed);
+  }
+
+  if (seed === 'fog-memory-fixture') {
+    return createFogMemoryFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

@@ -57,6 +57,23 @@ import type {
 
 type GameEvents = Record<string, never>;
 type GameCommands = Record<string, never>;
+
+// Snapshot of a static entity (building or resource) captured the last time the player saw
+// it. Used by fog memory rendering. Purely a data value — no ECS component involved — so it
+// survives after the source entity is destroyed or leaves vision.
+interface MemoryEntry {
+  kind: 'building' | 'resource';
+  entityType: ProjectedEntityView['entityType'];
+  position: Position;
+  footprintWidth: number;
+  footprintHeight: number;
+  tint: number;
+  owner: number | null;
+  size: number;
+  visualVariant: ProjectedEntityView['visualVariant'];
+  lastSeenTick: number;
+}
+
 type GameComponents = {
   position: Position;
   terrain: TerrainComponent;
@@ -1184,6 +1201,7 @@ function createProjector(
         selected: isSelected(ref.id),
         currentHp: health?.currentHp ?? null,
         maxHp: health?.maxHp ?? null,
+        isMemory: false,
       };
     },
     projectFrame(world) {
@@ -1343,6 +1361,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
   consumeOutOfBandRenderChange: () => boolean;
+  getFogMemoryEntities: (liveEntityIds: Set<number>) => ProjectedEntityView[];
 } {
   const world = new World<GameEvents, GameCommands, GameComponents>({
     gridWidth: MAP_WIDTH,
@@ -1363,6 +1382,68 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const unitCommands = new Map<number, UnitCommand>();
   const sheepMoveOrders = new Map<number, Position>();
   const rallyPoints = new Map<number, Position>();
+  // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
+  // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
+  // visible to the player; read at render-projection time for cells that are
+  // explored-but-not-visible, so the player remembers enemy bases and resource patches that
+  // have since left vision. Units are excluded in v1.
+  const lastSeenStatic = new Map<number, Map<number, MemoryEntry>>();
+
+  function getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry> {
+    let map = lastSeenStatic.get(playerId);
+    if (!map) {
+      map = new Map<number, MemoryEntry>();
+      lastSeenStatic.set(playerId, map);
+    }
+    return map;
+  }
+
+  // Build `ProjectedEntityView` entries for every memory record whose position is
+  // explored-but-not-visible, deduped against any live entity the renderer is already
+  // drawing for the same entity id. Returned views carry `isMemory: true` so the scene can
+  // render them at reduced opacity and skip selection overlays.
+  function getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[] {
+    const humanMemory = lastSeenStatic.get(HUMAN_PLAYER_ID);
+    if (!humanMemory || humanMemory.size === 0) {
+      return [];
+    }
+
+    const memoryViews: ProjectedEntityView[] = [];
+    for (const [entityId, entry] of humanMemory) {
+      if (liveEntityIds.has(entityId)) {
+        continue;
+      }
+      const isExplored = visibility.isExplored(HUMAN_PLAYER_ID, entry.position.x, entry.position.y);
+      if (!isExplored) {
+        continue;
+      }
+      const isVisible = visibility.isVisible(HUMAN_PLAYER_ID, entry.position.x, entry.position.y);
+      // If the entity is currently visible and the live projector is not emitting it
+      // (e.g. it was static and never visible at renderAdapter connect time, so the
+      // initial snapshot skipped it), surface it from memory as a live (non-memory)
+      // projection so the player sees it. When the entity's visibility changes later,
+      // memory still carries the most recent snapshot.
+      memoryViews.push({
+        id: entityId,
+        kind: entry.kind,
+        layer: entry.kind,
+        entityType: entry.entityType,
+        owner: entry.owner,
+        x: entry.position.x,
+        y: entry.position.y,
+        tint: entry.tint,
+        size: entry.size,
+        footprintWidth: entry.footprintWidth,
+        footprintHeight: entry.footprintHeight,
+        visualVariant: entry.visualVariant,
+        selected: false,
+        currentHp: null,
+        maxHp: null,
+        isMemory: !isVisible,
+      });
+    }
+    return memoryViews;
+  }
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
   const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
@@ -4616,6 +4697,86 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   });
 
   world.registerSystem({
+    name: 'prototypeFogMemory',
+    phase: 'update',
+    after: ['prototypeVisibility'],
+    execute(activeWorld) {
+      const humanMemory = getOrCreateMemoryMap(HUMAN_PLAYER_ID);
+
+      // Refresh every building the human player currently sees. Buildings span a
+      // footprint; visibility is tested on the anchor cell, which matches how the
+      // projector itself decides whether an entity is visible.
+      for (const id of activeWorld.query('position', 'building', 'renderable')) {
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+        const renderable = activeWorld.getComponent<RenderableComponent>(id, 'renderable');
+        if (!position || !building || !renderable) {
+          continue;
+        }
+        if (!visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y)) {
+          continue;
+        }
+        humanMemory.set(id, {
+          kind: 'building',
+          entityType: building.buildingType,
+          position: { x: position.x, y: position.y },
+          footprintWidth: renderable.footprintWidth,
+          footprintHeight: renderable.footprintHeight,
+          tint: renderable.tint,
+          owner: building.owner,
+          size: renderable.size,
+          visualVariant: renderable.visualVariant,
+          lastSeenTick: activeWorld.tick,
+        });
+      }
+
+      // Refresh every static resource the human player currently sees. Sheep are
+      // movable and therefore excluded — their last-seen position would go stale
+      // the moment they leave vision and walk away.
+      for (const id of activeWorld.query('position', 'resource', 'renderable')) {
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
+        const renderable = activeWorld.getComponent<RenderableComponent>(id, 'renderable');
+        if (!position || !resource || !renderable) {
+          continue;
+        }
+        if (resource.resourceType === 'sheep') {
+          continue;
+        }
+        if (!visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y)) {
+          continue;
+        }
+        humanMemory.set(id, {
+          kind: 'resource',
+          entityType: resource.resourceType,
+          position: { x: position.x, y: position.y },
+          footprintWidth: renderable.footprintWidth,
+          footprintHeight: renderable.footprintHeight,
+          tint: renderable.tint,
+          owner: resource.owner,
+          size: renderable.size,
+          visualVariant: renderable.visualVariant,
+          lastSeenTick: activeWorld.tick,
+        });
+      }
+
+      // Forget memories of entities that no longer exist (resource depleted, building
+      // destroyed) AND whose last-known cell is currently visible — i.e. the player
+      // saw it disappear. If the entity simply walked out of vision, we keep the
+      // stale snapshot.
+      for (const [entityId, entry] of [...humanMemory.entries()]) {
+        const stillExists = activeWorld.getComponent<Position>(entityId, 'position') !== undefined;
+        if (stillExists) {
+          continue;
+        }
+        if (visibility.isVisible(HUMAN_PLAYER_ID, entry.position.x, entry.position.y)) {
+          humanMemory.delete(entityId);
+        }
+      }
+    },
+  });
+
+  world.registerSystem({
     name: 'prototypeTowerCombat',
     phase: 'update',
     after: ['prototypeVisibility'],
@@ -5442,6 +5603,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       hasOutOfBandRenderChange = false;
       return didChange;
     },
+    getFogMemoryEntities,
   };
 }
 
@@ -5472,6 +5634,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     confirmBuildingPlacement,
     isSelected,
     consumeOutOfBandRenderChange,
+    getFogMemoryEntities,
   } =
     createWorld(seed, visibility);
   const renderStore = new RenderStore();
@@ -5526,9 +5689,36 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     },
     getRenderState() {
       flushOutOfBandRenderChange();
+      // The render adapter only re-projects entities on component changes, so a static
+      // enemy building's projected view can linger in the render store after it has
+      // left the human player's vision. Filter the live stream here so a non-human,
+      // non-tile entity sitting on a currently-not-visible cell is hidden, then let
+      // `getFogMemoryEntities` decide whether to surface it as a memory entity.
+      const liveEntitiesRaw = renderStore.getEntities();
+      const liveEntities = liveEntitiesRaw.filter((entity) => {
+        if (entity.kind === 'tile') {
+          return true;
+        }
+        if (entity.owner === HUMAN_PLAYER_ID) {
+          return true;
+        }
+        return visibility.isVisible(HUMAN_PLAYER_ID, Math.round(entity.x), Math.round(entity.y));
+      });
+      const liveIds = new Set<number>(liveEntities.map((entity) => entity.id));
+      const memoryEntities = getFogMemoryEntities(liveIds);
+      const entities = memoryEntities.length === 0
+        ? liveEntities
+        : [...liveEntities, ...memoryEntities].sort((left, right) => {
+          const layerOrder = ['terrain', 'resource', 'building', 'unit'];
+          const layerDelta =
+            layerOrder.indexOf(left.layer) - layerOrder.indexOf(right.layer);
+          if (layerDelta !== 0) return layerDelta;
+          if (left.y !== right.y) return left.y - right.y;
+          return left.x - right.x;
+        });
       return {
         tick: renderStore.getTick(),
-        entities: renderStore.getEntities(),
+        entities,
         frame: renderStore.getFrame(),
       };
     },

@@ -22,6 +22,7 @@ function createProjectedEntity(
     selected: false,
     currentHp: 45,
     maxHp: 45,
+    isMemory: false,
     ...overrides,
   };
 }

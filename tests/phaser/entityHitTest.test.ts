@@ -26,6 +26,7 @@ function createRenderState(): RenderState {
         selected: false,
         currentHp: 75,
         maxHp: 75,
+        isMemory: false,
       },
       {
         id: 2,
@@ -43,6 +44,7 @@ function createRenderState(): RenderState {
         selected: false,
         currentHp: 45,
         maxHp: 45,
+        isMemory: false,
       },
     ],
   };

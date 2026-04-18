@@ -470,6 +470,7 @@ export class GameScene extends Phaser.Scene {
     for (const entity of this.displayedEntities) {
       const px = entity.x * CELL_SIZE;
       const py = entity.y * CELL_SIZE;
+      const fillAlpha = entity.isMemory ? 0.5 : 1;
 
       if (entity.layer === 'terrain') {
         this.terrainLayer.fillStyle(entity.tint, 1);
@@ -478,7 +479,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (entity.kind === 'resource') {
-        this.entityLayer.fillStyle(entity.tint, 1);
+        this.entityLayer.fillStyle(entity.tint, fillAlpha);
         if (
           entity.entityType === 'gold-mine'
           || entity.entityType === 'stone-mine'
@@ -505,7 +506,7 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      this.entityLayer.fillStyle(entity.tint, 1);
+      this.entityLayer.fillStyle(entity.tint, fillAlpha);
       this.entityLayer.fillCircle(
         px + CELL_SIZE * 0.5,
         py + CELL_SIZE * 0.5,
@@ -534,6 +535,7 @@ export class GameScene extends Phaser.Scene {
         || entity.currentHp === null
         || entity.maxHp === null
         || entity.maxHp <= 0
+        || entity.isMemory
       ) {
         continue;
       }
@@ -617,7 +619,7 @@ export class GameScene extends Phaser.Scene {
     const selectedIds = new Set(selectionState.selectedEntityIds);
 
     for (const entity of entities) {
-      if (!selectedIds.has(entity.id)) {
+      if (!selectedIds.has(entity.id) || entity.isMemory) {
         continue;
       }
 
@@ -1095,9 +1097,14 @@ export class GameScene extends Phaser.Scene {
     const widthPx = entity.footprintWidth * CELL_SIZE;
     const heightPx = entity.footprintHeight * CELL_SIZE;
     const isConstruction = entity.visualVariant === 'construction';
+    // Memory buildings are last-seen snapshots drawn at half opacity to cue the
+    // player that the information may be stale.
+    const baseFillAlpha = isConstruction ? 0.62 : 1;
+    const fillAlpha = entity.isMemory ? baseFillAlpha * 0.5 : baseFillAlpha;
+    const strokeAlpha = entity.isMemory ? 0.5 : 0.98;
 
-    this.entityLayer.lineStyle(3, isConstruction ? 0xf7e6c3 : 0x2b2117, 0.98);
-    this.entityLayer.fillStyle(entity.tint, isConstruction ? 0.62 : 1);
+    this.entityLayer.lineStyle(3, isConstruction ? 0xf7e6c3 : 0x2b2117, strokeAlpha);
+    this.entityLayer.fillStyle(entity.tint, fillAlpha);
     this.entityLayer.fillRoundedRect(px, py, widthPx, heightPx, 6);
     this.entityLayer.strokeRoundedRect(px, py, widthPx, heightPx, 6);
 
@@ -1108,7 +1115,11 @@ export class GameScene extends Phaser.Scene {
     let hasConstructionIndicator = false;
     let hasCompletionAccent = false;
 
-    if (isConstruction) {
+    if (entity.isMemory) {
+      // Memory buildings render as a flat tinted rectangle only — the detailed body
+      // and roof layers would paint fully-opaque pixels over the ghost, so we skip
+      // them and rely on the base fillAlpha to communicate "stale / last-seen".
+    } else if (isConstruction) {
       this.renderBuildingFoundation(px, py, widthPx, heightPx);
       this.renderConstructionPosts(px, py, widthPx, heightPx);
       hasFoundationSlab = true;
@@ -1120,6 +1131,12 @@ export class GameScene extends Phaser.Scene {
       hasStructureBody = true;
       hasRoofAccent = true;
       hasCompletionAccent = true;
+    }
+
+    if (entity.isMemory) {
+      // Memory buildings do not contribute to visual-state test assertions — they
+      // are ghosts of buildings the player has not confirmed still exist.
+      return;
     }
 
     this.lastBuildingVisualStates.push({
