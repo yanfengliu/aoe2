@@ -318,6 +318,33 @@ describe('Castle-Age production-line upgrades', () => {
     expect(visibleAfterSecondLc).toBeGreaterThan(visibleAfterUpgrade);
   }, 30_000);
 
+  it('rewrites queued Archers to Crossbowmen when the upgrade finishes before they spawn', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    // Queue the research FIRST so it completes before any of the queued Archers
+    // spawn. Then append two Archers to the same building's queue.
+    expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
+    expect(bridge.queueTrainUnit('archer')).toBe(true);
+    expect(bridge.queueTrainUnit('archer')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          countOwnedUnits(bridge, 1, 'crossbowman')
+            + countOwnedUnits(bridge, 1, 'archer') === 3,
+        { maxSteps: 1500 },
+      ),
+    ).toBe(true);
+
+    // All three predecessors (the starting Archer plus two queued) must have
+    // become Crossbowmen. The two queued Archers should have been rewritten at
+    // research-completion time, and the starting Archer is upgraded in place.
+    expect(countOwnedUnits(bridge, 1, 'crossbowman')).toBe(3);
+    expect(countOwnedUnits(bridge, 1, 'archer')).toBe(0);
+  }, 30_000);
+
   it('applies the Fletching +1 attack / +1 range to Crossbowmen when Fletching is researched AFTER the upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
 

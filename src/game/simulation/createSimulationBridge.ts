@@ -4221,6 +4221,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
   }
 
+  // Rewrite any still-pending training-queue entry on buildings owned by
+  // `owner` whose stored unitType matches the predecessor to the upgraded
+  // type. Progress ticks and costs are preserved — only the type mutates —
+  // so a half-trained predecessor finishes as the upgraded unit, matching
+  // the "old line no longer trainable" invariant.
+  function rewriteQueuedPredecessorUnits(
+    owner: number,
+    from: TrainableUnitType,
+    to: TrainableUnitType,
+  ): void {
+    for (const [buildingId, queue] of productionQueues.entries()) {
+      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+      if (!building || building.owner !== owner) {
+        continue;
+      }
+      for (const entry of queue) {
+        if (entry.kind === 'unit' && entry.unitType === from) {
+          entry.unitType = to;
+          entry.label = to;
+        }
+      }
+    }
+  }
+
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
     researchedTechnologies.get(owner)?.add(technologyType);
 
@@ -4245,12 +4269,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         break;
       case 'crossbowman-upgrade':
         upgradeOwnedUnits(owner, 'archer', 'crossbowman');
+        rewriteQueuedPredecessorUnits(owner, 'archer', 'crossbowman');
         break;
       case 'pikeman-upgrade':
         upgradeOwnedUnits(owner, 'spearman', 'pikeman');
+        rewriteQueuedPredecessorUnits(owner, 'spearman', 'pikeman');
         break;
       case 'light-cavalry-upgrade':
         upgradeOwnedUnits(owner, 'scout', 'light-cavalry');
+        rewriteQueuedPredecessorUnits(owner, 'scout', 'light-cavalry');
         break;
     }
   }
