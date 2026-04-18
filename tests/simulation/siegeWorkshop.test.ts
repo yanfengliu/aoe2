@@ -153,6 +153,50 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(villagerHpAfter).toBe(23);
   }, 10_000);
 
+  it('does NOT apply the Pikeman anti-cavalry bonus to a Battering Ram target', () => {
+    // Pikeman's +19 vs Scout / Light-Cavalry and +22 vs Knight must not
+    // extend to siege weapons — Ram is siege, not cavalry. Exclusion is
+    // enforced inside attackBonusAgainstUnit: its conditions never include
+    // 'battering-ram' as a target, so the fallback 0 is returned.
+    const bridge = createSimulationBridge('pikeman-vs-ram-fixture');
+
+    const ram = findFirstOwnedUnit(bridge, 2, 'battering-ram');
+    expect(ram).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'pikeman')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(ram!.id)).toBe(true);
+
+    // Tick 1: Pikeman's attack command fires before any enemy AI movement.
+    bridge.step(100);
+
+    const rAfter = bridge.getEconomyState().units.find((u) => u.id === ram!.id);
+    expect(rAfter).toBeDefined();
+    const ramHpAfter = getHealthOfUnitAtCell(bridge, rAfter!.x, rAfter!.y);
+    // Pikeman base attack is 4. With the anti-cav bonus wrongly applied the
+    // Ram would be at 175 - (4 + 22) = 149; with it correctly excluded: 171.
+    expect(ramHpAfter).toBe(171);
+  }, 10_000);
+
+  it('does NOT apply the Camel anti-cavalry bonus to a Battering Ram target', () => {
+    // Camel's +9 vs Scout / Light-Cavalry / Knight must not extend to Ram.
+    const bridge = createSimulationBridge('camel-vs-ram-fixture');
+
+    const ram = findFirstOwnedUnit(bridge, 2, 'battering-ram');
+    expect(ram).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'camel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(ram!.id)).toBe(true);
+
+    bridge.step(100);
+
+    const rAfter = bridge.getEconomyState().units.find((u) => u.id === ram!.id);
+    expect(rAfter).toBeDefined();
+    const ramHpAfter = getHealthOfUnitAtCell(bridge, rAfter!.x, rAfter!.y);
+    // Camel base attack is 5. Bonus wrongly applied → 175 - 14 = 161. With
+    // exclusion: 170.
+    expect(ramHpAfter).toBe(170);
+  }, 10_000);
+
   it('lets a Scorpion hit a distant Spearman at range 7 without closing', () => {
     const bridge = createSimulationBridge('scorpion-ranged-fixture');
 
