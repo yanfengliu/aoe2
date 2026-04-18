@@ -282,6 +282,41 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(distanceToDestination).toBeLessThan(Math.floor(distanceBefore / 2));
   }, 60_000);
 
+  it('prefers heal over convert when a friendly wounded unit and an enemy share the clicked cell', () => {
+    const bridge = createSimulationBridge('monk-heal-over-convert-fixture');
+
+    const spearman = findFirstOwnedUnit(bridge, 1, 'spearman');
+    const militia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(spearman).toBeDefined();
+    expect(militia).toBeDefined();
+    const spearmanId = spearman!.id;
+    const militiaId = militia!.id;
+
+    // The Spearman and Militia share the same cell. Let a few ticks of
+    // mutual combat land so the Spearman has lost HP (heal is only a
+    // relevant priority for wounded units).
+    bridge.step(30 * 100);
+
+    const militiaBeforeOwner = findUnitById(bridge, militiaId)?.owner;
+    expect(militiaBeforeOwner).toBe(2);
+
+    // Right-click the shared cell. The Monk should prefer healing the
+    // friendly Spearman; a stale first-found priority would convert the
+    // enemy Militia instead.
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    const sharedCell = { x: spearman!.x, y: spearman!.y };
+    expect(bridge.issueContextCommand(sharedCell.x, sharedCell.y)).toBe(true);
+
+    // Step enough ticks that if the Monk were converting, the Militia would
+    // flip to player 1 (~50 ticks at 1 progress / tick). A heal order does
+    // not advance convert progress.
+    bridge.step(80 * 100);
+
+    const militiaAfter = findUnitById(bridge, militiaId);
+    expect(militiaAfter).toBeDefined();
+    expect(militiaAfter!.owner).toBe(2);
+  }, 30_000);
+
   it('does not start a convert task when a Monk right-clicks a fog-hidden enemy cell', () => {
     const bridge = createSimulationBridge('monk-fog-fixture');
 

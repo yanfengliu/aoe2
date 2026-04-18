@@ -2333,6 +2333,73 @@ function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 5 fixture for Monk heal-over-convert target preference: a friendly
+// (damaged) Spearman and an enemy Militia share the same coarse cell. The
+// test right-clicks that cell and expects the Monk to heal the Spearman,
+// not convert the Militia.
+function createMonkHealOverConvertFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'spearman',
+        x: 16,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'militia',
+        x: 16,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 5 fixture for Monk convert + vision handoff: player-1 Monk with a
 // small vision radius positioned far from the player's TC, adjacent to an
 // enemy Scout whose own vision radius is large enough to cover cells the
@@ -4719,6 +4786,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-convert-vision-fixture') {
     return createMonkConvertVisionFixture(seed);
+  }
+
+  if (seed === 'monk-heal-over-convert-fixture') {
+    return createMonkHealOverConvertFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {
