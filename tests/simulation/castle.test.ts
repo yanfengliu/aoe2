@@ -7,6 +7,15 @@ import {
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
+type ScenarioBuilding = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['buildings'][number];
+
+function findBuildingById(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  id: number,
+): ScenarioBuilding | undefined {
+  return bridge.getEconomyState().buildings.find((b) => b.id === id);
+}
+
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
 function countOwnedUnits(bridge: Bridge, owner: number, unitType: string): number {
@@ -249,6 +258,62 @@ describe('Slice 6 Castle + Longbowman', () => {
     );
     expect(spearmanHpDecreased).toBe(true);
   }, 20_000);
+
+  it('AI militia prefers a low-priority House over a closer high-priority Castle', () => {
+    // Slice 6 review fix: findPreferredVisibleEnemyBuilding used to sort
+    // strictly by Manhattan distance, so an AI militia equidistant
+    // between a Castle and any softer building would happily punch the
+    // Castle. The fix adds buildingTargetPriority — Castles drop to the
+    // bottom of the list. The militia in this fixture stands closer to
+    // the Castle than the House (distance 4 vs 6), so a Manhattan-only
+    // sort definitely picks the Castle. Post-fix it must pick the
+    // House.
+    const bridge = createSimulationBridge('castle-ai-target-priority-fixture');
+
+    const castle = findOwnedBuilding(bridge, 1, 'castle');
+    const house = findOwnedBuilding(bridge, 1, 'house');
+    expect(castle).toBeDefined();
+    expect(house).toBeDefined();
+    const castleId = castle!.id;
+    const houseId = house!.id;
+
+    // Sample initial HP via selection so we can detect a damage delta.
+    expect(bridge.selectEntityAtCell(castle!.x, castle!.y)).toBe(true);
+    const castleStartHp = bridge.getSelectionState().health?.current ?? null;
+    expect(castleStartHp).not.toBeNull();
+    expect(bridge.selectEntityAtCell(house!.x, house!.y)).toBe(true);
+    const houseStartHp = bridge.getSelectionState().health?.current ?? null;
+    expect(houseStartHp).not.toBeNull();
+
+    // Run enough ticks for the AI militia to walk into range of the
+    // House and land at least one hit. The militia at (15, 9) needs to
+    // reach an adjacent cell of the House anchor at (15, 15) — about 5
+    // sub-grid steps. Plenty of headroom on 600 ticks.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          if (!bridge.selectEntityAtCell(house!.x, house!.y)) {
+            return false;
+          }
+          const hp = bridge.getSelectionState().health?.current ?? null;
+          return hp !== null && hp < (houseStartHp as number);
+        },
+        { maxSteps: 600 },
+      ),
+    ).toBe(true);
+
+    // Assert the Castle is untouched: priority must keep the militia
+    // away from it even though it's the closer target.
+    expect(findBuildingById(bridge, castleId)).toBeDefined();
+    expect(bridge.selectEntityAtCell(castle!.x, castle!.y)).toBe(true);
+    const castleHpAfter = bridge.getSelectionState().health?.current ?? null;
+    expect(castleHpAfter).toBe(castleStartHp);
+
+    // House survives long enough to fail-safely (Castle anchor is still
+    // there to inspect even if we ran the full step budget).
+    expect(findBuildingById(bridge, houseId)).toBeDefined();
+  }, 30_000);
 });
 
 function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {

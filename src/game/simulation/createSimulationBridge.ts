@@ -4506,6 +4506,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
   }
 
+  // Per-buildingType targeting priority for AI / unit-vs-building target
+  // selection. Lower numbers are picked first (after the priority sort,
+  // ties break by Manhattan distance). Castles and Town Centers are
+  // intentionally pushed to the bottom: they have huge HP pools and are
+  // poor first-strikes (Gemini Medium review). Watch Towers are still
+  // worth attacking quickly. Everything else stays in the middle so the
+  // sort is stable for buildings without an explicit reason to defer.
+  function buildingTargetPriority(buildingType: BuildingType): number {
+    switch (buildingType) {
+      case 'watch-tower':
+        return 2;
+      case 'town-center':
+        return 9;
+      case 'castle':
+        return 10;
+      default:
+        return 5;
+    }
+  }
+
   function findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position): number | null {
     const candidates = [...world.query('position', 'unit')]
       .map((id) => ({
@@ -4583,7 +4603,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           && entry.building.owner !== viewerOwner
           && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
       )
-      .sort((left, right) => manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position));
+      .sort((left, right) => {
+        const priorityDelta =
+          buildingTargetPriority(left.building.buildingType)
+          - buildingTargetPriority(right.building.buildingType);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+        return manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position);
+      });
 
     return candidates[0]?.id ?? null;
   }

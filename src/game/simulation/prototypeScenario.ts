@@ -3106,6 +3106,84 @@ function createCastleUniqueFixture(seed: string): PrototypeScenario {
 // from Castle center, within the Castle's attack range of 8. The
 // Castle owner is Britons (default for player 1) and has vision 11 so
 // the target is always visible.
+// Slice 6 review fix: AI militia stands between a player Castle and a
+// player House. The Castle is closer (anchor distance 4 vs House's 6),
+// so a Manhattan-only sort would steer the militia at the Castle.
+// With buildingTargetPriority biasing big defensive structures down,
+// the militia must instead pick the lower-priority House.
+function createCastleAiTargetPriorityFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 30 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      // Player 1 TC sits far away — does not draw the militia (TC is
+      // also high priority, but distance keeps it out of consideration
+      // for this scenario).
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      // Castle the AI must NOT prefer (4x4 anchor at (15, 5); cells
+      // (15..18, 5..8)).
+      {
+        kind: 'castle',
+        x: 15,
+        y: 5,
+        owner: 1,
+        baseOwner: 1,
+      },
+      // House the AI MUST prefer (2x2 anchor at (15, 15); cells
+      // (15..16, 15..16)). Anchor distance to the militia is 6,
+      // strictly larger than the Castle's 4.
+      {
+        kind: 'house',
+        x: 15,
+        y: 15,
+        owner: 1,
+        baseOwner: 1,
+      },
+      // AI Militia. Vision radius 12 ensures both buildings'
+      // anchor cells fall inside player-2 visibility.
+      {
+        kind: 'militia',
+        x: 15,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 12 },
+      },
+      // AI TC kept far enough away that the AI militia is the only
+      // thing in range of either player-1 building.
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 30,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createCastleDefensiveFireFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -5208,6 +5286,9 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
   }
   if (seed === 'castle-defensive-fire-fixture') {
     return createCastleDefensiveFireFixture(seed);
+  }
+  if (seed === 'castle-ai-target-priority-fixture') {
+    return createCastleAiTargetPriorityFixture(seed);
   }
   if (seed === 'longbowman-ranged-fixture') {
     return createLongbowmanRangedFixture(seed);
