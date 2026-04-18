@@ -232,4 +232,32 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     const camelHpAfter = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
     expect(camelHpAfter).toBe(97);
   }, 10_000);
+
+  it('applies the Skirmisher +4 anti-archer bonus to Cavalry Archer targets', () => {
+    // Skirmisher base attack is 2, +4 vs archer-line = 6. Cavalry Archer starts
+    // at 50 HP, so one hit should bring it to 44 (not 48 if the bonus was missing).
+    const bridge = createSimulationBridge('skirmisher-vs-cavalry-archer-fixture');
+
+    const cavArcher = findFirstOwnedUnit(bridge, 2, 'cavalry-archer');
+    expect(cavArcher).toBeDefined();
+    const hpBefore = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
+    expect(hpBefore).toBe(50);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'skirmisher')).toBe(true);
+    expect(bridge.issueContextCommand(cavArcher!.x, cavArcher!.y)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
+          return hp !== null && hp < 50;
+        },
+        { maxSteps: 80 },
+      ),
+    ).toBe(true);
+
+    const hpAfter = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
+    expect(hpAfter).toBe(44);
+  }, 10_000);
 });

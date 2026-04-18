@@ -1167,9 +1167,15 @@ function unitAttackRange(unitType: UnitType): number {
 // Fletching is a one-shot Blacksmith upgrade that buffs the entire archer line
 // (+1 attack / +1 range). When Crossbowman (or a future Arbalest) upgrade
 // arrives, createCombatState is re-run for the new unitType so the buff must
-// still fire for any archer-line unitType, not just `archer`.
+// still fire for any archer-line unitType, not just `archer`. Cavalry Archer
+// is in the archer family too (same weapon profile), so Fletching and the
+// Skirmisher +4 anti-archer bonus both apply.
 function isArcherLineUnit(unitType: UnitType): boolean {
-  return unitType === 'archer' || unitType === 'crossbowman';
+  return (
+    unitType === 'archer'
+    || unitType === 'crossbowman'
+    || unitType === 'cavalry-archer'
+  );
 }
 
 function isWildlifeResourceType(resourceType: ResourceKind): resourceType is 'boar' | 'wolf' {
@@ -1383,7 +1389,7 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
     return 22;
   }
 
-  if (attackerType === 'skirmisher' && (targetType === 'archer' || targetType === 'crossbowman')) {
+  if (attackerType === 'skirmisher' && isArcherLineUnit(targetType)) {
     return 4;
   }
 

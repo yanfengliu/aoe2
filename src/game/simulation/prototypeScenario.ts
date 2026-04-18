@@ -1995,6 +1995,65 @@ function createCavalryArcherRangedFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Castle-Age ranged combat fixture: a player-1 Skirmisher stationed adjacent to
+// a stationary enemy Cavalry Archer. Used to assert the Skirmisher's +4
+// anti-archer bonus extends to Cavalry Archer (Cavalry Archer is in the
+// archer family).
+function createSkirmisherVsCavalryArcherFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'skirmisher',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'cavalry-archer',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 5 },
+      },
+    ],
+  };
+}
+
 function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -3499,6 +3558,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'cavalry-archer-ranged-fixture') {
     return createCavalryArcherRangedFixture(seed);
+  }
+
+  if (seed === 'skirmisher-vs-cavalry-archer-fixture') {
+    return createSkirmisherVsCavalryArcherFixture(seed);
   }
 
   if (seed === 'siege-workshop-fixture') {
