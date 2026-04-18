@@ -4080,6 +4080,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
       options.push('town-center');
+      options.push('siege-workshop');
     }
 
     return options;
