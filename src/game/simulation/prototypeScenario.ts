@@ -1535,6 +1535,123 @@ function createMangonelRangedFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 4 review fixture: player-1 Mangonel adjacent-by-range to a single
+// enemy Spearman. Used to measure one-shot damage including the +10
+// anti-infantry bonus — Spearman 45 HP vs Mangonel (40 base + 10 infantry
+// bonus) = death after a single attack tick.
+function createMangonelVsSpearmanFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mangonel',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'spearman',
+        x: 18,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
+// Slice 4 review fixture: player-1 Mangonel inside max range of a single
+// enemy Knight. Used to confirm the +10 anti-infantry bonus does NOT apply
+// to cavalry — Knight 100 HP should take exactly 40 damage on one tick.
+function createMangonelVsKnightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'mangonel',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'knight',
+        x: 18,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
 // Slice 4 review fixture: player-1 Watch Tower with both an enemy Mangonel
 // and an enemy Militia inside its attack range. Used to assert siege is the
 // highest-priority target for defensive buildings (the tower must fire on
@@ -3924,6 +4041,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'tower-vs-siege-priority-fixture') {
     return createTowerVsSiegePriorityFixture(seed);
+  }
+
+  if (seed === 'mangonel-vs-spearman-fixture') {
+    return createMangonelVsSpearmanFixture(seed);
+  }
+
+  if (seed === 'mangonel-vs-knight-fixture') {
+    return createMangonelVsKnightFixture(seed);
   }
 
   if (seed === 'ram-vs-building-fixture') {

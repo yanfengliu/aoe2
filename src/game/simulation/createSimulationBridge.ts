@@ -1452,6 +1452,24 @@ function isCavalryTarget(targetType: UnitType): boolean {
   return targetType === 'scout' || targetType === 'light-cavalry' || targetType === 'knight';
 }
 
+// Mangonel splash damage is modeled as single-target in v1 (Slice 7 will
+// revisit with real AoE when Onager arrives). The scaling-vs-infantry
+// fantasy is approximated with a flat +10 bonus against foot units the
+// boulder would realistically flatten in AoE2 DE — militia / spearman /
+// pikeman lines and villagers. Archers / skirmishers / cavalry / siege
+// are deliberately excluded: an archer line that clumps hurts more, but
+// pre-AoE the single-target damage model makes the bonus feel too strong
+// if it extends to them. The narrow list keeps the anti-infantry design
+// note honest without turning the Mangonel into a universal counter.
+function isMangonelInfantryTarget(targetType: UnitType): boolean {
+  return (
+    targetType === 'militia'
+    || targetType === 'spearman'
+    || targetType === 'pikeman'
+    || targetType === 'villager'
+  );
+}
+
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
   if (attackerType === 'spearman' && (targetType === 'scout' || targetType === 'light-cavalry')) {
     return 12;
@@ -1475,6 +1493,10 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
 
   if (attackerType === 'camel' && isCavalryTarget(targetType)) {
     return 9;
+  }
+
+  if (attackerType === 'mangonel' && isMangonelInfantryTarget(targetType)) {
+    return 10;
   }
 
   return 0;

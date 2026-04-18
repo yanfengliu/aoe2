@@ -234,6 +234,53 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(militiaHp).toBe(40); // 40 - 0, untouched
   }, 10_000);
 
+  it('applies a +10 anti-infantry bonus when a Mangonel attacks a Spearman', () => {
+    // Slice 4 review Fix 2: Mangonel is modeled as single-target AoE in v1,
+    // so the "splash vs infantry" design is simulated by a flat +10 bonus
+    // when the target is militia / spearman / pikeman / villager. Spearman
+    // at 45 HP takes 40 base + 10 bonus = 50 damage on the first hit, so
+    // one attack tick must be enough to destroy it. Without the bonus the
+    // first hit would leave 5 HP behind.
+    const bridge = createSimulationBridge('mangonel-vs-spearman-fixture');
+
+    const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
+    expect(spearman).toBeDefined();
+    const spearmanIdBefore = spearman!.id;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(spearmanIdBefore)).toBe(true);
+
+    // A single 100 ms step covers exactly one attack tick with cooldownTicks
+    // starting at 0, so the Mangonel fires its first shot and the Spearman
+    // should be destroyed in one hit.
+    bridge.step(100);
+
+    expect(
+      bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore),
+    ).toBeUndefined();
+  }, 10_000);
+
+  it('does NOT apply the anti-infantry bonus when a Mangonel attacks a Knight', () => {
+    // Slice 4 review Fix 2: the +10 bonus is narrow — only militia /
+    // spearman / pikeman / villager qualify. Knight (cavalry) must take
+    // base 40 damage, no more. 100 - 40 = 60 HP after one tick.
+    const bridge = createSimulationBridge('mangonel-vs-knight-fixture');
+
+    const knight = findFirstOwnedUnit(bridge, 2, 'knight');
+    expect(knight).toBeDefined();
+    const knightIdBefore = knight!.id;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(knightIdBefore)).toBe(true);
+
+    bridge.step(100);
+
+    const knightAfter = bridge.getEconomyState().units.find((u) => u.id === knightIdBefore);
+    expect(knightAfter).toBeDefined();
+    const knightHp = getHealthOfUnitAtCell(bridge, knightAfter!.x, knightAfter!.y);
+    expect(knightHp).toBe(60); // 100 - 40 base, no bonus
+  }, 10_000);
+
   it('lets a Scorpion hit a distant Spearman at range 7 without closing', () => {
     const bridge = createSimulationBridge('scorpion-ranged-fixture');
 
