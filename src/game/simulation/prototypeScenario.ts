@@ -2555,14 +2555,16 @@ function createCastleDefensiveFireFixture(seed: string): PrototypeScenario {
         owner: 1,
         baseOwner: 1,
       },
-      // Spearman at (21, 8). Castle footprint is 4x4 anchored at (14, 6),
-      // so its south-east edge sits at (17, 9). Distance from (17, 9)
-      // to (21, 8) is 4 + 1 = 5 — well within the Castle's attack range
-      // of 8. The Spearman stands still (no enemy AI structure to trigger
-      // retaliation or movement).
+      // Spearman at (20, 8). Manhattan distance from the Castle's anchor
+      // cell (14, 6) = 6 + 2 = 8, matching the Castle's attack range
+      // exactly (tower combat uses anchor-to-target distance, not
+      // closest-edge, matching the existing TC / Watch Tower convention).
+      // Castle vision radius 11 keeps the Spearman visible. No enemy AI
+      // is reachable (enemy TC is at (48, 28) across the map), so the
+      // Spearman just stands and absorbs arrows.
       {
         kind: 'spearman',
-        x: 21,
+        x: 20,
         y: 8,
         owner: 2,
         baseOwner: 2,
