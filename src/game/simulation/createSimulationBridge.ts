@@ -4546,7 +4546,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   world.registerSystem({
     name: 'prototypeHerdableMovement',
     phase: 'update',
-    after: ['prototypeHerdableOwnership'],
+    before: ['prototypePlayerCommands'],
     execute(activeWorld) {
       for (const [sheepId, target] of [...sheepMoveOrders.entries()]) {
         const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
