@@ -184,6 +184,42 @@ describe('Slice 6 Castle + Longbowman', () => {
     });
   }, 40_000);
 
+  it('Castle accepts up to 20 villagers as garrisoned units (well above the 5-cap of TC / Watch Tower)', () => {
+    // castle-garrison-fixture spawns a completed Castle plus 20 villagers
+    // under the human player (Britons). Villager garrison is instantaneous
+    // in v1 (no closing / move required), so iterating all 20 with
+    // `issueContextCommandAtEntity` on the Castle id should fill the
+    // capacity without rejection. Then selecting the Castle should read
+    // "20 / 20 garrisoned" via its inventory line.
+    const bridge = createSimulationBridge('castle-garrison-fixture');
+
+    const castle = findOwnedBuilding(bridge, 1, 'castle');
+    expect(castle).toBeDefined();
+
+    const villagerIds = bridge
+      .getEconomyState()
+      .units.filter((u) => u.owner === 1 && u.unitType === 'villager')
+      .map((u) => u.id);
+    expect(villagerIds.length).toBeGreaterThanOrEqual(15);
+
+    // Garrison 15 villagers (above the TC / Watch Tower cap of 5) — all
+    // should succeed under the Castle's 20 capacity.
+    for (let i = 0; i < 15; i += 1) {
+      const id = villagerIds[i];
+      // Select the single villager by its id, then issue the garrison
+      // context command against the Castle.
+      const villager = bridge.getEconomyState().units.find((u) => u.id === id);
+      expect(villager).toBeDefined();
+      expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+    }
+
+    // Re-select the Castle via direct bridge and read garrison count.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    const inventory = bridge.getSelectionState().inventory ?? '';
+    expect(inventory).toContain('15 / 20 garrisoned');
+  });
+
   it('Castle auto-fires on a visible enemy unit within range 8 over a few ticks', () => {
     // castle-defensive-fire-fixture plants a completed player-1 Castle at
     // (14, 6) with an enemy Spearman at (21, 8) — within the Castle's
