@@ -970,10 +970,13 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     (buildingType === 'town-center' && unitType === 'villager')
     || (buildingType === 'barracks' && unitType === 'militia')
     || (buildingType === 'barracks' && unitType === 'spearman')
+    || (buildingType === 'barracks' && unitType === 'pikeman')
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'stable' && unitType === 'knight')
+    || (buildingType === 'stable' && unitType === 'light-cavalry')
     || (buildingType === 'archery-range' && unitType === 'archer')
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
+    || (buildingType === 'archery-range' && unitType === 'crossbowman')
   );
 }
 
@@ -3631,18 +3634,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'barracks': {
         const options: TrainableUnitType[] = ['militia'];
         if (getPlayerAge(owner) !== 'dark-age') {
-          options.push('spearman');
+          options.push(hasTechnology(owner, 'pikeman-upgrade') ? 'pikeman' : 'spearman');
         }
         return options;
       }
-      case 'stable':
-        return getPlayerAge(owner) === 'dark-age'
-          ? []
-          : getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age'
-            ? ['scout', 'knight']
-            : ['scout'];
-      case 'archery-range':
-        return getPlayerAge(owner) !== 'dark-age' ? ['archer', 'skirmisher'] : [];
+      case 'stable': {
+        if (getPlayerAge(owner) === 'dark-age') {
+          return [];
+        }
+        const scoutLine: TrainableUnitType = hasTechnology(owner, 'light-cavalry-upgrade')
+          ? 'light-cavalry'
+          : 'scout';
+        return getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age'
+          ? [scoutLine, 'knight']
+          : [scoutLine];
+      }
+      case 'archery-range': {
+        if (getPlayerAge(owner) === 'dark-age') {
+          return [];
+        }
+        const archerLine: TrainableUnitType = hasTechnology(owner, 'crossbowman-upgrade')
+          ? 'crossbowman'
+          : 'archer';
+        return [archerLine, 'skirmisher'];
+      }
       default:
         return [];
     }
