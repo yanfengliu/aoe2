@@ -5161,6 +5161,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (nextPopulation) {
         nextPopulation.current += 1;
       }
+      // Reassign vision to the new owner. Without this, the converted unit
+      // keeps lighting fog for its former owner and leaves the new owner
+      // blind around it. `syncVisibilitySources` picks up the new playerId
+      // on the next tick and re-maps the visibility source.
+      const visionSource = activeWorld.getComponent<VisionSourceComponent>(
+        targetId,
+        'visionSource',
+      );
+      if (visionSource) {
+        visionSource.playerId = monkUnit.owner;
+      }
       const renderable = activeWorld.getComponent<RenderableComponent>(targetId, 'renderable');
       if (renderable) {
         renderable.tint = unitTint(targetUnit.unitType, monkUnit.owner);

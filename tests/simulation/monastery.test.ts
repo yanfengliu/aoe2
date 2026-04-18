@@ -218,6 +218,57 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(militiaAfter!.owner).toBe(2);
   }, 30_000);
 
+  it('reassigns visionSource playerId when a Monk converts an enemy unit', () => {
+    const bridge = createSimulationBridge('monk-convert-vision-fixture');
+
+    const enemyScout = findFirstOwnedUnit(bridge, 2, 'scout');
+    expect(enemyScout).toBeDefined();
+    const scoutId = enemyScout!.id;
+    const scoutCell = { x: enemyScout!.x, y: enemyScout!.y };
+
+    // Sanity: a cell just outside every known player 1 vision source starts
+    // fog-hidden. The enemy Scout's visionSource belongs to player 2, so
+    // player 1 should not currently see that cell.
+    const mapWidth = 60;
+    const probeCell = { x: scoutCell.x + 3, y: scoutCell.y };
+    const probeIndex = probeCell.y * mapWidth + probeCell.x;
+    const visibleBefore = new Set(
+      bridge.getRenderState().frame?.visibleCells ?? [],
+    );
+    expect(visibleBefore.has(probeIndex)).toBe(false);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(scoutId)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const scout = findUnitById(bridge, scoutId);
+          return scout !== undefined && scout.owner === 1;
+        },
+        { maxSteps: 80 },
+      ),
+    ).toBe(true);
+
+    // Let visibility sync on the next tick.
+    bridge.step(100);
+
+    const scoutAfter = findUnitById(bridge, scoutId);
+    expect(scoutAfter).toBeDefined();
+    // The probe cell is 3 cells away from the converted Scout. The Scout
+    // has vision radius 6; only its visionSource (now playerId = 1) can
+    // cover the probe cell for player 1 because no other player 1 vision
+    // source reaches that far.
+    const visibleAfter = new Set(
+      bridge.getRenderState().frame?.visibleCells ?? [],
+    );
+    const scoutIndex = scoutAfter!.y * mapWidth + scoutAfter!.x;
+    expect(visibleAfter.has(scoutIndex)).toBe(true);
+    const probeAfterIndex = scoutAfter!.y * mapWidth + (scoutAfter!.x + 3);
+    expect(visibleAfter.has(probeAfterIndex)).toBe(true);
+  }, 20_000);
+
   it('syncs population counts when a Monk converts an enemy unit', () => {
     const bridge = createSimulationBridge('monk-convert-fixture');
 

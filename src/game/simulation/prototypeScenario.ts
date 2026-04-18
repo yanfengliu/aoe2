@@ -2333,6 +2333,73 @@ function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 5 fixture for Monk convert + vision handoff: player-1 Monk with a
+// small vision radius positioned far from the player's TC, adjacent to an
+// enemy Scout whose own vision radius is large enough to cover cells the
+// player cannot otherwise see. Used to verify that a successful conversion
+// reassigns the target's visionSource.playerId to the Monk's owner.
+function createMonkConvertVisionFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        // Keep TC vision short so it does not overlap the Monk/Scout area.
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'monk',
+        x: 20,
+        y: 20,
+        owner: 1,
+        baseOwner: 1,
+        // Small vision so only the Monk's immediate cells are visible —
+        // cells 3+ away around the Scout are fog-hidden until vision flips.
+        vision: { playerId: 1, radius: 2 },
+      },
+      {
+        kind: 'scout',
+        x: 21,
+        y: 20,
+        owner: 2,
+        baseOwner: 2,
+        // Radius 6 so (scoutX + 3) is inside the Scout's vision but
+        // outside the Monk's radius-2 vision. After conversion, player 1
+        // should see that cell iff the Scout's visionSource playerId was
+        // flipped.
+        vision: { playerId: 2, radius: 6 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 5 fixture for Monk-in-fog: player-1 Monk at home with short Town
 // Center and Monk vision. Enemy Militia spawns just outside Monk vision but
 // inside the Monk's conversion range. Used to verify the cell-based context
@@ -4648,6 +4715,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-fog-fixture') {
     return createMonkFogFixture(seed);
+  }
+
+  if (seed === 'monk-convert-vision-fixture') {
+    return createMonkConvertVisionFixture(seed);
   }
 
   if (seed === 'castle-unique-fixture') {
