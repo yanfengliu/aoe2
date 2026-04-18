@@ -3698,6 +3698,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     clearGathererOrder(unitId);
+    // A move order is a true override: cancel any active Monk task so the
+    // Monk-behavior system does not pull the Monk back to a stale heal /
+    // convert / pickup / deposit target on the next tick.
+    monkTasks.delete(unitId);
     unitCommands.set(unitId, {
       type: 'move',
       target: {
@@ -6166,6 +6170,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     // Monks: resolve cell targets into heal/convert/pickup/deposit by
     // inspecting what lives at that cell. Falls back to a plain move.
+    // When the fallback fires we also drop any lingering monkTasks entry
+    // so the Monk-behavior system doesn't immediately pull the Monk back
+    // toward a previous heal / convert / pickup / deposit target.
     if (unit.unitType === 'monk') {
       const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
       if (monkTargetEntityId !== null) {
@@ -6174,6 +6181,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
         }
       }
+      clearMonkTask(unitId);
       return issueUnitMoveCommand(unitId, target);
     }
 

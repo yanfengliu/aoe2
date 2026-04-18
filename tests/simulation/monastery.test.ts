@@ -190,6 +190,98 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     ).toBe(true);
   }, 20_000);
 
+  it('cancels an active Monk heal task when the player right-clicks open ground', () => {
+    const bridge = createSimulationBridge('monk-heal-fixture');
+
+    const spearman = findFirstOwnedUnit(bridge, 1, 'spearman');
+    expect(spearman).toBeDefined();
+    const spearmanId = spearman!.id;
+
+    // Wound the Spearman by letting the wolf chew on him for a while.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const s = findUnitById(bridge, spearmanId);
+          if (!s) return false;
+          const hp = getHealthOfUnitAtCell(bridge, s.x, s.y);
+          return hp !== null && hp < 35 && hp > 5;
+        },
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    // Stop the wolf so heal can stick.
+    const wolf = bridge.getEconomyState().resources.find((r) => r.resourceType === 'wolf');
+    expect(wolf).toBeDefined();
+    expect(bridge.selectEntityAtCell(wolf!.x, wolf!.y)).toBe(true);
+    const wolfId = bridge.getSelectionState().selectedEntityId!;
+    expect(selectOwnedUnitDirect(bridge, 1, 'spearman')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(wolfId)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().resources.find((r) => r.resourceType === 'wolf') === undefined,
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    // Put the Spearman next to the Monk so heal range covers.
+    const monk = findFirstOwnedUnit(bridge, 1, 'monk');
+    expect(monk).toBeDefined();
+    expect(selectOwnedUnitDirect(bridge, 1, 'spearman')).toBe(true);
+    expect(bridge.issueMoveCommand(monk!.x + 1, monk!.y)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const s = findUnitById(bridge, spearmanId);
+          return (
+            s !== undefined
+            && Math.abs(s.x - monk!.x) + Math.abs(s.y - monk!.y) <= 2
+          );
+        },
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    // Issue the Monk heal order. Confirm heal started by watching HP tick up.
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(spearmanId)).toBe(true);
+    bridge.step(30 * 100);
+    const healStarted = findUnitById(bridge, spearmanId);
+    expect(healStarted).toBeDefined();
+    const hpMidHeal = getHealthOfUnitAtCell(bridge, healStarted!.x, healStarted!.y);
+    expect(hpMidHeal).not.toBeNull();
+
+    // Now cancel the heal by right-clicking open ground far from the target.
+    // Without the fix, the stale monkTasks entry re-triggers next tick and
+    // the Monk walks back to keep healing.
+    const monkBeforeMove = findFirstOwnedUnit(bridge, 1, 'monk');
+    expect(monkBeforeMove).toBeDefined();
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    const destinationX = 2;
+    const destinationY = 2;
+    expect(bridge.issueMoveCommand(destinationX, destinationY)).toBe(true);
+
+    // Advance generously. A cancelled Monk walks to the destination at
+    // ~1 cell every two ticks; a Monk still being pulled back to its heal
+    // target oscillates in place. Require the Monk to close most of the
+    // distance so an oscillation cannot pass the assertion by a single
+    // substep nudge.
+    bridge.step(200 * 100);
+    const monkAfter = findFirstOwnedUnit(bridge, 1, 'monk');
+    expect(monkAfter).toBeDefined();
+    const distanceToDestination =
+      Math.abs(monkAfter!.x - destinationX) + Math.abs(monkAfter!.y - destinationY);
+    const distanceBefore =
+      Math.abs(monkBeforeMove!.x - destinationX) + Math.abs(monkBeforeMove!.y - destinationY);
+    // The Monk should have closed most of the distance to (2, 2). With a
+    // lingering heal task the Monk oscillates near the Spearman and never
+    // gets close to the destination.
+    expect(distanceToDestination).toBeLessThan(Math.floor(distanceBefore / 2));
+  }, 60_000);
+
   it('does not start a convert task when a Monk right-clicks a fog-hidden enemy cell', () => {
     const bridge = createSimulationBridge('monk-fog-fixture');
 
