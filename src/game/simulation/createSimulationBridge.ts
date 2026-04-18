@@ -1284,6 +1284,7 @@ function canResearchAt(
   return (
     (buildingType === 'town-center' && technologyType === 'feudal-age')
     || (buildingType === 'town-center' && technologyType === 'castle-age')
+    || (buildingType === 'town-center' && technologyType === 'imperial-age')
     || (buildingType === 'blacksmith' && technologyType === 'fletching')
     || (buildingType === 'archery-range' && technologyType === 'crossbowman-upgrade')
     || (buildingType === 'barracks' && technologyType === 'pikeman-upgrade')
@@ -2010,6 +2011,20 @@ function isFeudalAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
     || buildingType === 'archery-range'
     || buildingType === 'blacksmith'
     || buildingType === 'market'
+  );
+}
+
+// Buildings that only unlock in Castle Age — Siege Workshop, Monastery, and
+// Castle. The Imperial Age age-up gate at the Town Center requires two of
+// these completed (mirrors the Feudal → Castle gate that requires two
+// Feudal-prereq buildings). Town Centers are intentionally excluded: the
+// starting Town Center already exists in Dark Age, so counting it would
+// make the gate trivially pass and defeat the prereq's purpose.
+function isCastleAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return (
+    buildingType === 'siege-workshop'
+    || buildingType === 'monastery'
+    || buildingType === 'castle'
   );
 }
 
@@ -4660,6 +4675,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding) >= 2;
   }
 
+  // Slice 7A: Imperial Age research at the Town Center. Mirrors the
+  // Feudal → Castle gate — the player must be in Castle Age and have at
+  // least two Castle-Age-unlocked buildings completed (Siege Workshop,
+  // Monastery, Castle).
+  function canAdvanceToImperialAge(owner: number): boolean {
+    if (getPlayerAge(owner) !== 'castle-age') {
+      return false;
+    }
+
+    return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding) >= 2;
+  }
+
   function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
     switch (buildingType) {
       case 'town-center':
@@ -4740,6 +4767,13 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return ['castle-age'];
     }
 
+    // Slice 7A: Imperial Age research option at the Town Center. Shown only
+    // when the player is in Castle Age and has two Castle-Age buildings
+    // complete.
+    if (buildingType === 'town-center' && canAdvanceToImperialAge(owner)) {
+      return ['imperial-age'];
+    }
+
     if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age' && !hasTechnology(owner, 'fletching')) {
       return ['fletching'];
     }
@@ -4779,6 +4813,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
       if (age === 'feudal-age') {
         return ['castle-age'];
+      }
+      if (age === 'castle-age') {
+        return ['imperial-age'];
       }
       return [];
     }
@@ -5207,9 +5244,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         playerAges.set(owner, 'castle-age');
         break;
       case 'imperial-age':
-        // Slice 7A: Imperial Age flip is wired via a separate follow-up
-        // commit alongside the research-option change at the Town Center.
-        // Leave this branch empty here so the switch is still exhaustive.
+        // Slice 7A: flip the player to Imperial Age. Individual unit-line
+        // upgrade callbacks (Arbalest / Halberdier / Hussar / etc.) land in
+        // Slices 7B–7D; 7A only wires the age flip so the gate tests pass.
+        playerAges.set(owner, 'imperial-age');
         break;
       case 'fletching':
         for (const id of world.query('unit')) {

@@ -119,4 +119,40 @@ describe('createSimulationBridge age-up progression', () => {
       attackRange: 1,
     });
   }, 40_000);
+
+  // Slice 7A: mirror the Feudal → Castle "missing prereq" case at the
+  // Castle → Imperial boundary. With zero Castle-Age-unlocked buildings,
+  // Imperial Age is visible on the TC but not queueable.
+  it('does not offer Imperial Age research until two qualifying Castle Age buildings are complete', () => {
+    const bridge = createSimulationBridge('imperial-missing-prereq-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['imperial-age'],
+      researchOptions: [],
+    });
+    expect(bridge.queueResearch('imperial-age')).toBe(false);
+  });
+
+  // Slice 7A: positive age-up path. Two Castle-Age-unlocked buildings are
+  // pre-placed (Monastery + Castle); queueing Imperial Age + stepping the
+  // research clock flips the HUD age to 'imperial-age'.
+  it('can research Imperial Age at the Town Center', () => {
+    const bridge = createSimulationBridge('imperial-age-fixture');
+
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedEntityType: 'town-center',
+      visibleResearchOptions: ['imperial-age'],
+      researchOptions: ['imperial-age'],
+    });
+    expect(bridge.queueResearch('imperial-age')).toBe(true);
+
+    for (let index = 0; index < 1920; index += 1) {
+      bridge.step(100);
+    }
+
+    expect(bridge.getHudState().currentAge).toBe('imperial-age');
+  }, 40_000);
 });
