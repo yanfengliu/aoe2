@@ -329,6 +329,24 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(knightHp).toBe(60); // 100 - 40 base, no bonus
   }, 10_000);
 
+  it('selects every owned Mangonel in a rect when selectOwnedUnitsByTypeInRect is called with mangonel', () => {
+    // Slice 4 review Fix 4 safety net: backs the GameScene same-type
+    // double-click flow for siege. The scene's isUnitType allowlist gates
+    // which unitTypes can trigger the rect expansion, and siege units
+    // (mangonel / scorpion / battering-ram) must be included. The bridge
+    // contract — selectOwnedUnitsByTypeInRect — has to return true and
+    // actually select the Mangonel in the rect.
+    const bridge = createSimulationBridge('mangonel-ranged-fixture');
+
+    expect(bridge.selectOwnedUnitsByTypeInRect('mangonel', 0, 0, 59, 35)).toBe(true);
+
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBe(1);
+    expect(selectionState.selectedKind).toBe('unit');
+    expect(selectionState.selectedEntityType).toBe('mangonel');
+    expect(selectionState.owner).toBe(1);
+  });
+
   it('lets a Scorpion hit a distant Spearman at range 7 without closing', () => {
     const bridge = createSimulationBridge('scorpion-ranged-fixture');
 
