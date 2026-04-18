@@ -1918,6 +1918,48 @@ test.describe('browser gameplay smoke tests', () => {
     ).toBe(true);
   });
 
+  test('can research the Crossbowman upgrade and swap the Archer train option in the HUD', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'castle-upgrades-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
+    await expect(page.locator('[data-command="train-archer"]')).toBeVisible();
+    await expect(page.locator('[data-command="train-crossbowman"]')).toHaveCount(0);
+
+    await page.locator('[data-command="research-crossbowman-upgrade"]').click();
+    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Crossbowman');
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(380, 100));
+
+    const snapshot = await getSnapshot(page);
+    expect(
+      snapshot.economyState.units.find(
+        (unit) => unit.owner === 1 && unit.unitType === 'crossbowman',
+      ),
+    ).toMatchObject({
+      attackDamage: 5,
+      attackRange: 5,
+    });
+    expect(
+      snapshot.economyState.units.some(
+        (unit) => unit.owner === 1 && unit.unitType === 'archer',
+      ),
+    ).toBe(false);
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
+    await expect(page.locator('[data-command="train-crossbowman"]')).toBeVisible();
+    await expect(page.locator('[data-command="train-archer"]')).toHaveCount(0);
+    await expect(page.locator('[data-command="research-crossbowman-upgrade"]')).toHaveCount(0);
+
+    expect(await selectOwnedUnitDirect(page, 1, 'crossbowman')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Crossbowman');
+    await expect(
+      page.locator('[data-selection-unit-icon="crossbowman"]'),
+    ).toHaveText('CB');
+  });
+
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
     page,
   }) => {
