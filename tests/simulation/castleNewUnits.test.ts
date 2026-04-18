@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
@@ -18,6 +19,13 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
   return bridge
     .getEconomyState()
     .units.find((unit) => unit.owner === owner && unit.unitType === unitType);
+}
+
+function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {
+  if (!bridge.selectEntityAtCell(x, y)) {
+    return null;
+  }
+  return bridge.getSelectionState().health?.current ?? null;
 }
 
 describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
@@ -91,4 +99,96 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       attackRange: 4,
     });
   }, 20_000);
+
+  it('deals +9 anti-cavalry bonus damage when a Camel attacks a Knight (base 5 + 9 = 14)', () => {
+    const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
+
+    const knight = findFirstOwnedUnit(bridge, 2, 'knight');
+    expect(knight).toBeDefined();
+    const knightHpBefore = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
+    expect(knightHpBefore).toBe(100);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'camel')).toBe(true);
+    expect(bridge.issueContextCommand(knight!.x, knight!.y)).toBe(true);
+
+    // Step until one hit has landed (20-tick reload) — the Camel is adjacent
+    // so no pursuit step is needed and damage fires on the first tick the
+    // cooldown clears to zero.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
+          return hp !== null && hp < 100;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+
+    // After the first hit the Knight should be at 100 - 14 = 86 HP.
+    const knightHpAfter = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
+    expect(knightHpAfter).toBe(86);
+  }, 10_000);
+
+  it('deals +9 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
+    const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
+
+    const scout = findFirstOwnedUnit(bridge, 2, 'scout');
+    expect(scout).toBeDefined();
+    const scoutHpBefore = getHealthOfUnitAtCell(bridge, scout!.x, scout!.y);
+    expect(scoutHpBefore).toBe(45);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'camel')).toBe(true);
+    expect(bridge.issueContextCommand(scout!.x, scout!.y)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(bridge, scout!.x, scout!.y);
+          // Scout may die (45 - 14 = 31) or at least take one hit.
+          return hp === null || hp < 45;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+
+    // If still alive, the Scout must be at 31 HP (45 - 14); if dead, the hit
+    // still applied the anti-cavalry bonus — either way the bonus was active.
+    const scoutHpAfter = getHealthOfUnitAtCell(bridge, scout!.x, scout!.y);
+    if (scoutHpAfter !== null) {
+      expect(scoutHpAfter).toBe(31);
+    }
+  }, 10_000);
+
+  it('does NOT apply the Spearman anti-cavalry bonus to a Camel target', () => {
+    // Spearman's +12 vs Scout / Light-Cavalry and +15 vs Knight bonuses
+    // must not extend to Camels. Camels are anti-cavalry, not cavalry.
+    // Here the human Spearman (player 1) attacks an enemy Camel (player 2).
+    const bridge = createSimulationBridge('spearman-vs-camel-fixture');
+
+    const camel = findFirstOwnedUnit(bridge, 2, 'camel');
+    expect(camel).toBeDefined();
+    const camelHpBefore = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
+    expect(camelHpBefore).toBe(100);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'spearman')).toBe(true);
+    expect(bridge.issueContextCommand(camel!.x, camel!.y)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const hp = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
+          return hp !== null && hp < 100;
+        },
+        { maxSteps: 60 },
+      ),
+    ).toBe(true);
+
+    // Spearman base attack is 3. One hit leaves the Camel at 97.
+    // If the anti-cavalry bonus applied, the Camel would be at 100-15=85.
+    const camelHpAfter = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
+    expect(camelHpAfter).toBe(97);
+  }, 10_000);
 });

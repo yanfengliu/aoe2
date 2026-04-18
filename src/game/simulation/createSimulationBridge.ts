@@ -1286,6 +1286,14 @@ function unitVisionRadius(unitType: UnitType): number {
   }
 }
 
+// Returns true when the target is classified as cavalry for the purposes of
+// anti-cavalry bonus damage (Spearman, Pikeman, Camel). The mounted-but-not-
+// cavalry units (Camel, Cavalry Archer) are explicitly excluded so Camels
+// themselves don't trigger the bonus, matching AoE2 DE canon.
+function isCavalryTarget(targetType: UnitType): boolean {
+  return targetType === 'scout' || targetType === 'light-cavalry' || targetType === 'knight';
+}
+
 function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
   if (attackerType === 'spearman' && (targetType === 'scout' || targetType === 'light-cavalry')) {
     return 12;
@@ -1305,6 +1313,10 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
 
   if (attackerType === 'skirmisher' && (targetType === 'archer' || targetType === 'crossbowman')) {
     return 4;
+  }
+
+  if (attackerType === 'camel' && isCavalryTarget(targetType)) {
+    return 9;
   }
 
   return 0;

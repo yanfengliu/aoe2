@@ -1406,6 +1406,131 @@ function createImperialUpgradesFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Castle-Age combat fixture: a player-1 Camel stationed next to an enemy
+// (player 2) Knight and Scout, used to assert the Camel's +9 anti-cavalry
+// bonus without pursuit / pathing noise. All three units start in Castle
+// Age and adjacent, so the Camel can hit on tick 1.
+function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'camel',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'knight',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'scout',
+        x: 14,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
+// Castle-Age combat fixture: a player-1 Spearman next to an enemy (player 2)
+// Camel, used to assert the Spearman's anti-cavalry bonus does NOT fire
+// against Camels (Camels are anti-cavalry, not cavalry targets).
+function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'spearman',
+        x: 14,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'camel',
+        x: 15,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
 function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -2898,6 +3023,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'imperial-upgrades-fixture') {
     return createImperialUpgradesFixture(seed);
+  }
+
+  if (seed === 'camel-vs-cavalry-fixture') {
+    return createCamelVsCavalryFixture(seed);
+  }
+
+  if (seed === 'spearman-vs-camel-fixture') {
+    return createSpearmanVsCamelFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {
