@@ -1298,7 +1298,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         y: 10,
         owner: 1,
         baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
+        vision: { playerId: 1, radius: 5 },
       },
       {
         kind: 'spearman',
@@ -1306,7 +1306,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         y: 10,
         owner: 1,
         baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
+        vision: { playerId: 1, radius: 3 },
       },
       {
         kind: 'scout',
@@ -1314,7 +1314,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         y: 10,
         owner: 1,
         baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
+        vision: { playerId: 1, radius: 4 },
       },
       {
         kind: 'town-center',
@@ -1330,7 +1330,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         y: 10,
         owner: 2,
         baseOwner: 2,
-        vision: { playerId: 2, radius: 6 },
+        vision: { playerId: 2, radius: 5 },
       },
     ],
   };

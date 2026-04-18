@@ -785,23 +785,19 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
     case 'villager':
       return { food: 50 };
     case 'scout':
+    case 'light-cavalry':
       return { food: 80 };
     case 'militia':
       return { food: 60, gold: 20 };
     case 'spearman':
-      return { food: 35, wood: 25 };
-    case 'archer':
-      return { wood: 25, gold: 45 };
     case 'skirmisher':
-      return { food: 35, wood: 25 };
-    case 'knight':
-      return { food: 60, gold: 75 };
-    case 'crossbowman':
-      return { wood: 25, gold: 45 };
     case 'pikeman':
       return { food: 35, wood: 25 };
-    case 'light-cavalry':
-      return { food: 80 };
+    case 'archer':
+    case 'crossbowman':
+      return { wood: 25, gold: 45 };
+    case 'knight':
+      return { food: 60, gold: 75 };
   }
 }
 
@@ -1224,6 +1220,31 @@ function unitSize(unitType: UnitType): number {
       return 0.56;
     case 'scout':
       return 0.55;
+  }
+}
+
+// Canonical AoE2 DE line-of-sight values per unit type. Scouts have the
+// shorter scout-line radius (4); Light Cavalry upgrades that to 6. Archers
+// and Crossbowmen see one tile farther than melee. Used both at spawn time
+// (addUnitEntity / production queue) and on upgrade (upgradeOwnedUnits).
+function unitVisionRadius(unitType: UnitType): number {
+  switch (unitType) {
+    case 'scout':
+      return 4;
+    case 'light-cavalry':
+      return 6;
+    case 'archer':
+    case 'crossbowman':
+    case 'skirmisher':
+      return 5;
+    case 'spearman':
+    case 'pikeman':
+    case 'militia':
+      return 3;
+    case 'knight':
+      return 4;
+    case 'villager':
+      return 4;
   }
 }
 
@@ -4186,6 +4207,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         renderable.size = unitSize(to);
       }
 
+      const vision = world.getComponent<VisionSourceComponent>(id, 'visionSource');
+      if (vision) {
+        vision.radius = unitVisionRadius(to);
+      }
+
       const nextCombat = createCombatState(owner, to);
       if (combat) {
         nextCombat.cooldownTicks = combat.cooldownTicks;
@@ -4607,7 +4633,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
           const unitId = addUnitEntity(building.owner, entry.unitType, spawnPosition, {
             playerId: building.owner,
-            radius: 4,
+            radius: unitVisionRadius(entry.unitType),
           });
           const rallyPoint = rallyPoints.get(buildingId);
           if (rallyPoint) {

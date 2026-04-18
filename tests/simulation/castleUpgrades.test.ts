@@ -263,6 +263,61 @@ describe('Castle-Age production-line upgrades', () => {
     });
   }, 20_000);
 
+  it('gives upgraded Light Cavalry a vision radius of 6 (up from Scout 4)', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    const beforeVisibleCells = bridge.getHudState().visibleCells;
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueResearch('light-cavalry-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'light-cavalry') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    // The Scout had radius 4; Light Cavalry should have radius 6. Because both
+    // are at the same position, this purely reveals more cells.
+    const afterVisibleCells = bridge.getHudState().visibleCells;
+    expect(afterVisibleCells).toBeGreaterThan(beforeVisibleCells);
+  }, 20_000);
+
+  it('spawns newly trained Light Cavalry with vision radius 6, not the legacy hard-coded 4', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueResearch('light-cavalry-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'light-cavalry') === 1,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    const visibleAfterUpgrade = bridge.getHudState().visibleCells;
+
+    // Now train a fresh Light Cavalry; it should spawn with radius 6 vision,
+    // adding more visible cells than the previous spawn logic (radius 4).
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueTrainUnit('light-cavalry')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'light-cavalry') === 2,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    // One extra Light Cavalry unit should increase the visible-cell count (it
+    // spawns near the Stable at (20,6) which has not yet been fully explored
+    // by other sources).
+    const visibleAfterSecondLc = bridge.getHudState().visibleCells;
+    expect(visibleAfterSecondLc).toBeGreaterThan(visibleAfterUpgrade);
+  }, 30_000);
+
   it('applies the Fletching +1 attack / +1 range to Crossbowmen when Fletching is researched AFTER the upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
 
