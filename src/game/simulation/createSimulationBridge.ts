@@ -980,9 +980,11 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'stable' && unitType === 'knight')
     || (buildingType === 'stable' && unitType === 'light-cavalry')
+    || (buildingType === 'stable' && unitType === 'camel')
     || (buildingType === 'archery-range' && unitType === 'archer')
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
     || (buildingType === 'archery-range' && unitType === 'crossbowman')
+    || (buildingType === 'archery-range' && unitType === 'cavalry-archer')
   );
 }
 
@@ -3875,9 +3877,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         const scoutLine: TrainableUnitType = hasTechnology(owner, 'light-cavalry-upgrade')
           ? 'light-cavalry'
           : 'scout';
-        return getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age'
-          ? [scoutLine, 'knight']
-          : [scoutLine];
+        if (isAtLeastAge(owner, 'castle-age')) {
+          return [scoutLine, 'knight', 'camel'];
+        }
+        return [scoutLine];
       }
       case 'archery-range': {
         if (getPlayerAge(owner) === 'dark-age') {
@@ -3886,7 +3889,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         const archerLine: TrainableUnitType = hasTechnology(owner, 'crossbowman-upgrade')
           ? 'crossbowman'
           : 'archer';
-        return [archerLine, 'skirmisher'];
+        const options: TrainableUnitType[] = [archerLine, 'skirmisher'];
+        if (isAtLeastAge(owner, 'castle-age')) {
+          options.push('cavalry-archer');
+        }
+        return options;
       }
       default:
         return [];
