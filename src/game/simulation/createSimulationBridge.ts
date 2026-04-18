@@ -5690,19 +5690,25 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getRenderState() {
       flushOutOfBandRenderChange();
       // The render adapter only re-projects entities on component changes, so a static
-      // enemy building's projected view can linger in the render store after it has
-      // left the human player's vision. Filter the live stream here so a non-human,
-      // non-tile entity sitting on a currently-not-visible cell is hidden, then let
-      // `getFogMemoryEntities` decide whether to surface it as a memory entity.
+      // enemy building or resource's projected view can linger in the render store after
+      // it has left the human player's vision. Filter those out here so they can be
+      // surfaced as memory entities instead. Units are NOT filtered: they update their
+      // transform each tick, so the adapter re-runs the visibility check on them as a
+      // side-effect of component changes. Sheep carry a fractional subgrid x/y when
+      // moving, so floor to an integer cell before querying the visibility grid.
       const liveEntitiesRaw = renderStore.getEntities();
       const liveEntities = liveEntitiesRaw.filter((entity) => {
-        if (entity.kind === 'tile') {
+        if (entity.kind !== 'building' && entity.kind !== 'resource') {
           return true;
         }
         if (entity.owner === HUMAN_PLAYER_ID) {
           return true;
         }
-        return visibility.isVisible(HUMAN_PLAYER_ID, Math.round(entity.x), Math.round(entity.y));
+        return visibility.isVisible(
+          HUMAN_PLAYER_ID,
+          Math.floor(entity.x),
+          Math.floor(entity.y),
+        );
       });
       const liveIds = new Set<number>(liveEntities.map((entity) => entity.id));
       const memoryEntities = getFogMemoryEntities(liveIds);

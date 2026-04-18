@@ -1441,6 +1441,14 @@ test.describe('browser gameplay smoke tests', () => {
     );
     expect(ownedSheepCells.length).toBeGreaterThanOrEqual(2);
 
+    // The sheep cluster is at (19-20, 18-19); the default camera is centered on the
+    // human TC at (4, 4), so the sheep may land off the rendered canvas. Click the
+    // minimap to center the camera on the sheep before issuing the canvas clicks.
+    const minimapPoint = await getMinimapPoint(page, 20 / 60, 19 / 36);
+    await page.mouse.click(minimapPoint.x, minimapPoint.y);
+    // Let the scene flush the new camera position.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+
     // Double-click the first owned sheep's cell. The first click selects the single
     // sheep; the second (inside the double-click window) triggers same-type selection
     // expansion to every visible owned sheep.
