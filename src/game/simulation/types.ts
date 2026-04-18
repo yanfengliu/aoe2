@@ -12,7 +12,10 @@ export type UnitType =
   | 'pikeman'
   | 'light-cavalry'
   | 'camel'
-  | 'cavalry-archer';
+  | 'cavalry-archer'
+  | 'mangonel'
+  | 'scorpion'
+  | 'battering-ram';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -25,7 +28,10 @@ export type TrainableUnitType =
   | 'pikeman'
   | 'light-cavalry'
   | 'camel'
-  | 'cavalry-archer';
+  | 'cavalry-archer'
+  | 'mangonel'
+  | 'scorpion'
+  | 'battering-ram';
 export type ResearchableTechnologyType =
   | 'feudal-age'
   | 'castle-age'
@@ -52,7 +58,8 @@ export type BuildableBuildingType =
   | 'stable'
   | 'archery-range'
   | 'blacksmith'
-  | 'market';
+  | 'market'
+  | 'siege-workshop';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'

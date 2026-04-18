@@ -136,6 +136,7 @@ const STABLE_BUILD_TIME_TICKS = 240;
 const ARCHERY_RANGE_BUILD_TIME_TICKS = 240;
 const BLACKSMITH_BUILD_TIME_TICKS = 200;
 const MARKET_BUILD_TIME_TICKS = 200;
+const SIEGE_WORKSHOP_BUILD_TIME_TICKS = 260;
 const MILITIA_TRAIN_TIME_TICKS = 210;
 const SPEARMAN_TRAIN_TIME_TICKS = 220;
 const SCOUT_TRAIN_TIME_TICKS = 300;
@@ -150,6 +151,9 @@ const PIKEMAN_TRAIN_TIME_TICKS = 220;
 const LIGHT_CAVALRY_TRAIN_TIME_TICKS = 300;
 const CAMEL_TRAIN_TIME_TICKS = 220;
 const CAVALRY_ARCHER_TRAIN_TIME_TICKS = 340;
+const MANGONEL_TRAIN_TIME_TICKS = 460;
+const SCORPION_TRAIN_TIME_TICKS = 300;
+const BATTERING_RAM_TRAIN_TIME_TICKS = 360;
 const CROSSBOWMAN_UPGRADE_RESEARCH_TIME_TICKS = 350;
 const PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS = 450;
 const LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS = 450;
@@ -625,6 +629,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'archery-range':
     case 'blacksmith':
     case 'market':
+    case 'siege-workshop':
     case 'town-center':
       return 0;
   }
@@ -652,6 +657,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return BLACKSMITH_BUILD_TIME_TICKS;
     case 'market':
       return MARKET_BUILD_TIME_TICKS;
+    case 'siege-workshop':
+      return SIEGE_WORKSHOP_BUILD_TIME_TICKS;
   }
 }
 
@@ -669,6 +676,7 @@ function buildingSize(buildingType: BuildingType): number {
     case 'archery-range':
     case 'blacksmith':
     case 'market':
+    case 'siege-workshop':
       return 1.2;
     case 'town-center':
       return 1.4;
@@ -740,6 +748,12 @@ function buildingTint(
       : isComplete ? 0xb07a66 : 0x6d4d43;
   }
 
+  if (buildingType === 'siege-workshop') {
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x8e7352 : 0x57462f
+      : isComplete ? 0x8b6a55 : 0x57413a;
+  }
+
   return owner === HUMAN_PLAYER_ID
     ? isComplete ? 0xd8b36c : 0x7d6545
     : isComplete ? 0xa15c5c : 0x674040;
@@ -804,6 +818,12 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
       return { food: 55, gold: 60 };
     case 'cavalry-archer':
       return { wood: 40, gold: 70 };
+    case 'mangonel':
+      return { wood: 160, gold: 135 };
+    case 'scorpion':
+      return { wood: 80, gold: 60 };
+    case 'battering-ram':
+      return { wood: 160, gold: 75 };
   }
 }
 
@@ -844,6 +864,8 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { wood: 175 };
     case 'watch-tower':
       return { stone: 125 };
+    case 'siege-workshop':
+      return { wood: 200 };
   }
 }
 
@@ -873,6 +895,12 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return CAMEL_TRAIN_TIME_TICKS;
     case 'cavalry-archer':
       return CAVALRY_ARCHER_TRAIN_TIME_TICKS;
+    case 'mangonel':
+      return MANGONEL_TRAIN_TIME_TICKS;
+    case 'scorpion':
+      return SCORPION_TRAIN_TIME_TICKS;
+    case 'battering-ram':
+      return BATTERING_RAM_TRAIN_TIME_TICKS;
   }
 }
 
@@ -908,6 +936,8 @@ function buildingMaxHp(buildingType: BuildingType): number {
     case 'blacksmith':
     case 'market':
       return 175;
+    case 'siege-workshop':
+      return 2000;
     case 'town-center':
       return 2400;
   }
@@ -1028,6 +1058,12 @@ function unitMaxHp(unitType: UnitType): number {
       return 100;
     case 'cavalry-archer':
       return 50;
+    case 'mangonel':
+      return 50;
+    case 'scorpion':
+      return 40;
+    case 'battering-ram':
+      return 175;
   }
 }
 
@@ -1057,6 +1093,12 @@ function unitAttackDamage(unitType: UnitType): number {
       return 5;
     case 'cavalry-archer':
       return 6;
+    case 'mangonel':
+      return 40;
+    case 'scorpion':
+      return 12;
+    case 'battering-ram':
+      return 2;
   }
 }
 
@@ -1086,6 +1128,12 @@ function unitReloadTicks(unitType: UnitType): number {
       return 20;
     case 'cavalry-archer':
       return 20;
+    case 'mangonel':
+      return 60;
+    case 'scorpion':
+      return 35;
+    case 'battering-ram':
+      return 50;
   }
 }
 
@@ -1099,6 +1147,7 @@ function unitAttackRange(unitType: UnitType): number {
     case 'pikeman':
     case 'light-cavalry':
     case 'camel':
+    case 'battering-ram':
       return MELEE_ATTACK_RANGE;
     case 'archer':
     case 'skirmisher':
@@ -1106,6 +1155,9 @@ function unitAttackRange(unitType: UnitType): number {
       return 4;
     case 'crossbowman':
       return 5;
+    case 'mangonel':
+    case 'scorpion':
+      return 7;
   }
 }
 
@@ -1229,6 +1281,12 @@ function unitTint(unitType: UnitType, owner: number): number {
       return isHuman ? 0xd8c18a : 0xc49278;
     case 'cavalry-archer':
       return isHuman ? 0x7e8fb0 : 0xa07294;
+    case 'mangonel':
+      return isHuman ? 0x8b6d4a : 0x8a564b;
+    case 'scorpion':
+      return isHuman ? 0x9a854e : 0x996453;
+    case 'battering-ram':
+      return isHuman ? 0x6e543a : 0x6e4239;
   }
 }
 
@@ -1254,6 +1312,12 @@ function unitSize(unitType: UnitType): number {
       return 0.57;
     case 'cavalry-archer':
       return 0.55;
+    case 'mangonel':
+      return 0.68;
+    case 'scorpion':
+      return 0.6;
+    case 'battering-ram':
+      return 0.75;
   }
 }
 
@@ -1283,6 +1347,11 @@ function unitVisionRadius(unitType: UnitType): number {
       return 4;
     case 'cavalry-archer':
       return 5;
+    case 'mangonel':
+    case 'scorpion':
+      return 9;
+    case 'battering-ram':
+      return 3;
   }
 }
 
@@ -2237,6 +2306,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'archery-range'
       || spawn.kind === 'blacksmith'
       || spawn.kind === 'market'
+      || spawn.kind === 'siege-workshop'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       addBuildingEntity(owner, spawn.kind, { x: spawn.x, y: spawn.y }, true, spawn.vision);
@@ -2256,6 +2326,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'light-cavalry'
       || spawn.kind === 'camel'
       || spawn.kind === 'cavalry-archer'
+      || spawn.kind === 'mangonel'
+      || spawn.kind === 'scorpion'
+      || spawn.kind === 'battering-ram'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -4033,6 +4106,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'scout':
       case 'light-cavalry':
         return 6;
+      // Siege weapons are backline priority: Mangonel / Scorpion are glass-cannon
+      // ranged threats (shoot them first once the frontline clears); Ram is a
+      // slow anti-building mass that is normally safe to ignore unless it is
+      // attacking something. Bucketed together since v1 AI doesn't distinguish.
+      case 'mangonel':
+      case 'scorpion':
+      case 'battering-ram':
+        return 7;
     }
   }
 

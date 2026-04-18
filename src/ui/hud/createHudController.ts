@@ -278,6 +278,14 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Camel';
     case 'cavalry-archer':
       return 'Cavalry Archer';
+    case 'mangonel':
+      return 'Mangonel';
+    case 'scorpion':
+      return 'Scorpion';
+    case 'battering-ram':
+      return 'Battering Ram';
+    case 'siege-workshop':
+      return 'Siege Workshop';
     default:
       return entityType;
   }
@@ -351,6 +359,14 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Camels';
     case 'cavalry-archer':
       return 'Cavalry Archers';
+    case 'mangonel':
+      return 'Mangonels';
+    case 'scorpion':
+      return 'Scorpions';
+    case 'battering-ram':
+      return 'Battering Rams';
+    case 'siege-workshop':
+      return 'Siege Workshops';
     default:
       return `${entityType}s`;
   }
@@ -382,6 +398,9 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'light-cavalry'
     || entityType === 'camel'
     || entityType === 'cavalry-archer'
+    || entityType === 'mangonel'
+    || entityType === 'scorpion'
+    || entityType === 'battering-ram'
   );
 }
 
@@ -411,6 +430,12 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'Cm';
     case 'cavalry-archer':
       return 'CA';
+    case 'mangonel':
+      return 'Mg';
+    case 'scorpion':
+      return 'Sc';
+    case 'battering-ram':
+      return 'Rm';
   }
 }
 
@@ -440,6 +465,12 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#d8c18a';
     case 'cavalry-archer':
       return '#8ca6c8';
+    case 'mangonel':
+      return '#a0805a';
+    case 'scorpion':
+      return '#b09862';
+    case 'battering-ram':
+      return '#8f6a4a';
   }
 }
 
@@ -467,6 +498,8 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'BS';
     case 'market':
       return 'MK';
+    case 'siege-workshop':
+      return 'SW';
     case 'berry-bush':
       return 'BB';
     case 'gold-mine':
@@ -512,6 +545,8 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#8f98aa';
     case 'market':
       return '#c4a166';
+    case 'siege-workshop':
+      return '#98856a';
     case 'berry-bush':
       return '#a16a89';
     case 'gold-mine':

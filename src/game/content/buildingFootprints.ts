@@ -20,6 +20,7 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   'archery-range': { width: 3, height: 3 },
   blacksmith: { width: 3, height: 3 },
   market: { width: 4, height: 4 },
+  'siege-workshop': { width: 3, height: 3 },
 };
 
 export function getBuildingFootprint(buildingType: BuildingType): BuildingFootprint {

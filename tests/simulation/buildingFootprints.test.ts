@@ -17,6 +17,7 @@ describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
       'archery-range': { width: 3, height: 3 },
       blacksmith: { width: 3, height: 3 },
       market: { width: 4, height: 4 },
+      'siege-workshop': { width: 3, height: 3 },
     };
 
     expect(AUTHORITATIVE_BUILDING_FOOTPRINTS).toEqual(expected);
