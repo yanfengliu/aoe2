@@ -4255,39 +4255,38 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return options;
   }
 
+  // Lower number = higher priority. Siege ranks first so defensive buildings
+  // and AI combat pickers turn their shots on the biggest backline threat
+  // (Mangonel shelling a base, Scorpion bolting a cluster, Ram eating a
+  // wall) before chewing on infantry that will still be there after the
+  // siege is gone. Monks follow because they convert and heal and also
+  // need to be silenced early. Ranged units sit above melee / cavalry
+  // since hitting the archer line usually wins the engagement, and
+  // villagers / scouts sit last — they are low-value kills compared to
+  // losing the tower or a key army unit to siege fire.
   function targetPriority(unitType: UnitType): number {
     switch (unitType) {
-      case 'villager':
-        return 0;
-      case 'archer':
-      case 'crossbowman':
-      case 'cavalry-archer':
-        return 1;
-      case 'spearman':
-      case 'pikeman':
-        return 2;
-      case 'skirmisher':
-        return 3;
-      case 'knight':
-      case 'camel':
-        return 4;
-      case 'militia':
-        return 5;
-      case 'scout':
-      case 'light-cavalry':
-        return 6;
-      // Siege weapons are backline priority: Mangonel / Scorpion are glass-cannon
-      // ranged threats (shoot them first once the frontline clears); Ram is a
-      // slow anti-building mass that is normally safe to ignore unless it is
-      // attacking something. Bucketed together since v1 AI doesn't distinguish.
       case 'mangonel':
       case 'scorpion':
       case 'battering-ram':
-        return 7;
-      // Monks have no combat damage but convert and heal; AI should treat them
-      // as a high-value backline target roughly on par with siege.
+        return 0;
       case 'monk':
-        return 7;
+        return 1;
+      case 'archer':
+      case 'crossbowman':
+      case 'cavalry-archer':
+      case 'skirmisher':
+        return 2;
+      case 'militia':
+      case 'spearman':
+      case 'pikeman':
+      case 'knight':
+      case 'camel':
+      case 'scout':
+      case 'light-cavalry':
+        return 3;
+      case 'villager':
+        return 4;
     }
   }
 

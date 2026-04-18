@@ -197,6 +197,43 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(ramHpAfter).toBe(170);
   }, 10_000);
 
+  it('makes a Watch Tower prefer a Mangonel over a closer Militia in range (siege-first priority)', () => {
+    // Slice 4 review Fix 1: siege units must be the highest-priority target
+    // for defensive buildings so towers do not burn their shots on infantry
+    // while a Mangonel shells them from the same radius. The fixture places
+    // both enemies inside the tower's range, with the Militia CLOSER (dist 4
+    // vs the Mangonel at dist 5) so proximity-based tie-breaking would pick
+    // the Militia. Correct behavior: the Mangonel takes damage first.
+    const bridge = createSimulationBridge('tower-vs-siege-priority-fixture');
+
+    const mangonel = findFirstOwnedUnit(bridge, 2, 'mangonel');
+    const militia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(mangonel).toBeDefined();
+    expect(militia).toBeDefined();
+
+    const mangonelIdBefore = mangonel!.id;
+    const militiaIdBefore = militia!.id;
+
+    // Step exactly one tower tick so exactly one arrow has flown. Watch
+    // Tower starts with cooldownTicks = 0 and fires on its first tick, so a
+    // single 100ms step lands the first shot.
+    bridge.step(100);
+
+    const economy = bridge.getEconomyState();
+    const mangonelAfter = economy.units.find((u) => u.id === mangonelIdBefore);
+    const militiaAfter = economy.units.find((u) => u.id === militiaIdBefore);
+
+    // Tower fires 5 damage; Mangonel has 50 HP so it survives one hit and
+    // stays on the map. Its HP must be below the Militia's, proving the
+    // arrow landed on the Mangonel rather than the closer Militia.
+    expect(mangonelAfter).toBeDefined();
+    expect(militiaAfter).toBeDefined();
+    const mangonelHp = getHealthOfUnitAtCell(bridge, mangonelAfter!.x, mangonelAfter!.y);
+    const militiaHp = getHealthOfUnitAtCell(bridge, militiaAfter!.x, militiaAfter!.y);
+    expect(mangonelHp).toBe(45); // 50 - 5
+    expect(militiaHp).toBe(40); // 40 - 0, untouched
+  }, 10_000);
+
   it('lets a Scorpion hit a distant Spearman at range 7 without closing', () => {
     const bridge = createSimulationBridge('scorpion-ranged-fixture');
 

@@ -1535,6 +1535,77 @@ function createMangonelRangedFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 4 review fixture: player-1 Watch Tower with both an enemy Mangonel
+// and an enemy Militia inside its attack range. Used to assert siege is the
+// highest-priority target for defensive buildings (the tower must fire on
+// the Mangonel first, not the closer Militia).
+function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'feudal-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'watch-tower',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 8 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // Both enemies sit inside the tower's range 7. Militia is CLOSER (dist 4
+      // vs the Mangonel's dist 5) — before the priority fix the tower fell
+      // back on proximity and killed the Militia first. The fix must make the
+      // Mangonel the preferred target regardless of proximity.
+      {
+        kind: 'militia',
+        x: 14,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'mangonel',
+        x: 15,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 9 },
+      },
+    ],
+  };
+}
+
 // Slice 4 fixture: player-1 Scorpion stationed exactly 7 tiles (its attack
 // range) from a stationary enemy Spearman. Used to assert ranged combat.
 function createScorpionRangedFixture(seed: string): PrototypeScenario {
@@ -3849,6 +3920,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'scorpion-ranged-fixture') {
     return createScorpionRangedFixture(seed);
+  }
+
+  if (seed === 'tower-vs-siege-priority-fixture') {
+    return createTowerVsSiegePriorityFixture(seed);
   }
 
   if (seed === 'ram-vs-building-fixture') {
