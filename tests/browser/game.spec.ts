@@ -1990,6 +1990,38 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveText('Cm');
   });
 
+  test('can train a Mangonel at the Siege Workshop in Castle Age and render its HUD label', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'siege-workshop-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'siege-workshop')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Siege Workshop');
+    await expect(page.locator('[data-command="train-mangonel"]')).toBeVisible();
+    await expect(page.locator('[data-command="train-scorpion"]')).toBeVisible();
+    await expect(page.locator('[data-command="train-battering-ram"]')).toBeVisible();
+
+    await page.locator('[data-command="train-mangonel"]').click();
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+
+    const snapshot = await getSnapshot(page);
+    const mangonels = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'mangonel',
+    );
+    expect(mangonels).toHaveLength(1);
+    expect(mangonels[0]).toMatchObject({
+      attackDamage: 40,
+      attackRange: 7,
+    });
+
+    expect(await selectOwnedUnitDirect(page, 1, 'mangonel')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Mangonel');
+    await expect(
+      page.locator('[data-selection-unit-icon="mangonel"]'),
+    ).toHaveText('Mg');
+  });
+
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
     page,
   }) => {
