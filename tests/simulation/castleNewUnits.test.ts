@@ -337,4 +337,32 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       attackRange: 5,
     });
   }, 30_000);
+
+  it('selects every owned Camel in a rect when selectOwnedUnitsByTypeInRect is called with camel', () => {
+    // Backs the GameScene same-type-double-click flow: the scene dispatches
+    // to selectOwnedUnitsByTypeInRect with the clicked unit's type, and that
+    // call must actually return the full set of owned Camels on screen.
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueTrainUnit('camel')).toBe(true);
+    expect(bridge.queueTrainUnit('camel')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'camel') === 2,
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    // Rect wider than the map to catch both Camels wherever they spawned.
+    expect(bridge.selectOwnedUnitsByTypeInRect('camel', 0, 0, 59, 35)).toBe(true);
+
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBe(2);
+    expect(selectionState.selectedKind).toBe('unit');
+    expect(selectionState.selectedEntityType).toBe('camel');
+    expect(selectionState.owner).toBe(1);
+  }, 30_000);
 });
