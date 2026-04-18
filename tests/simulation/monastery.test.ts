@@ -190,6 +190,36 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     ).toBe(true);
   }, 20_000);
 
+  it('syncs population counts when a Monk converts an enemy unit', () => {
+    const bridge = createSimulationBridge('monk-convert-fixture');
+
+    const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(enemyMilitia).toBeDefined();
+    const militiaId = enemyMilitia!.id;
+
+    const humanPopBefore = bridge.getPopulationState(1).current;
+    const enemyPopBefore = bridge.getPopulationState(2).current;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(militiaId)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const militia = findUnitById(bridge, militiaId);
+          return militia !== undefined && militia.owner === 1;
+        },
+        { maxSteps: 80 },
+      ),
+    ).toBe(true);
+
+    const humanPopAfter = bridge.getPopulationState(1).current;
+    const enemyPopAfter = bridge.getPopulationState(2).current;
+    expect(humanPopAfter - humanPopBefore).toBe(1);
+    expect(enemyPopBefore - enemyPopAfter).toBe(1);
+  }, 20_000);
+
   it('picks up a neutral relic and keeps the relic position tracking the Monk each tick', () => {
     const bridge = createSimulationBridge('monk-relic-fixture');
 

@@ -5147,8 +5147,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
     state.progress += MONK_CONVERT_PROGRESS_PER_TICK;
     if (state.progress >= MONK_CONVERT_FLIP_THRESHOLD) {
-      // Flip ownership.
+      // Flip ownership. Move the living unit between population books: the
+      // former owner loses a pop slot and the new owner gains one. Every
+      // trainable unit we can realistically convert consumes exactly one pop
+      // slot in `addUnitEntity`, so mirror that delta here.
+      const previousOwner = targetUnit.owner;
       targetUnit.owner = monkUnit.owner;
+      const previousPopulation = population.get(previousOwner);
+      if (previousPopulation) {
+        previousPopulation.current = Math.max(0, previousPopulation.current - 1);
+      }
+      const nextPopulation = population.get(monkUnit.owner);
+      if (nextPopulation) {
+        nextPopulation.current += 1;
+      }
       const renderable = activeWorld.getComponent<RenderableComponent>(targetId, 'renderable');
       if (renderable) {
         renderable.tint = unitTint(targetUnit.unitType, monkUnit.owner);
@@ -7010,6 +7022,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       };
     },
     getEconomyState,
+    getPopulationState,
     getSelectionState,
     getPlacementPreview,
     selectEntityAtCell,
