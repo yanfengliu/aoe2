@@ -1276,6 +1276,32 @@ function isFootprintVisible(
   return false;
 }
 
+const PROJECTED_LAYER_ORDER: Record<ProjectedEntityView['layer'], number> = {
+  terrain: 0,
+  resource: 1,
+  building: 2,
+  unit: 3,
+};
+
+// Stable comparator for the projected render entity list: layer first (so units
+// always draw on top of buildings on top of resources on top of terrain), then
+// y (row) so southern entities draw later, then x (column) for determinism.
+// Hoisted to top level so the per-frame `getRenderState` sort doesn't allocate
+// a fresh closure each call.
+function compareProjectedRenderEntities(
+  left: ProjectedEntityView,
+  right: ProjectedEntityView,
+): number {
+  const layerDelta = PROJECTED_LAYER_ORDER[left.layer] - PROJECTED_LAYER_ORDER[right.layer];
+  if (layerDelta !== 0) {
+    return layerDelta;
+  }
+  if (left.y !== right.y) {
+    return left.y - right.y;
+  }
+  return left.x - right.x;
+}
+
 function isFeudalAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
   return (
     buildingType === 'stable'
@@ -1527,6 +1553,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   isSelected: (id: number) => boolean;
   consumeOutOfBandRenderChange: () => boolean;
   getFogMemoryEntities: (liveEntityIds: Set<number>) => ProjectedEntityView[];
+  getHumanFogMemorySize: () => number;
 } {
   const world = new World<GameEvents, GameCommands, GameComponents>({
     gridWidth: MAP_WIDTH,
@@ -1608,6 +1635,14 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       });
     }
     return memoryViews;
+  }
+
+  // Cheap pre-check used by `getRenderState` to short-circuit the merge logic when
+  // the human player has no fog memory (e.g. immediately after world bootstrap, or
+  // in unit tests that never let the visibility system run). Avoids the
+  // `getFogMemoryEntities` call and the dedupe Set allocation in the common case.
+  function getHumanFogMemorySize(): number {
+    return lastSeenStatic.get(HUMAN_PLAYER_ID)?.size ?? 0;
   }
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
@@ -5035,8 +5070,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       // Forget memories of entities that no longer exist (resource depleted, building
       // destroyed) AND whose last-known cell is currently visible — i.e. the player
       // saw it disappear. If the entity simply walked out of vision, we keep the
-      // stale snapshot.
-      for (const [entityId, entry] of [...humanMemory.entries()]) {
+      // stale snapshot. Map iterators are safe against deletion during iteration,
+      // so iterate the Map directly instead of materializing an entries array.
+      for (const [entityId, entry] of humanMemory) {
         const stillExists = activeWorld.getComponent<Position>(entityId, 'position') !== undefined;
         if (stillExists) {
           continue;
@@ -5885,6 +5921,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return didChange;
     },
     getFogMemoryEntities,
+    getHumanFogMemorySize,
   };
 }
 
@@ -5916,6 +5953,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     isSelected,
     consumeOutOfBandRenderChange,
     getFogMemoryEntities,
+    getHumanFogMemorySize,
   } =
     createWorld(seed, visibility);
   const renderStore = new RenderStore();
@@ -5979,6 +6017,11 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       // moving, so floor to an integer cell before querying the visibility grid.
       // Buildings can span multiple cells, so check the full footprint — a Town
       // Center with one corner in vision must render as live, not memory.
+      //
+      // `renderStore.getEntities()` already returns a sorted array. We preserve that
+      // order so the common no-memory path returns the live list as-is without
+      // building a dedupe Set, projecting memory views, or re-sorting. Each one of
+      // those would otherwise allocate every frame for no benefit in the common case.
       const liveEntitiesRaw = renderStore.getEntities();
       const liveEntities = liveEntitiesRaw.filter((entity) => {
         if (entity.kind !== 'building' && entity.kind !== 'resource') {
@@ -5996,21 +6039,44 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
           entity.footprintHeight,
         );
       });
-      const liveIds = new Set<number>(liveEntities.map((entity) => entity.id));
+
+      // Fast path: if the human player has no fog memory at all, skip the dedupe
+      // Set, the memory projection, and the merge sort entirely. This is the
+      // common case every frame after warmup.
+      if (getHumanFogMemorySize() === 0) {
+        return {
+          tick: renderStore.getTick(),
+          entities: liveEntities,
+          frame: renderStore.getFrame(),
+        };
+      }
+
+      const liveIds = new Set<number>();
+      for (const entity of liveEntities) {
+        liveIds.add(entity.id);
+      }
       const memoryEntities = getFogMemoryEntities(liveIds);
-      const entities = memoryEntities.length === 0
-        ? liveEntities
-        : [...liveEntities, ...memoryEntities].sort((left, right) => {
-          const layerOrder = ['terrain', 'resource', 'building', 'unit'];
-          const layerDelta =
-            layerOrder.indexOf(left.layer) - layerOrder.indexOf(right.layer);
-          if (layerDelta !== 0) return layerDelta;
-          if (left.y !== right.y) return left.y - right.y;
-          return left.x - right.x;
-        });
+      if (memoryEntities.length === 0) {
+        return {
+          tick: renderStore.getTick(),
+          entities: liveEntities,
+          frame: renderStore.getFrame(),
+        };
+      }
+
+      // Merge live and memory entries into one sorted array. Live entries are
+      // already sorted by (layer, y, x); memory entries are not, so a single sort
+      // of the combined array is the simplest way to keep the rendering layer
+      // order intact. The comparator is hoisted to module scope so we don't
+      // allocate a fresh closure each frame.
+      const merged = liveEntities.slice();
+      for (const entity of memoryEntities) {
+        merged.push(entity);
+      }
+      merged.sort(compareProjectedRenderEntities);
       return {
         tick: renderStore.getTick(),
-        entities,
+        entities: merged,
         frame: renderStore.getFrame(),
       };
     },
