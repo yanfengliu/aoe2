@@ -2022,6 +2022,107 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveText('Mg');
   });
 
+  test('can train a Monk at the Monastery, pick up a relic, deposit it, and earn gold income', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'monastery-fixture');
+
+    // Train a Monk at the Monastery.
+    expect(await selectOwnedBuildingDirect(page, 1, 'monastery')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Monastery');
+    await expect(page.locator('[data-command="train-monk"]')).toBeVisible();
+    await page.locator('[data-command="train-monk"]').click();
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(550, 100));
+
+    const monkSnapshot = await getSnapshot(page);
+    const monks = monkSnapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'monk',
+    );
+    expect(monks).toHaveLength(1);
+    expect(monks[0]).toMatchObject({
+      unitType: 'monk',
+      attackDamage: 0,
+    });
+
+    // Confirm HUD labels.
+    expect(await selectOwnedUnitDirect(page, 1, 'monk')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
+    await expect(page.locator('[data-selection-unit-icon="monk"]')).toHaveText('Mn');
+
+    // Right-click the neutral relic. The fixture places it at (14, 12). The
+    // scene's context-command-at-world uses entity hit-testing, so click the
+    // relic's cell.
+    const relicCell = await page.evaluate(() => {
+      const relic = window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.resources.find((r) => r.resourceType === 'relic');
+      return relic ? { x: relic.x, y: relic.y } : null;
+    });
+    expect(relicCell).not.toBeNull();
+
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        relicCell!,
+      ),
+    ).toBe(true);
+
+    // Wait until the Monk has walked to and picked up the relic (relic
+    // position matches Monk position).
+    await expect
+      .poll(async () => {
+        const snapshot = await getSnapshot(page);
+        const relic = snapshot.economyState.resources.find((r) => r.resourceType === 'relic');
+        const monk = snapshot.economyState.units.find(
+          (u) => u.owner === 1 && u.unitType === 'monk',
+        );
+        if (!relic || !monk) return false;
+        return relic.x === monk.x && relic.y === monk.y;
+      }, { timeout: 30_000 })
+      .toBe(true);
+
+    // Record gold before deposit.
+    const goldBeforeDeposit = await page.evaluate(
+      () => window.__AOE2_TEST__!.getHudState().playerResources.gold,
+    );
+
+    // Right-click the Monastery to deposit. Use the Monastery anchor cell.
+    const monasteryAnchor = await page.evaluate(() => {
+      const monastery = window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.buildings.find(
+          (b) => b.owner === 1 && b.buildingType === 'monastery',
+        );
+      return monastery ? { x: monastery.x, y: monastery.y } : null;
+    });
+    expect(monasteryAnchor).not.toBeNull();
+
+    // Re-select the Monk before issuing the deposit.
+    expect(await selectOwnedUnitDirect(page, 1, 'monk')).toBe(true);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        monasteryAnchor!,
+      ),
+    ).toBe(true);
+
+    // Wait until the relic is no longer in the world (deposited).
+    await expect
+      .poll(async () => {
+        const snapshot = await getSnapshot(page);
+        return snapshot.economyState.resources.find((r) => r.resourceType === 'relic') === undefined;
+      }, { timeout: 30_000 })
+      .toBe(true);
+
+    // Let 20 ticks pass; gold should grow by exactly 20 (one per tick).
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
+    const goldAfter = await page.evaluate(
+      () => window.__AOE2_TEST__!.getHudState().playerResources.gold,
+    );
+    expect(goldAfter - goldBeforeDeposit).toBe(20);
+  });
+
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
     page,
   }) => {

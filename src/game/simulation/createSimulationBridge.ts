@@ -5987,6 +5987,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
+    // Monks: resolve cell targets into heal/convert/pickup/deposit by
+    // inspecting what lives at that cell. Falls back to a plain move.
+    if (unit.unitType === 'monk') {
+      const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
+      if (monkTargetEntityId !== null) {
+        const monkTargetPosition = world.getComponent<Position>(monkTargetEntityId, 'position');
+        if (monkTargetPosition) {
+          return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
+        }
+      }
+      return issueUnitMoveCommand(unitId, target);
+    }
+
     const resourceId =
       unit.unitType === 'villager'
         ? findResourceAtCell(target.x, target.y)
@@ -6021,6 +6034,52 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     }
 
     return true;
+  }
+
+  // Resolves the cell a Monk context-clicked into a specific entity id, in
+  // Monk priority order: friendly wounded unit (heal) > enemy unit (convert)
+  // > neutral relic (pickup) > friendly Monastery when carrying (deposit).
+  // Returns null when no relevant entity is at the cell so the caller can
+  // fall back to a plain move.
+  function findMonkContextTargetAtCell(
+    x: number,
+    y: number,
+    monkOwner: number,
+  ): number | null {
+    // Friendly unit: heal takes priority. Enemy unit: convert.
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!position || !unit || position.x !== x || position.y !== y) {
+        continue;
+      }
+      return id;
+    }
+
+    // Building: only interesting if it's a friendly Monastery (deposit).
+    for (const id of world.query('position', 'building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== monkOwner || building.buildingType !== 'monastery') {
+        continue;
+      }
+      if (buildingOccupiesCell(id, x, y)) {
+        return id;
+      }
+    }
+
+    // Resource: relic.
+    for (const id of world.query('position', 'resource')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (!position || !resource || position.x !== x || position.y !== y) {
+        continue;
+      }
+      if (resource.resourceType === 'relic') {
+        return id;
+      }
+    }
+
+    return null;
   }
 
   function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
