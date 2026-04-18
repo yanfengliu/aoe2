@@ -296,6 +296,30 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Castle';
     case 'longbowman':
       return 'Longbowman';
+    case 'arbalest':
+      return 'Arbalest';
+    case 'halberdier':
+      return 'Halberdier';
+    case 'hussar':
+      return 'Hussar';
+    case 'heavy-cavalry-archer':
+      return 'Heavy Cavalry Archer';
+    case 'cavalier':
+      return 'Cavalier';
+    case 'champion':
+      return 'Champion';
+    case 'elite-longbowman':
+      return 'Elite Longbowman';
+    case 'onager':
+      return 'Onager';
+    case 'heavy-scorpion':
+      return 'Heavy Scorpion';
+    case 'siege-ram':
+      return 'Siege Ram';
+    case 'bombard-cannon':
+      return 'Bombard Cannon';
+    case 'trebuchet':
+      return 'Trebuchet';
     default:
       return entityType;
   }
@@ -387,6 +411,30 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Castles';
     case 'longbowman':
       return 'Longbowmen';
+    case 'arbalest':
+      return 'Arbalests';
+    case 'halberdier':
+      return 'Halberdiers';
+    case 'hussar':
+      return 'Hussars';
+    case 'heavy-cavalry-archer':
+      return 'Heavy Cavalry Archers';
+    case 'cavalier':
+      return 'Cavaliers';
+    case 'champion':
+      return 'Champions';
+    case 'elite-longbowman':
+      return 'Elite Longbowmen';
+    case 'onager':
+      return 'Onagers';
+    case 'heavy-scorpion':
+      return 'Heavy Scorpions';
+    case 'siege-ram':
+      return 'Siege Rams';
+    case 'bombard-cannon':
+      return 'Bombard Cannons';
+    case 'trebuchet':
+      return 'Trebuchets';
     default:
       return `${entityType}s`;
   }
@@ -423,6 +471,18 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'battering-ram'
     || entityType === 'monk'
     || entityType === 'longbowman'
+    || entityType === 'arbalest'
+    || entityType === 'halberdier'
+    || entityType === 'hussar'
+    || entityType === 'heavy-cavalry-archer'
+    || entityType === 'cavalier'
+    || entityType === 'champion'
+    || entityType === 'elite-longbowman'
+    || entityType === 'onager'
+    || entityType === 'heavy-scorpion'
+    || entityType === 'siege-ram'
+    || entityType === 'bombard-cannon'
+    || entityType === 'trebuchet'
   );
 }
 
@@ -462,6 +522,31 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'Mn';
     case 'longbowman':
       return 'LB';
+    // Slice 7A Imperial icons.
+    case 'arbalest':
+      return 'Ab';
+    case 'halberdier':
+      return 'Hb';
+    case 'hussar':
+      return 'Hs';
+    case 'heavy-cavalry-archer':
+      return 'HC';
+    case 'cavalier':
+      return 'Cv';
+    case 'champion':
+      return 'Ch';
+    case 'elite-longbowman':
+      return 'EL';
+    case 'onager':
+      return 'On';
+    case 'heavy-scorpion':
+      return 'HS';
+    case 'siege-ram':
+      return 'SR';
+    case 'bombard-cannon':
+      return 'BC';
+    case 'trebuchet':
+      return 'Tr';
   }
 }
 
@@ -501,6 +586,32 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#e3d9b5';
     case 'longbowman':
       return '#6fa070';
+    // Slice 7A Imperial accents — one step deeper than the predecessor so
+    // the Imperial unit reads as the same family on the HUD.
+    case 'arbalest':
+      return '#4f8cc2';
+    case 'halberdier':
+      return '#8cba6f';
+    case 'hussar':
+      return '#c09960';
+    case 'heavy-cavalry-archer':
+      return '#7188b0';
+    case 'cavalier':
+      return '#ae9fcc';
+    case 'champion':
+      return '#cf8b52';
+    case 'elite-longbowman':
+      return '#4f8652';
+    case 'onager':
+      return '#7a5d3f';
+    case 'heavy-scorpion':
+      return '#957848';
+    case 'siege-ram':
+      return '#6e4e33';
+    case 'bombard-cannon':
+      return '#3a3a42';
+    case 'trebuchet':
+      return '#6a4f2e';
   }
 }
 
@@ -765,6 +876,8 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Feudal Age';
     case 'castle-age':
       return 'Castle Age';
+    case 'imperial-age':
+      return 'Imperial Age';
     case 'fletching':
       return 'Fletching';
     case 'crossbowman-upgrade':
@@ -773,6 +886,34 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Pikeman';
     case 'light-cavalry-upgrade':
       return 'Light Cavalry';
+    case 'arbalest-upgrade':
+      return 'Arbalest';
+    case 'halberdier-upgrade':
+      return 'Halberdier';
+    case 'hussar-upgrade':
+      return 'Hussar';
+    case 'heavy-cavalry-archer-upgrade':
+      return 'Heavy Cavalry Archer';
+    case 'cavalier-upgrade':
+      return 'Cavalier';
+    case 'champion-upgrade':
+      return 'Champion';
+    case 'elite-longbowman-upgrade':
+      return 'Elite Longbowman';
+    case 'onager-upgrade':
+      return 'Onager';
+    case 'heavy-scorpion-upgrade':
+      return 'Heavy Scorpion';
+    case 'siege-ram-upgrade':
+      return 'Siege Ram';
+    case 'bracer':
+      return 'Bracer';
+    case 'blast-furnace':
+      return 'Blast Furnace';
+    case 'plate-mail-armor':
+      return 'Plate Mail Armor';
+    case 'plate-barding':
+      return 'Plate Barding';
   }
 }
 

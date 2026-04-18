@@ -1333,6 +1333,18 @@ export class GameScene extends Phaser.Scene {
       || entityType === 'scorpion'
       || entityType === 'battering-ram'
       || entityType === 'longbowman'
+      || entityType === 'arbalest'
+      || entityType === 'halberdier'
+      || entityType === 'hussar'
+      || entityType === 'heavy-cavalry-archer'
+      || entityType === 'cavalier'
+      || entityType === 'champion'
+      || entityType === 'elite-longbowman'
+      || entityType === 'onager'
+      || entityType === 'heavy-scorpion'
+      || entityType === 'siege-ram'
+      || entityType === 'bombard-cannon'
+      || entityType === 'trebuchet'
     );
   }
 }

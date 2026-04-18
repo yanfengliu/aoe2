@@ -175,6 +175,45 @@ const MONK_VISION_RADIUS = 9;
 const CROSSBOWMAN_UPGRADE_RESEARCH_TIME_TICKS = 350;
 const PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS = 450;
 const LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS = 450;
+// Slice 7: Imperial Age age-up research mirrors the Feudal → Castle research
+// pattern at the Town Center and typically takes a touch longer in AoE2 DE.
+// Kept within the same scale as the Castle Age research so the gate tests stay
+// readable without ballooning step counts.
+const IMPERIAL_AGE_RESEARCH_TIME_TICKS = 1900;
+// Slice 7A: placeholder durations for the Imperial unit-line upgrades. The
+// actual wire-up (callback into applyTechnology, train-menu swap, etc.) lands
+// in 7B/7C/7D — 7A just needs valid numbers so the research-time switch is
+// exhaustive and `npx tsc --noEmit` passes. Values roughly mirror the Castle
+// Age upgrades they succeed.
+const ARBALEST_UPGRADE_RESEARCH_TIME_TICKS = 450;
+const HALBERDIER_UPGRADE_RESEARCH_TIME_TICKS = 500;
+const HUSSAR_UPGRADE_RESEARCH_TIME_TICKS = 500;
+const HEAVY_CAVALRY_ARCHER_UPGRADE_RESEARCH_TIME_TICKS = 550;
+const CAVALIER_UPGRADE_RESEARCH_TIME_TICKS = 500;
+const CHAMPION_UPGRADE_RESEARCH_TIME_TICKS = 550;
+const ELITE_LONGBOWMAN_UPGRADE_RESEARCH_TIME_TICKS = 550;
+const ONAGER_UPGRADE_RESEARCH_TIME_TICKS = 600;
+const HEAVY_SCORPION_UPGRADE_RESEARCH_TIME_TICKS = 550;
+const SIEGE_RAM_UPGRADE_RESEARCH_TIME_TICKS = 600;
+const BRACER_RESEARCH_TIME_TICKS = 500;
+const BLAST_FURNACE_RESEARCH_TIME_TICKS = 600;
+const PLATE_MAIL_ARMOR_RESEARCH_TIME_TICKS = 600;
+const PLATE_BARDING_RESEARCH_TIME_TICKS = 600;
+// Slice 7A: Imperial unit train times. Mostly mirror their Castle-Age
+// predecessors where one exists; Bombard Cannon and Trebuchet (Imperial-only,
+// no predecessor) get their own longer values to reflect the heavier siege.
+const ARBALEST_TRAIN_TIME_TICKS = 270;
+const HALBERDIER_TRAIN_TIME_TICKS = 220;
+const HUSSAR_TRAIN_TIME_TICKS = 300;
+const HEAVY_CAVALRY_ARCHER_TRAIN_TIME_TICKS = 340;
+const CAVALIER_TRAIN_TIME_TICKS = 300;
+const CHAMPION_TRAIN_TIME_TICKS = 210;
+const ELITE_LONGBOWMAN_TRAIN_TIME_TICKS = 300;
+const ONAGER_TRAIN_TIME_TICKS = 460;
+const HEAVY_SCORPION_TRAIN_TIME_TICKS = 300;
+const SIEGE_RAM_TRAIN_TIME_TICKS = 360;
+const BOMBARD_CANNON_TRAIN_TIME_TICKS = 560;
+const TREBUCHET_TRAIN_TIME_TICKS = 500;
 const MELEE_ATTACK_RANGE = 1;
 const MARKET_TRANSACTION_AMOUNT = 100;
 const MARKET_BASE_RATE = 100;
@@ -865,31 +904,58 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
     case 'scout':
     case 'light-cavalry':
       return { food: 80 };
+    case 'hussar':
+      // Imperial upgrade of Light Cavalry. Cost mirrors the Light Cavalry line
+      // food-only cost (80 food, no gold).
+      return { food: 80 };
     case 'militia':
+      return { food: 60, gold: 20 };
+    case 'champion':
+      // Imperial Militia-line upgrade. AoE2 DE Champion costs 60 food / 20 gold.
       return { food: 60, gold: 20 };
     case 'spearman':
     case 'skirmisher':
     case 'pikeman':
       return { food: 35, wood: 25 };
+    case 'halberdier':
+      // Imperial Pikeman-line upgrade. Same food/wood split as Pikeman.
+      return { food: 35, wood: 25 };
     case 'archer':
     case 'crossbowman':
+    case 'arbalest':
       return { wood: 25, gold: 45 };
     case 'knight':
+      return { food: 60, gold: 75 };
+    case 'cavalier':
+      // Imperial Knight-line upgrade.
       return { food: 60, gold: 75 };
     case 'camel':
       return { food: 55, gold: 60 };
     case 'cavalry-archer':
+    case 'heavy-cavalry-archer':
       return { wood: 40, gold: 70 };
     case 'mangonel':
+    case 'onager':
       return { wood: 160, gold: 135 };
     case 'scorpion':
+    case 'heavy-scorpion':
       return { wood: 80, gold: 60 };
     case 'battering-ram':
+    case 'siege-ram':
       return { wood: 160, gold: 75 };
+    case 'bombard-cannon':
+      // Imperial-only Siege Workshop unit. No predecessor upgrade line.
+      return { wood: 225, gold: 225 };
+    case 'trebuchet':
+      // Imperial-only Castle unit. Long-range siege; trains from the Castle.
+      return { wood: 200, gold: 200 };
     case 'monk':
       return { gold: 100 };
     case 'longbowman':
       // Britons-unique; AoE2 DE Castle-Age Longbowman costs 35 food / 40 gold.
+      return { food: 35, gold: 40 };
+    case 'elite-longbowman':
+      // Imperial Britons-unique upgrade. Same training cost profile.
       return { food: 35, gold: 40 };
   }
 }
@@ -900,6 +966,9 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
       return { food: 500 };
     case 'castle-age':
       return { food: 800, gold: 200 };
+    case 'imperial-age':
+      // AoE2 DE Imperial Age research cost: 1000 food + 800 gold.
+      return { food: 1000, gold: 800 };
     case 'fletching':
       return { food: 100, gold: 50 };
     case 'crossbowman-upgrade':
@@ -908,6 +977,34 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
       return { food: 215, gold: 90 };
     case 'light-cavalry-upgrade':
       return { food: 150, gold: 50 };
+    case 'arbalest-upgrade':
+      return { food: 300, gold: 300 };
+    case 'halberdier-upgrade':
+      return { food: 300, gold: 600 };
+    case 'hussar-upgrade':
+      return { food: 500, gold: 600 };
+    case 'heavy-cavalry-archer-upgrade':
+      return { food: 750, gold: 600 };
+    case 'cavalier-upgrade':
+      return { food: 300, gold: 300 };
+    case 'champion-upgrade':
+      return { food: 1000, gold: 450 };
+    case 'elite-longbowman-upgrade':
+      return { food: 850, gold: 750 };
+    case 'onager-upgrade':
+      return { food: 800, wood: 500 };
+    case 'heavy-scorpion-upgrade':
+      return { food: 1000, wood: 1100 };
+    case 'siege-ram-upgrade':
+      return { food: 1000, wood: 800 };
+    case 'bracer':
+      return { food: 450, gold: 300 };
+    case 'blast-furnace':
+      return { food: 275, gold: 225 };
+    case 'plate-mail-armor':
+      return { food: 300, gold: 150 };
+    case 'plate-barding':
+      return { food: 350, gold: 200 };
   }
 }
 
@@ -976,6 +1073,30 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return MONK_TRAIN_TIME_TICKS;
     case 'longbowman':
       return LONGBOWMAN_TRAIN_TIME_TICKS;
+    case 'arbalest':
+      return ARBALEST_TRAIN_TIME_TICKS;
+    case 'halberdier':
+      return HALBERDIER_TRAIN_TIME_TICKS;
+    case 'hussar':
+      return HUSSAR_TRAIN_TIME_TICKS;
+    case 'heavy-cavalry-archer':
+      return HEAVY_CAVALRY_ARCHER_TRAIN_TIME_TICKS;
+    case 'cavalier':
+      return CAVALIER_TRAIN_TIME_TICKS;
+    case 'champion':
+      return CHAMPION_TRAIN_TIME_TICKS;
+    case 'elite-longbowman':
+      return ELITE_LONGBOWMAN_TRAIN_TIME_TICKS;
+    case 'onager':
+      return ONAGER_TRAIN_TIME_TICKS;
+    case 'heavy-scorpion':
+      return HEAVY_SCORPION_TRAIN_TIME_TICKS;
+    case 'siege-ram':
+      return SIEGE_RAM_TRAIN_TIME_TICKS;
+    case 'bombard-cannon':
+      return BOMBARD_CANNON_TRAIN_TIME_TICKS;
+    case 'trebuchet':
+      return TREBUCHET_TRAIN_TIME_TICKS;
   }
 }
 
@@ -985,6 +1106,8 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
       return FEUDAL_AGE_RESEARCH_TIME_TICKS;
     case 'castle-age':
       return CASTLE_AGE_RESEARCH_TIME_TICKS;
+    case 'imperial-age':
+      return IMPERIAL_AGE_RESEARCH_TIME_TICKS;
     case 'fletching':
       return FLETCHING_RESEARCH_TIME_TICKS;
     case 'crossbowman-upgrade':
@@ -993,6 +1116,34 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
       return PIKEMAN_UPGRADE_RESEARCH_TIME_TICKS;
     case 'light-cavalry-upgrade':
       return LIGHT_CAVALRY_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'arbalest-upgrade':
+      return ARBALEST_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'halberdier-upgrade':
+      return HALBERDIER_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'hussar-upgrade':
+      return HUSSAR_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'heavy-cavalry-archer-upgrade':
+      return HEAVY_CAVALRY_ARCHER_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'cavalier-upgrade':
+      return CAVALIER_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'champion-upgrade':
+      return CHAMPION_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'elite-longbowman-upgrade':
+      return ELITE_LONGBOWMAN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'onager-upgrade':
+      return ONAGER_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'heavy-scorpion-upgrade':
+      return HEAVY_SCORPION_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'siege-ram-upgrade':
+      return SIEGE_RAM_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'bracer':
+      return BRACER_RESEARCH_TIME_TICKS;
+    case 'blast-furnace':
+      return BLAST_FURNACE_RESEARCH_TIME_TICKS;
+    case 'plate-mail-armor':
+      return PLATE_MAIL_ARMOR_RESEARCH_TIME_TICKS;
+    case 'plate-barding':
+      return PLATE_BARDING_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -1176,6 +1327,30 @@ function unitMaxHp(unitType: UnitType): number {
       return 30;
     case 'longbowman':
       return 35;
+    case 'arbalest':
+      return 40;
+    case 'halberdier':
+      return 60;
+    case 'hussar':
+      return 75;
+    case 'heavy-cavalry-archer':
+      return 60;
+    case 'cavalier':
+      return 120;
+    case 'champion':
+      return 70;
+    case 'elite-longbowman':
+      return 40;
+    case 'onager':
+      return 60;
+    case 'heavy-scorpion':
+      return 50;
+    case 'siege-ram':
+      return 270;
+    case 'bombard-cannon':
+      return 80;
+    case 'trebuchet':
+      return 150;
   }
 }
 
@@ -1219,6 +1394,30 @@ function unitAttackDamage(unitType: UnitType): number {
       return 0;
     case 'longbowman':
       return 6;
+    case 'arbalest':
+      return 6;
+    case 'halberdier':
+      return 6;
+    case 'hussar':
+      return 7;
+    case 'heavy-cavalry-archer':
+      return 7;
+    case 'cavalier':
+      return 12;
+    case 'champion':
+      return 13;
+    case 'elite-longbowman':
+      return 7;
+    case 'onager':
+      return 50;
+    case 'heavy-scorpion':
+      return 16;
+    case 'siege-ram':
+      return 3;
+    case 'bombard-cannon':
+      return 40;
+    case 'trebuchet':
+      return 200;
   }
 }
 
@@ -1261,6 +1460,32 @@ function unitReloadTicks(unitType: UnitType): number {
       return 10;
     case 'longbowman':
       return 20;
+    // Slice 7A Imperial units. Values at TPS=10: 2s = 20 ticks, 1.8s = 18,
+    // 3s = 30, 3.5s = 35, 5s = 50, 6s = 60, 7s = 70, 10s = 100.
+    case 'arbalest':
+      return 20;
+    case 'halberdier':
+      return 30;
+    case 'hussar':
+      return 20;
+    case 'heavy-cavalry-archer':
+      return 20;
+    case 'cavalier':
+      return 18;
+    case 'champion':
+      return 20;
+    case 'elite-longbowman':
+      return 20;
+    case 'onager':
+      return 60;
+    case 'heavy-scorpion':
+      return 35;
+    case 'siege-ram':
+      return 50;
+    case 'bombard-cannon':
+      return 70;
+    case 'trebuchet':
+      return 100;
   }
 }
 
@@ -1282,27 +1507,63 @@ function unitAttackRange(unitType: UnitType): number {
       return 4;
     case 'crossbowman':
       return 5;
+    case 'arbalest':
+      // Arbalest shares Crossbowman's range (5) with +1 attack and Fletching
+      // still stacks downstream. Spec: range 5.
+      return 5;
+    case 'heavy-cavalry-archer':
+      // Upgraded Cavalry Archer; range 4 per spec.
+      return 4;
     case 'longbowman':
       // Britons-unique Longbowman gets range 6 at Castle Age (Imperial
       // Elite Longbowman reaches 7 in Slice 7). This is the Castle Age value.
       return 6;
+    case 'elite-longbowman':
+      // Imperial upgrade of the Longbowman. Canonical +1 range over Castle
+      // Age Longbowman, ending at range 6 in this prototype. Spec value: 6.
+      return 6;
     case 'mangonel':
     case 'scorpion':
       return 7;
+    case 'onager':
+      // Onager is the Imperial Mangonel upgrade; bigger range and damage.
+      return 8;
+    case 'heavy-scorpion':
+      // Heavy Scorpion gains +1 attack; range unchanged from Scorpion.
+      return 7;
+    case 'siege-ram':
+      // Siege Ram is a melee-range Battering Ram upgrade; still range 1.
+      return MELEE_ATTACK_RANGE;
+    case 'bombard-cannon':
+      // Imperial-only siege; long-range shot with minimum range 5. See
+      // unitMinAttackRange below.
+      return 12;
+    case 'trebuchet':
+      // Very long range (stationary in v1). Simplified pack/unpack is a
+      // follow-up; the range value itself is canonical.
+      return 16;
     // Monks never close to attack (damage is 0) — the heal/convert systems
     // read MONK_ACTION_RANGE directly, not this function.
     case 'monk':
       return 0;
+    case 'halberdier':
+    case 'hussar':
+    case 'cavalier':
+    case 'champion':
+      return MELEE_ATTACK_RANGE;
   }
 }
 
 // Minimum attack range ("dead zone" under which a ranged attacker must hold
-// fire). Only the Mangonel carries one in v1 — its boulder arc cannot land
-// at adjacent cells. Returns 0 for every other unit so the combat-tick
-// check below is a no-op for them.
+// fire). Mangonel / Onager boulders cannot land at adjacent cells; Bombard
+// Cannon has a similar minimum under the spec for v1. Returns 0 for every
+// other unit so the combat-tick check below is a no-op for them.
 function unitMinAttackRange(unitType: UnitType): number {
-  if (unitType === 'mangonel') {
+  if (unitType === 'mangonel' || unitType === 'onager') {
     return 3;
+  }
+  if (unitType === 'bombard-cannon') {
+    return 5;
   }
   return 0;
 }
@@ -1319,6 +1580,9 @@ function isArcherLineUnit(unitType: UnitType): boolean {
     || unitType === 'crossbowman'
     || unitType === 'cavalry-archer'
     || unitType === 'longbowman'
+    || unitType === 'arbalest'
+    || unitType === 'heavy-cavalry-archer'
+    || unitType === 'elite-longbowman'
   );
 }
 
@@ -1447,6 +1711,33 @@ function unitTint(unitType: UnitType, owner: number): number {
       return isHuman ? 0xe3d9b5 : 0xd6aab6;
     case 'longbowman':
       return isHuman ? 0x5f9057 : 0xa86d91;
+    // Slice 7A Imperial-tier tints. Each picks a slightly deeper variant of
+    // the predecessor tint so the two lines stay visually related on the
+    // minimap and main field. Bombard Cannon and Trebuchet are new lines.
+    case 'arbalest':
+      return isHuman ? 0x4f82b0 : 0x7f58b0;
+    case 'halberdier':
+      return isHuman ? 0x5a8848 : 0xa35744;
+    case 'hussar':
+      return isHuman ? 0xa3824e : 0xab7250;
+    case 'heavy-cavalry-archer':
+      return isHuman ? 0x637693 : 0x8a5a7c;
+    case 'cavalier':
+      return isHuman ? 0x8d8770 : 0x9a6553;
+    case 'champion':
+      return isHuman ? 0xbe8b4c : 0xbc6a5c;
+    case 'elite-longbowman':
+      return isHuman ? 0x4d7645 : 0x8f5578;
+    case 'onager':
+      return isHuman ? 0x77593a : 0x76493b;
+    case 'heavy-scorpion':
+      return isHuman ? 0x836c3a : 0x81503f;
+    case 'siege-ram':
+      return isHuman ? 0x574230 : 0x5a3830;
+    case 'bombard-cannon':
+      return isHuman ? 0x2f2f34 : 0x3d2a2a;
+    case 'trebuchet':
+      return isHuman ? 0x6c553a : 0x6a3d31;
   }
 }
 
@@ -1482,6 +1773,31 @@ function unitSize(unitType: UnitType): number {
       return 0.48;
     case 'longbowman':
       return 0.5;
+    // Slice 7A Imperial-tier sizes. One tier up from the predecessor.
+    case 'arbalest':
+      return 0.5;
+    case 'halberdier':
+      return 0.52;
+    case 'hussar':
+      return 0.57;
+    case 'heavy-cavalry-archer':
+      return 0.57;
+    case 'cavalier':
+      return 0.6;
+    case 'champion':
+      return 0.52;
+    case 'elite-longbowman':
+      return 0.52;
+    case 'onager':
+      return 0.72;
+    case 'heavy-scorpion':
+      return 0.62;
+    case 'siege-ram':
+      return 0.8;
+    case 'bombard-cannon':
+      return 0.72;
+    case 'trebuchet':
+      return 0.85;
   }
 }
 
@@ -1520,15 +1836,51 @@ function unitVisionRadius(unitType: UnitType): number {
       return MONK_VISION_RADIUS;
     case 'longbowman':
       return 7;
+    // Slice 7A Imperial-tier vision. Mostly preserves the predecessor's
+    // vision; Hussar earns a big vision bump (11) per AoE2 DE canon, and
+    // Elite Longbowman / Onager / Heavy Scorpion / Bombard / Trebuchet
+    // also pick up slight or large vision increases.
+    case 'arbalest':
+      return 5;
+    case 'halberdier':
+      return 3;
+    case 'hussar':
+      return 11;
+    case 'heavy-cavalry-archer':
+      return 5;
+    case 'cavalier':
+      return 4;
+    case 'champion':
+      return 4;
+    case 'elite-longbowman':
+      return 8;
+    case 'onager':
+      return 10;
+    case 'heavy-scorpion':
+      return 9;
+    case 'siege-ram':
+      return 3;
+    case 'bombard-cannon':
+      return 13;
+    case 'trebuchet':
+      return 16;
   }
 }
 
 // Returns true when the target is classified as cavalry for the purposes of
 // anti-cavalry bonus damage (Spearman, Pikeman, Camel). The mounted-but-not-
 // cavalry units (Camel, Cavalry Archer) are explicitly excluded so Camels
-// themselves don't trigger the bonus, matching AoE2 DE canon.
+// themselves don't trigger the bonus, matching AoE2 DE canon. Imperial
+// successors (Hussar → Light Cavalry line, Cavalier → Knight line) stay
+// classified as cavalry.
 function isCavalryTarget(targetType: UnitType): boolean {
-  return targetType === 'scout' || targetType === 'light-cavalry' || targetType === 'knight';
+  return (
+    targetType === 'scout'
+    || targetType === 'light-cavalry'
+    || targetType === 'knight'
+    || targetType === 'hussar'
+    || targetType === 'cavalier'
+  );
 }
 
 // Mangonel splash damage is modeled as single-target in v1 (Slice 7 will
@@ -2579,6 +2931,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'battering-ram'
       || spawn.kind === 'monk'
       || spawn.kind === 'longbowman'
+      || spawn.kind === 'arbalest'
+      || spawn.kind === 'halberdier'
+      || spawn.kind === 'hussar'
+      || spawn.kind === 'heavy-cavalry-archer'
+      || spawn.kind === 'cavalier'
+      || spawn.kind === 'champion'
+      || spawn.kind === 'elite-longbowman'
+      || spawn.kind === 'onager'
+      || spawn.kind === 'heavy-scorpion'
+      || spawn.kind === 'siege-ram'
+      || spawn.kind === 'bombard-cannon'
+      || spawn.kind === 'trebuchet'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -4484,6 +4848,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'mangonel':
       case 'scorpion':
       case 'battering-ram':
+      // Slice 7A: the Imperial-tier siege units slot into the same top-of-
+      // target-priority bucket as their Castle-Age predecessors. Bombard
+      // Cannon and Trebuchet are Imperial-only newcomers but still count
+      // as siege and get the same priority.
+      case 'onager':
+      case 'heavy-scorpion':
+      case 'siege-ram':
+      case 'bombard-cannon':
+      case 'trebuchet':
         return 0;
       case 'monk':
         return 1;
@@ -4492,6 +4865,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'cavalry-archer':
       case 'skirmisher':
       case 'longbowman':
+      case 'arbalest':
+      case 'heavy-cavalry-archer':
+      case 'elite-longbowman':
         return 2;
       case 'militia':
       case 'spearman':
@@ -4500,6 +4876,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'camel':
       case 'scout':
       case 'light-cavalry':
+      case 'halberdier':
+      case 'hussar':
+      case 'cavalier':
+      case 'champion':
         return 3;
       case 'villager':
         return 4;
@@ -4826,6 +5206,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'castle-age':
         playerAges.set(owner, 'castle-age');
         break;
+      case 'imperial-age':
+        // Slice 7A: Imperial Age flip is wired via a separate follow-up
+        // commit alongside the research-option change at the Town Center.
+        // Leave this branch empty here so the switch is still exhaustive.
+        break;
       case 'fletching':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -4849,6 +5234,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       case 'light-cavalry-upgrade':
         upgradeOwnedUnits(owner, 'scout', 'light-cavalry');
         rewriteQueuedPredecessorUnits(owner, 'scout', 'light-cavalry');
+        break;
+      // Slice 7A: placeholder branches for the Imperial upgrade + blacksmith
+      // tech set. The actual effects (upgradeOwnedUnits for each line,
+      // per-line attack / armor bumps, queued-unit rewrites) land in 7B/7C/
+      // 7D; 7A just records that the tech was researched so downstream code
+      // can read `hasTechnology` without adding new cases each slice.
+      case 'arbalest-upgrade':
+      case 'halberdier-upgrade':
+      case 'hussar-upgrade':
+      case 'heavy-cavalry-archer-upgrade':
+      case 'cavalier-upgrade':
+      case 'champion-upgrade':
+      case 'elite-longbowman-upgrade':
+      case 'onager-upgrade':
+      case 'heavy-scorpion-upgrade':
+      case 'siege-ram-upgrade':
+      case 'bracer':
+      case 'blast-furnace':
+      case 'plate-mail-armor':
+      case 'plate-barding':
         break;
     }
   }
