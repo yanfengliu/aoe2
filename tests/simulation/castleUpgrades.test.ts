@@ -318,6 +318,23 @@ describe('Castle-Age production-line upgrades', () => {
     expect(visibleAfterSecondLc).toBeGreaterThan(visibleAfterUpgrade);
   }, 30_000);
 
+  it('keeps Crossbowman / Pikeman / Light Cavalry upgrades researchable in Imperial Age', () => {
+    const bridge = createSimulationBridge('imperial-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('crossbowman-upgrade');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('pikeman-upgrade');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('light-cavalry-upgrade');
+
+    // Researching still succeeds.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
+  });
+
   it('rewrites queued Archers to Crossbowmen when the upgrade finishes before they spawn', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
 

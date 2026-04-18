@@ -3789,6 +3789,20 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return playerAges.get(owner) ?? 'dark-age';
   }
 
+  // Returns true when the owner has reached AT LEAST the given age. Used to
+  // gate features that unlock in one age and remain available in every later
+  // age (e.g., Castle-Age production-line upgrades that must stay researchable
+  // even if the player advances to Imperial before researching them).
+  function isAtLeastAge(owner: number, minAge: AgeType): boolean {
+    const order: Record<AgeType, number> = {
+      'dark-age': 0,
+      'feudal-age': 1,
+      'castle-age': 2,
+      'imperial-age': 3,
+    };
+    return order[getPlayerAge(owner)] >= order[minAge];
+  }
+
   function canAdvanceToFeudalAge(owner: number): boolean {
     if (getPlayerAge(owner) !== 'dark-age') {
       return false;
@@ -3856,7 +3870,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (
       buildingType === 'archery-range'
-      && getPlayerAge(owner) === 'castle-age'
+      && isAtLeastAge(owner, 'castle-age')
       && !hasTechnology(owner, 'crossbowman-upgrade')
     ) {
       return ['crossbowman-upgrade'];
@@ -3864,7 +3878,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (
       buildingType === 'barracks'
-      && getPlayerAge(owner) === 'castle-age'
+      && isAtLeastAge(owner, 'castle-age')
       && !hasTechnology(owner, 'pikeman-upgrade')
     ) {
       return ['pikeman-upgrade'];
@@ -3872,7 +3886,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
 
     if (
       buildingType === 'stable'
-      && getPlayerAge(owner) === 'castle-age'
+      && isAtLeastAge(owner, 'castle-age')
       && !hasTechnology(owner, 'light-cavalry-upgrade')
     ) {
       return ['light-cavalry-upgrade'];

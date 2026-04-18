@@ -1336,6 +1336,76 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createImperialUpgradesFixture(seed: string): PrototypeScenario {
+  // Same shape as castle-upgrades-fixture but the human player starts in
+  // Imperial Age. Used to confirm the three Castle-Age production-line
+  // upgrades remain researchable when a player skipped past Castle before
+  // researching them.
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 500,
+          wood: 300,
+          gold: 400,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'archery-range',
+        x: 12,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'barracks',
+        x: 16,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'stable',
+        x: 20,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -2824,6 +2894,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'castle-upgrades-fixture') {
     return createCastleUpgradesFixture(seed);
+  }
+
+  if (seed === 'imperial-upgrades-fixture') {
+    return createImperialUpgradesFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {
