@@ -6330,8 +6330,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   //         > neutral relic (pickup) > friendly Monastery (deposit).
   // Two-pass iteration so an overlapping friendly+enemy on the same cell
   // prefers the heal target over the convert target (see Gemini review
-  // finding). Enemy targets are rejected if not currently visible to the
-  // Monk's owner — the player shouldn't be able to convert fog-hidden
+  // finding). Pass-1 additionally requires the friendly to be wounded —
+  // a healthy friendly is not a meaningful heal target and would
+  // otherwise consume the click and short-circuit the convert pass,
+  // leaving the Monk with a useless move-fallback (Codex P2 review).
+  // Enemy targets are rejected if not currently visible to the Monk's
+  // owner — the player shouldn't be able to convert fog-hidden
   // enemies. Friendly and owned targets skip the visibility guard (they're
   // the player's own units and always "visible" to them), and relic /
   // Monastery lookups likewise reference owned or world entities that fog
@@ -6341,16 +6345,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     y: number,
     monkOwner: number,
   ): number | null {
-    // Pass 1: friendly unit at this cell (heal priority).
+    // Pass 1: friendly wounded unit at this cell (heal priority). A
+    // healthy friendly is skipped so an overlapping enemy can still be
+    // picked up by pass 2.
     for (const id of world.query('position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (!position || !unit || position.x !== x || position.y !== y) {
         continue;
       }
-      if (unit.owner === monkOwner) {
-        return id;
+      if (unit.owner !== monkOwner) {
+        continue;
       }
+      const combat = combatStates.get(id);
+      if (!combat || combat.currentHp >= combat.maxHp) {
+        continue;
+      }
+      return id;
     }
 
     // Pass 2: enemy unit at this cell (convert) — only if currently visible

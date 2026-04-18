@@ -317,6 +317,45 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(militiaAfter!.owner).toBe(2);
   }, 30_000);
 
+  it('skips a healthy friendly and converts the stacked enemy when the Monk right-clicks the shared cell', () => {
+    // Slice 6 review fix: a healthy friendly + an enemy on the same cell
+    // must not consume the heal pass. Pre-fix, pass-1 returned the
+    // first friendly at the cell regardless of HP, then
+    // issueMonkContextCommandAtEntity fell into a plain move because the
+    // friendly was at full HP — the Monk converted nothing.
+    const bridge = createSimulationBridge('monk-healthy-friendly-with-enemy-fixture');
+
+    const friendlyMilitia = bridge
+      .getEconomyState()
+      .units.find((u) => u.owner === 1 && u.unitType === 'militia');
+    const enemyMilitia = bridge
+      .getEconomyState()
+      .units.find((u) => u.owner === 2 && u.unitType === 'militia');
+    expect(friendlyMilitia).toBeDefined();
+    expect(enemyMilitia).toBeDefined();
+    const enemyMilitiaId = enemyMilitia!.id;
+
+    // The friendly is still at full HP at tick 0 — issue the Monk's
+    // context command immediately so the pass-1 pre-fix bug fires.
+    expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
+    const sharedCell = { x: friendlyMilitia!.x, y: friendlyMilitia!.y };
+    expect(bridge.issueContextCommand(sharedCell.x, sharedCell.y)).toBe(true);
+
+    // Run enough ticks for the Monk to walk into range (≤ 4 cells away)
+    // and apply convert progress to threshold (50). Buffer of ~30 ticks
+    // covers the walk; +50 ticks for the conversion itself.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const m = findUnitById(bridge, enemyMilitiaId);
+          return m !== undefined && m.owner === 1;
+        },
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
+  }, 30_000);
+
   it('applies one convert progress per tick regardless of how many Monks target the same unit', () => {
     const bridge = createSimulationBridge('monk-double-convert-fixture');
 
