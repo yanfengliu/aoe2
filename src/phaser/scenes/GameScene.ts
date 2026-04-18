@@ -24,7 +24,7 @@ interface SimulationBridge {
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,
@@ -152,7 +152,7 @@ interface RecentFriendlyUnitClick {
   atMs: number;
   cellX: number;
   cellY: number;
-  unitType: UnitType;
+  unitType: UnitType | 'sheep';
 }
 
 const DRAG_SELECTION_THRESHOLD_PX = 8;
@@ -1258,11 +1258,18 @@ export class GameScene extends Phaser.Scene {
   private updateRecentFriendlyUnitClick(cellX: number, cellY: number): void {
     const selectionState = this.bridge.getSelectionState();
     if (
-      selectionState.selectedKind !== 'unit'
-      || selectionState.owner !== HUMAN_PLAYER_ID
+      selectionState.owner !== HUMAN_PLAYER_ID
       || selectionState.selectedCount !== 1
-      || !this.isUnitType(selectionState.selectedEntityType)
     ) {
+      return;
+    }
+
+    const isUnit = selectionState.selectedKind === 'unit'
+      && this.isUnitType(selectionState.selectedEntityType);
+    const isOwnedSheep = selectionState.selectedKind === 'resource'
+      && selectionState.selectedEntityType === 'sheep';
+
+    if (!isUnit && !isOwnedSheep) {
       return;
     }
 
@@ -1270,7 +1277,7 @@ export class GameScene extends Phaser.Scene {
       atMs: this.time.now,
       cellX,
       cellY,
-      unitType: selectionState.selectedEntityType,
+      unitType: isOwnedSheep ? 'sheep' : (selectionState.selectedEntityType as UnitType),
     };
   }
 

@@ -1418,6 +1418,42 @@ test.describe('browser gameplay smoke tests', () => {
     }).toBeLessThan(Math.abs(20 - targetX) + Math.abs(19 - targetY));
   });
 
+  test('double clicking an owned sheep selects every visible owned sheep', async ({ page }) => {
+    test.slow();
+    await waitForBootWithSeed(page, 'sheep-movement-fixture');
+
+    // Wait for the human villager to claim the adjacent sheep cluster.
+    await expect.poll(async () => {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      return snapshot.economyState.resources.filter(
+        (resource) => resource.resourceType === 'sheep' && resource.owner === 1,
+      ).length;
+    }).toBeGreaterThanOrEqual(2);
+
+    // Snapshot owned sheep positions and the villager position before any selection.
+    const ownedSheepCells = await page.evaluate(() =>
+      window
+        .__AOE2_TEST__!.getSnapshot()
+        .economyState.resources.filter(
+          (resource) => resource.resourceType === 'sheep' && resource.owner === 1,
+        )
+        .map((resource) => ({ x: resource.x, y: resource.y })),
+    );
+    expect(ownedSheepCells.length).toBeGreaterThanOrEqual(2);
+
+    // Double-click the first owned sheep's cell. The first click selects the single
+    // sheep; the second (inside the double-click window) triggers same-type selection
+    // expansion to every visible owned sheep.
+    await doubleClickCell(page, ownedSheepCells[0].x, ownedSheepCells[0].y);
+
+    const selectedSnapshot = await getSnapshot(page);
+    expect(selectedSnapshot.selectionState.selectedCount).toBeGreaterThanOrEqual(
+      ownedSheepCells.length,
+    );
+    expect(selectedSnapshot.selectionState.selectedKind).toBe('resource');
+    expect(selectedSnapshot.selectionState.owner).toBe(1);
+  });
+
   test('shows a player-facing info card for an individually selected unit', async ({ page }) => {
     await waitForBootWithSeed(page, 'villager-selection-fixture');
     const villagerCells = await getOwnedUnitCells(page, 1, 'villager');

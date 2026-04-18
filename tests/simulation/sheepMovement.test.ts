@@ -315,6 +315,44 @@ describe('sheep movement', () => {
     expect(selectionState.buildOptions).toContain('house');
   });
 
+  it('selects every owned sheep in a rect when selectOwnedUnitsByTypeInRect is called with sheep', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+
+    // Wait for the human villager to claim several sheep.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().resources.filter(
+          (r) => r.resourceType === 'sheep' && r.owner === 1,
+        ).length >= 2,
+        { maxSteps: 30 },
+      ),
+    ).toBe(true);
+
+    // Cover the whole sheep-cluster / villager area.
+    expect(bridge.selectOwnedUnitsByTypeInRect('sheep', 18, 17, 21, 20)).toBe(true);
+
+    // Every selected id should be a sheep (not the villager), and the count should equal
+    // the number of owned sheep inside that rect.
+    const ownedSheepInRect = bridge
+      .getEconomyState()
+      .resources.filter(
+        (r) =>
+          r.resourceType === 'sheep'
+          && r.owner === 1
+          && r.x >= 18
+          && r.x <= 21
+          && r.y >= 17
+          && r.y <= 20,
+      );
+    const selectionState = bridge.getSelectionState();
+    expect(selectionState.selectedCount).toBe(ownedSheepInRect.length);
+    expect(selectionState.selectedCount).toBeGreaterThanOrEqual(2);
+    expect(selectionState.selectedKind).toBe('resource');
+    // Every selected entity must be a sheep the player can command.
+    expect(selectionState.owner).toBe(1);
+  });
+
   it('cancels an in-flight sheep move order when a villager starts gathering it', () => {
     const bridge = createSimulationBridge('sheep-movement-fixture');
 

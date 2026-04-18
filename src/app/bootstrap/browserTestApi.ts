@@ -30,7 +30,7 @@ interface BrowserTestBridge {
   confirmBuildingPlacement(x: number, y: number): boolean;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,
@@ -67,7 +67,7 @@ export interface BrowserTestApi {
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   selectOwnedUnitsByTypeInRect(
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,

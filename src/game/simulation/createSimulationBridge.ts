@@ -82,7 +82,7 @@ export interface SimulationBridge {
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,
@@ -1324,7 +1324,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectOwnedUnitsByTypeInRect: (
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,
@@ -2680,7 +2680,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   function selectOwnedUnitsByTypeInRect(
-    unitType: UnitType,
+    unitType: UnitType | 'sheep',
     minX: number,
     minY: number,
     maxX: number,
@@ -2690,7 +2690,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return false;
     }
 
-    const ids = getHumanUnitIdsInRect(minX, minY, maxX, maxY, unitType);
+    const ids = unitType === 'sheep'
+      ? getHumanOwnedSheepIdsInRect(minX, minY, maxX, maxY)
+      : getHumanUnitIdsInRect(minX, minY, maxX, maxY, unitType);
     return selectUnitIds(ids);
   }
 
