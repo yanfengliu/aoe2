@@ -1960,6 +1960,36 @@ test.describe('browser gameplay smoke tests', () => {
     ).toHaveText('CB');
   });
 
+  test('can train a Camel at the Stable in Castle Age and render its HUD label', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'castle-upgrades-fixture');
+
+    expect(await selectOwnedBuildingDirect(page, 1, 'stable')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Stable');
+    await expect(page.locator('[data-command="train-camel"]')).toBeVisible();
+
+    await page.locator('[data-command="train-camel"]').click();
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
+
+    const snapshot = await getSnapshot(page);
+    const camels = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'camel',
+    );
+    expect(camels).toHaveLength(1);
+    expect(camels[0]).toMatchObject({
+      attackDamage: 5,
+      attackRange: 1,
+    });
+
+    expect(await selectOwnedUnitDirect(page, 1, 'camel')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Camel');
+    await expect(
+      page.locator('[data-selection-unit-icon="camel"]'),
+    ).toHaveText('Cm');
+  });
+
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({
     page,
   }) => {
