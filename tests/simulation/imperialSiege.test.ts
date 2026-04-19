@@ -226,3 +226,74 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     ).toBe(true);
   }, 20_000);
 });
+
+describe('Bombard Cannon', () => {
+  it('appears in the Siege Workshop train menu at Imperial Age', () => {
+    const bridge = createSimulationBridge('imperial-siege-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
+    expect(bridge.getSelectionState().trainOptions).toContain('bombard-cannon');
+  });
+
+  it('deals +80 bonus damage against buildings at long range', () => {
+    // Bombard Cannon base attack 40 + 80 anti-building bonus = 120 per hit.
+    // A Town Center with 200 HP should drop after exactly two hits.
+    const bridge = createSimulationBridge('bombard-cannon-vs-building-fixture');
+
+    const tc = bridge.getEconomyState().buildings.find(
+      (b) => b.owner === 2 && b.buildingType === 'town-center',
+    );
+    expect(tc).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'bombard-cannon')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(tc!.id)).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          bridge
+            .getEconomyState()
+            .buildings.find((b) => b.owner === 2 && b.buildingType === 'town-center') === undefined,
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+  }, 30_000);
+
+  it('holds fire when the target is inside its minimum range of 5', () => {
+    const bridge = createSimulationBridge('bombard-cannon-min-range-blocked-fixture');
+
+    const targetSpearman = findFirstOwnedUnit(bridge, 2, 'spearman');
+    expect(targetSpearman).toBeDefined();
+    const targetHpBefore = targetSpearman ? getHealthOfUnitAtCell(bridge, targetSpearman.x, targetSpearman.y) : null;
+    expect(targetHpBefore).not.toBeNull();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'bombard-cannon')).toBe(true);
+    const spearmanEntityId = targetSpearman!.id;
+    bridge.issueContextCommandAtEntity(spearmanEntityId);
+
+    for (let i = 0; i < 30; i += 1) {
+      bridge.step(100);
+    }
+
+    const spearmanAfter = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.id === spearmanEntityId);
+    expect(spearmanAfter).toBeDefined();
+    const targetHpAfter = getHealthOfUnitAtCell(bridge, spearmanAfter!.x, spearmanAfter!.y);
+    expect(targetHpAfter).toBe(targetHpBefore);
+  }, 15_000);
+});
+
+describe('Trebuchet', () => {
+  it('appears in the Castle train menu at Imperial Age regardless of civilization', () => {
+    const bridge = createSimulationBridge('imperial-castle-fixture');
+
+    // Britons player-1 Castle: Longbowman (or Elite Longbowman if researched) + Trebuchet.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    const britonsOptions = bridge.getSelectionState().trainOptions;
+    expect(britonsOptions).toContain('trebuchet');
+    expect(britonsOptions.some((unit) => unit === 'longbowman' || unit === 'elite-longbowman')).toBe(true);
+  });
+
+});

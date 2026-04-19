@@ -1281,9 +1281,11 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'siege-workshop' && unitType === 'onager')
     || (buildingType === 'siege-workshop' && unitType === 'heavy-scorpion')
     || (buildingType === 'siege-workshop' && unitType === 'siege-ram')
+    || (buildingType === 'siege-workshop' && unitType === 'bombard-cannon')
     || (buildingType === 'monastery' && unitType === 'monk')
     || (buildingType === 'castle' && unitType === 'longbowman')
     || (buildingType === 'castle' && unitType === 'elite-longbowman')
+    || (buildingType === 'castle' && unitType === 'trebuchet')
   );
 }
 
@@ -1969,13 +1971,20 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
 // inside prototypePlayerCommands), so building bonuses are modeled separately
 // from anti-unit bonuses. The Battering Ram carries the Castle-Age bonus
 // (+75); Slice 7D extends this to the Imperial Siege Ram (+250 — a huge
-// jump per spec). Bombard Cannon and Trebuchet extend the table further.
+// jump per spec) and Bombard Cannon (+80, Imperial-only no-predecessor
+// siege). Trebuchet lands in the next Slice 7D commit.
 function attackBonusAgainstBuilding(attackerType: UnitType): number {
   if (attackerType === 'battering-ram') {
     return 75;
   }
   if (attackerType === 'siege-ram') {
     return 250;
+  }
+  if (attackerType === 'bombard-cannon') {
+    return 80;
+  }
+  if (attackerType === 'trebuchet') {
+    return 200;
   }
   return 0;
 }
@@ -4834,7 +4843,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
           'battering-ram',
           ['siege-ram', 'siege-ram-upgrade'],
         ]);
-        return [mangonelLine, scorpionLine, ramLine];
+        const options: TrainableUnitType[] = [mangonelLine, scorpionLine, ramLine];
+        // Bombard Cannon is Imperial-only and has no upgrade predecessor.
+        if (isAtLeastAge(owner, 'imperial-age')) {
+          options.push('bombard-cannon');
+        }
+        return options;
       }
       case 'monastery': {
         // Monastery is Castle-Age+ only; Monks are the sole trainable unit
@@ -4845,22 +4859,27 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         return ['monk'];
       }
       case 'castle': {
-        // Castle is Castle-Age+ and only trains the owner's civ unique
-        // unit. For Slice 6 only Britons ship their unique Longbowman;
-        // other civs' Castles are still constructible (for defensive
-        // fire and garrison) but produce nothing. Slice 7C adds the
-        // Elite Longbowman Imperial upgrade (Britons-gated).
+        // Castle is Castle-Age+. Trains the owner's civ unique unit (only
+        // Britons / Longbowman ships today; other civs' Castles exist for
+        // defense and garrison alone at Castle Age). At Imperial Age every
+        // Castle also trains Trebuchet, the long-range siege, regardless
+        // of civ.
         if (!isAtLeastAge(owner, 'castle-age')) {
           return [];
         }
+        const options: TrainableUnitType[] = [];
         if (getPlayerCivilization(owner) === 'Britons') {
-          const longbowLine = latestResearchedInChain(owner, [
-            'longbowman',
-            ['elite-longbowman', 'elite-longbowman-upgrade'],
-          ]);
-          return [longbowLine];
+          options.push(
+            latestResearchedInChain(owner, [
+              'longbowman',
+              ['elite-longbowman', 'elite-longbowman-upgrade'],
+            ]),
+          );
         }
-        return [];
+        if (isAtLeastAge(owner, 'imperial-age')) {
+          options.push('trebuchet');
+        }
+        return options;
       }
       default:
         return [];
