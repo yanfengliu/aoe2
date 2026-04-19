@@ -59,6 +59,10 @@ async function expectSelectionDetailAbsent(
 async function getHudChipKeys(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLElement>('[data-hud-chip]'))
+      // Slice 8: hidden chips (e.g. the Wonder/Relic countdown that only
+      // surfaces during an active countdown) must not count toward chip
+      // ordering — the running-match baseline still renders 7 chips.
+      .filter((chip) => !chip.hidden)
       .map((chip) => chip.dataset.hudChip ?? '')
       .filter((value) => value.length > 0),
   );
@@ -3206,11 +3210,12 @@ test.describe('browser gameplay smoke tests', () => {
       () => window.__AOE2_TEST__!.advanceTicks(220, 100),
     );
 
-    await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
+    await expect(page.locator('[data-hud="match-summary-text"]')).toHaveText(
       'All enemy forces have been eliminated.',
     );
     expect(snapshot.hudState.matchState.outcome).toBe('victory');
     expect(snapshot.hudState.matchState.summary).toBe('All enemy forces have been eliminated.');
+    expect(snapshot.hudState.matchState.winCondition).toBe('conquest');
   });
 
   test('shows defeat and freezes the sim after the last human structure falls in the defeat fixture', async ({
@@ -3222,13 +3227,14 @@ test.describe('browser gameplay smoke tests', () => {
       () => window.__AOE2_TEST__!.advanceTicks(220, 100),
     );
 
-    await expect(page.locator('[data-hud="match-summary"]')).toHaveText(
+    await expect(page.locator('[data-hud="match-summary-text"]')).toHaveText(
       'All of your units and buildings have been destroyed.',
     );
     expect(snapshot.hudState.matchState.outcome).toBe('defeat');
     expect(snapshot.hudState.matchState.summary).toBe(
       'All of your units and buildings have been destroyed.',
     );
+    expect(snapshot.hudState.matchState.winCondition).toBe('conquest');
 
     const frozenTick = snapshot.hudState.tick;
     const nextSnapshot = await page.evaluate(
@@ -3236,5 +3242,29 @@ test.describe('browser gameplay smoke tests', () => {
     );
 
     expect(nextSnapshot.hudState.tick).toBe(frozenTick);
+  });
+
+  test('shows Wonder Victory in the post-game card when the Wonder countdown expires', async ({
+    page,
+  }) => {
+    await waitForBootWithSeed(page, 'wonder-short-countdown-fixture');
+
+    // Override countdown is 10 ticks in the fixture; advance a comfortable
+    // margin past it to let the post-game summary and score computation
+    // fully settle.
+    const snapshot = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(40, 100),
+    );
+
+    expect(snapshot.hudState.matchState.outcome).toBe('victory');
+    expect(snapshot.hudState.matchState.winCondition).toBe('wonder');
+    expect(snapshot.hudState.matchState.scores).not.toBeNull();
+
+    await expect(page.locator('[data-hud="match-summary-win-condition"]')).toHaveText(
+      'Wonder Victory',
+    );
+    await expect(page.locator('[data-hud="match-summary-text"]')).toContainText(
+      /wonder/i,
+    );
   });
 });
