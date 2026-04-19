@@ -131,4 +131,54 @@ describe('Slice 9 — save/load round-trip', () => {
       /schema mismatch/i,
     );
   });
+
+  it('preserves a Wonder countdown — load resumes the timer at the saved value', () => {
+    // Wonder countdown override is 10 ticks; the human player wins
+    // when it hits zero. Save mid-countdown, load, and verify the
+    // load-side bridge resolves the victory at the same total tick.
+    const bridge1 = createSimulationBridge('wonder-short-countdown-fixture');
+    // Step a little — Wonder must be standing for the countdown to
+    // start (the construction-complete hook seeds it).
+    for (let i = 0; i < 5; i += 1) {
+      bridge1.step(100);
+    }
+    const blob = bridge1.saveGame();
+    const bridge2 = createSimulationBridge('wonder-short-countdown-fixture', {
+      savedGame: blob,
+    });
+
+    // Both should report the same Wonder countdown right after load.
+    const matchAfter1 = bridge1.getMatchState();
+    const matchAfter2 = bridge2.getMatchState();
+    expect(matchAfter2.wonderCountdownTicks).toBe(matchAfter1.wonderCountdownTicks);
+
+    // Step both forward the same amount; they must finalize at the
+    // same tick.
+    for (let i = 0; i < 30; i += 1) {
+      bridge1.step(100);
+      bridge2.step(100);
+    }
+
+    const final1 = bridge1.getMatchState();
+    const final2 = bridge2.getMatchState();
+    expect(final2.outcome).toBe(final1.outcome);
+    expect(final2.winCondition).toBe(final1.winCondition);
+  });
+
+  it('preserves researched technologies and player ages across save/load', () => {
+    // The conquest-victory fixture starts both players in Castle Age,
+    // so the researched-techs side map carries the player ages right
+    // after bootstrap.
+    const bridge1 = createSimulationBridge('conquest-victory-fixture');
+    for (let i = 0; i < 50; i += 1) {
+      bridge1.step(100);
+    }
+
+    const economy1 = bridge1.getEconomyState();
+    const blob = bridge1.saveGame();
+    const bridge2 = createSimulationBridge('conquest-victory-fixture', { savedGame: blob });
+    const economy2 = bridge2.getEconomyState();
+
+    expect(economy2.ages).toEqual(economy1.ages);
+  });
 });
