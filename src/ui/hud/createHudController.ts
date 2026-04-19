@@ -353,6 +353,17 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Bombard Cannon';
     case 'trebuchet':
       return 'Trebuchet';
+    // FU2: militia-line intermediates + Paladin + Heavy Camel.
+    case 'man-at-arms':
+      return 'Man-at-Arms';
+    case 'long-swordsman':
+      return 'Long Swordsman';
+    case 'two-handed-swordsman':
+      return 'Two-Handed Swordsman';
+    case 'paladin':
+      return 'Paladin';
+    case 'heavy-camel':
+      return 'Heavy Camel';
     default:
       return entityType;
   }
@@ -468,6 +479,17 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Bombard Cannons';
     case 'trebuchet':
       return 'Trebuchets';
+    // FU2: militia-line intermediate tiers + Paladin + Heavy Camel.
+    case 'man-at-arms':
+      return 'Men-at-Arms';
+    case 'long-swordsman':
+      return 'Long Swordsmen';
+    case 'two-handed-swordsman':
+      return 'Two-Handed Swordsmen';
+    case 'paladin':
+      return 'Paladins';
+    case 'heavy-camel':
+      return 'Heavy Camels';
     default:
       return `${entityType}s`;
   }
@@ -516,6 +538,12 @@ function isUnitType(entityType: SelectionState['selectedEntityType']): entityTyp
     || entityType === 'siege-ram'
     || entityType === 'bombard-cannon'
     || entityType === 'trebuchet'
+    // FU2: militia-line intermediate tiers + Paladin + Heavy Camel.
+    || entityType === 'man-at-arms'
+    || entityType === 'long-swordsman'
+    || entityType === 'two-handed-swordsman'
+    || entityType === 'paladin'
+    || entityType === 'heavy-camel'
   );
 }
 
@@ -580,6 +608,18 @@ function formatUnitIcon(unitType: UnitType): string {
       return 'BC';
     case 'trebuchet':
       return 'Tr';
+    // FU2: short icons that don't collide with Slice 7A codes. `HC` is
+    // already taken by Heavy Cavalry Archer, so Heavy Camel uses `HCm`.
+    case 'man-at-arms':
+      return 'MA';
+    case 'long-swordsman':
+      return 'LS';
+    case 'two-handed-swordsman':
+      return 'TH';
+    case 'paladin':
+      return 'Pl';
+    case 'heavy-camel':
+      return 'HCm';
   }
 }
 
@@ -645,6 +685,17 @@ function formatUnitIconAccent(unitType: UnitType): string {
       return '#3a3a42';
     case 'trebuchet':
       return '#6a4f2e';
+    // FU2: accent colors sit between their predecessor and successor.
+    case 'man-at-arms':
+      return '#c78a5e';
+    case 'long-swordsman':
+      return '#b87548';
+    case 'two-handed-swordsman':
+      return '#b66b48';
+    case 'paladin':
+      return '#b8a78c';
+    case 'heavy-camel':
+      return '#ccb37d';
   }
 }
 
@@ -987,6 +1038,17 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Ring Archer Armor';
     case 'chemistry':
       return 'Chemistry';
+    // FU2: militia-line intermediate tiers + Paladin + Heavy Camel.
+    case 'man-at-arms-upgrade':
+      return 'Man-at-Arms';
+    case 'long-swordsman-upgrade':
+      return 'Long Swordsman';
+    case 'two-handed-swordsman-upgrade':
+      return 'Two-Handed Swordsman';
+    case 'paladin-upgrade':
+      return 'Paladin';
+    case 'heavy-camel-upgrade':
+      return 'Heavy Camel';
   }
 }
 

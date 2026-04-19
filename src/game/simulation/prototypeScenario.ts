@@ -6641,6 +6641,233 @@ function createChampionVsArmoredHalberdierFixture(seed: string): PrototypeScenar
   };
 }
 
+// FU2 fixture: two Imperial-Age players, one Barracks + one Militia each,
+// with enough resources to research every militia-line upgrade (man-at-arms
+// → long-swordsman → two-handed-swordsman → champion) back-to-back. Both
+// sides sit far apart on a bare grass map so combat does not interfere
+// with the research cadence.
+function createMilitiaLineFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 8000,
+          wood: 500,
+          gold: 8000,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 28 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 8000,
+          wood: 500,
+          gold: 8000,
+          stone: 200,
+        },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'barracks',
+        x: 16,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'militia',
+        x: 12,
+        y: 13,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'barracks',
+        x: 42,
+        y: 26,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'militia',
+        x: 44,
+        y: 33,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
+// FU2 fixture: Imperial-Age player 1 with a Stable + Knight + Camel so both
+// the Paladin upgrade (Knight → Cavalier → Paladin) and the Heavy Camel
+// upgrade (Camel → Heavy Camel) can be exercised. The player-2 TC sits
+// far from the action so no auto-combat fires during the research
+// cadence; the Heavy Camel anti-cavalry bonus is exercised in the
+// separate `heavy-camel-vs-knight-fixture` below.
+function createPaladinFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 8000,
+          wood: 500,
+          gold: 8000,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 4000,
+          wood: 500,
+          gold: 4000,
+          stone: 200,
+        },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'stable',
+        x: 16,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'knight',
+        x: 14,
+        y: 14,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'camel',
+        x: 20,
+        y: 18,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU2 fixture: a pre-upgraded player-1 Heavy Camel placed adjacent to a
+// player-2 Knight so the anti-cavalry +9 bonus fires on the first hit.
+// Spawning Heavy Camel directly (rather than upgrading at runtime) keeps
+// the test a single tick away from verifying bonus damage and sidesteps
+// long-path-and-survive issues seen when the Heavy Camel had to close
+// the gap across the map during research.
+function createHeavyCamelVsKnightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 28 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'heavy-camel',
+        x: 20,
+        y: 18,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'knight',
+        x: 22,
+        y: 18,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 7D fixture: Imperial Onager placed inside its own min-range 3 of an
 // enemy Spearman. Mirrors the Mangonel min-range fixture to verify the
 // Onager inherits the same dead-zone behavior.
@@ -7411,6 +7638,18 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'champion-vs-armored-halberdier-fixture') {
     return createChampionVsArmoredHalberdierFixture(seed);
+  }
+
+  if (seed === 'militia-line-fixture') {
+    return createMilitiaLineFixture(seed);
+  }
+
+  if (seed === 'paladin-fixture') {
+    return createPaladinFixture(seed);
+  }
+
+  if (seed === 'heavy-camel-vs-knight-fixture') {
+    return createHeavyCamelVsKnightFixture(seed);
   }
 
   if (seed === 'onager-min-range-blocked-fixture') {

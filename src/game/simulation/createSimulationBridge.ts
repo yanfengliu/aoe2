@@ -305,6 +305,20 @@ const HEAVY_SCORPION_TRAIN_TIME_TICKS = 300;
 const SIEGE_RAM_TRAIN_TIME_TICKS = 360;
 const BOMBARD_CANNON_TRAIN_TIME_TICKS = 560;
 const TREBUCHET_TRAIN_TIME_TICKS = 500;
+// FU2: Militia-line intermediate tiers + Paladin + Heavy Camel. Each new
+// unit's train time mirrors its predecessor so the militia line and the
+// knight line stay production-fluent across tiers. Upgrade research
+// timing is picked to mirror the existing halberdier / champion pacing.
+const MAN_AT_ARMS_TRAIN_TIME_TICKS = 210;
+const LONG_SWORDSMAN_TRAIN_TIME_TICKS = 210;
+const TWO_HANDED_SWORDSMAN_TRAIN_TIME_TICKS = 210;
+const PALADIN_TRAIN_TIME_TICKS = 300;
+const HEAVY_CAMEL_TRAIN_TIME_TICKS = 220;
+const MAN_AT_ARMS_UPGRADE_RESEARCH_TIME_TICKS = 400;
+const LONG_SWORDSMAN_UPGRADE_RESEARCH_TIME_TICKS = 450;
+const TWO_HANDED_SWORDSMAN_UPGRADE_RESEARCH_TIME_TICKS = 500;
+const PALADIN_UPGRADE_RESEARCH_TIME_TICKS = 600;
+const HEAVY_CAMEL_UPGRADE_RESEARCH_TIME_TICKS = 500;
 const MELEE_ATTACK_RANGE = 1;
 const MARKET_TRANSACTION_AMOUNT = 100;
 const MARKET_BASE_RATE = 100;
@@ -1114,6 +1128,16 @@ function trainingCost(unitType: TrainableUnitType): Partial<PlayerResources> {
     case 'elite-longbowman':
       // Imperial Britons-unique upgrade. Same training cost profile.
       return { food: 35, gold: 40 };
+    // FU2: militia-line intermediates and Paladin / Heavy Camel all
+    // reuse their predecessors' cost profiles.
+    case 'man-at-arms':
+    case 'long-swordsman':
+    case 'two-handed-swordsman':
+      return { food: 60, gold: 20 };
+    case 'paladin':
+      return { food: 60, gold: 75 };
+    case 'heavy-camel':
+      return { food: 55, gold: 60 };
   }
 }
 
@@ -1187,6 +1211,20 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
       return { food: 250, gold: 250 };
     case 'chemistry':
       return { food: 300, gold: 200 };
+    // FU2: militia-line intermediate tier + Paladin + Heavy Camel
+    // upgrades. Costs scale upward with each tier and roughly mirror
+    // the pikeman-upgrade / halberdier-upgrade / champion-upgrade
+    // pricing schedule.
+    case 'man-at-arms-upgrade':
+      return { food: 100, gold: 40 };
+    case 'long-swordsman-upgrade':
+      return { food: 200, gold: 65 };
+    case 'two-handed-swordsman-upgrade':
+      return { food: 300, gold: 100 };
+    case 'paladin-upgrade':
+      return { food: 1300, gold: 750 };
+    case 'heavy-camel-upgrade':
+      return { food: 325, gold: 360 };
   }
 }
 
@@ -1283,6 +1321,16 @@ function trainingTimeTicks(unitType: TrainableUnitType): number {
       return BOMBARD_CANNON_TRAIN_TIME_TICKS;
     case 'trebuchet':
       return TREBUCHET_TRAIN_TIME_TICKS;
+    case 'man-at-arms':
+      return MAN_AT_ARMS_TRAIN_TIME_TICKS;
+    case 'long-swordsman':
+      return LONG_SWORDSMAN_TRAIN_TIME_TICKS;
+    case 'two-handed-swordsman':
+      return TWO_HANDED_SWORDSMAN_TRAIN_TIME_TICKS;
+    case 'paladin':
+      return PALADIN_TRAIN_TIME_TICKS;
+    case 'heavy-camel':
+      return HEAVY_CAMEL_TRAIN_TIME_TICKS;
   }
 }
 
@@ -1352,6 +1400,16 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
       return RING_ARCHER_ARMOR_RESEARCH_TIME_TICKS;
     case 'chemistry':
       return CHEMISTRY_RESEARCH_TIME_TICKS;
+    case 'man-at-arms-upgrade':
+      return MAN_AT_ARMS_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'long-swordsman-upgrade':
+      return LONG_SWORDSMAN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'two-handed-swordsman-upgrade':
+      return TWO_HANDED_SWORDSMAN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'paladin-upgrade':
+      return PALADIN_UPGRADE_RESEARCH_TIME_TICKS;
+    case 'heavy-camel-upgrade':
+      return HEAVY_CAMEL_UPGRADE_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -1480,12 +1538,19 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'barracks' && unitType === 'pikeman')
     || (buildingType === 'barracks' && unitType === 'halberdier')
     || (buildingType === 'barracks' && unitType === 'champion')
+    // FU2: militia-line intermediate tiers also train at the Barracks.
+    || (buildingType === 'barracks' && unitType === 'man-at-arms')
+    || (buildingType === 'barracks' && unitType === 'long-swordsman')
+    || (buildingType === 'barracks' && unitType === 'two-handed-swordsman')
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'stable' && unitType === 'knight')
     || (buildingType === 'stable' && unitType === 'light-cavalry')
     || (buildingType === 'stable' && unitType === 'hussar')
     || (buildingType === 'stable' && unitType === 'cavalier')
     || (buildingType === 'stable' && unitType === 'camel')
+    // FU2: Paladin + Heavy Camel extensions at the Stable.
+    || (buildingType === 'stable' && unitType === 'paladin')
+    || (buildingType === 'stable' && unitType === 'heavy-camel')
     || (buildingType === 'archery-range' && unitType === 'archer')
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
     || (buildingType === 'archery-range' && unitType === 'crossbowman')
@@ -1521,9 +1586,17 @@ function canResearchAt(
     || (buildingType === 'barracks' && technologyType === 'pikeman-upgrade')
     || (buildingType === 'barracks' && technologyType === 'halberdier-upgrade')
     || (buildingType === 'barracks' && technologyType === 'champion-upgrade')
+    // FU2: Militia-line intermediate tier upgrades (Feudal / Castle /
+    // Imperial). All three research at the Barracks.
+    || (buildingType === 'barracks' && technologyType === 'man-at-arms-upgrade')
+    || (buildingType === 'barracks' && technologyType === 'long-swordsman-upgrade')
+    || (buildingType === 'barracks' && technologyType === 'two-handed-swordsman-upgrade')
     || (buildingType === 'stable' && technologyType === 'light-cavalry-upgrade')
     || (buildingType === 'stable' && technologyType === 'hussar-upgrade')
     || (buildingType === 'stable' && technologyType === 'cavalier-upgrade')
+    // FU2: Paladin + Heavy Camel research at the Stable (Imperial).
+    || (buildingType === 'stable' && technologyType === 'paladin-upgrade')
+    || (buildingType === 'stable' && technologyType === 'heavy-camel-upgrade')
     || (buildingType === 'castle' && technologyType === 'elite-longbowman-upgrade')
     || (buildingType === 'siege-workshop' && technologyType === 'onager-upgrade')
     || (buildingType === 'siege-workshop' && technologyType === 'heavy-scorpion-upgrade')
@@ -1609,6 +1682,19 @@ function unitMaxHp(unitType: UnitType): number {
       return 80;
     case 'trebuchet':
       return 150;
+    // FU2: Militia-line intermediate tiers step HP from 40 (Militia) to
+    // 70 (Champion) via 45 → 50 → 60 → 65. Paladin (160) and Heavy
+    // Camel (120) extend their respective lines' HP curve.
+    case 'man-at-arms':
+      return 50;
+    case 'long-swordsman':
+      return 60;
+    case 'two-handed-swordsman':
+      return 65;
+    case 'paladin':
+      return 160;
+    case 'heavy-camel':
+      return 120;
   }
 }
 
@@ -1676,6 +1762,19 @@ function unitAttackDamage(unitType: UnitType): number {
       return 40;
     case 'trebuchet':
       return 200;
+    // FU2: attack curve. Militia (4) → Man-at-Arms (6) → Long Swordsman
+    // (9) → Two-Handed Swordsman (11) → Champion (13). Paladin (14) and
+    // Heavy Camel (7) extend their respective lines' attack curves.
+    case 'man-at-arms':
+      return 6;
+    case 'long-swordsman':
+      return 9;
+    case 'two-handed-swordsman':
+      return 11;
+    case 'paladin':
+      return 14;
+    case 'heavy-camel':
+      return 7;
   }
 }
 
@@ -1744,6 +1843,17 @@ function unitReloadTicks(unitType: UnitType): number {
       return 70;
     case 'trebuchet':
       return 100;
+    // FU2: militia-line intermediates and Paladin / Heavy Camel reuse
+    // their predecessors' reload cadence — every extra tier in AoE2 DE
+    // gets its buff from attack / HP, not faster swings.
+    case 'man-at-arms':
+    case 'long-swordsman':
+    case 'two-handed-swordsman':
+      return 20;
+    case 'paladin':
+      return 18;
+    case 'heavy-camel':
+      return 20;
   }
 }
 
@@ -1808,6 +1918,13 @@ function unitAttackRange(unitType: UnitType): number {
     case 'hussar':
     case 'cavalier':
     case 'champion':
+    // FU2: every new militia-line tier and the Paladin / Heavy Camel
+    // additions are melee.
+    case 'man-at-arms':
+    case 'long-swordsman':
+    case 'two-handed-swordsman':
+    case 'paladin':
+    case 'heavy-camel':
       return MELEE_ATTACK_RANGE;
   }
 }
@@ -1997,6 +2114,21 @@ function unitTint(unitType: UnitType, owner: number): number {
       return isHuman ? 0x2f2f34 : 0x3d2a2a;
     case 'trebuchet':
       return isHuman ? 0x6c553a : 0x6a3d31;
+    // FU2: tint gradients — each successive militia-line tier is a
+    // slightly deeper variant of the Militia / Champion family, and
+    // Paladin / Heavy Camel sit between their predecessors and the
+    // existing Cavalier / Camel tints. Human / enemy pairs mirror
+    // every other Imperial tier in this file.
+    case 'man-at-arms':
+      return isHuman ? 0xc68955 : 0xca7570;
+    case 'long-swordsman':
+      return isHuman ? 0xba7e50 : 0xc1685f;
+    case 'two-handed-swordsman':
+      return isHuman ? 0xae7140 : 0xb95e55;
+    case 'paladin':
+      return isHuman ? 0x7e7a68 : 0x88584a;
+    case 'heavy-camel':
+      return isHuman ? 0xbfa874 : 0xae7f64;
   }
 }
 
@@ -2057,6 +2189,19 @@ function unitSize(unitType: UnitType): number {
       return 0.72;
     case 'trebuchet':
       return 0.85;
+    // FU2: militia-line intermediates grow modestly tier-over-tier so
+    // the HUD distinguishes them at a glance without letting them drift
+    // past the existing Champion / Halberdier footprint.
+    case 'man-at-arms':
+      return 0.5;
+    case 'long-swordsman':
+      return 0.51;
+    case 'two-handed-swordsman':
+      return 0.52;
+    case 'paladin':
+      return 0.62;
+    case 'heavy-camel':
+      return 0.58;
   }
 }
 
@@ -2123,6 +2268,17 @@ function unitVisionRadius(unitType: UnitType): number {
       return 13;
     case 'trebuchet':
       return 16;
+    // FU2: militia-line intermediates share Militia's 3-tile vision;
+    // Paladin extends the Knight / Cavalier line to 5 tiles (per AoE2
+    // DE canon +1 over Cavalier); Heavy Camel stays at Camel's 4.
+    case 'man-at-arms':
+    case 'long-swordsman':
+    case 'two-handed-swordsman':
+      return 3;
+    case 'paladin':
+      return 5;
+    case 'heavy-camel':
+      return 4;
   }
 }
 
@@ -2139,6 +2295,10 @@ function isCavalryTarget(targetType: UnitType): boolean {
     || targetType === 'knight'
     || targetType === 'hussar'
     || targetType === 'cavalier'
+    // FU2: Paladin extends the Knight → Cavalier chain and is still a
+    // cavalry target for Spearman / Pikeman / Camel anti-cavalry
+    // bonuses (canonical AoE2 DE).
+    || targetType === 'paladin'
   );
 }
 
@@ -2156,6 +2316,10 @@ function isCavalryUnit(unitType: UnitType): boolean {
     || unitType === 'camel'
     || unitType === 'knight'
     || unitType === 'cavalier'
+    // FU2: Paladin and Heavy Camel stack Plate Barding + Scale /
+    // Chain Barding the same way Cavalier and Camel do.
+    || unitType === 'paladin'
+    || unitType === 'heavy-camel'
   );
 }
 
@@ -2173,6 +2337,12 @@ function isInfantryUnit(unitType: UnitType): boolean {
     || unitType === 'spearman'
     || unitType === 'pikeman'
     || unitType === 'halberdier'
+    // FU2: militia-line intermediate tiers share the infantry armor
+    // bucket with Militia and Champion — Plate / Chain / Scale Mail
+    // all propagate through the same chain.
+    || unitType === 'man-at-arms'
+    || unitType === 'long-swordsman'
+    || unitType === 'two-handed-swordsman'
   );
 }
 
@@ -2207,6 +2377,13 @@ function isMeleeUnit(unitType: UnitType): boolean {
     || unitType === 'villager'
     || unitType === 'battering-ram'
     || unitType === 'siege-ram'
+    // FU2: the new tiers are all melee, so Forging / Iron Casting /
+    // Blast Furnace propagate cleanly.
+    || unitType === 'man-at-arms'
+    || unitType === 'long-swordsman'
+    || unitType === 'two-handed-swordsman'
+    || unitType === 'paladin'
+    || unitType === 'heavy-camel'
   );
 }
 
@@ -2260,6 +2437,14 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
   }
 
   if (attackerType === 'camel' && isCavalryTarget(targetType)) {
+    return 9;
+  }
+
+  // FU2: Heavy Camel inherits Camel's +9 anti-cavalry bonus. Canonical
+  // AoE2 DE scales this to +12; we keep +9 for v1 so the Camel → Heavy
+  // Camel jump is a pure +2 attack / +20 HP Imperial upgrade (mirrors
+  // every other Imperial-tier-only upgrade in the prototype).
+  if (attackerType === 'heavy-camel' && isCavalryTarget(targetType)) {
     return 9;
   }
 
@@ -3661,6 +3846,13 @@ function createWorld(
       || spawn.kind === 'siege-ram'
       || spawn.kind === 'bombard-cannon'
       || spawn.kind === 'trebuchet'
+      // FU2: militia-line intermediate tiers + Paladin + Heavy Camel
+      // are spawnable directly from fixture specs.
+      || spawn.kind === 'man-at-arms'
+      || spawn.kind === 'long-swordsman'
+      || spawn.kind === 'two-handed-swordsman'
+      || spawn.kind === 'paladin'
+      || spawn.kind === 'heavy-camel'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const spawnPosition = spawn.requiresSafeSpawn
@@ -5762,12 +5954,16 @@ function createWorld(
       case 'town-center':
         return ['villager'];
       case 'barracks': {
-        // Militia → Champion (champion-upgrade); Spearman → Pikeman → Halberdier
-        // (pikeman-upgrade → halberdier-upgrade). Only the newest tier of each
-        // line is exposed at any time so the menu always shows the latest and
-        // drops the predecessor.
+        // FU2: Militia → Man-at-Arms → Long Swordsman → Two-Handed
+        // Swordsman → Champion (five tiers). Spearman → Pikeman →
+        // Halberdier (three tiers). Only the newest tier of each line
+        // is exposed at any time so the menu always shows the latest
+        // and drops the predecessor.
         const militiaLine = latestResearchedInChain(owner, [
           'militia',
+          ['man-at-arms', 'man-at-arms-upgrade'],
+          ['long-swordsman', 'long-swordsman-upgrade'],
+          ['two-handed-swordsman', 'two-handed-swordsman-upgrade'],
           ['champion', 'champion-upgrade'],
         ]);
         const options: TrainableUnitType[] = [militiaLine];
@@ -5785,8 +5981,9 @@ function createWorld(
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
         }
-        // Scout → Light Cavalry → Hussar (three tiers). Knight → Cavalier
-        // (two tiers). Camel remains standalone in v1.
+        // Scout → Light Cavalry → Hussar (three tiers). Knight →
+        // Cavalier → Paladin (three tiers in FU2). Camel → Heavy Camel
+        // (two tiers in FU2).
         const scoutLine = latestResearchedInChain(owner, [
           'scout',
           ['light-cavalry', 'light-cavalry-upgrade'],
@@ -5796,8 +5993,13 @@ function createWorld(
           const knightLine = latestResearchedInChain(owner, [
             'knight',
             ['cavalier', 'cavalier-upgrade'],
+            ['paladin', 'paladin-upgrade'],
           ]);
-          return [scoutLine, knightLine, 'camel'];
+          const camelLine = latestResearchedInChain(owner, [
+            'camel',
+            ['heavy-camel', 'heavy-camel-upgrade'],
+          ]);
+          return [scoutLine, knightLine, camelLine];
         }
         return [scoutLine];
       }
@@ -5992,14 +6194,30 @@ function createWorld(
       }
     }
 
-    if (buildingType === 'barracks' && isAtLeastAge(owner, 'castle-age')) {
+    // FU2: Barracks exposes the militia-line chain earlier than Castle
+    // Age so the Feudal Man-at-Arms upgrade is reachable once Feudal
+    // Age opens. Pikeman + Halberdier + Champion retain their original
+    // Castle / Imperial gating.
+    if (buildingType === 'barracks' && getPlayerAge(owner) !== 'dark-age') {
       const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'pikeman-upgrade')) {
-        options.push('pikeman-upgrade');
+      // Feudal Barracks — Man-at-Arms.
+      if (!hasTechnology(owner, 'man-at-arms-upgrade')) {
+        options.push('man-at-arms-upgrade');
+      }
+      if (isAtLeastAge(owner, 'castle-age')) {
+        if (!hasTechnology(owner, 'pikeman-upgrade')) {
+          options.push('pikeman-upgrade');
+        }
+        if (!hasTechnology(owner, 'long-swordsman-upgrade')) {
+          options.push('long-swordsman-upgrade');
+        }
       }
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'halberdier-upgrade')) {
           options.push('halberdier-upgrade');
+        }
+        if (!hasTechnology(owner, 'two-handed-swordsman-upgrade')) {
+          options.push('two-handed-swordsman-upgrade');
         }
         if (!hasTechnology(owner, 'champion-upgrade')) {
           options.push('champion-upgrade');
@@ -6021,6 +6239,19 @@ function createWorld(
         }
         if (!hasTechnology(owner, 'cavalier-upgrade')) {
           options.push('cavalier-upgrade');
+        }
+        // FU2: Paladin research requires Cavalier already researched
+        // (canonical AoE2 DE prerequisite chain). Heavy Camel has no
+        // predecessor upgrade so it is available immediately in
+        // Imperial Age. Both disappear from the list once researched.
+        if (
+          hasTechnology(owner, 'cavalier-upgrade')
+          && !hasTechnology(owner, 'paladin-upgrade')
+        ) {
+          options.push('paladin-upgrade');
+        }
+        if (!hasTechnology(owner, 'heavy-camel-upgrade')) {
+          options.push('heavy-camel-upgrade');
         }
       }
       if (options.length > 0) {
@@ -6184,6 +6415,13 @@ function createWorld(
       case 'hussar':
       case 'cavalier':
       case 'champion':
+      // FU2: militia-line intermediates + Paladin / Heavy Camel all
+      // slot into the melee / cavalry tier priority bucket.
+      case 'man-at-arms':
+      case 'long-swordsman':
+      case 'two-handed-swordsman':
+      case 'paladin':
+      case 'heavy-camel':
         return 3;
       case 'villager':
         return 4;
@@ -6556,20 +6794,52 @@ function createWorld(
         upgradeOwnedUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
         rewriteQueuedPredecessorUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
         break;
-      // Slice 7B: Barracks Imperial upgrades. Halberdier replaces Pikeman
-      // and Champion replaces Militia directly (the intermediate Man-at-
-      // Arms / Long Swordsman / Two-Handed tiers are compressed per the
-      // Slice 7 spec's v1 simplification).
+      // Slice 7B: Barracks Imperial upgrades. Halberdier replaces Pikeman;
+      // FU2 reinstated the intermediate Man-at-Arms / Long Swordsman /
+      // Two-Handed tiers between Militia and Champion.
       case 'halberdier-upgrade':
         upgradeOwnedUnits(owner, 'pikeman', 'halberdier');
         rewriteQueuedPredecessorUnits(owner, 'pikeman', 'halberdier');
         break;
+      // FU2 Feudal Barracks: Militia → Man-at-Arms.
+      case 'man-at-arms-upgrade':
+        upgradeOwnedUnits(owner, 'militia', 'man-at-arms');
+        rewriteQueuedPredecessorUnits(owner, 'militia', 'man-at-arms');
+        break;
+      // FU2 Castle Barracks: Man-at-Arms → Long Swordsman.
+      case 'long-swordsman-upgrade':
+        upgradeOwnedUnits(owner, 'man-at-arms', 'long-swordsman');
+        rewriteQueuedPredecessorUnits(owner, 'man-at-arms', 'long-swordsman');
+        break;
+      // FU2 Imperial Barracks: Long Swordsman → Two-Handed Swordsman.
+      case 'two-handed-swordsman-upgrade':
+        upgradeOwnedUnits(owner, 'long-swordsman', 'two-handed-swordsman');
+        rewriteQueuedPredecessorUnits(
+          owner,
+          'long-swordsman',
+          'two-handed-swordsman',
+        );
+        break;
       case 'champion-upgrade':
+        // FU2: the owner may hold any tier of the militia line when
+        // Champion is researched — walk every predecessor tier so a
+        // Militia / Man-at-Arms / Long Swordsman / Two-Handed
+        // Swordsman all mutate to Champion. Backward-compat with the
+        // Slice 7 "Militia → Champion direct upgrade" path: if the
+        // owner skipped the intermediate tiers entirely, the Militia
+        // still upgrades straight to Champion.
         upgradeOwnedUnits(owner, 'militia', 'champion');
+        upgradeOwnedUnits(owner, 'man-at-arms', 'champion');
+        upgradeOwnedUnits(owner, 'long-swordsman', 'champion');
+        upgradeOwnedUnits(owner, 'two-handed-swordsman', 'champion');
         rewriteQueuedPredecessorUnits(owner, 'militia', 'champion');
+        rewriteQueuedPredecessorUnits(owner, 'man-at-arms', 'champion');
+        rewriteQueuedPredecessorUnits(owner, 'long-swordsman', 'champion');
+        rewriteQueuedPredecessorUnits(owner, 'two-handed-swordsman', 'champion');
         break;
       // Slice 7C: Stable Imperial upgrades. Hussar replaces Light Cavalry
-      // (the scout-line tail) and Cavalier replaces Knight.
+      // (the scout-line tail) and Cavalier replaces Knight. FU2 extends
+      // the Knight line to Paladin and the Camel line to Heavy Camel.
       case 'hussar-upgrade':
         upgradeOwnedUnits(owner, 'light-cavalry', 'hussar');
         rewriteQueuedPredecessorUnits(owner, 'light-cavalry', 'hussar');
@@ -6577,6 +6847,14 @@ function createWorld(
       case 'cavalier-upgrade':
         upgradeOwnedUnits(owner, 'knight', 'cavalier');
         rewriteQueuedPredecessorUnits(owner, 'knight', 'cavalier');
+        break;
+      case 'paladin-upgrade':
+        upgradeOwnedUnits(owner, 'cavalier', 'paladin');
+        rewriteQueuedPredecessorUnits(owner, 'cavalier', 'paladin');
+        break;
+      case 'heavy-camel-upgrade':
+        upgradeOwnedUnits(owner, 'camel', 'heavy-camel');
+        rewriteQueuedPredecessorUnits(owner, 'camel', 'heavy-camel');
         break;
       // Slice 7C: Castle Imperial upgrade. Britons-gated Elite Longbowman
       // replaces the Longbowman. The research option is civ-filtered in
@@ -6817,6 +7095,13 @@ function createWorld(
       case 'siege-ram':
       case 'bombard-cannon':
       case 'trebuchet':
+      // FU2: militia-line intermediates + Paladin / Heavy Camel all
+      // count toward the AI's push threshold.
+      case 'man-at-arms':
+      case 'long-swordsman':
+      case 'two-handed-swordsman':
+      case 'paladin':
+      case 'heavy-camel':
         return true;
       case 'villager':
       case 'scout':

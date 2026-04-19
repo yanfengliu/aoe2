@@ -29,7 +29,15 @@ export type UnitType =
   | 'heavy-scorpion'
   | 'siege-ram'
   | 'bombard-cannon'
-  | 'trebuchet';
+  | 'trebuchet'
+  // FU2: Militia-line intermediate tiers inserted between Militia and
+  // Champion (Man-at-Arms / Long Swordsman / Two-Handed Swordsman) plus
+  // the Cavalier → Paladin and Camel → Heavy Camel Imperial upgrades.
+  | 'man-at-arms'
+  | 'long-swordsman'
+  | 'two-handed-swordsman'
+  | 'paladin'
+  | 'heavy-camel';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -59,7 +67,13 @@ export type TrainableUnitType =
   | 'heavy-scorpion'
   | 'siege-ram'
   | 'bombard-cannon'
-  | 'trebuchet';
+  | 'trebuchet'
+  // FU2: Militia-line intermediates + Paladin + Heavy Camel.
+  | 'man-at-arms'
+  | 'long-swordsman'
+  | 'two-handed-swordsman'
+  | 'paladin'
+  | 'heavy-camel';
 export type ResearchableTechnologyType =
   | 'feudal-age'
   | 'castle-age'
@@ -95,7 +109,16 @@ export type ResearchableTechnologyType =
   | 'bodkin-arrow'
   // FU1: Imperial Blacksmith tier additions.
   | 'ring-archer-armor'
-  | 'chemistry';
+  | 'chemistry'
+  // FU2: Militia-line intermediate tiers + Paladin + Heavy Camel
+  // Imperial upgrades. Each mutates the predecessor unit in place
+  // (same upgradeOwnedUnits + rewriteQueuedPredecessorUnits pattern
+  // as the Slice 2 / Slice 7 upgrades).
+  | 'man-at-arms-upgrade'
+  | 'long-swordsman-upgrade'
+  | 'two-handed-swordsman-upgrade'
+  | 'paladin-upgrade'
+  | 'heavy-camel-upgrade';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'
