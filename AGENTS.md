@@ -1,17 +1,19 @@
 ## Core rules
 
-- Use test-driven development for behavior changes: write or update tests first, then make them pass.
+- Use test-driven development for behavior changes: write or update tests first, then make them pass. Test the contract, not the code: tests should focus exclusively on gameplay experience and game mechanisms.
 - For each desired change, make the change easy, then make the easy change.
 - Before implementing a change, write a plan.
 - Use a subagent to implement the plan. It should make sure `npx vitest run`, `npx tsc --noEmit`, and `npx vite build` pass.
-- Use Codex code reviewer subagents to review every change on: (design) -> (correctness) -> (clean code, efficiency, memory leaks) -> (documentation). Each round of review should be done by a new subagent in series.
+- Use Codex code reviewer subagents to review every change on: (design) -> (test coverage) -> (correctness) -> (clean code, efficiency, memory leaks) -> (documentation). Each round of review should be done by a new subagent in series.
 - Example commands to use Codex for code review:
   - `codex exec "Review my code for bugs and security issues"`
   - `codex exec review uncommitted`
   - `codex exec review base-branch main`
   - `codex exec review commit <sha>`
+- Example commands to use Gemini for code review:
+  - `git diff [branch] | gemini -p "@src [instruction]" --model gemini-3-pro --thinking high` (Use the @ symbol within the prompt to include directory context for the best reasoning results.)
 - The reviewers should check `docs/learning/lessons.md`.
-- Prefer small functions, reusable utilities, composition over inheritance, and dead-code cleanup.
+- Prefer small functions and files, reusable utilities, composition over inheritance, and dead-code cleanup.
 - Do not change game mechanics or behavior unless explicitly asked.
 
 ## Command and git rules
@@ -48,7 +50,7 @@
 
 - Detailed devlogs live under `docs/devlog/detailed/` as append-only files named `YYYY-MM-DD_YYYY-MM-DD.md` (e.g. `2026-04-07_2026-04-13.md`).
 - Always append new entries to the latest detailed devlog (the file with the most recent `END_DATE`). When looking something up, start from the latest file and work backwards.
-- Periodically archive: when the active file grows larger than 500 lines or a significant time boundary is reached, close it (freeze its `END_DATE` in the filename) and start a new file whose `START_DATE` is the next entry's date.
+- Periodically archive: when the active file grows larger than 500 lines or a significant time boundary is reached, close it (freeze its `END_DATE` in the filename) and start a new file whose `START_DATE` is the next entry's date. Check if the start and end dates of all previous devlogs are still accurate.
 - After every completed task, append a detailed entry with:
   - timestamp
   - action
