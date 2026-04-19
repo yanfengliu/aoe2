@@ -5819,6 +5819,199 @@ function applyShoreFishPatches(
   }
 }
 
+// Slice 7D fixture: Imperial-Age human with a completed Siege Workshop plus
+// one pre-existing Mangonel, Scorpion, and Battering Ram. Exercises the
+// three Imperial Siege Workshop upgrades (Onager / Heavy Scorpion / Siege
+// Ram), the Bombard Cannon train menu, and the "Bombard Cannon does not
+// mutate existing siege" regression.
+function createImperialSiegeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResources: {
+          food: 3000,
+          wood: 3000,
+          gold: 3000,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'siege-workshop',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'mangonel',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'scorpion',
+        x: 12,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'battering-ram',
+        x: 14,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 7D fixture: Imperial Onager placed inside its own min-range 3 of an
+// enemy Spearman. Mirrors the Mangonel min-range fixture to verify the
+// Onager inherits the same dead-zone behavior.
+function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'onager',
+        x: 10,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 10 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // Spearman at distance 2 — inside the Onager's min range of 3.
+      {
+        kind: 'spearman',
+        x: 12,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+    ],
+  };
+}
+
+// Slice 7D fixture: player-1 Siege Ram next to an enemy Town Center. Used
+// to assert the Siege Ram carries a +250 anti-building bonus — a Town Center
+// with a low startHp (200) is destroyed in a single hit. Vision is widened
+// from the Ram's canonical 3 so the enemy building is visible for the
+// command to resolve.
+function createSiegeRamVsBuildingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'siege-ram',
+        x: 22,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 10 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+        startHp: 200,
+      },
+    ],
+  };
+}
+
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
   if (seed === 'conquest-victory-fixture') {
     return createConquestVictoryFixture(seed);
@@ -5938,6 +6131,18 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'siege-workshop-fixture') {
     return createSiegeWorkshopFixture(seed);
+  }
+
+  if (seed === 'imperial-siege-fixture') {
+    return createImperialSiegeFixture(seed);
+  }
+
+  if (seed === 'onager-min-range-blocked-fixture') {
+    return createOnagerMinRangeBlockedFixture(seed);
+  }
+
+  if (seed === 'siege-ram-vs-building-fixture') {
+    return createSiegeRamVsBuildingFixture(seed);
   }
 
   if (seed === 'mangonel-ranged-fixture') {

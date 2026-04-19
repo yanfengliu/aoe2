@@ -1278,6 +1278,9 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'siege-workshop' && unitType === 'mangonel')
     || (buildingType === 'siege-workshop' && unitType === 'scorpion')
     || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
+    || (buildingType === 'siege-workshop' && unitType === 'onager')
+    || (buildingType === 'siege-workshop' && unitType === 'heavy-scorpion')
+    || (buildingType === 'siege-workshop' && unitType === 'siege-ram')
     || (buildingType === 'monastery' && unitType === 'monk')
     || (buildingType === 'castle' && unitType === 'longbowman')
     || (buildingType === 'castle' && unitType === 'elite-longbowman')
@@ -1303,6 +1306,9 @@ function canResearchAt(
     || (buildingType === 'stable' && technologyType === 'hussar-upgrade')
     || (buildingType === 'stable' && technologyType === 'cavalier-upgrade')
     || (buildingType === 'castle' && technologyType === 'elite-longbowman-upgrade')
+    || (buildingType === 'siege-workshop' && technologyType === 'onager-upgrade')
+    || (buildingType === 'siege-workshop' && technologyType === 'heavy-scorpion-upgrade')
+    || (buildingType === 'siege-workshop' && technologyType === 'siege-ram-upgrade')
   );
 }
 
@@ -1961,11 +1967,15 @@ function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): n
 // Unit-vs-building bonus damage. The unit-vs-unit combat and unit-vs-building
 // combat paths are separate in this codebase (different target-kind branches
 // inside prototypePlayerCommands), so building bonuses are modeled separately
-// from anti-unit bonuses. Only the Battering Ram carries one in v1 (+75 vs
-// every building type); siege upgrades in Slice 7 will extend this helper.
+// from anti-unit bonuses. The Battering Ram carries the Castle-Age bonus
+// (+75); Slice 7D extends this to the Imperial Siege Ram (+250 — a huge
+// jump per spec). Bombard Cannon and Trebuchet extend the table further.
 function attackBonusAgainstBuilding(attackerType: UnitType): number {
   if (attackerType === 'battering-ram') {
     return 75;
+  }
+  if (attackerType === 'siege-ram') {
+    return 250;
   }
   return 0;
 }
@@ -4808,7 +4818,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (!isAtLeastAge(owner, 'castle-age')) {
           return [];
         }
-        return ['mangonel', 'scorpion', 'battering-ram'];
+        // Mangonel → Onager, Scorpion → Heavy Scorpion, Battering Ram →
+        // Siege Ram. Only the latest-researched tier is exposed at any
+        // time, matching the Archery Range / Barracks / Stable / Castle
+        // upgrade menus introduced in Slice 7B/7C.
+        const mangonelLine = latestResearchedInChain(owner, [
+          'mangonel',
+          ['onager', 'onager-upgrade'],
+        ]);
+        const scorpionLine = latestResearchedInChain(owner, [
+          'scorpion',
+          ['heavy-scorpion', 'heavy-scorpion-upgrade'],
+        ]);
+        const ramLine = latestResearchedInChain(owner, [
+          'battering-ram',
+          ['siege-ram', 'siege-ram-upgrade'],
+        ]);
+        return [mangonelLine, scorpionLine, ramLine];
       }
       case 'monastery': {
         // Monastery is Castle-Age+ only; Monks are the sole trainable unit
@@ -4924,6 +4950,26 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       && !hasTechnology(owner, 'elite-longbowman-upgrade')
     ) {
       return ['elite-longbowman-upgrade'];
+    }
+
+    // Siege Workshop Imperial upgrades (Slice 7D). Three parallel one-shot
+    // upgrades: Mangonel → Onager, Scorpion → Heavy Scorpion, Battering Ram
+    // → Siege Ram. All three become available once the owner reaches
+    // Imperial Age and drop out of the list as they are researched.
+    if (buildingType === 'siege-workshop' && isAtLeastAge(owner, 'imperial-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'onager-upgrade')) {
+        options.push('onager-upgrade');
+      }
+      if (!hasTechnology(owner, 'heavy-scorpion-upgrade')) {
+        options.push('heavy-scorpion-upgrade');
+      }
+      if (!hasTechnology(owner, 'siege-ram-upgrade')) {
+        options.push('siege-ram-upgrade');
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
     return [];
@@ -5437,11 +5483,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         upgradeOwnedUnits(owner, 'longbowman', 'elite-longbowman');
         rewriteQueuedPredecessorUnits(owner, 'longbowman', 'elite-longbowman');
         break;
-      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
-      // techs. Siege Workshop lines and blacksmith tier effects land in 7D.
+      // Slice 7D: Siege Workshop Imperial upgrades. Each mutates the
+      // predecessor siege line in place and rewrites any queued predecessor
+      // training entries so the research swap is effectively instant.
       case 'onager-upgrade':
+        upgradeOwnedUnits(owner, 'mangonel', 'onager');
+        rewriteQueuedPredecessorUnits(owner, 'mangonel', 'onager');
+        break;
       case 'heavy-scorpion-upgrade':
+        upgradeOwnedUnits(owner, 'scorpion', 'heavy-scorpion');
+        rewriteQueuedPredecessorUnits(owner, 'scorpion', 'heavy-scorpion');
+        break;
       case 'siege-ram-upgrade':
+        upgradeOwnedUnits(owner, 'battering-ram', 'siege-ram');
+        rewriteQueuedPredecessorUnits(owner, 'battering-ram', 'siege-ram');
+        break;
+      // Slice 7A placeholder for the blacksmith techs — tier effects land
+      // in Slice 7E.
       case 'bracer':
       case 'blast-furnace':
       case 'plate-mail-armor':
