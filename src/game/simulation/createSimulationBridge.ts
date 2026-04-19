@@ -272,6 +272,12 @@ interface CombatState {
   attackRange: number;
   reloadTicks: number;
   cooldownTicks: number;
+  // Additive armor granted by Blacksmith techs (Plate Mail Armor for infantry,
+  // Plate Barding Armor for cavalry). Base unit types ship with armor 0; only
+  // techs bump this value. Armor does not currently reduce damage in combat
+  // calculations — this tracks the researched state so the HUD / tests can
+  // surface the bonus. Damage-reduction hooks land in a later slice.
+  armor: number;
 }
 
 interface BuildingHealthState {
@@ -1311,6 +1317,10 @@ function canResearchAt(
     || (buildingType === 'siege-workshop' && technologyType === 'onager-upgrade')
     || (buildingType === 'siege-workshop' && technologyType === 'heavy-scorpion-upgrade')
     || (buildingType === 'siege-workshop' && technologyType === 'siege-ram-upgrade')
+    || (buildingType === 'blacksmith' && technologyType === 'bracer')
+    || (buildingType === 'blacksmith' && technologyType === 'blast-furnace')
+    || (buildingType === 'blacksmith' && technologyType === 'plate-mail-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'plate-barding')
   );
 }
 
@@ -1689,6 +1699,7 @@ function createWildlifeState(resourceType: 'boar' | 'wolf'): WildlifeState {
     attackRange: MELEE_ATTACK_RANGE,
     reloadTicks: wildlifeReloadTicks(resourceType),
     cooldownTicks: 0,
+    armor: 0,
     autoAggro: wildlifeHasAutoAggro(resourceType),
     isAlive: true,
     corpsePersists: wildlifeCorpsePersists(resourceType),
@@ -1903,6 +1914,66 @@ function isCavalryTarget(targetType: UnitType): boolean {
     || targetType === 'knight'
     || targetType === 'hussar'
     || targetType === 'cavalier'
+  );
+}
+
+// Cavalry-line classification for Plate Barding Armor (Blacksmith Imperial
+// tech). Matches `isCavalryTarget` and additionally includes Camel — Camel
+// is not itself a cavalry *target* for Spearman / Pikeman / Camel bonus
+// damage (AoE2 DE canon), but it IS a mounted unit that belongs in the
+// cavalry armor bucket. Kept as a separate predicate so anti-cavalry bonus
+// targeting and the Blacksmith armor bucket can evolve independently.
+function isCavalryUnit(unitType: UnitType): boolean {
+  return (
+    unitType === 'scout'
+    || unitType === 'light-cavalry'
+    || unitType === 'hussar'
+    || unitType === 'camel'
+    || unitType === 'knight'
+    || unitType === 'cavalier'
+  );
+}
+
+// Infantry-line classification for Plate Mail Armor (Blacksmith Imperial
+// tech). Covers the Militia → Champion tree and the Spearman → Pikeman →
+// Halberdier tree. Villagers, Monks, and ranged foot units (Archer /
+// Skirmisher / Crossbowman / Arbalest / Longbowman / Elite Longbowman) are
+// deliberately excluded — per AoE2 DE canon the armor upgrade lives with
+// the melee infantry arc, and the archer / skirmisher arc has its own
+// (not-yet-implemented) padded / leather / ring armor chain.
+function isInfantryUnit(unitType: UnitType): boolean {
+  return (
+    unitType === 'militia'
+    || unitType === 'champion'
+    || unitType === 'spearman'
+    || unitType === 'pikeman'
+    || unitType === 'halberdier'
+  );
+}
+
+// Melee-line classification for Blast Furnace (Blacksmith Imperial tech,
+// +2 attack to melee units). Covers every foot and mounted melee unit
+// including villagers and the battering-ram line. Ranged units (Archer /
+// Skirmisher / Crossbowman / Arbalest / Cavalry Archer / Heavy Cavalry
+// Archer / Longbowman / Elite Longbowman / Mangonel / Onager / Scorpion
+// / Heavy Scorpion / Bombard Cannon / Trebuchet) are excluded since
+// they're buffed by Bracer / Chemistry / their own arcs instead.
+function isMeleeUnit(unitType: UnitType): boolean {
+  return (
+    unitType === 'militia'
+    || unitType === 'champion'
+    || unitType === 'spearman'
+    || unitType === 'pikeman'
+    || unitType === 'halberdier'
+    || unitType === 'scout'
+    || unitType === 'light-cavalry'
+    || unitType === 'hussar'
+    || unitType === 'camel'
+    || unitType === 'knight'
+    || unitType === 'cavalier'
+    || unitType === 'villager'
+    || unitType === 'battering-ram'
+    || unitType === 'siege-ram'
   );
 }
 
@@ -2591,7 +2662,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     resource: ResourceComponent | undefined,
     id: number,
   ): number | null {
-    if (unit || building) {
+    if (unit) {
+      return combatStates.get(id)?.armor ?? 0;
+    }
+
+    if (building) {
       return 0;
     }
 
@@ -2733,11 +2808,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       attackRange: unitAttackRange(unitType),
       reloadTicks: unitReloadTicks(unitType),
       cooldownTicks: 0,
+      armor: 0,
     };
 
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'fletching')) {
       state.attackDamage += 1;
       state.attackRange += 1;
+    }
+
+    // Slice 7E Blacksmith Imperial tier. Each tech stacks independently on
+    // top of the base stats so a player who has researched Fletching + Bracer
+    // sees +2 atk / +2 range on any archer-line unit (newly trained or
+    // mutated by an Imperial upgrade).
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'bracer')) {
+      state.attackDamage += 1;
+      state.attackRange += 1;
+    }
+    if (isMeleeUnit(unitType) && hasTechnology(owner, 'blast-furnace')) {
+      state.attackDamage += 2;
+    }
+    if (isInfantryUnit(unitType) && hasTechnology(owner, 'plate-mail-armor')) {
+      state.armor += 1;
+    }
+    if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
+      state.armor += 1;
     }
 
     return state;
@@ -4902,8 +4996,31 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       return ['imperial-age'];
     }
 
-    if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age' && !hasTechnology(owner, 'fletching')) {
-      return ['fletching'];
+    if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age') {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'fletching')) {
+        options.push('fletching');
+      }
+      // Slice 7E: Imperial Blacksmith techs. Each independent one-shot
+      // upgrade — researched order doesn't matter, bonuses stack
+      // multiplicatively via createCombatState + the per-tech callback.
+      if (isAtLeastAge(owner, 'imperial-age')) {
+        if (!hasTechnology(owner, 'bracer')) {
+          options.push('bracer');
+        }
+        if (!hasTechnology(owner, 'blast-furnace')) {
+          options.push('blast-furnace');
+        }
+        if (!hasTechnology(owner, 'plate-mail-armor')) {
+          options.push('plate-mail-armor');
+        }
+        if (!hasTechnology(owner, 'plate-barding')) {
+          options.push('plate-barding');
+        }
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
     if (buildingType === 'archery-range' && isAtLeastAge(owner, 'castle-age')) {
@@ -5517,12 +5634,56 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         upgradeOwnedUnits(owner, 'battering-ram', 'siege-ram');
         rewriteQueuedPredecessorUnits(owner, 'battering-ram', 'siege-ram');
         break;
-      // Slice 7A placeholder for the blacksmith techs — tier effects land
-      // in Slice 7E.
+      // Slice 7E Blacksmith Imperial tier. Each tech walks every owned unit
+      // and re-applies its bonus so existing armies benefit immediately.
+      // Newly trained units receive the same bonus via createCombatState
+      // (mirrors the Fletching pattern). The bonuses are cumulative: a
+      // Champion can receive Blast Furnace atk + Plate Mail armor on the
+      // same tick if both are researched (in any order).
       case 'bracer':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackDamage += 1;
+          combat.attackRange += 1;
+        }
+        break;
       case 'blast-furnace':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackDamage += 2;
+        }
+        break;
       case 'plate-mail-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
       case 'plate-barding':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
         break;
     }
   }
@@ -7623,6 +7784,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             task: getUnitTaskState(id),
             attackDamage: combat?.attackDamage ?? unitAttackDamage(unit.unitType),
             attackRange: combat?.attackRange ?? unitAttackRange(unit.unitType),
+            armor: combat?.armor ?? 0,
           };
         })
         .filter((entry): entry is EconomyState['units'][number] => entry !== null);
