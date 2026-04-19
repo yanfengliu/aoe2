@@ -45,19 +45,32 @@ interface SimulationBridge {
       toY: number;
       commandType: 'move' | 'build' | 'attack';
     }>;
+    // Slice 12 Task D: per-unit coarse-vs-fine probe for the new F2
+    // overlay mode. The scene reads this to draw one line per unit
+    // from its authoritative cell center to its interpolated render
+    // position.
+    coarseVsFine: Array<{
+      id: number;
+      coarseX: number;
+      coarseY: number;
+      fineX: number;
+      fineY: number;
+    }>;
   };
 }
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
 // owns the full cycle; the scene only needs to read the current mode to
 // decide whether to draw selection rectangles, pathing lines, or fog tints.
+// Slice 12 Task D adds `coarse-vs-fine` for the sub-grid probe overlay.
 export type DebugOverlayMode =
   | 'off'
   | 'selection-bounds'
   | 'pathing'
   | 'fog-state'
   | 'ai-state'
-  | 'perf';
+  | 'perf'
+  | 'coarse-vs-fine';
 
 interface GameSceneOptions {
   getDebugOverlayMode(): DebugOverlayMode;
@@ -588,6 +601,11 @@ export class GameScene extends Phaser.Scene {
 
     if (mode === 'fog-state' && frame) {
       this.renderDebugFogState(frame);
+      return;
+    }
+
+    if (mode === 'coarse-vs-fine') {
+      this.renderDebugCoarseVsFine();
     }
   }
 
@@ -684,6 +702,35 @@ export class GameScene extends Phaser.Scene {
         }
         this.debugLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
+    }
+  }
+
+  // Slice 12 Task D: draw one line per unit from the coarse simulation
+  // cell center to the fine interpolated render position. A big delta
+  // is the visible signal of "unit is between coarse cells A and B
+  // right now" — if simulation pushes coarse back to A or forward to B
+  // while rendering stays put (or vice versa), that mismatch shows up
+  // as a long line instead of the expected short step.
+  private renderDebugCoarseVsFine(): void {
+    if (!this.debugLayer) {
+      return;
+    }
+
+    const snapshot = this.bridge.getDebugSnapshot();
+    for (const probe of snapshot.coarseVsFine) {
+      const coarseCx = (probe.coarseX + 0.5) * CELL_SIZE;
+      const coarseCy = (probe.coarseY + 0.5) * CELL_SIZE;
+      const fineCx = (probe.fineX + 0.5) * CELL_SIZE;
+      const fineCy = (probe.fineY + 0.5) * CELL_SIZE;
+      // Line from coarse (blue) to fine (magenta) with a dot on the
+      // coarse endpoint so the player can see which side is the
+      // simulation cell.
+      this.debugLayer.lineStyle(1.5, 0xff5ed1, 0.9);
+      this.debugLayer.lineBetween(coarseCx, coarseCy, fineCx, fineCy);
+      this.debugLayer.fillStyle(0x6ed4ff, 0.9);
+      this.debugLayer.fillCircle(coarseCx, coarseCy, 3);
+      this.debugLayer.fillStyle(0xff5ed1, 0.9);
+      this.debugLayer.fillCircle(fineCx, fineCy, 3);
     }
   }
 

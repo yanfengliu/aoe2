@@ -41,6 +41,12 @@ export interface ScenarioSpawnSpec {
   wanderBounds?: WanderBoundsComponent;
   vision?: VisionSourceComponent;
   requiresSafeSpawn?: boolean;
+  // Slice 12 Task B: opt out of the bridge-boot fixture validator for
+  // a single spawn. Used by fixtures that intentionally stack
+  // otherwise-illegal entities (e.g., a unit standing inside a building
+  // footprint for the tile-selection-cycle UX test). Default `false`;
+  // leave unset in every gameplay fixture.
+  allowOverlappingSpawn?: boolean;
   // Building-only. Starts deposited relics inside a Monastery. Lets
   // tests exercise the "destroy the Monastery, drop the relics" flow
   // without driving a full pickup-and-deposit cycle.
@@ -301,8 +307,11 @@ function createBlockingRulesFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (6, 8) which sat inside the TC
+        // footprint at (4..7, 8..11). (9, 8) keeps the villager just
+        // east of the TC, still adjacent.
         kind: 'villager',
-        x: 6,
+        x: 9,
         y: 8,
         owner: 1,
         baseOwner: 1,
@@ -1321,9 +1330,13 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (10, 10) which sat inside the human
+        // TC footprint (TC covers 8..11, 8..11). The (10, 13) slot keeps
+        // the archer adjacent to the TC and out of any building
+        // footprint so fixture validation passes.
         kind: 'archer',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -1331,7 +1344,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -1339,7 +1352,7 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
       {
         kind: 'scout',
         x: 14,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -1354,8 +1367,11 @@ function createCastleUpgradesFixture(seed: string): PrototypeScenario {
       },
       {
         kind: 'archer',
+        // Slice 12 Task B: moved from (22, 10) which sat inside the
+        // enemy TC footprint (TC covers 24..27, 8..11). (22, 13) keeps
+        // the archer adjacent to the enemy base and out of the footprint.
         x: 22,
-        y: 10,
+        y: 13,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 5 },
@@ -1609,9 +1625,10 @@ function createImperialArbalestFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'crossbowman',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -1619,7 +1636,7 @@ function createImperialArbalestFixture(seed: string): PrototypeScenario {
       {
         kind: 'cavalry-archer',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -1680,9 +1697,10 @@ function createImperialHalberdierFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'militia',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -1690,7 +1708,7 @@ function createImperialHalberdierFixture(seed: string): PrototypeScenario {
       {
         kind: 'pikeman',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -1809,9 +1827,10 @@ function createImperialStableFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'light-cavalry',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 6 },
@@ -1819,7 +1838,7 @@ function createImperialStableFixture(seed: string): PrototypeScenario {
       {
         kind: 'knight',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -2410,9 +2429,10 @@ function createMangonelMinRangeBlockedFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'mangonel',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -2432,7 +2452,7 @@ function createMangonelMinRangeBlockedFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -2474,9 +2494,10 @@ function createMangonelOutsideMinRangeFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'mangonel',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -2492,7 +2513,7 @@ function createMangonelOutsideMinRangeFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 15,
-        y: 10,
+        y: 13,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -2533,8 +2554,12 @@ function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint
+        // at 8..11, 8..11). (12, 10) still sits within tower range 7
+        // of both enemy units below so the priority test is
+        // unchanged, but now occupies a free cell.
         kind: 'watch-tower',
-        x: 10,
+        x: 12,
         y: 10,
         owner: 1,
         baseOwner: 1,
@@ -2548,13 +2573,14 @@ function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenario {
         baseOwner: 2,
         vision: { playerId: 2, radius: 7 },
       },
-      // Both enemies sit inside the tower's range 7. Militia is CLOSER (dist 4
-      // vs the Mangonel's dist 5) — before the priority fix the tower fell
-      // back on proximity and killed the Militia first. The fix must make the
-      // Mangonel the preferred target regardless of proximity.
+      // Both enemies sit inside the tower's range 7. Militia is CLOSER than
+      // the Mangonel (dist 3 vs dist 4 after the tower move) — before the
+      // priority fix the tower fell back on proximity and killed the Militia
+      // first. The fix must make the Mangonel the preferred target regardless
+      // of proximity.
       {
         kind: 'militia',
-        x: 14,
+        x: 15,
         y: 10,
         owner: 2,
         baseOwner: 2,
@@ -2562,7 +2588,7 @@ function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenario {
       },
       {
         kind: 'mangonel',
-        x: 15,
+        x: 16,
         y: 10,
         owner: 2,
         baseOwner: 2,
@@ -3606,21 +3632,25 @@ function createMonkFogFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 3 },
       },
       {
+        // Slice 12 Task B: moved from (8, 10) (inside TC footprint at
+        // 8..11, 8..11). (8, 12) keeps the Monk just south of the TC
+        // and still within MONK_ACTION_RANGE = 4 of the enemy militia.
         kind: 'monk',
         x: 8,
-        y: 10,
+        y: 12,
         owner: 1,
         baseOwner: 1,
         // Small vision so the adjacent enemy Militia is in fog.
         vision: { playerId: 1, radius: 1 },
       },
       {
-        // Distance 3 from the Monk (manhattan) → within MONK_ACTION_RANGE = 4
-        // but outside Monk's radius-1 vision; the TC's radius-3 vision from
-        // (8, 8) also does not reach. Fog hides the unit from the human.
+        // Distance 3 from the Monk at (8, 12) (manhattan, to (11, 12))
+        // → within MONK_ACTION_RANGE = 4 but outside Monk's radius-1
+        // vision; the TC's radius-3 vision from (8, 8) also does not
+        // reach. Fog hides the unit from the human.
         kind: 'militia',
         x: 11,
-        y: 10,
+        y: 12,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -4442,9 +4472,12 @@ function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (14, 10) which sat inside the
+        // Barracks footprint at (13..15, 8..10). (14, 11) keeps the
+        // scout one step south of the Barracks.
         kind: 'scout',
         x: 14,
-        y: 10,
+        y: 11,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 6 },
@@ -4501,9 +4534,11 @@ function createFeudalSkirmisherFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (14, 10) which sat inside the
+        // Archery Range footprint at (13..15, 8..10).
         kind: 'archer',
         x: 14,
-        y: 10,
+        y: 11,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 6 },
@@ -4688,9 +4723,12 @@ function createFeudalWatchTowerFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (18, 8) which sat inside the
+        // Blacksmith footprint at (17..19, 8..10). (18, 11) keeps
+        // the enemy scout immediately south of the Blacksmith.
         kind: 'scout',
         x: 18,
-        y: 8,
+        y: 11,
         owner: 2,
         baseOwner: 2,
       },
@@ -4731,17 +4769,21 @@ function createAiPlannerFixture(seed: string): PrototypeScenario {
       { kind: 'villager', x: 28, y: 21, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
       { kind: 'villager', x: 29, y: 21, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
       // Resource patches near the AI base so it can actually gather.
-      { kind: 'sheep', x: 32, y: 22, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'sheep', x: 33, y: 22, owner: null, baseOwner: 2, amount: 100 },
+      // Slice 12 Task B: TC at (30, 20) covers (30..33, 20..23). Sheep
+      // moved below the TC to (32, 24) / (33, 24). Berry-bushes moved
+      // above the TC (and below the TC rows (20..23)) keep the same
+      // economy intent.
+      { kind: 'sheep', x: 32, y: 25, owner: null, baseOwner: 2, amount: 100 },
+      { kind: 'sheep', x: 33, y: 25, owner: null, baseOwner: 2, amount: 100 },
       { kind: 'berry-bush', x: 32, y: 18, owner: null, baseOwner: 2, amount: 125 },
       { kind: 'berry-bush', x: 33, y: 18, owner: null, baseOwner: 2, amount: 125 },
       { kind: 'tree', x: 26, y: 18, owner: null, baseOwner: 2, amount: 100 },
       { kind: 'tree', x: 27, y: 18, owner: null, baseOwner: 2, amount: 100 },
       { kind: 'tree', x: 26, y: 19, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'gold-mine', x: 33, y: 24, owner: null, baseOwner: 2, amount: 200 },
-      { kind: 'gold-mine', x: 34, y: 24, owner: null, baseOwner: 2, amount: 200 },
-      { kind: 'stone-mine', x: 28, y: 24, owner: null, baseOwner: 2, amount: 150 },
-      { kind: 'stone-mine', x: 29, y: 24, owner: null, baseOwner: 2, amount: 150 },
+      { kind: 'gold-mine', x: 35, y: 21, owner: null, baseOwner: 2, amount: 200 },
+      { kind: 'gold-mine', x: 35, y: 22, owner: null, baseOwner: 2, amount: 200 },
+      { kind: 'stone-mine', x: 26, y: 21, owner: null, baseOwner: 2, amount: 150 },
+      { kind: 'stone-mine', x: 26, y: 22, owner: null, baseOwner: 2, amount: 150 },
     ],
   };
 }
@@ -4771,9 +4813,12 @@ function createAiScoutingResponseFixture(seed: string): PrototypeScenario {
       // AI villagers so the Watch Tower has a builder available.
       { kind: 'villager', x: 28, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
       { kind: 'villager', x: 29, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      // Pre-completed Blacksmith so the Watch Tower is unlocked.
-      { kind: 'barracks', x: 34, y: 20, owner: 2, baseOwner: 2 },
-      { kind: 'blacksmith', x: 32, y: 20, owner: 2, baseOwner: 2 },
+      // Slice 12 Task B: TC at (30, 20) covers (30..33, 20..23), so
+      // the old Blacksmith at (32, 20) and Barracks at (34, 20) both
+      // collided with the TC footprint. Moved both buildings west of
+      // the TC so they are adjacent but not overlapping.
+      { kind: 'barracks', x: 34, y: 24, owner: 2, baseOwner: 2 },
+      { kind: 'blacksmith', x: 26, y: 21, owner: 2, baseOwner: 2 },
       // Human scout positioned inside the AI's base vision but south
       // of the Town Center so the Watch Tower anchor ends up south as
       // well.
@@ -5265,11 +5310,16 @@ function createTileSelectionCycleFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 7 },
       },
       {
+        // Slice 12 Task B: deliberate overlap — the UX test needs a
+        // house + militia + sheep stacked on one cell so the tile-
+        // selection-cycle can iterate through all three. Opt out of
+        // the fixture validator via `allowOverlappingSpawn` on each.
         kind: 'house',
         x: FIXTURE_STACK_POSITION.x,
         y: FIXTURE_STACK_POSITION.y,
         owner: 1,
         baseOwner: 1,
+        allowOverlappingSpawn: true,
       },
       {
         kind: 'militia',
@@ -5278,6 +5328,7 @@ function createTileSelectionCycleFixture(seed: string): PrototypeScenario {
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
+        allowOverlappingSpawn: true,
       },
       {
         kind: 'sheep',
@@ -5286,6 +5337,7 @@ function createTileSelectionCycleFixture(seed: string): PrototypeScenario {
         owner: null,
         baseOwner: 1,
         amount: 100,
+        allowOverlappingSpawn: true,
       },
       {
         kind: 'town-center',
@@ -5647,17 +5699,24 @@ function createFogMemoryFixture(seed: string): PrototypeScenario {
 function createBuildingFootprintVisionFixture(seed: string): PrototypeScenario {
   // Layout designed so that an enemy 4x4 Town Center has only a single corner
   // cell inside the human player's vision. The human TC sits at (1, 1) with a
-  // small radius-1 vision, and the human scout sits at (16, 13) (also radius 1)
-  // adjacent to the enemy TC's bottom-right corner. The enemy TC anchor is at
+  // small radius-1 vision, and the human scout sits at (17, 13) — one cell
+  // east of the enemy TC's bottom-right corner. The enemy TC anchor is at
   // (13, 10), so its footprint covers (13..16, 10..13).
   //
-  // From the scout at (16, 13), squared distance to each TC cell:
-  //   (13,10) anchor    : 9 + 9 = 18  (NOT visible at radius 1)
-  //   (16, 13)  corner  : 0           (visible)
-  //   (15, 13), (16, 12): 1           (visible)
-  // The TC anchor itself sits well outside the scout's vision, so a top-left
-  // -only check would treat the TC as hidden; the corrected check sees the
-  // bottom-right corner is visible and renders the TC as live.
+  // Slice 12 Task B moved the scout out of the building footprint: the
+  // previous (16, 13) slot was itself inside the enemy TC's footprint,
+  // which the fixture-validation pass rightly rejects. The new (17, 13)
+  // position keeps the single-corner visibility test intact — the scout's
+  // radius-1 vision still covers exactly one TC cell (16, 13) — while
+  // leaving every other footprint cell hidden.
+  //
+  // From the scout at (17, 13), the only TC cell within radius 1 is
+  // (16, 13), the bottom-right corner. (15, 13) is distance 2, outside
+  // radius 1; (16, 12) is distance √2 which is also outside radius 1 in
+  // the `VisibilityMap`'s square-grid cell semantics. The projector's
+  // footprint-aware check sees that one visible cell and renders the TC
+  // as live; a top-left -only check would miss it and treat the TC as
+  // hidden.
   return {
     seed,
     width: MAP_WIDTH,
@@ -5684,7 +5743,7 @@ function createBuildingFootprintVisionFixture(seed: string): PrototypeScenario {
       },
       {
         kind: 'scout',
-        x: 16,
+        x: 17,
         y: 13,
         owner: 1,
         baseOwner: 1,
@@ -5698,6 +5757,92 @@ function createBuildingFootprintVisionFixture(seed: string): PrototypeScenario {
         baseOwner: 2,
       },
     ],
+  };
+}
+
+// Slice 12 Task B: minimal all-grass fixtures for the scenario-validation
+// pass. Each seed wires in exactly one mistake; the `-ok-fixture` variant
+// is the positive control. The `starts` entry is required because the
+// bridge's score + age helpers key on it, but the minimal single-TC
+// human-only setup is enough to test the validator.
+function createScenarioValidationFixture(seed: string): PrototypeScenario {
+  const baseSpawns: ScenarioSpawnSpec[] = [
+    {
+      kind: 'town-center',
+      x: 4,
+      y: 4,
+      owner: 1,
+      baseOwner: 1,
+      vision: { playerId: 1, radius: 7 },
+    },
+  ];
+
+  switch (seed) {
+    case 'slice12-validation-ok-fixture':
+      break;
+    case 'slice12-validation-out-of-bounds-fixture':
+      // A 4x4 Town Center anchored at x = MAP_WIDTH - 1 extends past
+      // the right edge (x = MAP_WIDTH + 2).
+      baseSpawns.push({
+        kind: 'town-center',
+        x: MAP_WIDTH - 1,
+        y: 5,
+        owner: 2,
+        baseOwner: 2,
+      });
+      break;
+    case 'slice12-validation-overlap-fixture':
+      // A 2x2 house placed inside the human TC's 4x4 footprint (TC
+      // covers x=[4,7], y=[4,7]; house at (5,5) covers x=[5,6], y=[5,6]).
+      baseSpawns.push({
+        kind: 'house',
+        x: 5,
+        y: 5,
+        owner: 1,
+        baseOwner: 1,
+      });
+      break;
+    case 'slice12-validation-unit-in-building-fixture':
+      // A Spearman anchored at (5, 5) sits inside the TC footprint with
+      // no `requiresSafeSpawn` escape. Validation should catch that the
+      // unit cannot legally live inside a building.
+      baseSpawns.push({
+        kind: 'spearman',
+        x: 5,
+        y: 5,
+        owner: 1,
+        baseOwner: 1,
+      });
+      break;
+    case 'slice12-validation-resource-on-building-fixture':
+      // Gold mine placed on a town-center footprint cell.
+      baseSpawns.push({
+        kind: 'gold-mine',
+        x: 5,
+        y: 5,
+        owner: null,
+        baseOwner: null,
+        amount: 500,
+      });
+      break;
+    default:
+      // Unknown validation seed — fall through to the ok scenario so
+      // the switch is exhaustive at runtime.
+      break;
+  }
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+    ],
+    spawns: baseSpawns,
   };
 }
 
@@ -6023,9 +6168,10 @@ function createImperialSiegeFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
         kind: 'mangonel',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -6033,7 +6179,7 @@ function createImperialSiegeFixture(seed: string): PrototypeScenario {
       {
         kind: 'scorpion',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -6041,7 +6187,7 @@ function createImperialSiegeFixture(seed: string): PrototypeScenario {
       {
         kind: 'battering-ram',
         x: 14,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -6127,9 +6273,10 @@ function createImperialBlacksmithFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
       },
       {
+        // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
         kind: 'arbalest',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -6137,7 +6284,7 @@ function createImperialBlacksmithFixture(seed: string): PrototypeScenario {
       {
         kind: 'champion',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -6145,7 +6292,7 @@ function createImperialBlacksmithFixture(seed: string): PrototypeScenario {
       {
         kind: 'halberdier',
         x: 14,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -6153,7 +6300,7 @@ function createImperialBlacksmithFixture(seed: string): PrototypeScenario {
       {
         kind: 'cavalier',
         x: 16,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -6201,9 +6348,10 @@ function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScenario {
         vision: { playerId: 1, radius: 7 },
       },
       {
+        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'onager',
         x: 10,
-        y: 10,
+        y: 13,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 10 },
@@ -6220,7 +6368,7 @@ function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 12,
-        y: 10,
+        y: 13,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -7196,6 +7344,20 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'arena-fixture' || seed === 'arena') {
     return createArenaMap(seed);
+  }
+
+  // Slice 12 Task B: scenario-validation fixtures. Each seed here is a
+  // minimal scenario designed to exercise one failure mode of the new
+  // bridge-boot validation pass. The `-ok-fixture` seed is the positive
+  // control (no overlaps, no out-of-bounds, no wedged units).
+  if (
+    seed === 'slice12-validation-ok-fixture'
+    || seed === 'slice12-validation-out-of-bounds-fixture'
+    || seed === 'slice12-validation-overlap-fixture'
+    || seed === 'slice12-validation-unit-in-building-fixture'
+    || seed === 'slice12-validation-resource-on-building-fixture'
+  ) {
+    return createScenarioValidationFixture(seed);
   }
 
   const terrain = createBaseTerrain(seed);

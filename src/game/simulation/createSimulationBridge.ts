@@ -21,6 +21,7 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
+import { findSafeSpawnWithEgress } from './spawn';
 import {
   AI_BASE_VISION_RADIUS,
   AI_WATCH_TOWER_FORWARD_STEP,
@@ -170,6 +171,17 @@ export interface SimulationDebugSnapshot {
     plan: string;
     villagerTargets: Partial<Record<string, number>>;
     attackGroupSize: number;
+  }>;
+  // Slice 12 Task D: per-unit probe for the "coarse-vs-fine" debug
+  // overlay. `coarseX/Y` is the integer simulation cell; `fineX/Y` is
+  // the interpolated render position (in whole-cell units). The scene
+  // draws a line from coarse → fine for every entry.
+  coarseVsFine: Array<{
+    id: number;
+    coarseX: number;
+    coarseY: number;
+    fineX: number;
+    fineY: number;
   }>;
 }
 
@@ -2728,6 +2740,27 @@ function createWorld(
       });
     }
 
+    // Slice 12 Task D: coarse-vs-fine probe. Every unit with both a
+    // `Position` (coarse integer cell) and a `UnitTransform` (fine
+    // sub-grid coordinates) contributes one entry. Fine coordinates are
+    // reported in whole-cell units so the renderer can draw the line
+    // directly without rescaling.
+    const coarseVsFine: SimulationDebugSnapshot['coarseVsFine'] = [];
+    for (const unitId of world.query('position', 'unit', 'unitTransform')) {
+      const position = world.getComponent<Position>(unitId, 'position');
+      const transform = world.getComponent<UnitTransformComponent>(unitId, 'unitTransform');
+      if (!position || !transform) {
+        continue;
+      }
+      coarseVsFine.push({
+        id: unitId,
+        coarseX: position.x,
+        coarseY: position.y,
+        fineX: transform.fineX / UNIT_SUBGRID_RESOLUTION,
+        fineY: transform.fineY / UNIT_SUBGRID_RESOLUTION,
+      });
+    }
+
     return {
       tick: world.tick,
       // Per-tick ms, entity count, and visible cell count flow through the
@@ -2737,6 +2770,7 @@ function createWorld(
       entityCount: 0,
       unitPaths,
       aiSummaries,
+      coarseVsFine,
     };
   }
   const garrisonedByBuilding = new Map<number, number[]>();
@@ -3408,6 +3442,13 @@ function createWorld(
   // entity is already in the deserialized world. Side-map population
   // happens further below from `savedGame.sideMaps`.
   if (!savedGame) {
+  // Slice 12 Task B: entity ids whose spawn spec set
+  // `allowOverlappingSpawn: true`. The fixture-validation pass skips
+  // these when checking for unit-in-building and building-overlap
+  // wedges so test fixtures that intentionally stack otherwise-illegal
+  // entities (e.g., the tile-selection-cycle UX fixture) can keep
+  // doing so without false positives.
+  const overlapWhitelist = new Set<number>();
   for (const spawn of scenario.spawns) {
     if (
       spawn.kind === 'town-center'
@@ -3445,6 +3486,9 @@ function createWorld(
       }
       if (typeof spawn.startingRelicsInMonastery === 'number' && spawn.kind === 'monastery') {
         relicsInMonastery.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery));
+      }
+      if (spawn.allowOverlappingSpawn) {
+        overlapWhitelist.add(buildingId);
       }
       continue;
     }
@@ -3495,18 +3539,126 @@ function createWorld(
       if (spawn.wanderBounds) {
         world.addComponent(unitId, 'wanderBounds', spawn.wanderBounds);
       }
+      if (spawn.allowOverlappingSpawn) {
+        overlapWhitelist.add(unitId);
+      }
       continue;
     }
 
-    addResourceEntity(
+    const resourceId = addResourceEntity(
       spawn.kind,
       { x: spawn.x, y: spawn.y },
       spawn.amount ?? 0,
       spawn.baseOwner,
     );
+    if (spawn.allowOverlappingSpawn) {
+      overlapWhitelist.add(resourceId);
+    }
   }
 
   updateSheepOwnership(world);
+
+  // Slice 12 Task B: validate that the scenario spawns produced a legal
+  // world. Each live building, unit, and resource must sit inside the
+  // map, on passable terrain, and not overlap another building's
+  // footprint. The scenario-spawn loop above has special-cased
+  // `requiresSafeSpawn` for units, but a badly-authored fixture can
+  // still wedge a unit directly on top of a building footprint or place
+  // two buildings so their footprints collide — this pass catches those
+  // cases at boot, before they produce an opaque downstream crash.
+  //
+  // Buildings: every footprint cell must be inside the map bounds and
+  // not overlap another building's footprint.
+  for (const buildingId of world.query('building', 'position')) {
+    const position = world.getComponent<Position>(buildingId, 'position');
+    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+    if (!position || !building) {
+      continue;
+    }
+    const footprint = buildingFootprint(building.buildingType);
+    for (let offsetY = 0; offsetY < footprint.height; offsetY += 1) {
+      for (let offsetX = 0; offsetX < footprint.width; offsetX += 1) {
+        const cellX = position.x + offsetX;
+        const cellY = position.y + offsetY;
+        if (cellX < 0 || cellX >= MAP_WIDTH || cellY < 0 || cellY >= MAP_HEIGHT) {
+          throw new Error(
+            `Scenario '${scenario.seed}': ${building.buildingType} anchored at (${position.x},${position.y}) extends past map bounds at cell (${cellX},${cellY}).`,
+          );
+        }
+        // Detect building-on-building overlap by finding any other
+        // building whose footprint also covers this cell. Skip when
+        // either side of the pair is marked `allowOverlappingSpawn`.
+        if (overlapWhitelist.has(buildingId)) {
+          continue;
+        }
+        for (const otherId of world.query('building', 'position')) {
+          if (otherId === buildingId || overlapWhitelist.has(otherId)) {
+            continue;
+          }
+          if (buildingOccupiesCell(otherId, cellX, cellY)) {
+            const otherBuilding = world.getComponent<BuildingComponent>(otherId, 'building');
+            throw new Error(
+              `Scenario '${scenario.seed}': ${building.buildingType} at (${position.x},${position.y}) overlaps ${otherBuilding?.buildingType ?? 'another building'} at cell (${cellX},${cellY}).`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // Units: each unit's cell must be inside bounds, on passable terrain,
+  // and not on top of a building footprint. The scenario loop may have
+  // already relocated units with `requiresSafeSpawn`, so we read the
+  // unit's final `Position` here rather than the spawn spec.
+  for (const unitId of world.query('unit', 'position')) {
+    const position = world.getComponent<Position>(unitId, 'position');
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!position || !unit) {
+      continue;
+    }
+    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns outside map bounds at (${position.x},${position.y}).`,
+      );
+    }
+    if (!isTerrainPassableForUnit(position.x, position.y)) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns on impassable terrain at (${position.x},${position.y}).`,
+      );
+    }
+    if (overlapWhitelist.has(unitId)) {
+      continue;
+    }
+    if (isCellBlockedByBuilding(position.x, position.y)) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns inside a building footprint at (${position.x},${position.y}).`,
+      );
+    }
+  }
+
+  // Resources: cells must be inside bounds, on passable terrain (except
+  // shoreline fish which ride water — fish are not blocked by water),
+  // and not on a building footprint.
+  for (const resourceId of world.query('resource', 'position')) {
+    const position = world.getComponent<Position>(resourceId, 'position');
+    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
+    if (!position || !resource) {
+      continue;
+    }
+    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${resource.resourceType} resource spawns outside map bounds at (${position.x},${position.y}).`,
+      );
+    }
+    if (overlapWhitelist.has(resourceId)) {
+      continue;
+    }
+    if (isCellBlockedByBuilding(position.x, position.y)) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${resource.resourceType} resource at (${position.x},${position.y}) overlaps a building footprint.`,
+      );
+    }
+  }
   } // end if (!savedGame) — fresh-start entity spawn
 
   // Slice 9: when loading from a save blob, hydrate every side map
@@ -4155,34 +4307,19 @@ function createWorld(
     );
   }
 
-  function hasSpawnEgress(
-    candidate: Position,
-    ignoredUnitId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    if (!isCellPassableForSpawn(candidate.x, candidate.y, ignoredUnitId, activeWorld)) {
-      return false;
-    }
-
-    return CARDINAL_NEIGHBOR_OFFSETS.some((offset) =>
-      isCellPassableForSpawn(candidate.x + offset.x, candidate.y + offset.y, ignoredUnitId, activeWorld),
-    );
-  }
-
   function findSafeSpawnPosition(
     candidates: Position[],
     ignoredUnitId: number | null = null,
     activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
-    for (const candidate of uniquePositions(candidates)) {
-      if (!hasSpawnEgress(candidate, ignoredUnitId, activeWorld)) {
-        continue;
-      }
-
-      return candidate;
-    }
-
-    return null;
+    // Slice 12 Task A: delegate the "cell passable + at least one passable
+    // neighbor" rule to `findSafeSpawnWithEgress` so the scenario-spawn,
+    // producer-spawn, and ungarrison flows share one egress definition.
+    return findSafeSpawnWithEgress({
+      candidates: uniquePositions(candidates),
+      isCellPassable: (x, y) => isCellPassableForSpawn(x, y, ignoredUnitId, activeWorld),
+      neighborOffsets: CARDINAL_NEIGHBOR_OFFSETS,
+    });
   }
 
   function findScenarioSpawnPosition(

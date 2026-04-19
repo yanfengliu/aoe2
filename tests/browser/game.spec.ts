@@ -3299,10 +3299,14 @@ test.describe('browser gameplay smoke tests', () => {
     await expect(overlay).toContainText(/pathing/i);
 
     // Cycle back to off so tests that follow this one on a shared page
-    // aren't affected.
+    // aren't affected. Slice 12 Task D added the `coarse-vs-fine` mode
+    // between `perf` and `off`.
     await page.keyboard.press('F2'); // fog-state
     await page.keyboard.press('F2'); // ai-state
     await page.keyboard.press('F2'); // perf
+    await page.keyboard.press('F2'); // coarse-vs-fine
+    await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'coarse-vs-fine');
+    await expect(overlay).toContainText(/coarse-vs-fine/i);
     await page.keyboard.press('F2'); // off
     await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'off');
   });

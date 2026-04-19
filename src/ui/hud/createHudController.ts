@@ -55,7 +55,12 @@ export type DebugOverlayMode =
   | 'pathing'
   | 'fog-state'
   | 'ai-state'
-  | 'perf';
+  | 'perf'
+  // Slice 12 Task D: visualize the delta between coarse (integer cell)
+  // simulation position and the interpolated render transform so the
+  // "unit simulating at A, rendering at B" class of bugs becomes easy
+  // to spot live.
+  | 'coarse-vs-fine';
 
 const DEBUG_OVERLAY_CYCLE: DebugOverlayMode[] = [
   'off',
@@ -64,6 +69,7 @@ const DEBUG_OVERLAY_CYCLE: DebugOverlayMode[] = [
   'fog-state',
   'ai-state',
   'perf',
+  'coarse-vs-fine',
 ];
 
 interface MinimapLayout {
@@ -1771,6 +1777,16 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
         );
       }
       debugOverlay.textContent = lines.join('\n');
+      return;
+    }
+
+    if (debugOverlayMode === 'coarse-vs-fine') {
+      // Slice 12 Task D: the scene draws the per-unit coarse → fine
+      // line; the HUD pane just reports the unit count so the player
+      // can confirm the overlay is actually on.
+      debugOverlay.textContent =
+        `Debug: coarse-vs-fine (F2)\n`
+        + `Units tracked: ${snapshot.coarseVsFine?.length ?? 0}`;
       return;
     }
 
