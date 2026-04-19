@@ -181,6 +181,28 @@ export interface SerializedSideMaps {
     cooldownTicks: number;
   }>;
   wildlifeStates: SerializedEntityKeyedSideMap<SerializedWildlifeState>;
+  // Slice 10: per-owner AI state. Keyed by player id. `attackGroup` is
+  // serialized as a plain number array (entity ids, not refs — stale
+  // ids are filtered on the next decision tick, so generation tracking
+  // is unnecessary here). `lastEnemySightingPosition` is JSON-safe
+  // because it's either null or `{x, y}`.
+  aiStates: SerializedMap<
+    number,
+    {
+      difficulty: 'easy' | 'standard' | 'hard';
+      plan: 'opening' | 'feudal-push' | 'castle-push' | 'imperial-push' | 'defend';
+      villagerTargets: {
+        food?: number;
+        wood?: number;
+        gold?: number;
+        stone?: number;
+      };
+      attackGroup: number[];
+      lastDecisionTick: number;
+      lastEnemySightingTick: number;
+      lastEnemySightingPosition: { x: number; y: number } | null;
+    }
+  >;
 }
 
 // Serialized match state. Mirrors `MatchState` but is duplicated here

@@ -21,6 +21,24 @@ import {
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
+import {
+  AI_BASE_VISION_RADIUS,
+  AI_WATCH_TOWER_FORWARD_STEP,
+  DEFAULT_DIFFICULTY,
+  ageUpResourceBuffer,
+  attackGroupSize,
+  decisionIntervalTicks,
+  gatherMultiplier,
+  pickNextAgeResearch,
+  pickNextBuildTarget,
+  pickUnitMix,
+  planForAge,
+  villagerTargetsEqual,
+  villagerTargetsForAge,
+  type AiPlan,
+  type AiState,
+  type DifficultyLevel,
+} from './ai';
 import type {
   ActionType,
   AgeType,
@@ -2622,6 +2640,32 @@ function createWorld(
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
   const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
+  // Slice 10: per-owner AI state. Keyed by player id (non-human owners
+  // get an entry at scenario bootstrap via `ensureAiState`). The
+  // `prototypeAi` system reads this to drive a planner-style decision
+  // loop; save/load serializes it through the same side-map boundary
+  // as every other piece of runtime state (see `SerializedSideMaps`).
+  const aiStates = new Map<number, AiState>();
+  function ensureAiState(
+    owner: number,
+    difficulty: DifficultyLevel = DEFAULT_DIFFICULTY,
+  ): AiState {
+    let state = aiStates.get(owner);
+    if (!state) {
+      const age = playerAges.get(owner) ?? 'dark-age';
+      state = {
+        difficulty,
+        plan: planForAge(age),
+        villagerTargets: { ...villagerTargetsForAge(age) },
+        attackGroup: [],
+        lastDecisionTick: -1,
+        lastEnemySightingTick: -1,
+        lastEnemySightingPosition: null,
+      };
+      aiStates.set(owner, state);
+    }
+    return state;
+  }
   // Slice 5 Monk runtime counters. Hoisted to the top of `createWorld`
   // alongside the other side maps so the Slice 9 save/load path can
   // both serialize and rehydrate them. The original declaration site
@@ -2714,6 +2758,13 @@ function createWorld(
         start.owner,
         Math.max(1, start.relicCountdownOverrideTicks),
       );
+    }
+    // Slice 10: every non-human player gets an AiState so the planner
+    // loop has somewhere to track plan phase + decision cadence. The
+    // human player intentionally stays out of this map — the bridge's
+    // `prototypeAi` system keys off `aiStates` membership.
+    if (start.owner !== HUMAN_PLAYER_ID) {
+      ensureAiState(start.owner, start.difficulty ?? DEFAULT_DIFFICULTY);
     }
   }
 
@@ -3501,6 +3552,19 @@ function createWorld(
     }
     for (const [id, state] of blob.buildingCombatStates) {
       buildingCombatStates.set(id, { ...state });
+    }
+    for (const [owner, state] of blob.aiStates ?? []) {
+      aiStates.set(owner, {
+        difficulty: state.difficulty,
+        plan: state.plan as AiPlan,
+        villagerTargets: { ...state.villagerTargets },
+        attackGroup: [...state.attackGroup],
+        lastDecisionTick: state.lastDecisionTick,
+        lastEnemySightingTick: state.lastEnemySightingTick,
+        lastEnemySightingPosition: state.lastEnemySightingPosition
+          ? { x: state.lastEnemySightingPosition.x, y: state.lastEnemySightingPosition.y }
+          : null,
+      });
     }
     for (const [id, state] of blob.wildlifeStates) {
       const ref = state.targetEntityRef ? refFromSerialized(state.targetEntityRef) : null;
@@ -5182,6 +5246,25 @@ function createWorld(
     return countCompletedOwnedBuildings(owner, (candidate) => candidate === buildingType) > 0;
   }
 
+  // Slice 10 AI helper. Returns true if the owner has any in-progress
+  // (not-yet-complete) building of the given type. Used by the AI's
+  // build loop so it doesn't stack overlapping House placements while
+  // one is already being raised. Construction-complete or unknown-
+  // construction buildings do not count here.
+  function isConstructingBuilding(owner: number, buildingType: BuildingType): boolean {
+    for (const id of world.query('building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== owner || building.buildingType !== buildingType) {
+        continue;
+      }
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Slice 8: owner already has a Wonder on the board (in construction OR
   // complete). Used to cap the number of Wonders per player to one and to
   // drive the countdown-start/reset logic in `prototypeWonderCountdown`.
@@ -6131,6 +6214,210 @@ function createWorld(
     }
   }
 
+  // Slice 10: is `unitType` a trainable military unit? Used by the AI to
+  // decide what counts toward the attack-group threshold and to filter
+  // villagers / monks out of push targets. Siege and ranged / melee /
+  // cavalry military all qualify; villagers, monks, and scouts do not.
+  function isAiMilitaryUnit(unitType: UnitType): boolean {
+    switch (unitType) {
+      case 'militia':
+      case 'champion':
+      case 'spearman':
+      case 'pikeman':
+      case 'halberdier':
+      case 'archer':
+      case 'crossbowman':
+      case 'arbalest':
+      case 'skirmisher':
+      case 'longbowman':
+      case 'elite-longbowman':
+      case 'knight':
+      case 'cavalier':
+      case 'light-cavalry':
+      case 'hussar':
+      case 'camel':
+      case 'cavalry-archer':
+      case 'heavy-cavalry-archer':
+      case 'mangonel':
+      case 'onager':
+      case 'scorpion':
+      case 'heavy-scorpion':
+      case 'battering-ram':
+      case 'siege-ram':
+      case 'bombard-cannon':
+      case 'trebuchet':
+        return true;
+      case 'villager':
+      case 'scout':
+      case 'monk':
+        return false;
+    }
+  }
+
+  // Slice 10 AI helper. Returns the owner's idle (no active command)
+  // military units. Used to count push-ready forces and to issue
+  // attack-group commands.
+  function findOwnedMilitaryUnits(owner: number): Array<{ id: number; position: Position }> {
+    const results: Array<{ id: number; position: Position }> = [];
+    for (const id of world.query('position', 'unit')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      const position = world.getComponent<Position>(id, 'position');
+      if (!unit || !position || unit.owner !== owner || !isAiMilitaryUnit(unit.unitType)) {
+        continue;
+      }
+      results.push({ id, position });
+    }
+    return results;
+  }
+
+  // Slice 10 AI helper. Return every owned military unit's id as a set
+  // for fast membership tests during attack-group pruning.
+  function ownedMilitaryUnitIds(owner: number): Set<number> {
+    const ids = new Set<number>();
+    for (const id of world.query('unit')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (unit && unit.owner === owner && isAiMilitaryUnit(unit.unitType)) {
+        ids.add(id);
+      }
+    }
+    return ids;
+  }
+
+  // Slice 10 AI helper. Choose a Watch Tower placement anchor between
+  // the AI's Town Center and the most recent enemy sighting. Steps the
+  // anchor one AI_WATCH_TOWER_FORWARD_STEP toward the sighting so the
+  // tower sits forward of the base rather than on top of it.
+  function pickWatchTowerPlacement(
+    townCenter: Position,
+    sighting: Position,
+  ): Position | null {
+    const dx = sighting.x - townCenter.x;
+    const dy = sighting.y - townCenter.y;
+    const distance = Math.abs(dx) + Math.abs(dy);
+    if (distance <= 0) {
+      return findBuildPlacementNear(townCenter, 'watch-tower');
+    }
+    const step = Math.min(AI_WATCH_TOWER_FORWARD_STEP, Math.max(1, Math.floor(distance / 2)));
+    const toward = {
+      x: Math.round(townCenter.x + (dx * step) / distance),
+      y: Math.round(townCenter.y + (dy * step) / distance),
+    };
+    return findBuildPlacementNear(toward, 'watch-tower');
+  }
+
+  // Slice 10 AI helper. Find one owned building of the requested type
+  // whose construction is complete AND that has capacity in its
+  // production queue (≤ 2 entries, matching human-player UX). Returns
+  // null if nothing qualifies; the AI tries again on the next decision
+  // tick.
+  function findIdleProducer(owner: number, buildingType: BuildingType): number | null {
+    for (const id of world.query('building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== owner || building.buildingType !== buildingType) {
+        continue;
+      }
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        continue;
+      }
+      const queue = productionQueues.get(id) ?? [];
+      if (queue.length >= 2) {
+        continue;
+      }
+      return id;
+    }
+    return null;
+  }
+
+  // Slice 10 AI helper. Assign the owner's idle villagers to gather
+  // from the desired resource, walking toward the `villagerTargets`
+  // distribution one reassignment at a time per decision tick. Flips
+  // the gatherer component's `desiredResource` and forces a fresh
+  // assignNearestResource on the next idle tick.
+  function villagerRebalance(
+    owner: number,
+    targets: Partial<Record<EconomyResourceKind, number>>,
+  ): void {
+    const desiredByKind: Record<EconomyResourceKind, number> = {
+      food: targets.food ?? 0,
+      wood: targets.wood ?? 0,
+      gold: targets.gold ?? 0,
+      stone: targets.stone ?? 0,
+    };
+    const actualByKind: Record<EconomyResourceKind, number> = {
+      food: 0,
+      wood: 0,
+      gold: 0,
+      stone: 0,
+    };
+    const villagersByKind: Record<EconomyResourceKind, number[]> = {
+      food: [],
+      wood: [],
+      gold: [],
+      stone: [],
+    };
+    for (const id of world.query('unit', 'gatherer')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+      if (!unit || !gatherer || unit.owner !== owner || unit.unitType !== 'villager') {
+        continue;
+      }
+      const resource = gatherer.desiredResource;
+      actualByKind[resource] += 1;
+      villagersByKind[resource].push(id);
+    }
+
+    // Rebalance metric: compare actual / desired ratios. The kind
+    // whose actual / desired ratio is WORST (ratio low = under-served)
+    // is the deficit kind; the kind with the HIGHEST ratio (actual
+    // exceeding or most-served vs desired) is the donor. Using the
+    // ratio rather than the absolute gap means the rebalance fires
+    // even when every kind is under its target — a common case when
+    // total villagers is smaller than total desired villagers.
+    const kinds: EconomyResourceKind[] = ['food', 'wood', 'gold', 'stone'];
+    let worstKind: EconomyResourceKind | null = null;
+    let worstRatio = Number.POSITIVE_INFINITY;
+    let bestKind: EconomyResourceKind | null = null;
+    let bestRatio = Number.NEGATIVE_INFINITY;
+    for (const kind of kinds) {
+      const desired = desiredByKind[kind];
+      if (desired <= 0) {
+        continue; // Avoid divide-by-zero; zero-target kinds don't pull villagers.
+      }
+      const ratio = actualByKind[kind] / desired;
+      if (ratio < worstRatio) {
+        worstRatio = ratio;
+        worstKind = kind;
+      }
+      if (ratio > bestRatio && villagersByKind[kind].length > 0) {
+        bestRatio = ratio;
+        bestKind = kind;
+      }
+    }
+
+    // Only rebalance when there's a meaningful gap between the
+    // best-served and worst-served kinds, and the donor kind has at
+    // least one villager to spare. Otherwise skip this decision tick.
+    if (
+      worstKind
+      && bestKind
+      && worstKind !== bestKind
+      && bestRatio - worstRatio > 0.01
+    ) {
+      const donorId = villagersByKind[bestKind][0];
+      if (donorId !== undefined) {
+        const gatherer = world.getComponent<GathererComponent>(donorId, 'gatherer');
+        if (gatherer) {
+          gatherer.desiredResource = worstKind;
+          gatherer.hasExplicitGatherOrder = false;
+          gatherer.task = 'idle';
+          gatherer.targetResourceId = null;
+          gatherer.gatherProgressTicks = 0;
+        }
+      }
+    }
+  }
+
   world.registerSystem({
     name: 'prototypeAi',
     phase: 'update',
@@ -6144,56 +6431,282 @@ function createWorld(
           ? null
           : activeWorld.getComponent<Position>(humanTownCenterId, 'position');
 
-      for (const [owner] of playerResources.entries()) {
-        if (owner === HUMAN_PLAYER_ID) {
+      const currentTick = activeWorld.tick;
+
+      for (const [owner, state] of aiStates.entries()) {
+        // Decision gating: the AI loop body runs once every N ticks.
+        // Between decisions, military units stay on whatever attack
+        // command the last decision issued — that carries the push
+        // forward without the AI having to re-issue orders every tick.
+        const interval = decisionIntervalTicks(state.difficulty);
+        if (state.lastDecisionTick >= 0 && currentTick - state.lastDecisionTick < interval) {
           continue;
         }
+        state.lastDecisionTick = currentTick;
 
-        const humanVillagerId = findOwnedUnit(HUMAN_PLAYER_ID, 'villager');
         const ownerTownCenterId = currentEntityId(activeWorld, townCenterRefs.get(owner));
         const ownerTownCenterPosition =
           ownerTownCenterId === null
             ? null
             : activeWorld.getComponent<Position>(ownerTownCenterId, 'position');
 
+        // Plan drifts to match the current age every decision tick.
+        const currentAge = getPlayerAge(owner);
+        const nextPlan = planForAge(currentAge);
+        if (state.plan !== 'defend' && state.plan !== nextPlan) {
+          state.plan = nextPlan;
+        }
+
+        // Keep the villager-targets entry in sync with the plan. The
+        // bridge rebalances at most one villager per decision tick so
+        // the economy nudges steadily toward the target without
+        // whiplash.
+        const desiredTargets = villagerTargetsForAge(currentAge);
+        if (!villagerTargetsEqual(state.villagerTargets, desiredTargets)) {
+          state.villagerTargets = { ...desiredTargets };
+        }
+        villagerRebalance(owner, state.villagerTargets);
+
+        // Scouting response: scan for enemy units within the "near
+        // base" radius. If any are visible, record the sighting so the
+        // build-order loop below knows to commit a Watch Tower on the
+        // way to the threat.
+        if (ownerTownCenterPosition) {
+          for (const enemyId of activeWorld.queryInRadius(
+            ownerTownCenterPosition.x,
+            ownerTownCenterPosition.y,
+            AI_BASE_VISION_RADIUS,
+            'position',
+            'unit',
+          )) {
+            const enemyUnit = activeWorld.getComponent<UnitComponent>(enemyId, 'unit');
+            const enemyPos = activeWorld.getComponent<Position>(enemyId, 'position');
+            if (
+              !enemyUnit
+              || !enemyPos
+              || enemyUnit.owner === owner
+              || !visibility.isVisible(owner, enemyPos.x, enemyPos.y)
+            ) {
+              continue;
+            }
+            state.lastEnemySightingTick = currentTick;
+            state.lastEnemySightingPosition = { x: enemyPos.x, y: enemyPos.y };
+            break;
+          }
+        }
+
         const populationState = population.get(owner);
-        const houseId = findOwnedBuilding(owner, 'house');
-        if (
-          houseId === null
-          && ownerTownCenterPosition
-          && populationState
-          && populationState.current >= populationState.cap
-        ) {
-          const builderId = findAvailableVillager(owner);
-          const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'house');
-          if (builderId !== null && anchor) {
-            startConstruction(builderId, 'house', anchor);
+        const populationBlocked = Boolean(
+          populationState && populationState.current >= populationState.cap,
+        );
+
+        // Build-order loop: pick the next missing building (houses,
+        // gather camps, military buildings, age prerequisites) and
+        // dispatch an idle villager to place it. The scouting-response
+        // check wedges a Watch Tower into the build order when an
+        // enemy has been spotted within the last decision interval.
+        if (ownerTownCenterPosition) {
+          const sightingFresh =
+            state.lastEnemySightingTick >= 0
+            && currentTick - state.lastEnemySightingTick <= interval * 2;
+          if (
+            sightingFresh
+            && state.lastEnemySightingPosition
+            && !findOwnedBuilding(owner, 'watch-tower')
+            && hasCompletedBuilding(owner, 'blacksmith')
+          ) {
+            const builderId = findAvailableVillager(owner);
+            const anchor = pickWatchTowerPlacement(
+              ownerTownCenterPosition,
+              state.lastEnemySightingPosition,
+            );
+            if (builderId !== null && anchor) {
+              startConstruction(builderId, 'watch-tower', anchor);
+            }
+          }
+
+          const missing = (buildingType: BuildableBuildingType): boolean => {
+            if (buildingType === 'house') {
+              // Houses are the exception to the "one is enough" rule —
+              // we keep needing more as we grow. "Missing" here means
+              // "population is blocked or near-blocked AND the owner
+              // is not already constructing a House".
+              if (populationBlocked) {
+                return !isConstructingBuilding(owner, 'house');
+              }
+              return false;
+            }
+            // `findOwnedBuilding` catches both in-progress and
+            // complete buildings — we only want to kick a new build
+            // when neither exists. Otherwise the AI would assign
+            // every spare villager to duplicate construction sites.
+            return !findOwnedBuilding(owner, buildingType);
+          };
+
+          // Count ongoing villager builds so the AI doesn't pull
+          // EVERY villager into construction mode — at least one
+          // should stay gathering so the economy keeps flowing.
+          let ongoingBuilds = 0;
+          for (const [, cmd] of unitCommands.entries()) {
+            if (cmd.type !== 'build') continue;
+            const buildingRef = cmd.buildingRef;
+            if (!buildingRef) continue;
+            const bid = currentEntityId(activeWorld, buildingRef);
+            if (bid === null) continue;
+            const b = activeWorld.getComponent<BuildingComponent>(bid, 'building');
+            if (b && b.owner === owner) ongoingBuilds += 1;
+          }
+          const totalVillagers = countOwnedUnits(owner, 'villager');
+          // Cap at (totalVillagers - 1) so there's always at least one
+          // gatherer left. Tiny AIs with 1 villager get 1 builder
+          // (their single villager).
+          const maxConcurrentBuilds = Math.max(1, totalVillagers - 1);
+
+          const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked);
+          if (nextBuild && ongoingBuilds < maxConcurrentBuilds) {
+            const builderId = findAvailableVillager(owner);
+            const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
+            if (builderId !== null && anchor) {
+              startConstruction(builderId, nextBuild, anchor);
+            }
           }
         }
 
-        const barracksId = findOwnedBuilding(owner, 'barracks');
-        if (barracksId === null && ownerTownCenterPosition) {
-          const builderId = findAvailableVillager(owner);
-          const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'barracks');
-          if (builderId !== null && anchor) {
-            startConstruction(builderId, 'barracks', anchor);
+        // Age-up loop: if the Town Center is idle and the age-up tech
+        // is affordable, queue it. The AI also keeps a small safety
+        // buffer (food + gold) so production does not stall during
+        // the long research countdown.
+        if (ownerTownCenterId !== null) {
+          const tcConstruction = constructionStates.get(ownerTownCenterId);
+          if (!tcConstruction || tcConstruction.isComplete) {
+            const stockpile = playerResources.get(owner);
+            const bufferCost = ageUpResourceBuffer(currentAge);
+            const hasBuffer = stockpile ? canAfford(stockpile, bufferCost) : false;
+            const nextAge = pickNextAgeResearch(
+              currentAge,
+              (tech) => {
+                if (tech === 'feudal-age') return canAdvanceToFeudalAge(owner);
+                if (tech === 'castle-age') return canAdvanceToCastleAge(owner);
+                if (tech === 'imperial-age') return canAdvanceToImperialAge(owner);
+                return false;
+              },
+              (tech) => {
+                const s = playerResources.get(owner);
+                return s ? canAfford(s, researchCost(tech)) : false;
+              },
+            );
+            if (nextAge && hasBuffer) {
+              // enqueueResearch dedupes by `entry.technologyType`
+              // already — duplicate calls while the research is in
+              // flight silently return false.
+              enqueueResearch(ownerTownCenterId, nextAge);
+            }
+
+            // Villager training: keep the Town Center producing
+            // villagers up to an age-scaled cap. Stops early when
+            // population-blocked to avoid stacking queue entries
+            // that sit isBlocked until a House completes.
+            const tcQueue = productionQueues.get(ownerTownCenterId) ?? [];
+            const villagerCap = currentAge === 'dark-age' ? 6 : 14;
+            const currentVillagers =
+              countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager');
+            if (
+              !populationBlocked
+              && currentVillagers < villagerCap
+              && tcQueue.length < 2
+            ) {
+              enqueueTraining(ownerTownCenterId, 'villager');
+            }
           }
         }
 
-        const completedBarracksId = barracksId;
-        if (
-          completedBarracksId !== null
-          && countOwnedUnits(owner, 'militia') + countQueuedUnits(completedBarracksId, 'militia') < 2
-        ) {
-          enqueueTraining(completedBarracksId, 'militia');
+        // Military production: walk the per-age unit mix and enqueue
+        // up to one unit per decision tick. Training pauses when the
+        // AI has nearly enough for the next age-up — otherwise the
+        // military lines eat all the food and the AI stalls between
+        // ages. Each age only trains units the AI actually has
+        // buildings for (pickNextBuildTarget ensures those buildings
+        // get built in order).
+        const nextAgeTech: ResearchableTechnologyType | null =
+          currentAge === 'dark-age' ? 'feudal-age'
+          : currentAge === 'feudal-age' ? 'castle-age'
+          : currentAge === 'castle-age' ? 'imperial-age'
+          : null;
+        const savingForAgeUp = ((): boolean => {
+          if (!nextAgeTech) return false;
+          const s = playerResources.get(owner);
+          if (!s) return false;
+          // Pause training once the AI has >= 60% of the research cost
+          // on hand but isn't at the full threshold yet. That narrow
+          // window lets the stockpile climb over the line without
+          // food getting siphoned into the unit mix.
+          const cost = researchCost(nextAgeTech);
+          const foodTarget = cost.food ?? 0;
+          const goldTarget = cost.gold ?? 0;
+          const foodProgress = foodTarget > 0 ? s.food / foodTarget : 1;
+          const goldProgress = goldTarget > 0 ? s.gold / goldTarget : 1;
+          const minProgress = Math.min(foodProgress, goldProgress);
+          return minProgress >= 0.6 && !canAfford(s, cost);
+        })();
+        const mix = pickUnitMix(currentAge);
+        if (!savingForAgeUp) {
+          for (const { unitType, producer } of mix) {
+            const producerId = findIdleProducer(owner, producer);
+            if (producerId === null) continue;
+            const stockpile = playerResources.get(owner);
+            if (!stockpile) continue;
+            if (!canAfford(stockpile, trainingCost(unitType))) continue;
+            if (!getTrainOptions(owner, producer).includes(unitType)) continue;
+            enqueueTraining(producerId, unitType);
+          }
         }
 
-        for (const id of activeWorld.query('position', 'unit')) {
+        // Upgrades: if any research option is affordable and useful,
+        // queue it. Cheap one-time upgrades (Fletching / Crossbowman
+        // / Pikeman / Light Cavalry / etc.) pay off long-term and the
+        // AI has plenty of spare resource once it enters Castle Age.
+        for (const buildingType of [
+          'blacksmith',
+          'archery-range',
+          'barracks',
+          'stable',
+          'siege-workshop',
+          'castle',
+        ] as const) {
+          const buildingId = findIdleProducer(owner, buildingType);
+          if (buildingId === null) continue;
+          const options = getResearchOptions(owner, buildingType);
+          if (options.length === 0) continue;
+          const stockpile = playerResources.get(owner);
+          if (!stockpile) continue;
+          for (const tech of options) {
+            if (canAfford(stockpile, researchCost(tech))) {
+              enqueueResearch(buildingId, tech);
+              break;
+            }
+          }
+        }
+
+        // Attack-group management: prune destroyed / converted units,
+        // then accumulate idle military into the group until the
+        // age-gated threshold is met. Once met, dispatch the group at
+        // the human's Town Center.
+        const liveMilitary = ownedMilitaryUnitIds(owner);
+        state.attackGroup = state.attackGroup.filter((id) => liveMilitary.has(id));
+        const militaryUnits = findOwnedMilitaryUnits(owner);
+        for (const { id } of militaryUnits) {
+          if (!state.attackGroup.includes(id)) {
+            state.attackGroup.push(id);
+          }
+        }
+
+        const threshold = attackGroupSize(currentAge);
+        const shouldPush = state.attackGroup.length >= threshold;
+
+        for (const id of state.attackGroup) {
           const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
           const position = activeWorld.getComponent<Position>(id, 'position');
-          if (!unit || !position || unit.owner !== owner || unit.unitType !== 'militia') {
-            continue;
-          }
+          if (!unit || !position) continue;
 
           const currentCommand = unitCommands.get(id);
           if (currentCommand?.type === 'attack') {
@@ -6218,7 +6731,14 @@ function createWorld(
             }
           }
 
-          if (humanVillagerId !== null && issueUnitAttackCommand(id, humanVillagerId, 'unit')) {
+          // Units in the attack group always prefer an enemy in their
+          // own vision; the group leader's sight usually drags the
+          // target selection into the human base after the initial
+          // move command. The human villager fallback preserves the
+          // old Barracks-rush behavior — the AI-rush browser test
+          // depends on the AI killing at least one human villager.
+          const humanVillagerId = findOwnedUnit(HUMAN_PLAYER_ID, 'villager');
+          if (shouldPush && humanVillagerId !== null && issueUnitAttackCommand(id, humanVillagerId, 'unit')) {
             continue;
           }
 
@@ -6233,12 +6753,14 @@ function createWorld(
             continue;
           }
 
-          if (humanTownCenterId !== null && issueUnitAttackCommand(id, humanTownCenterId, 'building')) {
-            continue;
-          }
+          if (shouldPush) {
+            if (humanTownCenterId !== null && issueUnitAttackCommand(id, humanTownCenterId, 'building')) {
+              continue;
+            }
 
-          if (humanTownCenterPosition) {
-            issueUnitMoveCommand(id, humanTownCenterPosition);
+            if (humanTownCenterPosition) {
+              issueUnitMoveCommand(id, humanTownCenterPosition);
+            }
           }
         }
       }
@@ -7070,13 +7592,22 @@ function createWorld(
             gatherer.carriedResource = null;
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
+            // Slice 10: AI difficulty modifies the gather-rate via a
+            // per-player multiplier applied at drop-off time. Easy
+            // AIs bank 70% of their carried amount, hard AIs bank 130%
+            // — the worked simulation still walks villagers through
+            // the full gather → return cycle, we only scale the
+            // stockpile increment. Humans gather at 1.0.
+            const aiState = aiStates.get(unit.owner);
+            const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
+            const deposited = Math.round(gatherer.carriedAmount * multiplier);
             if (stockpile) {
-              stockpile[gatherer.carriedResource] += gatherer.carriedAmount;
+              stockpile[gatherer.carriedResource] += deposited;
             }
             // Slice 8: track every unit of dropped-off resource toward the
             // end-of-match score. A small per-unit weight keeps the score
             // readable (1000 gathered ≈ 50 points; see computePlayerScore).
-            ensurePlayerScoreCounters(unit.owner).resourcesGathered += gatherer.carriedAmount;
+            ensurePlayerScoreCounters(unit.owner).resourcesGathered += deposited;
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
@@ -8540,6 +9071,20 @@ function createWorld(
                   id: state.targetEntityRef.id,
                   generation: state.targetEntityRef.generation,
                 }
+              : null,
+          },
+        ]),
+        aiStates: [...aiStates.entries()].map(([owner, state]) => [
+          owner,
+          {
+            difficulty: state.difficulty,
+            plan: state.plan,
+            villagerTargets: { ...state.villagerTargets },
+            attackGroup: [...state.attackGroup],
+            lastDecisionTick: state.lastDecisionTick,
+            lastEnemySightingTick: state.lastEnemySightingTick,
+            lastEnemySightingPosition: state.lastEnemySightingPosition
+              ? { x: state.lastEnemySightingPosition.x, y: state.lastEnemySightingPosition.y }
               : null,
           },
         ]),
