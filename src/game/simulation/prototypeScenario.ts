@@ -7187,6 +7187,17 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createBuildingFootprintVisionFixture(seed);
   }
 
+  // Slice 11: alternate playable maps. Both share the default
+  // two-player layout (same starts, same resource patches near each
+  // base) so existing code paths work identically; only terrain differs.
+  if (seed === 'black-forest-fixture' || seed === 'black-forest') {
+    return createBlackForestMap(seed);
+  }
+
+  if (seed === 'arena-fixture' || seed === 'arena') {
+    return createArenaMap(seed);
+  }
+
   const terrain = createBaseTerrain(seed);
   const starts = createPlayerStarts();
   const spawns: ScenarioSpawnSpec[] = [];
@@ -7311,4 +7322,279 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     starts,
     spawns,
   };
+}
+
+// Slice 11: Black Forest-style map. Dense forest covers the map with
+// carved-out pockets for each player start and a winding corridor
+// between them. Deterministic on the seed so tests and fixtures agree.
+// The standard resource patches near each Town Center are preserved so
+// the opening 2-3 minutes of play feel like Arabia — the differentiator
+// is the wall of trees across the rest of the map.
+function createBlackForestMap(seed: string): PrototypeScenario {
+  const terrain: TerrainCellSpec[][] = Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'forest')),
+  );
+
+  const starts = createPlayerStarts();
+  const spawns: ScenarioSpawnSpec[] = [];
+
+  // Carve out a base pocket (grass) around each start so the Town Center,
+  // villagers, and resource offsets all have valid terrain.
+  const POCKET_RADIUS = 6;
+  for (const start of starts) {
+    paintDisc(terrain, start.townCenter, POCKET_RADIUS, 'grass');
+  }
+
+  // Carve a winding corridor between the two starts. The corridor steps
+  // from one Town Center to the other one tile at a time; at each step
+  // we paint a small disc of grass so the path is passable. The seed
+  // drives a small vertical wiggle so the corridor isn't a dead straight
+  // line — players on the same seed always get the same corridor.
+  const [firstStart, secondStart] = starts;
+  if (firstStart && secondStart) {
+    const rng = createBlackForestWiggleRng(seed);
+    const steps = 28;
+    const dx = (secondStart.townCenter.x - firstStart.townCenter.x) / steps;
+    const dy = (secondStart.townCenter.y - firstStart.townCenter.y) / steps;
+    for (let step = 0; step <= steps; step += 1) {
+      const baseX = Math.round(firstStart.townCenter.x + dx * step);
+      const baseY = Math.round(firstStart.townCenter.y + dy * step);
+      const wiggle = Math.floor(rng() * 3) - 1;
+      paintDisc(terrain, { x: baseX, y: baseY + wiggle }, 2, 'grass');
+    }
+  }
+
+  // Seed tree spawns inside the surviving forest cells so villagers have
+  // something to chop. Every forest cell in the final terrain map gets a
+  // tree, which matches how the base map builds `spawns` in lockstep
+  // with terrain kind.
+  for (let y = 0; y < MAP_HEIGHT; y += 1) {
+    for (let x = 0; x < MAP_WIDTH; x += 1) {
+      if (terrain[y][x].kind === 'forest') {
+        spawns.push({
+          kind: 'tree',
+          x,
+          y,
+          owner: null,
+          baseOwner: null,
+          amount: 100,
+        });
+      }
+    }
+  }
+
+  applyStandardPlayerOpening(terrain, starts, spawns, seed);
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts,
+    spawns,
+  };
+}
+
+// Slice 11: Arena-style map. Each start is ringed by a stone wall, with
+// a mineable gap on the side facing the map center so the player can
+// break out via stone mining. The wall is made of stone-mine nodes
+// (mine-through) rather than forest so the visual language is distinct.
+function createArenaMap(seed: string): PrototypeScenario {
+  const terrain: TerrainCellSpec[][] = Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
+  );
+
+  const starts = createPlayerStarts();
+  const spawns: ScenarioSpawnSpec[] = [];
+
+  const RING_INNER_RADIUS = 6;
+  const RING_OUTER_RADIUS = 7;
+  for (const start of starts) {
+    const ringedStones = collectRingCells(
+      start.townCenter,
+      RING_INNER_RADIUS,
+      RING_OUTER_RADIUS,
+    );
+    for (const cell of ringedStones) {
+      // Small fixed gap on the side facing the map center so the player
+      // has a single exit to mine or path through. Gap is deterministic
+      // per start (no seed randomness) so the fixture reproduces the
+      // same shape each time.
+      if (isCellInArenaGap(start.townCenter, cell)) {
+        continue;
+      }
+      spawns.push({
+        kind: 'stone-mine',
+        x: cell.x,
+        y: cell.y,
+        owner: null,
+        baseOwner: start.owner,
+        amount: 350,
+      });
+    }
+  }
+
+  applyStandardPlayerOpening(terrain, starts, spawns, seed);
+
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts,
+    spawns,
+  };
+}
+
+// Slice 11: helper shared by the alternate maps. Re-uses the default
+// starting-resource / villager / scout patches so each map has the same
+// economic baseline as Arabia. Everything is placed via the existing
+// projectOffset + applyResourcePatch + applyForestPatch helpers, so the
+// offset tables stay the single source of truth.
+function applyStandardPlayerOpening(
+  terrain: TerrainCellSpec[][],
+  starts: PlayerStartSpec[],
+  spawns: ScenarioSpawnSpec[],
+  seed: string,
+): void {
+  for (const start of starts) {
+    paintDisc(terrain, start.townCenter, 4, 'grass');
+
+    spawns.push({
+      kind: 'town-center',
+      x: start.townCenter.x,
+      y: start.townCenter.y,
+      owner: start.owner,
+      baseOwner: start.owner,
+      vision: { playerId: start.owner, radius: 7 },
+    });
+
+    applyResourcePatch(
+      terrain,
+      start.townCenter,
+      STARTING_SHEEP,
+      'sheep',
+      100,
+      start.owner,
+      spawns,
+    );
+    applyResourcePatch(
+      terrain,
+      start.townCenter,
+      STARTING_BOARS,
+      'boar',
+      340,
+      start.owner,
+      spawns,
+    );
+    applyResourcePatch(
+      terrain,
+      start.townCenter,
+      STARTING_BERRIES,
+      'berry-bush',
+      125,
+      start.owner,
+      spawns,
+    );
+    applyResourcePatch(
+      terrain,
+      start.townCenter,
+      STARTING_GOLD,
+      'gold-mine',
+      800,
+      start.owner,
+      spawns,
+    );
+    applyResourcePatch(
+      terrain,
+      start.townCenter,
+      STARTING_STONE,
+      'stone-mine',
+      350,
+      start.owner,
+      spawns,
+    );
+
+    for (const offset of STARTING_VILLAGERS) {
+      const position = projectOffset(start.townCenter, offset);
+      spawns.push({
+        kind: 'villager',
+        x: position.x,
+        y: position.y,
+        owner: start.owner,
+        baseOwner: start.owner,
+        vision: { playerId: start.owner, radius: 4 },
+        requiresSafeSpawn: true,
+      });
+    }
+
+    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
+  }
+
+  // Keep a hint of the seed in the output so two different seeds never
+  // produce identical scenarios. The shoreline-fish helper already hashes
+  // the seed; we call it with deterministic candidates so the alternate
+  // maps vary slightly too.
+  applyShoreFishPatches(terrain, starts, seed, spawns);
+}
+
+// Simple deterministic RNG used by the Black Forest corridor wiggle.
+// Keeps a dependency-free Park-Miller LCG so the corridor shape is
+// reproducible from the seed alone.
+function createBlackForestWiggleRng(seed: string): () => number {
+  let state = seedToNumber(seed);
+  return () => {
+    state = (state * 48271) % 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+// Arena ring helper. Collects every cell whose distance from the center
+// sits between `innerRadius` and `outerRadius` inclusive. Iteration
+// order is deterministic (row-major) so the spawn list is stable.
+function collectRingCells(
+  center: Position,
+  innerRadius: number,
+  outerRadius: number,
+): Position[] {
+  const inner2 = innerRadius * innerRadius;
+  const outer2 = outerRadius * outerRadius;
+  const cells: Position[] = [];
+  for (let y = center.y - outerRadius; y <= center.y + outerRadius; y += 1) {
+    for (let x = center.x - outerRadius; x <= center.x + outerRadius; x += 1) {
+      if (!isInBounds(x, y)) {
+        continue;
+      }
+      const dx = x - center.x;
+      const dy = y - center.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < inner2 || d2 > outer2) {
+        continue;
+      }
+      cells.push({ x, y });
+    }
+  }
+  return cells;
+}
+
+// The Arena ring has a 2-cell-wide gap on the side of the ring that
+// faces the map center. Determined by whether the cell sits in the
+// direction of travel from `center` to the map midpoint.
+function isCellInArenaGap(center: Position, cell: Position): boolean {
+  const midX = MAP_WIDTH / 2;
+  const midY = MAP_HEIGHT / 2;
+  const dirX = Math.sign(midX - center.x);
+  const dirY = Math.sign(midY - center.y);
+  const dx = cell.x - center.x;
+  const dy = cell.y - center.y;
+  // 2-tile wide gap: cells whose dominant-direction offset aligns with
+  // the exit vector AND whose orthogonal offset is within ±1.
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return Math.sign(dx) === dirX && Math.abs(dy) <= 1;
+  }
+  if (Math.abs(dy) > Math.abs(dx)) {
+    return Math.sign(dy) === dirY && Math.abs(dx) <= 1;
+  }
+  // Diagonal cell — include in the gap if both components line up.
+  return Math.sign(dx) === dirX && Math.sign(dy) === dirY;
 }
