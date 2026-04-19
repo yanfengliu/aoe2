@@ -6868,6 +6868,531 @@ function createHeavyCamelVsKnightFixture(seed: string): PrototypeScenario {
   };
 }
 
+// FU3 fixture: player-1 Castle with a single enemy Champion at Castle
+// anchor-to-target distance 8 (within range 8). Used as the no-archer
+// baseline — the Castle fires 1 arrow per reload.
+function createFu3CastleNoArchersFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'imperial-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      // Champion at (20, 8). Closest Castle footprint cell is (17, 8),
+      // distance 3 — well within range 8. Champion HP 70, 0 armor, so
+      // one 11-damage arrow drops it to 59.
+      {
+        kind: 'champion',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: player-1 Castle + 3 adjacent archers waiting to garrison.
+// The test drives them into the Castle via `issueContextCommandAtEntity`
+// and verifies the 3-archer extra-arrows bonus brings the total to 4
+// arrows per reload.
+function createFu3CastleThreeArchersFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'imperial-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      // 3 archers adjacent to the Castle's south edge — ready to garrison
+      // via the issueContextCommandAtEntity(castle) flow.
+      {
+        kind: 'archer',
+        x: 14,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 15,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 16,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'champion',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: same as three-archers but with 5 archers — verifies the
+// 5-arrow cap holds (1 base + 4 archer bonus, not 1 + 5).
+function createFu3CastleFiveArchersFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'imperial-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'archer',
+        x: 14,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 15,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 16,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 17,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'archer',
+        x: 18,
+        y: 11,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 5 },
+      },
+      {
+        kind: 'champion',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: Castle anchored at (6, 6), 4x4, with an enemy Spearman at
+// (14, 8). Anchor-to-target Manhattan distance is |14-6| + |8-6| = 10.
+// Closest footprint cell is (9, 8) at distance 5. Pre-FU3 the Castle
+// ignored this target (distance 10 > range 8); post-FU3 it fires.
+function createFu3CastleEdgeRangeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 2, y: 2 },
+        startingAge: 'castle-age',
+        civilization: 'Britons',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 2,
+        y: 2,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'castle',
+        x: 6,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'spearman',
+        x: 14,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: Feudal-Age human with a completed Barracks so the
+// villager build options include palisade-wall. Mirrors the
+// `fu3-stone-wall-fixture` layout but without the Castle-Age age-up.
+function createFu3PalisadeWallFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'feudal-age',
+        startingResources: { food: 250, wood: 250, gold: 250, stone: 200 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'feudal-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'barracks',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 12,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: Castle-Age human + idle villager so the stone-wall build
+// option is exposed in the villager's buildOptions selection state.
+function createFu3StoneWallFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        startingResources: { food: 500, wood: 500, gold: 500, stone: 500 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 12,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: Castle-Age human, idle villager adjacent to a pre-built
+// stone-wall. Used to confirm the wall blocks unit pathing (issueMove
+// into the wall cell must be rejected).
+function createFu3StoneWallBlockingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'stone-wall',
+        x: 18,
+        y: 18,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 18,
+        y: 20,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU3 fixture: pre-built stone-wall + enemy Battering Ram adjacent so
+// the ram attacks the wall down. Wall starts with a low HP override so
+// the test resolves in a handful of ticks without simulating a full
+// 2000-HP takedown.
+function createFu3StoneWallCombatFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 48, y: 28 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'stone-wall',
+        x: 20,
+        y: 20,
+        owner: 1,
+        baseOwner: 1,
+        startHp: 50,
+      },
+      // Enemy Battering Ram one cell south of the wall. Ram atk 2 + 75
+      // vs buildings = 77 per hit, so one reload cycle kills the 50-HP
+      // wall segment.
+      {
+        kind: 'battering-ram',
+        x: 20,
+        y: 21,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 5 },
+      },
+      {
+        kind: 'town-center',
+        x: 48,
+        y: 28,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 7D fixture: Imperial Onager placed inside its own min-range 3 of an
 // enemy Spearman. Mirrors the Mangonel min-range fixture to verify the
 // Onager inherits the same dead-zone behavior.
@@ -7652,6 +8177,38 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createHeavyCamelVsKnightFixture(seed);
   }
 
+  if (seed === 'fu3-castle-no-archers-fixture') {
+    return createFu3CastleNoArchersFixture(seed);
+  }
+
+  if (seed === 'fu3-castle-three-archers-fixture') {
+    return createFu3CastleThreeArchersFixture(seed);
+  }
+
+  if (seed === 'fu3-castle-five-archers-fixture') {
+    return createFu3CastleFiveArchersFixture(seed);
+  }
+
+  if (seed === 'fu3-castle-edge-range-fixture') {
+    return createFu3CastleEdgeRangeFixture(seed);
+  }
+
+  if (seed === 'fu3-stone-wall-fixture') {
+    return createFu3StoneWallFixture(seed);
+  }
+
+  if (seed === 'fu3-stone-wall-blocking-fixture') {
+    return createFu3StoneWallBlockingFixture(seed);
+  }
+
+  if (seed === 'fu3-stone-wall-combat-fixture') {
+    return createFu3StoneWallCombatFixture(seed);
+  }
+
+  if (seed === 'fu3-palisade-wall-fixture') {
+    return createFu3PalisadeWallFixture(seed);
+  }
+
   if (seed === 'onager-min-range-blocked-fixture') {
     return createOnagerMinRangeBlockedFixture(seed);
   }
@@ -8136,9 +8693,11 @@ function createBlackForestMap(seed: string): PrototypeScenario {
 }
 
 // Slice 11: Arena-style map. Each start is ringed by a stone wall, with
-// a mineable gap on the side facing the map center so the player can
-// break out via stone mining. The wall is made of stone-mine nodes
-// (mine-through) rather than forest so the visual language is distinct.
+// a gap on the side facing the map center so the player can break out.
+// FU3: the ring is built from real `stone-wall` buildings (1x1, HP 2000,
+// impassable, cost 5 stone). Pre-FU3 this used `stone-mine` nodes as a
+// wall proxy — FU3 replaces that with the real wall type so the player
+// breaches by attacking walls rather than mining them.
 function createArenaMap(seed: string): PrototypeScenario {
   const terrain: TerrainCellSpec[][] = Array.from({ length: MAP_HEIGHT }, (_, y) =>
     Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'grass')),
@@ -8147,34 +8706,48 @@ function createArenaMap(seed: string): PrototypeScenario {
   const starts = createPlayerStarts();
   const spawns: ScenarioSpawnSpec[] = [];
 
+  // Place the standard opening FIRST so we can skip ring cells that would
+  // overlap a starting resource, villager, or scout. Bridge-boot fixture
+  // validation rejects overlaps (Slice 12 Task B), and the pre-FU3 Arena
+  // silently ate these because `stone-mine` wasn't a building.
+  applyStandardPlayerOpening(terrain, starts, spawns, seed);
+
+  const occupiedCells = new Set<string>();
+  for (const spawn of spawns) {
+    occupiedCells.add(`${spawn.x},${spawn.y}`);
+  }
+
   const RING_INNER_RADIUS = 6;
   const RING_OUTER_RADIUS = 7;
   for (const start of starts) {
-    const ringedStones = collectRingCells(
+    const ringedCells = collectRingCells(
       start.townCenter,
       RING_INNER_RADIUS,
       RING_OUTER_RADIUS,
     );
-    for (const cell of ringedStones) {
+    for (const cell of ringedCells) {
       // Small fixed gap on the side facing the map center so the player
-      // has a single exit to mine or path through. Gap is deterministic
-      // per start (no seed randomness) so the fixture reproduces the
-      // same shape each time.
+      // has a single exit. Gap is deterministic per start (no seed
+      // randomness) so the fixture reproduces the same shape each time.
       if (isCellInArenaGap(start.townCenter, cell)) {
         continue;
       }
+      // Skip ring cells that would collide with starting resources,
+      // villagers, or the scout. The gap in the wall guarantees at least
+      // one exit, and the resource-overlap gaps are rare because the
+      // starting patches fan out in pre-defined offset lists.
+      if (occupiedCells.has(`${cell.x},${cell.y}`)) {
+        continue;
+      }
       spawns.push({
-        kind: 'stone-mine',
+        kind: 'stone-wall',
         x: cell.x,
         y: cell.y,
-        owner: null,
+        owner: start.owner,
         baseOwner: start.owner,
-        amount: 350,
       });
     }
   }
-
-  applyStandardPlayerOpening(terrain, starts, spawns, seed);
 
   return {
     seed,

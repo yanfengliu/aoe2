@@ -364,6 +364,11 @@ function formatEntityName(entityType: SelectionState['selectedEntityType']): str
       return 'Paladin';
     case 'heavy-camel':
       return 'Heavy Camel';
+    // FU3: real wall buildings.
+    case 'stone-wall':
+      return 'Stone Wall';
+    case 'palisade-wall':
+      return 'Palisade Wall';
     default:
       return entityType;
   }
@@ -490,6 +495,11 @@ function formatEntityPluralName(entityType: SelectionState['selectedEntityType']
       return 'Paladins';
     case 'heavy-camel':
       return 'Heavy Camels';
+    // FU3: real wall buildings.
+    case 'stone-wall':
+      return 'Stone Walls';
+    case 'palisade-wall':
+      return 'Palisade Walls';
     default:
       return `${entityType}s`;
   }
@@ -731,6 +741,10 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'Ct';
     case 'wonder':
       return 'Wn';
+    case 'stone-wall':
+      return 'Wl';
+    case 'palisade-wall':
+      return 'Pl';
     case 'relic':
       return 'Rl';
     case 'berry-bush':
@@ -786,6 +800,10 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#a09f9c';
     case 'wonder':
       return '#e6c36a';
+    case 'stone-wall':
+      return '#9aa0a8';
+    case 'palisade-wall':
+      return '#a88555';
     case 'relic':
       return '#f5d680';
     case 'berry-bush':

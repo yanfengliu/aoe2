@@ -24,6 +24,8 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   monastery: { width: 2, height: 2 },
   castle: { width: 4, height: 4 },
   wonder: { width: 4, height: 4 },
+  'stone-wall': { width: 1, height: 1 },
+  'palisade-wall': { width: 1, height: 1 },
 };
 
 export function getBuildingFootprint(buildingType: BuildingType): BuildingFootprint {

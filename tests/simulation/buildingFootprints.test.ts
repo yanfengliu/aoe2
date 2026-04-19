@@ -21,6 +21,8 @@ describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
       monastery: { width: 2, height: 2 },
       castle: { width: 4, height: 4 },
       wonder: { width: 4, height: 4 },
+      'stone-wall': { width: 1, height: 1 },
+      'palisade-wall': { width: 1, height: 1 },
     };
 
     expect(AUTHORITATIVE_BUILDING_FOOTPRINTS).toEqual(expected);

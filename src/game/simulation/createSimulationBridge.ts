@@ -228,6 +228,11 @@ const MONK_TRAIN_TIME_TICKS = 510;
 // trains at the Castle when the owner's civ is Britons.
 const CASTLE_BUILD_TIME_TICKS = 560;
 const LONGBOWMAN_TRAIN_TIME_TICKS = 300;
+// FU3: real wall buildings. Walls are the fastest-to-build structures in
+// AoE2 — a single 1x1 segment takes only seconds to raise. Stone Wall and
+// Palisade Wall mirror that by building in a fraction of a House's time.
+const STONE_WALL_BUILD_TIME_TICKS = 80;
+const PALISADE_WALL_BUILD_TIME_TICKS = 40;
 // Slice 8: Wonder is the largest structure in the game — Imperial-only, very
 // expensive, and the centerpiece of the Wonder-victory win condition. Build
 // time is intentionally long (roughly twice a Castle) so opponents have time
@@ -819,6 +824,33 @@ function manhattanDistance(left: Position, right: Position): number {
   return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
 }
 
+// FU3: Manhattan distance from a building's nearest footprint cell to a
+// target. For a 1x1 building this reduces to the anchor-to-target
+// distance. For a 4x4 building anchored at top-left, a target to the
+// south-east measures distance from the south-east footprint cell, not
+// from the anchor — so the stated attack range hits evenly around the
+// whole footprint instead of asymmetrically shrinking on the anchor's
+// far side.
+function distanceFromBuildingFootprint(
+  anchor: Position,
+  footprint: { width: number; height: number },
+  target: Position,
+): number {
+  const minX = anchor.x;
+  const maxX = anchor.x + footprint.width - 1;
+  const minY = anchor.y;
+  const maxY = anchor.y + footprint.height - 1;
+  const dx =
+    target.x < minX ? minX - target.x
+    : target.x > maxX ? target.x - maxX
+    : 0;
+  const dy =
+    target.y < minY ? minY - target.y
+    : target.y > maxY ? target.y - maxY
+    : 0;
+  return dx + dy;
+}
+
 function distanceSquared(left: Position, right: Position): number {
   const dx = left.x - right.x;
   const dy = left.y - right.y;
@@ -847,6 +879,8 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'castle':
     case 'wonder':
     case 'town-center':
+    case 'stone-wall':
+    case 'palisade-wall':
       return 0;
   }
 }
@@ -881,6 +915,10 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return CASTLE_BUILD_TIME_TICKS;
     case 'wonder':
       return WONDER_BUILD_TIME_TICKS;
+    case 'stone-wall':
+      return STONE_WALL_BUILD_TIME_TICKS;
+    case 'palisade-wall':
+      return PALISADE_WALL_BUILD_TIME_TICKS;
   }
 }
 
@@ -909,6 +947,11 @@ function buildingSize(buildingType: BuildingType): number {
       // Wonders are the largest, most visually prominent structure. Fills
       // the 4x4 footprint a touch more than a Castle.
       return 1.6;
+    case 'stone-wall':
+    case 'palisade-wall':
+      // 1x1 walls fill their whole cell — no inset so adjacent segments
+      // read as a continuous barrier rather than a row of pillars.
+      return 1;
   }
 }
 
@@ -1002,6 +1045,22 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0xe6c36a : 0x8a7340
       : isComplete ? 0xb9585f : 0x6b3438;
+  }
+
+  if (buildingType === 'stone-wall') {
+    // Neutral gray to evoke stone. Enemy tint leans red so the player can
+    // read ownership at a glance on busy arena-style maps.
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0x9aa0a8 : 0x5d606a
+      : isComplete ? 0xa57272 : 0x5d4242;
+  }
+
+  if (buildingType === 'palisade-wall') {
+    // Warmer wood tone than the stone wall; enemy tint stays in the same
+    // red family so the ownership cue is consistent across wall tiers.
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xa88555 : 0x655138
+      : isComplete ? 0xa17066 : 0x604540;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -1258,6 +1317,12 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       // Slice 8: Wonder is the most expensive building in the game; a
       // full 1000 of every resource matches canonical AoE2 DE.
       return { food: 1000, wood: 1000, gold: 1000, stone: 1000 };
+    case 'stone-wall':
+      // FU3: canonical AoE2 DE stone wall = 5 stone per segment.
+      return { stone: 5 };
+    case 'palisade-wall':
+      // FU3: canonical AoE2 DE palisade wall = 2 wood per segment.
+      return { wood: 2 };
   }
 }
 
@@ -1440,6 +1505,13 @@ function buildingMaxHp(buildingType: BuildingType): number {
       // Matches canonical AoE2 DE. Large HP pool so the win-condition
       // tension plays out over many ticks of enemy siege.
       return 4800;
+    case 'stone-wall':
+      // FU3: heavy stone segment. Matches canonical AoE2 DE stone wall HP.
+      return 2000;
+    case 'palisade-wall':
+      // FU3: wooden palisade; fragile enough to shape early-Feudal pokes
+      // but still a speed bump against scout harass.
+      return 250;
   }
 }
 
@@ -1510,21 +1582,39 @@ function buildingGarrisonCapacity(buildingType: BuildingType): number {
 }
 
 function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
-  return unitType === 'villager' && buildingGarrisonCapacity(buildingType) > 0;
+  if (buildingGarrisonCapacity(buildingType) <= 0) {
+    return false;
+  }
+  // Town Centers and Watch Towers accept villagers only — that was the
+  // Slice 6 rule and the gameplay balance around it has not changed.
+  // Castles accept villagers AND archer-line units; each archer inside a
+  // Castle adds +1 arrow per attack up to a cap of 5 (FU3).
+  if (unitType === 'villager') {
+    return true;
+  }
+  if (buildingType === 'castle' && isArcherLineUnit(unitType)) {
+    return true;
+  }
+  return false;
 }
 
-function buildingArrowCount(buildingType: BuildingType, garrisonedUnits: number): number {
+// FU3: canonical AoE2 DE Castle arrow count. The Castle fires 1 arrow
+// by default, then +1 arrow per archer-line unit garrisoned, capped at
+// 5 total. Non-archer garrison (Villagers) does NOT add arrows — only
+// archer-line units count toward the bonus. Town Center keeps its
+// legacy "1 + garrisoned villagers, capped at 5" curve.
+function buildingArrowCount(
+  buildingType: BuildingType,
+  garrisonedUnitsTotal: number,
+  garrisonedArchers: number,
+): number {
   switch (buildingType) {
     case 'town-center':
-      return garrisonedUnits > 0 ? 1 + Math.min(garrisonedUnits, 4) : 0;
+      return garrisonedUnitsTotal > 0 ? 1 + Math.min(garrisonedUnitsTotal, 4) : 0;
     case 'watch-tower':
       return 1;
     case 'castle':
-      // Castle fires a strong arrow even without garrison. Canonical AoE2 DE
-      // has garrisoned archers each add an extra arrow (max 5 visible), but
-      // that garrisoned-archer-extra-arrows behavior is explicitly out of
-      // scope in Slice 6 — Slice 7 follow-up.
-      return 1;
+      return Math.min(5, 1 + garrisonedArchers);
     default:
       return 0;
   }
@@ -3789,6 +3879,8 @@ function createWorld(
       || spawn.kind === 'monastery'
       || spawn.kind === 'castle'
       || spawn.kind === 'wonder'
+      || spawn.kind === 'stone-wall'
+      || spawn.kind === 'palisade-wall'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const buildingId = addBuildingEntity(
@@ -6347,6 +6439,9 @@ function createWorld(
       if (hasCompletedBuilding(owner, 'blacksmith')) {
         options.push('watch-tower');
       }
+      // FU3: Palisade Wall unlocks in Feudal Age — the cheap wood wall
+      // that shapes early-game pokes. Matches canonical AoE2 DE.
+      options.push('palisade-wall');
     }
 
     if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
@@ -6354,6 +6449,9 @@ function createWorld(
       options.push('siege-workshop');
       options.push('monastery');
       options.push('castle');
+      // FU3: Stone Wall unlocks in Castle Age. Arena-style maps rely on
+      // this building replacing the legacy stone-mine wall proxy.
+      options.push('stone-wall');
     }
 
     // Slice 8: Wonder is Imperial-only AND capped at one per owner. When
@@ -6448,6 +6546,13 @@ function createWorld(
         return 9;
       case 'castle':
         return 10;
+      case 'stone-wall':
+      case 'palisade-wall':
+        // FU3: walls sit behind every production / tech building. They're
+        // attacked only when no better target is visible (ram punch-through
+        // behavior). Units still attack a wall if it blocks their path to
+        // a real objective — the pathing fallback handles that.
+        return 11;
       default:
         return 5;
     }
@@ -6509,6 +6614,69 @@ function createWorld(
         }
 
         return manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position);
+      });
+
+    return candidates[0]?.id ?? null;
+  }
+
+  // FU3: range check for large buildings that measures distance from the
+  // NEAREST footprint cell to the target (not from the anchor cell). The
+  // anchor of a 4x4 Castle is its top-left corner, so a target at range 8
+  // off the south-east corner used to be reported as distance 8 + 3 = 11
+  // — three cells outside the stated range. This helper fixes that by
+  // folding the footprint into the distance math so the Castle's stated
+  // range lands evenly all the way around the footprint.
+  function findPreferredVisibleEnemyUnitInRangeOfBuilding(
+    viewerOwner: number,
+    buildingAnchor: Position,
+    footprint: { width: number; height: number },
+    range: number,
+  ): number | null {
+    // The queryInRadius hook uses Manhattan distance from the anchor
+    // cell; expand the query radius by the building's max span so targets
+    // at the far edge of the footprint are still included in the initial
+    // candidate list. We then re-filter by footprint distance before
+    // returning.
+    const anchorQueryRadius = range + Math.max(footprint.width, footprint.height) - 1;
+    const candidates = [...world.queryInRadius(
+      buildingAnchor.x,
+      buildingAnchor.y,
+      anchorQueryRadius,
+      'position',
+      'unit',
+    )]
+      .map((id) => ({
+        id,
+        position: world.getComponent<Position>(id, 'position'),
+        unit: world.getComponent<UnitComponent>(id, 'unit'),
+      }))
+      .filter(
+        (
+          entry,
+        ): entry is { id: number; position: Position; unit: UnitComponent } => {
+          if (
+            entry.position === undefined
+            || entry.unit === undefined
+            || entry.unit.owner === viewerOwner
+          ) {
+            return false;
+          }
+          if (!visibility.isVisible(viewerOwner, entry.position.x, entry.position.y)) {
+            return false;
+          }
+          return distanceFromBuildingFootprint(buildingAnchor, footprint, entry.position) <= range;
+        },
+      )
+      .sort((left, right) => {
+        const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+
+        return (
+          distanceFromBuildingFootprint(buildingAnchor, footprint, left.position)
+          - distanceFromBuildingFootprint(buildingAnchor, footprint, right.position)
+        );
       });
 
     return candidates[0]?.id ?? null;
@@ -8740,13 +8908,33 @@ function createWorld(
           buildingCombat.cooldownTicks -= 1;
         }
 
+        const garrisonIds = garrisonedByBuilding.get(id) ?? [];
+        // FU3: count archer-line garrison members for the Castle's
+        // extra-arrows bonus. For Town Center / Watch Tower the archer
+        // count is ignored — buildingArrowCount only reads it for Castle.
+        let garrisonedArcherCount = 0;
+        for (const garrisonedId of garrisonIds) {
+          const garrisonedUnit = activeWorld.getComponent<UnitComponent>(garrisonedId, 'unit');
+          if (garrisonedUnit && isArcherLineUnit(garrisonedUnit.unitType)) {
+            garrisonedArcherCount += 1;
+          }
+        }
+
         const arrowCount = buildingArrowCount(
           building.buildingType,
-          garrisonedByBuilding.get(id)?.length ?? 0,
+          garrisonIds.length,
+          garrisonedArcherCount,
         );
-        const targetId = findPreferredVisibleEnemyUnitInRange(
+        // FU3: use the closest footprint cell to the target for range
+        // checks on large buildings (e.g. a 4x4 Castle anchored at
+        // top-left would otherwise need +3 more range to fire from its
+        // opposite edge). `findPreferredVisibleEnemyUnitInRangeOfBuilding`
+        // threads the footprint into the distance math.
+        const footprint = buildingFootprint(building.buildingType);
+        const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
           building.owner,
           position,
+          footprint,
           buildingCombat.attackRange,
         );
         if (targetId === null || buildingCombat.cooldownTicks > 0 || arrowCount <= 0) {

@@ -142,7 +142,12 @@ export type BuildableBuildingType =
   | 'siege-workshop'
   | 'monastery'
   | 'castle'
-  | 'wonder';
+  | 'wonder'
+  // FU3: real wall buildings. Stone Wall is Castle-Age, 1x1, HP 2000,
+  // cost 5 stone — replaces the Arena map's stone-mine wall proxy.
+  // Palisade Wall is its Feudal-Age cheaper cousin (HP 250, cost 2 wood).
+  | 'stone-wall'
+  | 'palisade-wall';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
