@@ -20,6 +20,7 @@ import {
   createPrototypeScenario,
 } from './prototypeScenario';
 import { RenderStore } from './renderStore';
+import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import type {
   ActionType,
   AgeType,
@@ -118,6 +119,7 @@ export interface SimulationBridge {
   issueMarketAction(actionType: MarketActionType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
+  saveGame(): SaveBlob;
 }
 
 const STANDARD_STARTING_RESOURCES: PlayerResources = {
@@ -2394,6 +2396,7 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
 
 function createWorld(seed: string, visibility: VisibilityMap): {
   world: GameWorld;
+  saveGame: () => SaveBlob;
   getEconomyState: () => EconomyState;
   getPopulationState: (playerId: number) => PopulationState;
   getPlayerAge: (playerId: number) => AgeType;
@@ -8109,8 +8112,181 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return didStartConstruction;
   }
 
+  // Slice 9: snapshot every side map declared at the top of `createWorld`,
+  // the engine-owned ECS state, the visibility bitmap, and matchState into
+  // one JSON-serializable blob. The reverse path (Task C) hydrates this
+  // blob back into a fresh bridge so the simulation resumes byte-for-byte.
+  function saveGame(): SaveBlob {
+    return {
+      schema: SAVE_SCHEMA_VERSION,
+      seed,
+      worldSnapshot: world.serialize(),
+      visibility: visibility.getState(),
+      matchState: {
+        outcome: matchState.outcome,
+        summary: matchState.summary,
+        winCondition: matchState.winCondition,
+        scores: matchState.scores ? { ...matchState.scores } : null,
+        wonderCountdownTicks: matchState.wonderCountdownTicks,
+        relicCountdownTicks: matchState.relicCountdownTicks,
+      },
+      sideMaps: {
+        trackedVisibilitySources: [...trackedVisibilitySources.entries()],
+        playerAges: [...playerAges.entries()],
+        playerCivilizations: [...playerCivilizations.entries()],
+        researchedTechnologies: [...researchedTechnologies.entries()].map(
+          ([owner, set]) => [owner, [...set]],
+        ),
+        playerResources: [...playerResources.entries()].map(([owner, res]) => [
+          owner,
+          { ...res },
+        ]),
+        marketExchangeRates: { ...marketExchangeRates },
+        population: [...population.entries()].map(([owner, pop]) => [owner, { ...pop }]),
+        townCenterRefs: [...townCenterRefs.entries()].map(([owner, ref]) => [
+          owner,
+          { id: ref.id, generation: ref.generation },
+        ]),
+        villagerOrdinals: [...villagerOrdinals.entries()],
+        unitCommands: [...unitCommands.entries()].map(([id, cmd]) => [
+          id,
+          {
+            type: cmd.type,
+            target: { x: cmd.target.x, y: cmd.target.y },
+            ...(cmd.buildingRef
+              ? {
+                  buildingRef: { id: cmd.buildingRef.id, generation: cmd.buildingRef.generation },
+                }
+              : {}),
+            ...(cmd.targetEntityRef
+              ? {
+                  targetEntityRef: {
+                    id: cmd.targetEntityRef.id,
+                    generation: cmd.targetEntityRef.generation,
+                  },
+                }
+              : {}),
+            ...(cmd.targetEntityKind ? { targetEntityKind: cmd.targetEntityKind } : {}),
+          },
+        ]),
+        sheepMoveOrders: [...sheepMoveOrders.entries()].map(([id, pos]) => [
+          id,
+          { x: pos.x, y: pos.y },
+        ]),
+        rallyPoints: [...rallyPoints.entries()].map(([id, pos]) => [
+          id,
+          { x: pos.x, y: pos.y },
+        ]),
+        monkTasks: [...monkTasks.entries()].map(([id, task]) => [
+          id,
+          {
+            kind: task.kind,
+            targetEntityRef: {
+              id: task.targetEntityRef.id,
+              generation: task.targetEntityRef.generation,
+            },
+          },
+        ]),
+        conversionState: [...conversionState.entries()].map(([id, state]) => [
+          id,
+          { byOwner: state.byOwner, progress: state.progress },
+        ]),
+        monkCarriedRelic: [...monkCarriedRelic.entries()],
+        monkHealCounters: [...monkHealCounters.entries()],
+        relicsInMonastery: [...relicsInMonastery.entries()],
+        wonderCountdowns: [...wonderCountdowns.entries()].map(([id, entry]) => [
+          id,
+          { remainingTicks: entry.remainingTicks, totalTicks: entry.totalTicks },
+        ]),
+        wonderCountdownOverrides: [...wonderCountdownOverrides.entries()],
+        relicCountdowns: [...relicCountdowns.entries()].map(([id, entry]) => [
+          id,
+          { remainingTicks: entry.remainingTicks, totalTicks: entry.totalTicks },
+        ]),
+        relicCountdownOverrides: [...relicCountdownOverrides.entries()],
+        playerScoreCounters: [...playerScoreCounters.entries()].map(([owner, counters]) => [
+          owner,
+          { ...counters },
+        ]),
+        lastSeenStatic: [...lastSeenStatic.entries()].map(([playerId, innerMap]) => [
+          playerId,
+          [...innerMap.entries()].map(([entityId, entry]) => [
+            entityId,
+            {
+              kind: entry.kind,
+              entityType: entry.entityType,
+              position: { x: entry.position.x, y: entry.position.y },
+              footprintWidth: entry.footprintWidth,
+              footprintHeight: entry.footprintHeight,
+              tint: entry.tint,
+              owner: entry.owner,
+              size: entry.size,
+              visualVariant: entry.visualVariant,
+              lastSeenTick: entry.lastSeenTick,
+            },
+          ]),
+        ]),
+        garrisonedByBuilding: [...garrisonedByBuilding.entries()].map(([id, list]) => [
+          id,
+          [...list],
+        ]),
+        garrisonedUnitToBuilding: [...garrisonedUnitToBuilding.entries()],
+        garrisonedUnitVisionSources: [...garrisonedUnitVisionSources.entries()].map(
+          ([id, src]) => [id, { playerId: src.playerId, radius: src.radius }],
+        ),
+        productionQueues: [...productionQueues.entries()].map(([id, queue]) => [
+          id,
+          queue.map((entry) => ({
+            ...(entry.unitType !== undefined ? { unitType: entry.unitType } : {}),
+            ...(entry.technologyType !== undefined
+              ? { technologyType: entry.technologyType }
+              : {}),
+            remainingTicks: entry.remainingTicks,
+            totalTicks: entry.totalTicks,
+          })),
+        ]),
+        constructionStates: [...constructionStates.entries()].map(([id, state]) => [
+          id,
+          { ...state },
+        ]),
+        combatStates: [...combatStates.entries()].map(([id, state]) => [id, { ...state }]),
+        buildingHealthStates: [...buildingHealthStates.entries()].map(([id, state]) => [
+          id,
+          { ...state },
+        ]),
+        buildingCombatStates: [...buildingCombatStates.entries()].map(([id, state]) => [
+          id,
+          { ...state },
+        ]),
+        wildlifeStates: [...wildlifeStates.entries()].map(([id, state]) => [
+          id,
+          {
+            currentHp: state.currentHp,
+            maxHp: state.maxHp,
+            attackDamage: state.attackDamage,
+            attackRange: state.attackRange,
+            reloadTicks: state.reloadTicks,
+            cooldownTicks: state.cooldownTicks,
+            armor: state.armor,
+            autoAggro: state.autoAggro,
+            isAlive: state.isAlive,
+            corpsePersists: state.corpsePersists,
+            aggroRange: state.aggroRange,
+            targetEntityRef: state.targetEntityRef
+              ? {
+                  id: state.targetEntityRef.id,
+                  generation: state.targetEntityRef.generation,
+                }
+              : null,
+          },
+        ]),
+      },
+    };
+  }
+
   return {
     world,
+    saveGame,
     getEconomyState() {
       const villagers = [...world.query('unit', 'gatherer')]
         .map((id) => {
@@ -8282,6 +8458,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
   const visibility = new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
   const {
     world,
+    saveGame,
     getEconomyState,
     getPopulationState,
     getPlayerAge,
@@ -8493,5 +8670,6 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
       flushOutOfBandRenderChange();
       return didConfirm;
     },
+    saveGame,
   };
 }
