@@ -1266,6 +1266,8 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'stable' && unitType === 'scout')
     || (buildingType === 'stable' && unitType === 'knight')
     || (buildingType === 'stable' && unitType === 'light-cavalry')
+    || (buildingType === 'stable' && unitType === 'hussar')
+    || (buildingType === 'stable' && unitType === 'cavalier')
     || (buildingType === 'stable' && unitType === 'camel')
     || (buildingType === 'archery-range' && unitType === 'archer')
     || (buildingType === 'archery-range' && unitType === 'skirmisher')
@@ -1297,6 +1299,8 @@ function canResearchAt(
     || (buildingType === 'barracks' && technologyType === 'halberdier-upgrade')
     || (buildingType === 'barracks' && technologyType === 'champion-upgrade')
     || (buildingType === 'stable' && technologyType === 'light-cavalry-upgrade')
+    || (buildingType === 'stable' && technologyType === 'hussar-upgrade')
+    || (buildingType === 'stable' && technologyType === 'cavalier-upgrade')
   );
 }
 
@@ -4705,25 +4709,52 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding) >= 2;
   }
 
+  // Walks a tiered unit chain from head to tail (e.g., ['archer',
+  // 'crossbowman', 'arbalest']) and returns the newest tier whose gating
+  // upgrade is researched. Each chain tier after the head is paired with a
+  // `ResearchableTechnologyType`; the first tier (`chain[0]`) is the default
+  // fallback. Used by the Archery Range / Barracks / Stable / Castle train
+  // menus so only the latest-researched tier is exposed at any time.
+  function latestResearchedInChain(
+    owner: number,
+    chain: readonly [
+      TrainableUnitType,
+      ...Array<[TrainableUnitType, ResearchableTechnologyType]>,
+    ],
+  ): TrainableUnitType {
+    let current: TrainableUnitType = chain[0];
+    for (let index = 1; index < chain.length; index += 1) {
+      const [unitType, technologyType] = chain[index] as [
+        TrainableUnitType,
+        ResearchableTechnologyType,
+      ];
+      if (hasTechnology(owner, technologyType)) {
+        current = unitType;
+      }
+    }
+    return current;
+  }
+
   function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
     switch (buildingType) {
       case 'town-center':
         return ['villager'];
       case 'barracks': {
-        // Militia → Champion on champion-upgrade; Spearman → Pikeman on
-        // pikeman-upgrade → Halberdier on halberdier-upgrade. Only one of each
-        // line is exposed at any given time so the train menu always shows the
-        // newest tier and drops the predecessor.
-        const militiaLine: TrainableUnitType = hasTechnology(owner, 'champion-upgrade')
-          ? 'champion'
-          : 'militia';
+        // Militia → Champion (champion-upgrade); Spearman → Pikeman → Halberdier
+        // (pikeman-upgrade → halberdier-upgrade). Only the newest tier of each
+        // line is exposed at any time so the menu always shows the latest and
+        // drops the predecessor.
+        const militiaLine = latestResearchedInChain(owner, [
+          'militia',
+          ['champion', 'champion-upgrade'],
+        ]);
         const options: TrainableUnitType[] = [militiaLine];
         if (getPlayerAge(owner) !== 'dark-age') {
-          const spearmanLine: TrainableUnitType = hasTechnology(owner, 'halberdier-upgrade')
-            ? 'halberdier'
-            : hasTechnology(owner, 'pikeman-upgrade')
-              ? 'pikeman'
-              : 'spearman';
+          const spearmanLine = latestResearchedInChain(owner, [
+            'spearman',
+            ['pikeman', 'pikeman-upgrade'],
+            ['halberdier', 'halberdier-upgrade'],
+          ]);
           options.push(spearmanLine);
         }
         return options;
@@ -4732,11 +4763,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
         }
-        const scoutLine: TrainableUnitType = hasTechnology(owner, 'light-cavalry-upgrade')
-          ? 'light-cavalry'
-          : 'scout';
+        // Scout → Light Cavalry → Hussar (three tiers). Knight → Cavalier
+        // (two tiers). Camel remains standalone in v1.
+        const scoutLine = latestResearchedInChain(owner, [
+          'scout',
+          ['light-cavalry', 'light-cavalry-upgrade'],
+          ['hussar', 'hussar-upgrade'],
+        ]);
         if (isAtLeastAge(owner, 'castle-age')) {
-          return [scoutLine, 'knight', 'camel'];
+          const knightLine = latestResearchedInChain(owner, [
+            'knight',
+            ['cavalier', 'cavalier-upgrade'],
+          ]);
+          return [scoutLine, knightLine, 'camel'];
         }
         return [scoutLine];
       }
@@ -4744,22 +4783,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
         }
-        // Archer → Crossbowman → Arbalest chain; only the latest-researched tier
-        // is exposed at any time. Cavalry Archer → Heavy Cavalry Archer swap is
-        // gated on heavy-cavalry-archer-upgrade (Imperial).
-        const archerLine: TrainableUnitType = hasTechnology(owner, 'arbalest-upgrade')
-          ? 'arbalest'
-          : hasTechnology(owner, 'crossbowman-upgrade')
-            ? 'crossbowman'
-            : 'archer';
+        // Archer → Crossbowman → Arbalest. Cavalry Archer → Heavy Cavalry
+        // Archer. Only the latest-researched tier is exposed at any time.
+        const archerLine = latestResearchedInChain(owner, [
+          'archer',
+          ['crossbowman', 'crossbowman-upgrade'],
+          ['arbalest', 'arbalest-upgrade'],
+        ]);
         const options: TrainableUnitType[] = [archerLine, 'skirmisher'];
         if (isAtLeastAge(owner, 'castle-age')) {
-          const cavArcherLine: TrainableUnitType = hasTechnology(
-            owner,
-            'heavy-cavalry-archer-upgrade',
-          )
-            ? 'heavy-cavalry-archer'
-            : 'cavalry-archer';
+          const cavArcherLine = latestResearchedInChain(owner, [
+            'cavalry-archer',
+            ['heavy-cavalry-archer', 'heavy-cavalry-archer-upgrade'],
+          ]);
           options.push(cavArcherLine);
         }
         return options;
@@ -4855,12 +4891,22 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       }
     }
 
-    if (
-      buildingType === 'stable'
-      && isAtLeastAge(owner, 'castle-age')
-      && !hasTechnology(owner, 'light-cavalry-upgrade')
-    ) {
-      return ['light-cavalry-upgrade'];
+    if (buildingType === 'stable' && isAtLeastAge(owner, 'castle-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
+        options.push('light-cavalry-upgrade');
+      }
+      if (isAtLeastAge(owner, 'imperial-age')) {
+        if (!hasTechnology(owner, 'hussar-upgrade')) {
+          options.push('hussar-upgrade');
+        }
+        if (!hasTechnology(owner, 'cavalier-upgrade')) {
+          options.push('cavalier-upgrade');
+        }
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
     return [];
@@ -5357,11 +5403,19 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         upgradeOwnedUnits(owner, 'militia', 'champion');
         rewriteQueuedPredecessorUnits(owner, 'militia', 'champion');
         break;
-      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
-      // techs. Stable / Castle / Siege Workshop lines and blacksmith tier
-      // effects land in 7C / 7D; 7B only wires Archery Range + Barracks.
+      // Slice 7C: Stable Imperial upgrades. Hussar replaces Light Cavalry
+      // (the scout-line tail) and Cavalier replaces Knight.
       case 'hussar-upgrade':
+        upgradeOwnedUnits(owner, 'light-cavalry', 'hussar');
+        rewriteQueuedPredecessorUnits(owner, 'light-cavalry', 'hussar');
+        break;
       case 'cavalier-upgrade':
+        upgradeOwnedUnits(owner, 'knight', 'cavalier');
+        rewriteQueuedPredecessorUnits(owner, 'knight', 'cavalier');
+        break;
+      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
+      // techs. Castle + Siege Workshop lines and blacksmith tier effects land
+      // in 7C (remaining) / 7D.
       case 'elite-longbowman-upgrade':
       case 'onager-upgrade':
       case 'heavy-scorpion-upgrade':
