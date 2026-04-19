@@ -15,7 +15,8 @@
     - Dev logs should be updated and maintained.
     - References to code should be up to date.
     - No outdated comments.
-- CRITICAL: Each round of review should be done by a new subagent in series. This means 5 steps * 2 reviewers = 10 subagents = 10 CLI calls.
+    - Learnings from debugging and friction points should be documented in `docs/learning/lessons.md`. The file should be actively maintained to not become long, tedious, or outdated.
+- CRITICAL: Each round of review should be done by a new subagent in series. This means 5 steps * 2 reviewers = 10 reviews.
 - After addressing review comments, ask the reviewer to verify that you have successfully done so. This is basically a second round of full review.
 - Example commands to use Codex for code review:
   - `codex exec "Review my code for bugs and security issues"`
@@ -66,8 +67,8 @@
 - After every completed task, append a detailed entry with:
   - timestamp
   - action
+  - code reviewer comments, broken down by AI provider and theme as stated above
   - result
-  - files changed
   - reasoning
   - notes
 - Keep `docs/devlog/summary.md` current after updating the detailed log. Always remove outdated info. Compact when it grows larger than 50 lines.
@@ -83,4 +84,3 @@
 - Read `docs/guides/debugging.md` in the `civ-engine` package if the bug seems engine related.
 - When debugging, use `docs/debugging/template.md` to record your process. Create a new file per debugging session and use it to iterate until you solve the problem.
 - Clean up the stackdump files created during debugging after you are done, but keep the `.md` files.
-- Write learnings into `docs/learning/lessons.md`.
