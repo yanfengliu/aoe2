@@ -45,6 +45,10 @@ body {
 .hud-top {
   justify-self: stretch;
   min-width: 0;
+  /* Slice 11: let hover events land on the top-bar chips. Without this,
+     pointer-events: none on #hud-root cascades all the way down and the
+     Phaser canvas intercepts hover events. */
+  pointer-events: auto;
 }
 
 .hud-bar {
@@ -60,6 +64,7 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+  pointer-events: auto;
 }
 
 .hud-chip {
@@ -67,6 +72,10 @@ body {
   gap: 2px;
   flex: 0 0 var(--hud-chip-width, 76px);
   min-width: var(--hud-chip-width, 76px);
+  /* Slice 11: tooltips work via hover, so chips need to receive pointer
+     events. The #hud-root container blocks pointer-events by default so
+     the canvas can see mouse input; opt-in here for the chips only. */
+  pointer-events: auto;
 }
 
 .hud-chip[data-hud-chip="food"],
@@ -212,6 +221,8 @@ body {
   border: 1px solid rgba(221, 196, 145, 0.2);
   border-radius: 8px;
   background: rgba(31, 22, 16, 0.58);
+  /* Slice 11: tooltip hover requires pointer-events. */
+  pointer-events: auto;
 }
 
 .hud-selection-detail-label {
