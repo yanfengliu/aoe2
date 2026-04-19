@@ -1,6 +1,9 @@
-# civ-engine Feedback
+# civ-engine Feedback (Past)
 
-## Current verdict
+This file archives the historical observations that used to live in
+`docs/engine-feedback.md`. The live summary now lives in [current.md](./current.md).
+
+## Historical verdict
 
 `civ-engine` is viable as the authoritative simulation core for this project's first RTS slice.
 
@@ -13,7 +16,9 @@ The bootstrap implemented in this repo now uses:
 - `RenderAdapter` to project simulation state into a renderer-facing store
 - `WorldDebugger` to expose tick metrics to the HUD
 
-That is enough to prove the basic architecture boundary the implementation plan called for: Phaser is rendering and camera/input only, while `civ-engine` owns the world state and tick progression.
+That was enough to prove the basic architecture boundary the implementation plan
+called for: Phaser is rendering and camera/input only, while `civ-engine` owns the
+world state and tick progression.
 
 ## Strengths observed
 
@@ -38,7 +43,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - There is no out-of-the-box Phaser renderer adapter, so the repo needs to own that bridge layer.
 - `RenderAdapter` streams the initial snapshot on `connect()` and then tick diffs. In the current same-process bridge, command handlers that mutate the world outside `world.step()` need an explicit snapshot resync or new visuals like fresh construction sites never reach the renderer. The engine contract is defensible, but the integration rule is easy to miss.
 - Herdable ownership hit the same seam from inside `world.step()`: when repo code mutates a projected component like resource ownership/tint in place, the renderer stays correct only if that mutation is treated as render-affecting state and explicitly surfaced. A lighter engine-level helper for render-relevant component mutation or a dedicated projector/debug probe for those changes would make this class of bug cheaper to catch.
-- The engine exposes useful low-level primitives, but higher-level RTS helpers are still this repo's job:
+- The engine exposes useful low-level primitives, but higher-level RTS helpers are still this repo's job.
   - production queues
   - context-sensitive command resolution
   - resource-to-drop-off capability rules
@@ -93,7 +98,7 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Smooth sub-grid visuals also need a repo-owned hit-tolerance policy. Once units move between coarse cells, exact render-geometry clicks are brittle for live targeting even when the simulation is correct; the renderer/input seam needs a small amount of pointer forgiveness to match what the player perceives on screen.
 - Safe unit spawning is still repo-owned RTS policy. `civ-engine` path/passability primitives were enough to fix trapped Scouts, blocked Stable queues, and partial ungarrison behavior, but the engine does not yet offer a higher-level "find nearest legal spawn with egress" helper for producer or scenario spawns.
 - Smaller-than-cell unit occupancy is also still repo-owned policy. The engine's grid/path helpers still think in whole integer cells, so letting multiple units share one coarse cell required repo-managed per-unit sub-cell slots plus movement rules that stop treating units as hard blockers; there is still no engine-native sub-cell occupancy or crowding model.
-- `civ-engine 0.3.0` materially improves the bridge ergonomics where it is fully available: typed component registries make the owned world and helper functions clearer, and `before`/`after` system ordering finally lets same-tick rules like movement -> herdable ownership -> visibility be declared instead of implied by registration order.
+- `civ-engine` 0.3.0 materially improves the bridge ergonomics where it is fully available: typed component registries make the owned world and helper functions clearer, and `before`/`after` system ordering finally lets same-tick rules like movement -> herdable ownership -> visibility be declared instead of implied by registration order.
 - The file-linked package workflow has one sharp edge: `aoe2` consumes `civ-engine` through its built `dist` entrypoint, so docs/source can expose new 0.3.0 APIs before the linked package's JS and `.d.ts` are rebuilt. The symptom was "documented API exists in source but not at runtime/typecheck" until `npm run build` was rerun in the linked engine package.
 - The debugging guide was useful again on the selection-panel slice because it made it easy to confirm the projected selection state was correct before touching UI code. The remaining flaky part was not world state but browser interaction semantics, which still need a repo-owned seam on top of `civ-engine` for exact selection and click-flow tests.
 - The sub-grid movement guide was the right architectural boundary for smoother motion. Keeping `civ-engine` authoritative on coarse simulation cells while interpolating unit positions in Phaser delivered the visual result without destabilizing pathing, occupancy, or save-state semantics. The remaining engine gap is that interpolation-aware hit testing is still repo-owned glue, not a shared engine helper.
@@ -114,11 +119,12 @@ That is enough to prove the basic architecture boundary the implementation plan 
 - Add a cheap fixture-validation pass around occupancy and start-cell legality before using scenarios in tests. The current blocker rules are good; the missing piece was faster detection of invalid test setups.
 - Rebuild the linked `civ-engine` package immediately after engine upgrades before debugging game-side type/runtime failures. Without that step, bridge work can end up diagnosing stale dist artifacts instead of real gameplay bugs.
 
-## Current recommendation
+## Historical recommendation
 
 Continue with the planned Feudal and Castle Age work on top of `civ-engine`.
 
-There is no evidence yet that the engine is the blocker. The next real proof points are:
+At that point there was no evidence yet that the engine was the blocker. The next
+real proof points were:
 
 - broader building roster and drop-off rules
 - military command and combat-state fan-out
@@ -154,19 +160,19 @@ There is no evidence yet that the engine is the blocker. The next real proof poi
 - AI baseline (Slice 10) could read production queues, research queues, and countdown state from canonical side maps without any new engine affordance. The AI planner is one more postUpdate system over the same shared world query surface.
 - Black Forest + Arena maps (Slice 11) reused the base scenario generator with different terrain paint. The engine's `createTileGrid` + `createNoise2D` + `octaveNoise2D` were enough; no new engine primitives required.
 - HUD tooltips + toast + debug overlay (Slice 11) stayed strictly DOM/HUD-side; the simulation exposed a `SimulationDebugSnapshot` per tick and the HUD / scene consumed it. The existing `WorldDebugger` surface is still the right pattern for this kind of diagnostic hook.
-- **Addressed in repo (Slice 12):** safe unit spawn with egress is now the shared `findSafeSpawnWithEgress` helper in `src/game/simulation/spawn.ts`. Scenario-spawn, producer-spawn, and ungarrison paths share one definition. An engine-level version of this would still be welcome (any RTS-shaped consumer needs it), but the game-side pattern is clean.
-- **Addressed in repo (Slice 12):** fixture-validation pass at bridge construction. `createSimulationBridge` now rejects scenarios whose spawns extend past map bounds, overlap a building footprint, or wedge a unit inside a building. Each error identifies the offending seed + spawn. This catches the "blocked start, opaque downstream crash" class the Feudal/Castle slices surfaced.
-- **Addressed in repo (Slice 12):** coarse-vs-fine debug probe. `F2 → coarse-vs-fine` renders one line per unit from its coarse simulation cell center to the interpolated fine render position so the "unit at coarse A but rendering at B" class of bugs is visible live. The repo-side probe is cheap (one `getDebugSnapshot` read per frame when active); a shared engine probe would still be welcome for any consumer that adds fine transforms.
+- Addressed in repo (Slice 12): safe unit spawn with egress is now the shared `findSafeSpawnWithEgress` helper in `src/game/simulation/spawn.ts`. Scenario-spawn, producer-spawn, and ungarrison paths share one definition. An engine-level version of this would still be welcome (any RTS-shaped consumer needs it), but the game-side pattern is clean.
+- Addressed in repo (Slice 12): fixture-validation pass at bridge construction. `createSimulationBridge` now rejects scenarios whose spawns extend past map bounds, overlap a building footprint, or wedge a unit inside a building. Each error identifies the offending seed + spawn. This catches the "blocked start, opaque downstream crash" class the Feudal/Castle slices surfaced.
+- Addressed in repo (Slice 12): coarse-vs-fine debug probe. `F2 -> coarse-vs-fine` renders one line per unit from its coarse simulation cell center to the interpolated fine render position so the "unit at coarse A but rendering at B" class of bugs is visible live. The repo-side probe is cheap (one `getDebugSnapshot` read per frame when active); a shared engine probe would still be welcome for any consumer that adds fine transforms.
 - OccupancyGrid migration attempted then descoped (Slice 12): `civ-engine`'s `OccupancyGrid` requires an externally-managed block/unblock/occupy/release lifecycle synchronized with every building creation, construction completion, and destruction. The current `isCellBlockedByBuilding` / `isCellOccupiedByUnit` scans are small and obvious; migrating would increase surface area (lifecycle bookkeeping) without shrinking the placement helpers below their current size. Revisit when `civ-engine` exposes a higher-level "register buildings, query automatically" binding, or when entity counts start making the scan cost measurable.
 
 ## 2026-04-18 - Sub-cell crowding / smaller-than-cell occupancy (suggested future feature)
 
 - Repo has fully implemented sub-cell unit slots (`UNIT_CELL_SLOT_OFFSETS`) and sub-grid movement via a `unitTransform` component layered on top of coarse `position`. Multiple friendly units share one coarse cell via four quarter-cell slots with fractional render offsets; other units no longer count as hard blockers for pathing.
-- This exposes a coherent "engine next step" request: a sub-cell occupancy / crowding primitive. The current coarse-cell `OccupancyGrid` treats cells as binary blocked / free; an RTS needs a cheap "can this sub-cell slot accept another unit" or "pack N units into this cell" query.
+- This exposed the clearest engine next-step request: a sub-cell occupancy / crowding primitive. The coarse-cell `OccupancyGrid` treats cells as binary blocked / free; an RTS needs a cheap "can this sub-cell slot accept another unit" or "pack N units into this cell" query.
 - Desired shape: `OccupancyGrid` (or a sibling `SubcellOccupancyGrid`) that takes a per-cell capacity plus per-unit footprint and answers `canOccupy`, `bestSlotForUnit`, and `neighborsWithSpace` without the game having to manage a parallel slot-assignment map.
 - Until then, the repo-side pattern in `createSimulationBridge.ts` (quarter-cell slots, fractional render offsets, no-hard-blocker rule during pathing) is stable and serializes cleanly across save/load.
 
 ## 2026-04-18 - Slice 12 close
 
 - `civ-engine` has held up through all 12 slices. The only unambiguous engine-shaped ask is sub-cell crowding (above). Everything else — upgrades, age gating, combat bonuses, conversion, relics, win conditions, save/load, AI, debug overlays — fit behind the existing bridge boundary with no engine modification.
-- The current `docs/engine-feedback.md` is long but each bullet is still informative for someone coming in fresh. The file could compact by merging the strengths / friction sections into per-slice observations, but the ordering-by-topic is useful for lookup — leaving the structure alone.
+- At the time of the Slice 12 close, the single-file engine feedback doc was long but still useful. Splitting current versus past notes would eventually make the live guidance easier to scan.

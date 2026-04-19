@@ -42,6 +42,6 @@ rather than the symptom.
 - Any new regression tests added.
 
 ## Follow-ups
-- Engine-level gaps worth flagging in `docs/engine-feedback.md`.
+- Engine-level gaps worth flagging in `docs/engine-feedback/current.md`.
 - Lessons to persist in `docs/learning/lessons.md`.
 - Architecture implications, if any.

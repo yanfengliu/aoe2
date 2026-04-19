@@ -64,8 +64,8 @@ DOM HUD  ─────► Phaser scene (render + input) ─────► Sim
 ## Where new work belongs
 
 - A new gameplay rule, unit behavior, or AI change → simulation bridge or
-  `civ-engine` (flag an engine gap in `engine-feedback.md` if the engine lacks the
-  primitive).
+  `civ-engine` (flag an engine gap in `docs/engine-feedback/current.md` if the
+  engine lacks the primitive).
 - A new render treatment or input control → Phaser scene with a render-state seam
   so browser tests can assert on the rendered output.
 - A new HUD element → `src/ui/` consuming render frames and selection state.

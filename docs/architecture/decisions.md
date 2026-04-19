@@ -19,7 +19,7 @@ support an AoE2-style RTS.
 
 Consequences:
 - No gameplay state lives in Phaser scenes.
-- New engine gaps must be documented in `docs/engine-feedback.md` rather than
+- New engine gaps must be documented in `docs/engine-feedback/current.md` rather than
   worked around inside `civ-engine` itself.
 
 ---
