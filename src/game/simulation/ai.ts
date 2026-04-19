@@ -349,3 +349,48 @@ export const AI_MONK_COUNT_CAP = 3;
 // 100% restoration too slow to be worthwhile mid-push, so the Monk
 // re-targets the next wounded unit once a target crosses this bar.
 export const AI_MONK_HEAL_HP_FRACTION = 0.7;
+
+// FU4: AI Wonder pursuit thresholds. The Imperial-Age AI commits to a
+// Wonder build once it has enough villagers to keep the economy
+// running through the long Wonder-countdown AND enough banked
+// resources to actually pay the 1000/1000/1000/1000 Wonder cost
+// without bottoming out food production. These thresholds match the
+// spec language; the AI's Imperial villager cap is bumped above 40 so
+// the villager count gate is reachable in a deterministic fixture.
+export interface AiWonderPursuitThresholds {
+  minVillagers: number;
+  minFood: number;
+  minWood: number;
+  minStone: number;
+  minGold: number;
+}
+export const AI_WONDER_PURSUIT_THRESHOLDS: AiWonderPursuitThresholds = {
+  minVillagers: 40,
+  minFood: 500,
+  minWood: 500,
+  minStone: 1000,
+  minGold: 1000,
+};
+
+// FU4: pure helper. Returns true when the Imperial-Age AI has the
+// economy + villager surplus needed to commit to a Wonder build. The
+// bridge calls this each decision tick; the moment all five thresholds
+// clear, the AI's next idle villager places the Wonder. After the
+// Wonder is up the AI continues producing military to defend it (the
+// Wonder-countdown system handles the win condition).
+export function shouldPursueWonder(
+  age: AgeType,
+  hasOwnedWonder: boolean,
+  villagerCount: number,
+  resources: PlayerResources,
+  thresholds: AiWonderPursuitThresholds = AI_WONDER_PURSUIT_THRESHOLDS,
+): boolean {
+  if (age !== 'imperial-age') return false;
+  if (hasOwnedWonder) return false;
+  if (villagerCount < thresholds.minVillagers) return false;
+  if (resources.food < thresholds.minFood) return false;
+  if (resources.wood < thresholds.minWood) return false;
+  if (resources.stone < thresholds.minStone) return false;
+  if (resources.gold < thresholds.minGold) return false;
+  return true;
+}

@@ -36,6 +36,7 @@ import {
   pickNextBuildTarget,
   pickUnitMix,
   planForAge,
+  shouldPursueWonder,
   villagerTargetsEqual,
   villagerTargetsForAge,
   type AiPlan,
@@ -7776,8 +7777,33 @@ function createWorld(
           // (their single villager).
           const maxConcurrentBuilds = Math.max(1, totalVillagers - 1);
 
+          // FU4: Imperial-Age Wonder pursuit takes priority over the
+          // standard build-order list. Once the AI clears the
+          // villager + resource thresholds the next idle villager
+          // places the Wonder. After the Wonder is up the AI keeps
+          // producing military to defend it (the Wonder-countdown
+          // system handles the win condition); pickNextBuildTarget
+          // continues to work for non-Wonder Imperial buildings.
+          const aiResources = playerResources.get(owner);
+          const wonderPursuit =
+            ownerTownCenterPosition !== null
+            && aiResources !== undefined
+            && shouldPursueWonder(
+              currentAge,
+              hasOwnedWonder(owner),
+              countOwnedUnits(owner, 'villager'),
+              aiResources,
+            );
+          if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
+            const builderId = findAvailableVillager(owner);
+            const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
+            if (builderId !== null && anchor) {
+              startConstruction(builderId, 'wonder', anchor);
+            }
+          }
+
           const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked);
-          if (nextBuild && ongoingBuilds < maxConcurrentBuilds) {
+          if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
             const builderId = findAvailableVillager(owner);
             const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
             if (builderId !== null && anchor) {
@@ -7852,8 +7878,13 @@ function createWorld(
             // pauses while saving for age-up so the 50-food villager
             // cost doesn't siphon the stockpile back below the Castle
             // / Imperial Age threshold once military has paused.
+            // FU4: Imperial-Age cap bumped above 40 so the AI can
+            // reach the Wonder-pursuit villager threshold.
             const tcQueue = productionQueues.get(ownerTownCenterId) ?? [];
-            const villagerCap = currentAge === 'dark-age' ? 6 : 14;
+            const villagerCap =
+              currentAge === 'dark-age' ? 6
+              : currentAge === 'imperial-age' ? 50
+              : 14;
             const currentVillagers =
               countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager');
             if (

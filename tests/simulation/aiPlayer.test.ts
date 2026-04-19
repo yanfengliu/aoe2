@@ -309,3 +309,35 @@ describe('FU4 AI Monks', () => {
     expect(depositedRelic).toBe(true);
   }, 120_000);
 });
+
+describe('FU4 AI Wonder pursuit', () => {
+  it('builds a Wonder and wins via Wonder victory in Imperial Age', () => {
+    const bridge = createSimulationBridge('ai-wonder-fixture');
+    let wonderPlaced = false;
+    let wonderComplete = false;
+    let aiVictory = false;
+    for (let i = 0; i < 5_000; i += 1) {
+      bridge.step(100);
+      const economy = bridge.getEconomyState();
+      const aiWonders = economy.buildings.filter(
+        (b) => b.owner === 2 && b.buildingType === 'wonder',
+      );
+      if (aiWonders.length > 0) {
+        wonderPlaced = true;
+        if (aiWonders.some((w) => w.isComplete)) {
+          wonderComplete = true;
+        }
+      }
+      const matchState = bridge.getMatchState();
+      if (matchState.outcome !== 'running' && matchState.winCondition === 'wonder') {
+        // The AI is owner 2 — when the AI wins, the human player loses
+        // by Wonder victory.
+        aiVictory = matchState.outcome === 'defeat';
+        break;
+      }
+    }
+    expect(wonderPlaced).toBe(true);
+    expect(wonderComplete).toBe(true);
+    expect(aiVictory).toBe(true);
+  }, 180_000);
+});

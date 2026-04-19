@@ -4975,6 +4975,79 @@ function createAiMonkHealFixture(seed: string): PrototypeScenario {
   };
 }
 
+// FU4: AI Wonder pursuit fixture. AI player 2 starts in Imperial Age
+// with 40+ villagers, the full Wonder-cost stockpile (1000/1000/1000/
+// 1000), and all the Castle-Age prereqs already built. The Wonder
+// countdown is shrunk to 50 ticks via `wonderCountdownOverrideTicks`
+// so the test can resolve the Wonder-victory path inside a 5000-tick
+// budget. The human player has only a Town Center + villager (no
+// military), so the AI's Wonder is unopposed.
+function createAiWonderFixture(seed: string): PrototypeScenario {
+  // Anchor key buildings so the layout has no overlaps.
+  //   AI TC at (30, 20) covers (30..33, 20..23)
+  //   blacksmith (24,12) 3x3 → (24..26, 12..14)
+  //   archery    (28,12) 3x3 → (28..30, 12..14)
+  //   stable     (32,12) 3x3 → (32..34, 12..14)
+  //   market     (36,12) 4x4 → (36..39, 12..15)
+  //   barracks   (24,16) 3x3 → (24..26, 16..18)
+  //   monastery  (28,16) 2x2 → (28..29, 16..17)
+  //   siege-wks  (24,25) 3x3 → (24..26, 25..27)
+  const villagerSpawns: ScenarioSpawnSpec[] = [];
+  for (let i = 0; i < 42; i += 1) {
+    // Pack villagers in two rows below the TC, well outside building
+    // footprints. Cells (40..49, 20..27).
+    villagerSpawns.push({
+      kind: 'villager',
+      x: 40 + (i % 10),
+      y: 20 + Math.floor(i / 10),
+      owner: 2,
+      baseOwner: 2,
+      vision: { playerId: 2, radius: 4 },
+      requiresSafeSpawn: true,
+    });
+  }
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 20 },
+        startingAge: 'imperial-age',
+        startingResources: { food: 2000, wood: 2000, gold: 2000, stone: 2000 },
+        difficulty: 'standard',
+        // 50-tick countdown so the Wonder-victory path resolves inside
+        // the test's 5000-tick budget.
+        wonderCountdownOverrideTicks: 50,
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      // Castle-Age + Imperial-Age production buildings already up so
+      // pickNextBuildTarget has nothing left to pursue, leaving the
+      // Wonder branch as the next build target.
+      { kind: 'blacksmith', x: 24, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'archery-range', x: 28, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'stable', x: 32, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'market', x: 36, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'barracks', x: 24, y: 16, owner: 2, baseOwner: 2 },
+      { kind: 'monastery', x: 28, y: 16, owner: 2, baseOwner: 2 },
+      { kind: 'siege-workshop', x: 24, y: 25, owner: 2, baseOwner: 2 },
+      // mill / lumber / mining-camps so the AI doesn't try to build
+      // them as competing targets.
+      { kind: 'mill', x: 28, y: 25, owner: 2, baseOwner: 2 },
+      { kind: 'lumber-camp', x: 37, y: 17, owner: 2, baseOwner: 2 },
+      { kind: 'mining-camp', x: 37, y: 21, owner: 2, baseOwner: 2 },
+      ...villagerSpawns,
+    ],
+  };
+}
+
 // FU4: AI Monk-relic fixture. The AI starts with a Monastery + a
 // single Monk, with a free neutral relic placed just inside the
 // Monk's vision. Verifies the pickup-then-deposit chain.
@@ -8591,6 +8664,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'ai-monk-relic-fixture') {
     return createAiMonkRelicFixture(seed);
+  }
+
+  if (seed === 'ai-wonder-fixture') {
+    return createAiWonderFixture(seed);
   }
 
   if (seed === 'feudal-market-fixture') {
