@@ -328,6 +328,28 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+// Slice 9: load-path helper. Reverse of `createTileGrid` for a
+// deserialized world — instead of creating fresh tile entities and
+// addComponent'ing them, walk every entity that already has both
+// `position` and `terrain`, and drop its id into the [y][x] grid. Used
+// by `isTerrainPassableForUnit` and other helpers that index `tiles[y][x]`
+// for fast terrain lookups.
+function rebuildTileGridFromWorld(world: GameWorld): number[][] {
+  const grid: number[][] = [];
+  for (let y = 0; y < MAP_HEIGHT; y += 1) {
+    grid.push(new Array<number>(MAP_WIDTH).fill(-1));
+  }
+  for (const id of world.query('position', 'terrain')) {
+    const position = world.getComponent<Position>(id, 'position');
+    if (!position) continue;
+    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
+      continue;
+    }
+    grid[position.y][position.x] = id;
+  }
+  return grid;
+}
+
 function toCellIndex(x: number, y: number): number {
   return y * MAP_WIDTH + x;
 }
@@ -2394,7 +2416,11 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
   return didChange;
 }
 
-function createWorld(seed: string, visibility: VisibilityMap): {
+function createWorld(
+  seed: string,
+  visibility: VisibilityMap,
+  savedGame: SaveBlob | undefined,
+): {
   world: GameWorld;
   saveGame: () => SaveBlob;
   getEconomyState: () => EconomyState;
@@ -2429,12 +2455,23 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   getFogMemoryEntities: (liveEntityIds: Set<number>) => ProjectedEntityView[];
   getHumanFogMemorySize: () => number;
 } {
-  const world = new World<GameEvents, GameCommands, GameComponents>({
-    gridWidth: MAP_WIDTH,
-    gridHeight: MAP_HEIGHT,
-    tps: TPS,
-    seed,
-  });
+  // Slice 9: when a save blob is provided, deserialize the world from
+  // it. `World.deserialize` preserves entity ids and generations exactly
+  // (`EntityManager.fromState`), so every `EntityRef` captured by the
+  // saved side maps still resolves through `world.getEntityRef` after
+  // hydration. The deserialized world also restores tick, rng, and
+  // every component store; component bits and entity signatures are
+  // recomputed via `rebuildComponentSignatures`. Because all components
+  // are already present, we MUST skip the explicit `registerComponent`
+  // calls below — they would throw on duplicate registration.
+  const world: GameWorld = savedGame
+    ? World.deserialize<GameEvents, GameCommands, GameComponents>(savedGame.worldSnapshot)
+    : new World<GameEvents, GameCommands, GameComponents>({
+        gridWidth: MAP_WIDTH,
+        gridHeight: MAP_HEIGHT,
+        tps: TPS,
+        seed,
+      });
 
   const trackedVisibilitySources = new Map<number, number>();
   const playerAges = new Map<number, AgeType>();
@@ -2585,6 +2622,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
   const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
+  // Slice 5 Monk runtime counters. Hoisted to the top of `createWorld`
+  // alongside the other side maps so the Slice 9 save/load path can
+  // both serialize and rehydrate them. The original declaration site
+  // was inside the prototypeMonkBehavior system body; the system still
+  // closes over these maps via the surrounding closure.
+  const monkHealCounters = new Map<number, number>();
+  // Per-tick "already progressed this tick" guard for convert. Cleared at
+  // the start of every prototypeMonkBehavior pass, so it never holds
+  // cross-tick state worth saving.
+  const monkConvertProcessedThisTick = new Set<number>();
   const productionQueues = new Map<number, ProductionQueueEntry[]>();
   const constructionStates = new Map<number, ConstructionState>();
   const combatStates = new Map<number, CombatState>();
@@ -2608,21 +2655,41 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     hasOutOfBandRenderChange = true;
   }
 
-  world.registerComponent<Position>('position');
-  world.registerComponent<TerrainComponent>('terrain');
-  world.registerComponent<RenderableComponent>('renderable');
-  world.registerComponent<UnitComponent>('unit');
-  world.registerComponent<UnitTransformComponent>('unitTransform');
-  world.registerComponent<BuildingComponent>('building');
-  world.registerComponent<ResourceComponent>('resource');
-  world.registerComponent<GathererComponent>('gatherer');
-  world.registerComponent<VelocityComponent>('velocity');
-  world.registerComponent<VisionSourceComponent>('visionSource');
-  world.registerComponent<WanderBoundsComponent>('wanderBounds');
+  // The deserialized world already has every component registered
+  // (deserialize copied each `componentStores` entry from the snapshot),
+  // so registerComponent would throw. Skip when loading.
+  if (!savedGame) {
+    world.registerComponent<Position>('position');
+    world.registerComponent<TerrainComponent>('terrain');
+    world.registerComponent<RenderableComponent>('renderable');
+    world.registerComponent<UnitComponent>('unit');
+    world.registerComponent<UnitTransformComponent>('unitTransform');
+    world.registerComponent<BuildingComponent>('building');
+    world.registerComponent<ResourceComponent>('resource');
+    world.registerComponent<GathererComponent>('gatherer');
+    world.registerComponent<VelocityComponent>('velocity');
+    world.registerComponent<VisionSourceComponent>('visionSource');
+    world.registerComponent<WanderBoundsComponent>('wanderBounds');
+  }
 
   const scenario = createPrototypeScenario(seed);
-  const tiles = createTileGrid(world);
+  // The terrain grid + every entity already exists inside the
+  // deserialized world. The scenario bootstrap loop below would create
+  // duplicate tiles + duplicate units / buildings / resources, so skip
+  // the player-start + terrain population entirely when loading. Side
+  // maps are repopulated from the blob below.
+  // `createTileGrid` allocates one entity per cell. When loading, the
+  // tiles are already in the deserialized world (with the same ids,
+  // because deserialize preserves the EntityManager state), so we
+  // recreate the lookup grid from the existing terrain components
+  // rather than calling `createTileGrid` (which would allocate a fresh
+  // set of duplicate tile entities). The fresh path uses the raw
+  // helper.
+  const tiles: number[][] = savedGame
+    ? rebuildTileGridFromWorld(world)
+    : createTileGrid(world);
 
+  if (!savedGame) {
   for (const start of scenario.starts) {
     playerAges.set(start.owner, start.startingAge ?? 'dark-age');
     playerCivilizations.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
@@ -2676,6 +2743,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       });
     }
   }
+  } // end if (!savedGame) — fresh-start bootstrap
 
   function getCurrentEntityId(ref: EntityRef | null): number | null {
     return currentEntityId(world, ref);
@@ -3164,6 +3232,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return entity;
   }
 
+  // Skip the entity-spawn loop when loading from a save blob — every
+  // entity is already in the deserialized world. Side-map population
+  // happens further below from `savedGame.sideMaps`.
+  if (!savedGame) {
   for (const spawn of scenario.spawns) {
     if (
       spawn.kind === 'town-center'
@@ -3263,6 +3335,200 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   }
 
   updateSheepOwnership(world);
+  } // end if (!savedGame) — fresh-start entity spawn
+
+  // Slice 9: when loading from a save blob, hydrate every side map
+  // declared at the top of `createWorld` from the snapshot. Entity
+  // ids match the deserialized world's ids (because deserialize
+  // preserves them), so every `EntityRef` is rebuilt via
+  // `world.getEntityRef(id)` — that lookup returns null for entities
+  // that were destroyed in the saved game, so the load path filters
+  // those entries out (their referent no longer exists, and any system
+  // that consumed the side map would also have dropped them).
+  if (savedGame) {
+    const blob = savedGame.sideMaps;
+    const refFromSerialized = (s: { id: number; generation: number }): EntityRef | null => {
+      const ref = world.getEntityRef(s.id);
+      // Even if the id is alive, the generation must match exactly
+      // — otherwise the entity has been destroyed and recycled to a
+      // different live instance, and the saved ref must not resolve.
+      if (!ref || ref.generation !== s.generation) {
+        return null;
+      }
+      return ref;
+    };
+
+    for (const [k, v] of blob.trackedVisibilitySources) {
+      trackedVisibilitySources.set(k, v);
+    }
+    for (const [owner, age] of blob.playerAges) {
+      playerAges.set(owner, age as AgeType);
+    }
+    for (const [owner, civ] of blob.playerCivilizations) {
+      playerCivilizations.set(owner, civ);
+    }
+    for (const [owner, techs] of blob.researchedTechnologies) {
+      researchedTechnologies.set(owner, new Set(techs as ResearchableTechnologyType[]));
+    }
+    for (const [owner, res] of blob.playerResources) {
+      playerResources.set(owner, { ...res });
+    }
+    marketExchangeRates.food = blob.marketExchangeRates.food;
+    marketExchangeRates.wood = blob.marketExchangeRates.wood;
+    marketExchangeRates.stone = blob.marketExchangeRates.stone;
+    for (const [owner, pop] of blob.population) {
+      population.set(owner, { ...pop });
+    }
+    for (const [owner, refData] of blob.townCenterRefs) {
+      const ref = refFromSerialized(refData);
+      if (ref) townCenterRefs.set(owner, ref);
+    }
+    for (const [owner, ord] of blob.villagerOrdinals) {
+      villagerOrdinals.set(owner, ord);
+    }
+    for (const [id, cmd] of blob.unitCommands) {
+      const restored: UnitCommand = {
+        type: cmd.type,
+        target: { x: cmd.target.x, y: cmd.target.y },
+      };
+      if (cmd.targetEntityKind) {
+        restored.targetEntityKind = cmd.targetEntityKind;
+      }
+      if (cmd.targetEntityRef) {
+        const ref = refFromSerialized(cmd.targetEntityRef);
+        if (ref) restored.targetEntityRef = ref;
+      }
+      if (cmd.buildingRef) {
+        const ref = refFromSerialized(cmd.buildingRef);
+        if (ref) restored.buildingRef = ref;
+      }
+      unitCommands.set(id, restored);
+    }
+    for (const [id, pos] of blob.sheepMoveOrders) {
+      sheepMoveOrders.set(id, { x: pos.x, y: pos.y });
+    }
+    for (const [id, pos] of blob.rallyPoints) {
+      rallyPoints.set(id, { x: pos.x, y: pos.y });
+    }
+    for (const [id, task] of blob.monkTasks) {
+      const ref = refFromSerialized(task.targetEntityRef);
+      if (ref) monkTasks.set(id, { kind: task.kind, targetEntityRef: ref });
+    }
+    for (const [id, state] of blob.conversionState) {
+      conversionState.set(id, { byOwner: state.byOwner, progress: state.progress });
+    }
+    for (const [id, relicId] of blob.monkCarriedRelic) {
+      monkCarriedRelic.set(id, relicId);
+    }
+    for (const [id, count] of blob.monkHealCounters) {
+      monkHealCounters.set(id, count);
+    }
+    for (const [id, count] of blob.relicsInMonastery) {
+      relicsInMonastery.set(id, count);
+    }
+    for (const [id, entry] of blob.wonderCountdowns) {
+      wonderCountdowns.set(id, {
+        remainingTicks: entry.remainingTicks,
+        totalTicks: entry.totalTicks,
+      });
+    }
+    for (const [owner, ticks] of blob.wonderCountdownOverrides) {
+      wonderCountdownOverrides.set(owner, ticks);
+    }
+    for (const [owner, entry] of blob.relicCountdowns) {
+      relicCountdowns.set(owner, {
+        remainingTicks: entry.remainingTicks,
+        totalTicks: entry.totalTicks,
+      });
+    }
+    for (const [owner, ticks] of blob.relicCountdownOverrides) {
+      relicCountdownOverrides.set(owner, ticks);
+    }
+    for (const [owner, counters] of blob.playerScoreCounters) {
+      playerScoreCounters.set(owner, { ...counters });
+    }
+    for (const [playerId, innerEntries] of blob.lastSeenStatic) {
+      const inner = new Map<number, MemoryEntry>();
+      for (const [entityId, entry] of innerEntries) {
+        inner.set(entityId, {
+          kind: entry.kind,
+          entityType: entry.entityType as MemoryEntry['entityType'],
+          position: { x: entry.position.x, y: entry.position.y },
+          footprintWidth: entry.footprintWidth,
+          footprintHeight: entry.footprintHeight,
+          tint: entry.tint,
+          owner: entry.owner,
+          size: entry.size,
+          visualVariant: entry.visualVariant as MemoryEntry['visualVariant'],
+          lastSeenTick: entry.lastSeenTick,
+        });
+      }
+      lastSeenStatic.set(playerId, inner);
+    }
+    for (const [id, list] of blob.garrisonedByBuilding) {
+      garrisonedByBuilding.set(id, [...list]);
+    }
+    for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
+      garrisonedUnitToBuilding.set(id, buildingId);
+    }
+    for (const [id, src] of blob.garrisonedUnitVisionSources) {
+      garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
+    }
+    for (const [id, queue] of blob.productionQueues) {
+      productionQueues.set(
+        id,
+        queue.map((entry) => ({
+          kind: entry.kind,
+          label: entry.label,
+          ...(entry.unitType !== undefined ? { unitType: entry.unitType as TrainableUnitType } : {}),
+          ...(entry.technologyType !== undefined
+            ? { technologyType: entry.technologyType as ResearchableTechnologyType }
+            : {}),
+          remainingTicks: entry.remainingTicks,
+          totalTicks: entry.totalTicks,
+          isBlocked: entry.isBlocked,
+        })),
+      );
+    }
+    for (const [id, state] of blob.constructionStates) {
+      constructionStates.set(id, { ...state });
+    }
+    for (const [id, state] of blob.combatStates) {
+      combatStates.set(id, { ...state });
+    }
+    for (const [id, state] of blob.buildingHealthStates) {
+      buildingHealthStates.set(id, { ...state });
+    }
+    for (const [id, state] of blob.buildingCombatStates) {
+      buildingCombatStates.set(id, { ...state });
+    }
+    for (const [id, state] of blob.wildlifeStates) {
+      const ref = state.targetEntityRef ? refFromSerialized(state.targetEntityRef) : null;
+      wildlifeStates.set(id, {
+        currentHp: state.currentHp,
+        maxHp: state.maxHp,
+        attackDamage: state.attackDamage,
+        attackRange: state.attackRange,
+        reloadTicks: state.reloadTicks,
+        cooldownTicks: state.cooldownTicks,
+        armor: state.armor,
+        autoAggro: state.autoAggro,
+        isAlive: state.isAlive,
+        corpsePersists: state.corpsePersists,
+        aggroRange: state.aggroRange,
+        targetEntityRef: ref,
+      });
+    }
+
+    matchState.outcome = savedGame.matchState.outcome;
+    matchState.summary = savedGame.matchState.summary;
+    matchState.winCondition = savedGame.matchState.winCondition;
+    matchState.scores = savedGame.matchState.scores
+      ? { ...savedGame.matchState.scores }
+      : null;
+    matchState.wonderCountdownTicks = savedGame.matchState.wonderCountdownTicks;
+    matchState.relicCountdownTicks = savedGame.matchState.relicCountdownTicks;
+  }
 
   function getUnitTaskState(id: number): UnitTaskState {
     if (isGarrisonedUnit(id)) {
@@ -6230,14 +6496,8 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     },
   });
 
-  // Monk heal counter per monk: ticks up each tick while in heal range of a
-  // friendly wounded target, applies 1 HP every MONK_HEAL_TICK_INTERVAL ticks.
-  const monkHealCounters = new Map<number, number>();
-  // Per-tick "already progressed this tick" guard for convert. Multiple
-  // Monks targeting the same enemy would otherwise stack progress each
-  // tick, violating the fixed-rate contract in the spec. Cleared at the
-  // start of every prototypeMonkBehavior pass.
-  const monkConvertProcessedThisTick = new Set<number>();
+  // (monkHealCounters + monkConvertProcessedThisTick are hoisted to the
+  // top of `createWorld` so save/load can serialize the heal counter.)
 
   function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
     const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
@@ -8237,12 +8497,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         productionQueues: [...productionQueues.entries()].map(([id, queue]) => [
           id,
           queue.map((entry) => ({
+            kind: entry.kind,
+            label: entry.label,
             ...(entry.unitType !== undefined ? { unitType: entry.unitType } : {}),
             ...(entry.technologyType !== undefined
               ? { technologyType: entry.technologyType }
               : {}),
             remainingTicks: entry.remainingTicks,
             totalTicks: entry.totalTicks,
+            isBlocked: entry.isBlocked,
           })),
         ]),
         constructionStates: [...constructionStates.entries()].map(([id, state]) => [
@@ -8454,8 +8717,30 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   };
 }
 
-export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
-  const visibility = new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
+export interface CreateSimulationBridgeOptions {
+  // Slice 9: when present, hydrate the new bridge from this save blob
+  // instead of running the normal scenario bootstrap. The blob's
+  // `schema` must equal `SAVE_SCHEMA_VERSION` exactly — the loader
+  // throws on mismatch.
+  savedGame?: SaveBlob;
+}
+
+export function createSimulationBridge(
+  seed = DEFAULT_SEED,
+  options: CreateSimulationBridgeOptions = {},
+): SimulationBridge {
+  const savedGame = options.savedGame;
+  if (savedGame && savedGame.schema !== SAVE_SCHEMA_VERSION) {
+    throw new Error(
+      `Save schema mismatch: expected ${SAVE_SCHEMA_VERSION}, got ${savedGame.schema}.`,
+    );
+  }
+  // When loading, the seed comes from the blob so the new World's
+  // deterministic rng matches the original simulation byte-for-byte.
+  const effectiveSeed = savedGame ? savedGame.seed : seed;
+  const visibility = savedGame
+    ? VisibilityMap.fromState(savedGame.visibility)
+    : new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
   const {
     world,
     saveGame,
@@ -8485,7 +8770,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getFogMemoryEntities,
     getHumanFogMemorySize,
   } =
-    createWorld(seed, visibility);
+    createWorld(effectiveSeed, visibility, savedGame);
   const renderStore = new RenderStore();
   const debuggerView = new WorldDebugger({ world });
   const renderAdapter = new RenderAdapter({

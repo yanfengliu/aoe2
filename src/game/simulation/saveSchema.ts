@@ -68,10 +68,13 @@ export interface SerializedMonkTask {
 // from the bridge but is duplicated here so the schema file stays
 // independent of the bridge's internal type imports.
 export interface SerializedProductionQueueEntry {
+  kind: 'unit' | 'technology';
+  label: string;
   unitType?: string;
   technologyType?: string;
   remainingTicks: number;
   totalTicks: number;
+  isBlocked: boolean;
 }
 
 // Serialized payload for `wildlifeStates`. `targetEntityRef` may be null.
