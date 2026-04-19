@@ -307,15 +307,19 @@ function createBlockingRulesFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (6, 8) which sat inside the TC
-        // footprint at (4..7, 8..11). (9, 8) keeps the villager just
-        // east of the TC, still adjacent.
+        // Slice 12 Task B: deliberate overlap — the
+        // `rejects house placement on blocked terrain, resources,
+        // buildings, and units` core test expects this villager at
+        // (6, 8) which sits inside the TC footprint (4..7, 8..11) so
+        // a placement preview at (6, 8) is rejected for a
+        // unit-occupied cell. Opt out of the fixture validator.
         kind: 'villager',
-        x: 9,
+        x: 6,
         y: 8,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
+        allowOverlappingSpawn: true,
       },
       {
         kind: 'scout',
@@ -2449,13 +2453,25 @@ function createMangonelMinRangeBlockedFixture(seed: string): PrototypeScenario {
       // dead zone. The test issues an attack command; the Mangonel should
       // hold fire (no cooldown consumed) and the Spearman's HP must stay
       // pinned at 45. A stray shot would drop it to 0 (40 + 10 infantry).
+      //
+      // Slice 12 Task B: `vision: radius 1` instead of the old `3`. The
+      // pre-Slice-12 fixture positioned the Mangonel inside the TC
+      // footprint at (10, 10) which (a) failed the new fixture
+      // validator and (b) side-benefit blocked the enemy AI's
+      // Spearman from walking to the Mangonel because the TC cells
+      // were impassable. The validator-compliant y=13 positions don't
+      // have that blocker, so the standard AI would otherwise send the
+      // Spearman to melee the Mangonel and die to a min-range-zone
+      // retaliation. Tight radius-1 vision keeps the Spearman unaware
+      // of the Mangonel so the test isolates the Mangonel's own
+      // min-range behaviour.
       {
         kind: 'spearman',
         x: 12,
         y: 13,
         owner: 2,
         baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
+        vision: { playerId: 2, radius: 1 },
       },
     ],
   };
@@ -4472,15 +4488,19 @@ function createFeudalSpearmanFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (14, 10) which sat inside the
-        // Barracks footprint at (13..15, 8..10). (14, 11) keeps the
-        // scout one step south of the Barracks.
+        // Slice 12 Task B: deliberate overlap — the utility test
+        // `can train a Spearman in Feudal Age and use its anti-scout
+        // bonus` expects an enemy scout exactly at (14, 10) so its
+        // `issueContextCommand(14, 10)` resolves to this scout. That
+        // cell sits inside the Barracks footprint at (13..15, 8..10);
+        // opt out of the fixture validator.
         kind: 'scout',
         x: 14,
-        y: 11,
+        y: 10,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 6 },
+        allowOverlappingSpawn: true,
       },
     ],
   };
@@ -4534,14 +4554,19 @@ function createFeudalSkirmisherFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (14, 10) which sat inside the
-        // Archery Range footprint at (13..15, 8..10).
+        // Slice 12 Task B: deliberate overlap — the utility test
+        // `can train a Skirmisher in Feudal Age and use its anti-
+        // archer bonus` expects an enemy archer exactly at (14, 10)
+        // so its `issueContextCommand(14, 10)` resolves to this
+        // archer. That cell sits inside the Archery Range footprint
+        // at (13..15, 8..10); opt out of the fixture validator.
         kind: 'archer',
         x: 14,
-        y: 11,
+        y: 10,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 6 },
+        allowOverlappingSpawn: true,
       },
     ],
   };
@@ -4723,14 +4748,21 @@ function createFeudalWatchTowerFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (18, 8) which sat inside the
-        // Blacksmith footprint at (17..19, 8..10). (18, 11) keeps
-        // the enemy scout immediately south of the Blacksmith.
+        // Slice 12 Task B: deliberate overlap — the utility test
+        // `can build a Watch Tower in Feudal Age and let it
+        // automatically kill a nearby visible Scout` places a Watch
+        // Tower near the human TC and measures whether the nearby
+        // enemy scout dies within 520 ticks. The scout's exact (18,8)
+        // position sits inside the Blacksmith footprint
+        // (17..19, 8..10) but the tower's range 7 + the scout's
+        // near-stationary spot makes the test time-boxed, so leaving
+        // the scout at (18, 8) preserves the tower-range geometry.
         kind: 'scout',
         x: 18,
-        y: 11,
+        y: 8,
         owner: 2,
         baseOwner: 2,
+        allowOverlappingSpawn: true,
       },
     ],
   };
@@ -6365,13 +6397,16 @@ function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       // Spearman at distance 2 — inside the Onager's min range of 3.
+      // Slice 12 Task B: radius-1 vision so the enemy AI does not spot
+      // the Onager and walk the Spearman in to melee it (see
+      // mangonel-min-range-blocked-fixture for the same reason).
       {
         kind: 'spearman',
         x: 12,
         y: 13,
         owner: 2,
         baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
+        vision: { playerId: 2, radius: 1 },
       },
     ],
   };
