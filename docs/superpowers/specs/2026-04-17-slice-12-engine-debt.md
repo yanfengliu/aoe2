@@ -5,7 +5,8 @@ Roadmap: `docs/superpowers/plans/2026-04-17-post-sheep-roadmap.md` (slice 12).
 
 ## Goal
 
-Pay down the engine-integration debt captured in `docs/engine-feedback.md`:
+Pay down the engine-integration debt captured in `docs/engine-feedback/current.md`
+and `docs/engine-feedback/past.md`:
 
 1. Replace hand-rolled placement/footprint scans with `civ-engine`'s
    `OccupancyGrid` + path helpers where that actually simplifies the
@@ -19,7 +20,7 @@ Pay down the engine-integration debt captured in `docs/engine-feedback.md`:
    units inside building footprints or resource cells, throw a clear
    error instead of producing a wedged world.
 5. Record observations about sub-cell occupancy / crowding in
-   `docs/engine-feedback.md` as a suggested future `civ-engine` feature.
+   `docs/engine-feedback/current.md` as a suggested future `civ-engine` feature.
 
 ## Non-goals
 
@@ -45,7 +46,7 @@ in a typed structure.
 `occupancy.isCellClear(x, y, footprint)` call. If
 `civ-engine`'s API is missing a piece (e.g., it can't distinguish
 "blocked by unit" from "blocked by building"), flag that in
-`docs/engine-feedback.md` and keep the hand-rolled scan there —
+`docs/engine-feedback/current.md` and keep the hand-rolled scan there —
 don't force a lossy refactor.
 
 ### 2. `findSafeSpawnWithEgress(near, footprint)` helper
@@ -71,7 +72,7 @@ One more F2 debug overlay mode: "coarse-vs-fine" — for every unit,
 draw a line from its coarse `position` cell center to its
 interpolated fine `unitTransform` projected coordinate. Helps spot
 "unit is at coarse A but rendering at B" integration bugs (flagged in
-`docs/engine-feedback.md`).
+`docs/engine-feedback/current.md`).
 
 ### 4. Fixture validation
 
@@ -86,7 +87,7 @@ If any check fails, throw with a clear message identifying the
 scenario seed + offending spawn. This catches "fixture wedged"
 setups before they silently produce weird sim state.
 
-### 5. `docs/engine-feedback.md` refresh
+### 5. `docs/engine-feedback/current.md` refresh
 
 Audit the file for items that have since been fixed or that shipped
 inside this repo rather than needing engine work. Remove or mark as
@@ -125,11 +126,11 @@ inside this repo rather than needing engine work. Remove or mark as
 2. Phaser draws line per unit.
 3. Commit: `Add coarse-vs-fine debug overlay mode`.
 
-### Task E: engine-feedback.md refresh
+### Task E: engine-feedback current/past refresh
 
 1. Sub-dispatch a subagent to audit the file (per AGENTS.md).
 2. Apply its output.
-3. Commit: `Refresh engine-feedback.md with Slices 2-11 observations`.
+3. Commit: `Refresh docs/engine-feedback/current.md and past.md`.
 
 ### Task F: Slice gate
 

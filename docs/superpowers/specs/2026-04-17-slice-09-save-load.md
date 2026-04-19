@@ -8,7 +8,7 @@ Roadmap: `docs/superpowers/plans/2026-04-17-post-sheep-roadmap.md` (slice 9).
 Serialize a complete in-flight game to JSON, and reload it such that
 subsequent simulation ticks produce identical state to a run that had
 never been saved. Core engine proof point from
-`docs/engine-feedback.md`: "save and load round-tripping".
+`docs/engine-feedback/current.md`: "save and load round-tripping".
 
 ## Approach
 
