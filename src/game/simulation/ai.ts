@@ -62,7 +62,8 @@ export const DEFAULT_DIFFICULTY: DifficultyLevel = 'standard';
 // Base decision interval in ticks. 30 ticks ≈ 3s at TPS 10 — roughly
 // one decision per age-up research poll — and keeps per-tick cost low.
 // Difficulty tweaks this up or down: easier AIs think slower, harder
-// AIs think faster.
+// AIs think faster. FU4 tightened hard from 20 → 15 so a hard AI pushes
+// the economy roughly twice as fast as the easy baseline.
 export function decisionIntervalTicks(difficulty: DifficultyLevel): number {
   switch (difficulty) {
     case 'easy':
@@ -70,7 +71,7 @@ export function decisionIntervalTicks(difficulty: DifficultyLevel): number {
     case 'standard':
       return 30;
     case 'hard':
-      return 20;
+      return 15;
   }
 }
 
@@ -89,20 +90,26 @@ export function gatherMultiplier(difficulty: DifficultyLevel): number {
   }
 }
 
-// Baseline villager allocation target for a given age. Numbers grow
-// with each age because the AI continuously trains villagers up to the
-// population cap. Gold / stone ramp up as the AI enters the tiers that
-// actually need them.
+// Baseline villager allocation target for a given age. FU4 rebalanced
+// these toward a Dark-Age food-first opening (match canonical AoE2
+// early-game), a Feudal lean on food + wood for military production,
+// a Castle Age gold + stone pivot so age-up funds can actually
+// accumulate, and an Imperial Age tilt toward gold for the unit mix.
+// These targets were picked to reach Castle Age within roughly 5000
+// ticks on the `ai-planner-fixture` (see `tests/simulation/aiPlayer.test.ts`).
+// Feudal keeps at least two villagers on gold so military production
+// (archer / skirmisher cost gold) doesn't stall waiting on a single
+// gold villager.
 export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResourceKind, number>> {
   switch (age) {
     case 'dark-age':
-      return { food: 3, wood: 2, gold: 1, stone: 0 };
+      return { food: 4, wood: 3, gold: 0, stone: 0 };
     case 'feudal-age':
-      return { food: 5, wood: 4, gold: 3, stone: 1 };
+      return { food: 5, wood: 4, gold: 2, stone: 0 };
     case 'castle-age':
-      return { food: 6, wood: 5, gold: 4, stone: 2 };
+      return { food: 4, wood: 4, gold: 3, stone: 1 };
     case 'imperial-age':
-      return { food: 7, wood: 6, gold: 5, stone: 3 };
+      return { food: 4, wood: 3, gold: 5, stone: 1 };
   }
 }
 
@@ -199,7 +206,12 @@ export function pickNextBuildTarget(
     return null;
   }
 
-  const castleOrder: BuildableBuildingType[] = ['siege-workshop', 'castle'];
+  // FU4: Monastery slotted between Siege Workshop and Castle so the
+  // Castle-Age AI can train Monks (heal + collect relics) without
+  // waiting on the 650-stone Castle to clear the build queue first
+  // (Castle is the most expensive non-Wonder build and frequently
+  // blocks for tens of decision ticks while stone accumulates).
+  const castleOrder: BuildableBuildingType[] = ['siege-workshop', 'monastery', 'castle'];
   for (const target of castleOrder) {
     if (missing(target)) {
       return target;
@@ -323,3 +335,17 @@ export const AI_BASE_VISION_RADIUS = 12;
 // directly on top of the Town Center. Also bounds how far toward the
 // enemy the tower is placed.
 export const AI_WATCH_TOWER_FORWARD_STEP = 4;
+
+// FU4: AI Monk count cap. Once a Castle-Age AI owns this many Monks it
+// stops training more from the Monastery so the gold spend doesn't
+// crowd out cavalry / archer production. Two-to-three Monks is enough
+// to heal a pushing army and ferry every relic on the map back to the
+// Monastery without monopolising the gold stockpile.
+export const AI_MONK_COUNT_CAP = 3;
+
+// FU4: HP-fraction threshold below which an owned military unit is
+// considered "wounded" and worth the AI's Monk attention. Healing past
+// 70% of max-hp is a wash — the heal rate (1 HP every 10 ticks) makes
+// 100% restoration too slow to be worthwhile mid-push, so the Monk
+// re-targets the next wounded unit once a target crosses this bar.
+export const AI_MONK_HEAL_HP_FRACTION = 0.7;

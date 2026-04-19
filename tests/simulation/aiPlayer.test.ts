@@ -130,17 +130,14 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
       `ages: ${JSON.stringify(ageSnapshots)} ticks: ${ticksElapsed} `
       + `res: ${JSON.stringify(aiRes)} buildings: ${JSON.stringify(aiBuildings)}`;
     // The full age pipeline (Dark → Feudal → Castle) is the load-
-    // bearing check for Slice 10 — the planner has to issue the
-    // right research at the right time at every Age-up gate.
-    // Imperial Age is aspirational but not required within this
-    // budget; Slice 11 tuning can push the AI further.
+    // bearing check for Slice 10 + FU4 — the planner has to issue the
+    // right research at the right time at every Age-up gate. FU4
+    // retuned the villager targets so the AI reliably reaches Castle
+    // Age inside the 8000-tick budget. Imperial Age is aspirational
+    // but not required within this budget; later tuning may push the
+    // AI further.
     expect(ageSeen.has('feudal-age'), diagnosticMessage).toBe(true);
-    // Castle Age and Imperial Age progression are aspirational for this
-    // v1 AI — the planner issues the right research at the right gate,
-    // but the AI's economy is slow enough that Castle Age rarely lands
-    // inside this 8000-tick budget. Slice 11 (or later tuning) will
-    // revisit gather-rate multipliers and per-resource priority weights
-    // to push the AI further into the mid-game.
+    expect(ageSeen.has('castle-age'), diagnosticMessage).toBe(true);
   }, 180_000);
 
   it('builds a Watch Tower toward the sighted enemy', () => {
@@ -218,5 +215,97 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
     }
     expect(aiBarracksComplete).toBe(true);
     expect(aiMilitiaSpawned).toBe(true);
+  }, 120_000);
+});
+
+describe('FU4 AI Monks', () => {
+  it('builds a Monastery in Castle Age on the ai-monk-fixture', () => {
+    const bridge = createSimulationBridge('ai-monk-fixture');
+    let aiMonasteryComplete = false;
+    for (let i = 0; i < 3_000; i += 1) {
+      bridge.step(100);
+      const economy = bridge.getEconomyState();
+      if (
+        economy.buildings.some(
+          (b) => b.owner === 2 && b.buildingType === 'monastery' && b.isComplete,
+        )
+      ) {
+        aiMonasteryComplete = true;
+        break;
+      }
+    }
+    expect(aiMonasteryComplete).toBe(true);
+  }, 120_000);
+
+  it('trains Monks at the Monastery once Castle Age opens', () => {
+    const bridge = createSimulationBridge('ai-monk-fixture');
+    let aiMonkSpawned = false;
+    for (let i = 0; i < 4_000; i += 1) {
+      bridge.step(100);
+      const economy = bridge.getEconomyState();
+      if (economy.units.some((u) => u.owner === 2 && u.unitType === 'monk')) {
+        aiMonkSpawned = true;
+        break;
+      }
+    }
+    expect(aiMonkSpawned).toBe(true);
+  }, 120_000);
+
+  it("heals a wounded military unit via the AI's Monk", () => {
+    const bridge = createSimulationBridge('ai-monk-heal-fixture');
+    const initialEconomy = bridge.getEconomyState();
+    const startingPikeman = initialEconomy.units.find(
+      (u) => u.owner === 2 && u.unitType === 'pikeman',
+    );
+    expect(startingPikeman).toBeDefined();
+    if (!startingPikeman) {
+      return;
+    }
+    const initialHealth = bridge.getEntityHealth(startingPikeman.id);
+    expect(initialHealth).not.toBeNull();
+    if (!initialHealth) {
+      return;
+    }
+    const initialHp = initialHealth.currentHp;
+    expect(initialHp).toBeGreaterThan(0);
+    expect(initialHp).toBeLessThan(initialHealth.maxHp);
+
+    let healed = false;
+    for (let i = 0; i < 1_500; i += 1) {
+      bridge.step(100);
+      const health = bridge.getEntityHealth(startingPikeman.id);
+      if (!health) {
+        break;
+      }
+      if (health.currentHp > initialHp) {
+        healed = true;
+        break;
+      }
+    }
+    expect(healed).toBe(true);
+  }, 120_000);
+
+  it("picks up and deposits a visible neutral relic via the AI's Monk", () => {
+    const bridge = createSimulationBridge('ai-monk-relic-fixture');
+    const aiOwner = 2;
+    const initialEconomy = bridge.getEconomyState();
+    const initialRelics = initialEconomy.resources.filter((r) => r.resourceType === 'relic');
+    expect(initialRelics.length).toBe(1);
+
+    let depositedRelic = false;
+    for (let i = 0; i < 2_500; i += 1) {
+      bridge.step(100);
+      const economy = bridge.getEconomyState();
+      const relicsLeft = economy.resources.filter((r) => r.resourceType === 'relic');
+      // The relic disappears (and the AI's gold ticks up via
+      // prototypeRelicGold) when a Monk deposits it in a friendly
+      // Monastery — verify both signals to keep the test honest.
+      const aiGold = economy.playerResources[aiOwner].gold;
+      if (relicsLeft.length === 0 && aiGold > initialEconomy.playerResources[aiOwner].gold) {
+        depositedRelic = true;
+        break;
+      }
+    }
+    expect(depositedRelic).toBe(true);
   }, 120_000);
 });

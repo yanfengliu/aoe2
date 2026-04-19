@@ -52,9 +52,10 @@ export interface ScenarioSpawnSpec {
   // tests exercise the "destroy the Monastery, drop the relics" flow
   // without driving a full pickup-and-deposit cycle.
   startingRelicsInMonastery?: number;
-  // Building-only. Overrides the building's starting HP so tests can
-  // make siege scenarios resolve in a handful of ticks. Ignored if
-  // unset or larger than the building's default max HP.
+  // Overrides the spawned entity's starting HP so tests can make siege
+  // scenarios resolve in a handful of ticks (buildings) or pre-wound a
+  // unit so the heal path fires immediately (units, FU4). Ignored when
+  // unset or when the value is larger than the entity's default max HP.
   startHp?: number;
 }
 
@@ -4803,6 +4804,17 @@ function createAiPlannerFixture(seed: string): PrototypeScenario {
       // combat — the tests assert planner behavior rather than kill
       // counts.
       { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      // FU4: backup Town Centers in the far corner so the AI rush
+      // cannot end the match via conquest before the AI reaches Castle
+      // Age. 2400 HP each, placed far enough from the primary TC that
+      // the AI's militia lock onto the primary TC first and don't path
+      // back across the map until the primary dies. Two backups give
+      // redundancy against a lucky rush. With the previous single-TC
+      // human setup, conquest presence vanished around tick 2300 under
+      // the new tuning's faster military production, which capped age
+      // progression at Feudal.
+      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'town-center', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
       // Four AI villagers — enough to drive a non-trivial rebalance
       // test (food/wood/gold/stone across multiple resources).
       { kind: 'villager', x: 28, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
@@ -4814,17 +4826,184 @@ function createAiPlannerFixture(seed: string): PrototypeScenario {
       // moved below the TC to (32, 24) / (33, 24). Berry-bushes moved
       // above the TC (and below the TC rows (20..23)) keep the same
       // economy intent.
-      { kind: 'sheep', x: 32, y: 25, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'sheep', x: 33, y: 25, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'berry-bush', x: 32, y: 18, owner: null, baseOwner: 2, amount: 125 },
-      { kind: 'berry-bush', x: 33, y: 18, owner: null, baseOwner: 2, amount: 125 },
-      { kind: 'tree', x: 26, y: 18, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'tree', x: 27, y: 18, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'tree', x: 26, y: 19, owner: null, baseOwner: 2, amount: 100 },
-      { kind: 'gold-mine', x: 35, y: 21, owner: null, baseOwner: 2, amount: 200 },
-      { kind: 'gold-mine', x: 35, y: 22, owner: null, baseOwner: 2, amount: 200 },
-      { kind: 'stone-mine', x: 26, y: 21, owner: null, baseOwner: 2, amount: 150 },
-      { kind: 'stone-mine', x: 26, y: 22, owner: null, baseOwner: 2, amount: 150 },
+      // FU4: amounts upped so the AI can sustain Feudal + Castle-Age
+      // production without depleting resources before the age-up test
+      // completes. Previous amounts (100/125/100/200/150) only
+      // supported ~2500 ticks of continuous gathering, which was fine
+      // for the Slice 10 "reach Feudal" bar but bottlenecked the
+      // FU4 "reach Castle Age" goal. The amounts are sized so the AI
+      // can keep producing militias + age-up costs without starving
+      // over the 8000-tick budget.
+      { kind: 'sheep', x: 32, y: 25, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'sheep', x: 33, y: 25, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'berry-bush', x: 32, y: 18, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'berry-bush', x: 33, y: 18, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'tree', x: 26, y: 18, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'tree', x: 27, y: 18, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'tree', x: 26, y: 19, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'tree', x: 27, y: 19, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'gold-mine', x: 35, y: 21, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'gold-mine', x: 35, y: 22, owner: null, baseOwner: 2, amount: 2000 },
+      { kind: 'stone-mine', x: 26, y: 21, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'stone-mine', x: 26, y: 22, owner: null, baseOwner: 2, amount: 1000 },
+    ],
+  };
+}
+
+// FU4: AI Monk fixture. AI starts in Castle Age with a stockpile of
+// gold/food/wood, a completed Monastery + Barracks, a couple of
+// villagers, and a small population of trained military so the
+// "wounded military" Monk-heal path is exercised. Includes one
+// neutral relic placed inside the AI's vision so the relic-pickup
+// path also fires deterministically. The AI's TC has a backup Town
+// Center on the human side so conquest doesn't end the match
+// prematurely (matches the pattern in createAiPlannerFixture).
+function createAiMonkFixture(seed: string): PrototypeScenario {
+  // Layout (anchored top-left of each footprint):
+  //   AI TC      (30,20) 4x4 → (30..33, 20..23)
+  //   blacksmith (24,12) 3x3 → (24..26, 12..14)
+  //   archery    (28,12) 3x3 → (28..30, 12..14)
+  //   stable     (32,12) 3x3 → (32..34, 12..14)
+  //   market     (36,12) 4x4 → (36..39, 12..15)
+  //   barracks   (24,16) 3x3 → (24..26, 16..18)
+  //   lumber-cmp (37,17) 2x2 → (37..38, 17..18)
+  //   mining-cmp (37,21) 2x2 → (37..38, 21..22)
+  //   mill       (28,25) 2x2 → (28..29, 25..26)
+  //   relic      (35,25) 1x1
+  //   spearman   (28,16) 1x1 (inside barracks footprint? No, 28 is outside 24..26)
+  //   archer     (29,16) 1x1
+  //   sheep      (24,24..25)
+  //   berry      (24,21..22)
+  //   tree       (28,29..30) (28..29)
+  //   gold       (36,17), (36,18)
+  //   stone      (36,16)
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 20 },
+        startingAge: 'castle-age',
+        startingResources: { food: 1000, wood: 600, gold: 1500, stone: 200 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      // Backup TC so the AI's pre-existing military doesn't end the
+      // match by destroying the human's primary base.
+      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      // AI villagers — enough to keep the economy alive while Monks
+      // train and walk between targets.
+      { kind: 'villager', x: 28, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 29, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 28, y: 21, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 29, y: 21, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      // Pre-built Castle-Age production so the Castle / Imperial Age
+      // gates pass and the AI's Monastery build-order target activates
+      // without waiting on Feudal-tier prereqs.
+      { kind: 'blacksmith', x: 24, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'archery-range', x: 28, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'stable', x: 32, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'market', x: 36, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'barracks', x: 24, y: 16, owner: 2, baseOwner: 2 },
+      { kind: 'lumber-camp', x: 37, y: 17, owner: 2, baseOwner: 2 },
+      { kind: 'mining-camp', x: 37, y: 21, owner: 2, baseOwner: 2 },
+      { kind: 'mill', x: 28, y: 25, owner: 2, baseOwner: 2 },
+      // Small starting AI military — used to test the heal path. They
+      // are given starting commands by the AI as soon as it ticks.
+      { kind: 'spearman', x: 28, y: 16, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'archer', x: 29, y: 16, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      // Neutral relic just inside AI vision so the AI's Monk pickup
+      // path activates within a few decision ticks.
+      { kind: 'relic', x: 35, y: 25, owner: null, baseOwner: null, amount: 0 },
+      // Resources around the AI base — generous amounts so the
+      // economy never starves over the test budget. None overlap a
+      // building footprint.
+      { kind: 'sheep', x: 24, y: 24, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'sheep', x: 24, y: 25, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'berry-bush', x: 24, y: 21, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'berry-bush', x: 24, y: 22, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'tree', x: 28, y: 29, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'tree', x: 29, y: 29, owner: null, baseOwner: 2, amount: 1000 },
+      { kind: 'gold-mine', x: 36, y: 17, owner: null, baseOwner: 2, amount: 1500 },
+      { kind: 'gold-mine', x: 36, y: 18, owner: null, baseOwner: 2, amount: 1500 },
+      { kind: 'stone-mine', x: 36, y: 16, owner: null, baseOwner: 2, amount: 800 },
+    ],
+  };
+}
+
+// FU4: AI Monk-heal fixture. The AI already owns a completed
+// Monastery + a single trained Monk + a Pikeman whose HP is
+// pre-damaged below the heal threshold via `startHp` on a starting
+// combat state. Used by the heal-target test so the heal path fires
+// without first running the Monk training pipeline.
+function createAiMonkHealFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 20 },
+        startingAge: 'castle-age',
+        startingResources: { food: 200, wood: 200, gold: 200, stone: 200 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      { kind: 'monastery', x: 27, y: 22, owner: 2, baseOwner: 2 },
+      { kind: 'monk', x: 28, y: 24, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 9 } },
+      // Pikeman pre-damaged via startHp so the heal path fires on the
+      // first AI decision tick. Pikeman max HP is 60; 30 is half — well
+      // below the 70% heal threshold.
+      { kind: 'pikeman', x: 29, y: 24, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 }, startHp: 30 },
+    ],
+  };
+}
+
+// FU4: AI Monk-relic fixture. The AI starts with a Monastery + a
+// single Monk, with a free neutral relic placed just inside the
+// Monk's vision. Verifies the pickup-then-deposit chain.
+function createAiMonkRelicFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 20 },
+        startingAge: 'castle-age',
+        startingResources: { food: 200, wood: 200, gold: 200, stone: 200 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      { kind: 'monastery', x: 27, y: 22, owner: 2, baseOwner: 2 },
+      { kind: 'monk', x: 28, y: 26, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 9 } },
+      // Neutral relic close to the Monk so the pickup path completes
+      // within the test budget.
+      { kind: 'relic', x: 30, y: 26, owner: null, baseOwner: null, amount: 0 },
     ],
   };
 }
@@ -8400,6 +8579,18 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'ai-difficulty-fixture') {
     return createAiDifficultyFixture(seed);
+  }
+
+  if (seed === 'ai-monk-fixture') {
+    return createAiMonkFixture(seed);
+  }
+
+  if (seed === 'ai-monk-heal-fixture') {
+    return createAiMonkHealFixture(seed);
+  }
+
+  if (seed === 'ai-monk-relic-fixture') {
+    return createAiMonkRelicFixture(seed);
   }
 
   if (seed === 'feudal-market-fixture') {

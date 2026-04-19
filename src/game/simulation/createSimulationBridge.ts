@@ -24,6 +24,8 @@ import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
 import {
   AI_BASE_VISION_RADIUS,
+  AI_MONK_COUNT_CAP,
+  AI_MONK_HEAL_HP_FRACTION,
   AI_WATCH_TOWER_FORWARD_STEP,
   DEFAULT_DIFFICULTY,
   ageUpResourceBuffer,
@@ -119,6 +121,12 @@ export interface SimulationBridge {
   getSelectionState(): SelectionState;
   getMatchState(): MatchState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
+  // FU4: probe an entity's current/max HP. Reads the canonical combat
+  // (unit) or building-health side-map directly so vitest cases can
+  // assert AI-side healing / damage without routing through fog
+  // visibility. Returns `null` when the entity has no associated
+  // health tracking (e.g., resources, terrain).
+  getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
     unitType: UnitType | 'sheep',
@@ -3961,6 +3969,16 @@ function createWorld(
       if (spawn.wanderBounds) {
         world.addComponent(unitId, 'wanderBounds', spawn.wanderBounds);
       }
+      // FU4: pre-damage a starting unit so the AI Monk-heal path fires
+      // on the first decision tick without needing a wildlife encounter
+      // to wound the unit first. Mirrors the building `startHp`
+      // pattern from Slice 6's siege fixtures.
+      if (typeof spawn.startHp === 'number') {
+        const combat = combatStates.get(unitId);
+        if (combat) {
+          combat.currentHp = Math.max(1, Math.min(combat.maxHp, spawn.startHp));
+        }
+      }
       if (spawn.allowOverlappingSpawn) {
         overlapWhitelist.add(unitId);
       }
@@ -7442,6 +7460,178 @@ function createWorld(
     }
   }
 
+  // FU4 AI helper. Walks every owned Monk and assigns it the highest-
+  // priority Monk task: deposit a carried relic, pick up a visible
+  // neutral relic, or heal the nearest wounded friendly military unit.
+  // Conversion is intentionally skipped in v1; AoE2 conversions are
+  // expensive in tempo and the v1 AI's planner doesn't model the
+  // tradeoff well enough to risk it. Each Monk processes at most one
+  // task per call; the per-Monk task persists across decision ticks
+  // until it completes (the underlying `prototypeMonkBehavior` system
+  // walks the Monk to the target and applies the action).
+  function assignAiMonkTasks(owner: number): void {
+    for (const monkId of world.query('unit')) {
+      const unit = world.getComponent<UnitComponent>(monkId, 'unit');
+      if (!unit || unit.owner !== owner || unit.unitType !== 'monk') {
+        continue;
+      }
+      // Skip Monks already on a task — let the existing one finish so
+      // we don't thrash mid-walk.
+      if (monkTasks.has(monkId)) {
+        continue;
+      }
+      const monkPosition = world.getComponent<Position>(monkId, 'position');
+      if (!monkPosition) {
+        continue;
+      }
+
+      // Priority 1: deposit a carried relic.
+      if (monkCarriedRelic.has(monkId)) {
+        const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
+        if (monasteryId !== null) {
+          const monasteryRef = getEntityRef(monasteryId);
+          if (monasteryRef) {
+            setMonkTask(monkId, 'deposit', monasteryRef);
+          }
+        }
+        continue;
+      }
+
+      // Priority 2: pick up the nearest visible neutral relic.
+      const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
+      if (relicId !== null) {
+        const relicRef = getEntityRef(relicId);
+        if (relicRef) {
+          setMonkTask(monkId, 'pickup', relicRef);
+          continue;
+        }
+      }
+
+      // Priority 3: heal the nearest wounded friendly military unit.
+      const woundedId = findNearestWoundedFriendlyMilitary(owner, monkPosition);
+      if (woundedId !== null) {
+        const woundedRef = getEntityRef(woundedId);
+        if (woundedRef) {
+          setMonkTask(monkId, 'heal', woundedRef);
+        }
+      }
+    }
+  }
+
+  // FU4 AI helper. Returns the nearest owned, completed Monastery to a
+  // Monk that needs to deposit a carried relic. Manhattan distance is
+  // good enough — the deposit walk uses the building-approach planner
+  // so the actual route is computed when the task is consumed. Returns
+  // null if the owner has no completed Monastery (the Monk waits with
+  // the relic until one is built).
+  function findNearestOwnedMonasteryToDeposit(
+    owner: number,
+    origin: Position,
+  ): number | null {
+    let bestId: number | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const id of world.query('building', 'position')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      const position = world.getComponent<Position>(id, 'position');
+      if (
+        !building
+        || !position
+        || building.owner !== owner
+        || building.buildingType !== 'monastery'
+      ) {
+        continue;
+      }
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        continue;
+      }
+      const distance = manhattanDistance(origin, position);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }
+
+  // FU4 AI helper. Returns the nearest neutral relic (resource entity
+  // with `resourceType === 'relic'` and `owner === null`) currently
+  // visible to the Monk's owner. Carried relics are excluded because
+  // their position tracks the carrying Monk — we only want free relics
+  // sitting on the map. Manhattan distance is enough — the pickup walk
+  // uses the unit-range planner.
+  function findNearestVisibleNeutralRelic(
+    owner: number,
+    origin: Position,
+  ): number | null {
+    const carriedRelicIds = new Set<number>(monkCarriedRelic.values());
+    let bestId: number | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const id of world.query('resource', 'position')) {
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      const position = world.getComponent<Position>(id, 'position');
+      if (
+        !resource
+        || !position
+        || resource.resourceType !== 'relic'
+        || resource.owner !== null
+      ) {
+        continue;
+      }
+      if (carriedRelicIds.has(id)) {
+        continue;
+      }
+      if (!visibility.isVisible(owner, position.x, position.y)) {
+        continue;
+      }
+      const distance = manhattanDistance(origin, position);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }
+
+  // FU4 AI helper. Returns the nearest owned military unit whose
+  // current HP is below `AI_MONK_HEAL_HP_FRACTION` of its max (i.e.
+  // wounded enough that the heal payoff is worth the Monk's attention).
+  // Healthy and dead units are skipped. Villagers / Scouts / Monks are
+  // intentionally excluded so the AI's heal allocation tracks the
+  // actual military line.
+  function findNearestWoundedFriendlyMilitary(
+    owner: number,
+    origin: Position,
+  ): number | null {
+    let bestId: number | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const id of world.query('unit', 'position')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      const position = world.getComponent<Position>(id, 'position');
+      if (
+        !unit
+        || !position
+        || unit.owner !== owner
+        || !isAiMilitaryUnit(unit.unitType)
+      ) {
+        continue;
+      }
+      const combat = combatStates.get(id);
+      if (!combat || combat.maxHp <= 0 || combat.currentHp <= 0) {
+        continue;
+      }
+      if (combat.currentHp >= combat.maxHp * AI_MONK_HEAL_HP_FRACTION) {
+        continue;
+      }
+      const distance = manhattanDistance(origin, position);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }
+
   world.registerSystem({
     name: 'prototypeAi',
     phase: 'update',
@@ -7596,6 +7786,35 @@ function createWorld(
           }
         }
 
+        // Age-up saving heuristic: hoisted above both the villager
+        // training + military training blocks so they share the same
+        // "don't burn food / gold when we're close to the age-up"
+        // gate. Training that costs food or gold pauses when the AI
+        // has >= 60% of the research cost on hand but isn't at the
+        // full threshold yet. That narrow window lets the stockpile
+        // climb over the line without food getting siphoned into
+        // villagers + the unit mix. FU4: previously only military
+        // training was gated; villagers (50 food each) could drain
+        // the stockpile back below the Castle-Age cost even while
+        // military was paused.
+        const nextAgeTech: ResearchableTechnologyType | null =
+          currentAge === 'dark-age' ? 'feudal-age'
+          : currentAge === 'feudal-age' ? 'castle-age'
+          : currentAge === 'castle-age' ? 'imperial-age'
+          : null;
+        const savingForAgeUp = ((): boolean => {
+          if (!nextAgeTech) return false;
+          const s = playerResources.get(owner);
+          if (!s) return false;
+          const cost = researchCost(nextAgeTech);
+          const foodTarget = cost.food ?? 0;
+          const goldTarget = cost.gold ?? 0;
+          const foodProgress = foodTarget > 0 ? s.food / foodTarget : 1;
+          const goldProgress = goldTarget > 0 ? s.gold / goldTarget : 1;
+          const minProgress = Math.min(foodProgress, goldProgress);
+          return minProgress >= 0.6 && !canAfford(s, cost);
+        })();
+
         // Age-up loop: if the Town Center is idle and the age-up tech
         // is affordable, queue it. The AI also keeps a small safety
         // buffer (food + gold) so production does not stall during
@@ -7629,13 +7848,17 @@ function createWorld(
             // Villager training: keep the Town Center producing
             // villagers up to an age-scaled cap. Stops early when
             // population-blocked to avoid stacking queue entries
-            // that sit isBlocked until a House completes.
+            // that sit isBlocked until a House completes. Also
+            // pauses while saving for age-up so the 50-food villager
+            // cost doesn't siphon the stockpile back below the Castle
+            // / Imperial Age threshold once military has paused.
             const tcQueue = productionQueues.get(ownerTownCenterId) ?? [];
             const villagerCap = currentAge === 'dark-age' ? 6 : 14;
             const currentVillagers =
               countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager');
             if (
               !populationBlocked
+              && !savingForAgeUp
               && currentVillagers < villagerCap
               && tcQueue.length < 2
             ) {
@@ -7651,27 +7874,6 @@ function createWorld(
         // ages. Each age only trains units the AI actually has
         // buildings for (pickNextBuildTarget ensures those buildings
         // get built in order).
-        const nextAgeTech: ResearchableTechnologyType | null =
-          currentAge === 'dark-age' ? 'feudal-age'
-          : currentAge === 'feudal-age' ? 'castle-age'
-          : currentAge === 'castle-age' ? 'imperial-age'
-          : null;
-        const savingForAgeUp = ((): boolean => {
-          if (!nextAgeTech) return false;
-          const s = playerResources.get(owner);
-          if (!s) return false;
-          // Pause training once the AI has >= 60% of the research cost
-          // on hand but isn't at the full threshold yet. That narrow
-          // window lets the stockpile climb over the line without
-          // food getting siphoned into the unit mix.
-          const cost = researchCost(nextAgeTech);
-          const foodTarget = cost.food ?? 0;
-          const goldTarget = cost.gold ?? 0;
-          const foodProgress = foodTarget > 0 ? s.food / foodTarget : 1;
-          const goldProgress = goldTarget > 0 ? s.gold / goldTarget : 1;
-          const minProgress = Math.min(foodProgress, goldProgress);
-          return minProgress >= 0.6 && !canAfford(s, cost);
-        })();
         const mix = pickUnitMix(currentAge);
         if (!savingForAgeUp) {
           for (const { unitType, producer } of mix) {
@@ -7689,27 +7891,67 @@ function createWorld(
         // queue it. Cheap one-time upgrades (Fletching / Crossbowman
         // / Pikeman / Light Cavalry / etc.) pay off long-term and the
         // AI has plenty of spare resource once it enters Castle Age.
-        for (const buildingType of [
-          'blacksmith',
-          'archery-range',
-          'barracks',
-          'stable',
-          'siege-workshop',
-          'castle',
-        ] as const) {
-          const buildingId = findIdleProducer(owner, buildingType);
-          if (buildingId === null) continue;
-          const options = getResearchOptions(owner, buildingType);
-          if (options.length === 0) continue;
-          const stockpile = playerResources.get(owner);
-          if (!stockpile) continue;
-          for (const tech of options) {
-            if (canAfford(stockpile, researchCost(tech))) {
-              enqueueResearch(buildingId, tech);
-              break;
+        // FU4: paused during age-up saving so blacksmith / range techs
+        // (each 100-200 food) don't siphon the food stockpile back
+        // below the Castle / Imperial Age research threshold.
+        if (!savingForAgeUp) {
+          for (const buildingType of [
+            'blacksmith',
+            'archery-range',
+            'barracks',
+            'stable',
+            'siege-workshop',
+            'castle',
+          ] as const) {
+            const buildingId = findIdleProducer(owner, buildingType);
+            if (buildingId === null) continue;
+            const options = getResearchOptions(owner, buildingType);
+            if (options.length === 0) continue;
+            const stockpile = playerResources.get(owner);
+            if (!stockpile) continue;
+            for (const tech of options) {
+              if (canAfford(stockpile, researchCost(tech))) {
+                enqueueResearch(buildingId, tech);
+                break;
+              }
             }
           }
         }
+
+        // FU4: Monk training. Trains up to AI_MONK_COUNT_CAP Monks
+        // from a completed Monastery in Castle / Imperial Age. Two-to-
+        // three Monks suffice to heal the pushing army and ferry every
+        // map relic back to the Monastery, while keeping gold spend
+        // below the cavalry / archer line.
+        if (
+          !savingForAgeUp
+          && (currentAge === 'castle-age' || currentAge === 'imperial-age')
+        ) {
+          const monasteryId = findIdleProducer(owner, 'monastery');
+          if (monasteryId !== null) {
+            const ownedMonks =
+              countOwnedUnits(owner, 'monk') + countQueuedUnits(monasteryId, 'monk');
+            const stockpile = playerResources.get(owner);
+            if (
+              ownedMonks < AI_MONK_COUNT_CAP
+              && stockpile
+              && canAfford(stockpile, trainingCost('monk'))
+              && getTrainOptions(owner, 'monastery').includes('monk')
+            ) {
+              enqueueTraining(monasteryId, 'monk');
+            }
+          }
+        }
+
+        // FU4: Monk task assignment. Each owned Monk that has no
+        // current task gets routed to: (1) deposit a carried relic at
+        // the nearest friendly Monastery; (2) pick up the nearest
+        // visible neutral relic; or (3) heal the nearest wounded
+        // friendly military unit. Conversion (enemy-targeting) is
+        // intentionally skipped in v1 — the spec defers it to a later
+        // FU pass — so the AI Monk loop only reads the friendly-side
+        // surface.
+        assignAiMonkTasks(owner);
 
         // Attack-group management: prune destroyed / converted units,
         // then accumulate idle military into the group until the
@@ -10593,6 +10835,11 @@ export function createSimulationBridge(
     getSelectionState,
     getMatchState,
     getPlacementPreview,
+    // FU4: re-export `getEntityHealth` so vitest cases can probe AI-
+    // owned unit health without going through the human-fog selection
+    // path. Useful for AI-driven heal / convert / damage assertions
+    // against entities the HUMAN_PLAYER_ID can't see.
+    getEntityHealth,
     selectEntityAtCell,
     selectOwnedUnitsByTypeInRect,
     selectUnitsInBox,
