@@ -1280,6 +1280,7 @@ function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): bo
     || (buildingType === 'siege-workshop' && unitType === 'battering-ram')
     || (buildingType === 'monastery' && unitType === 'monk')
     || (buildingType === 'castle' && unitType === 'longbowman')
+    || (buildingType === 'castle' && unitType === 'elite-longbowman')
   );
 }
 
@@ -1301,6 +1302,7 @@ function canResearchAt(
     || (buildingType === 'stable' && technologyType === 'light-cavalry-upgrade')
     || (buildingType === 'stable' && technologyType === 'hussar-upgrade')
     || (buildingType === 'stable' && technologyType === 'cavalier-upgrade')
+    || (buildingType === 'castle' && technologyType === 'elite-longbowman-upgrade')
   );
 }
 
@@ -4820,13 +4822,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         // Castle is Castle-Age+ and only trains the owner's civ unique
         // unit. For Slice 6 only Britons ship their unique Longbowman;
         // other civs' Castles are still constructible (for defensive
-        // fire and garrison) but produce nothing. Elite Longbowman comes
-        // in Slice 7 with Imperial progression.
+        // fire and garrison) but produce nothing. Slice 7C adds the
+        // Elite Longbowman Imperial upgrade (Britons-gated).
         if (!isAtLeastAge(owner, 'castle-age')) {
           return [];
         }
         if (getPlayerCivilization(owner) === 'Britons') {
-          return ['longbowman'];
+          const longbowLine = latestResearchedInChain(owner, [
+            'longbowman',
+            ['elite-longbowman', 'elite-longbowman-upgrade'],
+          ]);
+          return [longbowLine];
         }
         return [];
       }
@@ -4907,6 +4913,17 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       if (options.length > 0) {
         return options;
       }
+    }
+
+    // Castle Imperial upgrade: Britons-gated Elite Longbowman. Matches the
+    // Slice 6 Longbowman civ gate — only Britons owners ever see the option.
+    if (
+      buildingType === 'castle'
+      && isAtLeastAge(owner, 'imperial-age')
+      && getPlayerCivilization(owner) === 'Britons'
+      && !hasTechnology(owner, 'elite-longbowman-upgrade')
+    ) {
+      return ['elite-longbowman-upgrade'];
     }
 
     return [];
@@ -5413,10 +5430,15 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         upgradeOwnedUnits(owner, 'knight', 'cavalier');
         rewriteQueuedPredecessorUnits(owner, 'knight', 'cavalier');
         break;
-      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
-      // techs. Castle + Siege Workshop lines and blacksmith tier effects land
-      // in 7C (remaining) / 7D.
+      // Slice 7C: Castle Imperial upgrade. Britons-gated Elite Longbowman
+      // replaces the Longbowman. The research option is civ-filtered in
+      // getResearchOptions so this branch only fires for Britons owners.
       case 'elite-longbowman-upgrade':
+        upgradeOwnedUnits(owner, 'longbowman', 'elite-longbowman');
+        rewriteQueuedPredecessorUnits(owner, 'longbowman', 'elite-longbowman');
+        break;
+      // Slice 7A placeholder for the remaining Imperial upgrades + blacksmith
+      // techs. Siege Workshop lines and blacksmith tier effects land in 7D.
       case 'onager-upgrade':
       case 'heavy-scorpion-upgrade':
       case 'siege-ram-upgrade':

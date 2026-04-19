@@ -508,3 +508,100 @@ describe('Anti-cavalry bonuses vs Hussar and Cavalier', () => {
     expect(hp).toBe(86);
   }, 30_000);
 });
+
+describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
+  it('exposes elite-longbowman-upgrade at the Castle for a Britons owner in Imperial Age', () => {
+    const bridge = createSimulationBridge('imperial-castle-britons-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    const options = bridge.getSelectionState().researchOptions;
+    expect(options).toContain('elite-longbowman-upgrade');
+  });
+
+  it('does not expose elite-longbowman-upgrade at the Castle for a non-Britons owner', () => {
+    const bridge = createSimulationBridge('imperial-castle-franks-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    const options = bridge.getSelectionState().researchOptions;
+    expect(options).not.toContain('elite-longbowman-upgrade');
+  });
+
+  it('researches Elite Longbowman at the Castle and swaps existing Longbowmen', () => {
+    const bridge = createSimulationBridge('imperial-castle-britons-fixture');
+
+    const startingLongbow = findFirstOwnedUnit(bridge, 1, 'longbowman');
+    expect(startingLongbow).toBeDefined();
+    const longbowId = startingLongbow!.id;
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.queueResearch('elite-longbowman-upgrade')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          countOwnedUnits(bridge, 1, 'elite-longbowman') === 1
+          && countOwnedUnits(bridge, 1, 'longbowman') === 0,
+        { maxSteps: 1200 },
+      ),
+    ).toBe(true);
+
+    const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === longbowId);
+    expect(upgraded?.unitType).toBe('elite-longbowman');
+  }, 30_000);
+
+  it('exposes Elite Longbowman in the Castle train menu after the upgrade (drops Longbowman)', () => {
+    const bridge = createSimulationBridge('imperial-castle-britons-fixture');
+
+    // Starting state: Britons owner, no upgrade, Castle trains Longbowman.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.getSelectionState().trainOptions).toContain('longbowman');
+    expect(bridge.getSelectionState().trainOptions).not.toContain('elite-longbowman');
+
+    expect(bridge.queueResearch('elite-longbowman-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'elite-longbowman') >= 1,
+        { maxSteps: 1200 },
+      ),
+    ).toBe(true);
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.getSelectionState().trainOptions).toContain('elite-longbowman');
+    expect(bridge.getSelectionState().trainOptions).not.toContain('longbowman');
+  }, 30_000);
+
+  it('applies Fletching +1 attack / +1 range to Elite Longbowman', () => {
+    const bridge = createSimulationBridge('imperial-castle-britons-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('fletching')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const lbow = findFirstOwnedUnit(bridge, 1, 'longbowman');
+          return !!lbow && lbow.attackDamage === 7 && lbow.attackRange === 7;
+        },
+        { maxSteps: 500 },
+      ),
+    ).toBe(true);
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
+    expect(bridge.queueResearch('elite-longbowman-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'elite-longbowman') === 1,
+        { maxSteps: 1200 },
+      ),
+    ).toBe(true);
+
+    // Elite Longbowman base attack 7 / base range 6. With Fletching
+    // stacked via isArcherLineUnit: atk 8 / range 7.
+    const upgraded = findFirstOwnedUnit(bridge, 1, 'elite-longbowman');
+    expect(upgraded?.attackDamage).toBe(8);
+    expect(upgraded?.attackRange).toBe(7);
+  }, 30_000);
+});
