@@ -57,6 +57,12 @@ export interface PlayerStartSpec {
   civilization?: string;
   startingAge?: AgeType;
   startingResources?: PlayerResources;
+  // Test-only override for the Wonder and Relic victory countdown.
+  // Production uses the authoritative `WONDER_COUNTDOWN_TICKS` /
+  // `RELIC_COUNTDOWN_TICKS` constants; fixtures can shrink this to a
+  // handful of ticks so vitest cases resolve quickly. Applied per owner.
+  wonderCountdownOverrideTicks?: number;
+  relicCountdownOverrideTicks?: number;
 }
 
 export interface PrototypeScenario {
@@ -6294,6 +6300,351 @@ function createSiegeRamVsBuildingFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Slice 8 fixture: Imperial-Age human with no Wonder yet. Used to assert
+// the villager build menu exposes 'wonder' once the Imperial gate is
+// satisfied.
+function createWonderImperialFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        // Plenty of resources to queue a Wonder placement test.
+        startingResources: {
+          food: 2000,
+          wood: 2000,
+          gold: 2000,
+          stone: 2000,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 8 fixture: Imperial-Age human with a completed Wonder AND a
+// villager. Used to assert the one-Wonder-per-owner cap — the villager's
+// build options should not include 'wonder' even in Imperial Age.
+function createWonderExistingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        // Countdown override that is longer than the vitest runs, so the
+        // test can observe the build-options gate without the match
+        // ending mid-assertion.
+        wonderCountdownOverrideTicks: 100000,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'wonder',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 8 fixture: Imperial-Age human with a completed Wonder and a
+// countdown override of 10 ticks. Used for the Wonder-victory test so
+// the countdown resolves quickly.
+function createWonderShortCountdownFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        wonderCountdownOverrideTicks: 10,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'wonder',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 8 fixture: Imperial-Age human with a Wonder at very low HP and a
+// short countdown override. An enemy Siege Ram is stationed adjacent to
+// the Wonder so it is destroyed before the countdown can expire, proving
+// the destruction-resets-countdown rule.
+function createWonderDestroyedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 6, y: 12 },
+        startingAge: 'imperial-age',
+        // Long enough that destruction happens well before the countdown
+        // would naturally expire, so if destruction-reset fails we see a
+        // Wonder victory for player 1 mid-test (deterministic failure
+        // mode). 30 ticks is roughly 3x what the Siege Ram needs.
+        wonderCountdownOverrideTicks: 60,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 12 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 6,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'wonder',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+        // Wonder starts with 4 HP so one militia swing finishes it. The
+        // long 60-tick countdown gives the militia time to close, engage,
+        // and swing before the countdown would naturally expire.
+        startHp: 4,
+      },
+      {
+        kind: 'militia',
+        x: 18,
+        y: 7,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 10 },
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 12,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 8 fixture: player-1 Monastery pre-loaded with every relic (and
+// zero live relics on the map). Relic countdown override is set to 10
+// ticks so the victory fires quickly.
+function createRelicShortCountdownFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        relicCountdownOverrideTicks: 10,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monastery',
+        x: 12,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+        startingRelicsInMonastery: 3,
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Slice 8 fixture: player-1 Monastery with 2 relics, plus a live neutral
+// relic on the map. Player 1 does NOT hold every relic, so the relic
+// countdown must never complete even with an aggressive override.
+function createRelicNotAllHeldFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        relicCountdownOverrideTicks: 10,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'castle-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monastery',
+        x: 12,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+        startingRelicsInMonastery: 2,
+      },
+      {
+        kind: 'relic',
+        x: 20,
+        y: 12,
+        owner: null,
+        baseOwner: null,
+        amount: 0,
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
   if (seed === 'conquest-victory-fixture') {
     return createConquestVictoryFixture(seed);
@@ -6554,6 +6905,30 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
   }
   if (seed === 'monk-relic-fixture') {
     return createMonkRelicFixture(seed);
+  }
+
+  if (seed === 'wonder-imperial-fixture') {
+    return createWonderImperialFixture(seed);
+  }
+
+  if (seed === 'wonder-existing-fixture') {
+    return createWonderExistingFixture(seed);
+  }
+
+  if (seed === 'wonder-short-countdown-fixture') {
+    return createWonderShortCountdownFixture(seed);
+  }
+
+  if (seed === 'wonder-destroyed-fixture') {
+    return createWonderDestroyedFixture(seed);
+  }
+
+  if (seed === 'relic-short-countdown-fixture') {
+    return createRelicShortCountdownFixture(seed);
+  }
+
+  if (seed === 'relic-not-all-held-fixture') {
+    return createRelicNotAllHeldFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {

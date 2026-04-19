@@ -645,6 +645,8 @@ function formatEntityIcon(entityType: SelectionState['selectedEntityType']): str
       return 'My';
     case 'castle':
       return 'Ct';
+    case 'wonder':
+      return 'Wn';
     case 'relic':
       return 'Rl';
     case 'berry-bush':
@@ -698,6 +700,8 @@ function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']
       return '#cfc3a8';
     case 'castle':
       return '#a09f9c';
+    case 'wonder':
+      return '#e6c36a';
     case 'relic':
       return '#f5d680';
     case 'berry-bush':
@@ -982,6 +986,74 @@ function formatMatchTime(tick: number, ticksPerSecond: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+// Slice 8: MM:SS countdown format shared by the Wonder and Relic chip.
+// Mirrors formatMatchTime but expects a ticks-remaining value, not a
+// cumulative tick count.
+function formatCountdownTicks(ticks: number, ticksPerSecond: number): string {
+  if (ticksPerSecond <= 0) {
+    return '00:00';
+  }
+
+  const totalSeconds = Math.max(0, Math.ceil(ticks / ticksPerSecond));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Slice 8: post-game summary card content. Summary text drives the
+// existing browser-test assertions; adding winCondition + scores below
+// it keeps the textContent backward-compatible in tests that only look
+// for the leading status string via text match.
+function formatWinConditionLabel(
+  winCondition: 'conquest' | 'wonder' | 'relic' | null,
+): string {
+  switch (winCondition) {
+    case 'wonder':
+      return 'Wonder Victory';
+    case 'relic':
+      return 'Relic Victory';
+    case 'conquest':
+      return 'Conquest Victory';
+    case null:
+    default:
+      return '';
+  }
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderMatchSummary(
+  summary: string,
+  winCondition: 'conquest' | 'wonder' | 'relic' | null,
+  scores: Record<number, number> | null,
+): string {
+  const parts: string[] = [];
+  parts.push(`<div data-hud="match-summary-text">${escapeHtml(summary)}</div>`);
+  const label = formatWinConditionLabel(winCondition);
+  if (label) {
+    parts.push(
+      `<div data-hud="match-summary-win-condition">${escapeHtml(label)}</div>`,
+    );
+  }
+  if (scores) {
+    const rows = Object.entries(scores)
+      .sort(([leftOwner], [rightOwner]) => Number(leftOwner) - Number(rightOwner))
+      .map(([owner, score]) =>
+        `<div data-hud="match-summary-score">Player ${escapeHtml(owner)}: ${score}</div>`,
+      )
+      .join('');
+    parts.push(rows);
+  }
+  return parts.join('');
+}
+
 export function createHudController(root: HTMLElement, bridge: HudBridge): void {
   root.innerHTML = `
     <div class="hud-top">
@@ -1014,6 +1086,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <div class="hud-label">Time</div>
           <div class="hud-value" data-hud="time">00:00</div>
         </div>
+        <div class="hud-chip" data-hud-chip="countdown" data-hud="countdown-chip" hidden>
+          <div class="hud-label" data-hud="countdown-label">Countdown</div>
+          <div class="hud-value" data-hud="countdown-value">00:00</div>
+        </div>
       </div>
     </div>
     <div class="hud-bottom">
@@ -1042,6 +1118,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const pop = root.querySelector<HTMLElement>('[data-hud="pop"]');
   const time = root.querySelector<HTMLElement>('[data-hud="time"]');
   const matchSummary = root.querySelector<HTMLElement>('[data-hud="match-summary"]');
+  const countdownChip = root.querySelector<HTMLElement>('[data-hud="countdown-chip"]');
+  const countdownLabel = root.querySelector<HTMLElement>('[data-hud="countdown-label"]');
+  const countdownValue = root.querySelector<HTMLElement>('[data-hud="countdown-value"]');
   const minimap = root.querySelector<HTMLCanvasElement>('[data-hud="minimap"]');
   const selectionPanel = root.querySelector<HTMLElement>('[data-hud="selection-panel"]');
 
@@ -1327,7 +1406,43 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
         hudState.matchState.outcome !== 'running'
         && hudState.matchState.summary.trim().length > 0;
       matchSummary.hidden = !shouldShowSummary;
-      matchSummary.textContent = shouldShowSummary ? hudState.matchState.summary : '';
+      if (shouldShowSummary) {
+        // Slice 8: extended post-game card. First line: summary text.
+        // Second: win condition label. Subsequent rows: per-owner score.
+        // The HUD pattern keeps everything inside the single footer element
+        // so the existing `[data-hud="match-summary"]` selector in browser
+        // tests still finds the status text.
+        matchSummary.innerHTML = renderMatchSummary(
+          hudState.matchState.summary,
+          hudState.matchState.winCondition,
+          hudState.matchState.scores,
+        );
+      } else {
+        matchSummary.innerHTML = '';
+      }
+    }
+
+    if (countdownChip && countdownLabel && countdownValue) {
+      // Slice 8: surface the human player's active countdown (Wonder or
+      // Relic) in the top bar so the player sees the timer drop live.
+      // Wonder takes precedence when both are active (rare; the first
+      // countdown to start wins per the deterministic tie-break rule).
+      const wonderTicks = hudState.matchState.wonderCountdownTicks;
+      const relicTicks = hudState.matchState.relicCountdownTicks;
+      const activeKind: 'wonder' | 'relic' | null =
+        wonderTicks !== null
+          ? 'wonder'
+          : relicTicks !== null
+            ? 'relic'
+            : null;
+      if (activeKind === null) {
+        countdownChip.hidden = true;
+      } else {
+        countdownChip.hidden = false;
+        const ticks = activeKind === 'wonder' ? wonderTicks! : relicTicks!;
+        countdownLabel.textContent = activeKind === 'wonder' ? 'Wonder' : 'Relic';
+        countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
+      }
     }
     renderSelectionPanel(selectionState);
 

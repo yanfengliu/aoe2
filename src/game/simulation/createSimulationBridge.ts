@@ -97,6 +97,7 @@ export interface SimulationBridge {
   getEconomyState(): EconomyState;
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
+  getMatchState(): MatchState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
@@ -162,6 +163,16 @@ const MONK_TRAIN_TIME_TICKS = 510;
 // trains at the Castle when the owner's civ is Britons.
 const CASTLE_BUILD_TIME_TICKS = 560;
 const LONGBOWMAN_TRAIN_TIME_TICKS = 300;
+// Slice 8: Wonder is the largest structure in the game — Imperial-only, very
+// expensive, and the centerpiece of the Wonder-victory win condition. Build
+// time is intentionally long (roughly twice a Castle) so opponents have time
+// to respond to a Wonder commit. Countdown ticks from completion; if the
+// Wonder still stands at zero the owner wins.
+const WONDER_BUILD_TIME_TICKS = 1200;
+const WONDER_COUNTDOWN_TICKS = 2000;
+// Slice 8: Relic victory requires holding every relic on the map in one
+// player's Monasteries for the full countdown. Mirrors Wonder countdown.
+const RELIC_COUNTDOWN_TICKS = 2000;
 // Deterministic per-tick increments for Monk conversion and heal (Slice 5).
 // Conversion flips target ownership at 50 progress; heal restores 1 HP per
 // 10 ticks. These values are intentionally v1 "easy-to-observe" rates — real
@@ -718,6 +729,7 @@ function buildingPopulationProvided(buildingType: BuildingType): number {
     case 'siege-workshop':
     case 'monastery':
     case 'castle':
+    case 'wonder':
     case 'town-center':
       return 0;
   }
@@ -751,6 +763,8 @@ function buildingBuildTimeTicks(buildingType: BuildingType): number {
       return MONASTERY_BUILD_TIME_TICKS;
     case 'castle':
       return CASTLE_BUILD_TIME_TICKS;
+    case 'wonder':
+      return WONDER_BUILD_TIME_TICKS;
   }
 }
 
@@ -775,6 +789,10 @@ function buildingSize(buildingType: BuildingType): number {
       return 1.4;
     case 'castle':
       return 1.5;
+    case 'wonder':
+      // Wonders are the largest, most visually prominent structure. Fills
+      // the 4x4 footprint a touch more than a Castle.
+      return 1.6;
   }
 }
 
@@ -859,6 +877,15 @@ function buildingTint(
     return owner === HUMAN_PLAYER_ID
       ? isComplete ? 0xa09f9c : 0x605d59
       : isComplete ? 0xaa7a7a : 0x604545;
+  }
+
+  if (buildingType === 'wonder') {
+    // Gold / amber palette to signal victory significance; the enemy
+    // mirror is a deeper crimson so the HUD reads at a glance whose
+    // Wonder is up on a busy screen.
+    return owner === HUMAN_PLAYER_ID
+      ? isComplete ? 0xe6c36a : 0x8a7340
+      : isComplete ? 0xb9585f : 0x6b3438;
   }
 
   return owner === HUMAN_PLAYER_ID
@@ -1040,6 +1067,10 @@ function constructionCost(buildingType: BuildableBuildingType): Partial<PlayerRe
       return { wood: 175 };
     case 'castle':
       return { stone: 650 };
+    case 'wonder':
+      // Slice 8: Wonder is the most expensive building in the game; a
+      // full 1000 of every resource matches canonical AoE2 DE.
+      return { food: 1000, wood: 1000, gold: 1000, stone: 1000 };
   }
 }
 
@@ -1176,6 +1207,10 @@ function buildingMaxHp(buildingType: BuildingType): number {
       return 2400;
     case 'castle':
       return 4800;
+    case 'wonder':
+      // Matches canonical AoE2 DE. Large HP pool so the win-condition
+      // tension plays out over many ticks of enemy siege.
+      return 4800;
   }
 }
 
@@ -1187,6 +1222,11 @@ function buildingVisionRadius(buildingType: BuildingType): number | null {
       return 8;
     case 'castle':
       return 11;
+    case 'wonder':
+      // Wonder offers middling vision — enough to let the player watch
+      // the countdown from the cell it occupies without turning it into
+      // a dedicated scout tower.
+      return 7;
     default:
       return null;
   }
@@ -2422,6 +2462,53 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   // Per-Monastery count of deposited relics. Per tick, every owner gets +1
   // gold for each relic deposited in their Monasteries (see prototypeRelicGold).
   const relicsInMonastery = new Map<number, number>();
+  // Slice 8: Wonder victory state. Countdown starts as soon as a player's
+  // Wonder completes construction; decrements every tick. At 0 the owner
+  // wins by Wonder victory. If the Wonder is destroyed the countdown
+  // resets to null and must restart from scratch when a new Wonder is
+  // built. Countdown length defaults to WONDER_COUNTDOWN_TICKS but a
+  // per-player scenario override (`wonderCountdownOverrideTicks`) can
+  // shrink it for test speed.
+  interface WonderCountdownEntry {
+    remainingTicks: number;
+    totalTicks: number;
+  }
+  const wonderCountdowns = new Map<number, WonderCountdownEntry>();
+  const wonderCountdownOverrides = new Map<number, number>();
+  // Slice 8: Relic victory state. Countdown starts as soon as one owner
+  // holds every relic on the map inside their Monasteries. Decrements
+  // every tick. At 0 the owner wins by Relic victory. If the ownership
+  // picture changes (a relic drops, a relic is picked up by another
+  // Monk, etc.) the countdown resets to null.
+  interface RelicCountdownEntry {
+    remainingTicks: number;
+    totalTicks: number;
+  }
+  const relicCountdowns = new Map<number, RelicCountdownEntry>();
+  const relicCountdownOverrides = new Map<number, number>();
+  // Slice 8: per-owner score counters incremented on game-event ticks.
+  // The final score is computed in `finalizeMatchEnd` using the weights
+  // documented in `computePlayerScore`.
+  interface PlayerScoreCounters {
+    unitsProduced: number;
+    buildingsProduced: number;
+    resourcesGathered: number;
+    wonderCompleted: boolean;
+  }
+  const playerScoreCounters = new Map<number, PlayerScoreCounters>();
+  function ensurePlayerScoreCounters(owner: number): PlayerScoreCounters {
+    let counters = playerScoreCounters.get(owner);
+    if (!counters) {
+      counters = {
+        unitsProduced: 0,
+        buildingsProduced: 0,
+        resourcesGathered: 0,
+        wonderCompleted: false,
+      };
+      playerScoreCounters.set(owner, counters);
+    }
+    return counters;
+  }
   // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
   // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
   // visible to the player; read at render-projection time for cells that are
@@ -2504,6 +2591,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
   const matchState: MatchState = {
     outcome: 'running',
     summary: '',
+    winCondition: null,
+    scores: null,
+    wonderCountdownTicks: null,
+    relicCountdownTicks: null,
   };
   let selectedEntityRefs: EntityRef[] = [];
   let selectionFocusCell: Position | null = null;
@@ -2542,6 +2633,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       cap: STANDARD_POPULATION_CAP,
     });
     villagerOrdinals.set(start.owner, 0);
+    if (typeof start.wonderCountdownOverrideTicks === 'number') {
+      wonderCountdownOverrides.set(
+        start.owner,
+        Math.max(1, start.wonderCountdownOverrideTicks),
+      );
+    }
+    if (typeof start.relicCountdownOverrideTicks === 'number') {
+      relicCountdownOverrides.set(
+        start.owner,
+        Math.max(1, start.relicCountdownOverrideTicks),
+      );
+    }
   }
 
   for (const row of scenario.terrain) {
@@ -2865,6 +2968,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       populationState.current += 1;
     }
 
+    // Slice 8: count every unit that enters the world (scenario spawns +
+    // trained units) toward the owner's score. This keeps fixtures with
+    // pre-placed armies comparable to ones that grow from nothing.
+    ensurePlayerScoreCounters(owner).unitsProduced += 1;
+
     combatStates.set(entity, createCombatState(owner, unitType));
 
     if (unitType === 'villager') {
@@ -2971,9 +3079,37 @@ function createWorld(seed: string, visibility: VisibilityMap): {
         width: footprint.width,
         height: footprint.height,
       });
+    } else {
+      // Slice 8: fixtures can spawn a completed Wonder directly (skipping
+      // the construction flow); propagate that into the score + countdown
+      // state so the Wonder-victory pipeline is identical to the "player
+      // just finished building their Wonder" path.
+      onBuildingConstructionComplete(entity, owner, buildingType);
     }
 
     return entity;
+  }
+
+  // Slice 8: invoked whenever a building transitions to complete — both at
+  // scenario-spawn time (isComplete=true in addBuildingEntity) and from
+  // the construction-progress loop in `prototypePlayerCommands`. Keeps the
+  // score counter bumps and Wonder countdown-start logic in one place so
+  // the two entry points cannot drift.
+  function onBuildingConstructionComplete(
+    buildingId: number,
+    owner: number,
+    buildingType: BuildingType,
+  ): void {
+    const counters = ensurePlayerScoreCounters(owner);
+    counters.buildingsProduced += 1;
+    if (buildingType === 'wonder') {
+      counters.wonderCompleted = true;
+      const totalTicks = wonderCountdownOverrides.get(owner) ?? WONDER_COUNTDOWN_TICKS;
+      wonderCountdowns.set(buildingId, {
+        remainingTicks: totalTicks,
+        totalTicks,
+      });
+    }
   }
 
   function addResourceEntity(
@@ -3041,6 +3177,7 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       || spawn.kind === 'siege-workshop'
       || spawn.kind === 'monastery'
       || spawn.kind === 'castle'
+      || spawn.kind === 'wonder'
     ) {
       const owner = spawn.owner ?? HUMAN_PLAYER_ID;
       const buildingId = addBuildingEntity(
@@ -4185,6 +4322,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
+    // Slice 8: a destroyed Wonder invalidates its owner's countdown. The
+    // wonderCompleted score counter stays set (the player still earned
+    // the "you committed to a Wonder" credit even if they lost it) but
+    // the countdown is wiped so no Wonder victory fires from a ghost
+    // entry. Clearing per-entity keeps the per-owner bookkeeping simple.
+    wonderCountdowns.delete(id);
     // Destroyed Monastery stops generating relic gold. Any stored relics
     // spill back onto the map. Matches canonical AoE2 behavior. We must
     // guarantee that every stored relic survives — Codex P2 review caught
@@ -4770,6 +4913,22 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     return countCompletedOwnedBuildings(owner, (candidate) => candidate === buildingType) > 0;
   }
 
+  // Slice 8: owner already has a Wonder on the board (in construction OR
+  // complete). Used to cap the number of Wonders per player to one and to
+  // drive the countdown-start/reset logic in `prototypeWonderCountdown`.
+  // Both in-flight and finished Wonders count — otherwise the player could
+  // queue up a replacement while the original is still standing, which
+  // defeats the "commit and defend" tension of the Wonder victory path.
+  function hasOwnedWonder(owner: number): boolean {
+    for (const id of world.query('building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (building?.owner === owner && building.buildingType === 'wonder') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getPlayerAge(owner: number): AgeType {
     return playerAges.get(owner) ?? 'dark-age';
   }
@@ -5174,6 +5333,16 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       options.push('castle');
     }
 
+    // Slice 8: Wonder is Imperial-only AND capped at one per owner. When
+    // a Wonder already exists for this owner (construction-in-progress or
+    // complete), hide it from placement options — the game-mechanism
+    // guarantee that only one Wonder-countdown is ever in flight per
+    // player. The current hasOwnedWonder() check counts both in-progress
+    // and completed Wonders via the building component.
+    if (getPlayerAge(owner) === 'imperial-age' && !hasOwnedWonder(owner)) {
+      options.push('wonder');
+    }
+
     return options;
   }
 
@@ -5240,6 +5409,11 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     switch (buildingType) {
       case 'watch-tower':
         return 2;
+      case 'wonder':
+        // Slice 8: a Wonder with an active countdown is the single most
+        // important target on the map — if it stands, its owner wins. Rank
+        // it first so AI / auto-target picks swarm the Wonder.
+        return 1;
       case 'town-center':
         return 9;
       case 'castle':
@@ -6041,6 +6215,12 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             populationState.cap += construction.populationProvided;
           }
 
+          // Slice 8: hook the generic completion path (score counters,
+          // Wonder-countdown start). Must fire for every construction
+          // completion, including non-Wonder buildings, so scores stay
+          // accurate across the whole match.
+          onBuildingConstructionComplete(buildingId, building.owner, building.buildingType);
+
           unitCommands.delete(id);
         }
       }
@@ -6385,6 +6565,9 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             playerId: building.owner,
             radius: unitVisionRadius(entry.unitType),
           });
+          // Score counter for trained units is incremented inside
+          // `addUnitEntity`, covering both scenario spawns and production-
+          // queue spawns uniformly.
           const rallyPoint = rallyPoints.get(buildingId);
           if (rallyPoint) {
             issueUnitMoveCommand(unitId, rallyPoint);
@@ -6627,6 +6810,10 @@ function createWorld(seed: string, visibility: VisibilityMap): {
             if (stockpile) {
               stockpile[gatherer.carriedResource] += gatherer.carriedAmount;
             }
+            // Slice 8: track every unit of dropped-off resource toward the
+            // end-of-match score. A small per-unit weight keeps the score
+            // readable (1000 gathered ≈ 50 points; see computePlayerScore).
+            ensurePlayerScoreCounters(unit.owner).resourcesGathered += gatherer.carriedAmount;
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
@@ -6929,24 +7116,221 @@ function createWorld(seed: string, visibility: VisibilityMap): {
     },
   });
 
+  // Slice 8: score weights for the end-of-match summary.
+  //
+  //   units produced      × 10
+  //   buildings produced  × 25
+  //   resources gathered  × 0.05   (1000 gathered = 50 points)
+  //   relics held at end  × 50
+  //   wonder completed    × 200
+  //
+  // These are intentionally simple so the summary is legible at a glance.
+  // The weights are stable across win conditions — e.g. a conquest victor
+  // who also completed a Wonder still gets the Wonder-bonus 200 points.
+  function computePlayerScore(owner: number): number {
+    const counters = playerScoreCounters.get(owner) ?? {
+      unitsProduced: 0,
+      buildingsProduced: 0,
+      resourcesGathered: 0,
+      wonderCompleted: false,
+    };
+    let relicsHeld = 0;
+    for (const [monasteryId, count] of relicsInMonastery.entries()) {
+      const building = world.getComponent<BuildingComponent>(monasteryId, 'building');
+      if (building?.owner === owner) {
+        relicsHeld += count;
+      }
+    }
+    return Math.floor(
+      counters.unitsProduced * 10
+      + counters.buildingsProduced * 25
+      + counters.resourcesGathered * 0.05
+      + relicsHeld * 50
+      + (counters.wonderCompleted ? 200 : 0),
+    );
+  }
+
+  function finalizeMatchEnd(
+    outcome: 'victory' | 'defeat',
+    winCondition: 'conquest' | 'wonder' | 'relic',
+    summary: string,
+  ): void {
+    matchState.outcome = outcome;
+    matchState.winCondition = winCondition;
+    matchState.summary = summary;
+    matchState.wonderCountdownTicks = null;
+    matchState.relicCountdownTicks = null;
+    const scores: Record<number, number> = {};
+    for (const owner of playerResources.keys()) {
+      scores[owner] = computePlayerScore(owner);
+    }
+    matchState.scores = scores;
+  }
+
+  // Snapshots the remaining ticks on the HUMAN_PLAYER_ID's in-flight Wonder /
+  // Relic countdown, or null if no countdown is active. Called every tick
+  // so the HUD can render a live timer. The lowest remaining value wins
+  // when there are multiple countdowns for the same player (should be at
+  // most one Wonder per owner, but the helper stays defensive).
+  function getHumanWonderCountdownTicks(): number | null {
+    let minRemaining: number | null = null;
+    for (const [buildingId, entry] of wonderCountdowns.entries()) {
+      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+      if (building?.owner !== HUMAN_PLAYER_ID) {
+        continue;
+      }
+      if (minRemaining === null || entry.remainingTicks < minRemaining) {
+        minRemaining = entry.remainingTicks;
+      }
+    }
+    return minRemaining;
+  }
+
+  function getHumanRelicCountdownTicks(): number | null {
+    return relicCountdowns.get(HUMAN_PLAYER_ID)?.remainingTicks ?? null;
+  }
+
+  // Slice 8: Wonder countdown decrement. Each owner's completed Wonder
+  // ticks down a per-owner counter; at zero, the owner wins by Wonder
+  // victory. Runs before `prototypeConquestOutcome` so a Wonder victory
+  // beats a simultaneous conquest (deterministic tie-break rule).
+  world.registerSystem({
+    name: 'prototypeWonderCountdown',
+    phase: 'postUpdate',
+    execute() {
+      if (!isMatchRunning()) {
+        return;
+      }
+      // Iterate a snapshot — a victory fire-off finalizes match state and
+      // the rest of the loop becomes a no-op, but the snapshot guards
+      // against any concurrent entries being mutated mid-iteration.
+      for (const [buildingId, entry] of [...wonderCountdowns.entries()]) {
+        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+        if (!building) {
+          wonderCountdowns.delete(buildingId);
+          continue;
+        }
+        entry.remainingTicks -= 1;
+        if (entry.remainingTicks <= 0) {
+          const winnerIsHuman = building.owner === HUMAN_PLAYER_ID;
+          finalizeMatchEnd(
+            winnerIsHuman ? 'victory' : 'defeat',
+            'wonder',
+            winnerIsHuman
+              ? 'Wonder Victory! Your Wonder endured the countdown.'
+              : 'Wonder Defeat: an enemy Wonder endured the countdown.',
+          );
+          return;
+        }
+      }
+    },
+  });
+
+  // Slice 8: Relic countdown. An owner who holds every relic on the map
+  // in their Monasteries (zero live relics anywhere else) begins counting
+  // down. If the ownership picture changes — a relic drops back on the
+  // map, another player picks one up — the countdown resets.
+  function currentRelicHoldingOwner(): number | null {
+    // Count live (on-map) relic entities. If any exist the "hold all"
+    // condition is false for every player.
+    let liveRelicCount = 0;
+    for (const id of world.query('resource')) {
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (resource?.resourceType === 'relic') {
+        liveRelicCount += 1;
+      }
+    }
+    if (liveRelicCount > 0) {
+      return null;
+    }
+    // Any Monk carrying a relic means it is "in flight" — not held by an
+    // owner, ownership picture is ambiguous until deposited.
+    if (monkCarriedRelic.size > 0) {
+      return null;
+    }
+    // Aggregate deposited relics by owner.
+    const totalByOwner = new Map<number, number>();
+    let grandTotal = 0;
+    for (const [monasteryId, count] of relicsInMonastery.entries()) {
+      if (count <= 0) {
+        continue;
+      }
+      const building = world.getComponent<BuildingComponent>(monasteryId, 'building');
+      if (!building) {
+        continue;
+      }
+      totalByOwner.set(building.owner, (totalByOwner.get(building.owner) ?? 0) + count);
+      grandTotal += count;
+    }
+    if (grandTotal === 0) {
+      return null;
+    }
+    for (const [owner, count] of totalByOwner.entries()) {
+      if (count === grandTotal) {
+        return owner;
+      }
+    }
+    return null;
+  }
+
+  world.registerSystem({
+    name: 'prototypeRelicCountdown',
+    phase: 'postUpdate',
+    after: ['prototypeWonderCountdown'],
+    execute() {
+      if (!isMatchRunning()) {
+        return;
+      }
+      const holdingOwner = currentRelicHoldingOwner();
+      if (holdingOwner === null) {
+        relicCountdowns.clear();
+        return;
+      }
+      let entry = relicCountdowns.get(holdingOwner);
+      if (!entry) {
+        const totalTicks = relicCountdownOverrides.get(holdingOwner) ?? RELIC_COUNTDOWN_TICKS;
+        entry = { remainingTicks: totalTicks, totalTicks };
+        relicCountdowns.set(holdingOwner, entry);
+      }
+      // Clear any stale entry belonging to a different owner (e.g. the
+      // holding picture flipped between players without hitting the
+      // liveRelicCount > 0 early-return).
+      for (const existingOwner of [...relicCountdowns.keys()]) {
+        if (existingOwner !== holdingOwner) {
+          relicCountdowns.delete(existingOwner);
+        }
+      }
+      entry.remainingTicks -= 1;
+      if (entry.remainingTicks <= 0) {
+        const winnerIsHuman = holdingOwner === HUMAN_PLAYER_ID;
+        finalizeMatchEnd(
+          winnerIsHuman ? 'victory' : 'defeat',
+          'relic',
+          winnerIsHuman
+            ? 'Relic Victory! You held every relic for the full countdown.'
+            : 'Relic Defeat: an opponent held every relic for the full countdown.',
+        );
+      }
+    },
+  });
+
   world.registerSystem({
     name: 'prototypeConquestOutcome',
     phase: 'postUpdate',
+    after: ['prototypeRelicCountdown'],
     execute() {
       if (!isMatchRunning()) {
         return;
       }
 
       if (!playerHasConquestPresence(HUMAN_PLAYER_ID)) {
-        matchState.outcome = 'defeat';
-        matchState.summary = 'All of your units and buildings have been destroyed.';
+        finalizeMatchEnd('defeat', 'conquest', 'All of your units and buildings have been destroyed.');
         return;
       }
 
       const enemyOwners = [...playerResources.keys()].filter((owner) => owner !== HUMAN_PLAYER_ID);
       if (enemyOwners.every((owner) => !playerHasConquestPresence(owner))) {
-        matchState.outcome = 'victory';
-        matchState.summary = 'All enemy forces have been eliminated.';
+        finalizeMatchEnd('victory', 'conquest', 'All enemy forces have been eliminated.');
       }
     },
   });
@@ -7852,7 +8236,18 @@ function createWorld(seed: string, visibility: VisibilityMap): {
       );
     },
     getMatchState() {
-      return { ...matchState };
+      // Mirror the authoritative matchState but always surface live
+      // countdown values. The running-match path never writes the
+      // countdown fields; the end-of-match `finalizeMatchEnd` path clears
+      // them to null. Reading them lazily here keeps the HUD timer
+      // current without needing to fan out from every countdown system.
+      return {
+        ...matchState,
+        wonderCountdownTicks:
+          matchState.outcome === 'running' ? getHumanWonderCountdownTicks() : null,
+        relicCountdownTicks:
+          matchState.outcome === 'running' ? getHumanRelicCountdownTicks() : null,
+      };
     },
     getSelectionState,
     getPlacementPreview,
@@ -8071,6 +8466,7 @@ export function createSimulationBridge(seed = DEFAULT_SEED): SimulationBridge {
     getEconomyState,
     getPopulationState,
     getSelectionState,
+    getMatchState,
     getPlacementPreview,
     selectEntityAtCell,
     selectOwnedUnitsByTypeInRect,

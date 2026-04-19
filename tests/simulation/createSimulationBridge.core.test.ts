@@ -321,6 +321,10 @@ describe('createSimulationBridge core systems', () => {
     expect(hudState.matchState).toEqual({
       outcome: 'running',
       summary: '',
+      winCondition: null,
+      scores: null,
+      wonderCountdownTicks: null,
+      relicCountdownTicks: null,
     });
   }, 15_000);
 

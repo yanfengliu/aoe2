@@ -104,7 +104,8 @@ export type BuildableBuildingType =
   | 'market'
   | 'siege-workshop'
   | 'monastery'
-  | 'castle';
+  | 'castle'
+  | 'wonder';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -362,7 +363,21 @@ export interface HudState {
   matchState: MatchState;
 }
 
+export type WinCondition = 'conquest' | 'wonder' | 'relic';
+
 export interface MatchState {
   outcome: 'running' | 'victory' | 'defeat';
   summary: string;
+  // Populated when `outcome !== 'running'`. Null while the match is live.
+  winCondition: WinCondition | null;
+  // Per-owner score snapshot at match end. Null while the match is live.
+  // Keyed by ownerId -> total score.
+  scores: Record<number, number> | null;
+  // Remaining ticks on an in-flight Wonder countdown for the human player,
+  // or null if no countdown is active. Surfaced so the HUD can render a
+  // running timer alongside age / pop.
+  wonderCountdownTicks: number | null;
+  // Remaining ticks on an in-flight Relic countdown for the human player,
+  // or null if no countdown is active.
+  relicCountdownTicks: number | null;
 }
