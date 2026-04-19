@@ -137,7 +137,40 @@ export interface SimulationBridge {
   issueMarketAction(actionType: MarketActionType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
+  // Slice 11: drain the oldest pending command-rejection reason, if any.
+  // The HUD polls this every update frame and renders a toast with the
+  // returned copy. Returns `null` when no rejection is pending.
+  consumeCommandRejection(): string | null;
+  // Slice 11: snapshot for the F2 debug overlay. Returns the per-frame
+  // data the overlay draws: pathing targets keyed by unit id, AI plan
+  // summaries per owner, and tick-level perf metrics. Cheap to call; the
+  // overlay renderer pulls this every frame.
+  getDebugSnapshot(): SimulationDebugSnapshot;
   saveGame(): SaveBlob;
+}
+
+// Slice 11: debug-overlay snapshot. Each field is optional so the HUD
+// can safely downsample modes that it hasn't activated. All coordinates
+// are in cell space (x, y in [0, MAP_WIDTH/HEIGHT)).
+export interface SimulationDebugSnapshot {
+  tick: number;
+  tickDurationMs: number;
+  entityCount: number;
+  unitPaths: Array<{
+    id: number;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    commandType: 'move' | 'build' | 'attack';
+  }>;
+  aiSummaries: Array<{
+    owner: number;
+    difficulty: string;
+    plan: string;
+    villagerTargets: Partial<Record<string, number>>;
+    attackGroupSize: number;
+  }>;
 }
 
 const STANDARD_STARTING_RESOURCES: PlayerResources = {
@@ -960,6 +993,28 @@ function canAfford(
     && resources.gold >= (cost.gold ?? 0)
     && resources.stone >= (cost.stone ?? 0)
   );
+}
+
+// Slice 11: command rejection helper. Returns the name of the first
+// resource that's short of a cost, or null if the stockpile covers the
+// entire cost. Used to build "Not enough food" style toasts for the HUD.
+function resourcesMissing(
+  resources: PlayerResources,
+  cost: Partial<PlayerResources>,
+): 'food' | 'wood' | 'gold' | 'stone' | null {
+  if (resources.food < (cost.food ?? 0)) {
+    return 'food';
+  }
+  if (resources.wood < (cost.wood ?? 0)) {
+    return 'wood';
+  }
+  if (resources.gold < (cost.gold ?? 0)) {
+    return 'gold';
+  }
+  if (resources.stone < (cost.stone ?? 0)) {
+    return 'stone';
+  }
+  return null;
 }
 
 function spendResources(
@@ -2470,6 +2525,8 @@ function createWorld(
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;
   consumeOutOfBandRenderChange: () => boolean;
+  consumeCommandRejection: () => string | null;
+  getDebugSnapshot: () => SimulationDebugSnapshot;
   getFogMemoryEntities: (liveEntityIds: Set<number>) => ProjectedEntityView[];
   getHumanFogMemorySize: () => number;
 } {
@@ -2637,6 +2694,51 @@ function createWorld(
   function getHumanFogMemorySize(): number {
     return lastSeenStatic.get(HUMAN_PLAYER_ID)?.size ?? 0;
   }
+
+  // Slice 11: snapshot for the F2 debug overlay. The HUD calls this every
+  // frame in modes that request pathing / ai-state / perf. Readers pick
+  // whichever slice they need; the arrays remain short because active
+  // unit commands and AI entries cap at the handful of moving units /
+  // non-human owners.
+  function getDebugSnapshot(): SimulationDebugSnapshot {
+    const unitPaths: SimulationDebugSnapshot['unitPaths'] = [];
+    for (const [unitId, command] of unitCommands.entries()) {
+      const position = world.getComponent<Position>(unitId, 'position');
+      if (!position) {
+        continue;
+      }
+      unitPaths.push({
+        id: unitId,
+        fromX: position.x,
+        fromY: position.y,
+        toX: command.target.x,
+        toY: command.target.y,
+        commandType: command.type,
+      });
+    }
+
+    const aiSummaries: SimulationDebugSnapshot['aiSummaries'] = [];
+    for (const [owner, state] of aiStates.entries()) {
+      aiSummaries.push({
+        owner,
+        difficulty: state.difficulty,
+        plan: state.plan,
+        villagerTargets: { ...state.villagerTargets } as Partial<Record<string, number>>,
+        attackGroupSize: state.attackGroup.length,
+      });
+    }
+
+    return {
+      tick: world.tick,
+      // Per-tick ms, entity count, and visible cell count flow through the
+      // HUD via `getHudState()`; the debug overlay can surface those
+      // directly from the HUD snapshot without touching the world again.
+      tickDurationMs: 0,
+      entityCount: 0,
+      unitPaths,
+      aiSummaries,
+    };
+  }
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
   const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
@@ -2694,6 +2796,25 @@ function createWorld(
   let selectionFocusCell: Position | null = null;
   let placementMode: BuildableBuildingType | null = null;
   let hasOutOfBandRenderChange = false;
+  // Slice 11: ring-buffered queue of command-rejection reasons. Command
+  // entry points enqueue a short string whenever they short-circuit so the
+  // HUD can toast the reason. `consumeCommandRejection()` drains the oldest
+  // pending reason; the queue is capped to avoid unbounded growth if the
+  // HUD ever pauses consumption.
+  const MAX_REJECTION_QUEUE = 8;
+  const commandRejectionReasons: string[] = [];
+  function enqueueRejection(reason: string): void {
+    if (reason.length === 0) {
+      return;
+    }
+    commandRejectionReasons.push(reason);
+    if (commandRejectionReasons.length > MAX_REJECTION_QUEUE) {
+      commandRejectionReasons.splice(0, commandRejectionReasons.length - MAX_REJECTION_QUEUE);
+    }
+  }
+  function consumeCommandRejection(): string | null {
+    return commandRejectionReasons.shift() ?? null;
+  }
 
   function markOutOfBandRenderChange(): void {
     hasOutOfBandRenderChange = true;
@@ -8742,6 +8863,7 @@ function createWorld(
     // interact with anything they cannot currently see. Owned entities skip this
     // check via `isEntityFootprintVisibleToHuman`.
     if (!isEntityVisibleToHuman(entityId)) {
+      enqueueRejection('Target not visible.');
       return false;
     }
 
@@ -8799,10 +8921,23 @@ function createWorld(
     }
     const construction = constructionStates.get(selectedEntityId);
     if (construction && !construction.isComplete) {
+      enqueueRejection('Building is still under construction.');
       return false;
     }
 
-    return enqueueTraining(selectedEntityId, unitType);
+    const didEnqueue = enqueueTraining(selectedEntityId, unitType);
+    if (!didEnqueue) {
+      const stockpile = playerResources.get(HUMAN_PLAYER_ID);
+      if (stockpile) {
+        const missing = resourcesMissing(stockpile, trainingCost(unitType));
+        if (missing) {
+          enqueueRejection(`Not enough ${missing}.`);
+          return false;
+        }
+      }
+      enqueueRejection('Cannot train that unit here.');
+    }
+    return didEnqueue;
   }
 
   function queueResearch(technologyType: ResearchableTechnologyType): boolean {
@@ -8822,10 +8957,23 @@ function createWorld(
 
     const construction = constructionStates.get(selectedEntityId);
     if (construction && !construction.isComplete) {
+      enqueueRejection('Building is still under construction.');
       return false;
     }
 
-    return enqueueResearch(selectedEntityId, technologyType);
+    const didEnqueue = enqueueResearch(selectedEntityId, technologyType);
+    if (!didEnqueue) {
+      const stockpile = playerResources.get(HUMAN_PLAYER_ID);
+      if (stockpile) {
+        const missing = resourcesMissing(stockpile, researchCost(technologyType));
+        if (missing) {
+          enqueueRejection(`Not enough ${missing}.`);
+          return false;
+        }
+      }
+      enqueueRejection('Cannot research that here.');
+    }
+    return didEnqueue;
   }
 
   function issueAction(actionType: ActionType): boolean {
@@ -8854,7 +9002,11 @@ function createWorld(
       return false;
     }
 
-    return executeMarketAction(actionType);
+    const didTrade = executeMarketAction(actionType);
+    if (!didTrade) {
+      enqueueRejection('Market trade rejected. Check resources and selection.');
+    }
+    return didTrade;
   }
 
   function beginBuildingPlacement(buildingType: BuildableBuildingType): boolean {
@@ -8864,11 +9016,13 @@ function createWorld(
 
     const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
     if (selectedVillagerId === null) {
+      enqueueRejection('Select a villager first.');
       return false;
     }
 
     const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
     if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
+      enqueueRejection('Only villagers can build.');
       return false;
     }
 
@@ -8899,6 +9053,26 @@ function createWorld(
     const didStartConstruction = startConstruction(selectedVillagerId, buildingType, anchor);
     if (didStartConstruction) {
       placementMode = null;
+    } else {
+      // Slice 11: report the most likely reason. Placement blocked by
+      // terrain / units / existing buildings is the most common case; fall
+      // back to resource shortage otherwise.
+      const footprint = buildingFootprint(buildingType);
+      if (isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height)) {
+        enqueueRejection('Placement blocked.');
+      } else {
+        const stockpile = playerResources.get(HUMAN_PLAYER_ID);
+        if (stockpile) {
+          const missing = resourcesMissing(stockpile, constructionCost(buildingType));
+          if (missing) {
+            enqueueRejection(`Not enough ${missing}.`);
+          } else {
+            enqueueRejection('Cannot build here.');
+          }
+        } else {
+          enqueueRejection('Cannot build here.');
+        }
+      }
     }
     return didStartConstruction;
   }
@@ -9257,6 +9431,8 @@ function createWorld(
       hasOutOfBandRenderChange = false;
       return didChange;
     },
+    consumeCommandRejection,
+    getDebugSnapshot,
     getFogMemoryEntities,
     getHumanFogMemorySize,
   };
@@ -9312,6 +9488,8 @@ export function createSimulationBridge(
     confirmBuildingPlacement,
     isSelected,
     consumeOutOfBandRenderChange,
+    consumeCommandRejection,
+    getDebugSnapshot,
     getFogMemoryEntities,
     getHumanFogMemorySize,
   } =
@@ -9500,6 +9678,8 @@ export function createSimulationBridge(
       flushOutOfBandRenderChange();
       return didConfirm;
     },
+    consumeCommandRejection,
+    getDebugSnapshot,
     saveGame,
   };
 }

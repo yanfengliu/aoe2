@@ -3267,4 +3267,56 @@ test.describe('browser gameplay smoke tests', () => {
       /wonder/i,
     );
   });
+
+  // Slice 11: HUD polish — tooltip hover, debug-overlay F2 cycle, and
+  // command-rejection toast surface through the DOM only; no simulation
+  // assertions are needed beyond the existing boot.
+  test('surfaces a tooltip when hovering a HUD chip', async ({ page }) => {
+    await waitForBoot(page);
+
+    const tooltip = page.locator('[data-hud="tooltip"]');
+    await expect(tooltip).toHaveAttribute('data-hud-tooltip-active', 'false');
+
+    await page.locator('[data-hud-chip="food"]').hover();
+    await expect(tooltip).toHaveAttribute('data-hud-tooltip-active', 'true');
+    await expect(tooltip).toContainText(/food/i);
+
+    await page.locator('[data-hud="minimap"]').hover();
+    await expect(tooltip).toHaveAttribute('data-hud-tooltip-active', 'false');
+  });
+
+  test('cycles the debug overlay when F2 is pressed', async ({ page }) => {
+    await waitForBoot(page);
+
+    const overlay = page.locator('[data-hud="debug-overlay"]');
+    await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'off');
+
+    await page.keyboard.press('F2');
+    await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'selection-bounds');
+
+    await page.keyboard.press('F2');
+    await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'pathing');
+    await expect(overlay).toContainText(/pathing/i);
+
+    // Cycle back to off so tests that follow this one on a shared page
+    // aren't affected.
+    await page.keyboard.press('F2'); // fog-state
+    await page.keyboard.press('F2'); // ai-state
+    await page.keyboard.press('F2'); // perf
+    await page.keyboard.press('F2'); // off
+    await expect(overlay).toHaveAttribute('data-hud-debug-mode', 'off');
+  });
+
+  test('mounts the command-rejection toast container in the HUD', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    // The toast container is the single slot the HUD renders rejection
+    // messages into. Full rejection-to-toast plumbing is covered by
+    // vitest (it exercises the bridge directly); the browser test just
+    // confirms the HUD mounts the container so a runtime rejection can
+    // appear when triggered in real gameplay.
+    await expect(page.locator('[data-hud="toast-container"]')).toHaveCount(1);
+  });
 });

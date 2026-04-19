@@ -36,6 +36,31 @@ interface SimulationBridge {
   issueContextCommandAtEntity(entityId: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
+  getDebugSnapshot(): {
+    unitPaths: Array<{
+      id: number;
+      fromX: number;
+      fromY: number;
+      toX: number;
+      toY: number;
+      commandType: 'move' | 'build' | 'attack';
+    }>;
+  };
+}
+
+// Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
+// owns the full cycle; the scene only needs to read the current mode to
+// decide whether to draw selection rectangles, pathing lines, or fog tints.
+export type DebugOverlayMode =
+  | 'off'
+  | 'selection-bounds'
+  | 'pathing'
+  | 'fog-state'
+  | 'ai-state'
+  | 'perf';
+
+interface GameSceneOptions {
+  getDebugOverlayMode(): DebugOverlayMode;
 }
 
 const CELL_SIZE = 24;
@@ -160,6 +185,7 @@ const DOUBLE_CLICK_WINDOW_MS = 300;
 
 export class GameScene extends Phaser.Scene {
   private readonly bridge: SimulationBridge;
+  private readonly options: GameSceneOptions;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private entityLayer?: Phaser.GameObjects.Graphics;
   private fogLayer?: Phaser.GameObjects.Graphics;
@@ -167,6 +193,7 @@ export class GameScene extends Phaser.Scene {
   private selectionLayer?: Phaser.GameObjects.Graphics;
   private placementLayer?: Phaser.GameObjects.Graphics;
   private selectionBoxLayer?: Phaser.GameObjects.Graphics;
+  private debugLayer?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private lastRenderedTick = -1;
@@ -208,9 +235,13 @@ export class GameScene extends Phaser.Scene {
     }
   };
 
-  constructor(bridge: SimulationBridge) {
+  constructor(
+    bridge: SimulationBridge,
+    options: GameSceneOptions = { getDebugOverlayMode: () => 'off' },
+  ) {
     super('game');
     this.bridge = bridge;
+    this.options = options;
   }
 
   create(): void {
@@ -221,6 +252,7 @@ export class GameScene extends Phaser.Scene {
     this.selectionLayer = this.add.graphics();
     this.placementLayer = this.add.graphics();
     this.selectionBoxLayer = this.add.graphics();
+    this.debugLayer = this.add.graphics();
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
@@ -448,6 +480,7 @@ export class GameScene extends Phaser.Scene {
       || !this.selectionLayer
       || !this.placementLayer
       || !this.selectionBoxLayer
+      || !this.debugLayer
     ) {
       return;
     }
@@ -459,6 +492,7 @@ export class GameScene extends Phaser.Scene {
     this.selectionLayer.clear();
     this.placementLayer.clear();
     this.selectionBoxLayer.clear();
+    this.debugLayer.clear();
     this.lastBuildingVisualStates = [];
     this.lastEntityHealthBarStates = [];
     this.displayedEntities = interpolateProjectedEntities(
@@ -522,6 +556,135 @@ export class GameScene extends Phaser.Scene {
     this.renderSelection(this.displayedEntities, selectionState);
     this.renderPlacementPreview();
     this.renderSelectionBox();
+    this.renderDebugOverlay(this.displayedEntities, selectionState, state.frame);
+  }
+
+  // Slice 11: draw world-space overlays driven by the HUD's debug mode.
+  // The shapes live on their own `debugLayer` above the placement layer so
+  // they never get clipped by selection or fog.
+  private renderDebugOverlay(
+    entities: ProjectedEntityView[],
+    selectionState: SelectionState,
+    frame: ProjectedFrameView | null,
+  ): void {
+    if (!this.debugLayer) {
+      return;
+    }
+
+    const mode = this.options.getDebugOverlayMode();
+    if (mode === 'off' || mode === 'ai-state' || mode === 'perf') {
+      return;
+    }
+
+    if (mode === 'selection-bounds') {
+      this.renderDebugSelectionBounds(entities, selectionState);
+      return;
+    }
+
+    if (mode === 'pathing') {
+      this.renderDebugPathing(entities);
+      return;
+    }
+
+    if (mode === 'fog-state' && frame) {
+      this.renderDebugFogState(frame);
+    }
+  }
+
+  private renderDebugSelectionBounds(
+    entities: ProjectedEntityView[],
+    selectionState: SelectionState,
+  ): void {
+    if (!this.debugLayer || selectionState.selectedEntityIds.length === 0) {
+      return;
+    }
+
+    const selectedIds = new Set(selectionState.selectedEntityIds);
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let anyFound = false;
+
+    for (const entity of entities) {
+      if (!selectedIds.has(entity.id) || entity.isMemory) {
+        continue;
+      }
+      const left = entity.x;
+      const top = entity.y;
+      const width = entity.kind === 'building' ? entity.footprintWidth : 1;
+      const height = entity.kind === 'building' ? entity.footprintHeight : 1;
+      minX = Math.min(minX, left);
+      minY = Math.min(minY, top);
+      maxX = Math.max(maxX, left + width);
+      maxY = Math.max(maxY, top + height);
+      anyFound = true;
+    }
+
+    if (!anyFound) {
+      return;
+    }
+
+    const px = minX * CELL_SIZE;
+    const py = minY * CELL_SIZE;
+    const widthPx = (maxX - minX) * CELL_SIZE;
+    const heightPx = (maxY - minY) * CELL_SIZE;
+    this.debugLayer.lineStyle(2, 0x6ed4ff, 0.95);
+    this.debugLayer.strokeRect(px, py, widthPx, heightPx);
+  }
+
+  private renderDebugPathing(entities: ProjectedEntityView[]): void {
+    if (!this.debugLayer) {
+      return;
+    }
+
+    const displayedPositionById = new Map<number, { x: number; y: number }>();
+    for (const entity of entities) {
+      if (entity.kind === 'unit') {
+        displayedPositionById.set(entity.id, { x: entity.x, y: entity.y });
+      }
+    }
+
+    const snapshot = this.bridge.getDebugSnapshot();
+    for (const path of snapshot.unitPaths) {
+      const source = displayedPositionById.get(path.id) ?? { x: path.fromX, y: path.fromY };
+      const sx = source.x * CELL_SIZE + CELL_SIZE * 0.5;
+      const sy = source.y * CELL_SIZE + CELL_SIZE * 0.5;
+      const tx = path.toX * CELL_SIZE + CELL_SIZE * 0.5;
+      const ty = path.toY * CELL_SIZE + CELL_SIZE * 0.5;
+      const color =
+        path.commandType === 'attack'
+          ? 0xff5a5a
+          : path.commandType === 'build'
+            ? 0xffd97d
+            : 0x6ed4ff;
+      this.debugLayer.lineStyle(1.5, color, 0.9);
+      this.debugLayer.lineBetween(sx, sy, tx, ty);
+      this.debugLayer.fillStyle(color, 0.9);
+      this.debugLayer.fillCircle(tx, ty, 3);
+    }
+  }
+
+  private renderDebugFogState(frame: ProjectedFrameView): void {
+    if (!this.debugLayer) {
+      return;
+    }
+
+    const visible = new Set(frame.visibleCells);
+    const explored = new Set(frame.exploredCells);
+    for (let y = 0; y < frame.mapHeight; y += 1) {
+      for (let x = 0; x < frame.mapWidth; x += 1) {
+        const index = y * frame.mapWidth + x;
+        if (visible.has(index)) {
+          this.debugLayer.fillStyle(0x39d27c, 0.16);
+        } else if (explored.has(index)) {
+          this.debugLayer.fillStyle(0xe0b25a, 0.18);
+        } else {
+          this.debugLayer.fillStyle(0x8a3f5b, 0.22);
+        }
+        this.debugLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
   }
 
   private renderEntityHealthBars(entities: ProjectedEntityView[]): void {
@@ -754,7 +917,11 @@ export class GameScene extends Phaser.Scene {
         placementPreviewState.isValid ? 'valid' : 'invalid',
       ].join(',')
       : 'none';
-    return `${selectionIds}:${selectionState.placementMode ?? 'none'}:${selectionBoxKey}:${placementPreviewKey}`;
+    // Slice 11: include the debug overlay mode so the cached render
+    // invalidates when F2 cycles between modes (e.g. the selection-bounds
+    // box should appear / disappear even if the selection is unchanged).
+    const debugMode = this.options.getDebugOverlayMode();
+    return `${selectionIds}:${selectionState.placementMode ?? 'none'}:${selectionBoxKey}:${placementPreviewKey}:${debugMode}`;
   }
 
   private isDragSelectionActive(dragSelection: DragSelectionState): boolean {

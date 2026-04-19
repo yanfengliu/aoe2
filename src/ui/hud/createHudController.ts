@@ -12,6 +12,7 @@ import type {
   TrainableUnitType,
   UnitType,
 } from '../../game/simulation/types';
+import type { SimulationDebugSnapshot } from '../../game/simulation/createSimulationBridge';
 
 interface HudCameraState {
   scrollX: number;
@@ -37,7 +38,33 @@ interface HudBridge {
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
+  // Slice 11: drain the oldest pending command rejection so the HUD can
+  // show a toast. Returns null if no rejection is pending.
+  consumeCommandRejection(): string | null;
+  // Slice 11: snapshot for the F2 debug overlay. Every frame the HUD
+  // requests this when the overlay is in anything other than 'off' mode.
+  getDebugSnapshot(): SimulationDebugSnapshot;
 }
+
+// Slice 11: debug-overlay modes cycle in order via F2. The 'off' mode
+// hides the overlay element entirely; every other mode requests a
+// snapshot and renders a matching summary.
+export type DebugOverlayMode =
+  | 'off'
+  | 'selection-bounds'
+  | 'pathing'
+  | 'fog-state'
+  | 'ai-state'
+  | 'perf';
+
+const DEBUG_OVERLAY_CYCLE: DebugOverlayMode[] = [
+  'off',
+  'selection-bounds',
+  'pathing',
+  'fog-state',
+  'ai-state',
+  'perf',
+];
 
 interface MinimapLayout {
   scale: number;
@@ -821,13 +848,26 @@ function renderSelectionIcons(
   return `<div class="hud-selection-unit-list" data-selection-unit-icons>${chips}</div>`;
 }
 
+const SELECTION_DETAIL_TOOLTIPS: Record<
+  'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  string
+> = {
+  health: 'Current hit points and maximum hit points.',
+  attack: 'Attack damage per strike before bonuses and armor.',
+  armor: 'Damage reduction from incoming attacks.',
+  faction: 'Group the entity belongs to (player, enemy, neutral).',
+  civ: 'Civilization bonuses and unique units that apply.',
+  inventory: 'Resources currently carried by the unit.',
+};
+
 function renderSelectionDetail(
   key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
   label: string,
   value: string,
 ): string {
+  const tooltip = SELECTION_DETAIL_TOOLTIPS[key];
   return `
-    <div class="hud-selection-detail" data-selection-detail="${key}">
+    <div class="hud-selection-detail" data-selection-detail="${key}" data-tooltip="${tooltip}">
       <div class="hud-selection-detail-label">${label}</div>
       <div class="hud-selection-detail-value" data-selection-detail-value="${key}">${value}</div>
     </div>
@@ -926,6 +966,45 @@ function formatActionName(actionType: ActionType): string {
     case 'ungarrison':
       return 'Ungarrison';
   }
+}
+
+// Slice 11: tooltip helpers return short hover blurbs so the HUD can annotate
+// every command button. Strings are rendered via data-tooltip and surfaced
+// in the shared tooltip element on hover.
+function formatActionTooltip(actionType: ActionType): string {
+  switch (actionType) {
+    case 'ungarrison':
+      return 'Empty the building of all garrisoned units.';
+  }
+}
+
+function formatMarketActionTooltip(actionType: MarketActionType): string {
+  switch (actionType) {
+    case 'buy-food':
+      return 'Buy food with gold at the current market rate.';
+    case 'sell-food':
+      return 'Sell food for gold at the current market rate.';
+    case 'buy-wood':
+      return 'Buy wood with gold at the current market rate.';
+    case 'sell-wood':
+      return 'Sell wood for gold at the current market rate.';
+    case 'buy-stone':
+      return 'Buy stone with gold at the current market rate.';
+    case 'sell-stone':
+      return 'Sell stone for gold at the current market rate.';
+  }
+}
+
+function formatTrainTooltip(unitType: TrainableUnitType): string {
+  return `Queue a ${formatEntityName(unitType)} at this building. Requires the unit's cost and an open production queue slot.`;
+}
+
+function formatResearchTooltip(technologyType: ResearchableTechnologyType): string {
+  return `Research ${formatTechnologyName(technologyType)}. Consumes its resource cost while the research ticks down.`;
+}
+
+function formatBuildTooltip(buildingType: BuildableBuildingType): string {
+  return `Place a ${formatEntityName(buildingType)} foundation. The selected villager walks to the site and begins construction.`;
 }
 
 function formatMarketActionName(actionType: MarketActionType): string {
@@ -1054,39 +1133,61 @@ function renderMatchSummary(
   return parts.join('');
 }
 
-export function createHudController(root: HTMLElement, bridge: HudBridge): void {
+// Slice 11: tooltip copy lives next to the chip definition so the HUD renders
+// a single source of truth. The data-tooltip attribute is read on hover and
+// reflected into the single shared tooltip element below.
+const HUD_CHIP_TOOLTIPS: Record<string, string> = {
+  food: 'Food stockpile. Farms, hunting, sheep, and berries feed villagers and soldiers.',
+  wood: 'Wood stockpile. Cut by villagers at forests and returned to Lumber Camps.',
+  gold: 'Gold stockpile. Mined from gold deposits and earned through trade and relics.',
+  stone: 'Stone stockpile. Mined from stone deposits; required for Town Centers, walls, and Castles.',
+  age: 'Current age. Research the next age at a Town Center to unlock new units and buildings.',
+  pop: 'Population used out of the current cap. Build Houses or Town Centers to raise the cap.',
+  time: 'Elapsed match time (minutes:seconds).',
+  countdown: 'A victory countdown is active. If it finishes without interruption the holder wins.',
+};
+
+export interface HudController {
+  // Slice 11: GameScene reads the active overlay mode so it can draw
+  // world-space debug shapes (selection bounds, pathing lines). The HUD
+  // itself renders the text overlay for ai-state / perf.
+  getDebugOverlayMode(): DebugOverlayMode;
+  cycleDebugOverlayMode(): DebugOverlayMode;
+}
+
+export function createHudController(root: HTMLElement, bridge: HudBridge): HudController {
   root.innerHTML = `
     <div class="hud-top">
       <div class="hud-bar">
-        <div class="hud-chip" data-hud-chip="food">
+        <div class="hud-chip" data-hud-chip="food" data-tooltip="${HUD_CHIP_TOOLTIPS.food}">
           <div class="hud-label">Food</div>
           <div class="hud-value" data-hud="food">0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="wood">
+        <div class="hud-chip" data-hud-chip="wood" data-tooltip="${HUD_CHIP_TOOLTIPS.wood}">
           <div class="hud-label">Wood</div>
           <div class="hud-value" data-hud="wood">0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="gold">
+        <div class="hud-chip" data-hud-chip="gold" data-tooltip="${HUD_CHIP_TOOLTIPS.gold}">
           <div class="hud-label">Gold</div>
           <div class="hud-value" data-hud="gold">0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="stone">
+        <div class="hud-chip" data-hud-chip="stone" data-tooltip="${HUD_CHIP_TOOLTIPS.stone}">
           <div class="hud-label">Stone</div>
           <div class="hud-value" data-hud="stone">0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="age">
+        <div class="hud-chip" data-hud-chip="age" data-tooltip="${HUD_CHIP_TOOLTIPS.age}">
           <div class="hud-label">Age</div>
           <div class="hud-value" data-hud="age">Dark Age</div>
         </div>
-        <div class="hud-chip" data-hud-chip="pop">
+        <div class="hud-chip" data-hud-chip="pop" data-tooltip="${HUD_CHIP_TOOLTIPS.pop}">
           <div class="hud-label">Pop</div>
           <div class="hud-value" data-hud="pop">0/0</div>
         </div>
-        <div class="hud-chip" data-hud-chip="time">
+        <div class="hud-chip" data-hud-chip="time" data-tooltip="${HUD_CHIP_TOOLTIPS.time}">
           <div class="hud-label">Time</div>
           <div class="hud-value" data-hud="time">00:00</div>
         </div>
-        <div class="hud-chip" data-hud-chip="countdown" data-hud="countdown-chip" hidden>
+        <div class="hud-chip" data-hud-chip="countdown" data-hud="countdown-chip" data-tooltip="${HUD_CHIP_TOOLTIPS.countdown}" hidden>
           <div class="hud-label" data-hud="countdown-label">Countdown</div>
           <div class="hud-value" data-hud="countdown-value">00:00</div>
         </div>
@@ -1108,6 +1209,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       </div>
       <div class="hud-footer" data-hud="match-summary" hidden></div>
     </div>
+    <div class="hud-tooltip" data-hud="tooltip" data-hud-tooltip-active="false" role="tooltip" aria-hidden="true"></div>
+    <div class="hud-toasts" data-hud="toast-container" aria-live="polite"></div>
+    <div
+      class="hud-debug-overlay"
+      data-hud="debug-overlay"
+      data-hud-debug-mode="off"
+    ></div>
   `;
 
   const food = root.querySelector<HTMLElement>('[data-hud="food"]');
@@ -1124,11 +1232,141 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
   const minimap = root.querySelector<HTMLCanvasElement>('[data-hud="minimap"]');
   const selectionPanel = root.querySelector<HTMLElement>('[data-hud="selection-panel"]');
 
+  const tooltip = root.querySelector<HTMLElement>('[data-hud="tooltip"]');
+  const toastContainer = root.querySelector<HTMLElement>('[data-hud="toast-container"]');
+  const debugOverlay = root.querySelector<HTMLElement>('[data-hud="debug-overlay"]');
+  let debugOverlayMode: DebugOverlayMode = 'off';
+
+  function applyDebugOverlayMode(): void {
+    if (!debugOverlay) {
+      return;
+    }
+    debugOverlay.dataset.hudDebugMode = debugOverlayMode;
+  }
+
+  function cycleDebugOverlayMode(): DebugOverlayMode {
+    const currentIndex = DEBUG_OVERLAY_CYCLE.indexOf(debugOverlayMode);
+    const next = DEBUG_OVERLAY_CYCLE[(currentIndex + 1) % DEBUG_OVERLAY_CYCLE.length];
+    debugOverlayMode = next;
+    applyDebugOverlayMode();
+    return debugOverlayMode;
+  }
+
+  // Slice 11: F2 toggles the debug overlay through its cycle. The listener
+  // attaches to window so it fires whether or not the canvas has focus.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'F2') {
+      return;
+    }
+    if (event.defaultPrevented) {
+      return;
+    }
+    event.preventDefault();
+    cycleDebugOverlayMode();
+  });
+
   let lastRenderedTick = -1;
   let lastSelectionSignature = '';
   let lastMinimapCameraSignature = '';
   let latestRenderState: RenderState | null = null;
   let isMinimapDragActive = false;
+
+  // Slice 11: lightweight tooltip mechanism. Any descendant of `root` with a
+  // `data-tooltip` attribute surfaces its copy in the shared tooltip element
+  // on pointerenter and hides it on pointerleave. Event delegation on the
+  // root keeps us cheap even when the selection panel re-renders.
+  function positionTooltip(target: Element): void {
+    if (!tooltip) {
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const margin = 8;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let left = rect.left + rect.width * 0.5 - tooltipRect.width * 0.5;
+    let top = rect.top - tooltipRect.height - margin;
+    if (top < margin) {
+      top = rect.bottom + margin;
+    }
+    left = Math.max(margin, Math.min(left, viewportWidth - tooltipRect.width - margin));
+    top = Math.max(margin, Math.min(top, viewportHeight - tooltipRect.height - margin));
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
+  }
+
+  function showTooltipFor(target: Element, text: string): void {
+    if (!tooltip || text.trim().length === 0) {
+      return;
+    }
+
+    tooltip.textContent = text;
+    tooltip.dataset.hudTooltipActive = 'true';
+    tooltip.setAttribute('aria-hidden', 'false');
+    positionTooltip(target);
+  }
+
+  function hideTooltip(): void {
+    if (!tooltip) {
+      return;
+    }
+    tooltip.dataset.hudTooltipActive = 'false';
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.textContent = '';
+  }
+
+  if (tooltip) {
+    root.addEventListener('pointerover', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const host = target?.closest('[data-tooltip]');
+      if (!host) {
+        return;
+      }
+      const text = host.getAttribute('data-tooltip') ?? '';
+      showTooltipFor(host, text);
+    });
+    root.addEventListener('pointerout', (event) => {
+      const related = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+      const target = event.target instanceof Element ? event.target : null;
+      const host = target?.closest('[data-tooltip]');
+      if (!host) {
+        return;
+      }
+      if (related && host.contains(related)) {
+        return;
+      }
+      hideTooltip();
+    });
+    root.addEventListener('focusout', () => {
+      hideTooltip();
+    });
+  }
+
+  // Slice 11: lightweight toast stream. The simulation bridge exposes
+  // consumeCommandRejection() which drains the newest rejection reason; the
+  // HUD polls it on every update tick and pushes a DOM toast that fades
+  // itself out after a short interval.
+  const TOAST_LIFETIME_MS = 2400;
+  function showToast(text: string): void {
+    if (!toastContainer || text.trim().length === 0) {
+      return;
+    }
+    const el = document.createElement('div');
+    el.className = 'hud-toast';
+    el.dataset.hud = 'toast';
+    el.textContent = text;
+    toastContainer.appendChild(el);
+    // Flush layout so the enter transition has an initial state to animate from.
+    void el.offsetWidth;
+    el.dataset.hudToastActive = 'true';
+    window.setTimeout(() => {
+      el.dataset.hudToastActive = 'false';
+      window.setTimeout(() => {
+        el.remove();
+      }, 240);
+    }, TOAST_LIFETIME_MS);
+  }
 
   if (minimap) {
     const handleMinimapPointer = (clientX: number, clientY: number): void => {
@@ -1244,6 +1482,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <button
             class="hud-command-button"
             data-command="build-${buildingType}"
+            data-tooltip="${formatBuildTooltip(buildingType)}"
             type="button"
           >
             Build ${formatEntityName(buildingType)}
@@ -1257,6 +1496,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <button
             class="hud-command-button"
             data-command="action-${actionType}"
+            data-tooltip="${formatActionTooltip(actionType)}"
             type="button"
           >
             ${formatActionName(actionType)}
@@ -1270,6 +1510,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <button
             class="hud-command-button"
             data-command="train-${unitType}"
+            data-tooltip="${formatTrainTooltip(unitType)}"
             type="button"
           >
             Train ${formatEntityName(unitType)}
@@ -1283,6 +1524,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <button
             class="hud-command-button"
             data-command="market-${actionType}"
+            data-tooltip="${formatMarketActionTooltip(actionType)}"
             type="button"
           >
             ${formatMarketActionName(actionType)}
@@ -1297,6 +1539,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
           <button
             class="hud-command-button"
             data-command="research-${technologyType}"
+            data-tooltip="${formatResearchTooltip(technologyType)}"
             type="button"
             ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
           >
@@ -1446,6 +1689,16 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
     }
     renderSelectionPanel(selectionState);
 
+    // Slice 11: drain any command-rejection reasons the bridge collected
+    // since the last frame. `consumeCommandRejection()` pops one at a time
+    // so multiple rejections in the same frame still show as individual
+    // toasts without losing any of them.
+    let rejection = bridge.consumeCommandRejection();
+    while (rejection !== null) {
+      showToast(rejection);
+      rejection = bridge.consumeCommandRejection();
+    }
+
     const minimapCameraSignature = cameraState
       ? `${cameraState.scrollX.toFixed(2)},${cameraState.scrollY.toFixed(2)},${cameraState.zoom.toFixed(3)}`
       : 'none';
@@ -1458,8 +1711,82 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): void 
       lastMinimapCameraSignature = minimapCameraSignature;
     }
 
+    renderDebugOverlay(hudState, selectionState);
+
     requestAnimationFrame(update);
   }
 
+  // Slice 11: render a short text summary inside the debug overlay. The
+  // off and selection-bounds modes leave the text empty; pathing /
+  // fog-state modes show a single line with counts; ai-state and perf
+  // modes show a small table. GameScene reads the mode separately for its
+  // world-space drawing.
+  function renderDebugOverlay(hudState: HudState, selectionState: SelectionState): void {
+    if (!debugOverlay) {
+      return;
+    }
+
+    if (debugOverlayMode === 'off') {
+      debugOverlay.textContent = '';
+      return;
+    }
+
+    if (debugOverlayMode === 'selection-bounds') {
+      const count = selectionState.selectedEntityIds.length;
+      debugOverlay.textContent = `Debug: selection-bounds (F2)\nSelected: ${count}`;
+      return;
+    }
+
+    const snapshot = bridge.getDebugSnapshot();
+
+    if (debugOverlayMode === 'pathing') {
+      debugOverlay.textContent =
+        `Debug: pathing (F2)\n`
+        + `Active commands: ${snapshot.unitPaths.length}`;
+      return;
+    }
+
+    if (debugOverlayMode === 'fog-state') {
+      const frame = latestRenderState?.frame;
+      const visible = frame?.visibleCells.length ?? 0;
+      const explored = frame?.exploredCells.length ?? 0;
+      const total = frame ? frame.mapWidth * frame.mapHeight : 0;
+      const neverSeen = Math.max(0, total - explored);
+      debugOverlay.textContent =
+        `Debug: fog-state (F2)\n`
+        + `Visible: ${visible}\n`
+        + `Explored (not visible): ${Math.max(0, explored - visible)}\n`
+        + `Never seen: ${neverSeen}`;
+      return;
+    }
+
+    if (debugOverlayMode === 'ai-state') {
+      const lines = ['Debug: ai-state (F2)'];
+      for (const entry of snapshot.aiSummaries) {
+        const targets = Object.entries(entry.villagerTargets)
+          .map(([resource, count]) => `${resource}:${count}`)
+          .join(' ');
+        lines.push(
+          `P${entry.owner} [${entry.difficulty}] ${entry.plan} attack=${entry.attackGroupSize} ${targets}`,
+        );
+      }
+      debugOverlay.textContent = lines.join('\n');
+      return;
+    }
+
+    // perf
+    const tickMs = hudState.tickDurationMs.toFixed(2);
+    debugOverlay.textContent =
+      `Debug: perf (F2)\n`
+      + `Tick: ${hudState.tick} (${tickMs}ms)\n`
+      + `Entities: ${hudState.entityCount}\n`
+      + `Visible entities: ${hudState.visibleEntities}`;
+  }
+
   update();
+
+  return {
+    getDebugOverlayMode: () => debugOverlayMode,
+    cycleDebugOverlayMode,
+  };
 }

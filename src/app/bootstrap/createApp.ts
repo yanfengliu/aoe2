@@ -15,8 +15,13 @@ export function createApp(): Phaser.Game {
 
   const seed = new URL(window.location.href).searchParams.get('seed')?.trim() || undefined;
   const bridge = createSimulationBridge(seed);
-  const scene = new GameScene(bridge);
-  createHudController(hudRoot, {
+  // GameScene receives the debug-mode getter up front so its render loop
+  // can read the current overlay mode every frame (selection-bounds,
+  // pathing, etc.) without further plumbing.
+  const scene = new GameScene(bridge, {
+    getDebugOverlayMode: () => hudController.getDebugOverlayMode(),
+  });
+  const hudController = createHudController(hudRoot, {
     ...bridge,
     getCameraState: () => scene.getCameraState(),
     centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
