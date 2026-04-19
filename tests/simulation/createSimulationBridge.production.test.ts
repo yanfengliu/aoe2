@@ -78,10 +78,13 @@ describe('createSimulationBridge production progression', () => {
     });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
-    expect(bridge.getSelectionState()).toMatchObject({
-      selectedEntityType: 'blacksmith',
-      researchOptions: ['fletching'],
-    });
+    // FU1 broadened the Feudal Blacksmith menu to include Forging / Scale
+    // Mail Armor / Scale Barding Armor / Padded Archer Armor. This test
+    // only asserts that `fletching` is present among the options; the
+    // full menu is covered by the dedicated blacksmith-progression tests.
+    const researchOptions = bridge.getSelectionState().researchOptions;
+    expect(bridge.getSelectionState().selectedEntityType).toBe('blacksmith');
+    expect(researchOptions).toContain('fletching');
     expect(bridge.queueResearch('fletching')).toBe(true);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 150,

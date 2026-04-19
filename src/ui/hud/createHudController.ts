@@ -964,6 +964,29 @@ function formatTechnologyName(technologyType: ResearchableTechnologyType): strin
       return 'Plate Mail Armor';
     case 'plate-barding':
       return 'Plate Barding';
+    // FU1: Feudal / Castle / Imperial Blacksmith tier names.
+    case 'forging':
+      return 'Forging';
+    case 'scale-mail-armor':
+      return 'Scale Mail Armor';
+    case 'scale-barding-armor':
+      return 'Scale Barding Armor';
+    case 'padded-archer-armor':
+      return 'Padded Archer Armor';
+    case 'iron-casting':
+      return 'Iron Casting';
+    case 'chain-mail-armor':
+      return 'Chain Mail Armor';
+    case 'chain-barding-armor':
+      return 'Chain Barding Armor';
+    case 'leather-archer-armor':
+      return 'Leather Archer Armor';
+    case 'bodkin-arrow':
+      return 'Bodkin Arrow';
+    case 'ring-archer-armor':
+      return 'Ring Archer Armor';
+    case 'chemistry':
+      return 'Chemistry';
   }
 }
 

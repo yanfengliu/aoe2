@@ -81,7 +81,21 @@ export type ResearchableTechnologyType =
   | 'bracer'
   | 'blast-furnace'
   | 'plate-mail-armor'
-  | 'plate-barding';
+  | 'plate-barding'
+  // FU1: Feudal Blacksmith tier.
+  | 'forging'
+  | 'scale-mail-armor'
+  | 'scale-barding-armor'
+  | 'padded-archer-armor'
+  // FU1: Castle Blacksmith tier.
+  | 'iron-casting'
+  | 'chain-mail-armor'
+  | 'chain-barding-armor'
+  | 'leather-archer-armor'
+  | 'bodkin-arrow'
+  // FU1: Imperial Blacksmith tier additions.
+  | 'ring-archer-armor'
+  | 'chemistry';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

@@ -275,6 +275,21 @@ const BRACER_RESEARCH_TIME_TICKS = 500;
 const BLAST_FURNACE_RESEARCH_TIME_TICKS = 600;
 const PLATE_MAIL_ARMOR_RESEARCH_TIME_TICKS = 600;
 const PLATE_BARDING_RESEARCH_TIME_TICKS = 600;
+// FU1: Feudal / Castle Blacksmith tiers. Research time mirrors their
+// Imperial-tier cousins at a slightly shorter cadence so the progression
+// doesn't feel front-loaded. Each tech is an independent one-shot upgrade.
+const FORGING_RESEARCH_TIME_TICKS = 400;
+const SCALE_MAIL_ARMOR_RESEARCH_TIME_TICKS = 400;
+const SCALE_BARDING_ARMOR_RESEARCH_TIME_TICKS = 400;
+const PADDED_ARCHER_ARMOR_RESEARCH_TIME_TICKS = 400;
+const IRON_CASTING_RESEARCH_TIME_TICKS = 500;
+const CHAIN_MAIL_ARMOR_RESEARCH_TIME_TICKS = 500;
+const CHAIN_BARDING_ARMOR_RESEARCH_TIME_TICKS = 500;
+const LEATHER_ARCHER_ARMOR_RESEARCH_TIME_TICKS = 500;
+const BODKIN_ARROW_RESEARCH_TIME_TICKS = 500;
+const RING_ARCHER_ARMOR_RESEARCH_TIME_TICKS = 600;
+// Chemistry is the Imperial-tier gate for gunpowder units + archer +1 atk.
+const CHEMISTRY_RESEARCH_TIME_TICKS = 600;
 // Slice 7A: Imperial unit train times. Mostly mirror their Castle-Age
 // predecessors where one exists; Bombard Cannon and Trebuchet (Imperial-only,
 // no predecessor) get their own longer values to reflect the heavier siege.
@@ -1147,6 +1162,31 @@ function researchCost(technologyType: ResearchableTechnologyType): Partial<Playe
       return { food: 300, gold: 150 };
     case 'plate-barding':
       return { food: 350, gold: 200 };
+    // FU1: Feudal / Castle / Imperial Blacksmith tier costs. Canonical
+    // AoE2 DE values where available; the Imperial Ring Archer Armor and
+    // Chemistry costs mirror the existing Imperial tier pricing.
+    case 'forging':
+      return { food: 150, gold: 50 };
+    case 'scale-mail-armor':
+      return { food: 100 };
+    case 'scale-barding-armor':
+      return { food: 150, gold: 50 };
+    case 'padded-archer-armor':
+      return { food: 100, gold: 50 };
+    case 'iron-casting':
+      return { food: 220, gold: 120 };
+    case 'chain-mail-armor':
+      return { food: 200, gold: 100 };
+    case 'chain-barding-armor':
+      return { food: 250, gold: 150 };
+    case 'leather-archer-armor':
+      return { food: 150, gold: 150 };
+    case 'bodkin-arrow':
+      return { food: 200, gold: 150 };
+    case 'ring-archer-armor':
+      return { food: 250, gold: 250 };
+    case 'chemistry':
+      return { food: 300, gold: 200 };
   }
 }
 
@@ -1290,6 +1330,28 @@ function researchTimeTicks(technologyType: ResearchableTechnologyType): number {
       return PLATE_MAIL_ARMOR_RESEARCH_TIME_TICKS;
     case 'plate-barding':
       return PLATE_BARDING_RESEARCH_TIME_TICKS;
+    case 'forging':
+      return FORGING_RESEARCH_TIME_TICKS;
+    case 'scale-mail-armor':
+      return SCALE_MAIL_ARMOR_RESEARCH_TIME_TICKS;
+    case 'scale-barding-armor':
+      return SCALE_BARDING_ARMOR_RESEARCH_TIME_TICKS;
+    case 'padded-archer-armor':
+      return PADDED_ARCHER_ARMOR_RESEARCH_TIME_TICKS;
+    case 'iron-casting':
+      return IRON_CASTING_RESEARCH_TIME_TICKS;
+    case 'chain-mail-armor':
+      return CHAIN_MAIL_ARMOR_RESEARCH_TIME_TICKS;
+    case 'chain-barding-armor':
+      return CHAIN_BARDING_ARMOR_RESEARCH_TIME_TICKS;
+    case 'leather-archer-armor':
+      return LEATHER_ARCHER_ARMOR_RESEARCH_TIME_TICKS;
+    case 'bodkin-arrow':
+      return BODKIN_ARROW_RESEARCH_TIME_TICKS;
+    case 'ring-archer-armor':
+      return RING_ARCHER_ARMOR_RESEARCH_TIME_TICKS;
+    case 'chemistry':
+      return CHEMISTRY_RESEARCH_TIME_TICKS;
   }
 }
 
@@ -1470,6 +1532,20 @@ function canResearchAt(
     || (buildingType === 'blacksmith' && technologyType === 'blast-furnace')
     || (buildingType === 'blacksmith' && technologyType === 'plate-mail-armor')
     || (buildingType === 'blacksmith' && technologyType === 'plate-barding')
+    // FU1: Feudal Blacksmith tier.
+    || (buildingType === 'blacksmith' && technologyType === 'forging')
+    || (buildingType === 'blacksmith' && technologyType === 'scale-mail-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'scale-barding-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'padded-archer-armor')
+    // FU1: Castle Blacksmith tier.
+    || (buildingType === 'blacksmith' && technologyType === 'iron-casting')
+    || (buildingType === 'blacksmith' && technologyType === 'chain-mail-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'chain-barding-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'leather-archer-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'bodkin-arrow')
+    // FU1: Imperial Blacksmith tier additions.
+    || (buildingType === 'blacksmith' && technologyType === 'ring-archer-armor')
+    || (buildingType === 'blacksmith' && technologyType === 'chemistry')
   );
 }
 
@@ -2098,6 +2174,14 @@ function isInfantryUnit(unitType: UnitType): boolean {
     || unitType === 'pikeman'
     || unitType === 'halberdier'
   );
+}
+
+// FU1: gunpowder-unit classification for Chemistry (+1 attack to
+// gunpowder units). Only Bombard Cannon ships in v1; a future Cannon
+// Galleon would extend this predicate. Chemistry also gates Bombard
+// Cannon training at the Siege Workshop.
+function isGunpowderUnit(unitType: UnitType): boolean {
+  return unitType === 'bombard-cannon';
 }
 
 // Melee-line classification for Blast Furnace (Blacksmith Imperial tech,
@@ -2892,7 +2976,16 @@ function createWorld(
   for (const start of scenario.starts) {
     playerAges.set(start.owner, start.startingAge ?? 'dark-age');
     playerCivilizations.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
-    researchedTechnologies.set(start.owner, new Set());
+    // FU1: seed per-player researched-techs with the scenario's
+    // `startingResearchedTechnologies` (if any). This is a passive-only
+    // hook — applyTechnology side effects (age-up, unit upgrades) do NOT
+    // fire here; fixtures should use `startingAge` for age seeding. The
+    // seed is consumed by `createCombatState` so newly-spawned units in
+    // the same scenario pick up tech bonuses (Chemistry, Fletching, etc.).
+    researchedTechnologies.set(
+      start.owner,
+      new Set(start.startingResearchedTechnologies ?? []),
+    );
     playerResources.set(
       start.owner,
       cloneResources(start.startingResources ?? STANDARD_STARTING_RESOURCES),
@@ -3195,6 +3288,11 @@ function createWorld(
       state.attackDamage += 1;
       state.attackRange += 1;
     }
+    // FU1: Castle archer-line attack/range tech. Stacks on top of Fletching.
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'bodkin-arrow')) {
+      state.attackDamage += 1;
+      state.attackRange += 1;
+    }
 
     // Slice 7E Blacksmith Imperial tier. Each tech stacks independently on
     // top of the base stats so a player who has researched Fletching + Bracer
@@ -3212,6 +3310,46 @@ function createWorld(
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
       state.armor += 1;
+    }
+
+    // FU1: Feudal melee attack tech. Stacks with Iron Casting + Blast Furnace.
+    if (isMeleeUnit(unitType) && hasTechnology(owner, 'forging')) {
+      state.attackDamage += 1;
+    }
+    // FU1: Castle melee attack tech. Stacks with Forging + Blast Furnace.
+    if (isMeleeUnit(unitType) && hasTechnology(owner, 'iron-casting')) {
+      state.attackDamage += 1;
+    }
+    // FU1: Feudal / Castle infantry armor chain.
+    if (isInfantryUnit(unitType) && hasTechnology(owner, 'scale-mail-armor')) {
+      state.armor += 1;
+    }
+    if (isInfantryUnit(unitType) && hasTechnology(owner, 'chain-mail-armor')) {
+      state.armor += 1;
+    }
+    // FU1: Feudal / Castle cavalry armor chain.
+    if (isCavalryUnit(unitType) && hasTechnology(owner, 'scale-barding-armor')) {
+      state.armor += 1;
+    }
+    if (isCavalryUnit(unitType) && hasTechnology(owner, 'chain-barding-armor')) {
+      state.armor += 1;
+    }
+    // FU1: Feudal / Castle / Imperial archer armor chain.
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'padded-archer-armor')) {
+      state.armor += 1;
+    }
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'leather-archer-armor')) {
+      state.armor += 1;
+    }
+    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'ring-archer-armor')) {
+      state.armor += 1;
+    }
+    // FU1: Chemistry grants +1 attack to archer-line and gunpowder units.
+    if (
+      (isArcherLineUnit(unitType) || isGunpowderUnit(unitType))
+      && hasTechnology(owner, 'chemistry')
+    ) {
+      state.attackDamage += 1;
     }
 
     return state;
@@ -5707,8 +5845,10 @@ function createWorld(
           ['siege-ram', 'siege-ram-upgrade'],
         ]);
         const options: TrainableUnitType[] = [mangonelLine, scorpionLine, ramLine];
-        // Bombard Cannon is Imperial-only and has no upgrade predecessor.
-        if (isAtLeastAge(owner, 'imperial-age')) {
+        // Bombard Cannon is Imperial-only, has no upgrade predecessor,
+        // and is a gunpowder unit that requires Chemistry research
+        // before it can be trained (matches AoE2 DE canon).
+        if (isAtLeastAge(owner, 'imperial-age') && hasTechnology(owner, 'chemistry')) {
           options.push('bombard-cannon');
         }
         return options;
@@ -5770,9 +5910,45 @@ function createWorld(
       if (!hasTechnology(owner, 'fletching')) {
         options.push('fletching');
       }
-      // Slice 7E: Imperial Blacksmith techs. Each independent one-shot
-      // upgrade — researched order doesn't matter, bonuses stack
-      // multiplicatively via createCombatState + the per-tech callback.
+      // FU1: Feudal Blacksmith tier — independent one-shot upgrades.
+      // Forging +1 melee attack, Scale Mail / Scale Barding / Padded
+      // Archer each +1 armor to their respective unit bucket.
+      if (!hasTechnology(owner, 'forging')) {
+        options.push('forging');
+      }
+      if (!hasTechnology(owner, 'scale-mail-armor')) {
+        options.push('scale-mail-armor');
+      }
+      if (!hasTechnology(owner, 'scale-barding-armor')) {
+        options.push('scale-barding-armor');
+      }
+      if (!hasTechnology(owner, 'padded-archer-armor')) {
+        options.push('padded-archer-armor');
+      }
+      // FU1: Castle Blacksmith tier — stacks on Feudal tier. Independent
+      // of prerequisite (canonical AoE2 does NOT require the predecessor
+      // tech).
+      if (isAtLeastAge(owner, 'castle-age')) {
+        if (!hasTechnology(owner, 'iron-casting')) {
+          options.push('iron-casting');
+        }
+        if (!hasTechnology(owner, 'chain-mail-armor')) {
+          options.push('chain-mail-armor');
+        }
+        if (!hasTechnology(owner, 'chain-barding-armor')) {
+          options.push('chain-barding-armor');
+        }
+        if (!hasTechnology(owner, 'leather-archer-armor')) {
+          options.push('leather-archer-armor');
+        }
+        if (!hasTechnology(owner, 'bodkin-arrow')) {
+          options.push('bodkin-arrow');
+        }
+      }
+      // Slice 7E + FU1: Imperial Blacksmith tier. Each independent
+      // one-shot upgrade — researched order doesn't matter, bonuses
+      // stack multiplicatively via createCombatState + the per-tech
+      // callback.
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'bracer')) {
           options.push('bracer');
@@ -5785,6 +5961,12 @@ function createWorld(
         }
         if (!hasTechnology(owner, 'plate-barding')) {
           options.push('plate-barding');
+        }
+        if (!hasTechnology(owner, 'ring-archer-armor')) {
+          options.push('ring-archer-armor');
+        }
+        if (!hasTechnology(owner, 'chemistry')) {
+          options.push('chemistry');
         }
       }
       if (options.length > 0) {
@@ -6469,6 +6651,137 @@ function createWorld(
           combat.armor += 1;
         }
         break;
+      // FU1: Feudal Blacksmith tier.
+      case 'forging':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackDamage += 1;
+        }
+        break;
+      case 'scale-mail-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'scale-barding-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'padded-archer-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      // FU1: Castle Blacksmith tier. Stacks on Feudal tier.
+      case 'iron-casting':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackDamage += 1;
+        }
+        break;
+      case 'chain-mail-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'chain-barding-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'leather-archer-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'bodkin-arrow':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackDamage += 1;
+          combat.attackRange += 1;
+        }
+        break;
+      // FU1: Imperial Blacksmith tier additions.
+      case 'ring-archer-armor':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.armor += 1;
+        }
+        break;
+      case 'chemistry':
+        // Chemistry grants +1 attack to archer-line units AND to
+        // gunpowder units (Bombard Cannon in v1). Gating of Bombard
+        // Cannon training at the Siege Workshop happens in the train
+        // options (`canTrainAt` / `getTrainOptions`) — Chemistry is
+        // required before the unit can be queued.
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = combatStates.get(id);
+          if (!unit || !combat || unit.owner !== owner) {
+            continue;
+          }
+          if (isArcherLineUnit(unit.unitType) || isGunpowderUnit(unit.unitType)) {
+            combat.attackDamage += 1;
+          }
+        }
+        break;
     }
   }
 
@@ -7089,8 +7402,12 @@ function createWorld(
               continue;
             }
 
-            targetCombat.currentHp -=
+            // FU1: armor subtracts from attacker damage, floored at 1 so
+            // that ever-larger armor stacks never heal or no-op a hit.
+            // Matches AoE2 DE "minimum 1 damage" rule for unit-vs-unit.
+            const rawDamage =
               attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
+            targetCombat.currentHp -= Math.max(1, rawDamage - targetCombat.armor);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
             markOutOfBandRenderChange();
 
@@ -7185,8 +7502,13 @@ function createWorld(
             continue;
           }
 
-          targetHealth.currentHp -=
-            attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType);
+          // FU1: buildings do not carry armor in v1, but floor the raw
+          // damage at 0 so negative-armor-style shenanigans (future
+          // engine changes) cannot heal a building via an attack.
+          targetHealth.currentHp -= Math.max(
+            0,
+            attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType),
+          );
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
           markOutOfBandRenderChange();
 
@@ -7939,7 +8261,9 @@ function createWorld(
           continue;
         }
 
-        targetCombat.currentHp -= wildlife.attackDamage;
+        // FU1: wildlife hits respect target armor, floored at 1 so a
+        // heavily-armored unit still takes a scrape per hit.
+        targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetCombat.armor);
         wildlife.cooldownTicks = wildlife.reloadTicks;
         markOutOfBandRenderChange();
 
@@ -8155,7 +8479,13 @@ function createWorld(
             break;
           }
 
-          activeTargetCombat.currentHp -= buildingCombat.attackDamage;
+          // FU1: tower / TC / Castle arrows respect unit armor, floored
+          // at 1 so heavily-armored Imperial units still take at least a
+          // single point per arrow.
+          activeTargetCombat.currentHp -= Math.max(
+            1,
+            buildingCombat.attackDamage - activeTargetCombat.armor,
+          );
           markOutOfBandRenderChange();
           if (activeTargetCombat.currentHp <= 0) {
             destroyUnitEntity(targetId);
