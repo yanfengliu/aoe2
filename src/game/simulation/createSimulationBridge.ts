@@ -22,6 +22,7 @@ import {
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
+import { latestResearchedInChain as latestResearchedInChainExternal } from './upgradeChains';
 import {
   AI_BASE_VISION_RADIUS,
   AI_MONK_COUNT_CAP,
@@ -67,6 +68,7 @@ import type {
   ResourceComponent,
   ResourceKind,
   SelectionState,
+  SimulationDebugSnapshot,
   TerrainComponent,
   TrainableUnitType,
   UnitComponent,
@@ -157,41 +159,6 @@ export interface SimulationBridge {
   // overlay renderer pulls this every frame.
   getDebugSnapshot(): SimulationDebugSnapshot;
   saveGame(): SaveBlob;
-}
-
-// Slice 11: debug-overlay snapshot. Each field is optional so the HUD
-// can safely downsample modes that it hasn't activated. All coordinates
-// are in cell space (x, y in [0, MAP_WIDTH/HEIGHT)).
-export interface SimulationDebugSnapshot {
-  tick: number;
-  tickDurationMs: number;
-  entityCount: number;
-  unitPaths: Array<{
-    id: number;
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-    commandType: 'move' | 'build' | 'attack';
-  }>;
-  aiSummaries: Array<{
-    owner: number;
-    difficulty: string;
-    plan: string;
-    villagerTargets: Partial<Record<string, number>>;
-    attackGroupSize: number;
-  }>;
-  // Slice 12 Task D: per-unit probe for the "coarse-vs-fine" debug
-  // overlay. `coarseX/Y` is the integer simulation cell; `fineX/Y` is
-  // the interpolated render position (in whole-cell units). The scene
-  // draws a line from coarse → fine for every entry.
-  coarseVsFine: Array<{
-    id: number;
-    coarseX: number;
-    coarseY: number;
-    fineX: number;
-    fineY: number;
-  }>;
 }
 
 const STANDARD_STARTING_RESOURCES: PlayerResources = {
@@ -6034,12 +6001,8 @@ function createWorld(
     return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding) >= 2;
   }
 
-  // Walks a tiered unit chain from head to tail (e.g., ['archer',
-  // 'crossbowman', 'arbalest']) and returns the newest tier whose gating
-  // upgrade is researched. Each chain tier after the head is paired with a
-  // `ResearchableTechnologyType`; the first tier (`chain[0]`) is the default
-  // fallback. Used by the Archery Range / Barracks / Stable / Castle train
-  // menus so only the latest-researched tier is exposed at any time.
+  // Thin wrapper around the shared `latestResearchedInChain` helper that
+  // binds the closure-local `hasTechnology` so callsites stay terse.
   function latestResearchedInChain(
     owner: number,
     chain: readonly [
@@ -6047,17 +6010,7 @@ function createWorld(
       ...Array<[TrainableUnitType, ResearchableTechnologyType]>,
     ],
   ): TrainableUnitType {
-    let current: TrainableUnitType = chain[0];
-    for (let index = 1; index < chain.length; index += 1) {
-      const [unitType, technologyType] = chain[index] as [
-        TrainableUnitType,
-        ResearchableTechnologyType,
-      ];
-      if (hasTechnology(owner, technologyType)) {
-        current = unitType;
-      }
-    }
-    return current;
+    return latestResearchedInChainExternal(owner, chain, hasTechnology);
   }
 
   function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {

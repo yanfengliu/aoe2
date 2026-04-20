@@ -405,6 +405,41 @@ export interface HudState {
   matchState: MatchState;
 }
 
+// Slice 11: debug-overlay snapshot. Each field populated so the HUD can
+// safely downsample modes that it hasn't activated. All coordinates are
+// in cell space (x, y in [0, MAP_WIDTH/HEIGHT)).
+export interface SimulationDebugSnapshot {
+  tick: number;
+  tickDurationMs: number;
+  entityCount: number;
+  unitPaths: Array<{
+    id: number;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    commandType: 'move' | 'build' | 'attack';
+  }>;
+  aiSummaries: Array<{
+    owner: number;
+    difficulty: string;
+    plan: string;
+    villagerTargets: Partial<Record<string, number>>;
+    attackGroupSize: number;
+  }>;
+  // Slice 12 Task D: per-unit probe for the "coarse-vs-fine" debug
+  // overlay. `coarseX/Y` is the integer simulation cell; `fineX/Y` is
+  // the interpolated render position (in whole-cell units). The scene
+  // draws a line from coarse → fine for every entry.
+  coarseVsFine: Array<{
+    id: number;
+    coarseX: number;
+    coarseY: number;
+    fineX: number;
+    fineY: number;
+  }>;
+}
+
 export type WinCondition = 'conquest' | 'wonder' | 'relic';
 
 export interface MatchState {
