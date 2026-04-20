@@ -286,6 +286,12 @@ const HEAVY_SCORPION_TRAIN_TIME_TICKS = 300;
 const SIEGE_RAM_TRAIN_TIME_TICKS = 360;
 const BOMBARD_CANNON_TRAIN_TIME_TICKS = 560;
 const TREBUCHET_TRAIN_TIME_TICKS = 500;
+// FU7: Trebuchet pack/unpack transition. A Trebuchet must spend this many
+// ticks transitioning between packed (mobile, no fire) and unpacked
+// (stationary, fires at range 16 with +200 vs buildings). During the
+// transition the unit neither moves nor fires. 50 ticks is ~0.8 s at
+// 60 TPS — noticeable but not crippling.
+const TREBUCHET_PACK_TRANSITION_TICKS = 50;
 // FU2: Militia-line intermediate tiers + Paladin + Heavy Camel. Each new
 // unit's train time mirrors its predecessor so the militia line and the
 // knight line stay production-fluent across tiers. Upgrade research
@@ -1973,8 +1979,9 @@ function unitAttackRange(unitType: UnitType): number {
       // unitMinAttackRange below.
       return 12;
     case 'trebuchet':
-      // Very long range (stationary in v1). Simplified pack/unpack is a
-      // follow-up; the range value itself is canonical.
+      // Very long range. FU7: the Trebuchet now packs / unpacks between
+      // a mobile packed state and a stationary unpacked firing state.
+      // The range value itself is canonical.
       return 16;
     // Monks never close to attack (damage is 0) — the heal/convert systems
     // read MONK_ACTION_RANGE directly, not this function.
@@ -2924,6 +2931,19 @@ function createWorld(
   // Per-Monastery count of deposited relics. Per tick, every owner gets +1
   // gold for each relic deposited in their Monasteries (see prototypeRelicGold).
   const relicsInMonastery = new Map<number, number>();
+  // FU7: Trebuchet pack/unpack state. Each Trebuchet has a `packed` flag
+  // (mobile when true, stationary-fire when false) and a
+  // `transitionTicksRemaining` counter that is > 0 while a pack <-> unpack
+  // transition is in progress. On transition completion, `packed` flips.
+  // During a transition the Trebuchet neither moves nor fires — it sits
+  // in place until the counter hits zero. Packed is the freshly-trained
+  // default so Trebuchets walk out of the Castle like any other siege
+  // unit and only root themselves on reaching an enemy target.
+  interface TrebuchetPackState {
+    packed: boolean;
+    transitionTicksRemaining: number;
+  }
+  const trebuchetPackStates = new Map<number, TrebuchetPackState>();
   // Slice 8: Wonder victory state. Countdown starts as soon as a player's
   // Wonder completes construction; decrements every tick. At 0 the owner
   // wins by Wonder victory. If the Wonder is destroyed the countdown
@@ -2934,6 +2954,11 @@ function createWorld(
   interface WonderCountdownEntry {
     remainingTicks: number;
     totalTicks: number;
+    // FU7: records the `world.tick` at which the countdown hit zero.
+    // Null while a countdown is still in flight. Read by the combined
+    // Wonder/Relic winner resolver so the "first to complete" rule is
+    // explicit rather than implicit system-registration order.
+    lastCompletedTick: number | null;
   }
   const wonderCountdowns = new Map<number, WonderCountdownEntry>();
   const wonderCountdownOverrides = new Map<number, number>();
@@ -2945,6 +2970,8 @@ function createWorld(
   interface RelicCountdownEntry {
     remainingTicks: number;
     totalTicks: number;
+    // FU7: see WonderCountdownEntry.lastCompletedTick.
+    lastCompletedTick: number | null;
   }
   const relicCountdowns = new Map<number, RelicCountdownEntry>();
   const relicCountdownOverrides = new Map<number, number>();
@@ -2955,6 +2982,10 @@ function createWorld(
     unitsProduced: number;
     buildingsProduced: number;
     resourcesGathered: number;
+    // FU7: military kills (enemy units destroyed by this player's units or
+    // buildings). Rewards combat play so a defensive booming economy does
+    // not trivially outscore a raiding army at match end.
+    unitsKilled: number;
     wonderCompleted: boolean;
   }
   const playerScoreCounters = new Map<number, PlayerScoreCounters>();
@@ -2965,12 +2996,79 @@ function createWorld(
         unitsProduced: 0,
         buildingsProduced: 0,
         resourcesGathered: 0,
+        unitsKilled: 0,
         wonderCompleted: false,
       };
       playerScoreCounters.set(owner, counters);
     }
     return counters;
   }
+  // FU7: helpers for the Trebuchet pack/unpack lifecycle. Centralized so
+  // every caller (attack pathway, move pathway, save/load hydration) keeps
+  // a single source of truth for transition semantics.
+
+  // Advance an in-flight pack/unpack transition by one tick. Returns true
+  // iff a transition is currently in progress (caller should skip movement
+  // and fire this tick). Once `transitionTicksRemaining` reaches zero, the
+  // `packed` flag flips and the Trebuchet becomes stable in its new state
+  // on the NEXT tick. The current tick is still considered "in transition"
+  // so both halves of the flip are observed deterministically.
+  function advanceTrebuchetTransition(unitId: number): boolean {
+    const state = trebuchetPackStates.get(unitId);
+    if (!state || state.transitionTicksRemaining <= 0) {
+      return false;
+    }
+    state.transitionTicksRemaining -= 1;
+    if (state.transitionTicksRemaining <= 0) {
+      state.packed = !state.packed;
+    }
+    return true;
+  }
+
+  // Begin a packed → unpacked transition (Trebuchet is within range of an
+  // attack target and wants to fire). No-op if the unit isn't a packed
+  // Trebuchet or is already in a transition.
+  function beginTrebuchetUnpack(unitId: number): void {
+    const state = trebuchetPackStates.get(unitId);
+    if (!state || !state.packed || state.transitionTicksRemaining > 0) {
+      return;
+    }
+    state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
+  }
+
+  // Begin an unpacked → packed transition (Trebuchet received a move
+  // order). No-op if the unit isn't an unpacked Trebuchet or is already
+  // in a transition.
+  function beginTrebuchetPack(unitId: number): void {
+    const state = trebuchetPackStates.get(unitId);
+    if (!state || state.packed || state.transitionTicksRemaining > 0) {
+      return;
+    }
+    state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
+  }
+
+  // True if the unit is a Trebuchet that cannot currently move (unpacked
+  // stable OR mid-transition in either direction). Used to gate the
+  // movement branches of the attack and move command loops so an
+  // unpacked Trebuchet holds ground rather than walking into melee.
+  function isTrebuchetStationary(unitId: number): boolean {
+    const state = trebuchetPackStates.get(unitId);
+    if (!state) {
+      return false;
+    }
+    return !state.packed || state.transitionTicksRemaining > 0;
+  }
+
+  // True if the unit is a Trebuchet that cannot currently fire (packed
+  // stable OR mid-transition in either direction).
+  function isTrebuchetSilent(unitId: number): boolean {
+    const state = trebuchetPackStates.get(unitId);
+    if (!state) {
+      return false;
+    }
+    return state.packed || state.transitionTicksRemaining > 0;
+  }
+
   // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
   // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
   // visible to the player; read at render-projection time for cells that are
@@ -3641,6 +3739,17 @@ function createWorld(
 
     combatStates.set(entity, createCombatState(owner, unitType));
 
+    // FU7: a freshly-trained (or scenario-spawned) Trebuchet starts packed
+    // so it can walk out of the producing Castle to a staging position
+    // exactly like any other siege unit. The unpack transition is gated on
+    // an attack order reaching a target within range.
+    if (unitType === 'trebuchet') {
+      trebuchetPackStates.set(entity, {
+        packed: true,
+        transitionTicksRemaining: 0,
+      });
+    }
+
     if (unitType === 'villager') {
       const ordinal = villagerOrdinals.get(owner) ?? 0;
       villagerOrdinals.set(owner, ordinal + 1);
@@ -3774,6 +3883,7 @@ function createWorld(
       wonderCountdowns.set(buildingId, {
         remainingTicks: totalTicks,
         totalTicks,
+        lastCompletedTick: null,
       });
     }
   }
@@ -4162,6 +4272,9 @@ function createWorld(
       wonderCountdowns.set(id, {
         remainingTicks: entry.remainingTicks,
         totalTicks: entry.totalTicks,
+        // FU7: tolerate older saves that lacked `lastCompletedTick` —
+        // mid-flight countdowns default back to null.
+        lastCompletedTick: entry.lastCompletedTick ?? null,
       });
     }
     for (const [owner, ticks] of blob.wonderCountdownOverrides) {
@@ -4171,13 +4284,33 @@ function createWorld(
       relicCountdowns.set(owner, {
         remainingTicks: entry.remainingTicks,
         totalTicks: entry.totalTicks,
+        lastCompletedTick: entry.lastCompletedTick ?? null,
       });
     }
     for (const [owner, ticks] of blob.relicCountdownOverrides) {
       relicCountdownOverrides.set(owner, ticks);
     }
     for (const [owner, counters] of blob.playerScoreCounters) {
-      playerScoreCounters.set(owner, { ...counters });
+      // FU7: back-fill `unitsKilled` for saves written before the field
+      // existed (schema-tolerant hydrate of an optional-looking field).
+      // Older saves implicitly have zero kills.
+      playerScoreCounters.set(owner, {
+        unitsProduced: counters.unitsProduced,
+        buildingsProduced: counters.buildingsProduced,
+        resourcesGathered: counters.resourcesGathered,
+        unitsKilled: counters.unitsKilled ?? 0,
+        wonderCompleted: counters.wonderCompleted,
+      });
+    }
+    // FU7: hydrate Trebuchet pack states. Absent-on-old-save is fine —
+    // the trebuchets will be treated as packed by the init path below
+    // when a scenario is fresh; on save/load we replay whatever the
+    // blob stored.
+    for (const [id, state] of blob.trebuchetPackStates ?? []) {
+      trebuchetPackStates.set(id, {
+        packed: state.packed,
+        transitionTicksRemaining: state.transitionTicksRemaining,
+      });
     }
     for (const [playerId, innerEntries] of blob.lastSeenStatic) {
       const inner = new Map<number, MemoryEntry>();
@@ -5285,6 +5418,8 @@ function createWorld(
     }
     conversionState.delete(id);
     monkHealCounters.delete(id);
+    // FU7: release trebuchet pack-state bookkeeping on destroy.
+    trebuchetPackStates.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -8042,6 +8177,16 @@ function createWorld(
             attackerCombat.cooldownTicks -= 1;
           }
 
+          // FU7: Trebuchet pack/unpack. If a Trebuchet is mid-transition,
+          // burn a tick on the transition (no move, no fire) and move on.
+          // The second phase — branching on packed vs unpacked per target
+          // kind — is inlined in each sub-branch below after the distance
+          // is computed, since "in range" differs for unit / resource /
+          // building targets.
+          if (unit.unitType === 'trebuchet' && advanceTrebuchetTransition(id)) {
+            continue;
+          }
+
           if (command.targetEntityKind === 'unit') {
             const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
             const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
@@ -8052,6 +8197,14 @@ function createWorld(
             }
 
             if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
+              // FU7: an unpacked Trebuchet is stationary — it cannot walk
+              // toward an out-of-range target. Hold the attack command so
+              // the player observes "nothing happens" rather than silently
+              // clearing the order (they may re-pack later or the target
+              // may return to range). A packed Trebuchet walks normally.
+              if (isTrebuchetStationary(id)) {
+                continue;
+              }
               const unitRangePlan = findUnitRangePlan(
                 id,
                 targetPosition,
@@ -8077,6 +8230,14 @@ function createWorld(
               continue;
             }
 
+            // FU7: a packed Trebuchet cannot fire — it must unpack first.
+            // Kick off the unpack transition; a later tick will clear the
+            // pack flag and let the standard fire logic run.
+            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
+              beginTrebuchetUnpack(id);
+              continue;
+            }
+
             if (attackerCombat.cooldownTicks > 0) {
               continue;
             }
@@ -8091,6 +8252,8 @@ function createWorld(
             markOutOfBandRenderChange();
 
             if (targetCombat.currentHp <= 0) {
+              // FU7: credit the attacker's owner with a military kill.
+              ensurePlayerScoreCounters(unit.owner).unitsKilled += 1;
               destroyUnitEntity(targetId);
               unitCommands.delete(id);
             }
@@ -8107,6 +8270,10 @@ function createWorld(
             }
 
             if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
+              // FU7: unpacked Trebuchet holds ground — see the unit branch.
+              if (isTrebuchetStationary(id)) {
+                continue;
+              }
               const wildlifeRangePlan = findUnitRangePlan(
                 id,
                 targetPosition,
@@ -8126,6 +8293,12 @@ function createWorld(
             if (
               manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
             ) {
+              continue;
+            }
+
+            // FU7: packed Trebuchet unpacks before firing.
+            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
+              beginTrebuchetUnpack(id);
               continue;
             }
 
@@ -8154,6 +8327,10 @@ function createWorld(
           }
 
           if (distanceToBuilding(targetId, position) > attackerCombat.attackRange) {
+            // FU7: unpacked Trebuchet holds ground — see the unit branch.
+            if (isTrebuchetStationary(id)) {
+              continue;
+            }
             const buildingApproachPlan = findBuildingApproachPlan(
               id,
               targetId,
@@ -8174,6 +8351,15 @@ function createWorld(
           if (
             distanceToBuilding(targetId, position) < unitMinAttackRange(unit.unitType)
           ) {
+            continue;
+          }
+
+          // FU7: packed Trebuchet unpacks before firing at a building.
+          // Trebuchets are the canonical building-killer so this is the
+          // most common path — position next to a Castle / TC, then
+          // unpack over 50 ticks, then rain siege damage.
+          if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
+            beginTrebuchetUnpack(id);
             continue;
           }
 
@@ -8199,6 +8385,21 @@ function createWorld(
         }
 
         if (command.type === 'move') {
+          // FU7: Trebuchet pack/unpack. An unpacked Trebuchet must pack
+          // before it can start walking toward a move target; during the
+          // pack (or any in-flight transition) it stays put. This runs
+          // BEFORE the movePlan lookup so a transient transition never
+          // prematurely clears the move command on a blocked plan.
+          if (unit.unitType === 'trebuchet') {
+            if (advanceTrebuchetTransition(id)) {
+              continue;
+            }
+            if (isTrebuchetStationary(id)) {
+              beginTrebuchetPack(id);
+              continue;
+            }
+          }
+
           const movePlan = findMovePlan(id, command.target, activeWorld);
           if (!movePlan) {
             unitCommands.delete(id);
@@ -9187,6 +9388,8 @@ function createWorld(
           );
           markOutOfBandRenderChange();
           if (activeTargetCombat.currentHp <= 0) {
+            // FU7: credit the firing tower's owner with the kill.
+            ensurePlayerScoreCounters(building.owner).unitsKilled += 1;
             destroyUnitEntity(targetId);
             break;
           }
@@ -9197,22 +9400,32 @@ function createWorld(
     },
   });
 
-  // Slice 8: score weights for the end-of-match summary.
+  // Slice 8 + FU7 tune: score weights for the end-of-match summary.
   //
-  //   units produced      × 10
-  //   buildings produced  × 25
-  //   resources gathered  × 0.05   (1000 gathered = 50 points)
-  //   relics held at end  × 50
-  //   wonder completed    × 200
+  //   units produced      × 10     (kept)
+  //   buildings produced  × 50     (FU7: up from 25 — buildings last the
+  //                                 whole game and represent the bulk of
+  //                                 an economy's footprint, not just
+  //                                 transient unit throughput.)
+  //   resources gathered  × 0.02   (FU7: down from 0.05 — a raw-gather
+  //                                 boom should not overwhelm combat.)
+  //   relics held at end  × 50     (kept)
+  //   enemy units killed  × 20     (FU7: NEW — rewards actually engaging
+  //                                 enemy forces rather than just
+  //                                 pumping out villagers.)
+  //   wonder completed    × 500    (FU7: up from 200 — Wonder is the
+  //                                 ultimate commit and deserves a
+  //                                 bigger trophy.)
   //
   // These are intentionally simple so the summary is legible at a glance.
   // The weights are stable across win conditions — e.g. a conquest victor
-  // who also completed a Wonder still gets the Wonder-bonus 200 points.
+  // who also completed a Wonder still gets the Wonder-bonus points.
   function computePlayerScore(owner: number): number {
     const counters = playerScoreCounters.get(owner) ?? {
       unitsProduced: 0,
       buildingsProduced: 0,
       resourcesGathered: 0,
+      unitsKilled: 0,
       wonderCompleted: false,
     };
     let relicsHeld = 0;
@@ -9224,10 +9437,11 @@ function createWorld(
     }
     return Math.floor(
       counters.unitsProduced * 10
-      + counters.buildingsProduced * 25
-      + counters.resourcesGathered * 0.05
+      + counters.buildingsProduced * 50
+      + counters.resourcesGathered * 0.02
       + relicsHeld * 50
-      + (counters.wonderCompleted ? 200 : 0),
+      + counters.unitsKilled * 20
+      + (counters.wonderCompleted ? 500 : 0),
     );
   }
 
@@ -9271,10 +9485,12 @@ function createWorld(
     return relicCountdowns.get(HUMAN_PLAYER_ID)?.remainingTicks ?? null;
   }
 
-  // Slice 8: Wonder countdown decrement. Each owner's completed Wonder
-  // ticks down a per-owner counter; at zero, the owner wins by Wonder
-  // victory. Runs before `prototypeConquestOutcome` so a Wonder victory
-  // beats a simultaneous conquest (deterministic tie-break rule).
+  // Slice 8 + FU7: Wonder countdown decrement. Each owner's completed
+  // Wonder ticks down a per-owner counter; when it reaches zero the entry
+  // records `lastCompletedTick = world.tick`. The combined
+  // `prototypeWinConditionResolver` downstream decides who actually wins
+  // (Wonder / Relic) so the "first to complete" rule is explicit instead
+  // of implicit system-registration order.
   world.registerSystem({
     name: 'prototypeWonderCountdown',
     phase: 'postUpdate',
@@ -9282,26 +9498,20 @@ function createWorld(
       if (!isMatchRunning()) {
         return;
       }
-      // Iterate a snapshot — a victory fire-off finalizes match state and
-      // the rest of the loop becomes a no-op, but the snapshot guards
-      // against any concurrent entries being mutated mid-iteration.
       for (const [buildingId, entry] of [...wonderCountdowns.entries()]) {
         const building = world.getComponent<BuildingComponent>(buildingId, 'building');
         if (!building) {
           wonderCountdowns.delete(buildingId);
           continue;
         }
+        // Skip entries that already hit zero — they keep their
+        // `lastCompletedTick` stamp until the resolver fires.
+        if (entry.lastCompletedTick !== null) {
+          continue;
+        }
         entry.remainingTicks -= 1;
         if (entry.remainingTicks <= 0) {
-          const winnerIsHuman = building.owner === HUMAN_PLAYER_ID;
-          finalizeMatchEnd(
-            winnerIsHuman ? 'victory' : 'defeat',
-            'wonder',
-            winnerIsHuman
-              ? 'Wonder Victory! Your Wonder endured the countdown.'
-              : 'Wonder Defeat: an enemy Wonder endured the countdown.',
-          );
-          return;
+          entry.lastCompletedTick = world.tick;
         }
       }
     },
@@ -9370,7 +9580,7 @@ function createWorld(
       let entry = relicCountdowns.get(holdingOwner);
       if (!entry) {
         const totalTicks = relicCountdownOverrides.get(holdingOwner) ?? RELIC_COUNTDOWN_TICKS;
-        entry = { remainingTicks: totalTicks, totalTicks };
+        entry = { remainingTicks: totalTicks, totalTicks, lastCompletedTick: null };
         relicCountdowns.set(holdingOwner, entry);
       }
       // Clear any stale entry belonging to a different owner (e.g. the
@@ -9381,9 +9591,86 @@ function createWorld(
           relicCountdowns.delete(existingOwner);
         }
       }
+      // FU7: once completed, a relic countdown no longer ticks — the
+      // resolver picks a winner below.
+      if (entry.lastCompletedTick !== null) {
+        return;
+      }
       entry.remainingTicks -= 1;
       if (entry.remainingTicks <= 0) {
-        const winnerIsHuman = holdingOwner === HUMAN_PLAYER_ID;
+        entry.lastCompletedTick = world.tick;
+      }
+    },
+  });
+
+  // FU7: resolves Wonder vs Relic outcomes with an explicit
+  // `lastCompletedTick`-based tie-break. Previously the outcome was
+  // implicit in system-registration order (Wonder runs before Relic, so
+  // Wonder won on simultaneous completion). Now the rule is:
+  //   1. Whichever countdown's `lastCompletedTick` is smaller wins (the
+  //      one that actually hit zero first in simulation time).
+  //   2. On the same tick, Wonder beats Relic (stable, documented).
+  // Decouples win-condition semantics from the system scheduling order.
+  world.registerSystem({
+    name: 'prototypeWinConditionResolver',
+    phase: 'postUpdate',
+    after: ['prototypeRelicCountdown'],
+    execute() {
+      if (!isMatchRunning()) {
+        return;
+      }
+      // Find the earliest Wonder completion (there can be more than one
+      // if multiple Wonders stood, though the one-per-owner rule makes
+      // this rare). Smaller `lastCompletedTick` = earlier completion.
+      let earliestWonderTick: number | null = null;
+      let earliestWonderOwner: number | null = null;
+      for (const [buildingId, entry] of wonderCountdowns.entries()) {
+        if (entry.lastCompletedTick === null) {
+          continue;
+        }
+        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+        if (!building) {
+          continue;
+        }
+        if (earliestWonderTick === null || entry.lastCompletedTick < earliestWonderTick) {
+          earliestWonderTick = entry.lastCompletedTick;
+          earliestWonderOwner = building.owner;
+        }
+      }
+      // Find the earliest Relic completion.
+      let earliestRelicTick: number | null = null;
+      let earliestRelicOwner: number | null = null;
+      for (const [owner, entry] of relicCountdowns.entries()) {
+        if (entry.lastCompletedTick === null) {
+          continue;
+        }
+        if (earliestRelicTick === null || entry.lastCompletedTick < earliestRelicTick) {
+          earliestRelicTick = entry.lastCompletedTick;
+          earliestRelicOwner = owner;
+        }
+      }
+      if (earliestWonderTick === null && earliestRelicTick === null) {
+        return;
+      }
+      // Decide which completion wins. On a true tie (same tick), Wonder
+      // is the stable choice — it's the more expensive commit and
+      // matches AoE2 convention that Wonder victories are showier.
+      const wonderWins =
+        earliestWonderTick !== null
+        && (earliestRelicTick === null || earliestWonderTick <= earliestRelicTick);
+      if (wonderWins && earliestWonderOwner !== null) {
+        const winnerIsHuman = earliestWonderOwner === HUMAN_PLAYER_ID;
+        finalizeMatchEnd(
+          winnerIsHuman ? 'victory' : 'defeat',
+          'wonder',
+          winnerIsHuman
+            ? 'Wonder Victory! Your Wonder endured the countdown.'
+            : 'Wonder Defeat: an enemy Wonder endured the countdown.',
+        );
+        return;
+      }
+      if (earliestRelicOwner !== null) {
+        const winnerIsHuman = earliestRelicOwner === HUMAN_PLAYER_ID;
         finalizeMatchEnd(
           winnerIsHuman ? 'victory' : 'defeat',
           'relic',
@@ -9398,7 +9685,7 @@ function createWorld(
   world.registerSystem({
     name: 'prototypeConquestOutcome',
     phase: 'postUpdate',
-    after: ['prototypeRelicCountdown'],
+    after: ['prototypeWinConditionResolver'],
     execute() {
       if (!isMatchRunning()) {
         return;
@@ -10327,17 +10614,32 @@ function createWorld(
         relicsInMonastery: [...relicsInMonastery.entries()],
         wonderCountdowns: [...wonderCountdowns.entries()].map(([id, entry]) => [
           id,
-          { remainingTicks: entry.remainingTicks, totalTicks: entry.totalTicks },
+          {
+            remainingTicks: entry.remainingTicks,
+            totalTicks: entry.totalTicks,
+            lastCompletedTick: entry.lastCompletedTick,
+          },
         ]),
         wonderCountdownOverrides: [...wonderCountdownOverrides.entries()],
         relicCountdowns: [...relicCountdowns.entries()].map(([id, entry]) => [
           id,
-          { remainingTicks: entry.remainingTicks, totalTicks: entry.totalTicks },
+          {
+            remainingTicks: entry.remainingTicks,
+            totalTicks: entry.totalTicks,
+            lastCompletedTick: entry.lastCompletedTick,
+          },
         ]),
         relicCountdownOverrides: [...relicCountdownOverrides.entries()],
         playerScoreCounters: [...playerScoreCounters.entries()].map(([owner, counters]) => [
           owner,
           { ...counters },
+        ]),
+        // FU7: persist Trebuchet pack/unpack state so a Trebuchet mid-
+        // transition when the player saves resumes mid-transition on
+        // load instead of quietly resetting to "packed".
+        trebuchetPackStates: [...trebuchetPackStates.entries()].map(([id, state]) => [
+          id,
+          { packed: state.packed, transitionTicksRemaining: state.transitionTicksRemaining },
         ]),
         lastSeenStatic: [...lastSeenStatic.entries()].map(([playerId, innerMap]) => [
           playerId,

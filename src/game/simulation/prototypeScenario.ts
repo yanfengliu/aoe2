@@ -7931,6 +7931,125 @@ function createSiegeRamVsBuildingFixture(seed: string): PrototypeScenario {
   };
 }
 
+// FU7 fixture: player-1 Trebuchet sitting far from any enemy. Used to
+// assert a freshly-placed Trebuchet is packed by default and can move
+// without paying the pack transition cost.
+function createTrebuchetPackFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'trebuchet',
+        x: 12,
+        y: 14,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 10 },
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU7 fixture: player-1 Trebuchet already inside its 16-tile range of a
+// low-HP enemy Town Center. Used to prove the Trebuchet auto-unpacks
+// over the ~50-tick transition before firing, and that once unpacked a
+// fresh move order resumes the pack transition before walking away.
+// Player 2 keeps a second Town Center far off-map so destroying the
+// near one does not trigger a conquest victory — we need the match
+// still running for the post-unpack move-command observation.
+function createTrebuchetVsBuildingFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 25 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'trebuchet',
+        x: 15,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        // Wide vision so the enemy TC is already visible when the
+        // attack command lands.
+        vision: { playerId: 1, radius: 18 },
+      },
+      {
+        kind: 'town-center',
+        x: 20,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+        // Low HP so one Trebuchet shot (attack 7 + 200 anti-building
+        // bonus = 207) is guaranteed to kill it.
+        startHp: 200,
+      },
+      // Second player-2 Town Center far from the action so conquest
+      // does not fire when the near TC is destroyed.
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 25,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 // Slice 8 fixture: Imperial-Age human with no Wonder yet. Used to assert
 // the villager build menu exposes 'wonder' once the Imperial gate is
 // satisfied.
@@ -8276,6 +8395,142 @@ function createRelicNotAllHeldFixture(seed: string): PrototypeScenario {
   };
 }
 
+// FU7 fixture: player-1 simultaneously races a Wonder countdown and a
+// Relic countdown — both with the same 10-tick override — so they hit
+// zero on the same tick. The explicit `lastCompletedTick` resolver must
+// pick Wonder (stable tie-break documented in the spec). Without the
+// resolver the outcome depends on system-registration order, which is
+// exactly the implicitness this follow-up removes.
+function createWonderRelicTieFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        wonderCountdownOverrideTicks: 10,
+        relicCountdownOverrideTicks: 10,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 28, y: 8 },
+        startingAge: 'imperial-age',
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'wonder',
+        x: 14,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+      },
+      {
+        kind: 'monastery',
+        x: 4,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        // Pre-loaded with every relic so the Relic countdown kicks off
+        // on tick 0 alongside the Wonder's countdown.
+        startingRelicsInMonastery: 3,
+      },
+      {
+        kind: 'town-center',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// FU7 fixture: player-1 (human) has a Monk ready to convert a player-2
+// villager that sits adjacent to a player-2 Wonder. The Wonder's
+// countdown override is huge so the match stays running well past the
+// ~50-tick conversion window. Used to pin the rule that Wonder
+// ownership lives on the Wonder building — a converted villager cannot
+// flip the Wonder away from the original owner, and the countdown
+// keeps ticking normally.
+function createWonderOwnerAfterConversionFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 8 },
+        startingAge: 'imperial-age',
+        // Generous countdown so the match stays running for the
+        // entire convert-and-observe window.
+        wonderCountdownOverrideTicks: 5000,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 20,
+        y: 10,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'wonder',
+        x: 22,
+        y: 6,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'villager',
+        x: 22,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
   if (seed === 'conquest-victory-fixture') {
     return createConquestVictoryFixture(seed);
@@ -8481,6 +8736,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     return createImperialCastleFixture(seed);
   }
 
+  if (seed === 'trebuchet-pack-fixture') {
+    return createTrebuchetPackFixture(seed);
+  }
+
+  if (seed === 'trebuchet-vs-building-fixture') {
+    return createTrebuchetVsBuildingFixture(seed);
+  }
+
   if (seed === 'mangonel-ranged-fixture') {
     return createMangonelRangedFixture(seed);
   }
@@ -8616,6 +8879,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'relic-not-all-held-fixture') {
     return createRelicNotAllHeldFixture(seed);
+  }
+
+  if (seed === 'wonder-relic-tie-fixture') {
+    return createWonderRelicTieFixture(seed);
+  }
+
+  if (seed === 'wonder-owner-after-conversion-fixture') {
+    return createWonderOwnerAfterConversionFixture(seed);
   }
 
   if (seed === 'feudal-spearman-fixture') {

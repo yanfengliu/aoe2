@@ -118,9 +118,19 @@ export interface SerializedSideMaps {
   monkCarriedRelic: SerializedEntityKeyedSideMap<number>;
   monkHealCounters: SerializedEntityKeyedSideMap<number>;
   relicsInMonastery: SerializedEntityKeyedSideMap<number>;
-  wonderCountdowns: SerializedEntityKeyedSideMap<{ remainingTicks: number; totalTicks: number }>;
+  wonderCountdowns: SerializedEntityKeyedSideMap<{
+    remainingTicks: number;
+    totalTicks: number;
+    // FU7: optional for backward compatibility with saves written before
+    // this field existed. Absent means "mid-flight, no completion tick".
+    lastCompletedTick?: number | null;
+  }>;
   wonderCountdownOverrides: SerializedMap<number, number>;
-  relicCountdowns: SerializedMap<number, { remainingTicks: number; totalTicks: number }>;
+  relicCountdowns: SerializedMap<number, {
+    remainingTicks: number;
+    totalTicks: number;
+    lastCompletedTick?: number | null;
+  }>;
   relicCountdownOverrides: SerializedMap<number, number>;
   playerScoreCounters: SerializedMap<
     number,
@@ -128,9 +138,15 @@ export interface SerializedSideMaps {
       unitsProduced: number;
       buildingsProduced: number;
       resourcesGathered: number;
+      unitsKilled: number;
       wonderCompleted: boolean;
     }
   >;
+  // FU7: Trebuchet pack/unpack state per unit id.
+  trebuchetPackStates: SerializedEntityKeyedSideMap<{
+    packed: boolean;
+    transitionTicksRemaining: number;
+  }>;
   // `lastSeenStatic` is `Map<playerId, Map<entityId, MemoryEntry>>`.
   // The inner map is serialized as `[[k, v], ...]` and the outer map
   // wraps that array as its value.
