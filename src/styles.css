@@ -403,6 +403,101 @@ body {
   white-space: pre-wrap;
 }
 
+/* FU5: Save / Load controls sit beside the top chip row so they
+   stay visible during a match without stealing selection-panel space. */
+.hud-save-load {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  pointer-events: auto;
+}
+
+.hud-save-load__button {
+  padding: 6px 12px;
+  border: 1px solid rgba(221, 196, 145, 0.45);
+  border-radius: 6px;
+  background: rgba(28, 40, 44, 0.9);
+  color: #f4ead1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.hud-save-load__button:hover {
+  background: rgba(52, 70, 76, 0.92);
+  border-color: rgba(221, 196, 145, 0.75);
+}
+
+.hud-save-load__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hud-save-load__button--ghost {
+  background: transparent;
+  border-color: rgba(221, 196, 145, 0.3);
+}
+
+.hud-load-panel {
+  margin-top: 8px;
+  padding: 10px 14px;
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(221, 196, 145, 0.4);
+  border-radius: 8px;
+  background: rgba(17, 24, 26, 0.95);
+  color: #f4ead1;
+  pointer-events: auto;
+  max-width: 360px;
+}
+
+.hud-load-panel[hidden] {
+  display: none;
+}
+
+.hud-load-panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #c4ae7a;
+}
+
+.hud-load-panel__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hud-load-panel__option input[type="radio"]:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hud-load-panel__textarea {
+  resize: vertical;
+  min-height: 64px;
+  padding: 6px 8px;
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 6px;
+  background: rgba(10, 16, 18, 0.9);
+  color: #f4ead1;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hud-load-panel__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .hud-debug-overlay[data-hud-debug-mode="off"] {
   display: none;
 }

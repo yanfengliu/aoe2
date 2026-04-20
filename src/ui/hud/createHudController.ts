@@ -13,6 +13,7 @@ import type {
   UnitType,
 } from '../../game/simulation/types';
 import type { SimulationDebugSnapshot } from '../../game/simulation/createSimulationBridge';
+import type { SaveBlob } from '../../game/simulation/saveSchema';
 
 interface HudCameraState {
   scrollX: number;
@@ -44,6 +45,16 @@ interface HudBridge {
   // Slice 11: snapshot for the F2 debug overlay. Every frame the HUD
   // requests this when the overlay is in anything other than 'off' mode.
   getDebugSnapshot(): SimulationDebugSnapshot;
+  // FU5: serialize the live simulation for the HUD Save button. The
+  // HUD writes the returned blob to localStorage and triggers a
+  // download.
+  saveGame(): SaveBlob;
+  // FU5: swap the running simulation with one rehydrated from `blob`.
+  // `createApp` owns the bridge + scene wiring so it implements this
+  // callback and rewires the scene, HUD, and browser test API to the
+  // new bridge. Throws on schema mismatch so the HUD can toast the
+  // failure.
+  loadGame(blob: SaveBlob): void;
 }
 
 // Slice 11: debug-overlay modes cycle in order via F2. The 'off' mode
@@ -1300,6 +1311,53 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
           <div class="hud-label" data-hud="countdown-label">Countdown</div>
           <div class="hud-value" data-hud="countdown-value">00:00</div>
         </div>
+        <div class="hud-save-load">
+          <button
+            type="button"
+            class="hud-save-load__button"
+            data-hud="save-button"
+            data-tooltip="Save the current match to browser storage and download a .json copy."
+          >Save</button>
+          <button
+            type="button"
+            class="hud-save-load__button"
+            data-hud="load-button"
+            data-tooltip="Load a saved match from browser storage or paste in a save blob."
+          >Load</button>
+        </div>
+      </div>
+      <div class="hud-load-panel" data-hud="load-panel" hidden>
+        <div class="hud-load-panel__title">Load saved match</div>
+        <label class="hud-load-panel__option">
+          <input
+            type="radio"
+            name="hud-load-source"
+            value="localstorage"
+            data-hud="load-source-localstorage"
+            checked
+          />
+          <span data-hud="load-source-localstorage-label">From browser storage</span>
+        </label>
+        <label class="hud-load-panel__option">
+          <input
+            type="radio"
+            name="hud-load-source"
+            value="paste"
+            data-hud="load-source-paste"
+          />
+          <span>From pasted JSON</span>
+        </label>
+        <textarea
+          class="hud-load-panel__textarea"
+          data-hud="load-paste-textarea"
+          placeholder="Paste save-blob JSON here"
+          rows="4"
+          hidden
+        ></textarea>
+        <div class="hud-load-panel__actions">
+          <button type="button" class="hud-save-load__button" data-hud="load-confirm">Restore</button>
+          <button type="button" class="hud-save-load__button hud-save-load__button--ghost" data-hud="load-cancel">Cancel</button>
+        </div>
       </div>
     </div>
     <div class="hud-bottom">
@@ -1344,6 +1402,26 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   const tooltip = root.querySelector<HTMLElement>('[data-hud="tooltip"]');
   const toastContainer = root.querySelector<HTMLElement>('[data-hud="toast-container"]');
   const debugOverlay = root.querySelector<HTMLElement>('[data-hud="debug-overlay"]');
+  // FU5: Save / Load controls live next to the top bar so they stay
+  // available even while a large selection panel is open. The load
+  // panel is hidden by default and toggled open by the Load button.
+  const saveButton = root.querySelector<HTMLButtonElement>('[data-hud="save-button"]');
+  const loadButton = root.querySelector<HTMLButtonElement>('[data-hud="load-button"]');
+  const loadPanel = root.querySelector<HTMLElement>('[data-hud="load-panel"]');
+  const loadSourceLocalStorageInput = root.querySelector<HTMLInputElement>(
+    '[data-hud="load-source-localstorage"]',
+  );
+  const loadSourceLocalStorageLabel = root.querySelector<HTMLElement>(
+    '[data-hud="load-source-localstorage-label"]',
+  );
+  const loadSourcePasteInput = root.querySelector<HTMLInputElement>(
+    '[data-hud="load-source-paste"]',
+  );
+  const loadPasteTextarea = root.querySelector<HTMLTextAreaElement>(
+    '[data-hud="load-paste-textarea"]',
+  );
+  const loadConfirmButton = root.querySelector<HTMLButtonElement>('[data-hud="load-confirm"]');
+  const loadCancelButton = root.querySelector<HTMLButtonElement>('[data-hud="load-cancel"]');
   let debugOverlayMode: DebugOverlayMode = 'off';
 
   function applyDebugOverlayMode(): void {
@@ -1476,6 +1554,190 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       }, 240);
     }, TOAST_LIFETIME_MS);
   }
+
+  // FU5: Save / Load HUD plumbing.
+  //
+  // The HUD owns only the UI: click handlers, the hidden load panel, a
+  // localStorage key, and a blob-URL download link. The simulation
+  // serialization lives on the bridge (`saveGame()` / `loadGame(blob)`).
+  // Whenever the bridge reference swaps (on load), the HUD is not
+  // notified directly — closures keep resolving `bridge` lazily via the
+  // outer binding, so the old bridge stays alive until `loadGame`
+  // replaces it.
+  const SAVE_STORAGE_KEY = 'aoe2-save-v1';
+
+  function refreshLoadSourceAvailability(): void {
+    if (!loadSourceLocalStorageInput || !loadSourceLocalStorageLabel) {
+      return;
+    }
+    let hasStoredBlob = false;
+    try {
+      hasStoredBlob = window.localStorage.getItem(SAVE_STORAGE_KEY) !== null;
+    } catch {
+      // Access to localStorage can throw in privacy-locked browsers.
+      hasStoredBlob = false;
+    }
+    loadSourceLocalStorageInput.disabled = !hasStoredBlob;
+    loadSourceLocalStorageLabel.textContent = hasStoredBlob
+      ? 'From browser storage'
+      : 'From browser storage (no save found)';
+    // If the stored option just became unavailable and it was checked,
+    // flip selection onto the paste alternative so the confirm button
+    // has a valid source.
+    if (!hasStoredBlob && loadSourceLocalStorageInput.checked && loadSourcePasteInput) {
+      loadSourcePasteInput.checked = true;
+      applyLoadSourceSelection();
+    }
+  }
+
+  function applyLoadSourceSelection(): void {
+    if (!loadPasteTextarea) {
+      return;
+    }
+    const pasteSelected = loadSourcePasteInput?.checked === true;
+    loadPasteTextarea.hidden = !pasteSelected;
+    if (pasteSelected) {
+      loadPasteTextarea.focus();
+    }
+  }
+
+  function openLoadPanel(): void {
+    if (!loadPanel) {
+      return;
+    }
+    refreshLoadSourceAvailability();
+    // Prefer the available option: if localStorage has a blob, keep
+    // that selected; otherwise start on the paste option.
+    if (loadSourceLocalStorageInput && !loadSourceLocalStorageInput.disabled) {
+      loadSourceLocalStorageInput.checked = true;
+    } else if (loadSourcePasteInput) {
+      loadSourcePasteInput.checked = true;
+    }
+    applyLoadSourceSelection();
+    loadPanel.hidden = false;
+  }
+
+  function closeLoadPanel(): void {
+    if (!loadPanel) {
+      return;
+    }
+    loadPanel.hidden = true;
+    if (loadPasteTextarea) {
+      loadPasteTextarea.value = '';
+    }
+  }
+
+  function triggerBlobDownload(json: string): void {
+    // Vite's preview + playwright environment both support
+    // URL.createObjectURL; guard just so the code stays safe in
+    // non-browser test harnesses.
+    if (typeof URL === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .replace(/T/, '_')
+        .slice(0, 19);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `aoe2-save-${timestamp}.json`;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      // Revoke asynchronously so Firefox/Safari have time to begin the
+      // download before the URL is released.
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.warn('Failed to trigger save download:', error);
+    }
+  }
+
+  function handleSaveClick(): void {
+    let json: string;
+    try {
+      const blob = bridge.saveGame();
+      json = JSON.stringify(blob);
+    } catch (error) {
+      console.warn('Save failed:', error);
+      showToast('Save failed.');
+      return;
+    }
+    try {
+      window.localStorage.setItem(SAVE_STORAGE_KEY, json);
+    } catch (error) {
+      console.warn('Could not write save to localStorage:', error);
+      showToast('Save failed (storage unavailable).');
+      return;
+    }
+    triggerBlobDownload(json);
+    showToast('Game saved.');
+    refreshLoadSourceAvailability();
+  }
+
+  function handleLoadConfirmClick(): void {
+    let blobJson: string | null = null;
+    if (loadSourcePasteInput?.checked) {
+      blobJson = loadPasteTextarea?.value.trim() ?? '';
+      if (!blobJson) {
+        showToast('Paste a save blob before restoring.');
+        return;
+      }
+    } else {
+      try {
+        blobJson = window.localStorage.getItem(SAVE_STORAGE_KEY);
+      } catch {
+        blobJson = null;
+      }
+      if (!blobJson) {
+        showToast('No save found in browser storage.');
+        return;
+      }
+    }
+
+    let parsed: SaveBlob;
+    try {
+      parsed = JSON.parse(blobJson) as SaveBlob;
+    } catch (error) {
+      console.warn('Save blob was not valid JSON:', error);
+      showToast('Load failed (invalid JSON).');
+      return;
+    }
+
+    try {
+      bridge.loadGame(parsed);
+    } catch (error) {
+      console.warn('Load failed:', error);
+      const message = error instanceof Error && error.message.length > 0
+        ? error.message
+        : 'Load failed.';
+      showToast(message);
+      return;
+    }
+
+    showToast('Game loaded.');
+    closeLoadPanel();
+  }
+
+  saveButton?.addEventListener('click', handleSaveClick);
+  loadButton?.addEventListener('click', () => {
+    if (loadPanel?.hidden === false) {
+      closeLoadPanel();
+      return;
+    }
+    openLoadPanel();
+  });
+  loadCancelButton?.addEventListener('click', closeLoadPanel);
+  loadConfirmButton?.addEventListener('click', handleLoadConfirmClick);
+  loadSourceLocalStorageInput?.addEventListener('change', applyLoadSourceSelection);
+  loadSourcePasteInput?.addEventListener('change', applyLoadSourceSelection);
+  // Ensure the label and availability reflect the current localStorage
+  // state on boot (prior sessions may have written a save).
+  refreshLoadSourceAvailability();
 
   if (minimap) {
     const handleMinimapPointer = (clientX: number, clientY: number): void => {

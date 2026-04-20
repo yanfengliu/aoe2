@@ -3323,4 +3323,76 @@ test.describe('browser gameplay smoke tests', () => {
     // appear when triggered in real gameplay.
     await expect(page.locator('[data-hud="toast-container"]')).toHaveCount(1);
   });
+
+  // FU5: Save / Load HUD plumbing. Clicking Save writes the current
+  // simulation to localStorage; clicking Load → Restore swaps in a new
+  // bridge rehydrated from that blob. After the round trip, gameplay
+  // state (tick, resources, unit count) must match the saved state.
+  test('saves to localStorage and restores the simulation through the HUD', async ({
+    page,
+  }) => {
+    await waitForBoot(page);
+
+    // Ensure nothing is pre-stored so the Load-from-localStorage option
+    // only becomes available after Save.
+    await page.evaluate(() => {
+      window.localStorage.removeItem('aoe2-save-v1');
+    });
+
+    // Advance a handful of ticks so the save captures non-trivial state.
+    await page.evaluate(() => {
+      window.__AOE2_TEST__!.advanceTicks(25, 100);
+    });
+
+    await page.locator('[data-hud="save-button"]').click();
+    await expect(page.locator('[data-hud="toast-container"]')).toContainText(/saved/i);
+
+    // Parse the stored blob — that's the authoritative snapshot of the
+    // moment the Save click fired. The natural Phaser RAF loop keeps
+    // ticking between our test commands, so comparing to a pre-click
+    // `getSnapshot()` would race.
+    const storedBlob = await page.evaluate(
+      () => window.localStorage.getItem('aoe2-save-v1'),
+    );
+    expect(storedBlob).not.toBeNull();
+    expect(typeof storedBlob).toBe('string');
+    const parsedBlob = JSON.parse(storedBlob!);
+    expect(parsedBlob.schema).toBe(1);
+    expect(parsedBlob.seed).toBe('aoe2-prototype');
+    const savedTick: number = parsedBlob.worldSnapshot.tick;
+    expect(savedTick).toBeGreaterThan(0);
+    const savedFood: number = parsedBlob.sideMaps.playerResources.find(
+      ([playerId]: [number, unknown]) => playerId === 1,
+    )![1].food;
+
+    // Advance further so the running bridge's state diverges from the
+    // saved blob. After loading, those extra ticks must disappear.
+    await page.evaluate(() => {
+      window.__AOE2_TEST__!.advanceTicks(15, 100);
+    });
+    const driftedSnapshot = await getSnapshot(page);
+    expect(driftedSnapshot.hudState.tick).toBeGreaterThan(savedTick);
+
+    // Open Load panel, confirm localStorage restore.
+    await page.locator('[data-hud="load-button"]').click();
+    await expect(page.locator('[data-hud="load-panel"]')).toBeVisible();
+    await page.locator('[data-hud="load-source-localstorage"]').check();
+    await page.locator('[data-hud="load-confirm"]').click();
+    await expect(page.locator('[data-hud="toast-container"]')).toContainText(/loaded/i);
+    await expect(page.locator('[data-hud="load-panel"]')).toBeHidden();
+
+    // The loaded bridge starts at savedTick. The natural RAF loop is
+    // also running — so tick may be >= savedTick by the time we observe
+    // it. Assert the tick rewound (is <= driftedSnapshot.tick) and that
+    // resources match the saved blob.
+    const postLoadSnapshot = await getSnapshot(page);
+    expect(postLoadSnapshot.hudState.tick).toBeGreaterThanOrEqual(savedTick);
+    expect(postLoadSnapshot.hudState.tick).toBeLessThan(driftedSnapshot.hudState.tick);
+
+    // Resources captured at the exact load moment must match the saved
+    // blob — a few frames of natural RAF post-load won't change food
+    // unless a drop-off fires, which the early-game fixture won't
+    // trigger for 2-3 frames of wall-clock.
+    expect(postLoadSnapshot.economyState.playerResources[1]!.food).toBe(savedFood);
+  });
 });

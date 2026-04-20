@@ -197,7 +197,9 @@ const DRAG_SELECTION_THRESHOLD_PX = 8;
 const DOUBLE_CLICK_WINDOW_MS = 300;
 
 export class GameScene extends Phaser.Scene {
-  private readonly bridge: SimulationBridge;
+  // FU5: mutable so the HUD's Load button can swap the scene onto a
+  // freshly-rehydrated bridge without reconstructing Phaser.
+  private bridge: SimulationBridge;
   private readonly options: GameSceneOptions;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private entityLayer?: Phaser.GameObjects.Graphics;
@@ -412,6 +414,29 @@ export class GameScene extends Phaser.Scene {
     this.bridge.step(delta);
     this.updateCamera(_time, delta);
     this.syncFromBridge();
+  }
+
+  // FU5: swap the live simulation bridge the scene is reading from. The
+  // HUD Load button calls this after constructing a new bridge from a
+  // save blob; the cached render/selection signatures are reset so the
+  // very next syncFromBridge forces a full re-render against the newly
+  // rehydrated world state.
+  setBridge(bridge: SimulationBridge): void {
+    this.bridge = bridge;
+    this.lastRenderedTick = -1;
+    this.lastRenderedInterpolationAlpha = Number.NaN;
+    this.lastSelectionKey = '';
+    this.lastProjectedEntities = [];
+    this.previousUnitProjectedPositions = new Map();
+    this.displayedEntities = [];
+    this.dragSelection = null;
+    this.middleDragPan = null;
+    this.edgePanState = null;
+    this.recentFriendlyUnitClick = null;
+    this.lastPlacementPreviewVisualState = null;
+    this.lastBuildingVisualStates = [];
+    this.lastEntityHealthBarStates = [];
+    this.syncFromBridge(true);
   }
 
   syncFromBridge(force = false): void {
