@@ -514,11 +514,13 @@ describe('createPrototypeScenario', () => {
     const humanStart = left.starts.find((start) => start.owner === 1);
     expect(humanStart).toBeDefined();
 
-    // Count stone mines that sit on the ring perimeter (between radius
-    // 6 and radius 7 from the human Town Center). Rings should contain
-    // more than a handful of stones (gap is only 2 cells wide).
-    const ringStoneCount = left.spawns.filter((spawn) => {
-      if (spawn.kind !== 'stone-mine' || spawn.baseOwner !== humanStart?.owner) {
+    // Count stone-wall cells that sit on the ring perimeter (between
+    // radius 6 and radius 7 from the human Town Center). Rings should
+    // contain more than a handful of wall cells (gap is only 2 cells
+    // wide). Post-FU3, the Arena ring is made of real `stone-wall`
+    // buildings rather than the pre-FU3 stone-mine proxy.
+    const ringWallCount = left.spawns.filter((spawn) => {
+      if (spawn.kind !== 'stone-wall' || spawn.baseOwner !== humanStart?.owner) {
         return false;
       }
       const dx = spawn.x - (humanStart?.townCenter.x ?? 0);
@@ -526,18 +528,15 @@ describe('createPrototypeScenario', () => {
       const distSq = dx * dx + dy * dy;
       return distSq >= 36 && distSq <= 49;
     }).length;
-    expect(ringStoneCount).toBeGreaterThan(10);
+    expect(ringWallCount).toBeGreaterThan(10);
 
-    // Player 1's opening stone patch is clustered tightly around its
-    // STARTING_STONE offsets (0..1, 5..6 in cell space). Those tiles
-    // straddle the boundary between the inner opening patch and the
-    // ring — what matters for the fixture contract is that the
-    // player's opening 4-stone patch still spawns (not only the ring
-    // stones), so assert the player has at least the canonical four
-    // stone-mine spawns beyond the ring perimeter.
-    const allHumanStones = left.spawns.filter(
+    // The player's canonical STARTING_STONE patch still spawns as
+    // gatherable stone mines inside the ring so the economy opening is
+    // unchanged. Assert at least two stone-mine spawns beside whatever
+    // the ring contributes.
+    const humanStones = left.spawns.filter(
       (spawn) => spawn.kind === 'stone-mine' && spawn.baseOwner === humanStart?.owner,
     ).length;
-    expect(allHumanStones).toBeGreaterThanOrEqual(ringStoneCount + 2);
+    expect(humanStones).toBeGreaterThanOrEqual(2);
   });
 });
