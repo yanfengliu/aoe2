@@ -176,3 +176,18 @@ real proof points were:
 
 - `civ-engine` has held up through all 12 slices. The only unambiguous engine-shaped ask is sub-cell crowding (above). Everything else — upgrades, age gating, combat bonuses, conversion, relics, win conditions, save/load, AI, debug overlays — fit behind the existing bridge boundary with no engine modification.
 - At the time of the Slice 12 close, the single-file engine feedback doc was long but still useful. Splitting current versus past notes would eventually make the live guidance easier to scan.
+
+## 2026-04-20 - Occupancy binding and metrics landed
+
+- The occupancy/crowding follow-up ask from FU8 is now resolved in `civ-engine`.
+  `OccupancyBinding` owns blocker metadata, whole-cell occupancy, optional
+  sub-cell crowding, and destroy-time cleanup through `world.onDestroy()`.
+- That closes the earlier concern that sub-cell crowding would keep leaking more
+  policy into the bridge. The engine now exposes the distinction the repo
+  actually needs: `building` vs `resource` vs `unit` through
+  `getCellStatus().blockedBy`.
+- The engine also now exposes measurable occupancy scan counters
+  (`OccupancyGrid.getMetrics()`, `SubcellOccupancyGrid.getMetrics()`) and the
+  built-in RTS benchmark reports an occupancy workload with hundreds of
+  buildings and thousands of units. The old "revisit when occupancy scan costs
+  become measurable" condition has been satisfied and archived.
