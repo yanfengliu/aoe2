@@ -315,6 +315,9 @@ const MARKET_MIN_RATE = 20;
 const UNIT_SUBGRID_RESOLUTION = 4;
 const UNIT_SUBGRID_STEP_PER_TICK = 2;
 const SHEEP_SUBGRID_STEP_PER_TICK = 1;
+// Match villager vision so claimed sheep reveal nearby tiles without turning
+// them into long-range scouts.
+const SHEEP_VISION_RADIUS = 4;
 const UNIT_CELL_SLOT_OFFSETS: ReadonlyArray<{ x: number; y: number }> = [
   { x: 0, y: 0 },
   { x: 0.5, y: 0 },
@@ -2788,6 +2791,83 @@ function syncVisibilitySources(
   visibility.update();
 }
 
+function resolveSheepClaimOwner(typedWorld: GameWorld, sheepPosition: Position): number | null {
+  let claimedOwner: number | null = null;
+  let bestDistanceSquared = Number.POSITIVE_INFINITY;
+  let bestUnitId = Number.POSITIVE_INFINITY;
+
+  for (const unitId of typedWorld.queryInRadius(
+    sheepPosition.x,
+    sheepPosition.y,
+    MAX_HERDABLE_CLAIM_RADIUS,
+    'unit',
+    'visionSource',
+  )) {
+    const unitPosition = typedWorld.getComponent(unitId, 'position');
+    const unit = typedWorld.getComponent(unitId, 'unit');
+    const visionSource = typedWorld.getComponent(unitId, 'visionSource');
+    if (!unitPosition || !unit || !visionSource) {
+      continue;
+    }
+
+    const claimDistanceSquared = distanceSquared(unitPosition, sheepPosition);
+    if (claimDistanceSquared > visionSource.radius * visionSource.radius) {
+      continue;
+    }
+
+    if (
+      claimDistanceSquared < bestDistanceSquared
+      || (
+        claimDistanceSquared === bestDistanceSquared
+        && (
+          unit.owner < (claimedOwner ?? Number.POSITIVE_INFINITY)
+          || (unit.owner === claimedOwner && unitId < bestUnitId)
+        )
+      )
+    ) {
+      claimedOwner = unit.owner;
+      bestDistanceSquared = claimDistanceSquared;
+      bestUnitId = unitId;
+    }
+  }
+
+  return claimedOwner;
+}
+
+function syncSheepVisionSource(
+  typedWorld: GameWorld,
+  sheepId: number,
+  owner: number | null,
+): boolean {
+  const sheepVisionSource = typedWorld.getComponent(sheepId, 'visionSource');
+  if (owner === null) {
+    if (!sheepVisionSource) {
+      return false;
+    }
+    typedWorld.removeComponent(sheepId, 'visionSource');
+    return true;
+  }
+
+  if (!sheepVisionSource) {
+    typedWorld.addComponent(sheepId, 'visionSource', {
+      playerId: owner,
+      radius: SHEEP_VISION_RADIUS,
+    });
+    return true;
+  }
+
+  if (
+    sheepVisionSource.playerId === owner
+    && sheepVisionSource.radius === SHEEP_VISION_RADIUS
+  ) {
+    return false;
+  }
+
+  sheepVisionSource.playerId = owner;
+  sheepVisionSource.radius = SHEEP_VISION_RADIUS;
+  return true;
+}
+
 function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boolean {
   const typedWorld = activeWorld as GameWorld;
   let didChange = false;
@@ -2806,52 +2886,17 @@ function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boo
       continue;
     }
 
-    if (resource.owner !== null) {
-      continue;
-    }
+    if (resource.owner === null) {
+      const claimedOwner = resolveSheepClaimOwner(typedWorld, sheepPosition);
 
-    let claimedOwner: number | null = resource.owner;
-    let bestDistanceSquared = Number.POSITIVE_INFINITY;
-    let bestUnitId = Number.POSITIVE_INFINITY;
-
-    for (const unitId of typedWorld.queryInRadius(
-      sheepPosition.x,
-      sheepPosition.y,
-      MAX_HERDABLE_CLAIM_RADIUS,
-      'unit',
-      'visionSource',
-    )) {
-      const unitPosition = typedWorld.getComponent(unitId, 'position');
-      const unit = typedWorld.getComponent(unitId, 'unit');
-      const visionSource = typedWorld.getComponent(unitId, 'visionSource');
-      if (!unitPosition || !unit || !visionSource) {
-        continue;
-      }
-
-      const claimDistanceSquared = distanceSquared(unitPosition, sheepPosition);
-      if (claimDistanceSquared > visionSource.radius * visionSource.radius) {
-        continue;
-      }
-
-      if (
-        claimDistanceSquared < bestDistanceSquared
-        || (
-          claimDistanceSquared === bestDistanceSquared
-          && (
-            unit.owner < (claimedOwner ?? Number.POSITIVE_INFINITY)
-            || (unit.owner === claimedOwner && unitId < bestUnitId)
-          )
-        )
-      ) {
-        claimedOwner = unit.owner;
-        bestDistanceSquared = claimDistanceSquared;
-        bestUnitId = unitId;
+      if (resource.owner !== claimedOwner) {
+        resource.owner = claimedOwner;
+        renderable.tint = resourceTint(resource.resourceType, claimedOwner);
+        didChange = true;
       }
     }
 
-    if (resource.owner !== claimedOwner) {
-      resource.owner = claimedOwner;
-      renderable.tint = resourceTint(resource.resourceType, claimedOwner);
+    if (syncSheepVisionSource(typedWorld, sheepId, resource.owner)) {
       didChange = true;
     }
   }
