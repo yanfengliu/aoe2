@@ -5907,6 +5907,67 @@ function createResourceDepletionFixture(seed: string): PrototypeScenario {
   };
 }
 
+function createMoveTargetUnblocksFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 2, y: 2 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 36, y: 8 },
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 2,
+        y: 2,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 10,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 17,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'tree',
+        x: 18,
+        y: 8,
+        owner: null,
+        baseOwner: null,
+        amount: 1,
+      },
+      {
+        kind: 'town-center',
+        x: 36,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 function createFogMemoryFixture(seed: string): PrototypeScenario {
   // Layout: human scout at (10, 10) with vision radius 4, enemy house at (14, 10)
   // placed two tiles outside the human TC's footprint vision (TC radius 7 around
@@ -8999,6 +9060,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'resource-depletion-fixture') {
     return createResourceDepletionFixture(seed);
+  }
+
+  if (seed === 'move-target-unblocks-fixture') {
+    return createMoveTargetUnblocksFixture(seed);
   }
 
   if (seed === 'fog-memory-fixture') {

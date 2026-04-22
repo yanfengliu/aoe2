@@ -403,6 +403,15 @@ interface UnitMovementPlan {
   nextStep: Position;
 }
 
+interface ResolvedMovementPath {
+  destination: Position;
+  path: Position[];
+}
+
+interface CachedMovePath extends ResolvedMovementPath {
+  nextPathIndex: number;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -643,6 +652,13 @@ function stepToward(current: Position, target: Position): Position {
 
 function isAtTarget(current: Position, target: Position): boolean {
   return current.x === target.x && current.y === target.y;
+}
+
+function clonePosition(position: Position): Position {
+  return {
+    x: position.x,
+    y: position.y,
+  };
 }
 
 function getUnitCellSlotOffset(unitId: number): { x: number; y: number } {
@@ -2912,6 +2928,9 @@ function createWorld(
   const townCenterRefs = new Map<number, EntityRef>();
   const villagerOrdinals = new Map<number, number>();
   const unitCommands = new Map<number, UnitCommand>();
+  // Transient move-order routes live outside `unitCommands` so save/load keeps
+  // serializing only durable intent (command kind + target/entity refs).
+  const movePathCache = new Map<number, CachedMovePath>();
   const sheepMoveOrders = new Map<number, Position>();
   const rallyPoints = new Map<number, Position>();
   // Slice 5 Monk state. Monks operate outside the standard attack loop: the
@@ -3215,6 +3234,17 @@ function createWorld(
   // loop; save/load serializes it through the same side-map boundary
   // as every other piece of runtime state (see `SerializedSideMaps`).
   const aiStates = new Map<number, AiState>();
+
+  function clearUnitCommand(unitId: number): void {
+    unitCommands.delete(unitId);
+    movePathCache.delete(unitId);
+  }
+
+  function setUnitCommand(unitId: number, command: UnitCommand): void {
+    movePathCache.delete(unitId);
+    unitCommands.set(unitId, command);
+  }
+
   function ensureAiState(
     owner: number,
     difficulty: DifficultyLevel = DEFAULT_DIFFICULTY,
@@ -4244,7 +4274,7 @@ function createWorld(
         const ref = refFromSerialized(cmd.buildingRef);
         if (ref) restored.buildingRef = ref;
       }
-      unitCommands.set(id, restored);
+      setUnitCommand(id, restored);
     }
     for (const [id, pos] of blob.sheepMoveOrders) {
       sheepMoveOrders.set(id, { x: pos.x, y: pos.y });
@@ -4703,7 +4733,7 @@ function createWorld(
     return uniquePositions(candidates);
   }
 
-  function findMovementPlan(
+  function findMovementPathToCandidates(
     unitId: number,
     start: Position,
     candidates: Position[],
@@ -4715,7 +4745,7 @@ function createWorld(
       y: number,
       worldState: World<GameEvents, GameCommands>,
     ) => boolean = isCellPassableForUnit,
-  ): UnitMovementPlan | null {
+  ): ResolvedMovementPath | null {
     const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
       isPassable(unitId, candidate.x, candidate.y, activeWorld),
     );
@@ -4726,8 +4756,8 @@ function createWorld(
       );
       if (currentCellCandidate) {
         return {
-          destination: currentCellCandidate,
-          nextStep: currentCellCandidate,
+          destination: clonePosition(currentCellCandidate),
+          path: [clonePosition(start)],
         };
       }
     }
@@ -4745,25 +4775,131 @@ function createWorld(
       }
 
       return {
-        destination,
-        nextStep: pathResult.path[1] ?? destination,
+        destination: clonePosition(destination),
+        // Clone the A* output before caching or shaping it so callers never
+        // depend on civ-engine reusing returned Position objects or arrays.
+        path: pathResult.path.map((step) => clonePosition(step)),
       };
     }
 
     return null;
   }
 
-  function findMovePlan(
+  function findMovementPlan(
+    unitId: number,
+    start: Position,
+    candidates: Position[],
+    preferCurrentCell: boolean,
+    activeWorld: World<GameEvents, GameCommands> = world,
+    isPassable: (
+      entityId: number,
+      x: number,
+      y: number,
+      worldState: World<GameEvents, GameCommands>,
+    ) => boolean = isCellPassableForUnit,
+  ): UnitMovementPlan | null {
+    const movementPath = findMovementPathToCandidates(
+      unitId,
+      start,
+      candidates,
+      preferCurrentCell,
+      activeWorld,
+      isPassable,
+    );
+    if (movementPath) {
+      return {
+        destination: movementPath.destination,
+        nextStep: movementPath.path[1] ?? movementPath.destination,
+      };
+    }
+
+    return null;
+  }
+
+  function resolveMovePlanFromCache(
     unitId: number,
     target: Position,
     activeWorld: World<GameEvents, GameCommands> = world,
   ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     if (!position) {
+      movePathCache.delete(unitId);
       return null;
     }
 
-    return findMovementPlan(unitId, position, getNearestMoveCandidates(target), false, activeWorld);
+    const cachedMovePath = movePathCache.get(unitId);
+    if (cachedMovePath) {
+      while (
+        cachedMovePath.nextPathIndex < cachedMovePath.path.length
+        && isAtTarget(position, cachedMovePath.path[cachedMovePath.nextPathIndex]!)
+      ) {
+        cachedMovePath.nextPathIndex += 1;
+      }
+
+      const previousPathIndex = Math.max(0, cachedMovePath.nextPathIndex - 1);
+      const previousStep = cachedMovePath.path[previousPathIndex];
+      if (!isAtTarget(cachedMovePath.destination, target)
+        // This cache is intentionally move-only, so the "has the original
+        // click target opened up?" check uses move-command passability.
+        && isCellPassableForUnit(unitId, target.x, target.y, activeWorld)) {
+        // A blocked click target can become free while the unit is still
+        // following the old fallback route (for example when a tree is
+        // chopped down). Drop the cached fallback immediately so we
+        // re-solve toward the player's real click target on this tick.
+        movePathCache.delete(unitId);
+      } else if (
+        previousStep
+        && isAtTarget(position, previousStep)
+      ) {
+        const nextStep = cachedMovePath.path[cachedMovePath.nextPathIndex] ?? cachedMovePath.destination;
+        if (
+          isAtTarget(position, cachedMovePath.destination)
+          && !isAtTarget(cachedMovePath.destination, target)
+        ) {
+          // If we cached a "nearest reachable fallback" because the clicked
+          // cell was blocked earlier, re-check the real target once we reach
+          // that fallback before deciding the move order is finished.
+          movePathCache.delete(unitId);
+        } else {
+          // Move-command passability ignores other units, so validating the
+          // immediate next cell is enough to keep the cached route honest
+          // without re-solving the whole path every tick.
+          if (
+            isAtTarget(position, nextStep)
+            || isCellPassableForUnit(unitId, nextStep.x, nextStep.y, activeWorld)
+          ) {
+            return {
+              destination: cachedMovePath.destination,
+              nextStep,
+            };
+          }
+        }
+      }
+    }
+
+    const refreshedMovementPath = findMovementPathToCandidates(
+      unitId,
+      position,
+      getNearestMoveCandidates(target),
+      false,
+      activeWorld,
+      isCellPassableForUnit,
+    );
+    if (!refreshedMovementPath) {
+      movePathCache.delete(unitId);
+      return null;
+    }
+    const refreshedMovePath: CachedMovePath = {
+      destination: refreshedMovementPath.destination,
+      path: refreshedMovementPath.path,
+      nextPathIndex: refreshedMovementPath.path.length > 1 ? 1 : 0,
+    };
+    movePathCache.set(unitId, refreshedMovePath);
+
+    return {
+      destination: refreshedMovePath.destination,
+      nextStep: refreshedMovePath.path[refreshedMovePath.nextPathIndex] ?? refreshedMovePath.destination,
+    };
   }
 
   function findResourceApproachPlan(
@@ -5407,7 +5543,7 @@ function createWorld(
 
     removeSelectedEntity(id);
 
-    unitCommands.delete(id);
+    clearUnitCommand(id);
     combatStates.delete(id);
     monkTasks.delete(id);
     // If the dying unit was a Monk carrying a relic, drop the relic at the
@@ -5580,7 +5716,7 @@ function createWorld(
     // Monk-behavior system does not pull the Monk back to a stale heal /
     // convert / pickup / deposit target on the next tick.
     monkTasks.delete(unitId);
-    unitCommands.set(unitId, {
+    setUnitCommand(unitId, {
       type: 'move',
       target: {
         x: clamp(target.x, 0, MAP_WIDTH - 1),
@@ -5655,7 +5791,7 @@ function createWorld(
     }
 
     clearGathererOrder(unitId);
-    unitCommands.set(unitId, {
+    setUnitCommand(unitId, {
       type: 'attack',
       target: {
         x: targetPosition.x,
@@ -5821,7 +5957,7 @@ function createWorld(
     }
 
     clearGathererOrder(unitId);
-    unitCommands.delete(unitId);
+    clearUnitCommand(unitId);
 
     const visionSource = world.getComponent<VisionSourceComponent>(unitId, 'visionSource');
     if (visionSource) {
@@ -5927,7 +6063,7 @@ function createWorld(
       throw new Error(`Expected a current EntityRef for new ${buildingType} construction.`);
     }
     clearGathererOrder(builderId);
-    unitCommands.set(builderId, {
+    setUnitCommand(builderId, {
       type: 'build',
       target: clampedAnchor,
       buildingRef,
@@ -8161,7 +8297,7 @@ function createWorld(
         const position = activeWorld.getComponent<Position>(id, 'position');
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
         if (!position || !unit) {
-          unitCommands.delete(id);
+          clearUnitCommand(id);
           continue;
         }
 
@@ -8169,7 +8305,7 @@ function createWorld(
           const attackerCombat = combatStates.get(id);
           const targetId = currentEntityId(activeWorld, command.targetEntityRef);
           if (targetId === null || !attackerCombat || !command.targetEntityKind) {
-            unitCommands.delete(id);
+            clearUnitCommand(id);
             continue;
           }
 
@@ -8192,7 +8328,7 @@ function createWorld(
             const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
             const targetCombat = combatStates.get(targetId);
             if (!targetPosition || !targetUnit || !targetCombat || targetUnit.owner === unit.owner) {
-              unitCommands.delete(id);
+              clearUnitCommand(id);
               continue;
             }
 
@@ -8212,7 +8348,7 @@ function createWorld(
                 activeWorld,
               );
               if (!unitRangePlan) {
-                unitCommands.delete(id);
+                clearUnitCommand(id);
                 continue;
               }
               moveUnitOneSubgridStep(id, unitRangePlan.nextStep, activeWorld);
@@ -8255,7 +8391,7 @@ function createWorld(
               // FU7: credit the attacker's owner with a military kill.
               ensurePlayerScoreCounters(unit.owner).unitsKilled += 1;
               destroyUnitEntity(targetId);
-              unitCommands.delete(id);
+              clearUnitCommand(id);
             }
             continue;
           }
@@ -8265,7 +8401,7 @@ function createWorld(
             const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
             const targetWildlife = wildlifeStates.get(targetId);
             if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
-              unitCommands.delete(id);
+              clearUnitCommand(id);
               continue;
             }
 
@@ -8281,7 +8417,7 @@ function createWorld(
                 activeWorld,
               );
               if (!wildlifeRangePlan) {
-                unitCommands.delete(id);
+                clearUnitCommand(id);
                 continue;
               }
               moveUnitOneSubgridStep(id, wildlifeRangePlan.nextStep, activeWorld);
@@ -8313,7 +8449,7 @@ function createWorld(
 
             if (targetWildlife.currentHp <= 0) {
               killWildlifeEntity(targetId);
-              unitCommands.delete(id);
+              clearUnitCommand(id);
             }
             continue;
           }
@@ -8322,7 +8458,7 @@ function createWorld(
           const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
           const targetHealth = buildingHealthStates.get(targetId);
           if (!targetPosition || !targetBuilding || !targetHealth || targetBuilding.owner === unit.owner) {
-            unitCommands.delete(id);
+            clearUnitCommand(id);
             continue;
           }
 
@@ -8338,7 +8474,7 @@ function createWorld(
               activeWorld,
             );
             if (!buildingApproachPlan) {
-              unitCommands.delete(id);
+              clearUnitCommand(id);
               continue;
             }
             moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
@@ -8379,7 +8515,7 @@ function createWorld(
 
           if (targetHealth.currentHp <= 0) {
             destroyBuildingEntity(targetId);
-            unitCommands.delete(id);
+            clearUnitCommand(id);
           }
           continue;
         }
@@ -8400,14 +8536,14 @@ function createWorld(
             }
           }
 
-          const movePlan = findMovePlan(id, command.target, activeWorld);
+          const movePlan = resolveMovePlanFromCache(id, command.target, activeWorld);
           if (!movePlan) {
-            unitCommands.delete(id);
+            clearUnitCommand(id);
             continue;
           }
 
           if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
-            unitCommands.delete(id);
+            clearUnitCommand(id);
             continue;
           }
 
@@ -8417,7 +8553,7 @@ function createWorld(
 
         const buildingId = currentEntityId(activeWorld, command.buildingRef);
         if (buildingId === null) {
-          unitCommands.delete(id);
+          clearUnitCommand(id);
           continue;
         }
 
@@ -8425,7 +8561,7 @@ function createWorld(
         const construction = constructionStates.get(buildingId);
         const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
         if (!building || !construction || construction.isComplete || !buildingApproachPlan) {
-          unitCommands.delete(id);
+          clearUnitCommand(id);
           continue;
         }
 
@@ -8472,7 +8608,7 @@ function createWorld(
           // accurate across the whole match.
           onBuildingConstructionComplete(buildingId, building.owner, building.buildingType);
 
-          unitCommands.delete(id);
+          clearUnitCommand(id);
         }
       }
     },
@@ -8575,7 +8711,7 @@ function createWorld(
       //      should not auto-resume harvesting a former-enemy resource.
       //   3. Any attack command from the NEW owner's units against this
       //      entity must be purged so they do not keep hitting a teammate.
-      unitCommands.delete(targetId);
+      clearUnitCommand(targetId);
       monkTasks.delete(targetId);
       const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
       if (targetGatherer) {
@@ -8591,7 +8727,7 @@ function createWorld(
         }
         const commander = activeWorld.getComponent<UnitComponent>(commanderId, 'unit');
         if (commander && commander.owner === monkUnit.owner) {
-          unitCommands.delete(commanderId);
+          clearUnitCommand(commanderId);
         }
       }
       conversionState.delete(targetId);
@@ -10062,7 +10198,7 @@ function createWorld(
 
     clearGathererOrder(unitId);
     gatherer.hasExplicitGatherOrder = true;
-    unitCommands.delete(unitId);
+    clearUnitCommand(unitId);
     gatherer.desiredResource = economyResource;
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = resourceId;
@@ -10181,7 +10317,7 @@ function createWorld(
   ): boolean {
     // Clear any lingering combat/move command on the Monk; the behaviour
     // system will drive movement for the duration of the task.
-    unitCommands.delete(monkId);
+    clearUnitCommand(monkId);
     monkTasks.set(monkId, { kind, targetEntityRef });
     return true;
   }
