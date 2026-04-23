@@ -1763,23 +1763,6 @@ function createWorld(
         return targetName ? `Building ${targetName}` : 'Building';
       }
       if (cmd.type === 'move') {
-        if (unit.unitType === 'villager' && cmd.targetEntityKind === 'resource') {
-          const targetId = cmd.targetEntityRef ? getCurrentEntityId(cmd.targetEntityRef) : null;
-          if (targetId !== null) {
-            const r = world.getComponent<ResourceComponent>(targetId, 'resource');
-            if (r) {
-              const econ = resourceKindToEconomyResource(r.resourceType);
-              if (econ) return `Gathering ${economyResourceLabel(econ).toLowerCase()}`;
-            }
-          }
-          return 'Gathering';
-        }
-        if (unit.unitType === 'villager') {
-          const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-          if (gatherer && gatherer.carriedResource && gatherer.carriedAmount > 0) {
-            return `Returning ${economyResourceLabel(gatherer.carriedResource).toLowerCase()}`;
-          }
-        }
         return 'Moving';
       }
     }

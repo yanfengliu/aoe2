@@ -34,17 +34,15 @@ The bridge derives the activity from existing simulation state. No new component
 4. **Unit command** (`unitCommands.get(id)`):
    - `attack` → `Attacking <Target>` (target name from `targetEntityKind` + entity type; if the target has been destroyed, `Attacking`).
    - `build` → `Building <Building>`. If the target building is at full HP and still has the unit as a builder, the word is still `Building` — we do not distinguish "repair" in this pass (coarse-target rule).
-   - `move` with villager + `targetEntityKind === 'resource'` → `Gathering <resource>` using the resource kind (`Gathering wood`, `Gathering food`, `Gathering gold`, `Gathering stone`). Sheep/fish still read as the correct economy resource.
-   - `move` with villager + `carriedResource` non-null and no resource target → `Returning <resource>`.
-   - `move` otherwise → `Moving`.
+   - `move` → `Moving`. (Gather/return paths go through `GathererComponent.task`, not unitCommands — see step 5 below.)
 5. **Fall-through** → `Idle`.
 
 ### Buildings — priority order (first match wins)
 
 1. **Under construction** — `constructionStates.get(id)?.isComplete === false` → `Under construction`.
 2. **First queue entry** (`productionQueues.get(id)?.[0]`):
-   - `train` → `Training <Unit>`
-   - `research` → `Researching <Tech>`
+   - `unit` → `Training <Unit>`
+   - `technology` → `Researching <Tech>`
 3. **Fall-through** → `Idle`. (Garrison occupancy already shows in the `Inventory` row — not duplicated here.)
 
 ### Resources
