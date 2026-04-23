@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
-import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
+import {
+  placeBuildingNearTownCenter,
+  selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
+  stepBridgeUntil,
+} from './createSimulationBridge.helpers';
 
 const HUMAN_PLAYER_ID = 1;
 
@@ -380,4 +385,42 @@ describe('selection activity — owned unit', () => {
     selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'trebuchet');
     expect(bridge.getSelectionState().activity).toBe('Packing');
   }, 30_000);
+});
+
+describe('selection activity — owned building', () => {
+  it('idle Town Center reports Idle', () => {
+    // DEFAULT_SEED always has a completed Town Center for player 1.
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'town-center')).toBe(true);
+    expect(bridge.getSelectionState().activity).toBe('Idle');
+  });
+
+  it('Town Center training Villager reports Training Villager', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'town-center')).toBe(true);
+    expect(bridge.queueTrainUnit('villager')).toBe(true);
+    expect(bridge.getSelectionState().activity).toBe('Training Villager');
+  });
+
+  it('building mid-construction reports Under construction', () => {
+    // Place a house foundation (villager not yet at the site) and immediately
+    // select the foundation. The construction state exists and isComplete===false.
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    // Select a villager first (required before beginBuildingPlacement).
+    expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
+    const placed = placeBuildingNearTownCenter(bridge, 'house', HUMAN_PLAYER_ID);
+    // Select the foundation immediately (before any construction can complete).
+    expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'house')).toBe(true);
+    expect(bridge.getSelectionState().activity).toBe('Under construction');
+    void placed;
+  });
+
+  it('Blacksmith researching Forging reports Researching Forging', () => {
+    // feudal-blacksmith-fixture: player-1 in Feudal Age with a Blacksmith
+    // at (17,8) and enough resources to research Forging.
+    const bridge = createSimulationBridge('feudal-blacksmith-fixture');
+    expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'blacksmith')).toBe(true);
+    expect(bridge.queueResearch('forging')).toBe(true);
+    expect(bridge.getSelectionState().activity).toBe('Researching Forging');
+  });
 });

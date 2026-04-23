@@ -1809,6 +1809,26 @@ function createWorld(
     return 'Idle';
   }
 
+  function getBuildingActivity(id: number): string {
+    const construction = constructionStates.get(id);
+    if (construction && !construction.isComplete) {
+      return 'Under construction';
+    }
+
+    const queue = productionQueues.get(id);
+    const head = queue && queue.length > 0 ? queue[0] : null;
+    if (head) {
+      if (head.kind === 'unit' && head.unitType) {
+        return `Training ${formatEntityNameForActivity(head.unitType)}`;
+      }
+      if (head.kind === 'technology' && head.technologyType) {
+        return `Researching ${formatEntityNameForActivity(head.technologyType)}`;
+      }
+    }
+
+    return 'Idle';
+  }
+
   function getUnitTransform(
     id: number,
     activeWorld: World<GameEvents, GameCommands> = world,
@@ -8234,6 +8254,8 @@ function createWorld(
       activity:
         selectedEntityIds.length === 1 && unit && unit.owner === HUMAN_PLAYER_ID
           ? getUnitActivity(selectedEntityId, unit)
+          : selectedEntityIds.length === 1 && building && building.owner === HUMAN_PLAYER_ID
+          ? getBuildingActivity(selectedEntityId)
           : null,
       activityBreakdown: null,
       x: position.x,
