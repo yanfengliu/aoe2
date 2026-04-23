@@ -1,3 +1,4 @@
+import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { ProjectedEntityView, RenderState, ResourceKind } from '../../game/simulation/types';
 
 const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
@@ -6,7 +7,19 @@ const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
   building: 2,
   unit: 3,
 };
-const UNIT_HIT_TEST_PADDING_CELLS = 0.18;
+const UNIT_COMMAND_TARGET_PADDING_CELLS = 0.18;
+
+function selectableOwnerPriority(owner: number | null): number {
+  if (owner === HUMAN_PLAYER_ID) {
+    return 0;
+  }
+
+  if (owner === null) {
+    return 2;
+  }
+
+  return 1;
+}
 
 function isRectangleResource(resourceType: ProjectedEntityView['entityType']): resourceType is ResourceKind {
   return resourceType === 'gold-mine' || resourceType === 'stone-mine' || resourceType === 'tree';
@@ -35,6 +48,40 @@ function containsRectangle(
   return worldX >= x && worldX <= x + width && worldY >= y && worldY <= y + height;
 }
 
+function intersectsRectangle(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  minWorldX: number,
+  minWorldY: number,
+  maxWorldX: number,
+  maxWorldY: number,
+): boolean {
+  return (
+    maxWorldX >= x
+    && minWorldX <= x + width
+    && maxWorldY >= y
+    && minWorldY <= y + height
+  );
+}
+
+function intersectsCircle(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  minWorldX: number,
+  minWorldY: number,
+  maxWorldX: number,
+  maxWorldY: number,
+): boolean {
+  const closestX = Math.max(minWorldX, Math.min(centerX, maxWorldX));
+  const closestY = Math.max(minWorldY, Math.min(centerY, maxWorldY));
+  const dx = centerX - closestX;
+  const dy = centerY - closestY;
+  return dx * dx + dy * dy <= radius * radius;
+}
+
 export function isWorldPointInsideEntity(
   entity: ProjectedEntityView,
   worldX: number,
@@ -48,7 +95,7 @@ export function isWorldPointInsideEntity(
     return containsCircle(
       px + cellSize * 0.5,
       py + cellSize * 0.5,
-      cellSize * (entity.size * 0.5 + UNIT_HIT_TEST_PADDING_CELLS),
+      cellSize * entity.size * 0.5,
       worldX,
       worldY,
     );
@@ -89,6 +136,96 @@ export function isWorldPointInsideEntity(
   return false;
 }
 
+export function isWorldPointInsideCommandTargetEntity(
+  entity: ProjectedEntityView,
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+): boolean {
+  const px = entity.x * cellSize;
+  const py = entity.y * cellSize;
+
+  if (entity.kind === 'unit') {
+    return containsCircle(
+      px + cellSize * 0.5,
+      py + cellSize * 0.5,
+      cellSize * entity.size * 0.5 + cellSize * UNIT_COMMAND_TARGET_PADDING_CELLS,
+      worldX,
+      worldY,
+    );
+  }
+
+  return isWorldPointInsideEntity(entity, worldX, worldY, cellSize);
+}
+
+export function doesWorldRectIntersectEntity(
+  entity: ProjectedEntityView,
+  startWorldX: number,
+  startWorldY: number,
+  endWorldX: number,
+  endWorldY: number,
+  cellSize: number,
+): boolean {
+  const minWorldX = Math.min(startWorldX, endWorldX);
+  const minWorldY = Math.min(startWorldY, endWorldY);
+  const maxWorldX = Math.max(startWorldX, endWorldX);
+  const maxWorldY = Math.max(startWorldY, endWorldY);
+  const px = entity.x * cellSize;
+  const py = entity.y * cellSize;
+
+  if (entity.kind === 'unit') {
+    return intersectsCircle(
+      px + cellSize * 0.5,
+      py + cellSize * 0.5,
+      cellSize * entity.size * 0.5,
+      minWorldX,
+      minWorldY,
+      maxWorldX,
+      maxWorldY,
+    );
+  }
+
+  if (entity.kind === 'building') {
+    return intersectsRectangle(
+      px,
+      py,
+      entity.footprintWidth * cellSize,
+      entity.footprintHeight * cellSize,
+      minWorldX,
+      minWorldY,
+      maxWorldX,
+      maxWorldY,
+    );
+  }
+
+  if (entity.kind === 'resource') {
+    if (isRectangleResource(entity.entityType)) {
+      return intersectsRectangle(
+        px + cellSize * 0.1,
+        py + cellSize * 0.1,
+        cellSize * entity.size,
+        cellSize * entity.size,
+        minWorldX,
+        minWorldY,
+        maxWorldX,
+        maxWorldY,
+      );
+    }
+
+    return intersectsCircle(
+      px + cellSize * 0.5,
+      py + cellSize * 0.5,
+      cellSize * entity.size * 0.55,
+      minWorldX,
+      minWorldY,
+      maxWorldX,
+      maxWorldY,
+    );
+  }
+
+  return false;
+}
+
 export function findEntityAtWorldPoint(
   renderState: RenderState,
   worldX: number,
@@ -104,10 +241,79 @@ export function findEntityAtWorldPointInEntities(
   worldY: number,
   cellSize: number,
 ): ProjectedEntityView | null {
-  const candidates = entities
-    .filter((entity) => entity.kind !== 'tile')
-    .filter((entity) => isWorldPointInsideEntity(entity, worldX, worldY, cellSize))
-    .sort((left, right) => LAYER_PRIORITY[right.kind] - LAYER_PRIORITY[left.kind]);
+  return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize)
+    .sort((left, right) => {
+      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      if (layerDelta !== 0) {
+        return layerDelta;
+      }
 
-  return candidates[0] ?? null;
+      return right.index - left.index;
+    })[0]?.entity ?? null;
+}
+
+export function findCommandTargetEntityAtWorldPointInEntities(
+  entities: ProjectedEntityView[],
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+): ProjectedEntityView | null {
+  return getIndexedPointHitCandidates(
+    entities,
+    worldX,
+    worldY,
+    cellSize,
+    isWorldPointInsideCommandTargetEntity,
+  )
+    .sort((left, right) => {
+      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      if (layerDelta !== 0) {
+        return layerDelta;
+      }
+
+      return right.index - left.index;
+    })[0]?.entity ?? null;
+}
+
+export function findEntitiesAtWorldPointInEntities(
+  entities: ProjectedEntityView[],
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+): ProjectedEntityView[] {
+  return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize)
+    .sort((left, right) => {
+      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      if (layerDelta !== 0) {
+        return layerDelta;
+      }
+
+      // Exact-click selection should preserve the old bridge behaviour where
+      // the human player's unit wins same-layer overlaps before enemy or Gaia.
+      const ownerDelta = selectableOwnerPriority(left.entity.owner) - selectableOwnerPriority(right.entity.owner);
+      if (ownerDelta !== 0) {
+        return ownerDelta;
+      }
+
+      return right.index - left.index;
+    })
+    .map(({ entity }) => entity);
+}
+
+function getIndexedPointHitCandidates(
+  entities: ProjectedEntityView[],
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+  containsPoint: (
+    entity: ProjectedEntityView,
+    pointWorldX: number,
+    pointWorldY: number,
+    pointCellSize: number,
+  ) => boolean = isWorldPointInsideEntity,
+): Array<{ entity: ProjectedEntityView; index: number }> {
+  return entities
+    .map((entity, index) => ({ entity, index }))
+    .filter(({ entity }) => entity.kind !== 'tile' && !entity.isMemory)
+    .filter(({ entity }) => containsPoint(entity, worldX, worldY, cellSize));
 }

@@ -65,6 +65,7 @@ export interface BrowserTestApi {
   getDisplayedEntities(): DisplayedEntityState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
+  selectEntityAtWorldPosition(worldX: number, worldY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   selectOwnedUnitsByTypeInRect(
     unitType: UnitType | 'sheep',
@@ -149,6 +150,11 @@ export function installBrowserTestApi(
     },
     selectEntityAtCell: (cellX: number, cellY: number) => {
       const didSelect = bridge.selectEntityAtCell(cellX, cellY);
+      scene.syncFromBridge(true);
+      return didSelect;
+    },
+    selectEntityAtWorldPosition: (worldX: number, worldY: number) => {
+      const didSelect = scene.selectEntityAtWorldPosition(worldX, worldY);
       scene.syncFromBridge(true);
       return didSelect;
     },

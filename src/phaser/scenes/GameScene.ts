@@ -5,6 +5,7 @@ import {
   MAP_HEIGHT,
   MAP_WIDTH,
 } from '../../game/simulation/prototypeScenario';
+import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
 import type {
   PlacementPreviewState,
   ProjectedFrameView,
@@ -13,51 +14,12 @@ import type {
   SelectionState,
   UnitType,
 } from '../../game/simulation/types';
-import { findEntityAtWorldPointInEntities } from './entityHitTest';
+import {
+  doesWorldRectIntersectEntity,
+  findCommandTargetEntityAtWorldPointInEntities,
+  findEntitiesAtWorldPointInEntities,
+} from './entityHitTest';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
-
-interface SimulationBridge {
-  step(deltaMs: number): void;
-  getRenderState(): RenderState;
-  getRenderInterpolationAlpha(): number;
-  getSelectionState(): SelectionState;
-  getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
-  selectEntityAtCell(x: number, y: number): boolean;
-  selectOwnedUnitsByTypeInRect(
-    unitType: UnitType | 'sheep',
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
-  ): boolean;
-  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
-  clearSelection(): void;
-  issueContextCommand(x: number, y: number): boolean;
-  issueContextCommandAtEntity(entityId: number): boolean;
-  issueMoveCommand(x: number, y: number): boolean;
-  confirmBuildingPlacement(x: number, y: number): boolean;
-  getDebugSnapshot(): {
-    unitPaths: Array<{
-      id: number;
-      fromX: number;
-      fromY: number;
-      toX: number;
-      toY: number;
-      commandType: 'move' | 'build' | 'attack';
-    }>;
-    // Slice 12 Task D: per-unit coarse-vs-fine probe for the new F2
-    // overlay mode. The scene reads this to draw one line per unit
-    // from its authoritative cell center to its interpolated render
-    // position.
-    coarseVsFine: Array<{
-      id: number;
-      coarseX: number;
-      coarseY: number;
-      fineX: number;
-      fineY: number;
-    }>;
-  };
-}
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
 // owns the full cycle; the scene only needs to read the current mode to
@@ -105,6 +67,7 @@ export interface SelectionBoxState {
   currentY: number;
   width: number;
   height: number;
+  previewEntityIds: number[];
 }
 
 export interface PlacementPreviewViewState {
@@ -193,6 +156,11 @@ interface RecentFriendlyUnitClick {
   unitType: UnitType | 'sheep';
 }
 
+interface RecentExactSelectionClick {
+  cellX: number;
+  cellY: number;
+}
+
 const DRAG_SELECTION_THRESHOLD_PX = 8;
 const DOUBLE_CLICK_WINDOW_MS = 300;
 
@@ -220,34 +188,15 @@ export class GameScene extends Phaser.Scene {
   private dragSelection: DragSelectionState | null = null;
   private middleDragPan: MiddleDragPanState | null = null;
   private edgePanState: EdgePanState | null = null;
+  private recentExactSelectionClick: RecentExactSelectionClick | null = null;
   private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
   private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   private lastBuildingVisualStates: BuildingVisualState[] = [];
   private lastEntityHealthBarStates: EntityHealthBarState[] = [];
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
-    if (this.dragSelection || this.bridge.getSelectionState().placementMode) {
-      return;
-    }
-
-    const canvas = this.game.canvas;
-    if (!canvas) {
-      return;
-    }
-
-    const bounds = canvas.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) {
-      return;
-    }
-    const canvasX = (event.clientX - bounds.left) * (canvas.width / bounds.width);
-    const canvasY = (event.clientY - bounds.top) * (canvas.height / bounds.height);
-    const worldPoint = this.cameras.main.getWorldPoint(canvasX, canvasY);
-    const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
-    const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
-
-    if (this.trySelectSameTypeOnDoubleClick(cellX, cellY)) {
-      this.recentFriendlyUnitClick = null;
-      event.preventDefault();
-    }
+    // Phaser's pointer-up handler owns same-type promotion; this listener only
+    // suppresses browser-native text selection on canvas double clicks.
+    event.preventDefault();
   };
 
   constructor(
@@ -292,7 +241,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.rightButtonDown()) {
-        this.recentFriendlyUnitClick = null;
+        this.clearRecentSelectionClicks();
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
         this.issueContextCommandAtWorldPosition(
           worldPoint.x / CELL_SIZE,
@@ -308,7 +257,7 @@ export class GameScene extends Phaser.Scene {
           lastScreenY: pointer.y,
         };
         this.dragSelection = null;
-        this.recentFriendlyUnitClick = null;
+        this.clearRecentSelectionClicks();
         return;
       }
 
@@ -361,7 +310,7 @@ export class GameScene extends Phaser.Scene {
       const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
 
       if (this.bridge.getSelectionState().placementMode) {
-        this.recentFriendlyUnitClick = null;
+        this.clearRecentSelectionClicks();
         this.bridge.confirmBuildingPlacement(cellX, cellY);
         return;
       }
@@ -374,39 +323,17 @@ export class GameScene extends Phaser.Scene {
       this.dragSelection = null;
 
       if (this.isDragSelectionActive(dragSelection)) {
-        const selectionStart = this.cameras.main.getWorldPoint(
-          dragSelection.startScreenX,
-          dragSelection.startScreenY,
+        const didSelect = this.bridge.selectUnitsByIds(
+          this.getSelectionPreviewEntities(dragSelection).map((entity) => entity.id),
         );
-        const selectionEnd = this.cameras.main.getWorldPoint(
-          dragSelection.currentScreenX,
-          dragSelection.currentScreenY,
-        );
-        const didSelect = this.bridge.selectUnitsInBox(
-          Math.floor(selectionStart.x / CELL_SIZE),
-          Math.floor(selectionStart.y / CELL_SIZE),
-          Math.floor(selectionEnd.x / CELL_SIZE),
-          Math.floor(selectionEnd.y / CELL_SIZE),
-        );
-        this.recentFriendlyUnitClick = null;
+        this.clearRecentSelectionClicks();
         if (!didSelect) {
           this.bridge.clearSelection();
         }
         return;
       }
 
-      if (!this.bridge.selectEntityAtCell(cellX, cellY)) {
-        this.recentFriendlyUnitClick = null;
-        this.bridge.clearSelection();
-        return;
-      }
-
-      if (this.trySelectSameTypeOnDoubleClick(cellX, cellY)) {
-        this.recentFriendlyUnitClick = null;
-        return;
-      }
-
-      this.updateRecentFriendlyUnitClick(cellX, cellY);
+      this.selectEntityAtWorldPosition(worldPoint.x / CELL_SIZE, worldPoint.y / CELL_SIZE);
     });
   }
 
@@ -432,7 +359,7 @@ export class GameScene extends Phaser.Scene {
     this.dragSelection = null;
     this.middleDragPan = null;
     this.edgePanState = null;
-    this.recentFriendlyUnitClick = null;
+    this.clearRecentSelectionClicks();
     this.lastPlacementPreviewVisualState = null;
     this.lastBuildingVisualStates = [];
     this.lastEntityHealthBarStates = [];
@@ -593,7 +520,7 @@ export class GameScene extends Phaser.Scene {
     this.renderEntityHealthBars(this.displayedEntities);
     this.renderSelection(this.displayedEntities, selectionState);
     this.renderPlacementPreview();
-    this.renderSelectionBox();
+    this.renderSelectionBox(this.getSelectionBoxState());
     this.renderDebugOverlay(this.displayedEntities, selectionState, state.frame);
   }
 
@@ -882,12 +809,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private renderSelectionBox(): void {
+  private renderSelectionBox(selectionBoxState: SelectionBoxState | null): void {
     if (!this.selectionBoxLayer) {
       return;
     }
 
-    const selectionBoxState = this.getSelectionBoxState();
     if (!selectionBoxState?.active) {
       return;
     }
@@ -905,6 +831,35 @@ export class GameScene extends Phaser.Scene {
     this.selectionBoxLayer.fillStyle(0xf7e5a5, 0.18);
     this.selectionBoxLayer.fillRect(worldStart.x, worldStart.y, width, height);
     this.selectionBoxLayer.strokeRect(worldStart.x, worldStart.y, width, height);
+
+    const previewIds = new Set(selectionBoxState.previewEntityIds);
+    if (previewIds.size === 0) {
+      return;
+    }
+
+    this.selectionBoxLayer.lineStyle(2, 0xfff4c8, 0.95);
+    this.selectionBoxLayer.fillStyle(0xfff4c8, 0.12);
+    for (const entity of this.displayedEntities) {
+      if (!previewIds.has(entity.id) || entity.isMemory) {
+        continue;
+      }
+
+      const px = entity.x * CELL_SIZE;
+      const py = entity.y * CELL_SIZE;
+
+      if (entity.kind === 'unit') {
+        const radius = CELL_SIZE * entity.size * 0.5;
+        this.selectionBoxLayer.fillCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
+        this.selectionBoxLayer.strokeCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
+        continue;
+      }
+
+      if (entity.kind === 'resource' && entity.entityType === 'sheep') {
+        const radius = CELL_SIZE * entity.size * 0.55;
+        this.selectionBoxLayer.fillCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
+        this.selectionBoxLayer.strokeCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
+      }
+    }
   }
 
   private renderPlacementPreview(): void {
@@ -970,15 +925,7 @@ export class GameScene extends Phaser.Scene {
       ? selectionState.selectedEntityIds.join(',')
       : 'none';
     const placementPreviewState = this.getPlacementPreviewState();
-    const selectionBoxState = this.getSelectionBoxState();
-    const selectionBoxKey = selectionBoxState
-      ? [
-        selectionBoxState.startX,
-        selectionBoxState.startY,
-        selectionBoxState.currentX,
-        selectionBoxState.currentY,
-      ].join(',')
-      : 'none';
+    const selectionBoxKey = this.getSelectionBoxKey();
     const placementPreviewKey = placementPreviewState
       ? [
         placementPreviewState.buildingType,
@@ -1195,6 +1142,68 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  selectEntityAtWorldPosition(worldX: number, worldY: number): boolean {
+    if (!this.sys.isActive()) {
+      return false;
+    }
+
+    const clickCellX = Phaser.Math.Clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
+    const clickCellY = Phaser.Math.Clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
+    const targetEntities = findEntitiesAtWorldPointInEntities(
+      this.displayedEntities,
+      worldX * CELL_SIZE,
+      worldY * CELL_SIZE,
+      CELL_SIZE,
+    );
+    if (targetEntities.length === 0) {
+      this.clearRecentSelectionClicks();
+      this.bridge.clearSelection();
+      return false;
+    }
+
+    const selectionState = this.bridge.getSelectionState();
+    const currentSelectedId = selectionState.selectedCount === 1
+      ? selectionState.selectedEntityId
+      : null;
+    let targetEntity = targetEntities[0]!;
+    let didCycleExactSelection = false;
+    if (
+      currentSelectedId !== null
+      && targetEntities.length > 1
+      && this.wasRepeatedExactSelectionClick(clickCellX, clickCellY)
+    ) {
+      const currentIndex = targetEntities.findIndex((candidate) => candidate.id === currentSelectedId);
+      if (currentIndex >= 0) {
+        targetEntity = targetEntities[(currentIndex + 1) % targetEntities.length] ?? targetEntity;
+        didCycleExactSelection = targetEntity.id !== currentSelectedId;
+      }
+    }
+
+    if (!this.bridge.selectEntityById(targetEntity.id)) {
+      this.clearRecentSelectionClicks();
+      this.bridge.clearSelection();
+      return false;
+    }
+
+    this.recentExactSelectionClick = {
+      cellX: clickCellX,
+      cellY: clickCellY,
+    };
+
+    if (didCycleExactSelection) {
+      this.recentFriendlyUnitClick = null;
+      return true;
+    }
+
+    if (this.trySelectSameTypeOnDoubleClick(clickCellX, clickCellY)) {
+      this.clearRecentSelectionClicks();
+      return true;
+    }
+
+    this.updateRecentFriendlyUnitClick(clickCellX, clickCellY);
+    return true;
+  }
+
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean {
     if (!this.sys.isActive()) {
       return false;
@@ -1202,7 +1211,7 @@ export class GameScene extends Phaser.Scene {
 
     const clampedCellX = Phaser.Math.Clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
     const clampedCellY = Phaser.Math.Clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
-    const displayedTargetEntity = findEntityAtWorldPointInEntities(
+    const displayedTargetEntity = findCommandTargetEntityAtWorldPointInEntities(
       this.displayedEntities,
       worldX * CELL_SIZE,
       worldY * CELL_SIZE,
@@ -1210,7 +1219,7 @@ export class GameScene extends Phaser.Scene {
     );
     const projectedTargetEntity = displayedTargetEntity
       ? null
-      : findEntityAtWorldPointInEntities(
+      : findCommandTargetEntityAtWorldPointInEntities(
         this.bridge.getRenderState().entities,
         worldX * CELL_SIZE,
         worldY * CELL_SIZE,
@@ -1226,22 +1235,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   getSelectionBoxState(): SelectionBoxState | null {
-    if (!this.dragSelection || !this.isDragSelectionActive(this.dragSelection)) {
+    if (!this.dragSelection) {
       return null;
     }
 
-    const width = Math.abs(this.dragSelection.currentScreenX - this.dragSelection.startScreenX);
-    const height = Math.abs(this.dragSelection.currentScreenY - this.dragSelection.startScreenY);
-
-    return {
-      active: true,
-      startX: this.dragSelection.startScreenX,
-      startY: this.dragSelection.startScreenY,
-      currentX: this.dragSelection.currentScreenX,
-      currentY: this.dragSelection.currentScreenY,
-      width,
-      height,
-    };
+    return this.buildSelectionBoxState(this.dragSelection);
   }
 
   getPlacementPreviewState(): PlacementPreviewViewState | null {
@@ -1285,6 +1283,83 @@ export class GameScene extends Phaser.Scene {
       x: entity.x,
       y: entity.y,
     }));
+  }
+
+  private getSelectionPreviewEntityIds(dragSelection: DragSelectionState): number[] {
+    return this.bridge.filterSelectableUnitIds(
+      this.getSelectionPreviewEntities(dragSelection).map((entity) => entity.id),
+    );
+  }
+
+  private getSelectionPreviewEntities(dragSelection: DragSelectionState): ProjectedEntityView[] {
+    const selectionBounds = this.getDragSelectionWorldBounds(dragSelection);
+    if (!selectionBounds) {
+      return [];
+    }
+
+    return this.displayedEntities
+      .filter((entity) => this.isDragSelectableEntity(entity))
+      .filter((entity) =>
+        doesWorldRectIntersectEntity(
+          entity,
+          selectionBounds.minWorldX,
+          selectionBounds.minWorldY,
+          selectionBounds.maxWorldX,
+          selectionBounds.maxWorldY,
+          CELL_SIZE,
+        ))
+      .sort((left, right) => {
+        const yDelta = left.y - right.y;
+        if (Math.abs(yDelta) > 0.001) {
+          return yDelta;
+        }
+
+        const xDelta = left.x - right.x;
+        if (Math.abs(xDelta) > 0.001) {
+          return xDelta;
+        }
+
+        return left.id - right.id;
+      });
+  }
+
+  private isDragSelectableEntity(entity: ProjectedEntityView): boolean {
+    if (entity.isMemory) {
+      return false;
+    }
+
+    if (entity.kind === 'unit') {
+      return entity.owner === HUMAN_PLAYER_ID;
+    }
+
+    return entity.kind === 'resource'
+      && entity.entityType === 'sheep'
+      && entity.owner === HUMAN_PLAYER_ID;
+  }
+
+  private getDragSelectionWorldBounds(dragSelection: DragSelectionState): {
+    minWorldX: number;
+    minWorldY: number;
+    maxWorldX: number;
+    maxWorldY: number;
+  } | null {
+    if (!this.isDragSelectionActive(dragSelection)) {
+      return null;
+    }
+
+    const minX = Math.min(dragSelection.startScreenX, dragSelection.currentScreenX);
+    const minY = Math.min(dragSelection.startScreenY, dragSelection.currentScreenY);
+    const maxX = Math.max(dragSelection.startScreenX, dragSelection.currentScreenX);
+    const maxY = Math.max(dragSelection.startScreenY, dragSelection.currentScreenY);
+    const worldStart = this.cameras.main.getWorldPoint(minX, minY);
+    const worldEnd = this.cameras.main.getWorldPoint(maxX, maxY);
+
+    return {
+      minWorldX: Math.min(worldStart.x, worldEnd.x),
+      minWorldY: Math.min(worldStart.y, worldEnd.y),
+      maxWorldX: Math.max(worldStart.x, worldEnd.x),
+      maxWorldY: Math.max(worldStart.y, worldEnd.y),
+    };
   }
 
   private getHealthBarLayout(
@@ -1550,6 +1625,51 @@ export class GameScene extends Phaser.Scene {
       minY: Phaser.Math.Clamp(Math.floor(worldView.y / CELL_SIZE), 0, MAP_HEIGHT - 1),
       maxX: Phaser.Math.Clamp(Math.floor((worldView.right - 1) / CELL_SIZE), 0, MAP_WIDTH - 1),
       maxY: Phaser.Math.Clamp(Math.floor((worldView.bottom - 1) / CELL_SIZE), 0, MAP_HEIGHT - 1),
+    };
+  }
+
+  private clearRecentSelectionClicks(): void {
+    this.recentExactSelectionClick = null;
+    this.recentFriendlyUnitClick = null;
+  }
+
+  private wasRepeatedExactSelectionClick(cellX: number, cellY: number): boolean {
+    return (
+      this.recentExactSelectionClick?.cellX === cellX
+      && this.recentExactSelectionClick.cellY === cellY
+    );
+  }
+
+  private getSelectionBoxKey(): string {
+    if (!this.dragSelection || !this.isDragSelectionActive(this.dragSelection)) {
+      return 'none';
+    }
+
+    return [
+      this.dragSelection.startScreenX,
+      this.dragSelection.startScreenY,
+      this.dragSelection.currentScreenX,
+      this.dragSelection.currentScreenY,
+    ].join(',');
+  }
+
+  private buildSelectionBoxState(dragSelection: DragSelectionState): SelectionBoxState | null {
+    if (!this.isDragSelectionActive(dragSelection)) {
+      return null;
+    }
+
+    const width = Math.abs(dragSelection.currentScreenX - dragSelection.startScreenX);
+    const height = Math.abs(dragSelection.currentScreenY - dragSelection.startScreenY);
+
+    return {
+      active: true,
+      startX: dragSelection.startScreenX,
+      startY: dragSelection.startScreenY,
+      currentX: dragSelection.currentScreenX,
+      currentY: dragSelection.currentScreenY,
+      width,
+      height,
+      previewEntityIds: this.getSelectionPreviewEntityIds(dragSelection),
     };
   }
 

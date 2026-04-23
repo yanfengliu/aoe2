@@ -185,6 +185,7 @@ export interface SimulationBridge {
   // health tracking (e.g., resources, terrain).
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
   selectEntityAtCell(x: number, y: number): boolean;
+  selectEntityById(id: number): boolean;
   selectOwnedUnitsByTypeInRect(
     unitType: UnitType | 'sheep',
     minX: number,
@@ -192,6 +193,8 @@ export interface SimulationBridge {
     maxX: number,
     maxY: number,
   ): boolean;
+  filterSelectableUnitIds(ids: number[]): number[];
+  selectUnitsByIds(ids: number[]): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
@@ -986,6 +989,7 @@ function createWorld(
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
+  selectEntityById: (id: number) => boolean;
   selectOwnedUnitsByTypeInRect: (
     unitType: UnitType | 'sheep',
     minX: number,
@@ -993,6 +997,8 @@ function createWorld(
     maxX: number,
     maxY: number,
   ) => boolean;
+  filterSelectableUnitIds: (ids: number[]) => number[];
+  selectUnitsByIds: (ids: number[]) => boolean;
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
@@ -3373,6 +3379,49 @@ function createWorld(
 
     placementMode = null;
     return true;
+  }
+
+  function filterSelectableUnitIds(ids: number[]): number[] {
+    if (!isMatchRunning()) {
+      return [];
+    }
+
+    const dedupedIds: number[] = [];
+    const seenIds = new Set<number>();
+    for (const id of ids) {
+      if (seenIds.has(id)) {
+        continue;
+      }
+      seenIds.add(id);
+
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (unit) {
+        const position = world.getComponent<Position>(id, 'position');
+        if (position && unit.owner === HUMAN_PLAYER_ID && isVisibleToHuman(position, unit.owner)) {
+          dedupedIds.push(id);
+        }
+        continue;
+      }
+
+      const position = world.getComponent<Position>(id, 'position');
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (
+        position
+        && resource
+        && resource.resourceType === 'sheep'
+        && resource.owner === HUMAN_PLAYER_ID
+        && resource.amount > 0
+        && isVisibleToHuman(position, resource.owner)
+      ) {
+        dedupedIds.push(id);
+      }
+    }
+
+    return dedupedIds;
+  }
+
+  function selectUnitsByIds(ids: number[]): boolean {
+    return selectUnitIds(filterSelectableUnitIds(ids));
   }
 
   function getHumanOwnedSheepIdsInRect(
@@ -8436,6 +8485,25 @@ function createWorld(
     return selectedEntityRefs.length > 0;
   }
 
+  function selectEntityById(id: number): boolean {
+    if (!isMatchRunning() || !isEntityVisibleToHuman(id)) {
+      return false;
+    }
+
+    const entityRef = getEntityRef(id);
+    if (!entityRef) {
+      return false;
+    }
+
+    selectedEntityRefs = [entityRef];
+    // Exact world-position selection owns its repeat-click memory in GameScene.
+    // Keep the bridge's cell-cycle anchor empty so any later legacy/test-only
+    // `selectEntityAtCell(...)` call is treated as a fresh tile click.
+    selectionFocusCell = null;
+    placementMode = null;
+    return true;
+  }
+
   function clearSelection(): void {
     selectedEntityRefs = [];
     selectionFocusCell = null;
@@ -9089,7 +9157,10 @@ function createWorld(
     getPlacementPreview,
     getEntityHealth,
     selectEntityAtCell,
+    selectEntityById,
     selectOwnedUnitsByTypeInRect,
+    filterSelectableUnitIds,
+    selectUnitsByIds,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
@@ -9152,7 +9223,10 @@ export function createSimulationBridge(
     getPlacementPreview,
     getEntityHealth,
     selectEntityAtCell,
+    selectEntityById,
     selectOwnedUnitsByTypeInRect,
+    filterSelectableUnitIds,
+    selectUnitsByIds,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
@@ -9337,7 +9411,10 @@ export function createSimulationBridge(
     // against entities the HUMAN_PLAYER_ID can't see.
     getEntityHealth,
     selectEntityAtCell,
+    selectEntityById,
     selectOwnedUnitsByTypeInRect,
+    filterSelectableUnitIds,
+    selectUnitsByIds,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand(x: number, y: number) {
