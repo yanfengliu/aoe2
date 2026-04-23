@@ -1,23 +1,17 @@
-import type { Position } from 'civ-engine';
-
+import type { PrototypeScenario } from '../prototypeScenario';
 import {
-  MAP_HEIGHT,
-  MAP_WIDTH,
-  applyStandardPlayerOpeningProcedural,
   applyShoreFishPatchesProcedural,
-  createBaseTerrain,
+  applyStandardPlayerOpeningProcedural,
   createPlayerStarts,
-  paintDisc,
-  type PrototypeScenario,
-} from '../prototypeScenario';
+} from './applyStandardPlayerOpening';
+import { MAP_HEIGHT, MAP_WIDTH } from './constants';
+import { createBaseTerrain, paintDisc } from './sharedTerrainHelpers';
 import { createSpawnList } from './spawnList';
-
-const FORWARD_ENEMY_SCOUT_POSITION: Position = { x: 41, y: 20 };
-const FORWARD_ENEMY_HOUSE_POSITION: Position = { x: 39, y: 18 };
-const DEFAULT_RELIC_POSITIONS: Position[] = [
-  { x: 24, y: 24 },
-  { x: 36, y: 10 },
-];
+import {
+  DEFAULT_RELIC_POSITIONS,
+  FORWARD_ENEMY_HOUSE_POSITION,
+  FORWARD_ENEMY_SCOUT_POSITION,
+} from './startingOffsets';
 
 export function createDefaultMap(seed: string): PrototypeScenario {
   const terrain = createBaseTerrain(seed);
