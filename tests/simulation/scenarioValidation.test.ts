@@ -39,4 +39,10 @@ describe('scenario fixture validation', () => {
       createSimulationBridge('slice12-validation-resource-on-building-fixture'),
     ).toThrowError(/slice12-validation-resource-on-building-fixture/);
   });
+
+  it('throws when two resources share the same cell', () => {
+    expect(() =>
+      createSimulationBridge('slice12-validation-resource-on-resource-fixture'),
+    ).toThrowError(/slice12-validation-resource-on-resource-fixture/);
+  });
 });

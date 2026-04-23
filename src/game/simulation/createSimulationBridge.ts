@@ -2429,6 +2429,31 @@ function createWorld(
       );
     }
   }
+
+  // Resource-on-resource overlaps: no two resource entities may share a
+  // cell. This matches the building-on-building pass above. The
+  // overlapWhitelist escape hatch still applies for fixtures that
+  // deliberately stack resources (none today, but the opt-out stays
+  // consistent across kinds).
+  const resourceByCell = new Map<string, { id: number; kind: string }>();
+  for (const resourceId of world.query('resource', 'position')) {
+    if (overlapWhitelist.has(resourceId)) {
+      continue;
+    }
+    const position = world.getComponent<Position>(resourceId, 'position');
+    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
+    if (!position || !resource) {
+      continue;
+    }
+    const key = `${position.x},${position.y}`;
+    const existing = resourceByCell.get(key);
+    if (existing) {
+      throw new Error(
+        `Scenario '${scenario.seed}': ${resource.resourceType} resource at (${position.x},${position.y}) overlaps ${existing.kind} at the same cell.`,
+      );
+    }
+    resourceByCell.set(key, { id: resourceId, kind: resource.resourceType });
+  }
   } // end if (!savedGame) — fresh-start entity spawn
 
   // Slice 9: when loading from a save blob, hydrate every side map

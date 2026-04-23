@@ -6271,6 +6271,26 @@ function createScenarioValidationFixture(seed: string): PrototypeScenario {
         amount: 500,
       });
       break;
+    case 'slice12-validation-resource-on-resource-fixture':
+      // Tree and stone-mine placed on the same cell. Validation should
+      // catch the resource-on-resource overlap.
+      baseSpawns.push({
+        kind: 'tree',
+        x: 12,
+        y: 4,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      });
+      baseSpawns.push({
+        kind: 'stone-mine',
+        x: 12,
+        y: 4,
+        owner: null,
+        baseOwner: null,
+        amount: 350,
+      });
+      break;
     default:
       // Unknown validation seed — fall through to the ok scenario so
       // the switch is exhaustive at runtime.
@@ -9191,6 +9211,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     || seed === 'slice12-validation-overlap-fixture'
     || seed === 'slice12-validation-unit-in-building-fixture'
     || seed === 'slice12-validation-resource-on-building-fixture'
+    || seed === 'slice12-validation-resource-on-resource-fixture'
   ) {
     return createScenarioValidationFixture(seed);
   }
