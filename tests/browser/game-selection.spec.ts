@@ -500,4 +500,67 @@ test.describe('browser gameplay smoke tests - selection', () => {
     expect(selectedSnapshot.selectionState.selectedEntityType).toBe('villager');
   });
 
+  test('shows "Gathering wood" activity for a villager chopping a tree', async ({ page }) => {
+    await game.waitForBoot(page);
+
+    // Find any tree resource owned by player 1.
+    const treeCells = await game.getOwnedResourceCells(page, 1, 'tree');
+    expect(treeCells.length).toBeGreaterThan(0);
+    const treeCell = treeCells[0]!;
+
+    // Select a player-1 villager.
+    const villagerCells = await game.getOwnedUnitCells(page, 1, 'villager');
+    expect(villagerCells.length).toBeGreaterThan(0);
+    const villagerCell = villagerCells[0]!;
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        villagerCell,
+      ),
+    ).toBe(true);
+
+    // Issue a gather-wood context command.
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueContextCommand(x, y),
+        treeCell,
+      ),
+    ).toBe(true);
+
+    // Advance ticks until the villager reaches the tree and starts gathering.
+    await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      for (let index = 0; index < 120; index += 1) {
+        const snapshot = api.advanceTicks(1, 100);
+        const gatheringWood = snapshot.selectionState.activity === 'Gathering wood';
+        if (gatheringWood) break;
+      }
+    });
+
+    await expect(page.locator('[data-selection-activity]')).toContainText('Gathering wood');
+  });
+
+  test('shows activity breakdown with "3 idle" for a multi-selection of idle villagers', async ({
+    page,
+  }) => {
+    await game.waitForBootWithSeed(page, 'villager-selection-fixture');
+
+    // All 3 villagers in this fixture start idle.
+    const renderedVillagers = await game.getRenderedOwnedUnits(page, 1, 'villager');
+    expect(renderedVillagers).toHaveLength(3);
+
+    // Box-select all villagers.
+    const minX = Math.min(...renderedVillagers.map((unit) => unit.x + 0.5 - unit.size * 0.5));
+    const maxX = Math.max(...renderedVillagers.map((unit) => unit.x + 0.5 + unit.size * 0.5));
+    const minY = Math.min(...renderedVillagers.map((unit) => unit.y + 0.5 - unit.size * 0.5));
+    const maxY = Math.max(...renderedVillagers.map((unit) => unit.y + 0.5 + unit.size * 0.5));
+    await game.dragSelectWorldRect(page, minX - 0.05, minY - 0.05, maxX + 0.05, maxY + 0.05);
+    await page.mouse.up({ button: 'left' });
+
+    const snapshot = await game.getSnapshot(page);
+    expect(snapshot.selectionState.selectedCount).toBe(3);
+
+    await expect(page.locator('[data-selection-activity-multi]')).toContainText('3 idle');
+  });
+
 });
