@@ -8006,6 +8006,8 @@ function createWorld(
         faction: null,
         civ: null,
         inventory: null,
+        activity: null,
+        activityBreakdown: null,
         x: null,
         y: null,
         tileX: null,
@@ -8124,6 +8126,8 @@ function createWorld(
         selectedEntityIds.length === 1
           ? getSelectionInventory(selectedEntityId, unit, building, resource)
           : null,
+      activity: null,
+      activityBreakdown: null,
       x: position.x,
       y: position.y,
       tileX: selectionTile.x,
