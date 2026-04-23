@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSpawnList } from '../../../src/game/simulation/mapGeneration/spawnList';
-import type { ScenarioSpawnSpec } from '../../../src/game/simulation/prototypeScenario';
+import {
+  createPrototypeScenario,
+  DEFAULT_SEED,
+  type ScenarioSpawnSpec,
+} from '../../../src/game/simulation/prototypeScenario';
 
 describe('createSpawnList', () => {
   it('accepts the first resource at a cell and returns it from toArray in order', () => {
@@ -134,5 +138,34 @@ describe('createSpawnList', () => {
     list.addResourceSpawn(stone);
     expect(list.isCellOccupiedByResource(9, 13)).toBe(true);
     expect(list.isCellOccupiedByResource(10, 13)).toBe(false);
+  });
+});
+
+describe('default seed spawns are dedupe-safe', () => {
+  it('never places two resources on the same cell', () => {
+    const scenario = createPrototypeScenario(DEFAULT_SEED);
+    const resourceKinds = new Set([
+      'tree',
+      'stone-mine',
+      'gold-mine',
+      'berry-bush',
+      'sheep',
+      'boar',
+      'deer',
+      'wolf',
+      'fish',
+      'relic',
+    ]);
+
+    const cellToResource = new Map<string, string>();
+    for (const spawn of scenario.spawns) {
+      if (!resourceKinds.has(spawn.kind)) {
+        continue;
+      }
+      const key = `${spawn.x},${spawn.y}`;
+      const existing = cellToResource.get(key);
+      expect(existing, `duplicate at (${spawn.x},${spawn.y}): ${existing} vs ${spawn.kind}`).toBeUndefined();
+      cellToResource.set(key, spawn.kind);
+    }
   });
 });

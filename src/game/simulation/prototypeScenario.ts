@@ -16,6 +16,7 @@ import type {
   VisionSourceComponent,
   WanderBoundsComponent,
 } from './types';
+import { createSpawnList, type SpawnList } from './mapGeneration/spawnList';
 
 export const MAP_WIDTH = 60;
 export const MAP_HEIGHT = 36;
@@ -6442,7 +6443,7 @@ function applyResourcePatch(
   kind: ResourceKind,
   amount: number,
   baseOwner: number,
-  spawns: ScenarioSpawnSpec[],
+  spawns: SpawnList,
 ): void {
   for (const offset of offsets) {
     const position = projectOffset(center, offset);
@@ -6451,7 +6452,7 @@ function applyResourcePatch(
     }
 
     setTerrainKind(terrain, position.x, position.y, 'grass');
-    spawns.push({
+    spawns.addResourceSpawn({
       kind,
       x: position.x,
       y: position.y,
@@ -6467,7 +6468,7 @@ function applyForestPatch(
   center: Position,
   offsets: Offset[],
   baseOwner: number,
-  spawns: ScenarioSpawnSpec[],
+  spawns: SpawnList,
 ): void {
   for (const offset of offsets) {
     const position = projectOffset(center, offset);
@@ -6475,7 +6476,7 @@ function applyForestPatch(
     if (!isInBounds(position.x, position.y)) {
       continue;
     }
-    spawns.push({
+    spawns.addResourceSpawn({
       kind: 'tree',
       x: position.x,
       y: position.y,
@@ -6513,7 +6514,7 @@ function applyShoreFishPatches(
   terrain: TerrainCellSpec[][],
   starts: PlayerStartSpec[],
   seed: string,
-  spawns: ScenarioSpawnSpec[],
+  spawns: SpawnList,
 ): void {
   const candidates: Position[] = [];
   for (let y = 0; y < MAP_HEIGHT; y += 1) {
@@ -6543,7 +6544,7 @@ function applyShoreFishPatches(
       continue;
     }
 
-    spawns.push({
+    spawns.addResourceSpawn({
       kind: 'fish',
       x: candidate.x,
       y: candidate.y,
@@ -6556,7 +6557,7 @@ function applyShoreFishPatches(
 
   if (placed.length === 0) {
     const fallback = candidates[0];
-    spawns.push({
+    spawns.addResourceSpawn({
       kind: 'fish',
       x: fallback.x,
       y: fallback.y,
@@ -9196,12 +9197,12 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   const terrain = createBaseTerrain(seed);
   const starts = createPlayerStarts();
-  const spawns: ScenarioSpawnSpec[] = [];
+  const spawns = createSpawnList();
 
   for (const start of starts) {
     paintDisc(terrain, start.townCenter, 4, 'grass');
 
-    spawns.push({
+    spawns.addBuildingSpawn({
       kind: 'town-center',
       x: start.townCenter.x,
       y: start.townCenter.y,
@@ -9262,7 +9263,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
     for (const offset of STARTING_VILLAGERS) {
       const position = projectOffset(start.townCenter, offset);
-      spawns.push({
+      spawns.addUnitSpawn({
         kind: 'villager',
         x: position.x,
         y: position.y,
@@ -9273,21 +9274,21 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
       });
     }
 
-    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
+    spawns.addUnitSpawn(createStartingScoutSpawn(start.owner, start.townCenter));
   }
 
   applyShoreFishPatches(terrain, starts, seed, spawns);
 
   paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
   paintDisc(terrain, FORWARD_ENEMY_HOUSE_POSITION, 2, 'grass');
-  spawns.push({
+  spawns.addBuildingSpawn({
     kind: 'house',
     x: FORWARD_ENEMY_HOUSE_POSITION.x,
     y: FORWARD_ENEMY_HOUSE_POSITION.y,
     owner: 2,
     baseOwner: 2,
   });
-  spawns.push({
+  spawns.addUnitSpawn({
     kind: 'scout',
     x: FORWARD_ENEMY_SCOUT_POSITION.x,
     y: FORWARD_ENEMY_SCOUT_POSITION.y,
@@ -9300,7 +9301,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
   // Monk can pick them up and deposit them in a friendly Monastery.
   for (const relicPosition of DEFAULT_RELIC_POSITIONS) {
     paintDisc(terrain, relicPosition, 1, 'grass');
-    spawns.push({
+    spawns.addResourceSpawn({
       kind: 'relic',
       x: relicPosition.x,
       y: relicPosition.y,
@@ -9316,7 +9317,7 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
     height: MAP_HEIGHT,
     terrain,
     starts,
-    spawns,
+    spawns: spawns.toArray(),
   };
 }
 
@@ -9332,7 +9333,7 @@ function createBlackForestMap(seed: string): PrototypeScenario {
   );
 
   const starts = createPlayerStarts();
-  const spawns: ScenarioSpawnSpec[] = [];
+  const spawns = createSpawnList();
 
   // Carve out a base pocket (grass) around each start so the Town Center,
   // villagers, and resource offsets all have valid terrain.
@@ -9367,7 +9368,7 @@ function createBlackForestMap(seed: string): PrototypeScenario {
   for (let y = 0; y < MAP_HEIGHT; y += 1) {
     for (let x = 0; x < MAP_WIDTH; x += 1) {
       if (terrain[y][x].kind === 'forest') {
-        spawns.push({
+        spawns.addResourceSpawn({
           kind: 'tree',
           x,
           y,
@@ -9387,7 +9388,7 @@ function createBlackForestMap(seed: string): PrototypeScenario {
     height: MAP_HEIGHT,
     terrain,
     starts,
-    spawns,
+    spawns: spawns.toArray(),
   };
 }
 
@@ -9403,7 +9404,7 @@ function createArenaMap(seed: string): PrototypeScenario {
   );
 
   const starts = createPlayerStarts();
-  const spawns: ScenarioSpawnSpec[] = [];
+  const spawns = createSpawnList();
 
   // Place the standard opening FIRST so we can skip ring cells that would
   // overlap a starting resource, villager, or scout. Bridge-boot fixture
@@ -9412,7 +9413,7 @@ function createArenaMap(seed: string): PrototypeScenario {
   applyStandardPlayerOpening(terrain, starts, spawns, seed);
 
   const occupiedCells = new Set<string>();
-  for (const spawn of spawns) {
+  for (const spawn of spawns.toArray()) {
     occupiedCells.add(`${spawn.x},${spawn.y}`);
   }
 
@@ -9438,7 +9439,7 @@ function createArenaMap(seed: string): PrototypeScenario {
       if (occupiedCells.has(`${cell.x},${cell.y}`)) {
         continue;
       }
-      spawns.push({
+      spawns.addBuildingSpawn({
         kind: 'stone-wall',
         x: cell.x,
         y: cell.y,
@@ -9454,7 +9455,7 @@ function createArenaMap(seed: string): PrototypeScenario {
     height: MAP_HEIGHT,
     terrain,
     starts,
-    spawns,
+    spawns: spawns.toArray(),
   };
 }
 
@@ -9466,13 +9467,13 @@ function createArenaMap(seed: string): PrototypeScenario {
 function applyStandardPlayerOpening(
   terrain: TerrainCellSpec[][],
   starts: PlayerStartSpec[],
-  spawns: ScenarioSpawnSpec[],
+  spawns: SpawnList,
   seed: string,
 ): void {
   for (const start of starts) {
     paintDisc(terrain, start.townCenter, 4, 'grass');
 
-    spawns.push({
+    spawns.addBuildingSpawn({
       kind: 'town-center',
       x: start.townCenter.x,
       y: start.townCenter.y,
@@ -9529,7 +9530,7 @@ function applyStandardPlayerOpening(
 
     for (const offset of STARTING_VILLAGERS) {
       const position = projectOffset(start.townCenter, offset);
-      spawns.push({
+      spawns.addUnitSpawn({
         kind: 'villager',
         x: position.x,
         y: position.y,
@@ -9540,7 +9541,7 @@ function applyStandardPlayerOpening(
       });
     }
 
-    spawns.push(createStartingScoutSpawn(start.owner, start.townCenter));
+    spawns.addUnitSpawn(createStartingScoutSpawn(start.owner, start.townCenter));
   }
 
   // Keep a hint of the seed in the output so two different seeds never
