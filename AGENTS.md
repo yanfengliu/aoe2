@@ -37,12 +37,8 @@
 
 ## Command and git rules
 
-- Never use compound shell commands. Do not chain commands with `&&`, `|`, or `;`.
 - If multiple commands are needed, run them as separate sequential tool calls.
-- Always run the full test suite, not a subset.
 - Do not use worktrees or branches; work directly on `main`.
-- For all git commands, always use `git -C <path> <command>`.
-- Never use `cd ... && git ...`; that triggers the CLI security block.
 - Commit durable docs you add if you are not planning to remove them.
 - Commit as soon as you have a coherent, self-contained unit of change.
 
