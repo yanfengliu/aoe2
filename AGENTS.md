@@ -37,7 +37,7 @@
 
 ## Command and git rules
 
-- If multiple commands are needed, run them as separate sequential tool calls.
+- Only run affected tests when you iterate. In the end, after you are confident about your change, run the full suite of tests to make sure you didn't accidentally break anything.
 - Do not use worktrees or branches; work directly on `main`.
 - Commit durable docs you add if you are not planning to remove them.
 - Commit as soon as you have a coherent, self-contained unit of change.
