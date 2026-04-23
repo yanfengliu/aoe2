@@ -1132,7 +1132,7 @@ git commit -m "Add procedural default-map module with per-base resource coverage
 - Modify: `src/game/simulation/prototypeScenario.ts` — replace the inline default-seed branch in `createPrototypeScenario` with a delegation to `createDefaultMap`.
 - Modify: `tests/simulation/prototypeScenario.test.ts` — restore the `tree` count to `toBe(24)`.
 
-- [ ] **Step 1: Tighten the tree count expectation**
+- [x] **Step 1: Tighten the tree count expectation**
 
 In `tests/simulation/prototypeScenario.test.ts`, revert the loosened assertion:
 
@@ -1140,13 +1140,13 @@ In `tests/simulation/prototypeScenario.test.ts`, revert the loosened assertion:
 expect(countBy('tree', owner)).toBe(24);
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx.cmd vitest run tests/simulation/prototypeScenario.test.ts`
 
 Expected: the per-owner tree count case fails (currently 20 after Task 2's dedupe drop).
 
-- [ ] **Step 3: Delegate the default-seed branch**
+- [x] **Step 3: Delegate the default-seed branch**
 
 In `src/game/simulation/prototypeScenario.ts`, locate `createPrototypeScenario` at line ~8686 and the fallback that starts at line ~9197 (`const terrain = createBaseTerrain(seed);`). Add a dispatch at the very top of the function:
 
@@ -1174,17 +1174,17 @@ Prefer the static-import form:
 import { createDefaultMap } from './mapGeneration/defaultMap';
 ```
 
-- [ ] **Step 4: Leave the old inline default-seed body in place for now**
+- [x] **Step 4: Leave the old inline default-seed body in place for now**
 
-Do not delete the inline block yet — the default seed short-circuits before reaching it. Leaving it guards against an accidental unused-helper warning if any still-live fixture reaches into the helpers. Task 5's Step 5 will revisit.
+Do not delete the inline block yet — the default seed short-circuits before reaching it. Leaving it guards against an accidental unused-helper warning if any still-live fixture reaches into the helpers. Task 5's Step 5 will revisit. _(Retired in commit `41ac704` as part of the `prototypeScenario.ts` god-file split; the live code path is `createDefaultMap` only.)_
 
-- [ ] **Step 5: Run the default-seed tests**
+- [x] **Step 5: Run the default-seed tests**
 
 Run: `npx.cmd vitest run tests/simulation/prototypeScenario.test.ts tests/simulation/mapGeneration/ tests/simulation/scenarioValidation.test.ts`
 
 Expected: all pass. The tree-count case that failed in Step 2 now passes because the procedural generator places exactly 24 trees per base.
 
-- [ ] **Step 6: Run the full vitest suite**
+- [x] **Step 6: Run the full vitest suite**
 
 Run: `npx.cmd vitest run`
 
@@ -1192,7 +1192,9 @@ Expected: all existing simulation tests pass. If any pre-existing test hardcoded
 - Using `scenario.spawns.find((spawn) => spawn.kind === 'tree' && spawn.baseOwner === 1)` instead of literal coordinates.
 - Otherwise adjusting the test to the new coordinates (document which in the commit message).
 
-- [ ] **Step 7: Run typecheck, lint, build**
+_(Final run: 38/38 files, 365 passed + 1 skipped; two tests re-anchored — `createSimulationBridge.core.test.ts` scout-advance and `createSimulationBridge.darkAge.test.ts` house placement — both now query live positions.)_
+
+- [x] **Step 7: Run typecheck, lint, build**
 
 Run: `npx.cmd tsc --noEmit`
 
@@ -1206,12 +1208,14 @@ Run: `npx.cmd vite build`
 
 Expected: success.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/game/simulation/prototypeScenario.ts tests/simulation/prototypeScenario.test.ts
 git commit -m "Use procedural default map for aoe2-prototype seed"
 ```
+
+_(Committed as `a13a022`; re-anchored-test files were also staged in the same commit.)_
 
 ---
 
