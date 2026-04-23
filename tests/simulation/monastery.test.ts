@@ -289,7 +289,6 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     const militia = findFirstOwnedUnit(bridge, 2, 'militia');
     expect(spearman).toBeDefined();
     expect(militia).toBeDefined();
-    const spearmanId = spearman!.id;
     const militiaId = militia!.id;
 
     // The Spearman and Militia share the same cell. Let a few ticks of
@@ -406,8 +405,6 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(enemyMilitia).toBeDefined();
     expect(friendlyPikeman).toBeDefined();
     const militiaId = enemyMilitia!.id;
-    const pikemanId = friendlyPikeman!.id;
-
     // Pikeman attacks the Militia.
     expect(selectOwnedUnitDirect(bridge, 1, 'pikeman')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(militiaId)).toBe(true);
@@ -564,10 +561,6 @@ describe('Slice 5 Monastery + Monks + Relics', () => {
     expect(relic).toBeDefined();
     const monk = findFirstOwnedUnit(bridge, 1, 'monk');
     expect(monk).toBeDefined();
-    const relicEntityId = bridge.getEconomyState().resources
-      ? undefined
-      : undefined; // resources array does not expose id; we'll resolve via selectEntityAtCell
-
     expect(bridge.selectEntityAtCell(relic!.x, relic!.y)).toBe(true);
     const selection = bridge.getSelectionState();
     expect(selection.selectedEntityId).not.toBeNull();

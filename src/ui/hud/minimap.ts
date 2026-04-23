@@ -119,7 +119,7 @@ export function drawMinimap(
     return;
   }
 
-  const { scale, drawWidth, drawHeight, offsetX, offsetY } = layout;
+  const { scale, offsetX, offsetY } = layout;
   const visible = new Set(frame.visibleCells);
   const explored = new Set(frame.exploredCells);
 

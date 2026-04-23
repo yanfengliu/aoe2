@@ -21,13 +21,6 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
     .units.find((unit) => unit.owner === owner && unit.unitType === unitType);
 }
 
-function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {
-  if (!bridge.selectEntityAtCell(x, y)) {
-    return null;
-  }
-  return bridge.getSelectionState().health?.current ?? null;
-}
-
 describe('Militia-line intermediate tiers at Barracks', () => {
   // The militia-line-fixture seeds two Imperial-Age players with one
   // Barracks and one Militia each, so every Barracks upgrade in the

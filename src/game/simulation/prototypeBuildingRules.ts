@@ -1,0 +1,360 @@
+import { HUMAN_PLAYER_ID } from './prototypeScenario';
+import { isArcherLineUnit } from './prototypeUnitRules';
+import type {
+  BuildingType,
+  ResearchableTechnologyType,
+  TrainableUnitType,
+  UnitType,
+} from './types';
+
+interface BuildingCombatProfile {
+  attackDamage: number;
+  attackRange: number;
+  reloadTicks: number;
+  cooldownTicks: number;
+}
+
+interface BuildingTintPalette {
+  humanComplete: number;
+  humanIncomplete: number;
+  enemyComplete: number;
+  enemyIncomplete: number;
+}
+
+const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
+  'town-center': 0,
+  house: 5,
+  mill: 0,
+  'lumber-camp': 0,
+  'mining-camp': 0,
+  barracks: 0,
+  'watch-tower': 0,
+  stable: 0,
+  'archery-range': 0,
+  blacksmith: 0,
+  market: 0,
+  'siege-workshop': 0,
+  monastery: 0,
+  castle: 0,
+  wonder: 0,
+  'stone-wall': 0,
+  'palisade-wall': 0,
+};
+
+const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
+  'town-center': 300,
+  house: 120,
+  mill: 180,
+  'lumber-camp': 180,
+  'mining-camp': 180,
+  barracks: 240,
+  'watch-tower': 220,
+  stable: 240,
+  'archery-range': 240,
+  blacksmith: 200,
+  market: 200,
+  'siege-workshop': 260,
+  monastery: 280,
+  castle: 560,
+  wonder: 1200,
+  'stone-wall': 80,
+  'palisade-wall': 40,
+};
+
+const BUILDING_SIZES: Record<BuildingType, number> = {
+  'town-center': 1.4,
+  house: 1.1,
+  mill: 1.15,
+  'lumber-camp': 1.15,
+  'mining-camp': 1.15,
+  barracks: 1.2,
+  'watch-tower': 1.2,
+  stable: 1.2,
+  'archery-range': 1.2,
+  blacksmith: 1.2,
+  market: 1.2,
+  'siege-workshop': 1.2,
+  monastery: 1.2,
+  castle: 1.5,
+  wonder: 1.6,
+  'stone-wall': 1,
+  'palisade-wall': 1,
+};
+
+const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
+  'town-center': {
+    humanComplete: 0xd8b36c,
+    humanIncomplete: 0x7d6545,
+    enemyComplete: 0xa15c5c,
+    enemyIncomplete: 0x674040,
+  },
+  house: {
+    humanComplete: 0xc8a15e,
+    humanIncomplete: 0x6d593d,
+    enemyComplete: 0xa66b6b,
+    enemyIncomplete: 0x6a4747,
+  },
+  mill: {
+    humanComplete: 0xb18f54,
+    humanIncomplete: 0x625033,
+    enemyComplete: 0x9e7161,
+    enemyIncomplete: 0x654540,
+  },
+  'lumber-camp': {
+    humanComplete: 0x6c9154,
+    humanIncomplete: 0x43573a,
+    enemyComplete: 0x826c63,
+    enemyIncomplete: 0x564642,
+  },
+  'mining-camp': {
+    humanComplete: 0x7f8f9f,
+    humanIncomplete: 0x4c5661,
+    enemyComplete: 0x8a7582,
+    enemyIncomplete: 0x5b4b54,
+  },
+  barracks: {
+    humanComplete: 0x9b7351,
+    humanIncomplete: 0x5b4636,
+    enemyComplete: 0x8e6257,
+    enemyIncomplete: 0x5c403b,
+  },
+  'watch-tower': {
+    humanComplete: 0x8d9aa7,
+    humanIncomplete: 0x56606a,
+    enemyComplete: 0xa3848f,
+    enemyIncomplete: 0x654e58,
+  },
+  stable: {
+    humanComplete: 0xa07b4f,
+    humanIncomplete: 0x624b34,
+    enemyComplete: 0x996763,
+    enemyIncomplete: 0x604340,
+  },
+  'archery-range': {
+    humanComplete: 0x7f6855,
+    humanIncomplete: 0x4f4034,
+    enemyComplete: 0x8b6660,
+    enemyIncomplete: 0x5a433d,
+  },
+  blacksmith: {
+    humanComplete: 0x6f7682,
+    humanIncomplete: 0x434a54,
+    enemyComplete: 0x8b6670,
+    enemyIncomplete: 0x5a434b,
+  },
+  market: {
+    humanComplete: 0xb68f52,
+    humanIncomplete: 0x6c5637,
+    enemyComplete: 0xb07a66,
+    enemyIncomplete: 0x6d4d43,
+  },
+  'siege-workshop': {
+    humanComplete: 0x8e7352,
+    humanIncomplete: 0x57462f,
+    enemyComplete: 0x8b6a55,
+    enemyIncomplete: 0x57413a,
+  },
+  monastery: {
+    humanComplete: 0xcfc3a8,
+    humanIncomplete: 0x6f6757,
+    enemyComplete: 0xc3a8b6,
+    enemyIncomplete: 0x6e5862,
+  },
+  castle: {
+    humanComplete: 0xa09f9c,
+    humanIncomplete: 0x605d59,
+    enemyComplete: 0xaa7a7a,
+    enemyIncomplete: 0x604545,
+  },
+  wonder: {
+    humanComplete: 0xe6c36a,
+    humanIncomplete: 0x8a7340,
+    enemyComplete: 0xb9585f,
+    enemyIncomplete: 0x6b3438,
+  },
+  'stone-wall': {
+    humanComplete: 0x9aa0a8,
+    humanIncomplete: 0x5d606a,
+    enemyComplete: 0xa57272,
+    enemyIncomplete: 0x5d4242,
+  },
+  'palisade-wall': {
+    humanComplete: 0xa88555,
+    humanIncomplete: 0x655138,
+    enemyComplete: 0xa17066,
+    enemyIncomplete: 0x604540,
+  },
+};
+
+const BUILDING_MAX_HP: Record<BuildingType, number> = {
+  'town-center': 2400,
+  house: 75,
+  mill: 100,
+  'lumber-camp': 100,
+  'mining-camp': 100,
+  barracks: 175,
+  'watch-tower': 175,
+  stable: 175,
+  'archery-range': 175,
+  blacksmith: 175,
+  market: 175,
+  'siege-workshop': 2000,
+  monastery: 2100,
+  castle: 4800,
+  wonder: 4800,
+  'stone-wall': 2000,
+  'palisade-wall': 250,
+};
+
+const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
+  ['town-center', 7],
+  ['watch-tower', 8],
+  ['castle', 11],
+  ['wonder', 7],
+]);
+
+const BUILDING_COMBAT_STATES = new Map<BuildingType, BuildingCombatProfile>([
+  ['town-center', { attackDamage: 5, attackRange: 6, reloadTicks: 12, cooldownTicks: 0 }],
+  ['watch-tower', { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 }],
+  ['castle', { attackDamage: 11, attackRange: 8, reloadTicks: 20, cooldownTicks: 0 }],
+]);
+
+const BUILDING_GARRISON_CAPACITY = new Map<BuildingType, number>([
+  ['town-center', 5],
+  ['watch-tower', 5],
+  ['castle', 20],
+]);
+
+const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnitType[]>([
+  ['town-center', ['villager']],
+  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman']],
+  ['stable', ['scout', 'knight', 'light-cavalry', 'hussar', 'cavalier', 'camel', 'paladin', 'heavy-camel']],
+  ['archery-range', ['archer', 'skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer']],
+  ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon']],
+  ['monastery', ['monk']],
+  ['castle', ['longbowman', 'elite-longbowman', 'trebuchet']],
+]);
+
+const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
+  ['town-center', ['feudal-age', 'castle-age', 'imperial-age']],
+  ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry']],
+  ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade']],
+  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade']],
+  ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade']],
+  ['castle', ['elite-longbowman-upgrade']],
+  ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade']],
+]);
+
+const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
+  'mill',
+  'lumber-camp',
+  'mining-camp',
+  'barracks',
+]);
+
+const FEUDAL_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
+  'stable',
+  'archery-range',
+  'blacksmith',
+  'market',
+]);
+
+const CASTLE_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
+  'siege-workshop',
+  'monastery',
+  'castle',
+]);
+
+export function buildingPopulationProvided(buildingType: BuildingType): number {
+  return BUILDING_POPULATION_PROVIDED[buildingType];
+}
+
+export function buildingBuildTimeTicks(buildingType: BuildingType): number {
+  return BUILDING_BUILD_TIME_TICKS[buildingType];
+}
+
+export function buildingSize(buildingType: BuildingType): number {
+  return BUILDING_SIZES[buildingType];
+}
+
+export function buildingTint(
+  buildingType: BuildingType,
+  owner: number,
+  isComplete: boolean,
+): number {
+  const palette = BUILDING_TINTS[buildingType];
+  const isHuman = owner === HUMAN_PLAYER_ID;
+  if (isHuman) {
+    return isComplete ? palette.humanComplete : palette.humanIncomplete;
+  }
+  return isComplete ? palette.enemyComplete : palette.enemyIncomplete;
+}
+
+export function buildingMaxHp(buildingType: BuildingType): number {
+  return BUILDING_MAX_HP[buildingType];
+}
+
+export function buildingVisionRadius(buildingType: BuildingType): number | null {
+  return BUILDING_VISION_RADIUS.get(buildingType) ?? null;
+}
+
+export function createBuildingCombatState(
+  buildingType: BuildingType,
+): BuildingCombatProfile | null {
+  const profile = BUILDING_COMBAT_STATES.get(buildingType);
+  return profile ? { ...profile } : null;
+}
+
+export function buildingGarrisonCapacity(buildingType: BuildingType): number {
+  return BUILDING_GARRISON_CAPACITY.get(buildingType) ?? 0;
+}
+
+export function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
+  if (buildingGarrisonCapacity(buildingType) <= 0) {
+    return false;
+  }
+  if (unitType === 'villager') {
+    return true;
+  }
+  return buildingType === 'castle' && isArcherLineUnit(unitType);
+}
+
+export function buildingArrowCount(
+  buildingType: BuildingType,
+  garrisonedUnitsTotal: number,
+  garrisonedArchers: number,
+): number {
+  switch (buildingType) {
+    case 'town-center':
+      return garrisonedUnitsTotal > 0 ? 1 + Math.min(garrisonedUnitsTotal, 4) : 0;
+    case 'watch-tower':
+      return 1;
+    case 'castle':
+      return Math.min(5, 1 + garrisonedArchers);
+    default:
+      return 0;
+  }
+}
+
+export function canTrainAt(buildingType: BuildingType, unitType: TrainableUnitType): boolean {
+  return TRAINABLE_UNITS_BY_BUILDING.get(buildingType)?.includes(unitType) ?? false;
+}
+
+export function canResearchAt(
+  buildingType: BuildingType,
+  technologyType: ResearchableTechnologyType,
+): boolean {
+  return RESEARCHES_BY_BUILDING.get(buildingType)?.includes(technologyType) ?? false;
+}
+
+export function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return DARK_AGE_PREREQUISITE_BUILDINGS.has(buildingType);
+}
+
+export function isFeudalAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return FEUDAL_AGE_PREREQUISITE_BUILDINGS.has(buildingType);
+}
+
+export function isCastleAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
+  return CASTLE_AGE_PREREQUISITE_BUILDINGS.has(buildingType);
+}

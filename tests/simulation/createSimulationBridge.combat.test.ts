@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
-  selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
