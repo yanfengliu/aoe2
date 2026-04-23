@@ -25,12 +25,13 @@
     - Learnings from debugging and friction points should be documented in `docs/learning/lessons.md`. The file should be actively maintained to not become long, tedious, or outdated.
 - Reviews might take a long time depending on the amount of changes you made. Be patient and wait for the result.
 - After addressing review comments, ask the reviewer to verify that you have successfully done so. This is basically a second round of full review.
-- Example command to use Codex for code review:
+- Codex:
   - `git diff [branch] | codex exec --model gpt-5.4 --model-reasoning-effort xhigh --sandbox read-only --ask-for-approval never --ephemeral "You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text."`
-- Example command to use Gemini for code review:
+- Gemini:
   - `git diff [branch] | gemini -p "@src You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text." --model gemini-3-pro --thinking high` (Use the @ symbol within the prompt to include directory context for the best reasoning results).
-- Example command to use Claude for code review:
+- Claude:
   - `git diff [branch] | claude -p --append-system-prompt "You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text." --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+- Write down the reviewer feedback from previous round(s) and ask the reviewer to base their new review on this info.
 - The reviewers should check `docs/learning/lessons.md`.
 - Prefer small functions and files, reusable utilities, composition over inheritance, and dead-code cleanup.
 - Do not change game mechanics or behavior unless explicitly asked.
@@ -76,13 +77,9 @@
 - Keep `docs/devlog/summary.md` current after updating the detailed log. Always remove outdated info. Compact when it grows larger than 50 lines.
 - If a subagent handles summary work, it should extract facts only and avoid interpretation.
 
-## civ-engine
-
-- Record current `civ-engine` weaknesses and misses in `docs/engine-feedback/current.md` as you work. Historical observations belong in `docs/engine-feedback/past.md`. Before you write to the current file, use a subagent to audit if its content is still valid and up to date. If too long, stale, or the issues are already addressed, it should be adjusted.
-- If a missing engine feature blocks the task, stop your work and report it to the user. But do not modify the `civ-engine` repo directly.
-
 ## Debugging
 
-- Read `docs/guides/debugging.md` in the `civ-engine` package if the bug seems engine related.
 - When debugging, use `docs/debugging/template.md` to record your process. Create a new file per debugging session and use it to iterate until you solve the problem.
-- Clean up the stackdump files created during debugging after you are done, but keep the `.md` files.
+- Clean up the temporary files (such as stack dump, test results) created during debugging after you are done.
+
+@GAME_SPECIFIC.md
