@@ -7,7 +7,7 @@ The selection info panel should show what the selected entity (or group) is curr
 ## Scope (decided in brainstorm)
 
 - **Entity coverage:** owned units and owned buildings only. Enemy/neutral selections and resources hide the activity row.
-- **Granularity:** coarse + target (e.g. `Gathering wood`, `Attacking Knight`, `Building House`, `Training Villager`, `Researching Loom`, `Garrisoned in Castle`, `Under construction`, `Idle`).
+- **Granularity:** coarse + target (e.g. `Gathering wood`, `Attacking Knight`, `Building House`, `Training Villager`, `Researching Loom`, `Under construction`, `Idle`).
 - **Placement:** a dedicated line under the selection name, above the Health/Attack/Armor detail grid.
 - **Multi-selection:** coarse-verb roll-up, e.g. `5 gathering · 2 moving · 1 idle`. No target names in the roll-up — the breakdown line stays narrow.
 
@@ -17,6 +17,7 @@ The selection info panel should show what the selected entity (or group) is curr
 - Enemy-unit activity is out of scope even though it would be easy — covered by the "owned only" brainstorm decision.
 - No new visual treatments beyond the new line (no icons, no colors per activity). Keep it textual for this pass.
 - No changes to the activity row when the panel is refreshing for an unchanged snapshot — the existing signature memoization in `selectionPanel.ts` must continue to suppress re-render.
+- Garrisoned units are unselectable through the panel; no activity label is produced for them.
 
 ## Activity taxonomy
 
@@ -24,8 +25,7 @@ The bridge derives the activity from existing simulation state. No new component
 
 ### Units — priority order (first match wins)
 
-1. **Garrisoned** — the unit id appears in any `garrisonedByBuilding` list. Label: `Garrisoned in <Building>` where `<Building>` uses `formatEntityName(buildingType)`.
-2. **Monk task** (`monkTasks.get(id)`):
+1. **Monk task** (`monkTasks.get(id)`):
    - `heal` → `Healing <Target>`
    - `convert` → `Converting <Target>`
    - `pickup` → `Retrieving relic`
@@ -58,7 +58,6 @@ No activity — row hidden.
 When `selectedEntityIds.length > 1` and all entities share owner === human player:
 
 - For each selected owned unit/building, compute the coarse verb only. The mapping from taxonomy branch to coarse verb is explicit (not derived by string-splitting the single-selection label, because `Under construction` is two words):
-  - Garrisoned → `garrisoned`
   - Healing / Converting / Retrieving relic / Depositing relic → `healing` / `converting` / `retrieving` / `depositing`
   - Packing / Unpacking → `packing` / `unpacking`
   - Attacking → `attacking`
@@ -117,8 +116,7 @@ New file `tests/simulation/selectionActivity.test.ts`:
 7. Monk healing a wounded unit → `Healing <UnitName>`.
 8. Monk converting an enemy → `Converting <UnitName>`.
 9. Monk retrieving a relic → `Retrieving relic`. Depositing → `Depositing relic`.
-10. Unit garrisoned in a Castle → `Garrisoned in Castle`.
-11. Town Center with Villager at head of queue → `Training Villager`.
+10. Town Center with Villager at head of queue → `Training Villager`.
 12. University with a tech at head of queue → `Researching <TechName>`.
 13. Building mid-construction → `Under construction`.
 14. Idle Barracks → `Idle`.

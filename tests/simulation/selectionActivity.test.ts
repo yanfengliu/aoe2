@@ -125,61 +125,6 @@ describe('selection activity — owned unit', () => {
     expect(bridge.getSelectionState().activity).toBe('Building House');
   });
 
-  it('villager with garrison in Town Center reports Garrisoned in Town Center', () => {
-    const bridge = createSimulationBridge(DEFAULT_SEED);
-    // Find a villager and garrison it into the Town Center.
-    const villager = findFirstOwnedUnit(bridge, HUMAN_PLAYER_ID, 'villager');
-    expect(villager).toBeDefined();
-    expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
-
-    const tc = bridge
-      .getEconomyState()
-      .buildings.find((b) => b.owner === HUMAN_PLAYER_ID && b.buildingType === 'town-center');
-    expect(tc).toBeDefined();
-    expect(bridge.issueContextCommand(tc!.x, tc!.y)).toBe(true);
-
-    // Garrison is instantaneous; the villager disappears from the map.
-    const garrisonedCount = bridge
-      .getEconomyState()
-      .units.filter((u) => u.owner === HUMAN_PLAYER_ID && u.unitType === 'villager').length;
-    // Now we need to check activity on the garrisoned unit. Because the unit
-    // is removed from the world map we re-select via selectOwnedUnitDirect
-    // which won't find it — instead, ungarrison it first, then garrison and
-    // check via the selection state after garrison.
-    // The garrison removes the unit from the map immediately; there is no way
-    // to re-select a garrisoned unit through the bridge UI. We verify the
-    // count dropped instead.
-    expect(garrisonedCount).toBeLessThan(3);
-    void garrisonedCount;
-  });
-
-  it('unit garrisoned in Castle reports Garrisoned in Castle', () => {
-    // castle-garrison-fixture: player-1 Castle at (14,6) + 20 villagers.
-    const bridge = createSimulationBridge('castle-garrison-fixture');
-
-    const castle = bridge
-      .getEconomyState()
-      .buildings.find((b) => b.owner === HUMAN_PLAYER_ID && b.buildingType === 'castle');
-    expect(castle).toBeDefined();
-
-    // Garrison one villager; the unit disappears from the map on the same tick.
-    const villager = findFirstOwnedUnit(bridge, HUMAN_PLAYER_ID, 'villager');
-    expect(villager).toBeDefined();
-    const villagerId = villager!.id;
-    expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
-
-    // The villager is now garrisoned and removed from the visible unit list.
-    const stillOnMap = bridge
-      .getEconomyState()
-      .units.find((u) => u.id === villagerId);
-    expect(stillOnMap).toBeUndefined();
-    // activity for the garrisoned entity is not queryable through the bridge's
-    // UI selection (it's off-map), but the core garrisoned-by-building map
-    // logic is verified by the castle.test.ts garrison count test.
-    // Here we just confirm the unit correctly left the map (garrison happened).
-  });
-
   it('monk healing a friendly unit reports Healing Spearman', () => {
     // monk-heal-fixture: monk at (14,8), wounded spearman nearby, wolf for damage.
     const bridge = createSimulationBridge('monk-heal-fixture');

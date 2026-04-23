@@ -1725,13 +1725,6 @@ function createWorld(
   }
 
   function getUnitActivity(id: number, unit: UnitComponent): string {
-    for (const [buildingId, occupants] of garrisonedByBuilding) {
-      if (occupants.includes(id)) {
-        const b = world.getComponent<BuildingComponent>(buildingId, 'building');
-        return b ? `Garrisoned in ${formatEntityNameForActivity(b.buildingType)}` : 'Garrisoned';
-      }
-    }
-
     const monkTask = monkTasks.get(id);
     if (monkTask) {
       const targetName = resolveTargetEntityName(monkTask.targetEntityRef);
@@ -1814,7 +1807,6 @@ function createWorld(
 
   function coarseVerbForUnit(id: number, unit: UnitComponent): string {
     const activity = getUnitActivity(id, unit);
-    if (activity.startsWith('Garrisoned')) return 'garrisoned';
     if (activity.startsWith('Healing')) return 'healing';
     if (activity.startsWith('Converting')) return 'converting';
     if (activity === 'Retrieving relic') return 'retrieving';
