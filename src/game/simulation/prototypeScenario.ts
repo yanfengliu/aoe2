@@ -10,7 +10,6 @@ import type {
   VisionSourceComponent,
   WanderBoundsComponent,
 } from './types';
-import { MAP_HEIGHT, MAP_WIDTH } from './mapGeneration/constants';
 import { createDefaultMap } from './mapGeneration/defaultMap';
 import { createBlackForestMap } from './mapGeneration/blackForestMap';
 import { createArenaMap } from './mapGeneration/arenaMap';

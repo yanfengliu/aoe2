@@ -1,10 +1,7 @@
 import type { Position } from 'civ-engine';
 
 import type { ResourceKind } from '../types';
-import type {
-  PlayerStartSpec,
-  ScenarioSpawnSpec,
-} from '../prototypeScenario';
+import type { PlayerStartSpec } from '../prototypeScenario';
 import { MAP_HEIGHT, MAP_WIDTH } from './constants';
 import { createSpawnList, type SpawnList } from './spawnList';
 import {
@@ -21,7 +18,6 @@ import {
 } from './sharedTerrainHelpers';
 import {
   createStartingScoutSpawn,
-  FOREST_PATCHES,
   SHORE_FISH_AMOUNT,
   STARTING_BERRIES,
   STARTING_BOARS,

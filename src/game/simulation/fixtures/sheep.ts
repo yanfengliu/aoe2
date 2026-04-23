@@ -1,5 +1,4 @@
 import {
-  HUMAN_PLAYER_ID,
   MAP_HEIGHT,
   MAP_WIDTH,
   type PrototypeScenario,
