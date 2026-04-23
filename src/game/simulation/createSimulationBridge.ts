@@ -1815,28 +1815,15 @@ function createWorld(
     return computeUnitActivity(id, unit).verb;
   }
 
-  function coarseVerbForBuilding(id: number): string {
-    const activity = getBuildingActivity(id);
-    if (activity === 'Under construction') return 'under construction';
-    if (activity.startsWith('Training')) return 'training';
-    if (activity.startsWith('Researching')) return 'researching';
-    return 'idle';
-  }
-
   function getSelectionActivityBreakdown(
     ids: number[],
   ): { entries: { label: string; count: number }[]; overflow: number } | null {
+    // Box-select returns only owned units; buildings never show in the breakdown.
     const counts = new Map<string, number>();
     for (const id of ids) {
       const u = world.getComponent<UnitComponent>(id, 'unit');
       if (u && u.owner === HUMAN_PLAYER_ID) {
         const v = coarseVerbForUnit(id, u);
-        counts.set(v, (counts.get(v) ?? 0) + 1);
-        continue;
-      }
-      const b = world.getComponent<BuildingComponent>(id, 'building');
-      if (b && b.owner === HUMAN_PLAYER_ID) {
-        const v = coarseVerbForBuilding(id);
         counts.set(v, (counts.get(v) ?? 0) + 1);
       }
     }
