@@ -145,3 +145,4 @@ generated/content/content.json
 playwright-report/
 test-results/
 bash.exe.stackdump
+code_review/
