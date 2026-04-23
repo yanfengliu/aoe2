@@ -79,6 +79,12 @@ import { findSafeSpawnWithEgress } from './spawn';
 import { latestResearchedInChain as latestResearchedInChainExternal } from './upgradeChains';
 import { createWorldOccupancy } from './worldOccupancy';
 import {
+  computeUnitActivity,
+  getBuildingActivity,
+  getSelectionActivityBreakdown,
+  type SelectionActivitySources,
+} from './selectionActivity';
+import {
   AI_BASE_VISION_RADIUS,
   AI_MONK_COUNT_CAP,
   AI_MONK_HEAL_HP_FRACTION,
@@ -268,7 +274,7 @@ const CARDINAL_NEIGHBOR_OFFSETS: Position[] = [
 
 type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
-interface UnitCommand {
+export interface UnitCommand {
   type: 'move' | 'build' | 'attack';
   target: Position;
   buildingRef?: EntityRef;
@@ -280,18 +286,27 @@ interface UnitCommand {
 // enemy unit, pick up a neutral relic, or deposit a carried relic in a
 // friendly Monastery. The task encodes the target by stable EntityRef so
 // cleanup is automatic when the target is destroyed.
-interface MonkTask {
+export interface MonkTask {
   kind: 'heal' | 'convert' | 'pickup' | 'deposit';
   targetEntityRef: EntityRef;
 }
 
-interface ConstructionState {
+export interface ConstructionState {
   isComplete: boolean;
   buildProgressTicks: number;
   totalBuildTicks: number;
   populationProvided: number;
   width: number;
   height: number;
+}
+
+// FU7: Trebuchet pack/unpack state. Each Trebuchet has a `packed` flag
+// (mobile when true, stationary-fire when false) and a
+// `transitionTicksRemaining` counter that is > 0 while a pack <-> unpack
+// transition is in progress.
+export interface TrebuchetPackState {
+  packed: boolean;
+  transitionTicksRemaining: number;
 }
 
 interface CombatState {
@@ -1071,18 +1086,6 @@ function createWorld(
   // Per-Monastery count of deposited relics. Per tick, every owner gets +1
   // gold for each relic deposited in their Monasteries (see prototypeRelicGold).
   const relicsInMonastery = new Map<number, number>();
-  // FU7: Trebuchet pack/unpack state. Each Trebuchet has a `packed` flag
-  // (mobile when true, stationary-fire when false) and a
-  // `transitionTicksRemaining` counter that is > 0 while a pack <-> unpack
-  // transition is in progress. On transition completion, `packed` flips.
-  // During a transition the Trebuchet neither moves nor fires — it sits
-  // in place until the counter hits zero. Packed is the freshly-trained
-  // default so Trebuchets walk out of the Castle like any other siege
-  // unit and only root themselves on reaching an enemy target.
-  interface TrebuchetPackState {
-    packed: boolean;
-    transitionTicksRemaining: number;
-  }
   const trebuchetPackStates = new Map<number, TrebuchetPackState>();
   // Slice 8: Wonder victory state. Countdown starts as soon as a player's
   // Wonder completes construction; decrements every tick. At 0 the owner
@@ -1702,134 +1705,6 @@ function createWorld(
     }
 
     return null;
-  }
-
-  type ActivityTarget = { kind: 'unit' | 'building' | 'resource' | 'relic' | 'economy-resource' | 'technology'; type: string };
-  type ActivityPayload = { verb: string; target: ActivityTarget | null };
-
-  function resolveTargetEntityRef(ref: EntityRef | undefined): ActivityTarget | null {
-    if (!ref) return null;
-    const id = getCurrentEntityId(ref);
-    if (id === null) return null;
-    const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (unit) return { kind: 'unit', type: unit.unitType };
-    const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (building) return { kind: 'building', type: building.buildingType };
-    const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    if (resource) return { kind: 'resource', type: resource.resourceType };
-    return null;
-  }
-
-  function computeUnitActivity(id: number, unit: UnitComponent): ActivityPayload {
-    const monkTask = monkTasks.get(id);
-    if (monkTask) {
-      switch (monkTask.kind) {
-        case 'heal': {
-          const target = resolveTargetEntityRef(monkTask.targetEntityRef);
-          return { verb: 'healing', target };
-        }
-        case 'convert': {
-          const target = resolveTargetEntityRef(monkTask.targetEntityRef);
-          return { verb: 'converting', target };
-        }
-        case 'pickup':
-          return { verb: 'retrieving', target: null };
-        case 'deposit':
-          return { verb: 'depositing', target: null };
-      }
-    }
-
-    const treb = trebuchetPackStates.get(id);
-    if (treb && treb.transitionTicksRemaining > 0) {
-      return treb.packed
-        ? { verb: 'unpacking', target: null }
-        : { verb: 'packing', target: null };
-    }
-
-    const cmd = unitCommands.get(id);
-    if (cmd) {
-      if (cmd.type === 'attack') {
-        const target = resolveTargetEntityRef(cmd.targetEntityRef);
-        return { verb: 'attacking', target };
-      }
-      if (cmd.type === 'build') {
-        const target = resolveTargetEntityRef(cmd.buildingRef);
-        return { verb: 'building', target };
-      }
-      if (cmd.type === 'move') {
-        return { verb: 'moving', target: null };
-      }
-    }
-
-    // Villager gathering state lives on GathererComponent, not unitCommands.
-    // `issueUnitGatherCommand` clears unitCommands and sets gatherer.task directly.
-    if (unit.unitType === 'villager') {
-      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-      if (gatherer) {
-        if (gatherer.task === 'to-resource' || gatherer.task === 'gathering') {
-          if (gatherer.targetResourceId !== null) {
-            const r = world.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
-            if (r) {
-              const econ = resourceKindToEconomyResource(r.resourceType);
-              if (econ) return { verb: 'gathering', target: { kind: 'economy-resource', type: econ } };
-            }
-          }
-          if (gatherer.desiredResource) return { verb: 'gathering', target: { kind: 'economy-resource', type: gatherer.desiredResource } };
-          return { verb: 'gathering', target: null };
-        }
-        if (gatherer.task === 'to-dropoff' && gatherer.carriedResource && gatherer.carriedAmount > 0) {
-          return { verb: 'returning', target: { kind: 'economy-resource', type: gatherer.carriedResource } };
-        }
-      }
-    }
-
-    return { verb: 'idle', target: null };
-  }
-
-  function getBuildingActivity(id: number): ActivityPayload {
-    const construction = constructionStates.get(id);
-    if (construction && !construction.isComplete) {
-      return { verb: 'under construction', target: null };
-    }
-
-    const queue = productionQueues.get(id);
-    const head = queue && queue.length > 0 ? queue[0] : null;
-    if (head) {
-      if (head.kind === 'unit' && head.unitType) {
-        return { verb: 'training', target: { kind: 'unit', type: head.unitType } };
-      }
-      if (head.kind === 'technology' && head.technologyType) {
-        return { verb: 'researching', target: { kind: 'technology', type: head.technologyType } };
-      }
-    }
-
-    return { verb: 'idle', target: null };
-  }
-
-  function coarseVerbForUnit(id: number, unit: UnitComponent): string {
-    return computeUnitActivity(id, unit).verb;
-  }
-
-  function getSelectionActivityBreakdown(
-    ids: number[],
-  ): { entries: { label: string; count: number }[]; overflow: number } | null {
-    // Box-select returns only owned units; buildings never show in the breakdown.
-    const counts = new Map<string, number>();
-    for (const id of ids) {
-      const u = world.getComponent<UnitComponent>(id, 'unit');
-      if (u && u.owner === HUMAN_PLAYER_ID) {
-        const v = coarseVerbForUnit(id, u);
-        counts.set(v, (counts.get(v) ?? 0) + 1);
-      }
-    }
-    if (counts.size === 0) return null;
-    const sorted = [...counts.entries()]
-      .sort(([aLabel, aCount], [bLabel, bCount]) => bCount - aCount || aLabel.localeCompare(bLabel))
-      .map(([label, count]) => ({ label, count }));
-    const cap = 5;
-    return sorted.length <= cap
-      ? { entries: sorted, overflow: 0 }
-      : { entries: sorted.slice(0, cap), overflow: sorted.length - cap };
   }
 
   function getUnitTransform(
@@ -8235,6 +8110,17 @@ function createWorld(
     const selectedKind = unit ? 'unit' : building ? 'building' : 'resource';
     const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
 
+    const activitySources: SelectionActivitySources = {
+      world,
+      humanPlayerId: HUMAN_PLAYER_ID,
+      unitCommands,
+      monkTasks,
+      trebuchetPackStates,
+      productionQueues,
+      constructionStates,
+      getCurrentEntityId: (ref) => getCurrentEntityId(ref),
+    };
+
     return {
       selectedEntityId,
       selectedEntityIds,
@@ -8256,12 +8142,12 @@ function createWorld(
           : null,
       activity:
         selectedEntityIds.length === 1 && unit && unit.owner === HUMAN_PLAYER_ID
-          ? computeUnitActivity(selectedEntityId, unit)
+          ? computeUnitActivity(activitySources, selectedEntityId, unit)
           : selectedEntityIds.length === 1 && building && building.owner === HUMAN_PLAYER_ID
-          ? getBuildingActivity(selectedEntityId)
+          ? getBuildingActivity(activitySources, selectedEntityId)
           : null,
       activityBreakdown:
-        selectedEntityIds.length > 1 ? getSelectionActivityBreakdown(selectedEntityIds) : null,
+        selectedEntityIds.length > 1 ? getSelectionActivityBreakdown(activitySources, selectedEntityIds) : null,
       x: position.x,
       y: position.y,
       tileX: selectionTile.x,
