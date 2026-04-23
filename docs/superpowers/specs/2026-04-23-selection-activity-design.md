@@ -80,22 +80,24 @@ Two new optional fields on `SelectionState` in `src/game/simulation/types.ts`:
 
 ```ts
 activity: string | null;
-activityBreakdown: { label: string; count: number }[] | null;
+activityBreakdown: { entries: { label: string; count: number }[]; overflow: number } | null;
 ```
 
 - `activity` is set when `selectedCount === 1` and the selected entity is an owned unit or building. Null otherwise.
-- `activityBreakdown` is set when `selectedCount > 1` and at least one selected entity is an owned unit/building. Null otherwise. Labels are lowercase coarse verbs.
+- `activityBreakdown` is set when `selectedCount > 1` and at least one selected entity is an owned unit/building. Null otherwise. `entries` holds up to 5 verbs (most-frequent first); `overflow` counts any verbs beyond the cap.
 - Exactly one of the two is non-null for a valid activity read; both null means "no activity to show" and the row is hidden.
 
-The bridge's `getSelectionState()` fills these fields using the taxonomy above, pulling from the same maps it already consults (`unitCommands`, `monkTasks`, `garrisonedByBuilding`, `trebuchetPackStates`, `productionQueues`, `constructionStates`, `GathererComponent`).
+The bridge's `getSelectionState()` fills these fields using the taxonomy above, pulling from the same maps it already consults (`unitCommands`, `monkTasks`, `trebuchetPackStates`, `productionQueues`, `constructionStates`, `GathererComponent`).
 
 ## Rendering
 
 `src/ui/hud/selectionPanel.ts` gets a new render function `renderSelectionActivity(selectionState)`:
 
 - Single: `<div class="hud-selection-activity" data-selection-activity>Gathering wood</div>`
-- Multi: `<div class="hud-selection-activity" data-selection-activity data-selection-activity-multi>5 gathering · 2 moving · 1 idle</div>`
+- Multi: `<div class="hud-selection-activity" data-selection-activity-multi>5 gathering · 2 moving · 1 idle</div>`
 - Null: return empty string, row absent.
+
+Note: `data-selection-activity` and `data-selection-activity-multi` are mutually exclusive — single-entity renders use the former, multi-selection renders use the latter.
 
 The activity block is inserted between `formatSelectionName(...)` and `selectionDetails` in the existing innerHTML template. CSS styling: matches `hud-selection-meta` in weight — smaller than the name, same text color as other details. Add a minimal CSS rule in `src/styles.css` only if the existing classes don't already give the right look.
 
