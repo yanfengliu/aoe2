@@ -105,9 +105,9 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
     const tree = bridge.getEconomyState().resources.find((r) => r.resourceType === 'tree');
     expect(tree).toBeDefined();
-    expect(bridge.issueContextCommandAtCell(tree!.x, tree!.y)).toBe(true);
-    // Advance one tick so the command is registered.
-    stepBridgeUntil(bridge, () => bridge.getSelectionState().activity !== 'Idle', 5);
+    expect(bridge.issueContextCommand(tree!.x, tree!.y)).toBe(true);
+    // Advance ticks so the command path runs and activity updates.
+    stepBridgeUntil(bridge, () => bridge.getSelectionState().activity !== 'Idle', { maxSteps: 5 });
     expect(bridge.getSelectionState().activity).toBe('Gathering wood');
   });
 });
@@ -127,7 +127,7 @@ In `createSimulationBridge.ts`, add a helper near other `getSelection*` helpers 
 ```ts
   function resolveTargetEntityName(ref: EntityRef | undefined): string | null {
     if (!ref) return null;
-    const id = resolveEntityRef(ref);
+    const id = getCurrentEntityId(ref);
     if (id === null) return null;
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (unit) return formatEntityName(unit.unitType);
@@ -180,7 +180,7 @@ In `createSimulationBridge.ts`, add a helper near other `getSelection*` helpers 
       }
       if (cmd.type === 'move') {
         if (unit.unitType === 'villager' && cmd.targetEntityKind === 'resource') {
-          const targetId = cmd.targetEntityRef ? resolveEntityRef(cmd.targetEntityRef) : null;
+          const targetId = cmd.targetEntityRef ? getCurrentEntityId(cmd.targetEntityRef) : null;
           if (targetId !== null) {
             const r = world.getComponent<ResourceComponent>(targetId, 'resource');
             if (r) {
