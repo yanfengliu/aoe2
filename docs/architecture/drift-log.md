@@ -6,3 +6,4 @@ structural change, so future agents can trace how the shape of the repo evolved.
 | Date | Change | Devlog entry |
 | ---- | ------ | ------------ |
 | 2026-04-17 | Established `docs/architecture/ARCHITECTURE.md` to document existing runtime layers and directory structure. | `docs/devlog/detailed/` |
+| 2026-04-23 | Added `src/game/simulation/mapGeneration/` for the spawn-list dedupe helper and the procedural default-map generator. | `docs/devlog/detailed/2026-04-23_2026-04-23.md` |

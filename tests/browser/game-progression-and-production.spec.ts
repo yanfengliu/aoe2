@@ -798,7 +798,8 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await page.locator('[data-command="build-house"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
 
-    await game.clickCell(page, 10, 5);
+    const housePosition = await game.findValidPlacementNearTownCenter(page, 'house');
+    await game.clickCell(page, housePosition.x, housePosition.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('175');
 
     const placedSnapshot = await game.getSnapshot(page);
@@ -807,8 +808,8 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
         (building) =>
           building.owner === 1
           && building.buildingType === 'house'
-          && building.x === 10
-          && building.y === 5
+          && building.x === housePosition.x
+          && building.y === housePosition.y
           && building.isComplete === false,
       ),
     ).toBe(true);

@@ -193,7 +193,8 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await page.locator('[data-command="build-house"]').click();
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
 
-    await game.moveMouseToCell(page, 10, 5);
+    const validAnchor = await game.findValidPlacementNearTownCenter(page, 'house');
+    await game.moveMouseToCell(page, validAnchor.x, validAnchor.y);
     let previewState = await page.evaluate(
       () => window.__AOE2_TEST__!.getPlacementPreviewState(),
     );
@@ -203,8 +204,8 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     expect(previewState).toMatchObject({
       active: true,
       buildingType: 'house',
-      cellX: 10,
-      cellY: 5,
+      cellX: validAnchor.x,
+      cellY: validAnchor.y,
       width: 2,
       height: 2,
       isValid: true,
@@ -216,7 +217,35 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
       blockedMarkerCount: 0,
     });
 
-    await game.moveMouseToCell(page, 13, 7);
+    // Pick any resource cell on the map — a 2x2 house anchored there
+    // must overlap the resource and therefore be invalid.
+    const invalidAnchor = await page.evaluate(() => {
+      const resources = window.__AOE2_TEST__!.getSnapshot().economyState.resources;
+      const humanTc = window.__AOE2_TEST__!
+        .getSnapshot()
+        .economyState.buildings.find(
+          (building) => building.owner === 1 && building.buildingType === 'town-center',
+        );
+      if (!humanTc) {
+        throw new Error('Expected human Town Center.');
+      }
+      let closest: { x: number; y: number } | null = null;
+      let closestDist = Infinity;
+      for (const resource of resources) {
+        const dx = resource.x - humanTc.x;
+        const dy = resource.y - humanTc.y;
+        const dist = dx * dx + dy * dy;
+        if (dist < closestDist) {
+          closest = { x: resource.x, y: resource.y };
+          closestDist = dist;
+        }
+      }
+      if (!closest) {
+        throw new Error('Expected at least one resource near the Town Center.');
+      }
+      return closest;
+    });
+    await game.moveMouseToCell(page, invalidAnchor.x, invalidAnchor.y);
     previewState = await page.evaluate(
       () => window.__AOE2_TEST__!.getPlacementPreviewState(),
     );
@@ -226,8 +255,8 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     expect(previewState).toMatchObject({
       active: true,
       buildingType: 'house',
-      cellX: 13,
-      cellY: 7,
+      cellX: invalidAnchor.x,
+      cellY: invalidAnchor.y,
       width: 2,
       height: 2,
       isValid: false,
@@ -322,7 +351,30 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await game.clickCell(page, 13, 7, 'right');
+
+    const goldMine = await page.evaluate(() => {
+      const snapshot = window.__AOE2_TEST__!.getSnapshot();
+      const humanTc = snapshot.economyState.buildings.find(
+        (building) => building.owner === 1 && building.buildingType === 'town-center',
+      );
+      if (!humanTc) {
+        throw new Error('Expected human Town Center.');
+      }
+      const mines = snapshot.economyState.resources.filter(
+        (resource) => resource.resourceType === 'gold-mine' && resource.baseOwner === 1,
+      );
+      if (mines.length === 0) {
+        throw new Error('Expected at least one gold mine near the human base.');
+      }
+      mines.sort((a, b) => {
+        const distA = (a.x - humanTc.x) ** 2 + (a.y - humanTc.y) ** 2;
+        const distB = (b.x - humanTc.x) ** 2 + (b.y - humanTc.y) ** 2;
+        return distA - distB;
+      });
+      return { x: mines[0].x, y: mines[0].y };
+    });
+
+    await game.clickCell(page, goldMine.x, goldMine.y, 'right');
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(260, 100),

@@ -12,6 +12,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `simulation/` — simulation bridge, scenario setup, command handlers
+      - `mapGeneration/` — deterministic procedural map generators and the
+        spawn-list helper that enforces one-resource-per-cell
   - `phaser/` — Phaser-specific scenes and render projection
   - `ui/` — DOM HUD controller
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
