@@ -127,7 +127,77 @@ test.describe('browser gameplay smoke tests - hud and camera', () => {
     expect(movedCamera?.scrollY ?? 0).toBeGreaterThan((initialCamera?.scrollY ?? 0) + 20);
   });
 
-  test('pans the camera when the mouse hovers near the screen edge', async ({ page }) => {
+  test('does not pan the camera when the mouse hovers near the screen edge in windowed mode', async ({
+    page,
+  }) => {
+    await game.emulateMonitorSize(page, 1280, 720);
+    await game.waitForBoot(page);
+
+    const bounds = await game.getGameCanvasBounds(page);
+    const initialCamera = (await game.getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height * 0.5);
+    await page.waitForTimeout(900);
+
+    const movedCamera = (await game.getSnapshot(page)).cameraState;
+    expect(movedCamera).not.toBeNull();
+    expect(movedCamera?.scrollX ?? 0).toBe(initialCamera?.scrollX ?? 0);
+    expect(movedCamera?.scrollY ?? 0).toBe(initialCamera?.scrollY ?? 0);
+  });
+
+  test('pans the camera when the mouse hovers near the screen edge in fullscreen mode', async ({
+    page,
+  }) => {
+    await game.emulateMonitorSize(page, 1280, 720);
+    await game.waitForBoot(page);
+    await game.enterGameFullscreen(page);
+
+    const bounds = await game.getGameCanvasBounds(page);
+    const initialCamera = (await game.getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height * 0.5);
+    await page.waitForTimeout(700);
+
+    await expect.poll(async () => {
+      const snapshot = await game.getSnapshot(page);
+      return snapshot.cameraState?.scrollX ?? 0;
+    }).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 35);
+  });
+
+  test('stops edge panning immediately after fullscreen exits', async ({ page }) => {
+    await game.emulateMonitorSize(page, 1280, 720);
+    await game.waitForBoot(page);
+    await game.enterGameFullscreen(page);
+
+    const bounds = await game.getGameCanvasBounds(page);
+    const initialCamera = (await game.getSnapshot(page)).cameraState;
+    expect(initialCamera).not.toBeNull();
+
+    await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height * 0.5);
+    await expect.poll(async () => {
+      const snapshot = await game.getSnapshot(page);
+      return snapshot.cameraState?.scrollX ?? 0;
+    }).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 35);
+
+    await game.exitFullscreen(page);
+
+    const postExitCamera = (await game.getSnapshot(page)).cameraState;
+    expect(postExitCamera).not.toBeNull();
+
+    await page.waitForTimeout(700);
+
+    const settledCamera = (await game.getSnapshot(page)).cameraState;
+    expect(settledCamera).not.toBeNull();
+    expect(settledCamera?.scrollX ?? 0).toBe(postExitCamera?.scrollX ?? 0);
+    expect(settledCamera?.scrollY ?? 0).toBe(postExitCamera?.scrollY ?? 0);
+  });
+
+  test('pans the camera when the browser window already fills the whole screen', async ({
+    page,
+  }) => {
+    await game.emulateMonitorSize(page, 800, 600);
     await game.waitForBoot(page);
 
     const bounds = await game.getGameCanvasBounds(page);

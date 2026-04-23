@@ -100,6 +100,85 @@ export async function waitForBootWithSeed(page: Page, seed: string): Promise<voi
   }).toBeGreaterThan(0);
 }
 
+export async function emulateMonitorSize(
+  page: Page,
+  screenWidth = 1280,
+  screenHeight = 720,
+): Promise<void> {
+  await page.addInitScript(
+    ({ emulatedScreenWidth, emulatedScreenHeight }) => {
+      Object.defineProperty(window.screen, 'width', {
+        configurable: true,
+        get: () => emulatedScreenWidth,
+      });
+      Object.defineProperty(window.screen, 'height', {
+        configurable: true,
+        get: () => emulatedScreenHeight,
+      });
+    },
+    {
+      emulatedScreenWidth: screenWidth,
+      emulatedScreenHeight: screenHeight,
+    },
+  );
+}
+
+async function isCanvasContainedByFullscreenElement(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const canvas = document.querySelector('#game-root canvas');
+    const fullscreenElement = document.fullscreenElement;
+    return canvas instanceof Node && fullscreenElement instanceof Element && fullscreenElement.contains(canvas);
+  });
+}
+
+export async function enterGameFullscreen(page: Page): Promise<void> {
+  const isAlreadyFullscreen = await isCanvasContainedByFullscreenElement(page);
+  if (isAlreadyFullscreen) {
+    return;
+  }
+
+  await page.evaluate(() => {
+    const root = document.getElementById('game-root');
+    if (!root) {
+      throw new Error('Expected #game-root to exist.');
+    }
+
+    // Chromium requires user activation for requestFullscreen(), so arm the
+    // next click on a temporary button to promote the game root into
+    // fullscreen mode without sending spurious input to the canvas.
+    const trigger = document.createElement('button');
+    trigger.id = '__aoe2-test-fullscreen-trigger';
+    trigger.type = 'button';
+    trigger.textContent = 'enter fullscreen';
+    Object.assign(trigger.style, {
+      position: 'fixed',
+      top: '8px',
+      left: '8px',
+      zIndex: '2147483647',
+    });
+    trigger.addEventListener(
+      'click',
+      () => {
+        void root.requestFullscreen();
+      },
+      { once: true },
+    );
+    document.body.appendChild(trigger);
+  });
+  await page.locator('#__aoe2-test-fullscreen-trigger').click();
+  await expect.poll(async () => isCanvasContainedByFullscreenElement(page)).toBe(true);
+  await page.evaluate(() => {
+    document.getElementById('__aoe2-test-fullscreen-trigger')?.remove();
+  });
+}
+
+export async function exitFullscreen(page: Page): Promise<void> {
+  await page.evaluate(() => document.exitFullscreen());
+  await expect.poll(async () =>
+    page.evaluate(() => document.fullscreenElement === null)
+  ).toBe(true);
+}
+
 export async function getSnapshot(
   page: Page,
 ): Promise<BrowserTestSnapshot> {

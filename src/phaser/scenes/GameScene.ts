@@ -46,6 +46,7 @@ const MIDDLE_DRAG_PAN_MIN_DELTA_PX = 0.5;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 2.4;
 const INITIAL_CAMERA_ZOOM = 1.4;
+const FULLSCREEN_WINDOW_TOLERANCE_PX = 2;
 
 export interface CameraState {
   scrollX: number;
@@ -973,12 +974,39 @@ export class GameScene extends Phaser.Scene {
     this.clampCameraToWorld();
   }
 
+  private isEdgePanEnabled(): boolean {
+    const ownerDocument = this.game.canvas?.ownerDocument;
+    const fullscreenElement = ownerDocument?.fullscreenElement;
+    const canvas = this.game.canvas;
+    if (fullscreenElement != null && canvas != null && fullscreenElement.contains(canvas)) {
+      return true;
+    }
+
+    const view = ownerDocument?.defaultView;
+    const screenWidth = view?.screen.width ?? 0;
+    const screenHeight = view?.screen.height ?? 0;
+    if (!view || screenWidth <= 0 || screenHeight <= 0) {
+      return false;
+    }
+
+    return (
+      Math.abs(view.outerWidth - screenWidth) <= FULLSCREEN_WINDOW_TOLERANCE_PX
+      && Math.abs(view.outerHeight - screenHeight) <= FULLSCREEN_WINDOW_TOLERANCE_PX
+    );
+  }
+
   private getEdgePanDelta(time: number): { dx: -1 | 0 | 1; dy: -1 | 0 | 1 } {
+    if (!this.isEdgePanEnabled()) {
+      this.edgePanState = null;
+      return { dx: 0, dy: 0 };
+    }
+
     const pointer = this.input.activePointer;
     const width = this.scale.width;
     const height = this.scale.height;
-    // activePointer defaults to (0, 0), which is inside the NW edge zone. Wait
-    // for a real mousemove on the canvas before trusting it.
+    // Once the game is fullscreen, activePointer still defaults to (0, 0),
+    // which is inside the NW edge zone. Wait for a real mousemove on the
+    // canvas before trusting it.
     if (
       pointer.moveTime === 0
       || pointer.isDown

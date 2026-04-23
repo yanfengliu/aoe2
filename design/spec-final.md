@@ -1151,7 +1151,7 @@ Required behavior:
 - research-complete notifications
 - age-up notifications
 - idle-villager indicator
-- edge-scroll and keyboard camera movement
+- edge-scroll when the game is fullscreen or the browser window fully fills the monitor, plus keyboard camera movement
 - zoom support
 
 ### 14.4 Tech Tree Viewer

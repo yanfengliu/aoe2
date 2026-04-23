@@ -36,7 +36,7 @@ Camera:
 
 - `W`, `A`, `S`, `D` or arrow keys to pan
 - Middle-mouse drag to pan directly
-- Mouse hover near a screen edge to pan in that direction
+- Mouse hover near a screen edge to pan in that direction when the game is fullscreen or the browser window fully fills the monitor
 - Mouse wheel to zoom
 
 ## Test fixtures
