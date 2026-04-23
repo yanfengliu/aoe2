@@ -158,6 +158,14 @@ body {
   gap: 8px;
 }
 
+/* Multi-selection: icon-only wrapping grid so 8–16+ distinct unit types
+   stay visible inside the selection panel. Tooltips carry the full name
+   so nothing is lost. */
+.hud-selection-unit-list--compact {
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 6px;
+}
+
 .hud-selection-unit-chip {
   display: flex;
   align-items: center;
@@ -166,6 +174,16 @@ body {
   border: 1px solid rgba(221, 196, 145, 0.18);
   border-radius: 8px;
   background: rgba(31, 22, 16, 0.58);
+}
+
+.hud-selection-unit-chip--compact {
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 3px;
+  pointer-events: auto;
 }
 
 .hud-selection-unit-badge {
@@ -185,6 +203,14 @@ body {
   text-transform: uppercase;
 }
 
+.hud-selection-unit-chip--compact .hud-selection-unit-badge {
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 11px;
+}
+
 .hud-selection-unit-meta {
   display: grid;
   gap: 2px;
@@ -202,6 +228,12 @@ body {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.hud-selection-unit-chip--compact .hud-selection-unit-count {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .hud-selection-meta {

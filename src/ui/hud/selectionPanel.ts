@@ -95,14 +95,19 @@ function renderSelectionIcons(
     counts.set(selectionState.selectedEntityType, Math.max(selectionState.selectedCount, 1));
   }
 
-  const chips = orderedUnitTypes
-    .map((unitType) => {
-      const count = counts.get(unitType) ?? 1;
-      const countMarkup =
-        count > 1
-          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${unitType}">x${count}</div>`
-          : '';
-      return `
+  const isSingleUnitSelection =
+    selectionState.selectedEntityIds.length === 1
+    && orderedUnitTypes.length === 1
+    && (counts.get(orderedUnitTypes[0]) ?? 0) === 1;
+
+  if (isSingleUnitSelection) {
+    const unitType = orderedUnitTypes[0];
+    return `
+      <div
+        class="hud-selection-unit-list"
+        data-selection-unit-icons
+        style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+      >
         <div
           class="hud-selection-unit-chip"
           data-selection-unit-chip="${unitType}"
@@ -115,14 +120,37 @@ function renderSelectionIcons(
             <div class="hud-selection-unit-label" data-selection-unit-label="${unitType}">
               ${formatEntityName(unitType)}
             </div>
-            ${countMarkup}
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const chips = orderedUnitTypes
+    .map((unitType) => {
+      const count = counts.get(unitType) ?? 1;
+      const label = formatEntityName(unitType);
+      const countMarkup =
+        count > 1
+          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${unitType}">x${count}</div>`
+          : '';
+      return `
+        <div
+          class="hud-selection-unit-chip hud-selection-unit-chip--compact"
+          data-selection-unit-chip="${unitType}"
+          data-tooltip="${label}"
+          style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+        >
+          <div class="hud-selection-unit-badge" data-selection-unit-icon="${unitType}">
+            ${formatUnitIcon(unitType)}
+          </div>
+          ${countMarkup}
         </div>
       `;
     })
     .join('');
 
-  return `<div class="hud-selection-unit-list" data-selection-unit-icons>${chips}</div>`;
+  return `<div class="hud-selection-unit-list hud-selection-unit-list--compact" data-selection-unit-icons>${chips}</div>`;
 }
 
 function renderSelectionDetail(
