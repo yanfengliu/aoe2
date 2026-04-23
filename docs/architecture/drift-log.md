@@ -7,3 +7,4 @@ structural change, so future agents can trace how the shape of the repo evolved.
 | ---- | ------ | ------------ |
 | 2026-04-17 | Established `docs/architecture/ARCHITECTURE.md` to document existing runtime layers and directory structure. | `docs/devlog/detailed/` |
 | 2026-04-23 | Added `src/game/simulation/mapGeneration/` for the spawn-list dedupe helper and the procedural default-map generator. | `docs/devlog/detailed/2026-04-23_2026-04-23.md` |
+| 2026-04-23 | Split the 9,968-line `prototypeScenario.ts` god-file into `src/game/simulation/fixtures/` (13 category modules + shared common + barrel index) plus new `mapGeneration/` modules (`sharedTerrainHelpers`, `startingOffsets`, `applyStandardPlayerOpening`, `blackForestMap`, `arenaMap`, `constants`). `prototypeScenario.ts` retains public types + dispatcher + re-exports (~790 lines). | `docs/devlog/detailed/2026-04-23_2026-04-23.md` |

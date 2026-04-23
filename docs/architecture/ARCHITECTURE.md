@@ -13,7 +13,16 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     - `content/` — shared content tables (e.g., building footprints)
     - `simulation/` — simulation bridge, scenario setup, command handlers
       - `mapGeneration/` — deterministic procedural map generators and the
-        spawn-list helper that enforces one-resource-per-cell
+        spawn-list helper that enforces one-resource-per-cell. Hosts the
+        default + Black Forest + Arena generators plus the shared terrain
+        helpers (`paintDisc`, `createBaseTerrain`, etc.) and the starting
+        offset tables (`STARTING_SHEEP`, `FOREST_PATCHES`, …).
+      - `fixtures/` — per-category modules that export every vitest-driven
+        fixture factory (conquest, economy basics, age progression, combat
+        matchups, siege, monastery, castle defense, AI, wonder/relic,
+        selection, sheep, scenario validation). The `fixtures/index.ts`
+        barrel is the single place the `prototypeScenario.ts` dispatcher
+        imports from.
   - `phaser/` — Phaser-specific scenes and render projection
   - `ui/` — DOM HUD controller
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
