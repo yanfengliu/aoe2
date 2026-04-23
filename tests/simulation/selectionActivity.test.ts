@@ -502,11 +502,12 @@ describe('selection activity — multi-selection', () => {
     }
   });
 
-  it.skip('overflow: 6 distinct coarse verbs cap at 5 with overflow=1 (complex fixture required)', () => {
-    // Setting up 6 simultaneously distinct activities (attacking, building,
-    // gathering, returning, moving, idle + one more) for owned units in a
-    // single simulation step requires a dedicated fixture with enemies,
-    // foundation sites, trees near a drop-off, etc. Deferred to a later
-    // task-specific fixture.
+  it.skip('overflow: 6 distinct coarse verbs cap at 5 with overflow=1', () => {
+    // Achieving 6 simultaneously distinct verbs in a single bridge requires
+    // units of different behavioural classes (villager + combat + monk) AND
+    // resources (trees for gathering) all in one scene. No existing fixture
+    // combines all of these. A dedicated fixture is needed; deferred until
+    // one is added. The cap-at-5 / overflow arithmetic in
+    // getSelectionActivityBreakdown is straightforward and low-risk.
   });
 });
