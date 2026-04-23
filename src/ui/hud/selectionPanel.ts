@@ -139,6 +139,19 @@ function renderSelectionDetail(
   `;
 }
 
+function renderSelectionActivity(selectionState: SelectionState): string {
+  if (selectionState.activity) {
+    return `<div class="hud-selection-activity" data-selection-activity>${selectionState.activity}</div>`;
+  }
+  const breakdown = selectionState.activityBreakdown;
+  if (breakdown && breakdown.entries.length > 0) {
+    const tokens = breakdown.entries.map((e) => `${e.count} ${e.label}`);
+    if (breakdown.overflow > 0) tokens.push('…');
+    return `<div class="hud-selection-activity" data-selection-activity-multi>${tokens.join(' · ')}</div>`;
+  }
+  return '';
+}
+
 function renderSelectionDetails(selectionState: SelectionState): string {
   const details: string[] = [];
 
@@ -327,6 +340,7 @@ export function createSelectionPanel(
     el.innerHTML = `
       <div class="hud-label">Selection</div>
       <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
+      ${renderSelectionActivity(selectionState)}
       ${selectionIcons}
       ${selectionDetails}
       ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
