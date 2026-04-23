@@ -3,6 +3,15 @@
 Date: 2026-04-17.
 Roadmap: `docs/superpowers/plans/2026-04-17-post-sheep-roadmap.md` (slice 12).
 
+## Status update
+
+As of 2026-04-23, Task C is no longer pending. The original raw
+`OccupancyGrid` attempt was deferred because the bridge needed richer
+blocker metadata and crowding semantics. `civ-engine` now ships
+`OccupancyBinding`, and `aoe2` consumes it through
+`src/game/simulation/worldOccupancy.ts` plus bridge integration in
+`createSimulationBridge.ts`.
+
 ## Goal
 
 Pay down the engine-integration debt captured in `docs/engine-feedback/current.md`
@@ -113,6 +122,11 @@ inside this repo rather than needing engine work. Remove or mark as
 4. Commit: `Validate scenario fixtures at bridge construction`.
 
 ### Task C: OccupancyGrid migration (only if clean)
+
+Historical note: this eventually landed via `OccupancyBinding` rather
+than raw `OccupancyGrid`, because the bridge needs to distinguish
+whole-cell blockers (terrain/building/resource) from unit crowding
+that still allows movement.
 
 1. Attempt the refactor. If the existing `civ-engine` surface is
    awkward, skip and flag in feedback.

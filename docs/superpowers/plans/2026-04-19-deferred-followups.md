@@ -4,6 +4,8 @@ Source: the deferred-items enumeration from the post-Slice-12 status check.
 
 Each batch is a self-contained subagent task. Batches commit independently; later batches may depend on earlier ones (armor formula is a prerequisite for meaningful new armor tiers).
 
+Status note (2026-04-23): FU8's old `civ-engine` occupancy-migration item is no longer pending. `civ-engine` now ships `OccupancyBinding`, and `aoe2` consumes it through `src/game/simulation/worldOccupancy.ts` plus bridge integration in `createSimulationBridge.ts`.
+
 ## Batch FU1 — Armor damage-reduction + full Blacksmith progression
 
 - Wire `CombatState.armor` into the combat formula: `damage = max(0, atk + bonus − target.armor)`.
@@ -60,7 +62,7 @@ Each batch is a self-contained subagent task. Batches commit independently; late
 ## Batch FU8 — Infrastructure (nice-to-haves)
 
 - `vitest-worker` RPC timeout investigation: suppress warning if benign, or find root cause.
-- `civ-engine` `OccupancyGrid` migration attempt #2 (or document permanent skip).
+- Closed 2026-04-23: `aoe2` now routes placement/passability occupancy queries through a `worldOccupancy` adapter on top of `civ-engine`'s `OccupancyBinding`, so the old `OccupancyGrid` revisit is no longer an open follow-up.
 
 ## Sequencing
 

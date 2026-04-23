@@ -77,6 +77,7 @@ import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
 import { latestResearchedInChain as latestResearchedInChainExternal } from './upgradeChains';
+import { createWorldOccupancy } from './worldOccupancy';
 import {
   AI_BASE_VISION_RADIUS,
   AI_MONK_COUNT_CAP,
@@ -1034,6 +1035,9 @@ function createWorld(
         tps: TPS,
         seed,
       });
+  const worldOccupancy = createWorldOccupancy(MAP_WIDTH, MAP_HEIGHT);
+  worldOccupancy.attachWorld(world);
+  let isBootstrappingScenario = !savedGame;
 
   const trackedVisibilitySources = new Map<number, number>();
   const playerAges = new Map<number, AgeType>();
@@ -1745,7 +1749,7 @@ function createWorld(
       || currentGridPosition.x !== nextGridPosition.x
       || currentGridPosition.y !== nextGridPosition.y
     ) {
-      activeWorld.setPosition(id, nextGridPosition);
+      setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
     }
 
     return nextGridPosition;
@@ -1851,6 +1855,98 @@ function createWorld(
     return state;
   }
 
+  function syncOccupancyForEntity(
+    entity: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): void {
+    const position = activeWorld.getComponent<Position>(entity, 'position');
+    if (!position) {
+      worldOccupancy.release(entity);
+      return;
+    }
+
+    const building = activeWorld.getComponent<BuildingComponent>(entity, 'building');
+    if (building) {
+      const construction = constructionStates.get(entity);
+      const footprint = construction ?? buildingFootprint(building.buildingType);
+      worldOccupancy.syncBuilding(entity, position, footprint);
+      return;
+    }
+
+    if (activeWorld.getComponent<ResourceComponent>(entity, 'resource')) {
+      worldOccupancy.syncResource(entity, position);
+      return;
+    }
+
+    if (activeWorld.getComponent<UnitComponent>(entity, 'unit')) {
+      worldOccupancy.syncUnit(entity, position);
+      return;
+    }
+
+    worldOccupancy.release(entity);
+  }
+
+  function setPositionAndSyncOccupancy(
+    entity: number,
+    position: Position,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): void {
+    activeWorld.setPosition(entity, position);
+    syncOccupancyForEntity(entity, activeWorld);
+  }
+
+  function clearPositionAndSyncOccupancy(
+    entity: number,
+    activeWorld: World<GameEvents, GameCommands> = world,
+  ): void {
+    worldOccupancy.release(entity);
+    activeWorld.removeComponent(entity, 'position');
+  }
+
+  function syncSpawnedEntityOccupancy(entity: number): void {
+    if (!isBootstrappingScenario) {
+      syncOccupancyForEntity(entity);
+      return;
+    }
+
+    try {
+      syncOccupancyForEntity(entity);
+    } catch {
+      // Fresh-scenario validation should own the user-facing error for
+      // invalid fixture spawns so the thrown message still names the
+      // offending seed instead of leaking an occupancy-grid internals
+      // error first.
+    }
+  }
+
+  function rebuildWorldOccupancyFromWorld(): void {
+    worldOccupancy.reset();
+
+    const blockedTerrainCells: Position[] = [];
+    for (let y = 0; y < MAP_HEIGHT; y += 1) {
+      for (let x = 0; x < MAP_WIDTH; x += 1) {
+        const tile = tiles[y]?.[x];
+        const terrain = tile === undefined ? null : world.getComponent<TerrainComponent>(tile, 'terrain');
+        if (!terrain || (terrain.kind !== 'water' && terrain.kind !== 'forest')) {
+          continue;
+        }
+
+        blockedTerrainCells.push({ x, y });
+      }
+    }
+    worldOccupancy.blockTerrain(blockedTerrainCells);
+
+    for (const entity of world.query('position', 'building')) {
+      syncOccupancyForEntity(entity);
+    }
+    for (const entity of world.query('position', 'resource')) {
+      syncOccupancyForEntity(entity);
+    }
+    for (const entity of world.query('position', 'unit')) {
+      syncOccupancyForEntity(entity);
+    }
+  }
+
   function addUnitEntity(
     owner: number,
     unitType: UnitType,
@@ -1916,6 +2012,8 @@ function createWorld(
     if (vision) {
       world.addComponent(entity, 'visionSource', vision);
     }
+
+    syncSpawnedEntityOccupancy(entity);
 
     return entity;
   }
@@ -2009,6 +2107,8 @@ function createWorld(
       onBuildingConstructionComplete(entity, owner, buildingType);
     }
 
+    syncSpawnedEntityOccupancy(entity);
+
     return entity;
   }
 
@@ -2080,6 +2180,8 @@ function createWorld(
     if (isWildlifeResourceType(resourceType)) {
       wildlifeStates.set(entity, createWildlifeState(resourceType));
     }
+
+    syncSpawnedEntityOccupancy(entity);
 
     return entity;
   }
@@ -2555,6 +2657,9 @@ function createWorld(
     matchState.relicCountdownTicks = savedGame.matchState.relicCountdownTicks;
   }
 
+  isBootstrappingScenario = false;
+  rebuildWorldOccupancyFromWorld();
+
   function getUnitTaskState(id: number): UnitTaskState {
     if (isGarrisonedUnit(id)) {
       return 'garrisoned';
@@ -2620,72 +2725,20 @@ function createWorld(
     return terrain ? terrain.kind !== 'water' && terrain.kind !== 'forest' : false;
   }
 
-  function isCellBlockedByBuilding(
-    x: number,
-    y: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    for (const buildingId of activeWorld.query('building')) {
-      if (buildingOccupiesCell(buildingId, x, y, activeWorld)) {
-        return true;
-      }
-    }
-
-    return false;
+  function isCellBlockedByBuilding(x: number, y: number): boolean {
+    return worldOccupancy.isCellBlockedByBuilding(x, y);
   }
 
   function isCellBlockedByResource(
     x: number,
     y: number,
     ignoredResourceId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
-    for (const id of activeWorld.query('position', 'resource')) {
-      if (ignoredResourceId !== null && id === ignoredResourceId) {
-        continue;
-      }
-
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      if (position?.x === x && position.y === y) {
-        return true;
-      }
-    }
-
-    return false;
+    return worldOccupancy.isCellBlockedByResource(x, y, ignoredResourceId);
   }
 
-  function isCellOccupiedByUnit(
-    x: number,
-    y: number,
-    ignoredUnitId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    for (const id of activeWorld.query('position', 'unit')) {
-      if (ignoredUnitId !== null && id === ignoredUnitId) {
-        continue;
-      }
-
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      if (position?.x === x && position.y === y) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  function isCellPassableForSpawn(
-    x: number,
-    y: number,
-    ignoredUnitId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    void ignoredUnitId;
-    return (
-      isTerrainPassableForUnit(x, y, activeWorld)
-      && !isCellBlockedByBuilding(x, y, activeWorld)
-      && !isCellBlockedByResource(x, y, null, activeWorld)
-    );
+  function isCellPassableForSpawn(x: number, y: number): boolean {
+    return worldOccupancy.isCellPassableForSpawn(x, y);
   }
 
   function isCellPassableForUnit(
@@ -2694,20 +2747,19 @@ function createWorld(
     y: number,
     activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
-    return isCellPassableForSpawn(x, y, unitId, activeWorld);
+    // Movement-planning helpers share an entity-aware callback shape even
+    // though coarse-cell unit crowding is intentionally ignored for pathing.
+    void unitId;
+    void activeWorld;
+    return isCellPassableForSpawn(x, y);
   }
 
   function isCellPassableForWildlife(
     resourceId: number,
     x: number,
     y: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
   ): boolean {
-    return (
-      isTerrainPassableForUnit(x, y, activeWorld)
-      && !isCellBlockedByBuilding(x, y, activeWorld)
-      && !isCellBlockedByResource(x, y, resourceId, activeWorld)
-    );
+    return worldOccupancy.isCellPassableForWildlife(resourceId, x, y);
   }
 
   function isHarvestableResource(
@@ -2733,27 +2785,7 @@ function createWorld(
   }
 
   function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
-    for (let cellY = y; cellY < y + height; cellY += 1) {
-      for (let cellX = x; cellX < x + width; cellX += 1) {
-        if (cellX < 0 || cellX >= MAP_WIDTH || cellY < 0 || cellY >= MAP_HEIGHT) {
-          return true;
-        }
-
-        if (!isTerrainPassableForUnit(cellX, cellY)) {
-          return true;
-        }
-
-        if (
-          isCellBlockedByBuilding(cellX, cellY)
-          || isCellBlockedByResource(cellX, cellY)
-          || isCellOccupiedByUnit(cellX, cellY)
-        ) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return worldOccupancy.isPlacementBlocked(x, y, width, height);
   }
 
   function uniquePositions(positions: Position[]): Position[] {
@@ -3101,40 +3133,29 @@ function createWorld(
     );
   }
 
-  function findSafeSpawnPosition(
-    candidates: Position[],
-    ignoredUnitId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): Position | null {
+  function findSafeSpawnPosition(candidates: Position[]): Position | null {
     // Slice 12 Task A: delegate the "cell passable + at least one passable
     // neighbor" rule to `findSafeSpawnWithEgress` so the scenario-spawn,
     // producer-spawn, and ungarrison flows share one egress definition.
     return findSafeSpawnWithEgress({
       candidates: uniquePositions(candidates),
-      isCellPassable: (x, y) => isCellPassableForSpawn(x, y, ignoredUnitId, activeWorld),
+      isCellPassable: (x, y) => isCellPassableForSpawn(x, y),
       neighborOffsets: CARDINAL_NEIGHBOR_OFFSETS,
     });
   }
 
   function findScenarioSpawnPosition(
     origin: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
-    return findSafeSpawnPosition(getNearestMoveCandidates(origin), null, activeWorld);
+    return findSafeSpawnPosition(getNearestMoveCandidates(origin));
   }
 
   function findBuildingSpawnPosition(
     anchor: Position,
     buildingType: BuildingType,
-    ignoredUnitId: number | null = null,
-    activeWorld: World<GameEvents, GameCommands> = world,
   ): Position | null {
     const footprint = buildingFootprint(buildingType);
-    return findSafeSpawnPosition(
-      getApproachCellsForFootprint(anchor, footprint.width, footprint.height, 1),
-      ignoredUnitId,
-      activeWorld,
-    );
+    return findSafeSpawnPosition(getApproachCellsForFootprint(anchor, footprint.width, footprint.height, 1));
   }
 
   function clearGathererOrder(id: number): void {
@@ -4125,7 +4146,7 @@ function createWorld(
       world.removeComponent(unitId, 'visionSource');
     }
 
-    world.removeComponent(unitId, 'position');
+    clearPositionAndSyncOccupancy(unitId);
     garrisonedUnitToBuilding.set(unitId, buildingId);
     currentUnits.push(unitId);
     garrisonedByBuilding.set(buildingId, currentUnits);
@@ -4159,7 +4180,7 @@ function createWorld(
         continue;
       }
 
-      world.setPosition(unitId, spawnPosition);
+      setPositionAndSyncOccupancy(unitId, spawnPosition);
       syncUnitTransformToPosition(unitId, spawnPosition);
       const storedVisionSource = garrisonedUnitVisionSources.get(unitId);
       if (storedVisionSource) {
@@ -6988,7 +7009,11 @@ function createWorld(
           continue;
         }
         if (relicPosition.x !== monkPosition.x || relicPosition.y !== monkPosition.y) {
-          activeWorld.setPosition(relicId, { x: monkPosition.x, y: monkPosition.y });
+          setPositionAndSyncOccupancy(
+            relicId,
+            { x: monkPosition.x, y: monkPosition.y },
+            activeWorld,
+          );
         }
       }
     },
@@ -7145,7 +7170,7 @@ function createWorld(
             (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y)
             && isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld)
           ) {
-            activeWorld.setPosition(id, nextGridPosition);
+            setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
           } else if (
             nextGridPosition.x !== position.x
             || nextGridPosition.y !== position.y
@@ -7160,7 +7185,7 @@ function createWorld(
           y: clamp(position.y + velocity.dy, bounds.minY, bounds.maxY),
         };
         if (isCellPassableForUnit(id, nextPosition.x, nextPosition.y, activeWorld)) {
-          activeWorld.setPosition(id, nextPosition);
+          setPositionAndSyncOccupancy(id, nextPosition, activeWorld);
         }
       }
     },
@@ -7392,7 +7417,7 @@ function createWorld(
             continue;
           }
 
-          activeWorld.setPosition(id, movePlan.nextStep);
+          setPositionAndSyncOccupancy(id, movePlan.nextStep, activeWorld);
           continue;
         }
 

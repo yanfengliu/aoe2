@@ -16,6 +16,11 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Occupancy bindings should separate blockers from crowding - 2026-04-23
+Context: migrating the simulation bridge from hand-rolled placement/path scans onto `civ-engine`'s `OccupancyBinding`.
+Lesson: in this game, buildings/resources/terrain are whole-cell blockers for movement, but unit presence is only crowding: it blocks building placement while still allowing unit pathing through the coarse cell. Do not collapse those rules into one flat `isBlocked` check when wiring engine occupancy into the bridge, or units will accidentally become hard path blockers.
+Pointer: [src/game/simulation/worldOccupancy.ts](../../src/game/simulation/worldOccupancy.ts), [src/game/simulation/createSimulationBridge.ts](../../src/game/simulation/createSimulationBridge.ts), [tests/simulation/worldOccupancy.test.ts](../../tests/simulation/worldOccupancy.test.ts).
+
 ## `fontFamily` alone does not prove a webfont loaded - 2026-04-23
 Context: adding a shipped HUD font initially used a browser test that only checked `getComputedStyle(...).fontFamily`.
 Lesson: computed `fontFamily` only reflects the declared cascade, not whether the bundled face actually loaded. If a UI contract depends on a shipped webfont, wait for `document.fonts.ready` and assert `document.fonts.check(...)` for the weights you rely on, otherwise a broken font import can silently fall back while the test still passes.

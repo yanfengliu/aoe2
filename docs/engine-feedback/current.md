@@ -12,6 +12,9 @@ live in [past.md](./past.md).
 - What still fits cleanly behind the bridge: upgrades, age gating, combat
   bonuses, conversion, relics, win conditions, save/load, AI, maps, and debug
   overlays.
+- The earlier occupancy revisit is now closed in both repos: `civ-engine`
+  shipped `OccupancyBinding`, and `aoe2` now uses it for bridge-side
+  occupancy queries.
 
 ## Current engine asks
 
