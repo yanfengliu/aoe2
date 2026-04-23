@@ -97,7 +97,7 @@ export interface PrototypeScenario {
   spawns: ScenarioSpawnSpec[];
 }
 
-interface Offset {
+export interface Offset {
   x: number;
   y: number;
 }
@@ -142,7 +142,7 @@ const STARTING_STONE: Offset[] = [
   { x: 0, y: 6 },
   { x: 1, y: 6 },
 ];
-const SHORE_FISH_AMOUNT = 225;
+export const SHORE_FISH_AMOUNT = 225;
 
 const FOREST_PATCHES: Offset[][] = [
   [
@@ -6312,7 +6312,7 @@ function createScenarioValidationFixture(seed: string): PrototypeScenario {
   };
 }
 
-function seedToNumber(seed: string): number {
+export function seedToNumber(seed: string): number {
   let hash = 0;
   for (const character of seed) {
     hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
@@ -6330,11 +6330,11 @@ function createTerrainCell(x: number, y: number, kind: TerrainKind): TerrainCell
   };
 }
 
-function isInBounds(x: number, y: number): boolean {
+export function isInBounds(x: number, y: number): boolean {
   return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
 }
 
-function setTerrainKind(
+export function setTerrainKind(
   terrain: TerrainCellSpec[][],
   x: number,
   y: number,
@@ -6346,7 +6346,7 @@ function setTerrainKind(
   terrain[y][x] = createTerrainCell(x, y, kind);
 }
 
-function paintDisc(
+export function paintDisc(
   terrain: TerrainCellSpec[][],
   center: Position,
   radius: number,
@@ -6369,13 +6369,13 @@ function paintDisc(
   }
 }
 
-function distanceSquared(left: Position, right: Position): number {
+export function distanceSquared(left: Position, right: Position): number {
   const dx = left.x - right.x;
   const dy = left.y - right.y;
   return dx * dx + dy * dy;
 }
 
-function orientationFor(center: Position): { x: 1 | -1; y: 1 | -1 } {
+export function orientationFor(center: Position): { x: 1 | -1; y: 1 | -1 } {
   return {
     x: center.x < MAP_WIDTH / 2 ? 1 : -1,
     y: center.y < MAP_HEIGHT / 2 ? 1 : -1,
@@ -6390,7 +6390,7 @@ function projectOffset(center: Position, offset: Offset): Position {
   };
 }
 
-function createStartingScoutSpawn(
+export function createStartingScoutSpawn(
   owner: number,
   townCenter: Position,
 ): ScenarioSpawnSpec {
@@ -6425,7 +6425,7 @@ function createStartingScoutSpawn(
   };
 }
 
-function createBaseTerrain(seed: string): TerrainCellSpec[][] {
+export function createBaseTerrain(seed: string): TerrainCellSpec[][] {
   const noise2d = createNoise2D(seedToNumber(seed));
   const terrain: TerrainCellSpec[][] = [];
 
@@ -6449,7 +6449,7 @@ function createBaseTerrain(seed: string): TerrainCellSpec[][] {
   return terrain;
 }
 
-function createPlayerStarts(): PlayerStartSpec[] {
+export function createPlayerStarts(): PlayerStartSpec[] {
   return [
     { owner: 1, townCenter: { x: 8, y: 8 }, civilization: 'Britons' },
     { owner: 2, townCenter: { x: 48, y: 24 }, civilization: 'Franks' },
@@ -6507,7 +6507,7 @@ function applyForestPatch(
   }
 }
 
-function isAccessibleShorelineCell(terrain: TerrainCellSpec[][], x: number, y: number): boolean {
+export function isAccessibleShorelineCell(terrain: TerrainCellSpec[][], x: number, y: number): boolean {
   if (!isInBounds(x, y) || terrain[y][x]?.kind !== 'water') {
     return false;
   }
@@ -9570,6 +9570,327 @@ function applyStandardPlayerOpening(
   // the seed; we call it with deterministic candidates so the alternate
   // maps vary slightly too.
   applyShoreFishPatches(terrain, starts, seed, spawns);
+}
+
+// Procedural variant of applyStandardPlayerOpening used by the default
+// map. Lays down each starting-resource type at seed-derived cluster
+// directions, then forest clusters, with first-write-wins dedupe via
+// the spawn list. Guarantees the per-owner counts required by the
+// prototypeScenario contract (sheep 4, boar 2, berry 6, gold 4, stone
+// 4, tree 24) because a spiral-outward fallback backfills whenever the
+// primary cluster position is blocked.
+export function applyStandardPlayerOpeningProcedural(
+  terrain: TerrainCellSpec[][],
+  start: PlayerStartSpec,
+  spawns: SpawnList,
+  seed: string,
+): void {
+  paintDisc(terrain, start.townCenter, 4, 'grass');
+
+  spawns.addBuildingSpawn({
+    kind: 'town-center',
+    x: start.townCenter.x,
+    y: start.townCenter.y,
+    owner: start.owner,
+    baseOwner: start.owner,
+    vision: { playerId: start.owner, radius: 7 },
+  });
+
+  const rng = createSeedPerBaseRng(seed, start.owner);
+
+  const cellBlockedByScenarioEntity = (x: number, y: number): boolean => {
+    // Block TC footprint (4x4 starting at TC anchor).
+    if (
+      x >= start.townCenter.x
+      && x < start.townCenter.x + 4
+      && y >= start.townCenter.y
+      && y < start.townCenter.y + 4
+    ) {
+      return true;
+    }
+    return spawns.isCellOccupiedByResource(x, y);
+  };
+
+  placeResourceCluster(
+    terrain,
+    start,
+    'sheep',
+    4,
+    100,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+    { minRing: 3, maxRing: 5, preferredAngle: 0 },
+  );
+  placeResourceCluster(
+    terrain,
+    start,
+    'boar',
+    2,
+    340,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+    { minRing: 4, maxRing: 6, preferredAngle: Math.PI * 1.75 },
+  );
+  placeResourceCluster(
+    terrain,
+    start,
+    'berry-bush',
+    6,
+    125,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+    { minRing: 3, maxRing: 4, preferredAngle: Math.PI },
+  );
+  placeResourceCluster(
+    terrain,
+    start,
+    'gold-mine',
+    4,
+    800,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+    { minRing: 5, maxRing: 6, preferredAngle: Math.PI * 0.25 },
+  );
+  placeResourceCluster(
+    terrain,
+    start,
+    'stone-mine',
+    4,
+    350,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+    { minRing: 5, maxRing: 6, preferredAngle: Math.PI * 0.5 },
+  );
+
+  placeForestCluster(
+    terrain,
+    start,
+    24,
+    rng,
+    cellBlockedByScenarioEntity,
+    spawns,
+  );
+
+  const orientation = orientationFor(start.townCenter);
+  const villagerOffsets: Offset[] = [
+    { x: -2, y: 0 },
+    { x: -2, y: 1 },
+    { x: -1, y: 1 },
+  ];
+  for (const offset of villagerOffsets) {
+    const position = {
+      x: start.townCenter.x + offset.x * orientation.x,
+      y: start.townCenter.y + offset.y * orientation.y,
+    };
+    spawns.addUnitSpawn({
+      kind: 'villager',
+      x: position.x,
+      y: position.y,
+      owner: start.owner,
+      baseOwner: start.owner,
+      vision: { playerId: start.owner, radius: 4 },
+      requiresSafeSpawn: true,
+    });
+  }
+
+  spawns.addUnitSpawn(createStartingScoutSpawn(start.owner, start.townCenter));
+}
+
+// Procedural variant of applyShoreFishPatches that uses the spawn list.
+export function applyShoreFishPatchesProcedural(
+  terrain: TerrainCellSpec[][],
+  starts: PlayerStartSpec[],
+  seed: string,
+  spawns: SpawnList,
+): void {
+  const candidates: Position[] = [];
+  for (let y = 0; y < MAP_HEIGHT; y += 1) {
+    for (let x = 0; x < MAP_WIDTH; x += 1) {
+      if (!isAccessibleShorelineCell(terrain, x, y)) {
+        continue;
+      }
+      if (starts.some((start) => distanceSquared(start.townCenter, { x, y }) <= 81)) {
+        continue;
+      }
+      candidates.push({ x, y });
+    }
+  }
+
+  if (candidates.length === 0) {
+    return;
+  }
+
+  const placed: Position[] = [];
+  const targetCount = Math.min(14, Math.max(4, Math.floor(candidates.length / 12)));
+  const startIndex = seedToNumber(seed) % candidates.length;
+  const stride = Math.max(3, Math.floor(candidates.length / Math.max(targetCount, 1)));
+
+  for (let attempt = 0; attempt < candidates.length && placed.length < targetCount; attempt += 1) {
+    const candidate = candidates[(startIndex + attempt * stride) % candidates.length];
+    if (placed.some((position) => distanceSquared(position, candidate) < 9)) {
+      continue;
+    }
+    spawns.addResourceSpawn({
+      kind: 'fish',
+      x: candidate.x,
+      y: candidate.y,
+      owner: null,
+      baseOwner: null,
+      amount: SHORE_FISH_AMOUNT,
+    });
+    placed.push(candidate);
+  }
+
+  if (placed.length === 0) {
+    const fallback = candidates[0];
+    spawns.addResourceSpawn({
+      kind: 'fish',
+      x: fallback.x,
+      y: fallback.y,
+      owner: null,
+      baseOwner: null,
+      amount: SHORE_FISH_AMOUNT,
+    });
+  }
+}
+
+function createSeedPerBaseRng(seed: string, owner: number): () => number {
+  let state = (seedToNumber(seed) ^ (owner * 2654435761)) >>> 0;
+  if (state === 0) {
+    state = 1;
+  }
+  return () => {
+    state = (state * 48271) % 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+interface ClusterOptions {
+  minRing: number;
+  maxRing: number;
+  preferredAngle: number;
+}
+
+function placeResourceCluster(
+  terrain: TerrainCellSpec[][],
+  start: PlayerStartSpec,
+  kind: ResourceKind,
+  count: number,
+  amount: number,
+  rng: () => number,
+  isBlocked: (x: number, y: number) => boolean,
+  spawns: SpawnList,
+  options: ClusterOptions,
+): void {
+  // Perturb the preferred angle deterministically so different seeds
+  // don't always put the sheep due east. Within +/- 45 degrees of the
+  // preferred direction.
+  const angleJitter = (rng() - 0.5) * (Math.PI / 2);
+  const angle = options.preferredAngle + angleJitter;
+
+  let placed = 0;
+  const tried = new Set<string>();
+  for (let ring = options.minRing; ring <= options.maxRing + 6 && placed < count; ring += 1) {
+    // Walk around the ring starting from the chosen angle.
+    const perimeter = Math.max(8, Math.floor(2 * Math.PI * ring));
+    for (let step = 0; step < perimeter && placed < count; step += 1) {
+      const theta = angle + (step * 2 * Math.PI) / perimeter;
+      const x = Math.round(start.townCenter.x + Math.cos(theta) * ring);
+      const y = Math.round(start.townCenter.y + Math.sin(theta) * ring);
+      const key = `${x},${y}`;
+      if (tried.has(key)) {
+        continue;
+      }
+      tried.add(key);
+      if (!isInBounds(x, y)) {
+        continue;
+      }
+      if (isBlocked(x, y)) {
+        continue;
+      }
+      setTerrainKind(terrain, x, y, 'grass');
+      const result = spawns.addResourceSpawn({
+        kind,
+        x,
+        y,
+        owner: null,
+        baseOwner: start.owner,
+        amount,
+      });
+      if (result.accepted) {
+        placed += 1;
+      }
+    }
+  }
+
+  if (placed < count) {
+    throw new Error(
+      `createDefaultMap: only placed ${placed}/${count} ${kind} near owner ${start.owner} TC (${start.townCenter.x},${start.townCenter.y}).`,
+    );
+  }
+}
+
+function placeForestCluster(
+  terrain: TerrainCellSpec[][],
+  start: PlayerStartSpec,
+  count: number,
+  rng: () => number,
+  isBlocked: (x: number, y: number) => boolean,
+  spawns: SpawnList,
+): void {
+  // Forest clusters live farther out than starting resources (ring 7+)
+  // so they rarely conflict. Spread across three seed-perturbed
+  // directions to keep the starting map feeling similar to the pre-
+  // procedural layout.
+  let placed = 0;
+  const directions = [
+    Math.PI * 0.75 + rng() * 0.4,
+    Math.PI * 1.25 + rng() * 0.4,
+    Math.PI * 1.75 + rng() * 0.4,
+  ];
+
+  for (const baseAngle of directions) {
+    if (placed >= count) {
+      break;
+    }
+    for (let ring = 6; ring <= 12 && placed < count; ring += 1) {
+      const perimeter = Math.max(10, Math.floor(2 * Math.PI * ring));
+      for (let step = -4; step <= 4 && placed < count; step += 1) {
+        const theta = baseAngle + (step * 2 * Math.PI) / perimeter;
+        const x = Math.round(start.townCenter.x + Math.cos(theta) * ring);
+        const y = Math.round(start.townCenter.y + Math.sin(theta) * ring);
+        if (!isInBounds(x, y)) {
+          continue;
+        }
+        if (isBlocked(x, y)) {
+          continue;
+        }
+        setTerrainKind(terrain, x, y, 'forest');
+        const result = spawns.addResourceSpawn({
+          kind: 'tree',
+          x,
+          y,
+          owner: null,
+          baseOwner: start.owner,
+          amount: 100,
+        });
+        if (result.accepted) {
+          placed += 1;
+        }
+      }
+    }
+  }
+
+  if (placed < count) {
+    throw new Error(
+      `createDefaultMap: only placed ${placed}/${count} trees near owner ${start.owner} TC (${start.townCenter.x},${start.townCenter.y}).`,
+    );
+  }
 }
 
 // Simple deterministic RNG used by the Black Forest corridor wiggle.
