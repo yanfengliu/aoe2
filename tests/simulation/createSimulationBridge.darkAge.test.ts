@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
+import { placeBuildingNearTownCenter } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge dark age economy progression', () => {
   it('queues a villager at the Town Center and increases population when training completes', () => {
@@ -39,9 +40,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       selectedEntityType: 'villager',
       buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks'],
     });
-    expect(bridge.beginBuildingPlacement('house')).toBe(true);
-    expect(bridge.getSelectionState().placementMode).toBe('house');
-    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    const housePosition = placeBuildingNearTownCenter(bridge, 'house');
     expect(bridge.getHudState().playerResources.wood).toBe(175);
     expect(bridge.getHudState().population.cap).toBe(5);
 
@@ -51,8 +50,8 @@ describe('createSimulationBridge dark age economy progression', () => {
     expect(placedHouse).toMatchObject({
       owner: 1,
       buildingType: 'house',
-      x: 10,
-      y: 5,
+      x: housePosition.x,
+      y: housePosition.y,
       isComplete: false,
     });
 
@@ -71,8 +70,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.beginBuildingPlacement('house')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(10, 5)).toBe(true);
+    const housePosition = placeBuildingNearTownCenter(bridge, 'house');
 
     bridge.step(100);
 
@@ -82,8 +80,8 @@ describe('createSimulationBridge dark age economy progression', () => {
         (entity) =>
           entity.owner === 1
           && entity.entityType === 'house'
-          && entity.x === 10
-          && entity.y === 5,
+          && entity.x === housePosition.x
+          && entity.y === housePosition.y,
       );
     expect(constructingHouse).toMatchObject({
       footprintWidth: 2,
@@ -101,8 +99,8 @@ describe('createSimulationBridge dark age economy progression', () => {
         (entity) =>
           entity.owner === 1
           && entity.entityType === 'house'
-          && entity.x === 10
-          && entity.y === 5,
+          && entity.x === housePosition.x
+          && entity.y === housePosition.y,
       );
     expect(completedHouse).toMatchObject({
       footprintWidth: 2,
@@ -115,12 +113,19 @@ describe('createSimulationBridge dark age economy progression', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.issueContextCommand(13, 7)).toBe(true);
+    const goldMine = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'gold-mine' && resource.baseOwner === 1);
+    expect(goldMine).toBeDefined();
+    expect(bridge.issueContextCommand(goldMine!.x, goldMine!.y)).toBe(true);
 
-    for (let index = 0; index < 260; index += 1) {
+    // Gather enough ticks to cover one full path-to-gold + gather + return
+    // cycle under the procedural layout, which may place the gold slightly
+    // farther from the starting villager than the pre-procedural layout.
+    for (let index = 0; index < 500; index += 1) {
       bridge.step(100);
     }
 
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
-  }, 15_000);
+  }, 30_000);
 });

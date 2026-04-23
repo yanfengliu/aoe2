@@ -17,6 +17,7 @@ import type {
   WanderBoundsComponent,
 } from './types';
 import { createSpawnList, type SpawnList } from './mapGeneration/spawnList';
+import { createDefaultMap } from './mapGeneration/defaultMap';
 
 export const MAP_WIDTH = 60;
 export const MAP_HEIGHT = 36;
@@ -8705,6 +8706,13 @@ function createWonderOwnerAfterConversionFixture(seed: string): PrototypeScenari
 }
 
 export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
+  if (seed === DEFAULT_SEED) {
+    // The procedural default map lives in a dedicated module so the
+    // starting-resource / forest / fish layout has a single source of
+    // truth and the spawn-list dedupe invariant is enforced up front.
+    return createDefaultMap(seed);
+  }
+
   if (seed === 'conquest-victory-fixture') {
     return createConquestVictoryFixture(seed);
   }
@@ -9599,12 +9607,17 @@ export function applyStandardPlayerOpeningProcedural(
   const rng = createSeedPerBaseRng(seed, start.owner);
 
   const cellBlockedByScenarioEntity = (x: number, y: number): boolean => {
-    // Block TC footprint (4x4 starting at TC anchor).
+    // Block TC footprint (4x4 starting at TC anchor) plus a 1-cell
+    // buffer around it. The buffer keeps a walkable corridor around the
+    // TC so villagers and the scout can always path out of the base —
+    // resource clusters packed tight against the TC would otherwise
+    // wall it off, especially when the procedural directions happen to
+    // fire resources directly alongside the TC.
     if (
-      x >= start.townCenter.x
-      && x < start.townCenter.x + 4
-      && y >= start.townCenter.y
-      && y < start.townCenter.y + 4
+      x >= start.townCenter.x - 1
+      && x < start.townCenter.x + 5
+      && y >= start.townCenter.y - 1
+      && y < start.townCenter.y + 5
     ) {
       return true;
     }
