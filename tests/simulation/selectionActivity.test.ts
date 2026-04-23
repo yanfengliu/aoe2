@@ -424,3 +424,46 @@ describe('selection activity — owned building', () => {
     expect(bridge.getSelectionState().activity).toBe('Researching Forging');
   });
 });
+
+describe('selection activity — hidden cases', () => {
+  it('resource (tree) selection returns null activity', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const tree = bridge.getEconomyState().resources.find((r) => r.resourceType === 'tree');
+    expect(tree).toBeDefined();
+    expect(bridge.selectEntityAtCell(tree!.x, tree!.y)).toBe(true);
+    expect(bridge.getSelectionState().activity).toBeNull();
+    expect(bridge.getSelectionState().activityBreakdown).toBeNull();
+  });
+
+  it('enemy unit selection returns null activity', () => {
+    // militia-combat-fixture: player-1 Militia at (12,8) with vision radius 5,
+    // enemy Scout at (15,8) — distance 3, well within vision. Step 2 ticks so
+    // visibility propagates before selecting.
+    const bridge = createSimulationBridge('militia-combat-fixture');
+    bridge.step(100);
+    bridge.step(100);
+    const enemyScout = bridge
+      .getEconomyState()
+      .units.find((u) => u.owner === 2 && u.unitType === 'scout');
+    expect(enemyScout).toBeDefined();
+    expect(bridge.selectEntityAtCell(enemyScout!.x, enemyScout!.y)).toBe(true);
+    expect(bridge.getSelectionState().activity).toBeNull();
+    expect(bridge.getSelectionState().activityBreakdown).toBeNull();
+  });
+
+  it('enemy building selection returns null activity', () => {
+    // fog-memory-fixture: player-1 scout at (10,10) with vision radius 4,
+    // enemy house at (14,10) — distance 4, on the exact boundary. Step 2 ticks
+    // so visibility propagates (matches fogMemory.test.ts pattern).
+    const bridge = createSimulationBridge('fog-memory-fixture');
+    bridge.step(100);
+    bridge.step(100);
+    const enemyHouse = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
+    expect(enemyHouse).toBeDefined();
+    expect(bridge.selectEntityAtCell(enemyHouse!.x, enemyHouse!.y)).toBe(true);
+    expect(bridge.getSelectionState().activity).toBeNull();
+    expect(bridge.getSelectionState().activityBreakdown).toBeNull();
+  });
+});
