@@ -45,6 +45,36 @@ export interface SelectionActivitySources {
   getCurrentEntityId: (ref: EntityRef) => number | null;
 }
 
+// ─── Verb priority tiers (for multi-selection breakdown ordering) ──────────
+// Lower number = displayed first. Unknown verbs fall to tier 99 (sorted last).
+
+const VERB_PRIORITY: Record<string, number> = {
+  // Tier 0 — urgent / combat
+  attacking: 0,
+  // Tier 1 — productive economy
+  building: 1,
+  gathering: 1,
+  'dropping off': 1,
+  // Tier 2 — building production states
+  training: 2,
+  researching: 2,
+  // Tier 3 — specialists
+  healing: 3,
+  converting: 3,
+  retrieving: 3,
+  carrying: 3,
+  // Tier 4 — transitional
+  moving: 4,
+  packing: 4,
+  unpacking: 4,
+  // Tier 5 — slack
+  idle: 5,
+};
+
+function verbPriority(verb: string): number {
+  return VERB_PRIORITY[verb] ?? 99;
+}
+
 // ─── Private helper ────────────────────────────────────────────────────────
 
 function resolveTargetEntityRef(
@@ -84,7 +114,7 @@ export function computeUnitActivity(
       case 'pickup':
         return { verb: 'retrieving', target: null };
       case 'deposit':
-        return { verb: 'depositing', target: null };
+        return { verb: 'carrying', target: null };
     }
   }
 
@@ -127,7 +157,7 @@ export function computeUnitActivity(
         return { verb: 'gathering', target: null };
       }
       if (gatherer.task === 'to-dropoff' && gatherer.carriedResource && gatherer.carriedAmount > 0) {
-        return { verb: 'returning', target: { kind: 'economy-resource', type: gatherer.carriedResource } };
+        return { verb: 'dropping off', target: { kind: 'economy-resource', type: gatherer.carriedResource } };
       }
     }
   }
@@ -173,7 +203,9 @@ export function getSelectionActivityBreakdown(
   }
   if (counts.size === 0) return null;
   const sorted = [...counts.entries()]
-    .sort(([aLabel, aCount], [bLabel, bCount]) => bCount - aCount || aLabel.localeCompare(bLabel))
+    .sort(([aLabel, aCount], [bLabel, bCount]) =>
+      verbPriority(aLabel) - verbPriority(bLabel) || bCount - aCount || aLabel.localeCompare(bLabel),
+    )
     .map(([label, count]) => ({ label, count }));
   const cap = 5;
   return sorted.length <= cap

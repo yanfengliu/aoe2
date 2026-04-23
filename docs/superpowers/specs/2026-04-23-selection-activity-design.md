@@ -29,7 +29,7 @@ The bridge derives the activity from existing simulation state. No new component
    - `heal` → `Healing <Target>`
    - `convert` → `Converting <Target>`
    - `pickup` → `Retrieving relic`
-   - `deposit` → `Depositing relic`
+   - `deposit` → `Carrying relic`
 3. **Trebuchet pack state** (`trebuchetPackStates.get(id)`) → `Packing` or `Unpacking` when actively transitioning; no special label when stably packed/unpacked (falls through to step 4 or 5).
 4. **Unit command** (`unitCommands.get(id)`):
    - `attack` → `Attacking <Target>` (target name from `targetEntityKind` + entity type; if the target has been destroyed, `Attacking`).
@@ -58,18 +58,18 @@ No activity — row hidden.
 When `selectedEntityIds.length > 1` and all entities share owner === human player:
 
 - For each selected owned unit/building, compute the coarse verb only. The mapping from taxonomy branch to coarse verb is explicit (not derived by string-splitting the single-selection label, because `Under construction` is two words):
-  - Healing / Converting / Retrieving relic / Depositing relic → `healing` / `converting` / `retrieving` / `depositing`
+  - Healing / Converting / Retrieving relic / Carrying relic → `healing` / `converting` / `retrieving` / `carrying`
   - Packing / Unpacking → `packing` / `unpacking`
   - Attacking → `attacking`
   - Building → `building`
   - Gathering → `gathering`
-  - Returning → `returning`
+  - Dropping off → `dropping off`
   - Moving → `moving`
   - Training → `training`
   - Researching → `researching`
   - Under construction → `under construction`
   - Idle → `idle`
-- Group by verb. Order by count descending, then by verb alphabetical for stable output.
+- Group by verb. Order by semantic priority tier first (tier 0 = combat, tier 5 = idle), then count descending, then verb alphabetical for stable output within a tier.
 - Render as `N verb` tokens joined by ` · ` (middle dot). Cap at 5 tokens; if more, append `· …`.
 - If any selected entity is not owned (e.g. selection mix that somehow includes a neutral sheep), drop it from the count. If the remaining set is empty, hide the line.
 - Single-entity form is used when `selectedCount === 1`.
@@ -151,4 +151,4 @@ None expected. Everything the taxonomy needs is already tracked in the bridge's 
 - Icons, colors, or animations for activity states.
 - Activity history or "just finished X" hints.
 - Multi-selection breakdown with target detail (`2 gathering wood · 1 gathering gold`) — revisit if the coarse roll-up feels under-informative.
-- Sorting multi-selection breakdown by a game-meaningful priority (e.g. idle last). Current spec: count desc, then verb alphabetical.
+- ~~Sorting multi-selection breakdown by a game-meaningful priority (e.g. idle last).~~ Implemented: semantic tier ordering (tier 0 = combat first, tier 5 = idle last), then count desc, then verb alphabetical within a tier.

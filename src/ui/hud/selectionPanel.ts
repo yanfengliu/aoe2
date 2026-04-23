@@ -142,14 +142,14 @@ function renderSelectionDetail(
 function formatActivityLabel(activity: NonNullable<SelectionState['activity']>): string {
   const verbDisplay: Record<string, string> = {
     'gathering': 'Gathering',
-    'returning': 'Returning',
+    'dropping off': 'Dropping off',
     'moving': 'Moving',
     'attacking': 'Attacking',
     'building': 'Building',
     'healing': 'Healing',
     'converting': 'Converting',
     'retrieving': 'Retrieving relic',
-    'depositing': 'Depositing relic',
+    'carrying': 'Carrying relic',
     'packing': 'Packing',
     'unpacking': 'Unpacking',
     'training': 'Training',

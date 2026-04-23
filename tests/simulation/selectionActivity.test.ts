@@ -73,7 +73,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'moving', target: null });
   });
 
-  it('villager returning with wood reports Returning wood', () => {
+  it('villager returning with wood reports Dropping off wood', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
     const tree = bridge.getEconomyState().resources.find((r) => r.resourceType === 'tree');
@@ -87,12 +87,12 @@ describe('selection activity — owned unit', () => {
         // Re-select each check to get fresh state.
         selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager');
         const activity = bridge.getSelectionState().activity;
-        return activity !== null && activity.verb === 'returning';
+        return activity !== null && activity.verb === 'dropping off';
       },
       { maxSteps: 600 },
     );
     expect(reached).toBe(true);
-    expect(bridge.getSelectionState().activity).toEqual({ verb: 'returning', target: { kind: 'economy-resource', type: 'wood' } });
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'dropping off', target: { kind: 'economy-resource', type: 'wood' } });
   }, 30_000);
 
   it('villager placing a house foundation reports Building House', () => {
@@ -220,7 +220,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'retrieving', target: null });
   }, 10_000);
 
-  it('monk depositing a relic reports Depositing relic', () => {
+  it('monk depositing a relic reports Carrying relic', () => {
     // monk-relic-fixture: monk at (14,8), relic at (15,8), monastery at (18,8).
     const bridge = createSimulationBridge('monk-relic-fixture');
 
@@ -260,7 +260,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(monastery!.id)).toBe(true);
 
     // The deposit task registers immediately.
-    expect(bridge.getSelectionState().activity).toEqual({ verb: 'depositing', target: null });
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'carrying', target: null });
   }, 30_000);
 
   it('trebuchet unpacking reports Unpacking', () => {
