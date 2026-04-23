@@ -24,6 +24,47 @@ test.describe('browser gameplay smoke tests - hud and camera', () => {
     await expect(page.locator('[data-hud="match-summary"]')).toBeHidden();
   });
 
+  test('uses the shipped HUD font while keeping debug and save-load text monospace', async ({
+    page,
+  }) => {
+    await game.waitForBoot(page);
+
+    const hudFontState = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const regularFaces = await document.fonts.load('16px "IBM Plex Sans"', 'A');
+      const semiboldFaces = await document.fonts.load('600 16px "IBM Plex Sans"', 'A');
+      const boldFaces = await document.fonts.load('700 16px "IBM Plex Sans"', 'A');
+      const hudRoot = document.querySelector('#hud-root');
+      if (!(hudRoot instanceof HTMLElement)) {
+        throw new Error('Expected #hud-root to exist.');
+      }
+
+      return {
+        fontFamily: window.getComputedStyle(hudRoot).fontFamily,
+        regularLoaded: regularFaces.length > 0,
+        semiboldLoaded: semiboldFaces.length > 0,
+        boldLoaded: boldFaces.length > 0,
+      };
+    });
+    expect(hudFontState.fontFamily).toContain('"IBM Plex Sans"');
+    expect(hudFontState.regularLoaded).toBe(true);
+    expect(hudFontState.semiboldLoaded).toBe(true);
+    expect(hudFontState.boldLoaded).toBe(true);
+
+    await page.keyboard.press('F2');
+    const debugOverlayFontFamily = await page.locator('[data-hud="debug-overlay"]').evaluate((element) =>
+      window.getComputedStyle(element).fontFamily,
+    );
+    expect(debugOverlayFontFamily).toContain('"Courier New"');
+
+    await page.locator('[data-hud="load-button"]').click();
+    await expect(page.locator('[data-hud="load-panel"]')).toBeVisible();
+    const loadPanelTextareaFontFamily = await page.locator('[data-hud="load-paste-textarea"]').evaluate((element) =>
+      window.getComputedStyle(element).fontFamily,
+    );
+    expect(loadPanelTextareaFontFamily).toContain('"Courier New"');
+  });
+
   test('keeps top status-bar chip positions stable as live values change', async ({ page }) => {
     await game.waitForBoot(page);
 

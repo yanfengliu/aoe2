@@ -21,6 +21,7 @@
     "verify": "npm run content:validate && npm run test && npm run test:browser && npm run lint && npm run build"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "civ-engine": "file:../civ-engine",
     "phaser": "^3.90.0"
   },

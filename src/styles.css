@@ -1,8 +1,10 @@
 :root {
+  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'Courier New', monospace;
   color: #f0e7d8;
   background:
     radial-gradient(circle at top, #30494a 0%, #162123 55%, #0c1213 100%);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-ui);
 }
 
 * {
@@ -394,7 +396,7 @@ body {
   border-radius: 8px;
   background: rgba(14, 20, 24, 0.82);
   color: #c8e9f5;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.45;
   pointer-events: none;
@@ -487,7 +489,7 @@ body {
   border-radius: 6px;
   background: rgba(10, 16, 18, 0.9);
   color: #f4ead1;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.4;
 }
