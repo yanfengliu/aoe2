@@ -1829,6 +1829,58 @@ function createWorld(
     return 'Idle';
   }
 
+  function coarseVerbForUnit(id: number, unit: UnitComponent): string {
+    const activity = getUnitActivity(id, unit);
+    if (activity.startsWith('Garrisoned')) return 'garrisoned';
+    if (activity.startsWith('Healing')) return 'healing';
+    if (activity.startsWith('Converting')) return 'converting';
+    if (activity === 'Retrieving relic') return 'retrieving';
+    if (activity === 'Depositing relic') return 'depositing';
+    if (activity === 'Packing') return 'packing';
+    if (activity === 'Unpacking') return 'unpacking';
+    if (activity.startsWith('Attacking')) return 'attacking';
+    if (activity.startsWith('Building')) return 'building';
+    if (activity.startsWith('Gathering')) return 'gathering';
+    if (activity.startsWith('Returning')) return 'returning';
+    if (activity === 'Moving') return 'moving';
+    return 'idle';
+  }
+
+  function coarseVerbForBuilding(id: number): string {
+    const activity = getBuildingActivity(id);
+    if (activity === 'Under construction') return 'under construction';
+    if (activity.startsWith('Training')) return 'training';
+    if (activity.startsWith('Researching')) return 'researching';
+    return 'idle';
+  }
+
+  function getSelectionActivityBreakdown(
+    ids: number[],
+  ): { entries: { label: string; count: number }[]; overflow: number } | null {
+    const counts = new Map<string, number>();
+    for (const id of ids) {
+      const u = world.getComponent<UnitComponent>(id, 'unit');
+      if (u && u.owner === HUMAN_PLAYER_ID) {
+        const v = coarseVerbForUnit(id, u);
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+        continue;
+      }
+      const b = world.getComponent<BuildingComponent>(id, 'building');
+      if (b && b.owner === HUMAN_PLAYER_ID) {
+        const v = coarseVerbForBuilding(id);
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+      }
+    }
+    if (counts.size === 0) return null;
+    const sorted = [...counts.entries()]
+      .sort(([aLabel, aCount], [bLabel, bCount]) => bCount - aCount || aLabel.localeCompare(bLabel))
+      .map(([label, count]) => ({ label, count }));
+    const cap = 5;
+    return sorted.length <= cap
+      ? { entries: sorted, overflow: 0 }
+      : { entries: sorted.slice(0, cap), overflow: sorted.length - cap };
+  }
+
   function getUnitTransform(
     id: number,
     activeWorld: World<GameEvents, GameCommands> = world,
@@ -8257,7 +8309,8 @@ function createWorld(
           : selectedEntityIds.length === 1 && building && building.owner === HUMAN_PLAYER_ID
           ? getBuildingActivity(selectedEntityId)
           : null,
-      activityBreakdown: null,
+      activityBreakdown:
+        selectedEntityIds.length > 1 ? getSelectionActivityBreakdown(selectedEntityIds) : null,
       x: position.x,
       y: position.y,
       tileX: selectionTile.x,

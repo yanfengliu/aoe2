@@ -362,7 +362,10 @@ export interface SelectionState {
   civ: string | null;
   inventory: string | null;
   activity: string | null;
-  activityBreakdown: { label: string; count: number }[] | null;
+  activityBreakdown: {
+    entries: { label: string; count: number }[];
+    overflow: number;
+  } | null;
   x: number | null;
   y: number | null;
   tileX: number | null;
