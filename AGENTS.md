@@ -14,20 +14,22 @@
 
 - For every task from the user, create a stateless, ephemeral team of subgents to work together on tasks, then turn down the agents when you are done to avoid context rot.
 - **Team lead**:
-  - Responsibility: Orchestrate and drive main thread. Dispatch questions and work assignments to other subagents.
-  - Make sure the work does not deviate from the user requirement, and give the team some room to innovate, catch bugs, and clean up code and docs along the way.
+  - Responsibility: Breaks the human's request into atomic tasks, selects the appropriate domain specialists, routes the tasks, and acts as the final gatekeeper before merging.
+  - If tests (`npx vitest run`, `npx tsc --noEmit`, etc.) fail or review consensus is not reached after 3 iterations, the Team Lead must execute a hard abort. It will `git reset --hard` the branch, dump the error logs and the failed approach into `docs/learning/lessons.md`, and spin up a completely fresh Architect and Engineer to write a brand new plan that explicitly avoids the failed approach.
 - **Architect**:
-  - Responsibility: Make sure the code framework is flexible and robust, and the game engine is used in the optimal way.
+  - Responsibility: Act purely as a consultant rather than an active driver. The Lead queries the Architect to draft the initial implementation plan and verify it against ARCHITECTURE.md before dispatching work.
 - **Game designer**:
   - Responsibility: Make sure the game mechanism works well and is fun. Research local and online sources to ground your opinions.
 - **Software engineer**:
   - Responsibility: Handle all the code writing.
   - Reach out to the team if you have questions or need a second opinion. 
   - Iterate with the code reviewer. Reviews might take a long time. Be patient.
-  - After addressing review comments, ask the reviewer to verify that you have successfully done so. This is basically another round of full review.
+  - After addressing review comments, ask the reviewer to verify that you have successfully done so.
+  - If the Software Engineer and the Code Reviewer cannot reach consensus after 3 iterations, escalate to the Tie-Breaker agent.
   - Write down the reviewer feedback from previous round(s) under `code_review/` as temp files. The reviewer should consider this info + `docs/learning/lessons.md` + your diff. After you summarize reviewer feedback into devlog, delete the temp files.
   - Continue this iteration loop until the reviewers seem to start nit-picking instead of catching real bugs / giving substantial feedback. Do not get stuck in an infinite loop.
 - **Code reviewer**: Follow the code review section for detailed rules.
+- **Tie breaker**: Use the high-reasoning model. Its prompt dictates that it must definitively choose to either ACCEPT the current diff (overriding the reviewer) or REJECT it with a mandatory, prescriptive patch. The Tie-Breaker's decision is final.
 
 ## Code review
 
@@ -55,11 +57,11 @@
 - Claude:
   - `git diff [branch] | claude -p --append-system-prompt <base_prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
 
-## Command and git rules
+## Git
 
 - When you iterate, only run affected tests.
 - In the end, after you are confident about your change, run the full suite of tests to make sure you didn't accidentally break anything.
-- Do not use worktrees or branches; work directly on `main`.
+- Create a short-lived branch for every task (e.g., `agent/fix-tick-start`). Run the test suite on the branch. Only after all tests and visual pixel-diffs pass, merge into main using a fast-forward merge, and delete the branch.
 - Commit durable docs you added if you are not planning to remove them.
 - Commit as soon as you have a coherent, self-contained unit of change.
 
