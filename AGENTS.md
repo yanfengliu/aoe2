@@ -10,8 +10,28 @@
   - Capture an after screenshot.
   - Generate a pixel diff and use that as verification alongside the normal test/build gates.
 
+## Team of subagents
+
+- For every task from the user, create a stateless, ephemeral team of subgents to work together on tasks, then turn down the agents when you are done to avoid context rot.
+- **Team lead**:
+  - Responsibility: Orchestrate and drive main thread. Dispatch questions and work assignments to other subagents.
+  - Make sure the work does not deviate from the user requirement, and give the team some room to innovate, catch bugs, and clean up code and docs along the way.
+- **Architect**:
+  - Responsibility: Make sure the code framework is flexible and robust, and the game engine is used in the optimal way.
+- **Game designer**:
+  - Responsibility: Make sure the game mechanism works well and is fun. Research local and online sources to ground your opinions.
+- **Software engineer**:
+  - Responsibility: Handle all the code writing.
+  - Reach out to the team if you have questions or need a second opinion. 
+  - Iterate with the code reviewer. Reviews might take a long time. Be patient.
+  - After addressing review comments, ask the reviewer to verify that you have successfully done so. This is basically another round of full review.
+  - Write down the reviewer feedback from previous round(s) under `code_review/` as temp files. The reviewer should consider this info + `docs/learning/lessons.md` + your diff. After you summarize reviewer feedback into devlog, delete the temp files.
+  - Continue this iteration loop until the reviewers seem to start nit-picking instead of catching real bugs / giving substantial feedback. Do not get stuck in an infinite loop.
+- **Code reviewer**: Follow the code review section for detailed rules.
+
 ## Code review
-- Use all of Codex / Gemini / Claude as code reviewer subagents to independently review every change on the following aspects:
+
+- Use all of Codex / Gemini / Claude in CLI to independently review every change on the following aspects:
   1. Design.
     - Can easily scale, generalize, debug, be understood and reasoned about, and stay lean.
   2. Test coverage.
@@ -26,7 +46,6 @@
     - References to code should be up to date.
     - No outdated comments.
     - Learnings from debugging and friction points should be documented in `docs/learning/lessons.md`. The file should be actively maintained to not become long, tedious, or outdated.
-- Reviews might take a long time depending on the amount of changes you made. Be patient and wait for the result.
 - `base_prompt` for the code review agent: "You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text."
 - Optionally, use the @ symbol within `base_prompt` to include directory context for the best reasoning results.
 - Codex:
@@ -35,20 +54,14 @@
   - `git diff [branch] | gemini -p <base_prompt> --model gemini-3-pro --thinking high`.
 - Claude:
   - `git diff [branch] | claude -p --append-system-prompt <base_prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
-- After addressing review comments, ask the reviewer to verify that you have successfully done so. This is basically another round of full review.
-- Write down the reviewer feedback from previous round(s) under `code_review/` as temp files. The reviewer should consider this info + `docs/learning/lessons.md` + your diff. After you summarize reviewer feedback into devlog, delete the temp files.
-- Continue this iteration loop until the reviewers seem to start nit-picking instead of catching real bugs / giving substantial feedback. Do not get stuck in an infinite loop.
 
 ## Command and git rules
 
-- Only run affected tests when you iterate. In the end, after you are confident about your change, run the full suite of tests to make sure you didn't accidentally break anything.
+- When you iterate, only run affected tests.
+- In the end, after you are confident about your change, run the full suite of tests to make sure you didn't accidentally break anything.
 - Do not use worktrees or branches; work directly on `main`.
-- Commit durable docs you add if you are not planning to remove them.
+- Commit durable docs you added if you are not planning to remove them.
 - Commit as soon as you have a coherent, self-contained unit of change.
-
-## Subagents
-
-- If you dispatch a subagent that cannot read repository instructions on its own, include this file and any nested instruction files in its prompt.
 
 ## Project docs
 
@@ -85,4 +98,8 @@
 - When debugging, use `docs/debugging/template.md` to record your process. Create a new file per debugging session and use it to iterate until you solve the problem.
 - Clean up the temporary files (such as stack dump, test results) created during debugging after you are done.
 
-@GAME_SPECIFIC.md
+## Game specific
+
+- Record current `civ-engine` weaknesses and misses in `docs/engine-feedback/current.md` as you work. Historical observations belong in `docs/engine-feedback/past.md`. Before you write to the current file, use a subagent to audit if its content is still valid and up to date. If too long, stale, or the issues are already addressed, it should be adjusted.
+- If a missing engine feature blocks the task, stop your work and report it to the user. But do not modify the `civ-engine` repo directly.
+- Read `docs/guides/debugging.md` in the `civ-engine` package if the bug seems engine related.
