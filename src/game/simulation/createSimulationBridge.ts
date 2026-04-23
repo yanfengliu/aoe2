@@ -1704,6 +1704,111 @@ function createWorld(
     return null;
   }
 
+  function formatEntityNameForActivity(type: string): string {
+    return type
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  function resolveTargetEntityName(ref: EntityRef | undefined): string | null {
+    if (!ref) return null;
+    const id = getCurrentEntityId(ref);
+    if (id === null) return null;
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    if (unit) return formatEntityNameForActivity(unit.unitType);
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    if (building) return formatEntityNameForActivity(building.buildingType);
+    const resource = world.getComponent<ResourceComponent>(id, 'resource');
+    if (resource) return formatEntityNameForActivity(resource.resourceType);
+    return null;
+  }
+
+  function getUnitActivity(id: number, unit: UnitComponent): string {
+    for (const [buildingId, occupants] of garrisonedByBuilding) {
+      if (occupants.includes(id)) {
+        const b = world.getComponent<BuildingComponent>(buildingId, 'building');
+        return b ? `Garrisoned in ${formatEntityNameForActivity(b.buildingType)}` : 'Garrisoned';
+      }
+    }
+
+    const monkTask = monkTasks.get(id);
+    if (monkTask) {
+      const targetName = resolveTargetEntityName(monkTask.targetEntityRef);
+      switch (monkTask.kind) {
+        case 'heal':
+          return targetName ? `Healing ${targetName}` : 'Healing';
+        case 'convert':
+          return targetName ? `Converting ${targetName}` : 'Converting';
+        case 'pickup':
+          return 'Retrieving relic';
+        case 'deposit':
+          return 'Depositing relic';
+      }
+    }
+
+    const treb = trebuchetPackStates.get(id);
+    if (treb && treb.transitionTicksRemaining > 0) {
+      return treb.packed ? 'Unpacking' : 'Packing';
+    }
+
+    const cmd = unitCommands.get(id);
+    if (cmd) {
+      if (cmd.type === 'attack') {
+        const targetName = resolveTargetEntityName(cmd.targetEntityRef);
+        return targetName ? `Attacking ${targetName}` : 'Attacking';
+      }
+      if (cmd.type === 'build') {
+        const targetName = resolveTargetEntityName(cmd.buildingRef);
+        return targetName ? `Building ${targetName}` : 'Building';
+      }
+      if (cmd.type === 'move') {
+        if (unit.unitType === 'villager' && cmd.targetEntityKind === 'resource') {
+          const targetId = cmd.targetEntityRef ? getCurrentEntityId(cmd.targetEntityRef) : null;
+          if (targetId !== null) {
+            const r = world.getComponent<ResourceComponent>(targetId, 'resource');
+            if (r) {
+              const econ = resourceKindToEconomyResource(r.resourceType);
+              if (econ) return `Gathering ${economyResourceLabel(econ).toLowerCase()}`;
+            }
+          }
+          return 'Gathering';
+        }
+        if (unit.unitType === 'villager') {
+          const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+          if (gatherer && gatherer.carriedResource && gatherer.carriedAmount > 0) {
+            return `Returning ${economyResourceLabel(gatherer.carriedResource).toLowerCase()}`;
+          }
+        }
+        return 'Moving';
+      }
+    }
+
+    // Villager gathering state lives on GathererComponent, not unitCommands.
+    // `issueUnitGatherCommand` clears unitCommands and sets gatherer.task directly.
+    if (unit.unitType === 'villager') {
+      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+      if (gatherer) {
+        if (gatherer.task === 'to-resource' || gatherer.task === 'gathering') {
+          if (gatherer.targetResourceId !== null) {
+            const r = world.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
+            if (r) {
+              const econ = resourceKindToEconomyResource(r.resourceType);
+              if (econ) return `Gathering ${economyResourceLabel(econ).toLowerCase()}`;
+            }
+          }
+          if (gatherer.desiredResource) return `Gathering ${economyResourceLabel(gatherer.desiredResource).toLowerCase()}`;
+          return 'Gathering';
+        }
+        if (gatherer.task === 'to-dropoff' && gatherer.carriedResource && gatherer.carriedAmount > 0) {
+          return `Returning ${economyResourceLabel(gatherer.carriedResource).toLowerCase()}`;
+        }
+      }
+    }
+
+    return 'Idle';
+  }
+
   function getUnitTransform(
     id: number,
     activeWorld: World<GameEvents, GameCommands> = world,
@@ -8126,7 +8231,10 @@ function createWorld(
         selectedEntityIds.length === 1
           ? getSelectionInventory(selectedEntityId, unit, building, resource)
           : null,
-      activity: null,
+      activity:
+        selectedEntityIds.length === 1 && unit && unit.owner === HUMAN_PLAYER_ID
+          ? getUnitActivity(selectedEntityId, unit)
+          : null,
       activityBreakdown: null,
       x: position.x,
       y: position.y,
