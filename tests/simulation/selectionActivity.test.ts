@@ -27,7 +27,7 @@ describe('selection activity — owned unit', () => {
   it('idle villager reports Idle', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Idle');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'idle', target: null });
   });
 
   it('villager ordered onto a tree reports Gathering wood', () => {
@@ -38,17 +38,17 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommand(tree!.x, tree!.y)).toBe(true);
     stepBridgeUntil(
       bridge,
-      () => bridge.getSelectionState().activity !== 'Idle',
+      () => bridge.getSelectionState().activity?.verb !== 'idle',
       { maxSteps: 5 },
     );
-    expect(bridge.getSelectionState().activity).toBe('Gathering wood');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'gathering', target: { kind: 'economy-resource', type: 'wood' } });
   });
 
   it('idle militia with no command reports Idle', () => {
     // militia-combat-fixture has a player-1 Militia with no assigned command.
     const bridge = createSimulationBridge('militia-combat-fixture');
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'militia')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Idle');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'idle', target: null });
   });
 
   it('militia with attack command on enemy reports Attacking Scout', () => {
@@ -61,7 +61,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(enemyScout!.id)).toBe(true);
 
     // The attack command registers immediately; no stepping required.
-    expect(bridge.getSelectionState().activity).toBe('Attacking Scout');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'attacking', target: { kind: 'unit', type: 'scout' } });
   }, 10_000);
 
   it('villager given a move command to an empty tile reports Moving', () => {
@@ -70,7 +70,7 @@ describe('selection activity — owned unit', () => {
     // Issue a plain move to a distant empty cell far from any resource.
     expect(bridge.issueMoveCommand(2, 2)).toBe(true);
     // Verify the move command registered before the unit arrives.
-    expect(bridge.getSelectionState().activity).toBe('Moving');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'moving', target: null });
   });
 
   it('villager returning with wood reports Returning wood', () => {
@@ -87,12 +87,12 @@ describe('selection activity — owned unit', () => {
         // Re-select each check to get fresh state.
         selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager');
         const activity = bridge.getSelectionState().activity;
-        return activity !== null && activity.startsWith('Returning');
+        return activity !== null && activity.verb === 'returning';
       },
       { maxSteps: 600 },
     );
     expect(reached).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Returning wood');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'returning', target: { kind: 'economy-resource', type: 'wood' } });
   }, 30_000);
 
   it('villager placing a house foundation reports Building House', () => {
@@ -122,7 +122,7 @@ describe('selection activity — owned unit', () => {
     // Step one tick so the command is processed.
     bridge.step(100);
     selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager');
-    expect(bridge.getSelectionState().activity).toBe('Building House');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'building', target: { kind: 'building', type: 'house' } });
   });
 
   it('monk healing a friendly unit reports Healing Spearman', () => {
@@ -187,7 +187,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(spearmanId)).toBe(true);
 
     // The monk task registers; check activity immediately.
-    expect(bridge.getSelectionState().activity).toBe('Healing Spearman');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'healing', target: { kind: 'unit', type: 'spearman' } });
   }, 60_000);
 
   it('monk converting an enemy reports Converting Militia', () => {
@@ -201,7 +201,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(enemyMilitia!.id)).toBe(true);
 
     // The convert task registers immediately.
-    expect(bridge.getSelectionState().activity).toBe('Converting Militia');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'converting', target: { kind: 'unit', type: 'militia' } });
   }, 10_000);
 
   it('monk retrieving a relic reports Retrieving relic', () => {
@@ -217,7 +217,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(relicId)).toBe(true);
 
     // The pickup task registers immediately.
-    expect(bridge.getSelectionState().activity).toBe('Retrieving relic');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'retrieving', target: null });
   }, 10_000);
 
   it('monk depositing a relic reports Depositing relic', () => {
@@ -260,7 +260,7 @@ describe('selection activity — owned unit', () => {
     expect(bridge.issueContextCommandAtEntity(monastery!.id)).toBe(true);
 
     // The deposit task registers immediately.
-    expect(bridge.getSelectionState().activity).toBe('Depositing relic');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'depositing', target: null });
   }, 30_000);
 
   it('trebuchet unpacking reports Unpacking', () => {
@@ -282,12 +282,12 @@ describe('selection activity — owned unit', () => {
       bridge,
       () => {
         selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'trebuchet');
-        return bridge.getSelectionState().activity === 'Unpacking';
+        return bridge.getSelectionState().activity?.verb === 'unpacking';
       },
       { maxSteps: 60 },
     );
     expect(reached).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Unpacking');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'unpacking', target: null });
   }, 10_000);
 
   it('trebuchet packing reports Packing', () => {
@@ -328,7 +328,7 @@ describe('selection activity — owned unit', () => {
     // The Packing transition starts immediately on the next step.
     bridge.step(100);
     selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'trebuchet');
-    expect(bridge.getSelectionState().activity).toBe('Packing');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'packing', target: null });
   }, 30_000);
 });
 
@@ -337,14 +337,14 @@ describe('selection activity — owned building', () => {
     // DEFAULT_SEED always has a completed Town Center for player 1.
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'town-center')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Idle');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'idle', target: null });
   });
 
   it('Town Center training Villager reports Training Villager', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'town-center')).toBe(true);
     expect(bridge.queueTrainUnit('villager')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Training Villager');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'training', target: { kind: 'unit', type: 'villager' } });
   });
 
   it('building mid-construction reports Under construction', () => {
@@ -356,7 +356,7 @@ describe('selection activity — owned building', () => {
     const placed = placeBuildingNearTownCenter(bridge, 'house', HUMAN_PLAYER_ID);
     // Select the foundation immediately (before any construction can complete).
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'house')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Under construction');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'under construction', target: null });
     void placed;
   });
 
@@ -366,7 +366,7 @@ describe('selection activity — owned building', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('forging')).toBe(true);
-    expect(bridge.getSelectionState().activity).toBe('Researching Forging');
+    expect(bridge.getSelectionState().activity).toEqual({ verb: 'researching', target: { kind: 'technology', type: 'forging' } });
   });
 });
 
@@ -446,7 +446,7 @@ describe('selection activity — multi-selection', () => {
       () => {
         bridge.selectEntityById(v0!.id);
         const a = bridge.getSelectionState().activity;
-        return a !== null && a.startsWith('Gathering');
+        return a !== null && a.verb === 'gathering';
       },
       { maxSteps: 30 },
     );
@@ -468,7 +468,7 @@ describe('selection activity — multi-selection', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
     const state = bridge.getSelectionState();
-    expect(state.activity).toBe('Idle');
+    expect(state.activity).toEqual({ verb: 'idle', target: null });
     expect(state.activityBreakdown).toBeNull();
   });
 

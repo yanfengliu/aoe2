@@ -1704,61 +1704,60 @@ function createWorld(
     return null;
   }
 
-  function formatEntityNameForActivity(type: string): string {
-    return type
-      .split('-')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-  }
+  type ActivityTarget = { kind: 'unit' | 'building' | 'resource' | 'relic' | 'economy-resource' | 'technology'; type: string };
+  type ActivityPayload = { verb: string; target: ActivityTarget | null };
 
-  function resolveTargetEntityName(ref: EntityRef | undefined): string | null {
+  function resolveTargetEntityRef(ref: EntityRef | undefined): ActivityTarget | null {
     if (!ref) return null;
     const id = getCurrentEntityId(ref);
     if (id === null) return null;
     const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (unit) return formatEntityNameForActivity(unit.unitType);
+    if (unit) return { kind: 'unit', type: unit.unitType };
     const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (building) return formatEntityNameForActivity(building.buildingType);
+    if (building) return { kind: 'building', type: building.buildingType };
     const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    if (resource) return formatEntityNameForActivity(resource.resourceType);
+    if (resource) return { kind: 'resource', type: resource.resourceType };
     return null;
   }
 
-  function computeUnitActivity(id: number, unit: UnitComponent): { label: string; verb: string } {
+  function computeUnitActivity(id: number, unit: UnitComponent): ActivityPayload {
     const monkTask = monkTasks.get(id);
     if (monkTask) {
-      const targetName = resolveTargetEntityName(monkTask.targetEntityRef);
       switch (monkTask.kind) {
-        case 'heal':
-          return { label: targetName ? `Healing ${targetName}` : 'Healing', verb: 'healing' };
-        case 'convert':
-          return { label: targetName ? `Converting ${targetName}` : 'Converting', verb: 'converting' };
+        case 'heal': {
+          const target = resolveTargetEntityRef(monkTask.targetEntityRef);
+          return { verb: 'healing', target };
+        }
+        case 'convert': {
+          const target = resolveTargetEntityRef(monkTask.targetEntityRef);
+          return { verb: 'converting', target };
+        }
         case 'pickup':
-          return { label: 'Retrieving relic', verb: 'retrieving' };
+          return { verb: 'retrieving', target: null };
         case 'deposit':
-          return { label: 'Depositing relic', verb: 'depositing' };
+          return { verb: 'depositing', target: null };
       }
     }
 
     const treb = trebuchetPackStates.get(id);
     if (treb && treb.transitionTicksRemaining > 0) {
       return treb.packed
-        ? { label: 'Unpacking', verb: 'unpacking' }
-        : { label: 'Packing', verb: 'packing' };
+        ? { verb: 'unpacking', target: null }
+        : { verb: 'packing', target: null };
     }
 
     const cmd = unitCommands.get(id);
     if (cmd) {
       if (cmd.type === 'attack') {
-        const targetName = resolveTargetEntityName(cmd.targetEntityRef);
-        return { label: targetName ? `Attacking ${targetName}` : 'Attacking', verb: 'attacking' };
+        const target = resolveTargetEntityRef(cmd.targetEntityRef);
+        return { verb: 'attacking', target };
       }
       if (cmd.type === 'build') {
-        const targetName = resolveTargetEntityName(cmd.buildingRef);
-        return { label: targetName ? `Building ${targetName}` : 'Building', verb: 'building' };
+        const target = resolveTargetEntityRef(cmd.buildingRef);
+        return { verb: 'building', target };
       }
       if (cmd.type === 'move') {
-        return { label: 'Moving', verb: 'moving' };
+        return { verb: 'moving', target: null };
       }
     }
 
@@ -1772,43 +1771,39 @@ function createWorld(
             const r = world.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
             if (r) {
               const econ = resourceKindToEconomyResource(r.resourceType);
-              if (econ) return { label: `Gathering ${economyResourceLabel(econ).toLowerCase()}`, verb: 'gathering' };
+              if (econ) return { verb: 'gathering', target: { kind: 'economy-resource', type: econ } };
             }
           }
-          if (gatherer.desiredResource) return { label: `Gathering ${economyResourceLabel(gatherer.desiredResource).toLowerCase()}`, verb: 'gathering' };
-          return { label: 'Gathering', verb: 'gathering' };
+          if (gatherer.desiredResource) return { verb: 'gathering', target: { kind: 'economy-resource', type: gatherer.desiredResource } };
+          return { verb: 'gathering', target: null };
         }
         if (gatherer.task === 'to-dropoff' && gatherer.carriedResource && gatherer.carriedAmount > 0) {
-          return { label: `Returning ${economyResourceLabel(gatherer.carriedResource).toLowerCase()}`, verb: 'returning' };
+          return { verb: 'returning', target: { kind: 'economy-resource', type: gatherer.carriedResource } };
         }
       }
     }
 
-    return { label: 'Idle', verb: 'idle' };
+    return { verb: 'idle', target: null };
   }
 
-  function getUnitActivity(id: number, unit: UnitComponent): string {
-    return computeUnitActivity(id, unit).label;
-  }
-
-  function getBuildingActivity(id: number): string {
+  function getBuildingActivity(id: number): ActivityPayload {
     const construction = constructionStates.get(id);
     if (construction && !construction.isComplete) {
-      return 'Under construction';
+      return { verb: 'under construction', target: null };
     }
 
     const queue = productionQueues.get(id);
     const head = queue && queue.length > 0 ? queue[0] : null;
     if (head) {
-      if (head.kind === 'unit') {
-        return `Training ${formatEntityNameForActivity(head.unitType!)}`;
+      if (head.kind === 'unit' && head.unitType) {
+        return { verb: 'training', target: { kind: 'unit', type: head.unitType } };
       }
-      if (head.kind === 'technology') {
-        return `Researching ${formatEntityNameForActivity(head.technologyType!)}`;
+      if (head.kind === 'technology' && head.technologyType) {
+        return { verb: 'researching', target: { kind: 'technology', type: head.technologyType } };
       }
     }
 
-    return 'Idle';
+    return { verb: 'idle', target: null };
   }
 
   function coarseVerbForUnit(id: number, unit: UnitComponent): string {
@@ -8261,7 +8256,7 @@ function createWorld(
           : null,
       activity:
         selectedEntityIds.length === 1 && unit && unit.owner === HUMAN_PLAYER_ID
-          ? getUnitActivity(selectedEntityId, unit)
+          ? computeUnitActivity(selectedEntityId, unit)
           : selectedEntityIds.length === 1 && building && building.owner === HUMAN_PLAYER_ID
           ? getBuildingActivity(selectedEntityId)
           : null,

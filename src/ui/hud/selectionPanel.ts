@@ -139,9 +139,40 @@ function renderSelectionDetail(
   `;
 }
 
+function formatActivityLabel(activity: NonNullable<SelectionState['activity']>): string {
+  const verbDisplay: Record<string, string> = {
+    'gathering': 'Gathering',
+    'returning': 'Returning',
+    'moving': 'Moving',
+    'attacking': 'Attacking',
+    'building': 'Building',
+    'healing': 'Healing',
+    'converting': 'Converting',
+    'retrieving': 'Retrieving relic',
+    'depositing': 'Depositing relic',
+    'packing': 'Packing',
+    'unpacking': 'Unpacking',
+    'training': 'Training',
+    'researching': 'Researching',
+    'under construction': 'Under construction',
+    'idle': 'Idle',
+  };
+  const verbDisplay_ = verbDisplay[activity.verb] ?? 'Idle';
+  if (!activity.target) return verbDisplay_;
+  if (activity.target.kind === 'economy-resource') {
+    return `${verbDisplay_} ${activity.target.type}`;
+  }
+  if (activity.target.kind === 'technology') {
+    return `${verbDisplay_} ${formatTechnologyName(activity.target.type as ResearchableTechnologyType)}`;
+  }
+  return `${verbDisplay_} ${formatEntityName(activity.target.type as SelectionState['selectedEntityType'])}`;
+}
+
 function renderSelectionActivity(selectionState: SelectionState): string {
-  if (selectionState.activity) {
-    return `<div class="hud-selection-activity" data-selection-activity>${selectionState.activity}</div>`;
+  const a = selectionState.activity;
+  if (a) {
+    const text = formatActivityLabel(a);
+    return `<div class="hud-selection-activity" data-selection-activity>${text}</div>`;
   }
   const breakdown = selectionState.activityBreakdown;
   if (breakdown && breakdown.entries.length > 0) {

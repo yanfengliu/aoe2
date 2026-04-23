@@ -361,7 +361,13 @@ export interface SelectionState {
   faction: string | null;
   civ: string | null;
   inventory: string | null;
-  activity: string | null;
+  activity: {
+    verb: string;
+    target: {
+      kind: 'unit' | 'building' | 'resource' | 'relic' | 'economy-resource' | 'technology';
+      type: string;
+    } | null;
+  } | null;
   activityBreakdown: {
     entries: { label: string; count: number }[];
     overflow: number;

@@ -532,7 +532,13 @@ test.describe('browser gameplay smoke tests - selection', () => {
       const api = window.__AOE2_TEST__!;
       for (let index = 0; index < 120; index += 1) {
         const snapshot = api.advanceTicks(1, 100);
-        const gatheringWood = snapshot.selectionState.activity === 'Gathering wood';
+        const act = snapshot.selectionState.activity;
+        const gatheringWood =
+          act !== null &&
+          typeof act === 'object' &&
+          act.verb === 'gathering' &&
+          act.target?.kind === 'economy-resource' &&
+          act.target?.type === 'wood';
         if (gatheringWood) break;
       }
     });
