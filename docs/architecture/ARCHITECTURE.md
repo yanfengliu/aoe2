@@ -12,6 +12,21 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `simulation/` — simulation bridge, scenario setup, command handlers
+      - `bridge/` — helper modules factored out of `createSimulationBridge.ts`
+        to keep the entry file from drifting back into god-class shape.
+        Hosts the pure top-level helpers (`pureHelpers.ts`: clamp, grid/
+        coordinate transforms, economy/resource helpers, footprint and
+        projection comparators, plus the shared `GameEvents`/`GameCommands`/
+        `GameComponents`/`GameWorld` type aliases and the
+        `UNIT_SUBGRID_*`/`UNIT_CELL_SLOT_OFFSETS`/`MARKET_BASE_RATE`
+        constants), render projector + sheep vision helpers (`visibility.ts`:
+        `createProjector`, `syncVisibilitySources`, sheep claim/ownership
+        helpers), the Trebuchet pack/unpack state factory
+        (`trebuchetState.ts` — `createTrebuchetStateOps`), and the fog-memory
+        ops factory (`fogMemoryOps.ts` — `createFogMemoryOps` bundling
+        `getOrCreateMemoryMap`, `getFogMemoryEntities`,
+        `getHumanFogMemorySize`). `createSimulationBridge.ts` imports from
+        `bridge/` rather than re-declaring any of this.
       - `mapGeneration/` — deterministic procedural map generators and the
         spawn-list helper that enforces one-resource-per-cell. Hosts the
         default + Black Forest + Arena generators plus the shared terrain
