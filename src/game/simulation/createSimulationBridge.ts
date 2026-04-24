@@ -55,6 +55,7 @@ import { createFogMemoryOps } from './bridge/fogMemoryOps';
 import { createMonkTaskOps } from './bridge/monkTaskOps';
 import { createTechnologyOps } from './bridge/technologyOps';
 import { createMatchEndOps } from './bridge/matchEndOps';
+import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -4565,214 +4566,25 @@ function createWorld(
     createCombatState,
   });
 
-  // Slice 10: is `unitType` a trainable military unit? Used by the AI to
-  // decide what counts toward the attack-group threshold and to filter
-  // villagers / monks out of push targets. Siege and ranged / melee /
-  // cavalry military all qualify; villagers, monks, and scouts do not.
-  function isAiMilitaryUnit(unitType: UnitType): boolean {
-    switch (unitType) {
-      case 'militia':
-      case 'champion':
-      case 'spearman':
-      case 'pikeman':
-      case 'halberdier':
-      case 'archer':
-      case 'crossbowman':
-      case 'arbalest':
-      case 'skirmisher':
-      case 'longbowman':
-      case 'elite-longbowman':
-      case 'knight':
-      case 'cavalier':
-      case 'light-cavalry':
-      case 'hussar':
-      case 'camel':
-      case 'cavalry-archer':
-      case 'heavy-cavalry-archer':
-      case 'mangonel':
-      case 'onager':
-      case 'scorpion':
-      case 'heavy-scorpion':
-      case 'battering-ram':
-      case 'siege-ram':
-      case 'bombard-cannon':
-      case 'trebuchet':
-      case 'man-at-arms':
-      case 'long-swordsman':
-      case 'two-handed-swordsman':
-      case 'paladin':
-      case 'heavy-camel':
-        return true;
-      case 'villager':
-      case 'scout':
-      case 'monk':
-        return false;
-    }
-  }
-
-  // Slice 10 AI helper. Returns the owner's idle (no active command)
-  // military units. Used to count push-ready forces and to issue
-  // attack-group commands.
-  function findOwnedMilitaryUnits(owner: number): Array<{ id: number; position: Position }> {
-    const results: Array<{ id: number; position: Position }> = [];
-    for (const id of world.query('position', 'unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      const position = world.getComponent<Position>(id, 'position');
-      if (!unit || !position || unit.owner !== owner || !isAiMilitaryUnit(unit.unitType)) {
-        continue;
-      }
-      results.push({ id, position });
-    }
-    return results;
-  }
-
-  // Slice 10 AI helper. Return every owned military unit's id as a set
-  // for fast membership tests during attack-group pruning.
-  function ownedMilitaryUnitIds(owner: number): Set<number> {
-    const ids = new Set<number>();
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit && unit.owner === owner && isAiMilitaryUnit(unit.unitType)) {
-        ids.add(id);
-      }
-    }
-    return ids;
-  }
-
-  // Slice 10 AI helper. Choose a Watch Tower placement anchor between
-  // the AI's Town Center and the most recent enemy sighting. Steps the
-  // anchor one AI_WATCH_TOWER_FORWARD_STEP toward the sighting so the
-  // tower sits forward of the base rather than on top of it.
-  function pickWatchTowerPlacement(
-    townCenter: Position,
-    sighting: Position,
-  ): Position | null {
-    const dx = sighting.x - townCenter.x;
-    const dy = sighting.y - townCenter.y;
-    const distance = Math.abs(dx) + Math.abs(dy);
-    if (distance <= 0) {
-      return findBuildPlacementNear(townCenter, 'watch-tower');
-    }
-    const step = Math.min(AI_WATCH_TOWER_FORWARD_STEP, Math.max(1, Math.floor(distance / 2)));
-    const toward = {
-      x: Math.round(townCenter.x + (dx * step) / distance),
-      y: Math.round(townCenter.y + (dy * step) / distance),
-    };
-    return findBuildPlacementNear(toward, 'watch-tower');
-  }
-
-  // Slice 10 AI helper. Find one owned building of the requested type
-  // whose construction is complete AND that has capacity in its
-  // production queue (≤ 2 entries, matching human-player UX). Returns
-  // null if nothing qualifies; the AI tries again on the next decision
-  // tick.
-  function findIdleProducer(owner: number, buildingType: BuildingType): number | null {
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!building || building.owner !== owner || building.buildingType !== buildingType) {
-        continue;
-      }
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-      const queue = productionQueues.get(id) ?? [];
-      if (queue.length >= 2) {
-        continue;
-      }
-      return id;
-    }
-    return null;
-  }
-
-  // Slice 10 AI helper. Assign the owner's idle villagers to gather
-  // from the desired resource, walking toward the `villagerTargets`
-  // distribution one reassignment at a time per decision tick. Flips
-  // the gatherer component's `desiredResource` and forces a fresh
-  // assignNearestResource on the next idle tick.
-  function villagerRebalance(
-    owner: number,
-    targets: Partial<Record<EconomyResourceKind, number>>,
-  ): void {
-    const desiredByKind: Record<EconomyResourceKind, number> = {
-      food: targets.food ?? 0,
-      wood: targets.wood ?? 0,
-      gold: targets.gold ?? 0,
-      stone: targets.stone ?? 0,
-    };
-    const actualByKind: Record<EconomyResourceKind, number> = {
-      food: 0,
-      wood: 0,
-      gold: 0,
-      stone: 0,
-    };
-    const villagersByKind: Record<EconomyResourceKind, number[]> = {
-      food: [],
-      wood: [],
-      gold: [],
-      stone: [],
-    };
-    for (const id of world.query('unit', 'gatherer')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-      if (!unit || !gatherer || unit.owner !== owner || unit.unitType !== 'villager') {
-        continue;
-      }
-      const resource = gatherer.desiredResource;
-      actualByKind[resource] += 1;
-      villagersByKind[resource].push(id);
-    }
-
-    // Rebalance metric: compare actual / desired ratios. The kind
-    // whose actual / desired ratio is WORST (ratio low = under-served)
-    // is the deficit kind; the kind with the HIGHEST ratio (actual
-    // exceeding or most-served vs desired) is the donor. Using the
-    // ratio rather than the absolute gap means the rebalance fires
-    // even when every kind is under its target — a common case when
-    // total villagers is smaller than total desired villagers.
-    const kinds: EconomyResourceKind[] = ['food', 'wood', 'gold', 'stone'];
-    let worstKind: EconomyResourceKind | null = null;
-    let worstRatio = Number.POSITIVE_INFINITY;
-    let bestKind: EconomyResourceKind | null = null;
-    let bestRatio = Number.NEGATIVE_INFINITY;
-    for (const kind of kinds) {
-      const desired = desiredByKind[kind];
-      if (desired <= 0) {
-        continue; // Avoid divide-by-zero; zero-target kinds don't pull villagers.
-      }
-      const ratio = actualByKind[kind] / desired;
-      if (ratio < worstRatio) {
-        worstRatio = ratio;
-        worstKind = kind;
-      }
-      if (ratio > bestRatio && villagersByKind[kind].length > 0) {
-        bestRatio = ratio;
-        bestKind = kind;
-      }
-    }
-
-    // Only rebalance when there's a meaningful gap between the
-    // best-served and worst-served kinds, and the donor kind has at
-    // least one villager to spare. Otherwise skip this decision tick.
-    if (
-      worstKind
-      && bestKind
-      && worstKind !== bestKind
-      && bestRatio - worstRatio > 0.01
-    ) {
-      const donorId = villagersByKind[bestKind][0];
-      if (donorId !== undefined) {
-        const gatherer = world.getComponent<GathererComponent>(donorId, 'gatherer');
-        if (gatherer) {
-          gatherer.desiredResource = worstKind;
-          gatherer.hasExplicitGatherOrder = false;
-          gatherer.task = 'idle';
-          gatherer.targetResourceId = null;
-          gatherer.gatherProgressTicks = 0;
-        }
-      }
-    }
-  }
+  // Slice 10 AI decision helpers live in `bridge/aiDecisionOps`. The
+  // factory closes over constructionStates + productionQueues (the two
+  // side maps these helpers read) and receives findBuildPlacementNear
+  // as a collaborator so Watch Tower placement keeps a single anchor-
+  // computation site.
+  const {
+    isAiMilitaryUnit,
+    findOwnedMilitaryUnits,
+    ownedMilitaryUnitIds,
+    pickWatchTowerPlacement,
+    findIdleProducer,
+    villagerRebalance,
+  } = createAiDecisionOps({
+    world,
+    constructionStates,
+    productionQueues,
+    findBuildPlacementNear,
+    aiWatchTowerForwardStep: AI_WATCH_TOWER_FORWARD_STEP,
+  });
 
   // FU4: Monk task subsystem. Lives in `bridge/monkTaskOps` — the factory
   // closes over every side map and collaborator this subsystem mutates, so
