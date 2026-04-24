@@ -38,7 +38,15 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         selection, sheep, scenario validation). The `fixtures/index.ts`
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
-  - `phaser/` — Phaser-specific scenes and render projection
+  - `phaser/` — Phaser-specific scenes and render projection. Hosts
+    `scenes/GameScene.ts` (scene class wiring lifecycle, input, and
+    projection-driven render orchestration) plus a `scenes/gameScene/`
+    subdirectory for the dep-bag renderer factories factored out of the
+    scene file: `debugOverlay.ts` (world-space debug-mode overlays),
+    `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts`
+    (selection ring + placement preview + marquee paints), and
+    `cameraController.ts` (per-frame update, middle-drag pan, edge-pan,
+    zoom/scroll clamp, HUD-facing camera queries).
   - `ui/` — DOM HUD controller
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
