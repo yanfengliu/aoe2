@@ -20,6 +20,10 @@ import {
   findEntitiesAtWorldPointInEntities,
 } from './entityHitTest';
 import {
+  createCameraController,
+  type CameraController,
+} from './gameScene/cameraController';
+import {
   createDebugOverlayRenderer,
   type DebugOverlayRenderer,
 } from './gameScene/debugOverlay';
@@ -51,14 +55,6 @@ interface GameSceneOptions {
 }
 
 const CELL_SIZE = 24;
-const EDGE_PAN_THRESHOLD_PX = 20;
-const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
-const EDGE_PAN_HOVER_DELAY_MS = 500;
-const MIDDLE_DRAG_PAN_MIN_DELTA_PX = 0.5;
-const MIN_CAMERA_ZOOM = 0.7;
-const MAX_CAMERA_ZOOM = 2.4;
-const INITIAL_CAMERA_ZOOM = 1.4;
-const FULLSCREEN_WINDOW_TOLERANCE_PX = 2;
 
 export interface CameraState {
   scrollX: number;
@@ -156,12 +152,6 @@ interface MiddleDragPanState {
   lastScreenY: number;
 }
 
-interface EdgePanState {
-  dx: -1 | 0 | 1;
-  dy: -1 | 0 | 1;
-  sinceMs: number;
-}
-
 interface RecentFriendlyUnitClick {
   atMs: number;
   cellX: number;
@@ -200,7 +190,7 @@ export class GameScene extends Phaser.Scene {
   private displayedEntities: ProjectedEntityView[] = [];
   private dragSelection: DragSelectionState | null = null;
   private middleDragPan: MiddleDragPanState | null = null;
-  private edgePanState: EdgePanState | null = null;
+  private cameraController?: CameraController;
   private recentExactSelectionClick: RecentExactSelectionClick | null = null;
   private recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
   private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
@@ -257,7 +247,16 @@ export class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
-    this.setCameraZoom(INITIAL_CAMERA_ZOOM);
+    this.cameraController = createCameraController({
+      scene: this,
+      camera: this.cameras.main,
+      cellSize: CELL_SIZE,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      isDragSelecting: () => this.dragSelection !== null,
+      isMiddleDragging: () => this.middleDragPan !== null,
+    });
+    this.cameraController.setZoom(this.cameraController.initialZoom);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasd = this.input.keyboard?.addKeys(
@@ -272,7 +271,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on(
       'wheel',
       (_pointer: Phaser.Input.Pointer, _objects: unknown, _dx: number, dy: number) => {
-        this.setCameraZoom(this.cameras.main.zoom - dy * 0.001);
+        this.cameraController?.setZoom(this.cameras.main.zoom - dy * 0.001);
       },
     );
 
@@ -317,7 +316,11 @@ export class GameScene extends Phaser.Scene {
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.middleDragPan && pointer.id === this.middleDragPan.pointerId && pointer.middleButtonDown()) {
-        this.panCameraByMiddleDrag(pointer);
+        const deltaX = pointer.x - this.middleDragPan.lastScreenX;
+        const deltaY = pointer.y - this.middleDragPan.lastScreenY;
+        this.middleDragPan.lastScreenX = pointer.x;
+        this.middleDragPan.lastScreenY = pointer.y;
+        this.cameraController?.panByMiddleDrag(deltaX, deltaY);
       }
 
       if (!this.dragSelection || pointer.id !== this.dragSelection.pointerId || !pointer.leftButtonDown()) {
@@ -376,7 +379,10 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.bridge.step(delta);
-    this.updateCamera(_time, delta);
+    this.cameraController?.update(_time, delta, {
+      cursors: this.cursors,
+      wasd: this.wasd,
+    });
     this.syncFromBridge();
   }
 
@@ -395,7 +401,7 @@ export class GameScene extends Phaser.Scene {
     this.displayedEntities = [];
     this.dragSelection = null;
     this.middleDragPan = null;
-    this.edgePanState = null;
+    this.cameraController?.resetEdgePanState();
     this.clearRecentSelectionClicks();
     this.lastPlacementPreviewVisualState = null;
     this.lastBuildingVisualStates = [];
@@ -435,7 +441,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.clampCameraToWorld();
+    this.cameraController?.clampToWorld();
 
     const state = this.bridge.getRenderState();
     const selectionState = this.bridge.getSelectionState();
@@ -463,37 +469,6 @@ export class GameScene extends Phaser.Scene {
     this.lastRenderedInterpolationAlpha = interpolationAlpha;
     this.lastSelectionKey = selectionKey;
     this.renderState(state, selectionState, interpolationAlpha);
-  }
-
-  private updateCamera(time: number, delta: number): void {
-    const camera = this.cameras.main;
-    const speed = (delta / 1000) * 420;
-    const edgePanSpeed = (delta / 1000) * EDGE_PAN_SPEED_PX_PER_SECOND;
-
-    if (this.cursors?.left.isDown || this.wasd?.A.isDown) {
-      camera.scrollX -= speed;
-    }
-    if (this.cursors?.right.isDown || this.wasd?.D.isDown) {
-      camera.scrollX += speed;
-    }
-    if (this.cursors?.up.isDown || this.wasd?.W.isDown) {
-      camera.scrollY -= speed;
-    }
-    if (this.cursors?.down.isDown || this.wasd?.S.isDown) {
-      camera.scrollY += speed;
-    }
-
-    if (!this.middleDragPan && !this.dragSelection) {
-      const edgePan = this.getEdgePanDelta(time);
-      if (edgePan.dx !== 0) {
-        camera.scrollX += edgePan.dx * edgePanSpeed;
-      }
-      if (edgePan.dy !== 0) {
-        camera.scrollY += edgePan.dy * edgePanSpeed;
-      }
-    }
-
-    this.clampCameraToWorld();
   }
 
   private renderState(
@@ -648,223 +623,16 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private panCameraByMiddleDrag(pointer: Phaser.Input.Pointer): void {
-    if (!this.middleDragPan) {
-      return;
-    }
-
-    const deltaX = pointer.x - this.middleDragPan.lastScreenX;
-    const deltaY = pointer.y - this.middleDragPan.lastScreenY;
-    this.middleDragPan.lastScreenX = pointer.x;
-    this.middleDragPan.lastScreenY = pointer.y;
-
-    if (
-      Math.abs(deltaX) < MIDDLE_DRAG_PAN_MIN_DELTA_PX
-      && Math.abs(deltaY) < MIDDLE_DRAG_PAN_MIN_DELTA_PX
-    ) {
-      return;
-    }
-
-    const camera = this.cameras.main;
-    camera.scrollX -= deltaX / camera.zoom;
-    camera.scrollY -= deltaY / camera.zoom;
-    this.clampCameraToWorld();
-  }
-
-  private isEdgePanEnabled(): boolean {
-    const ownerDocument = this.game.canvas?.ownerDocument;
-    const fullscreenElement = ownerDocument?.fullscreenElement;
-    const canvas = this.game.canvas;
-    if (fullscreenElement != null && canvas != null && fullscreenElement.contains(canvas)) {
-      return true;
-    }
-
-    const view = ownerDocument?.defaultView;
-    const screenWidth = view?.screen.width ?? 0;
-    const screenHeight = view?.screen.height ?? 0;
-    if (!view || screenWidth <= 0 || screenHeight <= 0) {
-      return false;
-    }
-
-    return (
-      Math.abs(view.outerWidth - screenWidth) <= FULLSCREEN_WINDOW_TOLERANCE_PX
-      && Math.abs(view.outerHeight - screenHeight) <= FULLSCREEN_WINDOW_TOLERANCE_PX
-    );
-  }
-
-  private getEdgePanDelta(time: number): { dx: -1 | 0 | 1; dy: -1 | 0 | 1 } {
-    if (!this.isEdgePanEnabled()) {
-      this.edgePanState = null;
-      return { dx: 0, dy: 0 };
-    }
-
-    const pointer = this.input.activePointer;
-    const width = this.scale.width;
-    const height = this.scale.height;
-    // Once the game is fullscreen, activePointer still defaults to (0, 0),
-    // which is inside the NW edge zone. Wait for a real mousemove on the
-    // canvas before trusting it.
-    if (
-      pointer.moveTime === 0
-      || pointer.isDown
-      || pointer.x < 0
-      || pointer.y < 0
-      || pointer.x > width
-      || pointer.y > height
-    ) {
-      this.edgePanState = null;
-      return { dx: 0, dy: 0 };
-    }
-
-    const dx =
-      pointer.x <= EDGE_PAN_THRESHOLD_PX ? -1
-      : pointer.x >= width - EDGE_PAN_THRESHOLD_PX ? 1
-      : 0;
-    const dy =
-      pointer.y <= EDGE_PAN_THRESHOLD_PX ? -1
-      : pointer.y >= height - EDGE_PAN_THRESHOLD_PX ? 1
-      : 0;
-
-    if (dx === 0 && dy === 0) {
-      this.edgePanState = null;
-      return { dx: 0, dy: 0 };
-    }
-
-    if (
-      this.edgePanState === null
-      || this.edgePanState.dx !== dx
-      || this.edgePanState.dy !== dy
-    ) {
-      this.edgePanState = {
-        dx,
-        dy,
-        sinceMs: time,
-      };
-      return { dx: 0, dy: 0 };
-    }
-
-    if (time - this.edgePanState.sinceMs < EDGE_PAN_HOVER_DELAY_MS) {
-      return { dx: 0, dy: 0 };
-    }
-
-    return { dx, dy };
-  }
-
   getCameraState(): CameraState | null {
-    if (!this.sys.isActive()) {
-      return null;
-    }
-
-    this.clampCameraToWorld();
-
-    const camera = this.cameras.main;
-    const viewWidth = camera.width / camera.zoom;
-    const viewHeight = camera.height / camera.zoom;
-    const viewX = camera.scrollX + (camera.width - viewWidth) * 0.5;
-    const viewY = camera.scrollY + (camera.height - viewHeight) * 0.5;
-
-    return {
-      scrollX: camera.scrollX,
-      scrollY: camera.scrollY,
-      zoom: camera.zoom,
-      width: camera.width,
-      height: camera.height,
-      viewX,
-      viewY,
-      viewWidth,
-      viewHeight,
-    };
+    return this.cameraController?.getState() ?? null;
   }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
-    if (!this.sys.isActive()) {
-      return;
-    }
-
-    this.cameras.main.centerOn(worldX, worldY);
-    this.clampCameraToWorld();
-  }
-
-  private setCameraZoom(nextZoom: number): void {
-    const camera = this.cameras.main;
-    const minimumZoom = this.getMinimumCameraZoom();
-    const clampedZoom = Phaser.Math.Clamp(nextZoom, minimumZoom, MAX_CAMERA_ZOOM);
-    camera.setZoom(clampedZoom);
-    this.clampCameraToWorld();
-  }
-
-  private clampCameraToWorld(): void {
-    if (!this.sys.isActive()) {
-      return;
-    }
-
-    const camera = this.cameras.main;
-    const minimumZoom = this.getMinimumCameraZoom();
-    const clampedZoom = Phaser.Math.Clamp(camera.zoom, minimumZoom, MAX_CAMERA_ZOOM);
-    if (camera.zoom !== clampedZoom) {
-      camera.setZoom(clampedZoom);
-    }
-
-    const { minScrollX, maxScrollX, minScrollY, maxScrollY } = this.getCameraScrollBounds(camera);
-    camera.scrollX = Phaser.Math.Clamp(camera.scrollX, minScrollX, maxScrollX);
-    camera.scrollY = Phaser.Math.Clamp(camera.scrollY, minScrollY, maxScrollY);
-  }
-
-  private getMinimumCameraZoom(): number {
-    const camera = this.cameras.main;
-    return Math.max(
-      MIN_CAMERA_ZOOM,
-      camera.width / this.getWorldWidthPx(),
-      camera.height / this.getWorldHeightPx(),
-    );
-  }
-
-  private getCameraScrollBounds(camera: Phaser.Cameras.Scene2D.Camera): {
-    minScrollX: number;
-    maxScrollX: number;
-    minScrollY: number;
-    maxScrollY: number;
-  } {
-    const viewWidth = camera.width / camera.zoom;
-    const viewHeight = camera.height / camera.zoom;
-    const minScrollX = (viewWidth - camera.width) * 0.5;
-    const maxScrollX = this.getWorldWidthPx() - (camera.width + viewWidth) * 0.5;
-    const minScrollY = (viewHeight - camera.height) * 0.5;
-    const maxScrollY = this.getWorldHeightPx() - (camera.height + viewHeight) * 0.5;
-
-    return {
-      minScrollX,
-      maxScrollX: Math.max(minScrollX, maxScrollX),
-      minScrollY,
-      maxScrollY: Math.max(minScrollY, maxScrollY),
-    };
-  }
-
-  private getWorldWidthPx(): number {
-    return MAP_WIDTH * CELL_SIZE;
-  }
-
-  private getWorldHeightPx(): number {
-    return MAP_HEIGHT * CELL_SIZE;
+    this.cameraController?.centerOnWorldPosition(worldX, worldY);
   }
 
   getScreenPointForCell(cellX: number, cellY: number): { x: number; y: number } | null {
-    if (!this.sys.isActive() || !this.game.canvas) {
-      return null;
-    }
-
-    const camera = this.cameras.main;
-    const worldX = cellX * CELL_SIZE + CELL_SIZE * 0.5;
-    const worldY = cellY * CELL_SIZE + CELL_SIZE * 0.5;
-    const bounds = this.game.canvas.getBoundingClientRect();
-    const worldView = camera.worldView;
-    const scaleX = bounds.width / worldView.width;
-    const scaleY = bounds.height / worldView.height;
-
-    return {
-      x: bounds.left + (worldX - worldView.x) * scaleX,
-      y: bounds.top + (worldY - worldView.y) * scaleY,
-    };
+    return this.cameraController?.getScreenPointForCell(cellX, cellY) ?? null;
   }
 
   selectEntityAtWorldPosition(worldX: number, worldY: number): boolean {
