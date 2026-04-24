@@ -57,6 +57,7 @@ import { createTechnologyOps } from './bridge/technologyOps';
 import { createMatchEndOps } from './bridge/matchEndOps';
 import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
+import { createSaveGameOps } from './bridge/saveGameOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -6996,209 +6997,51 @@ function createWorld(
     mapHeight: MAP_HEIGHT,
   });
 
-  // Slice 9: snapshot every side map declared at the top of `createWorld`,
-  // the engine-owned ECS state, the visibility bitmap, and matchState into
-  // one JSON-serializable blob. The reverse path (Task C) hydrates this
-  // blob back into a fresh bridge so the simulation resumes byte-for-byte.
-  function saveGame(): SaveBlob {
-    return {
-      schema: SAVE_SCHEMA_VERSION,
-      seed,
-      worldSnapshot: world.serialize(),
-      visibility: visibility.getState(),
-      matchState: {
-        outcome: matchState.outcome,
-        summary: matchState.summary,
-        winCondition: matchState.winCondition,
-        scores: matchState.scores ? { ...matchState.scores } : null,
-        wonderCountdownTicks: matchState.wonderCountdownTicks,
-        relicCountdownTicks: matchState.relicCountdownTicks,
-      },
-      sideMaps: {
-        trackedVisibilitySources: [...trackedVisibilitySources.entries()],
-        playerAges: [...playerAges.entries()],
-        playerCivilizations: [...playerCivilizations.entries()],
-        researchedTechnologies: [...researchedTechnologies.entries()].map(
-          ([owner, set]) => [owner, [...set]],
-        ),
-        playerResources: [...playerResources.entries()].map(([owner, res]) => [
-          owner,
-          { ...res },
-        ]),
-        marketExchangeRates: { ...marketExchangeRates },
-        population: [...population.entries()].map(([owner, pop]) => [owner, { ...pop }]),
-        townCenterRefs: [...townCenterRefs.entries()].map(([owner, ref]) => [
-          owner,
-          { id: ref.id, generation: ref.generation },
-        ]),
-        villagerOrdinals: [...villagerOrdinals.entries()],
-        unitCommands: [...unitCommands.entries()].map(([id, cmd]) => [
-          id,
-          {
-            type: cmd.type,
-            target: { x: cmd.target.x, y: cmd.target.y },
-            ...(cmd.buildingRef
-              ? {
-                  buildingRef: { id: cmd.buildingRef.id, generation: cmd.buildingRef.generation },
-                }
-              : {}),
-            ...(cmd.targetEntityRef
-              ? {
-                  targetEntityRef: {
-                    id: cmd.targetEntityRef.id,
-                    generation: cmd.targetEntityRef.generation,
-                  },
-                }
-              : {}),
-            ...(cmd.targetEntityKind ? { targetEntityKind: cmd.targetEntityKind } : {}),
-          },
-        ]),
-        sheepMoveOrders: [...sheepMoveOrders.entries()].map(([id, pos]) => [
-          id,
-          { x: pos.x, y: pos.y },
-        ]),
-        rallyPoints: [...rallyPoints.entries()].map(([id, pos]) => [
-          id,
-          { x: pos.x, y: pos.y },
-        ]),
-        monkTasks: [...monkTasks.entries()].map(([id, task]) => [
-          id,
-          {
-            kind: task.kind,
-            targetEntityRef: {
-              id: task.targetEntityRef.id,
-              generation: task.targetEntityRef.generation,
-            },
-          },
-        ]),
-        conversionState: [...conversionState.entries()].map(([id, state]) => [
-          id,
-          { byOwner: state.byOwner, progress: state.progress },
-        ]),
-        monkCarriedRelic: [...monkCarriedRelic.entries()],
-        monkHealCounters: [...monkHealCounters.entries()],
-        relicsInMonastery: [...relicsInMonastery.entries()],
-        wonderCountdowns: [...wonderCountdowns.entries()].map(([id, entry]) => [
-          id,
-          {
-            remainingTicks: entry.remainingTicks,
-            totalTicks: entry.totalTicks,
-            lastCompletedTick: entry.lastCompletedTick,
-          },
-        ]),
-        wonderCountdownOverrides: [...wonderCountdownOverrides.entries()],
-        relicCountdowns: [...relicCountdowns.entries()].map(([id, entry]) => [
-          id,
-          {
-            remainingTicks: entry.remainingTicks,
-            totalTicks: entry.totalTicks,
-            lastCompletedTick: entry.lastCompletedTick,
-          },
-        ]),
-        relicCountdownOverrides: [...relicCountdownOverrides.entries()],
-        playerScoreCounters: [...playerScoreCounters.entries()].map(([owner, counters]) => [
-          owner,
-          { ...counters },
-        ]),
-        // FU7: persist Trebuchet pack/unpack state so a Trebuchet mid-
-        // transition when the player saves resumes mid-transition on
-        // load instead of quietly resetting to "packed".
-        trebuchetPackStates: [...trebuchetPackStates.entries()].map(([id, state]) => [
-          id,
-          { packed: state.packed, transitionTicksRemaining: state.transitionTicksRemaining },
-        ]),
-        lastSeenStatic: [...lastSeenStatic.entries()].map(([playerId, innerMap]) => [
-          playerId,
-          [...innerMap.entries()].map(([entityId, entry]) => [
-            entityId,
-            {
-              kind: entry.kind,
-              entityType: entry.entityType,
-              position: { x: entry.position.x, y: entry.position.y },
-              footprintWidth: entry.footprintWidth,
-              footprintHeight: entry.footprintHeight,
-              tint: entry.tint,
-              owner: entry.owner,
-              size: entry.size,
-              visualVariant: entry.visualVariant,
-              lastSeenTick: entry.lastSeenTick,
-            },
-          ]),
-        ]),
-        garrisonedByBuilding: [...garrisonedByBuilding.entries()].map(([id, list]) => [
-          id,
-          [...list],
-        ]),
-        garrisonedUnitToBuilding: [...garrisonedUnitToBuilding.entries()],
-        garrisonedUnitVisionSources: [...garrisonedUnitVisionSources.entries()].map(
-          ([id, src]) => [id, { playerId: src.playerId, radius: src.radius }],
-        ),
-        productionQueues: [...productionQueues.entries()].map(([id, queue]) => [
-          id,
-          queue.map((entry) => ({
-            kind: entry.kind,
-            label: entry.label,
-            ...(entry.unitType !== undefined ? { unitType: entry.unitType } : {}),
-            ...(entry.technologyType !== undefined
-              ? { technologyType: entry.technologyType }
-              : {}),
-            remainingTicks: entry.remainingTicks,
-            totalTicks: entry.totalTicks,
-            isBlocked: entry.isBlocked,
-          })),
-        ]),
-        constructionStates: [...constructionStates.entries()].map(([id, state]) => [
-          id,
-          { ...state },
-        ]),
-        combatStates: [...combatStates.entries()].map(([id, state]) => [id, { ...state }]),
-        buildingHealthStates: [...buildingHealthStates.entries()].map(([id, state]) => [
-          id,
-          { ...state },
-        ]),
-        buildingCombatStates: [...buildingCombatStates.entries()].map(([id, state]) => [
-          id,
-          { ...state },
-        ]),
-        wildlifeStates: [...wildlifeStates.entries()].map(([id, state]) => [
-          id,
-          {
-            currentHp: state.currentHp,
-            maxHp: state.maxHp,
-            attackDamage: state.attackDamage,
-            attackRange: state.attackRange,
-            reloadTicks: state.reloadTicks,
-            cooldownTicks: state.cooldownTicks,
-            armor: state.armor,
-            autoAggro: state.autoAggro,
-            isAlive: state.isAlive,
-            corpsePersists: state.corpsePersists,
-            aggroRange: state.aggroRange,
-            targetEntityRef: state.targetEntityRef
-              ? {
-                  id: state.targetEntityRef.id,
-                  generation: state.targetEntityRef.generation,
-                }
-              : null,
-          },
-        ]),
-        aiStates: [...aiStates.entries()].map(([owner, state]) => [
-          owner,
-          {
-            difficulty: state.difficulty,
-            plan: state.plan,
-            villagerTargets: { ...state.villagerTargets },
-            attackGroup: [...state.attackGroup],
-            lastDecisionTick: state.lastDecisionTick,
-            lastEnemySightingTick: state.lastEnemySightingTick,
-            lastEnemySightingPosition: state.lastEnemySightingPosition
-              ? { x: state.lastEnemySightingPosition.x, y: state.lastEnemySightingPosition.y }
-              : null,
-          },
-        ]),
-      },
-    };
-  }
+  // Slice 9 + Phase 3: full-game serialization lives in
+  // `bridge/saveGameOps`. The factory takes every persisted side map +
+  // matchState + world/visibility references createWorld owns; the
+  // returned `saveGame` produces the same blob as the pre-extraction
+  // inline implementation.
+  const { saveGame } = createSaveGameOps({
+    world,
+    visibility,
+    getSeed: () => seed,
+    matchState,
+    trackedVisibilitySources,
+    playerAges,
+    playerCivilizations,
+    researchedTechnologies,
+    playerResources,
+    marketExchangeRates,
+    population,
+    townCenterRefs,
+    villagerOrdinals,
+    unitCommands,
+    sheepMoveOrders,
+    rallyPoints,
+    monkTasks,
+    conversionState,
+    monkCarriedRelic,
+    monkHealCounters,
+    relicsInMonastery,
+    wonderCountdowns,
+    wonderCountdownOverrides,
+    relicCountdowns,
+    relicCountdownOverrides,
+    playerScoreCounters,
+    trebuchetPackStates,
+    lastSeenStatic,
+    garrisonedByBuilding,
+    garrisonedUnitToBuilding,
+    garrisonedUnitVisionSources,
+    productionQueues,
+    constructionStates,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    wildlifeStates,
+    aiStates,
+  });
 
   return {
     world,
