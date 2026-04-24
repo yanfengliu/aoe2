@@ -54,6 +54,7 @@ import { createTrebuchetStateOps } from './bridge/trebuchetState';
 import { createFogMemoryOps } from './bridge/fogMemoryOps';
 import { createMonkTaskOps } from './bridge/monkTaskOps';
 import { createTechnologyOps } from './bridge/technologyOps';
+import { createMatchEndOps } from './bridge/matchEndOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -688,6 +689,27 @@ function createWorld(
     wonderCountdownTicks: null,
     relicCountdownTicks: null,
   };
+  // Match-end + score pipeline lives in `bridge/matchEndOps`. The factory
+  // closes over matchState + every side map involved in win-condition
+  // resolution so the bridge file keeps the side-map declarations but not
+  // the aggregation / score-tally logic.
+  const {
+    finalizeMatchEnd,
+    currentRelicHoldingOwner,
+    getHumanWonderCountdownTicks,
+    getHumanRelicCountdownTicks,
+    playerHasConquestPresence,
+  } = createMatchEndOps({
+    world,
+    matchState,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    playerScoreCounters,
+    relicsInMonastery,
+    wonderCountdowns,
+    relicCountdowns,
+    monkCarriedRelic,
+    playerResources,
+  });
   let selectedEntityRefs: EntityRef[] = [];
   let selectionFocusCell: Position | null = null;
   let placementMode: BuildableBuildingType | null = null;
@@ -4530,24 +4552,6 @@ function createWorld(
     return bestUnitId;
   }
 
-  function playerHasConquestPresence(owner: number): boolean {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner) {
-        return true;
-      }
-    }
-
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (building?.owner === owner) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   // Technology application + predecessor-line rewrites live in
   // `bridge/technologyOps`. The factory closes over the side maps
   // createWorld owns; the returned `applyTechnology` drives every
@@ -6357,71 +6361,6 @@ function createWorld(
   // These are intentionally simple so the summary is legible at a glance.
   // The weights are stable across win conditions — e.g. a conquest victor
   // who also completed a Wonder still gets the Wonder-bonus points.
-  function computePlayerScore(owner: number): number {
-    const counters = playerScoreCounters.get(owner) ?? {
-      unitsProduced: 0,
-      buildingsProduced: 0,
-      resourcesGathered: 0,
-      unitsKilled: 0,
-      wonderCompleted: false,
-    };
-    let relicsHeld = 0;
-    for (const [monasteryId, count] of relicsInMonastery.entries()) {
-      const building = world.getComponent<BuildingComponent>(monasteryId, 'building');
-      if (building?.owner === owner) {
-        relicsHeld += count;
-      }
-    }
-    return Math.floor(
-      counters.unitsProduced * 10
-      + counters.buildingsProduced * 50
-      + counters.resourcesGathered * 0.02
-      + relicsHeld * 50
-      + counters.unitsKilled * 20
-      + (counters.wonderCompleted ? 500 : 0),
-    );
-  }
-
-  function finalizeMatchEnd(
-    outcome: 'victory' | 'defeat',
-    winCondition: 'conquest' | 'wonder' | 'relic',
-    summary: string,
-  ): void {
-    matchState.outcome = outcome;
-    matchState.winCondition = winCondition;
-    matchState.summary = summary;
-    matchState.wonderCountdownTicks = null;
-    matchState.relicCountdownTicks = null;
-    const scores: Record<number, number> = {};
-    for (const owner of playerResources.keys()) {
-      scores[owner] = computePlayerScore(owner);
-    }
-    matchState.scores = scores;
-  }
-
-  // Snapshots the remaining ticks on the HUMAN_PLAYER_ID's in-flight Wonder /
-  // Relic countdown, or null if no countdown is active. Called every tick
-  // so the HUD can render a live timer. The lowest remaining value wins
-  // when there are multiple countdowns for the same player (should be at
-  // most one Wonder per owner, but the helper stays defensive).
-  function getHumanWonderCountdownTicks(): number | null {
-    let minRemaining: number | null = null;
-    for (const [buildingId, entry] of wonderCountdowns.entries()) {
-      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-      if (building?.owner !== HUMAN_PLAYER_ID) {
-        continue;
-      }
-      if (minRemaining === null || entry.remainingTicks < minRemaining) {
-        minRemaining = entry.remainingTicks;
-      }
-    }
-    return minRemaining;
-  }
-
-  function getHumanRelicCountdownTicks(): number | null {
-    return relicCountdowns.get(HUMAN_PLAYER_ID)?.remainingTicks ?? null;
-  }
-
   // Slice 8 + FU7: Wonder countdown decrement. Each owner's completed
   // Wonder ticks down a per-owner counter; when it reaches zero the entry
   // records `lastCompletedTick = world.tick`. The combined
@@ -6456,51 +6395,9 @@ function createWorld(
 
   // Slice 8: Relic countdown. An owner who holds every relic on the map
   // in their Monasteries (zero live relics anywhere else) begins counting
-  // down. If the ownership picture changes — a relic drops back on the
-  // map, another player picks one up — the countdown resets.
-  function currentRelicHoldingOwner(): number | null {
-    // Count live (on-map) relic entities. If any exist the "hold all"
-    // condition is false for every player.
-    let liveRelicCount = 0;
-    for (const id of world.query('resource')) {
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      if (resource?.resourceType === 'relic') {
-        liveRelicCount += 1;
-      }
-    }
-    if (liveRelicCount > 0) {
-      return null;
-    }
-    // Any Monk carrying a relic means it is "in flight" — not held by an
-    // owner, ownership picture is ambiguous until deposited.
-    if (monkCarriedRelic.size > 0) {
-      return null;
-    }
-    // Aggregate deposited relics by owner.
-    const totalByOwner = new Map<number, number>();
-    let grandTotal = 0;
-    for (const [monasteryId, count] of relicsInMonastery.entries()) {
-      if (count <= 0) {
-        continue;
-      }
-      const building = world.getComponent<BuildingComponent>(monasteryId, 'building');
-      if (!building) {
-        continue;
-      }
-      totalByOwner.set(building.owner, (totalByOwner.get(building.owner) ?? 0) + count);
-      grandTotal += count;
-    }
-    if (grandTotal === 0) {
-      return null;
-    }
-    for (const [owner, count] of totalByOwner.entries()) {
-      if (count === grandTotal) {
-        return owner;
-      }
-    }
-    return null;
-  }
-
+  // down. `currentRelicHoldingOwner` lives in `bridge/matchEndOps` — the
+  // factory closes over monkCarriedRelic + relicsInMonastery so the
+  // in-flight vs deposited distinction stays in one place.
   world.registerSystem({
     name: 'prototypeRelicCountdown',
     phase: 'postUpdate',
