@@ -24,6 +24,10 @@ import {
   type DebugOverlayRenderer,
 } from './gameScene/debugOverlay';
 import {
+  createSelectionLayersRenderer,
+  type SelectionLayersRenderer,
+} from './gameScene/selectionLayers';
+import {
   createWorldLayersRenderer,
   type WorldLayersRenderer,
 } from './gameScene/worldLayers';
@@ -204,6 +208,7 @@ export class GameScene extends Phaser.Scene {
   private lastEntityHealthBarStates: EntityHealthBarState[] = [];
   private debugOverlayRenderer?: DebugOverlayRenderer;
   private worldLayersRenderer?: WorldLayersRenderer;
+  private selectionLayersRenderer?: SelectionLayersRenderer;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     // Phaser's pointer-up handler owns same-type promotion; this listener only
     // suppresses browser-native text selection on canvas double clicks.
@@ -237,6 +242,17 @@ export class GameScene extends Phaser.Scene {
       healthBarLayer: this.healthBarLayer,
       fogLayer: this.fogLayer,
       cellSize: CELL_SIZE,
+    });
+    this.selectionLayersRenderer = createSelectionLayersRenderer({
+      selectionLayer: this.selectionLayer,
+      placementLayer: this.placementLayer,
+      selectionBoxLayer: this.selectionBoxLayer,
+      cellSize: CELL_SIZE,
+      screenToWorldPoint: (screenX, screenY) => {
+        const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+        return { x: worldPoint.x, y: worldPoint.y };
+      },
+      getDisplayedEntities: () => this.displayedEntities,
     });
 
     this.cameras.main.setBackgroundColor('#132224');
@@ -398,6 +414,19 @@ export class GameScene extends Phaser.Scene {
         cellSize: CELL_SIZE,
       });
     }
+    if (this.selectionLayer && this.placementLayer && this.selectionBoxLayer) {
+      this.selectionLayersRenderer = createSelectionLayersRenderer({
+        selectionLayer: this.selectionLayer,
+        placementLayer: this.placementLayer,
+        selectionBoxLayer: this.selectionBoxLayer,
+        cellSize: CELL_SIZE,
+        screenToWorldPoint: (screenX, screenY) => {
+          const worldPoint = this.cameras.main.getWorldPoint(screenX, screenY);
+          return { x: worldPoint.x, y: worldPoint.y };
+        },
+        getDisplayedEntities: () => this.displayedEntities,
+      });
+    }
     this.syncFromBridge(true);
   }
 
@@ -557,9 +586,13 @@ export class GameScene extends Phaser.Scene {
         this.displayedEntities,
       );
     }
-    this.renderSelection(this.displayedEntities, selectionState);
-    this.renderPlacementPreview();
-    this.renderSelectionBox(this.getSelectionBoxState());
+    if (this.selectionLayersRenderer) {
+      this.selectionLayersRenderer.renderSelection(this.displayedEntities, selectionState);
+      this.lastPlacementPreviewVisualState = this.selectionLayersRenderer.renderPlacementPreview(
+        this.getPlacementPreviewState(),
+      );
+      this.selectionLayersRenderer.renderSelectionBox(this.getSelectionBoxState());
+    }
     this.renderDebugOverlay(this.displayedEntities, selectionState, state.frame);
   }
 
@@ -583,154 +616,6 @@ export class GameScene extends Phaser.Scene {
       selectionState,
       frame,
     );
-  }
-
-  private renderSelection(entities: ProjectedEntityView[], selectionState: SelectionState): void {
-    if (!this.selectionLayer || selectionState.selectedEntityIds.length === 0) {
-      return;
-    }
-
-    this.selectionLayer.lineStyle(2, 0xf7e5a5, 0.9);
-    const selectedIds = new Set(selectionState.selectedEntityIds);
-
-    for (const entity of entities) {
-      if (!selectedIds.has(entity.id) || entity.isMemory) {
-        continue;
-      }
-
-      const px = entity.x * CELL_SIZE;
-      const py = entity.y * CELL_SIZE;
-
-      if (entity.kind === 'building') {
-        const widthPx = entity.footprintWidth * CELL_SIZE;
-        const heightPx = entity.footprintHeight * CELL_SIZE;
-        this.selectionLayer.strokeRoundedRect(
-          px,
-          py,
-          widthPx,
-          heightPx,
-          6,
-        );
-        continue;
-      }
-
-      this.selectionLayer.strokeCircle(
-        px + CELL_SIZE * 0.5,
-        py + CELL_SIZE * 0.5,
-        CELL_SIZE * Math.max(entity.size, 0.55),
-      );
-    }
-  }
-
-  private renderSelectionBox(selectionBoxState: SelectionBoxState | null): void {
-    if (!this.selectionBoxLayer) {
-      return;
-    }
-
-    if (!selectionBoxState?.active) {
-      return;
-    }
-
-    const minX = Math.min(selectionBoxState.startX, selectionBoxState.currentX);
-    const minY = Math.min(selectionBoxState.startY, selectionBoxState.currentY);
-    const maxX = Math.max(selectionBoxState.startX, selectionBoxState.currentX);
-    const maxY = Math.max(selectionBoxState.startY, selectionBoxState.currentY);
-    const worldStart = this.cameras.main.getWorldPoint(minX, minY);
-    const worldEnd = this.cameras.main.getWorldPoint(maxX, maxY);
-    const width = Math.max(1, worldEnd.x - worldStart.x);
-    const height = Math.max(1, worldEnd.y - worldStart.y);
-
-    this.selectionBoxLayer.lineStyle(2, 0xf7e5a5, 0.98);
-    this.selectionBoxLayer.fillStyle(0xf7e5a5, 0.18);
-    this.selectionBoxLayer.fillRect(worldStart.x, worldStart.y, width, height);
-    this.selectionBoxLayer.strokeRect(worldStart.x, worldStart.y, width, height);
-
-    const previewIds = new Set(selectionBoxState.previewEntityIds);
-    if (previewIds.size === 0) {
-      return;
-    }
-
-    this.selectionBoxLayer.lineStyle(2, 0xfff4c8, 0.95);
-    this.selectionBoxLayer.fillStyle(0xfff4c8, 0.12);
-    for (const entity of this.displayedEntities) {
-      if (!previewIds.has(entity.id) || entity.isMemory) {
-        continue;
-      }
-
-      const px = entity.x * CELL_SIZE;
-      const py = entity.y * CELL_SIZE;
-
-      if (entity.kind === 'unit') {
-        const radius = CELL_SIZE * entity.size * 0.5;
-        this.selectionBoxLayer.fillCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
-        this.selectionBoxLayer.strokeCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
-        continue;
-      }
-
-      if (entity.kind === 'resource' && entity.entityType === 'sheep') {
-        const radius = CELL_SIZE * entity.size * 0.55;
-        this.selectionBoxLayer.fillCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
-        this.selectionBoxLayer.strokeCircle(px + CELL_SIZE * 0.5, py + CELL_SIZE * 0.5, radius);
-      }
-    }
-  }
-
-  private renderPlacementPreview(): void {
-    if (!this.placementLayer) {
-      this.lastPlacementPreviewVisualState = null;
-      return;
-    }
-
-    const previewState = this.getPlacementPreviewState();
-    if (!previewState?.active) {
-      this.lastPlacementPreviewVisualState = null;
-      return;
-    }
-
-    const tint = previewState.isValid ? 0x8fe388 : 0xe36f6f;
-    const fillAlpha = previewState.isValid ? 0.32 : 0.36;
-    const strokeWidth = 3;
-    let cellOutlineCount = 0;
-    let blockedMarkerCount = 0;
-    this.placementLayer.lineStyle(strokeWidth, tint, 0.98);
-    this.placementLayer.fillStyle(tint, fillAlpha);
-    this.placementLayer.fillRect(
-      previewState.cellX * CELL_SIZE,
-      previewState.cellY * CELL_SIZE,
-      previewState.width * CELL_SIZE,
-      previewState.height * CELL_SIZE,
-    );
-    this.placementLayer.strokeRect(
-      previewState.cellX * CELL_SIZE,
-      previewState.cellY * CELL_SIZE,
-      previewState.width * CELL_SIZE,
-      previewState.height * CELL_SIZE,
-    );
-
-    this.placementLayer.lineStyle(1, previewState.isValid ? 0xf6ffe9 : 0xfff0f0, 0.95);
-    for (let offsetY = 0; offsetY < previewState.height; offsetY += 1) {
-      for (let offsetX = 0; offsetX < previewState.width; offsetX += 1) {
-        const x = (previewState.cellX + offsetX) * CELL_SIZE;
-        const y = (previewState.cellY + offsetY) * CELL_SIZE;
-        this.placementLayer.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
-        cellOutlineCount += 1;
-
-        if (!previewState.isValid) {
-          this.placementLayer.lineStyle(2, 0xfff6f6, 0.98);
-          this.placementLayer.lineBetween(x + 3, y + 3, x + CELL_SIZE - 3, y + CELL_SIZE - 3);
-          this.placementLayer.lineBetween(x + CELL_SIZE - 3, y + 3, x + 3, y + CELL_SIZE - 3);
-          blockedMarkerCount += 1;
-          this.placementLayer.lineStyle(1, 0xfff0f0, 0.95);
-        }
-      }
-    }
-
-    this.lastPlacementPreviewVisualState = {
-      ...previewState,
-      strokeWidth,
-      cellOutlineCount,
-      blockedMarkerCount,
-    };
   }
 
   private getSelectionKey(selectionState: SelectionState): string {
