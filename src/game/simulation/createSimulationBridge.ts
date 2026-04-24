@@ -56,6 +56,7 @@ import { createMonkTaskOps } from './bridge/monkTaskOps';
 import { createTechnologyOps } from './bridge/technologyOps';
 import { createMatchEndOps } from './bridge/matchEndOps';
 import { createAiDecisionOps } from './bridge/aiDecisionOps';
+import { createPlacementOps } from './bridge/placementOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -713,7 +714,11 @@ function createWorld(
   });
   let selectedEntityRefs: EntityRef[] = [];
   let selectionFocusCell: Position | null = null;
-  let placementMode: BuildableBuildingType | null = null;
+  // Mutable holder shared with `bridge/placementOps`. The ops read and
+  // write `placementMode.current`; every non-placement interaction in
+  // the bridge (select, context-click, move, garrison) clears the slot
+  // back to null through the same holder.
+  const placementMode: { current: BuildableBuildingType | null } = { current: null };
   let hasOutOfBandRenderChange = false;
   // Slice 11: ring-buffered queue of command-rejection reasons. Command
   // entry points enqueue a short string whenever they short-circuit so the
@@ -2720,11 +2725,11 @@ function createWorld(
     selectionFocusCell = null;
 
     if (selectedEntityRefs.length === 0) {
-      placementMode = null;
+      placementMode.current = null;
       return false;
     }
 
-    placementMode = null;
+    placementMode.current = null;
     return true;
   }
 
@@ -2858,7 +2863,7 @@ function createWorld(
       selectedEntityRefs = nextRefs;
       if (selectedEntityRefs.length === 0) {
         selectionFocusCell = null;
-        placementMode = null;
+        placementMode.current = null;
       }
     }
 
@@ -2874,7 +2879,7 @@ function createWorld(
     if (selectedEntityRefs.length > 0) {
       selectedEntityRefs = [];
       selectionFocusCell = null;
-      placementMode = null;
+      placementMode.current = null;
     }
 
     return null;
@@ -2889,7 +2894,7 @@ function createWorld(
     selectedEntityRefs = nextRefs;
     if (selectedEntityRefs.length === 0) {
       selectionFocusCell = null;
-      placementMode = null;
+      placementMode.current = null;
     }
   }
 
@@ -3478,7 +3483,7 @@ function createWorld(
     garrisonedByBuilding.set(buildingId, currentUnits);
     selectedEntityRefs = [];
     selectionFocusCell = null;
-    placementMode = null;
+    placementMode.current = null;
     markOutOfBandRenderChange();
     return true;
   }
@@ -6385,7 +6390,7 @@ function createWorld(
         visibleResearchOptions: [],
         researchOptions: [],
         queue: [],
-        placementMode,
+        placementMode: placementMode.current,
       };
     }
 
@@ -6522,39 +6527,7 @@ function createWorld(
       visibleResearchOptions,
       researchOptions,
       queue: building ? cloneQueue(productionQueues.get(selectedEntityId) ?? []) : [],
-      placementMode,
-    };
-  }
-
-  function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
-    if (placementMode === null) {
-      return null;
-    }
-
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (selectedVillagerId === null) {
-      return null;
-    }
-
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
-      return null;
-    }
-
-    const anchor = {
-      x: clamp(x, 0, MAP_WIDTH - 1),
-      y: clamp(y, 0, MAP_HEIGHT - 1),
-    };
-    const footprint = buildingFootprint(placementMode);
-
-    return {
-      active: true,
-      buildingType: placementMode,
-      cellX: anchor.x,
-      cellY: anchor.y,
-      width: footprint.width,
-      height: footprint.height,
-      isValid: !isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height),
+      placementMode: placementMode.current,
     };
   }
 
@@ -6736,12 +6709,12 @@ function createWorld(
         : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
     if (nextSelection === null) {
       selectionFocusCell = null;
-      placementMode = null;
+      placementMode.current = null;
       return false;
     }
 
     selectionFocusCell = { x, y };
-    placementMode = null;
+    placementMode.current = null;
     return selectedEntityRefs.length > 0;
   }
 
@@ -6760,14 +6733,14 @@ function createWorld(
     // Keep the bridge's cell-cycle anchor empty so any later legacy/test-only
     // `selectEntityAtCell(...)` call is treated as a fresh tile click.
     selectionFocusCell = null;
-    placementMode = null;
+    placementMode.current = null;
     return true;
   }
 
   function clearSelection(): void {
     selectedEntityRefs = [];
     selectionFocusCell = null;
-    placementMode = null;
+    placementMode.current = null;
   }
 
   function issueMoveCommand(x: number, y: number): boolean {
@@ -6781,7 +6754,7 @@ function createWorld(
       return false;
     }
 
-    placementMode = null;
+    placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue = issueUnitMoveCommand(unitId, { x, y }) || didIssue;
@@ -6811,7 +6784,7 @@ function createWorld(
           x: clamp(x, 0, MAP_WIDTH - 1),
           y: clamp(y, 0, MAP_HEIGHT - 1),
         });
-        placementMode = null;
+        placementMode.current = null;
         return true;
       }
     }
@@ -6826,7 +6799,7 @@ function createWorld(
       x: clamp(x, 0, MAP_WIDTH - 1),
       y: clamp(y, 0, MAP_HEIGHT - 1),
     };
-    placementMode = null;
+    placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue = issueUnitContextCommand(unitId, target) || didIssue;
@@ -6874,7 +6847,7 @@ function createWorld(
         x: clamp(targetPosition.x, 0, MAP_WIDTH - 1),
         y: clamp(targetPosition.y, 0, MAP_HEIGHT - 1),
       });
-      placementMode = null;
+      placementMode.current = null;
       return true;
     }
 
@@ -6884,7 +6857,7 @@ function createWorld(
       return false;
     }
 
-    placementMode = null;
+    placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue = issueUnitContextCommandAtEntity(unitId, entityId) || didIssue;
@@ -7000,73 +6973,28 @@ function createWorld(
     return didTrade;
   }
 
-  function beginBuildingPlacement(buildingType: BuildableBuildingType): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (selectedVillagerId === null) {
-      enqueueRejection('Select a villager first.');
-      return false;
-    }
-
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
-      enqueueRejection('Only villagers can build.');
-      return false;
-    }
-
-    placementMode = buildingType;
-    return true;
-  }
-
-  function confirmBuildingPlacement(x: number, y: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (placementMode === null || selectedVillagerId === null) {
-      return false;
-    }
-
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID || unit.unitType !== 'villager') {
-      return false;
-    }
-
-    const anchor = {
-      x: clamp(x, 0, MAP_WIDTH - 1),
-      y: clamp(y, 0, MAP_HEIGHT - 1),
-    };
-    const buildingType = placementMode;
-    const didStartConstruction = startConstruction(selectedVillagerId, buildingType, anchor);
-    if (didStartConstruction) {
-      placementMode = null;
-    } else {
-      // Slice 11: report the most likely reason. Placement blocked by
-      // terrain / units / existing buildings is the most common case; fall
-      // back to resource shortage otherwise.
-      const footprint = buildingFootprint(buildingType);
-      if (isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height)) {
-        enqueueRejection('Placement blocked.');
-      } else {
-        const stockpile = playerResources.get(HUMAN_PLAYER_ID);
-        if (stockpile) {
-          const missing = resourcesMissing(stockpile, constructionCost(buildingType));
-          if (missing) {
-            enqueueRejection(`Not enough ${missing}.`);
-          } else {
-            enqueueRejection('Cannot build here.');
-          }
-        } else {
-          enqueueRejection('Cannot build here.');
-        }
-      }
-    }
-    return didStartConstruction;
-  }
+  // Phase 3 placement ops. The factory closes over the mutable
+  // `placementMode` holder plus the bridge-local collaborators
+  // (isMatchRunning, selection accessor, occupancy check, startConstruction,
+  // enqueueRejection) so the three ops below match the pre-extraction
+  // semantics byte-for-byte.
+  const {
+    getPlacementPreview,
+    beginBuildingPlacement,
+    confirmBuildingPlacement,
+  } = createPlacementOps({
+    world,
+    playerResources,
+    placementMode,
+    isMatchRunning,
+    getSelectedHumanVillagerIds,
+    isPlacementBlocked,
+    startConstruction,
+    enqueueRejection,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+  });
 
   // Slice 9: snapshot every side map declared at the top of `createWorld`,
   // the engine-owned ECS state, the visibility bitmap, and matchState into
