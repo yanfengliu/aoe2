@@ -51,6 +51,7 @@ import {
   updateSheepOwnership,
 } from './bridge/visibility';
 import { createTrebuchetStateOps } from './bridge/trebuchetState';
+import { createFogMemoryOps } from './bridge/fogMemoryOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -183,7 +184,7 @@ import type {
 // Snapshot of a static entity (building or resource) captured the last time the player saw
 // it. Used by fog memory rendering. Purely a data value — no ECS component involved — so it
 // survives after the source entity is destroyed or leaves vision.
-interface MemoryEntry {
+export interface MemoryEntry {
   kind: 'building' | 'resource';
   entityType: ProjectedEntityView['entityType'];
   position: Position;
@@ -542,72 +543,18 @@ function createWorld(
   // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
   // visible to the player; read at render-projection time for cells that are
   // explored-but-not-visible, so the player remembers enemy bases and resource patches that
-  // have since left vision. Units are excluded in v1.
+  // have since left vision. Units are excluded in v1. Read helpers live in
+  // `bridge/fogMemoryOps`; save/load hydration still writes through this map directly.
   const lastSeenStatic = new Map<number, Map<number, MemoryEntry>>();
-
-  function getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry> {
-    let map = lastSeenStatic.get(playerId);
-    if (!map) {
-      map = new Map<number, MemoryEntry>();
-      lastSeenStatic.set(playerId, map);
-    }
-    return map;
-  }
-
-  // Build `ProjectedEntityView` entries for every memory record whose position is
-  // explored-but-not-visible, deduped against any live entity the renderer is already
-  // drawing for the same entity id. Returned views carry `isMemory: true` so the scene can
-  // render them at reduced opacity and skip selection overlays.
-  function getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[] {
-    const humanMemory = lastSeenStatic.get(HUMAN_PLAYER_ID);
-    if (!humanMemory || humanMemory.size === 0) {
-      return [];
-    }
-
-    const memoryViews: ProjectedEntityView[] = [];
-    for (const [entityId, entry] of humanMemory) {
-      if (liveEntityIds.has(entityId)) {
-        continue;
-      }
-      const isExplored = visibility.isExplored(HUMAN_PLAYER_ID, entry.position.x, entry.position.y);
-      if (!isExplored) {
-        continue;
-      }
-      const isVisible = visibility.isVisible(HUMAN_PLAYER_ID, entry.position.x, entry.position.y);
-      // If the entity is currently visible and the live projector is not emitting it
-      // (e.g. it was static and never visible at renderAdapter connect time, so the
-      // initial snapshot skipped it), surface it from memory as a live (non-memory)
-      // projection so the player sees it. When the entity's visibility changes later,
-      // memory still carries the most recent snapshot.
-      memoryViews.push({
-        id: entityId,
-        kind: entry.kind,
-        layer: entry.kind,
-        entityType: entry.entityType,
-        owner: entry.owner,
-        x: entry.position.x,
-        y: entry.position.y,
-        tint: entry.tint,
-        size: entry.size,
-        footprintWidth: entry.footprintWidth,
-        footprintHeight: entry.footprintHeight,
-        visualVariant: entry.visualVariant,
-        selected: false,
-        currentHp: null,
-        maxHp: null,
-        isMemory: !isVisible,
-      });
-    }
-    return memoryViews;
-  }
-
-  // Cheap pre-check used by `getRenderState` to short-circuit the merge logic when
-  // the human player has no fog memory (e.g. immediately after world bootstrap, or
-  // in unit tests that never let the visibility system run). Avoids the
-  // `getFogMemoryEntities` call and the dedupe Set allocation in the common case.
-  function getHumanFogMemorySize(): number {
-    return lastSeenStatic.get(HUMAN_PLAYER_ID)?.size ?? 0;
-  }
+  const {
+    getOrCreateMemoryMap,
+    getFogMemoryEntities,
+    getHumanFogMemorySize,
+  } = createFogMemoryOps({
+    fogMemory: lastSeenStatic,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    visibility,
+  });
 
   // Slice 11: snapshot for the F2 debug overlay. The HUD calls this every
   // frame in modes that request pathing / ai-state / perf. Readers pick
