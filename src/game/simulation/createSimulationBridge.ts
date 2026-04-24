@@ -52,6 +52,7 @@ import {
 } from './bridge/visibility';
 import { createTrebuchetStateOps } from './bridge/trebuchetState';
 import { createFogMemoryOps } from './bridge/fogMemoryOps';
+import { createMonkTaskOps } from './bridge/monkTaskOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -5130,177 +5131,51 @@ function createWorld(
     }
   }
 
-  // FU4 AI helper. Walks every owned Monk and assigns it the highest-
-  // priority Monk task: deposit a carried relic, pick up a visible
-  // neutral relic, or heal the nearest wounded friendly military unit.
-  // Conversion is intentionally skipped in v1; AoE2 conversions are
-  // expensive in tempo and the v1 AI's planner doesn't model the
-  // tradeoff well enough to risk it. Each Monk processes at most one
-  // task per call; the per-Monk task persists across decision ticks
-  // until it completes (the underlying `prototypeMonkBehavior` system
-  // walks the Monk to the target and applies the action).
-  function assignAiMonkTasks(owner: number): void {
-    for (const monkId of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(monkId, 'unit');
-      if (!unit || unit.owner !== owner || unit.unitType !== 'monk') {
-        continue;
-      }
-      // Skip Monks already on a task — let the existing one finish so
-      // we don't thrash mid-walk.
-      if (monkTasks.has(monkId)) {
-        continue;
-      }
-      const monkPosition = world.getComponent<Position>(monkId, 'position');
-      if (!monkPosition) {
-        continue;
-      }
-
-      // Priority 1: deposit a carried relic.
-      if (monkCarriedRelic.has(monkId)) {
-        const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
-        if (monasteryId !== null) {
-          const monasteryRef = getEntityRef(monasteryId);
-          if (monasteryRef) {
-            setMonkTask(monkId, 'deposit', monasteryRef);
-          }
-        }
-        continue;
-      }
-
-      // Priority 2: pick up the nearest visible neutral relic.
-      const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
-      if (relicId !== null) {
-        const relicRef = getEntityRef(relicId);
-        if (relicRef) {
-          setMonkTask(monkId, 'pickup', relicRef);
-          continue;
-        }
-      }
-
-      // Priority 3: heal the nearest wounded friendly military unit.
-      const woundedId = findNearestWoundedFriendlyMilitary(owner, monkPosition);
-      if (woundedId !== null) {
-        const woundedRef = getEntityRef(woundedId);
-        if (woundedRef) {
-          setMonkTask(monkId, 'heal', woundedRef);
-        }
-      }
-    }
-  }
-
-  // FU4 AI helper. Returns the nearest owned, completed Monastery to a
-  // Monk that needs to deposit a carried relic. Manhattan distance is
-  // good enough — the deposit walk uses the building-approach planner
-  // so the actual route is computed when the task is consumed. Returns
-  // null if the owner has no completed Monastery (the Monk waits with
-  // the relic until one is built).
-  function findNearestOwnedMonasteryToDeposit(
-    owner: number,
-    origin: Position,
-  ): number | null {
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (const id of world.query('building', 'position')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      const position = world.getComponent<Position>(id, 'position');
-      if (
-        !building
-        || !position
-        || building.owner !== owner
-        || building.buildingType !== 'monastery'
-      ) {
-        continue;
-      }
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
-    }
-    return bestId;
-  }
-
-  // FU4 AI helper. Returns the nearest neutral relic (resource entity
-  // with `resourceType === 'relic'` and `owner === null`) currently
-  // visible to the Monk's owner. Carried relics are excluded because
-  // their position tracks the carrying Monk — we only want free relics
-  // sitting on the map. Manhattan distance is enough — the pickup walk
-  // uses the unit-range planner.
-  function findNearestVisibleNeutralRelic(
-    owner: number,
-    origin: Position,
-  ): number | null {
-    const carriedRelicIds = new Set<number>(monkCarriedRelic.values());
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (const id of world.query('resource', 'position')) {
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      const position = world.getComponent<Position>(id, 'position');
-      if (
-        !resource
-        || !position
-        || resource.resourceType !== 'relic'
-        || resource.owner !== null
-      ) {
-        continue;
-      }
-      if (carriedRelicIds.has(id)) {
-        continue;
-      }
-      if (!visibility.isVisible(owner, position.x, position.y)) {
-        continue;
-      }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
-    }
-    return bestId;
-  }
-
-  // FU4 AI helper. Returns the nearest owned military unit whose
-  // current HP is below `AI_MONK_HEAL_HP_FRACTION` of its max (i.e.
-  // wounded enough that the heal payoff is worth the Monk's attention).
-  // Healthy and dead units are skipped. Villagers / Scouts / Monks are
-  // intentionally excluded so the AI's heal allocation tracks the
-  // actual military line.
-  function findNearestWoundedFriendlyMilitary(
-    owner: number,
-    origin: Position,
-  ): number | null {
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (const id of world.query('unit', 'position')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      const position = world.getComponent<Position>(id, 'position');
-      if (
-        !unit
-        || !position
-        || unit.owner !== owner
-        || !isAiMilitaryUnit(unit.unitType)
-      ) {
-        continue;
-      }
-      const combat = combatStates.get(id);
-      if (!combat || combat.maxHp <= 0 || combat.currentHp <= 0) {
-        continue;
-      }
-      if (combat.currentHp >= combat.maxHp * AI_MONK_HEAL_HP_FRACTION) {
-        continue;
-      }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
-    }
-    return bestId;
-  }
+  // FU4: Monk task subsystem. Lives in `bridge/monkTaskOps` — the factory
+  // closes over every side map and collaborator this subsystem mutates, so
+  // the bridge file keeps only the side-map declarations, save/load
+  // hydration, and destroy-entity cleanup hooks in one place. The 12
+  // methods returned drive AI-side Monk task assignment, apply handlers
+  // for each task kind, and the human-side context-click routing.
+  const monkOps = createMonkTaskOps({
+    world,
+    monkTasks,
+    monkCarriedRelic,
+    monkHealCounters,
+    monkConvertProcessedThisTick,
+    conversionState,
+    relicsInMonastery,
+    combatStates,
+    constructionStates,
+    unitCommands,
+    population,
+    clearUnitCommand,
+    clearGathererOrder,
+    markOutOfBandRenderChange,
+    getEntityRef,
+    destroyResourceEntity,
+    buildingOccupiesCell,
+    issueUnitMoveCommand,
+    isAiMilitaryUnit,
+    isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
+    currentEntityId,
+    unitTint,
+    aiMonkHealHpFraction: AI_MONK_HEAL_HP_FRACTION,
+    monkHealTickInterval: MONK_HEAL_TICK_INTERVAL,
+    monkHealHpPerInterval: MONK_HEAL_HP_PER_INTERVAL,
+    monkConvertProgressPerTick: MONK_CONVERT_PROGRESS_PER_TICK,
+    monkConvertFlipThreshold: MONK_CONVERT_FLIP_THRESHOLD,
+  });
+  const {
+    assignAiMonkTasks,
+    applyMonkHeal,
+    applyMonkConvert,
+    applyMonkPickup,
+    applyMonkDeposit,
+    clearMonkTask,
+    findMonkContextTargetAtCell,
+    issueMonkContextCommandAtEntity,
+  } = monkOps;
 
   world.registerSystem({
     name: 'prototypeAi',
@@ -6060,172 +5935,10 @@ function createWorld(
   });
 
   // (monkHealCounters + monkConvertProcessedThisTick are hoisted to the
-  // top of `createWorld` so save/load can serialize the heal counter.)
+  // top of `createWorld` so save/load can serialize the heal counter.
+  // applyMonkHeal / applyMonkConvert / applyMonkPickup / applyMonkDeposit
+  // live in `bridge/monkTaskOps`; they close over the same side maps.)
 
-  function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
-    const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
-    const targetCombat = combatStates.get(targetId);
-    if (!targetUnit || !targetCombat || targetUnit.owner !== monkUnit.owner) {
-      clearMonkTask(monkId);
-      monkHealCounters.delete(monkId);
-      return;
-    }
-    if (targetCombat.currentHp >= targetCombat.maxHp) {
-      clearMonkTask(monkId);
-      monkHealCounters.delete(monkId);
-      return;
-    }
-    const counter = (monkHealCounters.get(monkId) ?? 0) + 1;
-    if (counter >= MONK_HEAL_TICK_INTERVAL) {
-      targetCombat.currentHp = Math.min(
-        targetCombat.maxHp,
-        targetCombat.currentHp + MONK_HEAL_HP_PER_INTERVAL,
-      );
-      markOutOfBandRenderChange();
-      monkHealCounters.set(monkId, 0);
-    } else {
-      monkHealCounters.set(monkId, counter);
-    }
-  }
-
-  function applyMonkConvert(
-    monkId: number,
-    targetId: number,
-    monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
-  ): void {
-    const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
-    if (!targetUnit || targetUnit.owner === monkUnit.owner) {
-      clearMonkTask(monkId);
-      conversionState.delete(targetId);
-      return;
-    }
-    const state = conversionState.get(targetId) ?? { byOwner: monkUnit.owner, progress: 0 };
-    // If a different player's Monk is already converting this target, reset
-    // progress in favor of the latest converter so the ownership handoff is
-    // deterministic.
-    if (state.byOwner !== monkUnit.owner) {
-      state.byOwner = monkUnit.owner;
-      state.progress = 0;
-    }
-    // Only one Monk may add progress per tick. Additional Monks targeting
-    // the same unit contribute nothing beyond keeping the target's progress
-    // from timing out — the spec locks conversion to a fixed rate.
-    if (monkConvertProcessedThisTick.has(targetId)) {
-      conversionState.set(targetId, state);
-      return;
-    }
-    monkConvertProcessedThisTick.add(targetId);
-    state.progress += MONK_CONVERT_PROGRESS_PER_TICK;
-    if (state.progress >= MONK_CONVERT_FLIP_THRESHOLD) {
-      // Flip ownership. Move the living unit between population books: the
-      // former owner loses a pop slot and the new owner gains one. Every
-      // trainable unit we can realistically convert consumes exactly one pop
-      // slot in `addUnitEntity`, so mirror that delta here.
-      const previousOwner = targetUnit.owner;
-      targetUnit.owner = monkUnit.owner;
-      const previousPopulation = population.get(previousOwner);
-      if (previousPopulation) {
-        previousPopulation.current = Math.max(0, previousPopulation.current - 1);
-      }
-      const nextPopulation = population.get(monkUnit.owner);
-      if (nextPopulation) {
-        nextPopulation.current += 1;
-      }
-      // Reassign vision to the new owner. Without this, the converted unit
-      // keeps lighting fog for its former owner and leaves the new owner
-      // blind around it. `syncVisibilitySources` picks up the new playerId
-      // on the next tick and re-maps the visibility source.
-      const visionSource = activeWorld.getComponent<VisionSourceComponent>(
-        targetId,
-        'visionSource',
-      );
-      if (visionSource) {
-        visionSource.playerId = monkUnit.owner;
-      }
-      const renderable = activeWorld.getComponent<RenderableComponent>(targetId, 'renderable');
-      if (renderable) {
-        renderable.tint = unitTint(targetUnit.unitType, monkUnit.owner);
-      }
-      // Post-conversion cleanup. Drop any order the now-friendly unit was
-      // carrying out for its former owner and any task or command that
-      // targeted it as an enemy:
-      //   1. Its own unitCommands / monkTasks entries become meaningless
-      //      (it no longer has an enemy to gather against or convert).
-      //   2. Its GathererComponent resets to idle; a captured villager
-      //      should not auto-resume harvesting a former-enemy resource.
-      //   3. Any attack command from the NEW owner's units against this
-      //      entity must be purged so they do not keep hitting a teammate.
-      clearUnitCommand(targetId);
-      monkTasks.delete(targetId);
-      const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
-      if (targetGatherer) {
-        clearGathererOrder(targetId);
-      }
-      for (const [commanderId, command] of unitCommands) {
-        if (command.type !== 'attack' || !command.targetEntityRef) {
-          continue;
-        }
-        const resolved = currentEntityId(activeWorld, command.targetEntityRef);
-        if (resolved !== targetId) {
-          continue;
-        }
-        const commander = activeWorld.getComponent<UnitComponent>(commanderId, 'unit');
-        if (commander && commander.owner === monkUnit.owner) {
-          clearUnitCommand(commanderId);
-        }
-      }
-      conversionState.delete(targetId);
-      clearMonkTask(monkId);
-      markOutOfBandRenderChange();
-      return;
-    }
-    conversionState.set(targetId, state);
-  }
-
-  function applyMonkPickup(monkId: number, relicId: number): void {
-    const relic = world.getComponent<ResourceComponent>(relicId, 'resource');
-    if (!relic || relic.resourceType !== 'relic') {
-      clearMonkTask(monkId);
-      return;
-    }
-    // Record carry state; the per-tick follow loop keeps the relic glued to
-    // the Monk. Clear any other Monk currently claiming this relic (should
-    // not happen under v1 but guard for safety).
-    for (const [otherMonkId, carriedId] of monkCarriedRelic.entries()) {
-      if (carriedId === relicId && otherMonkId !== monkId) {
-        monkCarriedRelic.delete(otherMonkId);
-      }
-    }
-    monkCarriedRelic.set(monkId, relicId);
-    clearMonkTask(monkId);
-    markOutOfBandRenderChange();
-  }
-
-  function applyMonkDeposit(
-    monkId: number,
-    monasteryId: number,
-    monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
-  ): void {
-    const relicId = monkCarriedRelic.get(monkId);
-    const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');
-    if (
-      relicId === undefined
-      || !building
-      || building.buildingType !== 'monastery'
-      || building.owner !== monkUnit.owner
-    ) {
-      clearMonkTask(monkId);
-      return;
-    }
-    // Destroy the relic entity and credit the Monastery.
-    destroyResourceEntity(relicId);
-    monkCarriedRelic.delete(monkId);
-    relicsInMonastery.set(monasteryId, (relicsInMonastery.get(monasteryId) ?? 0) + 1);
-    clearMonkTask(monkId);
-    markOutOfBandRenderChange();
-  }
 
   world.registerSystem({
     name: 'prototypeMonkBehavior',
@@ -7570,88 +7283,6 @@ function createWorld(
     return true;
   }
 
-  // Resolves the cell a Monk context-clicked into a specific entity id.
-  // Priority: friendly wounded unit (heal) > enemy unit (convert)
-  //         > neutral relic (pickup) > friendly Monastery (deposit).
-  // Two-pass iteration so an overlapping friendly+enemy on the same cell
-  // prefers the heal target over the convert target (see Gemini review
-  // finding). Pass-1 additionally requires the friendly to be wounded —
-  // a healthy friendly is not a meaningful heal target and would
-  // otherwise consume the click and short-circuit the convert pass,
-  // leaving the Monk with a useless move-fallback (Codex P2 review).
-  // Enemy targets are rejected if not currently visible to the Monk's
-  // owner — the player shouldn't be able to convert fog-hidden
-  // enemies. Friendly and owned targets skip the visibility guard (they're
-  // the player's own units and always "visible" to them), and relic /
-  // Monastery lookups likewise reference owned or world entities that fog
-  // memory already surfaces.
-  function findMonkContextTargetAtCell(
-    x: number,
-    y: number,
-    monkOwner: number,
-  ): number | null {
-    // Pass 1: friendly wounded unit at this cell (heal priority). A
-    // healthy friendly is skipped so an overlapping enemy can still be
-    // picked up by pass 2.
-    for (const id of world.query('position', 'unit')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (!position || !unit || position.x !== x || position.y !== y) {
-        continue;
-      }
-      if (unit.owner !== monkOwner) {
-        continue;
-      }
-      const combat = combatStates.get(id);
-      if (!combat || combat.currentHp >= combat.maxHp) {
-        continue;
-      }
-      return id;
-    }
-
-    // Pass 2: enemy unit at this cell (convert) — only if currently visible
-    // to the Monk's owner.
-    for (const id of world.query('position', 'unit')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (!position || !unit || position.x !== x || position.y !== y) {
-        continue;
-      }
-      if (unit.owner === monkOwner) {
-        continue;
-      }
-      if (!visibility.isVisible(monkOwner, x, y)) {
-        continue;
-      }
-      return id;
-    }
-
-    // Building: only interesting if it's a friendly Monastery (deposit).
-    for (const id of world.query('position', 'building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!building || building.owner !== monkOwner || building.buildingType !== 'monastery') {
-        continue;
-      }
-      if (buildingOccupiesCell(id, x, y)) {
-        return id;
-      }
-    }
-
-    // Resource: relic.
-    for (const id of world.query('position', 'resource')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      if (!position || !resource || position.x !== x || position.y !== y) {
-        continue;
-      }
-      if (resource.resourceType === 'relic') {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
   function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
@@ -7728,72 +7359,6 @@ function createWorld(
     }
 
     return issueUnitMoveCommand(unitId, targetPosition);
-  }
-
-  function issueMonkContextCommandAtEntity(
-    monkId: number,
-    targetEntityId: number,
-    monkUnit: UnitComponent,
-    targetPosition: Position,
-  ): boolean {
-    const targetEntityRef = getEntityRef(targetEntityId);
-    if (!targetEntityRef) {
-      return false;
-    }
-
-    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
-    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
-    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-
-    if (targetUnit) {
-      if (targetUnit.owner === monkUnit.owner) {
-        const combat = combatStates.get(targetEntityId);
-        if (combat && combat.currentHp < combat.maxHp) {
-          return setMonkTask(monkId, 'heal', targetEntityRef);
-        }
-        return issueUnitMoveCommand(monkId, targetPosition);
-      }
-
-      // Enemy unit: convert. Skip conversion on other Monks (no canonical
-      // rule against it but v1 keeps the target set simple — convert only
-      // "normal" units).
-      return setMonkTask(monkId, 'convert', targetEntityRef);
-    }
-
-    if (
-      targetResource
-      && targetResource.resourceType === 'relic'
-      && monkCarriedRelic.get(monkId) === undefined
-    ) {
-      return setMonkTask(monkId, 'pickup', targetEntityRef);
-    }
-
-    if (
-      targetBuilding
-      && targetBuilding.owner === monkUnit.owner
-      && targetBuilding.buildingType === 'monastery'
-      && monkCarriedRelic.get(monkId) !== undefined
-    ) {
-      return setMonkTask(monkId, 'deposit', targetEntityRef);
-    }
-
-    return issueUnitMoveCommand(monkId, targetPosition);
-  }
-
-  function setMonkTask(
-    monkId: number,
-    kind: MonkTask['kind'],
-    targetEntityRef: EntityRef,
-  ): boolean {
-    // Clear any lingering combat/move command on the Monk; the behaviour
-    // system will drive movement for the duration of the task.
-    clearUnitCommand(monkId);
-    monkTasks.set(monkId, { kind, targetEntityRef });
-    return true;
-  }
-
-  function clearMonkTask(monkId: number): void {
-    monkTasks.delete(monkId);
   }
 
   function selectEntityAtCell(x: number, y: number): boolean {
