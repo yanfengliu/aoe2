@@ -34,7 +34,6 @@ import {
   isEconomyResourceEntry,
   cloneQueue,
   manhattanDistance,
-  distanceFromBuildingFootprint,
   buildingFootprint,
   isFootprintVisible,
   compareProjectedRenderEntities,
@@ -58,6 +57,7 @@ import { createMatchEndOps } from './bridge/matchEndOps';
 import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
+import { createTargetFindingOps } from './bridge/targetFindingOps';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -85,7 +85,6 @@ import {
 } from './prototypeBuildingRules';
 import {
   canAfford,
-  canDropOffAt,
   constructionCost,
   gatherAmountFor,
   gatherTicksFor,
@@ -158,7 +157,6 @@ import type {
   BuildableBuildingType,
   BuildingType,
   BuildingComponent,
-  EconomyResourceKind,
   EconomyState,
   GathererComponent,
   HudState,
@@ -4223,249 +4221,24 @@ function createWorld(
     return options;
   }
 
-  // Lower number = higher priority. Siege ranks first so defensive buildings
-  // and AI combat pickers turn their shots on the biggest backline threat
-  // (Mangonel shelling a base, Scorpion bolting a cluster, Ram eating a
-  // wall) before chewing on infantry that will still be there after the
-  // siege is gone. Monks follow because they convert and heal and also
-  // need to be silenced early. Ranged units sit above melee / cavalry
-  // since hitting the archer line usually wins the engagement, and
-  // villagers / scouts sit last — they are low-value kills compared to
-  // losing the tower or a key army unit to siege fire.
-  function targetPriority(unitType: UnitType): number {
-    switch (unitType) {
-      // Slice 7A: the Imperial-tier siege units slot into the same top-of-
-      // target-priority bucket as their Castle-Age predecessors. Bombard
-      // Cannon and Trebuchet are Imperial-only newcomers but still count
-      // as siege and get the same priority.
-      case 'mangonel':
-      case 'scorpion':
-      case 'battering-ram':
-      case 'onager':
-      case 'heavy-scorpion':
-      case 'siege-ram':
-      case 'bombard-cannon':
-      case 'trebuchet':
-        return 0;
-      case 'monk':
-        return 1;
-      case 'archer':
-      case 'crossbowman':
-      case 'cavalry-archer':
-      case 'skirmisher':
-      case 'longbowman':
-      case 'arbalest':
-      case 'heavy-cavalry-archer':
-      case 'elite-longbowman':
-        return 2;
-      case 'militia':
-      case 'spearman':
-      case 'pikeman':
-      case 'knight':
-      case 'camel':
-      case 'scout':
-      case 'light-cavalry':
-      case 'halberdier':
-      case 'hussar':
-      case 'cavalier':
-      case 'champion':
-      case 'man-at-arms':
-      case 'long-swordsman':
-      case 'two-handed-swordsman':
-      case 'paladin':
-      case 'heavy-camel':
-        return 3;
-      case 'villager':
-        return 4;
-    }
-  }
-
-  // Per-buildingType targeting priority for AI / unit-vs-building target
-  // selection. Lower numbers are picked first (after the priority sort,
-  // ties break by Manhattan distance). Castles and Town Centers are
-  // intentionally pushed to the bottom: they have huge HP pools and are
-  // poor first-strikes (Gemini Medium review). Watch Towers are still
-  // worth attacking quickly. Everything else stays in the middle so the
-  // sort is stable for buildings without an explicit reason to defer.
-  function buildingTargetPriority(buildingType: BuildingType): number {
-    switch (buildingType) {
-      case 'watch-tower':
-        return 2;
-      case 'wonder':
-        // Slice 8: a Wonder with an active countdown is the single most
-        // important target on the map — if it stands, its owner wins. Rank
-        // it first so AI / auto-target picks swarm the Wonder.
-        return 1;
-      case 'town-center':
-        return 9;
-      case 'castle':
-        return 10;
-      case 'stone-wall':
-      case 'palisade-wall':
-        // FU3: walls sit behind every production / tech building. They're
-        // attacked only when no better target is visible (ram punch-through
-        // behavior). Units still attack a wall if it blocks their path to
-        // a real objective — the pathing fallback handles that.
-        return 11;
-      default:
-        return 5;
-    }
-  }
-
-  function findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position): number | null {
-    const candidates = [...world.query('position', 'unit')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        unit: world.getComponent<UnitComponent>(id, 'unit'),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is { id: number; position: Position; unit: UnitComponent } =>
-          entry.position !== undefined
-          && entry.unit !== undefined
-          && entry.unit.owner !== viewerOwner
-          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
-      )
-      .sort((left, right) => {
-        const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
-        if (priorityDelta !== 0) {
-          return priorityDelta;
-        }
-
-        return manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position);
-      });
-
-    return candidates[0]?.id ?? null;
-  }
-
-  // FU3: range check for large buildings that measures distance from the
-  // NEAREST footprint cell to the target (not from the anchor cell). The
-  // anchor of a 4x4 Castle is its top-left corner, so a target at range 8
-  // off the south-east corner used to be reported as distance 8 + 3 = 11
-  // — three cells outside the stated range. This helper fixes that by
-  // folding the footprint into the distance math so the Castle's stated
-  // range lands evenly all the way around the footprint.
-  function findPreferredVisibleEnemyUnitInRangeOfBuilding(
-    viewerOwner: number,
-    buildingAnchor: Position,
-    footprint: { width: number; height: number },
-    range: number,
-  ): number | null {
-    // The queryInRadius hook uses Manhattan distance from the anchor
-    // cell; expand the query radius by the building's max span so targets
-    // at the far edge of the footprint are still included in the initial
-    // candidate list. We then re-filter by footprint distance before
-    // returning.
-    const anchorQueryRadius = range + Math.max(footprint.width, footprint.height) - 1;
-    const candidates = [...world.queryInRadius(
-      buildingAnchor.x,
-      buildingAnchor.y,
-      anchorQueryRadius,
-      'position',
-      'unit',
-    )]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        unit: world.getComponent<UnitComponent>(id, 'unit'),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is { id: number; position: Position; unit: UnitComponent } => {
-          if (
-            entry.position === undefined
-            || entry.unit === undefined
-            || entry.unit.owner === viewerOwner
-          ) {
-            return false;
-          }
-          if (!visibility.isVisible(viewerOwner, entry.position.x, entry.position.y)) {
-            return false;
-          }
-          return distanceFromBuildingFootprint(buildingAnchor, footprint, entry.position) <= range;
-        },
-      )
-      .sort((left, right) => {
-        const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
-        if (priorityDelta !== 0) {
-          return priorityDelta;
-        }
-
-        return (
-          distanceFromBuildingFootprint(buildingAnchor, footprint, left.position)
-          - distanceFromBuildingFootprint(buildingAnchor, footprint, right.position)
-        );
-      });
-
-    return candidates[0]?.id ?? null;
-  }
-
-  function findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position): number | null {
-    const candidates = [...world.query('position', 'building')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        building: world.getComponent<BuildingComponent>(id, 'building'),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is { id: number; position: Position; building: BuildingComponent } =>
-          entry.position !== undefined
-          && entry.building !== undefined
-          && entry.building.owner !== viewerOwner
-          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
-      )
-      .sort((left, right) => {
-        const priorityDelta =
-          buildingTargetPriority(left.building.buildingType)
-          - buildingTargetPriority(right.building.buildingType);
-        if (priorityDelta !== 0) {
-          return priorityDelta;
-        }
-        return manhattanDistance(origin, left.position) - manhattanDistance(origin, right.position);
-      });
-
-    return candidates[0]?.id ?? null;
-  }
-
-  function findNearestDropOffBuilding(
-    activeWorld: World<GameEvents, GameCommands>,
-    owner: number,
-    resourceKind: EconomyResourceKind,
-    origin: Position,
-  ): number | null {
-    let nearestBuildingId: number | null = null;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-
-    for (const id of activeWorld.query('position', 'building')) {
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-      if (!position || !building || building.owner !== owner) {
-        continue;
-      }
-
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-
-      if (!canDropOffAt(building.buildingType, resourceKind)) {
-        continue;
-      }
-
-      const distance = manhattanDistance(origin, position);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestBuildingId = id;
-      }
-    }
-
-    return nearestBuildingId;
-  }
+  // Phase 3 target-finding ops. `targetPriority`,
+  // `buildingTargetPriority`, and the `findPreferred*` /
+  // `findNearest*` helpers live in `bridge/targetFindingOps`. The
+  // factory closes over world + visibility + the three side maps
+  // these helpers inspect.
+  const {
+    findPreferredVisibleEnemyUnit,
+    findPreferredVisibleEnemyUnitInRangeOfBuilding,
+    findPreferredVisibleEnemyBuilding,
+    findNearestDropOffBuilding,
+    findNearestHostileWildlifeTarget,
+  } = createTargetFindingOps({
+    world,
+    visibility,
+    combatStates,
+    constructionStates,
+    buildingHealthStates,
+  });
 
   function assignNearestResource(
     activeWorld: World<GameEvents, GameCommands>,
@@ -4522,41 +4295,6 @@ function createWorld(
       target.position,
     );
     gatherer.gatherProgressTicks = 0;
-  }
-
-  function findNearestHostileWildlifeTarget(
-    origin: Position,
-    aggroRange: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): number | null {
-    let bestUnitId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-
-    for (const unitId of (activeWorld as GameWorld).queryInRadius(
-      origin.x,
-      origin.y,
-      aggroRange,
-      'unit',
-    )) {
-      const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
-      const position = activeWorld.getComponent<Position>(unitId, 'position');
-      const combat = combatStates.get(unitId);
-      if (!unit || !position || !combat || combat.currentHp <= 0) {
-        continue;
-      }
-
-      const distance = manhattanDistance(origin, position);
-      if (distance > aggroRange) {
-        continue;
-      }
-
-      if (distance < bestDistance || (distance === bestDistance && unitId < (bestUnitId ?? Number.POSITIVE_INFINITY))) {
-        bestDistance = distance;
-        bestUnitId = unitId;
-      }
-    }
-
-    return bestUnitId;
   }
 
   // Technology application + predecessor-line rewrites live in
