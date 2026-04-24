@@ -211,6 +211,96 @@ export function createResourceDepletionFixture(seed: string): PrototypeScenario 
   };
 }
 
+export function createNarrowCorridorFixture(seed: string): PrototypeScenario {
+  // Tree walls at y=7 and y=9 create a 1-cell-wide corridor along y=8 from
+  // x=12 through x=28. West of the corridor (x<=11) is open grass with room
+  // for a 2x2 cluster of villagers so the "units close to each other with a
+  // narrow way forward" scenario reproduces exactly what the user reported.
+  // East of x=28 is open grass so the mover has somewhere to land.
+  const terrain = createGrassFixtureTerrain();
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts: [
+      { owner: 1, townCenter: { x: 2, y: 2 } },
+      { owner: 2, townCenter: { x: 54, y: 30 } },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 2,
+        y: 2,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 54,
+        y: 30,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // North wall of the narrow corridor.
+      ...Array.from({ length: 17 }, (_, offset) => ({
+        kind: 'tree' as const,
+        x: 12 + offset,
+        y: 7,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      })),
+      // South wall of the narrow corridor.
+      ...Array.from({ length: 17 }, (_, offset) => ({
+        kind: 'tree' as const,
+        x: 12 + offset,
+        y: 9,
+        owner: null,
+        baseOwner: null,
+        amount: 100,
+      })),
+      // Cluster of four friendly villagers just west of the corridor mouth.
+      // The villager at (11, 8) is the designated mover; the other three
+      // surround it and sit directly in front of the corridor entrance.
+      {
+        kind: 'villager',
+        x: 11,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 10,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 11,
+        y: 7,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 11,
+        y: 9,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+    ],
+  };
+}
+
 export function createMoveTargetUnblocksFixture(seed: string): PrototypeScenario {
   return {
     seed,

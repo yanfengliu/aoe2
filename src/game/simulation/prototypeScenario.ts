@@ -106,6 +106,7 @@ import {
   createMonkRelicFixture,
   createMoveTargetUnblocksFixture,
   createMovingEnemyAttackFixture,
+  createNarrowCorridorFixture,
   createOnagerMinRangeBlockedFixture,
   createOrdersFixture,
   createPaladinFixture,
@@ -743,6 +744,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'move-target-unblocks-fixture') {
     return createMoveTargetUnblocksFixture(seed);
+  }
+
+  if (seed === 'narrow-corridor-fixture') {
+    return createNarrowCorridorFixture(seed);
   }
 
   if (seed === 'fog-memory-fixture') {

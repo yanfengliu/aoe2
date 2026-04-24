@@ -18,6 +18,7 @@ export {
   createFishFixture,
   createResourceDepletionFixture,
   createMoveTargetUnblocksFixture,
+  createNarrowCorridorFixture,
   createFogMemoryFixture,
   createBuildingFootprintVisionFixture,
   createBoarAggroFixture,

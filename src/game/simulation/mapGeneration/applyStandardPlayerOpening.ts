@@ -334,6 +334,24 @@ export function applyStandardPlayerOpeningProcedural(
     ) {
       return true;
     }
+    // Guaranteed cardinal exit corridors. The cluster walker places resources
+    // continuously around rings; adjacent clusters' arcs can meet and form an
+    // impassable wall around the villager cluster. Reserving four corridors
+    // aligned with the villager and scout cluster (horizontal two-row corridor
+    // covering the villager row and the row below, vertical two-column corridor
+    // covering the TC centerline) keeps a walkable gap in every resource ring.
+    // Each corridor extends 13 cells past the TC center — enough to clear the
+    // outermost forest ring (ring 12) so no cluster can wall the base off.
+    const corridorExtent = 13;
+    const onHorizontalCorridor =
+      (y === start.townCenter.y || y === start.townCenter.y + 1)
+      && Math.abs(x - (start.townCenter.x + 1)) <= corridorExtent;
+    const onVerticalCorridor =
+      (x === start.townCenter.x + 1 || x === start.townCenter.x + 2)
+      && Math.abs(y - (start.townCenter.y + 1)) <= corridorExtent;
+    if (onHorizontalCorridor || onVerticalCorridor) {
+      return true;
+    }
     return spawns.isCellOccupiedByResource(x, y);
   };
 
