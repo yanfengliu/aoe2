@@ -19,6 +19,10 @@ import {
   findCommandTargetEntityAtWorldPointInEntities,
   findEntitiesAtWorldPointInEntities,
 } from './entityHitTest';
+import {
+  createDebugOverlayRenderer,
+  type DebugOverlayRenderer,
+} from './gameScene/debugOverlay';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
@@ -194,6 +198,7 @@ export class GameScene extends Phaser.Scene {
   private lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   private lastBuildingVisualStates: BuildingVisualState[] = [];
   private lastEntityHealthBarStates: EntityHealthBarState[] = [];
+  private debugOverlayRenderer?: DebugOverlayRenderer;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     // Phaser's pointer-up handler owns same-type promotion; this listener only
     // suppresses browser-native text selection on canvas double clicks.
@@ -218,6 +223,11 @@ export class GameScene extends Phaser.Scene {
     this.placementLayer = this.add.graphics();
     this.selectionBoxLayer = this.add.graphics();
     this.debugLayer = this.add.graphics();
+    this.debugOverlayRenderer = createDebugOverlayRenderer({
+      debugLayer: this.debugLayer,
+      bridge: this.bridge,
+      cellSize: CELL_SIZE,
+    });
 
     this.cameras.main.setBackgroundColor('#132224');
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
@@ -364,6 +374,13 @@ export class GameScene extends Phaser.Scene {
     this.lastPlacementPreviewVisualState = null;
     this.lastBuildingVisualStates = [];
     this.lastEntityHealthBarStates = [];
+    if (this.debugLayer) {
+      this.debugOverlayRenderer = createDebugOverlayRenderer({
+        debugLayer: this.debugLayer,
+        bridge: this.bridge,
+        cellSize: CELL_SIZE,
+      });
+    }
     this.syncFromBridge(true);
   }
 
@@ -527,164 +544,24 @@ export class GameScene extends Phaser.Scene {
 
   // Slice 11: draw world-space overlays driven by the HUD's debug mode.
   // The shapes live on their own `debugLayer` above the placement layer so
-  // they never get clipped by selection or fog.
+  // they never get clipped by selection or fog. Actual drawing lives in
+  // `gameScene/debugOverlay.ts`; this method just forwards the scene's
+  // view data to the dep-bag renderer.
   private renderDebugOverlay(
     entities: ProjectedEntityView[],
     selectionState: SelectionState,
     frame: ProjectedFrameView | null,
   ): void {
-    if (!this.debugLayer) {
+    if (!this.debugOverlayRenderer) {
       return;
     }
 
-    const mode = this.options.getDebugOverlayMode();
-    if (mode === 'off' || mode === 'ai-state' || mode === 'perf') {
-      return;
-    }
-
-    if (mode === 'selection-bounds') {
-      this.renderDebugSelectionBounds(entities, selectionState);
-      return;
-    }
-
-    if (mode === 'pathing') {
-      this.renderDebugPathing(entities);
-      return;
-    }
-
-    if (mode === 'fog-state' && frame) {
-      this.renderDebugFogState(frame);
-      return;
-    }
-
-    if (mode === 'coarse-vs-fine') {
-      this.renderDebugCoarseVsFine();
-    }
-  }
-
-  private renderDebugSelectionBounds(
-    entities: ProjectedEntityView[],
-    selectionState: SelectionState,
-  ): void {
-    if (!this.debugLayer || selectionState.selectedEntityIds.length === 0) {
-      return;
-    }
-
-    const selectedIds = new Set(selectionState.selectedEntityIds);
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    let anyFound = false;
-
-    for (const entity of entities) {
-      if (!selectedIds.has(entity.id) || entity.isMemory) {
-        continue;
-      }
-      const left = entity.x;
-      const top = entity.y;
-      const width = entity.kind === 'building' ? entity.footprintWidth : 1;
-      const height = entity.kind === 'building' ? entity.footprintHeight : 1;
-      minX = Math.min(minX, left);
-      minY = Math.min(minY, top);
-      maxX = Math.max(maxX, left + width);
-      maxY = Math.max(maxY, top + height);
-      anyFound = true;
-    }
-
-    if (!anyFound) {
-      return;
-    }
-
-    const px = minX * CELL_SIZE;
-    const py = minY * CELL_SIZE;
-    const widthPx = (maxX - minX) * CELL_SIZE;
-    const heightPx = (maxY - minY) * CELL_SIZE;
-    this.debugLayer.lineStyle(2, 0x6ed4ff, 0.95);
-    this.debugLayer.strokeRect(px, py, widthPx, heightPx);
-  }
-
-  private renderDebugPathing(entities: ProjectedEntityView[]): void {
-    if (!this.debugLayer) {
-      return;
-    }
-
-    const displayedPositionById = new Map<number, { x: number; y: number }>();
-    for (const entity of entities) {
-      if (entity.kind === 'unit') {
-        displayedPositionById.set(entity.id, { x: entity.x, y: entity.y });
-      }
-    }
-
-    const snapshot = this.bridge.getDebugSnapshot();
-    for (const path of snapshot.unitPaths) {
-      const source = displayedPositionById.get(path.id) ?? { x: path.fromX, y: path.fromY };
-      const sx = source.x * CELL_SIZE + CELL_SIZE * 0.5;
-      const sy = source.y * CELL_SIZE + CELL_SIZE * 0.5;
-      const tx = path.toX * CELL_SIZE + CELL_SIZE * 0.5;
-      const ty = path.toY * CELL_SIZE + CELL_SIZE * 0.5;
-      const color =
-        path.commandType === 'attack'
-          ? 0xff5a5a
-          : path.commandType === 'build'
-            ? 0xffd97d
-            : 0x6ed4ff;
-      this.debugLayer.lineStyle(1.5, color, 0.9);
-      this.debugLayer.lineBetween(sx, sy, tx, ty);
-      this.debugLayer.fillStyle(color, 0.9);
-      this.debugLayer.fillCircle(tx, ty, 3);
-    }
-  }
-
-  private renderDebugFogState(frame: ProjectedFrameView): void {
-    if (!this.debugLayer) {
-      return;
-    }
-
-    const visible = new Set(frame.visibleCells);
-    const explored = new Set(frame.exploredCells);
-    for (let y = 0; y < frame.mapHeight; y += 1) {
-      for (let x = 0; x < frame.mapWidth; x += 1) {
-        const index = y * frame.mapWidth + x;
-        if (visible.has(index)) {
-          this.debugLayer.fillStyle(0x39d27c, 0.16);
-        } else if (explored.has(index)) {
-          this.debugLayer.fillStyle(0xe0b25a, 0.18);
-        } else {
-          this.debugLayer.fillStyle(0x8a3f5b, 0.22);
-        }
-        this.debugLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-      }
-    }
-  }
-
-  // Slice 12 Task D: draw one line per unit from the coarse simulation
-  // cell center to the fine interpolated render position. A big delta
-  // is the visible signal of "unit is between coarse cells A and B
-  // right now" — if simulation pushes coarse back to A or forward to B
-  // while rendering stays put (or vice versa), that mismatch shows up
-  // as a long line instead of the expected short step.
-  private renderDebugCoarseVsFine(): void {
-    if (!this.debugLayer) {
-      return;
-    }
-
-    const snapshot = this.bridge.getDebugSnapshot();
-    for (const probe of snapshot.coarseVsFine) {
-      const coarseCx = (probe.coarseX + 0.5) * CELL_SIZE;
-      const coarseCy = (probe.coarseY + 0.5) * CELL_SIZE;
-      const fineCx = (probe.fineX + 0.5) * CELL_SIZE;
-      const fineCy = (probe.fineY + 0.5) * CELL_SIZE;
-      // Line from coarse (blue) to fine (magenta) with a dot on the
-      // coarse endpoint so the player can see which side is the
-      // simulation cell.
-      this.debugLayer.lineStyle(1.5, 0xff5ed1, 0.9);
-      this.debugLayer.lineBetween(coarseCx, coarseCy, fineCx, fineCy);
-      this.debugLayer.fillStyle(0x6ed4ff, 0.9);
-      this.debugLayer.fillCircle(coarseCx, coarseCy, 3);
-      this.debugLayer.fillStyle(0xff5ed1, 0.9);
-      this.debugLayer.fillCircle(fineCx, fineCy, 3);
-    }
+    this.debugOverlayRenderer.render(
+      this.options.getDebugOverlayMode(),
+      entities,
+      selectionState,
+      frame,
+    );
   }
 
   private renderEntityHealthBars(entities: ProjectedEntityView[]): void {
