@@ -50,6 +50,7 @@ import {
   syncVisibilitySources,
   updateSheepOwnership,
 } from './bridge/visibility';
+import { createTrebuchetStateOps } from './bridge/trebuchetState';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -266,7 +267,6 @@ const MONK_HEAL_HP_PER_INTERVAL = 1;
 const MONK_CONVERT_PROGRESS_PER_TICK = 1;
 const MONK_CONVERT_FLIP_THRESHOLD = 50;
 const MONK_ACTION_RANGE = 4;
-const TREBUCHET_PACK_TRANSITION_TICKS = 50;
 const MARKET_TRANSACTION_AMOUNT = 100;
 const MARKET_FEE_RATE = 0.3;
 const MARKET_RATE_STEP = 3;
@@ -526,71 +526,17 @@ function createWorld(
     }
     return counters;
   }
-  // FU7: helpers for the Trebuchet pack/unpack lifecycle. Centralized so
-  // every caller (attack pathway, move pathway, save/load hydration) keeps
-  // a single source of truth for transition semantics.
-
-  // Advance an in-flight pack/unpack transition by one tick. Returns true
-  // iff a transition is currently in progress (caller should skip movement
-  // and fire this tick). Once `transitionTicksRemaining` reaches zero, the
-  // `packed` flag flips and the Trebuchet becomes stable in its new state
-  // on the NEXT tick. The current tick is still considered "in transition"
-  // so both halves of the flip are observed deterministically.
-  function advanceTrebuchetTransition(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
-    if (!state || state.transitionTicksRemaining <= 0) {
-      return false;
-    }
-    state.transitionTicksRemaining -= 1;
-    if (state.transitionTicksRemaining <= 0) {
-      state.packed = !state.packed;
-    }
-    return true;
-  }
-
-  // Begin a packed → unpacked transition (Trebuchet is within range of an
-  // attack target and wants to fire). No-op if the unit isn't a packed
-  // Trebuchet or is already in a transition.
-  function beginTrebuchetUnpack(unitId: number): void {
-    const state = trebuchetPackStates.get(unitId);
-    if (!state || !state.packed || state.transitionTicksRemaining > 0) {
-      return;
-    }
-    state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
-  }
-
-  // Begin an unpacked → packed transition (Trebuchet received a move
-  // order). No-op if the unit isn't an unpacked Trebuchet or is already
-  // in a transition.
-  function beginTrebuchetPack(unitId: number): void {
-    const state = trebuchetPackStates.get(unitId);
-    if (!state || state.packed || state.transitionTicksRemaining > 0) {
-      return;
-    }
-    state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
-  }
-
-  // True if the unit is a Trebuchet that cannot currently move (unpacked
-  // stable OR mid-transition in either direction). Used to gate the
-  // movement branches of the attack and move command loops so an
-  // unpacked Trebuchet holds ground rather than walking into melee.
-  function isTrebuchetStationary(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
-    if (!state) {
-      return false;
-    }
-    return !state.packed || state.transitionTicksRemaining > 0;
-  }
-
-  // True if the unit is a Trebuchet that cannot currently fire (packed
-  // stable OR mid-transition in either direction).
-  function isTrebuchetSilent(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
-    if (!state) {
-      return false;
-    }
-    return state.packed || state.transitionTicksRemaining > 0;
-  }
+  // FU7: helpers for the Trebuchet pack/unpack lifecycle. Centralized in
+  // `bridge/trebuchetState` so every caller (attack pathway, move pathway,
+  // save/load hydration) keeps a single source of truth for transition
+  // semantics.
+  const {
+    advanceTrebuchetTransition,
+    beginTrebuchetUnpack,
+    beginTrebuchetPack,
+    isTrebuchetStationary,
+    isTrebuchetSilent,
+  } = createTrebuchetStateOps(trebuchetPackStates);
 
   // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
   // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
