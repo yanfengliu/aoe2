@@ -7,6 +7,7 @@
   - Apply the change.
   - Capture an after screenshot.
   - Generate a pixel diff and use that as verification alongside the normal test/build gates.
+- Use your best judgement and involve me as little as possible.
 
 ## Git
 
