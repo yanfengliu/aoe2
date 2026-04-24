@@ -8,6 +8,7 @@
   - Capture an after screenshot.
   - Generate a pixel diff and use that as verification alongside the normal test/build gates.
 - Use your best judgement and involve me as little as possible.
+- CRITICAL: Strictly follow the workflow from the superpowers skills, such as subagent implementation, plan writing, code reviews, etc.
 
 ## Git
 
