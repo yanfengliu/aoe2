@@ -23,6 +23,10 @@ import {
   createDebugOverlayRenderer,
   type DebugOverlayRenderer,
 } from './gameScene/debugOverlay';
+import {
+  createWorldLayersRenderer,
+  type WorldLayersRenderer,
+} from './gameScene/worldLayers';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
@@ -199,6 +203,7 @@ export class GameScene extends Phaser.Scene {
   private lastBuildingVisualStates: BuildingVisualState[] = [];
   private lastEntityHealthBarStates: EntityHealthBarState[] = [];
   private debugOverlayRenderer?: DebugOverlayRenderer;
+  private worldLayersRenderer?: WorldLayersRenderer;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     // Phaser's pointer-up handler owns same-type promotion; this listener only
     // suppresses browser-native text selection on canvas double clicks.
@@ -226,6 +231,11 @@ export class GameScene extends Phaser.Scene {
     this.debugOverlayRenderer = createDebugOverlayRenderer({
       debugLayer: this.debugLayer,
       bridge: this.bridge,
+      cellSize: CELL_SIZE,
+    });
+    this.worldLayersRenderer = createWorldLayersRenderer({
+      healthBarLayer: this.healthBarLayer,
+      fogLayer: this.fogLayer,
       cellSize: CELL_SIZE,
     });
 
@@ -381,6 +391,13 @@ export class GameScene extends Phaser.Scene {
         cellSize: CELL_SIZE,
       });
     }
+    if (this.healthBarLayer && this.fogLayer) {
+      this.worldLayersRenderer = createWorldLayersRenderer({
+        healthBarLayer: this.healthBarLayer,
+        fogLayer: this.fogLayer,
+        cellSize: CELL_SIZE,
+      });
+    }
     this.syncFromBridge(true);
   }
 
@@ -531,11 +548,15 @@ export class GameScene extends Phaser.Scene {
       );
     }
 
-    if (state.frame) {
-      this.renderFog(state.frame);
+    if (state.frame && this.worldLayersRenderer) {
+      this.worldLayersRenderer.renderFog(state.frame);
     }
 
-    this.renderEntityHealthBars(this.displayedEntities);
+    if (this.worldLayersRenderer) {
+      this.lastEntityHealthBarStates = this.worldLayersRenderer.renderEntityHealthBars(
+        this.displayedEntities,
+      );
+    }
     this.renderSelection(this.displayedEntities, selectionState);
     this.renderPlacementPreview();
     this.renderSelectionBox(this.getSelectionBoxState());
@@ -562,92 +583,6 @@ export class GameScene extends Phaser.Scene {
       selectionState,
       frame,
     );
-  }
-
-  private renderEntityHealthBars(entities: ProjectedEntityView[]): void {
-    if (!this.healthBarLayer) {
-      return;
-    }
-
-    for (const entity of entities) {
-      if (
-        (entity.kind !== 'unit' && entity.kind !== 'building' && entity.kind !== 'resource')
-        || entity.currentHp === null
-        || entity.maxHp === null
-        || entity.maxHp <= 0
-        || entity.isMemory
-      ) {
-        continue;
-      }
-
-      const px = entity.x * CELL_SIZE;
-      const py = entity.y * CELL_SIZE;
-      const layout = this.getHealthBarLayout(entity, px, py);
-      const fillRatio = Phaser.Math.Clamp(entity.currentHp / entity.maxHp, 0, 1);
-      const fillColor =
-        fillRatio > 0.6 ? 0x77d26a
-        : fillRatio > 0.3 ? 0xdab85a
-        : 0xd76464;
-
-      this.healthBarLayer.fillStyle(0x101010, 0.88);
-      this.healthBarLayer.fillRoundedRect(layout.barX, layout.barY, layout.barWidthPx, layout.barHeightPx, 2);
-      this.healthBarLayer.fillStyle(0x2d2d2d, 0.95);
-      this.healthBarLayer.fillRoundedRect(
-        layout.barX + 1,
-        layout.barY + 1,
-        Math.max(0, layout.barWidthPx - 2),
-        Math.max(0, layout.barHeightPx - 2),
-        2,
-      );
-      this.healthBarLayer.fillStyle(fillColor, 0.96);
-      this.healthBarLayer.fillRoundedRect(
-        layout.barX + 1,
-        layout.barY + 1,
-        Math.max(0, (layout.barWidthPx - 2) * fillRatio),
-        Math.max(0, layout.barHeightPx - 2),
-        2,
-      );
-
-      this.lastEntityHealthBarStates.push({
-        id: entity.id,
-        entityKind: entity.kind,
-        entityType: entity.entityType,
-        owner: entity.owner,
-        currentHp: entity.currentHp,
-        maxHp: entity.maxHp,
-        fillRatio,
-        barX: layout.barX,
-        barY: layout.barY,
-        barWidthPx: layout.barWidthPx,
-        barHeightPx: layout.barHeightPx,
-        entityTopPx: layout.entityTopPx,
-      });
-    }
-  }
-
-  private renderFog(frame: ProjectedFrameView): void {
-    if (!this.fogLayer) {
-      return;
-    }
-
-    const visible = new Set(frame.visibleCells);
-    const explored = new Set(frame.exploredCells);
-
-    for (let y = 0; y < frame.mapHeight; y += 1) {
-      for (let x = 0; x < frame.mapWidth; x += 1) {
-        const index = y * frame.mapWidth + x;
-        if (!explored.has(index)) {
-          this.fogLayer.fillStyle(0x081012, 0.94);
-          this.fogLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE + 1, CELL_SIZE + 1);
-          continue;
-        }
-
-        if (!visible.has(index)) {
-          this.fogLayer.fillStyle(0x0b1215, 0.58);
-          this.fogLayer.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE + 1, CELL_SIZE + 1);
-        }
-      }
-    }
   }
 
   private renderSelection(entities: ProjectedEntityView[], selectionState: SelectionState): void {
@@ -1264,47 +1199,6 @@ export class GameScene extends Phaser.Scene {
       minWorldY: Math.min(worldStart.y, worldEnd.y),
       maxWorldX: Math.max(worldStart.x, worldEnd.x),
       maxWorldY: Math.max(worldStart.y, worldEnd.y),
-    };
-  }
-
-  private getHealthBarLayout(
-    entity: ProjectedEntityView,
-    px: number,
-    py: number,
-  ): {
-    barX: number;
-    barY: number;
-    barWidthPx: number;
-    barHeightPx: number;
-    entityTopPx: number;
-  } {
-    const entityWidthPx =
-      entity.kind === 'building'
-        ? entity.footprintWidth * CELL_SIZE
-        : CELL_SIZE * Math.max(entity.size, 0.55);
-    const entityCenterX =
-      entity.kind === 'building'
-        ? px + (entity.footprintWidth * CELL_SIZE) * 0.5
-        : px + CELL_SIZE * 0.5;
-    const entityTopPx =
-      entity.kind === 'building'
-        ? py
-        : py + CELL_SIZE * 0.5 - (CELL_SIZE * entity.size * 0.5);
-    const barWidthPx = Phaser.Math.Clamp(
-      entityWidthPx * (entity.kind === 'building' ? 0.78 : 1.35),
-      18,
-      72,
-    );
-    const barHeightPx = entity.kind === 'building' ? 5 : 4;
-    const barX = entityCenterX - barWidthPx * 0.5;
-    const barY = entityTopPx - (barHeightPx + 4);
-
-    return {
-      barX,
-      barY,
-      barWidthPx,
-      barHeightPx,
-      entityTopPx,
     };
   }
 
