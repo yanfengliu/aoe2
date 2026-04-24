@@ -1227,7 +1227,7 @@ _(Committed as `a13a022`; re-anchored-test files were also staged in the same co
 - Create: `docs/devlog/detailed/2026-04-23_2026-04-23.md` (or append to existing `2026-04-23_...md` detailed file).
 - Modify: `docs/devlog/summary.md` — add top-level bullet.
 
-- [ ] **Step 1: Capture before/after screenshots**
+- [x] **Step 1: Capture before/after screenshots**
 
 Use Playwright to capture a screenshot of the starting Town Center region under the default seed. Note: since the code has already changed, "before" needs to be captured from the last commit before Task 5 or via git stash. Practical flow:
 
@@ -1242,19 +1242,19 @@ npx.cmd playwright test tests/browser/game-selection.spec.ts --grep "renders" --
 
 If the project already uses a specific screenshot tool, use that instead. Record the changed-pixel count from a pixel-diff tool (the repo uses ad-hoc `sharp`-based diffing in earlier devlog entries; produce an equivalent number).
 
-- [ ] **Step 2: Run the full browser test suite**
+- [x] **Step 2: Run the full browser test suite**
 
 Run: `npm.cmd run test:browser`
 
 Expected: pass. If any browser test hardcoded a default-seed resource coordinate (the earlier survey said none did, but re-confirm under the changed layout), re-anchor it.
 
-- [ ] **Step 3: Run the full gates once more**
+- [x] **Step 3: Run the full gates once more**
 
 Run: `npx.cmd tsc --noEmit && npm.cmd run lint && npx.cmd vite build && npx.cmd vitest run && npm.cmd run test:browser`
 
 Record results (file count, pass count) for the devlog.
 
-- [ ] **Step 4: Update `docs/architecture/ARCHITECTURE.md`**
+- [x] **Step 4: Update `docs/architecture/ARCHITECTURE.md`**
 
 Add a bullet under "Repository layout → `src/game/simulation/`":
 
@@ -1263,11 +1263,11 @@ Add a bullet under "Repository layout → `src/game/simulation/`":
       spawn-list helper that enforces one-resource-per-cell.
 ```
 
-- [ ] **Step 5: Append a row to `docs/architecture/drift-log.md`**
+- [x] **Step 5: Append a row to `docs/architecture/drift-log.md`**
 
 Format matches prior rows. The row states the date, the change (new `simulation/mapGeneration/` subdirectory), and the reason (extract map-generation and dedupe concerns out of `prototypeScenario.ts`).
 
-- [ ] **Step 6: Write the detailed devlog entry**
+- [x] **Step 6: Write the detailed devlog entry**
 
 Append to `docs/devlog/detailed/2026-04-23_2026-04-23.md` (or the current latest detailed file):
 
@@ -1319,7 +1319,7 @@ standard opening composition).
 - Engine-feedback: none — this is fully in the simulation-bridge layer.
 ```
 
-- [ ] **Step 7: Update `docs/devlog/summary.md`**
+- [x] **Step 7: Update `docs/devlog/summary.md`**
 
 Prepend a new bullet under the `## 2026-04-23` section:
 
@@ -1333,7 +1333,7 @@ Prepend a new bullet under the `## 2026-04-23` section:
   `docs/devlog/detailed/2026-04-23_2026-04-23.md`.
 ```
 
-- [ ] **Step 8: Run code reviewers per AGENTS.md**
+- [x] **Step 8: Run code reviewers per AGENTS.md** — _N/A: AGENTS.md was simplified in commit `7e94116` to drop the team-of-subagents and reviewer-CLI loop; this step is no longer a project gate._
 
 Run each of:
 
@@ -1345,7 +1345,7 @@ git diff main | claude -p --append-system-prompt "You are a senior code reviewer
 
 Fold findings into the devlog's "Code reviewer comments" section, iterate until each reviewer reports no actionable issues (or nit-only).
 
-- [ ] **Step 9: Commit the docs + final gates**
+- [x] **Step 9: Commit the docs + final gates** — _Committed as `7fce1ef Close out resource-cell exclusivity: docs, visual diff, browser re-anchor`._
 
 ```bash
 git add docs/architecture/ARCHITECTURE.md docs/architecture/drift-log.md docs/devlog/detailed/2026-04-23_2026-04-23.md docs/devlog/summary.md docs/devlog/artifacts/
