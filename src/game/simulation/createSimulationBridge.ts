@@ -4850,10 +4850,15 @@ function createWorld(
         }
 
         // Passive-player gate: only the human and AI-driven players
-        // run auto-aggression on their units. Fixture players that
-        // opted out via `disableAi: true` have no `aiState` entry, so
-        // we skip them here too. This keeps "passive enemy" fixtures
-        // truly passive.
+        // run auto-aggression on their units. The seeding site at the
+        // top of `createWorld` (search `start.disableAi`) skips
+        // `ensureAiState` when a fixture sets `disableAi: true`, so
+        // those owners are missing from `aiStates`. Reusing the
+        // `aiStates` map as the gate keeps the "is this owner active?"
+        // check in one place — but it does mean: if any future code
+        // path purges `aiStates` (e.g. on defeat), that owner's units
+        // also lose auto-aggression. Document the coupling here and
+        // revisit if a real player needs to lose AI but keep stance.
         if (unit.owner !== HUMAN_PLAYER_ID && !aiStates.has(unit.owner)) {
           continue;
         }
@@ -4861,6 +4866,24 @@ function createWorld(
         const combat = combatStates.get(id);
         if (!combat || combat.currentHp <= 0) {
           continue;
+        }
+
+        // Honor active gather work as a "player order" equivalent: a
+        // villager with a live `GathererComponent.task` (gathering /
+        // returning a load / mid-drop-off) or an explicit gather order
+        // from the player must NOT be yanked off its resource by an
+        // adjacent enemy. Canonical AoE2 returns the villager to the
+        // resource after the attacker leaves, but our `unitCommands`
+        // model has no return-to-resource memory yet — clearing the
+        // gather here would silently drop the player's order. Deferred:
+        // a follow-up to swing back at the adjacent attacker AND keep
+        // the gather order intact (would need a new transient retaliate
+        // state alongside the gatherer task).
+        if (unit.unitType === 'villager') {
+          const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+          if (gatherer && (gatherer.task !== 'idle' || gatherer.hasExplicitGatherOrder)) {
+            continue;
+          }
         }
 
         // Read the unit's live vision source instead of the canonical

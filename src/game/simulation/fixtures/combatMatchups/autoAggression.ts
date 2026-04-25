@@ -304,6 +304,117 @@ export function createAutoAggroVillagerNoPursuitFixture(seed: string): Prototype
   };
 }
 
+// Auto-aggression vs gather order: a villager gathering wood with an
+// enemy spearman placed adjacent to the gather cell. The villager has
+// an active `GathererComponent.task` so auto-aggression must NOT yank
+// it off the resource — the gather order is treated as a player
+// order. The villager keeps gathering while taking damage.
+export function createAutoAggroVillagerGatheringFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 } },
+      { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'tree',
+        x: 13,
+        y: 8,
+        owner: null,
+        baseOwner: 1,
+        amount: 200,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'spearman',
+        x: 12,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 1 },
+      },
+    ],
+  };
+}
+
+// Auto-aggression skips Monks. Monks have their own task pipeline
+// (heal / convert / pickup / deposit relics). An adjacent enemy
+// spearman must not pull the Monk into an attack-command — the Monk's
+// "attack" is conversion, handled separately.
+export function createAutoAggroMonkSkipFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 }, startingAge: 'castle-age' },
+      { owner: 2, townCenter: { x: 24, y: 8 }, startingAge: 'castle-age', disableAi: true },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'monk',
+        x: 12,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 9 },
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      {
+        kind: 'spearman',
+        x: 13,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 1 },
+      },
+    ],
+  };
+}
+
 // Auto-aggression target switch: idle militia between two enemy
 // spearmen. After killing the first, the militia should auto-engage the
 // second on its own (idempotent re-scan).

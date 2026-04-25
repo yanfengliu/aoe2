@@ -34,20 +34,38 @@ for each unit owned by any player (not just human):
   if currentHp <= 0:                                            → skip
   if unitType === 'monk':                                       → skip (monk pipeline owns its own targeting)
   if unitType === 'sheep' or wildlife:                          → already excluded (not in 'unit' query)
+  if owner is a passive fixture player (no aiState entry):      → skip (test-only escape hatch via `disableAi: true`)
+
+  if unitType === 'villager' AND gatherer is busy:              → skip (gather order honored as a player order)
 
   if unitType === 'villager':
     radius = 1
   else:
-    radius = unitVisionRadius(unitType)
+    radius = visionSource.radius (fall back to unitVisionRadius(unitType))
 
   target = findPreferredEnemyUnitInRadius(owner, position, radius)
-  if target === null:
+  if target === null AND unitType !== 'villager':
     target = findPreferredEnemyBuildingInRadius(owner, position, radius)
   if target === null:
     → skip
 
   issueUnitAttackCommand(unitId, target, kind)
 ```
+
+### Gathering villagers and the player-order-precedence rule
+
+The `unitCommands` short-circuit covers explicit move / build / attack
+orders, but the gather pipeline (`GathererComponent.task`) lives on its
+own side map and never holds a `unitCommands` entry while gathering.
+The system also short-circuits a villager whose gatherer is non-idle
+(or holds an explicit gather order) so that an enemy walking adjacent
+to a wood-line villager does not silently replace its gather order
+with an attack-command. Canonical AoE2 Defensive Stance villagers
+swing-back-and-return-to-resource is *not* implemented in this pass —
+the simpler "honor the gather order" rule is the closest behavior our
+single-command model can express without adding a transient retaliate
+state alongside the gatherer task. Deferred to a follow-up if the play
+feel demands it.
 
 ## Architecture
 

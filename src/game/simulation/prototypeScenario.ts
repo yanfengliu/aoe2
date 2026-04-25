@@ -94,6 +94,8 @@ import {
   createAutoAggroPlayerMoveOverridesFixture,
   createAutoAggroVillagerAdjacentFixture,
   createAutoAggroVillagerNoPursuitFixture,
+  createAutoAggroVillagerGatheringFixture,
+  createAutoAggroMonkSkipFixture,
   createAutoAggroSequentialTargetsFixture,
   createMilitiaCombatFixture,
   createMilitiaLineFixture,
@@ -677,6 +679,14 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'auto-aggro-villager-no-pursuit-fixture') {
     return createAutoAggroVillagerNoPursuitFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-villager-gathering-fixture') {
+    return createAutoAggroVillagerGatheringFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-monk-skip-fixture') {
+    return createAutoAggroMonkSkipFixture(seed);
   }
 
   if (seed === 'auto-aggro-sequential-targets-fixture') {

@@ -136,6 +136,56 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     expect(bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0).toBe(enemyStartHp);
   }, 10_000);
 
+  it('does not yank a gathering villager off its resource when an enemy walks adjacent', () => {
+    const bridge = createSimulationBridge('auto-aggro-villager-gathering-fixture');
+
+    const villager = getOwnedUnit(bridge, 1, 'villager');
+    const tree = bridge
+      .getEconomyState()
+      .resources.find((r) => r.resourceType === 'tree' && r.x === 13 && r.y === 8);
+    expect(villager).toBeDefined();
+    expect(tree).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(tree!.id)).toBe(true);
+
+    // Run long enough for the villager to reach the tree, gather a few
+    // ticks, and have the adjacent spearman land hits.
+    for (let index = 0; index < 100; index += 1) {
+      bridge.step(100);
+    }
+
+    // The villager must still be alive and either gathering or carrying
+    // wood (i.e., still on its order). The enemy spearman is unscathed
+    // because the villager never auto-attacked it.
+    const villagerAfter = getOwnedUnit(bridge, 1, 'villager');
+    expect(villagerAfter).toBeDefined();
+    const enemyAfter = getOwnedUnit(bridge, 2, 'spearman');
+    expect(enemyAfter).toBeDefined();
+    const enemyHpAfter = bridge.getEntityHealth(enemyAfter!.id)?.currentHp ?? -1;
+    const enemyHpStart = bridge.getEntityHealth(enemyAfter!.id)?.maxHp ?? -1;
+    expect(enemyHpAfter).toBe(enemyHpStart);
+  }, 15_000);
+
+  it('does not auto-engage from a Monk: an adjacent enemy spearman never gets attacked', () => {
+    const bridge = createSimulationBridge('auto-aggro-monk-skip-fixture');
+
+    const enemy = getOwnedUnit(bridge, 2, 'spearman');
+    const monk = getOwnedUnit(bridge, 1, 'monk');
+    expect(enemy).toBeDefined();
+    expect(monk).toBeDefined();
+    const enemyStartHp = bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0;
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+    }
+
+    // Enemy spearman is unscathed because Monks never auto-attack.
+    const enemyAfter = getOwnedUnit(bridge, 2, 'spearman');
+    expect(enemyAfter).toBeDefined();
+    expect(bridge.getEntityHealth(enemyAfter!.id)?.currentHp ?? -1).toBe(enemyStartHp);
+  }, 15_000);
+
   it('after killing one enemy, an idle militia auto-engages the next visible enemy', () => {
     const bridge = createSimulationBridge('auto-aggro-sequential-targets-fixture');
 

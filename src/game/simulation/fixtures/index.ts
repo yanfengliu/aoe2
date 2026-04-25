@@ -75,6 +75,8 @@ export {
   createAutoAggroPlayerMoveOverridesFixture,
   createAutoAggroVillagerAdjacentFixture,
   createAutoAggroVillagerNoPursuitFixture,
+  createAutoAggroVillagerGatheringFixture,
+  createAutoAggroMonkSkipFixture,
   createAutoAggroSequentialTargetsFixture,
 } from './combatMatchups';
 
