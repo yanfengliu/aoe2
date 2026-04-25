@@ -50,14 +50,13 @@
     - Learnings from debugging and friction points should be documented in `docs/learning/lessons.md`. The file should be actively maintained to not become long, tedious, or outdated.
 - `base_prompt` for the code review agent: "You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text."
 - Optionally, use the @ symbol within `base_prompt` to include directory context for the best reasoning results.
-- Codex (codex-cli 0.121.0):
-  - `git diff [branch] | codex exec --model gpt-5.4 -c model_reasoning_effort=high --sandbox read-only --skip-git-repo-check --ephemeral <base_prompt>`
-  - Notes: `gpt-5.5` is rejected (`requires a newer version of Codex`); `gpt-5` is rejected on ChatGPT accounts. Reasoning effort goes through `-c model_reasoning_effort=high` (not a flag). `--ask-for-approval` no longer exists.
-- Gemini (gemini-cli 0.39.1):
-  - `git diff [branch] | gemini -p <base_prompt> --model gemini-2.5-pro --output-format text`
-  - Notes: bare 3.x IDs (`gemini-3-pro`, `gemini-3.1-pro`, `gemini-3-flash`) 404 — no GA endpoint on this account. Use the `-preview` suffix: `gemini-3-pro-preview`, `gemini-3.1-pro-preview`, and `gemini-3-flash-preview` all work, though previews can return `QUOTA_EXHAUSTED`/`RESOURCE_EXHAUSTED` under load — fall back to `gemini-2.5-pro` when that happens. `--thinking` is gone.
-- Claude (claude-cli 2.1.119):
-  - `git diff [branch] | claude -p --model opus --effort high --append-system-prompt <base_prompt> --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+- Codex:
+  - `git diff [branch] | codex exec --model gpt-5.4 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <base_prompt>`
+- Gemini:
+  - `git diff [branch] | gemini -p <base_prompt> --model gemini-3.1-pro-preview`.
+- Claude:
+  - `git diff [branch] | claude -p --model opus --effort xhigh --append-system-prompt <base_prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+- For full-codebase reviews (no diff), drop the `git diff` pipe and let each CLI agentically explore the workspace from its CWD; keep the same model/effort flags.
 
 ## Git
 
