@@ -69,6 +69,13 @@ export {
   createMilitiaLineFixture,
   createPaladinFixture,
   createHeavyCamelVsKnightFixture,
+  createAutoAggroIdleMilitiaInVisionFixture,
+  createAutoAggroIdleMilitiaOutOfVisionFixture,
+  createAutoAggroArcherPursuitFixture,
+  createAutoAggroPlayerMoveOverridesFixture,
+  createAutoAggroVillagerAdjacentFixture,
+  createAutoAggroVillagerNoPursuitFixture,
+  createAutoAggroSequentialTargetsFixture,
 } from './combatMatchups';
 
 export {

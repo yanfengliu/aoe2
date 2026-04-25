@@ -26,3 +26,13 @@ export {
   createChampionVsArmoredHalberdierFixture,
   createMilitiaLineFixture,
 } from './combatMatchups/generalCombat';
+
+export {
+  createAutoAggroIdleMilitiaInVisionFixture,
+  createAutoAggroIdleMilitiaOutOfVisionFixture,
+  createAutoAggroArcherPursuitFixture,
+  createAutoAggroPlayerMoveOverridesFixture,
+  createAutoAggroVillagerAdjacentFixture,
+  createAutoAggroVillagerNoPursuitFixture,
+  createAutoAggroSequentialTargetsFixture,
+} from './combatMatchups/autoAggression';

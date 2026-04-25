@@ -88,6 +88,13 @@ import {
   createMangonelRangedFixture,
   createMangonelVsKnightFixture,
   createMangonelVsSpearmanFixture,
+  createAutoAggroIdleMilitiaInVisionFixture,
+  createAutoAggroIdleMilitiaOutOfVisionFixture,
+  createAutoAggroArcherPursuitFixture,
+  createAutoAggroPlayerMoveOverridesFixture,
+  createAutoAggroVillagerAdjacentFixture,
+  createAutoAggroVillagerNoPursuitFixture,
+  createAutoAggroSequentialTargetsFixture,
   createMilitiaCombatFixture,
   createMilitiaLineFixture,
   createMiningCampFixture,
@@ -242,6 +249,12 @@ export interface PlayerStartSpec {
   // `'hard'` to stress the gather-rate multiplier, or `'easy'` to
   // confirm the opposite side of the gap.
   difficulty?: 'easy' | 'standard' | 'hard';
+  // Test-only flag: skip seeding an AiState entry for this owner so
+  // the planner-style `prototypeAi` system never issues commands for
+  // the player's units. Fixtures use this to spawn a "passive enemy"
+  // that exercises one specific behavior (auto-aggression detection,
+  // boundary checks) without the standard AI walking units around.
+  disableAi?: boolean;
   // FU1: Fixtures can pre-research technologies on bridge boot so
   // tests skip the research cadence when verifying downstream effects
   // (e.g. Chemistry-gated Bombard Cannon training). Applied after
@@ -640,6 +653,34 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'moving-enemy-attack-fixture') {
     return createMovingEnemyAttackFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-idle-militia-in-vision-fixture') {
+    return createAutoAggroIdleMilitiaInVisionFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-idle-militia-out-of-vision-fixture') {
+    return createAutoAggroIdleMilitiaOutOfVisionFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-archer-pursuit-fixture') {
+    return createAutoAggroArcherPursuitFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-player-move-overrides-fixture') {
+    return createAutoAggroPlayerMoveOverridesFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-villager-adjacent-fixture') {
+    return createAutoAggroVillagerAdjacentFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-villager-no-pursuit-fixture') {
+    return createAutoAggroVillagerNoPursuitFixture(seed);
+  }
+
+  if (seed === 'auto-aggro-sequential-targets-fixture') {
+    return createAutoAggroSequentialTargetsFixture(seed);
   }
 
   if (seed === 'feudal-watch-tower-fixture') {

@@ -815,8 +815,11 @@ function createWorld(
     // Slice 10: every non-human player gets an AiState so the planner
     // loop has somewhere to track plan phase + decision cadence. The
     // human player intentionally stays out of this map — the bridge's
-    // `prototypeAi` system keys off `aiStates` membership.
-    if (start.owner !== HUMAN_PLAYER_ID) {
+    // `prototypeAi` system keys off `aiStates` membership. Fixtures
+    // opt out via `disableAi: true` so the planner never issues
+    // commands for that player's units (auto-aggression test fixtures
+    // need a static, passive enemy).
+    if (start.owner !== HUMAN_PLAYER_ID && !start.disableAi) {
       ensureAiState(start.owner, start.difficulty ?? DEFAULT_DIFFICULTY);
     }
   }
@@ -4232,6 +4235,8 @@ function createWorld(
     findPreferredVisibleEnemyBuilding,
     findNearestDropOffBuilding,
     findNearestHostileWildlifeTarget,
+    findPreferredEnemyUnitInRadius,
+    findPreferredEnemyBuildingInRadius,
   } = createTargetFindingOps({
     world,
     visibility,
@@ -4807,10 +4812,90 @@ function createWorld(
     },
   });
 
+  // Canonical-AoE2 stance defaults. Runs after `prototypeAi` (so the AI
+  // owns the wider planner-style aggression for its push) and before
+  // `prototypePlayerCommands` (so commands the AI / auto-aggression
+  // issued this tick are processed in the same tick). The rule is per-
+  // unit, not per-player: any unit whose `unitCommands` slot is empty,
+  // not garrisoned, and alive, scans for an enemy in its personal LOS
+  // and engages. Military uses `unitVisionRadius` (Aggressive Stance);
+  // villager uses melee attack range = 1 (Defensive Stance: counter-
+  // attack adjacent only). Monks and wildlife are skipped — Monks have
+  // their own task subsystem, and wildlife is not in the `unit` query.
+  // Players whose AI is explicitly disabled (`disableAi: true` on the
+  // start spec) are also skipped here so test fixtures can spawn a
+  // fully-passive enemy without the planner OR auto-aggression
+  // animating its units.
+  world.registerSystem({
+    name: 'prototypeAutoAggression',
+    phase: 'update',
+    after: ['prototypeAi'],
+    before: ['prototypePlayerCommands'],
+    execute(activeWorld) {
+      for (const id of activeWorld.query('position', 'unit')) {
+        if (unitCommands.has(id)) {
+          continue;
+        }
+        if (isGarrisonedUnit(id)) {
+          continue;
+        }
+
+        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+        const position = activeWorld.getComponent<Position>(id, 'position');
+        if (!unit || !position) {
+          continue;
+        }
+        if (unit.unitType === 'monk') {
+          continue;
+        }
+
+        // Passive-player gate: only the human and AI-driven players
+        // run auto-aggression on their units. Fixture players that
+        // opted out via `disableAi: true` have no `aiState` entry, so
+        // we skip them here too. This keeps "passive enemy" fixtures
+        // truly passive.
+        if (unit.owner !== HUMAN_PLAYER_ID && !aiStates.has(unit.owner)) {
+          continue;
+        }
+
+        const combat = combatStates.get(id);
+        if (!combat || combat.currentHp <= 0) {
+          continue;
+        }
+
+        const radius =
+          unit.unitType === 'villager' ? 1 : unitVisionRadius(unit.unitType);
+
+        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
+        if (enemyUnitId !== null) {
+          issueUnitAttackCommand(id, enemyUnitId, 'unit');
+          continue;
+        }
+
+        if (unit.unitType === 'villager') {
+          // Villagers in Defensive Stance never pursue buildings on
+          // their own — their canon behavior is "swing back at adjacent
+          // attackers". A radius-1 building scan would also bias them
+          // into attacking palisades they happen to brush past.
+          continue;
+        }
+
+        const enemyBuildingId = findPreferredEnemyBuildingInRadius(
+          unit.owner,
+          position,
+          radius,
+        );
+        if (enemyBuildingId !== null) {
+          issueUnitAttackCommand(id, enemyBuildingId, 'building');
+        }
+      }
+    },
+  });
+
   world.registerSystem({
     name: 'prototypePlayerCommands',
     phase: 'update',
-    after: ['prototypeAi'],
+    after: ['prototypeAi', 'prototypeAutoAggression'],
     execute(activeWorld) {
       for (const [id, command] of [...unitCommands.entries()]) {
         const position = activeWorld.getComponent<Position>(id, 'position');

@@ -94,6 +94,27 @@ export interface TargetFindingOps {
     aggroRange: number,
     activeWorld?: World<GameEvents, GameCommands>,
   ): number | null;
+  // Personal-LOS variant of `findPreferredVisibleEnemyUnit`. Auto-
+  // aggression (canonical AoE2 Aggressive Stance) uses the unit's own
+  // sight radius — not the player-level fog state — so a Knight
+  // standing next to an enemy spearman engages even if no allied
+  // structure illuminates that tile. Returns the highest-priority
+  // enemy unit within `radius` Manhattan distance from `origin`.
+  findPreferredEnemyUnitInRadius(
+    viewerOwner: number,
+    origin: Position,
+    radius: number,
+  ): number | null;
+  // Personal-LOS variant of `findPreferredVisibleEnemyBuilding`. Same
+  // contract as `findPreferredEnemyUnitInRadius` for buildings, with
+  // construction-incomplete buildings filtered out (you cannot attack
+  // a partially-built building anyway and they are an off-by-one
+  // gameplay footgun for auto-aggression).
+  findPreferredEnemyBuildingInRadius(
+    viewerOwner: number,
+    origin: Position,
+    radius: number,
+  ): number | null;
 }
 
 export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOps {
@@ -384,6 +405,86 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     return bestUnitId;
   }
 
+  function findPreferredEnemyUnitInRadius(
+    viewerOwner: number,
+    origin: Position,
+    radius: number,
+  ): number | null {
+    let bestId: number | null = null;
+    let bestPriority = Number.POSITIVE_INFINITY;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!position || !unit || unit.owner === viewerOwner) {
+        continue;
+      }
+
+      const combat = combatStates.get(id);
+      if (combat && combat.currentHp <= 0) {
+        continue;
+      }
+
+      const distance = manhattanDistance(origin, position);
+      if (distance > radius) {
+        continue;
+      }
+
+      const priority = targetPriority(unit.unitType);
+      if (
+        priority < bestPriority
+        || (priority === bestPriority && distance < bestDistance)
+      ) {
+        bestPriority = priority;
+        bestDistance = distance;
+        bestId = id;
+      }
+    }
+
+    return bestId;
+  }
+
+  function findPreferredEnemyBuildingInRadius(
+    viewerOwner: number,
+    origin: Position,
+    radius: number,
+  ): number | null {
+    let bestId: number | null = null;
+    let bestPriority = Number.POSITIVE_INFINITY;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'building')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!position || !building || building.owner === viewerOwner) {
+        continue;
+      }
+
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) {
+        continue;
+      }
+
+      const distance = manhattanDistance(origin, position);
+      if (distance > radius) {
+        continue;
+      }
+
+      const priority = buildingTargetPriority(building.buildingType);
+      if (
+        priority < bestPriority
+        || (priority === bestPriority && distance < bestDistance)
+      ) {
+        bestPriority = priority;
+        bestDistance = distance;
+        bestId = id;
+      }
+    }
+
+    return bestId;
+  }
+
   return {
     targetPriority,
     buildingTargetPriority,
@@ -392,5 +493,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     findPreferredVisibleEnemyBuilding,
     findNearestDropOffBuilding,
     findNearestHostileWildlifeTarget,
+    findPreferredEnemyUnitInRadius,
+    findPreferredEnemyBuildingInRadius,
   };
 }
