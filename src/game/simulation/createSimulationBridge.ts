@@ -4863,8 +4863,18 @@ function createWorld(
           continue;
         }
 
+        // Read the unit's live vision source instead of the canonical
+        // per-type table. Tech upgrades modify `visionSource.radius`
+        // (e.g. Tracking on Scouts), and fixtures occasionally override
+        // a unit's vision to keep it blind for a specific test setup —
+        // both stay honored because we read the actual component here.
+        // Villagers always get the Defensive-Stance radius of 1 (melee
+        // attack range), regardless of their fog-of-war vision.
+        const visionSource = activeWorld.getComponent<VisionSourceComponent>(id, 'visionSource');
         const radius =
-          unit.unitType === 'villager' ? 1 : unitVisionRadius(unit.unitType);
+          unit.unitType === 'villager'
+            ? 1
+            : visionSource?.radius ?? unitVisionRadius(unit.unitType);
 
         const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
         if (enemyUnitId !== null) {

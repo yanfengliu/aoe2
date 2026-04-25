@@ -72,8 +72,16 @@ export function createMovingEnemyAttackFixture(seed: string): PrototypeScenario 
         townCenter: { x: 8, y: 8 },
       },
       {
+        // Player 2's AI is disabled so the wandering enemy scout
+        // (driven by `prototypeScoutMovement` via `wanderBounds`) is
+        // not pulled into auto-aggression on the human militia. The
+        // tests on this fixture assert sub-grid wander rendering and
+        // an explicit player-issued attack against the scout — both
+        // depend on the scout staying on its wander path until the
+        // human gives it an order.
         owner: 2,
         townCenter: { x: 24, y: 8 },
+        disableAi: true,
       },
     ],
     spawns: [
