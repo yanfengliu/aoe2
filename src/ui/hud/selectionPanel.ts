@@ -20,12 +20,6 @@ import {
   formatTechnologyName,
   isUnitType,
 } from './displayNames';
-
-// Types that can appear as first-class entries in the multi-select icon
-// grid. Owned sheep live in `economyState.resources`, not `.units`, but
-// they share the player-commandable multi-selection contract with units,
-// so the icon grid treats them as siblings.
-type MultiSelectionIconKind = UnitType | 'sheep';
 import {
   SELECTION_DETAIL_TOOLTIPS,
   formatActionTooltip,
@@ -34,6 +28,12 @@ import {
   formatResearchTooltip,
   formatTrainTooltip,
 } from './tooltips';
+
+// Types that can appear as first-class entries in the multi-select icon
+// grid. Owned sheep live in `economyState.resources`, not `.units`, but
+// they share the player-commandable multi-selection contract with units,
+// so the icon grid treats them as siblings.
+type MultiSelectionIconKind = UnitType | 'sheep';
 
 function renderSingleSelectionIcon(
   entityType: SelectionState['selectedEntityType'],
@@ -81,11 +81,24 @@ export function renderSelectionIcons(
   }
 
   const unitsById = new Map(economyState.units.map((unit) => [unit.id, unit]));
-  const sheepById = new Map(
-    economyState.resources
-      .filter((resource) => resource.resourceType === 'sheep')
-      .map((resource) => [resource.id, resource] as const),
-  );
+  // Lazy-built lookup of sheep entity ids — only needed when a selected
+  // id misses `unitsById`. `economyState.resources` can hold hundreds of
+  // entries mid/late game, and this function runs on every HUD-affecting
+  // update, so we avoid the unconditional filter+map pass when the
+  // selection is unit-only.
+  let sheepIdsCache: Set<number> | null = null;
+  const sheepIds = (): Set<number> => {
+    if (sheepIdsCache !== null) {
+      return sheepIdsCache;
+    }
+    sheepIdsCache = new Set();
+    for (const resource of economyState.resources) {
+      if (resource.resourceType === 'sheep') {
+        sheepIdsCache.add(resource.id);
+      }
+    }
+    return sheepIdsCache;
+  };
   const counts = new Map<MultiSelectionIconKind, number>();
   const orderedTypes: MultiSelectionIconKind[] = [];
 
@@ -93,7 +106,7 @@ export function renderSelectionIcons(
     const unit = unitsById.get(id);
     const kind: MultiSelectionIconKind | null = unit
       ? unit.unitType
-      : sheepById.has(id)
+      : sheepIds().has(id)
         ? 'sheep'
         : null;
     if (!kind) {

@@ -26,30 +26,53 @@ try {
   // Advance simulation ticks so the human villager at (20, 18) claims the
   // adjacent unclaimed sheep at (19, 18), (19, 19), and (20, 19). At least
   // 2 sheep need to belong to the human player before we can demonstrate
-  // the multi-icon grid.
-  await page.evaluate(() => {
+  // the multi-icon grid. Throw on budget exhaustion so the screenshot
+  // never silently captures a single-villager state and still gets saved.
+  const claimedSheep = await page.evaluate(() => {
     const api = window.__AOE2_TEST__;
-    if (!api) return;
+    if (!api) {
+      return 0;
+    }
+    let claimed = 0;
     for (let attempt = 0; attempt < 60; attempt += 1) {
       api.advanceTicks(1, 100);
-      const claimed = api.getSnapshot().economyState.resources.filter(
+      claimed = api.getSnapshot().economyState.resources.filter(
         (resource) => resource.resourceType === 'sheep' && resource.owner === 1,
       ).length;
       if (claimed >= 2) {
-        return;
+        return claimed;
       }
     }
+    return claimed;
   });
+  if (claimedSheep < 2) {
+    throw new Error(
+      `expected human player to own >=2 sheep before capture, got ${claimedSheep} after 60 ticks`,
+    );
+  }
 
   // Drive multi-selection via the bridge directly so we avoid panning the
   // viewport-locked Playwright camera over to the sheep cluster.
-  await page.evaluate(() => {
-    window.__AOE2_TEST__?.selectUnitsInBox(18, 17, 21, 20);
+  const selectionResult = await page.evaluate(() => {
+    const api = window.__AOE2_TEST__;
+    if (!api) {
+      return { didSelect: false, count: 0 };
+    }
+    const didSelect = api.selectUnitsInBox(18, 17, 21, 20);
+    return { didSelect, count: api.getSelectionState().selectedCount };
   });
+  if (!selectionResult.didSelect || selectionResult.count < 2) {
+    throw new Error(
+      `selectUnitsInBox returned didSelect=${selectionResult.didSelect} count=${selectionResult.count}; capture would not exercise the multi-icon grid`,
+    );
+  }
   await page.waitForTimeout(300);
 
   const panel = page.locator('[data-hud="selection-panel"]').first();
-  const box = (await panel.boundingBox()) ?? { x: 900, y: 40, width: 360, height: 660 };
+  const box = await panel.boundingBox();
+  if (!box) {
+    throw new Error('selection panel boundingBox() returned null; HUD did not render');
+  }
   await page.screenshot({
     path: outputPath,
     clip: {

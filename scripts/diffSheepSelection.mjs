@@ -17,8 +17,22 @@ const after = 'docs/devlog/artifacts/2026-04-24-sheep-selection-after.png';
 const diffPath = 'docs/devlog/artifacts/2026-04-24-sheep-selection-diff.png';
 
 const [a, b] = await Promise.all([readPng(before), readPng(after)]);
-const width = Math.min(a.width, b.width);
+if (a.width !== b.width) {
+  // Width is the panel width and should be stable across runs. A width
+  // mismatch points at HUD layout regression and would silently truncate
+  // the diff to the overlap, hiding the regression. Fail loudly.
+  console.error(
+    `width mismatch: before ${a.width}px, after ${b.width}px; aborting diff to avoid hiding a layout regression`,
+  );
+  process.exit(1);
+}
+const width = a.width;
 const height = Math.min(a.height, b.height);
+if (a.height !== b.height) {
+  console.warn(
+    `height differs: before ${a.height}px, after ${b.height}px (compared overlap of ${height}px). Expected when the panel grows/shrinks; flag if this was unintentional.`,
+  );
+}
 const diff = new PNG({ width, height });
 let changed = 0;
 
@@ -54,3 +68,11 @@ const total = width * height;
 const pct = ((changed / total) * 100).toFixed(2);
 console.log(`before ${a.width}x${a.height}, after ${b.width}x${b.height}, compared ${width}x${height}`);
 console.log(`changed ${changed}/${total} pixels (${pct}%)`);
+if (changed === 0 && a.height === b.height) {
+  // The diff is consumed as a verification step alongside vitest/build —
+  // a zero-diff with identical dimensions means the visual change the
+  // commit claims to make never reached the HUD. Fail so that the gate
+  // catches it instead of producing a misleading green diff image.
+  console.error('no pixel difference detected; the visual change did not land');
+  process.exit(1);
+}
