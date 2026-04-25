@@ -165,6 +165,24 @@ describe('Slice 9 — save/load round-trip', () => {
     expect(final2.winCondition).toBe(final1.winCondition);
   });
 
+  it('projects render frames with the saved-game seed, not the outer constructor seed (review H-1)', () => {
+    // The world replays on `savedGame.seed` so the deterministic rng
+    // matches byte-for-byte. The render projector must use the same
+    // seed — otherwise the projected frame advertises a seed that does
+    // not correspond to the simulation it is observing.
+    const savedSeed = 'conquest-victory-fixture';
+    const otherSeed = 'aoe2-prototype';
+    expect(savedSeed).not.toBe(otherSeed);
+    const bridge1 = createSimulationBridge(savedSeed);
+    bridge1.step(1000);
+    const blob = bridge1.saveGame();
+
+    const loadedBridge = createSimulationBridge(otherSeed, { savedGame: blob });
+    const frame = loadedBridge.getRenderState().frame;
+    expect(frame).not.toBeNull();
+    expect(frame!.seed).toBe(savedSeed);
+  });
+
   it('preserves researched technologies and player ages across save/load', () => {
     // The conquest-victory fixture starts both players in Castle Age,
     // so the researched-techs side map carries the player ages right

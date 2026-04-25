@@ -7138,7 +7138,7 @@ export function createSimulationBridge(
   const debuggerView = new WorldDebugger({ world });
   const renderAdapter = new RenderAdapter({
     world,
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, seed, isSelected, getEntityHealth),
+    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth),
     debug: debuggerView,
     send(message) {
       renderStore.apply(message);
