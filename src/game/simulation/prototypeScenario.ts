@@ -106,6 +106,7 @@ import {
   createMonkConvertFixture,
   createMonkConvertVisionFixture,
   createMonkDoubleConvertFixture,
+  createMonkFlipFlopFixture,
   createMonkFogFixture,
   createMonkHealFixture,
   createMonkHealOverConvertFixture,
@@ -570,6 +571,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'monk-double-convert-fixture') {
     return createMonkDoubleConvertFixture(seed);
+  }
+
+  if (seed === 'monk-flip-flop-fixture') {
+    return createMonkFlipFlopFixture(seed);
   }
 
   if (seed === 'monk-convert-cleanup-fixture') {

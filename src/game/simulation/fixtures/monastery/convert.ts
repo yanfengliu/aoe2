@@ -64,6 +64,91 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Regression fixture for the Monk-conversion flip-flop bug (review C-1).
+// Two enemy Monks (owners 1 and 2) sit within MONK_ACTION_RANGE of a
+// neutral player-3 Militia. The test pre-seeds both Monk tasks via a
+// save-blob mutation; the contract is that conversion progress must
+// accumulate for the first-processed Monk's owner each tick instead of
+// being wiped to zero by every later-processed enemy Monk.
+export function createMonkFlipFlopFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'castle-age',
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 4 },
+        startingAge: 'castle-age',
+        disableAi: true,
+      },
+      {
+        owner: 3,
+        townCenter: { x: 4, y: 28 },
+        startingAge: 'castle-age',
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 4,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 3 },
+      },
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 28,
+        owner: 3,
+        baseOwner: 3,
+        vision: { playerId: 3, radius: 3 },
+      },
+      {
+        kind: 'monk',
+        x: 28,
+        y: 16,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 6 },
+      },
+      {
+        kind: 'monk',
+        x: 28,
+        y: 18,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 6 },
+      },
+      {
+        kind: 'militia',
+        x: 29,
+        y: 17,
+        owner: 3,
+        baseOwner: 3,
+        vision: { playerId: 3, radius: 3 },
+      },
+    ],
+  };
+}
+
 // Slice 5 fixture for two Monks converting the same enemy Militia. The
 // per-tick progress rate must stay fixed — each convert target can only
 // receive one progress tick per simulation tick, no matter how many Monks

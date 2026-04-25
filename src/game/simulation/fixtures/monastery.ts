@@ -12,6 +12,7 @@ export {
 export {
   createMonkConvertFixture,
   createMonkDoubleConvertFixture,
+  createMonkFlipFlopFixture,
   createMonkConvertCleanupFixture,
   createMonkConvertVisionFixture,
   createMonkFogFixture,

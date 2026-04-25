@@ -106,6 +106,7 @@ export {
   createMonkHealFixture,
   createMonkConvertFixture,
   createMonkDoubleConvertFixture,
+  createMonkFlipFlopFixture,
   createMonkConvertCleanupFixture,
   createMonkRelicDropCrampedFixture,
   createMonkRelicDropFixture,

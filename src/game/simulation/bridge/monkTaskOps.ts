@@ -358,19 +358,22 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       return;
     }
     const state = conversionState.get(targetId) ?? { byOwner: monkUnit.owner, progress: 0 };
+    // Per-tick guard FIRST (review C-1): without this ordering, two enemy
+    // Monks processed in the same tick would flip-flop the target's
+    // progress to zero. The first-processed Monk this tick wins ownership
+    // of the progress increment; later-processed Monks of any owner just
+    // store the existing state and bail. Take-over across owners still
+    // works — next tick's first-processed Monk runs the reset below.
+    if (monkConvertProcessedThisTick.has(targetId)) {
+      conversionState.set(targetId, state);
+      return;
+    }
     // If a different player's Monk is already converting this target, reset
     // progress in favor of the latest converter so the ownership handoff is
     // deterministic.
     if (state.byOwner !== monkUnit.owner) {
       state.byOwner = monkUnit.owner;
       state.progress = 0;
-    }
-    // Only one Monk may add progress per tick. Additional Monks targeting
-    // the same unit contribute nothing beyond keeping the target's progress
-    // from timing out — the spec locks conversion to a fixed rate.
-    if (monkConvertProcessedThisTick.has(targetId)) {
-      conversionState.set(targetId, state);
-      return;
     }
     monkConvertProcessedThisTick.add(targetId);
     state.progress += monkConvertProgressPerTick;
