@@ -1921,6 +1921,30 @@ function createWorld(
     for (const [id, src] of blob.garrisonedUnitVisionSources) {
       garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
     }
+    // Review H-3: every entry in `garrisonedByBuilding[b] = [...units]`
+    // must mirror `garrisonedUnitToBuilding[u] === b` and vice versa. A
+    // partial or drifted blob (corruption, schema drift, incomplete
+    // export) would otherwise boot the bridge into a silently inconsistent
+    // state. Throw with the same `Save schema mismatch:`-style descriptive
+    // shape the existing schema-version guard uses.
+    for (const [buildingId, list] of garrisonedByBuilding) {
+      for (const unitId of list) {
+        const reverse = garrisonedUnitToBuilding.get(unitId);
+        if (reverse !== buildingId) {
+          throw new Error(
+            `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (garrisonedUnitToBuilding=${reverse ?? 'absent'}).`,
+          );
+        }
+      }
+    }
+    for (const [unitId, buildingId] of garrisonedUnitToBuilding) {
+      const list = garrisonedByBuilding.get(buildingId);
+      if (!list || !list.includes(unitId)) {
+        throw new Error(
+          `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (not present in garrisonedByBuilding).`,
+        );
+      }
+    }
     for (const [id, queue] of blob.productionQueues) {
       productionQueues.set(
         id,
