@@ -326,6 +326,7 @@ export function isEconomyVillager(
 
 export function isEconomyResourceEntry(
   entry: {
+    id: number;
     resourceType: ResourceKind;
     amount: number;
     maxAmount: number;
@@ -335,6 +336,7 @@ export function isEconomyResourceEntry(
     y: number;
   } | null,
 ): entry is {
+  id: number;
   resourceType: ResourceKind;
   amount: number;
   maxAmount: number;

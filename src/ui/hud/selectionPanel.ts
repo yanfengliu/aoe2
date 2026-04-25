@@ -18,10 +18,14 @@ import {
   formatQueueProgress,
   formatSelectionName,
   formatTechnologyName,
-  formatUnitIcon,
-  formatUnitIconAccent,
   isUnitType,
 } from './displayNames';
+
+// Types that can appear as first-class entries in the multi-select icon
+// grid. Owned sheep live in `economyState.resources`, not `.units`, but
+// they share the player-commandable multi-selection contract with units,
+// so the icon grid treats them as siblings.
+type MultiSelectionIconKind = UnitType | 'sheep';
 import {
   SELECTION_DETAIL_TOOLTIPS,
   formatActionTooltip,
@@ -56,7 +60,7 @@ function renderSingleSelectionIcon(
   `;
 }
 
-function renderSelectionIcons(
+export function renderSelectionIcons(
   selectionState: SelectionState,
   economyState: EconomyState,
 ): string {
@@ -64,61 +68,88 @@ function renderSelectionIcons(
     return '';
   }
 
+  // Single non-unit selections (buildings, lone owned sheep, relics, ...)
+  // keep using the entity-icon big-chip path for HUD consistency; this
+  // preserves the `data-selection-entity-icon` contract that existing
+  // browser tests rely on.
+  if (
+    selectionState.selectedEntityIds.length === 1
+    && selectionState.selectedEntityType !== null
+    && !isUnitType(selectionState.selectedEntityType)
+  ) {
+    return renderSingleSelectionIcon(selectionState.selectedEntityType);
+  }
+
   const unitsById = new Map(economyState.units.map((unit) => [unit.id, unit]));
-  const counts = new Map<UnitType, number>();
-  const orderedUnitTypes: UnitType[] = [];
+  const sheepById = new Map(
+    economyState.resources
+      .filter((resource) => resource.resourceType === 'sheep')
+      .map((resource) => [resource.id, resource] as const),
+  );
+  const counts = new Map<MultiSelectionIconKind, number>();
+  const orderedTypes: MultiSelectionIconKind[] = [];
 
   for (const id of selectionState.selectedEntityIds) {
     const unit = unitsById.get(id);
-    if (!unit) {
+    const kind: MultiSelectionIconKind | null = unit
+      ? unit.unitType
+      : sheepById.has(id)
+        ? 'sheep'
+        : null;
+    if (!kind) {
       continue;
     }
 
-    if (!counts.has(unit.unitType)) {
-      orderedUnitTypes.push(unit.unitType);
-      counts.set(unit.unitType, 0);
+    if (!counts.has(kind)) {
+      orderedTypes.push(kind);
+      counts.set(kind, 0);
     }
 
-    counts.set(unit.unitType, (counts.get(unit.unitType) ?? 0) + 1);
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
 
-  if (orderedUnitTypes.length === 0) {
+  if (orderedTypes.length === 0) {
     if (selectionState.selectedCount === 1) {
       return renderSingleSelectionIcon(selectionState.selectedEntityType);
     }
 
-    if (!isUnitType(selectionState.selectedEntityType)) {
+    const fallbackKind: MultiSelectionIconKind | null = isUnitType(selectionState.selectedEntityType)
+      ? selectionState.selectedEntityType
+      : selectionState.selectedEntityType === 'sheep'
+        ? 'sheep'
+        : null;
+    if (!fallbackKind) {
       return '';
     }
 
-    orderedUnitTypes.push(selectionState.selectedEntityType);
-    counts.set(selectionState.selectedEntityType, Math.max(selectionState.selectedCount, 1));
+    orderedTypes.push(fallbackKind);
+    counts.set(fallbackKind, Math.max(selectionState.selectedCount, 1));
   }
 
-  const isSingleUnitSelection =
+  const isSingleEntrySelection =
     selectionState.selectedEntityIds.length === 1
-    && orderedUnitTypes.length === 1
-    && (counts.get(orderedUnitTypes[0]) ?? 0) === 1;
+    && orderedTypes.length === 1
+    && (counts.get(orderedTypes[0]) ?? 0) === 1;
 
-  if (isSingleUnitSelection) {
-    const unitType = orderedUnitTypes[0];
+  if (isSingleEntrySelection) {
+    const kind = orderedTypes[0];
     return `
       <div
         class="hud-selection-unit-list"
         data-selection-unit-icons
-        style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+        style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
       >
         <div
           class="hud-selection-unit-chip"
-          data-selection-unit-chip="${unitType}"
-          style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+          data-selection-unit-chip="${kind}"
+          style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
         >
-          <div class="hud-selection-unit-badge" data-selection-unit-icon="${unitType}">
-            ${formatUnitIcon(unitType)}
+          <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
+            ${formatEntityIcon(kind)}
           </div>
           <div class="hud-selection-unit-meta">
-            <div class="hud-selection-unit-label" data-selection-unit-label="${unitType}">
-              ${formatEntityName(unitType)}
+            <div class="hud-selection-unit-label" data-selection-unit-label="${kind}">
+              ${formatEntityName(kind)}
             </div>
           </div>
         </div>
@@ -126,23 +157,23 @@ function renderSelectionIcons(
     `;
   }
 
-  const chips = orderedUnitTypes
-    .map((unitType) => {
-      const count = counts.get(unitType) ?? 1;
-      const label = formatEntityName(unitType);
+  const chips = orderedTypes
+    .map((kind) => {
+      const count = counts.get(kind) ?? 1;
+      const label = formatEntityName(kind);
       const countMarkup =
         count > 1
-          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${unitType}">x${count}</div>`
+          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${kind}">x${count}</div>`
           : '';
       return `
         <div
           class="hud-selection-unit-chip hud-selection-unit-chip--compact"
-          data-selection-unit-chip="${unitType}"
+          data-selection-unit-chip="${kind}"
           data-tooltip="${label}"
-          style="--unit-icon-accent: ${formatUnitIconAccent(unitType)}"
+          style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
         >
-          <div class="hud-selection-unit-badge" data-selection-unit-icon="${unitType}">
-            ${formatUnitIcon(unitType)}
+          <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
+            ${formatEntityIcon(kind)}
           </div>
           ${countMarkup}
         </div>

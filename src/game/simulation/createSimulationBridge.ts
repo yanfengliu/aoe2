@@ -6812,6 +6812,7 @@ function createWorld(
           }
 
           return {
+            id,
             resourceType: resource.resourceType,
             amount: resource.amount,
             maxAmount: resource.maxAmount,

@@ -310,6 +310,7 @@ export interface EconomyState {
     carriedAmount: number;
   }>;
   resources: Array<{
+    id: number;
     resourceType: ResourceKind;
     amount: number;
     maxAmount: number;

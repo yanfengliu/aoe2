@@ -36,6 +36,7 @@ interface BrowserTestBridge {
     maxX: number,
     maxY: number,
   ): boolean;
+  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
@@ -74,6 +75,7 @@ export interface BrowserTestApi {
     maxX: number,
     maxY: number,
   ): boolean;
+  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(cellX: number, cellY: number): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
@@ -160,6 +162,11 @@ export function installBrowserTestApi(
     },
     selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => {
       const didSelect = bridge.selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
+      scene.syncFromBridge(true);
+      return didSelect;
+    },
+    selectUnitsInBox: (minX, minY, maxX, maxY) => {
+      const didSelect = bridge.selectUnitsInBox(minX, minY, maxX, maxY);
       scene.syncFromBridge(true);
       return didSelect;
     },
