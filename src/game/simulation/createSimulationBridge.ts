@@ -5240,6 +5240,11 @@ function createWorld(
           if (renderable) {
             renderable.tint = buildingTint(building.buildingType, building.owner, true);
             renderable.visualVariant = 'complete';
+            // In-place renderable mutations don't go through the
+            // RenderAdapter's component-change hook, so flag an out-of-
+            // band refresh — otherwise the projection stays at
+            // 'construction' forever.
+            markOutOfBandRenderChange();
           }
 
           const defaultVisionRadius = buildingVisionRadius(building.buildingType);
