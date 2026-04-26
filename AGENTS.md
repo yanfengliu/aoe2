@@ -92,10 +92,13 @@ Code changes are not done until the docs match. Before declaring any task comple
 
 **Always update on every feature / behavior change:**
 
-- `docs/changelog.md` — new version entry with what shipped, why, validation, and behavior callouts. Audience is external; focus on what users need to know to migrate. Keep dev-internal commentary in the devlog.
 - `docs/devlog/summary.md` — one line per task; remove outdated info; compact if > 50 lines. Do not cheat by writing super long line.
 - `docs/devlog/detailed/<latest>.md` — full per-task entry per the Devlog convention below.
-- `package.json` — version bump per the Versioning convention below.
+
+**Update only on user-visible behavior changes (new feature, bug fix, gameplay-rule change, save-format change, public-API change):**
+
+- `docs/changelog.md` — new version entry with what shipped, why, validation, and behavior callouts. Audience is external; focus on what users need to know to migrate. Keep dev-internal commentary in the devlog. Pure refactors, type-safety hardening, doc sweeps, internal cleanups, and efficiency wins with no observable effect do NOT get changelog entries.
+- `package.json` — version bump per the Versioning convention below. Same scope: only bump for user-visible changes.
 
 **Always update if the change introduces or removes API surface (new exports, new methods, new types, removed APIs, renamed APIs):**
 
@@ -146,12 +149,12 @@ Code changes are not done until the docs match. Before declaring any task comple
 
 ### Versioning
 
-- Maintain a version number `a.b.c`:
+- Maintain a version number `a.b.c` in `package.json`. **Bumps are scoped to user-visible behavior changes only** — pure refactors, type-safety hardening, doc sweeps, internal cleanups, and efficiency wins with no observable effect do not bump the version.
   - Only bump `a` when the human says so.
-  - Whenever you introduce a breaking change, bump `b` and reset `c`.
-  - Whenever you introduce a non-breaking change, bump `c`.
-- **One version bump per coherent shipped change.** If three independent features ship as three commits on a chained branch, each commit gets its own version bump (e.g., 0.5.9 → 0.5.10 → 0.5.11). Do not roll multiple unrelated features into a single version. A single feature that needs iter-1 + iter-2 fix commits stays on the same version — the fixes are folded into the original commit's version, not new bumps.
-- Maintain `docs/changelog.md` with one entry per version. Check `docs/devlog/` for context.
+  - Whenever you introduce a breaking user-visible change (save-format break, removed gameplay rule, removed public API), bump `b` and reset `c`.
+  - Whenever you introduce a non-breaking user-visible change (new feature, bug fix, gameplay-rule tweak, public-API addition), bump `c`.
+- **One version bump per coherent shipped change.** If three independent user-visible features ship as three commits on a chained branch, each commit gets its own bump (e.g., 0.5.9 → 0.5.10 → 0.5.11). Do not roll multiple unrelated user-visible features into a single version. A single feature that needs iter-1 + iter-2 fix commits stays on the same version — the fixes fold into the original.
+- Maintain `docs/changelog.md` with one entry per version. Skip the file entirely on pure-refactor batches. Check `docs/devlog/` for context.
 
 ### Doc formatting
 
