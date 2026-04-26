@@ -2051,6 +2051,38 @@ function createWorld(
       : null;
     matchState.wonderCountdownTicks = savedGame.matchState.wonderCountdownTicks;
     matchState.relicCountdownTicks = savedGame.matchState.relicCountdownTicks;
+
+    // Iter-3 V3-8: post-load entity-id key validation. Iter-1 H-3
+    // closed this gap for the garrison cross-reference; this widens
+    // the invariant to every entity-id-keyed side map. Orphans (keys
+    // that don't resolve via world.getEntityRef) are silently
+    // dropped — consumer code already guards against null components,
+    // so the orphans were functionally harmless, but a partially
+    // corrupt blob no longer leaks ghost state into the live world.
+    const pruneOrphanEntityKeys = (sideMap: Map<number, unknown>): void => {
+      for (const id of [...sideMap.keys()]) {
+        if (!world.getEntityRef(id)) {
+          sideMap.delete(id);
+        }
+      }
+    };
+    pruneOrphanEntityKeys(unitCommands);
+    pruneOrphanEntityKeys(sheepMoveOrders);
+    pruneOrphanEntityKeys(rallyPoints);
+    pruneOrphanEntityKeys(monkTasks);
+    pruneOrphanEntityKeys(conversionState);
+    pruneOrphanEntityKeys(monkCarriedRelic);
+    pruneOrphanEntityKeys(monkHealCounters);
+    pruneOrphanEntityKeys(relicsInMonastery);
+    pruneOrphanEntityKeys(wonderCountdowns);
+    pruneOrphanEntityKeys(trebuchetPackStates);
+    pruneOrphanEntityKeys(productionQueues);
+    pruneOrphanEntityKeys(constructionStates);
+    pruneOrphanEntityKeys(combatStates);
+    pruneOrphanEntityKeys(buildingHealthStates);
+    pruneOrphanEntityKeys(buildingCombatStates);
+    pruneOrphanEntityKeys(wildlifeStates);
+    pruneOrphanEntityKeys(garrisonedUnitVisionSources);
   }
 
   isBootstrappingScenario = false;
