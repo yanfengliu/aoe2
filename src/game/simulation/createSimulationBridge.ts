@@ -35,6 +35,7 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import { registerAllSystems } from './bridge/registerAllSystems';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import {
   hydrateFromSavedGame,
@@ -57,24 +58,6 @@ import { createSelectionStateOps } from './bridge/selectionStateOps';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
 import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
 import type { MemoryEntry } from './bridge/memoryTypes';
-import { registerAiSystem } from './bridge/systems/aiSystem';
-import { registerAutoAggressionSystem } from './bridge/systems/autoAggressionSystem';
-import { registerConquestOutcomeSystem } from './bridge/systems/conquestOutcomeSystem';
-import { registerFogMemorySystem } from './bridge/systems/fogMemorySystem';
-import { registerHerdableMovementSystem } from './bridge/systems/herdableMovementSystem';
-import { registerHerdableOwnershipSystem } from './bridge/systems/herdableOwnershipSystem';
-import { registerMonkBehaviorSystem } from './bridge/systems/monkBehaviorSystem';
-import { registerPlayerCommandsSystem } from './bridge/systems/playerCommandsSystem';
-import { registerProductionQueueSystem } from './bridge/systems/productionQueueSystem';
-import { registerScoutMovementSystem } from './bridge/systems/scoutMovementSystem';
-import { registerTowerCombatSystem } from './bridge/systems/towerCombatSystem';
-import { registerVillagerEconomySystem } from './bridge/systems/villagerEconomySystem';
-import { registerWildlifeCombatSystem } from './bridge/systems/wildlifeCombatSystem';
-import { registerRelicCountdownSystem } from './bridge/systems/relicCountdownSystem';
-import { registerRelicGoldSystem } from './bridge/systems/relicGoldSystem';
-import { registerVisibilitySystem } from './bridge/systems/visibilitySystem';
-import { registerWinConditionResolverSystem } from './bridge/systems/winConditionResolverSystem';
-import { registerWonderCountdownSystem } from './bridge/systems/wonderCountdownSystem';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -1383,10 +1366,11 @@ function createWorld(
     getEntityRef,
   });
 
-  registerAiSystem({
+  registerAllSystems({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
+    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     townCenterRefs,
     aiStates,
     population,
@@ -1395,6 +1379,22 @@ function createWorld(
     productionQueues,
     unitCommands,
     wildlifeStates,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    monkTasks,
+    monkConvertProcessedThisTick,
+    monkCarriedRelic,
+    relicsInMonastery,
+    rallyPoints,
+    inFlightTechByOwner,
+    sheepMoveOrders,
+    gathererDropOffStuckSinceTick,
+    trackedVisibilitySources,
+    garrisonedByBuilding,
+    wonderCountdowns,
+    relicCountdowns,
+    relicCountdownOverrides,
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
@@ -1421,34 +1421,13 @@ function createWorld(
     assignAiMonkTasks,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
-    issueUnitAttackCommand,
-    issueUnitMoveCommand,
-  });
-
-
-  registerAutoAggressionSystem({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    unitCommands,
-    aiStates,
-    combatStates,
-    isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
     findPreferredEnemyBuildingInRadius,
+    findPreferredVisibleEnemyUnitInRangeOfBuilding,
+    findNearestHostileWildlifeTarget,
     issueUnitAttackCommand,
-  });
-
-  registerPlayerCommandsSystem({
-    world,
-    unitCommands,
-    combatStates,
-    buildingHealthStates,
-    buildingCombatStates,
-    constructionStates,
-    wildlifeStates,
-    population,
+    issueUnitMoveCommand,
     clearUnitCommand,
-    currentEntityId,
     distanceToBuilding,
     advanceTrebuchetTransition,
     isTrebuchetStationary,
@@ -1465,175 +1444,35 @@ function createWorld(
     destroyUnitEntity,
     killWildlifeEntity,
     destroyBuildingEntity,
+    destroyResourceEntity,
     getEntityRef,
     onBuildingConstructionComplete,
-  });
-
-
-  // (monkHealCounters + monkConvertProcessedThisTick are hoisted to the
-  // top of `createWorld` so save/load can serialize the heal counter.
-  // applyMonkHeal / applyMonkConvert / applyMonkPickup / applyMonkDeposit
-  // live in `bridge/monkTaskOps`; they close over the same side maps.)
-
-
-  registerMonkBehaviorSystem({
-    world,
-    monkTasks,
-    monkConvertProcessedThisTick,
-    monkCarriedRelic,
-    distanceToBuilding,
-    findBuildingApproachPlan,
-    findUnitRangePlan,
-    moveUnitOneSubgridStep,
-    setPositionAndSyncOccupancy,
     applyMonkHeal,
     applyMonkConvert,
     applyMonkPickup,
     applyMonkDeposit,
-  });
-
-  registerRelicGoldSystem({ world, relicsInMonastery, playerResources });
-
-  registerProductionQueueSystem({
-    world,
-    productionQueues,
-    population,
-    rallyPoints,
-    inFlightTechByOwner,
-    findBuildingSpawnPosition,
-    addUnitEntity,
-    issueUnitMoveCommand,
-    applyTechnology,
-  });
-
-  registerScoutMovementSystem({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    unitCommands,
-    isCellPassableForUnit,
     setPositionAndSyncOccupancy,
     syncUnitTransformToPosition,
-  });
-
-  registerVillagerEconomySystem({
-    world,
-    unitCommands,
-    sheepMoveOrders,
-    gathererDropOffStuckSinceTick,
-    playerResources,
-    aiStates,
+    findBuildingSpawnPosition,
+    addUnitEntity,
+    applyTechnology,
+    isCellPassableForUnit,
+    isCellPassableForWildlife,
+    isHarvestableResource,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
-    isHarvestableResource,
-    isUnitAtTarget,
-    moveUnitOneSubgridStep,
-    destroyResourceEntity,
     findNearestDropOffBuilding,
-    findBuildingApproachPlan,
-    ensurePlayerScoreCounters,
-  });
-
-  registerWildlifeCombatSystem({
-    world,
-    wildlifeStates,
-    combatStates,
-    currentEntityId,
-    getEntityRef,
-    findNearestHostileWildlifeTarget,
     findWildlifeRangePlan,
-    setPositionAndSyncOccupancy,
-    destroyUnitEntity,
-    markOutOfBandRenderChange,
-  });
-
-  registerHerdableOwnershipSystem({ world, markOutOfBandRenderChange });
-
-  registerHerdableMovementSystem({
-    world,
-    sheepMoveOrders,
     getUnitTransform,
     findMovementPlan,
     getNearestMoveCandidates,
-    isCellPassableForWildlife,
-    moveUnitOneSubgridStep,
-    markOutOfBandRenderChange,
-  });
-
-  registerVisibilitySystem({ world, visibility, trackedVisibilitySources });
-
-  registerFogMemorySystem({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    visibility,
+    isGarrisonedUnit,
+    isMatchRunning,
+    isAiMilitaryUnit,
     getOrCreateMemoryMap,
-  });
-
-  registerTowerCombatSystem({
-    world,
-    constructionStates,
-    buildingCombatStates,
-    combatStates,
-    garrisonedByBuilding,
-    findPreferredVisibleEnemyUnitInRangeOfBuilding,
-    destroyUnitEntity,
-    markOutOfBandRenderChange,
-    ensurePlayerScoreCounters,
-  });
-
-  // Slice 8 + FU7 tune: score weights for the end-of-match summary.
-  //
-  //   units produced      × 10     (kept)
-  //   buildings produced  × 50     (FU7: up from 25 — buildings last the
-  //                                 whole game and represent the bulk of
-  //                                 an economy's footprint, not just
-  //                                 transient unit throughput.)
-  //   resources gathered  × 0.02   (FU7: down from 0.05 — a raw-gather
-  //                                 boom should not overwhelm combat.)
-  //   relics held at end  × 50     (kept)
-  //   enemy units killed  × 20     (FU7: NEW — rewards actually engaging
-  //                                 enemy forces rather than just
-  //                                 pumping out villagers.)
-  //   wonder completed    × 500    (FU7: up from 200 — Wonder is the
-  //                                 ultimate commit and deserves a
-  //                                 bigger trophy.)
-  //
-  // These are intentionally simple so the summary is legible at a glance.
-  // The weights are stable across win conditions — e.g. a conquest victor
-  // who also completed a Wonder still gets the Wonder-bonus points.
-  // Slice 8 + FU7: Wonder countdown decrement. Each owner's completed
-  // Wonder ticks down a per-owner counter; when it reaches zero the entry
-  // records `lastCompletedTick = world.tick`. The combined
-  // `prototypeWinConditionResolver` downstream decides who actually wins
-  // (Wonder / Relic) so the "first to complete" rule is explicit instead
-  // of implicit system-registration order.
-  registerWonderCountdownSystem({ world, wonderCountdowns, isMatchRunning });
-
-  // Relic countdown system: see `bridge/systems/relicCountdownSystem`.
-  registerRelicCountdownSystem({
-    world,
-    relicCountdowns,
-    relicCountdownOverrides,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
-    isMatchRunning,
-  });
-
-  registerWinConditionResolverSystem({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    wonderCountdowns,
-    relicCountdowns,
-    isMatchRunning,
     finalizeMatchEnd,
-  });
-
-  registerConquestOutcomeSystem({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    playerResources,
     playerHasConquestPresence,
-    isMatchRunning,
-    finalizeMatchEnd,
   });
 
   syncVisibilitySources(world, visibility, trackedVisibilitySources);
