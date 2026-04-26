@@ -9,7 +9,6 @@ import type {
   BuildingComponent,
   MatchState,
   ResourceComponent,
-  UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 
@@ -43,9 +42,6 @@ export interface MatchEndOps {
   // the same shape.
   getHumanWonderCountdownTicks(): number | null;
   getHumanRelicCountdownTicks(): number | null;
-  // Conquest-victory predicate. True iff `owner` has at least one living
-  // unit or building.
-  playerHasConquestPresence(owner: number): boolean;
 }
 
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
@@ -167,30 +163,11 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
     return null;
   }
 
-  function playerHasConquestPresence(owner: number): boolean {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner) {
-        return true;
-      }
-    }
-
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (building?.owner === owner) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   return {
     computePlayerScore,
     finalizeMatchEnd,
     currentRelicHoldingOwner,
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
-    playerHasConquestPresence,
   };
 }

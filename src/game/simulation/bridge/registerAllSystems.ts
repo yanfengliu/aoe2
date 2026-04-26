@@ -108,7 +108,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getOrCreateMemoryMap,
     currentRelicHoldingOwner,
     finalizeMatchEnd,
-    playerHasConquestPresence,
   } = deps;
 
   const {
@@ -351,7 +350,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     playerResources,
-    playerHasConquestPresence,
     isMatchRunning,
     finalizeMatchEnd,
   });

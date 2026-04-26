@@ -3,14 +3,13 @@
 // they win. If only enemies do, they lose. Mutual annihilation on the same
 // tick is treated as a draw (Iter-3 V3-12).
 
-import type { PlayerResources } from '../../types';
+import type { BuildingComponent, PlayerResources, UnitComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 
 export interface ConquestOutcomeSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   playerResources: Map<number, PlayerResources>;
-  playerHasConquestPresence: (owner: number) => boolean;
   isMatchRunning: () => boolean;
   finalizeMatchEnd: (
     outcome: 'victory' | 'defeat' | 'draw',
@@ -24,7 +23,6 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
     world,
     humanPlayerId,
     playerResources,
-    playerHasConquestPresence,
     isMatchRunning,
     finalizeMatchEnd,
   } = deps;
@@ -33,14 +31,44 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
     name: 'prototypeConquestOutcome',
     phase: 'postUpdate',
     after: ['prototypeWinConditionResolver'],
-    execute() {
+    execute(activeWorld) {
       if (!isMatchRunning()) {
         return;
       }
 
-      const humanAlive = playerHasConquestPresence(humanPlayerId);
-      const enemyOwners = [...playerResources.keys()].filter((owner) => owner !== humanPlayerId);
-      const allEnemiesEliminated = enemyOwners.every((owner) => !playerHasConquestPresence(owner));
+      // V4-11: build presence-by-owner via a single reverse scan instead
+      // of calling playerHasConquestPresence(owner) per player (which
+      // walks units + buildings each call). Start with every registered
+      // owner in `remaining`, iterate units + buildings deleting seen
+      // owners, early-exit when the set empties. Worst case is one full
+      // unit + building scan — same as a single playerHasConquestPresence
+      // call but covers all players in one pass.
+      const remainingOwners = new Set(playerResources.keys());
+      for (const id of activeWorld.query('unit')) {
+        if (remainingOwners.size === 0) break;
+        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+        if (unit) {
+          remainingOwners.delete(unit.owner);
+        }
+      }
+      if (remainingOwners.size > 0) {
+        for (const id of activeWorld.query('building')) {
+          if (remainingOwners.size === 0) break;
+          const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+          if (building) {
+            remainingOwners.delete(building.owner);
+          }
+        }
+      }
+      const humanAlive = !remainingOwners.has(humanPlayerId);
+      let allEnemiesEliminated = true;
+      for (const owner of playerResources.keys()) {
+        if (owner === humanPlayerId) continue;
+        if (!remainingOwners.has(owner)) {
+          allEnemiesEliminated = false;
+          break;
+        }
+      }
 
       if (!humanAlive && allEnemiesEliminated) {
         finalizeMatchEnd(

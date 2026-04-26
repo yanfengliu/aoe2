@@ -230,5 +230,4 @@ export interface RegisterAllSystemsDeps {
     winCondition: 'conquest' | 'wonder' | 'relic',
     summary: string,
   ) => void;
-  playerHasConquestPresence: (owner: number) => boolean;
 }
