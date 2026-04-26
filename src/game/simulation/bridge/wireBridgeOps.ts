@@ -1,21 +1,9 @@
-import {
-  buildingFootprint,
-  currentEntityId,
-} from './pureHelpers';
+import { buildingFootprint, currentEntityId } from './pureHelpers';
 import type { UnitTaskState } from '../types';
-import { unitTint } from '../prototypeUnitRules';
-import {
-  AI_MONK_HEAL_HP_FRACTION,
-  AI_WATCH_TOWER_FORWARD_STEP,
-  DEFAULT_DIFFICULTY,
-} from '../ai';
+import { DEFAULT_DIFFICULTY } from '../ai';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
-import { createMonkTaskOps } from './monkTaskOps';
-import { createTechnologyOps } from './technologyOps';
 import { createMatchEndOps } from './matchEndOps';
-import { createAiDecisionOps } from './aiDecisionOps';
-import { createEntityDestroyOps } from './entityDestroyOps';
 import { createCombatStateFactory } from './combatStateFactory';
 import { createEntityCreateOps } from './entityCreateOps';
 import { createCellPassability } from './cellPassability';
@@ -25,31 +13,18 @@ import {
 } from './scenarioSeedOps';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import { createTransformOps } from './transformOps';
-import { createVisibilityQueries } from './visibilityQueries';
-import { createSelectionInputOps } from './selectionInputOps';
-import { createTrainingMarketOps } from './trainingMarketOps';
-import { createUnitCommandOps } from './unitCommandOps';
 import { createMovementPlanOps } from './movementPlanOps';
 import { createOptionsRules } from './optionsRules';
 import { createPlayerQueries } from './playerQueries';
-import { createSelectionStateOps } from './selectionStateOps';
-import { createTargetFindingOps } from './targetFindingOps';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
+import { wirePostSeedOps } from './wirePostSeedOps';
 import {
   HUMAN_PLAYER_ID,
   MAP_HEIGHT,
   MAP_WIDTH,
 } from '../prototypeScenario';
 import {
-  MARKET_FEE_RATE,
-  MARKET_MIN_RATE,
-  MARKET_RATE_STEP,
-  MARKET_TRANSACTION_AMOUNT,
-  MONK_CONVERT_FLIP_THRESHOLD,
-  MONK_CONVERT_PROGRESS_PER_TICK,
-  MONK_HEAL_HP_PER_INTERVAL,
-  MONK_HEAL_TICK_INTERVAL,
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
   WONDER_COUNTDOWN_TICKS,
@@ -262,172 +237,75 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     return matchState.outcome === 'running';
   }
 
-  const {
-    isVisibleToHuman,
-    isEntityFootprintVisibleToHuman,
-    isEntityVisibleToHuman,
-  } = createVisibilityQueries({
+  const postSeed = wirePostSeedOps({
     world,
-    humanPlayerId: HUMAN_PLAYER_ID,
+    state,
     visibility,
+    selection,
+    placementMode,
+    inFlightTechSetFor,
+    clearUnitCommand,
+    setUnitCommand,
+    getEntityRef,
+    getCurrentEntityId,
+    enqueueRejection,
+    markOutOfBandRenderChange,
+    isMatchRunning,
+    createCombatState,
+    buildingOccupiesCell,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
+    isPlacementBlocked,
+    isGarrisonedUnit,
+    isHarvestableResource,
+    getActionOptions,
+    getApproachCellsForFootprint,
+    setPositionAndSyncOccupancy,
+    clearPositionAndSyncOccupancy,
+    syncUnitTransformToPosition,
+    addBuildingEntity,
+    addResourceEntity,
+    findBuildingSpawnPosition,
+    clearGathererOrder,
+    getTrainOptions,
+    getResearchOptions,
+    getMarketOptions,
+    getBuildOptions,
+    getVisibleResearchOptions,
   });
-
   const {
-    getSelectableEntitiesAtCell,
+    visibilityQueries,
+    selectionInputOps,
+    entityDestroyOps,
+    trainingMarketOps,
+    selectionStateOps,
+    targetFindingOps,
+    technologyOps,
+    aiDecisionOps,
+    monkOps,
+    unitCommandOps,
+  } = postSeed;
+  const { isEntityVisibleToHuman } = visibilityQueries;
+  const {
     filterSelectableUnitIds,
     selectUnitsByIds,
     selectUnitsInBox,
     selectOwnedUnitsByTypeInRect,
     getSelectedEntityIds,
     getSelectedEntityId,
-    removeSelectedEntity,
-    findResourceAtCell,
-    resolveSelectionTile,
-    findHostileUnitAtCell,
-    findHostileBuildingAtCell,
-    findHostileWildlifeAtCell,
-    findOwnedGarrisonBuildingAtCell,
     distanceToBuilding,
-  } = createSelectionInputOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    visibility,
-    state,
-    selection,
-    placementMode,
-    isMatchRunning,
-    isVisibleToHuman,
-    isEntityFootprintVisibleToHuman,
-    buildingOccupiesCell,
-    getEntityRef,
-    getCurrentEntityId,
-  });
-
-  const entityDestroyOps = createEntityDestroyOps({
-    world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    state,
-    removeSelectedEntity,
-    clearUnitCommand,
-    getApproachCellsForFootprint,
-    isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
-    addResourceEntity,
-    markOutOfBandRenderChange,
-  });
-
+  } = selectionInputOps;
   const {
     enqueueTraining,
     enqueueResearch,
     executeMarketAction,
-    garrisonUnit,
     ungarrisonBuilding,
     startConstruction,
     findBuildPlacementNear,
-  } = createTrainingMarketOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    marketFeeRate: MARKET_FEE_RATE,
-    marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
-    marketRateStep: MARKET_RATE_STEP,
-    marketMinRate: MARKET_MIN_RATE,
-    state,
-    placementMode,
-    inFlightTechSetFor,
-    getSelectedEntityId,
-    getTrainOptions,
-    getResearchOptions,
-    getMarketOptions,
-    getBuildOptions,
-    isPlacementBlocked,
-    isGarrisonedUnit,
-    clearGathererOrder,
-    clearUnitCommand,
-    clearSelection: () => {
-      selection.refs = [];
-      selection.focusCell = null;
-    },
-    setUnitCommand,
-    addBuildingEntity,
-    findBuildingSpawnPosition,
-    setPositionAndSyncOccupancy,
-    clearPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
-    getEntityRef,
-    markOutOfBandRenderChange,
-  });
-
-  const { getEntityHealth, getSelectionState } = createSelectionStateOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    state,
-    placementMode,
-    getSelectedEntityIds,
-    resolveSelectionTile,
-    getSelectableEntitiesAtCell,
-    getCurrentEntityId,
-    clearSelection: () => {
-      selection.refs = [];
-      selection.focusCell = null;
-    },
-    getActionOptions,
-    getTrainOptions,
-    getMarketOptions,
-    getBuildOptions,
-    getResearchOptions,
-    getVisibleResearchOptions,
-  });
-
-  const targetFindingOps = createTargetFindingOps({ world, visibility, state });
-  const { findNearestDropOffBuilding } = targetFindingOps;
-
-  const { applyTechnology } = createTechnologyOps({
-    world,
-    state,
-    createCombatState,
-    markOutOfBandRenderChange,
-  });
-
-  const aiDecisionOps = createAiDecisionOps({
-    world,
-    state,
-    findBuildPlacementNear,
-    aiWatchTowerForwardStep: AI_WATCH_TOWER_FORWARD_STEP,
-  });
-  const { isAiMilitaryUnit } = aiDecisionOps;
-
-  const monkOps = createMonkTaskOps({
-    world,
-    state,
-    clearUnitCommand,
-    clearGathererOrder,
-    markOutOfBandRenderChange,
-    getEntityRef,
-    destroyResourceEntity: (id) => entityDestroyOps.destroyResourceEntity(id),
-    buildingOccupiesCell,
-    issueUnitMoveCommand: (unitId, target) => issueUnitMoveCommand(unitId, target),
-    isAiMilitaryUnit,
-    isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
-    currentEntityId,
-    unitTint,
-    aiMonkHealHpFraction: AI_MONK_HEAL_HP_FRACTION,
-    monkHealTickInterval: MONK_HEAL_TICK_INTERVAL,
-    monkHealHpPerInterval: MONK_HEAL_HP_PER_INTERVAL,
-    monkConvertProgressPerTick: MONK_CONVERT_PROGRESS_PER_TICK,
-    monkConvertFlipThreshold: MONK_CONVERT_FLIP_THRESHOLD,
-  });
-  const {
-    clearMonkTask,
-    findMonkContextTargetAtCell,
-    issueMonkContextCommandAtEntity,
-  } = monkOps;
-
+  } = trainingMarketOps;
+  const { getEntityHealth, getSelectionState } = selectionStateOps;
+  const { applyTechnology } = technologyOps;
   const {
     issueUnitMoveCommand,
     issueSheepMoveCommand,
@@ -440,34 +318,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     selectEntityAtCell,
     selectEntityById,
     clearSelection,
-  } = createUnitCommandOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    state,
-    selection,
-    placementMode,
-    isMatchRunning,
-    isEntityVisibleToHuman,
-    getSelectedEntityIds,
-    getSelectableEntitiesAtCell,
-    findResourceAtCell,
-    findOwnedGarrisonBuildingAtCell,
-    findHostileUnitAtCell,
-    findHostileBuildingAtCell,
-    findHostileWildlifeAtCell,
-    findMonkContextTargetAtCell,
-    issueMonkContextCommandAtEntity,
-    clearMonkTask,
-    garrisonUnit,
-    isHarvestableResource,
-    findNearestDropOffBuilding,
-    clearGathererOrder,
-    clearUnitCommand,
-    setUnitCommand,
-    getEntityRef,
-  });
+  } = unitCommandOps;
 
   const finalize = registerBridgeSystems({
     world,
