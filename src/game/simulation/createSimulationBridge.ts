@@ -12,7 +12,6 @@ import {
 import {
   clamp,
   rebuildTileGridFromWorld,
-  isSameEntity,
   currentEntityId,
   cloneResources,
   defaultCivilizationName,
@@ -57,6 +56,7 @@ import { createMatchEndOps } from './bridge/matchEndOps';
 import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
+import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
 import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
@@ -3131,210 +3131,49 @@ function createWorld(
     return dx + dy;
   }
 
-  function destroyUnitEntity(id: number): void {
-    const garrisonBuildingId = garrisonedUnitToBuilding.get(id) ?? null;
-    if (garrisonBuildingId !== null) {
-      const garrisonedUnits = garrisonedByBuilding.get(garrisonBuildingId) ?? [];
-      garrisonedByBuilding.set(
-        garrisonBuildingId,
-        garrisonedUnits.filter((candidateId) => candidateId !== id),
-      );
-      if ((garrisonedByBuilding.get(garrisonBuildingId)?.length ?? 0) === 0) {
-        garrisonedByBuilding.delete(garrisonBuildingId);
-      }
-      garrisonedUnitToBuilding.delete(id);
-      garrisonedUnitVisionSources.delete(id);
-    }
+  // Destroy ops live in `bridge/entityDestroyOps`. The factory closes over
+  // every side map an entity might leave bookkeeping in.
+  const {
+    destroyUnitEntity,
+    destroyBuildingEntity,
+    killWildlifeEntity,
+    destroyResourceEntity,
+  } = createEntityDestroyOps({
+    world,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    garrisonedUnitToBuilding,
+    garrisonedByBuilding,
+    garrisonedUnitVisionSources,
+    population,
+    combatStates,
+    monkTasks,
+    monkCarriedRelic,
+    conversionState,
+    monkHealCounters,
+    trebuchetPackStates,
+    gathererDropOffStuckSinceTick,
+    townCenterRefs,
+    productionQueues,
+    rallyPoints,
+    constructionStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    wonderCountdowns,
+    relicsInMonastery,
+    inFlightTechByOwner,
+    wildlifeStates,
+    sheepMoveOrders,
+    removeSelectedEntity,
+    clearUnitCommand,
+    getApproachCellsForFootprint,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
+    addResourceEntity,
+    markOutOfBandRenderChange,
+  });
 
-    const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (unit) {
-      const populationState = population.get(unit.owner);
-      if (populationState) {
-        populationState.current = Math.max(0, populationState.current - 1);
-      }
-    }
-
-    removeSelectedEntity(id);
-
-    clearUnitCommand(id);
-    combatStates.delete(id);
-    monkTasks.delete(id);
-    // If the dying unit was a Monk carrying a relic, drop the relic at the
-    // Monk's last cell so the carry state doesn't leak.
-    const carriedRelicId = monkCarriedRelic.get(id);
-    if (carriedRelicId !== undefined) {
-      monkCarriedRelic.delete(id);
-    }
-    conversionState.delete(id);
-    monkHealCounters.delete(id);
-    // FU7: release trebuchet pack-state bookkeeping on destroy.
-    trebuchetPackStates.delete(id);
-    // Iter-3 V3-5: drop the throttle marker for the H2-2 retry path.
-    gathererDropOffStuckSinceTick.delete(id);
-    world.destroyEntity(id);
-    markOutOfBandRenderChange();
-  }
-
-  function destroyBuildingEntity(id: number): void {
-    const building = world.getComponent<BuildingComponent>(id, 'building');
-    const construction = constructionStates.get(id);
-    for (const garrisonedUnitId of garrisonedByBuilding.get(id) ?? []) {
-      destroyUnitEntity(garrisonedUnitId);
-    }
-    garrisonedByBuilding.delete(id);
-
-    if (building?.buildingType === 'town-center') {
-      const townCenterRef = townCenterRefs.get(building.owner) ?? null;
-      if (isSameEntity(townCenterRef, id, world)) {
-        townCenterRefs.delete(building.owner);
-      }
-    }
-
-    if (building) {
-      const populationState = population.get(building.owner);
-      const populationProvided =
-        construction?.populationProvided ?? buildingPopulationProvided(building.buildingType);
-      const isComplete = construction?.isComplete ?? true;
-      if (populationState && isComplete && populationProvided > 0) {
-        populationState.cap = Math.max(populationState.current, populationState.cap - populationProvided);
-      }
-    }
-
-    removeSelectedEntity(id);
-
-    // Iter-3 V3-6 follow-up: when a building is destroyed mid-research,
-    // its in-flight tech entries must be removed from inFlightTechByOwner
-    // before the queue is cleared — otherwise a razed Blacksmith leaves
-    // 'forging' marked in-flight forever and the player can never queue
-    // it at any other owned producer (the cost-dedupe guard rejects it).
-    if (building) {
-      const queue = productionQueues.get(id);
-      if (queue) {
-        for (const entry of queue) {
-          if (entry.kind === 'technology' && entry.technologyType) {
-            inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
-          }
-        }
-      }
-    }
-
-    productionQueues.delete(id);
-    rallyPoints.delete(id);
-    constructionStates.delete(id);
-    buildingHealthStates.delete(id);
-    buildingCombatStates.delete(id);
-    // Slice 8: a destroyed Wonder invalidates its owner's countdown. The
-    // wonderCompleted score counter stays set (the player still earned
-    // the "you committed to a Wonder" credit even if they lost it) but
-    // the countdown is wiped so no Wonder victory fires from a ghost
-    // entry. Clearing per-entity keeps the per-owner bookkeeping simple.
-    wonderCountdowns.delete(id);
-    // Destroyed Monastery stops generating relic gold. Any stored relics
-    // spill back onto the map. Matches canonical AoE2 behavior. We must
-    // guarantee that every stored relic survives — Codex P2 review caught
-    // a path where a cramped layout (every approach cell within radius 2
-    // blocked by trees / buildings / impassable terrain) silently lost
-    // relics because the bookkeeping entry was deleted up front and the
-    // search was capped at radius 2.
-    //
-    // Strategy: grow the search outward until enough free cells are
-    // collected, capped at MAP_WIDTH + MAP_HEIGHT so we never spin on a
-    // pathological scenario. If even that fails, fall back to stacking
-    // every remaining relic on the destroyed Monastery's anchor cell —
-    // relic resources don't claim unit occupancy, so visual overlap is
-    // tolerated. relicsInMonastery is cleared only after the drop list
-    // is built so the bookkeeping never gets ahead of the world.
-    const storedRelicCount = relicsInMonastery.get(id) ?? 0;
-    const relicDropPositions: Position[] = [];
-    if (storedRelicCount > 0 && building) {
-      const position = world.getComponent<Position>(id, 'position');
-      if (position) {
-        const footprint = buildingFootprint(building.buildingType);
-        const maxSearchRange = MAP_WIDTH + MAP_HEIGHT;
-        for (
-          let searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
-          searchRange <= maxSearchRange && relicDropPositions.length < storedRelicCount;
-          searchRange += 1
-        ) {
-          const candidates = getApproachCellsForFootprint(
-            position,
-            footprint.width,
-            footprint.height,
-            searchRange,
-          );
-          for (const candidate of candidates) {
-            if (relicDropPositions.length >= storedRelicCount) {
-              break;
-            }
-            if (!isTerrainPassableForUnit(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (isCellBlockedByBuilding(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (isCellBlockedByResource(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {
-              continue;
-            }
-            relicDropPositions.push(candidate);
-          }
-        }
-        // Anchor-stacking fallback: if nothing on the map is free
-        // (genuinely possible on a tiny test fixture or a fully walled-in
-        // build), stack the remaining relics on the Monastery's anchor
-        // cell. Relics are resources without unit-occupancy semantics, so
-        // overlap is acceptable.
-        while (relicDropPositions.length < storedRelicCount) {
-          relicDropPositions.push({ x: position.x, y: position.y });
-        }
-      }
-    }
-    relicsInMonastery.delete(id);
-    world.destroyEntity(id);
-    // Spawn the dropped relics after the source entity is gone so the
-    // building's cells are no longer blocked by its footprint.
-    for (const dropPosition of relicDropPositions) {
-      addResourceEntity('relic', dropPosition, 0, null);
-    }
-    markOutOfBandRenderChange();
-  }
-
-  function killWildlifeEntity(id: number): void {
-    const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    const wildlife = wildlifeStates.get(id);
-    if (!resource || !wildlife) {
-      return;
-    }
-
-    wildlife.currentHp = 0;
-    wildlife.cooldownTicks = 0;
-    wildlife.isAlive = false;
-    wildlife.targetEntityRef = null;
-
-    if (!wildlife.corpsePersists || resource.amount <= 0) {
-      destroyResourceEntity(id);
-      return;
-    }
-
-    markOutOfBandRenderChange();
-  }
-
-  function destroyResourceEntity(id: number): void {
-    removeSelectedEntity(id);
-    wildlifeStates.delete(id);
-    sheepMoveOrders.delete(id);
-    // If any Monk was carrying this resource (relic), drop the carry state
-    // so the follow loop doesn't dangle on a destroyed entity.
-    for (const [monkId, carriedId] of monkCarriedRelic.entries()) {
-      if (carriedId === id) {
-        monkCarriedRelic.delete(monkId);
-      }
-    }
-    world.destroyEntity(id);
-    markOutOfBandRenderChange();
-  }
 
   function issueUnitMoveCommand(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
