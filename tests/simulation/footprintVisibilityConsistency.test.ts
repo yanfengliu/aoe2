@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -97,4 +98,57 @@ describe('iter-3 V3-1 + V3-2 — footprint visibility consistency for buildings'
     // false. Confirms the test is exercising the cell-on-castle path.
     expect(bridge.selectEntityAtCell(40, 4)).toBe(false);
   });
+});
+
+describe('iter-4 V4-3 — fog-memory cleanup uses footprint visibility', () => {
+  it('clears the destroyed-castle memory entry when only a non-anchor footprint cell is visible', () => {
+    // Setup: scout at (20, 16) sees only (18, 16) of the 4x4 castle anchored at
+    // (15, 13). A Siege Ram south of the castle with vision radius 1 destroys
+    // it in a single hit (Ram +250 anti-building, castle startHp 200), but its
+    // narrow vision keeps the castle anchor (15, 13) outside player-1 LOS even
+    // while the ram is alive. After destruction, the only player-1 visibility
+    // over the castle's old footprint is the scout's (18, 16) — a NON-anchor
+    // cell. Pre-fix, the fog-memory cleanup checked the anchor only, so the
+    // memory entry persisted forever. Post-fix, it checks the full footprint
+    // and clears the memory.
+    const bridge = createSimulationBridge('fog-memory-castle-destroy-edge-fixture');
+
+    // Settle visibility + fog memory.
+    for (let i = 0; i < 3; i += 1) {
+      bridge.step(100);
+    }
+
+    const castle = findCastle(bridge);
+    expect(castle).toBeDefined();
+
+    // Castle is currently a live render entity, NOT a memory ghost.
+    const liveCastle = findCastleInRender(bridge);
+    expect(liveCastle).toBeDefined();
+    expect(liveCastle!.isMemory).toBe(false);
+
+    // Issue Siege Ram → Castle attack. Ram has +250 anti-building, castle
+    // starts at 200 HP, so a single hit destroys it.
+    expect(selectOwnedUnitDirect(bridge, 1, 'siege-ram')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+
+    // Wait until the castle is gone from the live world.
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => findCastle(bridge) === undefined,
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
+
+    // Extra ticks for the fog-memory cleanup pass to run after destruction.
+    for (let i = 0; i < 3; i += 1) {
+      bridge.step(100);
+    }
+
+    // Post-fix expectation: the castle is no longer in the render state at
+    // all. Pre-fix, the memory entry would persist (anchor in fog) and the
+    // castle would still appear with isMemory=true.
+    const ghost = findCastleInRender(bridge);
+    expect(ghost).toBeUndefined();
+  }, 30_000);
 });

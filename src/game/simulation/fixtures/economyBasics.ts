@@ -294,6 +294,85 @@ export function createFogMemoryCastleEdgeFixture(seed: string): PrototypeScenari
   };
 }
 
+// V4-3 fixture: extends the castle-edge setup with a low-HP castle and a
+// player-1 Siege Ram positioned to one-shot it. After destruction, the only
+// player-1 vision over the castle's old footprint is the scout's view of the
+// (18, 16) corner cell — a NON-anchor cell. Locks the contract that
+// fog-memory cleanup uses footprint visibility, not anchor-only.
+export function createFogMemoryCastleDestroyEdgeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+        startingAge: 'imperial-age',
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 30 },
+        startingAge: 'imperial-age',
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        // Same scout placement as fog-memory-castle-edge-fixture: radius-4
+        // vision from (20, 16) covers (18, 16) — a non-anchor cell of the
+        // castle at (15, 13) — but does not reach the (15, 13) anchor.
+        kind: 'scout',
+        x: 20,
+        y: 16,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        // Siege Ram south of the castle, adjacent to the (16, 16) edge cell.
+        // Vision radius 1 keeps the castle anchor (15, 13) outside the ram's
+        // own LOS so destroying the castle does not silently grant the
+        // player visibility on the anchor cell — the only post-destruction
+        // visibility on the castle's footprint is the scout's (18, 16) view.
+        kind: 'siege-ram',
+        x: 16,
+        y: 17,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 1 },
+      },
+      {
+        // Castle at the same anchor as the existing edge fixture, low HP so
+        // a single Siege Ram hit (3 base + 250 anti-building = 253) kills it.
+        kind: 'castle',
+        x: 15,
+        y: 13,
+        owner: 2,
+        baseOwner: 2,
+        startHp: 200,
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 30,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createResourceDepletionFixture(seed: string): PrototypeScenario {
   return {
     seed,

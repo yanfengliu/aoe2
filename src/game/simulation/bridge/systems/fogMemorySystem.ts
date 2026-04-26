@@ -95,13 +95,25 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
       }
 
       // Forget memories of entities that no longer exist AND whose last-known
-      // cell is currently visible — i.e. the player saw it disappear.
+      // footprint is currently visible — i.e. the player saw it disappear.
+      // Footprint-aware match keeps a multi-cell castle from leaving a permanent
+      // ghost when only a non-anchor cell of its old footprint is in vision
+      // (mirrors the iter-3 V3-1 write/select footprint-visibility fix).
       for (const [entityId, entry] of humanMemory) {
         const stillExists = activeWorld.getComponent<Position>(entityId, 'position') !== undefined;
         if (stillExists) {
           continue;
         }
-        if (visibility.isVisible(humanPlayerId, entry.position.x, entry.position.y)) {
+        if (
+          isFootprintVisible(
+            visibility,
+            humanPlayerId,
+            entry.position.x,
+            entry.position.y,
+            entry.footprintWidth,
+            entry.footprintHeight,
+          )
+        ) {
           humanMemory.delete(entityId);
         }
       }
