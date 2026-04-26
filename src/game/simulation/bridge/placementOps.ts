@@ -24,7 +24,6 @@ import type { Position } from 'civ-engine';
 import type {
   BuildableBuildingType,
   PlacementPreviewState,
-  PlayerResources,
   UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
@@ -48,13 +47,7 @@ export interface PlacementModeHolder {
 
 export interface PlacementDeps {
   world: GameWorld;
-  // Side map. Owned by createWorld so the placement path shares the
-  // same stockpile reference with training, research, market, and
-  // construction spend sites.
-  playerResources: Map<number, PlayerResources>;
-  // Mutable holder around the bridge's `placementMode` closure
-  // variable. The bridge keeps ownership of the slot via this holder;
-  // the ops read and write `holder.current` directly.
+  state: import('./bridgeState').BridgeState;
   placementMode: PlacementModeHolder;
   // Collaborators. Thin wrappers around bridge-local helpers; the
   // factory defers to them so selection, match-running, and
@@ -84,7 +77,7 @@ export interface PlacementOps {
 export function createPlacementOps(deps: PlacementDeps): PlacementOps {
   const {
     world,
-    playerResources,
+    state,
     placementMode,
     isMatchRunning,
     getSelectedHumanVillagerIds,
@@ -95,6 +88,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     mapWidth,
     mapHeight,
   } = deps;
+  const { playerResources } = state;
 
   function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
     if (placementMode.current === null) {
