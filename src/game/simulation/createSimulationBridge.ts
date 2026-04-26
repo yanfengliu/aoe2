@@ -16,8 +16,6 @@ import {
   defaultCivilizationName,
   createInitialMarketRates,
   shouldMaintainGatheringOrder,
-  isResourceCandidate,
-  manhattanDistance,
   buildingFootprint,
   isFootprintVisible,
   compareProjectedRenderEntities,
@@ -84,7 +82,6 @@ import {
   TPS,
   createPrototypeScenario,
 } from './prototypeScenario';
-import { resourceKindToEconomyResource } from './prototypeEconomyRules';
 import { unitTint } from './prototypeUnitRules';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
@@ -1771,62 +1768,8 @@ function createWorld(
     buildingHealthStates,
   });
 
-  function assignNearestResource(
-    activeWorld: World<GameEvents, GameCommands>,
-    villagerId: number,
-    gatherer: GathererComponent,
-    owner: number,
-  ): void {
-    const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
-    if (!villagerPosition) {
-      return;
-    }
-
-    const matchingResources = [...activeWorld.query('position', 'resource')]
-      .map((id) => ({
-        id,
-        position: activeWorld.getComponent<Position>(id, 'position'),
-        resource: activeWorld.getComponent<ResourceComponent>(id, 'resource'),
-      }))
-      .filter(isResourceCandidate)
-      .filter((entry) => isHarvestableResource(entry.id, entry.resource))
-      .filter(
-        (entry) => resourceKindToEconomyResource(entry.resource.resourceType) === gatherer.desiredResource,
-      )
-      .sort((left, right) => {
-        const leftPreferred =
-          left.resource.owner === owner ? 0
-          : left.resource.owner === null && left.resource.baseOwner === owner ? 1
-          : 2;
-        const rightPreferred =
-          right.resource.owner === owner ? 0
-          : right.resource.owner === null && right.resource.baseOwner === owner ? 1
-          : 2;
-        if (leftPreferred !== rightPreferred) {
-          return leftPreferred - rightPreferred;
-        }
-        const leftDistance = manhattanDistance(left.position, villagerPosition);
-        const rightDistance = manhattanDistance(right.position, villagerPosition);
-        return leftDistance - rightDistance;
-      });
-
-    const target = matchingResources[0];
-    if (!target) {
-      gatherer.task = 'idle';
-      gatherer.targetResourceId = null;
-      return;
-    }
-
-    gatherer.task = 'to-resource';
-    gatherer.targetResourceId = target.id;
-    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
-      activeWorld,
-      owner,
-      gatherer.desiredResource,
-      target.position,
-    );
-    gatherer.gatherProgressTicks = 0;
-  }
+  // assignNearestResource moved into bridge/systems/villagerEconomySystem
+  // (its only caller).
 
   // Technology application + predecessor-line rewrites live in
   // `bridge/technologyOps`. The factory closes over the side maps
@@ -2098,7 +2041,6 @@ function createWorld(
     playerResources,
     aiStates,
     shouldMaintainGatheringOrder,
-    assignNearestResource,
     findResourceApproachPlan,
     isHarvestableResource,
     isUnitAtTarget,

@@ -11,7 +11,13 @@ import type {
   ResourceComponent,
   UnitComponent,
 } from '../../types';
-import { type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
+import {
+  isResourceCandidate,
+  manhattanDistance,
+  type GameCommands,
+  type GameEvents,
+  type GameWorld,
+} from '../pureHelpers';
 import {
   gatherAmountFor,
   gatherTicksFor,
@@ -41,12 +47,6 @@ export interface VillagerEconomySystemDeps {
   playerResources: Map<number, PlayerResources>;
   aiStates: Map<number, AiStateLike>;
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
-  assignNearestResource: (
-    activeWorld: CivWorld,
-    villagerId: number,
-    gatherer: GathererComponent,
-    owner: number,
-  ) => void;
   findResourceApproachPlan: (
     villagerId: number,
     resourceId: number,
@@ -89,7 +89,6 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     playerResources,
     aiStates,
     shouldMaintainGatheringOrder,
-    assignNearestResource,
     findResourceApproachPlan,
     isHarvestableResource,
     isUnitAtTarget,
@@ -99,6 +98,61 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     findBuildingApproachPlan,
     ensurePlayerScoreCounters,
   } = deps;
+
+  function assignNearestResource(
+    activeWorld: CivWorld,
+    villagerId: number,
+    gatherer: GathererComponent,
+    owner: number,
+  ): void {
+    const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
+    if (!villagerPosition) return;
+
+    const matchingResources = [...activeWorld.query('position', 'resource')]
+      .map((id) => ({
+        id,
+        position: activeWorld.getComponent<Position>(id, 'position'),
+        resource: activeWorld.getComponent<ResourceComponent>(id, 'resource'),
+      }))
+      .filter(isResourceCandidate)
+      .filter((entry) => isHarvestableResource(entry.id, entry.resource))
+      .filter(
+        (entry) => resourceKindToEconomyResource(entry.resource.resourceType) === gatherer.desiredResource,
+      )
+      .sort((left, right) => {
+        const leftPreferred =
+          left.resource.owner === owner ? 0
+          : left.resource.owner === null && left.resource.baseOwner === owner ? 1
+          : 2;
+        const rightPreferred =
+          right.resource.owner === owner ? 0
+          : right.resource.owner === null && right.resource.baseOwner === owner ? 1
+          : 2;
+        if (leftPreferred !== rightPreferred) {
+          return leftPreferred - rightPreferred;
+        }
+        const leftDistance = manhattanDistance(left.position, villagerPosition);
+        const rightDistance = manhattanDistance(right.position, villagerPosition);
+        return leftDistance - rightDistance;
+      });
+
+    const target = matchingResources[0];
+    if (!target) {
+      gatherer.task = 'idle';
+      gatherer.targetResourceId = null;
+      return;
+    }
+
+    gatherer.task = 'to-resource';
+    gatherer.targetResourceId = target.id;
+    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
+      activeWorld,
+      owner,
+      gatherer.desiredResource,
+      target.position,
+    );
+    gatherer.gatherProgressTicks = 0;
+  }
 
   world.registerSystem({
     name: 'prototypeVillagerEconomy',
