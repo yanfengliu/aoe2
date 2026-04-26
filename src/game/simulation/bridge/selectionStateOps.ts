@@ -1,0 +1,417 @@
+// Selection-state assembly. Aggregates the slice of bridge state surfaced to
+// the HUD when the human selects something: entity-kind / health / attack /
+// armor / inventory / option menus / activity. Pure read-only over the
+// bridge's side maps; the bridge owns the maps and passes them in.
+
+import type { Position } from 'civ-engine';
+import type {
+  ActionType,
+  BuildableBuildingType,
+  BuildingComponent,
+  GathererComponent,
+  MarketActionType,
+  ProductionQueueEntry,
+  ResearchableTechnologyType,
+  ResourceComponent,
+  SelectionState,
+  TrainableUnitType,
+  UnitComponent,
+  UnitType,
+} from '../types';
+import {
+  cloneQueue,
+  defaultCivilizationName,
+  economyResourceLabel,
+  factionName,
+  inventoryResourceName,
+  type GameWorld,
+} from './pureHelpers';
+import {
+  buildingGarrisonCapacity,
+} from '../prototypeBuildingRules';
+import { unitAttackDamage } from '../prototypeUnitRules';
+import {
+  computeUnitActivity,
+  getBuildingActivity,
+  getSelectionActivityBreakdown,
+  type SelectionActivitySources,
+} from '../selectionActivity';
+import type { CombatState, BuildingHealthState, BuildingCombatState, WildlifeState } from './systems/systemTypes';
+// Type-only imports of bridge-owned types. Type-only is erased at runtime so
+// the cycle is compile-time only.
+import type {
+  ConstructionState,
+  MonkTask,
+  TrebuchetPackState,
+  UnitCommand,
+} from '../createSimulationBridge';
+
+export interface SelectionStateOpsDeps {
+  world: GameWorld;
+  humanPlayerId: number;
+  combatStates: Map<number, CombatState>;
+  buildingHealthStates: Map<number, BuildingHealthState>;
+  buildingCombatStates: Map<number, BuildingCombatState>;
+  wildlifeStates: Map<number, WildlifeState>;
+  garrisonedByBuilding: Map<number, number[]>;
+  playerCivilizations: Map<number, string>;
+  productionQueues: Map<number, ProductionQueueEntry[]>;
+  unitCommands: Map<number, UnitCommand>;
+  monkTasks: Map<number, MonkTask>;
+  trebuchetPackStates: Map<number, TrebuchetPackState>;
+  constructionStates: Map<number, ConstructionState>;
+  placementMode: { current: BuildableBuildingType | null };
+  getSelectedEntityIds: () => number[];
+  resolveSelectionTile: (selectedEntityId: number, position: Position) => Position;
+  getSelectableEntitiesAtCell: (x: number, y: number) => Array<{ id: number }>;
+  getCurrentEntityId: (ref: import('civ-engine').EntityRef | null) => number | null;
+  clearSelection: () => void;
+  getActionOptions: (
+    owner: number,
+    buildingType: BuildingComponent['buildingType'],
+    buildingId: number,
+  ) => ActionType[];
+  getTrainOptions: (owner: number, buildingType: BuildingComponent['buildingType']) => TrainableUnitType[];
+  getMarketOptions: (owner: number, buildingType: BuildingComponent['buildingType']) => MarketActionType[];
+  getBuildOptions: (owner: number, unitType: UnitType) => BuildableBuildingType[];
+  getResearchOptions: (
+    owner: number,
+    buildingType: BuildingComponent['buildingType'],
+  ) => ResearchableTechnologyType[];
+  getVisibleResearchOptions: (
+    owner: number,
+    buildingType: BuildingComponent['buildingType'],
+  ) => ResearchableTechnologyType[];
+}
+
+export interface SelectionStateOps {
+  getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
+  getSelectionState(): SelectionState;
+}
+
+export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionStateOps {
+  const {
+    world,
+    humanPlayerId,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    wildlifeStates,
+    garrisonedByBuilding,
+    playerCivilizations,
+    productionQueues,
+    unitCommands,
+    monkTasks,
+    trebuchetPackStates,
+    constructionStates,
+    placementMode,
+    getSelectedEntityIds,
+    resolveSelectionTile,
+    getSelectableEntitiesAtCell,
+    getCurrentEntityId,
+    clearSelection,
+    getActionOptions,
+    getTrainOptions,
+    getMarketOptions,
+    getBuildOptions,
+    getResearchOptions,
+    getVisibleResearchOptions,
+  } = deps;
+
+  function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    if (unit) {
+      const combat = combatStates.get(id);
+      if (!combat) {
+        return null;
+      }
+      return { currentHp: combat.currentHp, maxHp: combat.maxHp };
+    }
+
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    if (building) {
+      const health = buildingHealthStates.get(id);
+      if (!health) {
+        return null;
+      }
+      return { currentHp: health.currentHp, maxHp: health.maxHp };
+    }
+
+    const resource = world.getComponent<ResourceComponent>(id, 'resource');
+    if (resource) {
+      const wildlife = wildlifeStates.get(id);
+      if (!wildlife || !wildlife.isAlive) {
+        return null;
+      }
+      return { currentHp: wildlife.currentHp, maxHp: wildlife.maxHp };
+    }
+
+    return null;
+  }
+
+  function getSelectionHealth(id: number): SelectionState['health'] {
+    const health = getEntityHealth(id);
+    if (!health) {
+      return null;
+    }
+    return { current: health.currentHp, max: health.maxHp };
+  }
+
+  function getSelectionAttack(
+    id: number,
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+  ): number | null {
+    if (unit) {
+      return combatStates.get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
+    }
+    if (building) {
+      return buildingCombatStates.get(id)?.attackDamage ?? null;
+    }
+    if (resource) {
+      const wildlife = wildlifeStates.get(id);
+      return wildlife?.isAlive ? wildlife.attackDamage : null;
+    }
+    return null;
+  }
+
+  function getSelectionArmor(
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+    id: number,
+  ): number | null {
+    if (unit) {
+      return combatStates.get(id)?.armor ?? 0;
+    }
+    if (building) {
+      return 0;
+    }
+    if (resource) {
+      return wildlifeStates.get(id)?.isAlive ? 0 : null;
+    }
+    return null;
+  }
+
+  function getSelectionCiv(
+    owner: number | null,
+    kind: SelectionState['selectedKind'],
+  ): string | null {
+    if (kind === 'resource' || owner === null) {
+      return null;
+    }
+    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
+  }
+
+  function getSelectionInventory(
+    id: number,
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+  ): string | null {
+    if (resource) {
+      if (resource.resourceType === 'wolf') {
+        return null;
+      }
+      if (resource.resourceType === 'relic') {
+        return 'Deposit in a Monastery for gold';
+      }
+      return `${resource.amount} / ${resource.maxAmount} ${inventoryResourceName(resource.resourceType)} remaining`;
+    }
+
+    if (unit) {
+      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+      if (!gatherer) {
+        return null;
+      }
+      if (!gatherer.carriedResource || gatherer.carriedAmount <= 0) {
+        return 'Empty';
+      }
+      return `${gatherer.carriedAmount} ${economyResourceLabel(gatherer.carriedResource)}`;
+    }
+
+    if (building) {
+      const capacity = buildingGarrisonCapacity(building.buildingType);
+      if (capacity <= 0) {
+        return null;
+      }
+      return `${garrisonedByBuilding.get(id)?.length ?? 0} / ${capacity} garrisoned`;
+    }
+
+    return null;
+  }
+
+  function getSelectionState(): SelectionState {
+    const selectedEntityIds = getSelectedEntityIds();
+    const selectedEntityId = selectedEntityIds[0] ?? null;
+    if (selectedEntityId === null) {
+      return {
+        selectedEntityId: null,
+        selectedEntityIds: [],
+        selectedCount: 0,
+        selectedKind: null,
+        selectedEntityType: null,
+        owner: null,
+        health: null,
+        attack: null,
+        armor: null,
+        faction: null,
+        civ: null,
+        inventory: null,
+        activity: null,
+        activityBreakdown: null,
+        x: null,
+        y: null,
+        tileX: null,
+        tileY: null,
+        tileEntityIndex: null,
+        tileEntityCount: 0,
+        resourceAmount: null,
+        resourceMaxAmount: null,
+        actionOptions: [],
+        buildOptions: [],
+        marketOptions: [],
+        trainOptions: [],
+        visibleResearchOptions: [],
+        researchOptions: [],
+        queue: [],
+        placementMode: placementMode.current,
+      };
+    }
+
+    const position = world.getComponent<Position>(selectedEntityId, 'position');
+    const unit = world.getComponent<UnitComponent>(selectedEntityId, 'unit');
+    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
+    const resource = world.getComponent<ResourceComponent>(selectedEntityId, 'resource');
+    if (!position || (!unit && !building && !resource)) {
+      clearSelection();
+      return getSelectionState();
+    }
+
+    const selectionTile = resolveSelectionTile(selectedEntityId, position);
+    const tileEntities =
+      selectedEntityIds.length === 1
+        ? getSelectableEntitiesAtCell(selectionTile.x, selectionTile.y)
+        : [];
+    const tileEntityIndex =
+      selectedEntityIds.length === 1
+        ? (() => {
+          const index = tileEntities.findIndex((candidate) => candidate.id === selectedEntityId);
+          return index >= 0 ? index + 1 : null;
+        })()
+        : null;
+
+    const selectedUnits = selectedEntityIds
+      .map((id) => ({
+        id,
+        unit: world.getComponent<UnitComponent>(id, 'unit'),
+      }))
+      .filter((entry): entry is { id: number; unit: UnitComponent } => entry.unit !== undefined);
+    const ownedSheepCountInSelection = selectedEntityIds.filter((id) => {
+      const r = world.getComponent<ResourceComponent>(id, 'resource');
+      return (
+        r !== undefined
+        && r.resourceType === 'sheep'
+        && r.owner === humanPlayerId
+      );
+    }).length;
+    const nonSheepNonUnitMembers =
+      selectedEntityIds.length - selectedUnits.length - ownedSheepCountInSelection;
+    const selectedUnitsAndOwnedSheepCoverSelection = nonSheepNonUnitMembers === 0;
+    const allSelectedUnitsAreHumanVillagers =
+      selectedUnitsAndOwnedSheepCoverSelection
+      && selectedUnits.length > 0
+      && selectedUnits.every((entry) => entry.unit.owner === humanPlayerId && entry.unit.unitType === 'villager');
+    const allSelectedUnitsShareType =
+      selectedUnitsAndOwnedSheepCoverSelection
+      && selectedUnits.length > 0
+      && selectedUnits.every((entry) => entry.unit.unitType === selectedUnits[0].unit.unitType);
+    const trainOptions: TrainableUnitType[] =
+      building?.owner === humanPlayerId
+        ? getTrainOptions(building.owner, building.buildingType)
+        : [];
+    const actionOptions: ActionType[] =
+      building?.owner === humanPlayerId
+        ? getActionOptions(building.owner, building.buildingType, selectedEntityId)
+        : [];
+    const marketOptions: MarketActionType[] =
+      building?.owner === humanPlayerId
+        ? getMarketOptions(building.owner, building.buildingType)
+        : [];
+    const buildOptions: BuildableBuildingType[] =
+      allSelectedUnitsAreHumanVillagers
+        ? getBuildOptions(humanPlayerId, 'villager')
+        : selectedEntityIds.length === 1 && unit && unit.owner === humanPlayerId
+        ? getBuildOptions(unit.owner, unit.unitType)
+        : [];
+    const researchOptions: ResearchableTechnologyType[] =
+      building?.owner === humanPlayerId
+        ? getResearchOptions(building.owner, building.buildingType)
+        : [];
+    const visibleResearchOptions: ResearchableTechnologyType[] =
+      building?.owner === humanPlayerId
+        ? getVisibleResearchOptions(building.owner, building.buildingType)
+        : [];
+    const selectedKind = unit ? 'unit' : building ? 'building' : 'resource';
+    const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
+
+    const activitySources: SelectionActivitySources = {
+      world,
+      humanPlayerId,
+      unitCommands,
+      monkTasks,
+      trebuchetPackStates,
+      productionQueues,
+      constructionStates,
+      getCurrentEntityId,
+    };
+
+    return {
+      selectedEntityId,
+      selectedEntityIds,
+      selectedCount: selectedEntityIds.length,
+      selectedKind,
+      selectedEntityType:
+        selectedEntityIds.length > 1 && !allSelectedUnitsShareType
+          ? null
+          : unit?.unitType ?? building?.buildingType ?? resource?.resourceType ?? null,
+      owner,
+      health: selectedEntityIds.length === 1 ? getSelectionHealth(selectedEntityId) : null,
+      attack: selectedEntityIds.length === 1 ? getSelectionAttack(selectedEntityId, unit, building, resource) : null,
+      armor: selectedEntityIds.length === 1 ? getSelectionArmor(unit, building, resource, selectedEntityId) : null,
+      faction: selectedEntityIds.length === 1 ? factionName(owner) : null,
+      civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
+      inventory:
+        selectedEntityIds.length === 1
+          ? getSelectionInventory(selectedEntityId, unit, building, resource)
+          : null,
+      activity:
+        selectedEntityIds.length === 1 && unit && unit.owner === humanPlayerId
+          ? computeUnitActivity(activitySources, selectedEntityId, unit)
+          : selectedEntityIds.length === 1 && building && building.owner === humanPlayerId
+          ? getBuildingActivity(activitySources, selectedEntityId)
+          : null,
+      activityBreakdown:
+        selectedEntityIds.length > 1 ? getSelectionActivityBreakdown(activitySources, selectedEntityIds) : null,
+      x: position.x,
+      y: position.y,
+      tileX: selectionTile.x,
+      tileY: selectionTile.y,
+      tileEntityIndex,
+      tileEntityCount: tileEntities.length,
+      resourceAmount: resource?.amount ?? null,
+      resourceMaxAmount: resource?.maxAmount ?? null,
+      actionOptions,
+      buildOptions,
+      marketOptions,
+      trainOptions,
+      visibleResearchOptions,
+      researchOptions,
+      queue: building ? cloneQueue(productionQueues.get(selectedEntityId) ?? []) : [],
+      placementMode: placementMode.current,
+    };
+  }
+
+  return { getEntityHealth, getSelectionState };
+}
