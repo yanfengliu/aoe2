@@ -1126,36 +1126,47 @@ export class GameScene extends Phaser.Scene {
   }
 
   private isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
-    return (
-      entityType === 'villager'
-      || entityType === 'scout'
-      || entityType === 'militia'
-      || entityType === 'spearman'
-      || entityType === 'archer'
-      || entityType === 'skirmisher'
-      || entityType === 'knight'
-      || entityType === 'crossbowman'
-      || entityType === 'pikeman'
-      || entityType === 'light-cavalry'
-      || entityType === 'camel'
-      || entityType === 'cavalry-archer'
-      || entityType === 'monk'
-      || entityType === 'mangonel'
-      || entityType === 'scorpion'
-      || entityType === 'battering-ram'
-      || entityType === 'longbowman'
-      || entityType === 'arbalest'
-      || entityType === 'halberdier'
-      || entityType === 'hussar'
-      || entityType === 'heavy-cavalry-archer'
-      || entityType === 'cavalier'
-      || entityType === 'champion'
-      || entityType === 'elite-longbowman'
-      || entityType === 'onager'
-      || entityType === 'heavy-scorpion'
-      || entityType === 'siege-ram'
-      || entityType === 'bombard-cannon'
-      || entityType === 'trebuchet'
-    );
+    return entityType !== null && entityType in ALL_UNIT_TYPES;
   }
 }
+
+// Iter-3 V3-3: exhaustive UnitType lookup so adding a new unit to
+// `UnitType` in types.ts forces a TypeScript error here if the lookup
+// isn't updated. The `satisfies Record<UnitType, true>` clause is the
+// load-bearing piece — drop it and the iter-2 / FU2 / FU3 drift returns.
+const ALL_UNIT_TYPES = {
+  villager: true,
+  scout: true,
+  militia: true,
+  spearman: true,
+  archer: true,
+  skirmisher: true,
+  knight: true,
+  crossbowman: true,
+  pikeman: true,
+  'light-cavalry': true,
+  camel: true,
+  'cavalry-archer': true,
+  monk: true,
+  mangonel: true,
+  scorpion: true,
+  'battering-ram': true,
+  longbowman: true,
+  arbalest: true,
+  halberdier: true,
+  hussar: true,
+  'heavy-cavalry-archer': true,
+  cavalier: true,
+  champion: true,
+  'elite-longbowman': true,
+  onager: true,
+  'heavy-scorpion': true,
+  'siege-ram': true,
+  'bombard-cannon': true,
+  trebuchet: true,
+  'man-at-arms': true,
+  'long-swordsman': true,
+  'two-handed-swordsman': true,
+  paladin: true,
+  'heavy-camel': true,
+} as const satisfies Record<UnitType, true>;

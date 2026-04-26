@@ -95,6 +95,8 @@ export function formatEntityName(entityType: SelectionState['selectedEntityType'
       return 'Relic';
     case 'castle':
       return 'Castle';
+    case 'wonder':
+      return 'Wonder';
     case 'longbowman':
       return 'Longbowman';
     case 'arbalest':
@@ -226,6 +228,8 @@ export function formatEntityPluralName(entityType: SelectionState['selectedEntit
       return 'Relics';
     case 'castle':
       return 'Castles';
+    case 'wonder':
+      return 'Wonders';
     case 'longbowman':
       return 'Longbowmen';
     case 'arbalest':
