@@ -56,7 +56,7 @@ export interface WirePostSeedDeps {
   // Helpers from bridgeHelpers
   inFlightTechSetFor: Parameters<typeof createTrainingMarketOps>[0]['inFlightTechSetFor'];
   clearUnitCommand: (id: number) => void;
-  setUnitCommand: (id: number, command: import('../createSimulationBridge').UnitCommand) => void;
+  setUnitCommand: (id: number, command: import('./sharedTypes').UnitCommand) => void;
   getEntityRef: (id: number) => EntityRef | null;
   getCurrentEntityId: (ref: EntityRef | null) => number | null;
   markOutOfBandRenderChange: () => void;
