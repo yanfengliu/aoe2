@@ -13,7 +13,6 @@ import {
   rebuildTileGridFromWorld,
   currentEntityId,
   cloneResources,
-  defaultCivilizationName,
   createInitialMarketRates,
   shouldMaintainGatheringOrder,
   buildingFootprint,
@@ -24,11 +23,7 @@ import {
   type GameComponents,
   type GameWorld,
 } from './bridge/pureHelpers';
-import {
-  createProjector,
-  syncVisibilitySources,
-  updateSheepOwnership,
-} from './bridge/visibility';
+import { createProjector, syncVisibilitySources } from './bridge/visibility';
 import { createTrebuchetStateOps } from './bridge/trebuchetState';
 import { createFogMemoryOps } from './bridge/fogMemoryOps';
 import { createMonkTaskOps } from './bridge/monkTaskOps';
@@ -42,6 +37,13 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import {
+  hydrateFromSavedGame,
+  registerComponentTypes,
+  seedPlayerStarts,
+  seedScenarioEntities,
+  seedTerrain,
+} from './bridge/scenarioSeedOps';
 import { createDebugSnapshotOps } from './bridge/debugSnapshotOps';
 import { createEconomyStateOps } from './bridge/economyStateOps';
 import { createTransformOps } from './bridge/transformOps';
@@ -93,7 +95,6 @@ import {
   DEFAULT_DIFFICULTY,
   planForAge,
   villagerTargetsForAge,
-  type AiPlan,
   type AiState,
   type DifficultyLevel,
 } from './ai';
@@ -102,7 +103,6 @@ import type {
   AgeType,
   BuildableBuildingType,
   BuildingType,
-  BuildingComponent,
   EconomyState,
   GathererComponent,
   HudState,
@@ -116,19 +116,12 @@ import type {
   ProjectedFrameView,
   ResearchableTechnologyType,
   RenderState,
-  RenderableComponent,
-  ResourceComponent,
   SelectionState,
   SimulationDebugSnapshot,
-  TerrainComponent,
   TrainableUnitType,
-  UnitComponent,
-  UnitTransformComponent,
   UnitTaskState,
   UnitType,
-  VelocityComponent,
   VisionSourceComponent,
-  WanderBoundsComponent,
 } from './types';
 
 // MemoryEntry has moved to `bridge/memoryTypes` — re-export so external
@@ -629,21 +622,8 @@ function createWorld(
     hasOutOfBandRenderChange = true;
   }
 
-  // The deserialized world already has every component registered
-  // (deserialize copied each `componentStores` entry from the snapshot),
-  // so registerComponent would throw. Skip when loading.
   if (!savedGame) {
-    world.registerComponent<Position>('position');
-    world.registerComponent<TerrainComponent>('terrain');
-    world.registerComponent<RenderableComponent>('renderable');
-    world.registerComponent<UnitComponent>('unit');
-    world.registerComponent<UnitTransformComponent>('unitTransform');
-    world.registerComponent<BuildingComponent>('building');
-    world.registerComponent<ResourceComponent>('resource');
-    world.registerComponent<GathererComponent>('gatherer');
-    world.registerComponent<VelocityComponent>('velocity');
-    world.registerComponent<VisionSourceComponent>('visionSource');
-    world.registerComponent<WanderBoundsComponent>('wanderBounds');
+    registerComponentTypes(world);
   }
 
   const scenario = createPrototypeScenario(seed);
@@ -663,80 +643,9 @@ function createWorld(
     ? rebuildTileGridFromWorld(world)
     : createTileGrid(world);
 
-  if (!savedGame) {
-  for (const start of scenario.starts) {
-    playerAges.set(start.owner, start.startingAge ?? 'dark-age');
-    playerCivilizations.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
-    // FU1: seed per-player researched-techs with the scenario's
-    // `startingResearchedTechnologies` (if any). This is a passive-only
-    // hook — applyTechnology side effects (age-up, unit upgrades) do NOT
-    // fire here; fixtures should use `startingAge` for age seeding. The
-    // seed is consumed by `createCombatState` so newly-spawned units in
-    // the same scenario pick up tech bonuses (Chemistry, Fletching, etc.).
-    researchedTechnologies.set(
-      start.owner,
-      new Set(start.startingResearchedTechnologies ?? []),
-    );
-    playerResources.set(
-      start.owner,
-      cloneResources(start.startingResources ?? STANDARD_STARTING_RESOURCES),
-    );
-    population.set(start.owner, {
-      current: 0,
-      cap: STANDARD_POPULATION_CAP,
-    });
-    villagerOrdinals.set(start.owner, 0);
-    if (typeof start.wonderCountdownOverrideTicks === 'number') {
-      wonderCountdownOverrides.set(
-        start.owner,
-        Math.max(1, start.wonderCountdownOverrideTicks),
-      );
-    }
-    if (typeof start.relicCountdownOverrideTicks === 'number') {
-      relicCountdownOverrides.set(
-        start.owner,
-        Math.max(1, start.relicCountdownOverrideTicks),
-      );
-    }
-    // Slice 10: every non-human player gets an AiState so the planner
-    // loop has somewhere to track plan phase + decision cadence. The
-    // human player intentionally stays out of this map — the bridge's
-    // `prototypeAi` system keys off `aiStates` membership. Fixtures
-    // opt out via `disableAi: true` so the planner never issues
-    // commands for that player's units (auto-aggression test fixtures
-    // need a static, passive enemy).
-    if (start.owner !== HUMAN_PLAYER_ID && !start.disableAi) {
-      ensureAiState(start.owner, start.difficulty ?? DEFAULT_DIFFICULTY);
-    }
-  }
-
-  for (const row of scenario.terrain) {
-    for (const cell of row) {
-      const tile = tiles[cell.y][cell.x];
-      const tintByKind: Record<TerrainComponent['kind'], number> = {
-        grass: 0x587f4e,
-        forest: 0x2f5e34,
-        water: 0x295a75,
-        hill: 0x8c7d5a,
-      };
-
-      world.addComponent(tile, 'terrain', {
-        kind: cell.kind,
-        buildable: cell.buildable,
-        elevation: cell.elevation,
-      });
-      world.addComponent(tile, 'renderable', {
-        kind: 'tile',
-        layer: 'terrain',
-        tint: tintByKind[cell.kind],
-        size: 1,
-        footprintWidth: 1,
-        footprintHeight: 1,
-        visualVariant: 'default',
-      });
-    }
-  }
-  } // end if (!savedGame) — fresh-start bootstrap
+  // (Player-start seeding + terrain laying moved to
+  // `bridge/scenarioSeedOps.ts`; both run only on fresh start. Both
+  // factory calls happen further down once their deps are wired.)
 
   function getCurrentEntityId(ref: EntityRef | null): number | null {
     return currentEntityId(world, ref);
@@ -902,571 +811,146 @@ function createWorld(
   // Skip the entity-spawn loop when loading from a save blob — every
   // entity is already in the deserialized world. Side-map population
   // happens further below from `savedGame.sideMaps`.
+  // Scenario seed + save-load hydration live in bridge/scenarioSeedOps.
+  // Both branches close over the bridge's side maps + helper closures.
+  // findScenarioSpawnPosition is declared via `function` further down so
+  // its hoisting puts it in scope; arrow wraps below pin the lookup at
+  // call time.
   if (!savedGame) {
-  // Slice 12 Task B: entity ids whose spawn spec set
-  // `allowOverlappingSpawn: true`. The fixture-validation pass skips
-  // these when checking for unit-in-building and building-overlap
-  // wedges so test fixtures that intentionally stack otherwise-illegal
-  // entities (e.g., the tile-selection-cycle UX fixture) can keep
-  // doing so without false positives.
-  const overlapWhitelist = new Set<number>();
-  for (const spawn of scenario.spawns) {
-    if (
-      spawn.kind === 'town-center'
-      || spawn.kind === 'house'
-      || spawn.kind === 'mill'
-      || spawn.kind === 'lumber-camp'
-      || spawn.kind === 'mining-camp'
-      || spawn.kind === 'barracks'
-      || spawn.kind === 'watch-tower'
-      || spawn.kind === 'stable'
-      || spawn.kind === 'archery-range'
-      || spawn.kind === 'blacksmith'
-      || spawn.kind === 'market'
-      || spawn.kind === 'siege-workshop'
-      || spawn.kind === 'monastery'
-      || spawn.kind === 'castle'
-      || spawn.kind === 'wonder'
-      || spawn.kind === 'stone-wall'
-      || spawn.kind === 'palisade-wall'
-    ) {
-      const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      const buildingId = addBuildingEntity(
-        owner,
-        spawn.kind,
-        { x: spawn.x, y: spawn.y },
-        true,
-        spawn.vision,
-      );
-      // Test-only scenario knobs: lower starting HP (lets combat scenes
-      // resolve in a few ticks) and seed relic count on a Monastery so
-      // destroy-drop tests can skip the full pickup/deposit cycle.
-      if (typeof spawn.startHp === 'number') {
-        const healthState = buildingHealthStates.get(buildingId);
-        if (healthState) {
-          healthState.currentHp = Math.max(1, Math.min(healthState.maxHp, spawn.startHp));
-        }
-      }
-      if (typeof spawn.startingRelicsInMonastery === 'number' && spawn.kind === 'monastery') {
-        relicsInMonastery.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery));
-      }
-      if (spawn.allowOverlappingSpawn) {
-        overlapWhitelist.add(buildingId);
-      }
-      continue;
-    }
-
-    if (
-      spawn.kind === 'villager'
-      || spawn.kind === 'scout'
-      || spawn.kind === 'militia'
-      || spawn.kind === 'spearman'
-      || spawn.kind === 'archer'
-      || spawn.kind === 'skirmisher'
-      || spawn.kind === 'knight'
-      || spawn.kind === 'crossbowman'
-      || spawn.kind === 'pikeman'
-      || spawn.kind === 'light-cavalry'
-      || spawn.kind === 'camel'
-      || spawn.kind === 'cavalry-archer'
-      || spawn.kind === 'mangonel'
-      || spawn.kind === 'scorpion'
-      || spawn.kind === 'battering-ram'
-      || spawn.kind === 'monk'
-      || spawn.kind === 'longbowman'
-      || spawn.kind === 'arbalest'
-      || spawn.kind === 'halberdier'
-      || spawn.kind === 'hussar'
-      || spawn.kind === 'heavy-cavalry-archer'
-      || spawn.kind === 'cavalier'
-      || spawn.kind === 'champion'
-      || spawn.kind === 'elite-longbowman'
-      || spawn.kind === 'onager'
-      || spawn.kind === 'heavy-scorpion'
-      || spawn.kind === 'siege-ram'
-      || spawn.kind === 'bombard-cannon'
-      || spawn.kind === 'trebuchet'
-      // FU2: militia-line intermediate tiers + Paladin + Heavy Camel
-      // are spawnable directly from fixture specs.
-      || spawn.kind === 'man-at-arms'
-      || spawn.kind === 'long-swordsman'
-      || spawn.kind === 'two-handed-swordsman'
-      || spawn.kind === 'paladin'
-      || spawn.kind === 'heavy-camel'
-    ) {
-      const owner = spawn.owner ?? HUMAN_PLAYER_ID;
-      const spawnPosition = spawn.requiresSafeSpawn
-        ? findScenarioSpawnPosition({ x: spawn.x, y: spawn.y })
-        : { x: spawn.x, y: spawn.y };
-      if (!spawnPosition) {
-        throw new Error(`Expected a safe spawn position for initial ${spawn.kind} at ${spawn.x},${spawn.y}.`);
-      }
-
-      const unitId = addUnitEntity(owner, spawn.kind, spawnPosition, spawn.vision);
-      if (spawn.velocity) {
-        world.addComponent(unitId, 'velocity', spawn.velocity);
-      }
-      if (spawn.wanderBounds) {
-        world.addComponent(unitId, 'wanderBounds', spawn.wanderBounds);
-      }
-      // FU4: pre-damage a starting unit so the AI Monk-heal path fires
-      // on the first decision tick without needing a wildlife encounter
-      // to wound the unit first. Mirrors the building `startHp`
-      // pattern from Slice 6's siege fixtures.
-      if (typeof spawn.startHp === 'number') {
-        const combat = combatStates.get(unitId);
-        if (combat) {
-          combat.currentHp = Math.max(1, Math.min(combat.maxHp, spawn.startHp));
-        }
-      }
-      if (spawn.allowOverlappingSpawn) {
-        overlapWhitelist.add(unitId);
-      }
-      continue;
-    }
-
-    const resourceId = addResourceEntity(
-      spawn.kind,
-      { x: spawn.x, y: spawn.y },
-      spawn.amount ?? 0,
-      spawn.baseOwner,
-    );
-    if (spawn.allowOverlappingSpawn) {
-      overlapWhitelist.add(resourceId);
-    }
+    seedPlayerStarts({
+      world,
+      scenario,
+      tiles,
+      humanPlayerId: HUMAN_PLAYER_ID,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      standardStartingResources: STANDARD_STARTING_RESOURCES,
+      standardPopulationCap: STANDARD_POPULATION_CAP,
+      defaultDifficulty: DEFAULT_DIFFICULTY,
+      playerAges,
+      playerCivilizations,
+      researchedTechnologies,
+      playerResources,
+      population,
+      villagerOrdinals,
+      wonderCountdownOverrides,
+      relicCountdownOverrides,
+      buildingHealthStates,
+      combatStates,
+      relicsInMonastery,
+      ensureAiState,
+      addBuildingEntity,
+      addUnitEntity,
+      addResourceEntity,
+      findScenarioSpawnPosition: (origin) => findScenarioSpawnPosition(origin),
+      buildingOccupiesCell: (id, x, y) => buildingOccupiesCell(id, x, y),
+      isTerrainPassableForUnit: (x, y) => isTerrainPassableForUnit(x, y),
+      isCellBlockedByBuilding: (x, y) => isCellBlockedByBuilding(x, y),
+    });
+    seedTerrain({
+      world,
+      scenario,
+      tiles,
+      humanPlayerId: HUMAN_PLAYER_ID,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      standardStartingResources: STANDARD_STARTING_RESOURCES,
+      standardPopulationCap: STANDARD_POPULATION_CAP,
+      defaultDifficulty: DEFAULT_DIFFICULTY,
+      playerAges,
+      playerCivilizations,
+      researchedTechnologies,
+      playerResources,
+      population,
+      villagerOrdinals,
+      wonderCountdownOverrides,
+      relicCountdownOverrides,
+      buildingHealthStates,
+      combatStates,
+      relicsInMonastery,
+      ensureAiState,
+      addBuildingEntity,
+      addUnitEntity,
+      addResourceEntity,
+      findScenarioSpawnPosition: (origin) => findScenarioSpawnPosition(origin),
+      buildingOccupiesCell: (id, x, y) => buildingOccupiesCell(id, x, y),
+      isTerrainPassableForUnit: (x, y) => isTerrainPassableForUnit(x, y),
+      isCellBlockedByBuilding: (x, y) => isCellBlockedByBuilding(x, y),
+    });
+    seedScenarioEntities({
+      world,
+      scenario,
+      tiles,
+      humanPlayerId: HUMAN_PLAYER_ID,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      standardStartingResources: STANDARD_STARTING_RESOURCES,
+      standardPopulationCap: STANDARD_POPULATION_CAP,
+      defaultDifficulty: DEFAULT_DIFFICULTY,
+      playerAges,
+      playerCivilizations,
+      researchedTechnologies,
+      playerResources,
+      population,
+      villagerOrdinals,
+      wonderCountdownOverrides,
+      relicCountdownOverrides,
+      buildingHealthStates,
+      combatStates,
+      relicsInMonastery,
+      ensureAiState,
+      addBuildingEntity,
+      addUnitEntity,
+      addResourceEntity,
+      findScenarioSpawnPosition: (origin) => findScenarioSpawnPosition(origin),
+      buildingOccupiesCell: (id, x, y) => buildingOccupiesCell(id, x, y),
+      isTerrainPassableForUnit: (x, y) => isTerrainPassableForUnit(x, y),
+      isCellBlockedByBuilding: (x, y) => isCellBlockedByBuilding(x, y),
+    });
   }
 
-  updateSheepOwnership(world);
-
-  // Slice 12 Task B: validate that the scenario spawns produced a legal
-  // world. Each live building, unit, and resource must sit inside the
-  // map, on passable terrain, and not overlap another building's
-  // footprint. The scenario-spawn loop above has special-cased
-  // `requiresSafeSpawn` for units, but a badly-authored fixture can
-  // still wedge a unit directly on top of a building footprint or place
-  // two buildings so their footprints collide — this pass catches those
-  // cases at boot, before they produce an opaque downstream crash.
-  //
-  // Buildings: every footprint cell must be inside the map bounds and
-  // not overlap another building's footprint.
-  for (const buildingId of world.query('building', 'position')) {
-    const position = world.getComponent<Position>(buildingId, 'position');
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!position || !building) {
-      continue;
-    }
-    const footprint = buildingFootprint(building.buildingType);
-    for (let offsetY = 0; offsetY < footprint.height; offsetY += 1) {
-      for (let offsetX = 0; offsetX < footprint.width; offsetX += 1) {
-        const cellX = position.x + offsetX;
-        const cellY = position.y + offsetY;
-        if (cellX < 0 || cellX >= MAP_WIDTH || cellY < 0 || cellY >= MAP_HEIGHT) {
-          throw new Error(
-            `Scenario '${scenario.seed}': ${building.buildingType} anchored at (${position.x},${position.y}) extends past map bounds at cell (${cellX},${cellY}).`,
-          );
-        }
-        // Detect building-on-building overlap by finding any other
-        // building whose footprint also covers this cell. Skip when
-        // either side of the pair is marked `allowOverlappingSpawn`.
-        if (overlapWhitelist.has(buildingId)) {
-          continue;
-        }
-        for (const otherId of world.query('building', 'position')) {
-          if (otherId === buildingId || overlapWhitelist.has(otherId)) {
-            continue;
-          }
-          if (buildingOccupiesCell(otherId, cellX, cellY)) {
-            const otherBuilding = world.getComponent<BuildingComponent>(otherId, 'building');
-            throw new Error(
-              `Scenario '${scenario.seed}': ${building.buildingType} at (${position.x},${position.y}) overlaps ${otherBuilding?.buildingType ?? 'another building'} at cell (${cellX},${cellY}).`,
-            );
-          }
-        }
-      }
-    }
-  }
-
-  // Units: each unit's cell must be inside bounds, on passable terrain,
-  // and not on top of a building footprint. The scenario loop may have
-  // already relocated units with `requiresSafeSpawn`, so we read the
-  // unit's final `Position` here rather than the spawn spec.
-  for (const unitId of world.query('unit', 'position')) {
-    const position = world.getComponent<Position>(unitId, 'position');
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!position || !unit) {
-      continue;
-    }
-    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns outside map bounds at (${position.x},${position.y}).`,
-      );
-    }
-    if (!isTerrainPassableForUnit(position.x, position.y)) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns on impassable terrain at (${position.x},${position.y}).`,
-      );
-    }
-    if (overlapWhitelist.has(unitId)) {
-      continue;
-    }
-    if (isCellBlockedByBuilding(position.x, position.y)) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns inside a building footprint at (${position.x},${position.y}).`,
-      );
-    }
-  }
-
-  // Resources: cells must be inside bounds, on passable terrain (except
-  // shoreline fish which ride water — fish are not blocked by water),
-  // and not on a building footprint.
-  for (const resourceId of world.query('resource', 'position')) {
-    const position = world.getComponent<Position>(resourceId, 'position');
-    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    if (!position || !resource) {
-      continue;
-    }
-    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${resource.resourceType} resource spawns outside map bounds at (${position.x},${position.y}).`,
-      );
-    }
-    if (overlapWhitelist.has(resourceId)) {
-      continue;
-    }
-    if (isCellBlockedByBuilding(position.x, position.y)) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${resource.resourceType} resource at (${position.x},${position.y}) overlaps a building footprint.`,
-      );
-    }
-  }
-
-  // Resource-on-resource overlaps: no two resource entities may share a
-  // cell. This matches the building-on-building pass above. The
-  // overlapWhitelist escape hatch still applies for fixtures that
-  // deliberately stack resources (none today, but the opt-out stays
-  // consistent across kinds).
-  const resourceByCell = new Map<string, { id: number; kind: string }>();
-  for (const resourceId of world.query('resource', 'position')) {
-    if (overlapWhitelist.has(resourceId)) {
-      continue;
-    }
-    const position = world.getComponent<Position>(resourceId, 'position');
-    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    if (!position || !resource) {
-      continue;
-    }
-    const key = `${position.x},${position.y}`;
-    const existing = resourceByCell.get(key);
-    if (existing) {
-      throw new Error(
-        `Scenario '${scenario.seed}': ${resource.resourceType} resource at (${position.x},${position.y}) overlaps ${existing.kind} at the same cell.`,
-      );
-    }
-    resourceByCell.set(key, { id: resourceId, kind: resource.resourceType });
-  }
-  } // end if (!savedGame) — fresh-start entity spawn
-
-  // Slice 9: when loading from a save blob, hydrate every side map
-  // declared at the top of `createWorld` from the snapshot. Entity
-  // ids match the deserialized world's ids (because deserialize
-  // preserves them), so every `EntityRef` is rebuilt via
-  // `world.getEntityRef(id)` — that lookup returns null for entities
-  // that were destroyed in the saved game, so the load path filters
-  // those entries out (their referent no longer exists, and any system
-  // that consumed the side map would also have dropped them).
   if (savedGame) {
-    const blob = savedGame.sideMaps;
-    const refFromSerialized = (s: { id: number; generation: number }): EntityRef | null => {
-      const ref = world.getEntityRef(s.id);
-      // Even if the id is alive, the generation must match exactly
-      // — otherwise the entity has been destroyed and recycled to a
-      // different live instance, and the saved ref must not resolve.
-      if (!ref || ref.generation !== s.generation) {
-        return null;
-      }
-      return ref;
-    };
-
-    for (const [k, v] of blob.trackedVisibilitySources) {
-      trackedVisibilitySources.set(k, v);
-    }
-    for (const [owner, age] of blob.playerAges) {
-      playerAges.set(owner, age as AgeType);
-    }
-    for (const [owner, civ] of blob.playerCivilizations) {
-      playerCivilizations.set(owner, civ);
-    }
-    for (const [owner, techs] of blob.researchedTechnologies) {
-      researchedTechnologies.set(owner, new Set(techs as ResearchableTechnologyType[]));
-    }
-    for (const [owner, res] of blob.playerResources) {
-      playerResources.set(owner, { ...res });
-    }
-    marketExchangeRates.food = blob.marketExchangeRates.food;
-    marketExchangeRates.wood = blob.marketExchangeRates.wood;
-    marketExchangeRates.stone = blob.marketExchangeRates.stone;
-    for (const [owner, pop] of blob.population) {
-      population.set(owner, { ...pop });
-    }
-    for (const [owner, refData] of blob.townCenterRefs) {
-      const ref = refFromSerialized(refData);
-      if (ref) townCenterRefs.set(owner, ref);
-    }
-    for (const [owner, ord] of blob.villagerOrdinals) {
-      villagerOrdinals.set(owner, ord);
-    }
-    for (const [id, cmd] of blob.unitCommands) {
-      const restored: UnitCommand = {
-        type: cmd.type,
-        target: { x: cmd.target.x, y: cmd.target.y },
-      };
-      if (cmd.targetEntityKind) {
-        restored.targetEntityKind = cmd.targetEntityKind;
-      }
-      if (cmd.targetEntityRef) {
-        const ref = refFromSerialized(cmd.targetEntityRef);
-        if (ref) restored.targetEntityRef = ref;
-      }
-      if (cmd.buildingRef) {
-        const ref = refFromSerialized(cmd.buildingRef);
-        if (ref) restored.buildingRef = ref;
-      }
-      setUnitCommand(id, restored);
-    }
-    for (const [id, pos] of blob.sheepMoveOrders) {
-      sheepMoveOrders.set(id, { x: pos.x, y: pos.y });
-    }
-    for (const [id, pos] of blob.rallyPoints) {
-      rallyPoints.set(id, { x: pos.x, y: pos.y });
-    }
-    for (const [id, task] of blob.monkTasks) {
-      const ref = refFromSerialized(task.targetEntityRef);
-      if (ref) monkTasks.set(id, { kind: task.kind, targetEntityRef: ref });
-    }
-    for (const [id, state] of blob.conversionState) {
-      conversionState.set(id, { byOwner: state.byOwner, progress: state.progress });
-    }
-    for (const [id, relicId] of blob.monkCarriedRelic) {
-      monkCarriedRelic.set(id, relicId);
-    }
-    for (const [id, count] of blob.monkHealCounters) {
-      monkHealCounters.set(id, count);
-    }
-    for (const [id, count] of blob.relicsInMonastery) {
-      relicsInMonastery.set(id, count);
-    }
-    for (const [id, entry] of blob.wonderCountdowns) {
-      wonderCountdowns.set(id, {
-        remainingTicks: entry.remainingTicks,
-        totalTicks: entry.totalTicks,
-        // FU7: tolerate older saves that lacked `lastCompletedTick` —
-        // mid-flight countdowns default back to null.
-        lastCompletedTick: entry.lastCompletedTick ?? null,
-      });
-    }
-    for (const [owner, ticks] of blob.wonderCountdownOverrides) {
-      wonderCountdownOverrides.set(owner, ticks);
-    }
-    for (const [owner, entry] of blob.relicCountdowns) {
-      relicCountdowns.set(owner, {
-        remainingTicks: entry.remainingTicks,
-        totalTicks: entry.totalTicks,
-        lastCompletedTick: entry.lastCompletedTick ?? null,
-      });
-    }
-    for (const [owner, ticks] of blob.relicCountdownOverrides) {
-      relicCountdownOverrides.set(owner, ticks);
-    }
-    for (const [owner, counters] of blob.playerScoreCounters) {
-      // FU7: back-fill `unitsKilled` for saves written before the field
-      // existed (schema-tolerant hydrate of an optional-looking field).
-      // Older saves implicitly have zero kills.
-      playerScoreCounters.set(owner, {
-        unitsProduced: counters.unitsProduced,
-        buildingsProduced: counters.buildingsProduced,
-        resourcesGathered: counters.resourcesGathered,
-        unitsKilled: counters.unitsKilled ?? 0,
-        wonderCompleted: counters.wonderCompleted,
-      });
-    }
-    // FU7: hydrate Trebuchet pack states. Absent-on-old-save is fine —
-    // the trebuchets will be treated as packed by the init path below
-    // when a scenario is fresh; on save/load we replay whatever the
-    // blob stored.
-    for (const [id, state] of blob.trebuchetPackStates ?? []) {
-      trebuchetPackStates.set(id, {
-        packed: state.packed,
-        transitionTicksRemaining: state.transitionTicksRemaining,
-      });
-    }
-    for (const [playerId, innerEntries] of blob.lastSeenStatic) {
-      const inner = new Map<number, MemoryEntry>();
-      for (const [entityId, entry] of innerEntries) {
-        inner.set(entityId, {
-          kind: entry.kind,
-          entityType: entry.entityType as MemoryEntry['entityType'],
-          position: { x: entry.position.x, y: entry.position.y },
-          footprintWidth: entry.footprintWidth,
-          footprintHeight: entry.footprintHeight,
-          tint: entry.tint,
-          owner: entry.owner,
-          size: entry.size,
-          visualVariant: entry.visualVariant as MemoryEntry['visualVariant'],
-          lastSeenTick: entry.lastSeenTick,
-        });
-      }
-      lastSeenStatic.set(playerId, inner);
-    }
-    for (const [id, list] of blob.garrisonedByBuilding) {
-      garrisonedByBuilding.set(id, [...list]);
-    }
-    for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
-      garrisonedUnitToBuilding.set(id, buildingId);
-    }
-    for (const [id, src] of blob.garrisonedUnitVisionSources) {
-      garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
-    }
-    // Review H-3: every entry in `garrisonedByBuilding[b] = [...units]`
-    // must mirror `garrisonedUnitToBuilding[u] === b` and vice versa. A
-    // partial or drifted blob (corruption, schema drift, incomplete
-    // export) would otherwise boot the bridge into a silently inconsistent
-    // state. Throw with the same `Save schema mismatch:`-style descriptive
-    // shape the existing schema-version guard uses.
-    for (const [buildingId, list] of garrisonedByBuilding) {
-      for (const unitId of list) {
-        const reverse = garrisonedUnitToBuilding.get(unitId);
-        if (reverse !== buildingId) {
-          throw new Error(
-            `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (garrisonedUnitToBuilding=${reverse ?? 'absent'}).`,
-          );
-        }
-      }
-    }
-    for (const [unitId, buildingId] of garrisonedUnitToBuilding) {
-      const list = garrisonedByBuilding.get(buildingId);
-      if (!list || !list.includes(unitId)) {
-        throw new Error(
-          `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (not present in garrisonedByBuilding).`,
-        );
-      }
-    }
-    for (const [id, queue] of blob.productionQueues) {
-      productionQueues.set(
-        id,
-        queue.map((entry) => ({
-          kind: entry.kind,
-          label: entry.label,
-          ...(entry.unitType !== undefined ? { unitType: entry.unitType as TrainableUnitType } : {}),
-          ...(entry.technologyType !== undefined
-            ? { technologyType: entry.technologyType as ResearchableTechnologyType }
-            : {}),
-          remainingTicks: entry.remainingTicks,
-          totalTicks: entry.totalTicks,
-          isBlocked: entry.isBlocked,
-        })),
-      );
-    }
-    // Iter-3 V3-6: rebuild inFlightTechByOwner from the loaded
-    // production queues — it's derivable cache, not authoritative
-    // state, so we don't store it in the blob.
-    for (const [buildingId, queue] of productionQueues.entries()) {
-      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-      if (!building) {
-        continue;
-      }
-      for (const entry of queue) {
-        if (entry.kind === 'technology' && entry.technologyType) {
-          inFlightTechSetFor(building.owner).add(entry.technologyType);
-        }
-      }
-    }
-    for (const [id, state] of blob.constructionStates) {
-      constructionStates.set(id, { ...state });
-    }
-    for (const [id, state] of blob.combatStates) {
-      combatStates.set(id, { ...state });
-    }
-    for (const [id, state] of blob.buildingHealthStates) {
-      buildingHealthStates.set(id, { ...state });
-    }
-    for (const [id, state] of blob.buildingCombatStates) {
-      buildingCombatStates.set(id, { ...state });
-    }
-    for (const [owner, state] of blob.aiStates ?? []) {
-      aiStates.set(owner, {
-        difficulty: state.difficulty,
-        plan: state.plan as AiPlan,
-        villagerTargets: { ...state.villagerTargets },
-        attackGroup: [...state.attackGroup],
-        lastDecisionTick: state.lastDecisionTick,
-        lastEnemySightingTick: state.lastEnemySightingTick,
-        lastEnemySightingPosition: state.lastEnemySightingPosition
-          ? { x: state.lastEnemySightingPosition.x, y: state.lastEnemySightingPosition.y }
-          : null,
-      });
-    }
-    for (const [id, state] of blob.wildlifeStates) {
-      const ref = state.targetEntityRef ? refFromSerialized(state.targetEntityRef) : null;
-      wildlifeStates.set(id, {
-        currentHp: state.currentHp,
-        maxHp: state.maxHp,
-        attackDamage: state.attackDamage,
-        attackRange: state.attackRange,
-        reloadTicks: state.reloadTicks,
-        cooldownTicks: state.cooldownTicks,
-        armor: state.armor,
-        autoAggro: state.autoAggro,
-        isAlive: state.isAlive,
-        corpsePersists: state.corpsePersists,
-        aggroRange: state.aggroRange,
-        targetEntityRef: ref,
-      });
-    }
-
-    matchState.outcome = savedGame.matchState.outcome;
-    matchState.summary = savedGame.matchState.summary;
-    matchState.winCondition = savedGame.matchState.winCondition;
-    matchState.scores = savedGame.matchState.scores
-      ? { ...savedGame.matchState.scores }
-      : null;
-    matchState.wonderCountdownTicks = savedGame.matchState.wonderCountdownTicks;
-    matchState.relicCountdownTicks = savedGame.matchState.relicCountdownTicks;
-
-    // Iter-3 V3-8: post-load entity-id key validation. Iter-1 H-3
-    // closed this gap for the garrison cross-reference; this widens
-    // the invariant to every entity-id-keyed side map. Orphans (keys
-    // that don't resolve via world.getEntityRef) are silently
-    // dropped — consumer code already guards against null components,
-    // so the orphans were functionally harmless, but a partially
-    // corrupt blob no longer leaks ghost state into the live world.
-    const pruneOrphanEntityKeys = (sideMap: Map<number, unknown>): void => {
-      for (const id of [...sideMap.keys()]) {
-        if (!world.getEntityRef(id)) {
-          sideMap.delete(id);
-        }
-      }
-    };
-    pruneOrphanEntityKeys(unitCommands);
-    pruneOrphanEntityKeys(sheepMoveOrders);
-    pruneOrphanEntityKeys(rallyPoints);
-    pruneOrphanEntityKeys(monkTasks);
-    pruneOrphanEntityKeys(conversionState);
-    pruneOrphanEntityKeys(monkCarriedRelic);
-    pruneOrphanEntityKeys(monkHealCounters);
-    pruneOrphanEntityKeys(relicsInMonastery);
-    pruneOrphanEntityKeys(wonderCountdowns);
-    pruneOrphanEntityKeys(trebuchetPackStates);
-    pruneOrphanEntityKeys(productionQueues);
-    pruneOrphanEntityKeys(constructionStates);
-    pruneOrphanEntityKeys(combatStates);
-    pruneOrphanEntityKeys(buildingHealthStates);
-    pruneOrphanEntityKeys(buildingCombatStates);
-    pruneOrphanEntityKeys(wildlifeStates);
-    pruneOrphanEntityKeys(garrisonedUnitVisionSources);
-    // garrisonedByBuilding is keyed by building id; garrisonedUnitToBuilding
-    // is keyed by unit id. Both need entity-id validation.
-    pruneOrphanEntityKeys(garrisonedByBuilding);
-    pruneOrphanEntityKeys(garrisonedUnitToBuilding);
+    hydrateFromSavedGame({
+      world,
+      savedGame,
+      matchState,
+      trackedVisibilitySources,
+      playerAges,
+      playerCivilizations,
+      researchedTechnologies,
+      playerResources,
+      marketExchangeRates,
+      population,
+      townCenterRefs,
+      villagerOrdinals,
+      unitCommands,
+      sheepMoveOrders,
+      rallyPoints,
+      monkTasks,
+      conversionState,
+      monkCarriedRelic,
+      monkHealCounters,
+      relicsInMonastery,
+      wonderCountdowns,
+      wonderCountdownOverrides,
+      relicCountdowns,
+      relicCountdownOverrides,
+      playerScoreCounters,
+      trebuchetPackStates,
+      lastSeenStatic,
+      garrisonedByBuilding,
+      garrisonedUnitToBuilding,
+      garrisonedUnitVisionSources,
+      productionQueues,
+      constructionStates,
+      combatStates,
+      buildingHealthStates,
+      buildingCombatStates,
+      wildlifeStates,
+      aiStates,
+      setUnitCommand,
+      inFlightTechSetFor,
+    });
   }
 
   isBootstrappingScenario = false;
