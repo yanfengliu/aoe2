@@ -52,6 +52,7 @@ import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
+import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createPlayerQueries } from './bridge/playerQueries';
@@ -114,16 +115,9 @@ import {
 } from './prototypeEconomyRules';
 import {
   createWildlifeState,
-  isArcherLineUnit,
-  isCavalryUnit,
-  isGunpowderUnit,
-  isInfantryUnit,
-  isMeleeUnit,
   isWildlifeResourceType,
   unitAttackDamage,
   unitAttackRange,
-  unitMaxHp,
-  unitReloadTicks,
   unitSize,
   unitTint,
 } from './prototypeUnitRules';
@@ -977,87 +971,9 @@ function createWorld(
     researchedTechnologies,
   });
 
-  function createCombatState(owner: number, unitType: UnitType): CombatState {
-    const state: CombatState = {
-      currentHp: unitMaxHp(unitType),
-      maxHp: unitMaxHp(unitType),
-      attackDamage: unitAttackDamage(unitType),
-      attackRange: unitAttackRange(unitType),
-      reloadTicks: unitReloadTicks(unitType),
-      cooldownTicks: 0,
-      armor: 0,
-    };
-
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'fletching')) {
-      state.attackDamage += 1;
-      state.attackRange += 1;
-    }
-    // FU1: Castle archer-line attack/range tech. Stacks on top of Fletching.
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'bodkin-arrow')) {
-      state.attackDamage += 1;
-      state.attackRange += 1;
-    }
-
-    // Slice 7E Blacksmith Imperial tier. Each tech stacks independently on
-    // top of the base stats so a player who has researched Fletching + Bracer
-    // sees +2 atk / +2 range on any archer-line unit (newly trained or
-    // mutated by an Imperial upgrade).
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'bracer')) {
-      state.attackDamage += 1;
-      state.attackRange += 1;
-    }
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'blast-furnace')) {
-      state.attackDamage += 2;
-    }
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'plate-mail-armor')) {
-      state.armor += 1;
-    }
-    if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
-      state.armor += 1;
-    }
-
-    // FU1: Feudal melee attack tech. Stacks with Iron Casting + Blast Furnace.
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'forging')) {
-      state.attackDamage += 1;
-    }
-    // FU1: Castle melee attack tech. Stacks with Forging + Blast Furnace.
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'iron-casting')) {
-      state.attackDamage += 1;
-    }
-    // FU1: Feudal / Castle infantry armor chain.
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'scale-mail-armor')) {
-      state.armor += 1;
-    }
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'chain-mail-armor')) {
-      state.armor += 1;
-    }
-    // FU1: Feudal / Castle cavalry armor chain.
-    if (isCavalryUnit(unitType) && hasTechnology(owner, 'scale-barding-armor')) {
-      state.armor += 1;
-    }
-    if (isCavalryUnit(unitType) && hasTechnology(owner, 'chain-barding-armor')) {
-      state.armor += 1;
-    }
-    // FU1: Feudal / Castle / Imperial archer armor chain.
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'padded-archer-armor')) {
-      state.armor += 1;
-    }
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'leather-archer-armor')) {
-      state.armor += 1;
-    }
-    if (isArcherLineUnit(unitType) && hasTechnology(owner, 'ring-archer-armor')) {
-      state.armor += 1;
-    }
-    // FU1: Chemistry grants +1 attack to archer-line and gunpowder units.
-    if (
-      (isArcherLineUnit(unitType) || isGunpowderUnit(unitType))
-      && hasTechnology(owner, 'chemistry')
-    ) {
-      state.attackDamage += 1;
-    }
-
-    return state;
-  }
+  // Combat state factory lives in `bridge/combatStateFactory`. Closes over
+  // `hasTechnology` so per-tech stat stacking stays in one place.
+  const createCombatState = createCombatStateFactory({ hasTechnology });
 
   function syncOccupancyForEntity(
     entity: number,
