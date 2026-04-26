@@ -56,6 +56,7 @@ import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
+import { createUnitCommandOps } from './bridge/unitCommandOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createPlayerQueries } from './bridge/playerQueries';
@@ -93,7 +94,6 @@ import {
   buildingBuildTimeTicks,
   buildingGarrisonCapacity,
   buildingPopulationProvided,
-  canGarrisonAt,
 } from './prototypeBuildingRules';
 import { resourceKindToEconomyResource } from './prototypeEconomyRules';
 import {
@@ -2009,103 +2009,10 @@ function createWorld(
   });
 
 
-  function issueUnitMoveCommand(unitId: number, target: Position): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!unit) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    // A move order is a true override: cancel any active Monk task so the
-    // Monk-behavior system does not pull the Monk back to a stale heal /
-    // convert / pickup / deposit target on the next tick.
-    monkTasks.delete(unitId);
-    setUnitCommand(unitId, {
-      type: 'move',
-      target: {
-        x: clamp(target.x, 0, MAP_WIDTH - 1),
-        y: clamp(target.y, 0, MAP_HEIGHT - 1),
-      },
-    });
-    return true;
-  }
-
-  function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
-    const resource = world.getComponent<ResourceComponent>(sheepId, 'resource');
-    if (
-      !resource
-      || resource.resourceType !== 'sheep'
-      || resource.owner !== HUMAN_PLAYER_ID
-      || resource.amount <= 0
-    ) {
-      return false;
-    }
-
-    sheepMoveOrders.set(sheepId, {
-      x: clamp(target.x, 0, MAP_WIDTH - 1),
-      y: clamp(target.y, 0, MAP_HEIGHT - 1),
-    });
-    return true;
-  }
-
-  function getSelectedOwnedSheepIds(): number[] {
-    return getSelectedEntityIds().filter((id) => {
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      return (
-        resource !== undefined
-        && resource.resourceType === 'sheep'
-        && resource.owner === HUMAN_PLAYER_ID
-        && resource.amount > 0
-      );
-    });
-  }
-
-  function issueUnitAttackCommand(
-    unitId: number,
-    targetEntityId: number,
-    targetEntityKind: 'unit' | 'building' | 'resource',
-  ): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || !targetPosition) {
-      return false;
-    }
-
-    if (targetEntityKind === 'unit') {
-      const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
-      if (!targetUnit || targetUnit.owner === unit.owner) {
-        return false;
-      }
-    } else if (targetEntityKind === 'building') {
-      const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
-      if (!targetBuilding || targetBuilding.owner === unit.owner) {
-        return false;
-      }
-    } else {
-      const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-      const wildlife = wildlifeStates.get(targetEntityId);
-      if (!targetResource || !wildlife || !wildlife.isAlive) {
-        return false;
-      }
-    }
-
-    const targetEntityRef = getEntityRef(targetEntityId);
-    if (!targetEntityRef) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    setUnitCommand(unitId, {
-      type: 'attack',
-      target: {
-        x: targetPosition.x,
-        y: targetPosition.y,
-      },
-      targetEntityRef,
-      targetEntityKind,
-    });
-    return true;
-  }
+  // issueUnitMoveCommand / issueSheepMoveCommand / getSelectedOwnedSheepIds
+  // / issueUnitAttackCommand moved to `bridge/unitCommandOps`. The factory
+  // is invoked below after monkOps + trainingMarketOps + targetFindingOps
+  // expose their own ops.
 
   // Training / research / market / construction / garrison ops live in
   // `bridge/trainingMarketOps`. Selection-clearing on garrison is provided
@@ -2321,7 +2228,7 @@ function createWorld(
     getEntityRef,
     destroyResourceEntity,
     buildingOccupiesCell,
-    issueUnitMoveCommand,
+    issueUnitMoveCommand: (unitId, target) => issueUnitMoveCommand(unitId, target),
     isAiMilitaryUnit,
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
     currentEntityId,
@@ -2342,6 +2249,56 @@ function createWorld(
     findMonkContextTargetAtCell,
     issueMonkContextCommandAtEntity,
   } = monkOps;
+
+  // Per-unit command issuance + selectEntity{AtCell,ById}/clearSelection
+  // live in `bridge/unitCommandOps`. These are the lower-level helpers
+  // both the human-input surface and the AI call into. Wired here because
+  // the factory's deps (monkOps, trainingMarketOps, targetFindingOps) are
+  // all destructured above.
+  const {
+    issueUnitMoveCommand,
+    issueSheepMoveCommand,
+    getSelectedOwnedSheepIds,
+    issueUnitAttackCommand,
+    getSelectedHumanUnitIds,
+    getSelectedHumanVillagerIds,
+    issueUnitContextCommand,
+    issueUnitContextCommandAtEntity,
+    selectEntityAtCell,
+    selectEntityById,
+    clearSelection,
+  } = createUnitCommandOps({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    selection,
+    placementMode,
+    sheepMoveOrders,
+    monkTasks,
+    wildlifeStates,
+    constructionStates,
+    isMatchRunning,
+    isEntityVisibleToHuman: (id) => isEntityVisibleToHuman(id),
+    getSelectedEntityIds: () => getSelectedEntityIds(),
+    getSelectableEntitiesAtCell: (x, y) => getSelectableEntitiesAtCell(x, y),
+    findResourceAtCell: (x, y) => findResourceAtCell(x, y),
+    findOwnedGarrisonBuildingAtCell: (x, y, owner, unitType) =>
+      findOwnedGarrisonBuildingAtCell(x, y, owner, unitType),
+    findHostileUnitAtCell: (x, y, owner) => findHostileUnitAtCell(x, y, owner),
+    findHostileBuildingAtCell: (x, y, owner) => findHostileBuildingAtCell(x, y, owner),
+    findHostileWildlifeAtCell: (x, y) => findHostileWildlifeAtCell(x, y),
+    findMonkContextTargetAtCell,
+    issueMonkContextCommandAtEntity,
+    clearMonkTask,
+    garrisonUnit,
+    isHarvestableResource,
+    findNearestDropOffBuilding,
+    clearGathererOrder,
+    clearUnitCommand,
+    setUnitCommand,
+    getEntityRef,
+  });
 
   registerAiSystem({
     world,
@@ -2600,217 +2557,11 @@ function createWorld(
   syncVisibilitySources(world, visibility, trackedVisibilitySources);
 
 
-  function getSelectedHumanUnitIds(): number[] {
-    return getSelectedEntityIds().filter((id) => {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit?.owner === HUMAN_PLAYER_ID;
-    });
-  }
-
-  function getSelectedHumanVillagerIds(): number[] {
-    return getSelectedHumanUnitIds().filter((id) => {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit?.unitType === 'villager';
-    });
-  }
-
-  function issueUnitContextCommand(unitId: number, target: Position): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID) {
-      return false;
-    }
-
-    // Monks: resolve cell targets into heal/convert/pickup/deposit by
-    // inspecting what lives at that cell. Falls back to a plain move.
-    // When the fallback fires we also drop any lingering monkTasks entry
-    // so the Monk-behavior system doesn't immediately pull the Monk back
-    // toward a previous heal / convert / pickup / deposit target.
-    if (unit.unitType === 'monk') {
-      const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
-      if (monkTargetEntityId !== null) {
-        const monkTargetPosition = world.getComponent<Position>(monkTargetEntityId, 'position');
-        if (monkTargetPosition) {
-          return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
-        }
-      }
-      clearMonkTask(unitId);
-      return issueUnitMoveCommand(unitId, target);
-    }
-
-    const resourceId =
-      unit.unitType === 'villager'
-        ? findResourceAtCell(target.x, target.y)
-        : null;
-    const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType);
-    const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
-    const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
-    const hostileWildlifeId = findHostileWildlifeAtCell(target.x, target.y);
-
-    if (ownedGarrisonBuildingId !== null) {
-      return garrisonUnit(unitId, ownedGarrisonBuildingId);
-    }
-
-    if (hostileUnitId !== null) {
-      return issueUnitAttackCommand(unitId, hostileUnitId, 'unit');
-    }
-
-    if (hostileBuildingId !== null) {
-      return issueUnitAttackCommand(unitId, hostileBuildingId, 'building');
-    }
-
-    if (hostileWildlifeId !== null) {
-      return issueUnitAttackCommand(unitId, hostileWildlifeId, 'resource');
-    }
-
-    if (resourceId === null) {
-      return issueUnitMoveCommand(unitId, target);
-    }
-
-    if (!issueUnitGatherCommand(unitId, resourceId)) {
-      return issueUnitMoveCommand(unitId, target);
-    }
-
-    return true;
-  }
-
-  function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
-    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    const targetPosition = world.getComponent<Position>(resourceId, 'position');
-    if (!unit || !gatherer || !resource || !targetPosition) {
-      return false;
-    }
-
-    const economyResource = resourceKindToEconomyResource(resource.resourceType);
-    if (economyResource === null || !isHarvestableResource(resourceId, resource)) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    gatherer.hasExplicitGatherOrder = true;
-    clearUnitCommand(unitId);
-    gatherer.desiredResource = economyResource;
-    gatherer.task = 'to-resource';
-    gatherer.targetResourceId = resourceId;
-    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
-      world,
-      unit.owner,
-      economyResource,
-      targetPosition,
-    );
-    gatherer.gatherProgressTicks = 0;
-    return true;
-  }
-
-  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || unit.owner !== HUMAN_PLAYER_ID || !targetPosition) {
-      return false;
-    }
-
-    // Monks never enter the attack-command flow. Their context command routes
-    // to heal (friendly wounded unit), convert (enemy unit), pickup (neutral
-    // relic), or deposit (friendly Monastery). Anything that doesn't match
-    // one of those falls back to a plain move order.
-    if (unit.unitType === 'monk') {
-      return issueMonkContextCommandAtEntity(unitId, targetEntityId, unit, targetPosition);
-    }
-
-    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
-    if (targetUnit && targetUnit.owner !== unit.owner) {
-      return issueUnitAttackCommand(unitId, targetEntityId, 'unit');
-    }
-
-    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
-    if (targetBuilding) {
-      if (targetBuilding.owner !== unit.owner) {
-        return issueUnitAttackCommand(unitId, targetEntityId, 'building');
-      }
-
-      const construction = constructionStates.get(targetEntityId);
-      if (
-        canGarrisonAt(targetBuilding.buildingType, unit.unitType)
-        && (!construction || construction.isComplete)
-      ) {
-        return garrisonUnit(unitId, targetEntityId);
-      }
-    }
-
-    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-    const wildlife = wildlifeStates.get(targetEntityId);
-    if (targetResource && wildlife?.isAlive) {
-      return issueUnitAttackCommand(unitId, targetEntityId, 'resource');
-    }
-
-    if (unit.unitType === 'villager' && issueUnitGatherCommand(unitId, targetEntityId)) {
-      return true;
-    }
-
-    return issueUnitMoveCommand(unitId, targetPosition);
-  }
-
-  function selectEntityAtCell(x: number, y: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectableEntities = getSelectableEntitiesAtCell(x, y);
-    const currentSelectionIds = getSelectedEntityIds();
-    const currentSelectionId = currentSelectionIds.length === 1 ? currentSelectionIds[0] : null;
-    const lastClickedSameCell =
-      selection.focusCell !== null
-      && selection.focusCell.x === x
-      && selection.focusCell.y === y;
-    let nextSelection = selectableEntities[0]?.id ?? null;
-
-    if (lastClickedSameCell && currentSelectionId !== null && selectableEntities.length > 1) {
-      const currentIndex = selectableEntities.findIndex((candidate) => candidate.id === currentSelectionId);
-      if (currentIndex >= 0) {
-        nextSelection = selectableEntities[(currentIndex + 1) % selectableEntities.length]?.id ?? null;
-      }
-    }
-
-    selection.refs =
-      nextSelection === null
-        ? []
-        : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
-    if (nextSelection === null) {
-      selection.focusCell = null;
-      placementMode.current = null;
-      return false;
-    }
-
-    selection.focusCell = { x, y };
-    placementMode.current = null;
-    return selection.refs.length > 0;
-  }
-
-  function selectEntityById(id: number): boolean {
-    if (!isMatchRunning() || !isEntityVisibleToHuman(id)) {
-      return false;
-    }
-
-    const entityRef = getEntityRef(id);
-    if (!entityRef) {
-      return false;
-    }
-
-    selection.refs = [entityRef];
-    // Exact world-position selection owns its repeat-click memory in GameScene.
-    // Keep the bridge's cell-cycle anchor empty so any later legacy/test-only
-    // `selectEntityAtCell(...)` call is treated as a fresh tile click.
-    selection.focusCell = null;
-    placementMode.current = null;
-    return true;
-  }
-
-  function clearSelection(): void {
-    selection.refs = [];
-    selection.focusCell = null;
-    placementMode.current = null;
-  }
+  // getSelectedHumanUnitIds / getSelectedHumanVillagerIds /
+  // issueUnitContextCommand / issueUnitGatherCommand /
+  // issueUnitContextCommandAtEntity / selectEntityAtCell / selectEntityById
+  // / clearSelection moved to `bridge/unitCommandOps` (see factory call
+  // above the AI system registration).
 
   // Human-input command surface (issueMoveCommand / issueContextCommand /
   // issueContextCommandAtEntityInternal / queueTrainUnit / queueResearch /
