@@ -102,8 +102,8 @@ export interface RegisterAllSystemsDeps {
   advanceTrebuchetTransition: (id: number) => boolean;
   isTrebuchetStationary: (id: number) => boolean;
   isTrebuchetSilent: (id: number) => boolean;
-  beginTrebuchetUnpack: (id: number) => boolean;
-  beginTrebuchetPack: (id: number) => boolean;
+  beginTrebuchetUnpack: (id: number) => void;
+  beginTrebuchetPack: (id: number) => void;
   findUnitRangePlan: (
     unitId: number,
     target: Position,

@@ -19,6 +19,16 @@ import { createPlacementOps } from './placementOps';
 import { createSaveGameOps } from './saveGameOps';
 import { createEconomyStateOps } from './economyStateOps';
 import { registerAllSystems } from './registerAllSystems';
+import type { PlayerQueries } from './playerQueries';
+import type { AiDecisionOps } from './aiDecisionOps';
+import type { TargetFindingOps } from './targetFindingOps';
+import type { TrebuchetStateOps } from './trebuchetState';
+import type { MovementPlanOps } from './movementPlanOps';
+import type { EntityDestroyOps } from './entityDestroyOps';
+import type { EntityCreateOps } from './entityCreateOps';
+import type { MonkTaskOps } from './monkTaskOps';
+import type { TransformOps } from './transformOps';
+import type { MatchEndOps } from './matchEndOps';
 import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import { RELIC_COUNTDOWN_TICKS } from './bridgeConstants';
 
@@ -41,18 +51,16 @@ export interface RegisterBridgeSystemsDeps {
   getSeed: () => string;
   getUnitTaskState: (id: number) => UnitTaskState;
   // Pre-built factory results spread into registerAllSystems
-  playerQueries: object;
-  aiDecisionOps: object & { isAiMilitaryUnit: RegisterAllSystemsArg['isAiMilitaryUnit'] };
-  targetFindingOps: object & {
-    findNearestDropOffBuilding: RegisterAllSystemsArg['findNearestDropOffBuilding'];
-  };
-  trebuchetStateOps: object;
-  movementPlanOps: object;
-  entityDestroyOps: object;
-  entityCreateOps: object;
-  monkOps: object;
-  transformOps: object;
-  matchEndOps: object;
+  playerQueries: PlayerQueries;
+  aiDecisionOps: AiDecisionOps;
+  targetFindingOps: TargetFindingOps;
+  trebuchetStateOps: TrebuchetStateOps;
+  movementPlanOps: MovementPlanOps;
+  entityDestroyOps: EntityDestroyOps;
+  entityCreateOps: EntityCreateOps;
+  monkOps: MonkTaskOps;
+  transformOps: TransformOps;
+  matchEndOps: MatchEndOps;
   // Direct values
   startConstruction: (
     builderId: number,
@@ -168,16 +176,16 @@ export function registerBridgeSystems(
   // the bulk of the fields; explicit fields below cover anything not
   // in a spread (constants, raw helpers).
   registerAllSystems({
-    ...(playerQueries as RegisterAllSystemsArg),
-    ...(aiDecisionOps as RegisterAllSystemsArg),
-    ...(targetFindingOps as RegisterAllSystemsArg),
-    ...(trebuchetStateOps as RegisterAllSystemsArg),
-    ...(movementPlanOps as RegisterAllSystemsArg),
-    ...(entityDestroyOps as RegisterAllSystemsArg),
-    ...(entityCreateOps as RegisterAllSystemsArg),
-    ...(monkOps as RegisterAllSystemsArg),
-    ...(transformOps as RegisterAllSystemsArg),
-    ...(matchEndOps as RegisterAllSystemsArg),
+    ...playerQueries,
+    ...aiDecisionOps,
+    ...targetFindingOps,
+    ...trebuchetStateOps,
+    ...movementPlanOps,
+    ...entityDestroyOps,
+    ...entityCreateOps,
+    ...monkOps,
+    ...transformOps,
+    ...matchEndOps,
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
