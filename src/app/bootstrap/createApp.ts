@@ -17,7 +17,17 @@ export function createApp(): Phaser.Game {
     throw new Error('Expected #game-root and #hud-root to exist.');
   }
 
-  const seed = new URL(window.location.href).searchParams.get('seed')?.trim() || undefined;
+  // Iter-3 V3-22: distinguish "param absent" (use DEFAULT_SEED) from
+  // "param explicitly empty / whitespace" (warn + still fall through).
+  // The previous expression collapsed both to undefined silently, so a
+  // user typing `?seed=` to "reset" got the same canonical fixture map
+  // as a user with no `?seed=` at all.
+  const rawSeed = new URL(window.location.href).searchParams.get('seed');
+  const trimmedSeed = rawSeed?.trim() ?? '';
+  if (rawSeed !== null && trimmedSeed === '') {
+    console.warn('[aoe2] ?seed= URL parameter was empty; falling back to DEFAULT_SEED.');
+  }
+  const seed = trimmedSeed === '' ? undefined : trimmedSeed;
   // FU5: the bridge reference is mutable so the HUD Load button can swap
   // in a rehydrated simulation. Everything downstream (scene, HUD,
   // browser test API) is rewired to the new bridge when `loadGame` fires.

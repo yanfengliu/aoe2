@@ -19,8 +19,15 @@ export interface Offset {
 
 export function seedToNumber(seed: string): number {
   let hash = 0;
+  // Iter-3 V3-14: walk full Unicode code points so non-BMP characters
+  // (e.g. emoji in user-supplied seeds) hash by their full codepoint
+  // rather than the UTF-16 high surrogate alone. The previous
+  // `character.charCodeAt(0)` loop returned the high surrogate for
+  // every surrogate-pair character, collapsing distinct emoji to the
+  // same hash value.
   for (const character of seed) {
-    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    const codePoint = character.codePointAt(0) ?? 0;
+    hash = (hash * 31 + codePoint) >>> 0;
   }
   return hash || 1;
 }

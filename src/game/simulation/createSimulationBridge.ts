@@ -4255,9 +4255,11 @@ function createWorld(
       options.push('archery-range');
       options.push('blacksmith');
       options.push('market');
-      if (hasCompletedBuilding(owner, 'blacksmith')) {
-        options.push('watch-tower');
-      }
+      // Iter-3 V3-15: Watch Tower unlocks in Feudal Age in canonical
+      // AoE2 — no Blacksmith prereq. Dropping the artificial gate so
+      // both human and AI can wall up against early Feudal aggression
+      // without first having to commit Blacksmith research time.
+      options.push('watch-tower');
       // FU3: Palisade Wall unlocks in Feudal Age — the cheap wood wall
       // that shapes early-game pokes. Matches canonical AoE2 DE.
       options.push('palisade-wall');
@@ -4539,7 +4541,9 @@ function createWorld(
             sightingFresh
             && state.lastEnemySightingPosition
             && !findOwnedBuilding(owner, 'watch-tower')
-            && hasCompletedBuilding(owner, 'blacksmith')
+            // Iter-3 V3-15: dropped the Blacksmith prereq here too —
+            // canonical AoE2 lets a Feudal-Age player build a Watch
+            // Tower as soon as the Feudal-Age tech finishes.
           ) {
             const builderId = findAvailableVillager(owner);
             const anchor = pickWatchTowerPlacement(
