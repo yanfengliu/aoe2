@@ -1,3 +1,4 @@
+import { getBuildingFootprint } from '../../content/buildingFootprints';
 import type { PrototypeScenario } from '../prototypeScenario';
 import {
   applyShoreFishPatchesProcedural,
@@ -22,11 +23,22 @@ export function createDefaultMap(seed: string): PrototypeScenario {
   // procedural opening so its forest-cluster walker won't land a tree
   // on the forward-house anchor, scout cell, or relic positions —
   // any overlap would otherwise hit the bridge bootstrap validator.
-  const reservedCells = [
-    FORWARD_ENEMY_HOUSE_POSITION,
-    FORWARD_ENEMY_SCOUT_POSITION,
-    ...DEFAULT_RELIC_POSITIONS,
-  ];
+  // Iter-3 verify follow-up: expand multi-cell building footprints so
+  // ALL cells of the 2x2 house are reserved, not just the anchor.
+  const houseFootprint = getBuildingFootprint('house');
+  const reservedCells: Array<{ x: number; y: number }> = [];
+  for (let dy = 0; dy < houseFootprint.height; dy += 1) {
+    for (let dx = 0; dx < houseFootprint.width; dx += 1) {
+      reservedCells.push({
+        x: FORWARD_ENEMY_HOUSE_POSITION.x + dx,
+        y: FORWARD_ENEMY_HOUSE_POSITION.y + dy,
+      });
+    }
+  }
+  reservedCells.push(FORWARD_ENEMY_SCOUT_POSITION);
+  for (const relic of DEFAULT_RELIC_POSITIONS) {
+    reservedCells.push(relic);
+  }
 
   for (const start of starts) {
     applyStandardPlayerOpeningProcedural(terrain, start, spawns, seed, reservedCells);

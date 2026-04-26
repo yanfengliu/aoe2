@@ -587,13 +587,23 @@ describe('createPrototypeScenario', () => {
 
     for (const seed of seeds) {
       const scenario = createPrototypeScenario(seed);
-      const treeOnHouseCell = scenario.spawns.some(
-        (spawn) =>
-          spawn.kind === 'tree'
-          && spawn.x === 39
-          && spawn.y === 18,
-      );
-      expect(treeOnHouseCell, `seed=${seed}: tree must not occupy forward house cell (39, 18)`).toBe(false);
+      // Iter-3 verify follow-up: house is 2x2 — assert NO tree on any
+      // of the 4 footprint cells, not just the anchor.
+      const houseCells = [
+        { x: 39, y: 18 },
+        { x: 40, y: 18 },
+        { x: 39, y: 19 },
+        { x: 40, y: 19 },
+      ];
+      for (const cell of houseCells) {
+        const treeOnCell = scenario.spawns.some(
+          (spawn) =>
+            spawn.kind === 'tree'
+            && spawn.x === cell.x
+            && spawn.y === cell.y,
+        );
+        expect(treeOnCell, `seed=${seed}: tree must not occupy forward house cell (${cell.x}, ${cell.y})`).toBe(false);
+      }
 
       // Sanity: bridge boots cleanly with the same seed.
       expect(() => createSimulationBridge(seed)).not.toThrow();

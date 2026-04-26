@@ -123,14 +123,13 @@ export function installBrowserTestApi(
   getBridge: () => BrowserTestBridge,
   scene: GameScene,
 ): void {
-  // If an API object is already installed, reuse it: tests that
-  // captured a reference now see the live bridge through the same
-  // closure thunks. The earlier `target.__AOE2_TEST__ = { ... }`
-  // assignment-style replacement is gone.
-  if (target.__AOE2_TEST__) {
-    return;
-  }
-
+  // Iter-3 V3-25 follow-up: do NOT short-circuit when an API is
+  // already installed. Re-install replaces the object so a full
+  // app-bootstrap (HMR, multi-instance test harness) sees the new
+  // game/scene closures. The original V3-25 concern (stale-bridge-on-
+  // load) is solved by the `getBridge` thunk, which always resolves
+  // to createApp's live `bridge` cell — so handleLoadGame doesn't
+  // need to re-install at all (and now doesn't).
   const api: BrowserTestApi = {
     isBooted: () => game.isBooted && scene.scene.isActive(),
     getHudState: () => getBridge().getHudState(),

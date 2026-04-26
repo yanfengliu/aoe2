@@ -2084,6 +2084,10 @@ function createWorld(
     pruneOrphanEntityKeys(buildingCombatStates);
     pruneOrphanEntityKeys(wildlifeStates);
     pruneOrphanEntityKeys(garrisonedUnitVisionSources);
+    // garrisonedByBuilding is keyed by building id; garrisonedUnitToBuilding
+    // is keyed by unit id. Both need entity-id validation.
+    pruneOrphanEntityKeys(garrisonedByBuilding);
+    pruneOrphanEntityKeys(garrisonedUnitToBuilding);
   }
 
   isBootstrappingScenario = false;
@@ -3218,6 +3222,22 @@ function createWorld(
     }
 
     removeSelectedEntity(id);
+
+    // Iter-3 V3-6 follow-up: when a building is destroyed mid-research,
+    // its in-flight tech entries must be removed from inFlightTechByOwner
+    // before the queue is cleared — otherwise a razed Blacksmith leaves
+    // 'forging' marked in-flight forever and the player can never queue
+    // it at any other owned producer (the cost-dedupe guard rejects it).
+    if (building) {
+      const queue = productionQueues.get(id);
+      if (queue) {
+        for (const entry of queue) {
+          if (entry.kind === 'technology' && entry.technologyType) {
+            inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
+          }
+        }
+      }
+    }
 
     productionQueues.delete(id);
     rallyPoints.delete(id);
@@ -5826,11 +5846,7 @@ function createWorld(
             // newly-available drop-off; do not touch the carry. Mark
             // the gatherer as stuck so the next retry waits the
             // throttle window.
-            if (stuckSince === undefined) {
-              gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
-            } else {
-              gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
-            }
+            gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             // Slice 10: AI difficulty modifies the gather-rate via a

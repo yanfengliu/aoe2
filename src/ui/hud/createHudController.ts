@@ -255,7 +255,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   // Slice 11: tooltip mechanism — shared tooltip element + pointer/focus
   // event delegation on `root`. Any descendant with a `data-tooltip`
   // attribute surfaces its copy on hover.
-  createTooltipController(root, tooltip);
+  const tooltipController = createTooltipController(root, tooltip);
+  teardownCallbacks.push(() => tooltipController.destroy());
 
   // Slice 11: toast stream for command rejections and FU5 save/load
   // outcomes. `showToast` is passed down into the save/load panel.
@@ -267,7 +268,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   // FU5: Save / Load HUD panel. The bridge reference swaps on load, so
   // the panel calls through arrow closures that re-resolve `bridge`
   // each time.
-  createSaveLoadPanel(
+  const saveLoadPanel = createSaveLoadPanel(
     {
       saveButton,
       loadButton,
@@ -285,6 +286,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       showToast,
     },
   );
+  teardownCallbacks.push(() => saveLoadPanel.destroy());
 
   // Selection panel: icons + details + queue + command buttons. Skips
   // re-render when the `selectionState` signature is unchanged.
@@ -370,6 +372,13 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   }
 
   function update(): void {
+    // Iter-3 V3-11 follow-up: re-entrant safety. If destroy() fires
+    // mid-tick (test teardown / HMR), the next scheduled RAF has
+    // already been cancelled but the in-flight `update()` body would
+    // still re-schedule. Skip work + skip re-schedule when destroyed.
+    if (isDestroyed) {
+      return;
+    }
     const hudState = bridge.getHudState();
     const renderState = bridge.getRenderState();
     latestRenderState = renderState;
