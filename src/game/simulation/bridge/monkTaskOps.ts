@@ -357,6 +357,20 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       conversionState.delete(targetId);
       return;
     }
+    // Iter-3 V3-7: vision/LOS interrupt. Canonical AoE2 requires the
+    // converting Monk's owner to actually see the target — moving the
+    // converting unit out of vision interrupts the conversion. Pre-fix
+    // the only gate was MONK_ACTION_RANGE (Manhattan ≤ 4); a Monk with
+    // its visionSource component stripped (or any future debuff) could
+    // still convert through fog. Preserve any in-flight progress (do
+    // not delete) but skip incrementing this tick.
+    const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+    if (
+      targetPosition
+      && !isVisibleToOwner(monkUnit.owner, targetPosition.x, targetPosition.y)
+    ) {
+      return;
+    }
     const state = conversionState.get(targetId) ?? { byOwner: monkUnit.owner, progress: 0 };
     // Per-tick guard FIRST (review C-1): without this ordering, two enemy
     // Monks processed in the same tick would flip-flop the target's
