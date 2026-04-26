@@ -90,7 +90,7 @@ Code changes are not done until the docs match. Before declaring any task comple
 **Always update on every feature / behavior change:**
 
 - `docs/changelog.md` — new version entry with what shipped, why, validation, and behavior callouts. Audience is external; focus on what users need to know to migrate. Keep dev-internal commentary in the devlog.
-- `docs/devlog/summary.md` — one line per task; remove outdated info; compact if > 50 lines.
+- `docs/devlog/summary.md` — one line per task; remove outdated info; compact if > 50 lines. Do not cheat by writing super long line.
 - `docs/devlog/detailed/<latest>.md` — full per-task entry per the Devlog convention below.
 - `package.json` — version bump per the Versioning convention below.
 
