@@ -54,6 +54,7 @@ import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
+import { createSelectionInputOps } from './bridge/selectionInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
@@ -288,12 +289,6 @@ interface CombatState {
 interface BuildingHealthState {
   currentHp: number;
   maxHp: number;
-}
-
-interface SelectableEntityCandidate {
-  id: number;
-  kind: 'unit' | 'building' | 'resource';
-  owner: number | null;
 }
 
 interface BuildingCombatState {
@@ -668,8 +663,14 @@ function createWorld(
     monkCarriedRelic,
     playerResources,
   });
-  let selectedEntityRefs: EntityRef[] = [];
-  let selectionFocusCell: Position | null = null;
+  // Selection state holder. Mutated by `bridge/selectionInputOps` and by
+  // the small number of flows in this file that still touch selection
+  // directly (garrison clear, scenario reload). Single source of truth so
+  // every read/write stays consistent across the extraction surface.
+  const selection: { refs: EntityRef[]; focusCell: Position | null } = {
+    refs: [],
+    focusCell: null,
+  };
   // Mutable holder shared with `bridge/placementOps`. The ops read and
   // write `placementMode.current`; every non-placement interaction in
   // the bridge (select, context-click, move, garrison) clears the slot
@@ -842,8 +843,8 @@ function createWorld(
     getSelectableEntitiesAtCell: (x, y) => getSelectableEntitiesAtCell(x, y),
     getCurrentEntityId: (ref) => getCurrentEntityId(ref),
     clearSelection: () => {
-      selectedEntityRefs = [];
-      selectionFocusCell = null;
+      selection.refs = [];
+      selection.focusCell = null;
     },
     getActionOptions: (owner, buildingType, buildingId) => getActionOptions(owner, buildingType, buildingId),
     getTrainOptions: (owner, buildingType) => getTrainOptions(owner, buildingType),
@@ -1925,467 +1926,44 @@ function createWorld(
     );
   }
 
-  function compareSelectableEntities(
-    left: SelectableEntityCandidate,
-    right: SelectableEntityCandidate,
-  ): number {
-    const kindPriority: Record<SelectableEntityCandidate['kind'], number> = {
-      unit: 0,
-      building: 1,
-      resource: 2,
-    };
-    const ownerPriority = (owner: number | null): number => {
-      if (owner === HUMAN_PLAYER_ID) {
-        return 0;
-      }
-      if (owner === null) {
-        return 2;
-      }
-      return 1;
-    };
+  // Selection input ops + spatial-context helpers live in
+  // `bridge/selectionInputOps`. The factory closes over the `selection`
+  // holder so reads/writes go through one shared object.
+  const {
+    getSelectableEntitiesAtCell,
+    filterSelectableUnitIds,
+    selectUnitsByIds,
+    selectUnitsInBox,
+    selectOwnedUnitsByTypeInRect,
+    getSelectedEntityIds,
+    getSelectedEntityId,
+    removeSelectedEntity,
+    findResourceAtCell,
+    resolveSelectionTile,
+    findHostileUnitAtCell,
+    findHostileBuildingAtCell,
+    findHostileWildlifeAtCell,
+    findOwnedGarrisonBuildingAtCell,
+    distanceToBuilding,
+  } = createSelectionInputOps({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    visibility,
+    constructionStates,
+    wildlifeStates,
+    selection,
+    placementMode,
+    isMatchRunning,
+    isVisibleToHuman: (position, owner) => isVisibleToHuman(position, owner),
+    isEntityFootprintVisibleToHuman: (position, owner, w, h) =>
+      isEntityFootprintVisibleToHuman(position, owner, w, h),
+    buildingOccupiesCell: (id, x, y) => buildingOccupiesCell(id, x, y),
+    getEntityRef,
+    getCurrentEntityId,
+  });
 
-    const kindDelta = kindPriority[left.kind] - kindPriority[right.kind];
-    if (kindDelta !== 0) {
-      return kindDelta;
-    }
-
-    const ownerDelta = ownerPriority(left.owner) - ownerPriority(right.owner);
-    if (ownerDelta !== 0) {
-      return ownerDelta;
-    }
-
-    return left.id - right.id;
-  }
-
-  function getSelectableEntitiesAtCell(x: number, y: number): SelectableEntityCandidate[] {
-    const candidates: SelectableEntityCandidate[] = [];
-
-    for (const id of world.query('position', 'unit')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (position?.x === x && position.y === y && isVisibleToHuman(position, unit?.owner ?? null)) {
-        candidates.push({
-          id,
-          kind: 'unit',
-          owner: unit?.owner ?? null,
-        });
-      }
-    }
-
-    for (const id of world.query('position', 'building')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      const renderable = world.getComponent<RenderableComponent>(id, 'renderable');
-      if (
-        position
-        && building
-        && renderable
-        && buildingOccupiesCell(id, x, y)
-        // Iter-3 V3-2: footprint visibility instead of anchor-only so a
-        // partially-visible 4x4 Castle/TC/Wonder is still selectable when
-        // the player clicks the visible edge cell. Mirrors the iter-2
-        // M2-1 fix in target finding.
-        && isEntityFootprintVisibleToHuman(
-          position,
-          building.owner,
-          renderable.footprintWidth,
-          renderable.footprintHeight,
-        )
-      ) {
-        candidates.push({
-          id,
-          kind: 'building',
-          owner: building.owner,
-        });
-      }
-    }
-
-    for (const id of world.query('position', 'resource')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      if (
-        position?.x === x
-        && position.y === y
-        && resource
-        && isVisibleToHuman(position, resource.owner)
-      ) {
-        candidates.push({
-          id,
-          kind: 'resource',
-          owner: resource.owner,
-        });
-      }
-    }
-
-    return candidates.sort(compareSelectableEntities);
-  }
-
-  function entityOccupiesCell(entityId: number, x: number, y: number): boolean {
-    const position = world.getComponent<Position>(entityId, 'position');
-    if (!position) {
-      return false;
-    }
-
-    if (world.getComponent<BuildingComponent>(entityId, 'building')) {
-      return buildingOccupiesCell(entityId, x, y);
-    }
-
-    return position.x === x && position.y === y;
-  }
-
-  function getHumanUnitIdsInRect(
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
-    unitType?: UnitType,
-  ): number[] {
-    const clampedMinX = clamp(Math.min(minX, maxX), 0, MAP_WIDTH - 1);
-    const clampedMaxX = clamp(Math.max(minX, maxX), 0, MAP_WIDTH - 1);
-    const clampedMinY = clamp(Math.min(minY, maxY), 0, MAP_HEIGHT - 1);
-    const clampedMaxY = clamp(Math.max(minY, maxY), 0, MAP_HEIGHT - 1);
-
-    return [...world.query('position', 'unit')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        unit: world.getComponent<UnitComponent>(id, 'unit'),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is { id: number; position: Position; unit: UnitComponent } =>
-          entry.position !== undefined
-          && entry.unit !== undefined
-          && entry.unit.owner === HUMAN_PLAYER_ID
-          && (unitType === undefined || entry.unit.unitType === unitType)
-          && entry.position.x >= clampedMinX
-          && entry.position.x <= clampedMaxX
-          && entry.position.y >= clampedMinY
-          && entry.position.y <= clampedMaxY,
-      )
-      .sort((left, right) => {
-        const yDelta = left.position.y - right.position.y;
-        if (yDelta !== 0) {
-          return yDelta;
-        }
-
-        return left.position.x - right.position.x;
-      })
-      .map((entry) => entry.id);
-  }
-
-  function selectUnitIds(ids: number[]): boolean {
-    selectedEntityRefs = ids
-      .map((id) => getEntityRef(id))
-      .filter((ref): ref is EntityRef => ref !== null);
-    selectionFocusCell = null;
-
-    if (selectedEntityRefs.length === 0) {
-      placementMode.current = null;
-      return false;
-    }
-
-    placementMode.current = null;
-    return true;
-  }
-
-  function filterSelectableUnitIds(ids: number[]): number[] {
-    if (!isMatchRunning()) {
-      return [];
-    }
-
-    const dedupedIds: number[] = [];
-    const seenIds = new Set<number>();
-    for (const id of ids) {
-      if (seenIds.has(id)) {
-        continue;
-      }
-      seenIds.add(id);
-
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit) {
-        const position = world.getComponent<Position>(id, 'position');
-        if (position && unit.owner === HUMAN_PLAYER_ID && isVisibleToHuman(position, unit.owner)) {
-          dedupedIds.push(id);
-        }
-        continue;
-      }
-
-      const position = world.getComponent<Position>(id, 'position');
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      if (
-        position
-        && resource
-        && resource.resourceType === 'sheep'
-        && resource.owner === HUMAN_PLAYER_ID
-        && resource.amount > 0
-        && isVisibleToHuman(position, resource.owner)
-      ) {
-        dedupedIds.push(id);
-      }
-    }
-
-    return dedupedIds;
-  }
-
-  function selectUnitsByIds(ids: number[]): boolean {
-    return selectUnitIds(filterSelectableUnitIds(ids));
-  }
-
-  function getHumanOwnedSheepIdsInRect(
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
-  ): number[] {
-    const clampedMinX = clamp(Math.min(minX, maxX), 0, MAP_WIDTH - 1);
-    const clampedMaxX = clamp(Math.max(minX, maxX), 0, MAP_WIDTH - 1);
-    const clampedMinY = clamp(Math.min(minY, maxY), 0, MAP_HEIGHT - 1);
-    const clampedMaxY = clamp(Math.max(minY, maxY), 0, MAP_HEIGHT - 1);
-
-    return [...world.query('position', 'resource')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        resource: world.getComponent<ResourceComponent>(id, 'resource'),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is { id: number; position: Position; resource: ResourceComponent } =>
-          entry.position !== undefined
-          && entry.resource !== undefined
-          && entry.resource.resourceType === 'sheep'
-          && entry.resource.owner === HUMAN_PLAYER_ID
-          && entry.resource.amount > 0
-          && entry.position.x >= clampedMinX
-          && entry.position.x <= clampedMaxX
-          && entry.position.y >= clampedMinY
-          && entry.position.y <= clampedMaxY,
-      )
-      .sort((left, right) => {
-        const yDelta = left.position.y - right.position.y;
-        if (yDelta !== 0) {
-          return yDelta;
-        }
-
-        return left.position.x - right.position.x;
-      })
-      .map((entry) => entry.id);
-  }
-
-  function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const unitIds = getHumanUnitIdsInRect(minX, minY, maxX, maxY);
-    const sheepIds = getHumanOwnedSheepIdsInRect(minX, minY, maxX, maxY);
-    return selectUnitIds([...unitIds, ...sheepIds]);
-  }
-
-  function selectOwnedUnitsByTypeInRect(
-    unitType: UnitType | 'sheep',
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
-  ): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const ids = unitType === 'sheep'
-      ? getHumanOwnedSheepIdsInRect(minX, minY, maxX, maxY)
-      : getHumanUnitIdsInRect(minX, minY, maxX, maxY, unitType);
-    return selectUnitIds(ids);
-  }
-
-  function getSelectedEntityIds(): number[] {
-    const ids: number[] = [];
-    const nextRefs: EntityRef[] = [];
-
-    for (const ref of selectedEntityRefs) {
-      const id = getCurrentEntityId(ref);
-      if (id === null || ids.includes(id)) {
-        continue;
-      }
-
-      ids.push(id);
-      nextRefs.push(ref);
-    }
-
-    if (nextRefs.length !== selectedEntityRefs.length) {
-      selectedEntityRefs = nextRefs;
-      if (selectedEntityRefs.length === 0) {
-        selectionFocusCell = null;
-        placementMode.current = null;
-      }
-    }
-
-    return ids;
-  }
-
-  function getSelectedEntityId(): number | null {
-    const ids = getSelectedEntityIds();
-    if (ids.length > 0) {
-      return ids[0];
-    }
-
-    if (selectedEntityRefs.length > 0) {
-      selectedEntityRefs = [];
-      selectionFocusCell = null;
-      placementMode.current = null;
-    }
-
-    return null;
-  }
-
-  function removeSelectedEntity(id: number): void {
-    const nextRefs = selectedEntityRefs.filter((ref) => getCurrentEntityId(ref) !== id);
-    if (nextRefs.length === selectedEntityRefs.length) {
-      return;
-    }
-
-    selectedEntityRefs = nextRefs;
-    if (selectedEntityRefs.length === 0) {
-      selectionFocusCell = null;
-      placementMode.current = null;
-    }
-  }
-
-  function findResourceAtCell(x: number, y: number): number | null {
-    for (const id of world.query('position', 'resource')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      if (
-        position?.x === x
-        && position.y === y
-        && resource
-        && resource.amount > 0
-        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
-      ) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function resolveSelectionTile(selectedEntityId: number, position: Position): Position {
-    if (
-      selectionFocusCell
-      && entityOccupiesCell(selectedEntityId, selectionFocusCell.x, selectionFocusCell.y)
-    ) {
-      return selectionFocusCell;
-    }
-
-    return position;
-  }
-
-  function findHostileUnitAtCell(x: number, y: number, attackerOwner: number): number | null {
-    for (const id of world.query('position', 'unit')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (
-        position?.x === x
-        && position.y === y
-        && unit
-        && unit.owner !== attackerOwner
-        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
-      ) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function findHostileBuildingAtCell(x: number, y: number, attackerOwner: number): number | null {
-    for (const id of world.query('position', 'building')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (
-        position
-        && building
-        && building.owner !== attackerOwner
-        && buildingOccupiesCell(id, x, y)
-        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
-      ) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function findHostileWildlifeAtCell(x: number, y: number): number | null {
-    for (const id of world.query('position', 'resource')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      const wildlife = wildlifeStates.get(id);
-      if (
-        position?.x === x
-        && position.y === y
-        && resource
-        && wildlife?.isAlive
-        && visibility.isVisible(HUMAN_PLAYER_ID, x, y)
-      ) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function findOwnedGarrisonBuildingAtCell(x: number, y: number, owner: number, unitType: UnitType): number | null {
-    for (const id of world.query('position', 'building')) {
-      const position = world.getComponent<Position>(id, 'position');
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (
-        position
-        && building
-        && building.owner === owner
-        && canGarrisonAt(building.buildingType, unitType)
-        && buildingOccupiesCell(id, x, y)
-      ) {
-        const construction = constructionStates.get(id);
-        if (construction && !construction.isComplete) {
-          continue;
-        }
-
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function distanceToBuilding(id: number, position: Position): number {
-    const buildingPosition = world.getComponent<Position>(id, 'position');
-    const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (!buildingPosition || !building) {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    const footprint = buildingFootprint(building.buildingType);
-    const minX = buildingPosition.x;
-    const maxX = buildingPosition.x + footprint.width - 1;
-    const minY = buildingPosition.y;
-    const maxY = buildingPosition.y + footprint.height - 1;
-
-    const dx =
-      position.x < minX ? minX - position.x
-      : position.x > maxX ? position.x - maxX
-      : 0;
-    const dy =
-      position.y < minY ? minY - position.y
-      : position.y > maxY ? position.y - maxY
-      : 0;
-
-    return dx + dy;
-  }
 
   // Destroy ops live in `bridge/entityDestroyOps`. The factory closes over
   // every side map an entity might leave bookkeeping in.
@@ -2569,8 +2147,8 @@ function createWorld(
     clearGathererOrder,
     clearUnitCommand,
     clearSelection: () => {
-      selectedEntityRefs = [];
-      selectionFocusCell = null;
+      selection.refs = [];
+      selection.focusCell = null;
     },
     setUnitCommand,
     addBuildingEntity,
@@ -3182,9 +2760,9 @@ function createWorld(
     const currentSelectionIds = getSelectedEntityIds();
     const currentSelectionId = currentSelectionIds.length === 1 ? currentSelectionIds[0] : null;
     const lastClickedSameCell =
-      selectionFocusCell !== null
-      && selectionFocusCell.x === x
-      && selectionFocusCell.y === y;
+      selection.focusCell !== null
+      && selection.focusCell.x === x
+      && selection.focusCell.y === y;
     let nextSelection = selectableEntities[0]?.id ?? null;
 
     if (lastClickedSameCell && currentSelectionId !== null && selectableEntities.length > 1) {
@@ -3194,19 +2772,19 @@ function createWorld(
       }
     }
 
-    selectedEntityRefs =
+    selection.refs =
       nextSelection === null
         ? []
         : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
     if (nextSelection === null) {
-      selectionFocusCell = null;
+      selection.focusCell = null;
       placementMode.current = null;
       return false;
     }
 
-    selectionFocusCell = { x, y };
+    selection.focusCell = { x, y };
     placementMode.current = null;
-    return selectedEntityRefs.length > 0;
+    return selection.refs.length > 0;
   }
 
   function selectEntityById(id: number): boolean {
@@ -3219,18 +2797,18 @@ function createWorld(
       return false;
     }
 
-    selectedEntityRefs = [entityRef];
+    selection.refs = [entityRef];
     // Exact world-position selection owns its repeat-click memory in GameScene.
     // Keep the bridge's cell-cycle anchor empty so any later legacy/test-only
     // `selectEntityAtCell(...)` call is treated as a fresh tile click.
-    selectionFocusCell = null;
+    selection.focusCell = null;
     placementMode.current = null;
     return true;
   }
 
   function clearSelection(): void {
-    selectedEntityRefs = [];
-    selectionFocusCell = null;
+    selection.refs = [];
+    selection.focusCell = null;
     placementMode.current = null;
   }
 
