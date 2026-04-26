@@ -26,8 +26,10 @@ import type {
 } from './pureHelpers';
 import {
   distanceFromBuildingFootprint,
+  isFootprintVisible,
   manhattanDistance,
 } from './pureHelpers';
+import { getBuildingFootprint } from '../../content/buildingFootprints';
 
 interface CombatStateLike {
   currentHp: number;
@@ -307,6 +309,11 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   }
 
   function findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position): number | null {
+    // Iter-2 M2-1: visibility check goes through the building footprint,
+    // not just the anchor cell, so partially-visible large buildings
+    // (Castles, Town Centers, Wonders) are targetable as soon as ANY
+    // cell of the footprint is in fog. Mirrors the contract createProjector
+    // already uses to decide whether to render the building.
     const candidates = [...world.query('position', 'building')]
       .map((id) => ({
         id,
@@ -316,11 +323,24 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
       .filter(
         (
           entry,
-        ): entry is { id: number; position: Position; building: BuildingComponent } =>
-          entry.position !== undefined
-          && entry.building !== undefined
-          && entry.building.owner !== viewerOwner
-          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
+        ): entry is { id: number; position: Position; building: BuildingComponent } => {
+          if (
+            entry.position === undefined
+            || entry.building === undefined
+            || entry.building.owner === viewerOwner
+          ) {
+            return false;
+          }
+          const footprint = getBuildingFootprint(entry.building.buildingType);
+          return isFootprintVisible(
+            visibility,
+            viewerOwner,
+            entry.position.x,
+            entry.position.y,
+            footprint.width,
+            footprint.height,
+          );
+        },
       )
       .sort((left, right) => {
         const priorityDelta =

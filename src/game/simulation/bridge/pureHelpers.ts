@@ -393,8 +393,15 @@ export function buildingFootprint(buildingType: BuildingType): { width: number; 
   return getBuildingFootprint(buildingType);
 }
 
+// Structural visibility query — only `isVisible` is needed here. The
+// authoritative VisibilityMap satisfies this; so do the lighter
+// `VisibilityQuery` mocks in targetFindingOps + tests.
+interface IsVisibleQuery {
+  isVisible: (playerId: number, x: number, y: number) => boolean;
+}
+
 export function isFootprintVisible(
-  visibility: VisibilityMap,
+  visibility: IsVisibleQuery,
   playerId: number,
   anchorX: number,
   anchorY: number,
