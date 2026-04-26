@@ -58,6 +58,12 @@ export interface TechnologyDeps {
   // same `researchedTechnologies` map we receive here. Keeping it as a dep
   // avoids duplicating the has-tech logic in two places.
   createCombatState: (owner: number, unitType: UnitType) => CombatStateLike;
+  // Tells the bridge that an in-place mutation just changed a projector-
+  // relevant component (renderable, unit, building, resource owner/type).
+  // Required because civ-engine 0.5.0+ no longer auto-detects in-place
+  // component mutations, so the RenderAdapter would otherwise keep the
+  // pre-upgrade projection forever.
+  markOutOfBandRenderChange: () => void;
 }
 
 export interface TechnologyOps {
@@ -88,9 +94,11 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     combatStates,
     productionQueues,
     createCombatState,
+    markOutOfBandRenderChange,
   } = deps;
 
   function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
+    let didUpgrade = false;
     for (const id of world.query('unit')) {
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (!unit || unit.owner !== owner || unit.unitType !== from) {
@@ -121,6 +129,10 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         Math.min(nextCombat.maxHp, Math.round(nextCombat.maxHp * hpRatio)),
       );
       combatStates.set(id, nextCombat);
+      didUpgrade = true;
+    }
+    if (didUpgrade) {
+      markOutOfBandRenderChange();
     }
   }
 

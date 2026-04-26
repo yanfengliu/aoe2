@@ -4337,6 +4337,7 @@ function createWorld(
     combatStates,
     productionQueues,
     createCombatState,
+    markOutOfBandRenderChange,
   });
 
   // Slice 10 AI decision helpers live in `bridge/aiDecisionOps`. The

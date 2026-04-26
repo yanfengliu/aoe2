@@ -56,6 +56,32 @@ describe('Castle-Age production-line upgrades', () => {
     });
   }, 15_000);
 
+  it('reflects the upgraded unit type in render state, not just economy state', () => {
+    const bridge = createSimulationBridge('castle-upgrades-fixture');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
+    expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => countOwnedUnits(bridge, 1, 'crossbowman') === 1,
+        { maxSteps: 400 },
+      ),
+    ).toBe(true);
+
+    const renderEntities = bridge.getRenderState().entities;
+    const renderedCrossbowman = renderEntities.find(
+      (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'crossbowman',
+    );
+    const renderedArcher = renderEntities.find(
+      (entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'archer',
+    );
+
+    expect(renderedCrossbowman, 'render state should show the upgraded unit as a crossbowman').toBeDefined();
+    expect(renderedArcher, 'render state should not still show the unit as an archer').toBeUndefined();
+  }, 15_000);
+
   it('leaves enemy Archers untouched when the human researches the Crossbowman upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
 
