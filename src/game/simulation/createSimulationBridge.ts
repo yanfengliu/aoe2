@@ -53,6 +53,7 @@ import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
+import { createTrainingMarketOps } from './bridge/trainingMarketOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createPlayerQueries } from './bridge/playerQueries';
@@ -91,21 +92,12 @@ import {
   buildingGarrisonCapacity,
   buildingPopulationProvided,
   canGarrisonAt,
-  canResearchAt,
-  canTrainAt,
 } from './prototypeBuildingRules';
 import {
-  canAfford,
-  constructionCost,
-  isBuyMarketAction,
-  marketCommodityForAction,
   researchCost,
-  researchTimeTicks,
   resourceKindToEconomyResource,
   resourcesMissing,
-  spendResources,
   trainingCost,
-  trainingTimeTicks,
 } from './prototypeEconomyRules';
 import {
   unitAttackDamage,
@@ -2541,318 +2533,58 @@ function createWorld(
     return true;
   }
 
-  function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!building) {
-      return false;
-    }
-
-    const construction = constructionStates.get(buildingId);
-    if (construction && !construction.isComplete) {
-      return false;
-    }
-
-    if (
-      !canTrainAt(building.buildingType, unitType)
-      || !getTrainOptions(building.owner, building.buildingType).includes(unitType)
-    ) {
-      return false;
-    }
-
-    const stockpile = playerResources.get(building.owner);
-    if (!stockpile) {
-      return false;
-    }
-
-    const cost = trainingCost(unitType);
-    if (!canAfford(stockpile, cost)) {
-      return false;
-    }
-
-    spendResources(stockpile, cost);
-    const queue = productionQueues.get(buildingId) ?? [];
-    const totalTicks = trainingTimeTicks(unitType);
-    queue.push({
-      kind: 'unit',
-      label: unitType,
-      unitType,
-      remainingTicks: totalTicks,
-      totalTicks,
-      isBlocked: false,
-    });
-    productionQueues.set(buildingId, queue);
-    return true;
-  }
-
-  function enqueueResearch(buildingId: number, technologyType: ResearchableTechnologyType): boolean {
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!building) {
-      return false;
-    }
-
-    const construction = constructionStates.get(buildingId);
-    if (construction && !construction.isComplete) {
-      return false;
-    }
-
-    if (!canResearchAt(building.buildingType, technologyType)) {
-      return false;
-    }
-
-    if (!getResearchOptions(building.owner, building.buildingType).includes(technologyType)) {
-      return false;
-    }
-
-    // Iter-2 verify follow-up + Iter-3 V3-6: dedupe across ALL owned
-    // producer queues. The H2-1 fix made applyTechnology idempotent on
-    // the bonus side; this guard prevents the cost being charged twice
-    // when a player race-queues the same tech at two producer
-    // buildings. The lookup is O(1) via inFlightTechByOwner instead of
-    // O(producers × queue depth).
-    if (inFlightTechSetFor(building.owner).has(technologyType)) {
-      return false;
-    }
-
-    const queue = productionQueues.get(buildingId) ?? [];
-
-    const stockpile = playerResources.get(building.owner);
-    if (!stockpile) {
-      return false;
-    }
-
-    const cost = researchCost(technologyType);
-    if (!canAfford(stockpile, cost)) {
-      return false;
-    }
-
-    spendResources(stockpile, cost);
-    const totalTicks = researchTimeTicks(technologyType);
-    queue.push({
-      kind: 'technology',
-      label: technologyType,
-      technologyType,
-      remainingTicks: totalTicks,
-      totalTicks,
-      isBlocked: false,
-    });
-    productionQueues.set(buildingId, queue);
-    inFlightTechSetFor(building.owner).add(technologyType);
-    return true;
-  }
-
-  function executeMarketAction(actionType: MarketActionType): boolean {
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== HUMAN_PLAYER_ID || building.buildingType !== 'market') {
-      return false;
-    }
-
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) {
-      return false;
-    }
-
-    if (!getMarketOptions(building.owner, building.buildingType).includes(actionType)) {
-      return false;
-    }
-
-    const stockpile = playerResources.get(building.owner);
-    if (!stockpile) {
-      return false;
-    }
-
-    const commodity = marketCommodityForAction(actionType);
-    const rate = marketExchangeRates[commodity];
-    if (isBuyMarketAction(actionType)) {
-      const goldCost = Math.ceil(rate * (1 + MARKET_FEE_RATE));
-      if (stockpile.gold < goldCost) {
-        return false;
-      }
-
-      stockpile.gold -= goldCost;
-      stockpile[commodity] += MARKET_TRANSACTION_AMOUNT;
-      marketExchangeRates[commodity] = rate + MARKET_RATE_STEP;
-      return true;
-    }
-
-    if (stockpile[commodity] < MARKET_TRANSACTION_AMOUNT) {
-      return false;
-    }
-
-    stockpile[commodity] -= MARKET_TRANSACTION_AMOUNT;
-    stockpile.gold += Math.floor(rate * (1 - MARKET_FEE_RATE));
-    marketExchangeRates[commodity] = Math.max(MARKET_MIN_RATE, rate - MARKET_RATE_STEP);
-    return true;
-  }
-
-  function garrisonUnit(unitId: number, buildingId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    const capacity = building ? buildingGarrisonCapacity(building.buildingType) : 0;
-    if (!unit || !building || unit.owner !== building.owner || !canGarrisonAt(building.buildingType, unit.unitType)) {
-      return false;
-    }
-
-    const currentUnits = garrisonedByBuilding.get(buildingId) ?? [];
-    if (currentUnits.length >= capacity || isGarrisonedUnit(unitId)) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    clearUnitCommand(unitId);
-
-    const visionSource = world.getComponent<VisionSourceComponent>(unitId, 'visionSource');
-    if (visionSource) {
-      garrisonedUnitVisionSources.set(unitId, { ...visionSource });
-      world.removeComponent(unitId, 'visionSource');
-    }
-
-    clearPositionAndSyncOccupancy(unitId);
-    garrisonedUnitToBuilding.set(unitId, buildingId);
-    currentUnits.push(unitId);
-    garrisonedByBuilding.set(buildingId, currentUnits);
-    selectedEntityRefs = [];
-    selectionFocusCell = null;
-    placementMode.current = null;
-    markOutOfBandRenderChange();
-    return true;
-  }
-
-  function ungarrisonBuilding(buildingId: number): boolean {
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    const buildingPosition = world.getComponent<Position>(buildingId, 'position');
-    const garrisonedUnits = garrisonedByBuilding.get(buildingId) ?? [];
-    if (!building || !buildingPosition || garrisonedUnits.length === 0) {
-      return false;
-    }
-
-    const remainingGarrisonedUnits: number[] = [];
-    let didUngarrisonUnit = false;
-
-    for (const unitId of garrisonedUnits) {
-      const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-      if (!unit) {
-        continue;
-      }
-
-      const spawnPosition = findBuildingSpawnPosition(buildingPosition, building.buildingType);
-      if (!spawnPosition) {
-        remainingGarrisonedUnits.push(unitId);
-        continue;
-      }
-
-      setPositionAndSyncOccupancy(unitId, spawnPosition);
-      syncUnitTransformToPosition(unitId, spawnPosition);
-      const storedVisionSource = garrisonedUnitVisionSources.get(unitId);
-      if (storedVisionSource) {
-        world.addComponent(unitId, 'visionSource', storedVisionSource);
-        garrisonedUnitVisionSources.delete(unitId);
-      }
-      garrisonedUnitToBuilding.delete(unitId);
-      clearGathererOrder(unitId);
-      didUngarrisonUnit = true;
-    }
-
-    if (remainingGarrisonedUnits.length > 0) {
-      garrisonedByBuilding.set(buildingId, remainingGarrisonedUnits);
-    } else {
-      garrisonedByBuilding.delete(buildingId);
-    }
-
-    if (didUngarrisonUnit) {
-      markOutOfBandRenderChange();
-    }
-    return didUngarrisonUnit;
-  }
-
-  function startConstruction(
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ): boolean {
-    const unit = world.getComponent<UnitComponent>(builderId, 'unit');
-    if (!unit || unit.unitType !== 'villager') {
-      return false;
-    }
-
-    if (!getBuildOptions(unit.owner, unit.unitType).includes(buildingType)) {
-      return false;
-    }
-
-    const clampedAnchor = {
-      x: clamp(anchor.x, 0, MAP_WIDTH - 1),
-      y: clamp(anchor.y, 0, MAP_HEIGHT - 1),
-    };
-    const footprint = buildingFootprint(buildingType);
-    if (isPlacementBlocked(clampedAnchor.x, clampedAnchor.y, footprint.width, footprint.height)) {
-      return false;
-    }
-
-    const stockpile = playerResources.get(unit.owner);
-    if (!stockpile) {
-      return false;
-    }
-
-    const cost = constructionCost(buildingType);
-    if (!canAfford(stockpile, cost)) {
-      return false;
-    }
-
-    spendResources(stockpile, cost);
-    const buildingId = addBuildingEntity(unit.owner, buildingType, clampedAnchor, false);
-    const buildingRef = getEntityRef(buildingId);
-    if (!buildingRef) {
-      throw new Error(`Expected a current EntityRef for new ${buildingType} construction.`);
-    }
-    clearGathererOrder(builderId);
-    setUnitCommand(builderId, {
-      type: 'build',
-      target: clampedAnchor,
-      buildingRef,
-    });
-    markOutOfBandRenderChange();
-    return true;
-  }
-
-  function findBuildPlacementNear(
-    origin: Position,
-    buildingType: BuildableBuildingType,
-  ): Position | null {
-    const footprint = buildingFootprint(buildingType);
-
-    for (let radius = 2; radius <= 6; radius += 1) {
-      for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
-        for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
-          if (Math.abs(offsetX) !== radius && Math.abs(offsetY) !== radius) {
-            continue;
-          }
-
-          const candidate = {
-            x: origin.x + offsetX,
-            y: origin.y + offsetY,
-          };
-          if (
-            candidate.x < 0
-            || candidate.y < 0
-            || candidate.x + footprint.width > MAP_WIDTH
-            || candidate.y + footprint.height > MAP_HEIGHT
-          ) {
-            continue;
-          }
-
-          if (!isPlacementBlocked(candidate.x, candidate.y, footprint.width, footprint.height)) {
-            return candidate;
-          }
-        }
-      }
-    }
-
-    return null;
-  }
+  // Training / research / market / construction / garrison ops live in
+  // `bridge/trainingMarketOps`. Selection-clearing on garrison is provided
+  // as a `clearSelection` collaborator so the side-state writes stay in
+  // one place.
+  const {
+    enqueueTraining,
+    enqueueResearch,
+    executeMarketAction,
+    garrisonUnit,
+    ungarrisonBuilding,
+    startConstruction,
+    findBuildPlacementNear,
+  } = createTrainingMarketOps({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    marketFeeRate: MARKET_FEE_RATE,
+    marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
+    marketRateStep: MARKET_RATE_STEP,
+    marketMinRate: MARKET_MIN_RATE,
+    playerResources,
+    productionQueues,
+    constructionStates,
+    garrisonedByBuilding,
+    garrisonedUnitToBuilding,
+    garrisonedUnitVisionSources,
+    marketExchangeRates,
+    placementMode,
+    inFlightTechSetFor,
+    getSelectedEntityId: () => getSelectedEntityId(),
+    getTrainOptions: (owner, buildingType) => getTrainOptions(owner, buildingType),
+    getResearchOptions: (owner, buildingType) => getResearchOptions(owner, buildingType),
+    getMarketOptions: (owner, buildingType) => getMarketOptions(owner, buildingType),
+    getBuildOptions: (owner, unitType) => getBuildOptions(owner, unitType),
+    isPlacementBlocked,
+    isGarrisonedUnit,
+    clearGathererOrder,
+    clearUnitCommand,
+    clearSelection: () => {
+      selectedEntityRefs = [];
+      selectionFocusCell = null;
+    },
+    setUnitCommand,
+    addBuildingEntity,
+    findBuildingSpawnPosition,
+    setPositionAndSyncOccupancy,
+    clearPositionAndSyncOccupancy,
+    syncUnitTransformToPosition,
+    getEntityRef,
+    markOutOfBandRenderChange,
+  });
 
 
   // Slice 7: train / research / market / build menus moved to
