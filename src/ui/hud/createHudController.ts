@@ -79,6 +79,14 @@ export interface HudController {
   // itself renders the text overlay for ai-state / perf.
   getDebugOverlayMode(): DebugOverlayMode;
   cycleDebugOverlayMode(): DebugOverlayMode;
+  // Iter-3 V3-11 / iter-2 M2-6 / iter-1 H-7: tear-down hook so HMR,
+  // browser-test teardown, or any future "reset to title" path can
+  // cancel the per-frame RAF loop, drop window-level listeners, and
+  // dispose the debug-overlay sub-controller. createApp doesn't call
+  // this on save-load (the HUD facade closures re-read the bridge so
+  // the same controller continues with the new bridge), but the
+  // capability now exists for teardown contexts that need it.
+  destroy(): void;
 }
 
 export function createHudController(root: HTMLElement, bridge: HudBridge): HudController {
@@ -191,6 +199,11 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     ></div>
   `;
 
+  // Iter-3 V3-11: collect any teardown work the controller body
+  // schedules (window listener removals, sub-controller destroy() calls,
+  // RAF cancellation). The returned destroy() walks this in order.
+  const teardownCallbacks: Array<() => void> = [];
+
   const food = root.querySelector<HTMLElement>('[data-hud="food"]');
   const wood = root.querySelector<HTMLElement>('[data-hud="wood"]');
   const gold = root.querySelector<HTMLElement>('[data-hud="gold"]');
@@ -232,6 +245,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   // pointer, and the text summary. GameScene reads the mode through
   // the `HudController` facade returned below.
   const debugOverlayController = createDebugOverlayController(debugOverlay);
+  teardownCallbacks.push(() => debugOverlayController.destroy());
 
   let lastRenderedTick = -1;
   let lastMinimapCameraSignature = '';
@@ -349,6 +363,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     minimap.addEventListener('mousemove', handleTrackedMinimapMouseMove);
     window.addEventListener('mousemove', handleTrackedMinimapMouseMove);
     window.addEventListener('mouseup', handleTrackedMinimapMouseEnd);
+    teardownCallbacks.push(() => {
+      window.removeEventListener('mousemove', handleTrackedMinimapMouseMove);
+      window.removeEventListener('mouseup', handleTrackedMinimapMouseEnd);
+    });
   }
 
   function update(): void {
@@ -421,13 +439,38 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       () => bridge.getDebugSnapshot(),
     );
 
-    requestAnimationFrame(update);
+    rafHandle = requestAnimationFrame(update);
   }
 
-  update();
+  let rafHandle: number | null = null;
+  let isDestroyed = false;
+  rafHandle = requestAnimationFrame(update);
 
   return {
     getDebugOverlayMode: debugOverlayController.getMode,
     cycleDebugOverlayMode: debugOverlayController.cycleMode,
+    destroy() {
+      if (isDestroyed) {
+        return;
+      }
+      isDestroyed = true;
+      if (rafHandle !== null) {
+        cancelAnimationFrame(rafHandle);
+        rafHandle = null;
+      }
+      // Walk teardown in reverse so later-registered callbacks see the
+      // earlier ones still alive (matches LIFO destructor convention).
+      for (let i = teardownCallbacks.length - 1; i >= 0; i -= 1) {
+        try {
+          teardownCallbacks[i]();
+        } catch (error) {
+          // Don't let one teardown's error block the others. Tests
+          // may capture a stale element ref or similar; surface it
+          // as a console warning rather than throw.
+          console.warn('[hud] teardown callback failed:', error);
+        }
+      }
+      teardownCallbacks.length = 0;
+    },
   };
 }

@@ -129,7 +129,16 @@ export function installBrowserTestApi(
       scene.syncFromBridge(true);
       return scene.getPlacementPreviewVisualState();
     },
-    getPlacementPreviewAt: (cellX: number, cellY: number) => bridge.getPlacementPreview(cellX, cellY),
+    getPlacementPreviewAt: (cellX: number, cellY: number) => {
+      // Iter-3 V3-17: parity with the other getters in this API; tests
+      // calling this immediately after a command (without manually
+      // advancing ticks) would otherwise observe a stale preview
+      // through the scene-cached path. The bridge call itself is the
+      // authoritative source so the value isn't wrong without the
+      // sync, but the asymmetry is a correctness footgun.
+      scene.syncFromBridge(true);
+      return bridge.getPlacementPreview(cellX, cellY);
+    },
     getBuildingVisualStates: () => {
       scene.syncFromBridge(true);
       return scene.getBuildingVisualStates();
