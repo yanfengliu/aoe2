@@ -114,7 +114,6 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     getEntityRef,
     getCurrentEntityId,
   } = deps;
-  const { constructionStates, wildlifeStates } = state;
 
   function compareSelectableEntities(
     left: SelectableEntityCandidate,
