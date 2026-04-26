@@ -44,10 +44,41 @@ import { defineConfig } from 'vitest/config';
 // (b) split the 130s age-up test into shorter sub-steps. Neither is
 // worth the churn today. Flagged here so future readers don't spend
 // another debugging cycle diagnosing the same deadline.
+// Iter-3 follow-up (parallelism sprint): the FU8 single-worker setup
+// (maxWorkers/minWorkers: 1) was a workaround for the
+// `Timeout calling "onTaskUpdate"` birpc flake. Re-investigated against
+// the iter-1/2/3 fixes (per-tick getRenderState cache, H2-2 retry
+// throttle, H2-1 in-flight tech O(1) lookup, gather perf wins) — all
+// reduce per-tick CPU cost.
+//
+// Switched to fork-per-file with up to 4 concurrent forks. Empirical
+// numbers on this dev box (Windows, Node 22.14):
+//
+//   maxForks=1 (serial, FU8 baseline) — ~18.8 min wall, 0 test
+//     failures, ~6 worker `onTaskUpdate` warnings (always-fire on the
+//     130s aiPlayer test).
+//   maxForks=4 — ~5.7 min wall, 0 test failures, ~7 worker warnings,
+//     occasional flake (1/2 sample runs lost 2 tests; second sample
+//     run was clean). The flakes were transient and pass on retry.
+//
+// Trade-off: ~3.3× speedup at the cost of an occasional re-run when
+// the birpc serializer gets squeezed. Worth it for day-to-day dev
+// throughput; CI / pre-merge gates can stay on serial if reproducibility
+// matters more than speed there.
 export default defineConfig({
   test: {
-    maxWorkers: 1,
-    minWorkers: 1,
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        // Up to 4 concurrent forks. Diminishing returns past 4 because
+        // we have 3-4 long tests (aiPlayer ~200s, blacksmithProgression
+        // ~150s, monastery ~30s) that dominate the critical path; a
+        // higher fork count just contends on the slow tests' birpc
+        // serializers.
+        maxForks: 4,
+        minForks: 1,
+      },
+    },
     testTimeout: 180_000,
     hookTimeout: 180_000,
     teardownTimeout: 30_000,
