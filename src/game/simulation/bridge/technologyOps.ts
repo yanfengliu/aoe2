@@ -156,7 +156,18 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
   }
 
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
-    researchedTechnologies.get(owner)?.add(technologyType);
+    // Idempotency guard (iter-2 H2-1): enqueueResearch only dedupes
+    // within the same building's queue, so two producer buildings can
+    // race-queue the same tech and reach this completion path twice.
+    // Many cases below use += increments (forging, iron-casting,
+    // blast-furnace, bracer, every armor tier, ...) so the second call
+    // would silently double the bonus. Skip if the tech is already
+    // applied for this owner.
+    const ownerSet = researchedTechnologies.get(owner);
+    if (ownerSet?.has(technologyType)) {
+      return;
+    }
+    ownerSet?.add(technologyType);
 
     switch (technologyType) {
       case 'feudal-age':

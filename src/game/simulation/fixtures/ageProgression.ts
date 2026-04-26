@@ -38,4 +38,5 @@ export {
 
 export {
   createBlacksmithProgressionFixture,
+  createDoubleBlacksmithRaceFixture,
 } from './ageProgression/blacksmith';

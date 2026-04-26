@@ -48,6 +48,7 @@ import {
   createChampionVsHalberdierFixture,
   createConquestDefeatFixture,
   createConquestVictoryFixture,
+  createDoubleBlacksmithRaceFixture,
   createDoubleClickSelectionFixture,
   createFeudalAgeFixture,
   createFeudalBlacksmithFixture,
@@ -415,6 +416,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'blacksmith-progression-fixture') {
     return createBlacksmithProgressionFixture(seed);
+  }
+
+  if (seed === 'double-blacksmith-race-fixture') {
+    return createDoubleBlacksmithRaceFixture(seed);
   }
 
   if (seed === 'champion-vs-halberdier-fixture') {

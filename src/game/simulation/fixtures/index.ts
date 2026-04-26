@@ -46,6 +46,7 @@ export {
   createImperialSiegeFixture,
   createImperialBlacksmithFixture,
   createBlacksmithProgressionFixture,
+  createDoubleBlacksmithRaceFixture,
   createImperialCastleFixture,
   createFeudalMarketFixture,
   createFeudalSpearmanFixture,
