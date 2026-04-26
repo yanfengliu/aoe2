@@ -224,7 +224,7 @@ export interface SerializedSideMaps {
 // Serialized match state. Mirrors `MatchState` but is duplicated here
 // so the schema file does not import bridge-internal types.
 export interface SerializedMatchState {
-  outcome: 'running' | 'victory' | 'defeat';
+  outcome: 'running' | 'victory' | 'defeat' | 'draw';
   summary: string;
   winCondition: 'conquest' | 'wonder' | 'relic' | null;
   scores: Record<number, number> | null;

@@ -62,7 +62,7 @@ export interface MatchEndOps {
   // `outcome`, clears the live countdowns, and stamps final per-owner
   // scores.
   finalizeMatchEnd(
-    outcome: 'victory' | 'defeat',
+    outcome: 'victory' | 'defeat' | 'draw',
     winCondition: 'conquest' | 'wonder' | 'relic',
     summary: string,
   ): void;
@@ -119,7 +119,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   }
 
   function finalizeMatchEnd(
-    outcome: 'victory' | 'defeat',
+    outcome: 'victory' | 'defeat' | 'draw',
     winCondition: 'conquest' | 'wonder' | 'relic',
     summary: string,
   ): void {

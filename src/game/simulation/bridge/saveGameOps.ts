@@ -90,7 +90,7 @@ interface PlayerScoreCountersLike {
 }
 
 interface MatchStateLike {
-  outcome: 'running' | 'victory' | 'defeat';
+  outcome: 'running' | 'victory' | 'defeat' | 'draw';
   summary: string;
   winCondition: 'conquest' | 'wonder' | 'relic' | null;
   scores: Record<number, number> | null;

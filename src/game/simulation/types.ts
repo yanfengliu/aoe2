@@ -455,7 +455,7 @@ export interface SimulationDebugSnapshot {
 export type WinCondition = 'conquest' | 'wonder' | 'relic';
 
 export interface MatchState {
-  outcome: 'running' | 'victory' | 'defeat';
+  outcome: 'running' | 'victory' | 'defeat' | 'draw';
   summary: string;
   // Populated when `outcome !== 'running'`. Null while the match is live.
   winCondition: WinCondition | null;

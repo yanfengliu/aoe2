@@ -6290,13 +6290,27 @@ function createWorld(
         return;
       }
 
-      if (!playerHasConquestPresence(HUMAN_PLAYER_ID)) {
+      const humanAlive = playerHasConquestPresence(HUMAN_PLAYER_ID);
+      const enemyOwners = [...playerResources.keys()].filter((owner) => owner !== HUMAN_PLAYER_ID);
+      const allEnemiesEliminated = enemyOwners.every((owner) => !playerHasConquestPresence(owner));
+
+      // Iter-3 V3-12: simultaneous mutual annihilation must produce
+      // 'draw', not 'defeat'. Pre-fix the human-first early return
+      // stamped 'defeat' even when the same tick had wiped every
+      // enemy too. Compute both predicates first, then choose.
+      if (!humanAlive && allEnemiesEliminated) {
+        finalizeMatchEnd(
+          'draw',
+          'conquest',
+          'Mutual annihilation: every player\'s units and buildings were destroyed on the same tick.',
+        );
+        return;
+      }
+      if (!humanAlive) {
         finalizeMatchEnd('defeat', 'conquest', 'All of your units and buildings have been destroyed.');
         return;
       }
-
-      const enemyOwners = [...playerResources.keys()].filter((owner) => owner !== HUMAN_PLAYER_ID);
-      if (enemyOwners.every((owner) => !playerHasConquestPresence(owner))) {
+      if (allEnemiesEliminated) {
         finalizeMatchEnd('victory', 'conquest', 'All enemy forces have been eliminated.');
       }
     },
