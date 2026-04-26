@@ -58,6 +58,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     wildlifeStates,
     aiStates,
     unitCommands,
+    gathererDropOffStuckSinceTick,
   } = state;
 
   const blob = savedGame.sideMaps;
@@ -285,6 +286,14 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     });
   }
 
+  // Iter-4 V4-7: drop-off retry throttle survives save+load. Older blobs
+  // (pre-V4-7) omit the field; treat absence as "no throttled gatherers".
+  if (blob.gathererDropOffStuckSinceTick) {
+    for (const [id, tick] of blob.gathererDropOffStuckSinceTick) {
+      gathererDropOffStuckSinceTick.set(id, tick);
+    }
+  }
+
   matchState.outcome = savedGame.matchState.outcome;
   matchState.summary = savedGame.matchState.summary;
   matchState.winCondition = savedGame.matchState.winCondition;
@@ -321,4 +330,5 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(garrisonedUnitVisionSources);
   pruneOrphanEntityKeys(garrisonedByBuilding);
   pruneOrphanEntityKeys(garrisonedUnitToBuilding);
+  pruneOrphanEntityKeys(gathererDropOffStuckSinceTick);
 }

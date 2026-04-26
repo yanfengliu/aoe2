@@ -219,6 +219,11 @@ export interface SerializedSideMaps {
       lastEnemySightingPosition: { x: number; y: number } | null;
     }
   >;
+  // Iter-3 V3-5 / iter-4 V4-7: per-villager "stuck since" tick used by the
+  // drop-off retry throttle (re-plan every 30 ticks instead of every tick).
+  // Persisted so a save+load mid-stuck preserves the throttle window
+  // instead of resetting every previously-stuck villager to "retry now".
+  gathererDropOffStuckSinceTick: SerializedEntityKeyedSideMap<number>;
 }
 
 // Serialized match state. Mirrors `MatchState` but is duplicated here

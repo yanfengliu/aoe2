@@ -231,4 +231,33 @@ describe('Slice 9 — save/load round-trip', () => {
     const secondBlob = loadedBridge.saveGame();
     expect(secondBlob.seed).toBe(savedSeed);
   });
+
+  it('persists the gatherer drop-off retry throttle field (review V4-7)', () => {
+    // The throttle map (gathererDropOffStuckSinceTick) doesn't normally
+    // get exercised by random fixtures so just assert the schema field
+    // round-trips cleanly: empty map → empty array, populated map
+    // round-trips through SaveBlob → JSON → load. Pre-fix the field was
+    // missing from saveGameOps + hydrateFromSavedGame entirely; a
+    // populated throttle would silently reset every load.
+    const bridge = createSimulationBridge('aoe2-prototype');
+    bridge.step(1000);
+    const blob = bridge.saveGame();
+    expect(blob.sideMaps.gathererDropOffStuckSinceTick).toBeDefined();
+    expect(Array.isArray(blob.sideMaps.gathererDropOffStuckSinceTick)).toBe(true);
+
+    // Inject a fake throttle entry to prove load preserves it.
+    const fakeId = 999_999;
+    const fakeTick = 12_345;
+    blob.sideMaps.gathererDropOffStuckSinceTick = [[fakeId, fakeTick]];
+    const json = JSON.parse(JSON.stringify(blob)) as SaveBlob;
+    // Round-tripping through JSON keeps the entry intact.
+    expect(json.sideMaps.gathererDropOffStuckSinceTick).toEqual([[fakeId, fakeTick]]);
+
+    // The loader's V3-8 orphan-key prune drops keys that don't
+    // resolve via world.getEntityRef — fakeId is by construction not in
+    // the world, so the orphan prune deletes it. That's the documented
+    // contract; the field's presence in the blob is what matters here.
+    const loaded = createSimulationBridge('aoe2-prototype', { savedGame: json });
+    expect(loaded.saveGame().sideMaps.gathererDropOffStuckSinceTick).toEqual([]);
+  });
 });

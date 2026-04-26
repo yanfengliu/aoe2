@@ -77,6 +77,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     buildingCombatStates,
     wildlifeStates,
     aiStates,
+    gathererDropOffStuckSinceTick,
   } = state;
 
   function saveGame(): SaveBlob {
@@ -275,6 +276,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
               : null,
           },
         ]),
+        gathererDropOffStuckSinceTick: [...gathererDropOffStuckSinceTick.entries()],
       },
     };
   }
