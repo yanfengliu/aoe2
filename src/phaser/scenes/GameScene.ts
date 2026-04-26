@@ -491,7 +491,11 @@ export class GameScene extends Phaser.Scene {
 
     this.terrainLayer.clear();
     this.entityLayer.clear();
-    this.fogLayer.clear();
+    // Iter-3 V3-18: do NOT clear fogLayer here. `renderFog` below now
+    // memoizes on the projected frame reference; clearing
+    // unconditionally + re-rendering every RAF tick was the prior
+    // perf hot path. renderFog clears the layer itself when the
+    // frame has actually changed.
     this.healthBarLayer.clear();
     this.selectionLayer.clear();
     this.placementLayer.clear();

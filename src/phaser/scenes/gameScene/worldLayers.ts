@@ -160,7 +160,24 @@ export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRen
     return states;
   }
 
+  // Iter-3 V3-18: memoize fog render. Pre-fix, every render frame
+  // allocated two new Set objects, walked every cell of the map, and
+  // emitted a fillRect for every non-visible cell — even when the
+  // visibility frame had not changed since the last render. With the
+  // fog layer left intact across no-change frames, the GameScene's
+  // unconditional fogLayer.clear() becomes redundant work and is
+  // removed there too. The fog only re-renders when `frame` updates
+  // (different reference) and we cache the last-rendered reference.
+  let lastRenderedFrame: ProjectedFrameView | null = null;
+
   function renderFog(frame: ProjectedFrameView): void {
+    if (frame === lastRenderedFrame) {
+      return;
+    }
+    lastRenderedFrame = frame;
+
+    fogLayer.clear();
+
     const visible = new Set(frame.visibleCells);
     const explored = new Set(frame.exploredCells);
 

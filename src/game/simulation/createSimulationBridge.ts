@@ -167,6 +167,7 @@ import type {
   PopulationState,
   ProductionQueueEntry,
   ProjectedEntityView,
+  ProjectedFrameView,
   ResearchableTechnologyType,
   RenderState,
   RenderableComponent,
@@ -7348,9 +7349,23 @@ export function createSimulationBridge(
     renderAdapter.connect();
   }
 
+  // Iter-3 V3-19 / iter-1 H-4: per-tick memo for getRenderState. Bumped
+  // every time the projector re-runs (out-of-band change consumed)
+  // OR every world-tick (handled at the start of step()). The cache
+  // key in getRenderState includes this counter so any change to the
+  // projected entities invalidates the cache automatically.
+  let renderStoreVersion = 0;
+  let renderStateCache: {
+    tick: number;
+    renderStoreVersion: number;
+    fogMemorySize: number;
+    value: { tick: number; entities: ProjectedEntityView[]; frame: ProjectedFrameView | null };
+  } | null = null;
+
   function flushOutOfBandRenderChange(): void {
     if (consumeOutOfBandRenderChange()) {
       refreshRenderProjection();
+      renderStoreVersion += 1;
     }
   }
 
@@ -7382,6 +7397,31 @@ export function createSimulationBridge(
     },
     getRenderState() {
       flushOutOfBandRenderChange();
+
+      // Iter-3 V3-19 (and prior iter-1 H-4): per-tick memo. Multiple
+      // callers (HUD RAF, GameScene.syncFromBridge, browserTestApi
+      // getSnapshot) call this within the same tick, and the work
+      // below — filter every entity by isFootprintVisible, build a
+      // dedupe Set, possibly merge memory entries, possibly re-sort
+      // — is not cheap. A no-state-changed second call returns the
+      // cached result.
+      //
+      // Cache key: (tick, renderStoreVersion, fogMemorySize). The
+      // version counter is bumped whenever flushOutOfBandRenderChange
+      // re-runs the projector (selection / construction-complete /
+      // tech-upgrade / similar), so the cache is invalidated for any
+      // mid-tick change that could affect the projected list.
+      const currentTick = renderStore.getTick();
+      const currentFogMemorySize = getHumanFogMemorySize();
+      if (
+        renderStateCache !== null
+        && renderStateCache.tick === currentTick
+        && renderStateCache.renderStoreVersion === renderStoreVersion
+        && renderStateCache.fogMemorySize === currentFogMemorySize
+      ) {
+        return renderStateCache.value;
+      }
+
       // The render adapter only re-projects entities on component changes, so a static
       // enemy building or resource's projected view can linger in the render store after
       // it has left the human player's vision. Filter those out here so they can be
@@ -7417,12 +7457,19 @@ export function createSimulationBridge(
       // Fast path: if the human player has no fog memory at all, skip the dedupe
       // Set, the memory projection, and the merge sort entirely. This is the
       // common case every frame after warmup.
-      if (getHumanFogMemorySize() === 0) {
-        return {
-          tick: renderStore.getTick(),
+      if (currentFogMemorySize === 0) {
+        const value = {
+          tick: currentTick,
           entities: liveEntities,
           frame: renderStore.getFrame(),
         };
+        renderStateCache = {
+          tick: currentTick,
+          renderStoreVersion,
+          fogMemorySize: currentFogMemorySize,
+          value,
+        };
+        return value;
       }
 
       const liveIds = new Set<number>();
@@ -7431,11 +7478,18 @@ export function createSimulationBridge(
       }
       const memoryEntities = getFogMemoryEntities(liveIds);
       if (memoryEntities.length === 0) {
-        return {
-          tick: renderStore.getTick(),
+        const value = {
+          tick: currentTick,
           entities: liveEntities,
           frame: renderStore.getFrame(),
         };
+        renderStateCache = {
+          tick: currentTick,
+          renderStoreVersion,
+          fogMemorySize: currentFogMemorySize,
+          value,
+        };
+        return value;
       }
 
       // Merge live and memory entries into one sorted array. Live entries are
@@ -7448,11 +7502,18 @@ export function createSimulationBridge(
         merged.push(entity);
       }
       merged.sort(compareProjectedRenderEntities);
-      return {
-        tick: renderStore.getTick(),
+      const value = {
+        tick: currentTick,
         entities: merged,
         frame: renderStore.getFrame(),
       };
+      renderStateCache = {
+        tick: currentTick,
+        renderStoreVersion,
+        fogMemorySize: currentFogMemorySize,
+        value,
+      };
+      return value;
     },
     getRenderInterpolationAlpha() {
       const tickMs = 1000 / TPS;
