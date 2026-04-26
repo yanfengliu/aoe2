@@ -1,16 +1,9 @@
-import type { EntityRef, Position, VisibilityMap } from 'civ-engine';
-
 import {
   buildingFootprint,
   currentEntityId,
   shouldMaintainGatheringOrder,
-  type GameWorld,
 } from './pureHelpers';
-import type { BridgeState } from './bridgeState';
-import type { CreateWorldResult } from './createWorldResult';
-import type { SaveBlob } from '../saveSchema';
-import type { PrototypeScenario } from '../prototypeScenario';
-import type { MatchState, BuildableBuildingType, UnitTaskState } from '../types';
+import type { UnitTaskState } from '../types';
 import { unitTint } from '../prototypeUnitRules';
 import {
   AI_MONK_HEAL_HP_FRACTION,
@@ -69,51 +62,11 @@ import {
   WONDER_COUNTDOWN_TICKS,
 } from './bridgeConstants';
 
-export interface WireBridgeOpsDeps {
-  world: GameWorld;
-  state: BridgeState;
-  visibility: VisibilityMap;
-  matchState: MatchState;
-  savedGame: SaveBlob | undefined;
-  scenario: PrototypeScenario;
-  worldOccupancy: import('../worldOccupancy').WorldOccupancy;
-  tiles: number[][];
-  selection: { refs: EntityRef[]; focusCell: Position | null };
-  placementMode: { current: BuildableBuildingType | null };
-  isBootstrappingScenarioRef: { current: boolean };
-  ensurePlayerScoreCounters: (owner: number) => {
-    unitsProduced: number;
-    buildingsProduced: number;
-    resourcesGathered: number;
-    unitsKilled: number;
-    wonderCompleted: boolean;
-  };
-  ensureAiState: (owner: number, difficulty?: import('../ai').DifficultyLevel) => import('../ai').AiState;
-  inFlightTechSetFor: (owner: number) => Set<import('../types').ResearchableTechnologyType>;
-  clearUnitCommand: (id: number) => void;
-  setUnitCommand: (id: number, command: import('../createSimulationBridge').UnitCommand) => void;
-  getCurrentEntityId: (ref: EntityRef | null) => number | null;
-  getEntityRef: (id: number) => EntityRef | null;
-  getUnitTaskStateInternal: (id: number, isGarrisonedUnit: (id: number) => boolean) => UnitTaskState;
-  enqueueRejection: (reason: string) => void;
-  markOutOfBandRenderChange: () => void;
-  getSeed: () => string;
-}
-
-export type WireBridgeOpsResult = Omit<
-  CreateWorldResult,
-  | 'world'
-  | 'getPopulationState'
-  | 'getPlayerResources'
-  | 'getMatchState'
-  | 'isSelected'
-  | 'consumeOutOfBandRenderChange'
-  | 'consumeCommandRejection'
-> & {
-  getHumanWonderCountdownTicks: () => number | null;
-  getHumanRelicCountdownTicks: () => number | null;
-  getSelectedEntityIds: () => number[];
-};
+export type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
+import type {
+  WireBridgeOpsDeps,
+  WireBridgeOpsResult,
+} from './wireBridgeOpsTypes';
 
 export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
@@ -164,27 +117,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   });
   const { getHumanWonderCountdownTicks, getHumanRelicCountdownTicks } = matchEndOps;
 
-  const { getEntityHealth, getSelectionState } = createSelectionStateOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    state,
-    placementMode,
-    getSelectedEntityIds: () => getSelectedEntityIds(),
-    resolveSelectionTile: (id, position) => resolveSelectionTile(id, position),
-    getSelectableEntitiesAtCell: (x, y) => getSelectableEntitiesAtCell(x, y),
-    getCurrentEntityId,
-    clearSelection: () => {
-      selection.refs = [];
-      selection.focusCell = null;
-    },
-    getActionOptions: (owner, buildingType, buildingId) => getActionOptions(owner, buildingType, buildingId),
-    getTrainOptions: (owner, buildingType) => getTrainOptions(owner, buildingType),
-    getMarketOptions: (owner, buildingType) => getMarketOptions(owner, buildingType),
-    getBuildOptions: (owner, unitType) => getBuildOptions(owner, unitType),
-    getResearchOptions: (owner, buildingType) => getResearchOptions(owner, buildingType),
-    getVisibleResearchOptions: (owner, buildingType) => getVisibleResearchOptions(owner, buildingType),
-  });
-
   const transformOps = createTransformOps({
     world,
     mapWidth: MAP_WIDTH,
@@ -215,6 +147,25 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     latestResearchedInChain,
     hasOwnedWonder,
   } = playerQueries;
+
+  const {
+    getTrainOptions,
+    getResearchOptions,
+    getVisibleResearchOptions,
+    getMarketOptions,
+    getBuildOptions,
+  } = createOptionsRules({
+    latestResearchedInChain,
+    hasTechnology,
+    getPlayerAge,
+    isAtLeastAge,
+    getPlayerCivilization,
+    canAdvanceToFeudalAge,
+    canAdvanceToCastleAge,
+    canAdvanceToImperialAge,
+    hasCompletedBuilding,
+    hasOwnedWonder,
+  });
 
   const createCombatState = createCombatStateFactory({ hasTechnology });
 
@@ -397,10 +348,10 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     placementMode,
     inFlightTechSetFor,
     getSelectedEntityId,
-    getTrainOptions: (owner, buildingType) => getTrainOptions(owner, buildingType),
-    getResearchOptions: (owner, buildingType) => getResearchOptions(owner, buildingType),
-    getMarketOptions: (owner, buildingType) => getMarketOptions(owner, buildingType),
-    getBuildOptions: (owner, unitType) => getBuildOptions(owner, unitType),
+    getTrainOptions,
+    getResearchOptions,
+    getMarketOptions,
+    getBuildOptions,
     isPlacementBlocked,
     isGarrisonedUnit,
     clearGathererOrder,
@@ -419,23 +370,25 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     markOutOfBandRenderChange,
   });
 
-  const {
+  const { getEntityHealth, getSelectionState } = createSelectionStateOps({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    state,
+    placementMode,
+    getSelectedEntityIds,
+    resolveSelectionTile,
+    getSelectableEntitiesAtCell,
+    getCurrentEntityId,
+    clearSelection: () => {
+      selection.refs = [];
+      selection.focusCell = null;
+    },
+    getActionOptions,
     getTrainOptions,
-    getResearchOptions,
-    getVisibleResearchOptions,
     getMarketOptions,
     getBuildOptions,
-  } = createOptionsRules({
-    latestResearchedInChain,
-    hasTechnology,
-    getPlayerAge,
-    isAtLeastAge,
-    getPlayerCivilization,
-    canAdvanceToFeudalAge,
-    canAdvanceToCastleAge,
-    canAdvanceToImperialAge,
-    hasCompletedBuilding,
-    hasOwnedWonder,
+    getResearchOptions,
+    getVisibleResearchOptions,
   });
 
   const targetFindingOps = createTargetFindingOps({ world, visibility, state });
