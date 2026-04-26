@@ -29,7 +29,10 @@ export interface WireBridgeOpsDeps {
   visibility: VisibilityMap;
   matchState: MatchState;
   savedGame: SaveBlob | undefined;
-  scenario: PrototypeScenario;
+  // V4-8: scenario is nullable on the saved-game branch since the
+  // hydration path never consults it. Skipping createPrototypeScenario
+  // saves several ms (more on Black Forest seeds) per save load.
+  scenario: PrototypeScenario | null;
   worldOccupancy: WorldOccupancy;
   tiles: number[][];
   selection: { refs: EntityRef[]; focusCell: Position | null };

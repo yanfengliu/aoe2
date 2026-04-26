@@ -209,29 +209,28 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     const clampedMinY = clamp(Math.min(minY, maxY), 0, mapHeight - 1);
     const clampedMaxY = clamp(Math.max(minY, maxY), 0, mapHeight - 1);
 
-    return [...world.query('position', 'unit')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        unit: world.getComponent<UnitComponent>(id, 'unit'),
-      }))
-      .filter(
-        (entry): entry is { id: number; position: Position; unit: UnitComponent } =>
-          entry.position !== undefined
-          && entry.unit !== undefined
-          && entry.unit.owner === humanPlayerId
-          && (unitType === undefined || entry.unit.unitType === unitType)
-          && entry.position.x >= clampedMinX
-          && entry.position.x <= clampedMaxX
-          && entry.position.y >= clampedMinY
-          && entry.position.y <= clampedMaxY,
-      )
-      .sort((left, right) => {
-        const yDelta = left.position.y - right.position.y;
-        if (yDelta !== 0) return yDelta;
-        return left.position.x - right.position.x;
-      })
-      .map((entry) => entry.id);
+    // V4-10: filter against the bbox + ownership/type gates inline before
+    // allocating wrappers. The previous chain mapped every unit on the map
+    // into a wrapper object first; with ~200 units on a busy map that's
+    // ~200 allocations per drag-box frame just to keep ~5-15 inside the
+    // bbox.
+    const matches: Array<{ id: number; position: Position }> = [];
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      if (!position) continue;
+      if (position.x < clampedMinX || position.x > clampedMaxX) continue;
+      if (position.y < clampedMinY || position.y > clampedMaxY) continue;
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!unit || unit.owner !== humanPlayerId) continue;
+      if (unitType !== undefined && unit.unitType !== unitType) continue;
+      matches.push({ id, position });
+    }
+    matches.sort((left, right) => {
+      const yDelta = left.position.y - right.position.y;
+      if (yDelta !== 0) return yDelta;
+      return left.position.x - right.position.x;
+    });
+    return matches.map((entry) => entry.id);
   }
 
   function selectUnitIds(ids: number[]): boolean {
@@ -299,30 +298,26 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     const clampedMinY = clamp(Math.min(minY, maxY), 0, mapHeight - 1);
     const clampedMaxY = clamp(Math.max(minY, maxY), 0, mapHeight - 1);
 
-    return [...world.query('position', 'resource')]
-      .map((id) => ({
-        id,
-        position: world.getComponent<Position>(id, 'position'),
-        resource: world.getComponent<ResourceComponent>(id, 'resource'),
-      }))
-      .filter(
-        (entry): entry is { id: number; position: Position; resource: ResourceComponent } =>
-          entry.position !== undefined
-          && entry.resource !== undefined
-          && entry.resource.resourceType === 'sheep'
-          && entry.resource.owner === humanPlayerId
-          && entry.resource.amount > 0
-          && entry.position.x >= clampedMinX
-          && entry.position.x <= clampedMaxX
-          && entry.position.y >= clampedMinY
-          && entry.position.y <= clampedMaxY,
-      )
-      .sort((left, right) => {
-        const yDelta = left.position.y - right.position.y;
-        if (yDelta !== 0) return yDelta;
-        return left.position.x - right.position.x;
-      })
-      .map((entry) => entry.id);
+    // V4-10: same inline-filter optimization as getHumanUnitIdsInRect.
+    const matches: Array<{ id: number; position: Position }> = [];
+    for (const id of world.query('position', 'resource')) {
+      const position = world.getComponent<Position>(id, 'position');
+      if (!position) continue;
+      if (position.x < clampedMinX || position.x > clampedMaxX) continue;
+      if (position.y < clampedMinY || position.y > clampedMaxY) continue;
+      const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      if (!resource) continue;
+      if (resource.resourceType !== 'sheep') continue;
+      if (resource.owner !== humanPlayerId) continue;
+      if (resource.amount <= 0) continue;
+      matches.push({ id, position });
+    }
+    matches.sort((left, right) => {
+      const yDelta = left.position.y - right.position.y;
+      if (yDelta !== 0) return yDelta;
+      return left.position.x - right.position.x;
+    });
+    return matches.map((entry) => entry.id);
   }
 
   function selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean {

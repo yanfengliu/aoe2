@@ -408,7 +408,12 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           }
         }
 
-        assignAiMonkTasks(owner);
+        // V4-12: skip the full unit-query scan if this AI doesn't own any
+        // Monks. Per-AI per-decision-tick saving with no Monks: ~250
+        // component lookups → 0.
+        if (countOwnedUnits(owner, 'monk') > 0) {
+          assignAiMonkTasks(owner);
+        }
 
         const liveMilitary = ownedMilitaryUnitIds(owner);
         state.attackGroup = state.attackGroup.filter((id) => liveMilitary.has(id));

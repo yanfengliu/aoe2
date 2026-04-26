@@ -193,7 +193,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   });
   const { clearGathererOrder } = createGathererOrderOps({ world, state });
 
-  if (!savedGame) {
+  if (!savedGame && scenario) {
     seedFreshScenario({
       world,
       scenario,

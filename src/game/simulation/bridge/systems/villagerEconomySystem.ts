@@ -12,7 +12,6 @@ import type {
   UnitComponent,
 } from '../../types';
 import {
-  isResourceCandidate,
   manhattanDistance,
   type GameCommands,
   type GameEvents,
@@ -108,18 +107,26 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
     if (!villagerPosition) return;
 
-    const matchingResources = [...activeWorld.query('position', 'resource')]
-      .map((id) => ({
-        id,
-        position: activeWorld.getComponent<Position>(id, 'position'),
-        resource: activeWorld.getComponent<ResourceComponent>(id, 'resource'),
-      }))
-      .filter(isResourceCandidate)
-      .filter((entry) => isHarvestableResource(entry.id, entry.resource))
-      .filter(
-        (entry) => resourceKindToEconomyResource(entry.resource.resourceType) === gatherer.desiredResource,
-      )
-      .sort((left, right) => {
+    // V4-9: filter inline before allocating wrappers. The previous chain
+    // mapped every resource on the map to a {id, position, resource}
+    // object before applying any filter, so a 12-villager simultaneous
+    // drop-off allocated ~12 * 120 wrappers per tick. Now wrappers are
+    // only built for the resources that pass the type + harvestability
+    // gates, which is normally the small subset that can match.
+    const matchingResources: Array<{
+      id: number;
+      position: Position;
+      resource: ResourceComponent;
+    }> = [];
+    for (const id of activeWorld.query('position', 'resource')) {
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
+      if (!position || !resource) continue;
+      if (!isHarvestableResource(id, resource)) continue;
+      if (resourceKindToEconomyResource(resource.resourceType) !== gatherer.desiredResource) continue;
+      matchingResources.push({ id, position, resource });
+    }
+    matchingResources.sort((left, right) => {
         const leftPreferred =
           left.resource.owner === owner ? 0
           : left.resource.owner === null && left.resource.baseOwner === owner ? 1

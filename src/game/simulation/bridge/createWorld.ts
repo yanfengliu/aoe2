@@ -82,7 +82,10 @@ export function createWorld(
     registerComponentTypes(world);
   }
 
-  const scenario = createPrototypeScenario(seed);
+  // V4-8: scenario generation is only consumed by the fresh-bootstrap
+  // path; on save-load it's discarded. Skip the procedural map build to
+  // avoid wasted CPU on every load.
+  const scenario = savedGame ? null : createPrototypeScenario(seed);
   // When loading a save, the deserialized world already has every tile
   // entity (deserialize preserves entity ids), so rebuild the lookup
   // grid instead of allocating a fresh set of tile entities.
