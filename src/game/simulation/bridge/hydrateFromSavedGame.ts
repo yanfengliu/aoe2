@@ -8,7 +8,7 @@ import type {
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { SaveBlob } from '../saveSchema';
-import type { UnitCommand } from '../createSimulationBridge';
+import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
 

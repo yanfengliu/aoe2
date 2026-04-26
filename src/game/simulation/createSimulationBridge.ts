@@ -2,8 +2,6 @@ import {
   RenderAdapter,
   VisibilityMap,
   WorldDebugger,
-  type EntityRef,
-  type Position,
 } from 'civ-engine';
 
 import { clamp } from './bridge/pureHelpers';
@@ -86,40 +84,15 @@ export interface SimulationBridge {
 
 // Bridge constants live in `bridge/bridgeConstants.ts`.
 
-export interface UnitCommand {
-  type: 'move' | 'build' | 'attack';
-  target: Position;
-  buildingRef?: EntityRef;
-  targetEntityRef?: EntityRef;
-  targetEntityKind?: 'unit' | 'building' | 'resource';
-}
-
-// Slice 5 Monk task. A Monk can heal a friendly wounded unit, convert an
-// enemy unit, pick up a neutral relic, or deposit a carried relic in a
-// friendly Monastery. The task encodes the target by stable EntityRef so
-// cleanup is automatic when the target is destroyed.
-export interface MonkTask {
-  kind: 'heal' | 'convert' | 'pickup' | 'deposit';
-  targetEntityRef: EntityRef;
-}
-
-export interface ConstructionState {
-  isComplete: boolean;
-  buildProgressTicks: number;
-  totalBuildTicks: number;
-  populationProvided: number;
-  width: number;
-  height: number;
-}
-
-// FU7: Trebuchet pack/unpack state. Each Trebuchet has a `packed` flag
-// (mobile when true, stationary-fire when false) and a
-// `transitionTicksRemaining` counter that is > 0 while a pack <-> unpack
-// transition is in progress.
-export interface TrebuchetPackState {
-  packed: boolean;
-  transitionTicksRemaining: number;
-}
+// V4-19: shared bridge-side types live in `bridge/sharedTypes.ts`. The
+// orchestrator re-exports them so external `SimulationBridge` consumers
+// keep their existing import paths.
+export type {
+  UnitCommand,
+  MonkTask,
+  ConstructionState,
+  TrebuchetPackState,
+} from './bridge/sharedTypes';
 
 // CombatState / BuildingCombatState / BuildingHealthState / WildlifeState
 // shapes live in `bridge/systems/systemTypes` (shared with the per-system

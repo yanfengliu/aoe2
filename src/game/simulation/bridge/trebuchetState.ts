@@ -5,7 +5,7 @@
 // treat the returned ops as plain methods without threading the map through
 // every call site.
 
-import type { TrebuchetPackState } from '../createSimulationBridge';
+import type { TrebuchetPackState } from './sharedTypes';
 
 const TREBUCHET_PACK_TRANSITION_TICKS = 50;
 

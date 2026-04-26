@@ -16,7 +16,7 @@ import type {
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
-import type { UnitCommand } from '../createSimulationBridge';
+import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 
 export interface UnitCommandOpsDeps {

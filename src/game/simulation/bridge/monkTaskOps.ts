@@ -25,7 +25,7 @@ import type {
   UnitComponent,
   UnitType,
 } from '../types';
-import type { MonkTask } from '../createSimulationBridge';
+import type { MonkTask } from './sharedTypes';
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import { createMonkAiSearchHelpers } from './monkAiSearchHelpers';
 import { createMonkTaskAppliers } from './monkTaskAppliers';

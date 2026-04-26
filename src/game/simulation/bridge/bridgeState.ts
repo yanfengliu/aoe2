@@ -26,7 +26,7 @@ import type {
   MonkTask,
   TrebuchetPackState,
   UnitCommand,
-} from '../createSimulationBridge';
+} from './sharedTypes';
 
 interface CachedMovePath {
   destination: Position;

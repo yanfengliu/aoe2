@@ -12,7 +12,7 @@ import type {
   UnitTaskState,
 } from '../types';
 import type { AiState, DifficultyLevel } from '../ai';
-import type { UnitCommand } from '../createSimulationBridge';
+import type { UnitCommand } from './sharedTypes';
 import type { WorldOccupancy } from '../worldOccupancy';
 
 export interface PlayerScoreCounters {

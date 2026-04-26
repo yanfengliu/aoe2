@@ -18,7 +18,7 @@ import {
   type AiState,
   type DifficultyLevel,
 } from '../ai';
-import type { UnitCommand } from '../createSimulationBridge';
+import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import { findSafeSpawnWithEgress } from '../spawn';
 import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
