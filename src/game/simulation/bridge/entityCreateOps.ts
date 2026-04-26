@@ -1,0 +1,353 @@
+// Entity creation operations. addUnitEntity / addBuildingEntity /
+// addResourceEntity each createEntity() then attach the components for
+// their kind, populate the relevant side maps, and trigger occupancy /
+// score / countdown follow-ups. Mirrors the pre-extraction inline
+// implementation byte-for-byte; the only change is the dependency
+// surface is explicit instead of closure-captured.
+
+import type { EntityRef, Position } from 'civ-engine';
+import type {
+  BuildingType,
+  PopulationState,
+  ProductionQueueEntry,
+  ResourceComponent,
+  ResourceKind,
+  UnitType,
+  VisionSourceComponent,
+} from '../types';
+import { buildingFootprint, getUnitTargetTransformForCell, type GameWorld } from './pureHelpers';
+import {
+  buildingBuildTimeTicks,
+  buildingMaxHp,
+  buildingPopulationProvided,
+  buildingSize,
+  buildingTint,
+  buildingVisionRadius,
+  createBuildingCombatState,
+} from '../prototypeBuildingRules';
+import {
+  createWildlifeState,
+  isWildlifeResourceType,
+  unitSize,
+  unitTint,
+} from '../prototypeUnitRules';
+import { resourceTint } from '../prototypeEconomyRules';
+import { assignVillagerRole } from './pureHelpers';
+import type {
+  BuildingCombatState,
+  BuildingHealthState,
+  CombatState,
+  WildlifeState,
+} from './systems/systemTypes';
+import type { WonderCountdownEntry } from './countdownTypes';
+
+interface ConstructionStateLike {
+  isComplete: boolean;
+  buildProgressTicks: number;
+  totalBuildTicks: number;
+  populationProvided: number;
+  width: number;
+  height: number;
+}
+
+interface TrebuchetPackStateLike {
+  packed: boolean;
+  transitionTicksRemaining: number;
+}
+
+interface PlayerScoreCountersLike {
+  unitsProduced: number;
+  buildingsProduced: number;
+  wonderCompleted: boolean;
+}
+
+const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
+  'berry-bush': 0.45,
+  'gold-mine': 0.8,
+  'stone-mine': 0.8,
+  boar: 0.48,
+  fish: 0.42,
+  sheep: 0.42,
+  wolf: 0.46,
+  tree: 0.58,
+  relic: 0.5,
+};
+
+export interface EntityCreateOpsDeps {
+  world: GameWorld;
+  wonderCountdownTicks: number;
+  population: Map<number, PopulationState>;
+  combatStates: Map<number, CombatState>;
+  buildingHealthStates: Map<number, BuildingHealthState>;
+  buildingCombatStates: Map<number, BuildingCombatState>;
+  trebuchetPackStates: Map<number, TrebuchetPackStateLike>;
+  villagerOrdinals: Map<number, number>;
+  productionQueues: Map<number, ProductionQueueEntry[]>;
+  constructionStates: Map<number, ConstructionStateLike>;
+  townCenterRefs: Map<number, EntityRef>;
+  wonderCountdowns: Map<number, WonderCountdownEntry>;
+  wonderCountdownOverrides: Map<number, number>;
+  wildlifeStates: Map<number, WildlifeState>;
+  ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
+  createCombatState: (owner: number, unitType: UnitType) => CombatState;
+  syncSpawnedEntityOccupancy: (entity: number) => void;
+  getEntityRef: (id: number) => EntityRef | null;
+}
+
+export interface EntityCreateOps {
+  addUnitEntity(
+    owner: number,
+    unitType: UnitType,
+    position: Position,
+    vision?: VisionSourceComponent,
+  ): number;
+  addBuildingEntity(
+    owner: number,
+    buildingType: BuildingType,
+    position: Position,
+    isComplete: boolean,
+    vision?: VisionSourceComponent,
+  ): number;
+  addResourceEntity(
+    resourceType: ResourceKind,
+    position: Position,
+    amount: number,
+    baseOwner: number | null,
+  ): number;
+  onBuildingConstructionComplete(
+    buildingId: number,
+    owner: number,
+    buildingType: BuildingType,
+  ): void;
+}
+
+export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOps {
+  const {
+    world,
+    wonderCountdownTicks,
+    population,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    trebuchetPackStates,
+    villagerOrdinals,
+    productionQueues,
+    constructionStates,
+    townCenterRefs,
+    wonderCountdowns,
+    wonderCountdownOverrides,
+    wildlifeStates,
+    ensurePlayerScoreCounters,
+    createCombatState,
+    syncSpawnedEntityOccupancy,
+    getEntityRef,
+  } = deps;
+
+  function addUnitEntity(
+    owner: number,
+    unitType: UnitType,
+    position: Position,
+    vision?: VisionSourceComponent,
+  ): number {
+    const entity = world.createEntity();
+    world.setPosition(entity, position);
+    world.addComponent(entity, 'unit', { owner, unitType });
+    world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
+    world.addComponent(entity, 'renderable', {
+      kind: 'unit',
+      layer: 'unit',
+      tint: unitTint(unitType, owner),
+      size: unitSize(unitType),
+      footprintWidth: 1,
+      footprintHeight: 1,
+      visualVariant: 'default',
+    });
+
+    const populationState = population.get(owner);
+    if (populationState) {
+      populationState.current += 1;
+    }
+
+    ensurePlayerScoreCounters(owner).unitsProduced += 1;
+    combatStates.set(entity, createCombatState(owner, unitType));
+
+    if (unitType === 'trebuchet') {
+      trebuchetPackStates.set(entity, {
+        packed: true,
+        transitionTicksRemaining: 0,
+      });
+    }
+
+    if (unitType === 'villager') {
+      const ordinal = villagerOrdinals.get(owner) ?? 0;
+      villagerOrdinals.set(owner, ordinal + 1);
+      world.addComponent(entity, 'gatherer', {
+        desiredResource: assignVillagerRole(owner, ordinal),
+        hasExplicitGatherOrder: false,
+        task: 'idle',
+        targetResourceId: null,
+        dropOffBuildingId: null,
+        carriedResource: null,
+        carriedAmount: 0,
+        carryCapacity: 10,
+        gatherProgressTicks: 0,
+      });
+    }
+
+    if (vision) {
+      world.addComponent(entity, 'visionSource', vision);
+    }
+
+    syncSpawnedEntityOccupancy(entity);
+    return entity;
+  }
+
+  function onBuildingConstructionComplete(
+    buildingId: number,
+    owner: number,
+    buildingType: BuildingType,
+  ): void {
+    const counters = ensurePlayerScoreCounters(owner);
+    counters.buildingsProduced += 1;
+    if (buildingType === 'wonder') {
+      counters.wonderCompleted = true;
+      const totalTicks = wonderCountdownOverrides.get(owner) ?? wonderCountdownTicks;
+      wonderCountdowns.set(buildingId, {
+        remainingTicks: totalTicks,
+        totalTicks,
+        lastCompletedTick: null,
+      });
+    }
+  }
+
+  function addBuildingEntity(
+    owner: number,
+    buildingType: BuildingType,
+    position: Position,
+    isComplete: boolean,
+    vision?: VisionSourceComponent,
+  ): number {
+    const footprint = buildingFootprint(buildingType);
+    const entity = world.createEntity();
+    world.setPosition(entity, position);
+    world.addComponent(entity, 'building', { owner, buildingType });
+    world.addComponent(entity, 'renderable', {
+      kind: 'building',
+      layer: 'building',
+      tint: buildingTint(buildingType, owner, isComplete),
+      size: buildingSize(buildingType),
+      footprintWidth: footprint.width,
+      footprintHeight: footprint.height,
+      visualVariant: isComplete ? 'complete' : 'construction',
+    });
+    buildingHealthStates.set(entity, {
+      currentHp: buildingMaxHp(buildingType),
+      maxHp: buildingMaxHp(buildingType),
+    });
+
+    if (buildingType === 'town-center') {
+      const entityRef = getEntityRef(entity);
+      if (entityRef) {
+        townCenterRefs.set(owner, entityRef);
+      }
+    }
+
+    if (
+      buildingType === 'town-center'
+      || buildingType === 'barracks'
+      || buildingType === 'stable'
+      || buildingType === 'archery-range'
+      || buildingType === 'blacksmith'
+      || buildingType === 'market'
+      || buildingType === 'siege-workshop'
+      || buildingType === 'monastery'
+      || buildingType === 'castle'
+    ) {
+      if (!productionQueues.has(entity)) {
+        productionQueues.set(entity, []);
+      }
+    }
+
+    const defaultVisionRadius = buildingVisionRadius(buildingType);
+    if (vision) {
+      world.addComponent(entity, 'visionSource', vision);
+    } else if (isComplete && defaultVisionRadius !== null) {
+      world.addComponent(entity, 'visionSource', {
+        playerId: owner,
+        radius: defaultVisionRadius,
+      });
+    }
+
+    const buildingCombatState = createBuildingCombatState(buildingType);
+    if (isComplete && buildingCombatState) {
+      buildingCombatStates.set(entity, buildingCombatState);
+    }
+
+    const populationState = population.get(owner);
+    const populationProvided = buildingPopulationProvided(buildingType);
+    if (isComplete && populationState && populationProvided > 0) {
+      populationState.cap += populationProvided;
+    }
+
+    if (!isComplete) {
+      constructionStates.set(entity, {
+        isComplete: false,
+        buildProgressTicks: 0,
+        totalBuildTicks: buildingBuildTimeTicks(buildingType),
+        populationProvided: buildingPopulationProvided(buildingType),
+        width: footprint.width,
+        height: footprint.height,
+      });
+    } else {
+      onBuildingConstructionComplete(entity, owner, buildingType);
+    }
+
+    syncSpawnedEntityOccupancy(entity);
+    return entity;
+  }
+
+  function addResourceEntity(
+    resourceType: ResourceKind,
+    position: Position,
+    amount: number,
+    baseOwner: number | null,
+  ): number {
+    const entity = world.createEntity();
+    world.setPosition(entity, position);
+
+    world.addComponent(entity, 'resource', {
+      resourceType,
+      amount,
+      maxAmount: amount,
+      owner: null,
+      baseOwner,
+    });
+    world.addComponent(entity, 'renderable', {
+      kind: 'resource',
+      layer: 'resource',
+      tint: resourceTint(resourceType, null),
+      size: RESOURCE_SIZES[resourceType],
+      footprintWidth: 1,
+      footprintHeight: 1,
+      visualVariant: 'default',
+    });
+
+    if (resourceType === 'sheep') {
+      world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
+    }
+
+    if (isWildlifeResourceType(resourceType)) {
+      wildlifeStates.set(entity, createWildlifeState(resourceType));
+    }
+
+    syncSpawnedEntityOccupancy(entity);
+    return entity;
+  }
+
+  return {
+    addUnitEntity,
+    addBuildingEntity,
+    addResourceEntity,
+    onBuildingConstructionComplete,
+  };
+}

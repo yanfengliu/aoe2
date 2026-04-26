@@ -21,7 +21,6 @@ import {
   gridPositionFromUnitTransform,
   isUnitTransformAtTarget,
   stepUnitTransformToward,
-  assignVillagerRole,
   shouldMaintainGatheringOrder,
   isResourceCandidate,
   isEconomyVillager,
@@ -53,6 +52,7 @@ import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
+import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createPlayerQueries } from './bridge/playerQueries';
@@ -89,15 +89,10 @@ import {
 import {
   buildingBuildTimeTicks,
   buildingGarrisonCapacity,
-  buildingMaxHp,
   buildingPopulationProvided,
-  buildingSize,
-  buildingTint,
-  buildingVisionRadius,
   canGarrisonAt,
   canResearchAt,
   canTrainAt,
-  createBuildingCombatState,
 } from './prototypeBuildingRules';
 import {
   canAfford,
@@ -107,18 +102,14 @@ import {
   researchCost,
   researchTimeTicks,
   resourceKindToEconomyResource,
-  resourceTint,
   resourcesMissing,
   spendResources,
   trainingCost,
   trainingTimeTicks,
 } from './prototypeEconomyRules';
 import {
-  createWildlifeState,
-  isWildlifeResourceType,
   unitAttackDamage,
   unitAttackRange,
-  unitSize,
   unitTint,
 } from './prototypeUnitRules';
 import { RenderStore } from './renderStore';
@@ -156,7 +147,6 @@ import type {
   RenderState,
   RenderableComponent,
   ResourceComponent,
-  ResourceKind,
   SelectionState,
   SimulationDebugSnapshot,
   TerrainComponent,
@@ -1067,244 +1057,34 @@ function createWorld(
     }
   }
 
-  function addUnitEntity(
-    owner: number,
-    unitType: UnitType,
-    position: Position,
-    vision?: VisionSourceComponent,
-  ): number {
-    const entity = world.createEntity();
-    world.setPosition(entity, position);
-    world.addComponent(entity, 'unit', {
-      owner,
-      unitType,
-    });
-    world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
-    world.addComponent(entity, 'renderable', {
-      kind: 'unit',
-      layer: 'unit',
-      tint: unitTint(unitType, owner),
-      size: unitSize(unitType),
-      footprintWidth: 1,
-      footprintHeight: 1,
-      visualVariant: 'default',
-    });
+  // Entity creation lives in `bridge/entityCreateOps`. The factory closes
+  // over every side map an entity-creation path may write to.
+  const {
+    addUnitEntity,
+    addBuildingEntity,
+    addResourceEntity,
+    onBuildingConstructionComplete,
+  } = createEntityCreateOps({
+    world,
+    wonderCountdownTicks: WONDER_COUNTDOWN_TICKS,
+    population,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    trebuchetPackStates,
+    villagerOrdinals,
+    productionQueues,
+    constructionStates,
+    townCenterRefs,
+    wonderCountdowns,
+    wonderCountdownOverrides,
+    wildlifeStates,
+    ensurePlayerScoreCounters,
+    createCombatState,
+    syncSpawnedEntityOccupancy,
+    getEntityRef,
+  });
 
-    const populationState = population.get(owner);
-    if (populationState) {
-      populationState.current += 1;
-    }
-
-    // Slice 8: count every unit that enters the world (scenario spawns +
-    // trained units) toward the owner's score. This keeps fixtures with
-    // pre-placed armies comparable to ones that grow from nothing.
-    ensurePlayerScoreCounters(owner).unitsProduced += 1;
-
-    combatStates.set(entity, createCombatState(owner, unitType));
-
-    // FU7: a freshly-trained (or scenario-spawned) Trebuchet starts packed
-    // so it can walk out of the producing Castle to a staging position
-    // exactly like any other siege unit. The unpack transition is gated on
-    // an attack order reaching a target within range.
-    if (unitType === 'trebuchet') {
-      trebuchetPackStates.set(entity, {
-        packed: true,
-        transitionTicksRemaining: 0,
-      });
-    }
-
-    if (unitType === 'villager') {
-      const ordinal = villagerOrdinals.get(owner) ?? 0;
-      villagerOrdinals.set(owner, ordinal + 1);
-      world.addComponent(entity, 'gatherer', {
-        desiredResource: assignVillagerRole(owner, ordinal),
-        hasExplicitGatherOrder: false,
-        task: 'idle',
-        targetResourceId: null,
-        dropOffBuildingId: null,
-        carriedResource: null,
-        carriedAmount: 0,
-        carryCapacity: 10,
-        gatherProgressTicks: 0,
-      });
-    }
-
-    if (vision) {
-      world.addComponent(entity, 'visionSource', vision);
-    }
-
-    syncSpawnedEntityOccupancy(entity);
-
-    return entity;
-  }
-
-  function addBuildingEntity(
-    owner: number,
-    buildingType: BuildingType,
-    position: Position,
-    isComplete: boolean,
-    vision?: VisionSourceComponent,
-  ): number {
-    const footprint = buildingFootprint(buildingType);
-    const entity = world.createEntity();
-    world.setPosition(entity, position);
-    world.addComponent(entity, 'building', {
-      owner,
-      buildingType,
-    });
-    world.addComponent(entity, 'renderable', {
-      kind: 'building',
-      layer: 'building',
-      tint: buildingTint(buildingType, owner, isComplete),
-      size: buildingSize(buildingType),
-      footprintWidth: footprint.width,
-      footprintHeight: footprint.height,
-      visualVariant: isComplete ? 'complete' : 'construction',
-    });
-    buildingHealthStates.set(entity, {
-      currentHp: buildingMaxHp(buildingType),
-      maxHp: buildingMaxHp(buildingType),
-    });
-
-    if (buildingType === 'town-center') {
-      const entityRef = getEntityRef(entity);
-      if (entityRef) {
-        townCenterRefs.set(owner, entityRef);
-      }
-    }
-
-    if (
-      buildingType === 'town-center'
-      || buildingType === 'barracks'
-      || buildingType === 'stable'
-      || buildingType === 'archery-range'
-      || buildingType === 'blacksmith'
-      || buildingType === 'market'
-      || buildingType === 'siege-workshop'
-      || buildingType === 'monastery'
-      || buildingType === 'castle'
-    ) {
-      if (!productionQueues.has(entity)) {
-        productionQueues.set(entity, []);
-      }
-    }
-
-    const defaultVisionRadius = buildingVisionRadius(buildingType);
-    if (vision) {
-      world.addComponent(entity, 'visionSource', vision);
-    } else if (isComplete && defaultVisionRadius !== null) {
-      world.addComponent(entity, 'visionSource', {
-        playerId: owner,
-        radius: defaultVisionRadius,
-      });
-    }
-
-    const buildingCombatState = createBuildingCombatState(buildingType);
-    if (isComplete && buildingCombatState) {
-      buildingCombatStates.set(entity, buildingCombatState);
-    }
-
-    const populationState = population.get(owner);
-    const populationProvided = buildingPopulationProvided(buildingType);
-    if (isComplete && populationState && populationProvided > 0) {
-      populationState.cap += populationProvided;
-    }
-
-    if (!isComplete) {
-      constructionStates.set(entity, {
-        isComplete: false,
-        buildProgressTicks: 0,
-        totalBuildTicks: buildingBuildTimeTicks(buildingType),
-        populationProvided: buildingPopulationProvided(buildingType),
-        width: footprint.width,
-        height: footprint.height,
-      });
-    } else {
-      // Slice 8: fixtures can spawn a completed Wonder directly (skipping
-      // the construction flow); propagate that into the score + countdown
-      // state so the Wonder-victory pipeline is identical to the "player
-      // just finished building their Wonder" path.
-      onBuildingConstructionComplete(entity, owner, buildingType);
-    }
-
-    syncSpawnedEntityOccupancy(entity);
-
-    return entity;
-  }
-
-  // Slice 8: invoked whenever a building transitions to complete — both at
-  // scenario-spawn time (isComplete=true in addBuildingEntity) and from
-  // the construction-progress loop in `prototypePlayerCommands`. Keeps the
-  // score counter bumps and Wonder countdown-start logic in one place so
-  // the two entry points cannot drift.
-  function onBuildingConstructionComplete(
-    buildingId: number,
-    owner: number,
-    buildingType: BuildingType,
-  ): void {
-    const counters = ensurePlayerScoreCounters(owner);
-    counters.buildingsProduced += 1;
-    if (buildingType === 'wonder') {
-      counters.wonderCompleted = true;
-      const totalTicks = wonderCountdownOverrides.get(owner) ?? WONDER_COUNTDOWN_TICKS;
-      wonderCountdowns.set(buildingId, {
-        remainingTicks: totalTicks,
-        totalTicks,
-        lastCompletedTick: null,
-      });
-    }
-  }
-
-  function addResourceEntity(
-    resourceType: ResourceKind,
-    position: Position,
-    amount: number,
-    baseOwner: number | null,
-  ): number {
-    const entity = world.createEntity();
-    world.setPosition(entity, position);
-
-    const sizeByResource: Record<ResourceComponent['resourceType'], number> = {
-      'berry-bush': 0.45,
-      'gold-mine': 0.8,
-      'stone-mine': 0.8,
-      boar: 0.48,
-      fish: 0.42,
-      sheep: 0.42,
-      wolf: 0.46,
-      tree: 0.58,
-      relic: 0.5,
-    };
-
-    world.addComponent(entity, 'resource', {
-      resourceType,
-      amount,
-      maxAmount: amount,
-      owner: null,
-      baseOwner,
-    });
-    world.addComponent(entity, 'renderable', {
-      kind: 'resource',
-      layer: 'resource',
-      tint: resourceTint(resourceType, null),
-      size: sizeByResource[resourceType],
-      footprintWidth: 1,
-      footprintHeight: 1,
-      visualVariant: 'default',
-    });
-
-    if (resourceType === 'sheep') {
-      world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
-    }
-
-    if (isWildlifeResourceType(resourceType)) {
-      wildlifeStates.set(entity, createWildlifeState(resourceType));
-    }
-
-    syncSpawnedEntityOccupancy(entity);
-
-    return entity;
-  }
 
   // Skip the entity-spawn loop when loading from a save blob — every
   // entity is already in the deserialized world. Side-map population
