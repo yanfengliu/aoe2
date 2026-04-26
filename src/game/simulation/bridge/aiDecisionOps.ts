@@ -160,6 +160,15 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
   }
 
   function findIdleProducer(owner: number, buildingType: BuildingType): number | null {
+    // Iter-3 V3-24: load-balance across producers. The prior
+    // implementation returned the first match in iteration order, so
+    // a multi-base AI's forward Barracks never trained until the home
+    // Barracks filled its 2-entry queue. Now we walk every owned
+    // producer of the matching type and return the LEAST-LOADED one
+    // (lowest queue length, ties broken by entity id for determinism
+    // under save/load).
+    let bestId: number | null = null;
+    let bestQueueLength = Number.POSITIVE_INFINITY;
     for (const id of world.query('building')) {
       const building = world.getComponent<BuildingComponent>(id, 'building');
       if (!building || building.owner !== owner || building.buildingType !== buildingType) {
@@ -169,13 +178,16 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       if (construction && !construction.isComplete) {
         continue;
       }
-      const queue = productionQueues.get(id) ?? [];
-      if (queue.length >= 2) {
+      const queueLength = productionQueues.get(id)?.length ?? 0;
+      if (queueLength >= 2) {
         continue;
       }
-      return id;
+      if (queueLength < bestQueueLength || (queueLength === bestQueueLength && bestId !== null && id < bestId)) {
+        bestId = id;
+        bestQueueLength = queueLength;
+      }
     }
-    return null;
+    return bestId;
   }
 
   function villagerRebalance(
