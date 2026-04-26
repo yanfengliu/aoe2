@@ -55,6 +55,7 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import { createVisibilityQueries } from './bridge/visibilityQueries';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
 import { createUnitCommandOps } from './bridge/unitCommandOps';
@@ -1774,71 +1775,18 @@ function createWorld(
     gathererDropOffStuckSinceTick.delete(id);
   }
 
-  function isVisibleToHuman(position: Position, owner: number | null): boolean {
-    return owner === HUMAN_PLAYER_ID || visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y);
-  }
-
-  // Returns true if any cell of an entity's footprint is currently visible to the
-  // human player. Owned entities are always considered visible. Multi-tile buildings
-  // (e.g. the 4x4 Town Center) count as visible if any one of their footprint cells
-  // is in vision; single-cell entities behave identically to `isVisibleToHuman`.
-  function isEntityFootprintVisibleToHuman(
-    position: Position,
-    owner: number | null,
-    footprintWidth: number,
-    footprintHeight: number,
-  ): boolean {
-    if (owner === HUMAN_PLAYER_ID) {
-      return true;
-    }
-    return isFootprintVisible(
-      visibility,
-      HUMAN_PLAYER_ID,
-      position.x,
-      position.y,
-      footprintWidth,
-      footprintHeight,
-    );
-  }
-
-  // Resolve an entity's owner, anchor position, and footprint. Returns null if the
-  // entity has no position component (e.g. the entity has been destroyed).
-  function getEntityVisibilityProbe(entityId: number): {
-    position: Position;
-    owner: number | null;
-    footprintWidth: number;
-    footprintHeight: number;
-  } | null {
-    const position = world.getComponent<Position>(entityId, 'position');
-    if (!position) {
-      return null;
-    }
-    const unit = world.getComponent<UnitComponent>(entityId, 'unit');
-    const building = world.getComponent<BuildingComponent>(entityId, 'building');
-    const resource = world.getComponent<ResourceComponent>(entityId, 'resource');
-    const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
-    let footprintWidth = 1;
-    let footprintHeight = 1;
-    if (building) {
-      const footprint = buildingFootprint(building.buildingType);
-      footprintWidth = footprint.width;
-      footprintHeight = footprint.height;
-    }
-    return { position, owner, footprintWidth, footprintHeight };
-  }
-
-  function isEntityVisibleToHuman(entityId: number): boolean {
-    const probe = getEntityVisibilityProbe(entityId);
-    if (!probe) {
-      return false;
-    }
-    return isEntityFootprintVisibleToHuman(
-      probe.position,
-      probe.owner,
-      probe.footprintWidth,
-      probe.footprintHeight,
-    );
-  }
+  // Visibility queries (isVisibleToHuman / isEntityFootprintVisibleToHuman /
+  // getEntityVisibilityProbe / isEntityVisibleToHuman) live in
+  // `bridge/visibilityQueries`.
+  const {
+    isVisibleToHuman,
+    isEntityFootprintVisibleToHuman,
+    isEntityVisibleToHuman,
+  } = createVisibilityQueries({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    visibility,
+  });
 
   // Selection input ops + spatial-context helpers live in
   // `bridge/selectionInputOps`. The factory closes over the `selection`
