@@ -22,49 +22,19 @@ import type { EntityRef, Position, World } from 'civ-engine';
 import type {
   BuildingComponent,
   GathererComponent,
-  PopulationState,
   RenderableComponent,
   ResourceComponent,
   UnitComponent,
   UnitType,
   VisionSourceComponent,
 } from '../types';
-import type {
-  MonkTask,
-  UnitCommand,
-} from '../createSimulationBridge';
+import type { MonkTask } from '../createSimulationBridge';
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import { manhattanDistance } from './pureHelpers';
 
-interface CombatStateLike {
-  currentHp: number;
-  maxHp: number;
-}
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
-interface ConversionStateEntry {
-  byOwner: number;
-  progress: number;
-}
-
 export interface MonkTaskDeps {
   world: GameWorld;
-  // Side maps. Owned by createWorld so save/load hydration and destroy-entity
-  // cleanup can share the same references without routing through the ops
-  // factory.
-  monkTasks: Map<number, MonkTask>;
-  monkCarriedRelic: Map<number, number>;
-  monkHealCounters: Map<number, number>;
-  monkConvertProcessedThisTick: Set<number>;
-  conversionState: Map<number, ConversionStateEntry>;
-  relicsInMonastery: Map<number, number>;
-  combatStates: Map<number, CombatStateLike>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  unitCommands: Map<number, UnitCommand>;
-  population: Map<number, PopulationState>;
+  state: import('./bridgeState').BridgeState;
   // Collaborators. Thin wrappers around bridge-local helpers; the factory
   // just calls them — the implementations still live in createWorld because
   // they touch other side maps this subsystem intentionally does not own.
@@ -137,16 +107,7 @@ export interface MonkTaskOps {
 export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   const {
     world,
-    monkTasks,
-    monkCarriedRelic,
-    monkHealCounters,
-    monkConvertProcessedThisTick,
-    conversionState,
-    relicsInMonastery,
-    combatStates,
-    constructionStates,
-    unitCommands,
-    population,
+    state,
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,
@@ -164,6 +125,18 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
   } = deps;
+  const {
+    monkTasks,
+    monkCarriedRelic,
+    monkHealCounters,
+    monkConvertProcessedThisTick,
+    conversionState,
+    relicsInMonastery,
+    combatStates,
+    constructionStates,
+    unitCommands,
+    population,
+  } = state;
 
   function assignAiMonkTasks(owner: number): void {
     for (const monkId of world.query('unit')) {

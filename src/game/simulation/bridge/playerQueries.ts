@@ -8,7 +8,6 @@ import type {
   AgeType,
   BuildingComponent,
   BuildingType,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   TrainableUnitType,
   UnitComponent,
@@ -25,22 +24,9 @@ import {
   type UpgradeChainEntry,
 } from '../upgradeChains';
 
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
-// Keys-only consumer of unitCommands: `unitCommands.has(id)` gates the
-// "available villager" check.
-type UnitCommandLike = unknown;
-
 export interface PlayerQueriesDeps {
   world: GameWorld;
-  unitCommands: Map<number, UnitCommandLike>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  playerAges: Map<number, AgeType>;
-  playerCivilizations: Map<number, string>;
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
+  state: import('./bridgeState').BridgeState;
 }
 
 export interface PlayerQueries {
@@ -67,15 +53,15 @@ export interface PlayerQueries {
 }
 
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
+  const { world, state } = deps;
   const {
-    world,
     unitCommands,
     productionQueues,
     constructionStates,
     playerAges,
     playerCivilizations,
     researchedTechnologies,
-  } = deps;
+  } = state;
 
   function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
     return researchedTechnologies.get(owner)?.has(technologyType) ?? false;

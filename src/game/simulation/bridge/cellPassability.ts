@@ -17,14 +17,7 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
-import type { WildlifeState } from './systems/systemTypes';
-
 type CivWorld = World<GameEvents, GameCommands>;
-
-interface ConstructionStateLike {
-  width: number;
-  height: number;
-}
 
 interface WorldOccupancyLike {
   isCellBlockedByBuilding(x: number, y: number): boolean;
@@ -41,10 +34,7 @@ export interface CellPassabilityDeps {
   mapHeight: number;
   worldOccupancy: WorldOccupancyLike;
   tiles: number[][];
-  constructionStates: Map<number, ConstructionStateLike>;
-  wildlifeStates: Map<number, WildlifeState>;
-  garrisonedByBuilding: Map<number, number[]>;
-  garrisonedUnitToBuilding: Map<number, number>;
+  state: import('./bridgeState').BridgeState;
 }
 
 export interface CellPassability {
@@ -87,11 +77,14 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     mapHeight,
     worldOccupancy,
     tiles,
+    state,
+  } = deps;
+  const {
     constructionStates,
     wildlifeStates,
     garrisonedByBuilding,
     garrisonedUnitToBuilding,
-  } = deps;
+  } = state;
 
   function buildingOccupiesCell(
     buildingId: number,

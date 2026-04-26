@@ -8,8 +8,6 @@
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingType,
-  PopulationState,
-  ProductionQueueEntry,
   ResourceComponent,
   ResourceKind,
   UnitType,
@@ -33,27 +31,7 @@ import {
 } from '../prototypeUnitRules';
 import { resourceTint } from '../prototypeEconomyRules';
 import { assignVillagerRole } from './pureHelpers';
-import type {
-  BuildingCombatState,
-  BuildingHealthState,
-  CombatState,
-  WildlifeState,
-} from './systems/systemTypes';
-import type { WonderCountdownEntry } from './countdownTypes';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-  buildProgressTicks: number;
-  totalBuildTicks: number;
-  populationProvided: number;
-  width: number;
-  height: number;
-}
-
-interface TrebuchetPackStateLike {
-  packed: boolean;
-  transitionTicksRemaining: number;
-}
+import type { CombatState } from './systems/systemTypes';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -76,18 +54,7 @@ const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
 export interface EntityCreateOpsDeps {
   world: GameWorld;
   wonderCountdownTicks: number;
-  population: Map<number, PopulationState>;
-  combatStates: Map<number, CombatState>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  trebuchetPackStates: Map<number, TrebuchetPackStateLike>;
-  villagerOrdinals: Map<number, number>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  townCenterRefs: Map<number, EntityRef>;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
-  wonderCountdownOverrides: Map<number, number>;
-  wildlifeStates: Map<number, WildlifeState>;
+  state: import('./bridgeState').BridgeState;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
   createCombatState: (owner: number, unitType: UnitType) => CombatState;
   syncSpawnedEntityOccupancy: (entity: number) => void;
@@ -125,6 +92,13 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   const {
     world,
     wonderCountdownTicks,
+    state,
+    ensurePlayerScoreCounters,
+    createCombatState,
+    syncSpawnedEntityOccupancy,
+    getEntityRef,
+  } = deps;
+  const {
     population,
     combatStates,
     buildingHealthStates,
@@ -137,11 +111,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     wonderCountdowns,
     wonderCountdownOverrides,
     wildlifeStates,
-    ensurePlayerScoreCounters,
-    createCombatState,
-    syncSpawnedEntityOccupancy,
-    getEntityRef,
-  } = deps;
+  } = state;
 
   function addUnitEntity(
     owner: number,

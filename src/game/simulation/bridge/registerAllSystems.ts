@@ -10,9 +10,6 @@ import type {
   BuildableBuildingType,
   BuildingComponent,
   GathererComponent,
-  PlayerResources,
-  PopulationState,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   ResourceComponent,
   TrainableUnitType,
@@ -25,18 +22,7 @@ import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import type { AiState } from '../ai';
 import type { UnitMovementPlan } from './movementTypes';
 import type { MemoryEntry } from './memoryTypes';
-import type { RelicCountdownEntry, WonderCountdownEntry } from './countdownTypes';
-import type {
-  BuildingCombatState,
-  BuildingHealthState,
-  CombatState,
-  WildlifeState,
-} from './systems/systemTypes';
-import type {
-  ConstructionState,
-  MonkTask,
-  UnitCommand,
-} from '../createSimulationBridge';
+import type { BridgeState } from './bridgeState';
 
 import { registerAiSystem } from './systems/aiSystem';
 import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
@@ -72,31 +58,7 @@ export interface RegisterAllSystemsDeps {
   humanPlayerId: number;
   visibility: VisibilityMap;
   defaultRelicCountdownTicks: number;
-  // Side maps.
-  townCenterRefs: Map<number, EntityRef>;
-  aiStates: Map<number, AiState>;
-  population: Map<number, PopulationState>;
-  playerResources: Map<number, PlayerResources>;
-  constructionStates: Map<number, ConstructionState>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  unitCommands: Map<number, UnitCommand>;
-  wildlifeStates: Map<number, WildlifeState>;
-  combatStates: Map<number, CombatState>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  monkTasks: Map<number, MonkTask>;
-  monkConvertProcessedThisTick: Set<number>;
-  monkCarriedRelic: Map<number, number>;
-  relicsInMonastery: Map<number, number>;
-  rallyPoints: Map<number, Position>;
-  inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
-  sheepMoveOrders: Map<number, Position>;
-  gathererDropOffStuckSinceTick: Map<number, number>;
-  trackedVisibilitySources: Map<number, number>;
-  garrisonedByBuilding: Map<number, number[]>;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
-  relicCountdowns: Map<number, RelicCountdownEntry>;
-  relicCountdownOverrides: Map<number, number>;
+  state: BridgeState;
   // AI helper closures.
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => AgeType;
@@ -298,30 +260,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     humanPlayerId,
     visibility,
     defaultRelicCountdownTicks,
-    townCenterRefs,
-    aiStates,
-    population,
-    playerResources,
-    constructionStates,
-    productionQueues,
-    unitCommands,
-    wildlifeStates,
-    combatStates,
-    buildingHealthStates,
-    buildingCombatStates,
-    monkTasks,
-    monkConvertProcessedThisTick,
-    monkCarriedRelic,
-    relicsInMonastery,
-    rallyPoints,
-    inFlightTechByOwner,
-    sheepMoveOrders,
-    gathererDropOffStuckSinceTick,
-    trackedVisibilitySources,
-    garrisonedByBuilding,
-    wonderCountdowns,
-    relicCountdowns,
-    relicCountdownOverrides,
+    state,
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
@@ -404,6 +343,33 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   // isAiMilitaryUnit is currently unused by this surface; keep it accepted
   // so future systems can opt into the same shared deps shape.
   void isAiMilitaryUnit;
+
+  const {
+    townCenterRefs,
+    aiStates,
+    population,
+    playerResources,
+    constructionStates,
+    productionQueues,
+    unitCommands,
+    wildlifeStates,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    monkTasks,
+    monkConvertProcessedThisTick,
+    monkCarriedRelic,
+    relicsInMonastery,
+    rallyPoints,
+    inFlightTechByOwner,
+    sheepMoveOrders,
+    gathererDropOffStuckSinceTick,
+    trackedVisibilitySources,
+    garrisonedByBuilding,
+    wonderCountdowns,
+    relicCountdowns,
+    relicCountdownOverrides,
+  } = state;
 
   registerAiSystem({
     world,

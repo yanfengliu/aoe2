@@ -1,0 +1,266 @@
+// Small bridge-local helpers extracted from createWorld so the main file
+// stays narrow. Each helper closes over the same `state`, `world`, and a
+// few collaborator functions; ownership of the side maps still lives in
+// createBridgeState — these helpers are pure operations on top.
+
+import type { EntityRef, Position } from 'civ-engine';
+
+import type {
+  GathererComponent,
+  ResearchableTechnologyType,
+  UnitTaskState,
+} from '../types';
+import { currentEntityId, type GameWorld } from './pureHelpers';
+import {
+  DEFAULT_DIFFICULTY,
+  planForAge,
+  villagerTargetsForAge,
+  type AiState,
+  type DifficultyLevel,
+} from '../ai';
+import type { UnitCommand } from '../createSimulationBridge';
+import type { BridgeState } from './bridgeState';
+import { findSafeSpawnWithEgress } from '../spawn';
+import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
+
+interface PlayerScoreCounters {
+  unitsProduced: number;
+  buildingsProduced: number;
+  resourcesGathered: number;
+  unitsKilled: number;
+  wonderCompleted: boolean;
+}
+
+export interface BridgeHelpersDeps {
+  world: GameWorld;
+  state: BridgeState;
+}
+
+export interface BridgeHelpers {
+  ensurePlayerScoreCounters(owner: number): PlayerScoreCounters;
+  ensureAiState(owner: number, difficulty?: DifficultyLevel): AiState;
+  inFlightTechSetFor(owner: number): Set<ResearchableTechnologyType>;
+  clearUnitCommand(unitId: number): void;
+  setUnitCommand(unitId: number, command: UnitCommand): void;
+  getCurrentEntityId(ref: EntityRef | null): number | null;
+  getEntityRef(id: number): EntityRef | null;
+  getUnitTaskState(id: number, isGarrisonedUnit: (id: number) => boolean): UnitTaskState;
+}
+
+export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
+  const { world, state } = deps;
+  const {
+    playerScoreCounters,
+    aiStates,
+    playerAges,
+    inFlightTechByOwner,
+    unitCommands,
+    movePathCache,
+  } = state;
+
+  function ensurePlayerScoreCounters(owner: number): PlayerScoreCounters {
+    let counters = playerScoreCounters.get(owner);
+    if (!counters) {
+      counters = {
+        unitsProduced: 0,
+        buildingsProduced: 0,
+        resourcesGathered: 0,
+        unitsKilled: 0,
+        wonderCompleted: false,
+      };
+      playerScoreCounters.set(owner, counters);
+    }
+    return counters;
+  }
+
+  function ensureAiState(
+    owner: number,
+    difficulty: DifficultyLevel = DEFAULT_DIFFICULTY,
+  ): AiState {
+    let aiState = aiStates.get(owner);
+    if (!aiState) {
+      const age = playerAges.get(owner) ?? 'dark-age';
+      aiState = {
+        difficulty,
+        plan: planForAge(age),
+        villagerTargets: { ...villagerTargetsForAge(age) },
+        attackGroup: [],
+        lastDecisionTick: -1,
+        lastEnemySightingTick: -1,
+        lastEnemySightingPosition: null,
+      };
+      aiStates.set(owner, aiState);
+    }
+    return aiState;
+  }
+
+  function inFlightTechSetFor(owner: number): Set<ResearchableTechnologyType> {
+    let set = inFlightTechByOwner.get(owner);
+    if (!set) {
+      set = new Set<ResearchableTechnologyType>();
+      inFlightTechByOwner.set(owner, set);
+    }
+    return set;
+  }
+
+  function clearUnitCommand(unitId: number): void {
+    unitCommands.delete(unitId);
+    movePathCache.delete(unitId);
+  }
+
+  function setUnitCommand(unitId: number, command: UnitCommand): void {
+    movePathCache.delete(unitId);
+    unitCommands.set(unitId, command);
+  }
+
+  function getCurrentEntityId(ref: EntityRef | null): number | null {
+    return currentEntityId(world, ref);
+  }
+
+  function getEntityRef(id: number): EntityRef | null {
+    return world.getEntityRef(id);
+  }
+
+  function getUnitTaskState(
+    id: number,
+    isGarrisonedUnit: (id: number) => boolean,
+  ): UnitTaskState {
+    if (isGarrisonedUnit(id)) {
+      return 'garrisoned';
+    }
+    const command = unitCommands.get(id);
+    if (command) {
+      switch (command.type) {
+        case 'move':
+          return 'moving';
+        case 'build':
+          return 'building';
+        case 'attack':
+          return 'attacking';
+      }
+    }
+    const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+    return gatherer?.task ?? 'idle';
+  }
+
+  return {
+    ensurePlayerScoreCounters,
+    ensureAiState,
+    inFlightTechSetFor,
+    clearUnitCommand,
+    setUnitCommand,
+    getCurrentEntityId,
+    getEntityRef,
+    getUnitTaskState,
+  };
+}
+
+// Spawn-finder helpers. Live here because their three callers
+// (scenario seed, training/market construction, AI placement) all need
+// the same egress-aware definition. They take their collaborators as
+// arguments since each pre-existing factory provides a different combo.
+export function createSpawnFinders(deps: {
+  uniquePositions: (positions: Position[]) => Position[];
+  getApproachCellsForFootprint: (
+    anchor: Position,
+    width: number,
+    height: number,
+    range?: number,
+  ) => Position[];
+  getNearestMoveCandidates: (target: Position) => Position[];
+  isCellPassableForSpawn: (x: number, y: number) => boolean;
+  buildingFootprint: (buildingType: import('../types').BuildingType) => {
+    width: number;
+    height: number;
+  };
+}): {
+  findSafeSpawnPosition: (candidates: Position[]) => Position | null;
+  findScenarioSpawnPosition: (origin: Position) => Position | null;
+  findBuildingSpawnPosition: (
+    anchor: Position,
+    buildingType: import('../types').BuildingType,
+  ) => Position | null;
+} {
+  const {
+    uniquePositions,
+    getApproachCellsForFootprint,
+    getNearestMoveCandidates,
+    isCellPassableForSpawn,
+    buildingFootprint,
+  } = deps;
+
+  function findSafeSpawnPosition(candidates: Position[]): Position | null {
+    return findSafeSpawnWithEgress({
+      candidates: uniquePositions(candidates),
+      isCellPassable: (x, y) => isCellPassableForSpawn(x, y),
+      neighborOffsets: CARDINAL_NEIGHBOR_OFFSETS,
+    });
+  }
+
+  function findScenarioSpawnPosition(origin: Position): Position | null {
+    return findSafeSpawnPosition(getNearestMoveCandidates(origin));
+  }
+
+  function findBuildingSpawnPosition(
+    anchor: Position,
+    buildingType: import('../types').BuildingType,
+  ): Position | null {
+    const footprint = buildingFootprint(buildingType);
+    return findSafeSpawnPosition(
+      getApproachCellsForFootprint(anchor, footprint.width, footprint.height, 1),
+    );
+  }
+
+  return {
+    findSafeSpawnPosition,
+    findScenarioSpawnPosition,
+    findBuildingSpawnPosition,
+  };
+}
+
+// Clear gatherer order. Wraps clearing the explicit-order flag, task,
+// targets, and the throttle marker. Lives here because it's used by
+// monkOps, unit command paths, and training/market garrison flows.
+export function createGathererOrderOps(deps: {
+  world: GameWorld;
+  state: BridgeState;
+}): { clearGathererOrder: (id: number) => void } {
+  const { world, state } = deps;
+  const { gathererDropOffStuckSinceTick } = state;
+  function clearGathererOrder(id: number): void {
+    const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+    if (!gatherer) {
+      return;
+    }
+    gatherer.hasExplicitGatherOrder = false;
+    gatherer.task = 'idle';
+    gatherer.targetResourceId = null;
+    gatherer.dropOffBuildingId = null;
+    gatherer.gatherProgressTicks = 0;
+    gathererDropOffStuckSinceTick.delete(id);
+  }
+  return { clearGathererOrder };
+}
+
+// Command-rejection ring buffer. Captures bridge-local commandRejectionReasons
+// state so createWorld doesn't have to declare the buffer + its enqueue/consume
+// pair inline.
+export function createCommandRejectionQueue(maxQueue = 8): {
+  enqueueRejection: (reason: string) => void;
+  consumeCommandRejection: () => string | null;
+} {
+  const buffer: string[] = [];
+  function enqueueRejection(reason: string): void {
+    if (reason.length === 0) {
+      return;
+    }
+    buffer.push(reason);
+    if (buffer.length > maxQueue) {
+      buffer.splice(0, buffer.length - maxQueue);
+    }
+  }
+  function consumeCommandRejection(): string | null {
+    return buffer.shift() ?? null;
+  }
+  return { enqueueRejection, consumeCommandRejection };
+}

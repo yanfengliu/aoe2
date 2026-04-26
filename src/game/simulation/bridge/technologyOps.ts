@@ -11,8 +11,6 @@
 // references.
 
 import type {
-  AgeType,
-  ProductionQueueEntry,
   RenderableComponent,
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -47,16 +45,7 @@ interface CombatStateLike {
 
 export interface TechnologyDeps {
   world: GameWorld;
-  // Side maps. Owned by createWorld so save/load hydration and the other
-  // bridge callers that mutate these keep using the same references.
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
-  playerAges: Map<number, AgeType>;
-  combatStates: Map<number, CombatStateLike>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  // Collaborator. `createCombatState` still lives in createWorld because it
-  // reads researched-technologies via `hasTechnology` — a closure over the
-  // same `researchedTechnologies` map we receive here. Keeping it as a dep
-  // avoids duplicating the has-tech logic in two places.
+  state: import('./bridgeState').BridgeState;
   createCombatState: (owner: number, unitType: UnitType) => CombatStateLike;
   // Tells the bridge that an in-place mutation just changed a projector-
   // relevant component (renderable, unit, building, resource owner/type).
@@ -87,15 +76,13 @@ export interface TechnologyOps {
 }
 
 export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
+  const { world, state, createCombatState, markOutOfBandRenderChange } = deps;
   const {
-    world,
     researchedTechnologies,
     playerAges,
     combatStates,
     productionQueues,
-    createCombatState,
-    markOutOfBandRenderChange,
-  } = deps;
+  } = state;
 
   function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
     let didUpgrade = false;

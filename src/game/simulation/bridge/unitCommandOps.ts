@@ -16,27 +16,17 @@ import type {
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
-import type { WildlifeState } from './systems/systemTypes';
 import type { UnitCommand } from '../createSimulationBridge';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
-// keys-only consumer of monkTasks (only `delete(id)` is used).
-type MonkTaskLike = unknown;
+import type { BridgeState } from './bridgeState';
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
   mapWidth: number;
   mapHeight: number;
+  state: BridgeState;
   selection: { refs: EntityRef[]; focusCell: Position | null };
   placementMode: { current: import('../types').BuildableBuildingType | null };
-  sheepMoveOrders: Map<number, Position>;
-  monkTasks: Map<number, MonkTaskLike>;
-  wildlifeStates: Map<number, WildlifeState>;
-  constructionStates: Map<number, ConstructionStateLike>;
   isMatchRunning: () => boolean;
   isEntityVisibleToHuman: (id: number) => boolean;
   getSelectedEntityIds: () => number[];
@@ -98,12 +88,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     humanPlayerId,
     mapWidth,
     mapHeight,
+    state,
     selection,
     placementMode,
-    sheepMoveOrders,
-    monkTasks,
-    wildlifeStates,
-    constructionStates,
     isMatchRunning,
     isEntityVisibleToHuman,
     getSelectedEntityIds,
@@ -124,6 +111,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitCommand,
     getEntityRef,
   } = deps;
+  const { sheepMoveOrders, monkTasks, wildlifeStates, constructionStates } = state;
 
   function issueUnitMoveCommand(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');

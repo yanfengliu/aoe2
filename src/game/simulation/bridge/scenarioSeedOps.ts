@@ -15,8 +15,6 @@ import type {
   GathererComponent,
   MatchState,
   PlayerResources,
-  PopulationState,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   ResourceComponent,
   ResourceKind,
@@ -38,35 +36,15 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { updateSheepOwnership } from './visibility';
-import type { AiPlan, AiState, DifficultyLevel } from '../ai';
+import type { AiPlan, DifficultyLevel } from '../ai';
 import type {
   PrototypeScenario,
 } from '../prototypeScenario';
 import type { SaveBlob } from '../saveSchema';
-import type {
-  ConstructionState,
-  MonkTask,
-  TrebuchetPackState,
-  UnitCommand,
-} from '../createSimulationBridge';
+import type { UnitCommand } from '../createSimulationBridge';
 import type { MemoryEntry } from './memoryTypes';
-import type { RelicCountdownEntry, WonderCountdownEntry } from './countdownTypes';
-import type {
-  BuildingCombatState,
-  BuildingHealthState,
-  CombatState,
-  WildlifeState,
-} from './systems/systemTypes';
 
 type CivWorld = World<GameEvents, GameCommands>;
-
-interface PlayerScoreCountersLike {
-  unitsProduced: number;
-  buildingsProduced: number;
-  resourcesGathered: number;
-  unitsKilled: number;
-  wonderCompleted: boolean;
-}
 
 export interface ScenarioSeedDeps {
   world: GameWorld;
@@ -78,18 +56,7 @@ export interface ScenarioSeedDeps {
   standardStartingResources: PlayerResources;
   standardPopulationCap: number;
   defaultDifficulty: DifficultyLevel;
-  // Side maps populated by the fresh-start path.
-  playerAges: Map<number, AgeType>;
-  playerCivilizations: Map<number, string>;
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
-  playerResources: Map<number, PlayerResources>;
-  population: Map<number, PopulationState>;
-  villagerOrdinals: Map<number, number>;
-  wonderCountdownOverrides: Map<number, number>;
-  relicCountdownOverrides: Map<number, number>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
-  combatStates: Map<number, CombatState>;
-  relicsInMonastery: Map<number, number>;
+  state: import('./bridgeState').BridgeState;
   // Helper closures.
   ensureAiState: (owner: number, difficulty: DifficultyLevel) => void;
   addBuildingEntity: (
@@ -143,6 +110,10 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     standardStartingResources,
     standardPopulationCap,
     defaultDifficulty,
+    state,
+    ensureAiState,
+  } = deps;
+  const {
     playerAges,
     playerCivilizations,
     researchedTechnologies,
@@ -151,8 +122,7 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     villagerOrdinals,
     wonderCountdownOverrides,
     relicCountdownOverrides,
-    ensureAiState,
-  } = deps;
+  } = state;
 
   for (const start of scenario.starts) {
     playerAges.set(start.owner, start.startingAge ?? 'dark-age');
@@ -279,6 +249,12 @@ const UNIT_KINDS = new Set<string>([
   'heavy-camel',
 ]);
 
+export function seedFreshScenario(deps: ScenarioSeedDeps): void {
+  seedPlayerStarts(deps);
+  seedTerrain(deps);
+  seedScenarioEntities(deps);
+}
+
 export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
   const {
     world,
@@ -288,10 +264,9 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
     addUnitEntity,
     addResourceEntity,
     findScenarioSpawnPosition,
-    buildingHealthStates,
-    combatStates,
-    relicsInMonastery,
+    state,
   } = deps;
+  const { buildingHealthStates, combatStates, relicsInMonastery } = state;
 
   const overlapWhitelist = new Set<number>();
   for (const spawn of scenario.spawns) {
@@ -466,49 +441,14 @@ export interface SaveLoadHydrationDeps {
   world: GameWorld;
   savedGame: SaveBlob;
   matchState: MatchState;
-  trackedVisibilitySources: Map<number, number>;
-  playerAges: Map<number, AgeType>;
-  playerCivilizations: Map<number, string>;
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
-  playerResources: Map<number, PlayerResources>;
-  marketExchangeRates: { food: number; wood: number; stone: number };
-  population: Map<number, PopulationState>;
-  townCenterRefs: Map<number, EntityRef>;
-  villagerOrdinals: Map<number, number>;
-  unitCommands: Map<number, UnitCommand>;
-  sheepMoveOrders: Map<number, Position>;
-  rallyPoints: Map<number, Position>;
-  monkTasks: Map<number, MonkTask>;
-  conversionState: Map<number, { byOwner: number; progress: number }>;
-  monkCarriedRelic: Map<number, number>;
-  monkHealCounters: Map<number, number>;
-  relicsInMonastery: Map<number, number>;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
-  wonderCountdownOverrides: Map<number, number>;
-  relicCountdowns: Map<number, RelicCountdownEntry>;
-  relicCountdownOverrides: Map<number, number>;
-  playerScoreCounters: Map<number, PlayerScoreCountersLike>;
-  trebuchetPackStates: Map<number, TrebuchetPackState>;
-  lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
-  garrisonedByBuilding: Map<number, number[]>;
-  garrisonedUnitToBuilding: Map<number, number>;
-  garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  constructionStates: Map<number, ConstructionState>;
-  combatStates: Map<number, CombatState>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  wildlifeStates: Map<number, WildlifeState>;
-  aiStates: Map<number, AiState>;
+  state: import('./bridgeState').BridgeState;
   setUnitCommand: (id: number, command: UnitCommand) => void;
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
 }
 
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
+  const { world, savedGame, matchState, state, setUnitCommand, inFlightTechSetFor } = deps;
   const {
-    world,
-    savedGame,
-    matchState,
     trackedVisibilitySources,
     playerAges,
     playerCivilizations,
@@ -543,9 +483,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     wildlifeStates,
     aiStates,
     unitCommands,
-    setUnitCommand,
-    inFlightTechSetFor,
-  } = deps;
+  } = state;
 
   const blob = savedGame.sideMaps;
   const refFromSerialized = (s: { id: number; generation: number }): EntityRef | null => {

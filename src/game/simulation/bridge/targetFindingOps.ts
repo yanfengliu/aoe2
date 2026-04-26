@@ -31,18 +31,6 @@ import {
 } from './pureHelpers';
 import { getBuildingFootprint } from '../../content/buildingFootprints';
 
-interface CombatStateLike {
-  currentHp: number;
-}
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
-interface BuildingHealthStateLike {
-  currentHp: number;
-}
-
 interface VisibilityQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
 }
@@ -50,13 +38,7 @@ interface VisibilityQuery {
 export interface TargetFindingDeps {
   world: GameWorld;
   visibility: VisibilityQuery;
-  // Side maps. createWorld owns the references; this module only
-  // reads from them. `buildingHealthStates` is accepted for parity
-  // with how combat helpers inspect building HP; unused callers pass
-  // the same shared Map.
-  combatStates: Map<number, CombatStateLike>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  buildingHealthStates: Map<number, BuildingHealthStateLike>;
+  state: import('./bridgeState').BridgeState;
 }
 
 export interface TargetFindingOps {
@@ -120,12 +102,8 @@ export interface TargetFindingOps {
 }
 
 export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOps {
-  const {
-    world,
-    visibility,
-    combatStates,
-    constructionStates,
-  } = deps;
+  const { world, visibility, state } = deps;
+  const { combatStates, constructionStates } = state;
 
   // Per-unitType targeting priority for AI / unit-vs-unit target
   // selection. Lower numbers are picked first (after the priority sort,

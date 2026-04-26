@@ -4,13 +4,9 @@
 
 import type { Position } from 'civ-engine';
 import type {
-  AgeType,
   BuildingComponent,
   EconomyState,
   GathererComponent,
-  PlayerResources,
-  PopulationState,
-  ProductionQueueEntry,
   ResourceComponent,
   UnitComponent,
   UnitTaskState,
@@ -28,38 +24,25 @@ import {
   buildingPopulationProvided,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
-import type { CombatState } from './systems/systemTypes';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-  buildProgressTicks: number;
-  totalBuildTicks: number;
-}
 
 export interface EconomyStateOpsDeps {
   world: GameWorld;
-  combatStates: Map<number, CombatState>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  playerAges: Map<number, AgeType>;
-  playerResources: Map<number, PlayerResources>;
-  population: Map<number, PopulationState>;
+  state: import('./bridgeState').BridgeState;
   getUnitTaskState: (id: number) => UnitTaskState;
 }
 
 export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
   getEconomyState(): EconomyState;
 } {
+  const { world, state, getUnitTaskState } = deps;
   const {
-    world,
     combatStates,
     constructionStates,
     productionQueues,
     playerAges,
     playerResources,
     population,
-    getUnitTaskState,
-  } = deps;
+  } = state;
 
   function getEconomyState(): EconomyState {
     const villagers = [...world.query('unit', 'gatherer')]

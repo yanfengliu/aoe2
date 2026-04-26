@@ -8,19 +8,17 @@ import type {
   UnitTransformComponent,
 } from '../types';
 import { UNIT_SUBGRID_RESOLUTION, type GameWorld } from './pureHelpers';
-import type { AiState } from '../ai';
-import type { UnitCommand } from '../createSimulationBridge';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
-  unitCommands: Map<number, UnitCommand>;
-  aiStates: Map<number, AiState>;
+  state: import('./bridgeState').BridgeState;
 }
 
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
   getDebugSnapshot(): SimulationDebugSnapshot;
 } {
-  const { world, unitCommands, aiStates } = deps;
+  const { world, state } = deps;
+  const { unitCommands, aiStates } = state;
 
   function getDebugSnapshot(): SimulationDebugSnapshot {
     const unitPaths: SimulationDebugSnapshot['unitPaths'] = [];
@@ -38,13 +36,13 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
     }
 
     const aiSummaries: SimulationDebugSnapshot['aiSummaries'] = [];
-    for (const [owner, state] of aiStates.entries()) {
+    for (const [owner, aiState] of aiStates.entries()) {
       aiSummaries.push({
         owner,
-        difficulty: state.difficulty,
-        plan: state.plan,
-        villagerTargets: { ...state.villagerTargets } as Partial<Record<string, number>>,
-        attackGroupSize: state.attackGroup.length,
+        difficulty: aiState.difficulty,
+        plan: aiState.plan,
+        villagerTargets: { ...aiState.villagerTargets } as Partial<Record<string, number>>,
+        attackGroupSize: aiState.attackGroup.length,
       });
     }
 

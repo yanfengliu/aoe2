@@ -15,11 +15,6 @@ import type {
 } from '../types';
 import { buildingFootprint, clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
-import type { WildlifeState } from './systems/systemTypes';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
 
 export interface SelectableEntityCandidate {
   id: number;
@@ -38,8 +33,7 @@ export interface SelectionInputOpsDeps {
   mapWidth: number;
   mapHeight: number;
   visibility: VisibilityMap;
-  constructionStates: Map<number, ConstructionStateLike>;
-  wildlifeStates: Map<number, WildlifeState>;
+  state: import('./bridgeState').BridgeState;
   selection: SelectionRefsHolder;
   placementMode: { current: import('../types').BuildableBuildingType | null };
   isMatchRunning: () => boolean;
@@ -110,8 +104,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     mapWidth,
     mapHeight,
     visibility,
-    constructionStates,
-    wildlifeStates,
+    state,
     selection,
     placementMode,
     isMatchRunning,
@@ -121,6 +114,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     getEntityRef,
     getCurrentEntityId,
   } = deps;
+  const { constructionStates, wildlifeStates } = state;
 
   function compareSelectableEntities(
     left: SelectableEntityCandidate,

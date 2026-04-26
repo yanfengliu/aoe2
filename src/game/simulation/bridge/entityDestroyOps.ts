@@ -6,66 +6,18 @@
 import type { Position } from 'civ-engine';
 import type {
   BuildingComponent,
-  PopulationState,
-  ProductionQueueEntry,
-  ResearchableTechnologyType,
   ResourceComponent,
   ResourceKind,
   UnitComponent,
-  VisionSourceComponent,
 } from '../types';
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
-import type { WildlifeState } from './systems/systemTypes';
-import type { WonderCountdownEntry } from './countdownTypes';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-  populationProvided: number;
-}
-
-interface BuildingHealthStateLike {
-  currentHp: number;
-  maxHp: number;
-}
-
-interface BuildingCombatStateLike {
-  cooldownTicks: number;
-}
-
-// Keys-only consumers — only `delete(id)` is used, so any record shape
-// satisfies the contract.
-type MonkTaskLike = unknown;
-type ConversionStateLike = unknown;
-type TrebuchetPackStateLike = unknown;
-type CombatStateLike = unknown;
 
 export interface EntityDestroyOpsDeps {
   world: GameWorld;
   mapWidth: number;
   mapHeight: number;
-  garrisonedUnitToBuilding: Map<number, number>;
-  garrisonedByBuilding: Map<number, number[]>;
-  garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
-  population: Map<number, PopulationState>;
-  combatStates: Map<number, CombatStateLike>;
-  monkTasks: Map<number, MonkTaskLike>;
-  monkCarriedRelic: Map<number, number>;
-  conversionState: Map<number, ConversionStateLike>;
-  monkHealCounters: Map<number, number>;
-  trebuchetPackStates: Map<number, TrebuchetPackStateLike>;
-  gathererDropOffStuckSinceTick: Map<number, number>;
-  townCenterRefs: Map<number, import('civ-engine').EntityRef>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  rallyPoints: Map<number, Position>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  buildingHealthStates: Map<number, BuildingHealthStateLike>;
-  buildingCombatStates: Map<number, BuildingCombatStateLike>;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
-  relicsInMonastery: Map<number, number>;
-  inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
-  wildlifeStates: Map<number, WildlifeState>;
-  sheepMoveOrders: Map<number, Position>;
+  state: import('./bridgeState').BridgeState;
   removeSelectedEntity: (id: number) => void;
   clearUnitCommand: (id: number) => void;
   getApproachCellsForFootprint: (
@@ -98,6 +50,17 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     world,
     mapWidth,
     mapHeight,
+    state,
+    removeSelectedEntity,
+    clearUnitCommand,
+    getApproachCellsForFootprint,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
+    addResourceEntity,
+    markOutOfBandRenderChange,
+  } = deps;
+  const {
     garrisonedUnitToBuilding,
     garrisonedByBuilding,
     garrisonedUnitVisionSources,
@@ -120,15 +83,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     inFlightTechByOwner,
     wildlifeStates,
     sheepMoveOrders,
-    removeSelectedEntity,
-    clearUnitCommand,
-    getApproachCellsForFootprint,
-    isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
-    addResourceEntity,
-    markOutOfBandRenderChange,
-  } = deps;
+  } = state;
 
   function destroyUnitEntity(id: number): void {
     const garrisonBuildingId = garrisonedUnitToBuilding.get(id) ?? null;

@@ -10,7 +10,6 @@ import type {
   BuildingComponent,
   GathererComponent,
   MarketActionType,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   ResourceComponent,
   SelectionState,
@@ -36,30 +35,12 @@ import {
   getSelectionActivityBreakdown,
   type SelectionActivitySources,
 } from '../selectionActivity';
-import type { CombatState, BuildingHealthState, BuildingCombatState, WildlifeState } from './systems/systemTypes';
-// Type-only imports of bridge-owned types. Type-only is erased at runtime so
-// the cycle is compile-time only.
-import type {
-  ConstructionState,
-  MonkTask,
-  TrebuchetPackState,
-  UnitCommand,
-} from '../createSimulationBridge';
+import type { BridgeState } from './bridgeState';
 
 export interface SelectionStateOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
-  combatStates: Map<number, CombatState>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  wildlifeStates: Map<number, WildlifeState>;
-  garrisonedByBuilding: Map<number, number[]>;
-  playerCivilizations: Map<number, string>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  unitCommands: Map<number, UnitCommand>;
-  monkTasks: Map<number, MonkTask>;
-  trebuchetPackStates: Map<number, TrebuchetPackState>;
-  constructionStates: Map<number, ConstructionState>;
+  state: BridgeState;
   placementMode: { current: BuildableBuildingType | null };
   getSelectedEntityIds: () => number[];
   resolveSelectionTile: (selectedEntityId: number, position: Position) => Position;
@@ -93,17 +74,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
   const {
     world,
     humanPlayerId,
-    combatStates,
-    buildingHealthStates,
-    buildingCombatStates,
-    wildlifeStates,
-    garrisonedByBuilding,
-    playerCivilizations,
-    productionQueues,
-    unitCommands,
-    monkTasks,
-    trebuchetPackStates,
-    constructionStates,
+    state,
     placementMode,
     getSelectedEntityIds,
     resolveSelectionTile,
@@ -117,6 +88,19 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getResearchOptions,
     getVisibleResearchOptions,
   } = deps;
+  const {
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    wildlifeStates,
+    garrisonedByBuilding,
+    playerCivilizations,
+    productionQueues,
+    unitCommands,
+    monkTasks,
+    trebuchetPackStates,
+    constructionStates,
+  } = state;
 
   function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
     const unit = world.getComponent<UnitComponent>(id, 'unit');

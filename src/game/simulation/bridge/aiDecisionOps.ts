@@ -11,23 +11,14 @@ import type {
   BuildingType,
   EconomyResourceKind,
   GathererComponent,
-  ProductionQueueEntry,
   UnitComponent,
   UnitType,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
 export interface AiDecisionDeps {
   world: GameWorld;
-  // Side maps owned by createWorld; the bridge shares these references
-  // with every other consumer (construction completion, training queue,
-  // etc.).
-  constructionStates: Map<number, ConstructionStateLike>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
+  state: import('./bridgeState').BridgeState;
   // Collaborator. The placement-anchor search lives in createWorld
   // because it reads worldOccupancy + tile passability; the factory
   // defers to it so pickWatchTowerPlacement keeps one footprint-aware
@@ -71,13 +62,8 @@ export interface AiDecisionOps {
 }
 
 export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
-  const {
-    world,
-    constructionStates,
-    productionQueues,
-    findBuildPlacementNear,
-    aiWatchTowerForwardStep,
-  } = deps;
+  const { world, state, findBuildPlacementNear, aiWatchTowerForwardStep } = deps;
+  const { constructionStates, productionQueues } = state;
 
   function isAiMilitaryUnit(unitType: UnitType): boolean {
     switch (unitType) {

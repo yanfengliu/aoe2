@@ -12,82 +12,12 @@
 // The `seed` is passed as a closure over the owning bridge so the
 // serializer does not need to thread it separately.
 
-import type { EntityRef, Position, VisibilityMap } from 'civ-engine';
+import type { VisibilityMap } from 'civ-engine';
 
-import type {
-  AgeType,
-  PlayerResources,
-  PopulationState,
-  ProductionQueueEntry,
-  ResearchableTechnologyType,
-  VisionSourceComponent,
-} from '../types';
-import type {
-  MemoryEntry,
-  MonkTask,
-  TrebuchetPackState,
-  UnitCommand,
-} from '../createSimulationBridge';
 import type { SaveBlob } from '../saveSchema';
 import { SAVE_SCHEMA_VERSION } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
-
-// Structural mirrors of the private interfaces createWorld declares
-// inline. Kept here so this module does not need to import private
-// types; the runtime shapes match exactly, so the serializer produces
-// byte-for-byte identical output to the pre-extraction implementation.
-interface CountdownEntryLike {
-  remainingTicks: number;
-  totalTicks: number;
-  lastCompletedTick: number | null;
-}
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-  buildProgressTicks: number;
-  totalBuildTicks: number;
-  populationProvided: number;
-  width: number;
-  height: number;
-}
-
-interface CombatStateLike {
-  currentHp: number;
-  maxHp: number;
-  attackDamage: number;
-  attackRange: number;
-  reloadTicks: number;
-  cooldownTicks: number;
-  armor: number;
-}
-
-interface BuildingHealthStateLike {
-  currentHp: number;
-  maxHp: number;
-}
-
-interface BuildingCombatStateLike {
-  attackDamage: number;
-  attackRange: number;
-  reloadTicks: number;
-  cooldownTicks: number;
-}
-
-interface WildlifeStateLike extends CombatStateLike {
-  autoAggro: boolean;
-  isAlive: boolean;
-  corpsePersists: boolean;
-  aggroRange: number;
-  targetEntityRef: EntityRef | null;
-}
-
-interface PlayerScoreCountersLike {
-  unitsProduced: number;
-  buildingsProduced: number;
-  resourcesGathered: number;
-  unitsKilled: number;
-  wonderCompleted: boolean;
-}
+import type { BridgeState } from './bridgeState';
 
 interface MatchStateLike {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
@@ -98,64 +28,12 @@ interface MatchStateLike {
   relicCountdownTicks: number | null;
 }
 
-interface AiStateLike {
-  difficulty: 'easy' | 'standard' | 'hard';
-  plan: 'opening' | 'feudal-push' | 'castle-push' | 'imperial-push' | 'defend';
-  villagerTargets: {
-    food?: number;
-    wood?: number;
-    gold?: number;
-    stone?: number;
-  };
-  attackGroup: number[];
-  lastDecisionTick: number;
-  lastEnemySightingTick: number;
-  lastEnemySightingPosition: Position | null;
-}
-
 export interface SaveGameDeps {
   world: GameWorld;
   visibility: VisibilityMap;
   getSeed: () => string;
   matchState: MatchStateLike;
-  // Side maps. createWorld owns the references; this factory only
-  // reads from them. Adding a new side map to the save blob requires
-  // (1) a new field on SerializedSideMaps, (2) a bridge wire-up here,
-  // and (3) a schema bump.
-  trackedVisibilitySources: Map<number, number>;
-  playerAges: Map<number, AgeType>;
-  playerCivilizations: Map<number, string>;
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
-  playerResources: Map<number, PlayerResources>;
-  marketExchangeRates: { food: number; wood: number; stone: number };
-  population: Map<number, PopulationState>;
-  townCenterRefs: Map<number, EntityRef>;
-  villagerOrdinals: Map<number, number>;
-  unitCommands: Map<number, UnitCommand>;
-  sheepMoveOrders: Map<number, Position>;
-  rallyPoints: Map<number, Position>;
-  monkTasks: Map<number, MonkTask>;
-  conversionState: Map<number, { byOwner: number; progress: number }>;
-  monkCarriedRelic: Map<number, number>;
-  monkHealCounters: Map<number, number>;
-  relicsInMonastery: Map<number, number>;
-  wonderCountdowns: Map<number, CountdownEntryLike>;
-  wonderCountdownOverrides: Map<number, number>;
-  relicCountdowns: Map<number, CountdownEntryLike>;
-  relicCountdownOverrides: Map<number, number>;
-  playerScoreCounters: Map<number, PlayerScoreCountersLike>;
-  trebuchetPackStates: Map<number, TrebuchetPackState>;
-  lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
-  garrisonedByBuilding: Map<number, number[]>;
-  garrisonedUnitToBuilding: Map<number, number>;
-  garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  combatStates: Map<number, CombatStateLike>;
-  buildingHealthStates: Map<number, BuildingHealthStateLike>;
-  buildingCombatStates: Map<number, BuildingCombatStateLike>;
-  wildlifeStates: Map<number, WildlifeStateLike>;
-  aiStates: Map<number, AiStateLike>;
+  state: BridgeState;
 }
 
 export interface SaveGameOps {
@@ -163,11 +41,8 @@ export interface SaveGameOps {
 }
 
 export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
+  const { world, visibility, getSeed, matchState, state } = deps;
   const {
-    world,
-    visibility,
-    getSeed,
-    matchState,
     trackedVisibilitySources,
     playerAges,
     playerCivilizations,
@@ -202,7 +77,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     buildingCombatStates,
     wildlifeStates,
     aiStates,
-  } = deps;
+  } = state;
 
   function saveGame(): SaveBlob {
     return {

@@ -86,9 +86,7 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      combatStates: new Map(),
-      constructionStates: new Map(),
-      buildingHealthStates: new Map(),
+      state: { combatStates: new Map(), constructionStates: new Map() } as never,
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });
@@ -115,9 +113,7 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      combatStates: new Map(),
-      constructionStates: new Map(),
-      buildingHealthStates: new Map(),
+      state: { combatStates: new Map(), constructionStates: new Map() } as never,
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });
@@ -144,9 +140,7 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      combatStates: new Map(),
-      constructionStates: new Map(),
-      buildingHealthStates: new Map(),
+      state: { combatStates: new Map(), constructionStates: new Map() } as never,
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });

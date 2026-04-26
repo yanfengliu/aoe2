@@ -27,11 +27,6 @@ import { UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
-interface ConstructionStateLike {
-  width: number;
-  height: number;
-}
-
 interface WorldOccupancyLike {
   release(entity: number): void;
   syncBuilding(entity: number, position: Position, footprint: { width: number; height: number }): void;
@@ -47,7 +42,7 @@ export interface TransformOpsDeps {
   mapHeight: number;
   worldOccupancy: WorldOccupancyLike;
   tiles: number[][];
-  constructionStates: Map<number, ConstructionStateLike>;
+  state: import('./bridgeState').BridgeState;
   isBootstrappingScenario: () => boolean;
 }
 
@@ -83,9 +78,10 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     mapHeight,
     worldOccupancy,
     tiles,
-    constructionStates,
+    state,
     isBootstrappingScenario,
   } = deps;
+  const { constructionStates } = state;
 
   function getUnitTransform(
     id: number,

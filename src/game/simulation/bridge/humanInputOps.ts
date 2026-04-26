@@ -10,7 +10,6 @@ import type {
   ActionType,
   BuildingComponent,
   MarketActionType,
-  PlayerResources,
   ResearchableTechnologyType,
   TrainableUnitType,
 } from '../types';
@@ -21,18 +20,12 @@ import {
   trainingCost,
 } from '../prototypeEconomyRules';
 
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
-
 export interface HumanInputOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
   mapWidth: number;
   mapHeight: number;
-  playerResources: Map<number, PlayerResources>;
-  rallyPoints: Map<number, Position>;
-  constructionStates: Map<number, ConstructionStateLike>;
+  state: import('./bridgeState').BridgeState;
   placementMode: { current: import('../types').BuildableBuildingType | null };
   isMatchRunning: () => boolean;
   getSelectedEntityId: () => number | null;
@@ -67,9 +60,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     humanPlayerId,
     mapWidth,
     mapHeight,
-    playerResources,
-    rallyPoints,
-    constructionStates,
+    state,
     placementMode,
     isMatchRunning,
     getSelectedEntityId,
@@ -87,6 +78,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     executeMarketAction,
     ungarrisonBuilding,
   } = deps;
+  const { playerResources, rallyPoints, constructionStates } = state;
 
   function issueMoveCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) return false;

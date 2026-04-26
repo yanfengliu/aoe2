@@ -8,48 +8,16 @@
 import type {
   BuildingComponent,
   MatchState,
-  PlayerResources,
   ResourceComponent,
   UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 
-interface PlayerScoreCountersLike {
-  unitsProduced: number;
-  buildingsProduced: number;
-  resourcesGathered: number;
-  unitsKilled: number;
-  wonderCompleted: boolean;
-}
-
-interface WonderCountdownEntryLike {
-  remainingTicks: number;
-  totalTicks: number;
-  lastCompletedTick: number | null;
-}
-
-interface RelicCountdownEntryLike {
-  remainingTicks: number;
-  totalTicks: number;
-  lastCompletedTick: number | null;
-}
-
 export interface MatchEndDeps {
   world: GameWorld;
-  // Target state object that `finalizeMatchEnd` mutates in place. Shared
-  // with createWorld's HUD snapshot pathway so a single reference carries
-  // the current outcome.
   matchState: MatchState;
   humanPlayerId: number;
-  // Side maps owned by createWorld — the bridge keeps wiring save/load,
-  // destroy-entity, and tick-level mutations through these same
-  // references.
-  playerScoreCounters: Map<number, PlayerScoreCountersLike>;
-  relicsInMonastery: Map<number, number>;
-  wonderCountdowns: Map<number, WonderCountdownEntryLike>;
-  relicCountdowns: Map<number, RelicCountdownEntryLike>;
-  monkCarriedRelic: Map<number, number>;
-  playerResources: Map<number, PlayerResources>;
+  state: import('./bridgeState').BridgeState;
 }
 
 export interface MatchEndOps {
@@ -81,17 +49,15 @@ export interface MatchEndOps {
 }
 
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
+  const { world, matchState, humanPlayerId, state } = deps;
   const {
-    world,
-    matchState,
-    humanPlayerId,
     playerScoreCounters,
     relicsInMonastery,
     wonderCountdowns,
     relicCountdowns,
     monkCarriedRelic,
     playerResources,
-  } = deps;
+  } = state;
 
   function computePlayerScore(owner: number): number {
     const counters = playerScoreCounters.get(owner) ?? {

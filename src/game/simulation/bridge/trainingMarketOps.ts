@@ -11,8 +11,6 @@ import type {
   BuildingComponent,
   BuildingType,
   MarketActionType,
-  PlayerResources,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   TrainableUnitType,
   UnitComponent,
@@ -38,9 +36,7 @@ import {
   trainingTimeTicks,
 } from '../prototypeEconomyRules';
 
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
+import type { BridgeState } from './bridgeState';
 
 export interface TrainingMarketOpsDeps {
   world: GameWorld;
@@ -51,13 +47,7 @@ export interface TrainingMarketOpsDeps {
   marketTransactionAmount: number;
   marketRateStep: number;
   marketMinRate: number;
-  playerResources: Map<number, PlayerResources>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
-  constructionStates: Map<number, ConstructionStateLike>;
-  garrisonedByBuilding: Map<number, number[]>;
-  garrisonedUnitToBuilding: Map<number, number>;
-  garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
-  marketExchangeRates: { food: number; wood: number; stone: number };
+  state: BridgeState;
   placementMode: { current: BuildableBuildingType | null };
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
   getSelectedEntityId: () => number | null;
@@ -120,13 +110,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     marketTransactionAmount,
     marketRateStep,
     marketMinRate,
-    playerResources,
-    productionQueues,
-    constructionStates,
-    garrisonedByBuilding,
-    garrisonedUnitToBuilding,
-    garrisonedUnitVisionSources,
-    marketExchangeRates,
+    state,
     placementMode,
     inFlightTechSetFor,
     getSelectedEntityId,
@@ -148,6 +132,15 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     getEntityRef,
     markOutOfBandRenderChange,
   } = deps;
+  const {
+    playerResources,
+    productionQueues,
+    constructionStates,
+    garrisonedByBuilding,
+    garrisonedUnitToBuilding,
+    garrisonedUnitVisionSources,
+    marketExchangeRates,
+  } = state;
 
   function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
