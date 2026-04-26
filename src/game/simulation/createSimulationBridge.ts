@@ -54,6 +54,7 @@ import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
+import { createPlayerQueries } from './bridge/playerQueries';
 import { createSelectionStateOps } from './bridge/selectionStateOps';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
 import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
@@ -96,9 +97,6 @@ import {
   canResearchAt,
   canTrainAt,
   createBuildingCombatState,
-  isCastleAgePrerequisiteBuilding,
-  isDarkAgePrerequisiteBuilding,
-  isFeudalAgePrerequisiteBuilding,
 } from './prototypeBuildingRules';
 import {
   canAfford,
@@ -132,10 +130,6 @@ import {
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
-import {
-  latestResearchedInChain as latestResearchedInChainExternal,
-  type UpgradeChainEntry,
-} from './upgradeChains';
 import { createWorldOccupancy } from './worldOccupancy';
 import {
   AI_MONK_HEAL_HP_FRACTION,
@@ -953,9 +947,35 @@ function createWorld(
     return isUnitTransformAtTarget(transform, id, target);
   }
 
-  function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
-    return researchedTechnologies.get(owner)?.has(technologyType) ?? false;
-  }
+  // Player-state queries live in `bridge/playerQueries`. The factory closes
+  // over the per-player side maps + the world; the AI planner / option
+  // lookups / selection state all read through the returned ops.
+  const {
+    hasTechnology,
+    findOwnedBuilding,
+    findOwnedUnit,
+    findAvailableVillager,
+    countQueuedUnits,
+    countOwnedUnits,
+    hasCompletedBuilding,
+    isConstructingBuilding,
+    hasOwnedWonder,
+    getPlayerAge,
+    getPlayerCivilization,
+    isAtLeastAge,
+    canAdvanceToFeudalAge,
+    canAdvanceToCastleAge,
+    canAdvanceToImperialAge,
+    latestResearchedInChain,
+  } = createPlayerQueries({
+    world,
+    unitCommands,
+    productionQueues,
+    constructionStates,
+    playerAges,
+    playerCivilizations,
+    researchedTechnologies,
+  });
 
   function createCombatState(owner: number, unitType: UnitType): CombatState {
     const state: CombatState = {
@@ -3138,178 +3158,6 @@ function createWorld(
     return null;
   }
 
-  function findOwnedBuilding(owner: number, buildingType: BuildingType): number | null {
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (building?.owner === owner && building.buildingType === buildingType) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function findOwnedUnit(owner: number, unitType: UnitType): number | null {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner && unit.unitType === unitType) {
-        return id;
-      }
-    }
-
-    return null;
-  }
-
-  function findAvailableVillager(owner: number): number | null {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner && unit.unitType === 'villager' && !unitCommands.has(id)) {
-        return id;
-      }
-    }
-
-    return findOwnedUnit(owner, 'villager');
-  }
-
-  function countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number {
-    const queue = productionQueues.get(buildingId) ?? [];
-    return queue.filter((entry) => entry.kind === 'unit' && entry.unitType === unitType).length;
-  }
-
-  function countOwnedUnits(owner: number, unitType: UnitType): number {
-    let count = 0;
-
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner && unit.unitType === unitType) {
-        count += 1;
-      }
-    }
-
-    return count;
-  }
-
-  function countCompletedOwnedBuildings(owner: number, filter: (buildingType: BuildingType) => boolean): number {
-    let count = 0;
-
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!building || building.owner !== owner || !filter(building.buildingType)) {
-        continue;
-      }
-
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-
-      count += 1;
-    }
-
-    return count;
-  }
-
-  function hasCompletedBuilding(owner: number, buildingType: BuildingType): boolean {
-    return countCompletedOwnedBuildings(owner, (candidate) => candidate === buildingType) > 0;
-  }
-
-  // Slice 10 AI helper. Returns true if the owner has any in-progress
-  // (not-yet-complete) building of the given type. Used by the AI's
-  // build loop so it doesn't stack overlapping House placements while
-  // one is already being raised. Construction-complete or unknown-
-  // construction buildings do not count here.
-  function isConstructingBuilding(owner: number, buildingType: BuildingType): boolean {
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!building || building.owner !== owner || building.buildingType !== buildingType) {
-        continue;
-      }
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Slice 8: owner already has a Wonder on the board (in construction OR
-  // complete). Used to cap the number of Wonders per player to one and to
-  // drive the countdown-start/reset logic in `prototypeWonderCountdown`.
-  // Both in-flight and finished Wonders count — otherwise the player could
-  // queue up a replacement while the original is still standing, which
-  // defeats the "commit and defend" tension of the Wonder victory path.
-  function hasOwnedWonder(owner: number): boolean {
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (building?.owner === owner && building.buildingType === 'wonder') {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function getPlayerAge(owner: number): AgeType {
-    return playerAges.get(owner) ?? 'dark-age';
-  }
-
-  // Returns the owner's civilization name (as stored from the scenario
-  // `starts` table). Used to gate civ-specific unique content (e.g.
-  // Slice 6 Britons → Longbowman). Falls back to the default naming
-  // scheme when unknown so the result is never `undefined`.
-  function getPlayerCivilization(owner: number): string {
-    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
-  }
-
-  // Returns true when the owner has reached AT LEAST the given age. Used to
-  // gate features that unlock in one age and remain available in every later
-  // age (e.g., Castle-Age production-line upgrades that must stay researchable
-  // even if the player advances to Imperial before researching them).
-  function isAtLeastAge(owner: number, minAge: AgeType): boolean {
-    const order: Record<AgeType, number> = {
-      'dark-age': 0,
-      'feudal-age': 1,
-      'castle-age': 2,
-      'imperial-age': 3,
-    };
-    return order[getPlayerAge(owner)] >= order[minAge];
-  }
-
-  function canAdvanceToFeudalAge(owner: number): boolean {
-    if (getPlayerAge(owner) !== 'dark-age') {
-      return false;
-    }
-
-    return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding) >= 2;
-  }
-
-  function canAdvanceToCastleAge(owner: number): boolean {
-    if (getPlayerAge(owner) !== 'feudal-age') {
-      return false;
-    }
-
-    return countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding) >= 2;
-  }
-
-  // Slice 7A: Imperial Age research at the Town Center. Mirrors the
-  // Feudal → Castle gate — the player must be in Castle Age and have at
-  // least two Castle-Age-unlocked buildings completed (Siege Workshop,
-  // Monastery, Castle).
-  function canAdvanceToImperialAge(owner: number): boolean {
-    if (getPlayerAge(owner) !== 'castle-age') {
-      return false;
-    }
-
-    return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding) >= 2;
-  }
-
-  // Thin wrapper around the shared `latestResearchedInChain` helper that
-  // binds the closure-local `hasTechnology` so callsites stay terse.
-  function latestResearchedInChain(
-    owner: number,
-    chain: UpgradeChainEntry,
-  ): TrainableUnitType {
-    return latestResearchedInChainExternal(owner, chain, hasTechnology);
-  }
 
   // Slice 7: train / research / market / build menus moved to
   // `bridge/optionsRules`. The factory closes over the same predicates the
