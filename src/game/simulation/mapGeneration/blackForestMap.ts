@@ -27,8 +27,16 @@ export function createBlackForestMap(seed: string): PrototypeScenario {
   const spawns = createSpawnList();
 
   // Carve out a base pocket (grass) around each start so the Town Center,
-  // villagers, and resource offsets all have valid terrain.
-  const POCKET_RADIUS = 6;
+  // villagers, and resource offsets all have valid terrain. Iter-2 H2-3:
+  // the prior radius of 6 cleared starting villager / sheep / berry
+  // offsets but missed STARTING_STONE (1, 6) at distance ≈ 6.08,
+  // STARTING_GOLD (6, 0) at distance 6, and STARTING_BOARS (4, -5) at
+  // distance ≈ 6.40. Those cells stayed forest and got a tree spawn in
+  // the seeding loop below; applyStandardPlayerOpening then silently
+  // dropped the standard resource spawn at first-write-wins time. A
+  // radius of 7 covers every starting offset without changing the
+  // dense-forest character of the map.
+  const POCKET_RADIUS = 7;
   for (const start of starts) {
     paintDisc(terrain, start.townCenter, POCKET_RADIUS, 'grass');
   }

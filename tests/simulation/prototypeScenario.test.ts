@@ -502,6 +502,31 @@ describe('createPrototypeScenario', () => {
           (spawn) => spawn.baseOwner === owner && spawn.kind === 'berry-bush',
         ).length,
       ).toBe(6);
+
+      // Iter-2 H2-3: standard opening seeds 4 stone, 4 gold, 2 boar
+      // for every player, but the Black Forest carve-pocket was only
+      // radius 6 — so cells like STARTING_STONE (1, 6) (distance ≈
+      // 6.08), STARTING_GOLD (6, 0) (distance 6), and STARTING_BOARS
+      // (4, -5) (distance ≈ 6.40) fell into forest cells that were
+      // already seeded as a tree, and the standard-opening
+      // applyResourcePatch silently dropped the rejected resource
+      // spawn. Lock the per-owner counts so the regression cannot
+      // come back.
+      expect(
+        left.spawns.filter(
+          (spawn) => spawn.baseOwner === owner && spawn.kind === 'stone-mine',
+        ).length,
+      ).toBe(4);
+      expect(
+        left.spawns.filter(
+          (spawn) => spawn.baseOwner === owner && spawn.kind === 'gold-mine',
+        ).length,
+      ).toBe(4);
+      expect(
+        left.spawns.filter(
+          (spawn) => spawn.baseOwner === owner && spawn.kind === 'boar',
+        ).length,
+      ).toBe(2);
     }
   });
 
