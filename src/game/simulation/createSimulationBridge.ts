@@ -57,15 +57,18 @@ import { createMatchEndOps } from './bridge/matchEndOps';
 import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
+import { createOptionsRules } from './bridge/optionsRules';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
 import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
 import type { MemoryEntry } from './bridge/memoryTypes';
+import { registerAiSystem } from './bridge/systems/aiSystem';
 import { registerAutoAggressionSystem } from './bridge/systems/autoAggressionSystem';
 import { registerConquestOutcomeSystem } from './bridge/systems/conquestOutcomeSystem';
 import { registerFogMemorySystem } from './bridge/systems/fogMemorySystem';
 import { registerHerdableMovementSystem } from './bridge/systems/herdableMovementSystem';
 import { registerHerdableOwnershipSystem } from './bridge/systems/herdableOwnershipSystem';
 import { registerMonkBehaviorSystem } from './bridge/systems/monkBehaviorSystem';
+import { registerPlayerCommandsSystem } from './bridge/systems/playerCommandsSystem';
 import { registerProductionQueueSystem } from './bridge/systems/productionQueueSystem';
 import { registerScoutMovementSystem } from './bridge/systems/scoutMovementSystem';
 import { registerTowerCombatSystem } from './bridge/systems/towerCombatSystem';
@@ -115,8 +118,6 @@ import {
   trainingTimeTicks,
 } from './prototypeEconomyRules';
 import {
-  attackBonusAgainstBuilding,
-  attackBonusAgainstUnit,
   createWildlifeState,
   isArcherLineUnit,
   isCavalryUnit,
@@ -127,7 +128,6 @@ import {
   unitAttackDamage,
   unitAttackRange,
   unitMaxHp,
-  unitMinAttackRange,
   unitReloadTicks,
   unitSize,
   unitTint,
@@ -135,7 +135,10 @@ import {
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
-import { latestResearchedInChain as latestResearchedInChainExternal } from './upgradeChains';
+import {
+  latestResearchedInChain as latestResearchedInChainExternal,
+  type UpgradeChainEntry,
+} from './upgradeChains';
 import { createWorldOccupancy } from './worldOccupancy';
 import {
   computeUnitActivity,
@@ -144,20 +147,10 @@ import {
   type SelectionActivitySources,
 } from './selectionActivity';
 import {
-  AI_BASE_VISION_RADIUS,
-  AI_MONK_COUNT_CAP,
   AI_MONK_HEAL_HP_FRACTION,
   AI_WATCH_TOWER_FORWARD_STEP,
   DEFAULT_DIFFICULTY,
-  ageUpResourceBuffer,
-  attackGroupSize,
-  decisionIntervalTicks,
-  pickNextAgeResearch,
-  pickNextBuildTarget,
-  pickUnitMix,
   planForAge,
-  shouldPursueWonder,
-  villagerTargetsEqual,
   villagerTargetsForAge,
   type AiPlan,
   type AiState,
@@ -3922,441 +3915,34 @@ function createWorld(
   // binds the closure-local `hasTechnology` so callsites stay terse.
   function latestResearchedInChain(
     owner: number,
-    chain: readonly [
-      TrainableUnitType,
-      ...Array<[TrainableUnitType, ResearchableTechnologyType]>,
-    ],
+    chain: UpgradeChainEntry,
   ): TrainableUnitType {
     return latestResearchedInChainExternal(owner, chain, hasTechnology);
   }
 
-  function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
-    switch (buildingType) {
-      case 'town-center':
-        return ['villager'];
-      case 'barracks': {
-        // FU2: Militia → Man-at-Arms → Long Swordsman → Two-Handed
-        // Swordsman → Champion (five tiers). Spearman → Pikeman →
-        // Halberdier (three tiers). Only the newest tier of each line
-        // is exposed at any time so the menu always shows the latest
-        // and drops the predecessor.
-        const militiaLine = latestResearchedInChain(owner, [
-          'militia',
-          ['man-at-arms', 'man-at-arms-upgrade'],
-          ['long-swordsman', 'long-swordsman-upgrade'],
-          ['two-handed-swordsman', 'two-handed-swordsman-upgrade'],
-          ['champion', 'champion-upgrade'],
-        ]);
-        const options: TrainableUnitType[] = [militiaLine];
-        if (getPlayerAge(owner) !== 'dark-age') {
-          const spearmanLine = latestResearchedInChain(owner, [
-            'spearman',
-            ['pikeman', 'pikeman-upgrade'],
-            ['halberdier', 'halberdier-upgrade'],
-          ]);
-          options.push(spearmanLine);
-        }
-        return options;
-      }
-      case 'stable': {
-        if (getPlayerAge(owner) === 'dark-age') {
-          return [];
-        }
-        // Scout → Light Cavalry → Hussar (three tiers). Knight →
-        // Cavalier → Paladin (three tiers in FU2). Camel → Heavy Camel
-        // (two tiers in FU2).
-        const scoutLine = latestResearchedInChain(owner, [
-          'scout',
-          ['light-cavalry', 'light-cavalry-upgrade'],
-          ['hussar', 'hussar-upgrade'],
-        ]);
-        if (isAtLeastAge(owner, 'castle-age')) {
-          const knightLine = latestResearchedInChain(owner, [
-            'knight',
-            ['cavalier', 'cavalier-upgrade'],
-            ['paladin', 'paladin-upgrade'],
-          ]);
-          const camelLine = latestResearchedInChain(owner, [
-            'camel',
-            ['heavy-camel', 'heavy-camel-upgrade'],
-          ]);
-          return [scoutLine, knightLine, camelLine];
-        }
-        return [scoutLine];
-      }
-      case 'archery-range': {
-        if (getPlayerAge(owner) === 'dark-age') {
-          return [];
-        }
-        // Archer → Crossbowman → Arbalest. Cavalry Archer → Heavy Cavalry
-        // Archer. Only the latest-researched tier is exposed at any time.
-        const archerLine = latestResearchedInChain(owner, [
-          'archer',
-          ['crossbowman', 'crossbowman-upgrade'],
-          ['arbalest', 'arbalest-upgrade'],
-        ]);
-        const options: TrainableUnitType[] = [archerLine, 'skirmisher'];
-        if (isAtLeastAge(owner, 'castle-age')) {
-          const cavArcherLine = latestResearchedInChain(owner, [
-            'cavalry-archer',
-            ['heavy-cavalry-archer', 'heavy-cavalry-archer-upgrade'],
-          ]);
-          options.push(cavArcherLine);
-        }
-        return options;
-      }
-      case 'siege-workshop': {
-        // Siege Workshop is Castle-Age+ only; if the player somehow reaches
-        // it earlier (shouldn't happen in v1 content) no units are trainable.
-        if (!isAtLeastAge(owner, 'castle-age')) {
-          return [];
-        }
-        // Mangonel → Onager, Scorpion → Heavy Scorpion, Battering Ram →
-        // Siege Ram. Only the latest-researched tier is exposed at any
-        // time, matching the Archery Range / Barracks / Stable / Castle
-        // upgrade menus introduced in Slice 7B/7C.
-        const mangonelLine = latestResearchedInChain(owner, [
-          'mangonel',
-          ['onager', 'onager-upgrade'],
-        ]);
-        const scorpionLine = latestResearchedInChain(owner, [
-          'scorpion',
-          ['heavy-scorpion', 'heavy-scorpion-upgrade'],
-        ]);
-        const ramLine = latestResearchedInChain(owner, [
-          'battering-ram',
-          ['siege-ram', 'siege-ram-upgrade'],
-        ]);
-        const options: TrainableUnitType[] = [mangonelLine, scorpionLine, ramLine];
-        // Bombard Cannon is Imperial-only, has no upgrade predecessor,
-        // and is a gunpowder unit that requires Chemistry research
-        // before it can be trained (matches AoE2 DE canon).
-        if (isAtLeastAge(owner, 'imperial-age') && hasTechnology(owner, 'chemistry')) {
-          options.push('bombard-cannon');
-        }
-        return options;
-      }
-      case 'monastery': {
-        // Monastery is Castle-Age+ only; Monks are the sole trainable unit
-        // in v1 (research techs like Faith / Sanctity are out of scope).
-        if (!isAtLeastAge(owner, 'castle-age')) {
-          return [];
-        }
-        return ['monk'];
-      }
-      case 'castle': {
-        // Castle is Castle-Age+. Trains the owner's civ unique unit (only
-        // Britons / Longbowman ships today; other civs' Castles exist for
-        // defense and garrison alone at Castle Age). At Imperial Age every
-        // Castle also trains Trebuchet, the long-range siege, regardless
-        // of civ.
-        if (!isAtLeastAge(owner, 'castle-age')) {
-          return [];
-        }
-        const options: TrainableUnitType[] = [];
-        if (getPlayerCivilization(owner) === 'Britons') {
-          options.push(
-            latestResearchedInChain(owner, [
-              'longbowman',
-              ['elite-longbowman', 'elite-longbowman-upgrade'],
-            ]),
-          );
-        }
-        if (isAtLeastAge(owner, 'imperial-age')) {
-          options.push('trebuchet');
-        }
-        return options;
-      }
-      default:
-        return [];
-    }
-  }
+  // Slice 7: train / research / market / build menus moved to
+  // `bridge/optionsRules`. The factory closes over the same predicates the
+  // rest of the bridge already exposes (age / civ / has-tech / has-building /
+  // wonder presence) so the lookup logic stays identical.
+  const {
+    getTrainOptions,
+    getResearchOptions,
+    getVisibleResearchOptions,
+    getMarketOptions,
+    getBuildOptions,
+  } = createOptionsRules({
+    latestResearchedInChain,
+    hasTechnology,
+    getPlayerAge,
+    isAtLeastAge,
+    getPlayerCivilization,
+    canAdvanceToFeudalAge,
+    canAdvanceToCastleAge,
+    canAdvanceToImperialAge,
+    hasCompletedBuilding,
+    hasOwnedWonder,
+  });
 
-  function getResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
-    if (buildingType === 'town-center' && canAdvanceToFeudalAge(owner)) {
-      return ['feudal-age'];
-    }
-
-    if (buildingType === 'town-center' && canAdvanceToCastleAge(owner)) {
-      return ['castle-age'];
-    }
-
-    // Slice 7A: Imperial Age research option at the Town Center. Shown only
-    // when the player is in Castle Age and has two Castle-Age buildings
-    // complete.
-    if (buildingType === 'town-center' && canAdvanceToImperialAge(owner)) {
-      return ['imperial-age'];
-    }
-
-    if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age') {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'fletching')) {
-        options.push('fletching');
-      }
-      // FU1: Feudal Blacksmith tier — independent one-shot upgrades.
-      // Forging +1 melee attack, Scale Mail / Scale Barding / Padded
-      // Archer each +1 armor to their respective unit bucket.
-      if (!hasTechnology(owner, 'forging')) {
-        options.push('forging');
-      }
-      if (!hasTechnology(owner, 'scale-mail-armor')) {
-        options.push('scale-mail-armor');
-      }
-      if (!hasTechnology(owner, 'scale-barding-armor')) {
-        options.push('scale-barding-armor');
-      }
-      if (!hasTechnology(owner, 'padded-archer-armor')) {
-        options.push('padded-archer-armor');
-      }
-      // FU1: Castle Blacksmith tier — stacks on Feudal tier. Independent
-      // of prerequisite (canonical AoE2 does NOT require the predecessor
-      // tech).
-      if (isAtLeastAge(owner, 'castle-age')) {
-        if (!hasTechnology(owner, 'iron-casting')) {
-          options.push('iron-casting');
-        }
-        if (!hasTechnology(owner, 'chain-mail-armor')) {
-          options.push('chain-mail-armor');
-        }
-        if (!hasTechnology(owner, 'chain-barding-armor')) {
-          options.push('chain-barding-armor');
-        }
-        if (!hasTechnology(owner, 'leather-archer-armor')) {
-          options.push('leather-archer-armor');
-        }
-        if (!hasTechnology(owner, 'bodkin-arrow')) {
-          options.push('bodkin-arrow');
-        }
-      }
-      // Slice 7E + FU1: Imperial Blacksmith tier. Each independent
-      // one-shot upgrade — researched order doesn't matter, bonuses
-      // stack multiplicatively via createCombatState + the per-tech
-      // callback.
-      if (isAtLeastAge(owner, 'imperial-age')) {
-        if (!hasTechnology(owner, 'bracer')) {
-          options.push('bracer');
-        }
-        if (!hasTechnology(owner, 'blast-furnace')) {
-          options.push('blast-furnace');
-        }
-        if (!hasTechnology(owner, 'plate-mail-armor')) {
-          options.push('plate-mail-armor');
-        }
-        if (!hasTechnology(owner, 'plate-barding')) {
-          options.push('plate-barding');
-        }
-        if (!hasTechnology(owner, 'ring-archer-armor')) {
-          options.push('ring-archer-armor');
-        }
-        if (!hasTechnology(owner, 'chemistry')) {
-          options.push('chemistry');
-        }
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    if (buildingType === 'archery-range' && isAtLeastAge(owner, 'castle-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'crossbowman-upgrade')) {
-        options.push('crossbowman-upgrade');
-      }
-      if (isAtLeastAge(owner, 'imperial-age')) {
-        if (!hasTechnology(owner, 'arbalest-upgrade')) {
-          options.push('arbalest-upgrade');
-        }
-        if (!hasTechnology(owner, 'heavy-cavalry-archer-upgrade')) {
-          options.push('heavy-cavalry-archer-upgrade');
-        }
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    // FU2: Barracks exposes the militia-line chain earlier than Castle
-    // Age so the Feudal Man-at-Arms upgrade is reachable once Feudal
-    // Age opens. Pikeman + Halberdier + Champion retain their original
-    // Castle / Imperial gating.
-    if (buildingType === 'barracks' && getPlayerAge(owner) !== 'dark-age') {
-      const options: ResearchableTechnologyType[] = [];
-      // Feudal Barracks — Man-at-Arms.
-      if (!hasTechnology(owner, 'man-at-arms-upgrade')) {
-        options.push('man-at-arms-upgrade');
-      }
-      if (isAtLeastAge(owner, 'castle-age')) {
-        if (!hasTechnology(owner, 'pikeman-upgrade')) {
-          options.push('pikeman-upgrade');
-        }
-        if (!hasTechnology(owner, 'long-swordsman-upgrade')) {
-          options.push('long-swordsman-upgrade');
-        }
-      }
-      if (isAtLeastAge(owner, 'imperial-age')) {
-        if (!hasTechnology(owner, 'halberdier-upgrade')) {
-          options.push('halberdier-upgrade');
-        }
-        if (!hasTechnology(owner, 'two-handed-swordsman-upgrade')) {
-          options.push('two-handed-swordsman-upgrade');
-        }
-        if (!hasTechnology(owner, 'champion-upgrade')) {
-          options.push('champion-upgrade');
-        }
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    if (buildingType === 'stable' && isAtLeastAge(owner, 'castle-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
-        options.push('light-cavalry-upgrade');
-      }
-      if (isAtLeastAge(owner, 'imperial-age')) {
-        if (!hasTechnology(owner, 'hussar-upgrade')) {
-          options.push('hussar-upgrade');
-        }
-        if (!hasTechnology(owner, 'cavalier-upgrade')) {
-          options.push('cavalier-upgrade');
-        }
-        // FU2: Paladin research requires Cavalier already researched
-        // (canonical AoE2 DE prerequisite chain). Heavy Camel has no
-        // predecessor upgrade so it is available immediately in
-        // Imperial Age. Both disappear from the list once researched.
-        if (
-          hasTechnology(owner, 'cavalier-upgrade')
-          && !hasTechnology(owner, 'paladin-upgrade')
-        ) {
-          options.push('paladin-upgrade');
-        }
-        if (!hasTechnology(owner, 'heavy-camel-upgrade')) {
-          options.push('heavy-camel-upgrade');
-        }
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    // Castle Imperial upgrade: Britons-gated Elite Longbowman. Matches the
-    // Slice 6 Longbowman civ gate — only Britons owners ever see the option.
-    if (
-      buildingType === 'castle'
-      && isAtLeastAge(owner, 'imperial-age')
-      && getPlayerCivilization(owner) === 'Britons'
-      && !hasTechnology(owner, 'elite-longbowman-upgrade')
-    ) {
-      return ['elite-longbowman-upgrade'];
-    }
-
-    // Siege Workshop Imperial upgrades (Slice 7D). Three parallel one-shot
-    // upgrades: Mangonel → Onager, Scorpion → Heavy Scorpion, Battering Ram
-    // → Siege Ram. All three become available once the owner reaches
-    // Imperial Age and drop out of the list as they are researched.
-    if (buildingType === 'siege-workshop' && isAtLeastAge(owner, 'imperial-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'onager-upgrade')) {
-        options.push('onager-upgrade');
-      }
-      if (!hasTechnology(owner, 'heavy-scorpion-upgrade')) {
-        options.push('heavy-scorpion-upgrade');
-      }
-      if (!hasTechnology(owner, 'siege-ram-upgrade')) {
-        options.push('siege-ram-upgrade');
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    return [];
-  }
-
-  function getVisibleResearchOptions(owner: number, buildingType: BuildingType): ResearchableTechnologyType[] {
-    if (buildingType === 'town-center') {
-      const age = getPlayerAge(owner);
-      if (age === 'dark-age') {
-        return ['feudal-age'];
-      }
-      if (age === 'feudal-age') {
-        return ['castle-age'];
-      }
-      if (age === 'castle-age') {
-        return ['imperial-age'];
-      }
-      return [];
-    }
-
-    return getResearchOptions(owner, buildingType);
-  }
-
-  function getMarketOptions(owner: number, buildingType: BuildingType): MarketActionType[] {
-    if (buildingType !== 'market' || getPlayerAge(owner) === 'dark-age') {
-      return [];
-    }
-
-    return [
-      'buy-food',
-      'sell-food',
-      'buy-wood',
-      'sell-wood',
-      'buy-stone',
-      'sell-stone',
-    ];
-  }
-
-  function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
-    if (unitType !== 'villager') {
-      return [];
-    }
-
-    const options: BuildableBuildingType[] = [
-      'house',
-      'mill',
-      'lumber-camp',
-      'mining-camp',
-      'barracks',
-    ];
-
-    if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
-      options.push('stable');
-      options.push('archery-range');
-      options.push('blacksmith');
-      options.push('market');
-      // Iter-3 V3-15: Watch Tower unlocks in Feudal Age in canonical
-      // AoE2 — no Blacksmith prereq. Dropping the artificial gate so
-      // both human and AI can wall up against early Feudal aggression
-      // without first having to commit Blacksmith research time.
-      options.push('watch-tower');
-      // FU3: Palisade Wall unlocks in Feudal Age — the cheap wood wall
-      // that shapes early-game pokes. Matches canonical AoE2 DE.
-      options.push('palisade-wall');
-    }
-
-    if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
-      options.push('town-center');
-      options.push('siege-workshop');
-      options.push('monastery');
-      options.push('castle');
-      // FU3: Stone Wall unlocks in Castle Age. Arena-style maps rely on
-      // this building replacing the legacy stone-mine wall proxy.
-      options.push('stone-wall');
-    }
-
-    // Slice 8: Wonder is Imperial-only AND capped at one per owner. When
-    // a Wonder already exists for this owner (construction-in-progress or
-    // complete), hide it from placement options — the game-mechanism
-    // guarantee that only one Wonder-countdown is ever in flight per
-    // player. The current hasOwnedWonder() check counts both in-progress
-    // and completed Wonders via the building component.
-    if (getPlayerAge(owner) === 'imperial-age' && !hasOwnedWonder(owner)) {
-      options.push('wonder');
-    }
-
-    return options;
-  }
 
   // Phase 3 target-finding ops. `targetPriority`,
   // `buildingTargetPriority`, and the `findPreferred*` /
@@ -4516,438 +4102,48 @@ function createWorld(
     issueMonkContextCommandAtEntity,
   } = monkOps;
 
-  world.registerSystem({
-    name: 'prototypeAi',
-    phase: 'update',
-    execute(activeWorld) {
-      const humanTownCenterId = currentEntityId(
-        activeWorld,
-        townCenterRefs.get(HUMAN_PLAYER_ID),
-      );
-      const humanTownCenterPosition =
-        humanTownCenterId === null
-          ? null
-          : activeWorld.getComponent<Position>(humanTownCenterId, 'position');
-
-      const currentTick = activeWorld.tick;
-
-      for (const [owner, state] of aiStates.entries()) {
-        // Decision gating: the AI loop body runs once every N ticks.
-        // Between decisions, military units stay on whatever attack
-        // command the last decision issued — that carries the push
-        // forward without the AI having to re-issue orders every tick.
-        const interval = decisionIntervalTicks(state.difficulty);
-        if (state.lastDecisionTick >= 0 && currentTick - state.lastDecisionTick < interval) {
-          continue;
-        }
-        state.lastDecisionTick = currentTick;
-
-        const ownerTownCenterId = currentEntityId(activeWorld, townCenterRefs.get(owner));
-        const ownerTownCenterPosition =
-          ownerTownCenterId === null
-            ? null
-            : activeWorld.getComponent<Position>(ownerTownCenterId, 'position');
-
-        // Plan drifts to match the current age every decision tick.
-        const currentAge = getPlayerAge(owner);
-        const nextPlan = planForAge(currentAge);
-        if (state.plan !== 'defend' && state.plan !== nextPlan) {
-          state.plan = nextPlan;
-        }
-
-        // Keep the villager-targets entry in sync with the plan. The
-        // bridge rebalances at most one villager per decision tick so
-        // the economy nudges steadily toward the target without
-        // whiplash.
-        const desiredTargets = villagerTargetsForAge(currentAge);
-        if (!villagerTargetsEqual(state.villagerTargets, desiredTargets)) {
-          state.villagerTargets = { ...desiredTargets };
-        }
-        villagerRebalance(owner, state.villagerTargets);
-
-        // Scouting response: scan for enemy units within the "near
-        // base" radius. If any are visible, record the sighting so the
-        // build-order loop below knows to commit a Watch Tower on the
-        // way to the threat.
-        if (ownerTownCenterPosition) {
-          for (const enemyId of activeWorld.queryInRadius(
-            ownerTownCenterPosition.x,
-            ownerTownCenterPosition.y,
-            AI_BASE_VISION_RADIUS,
-            'position',
-            'unit',
-          )) {
-            const enemyUnit = activeWorld.getComponent<UnitComponent>(enemyId, 'unit');
-            const enemyPos = activeWorld.getComponent<Position>(enemyId, 'position');
-            if (
-              !enemyUnit
-              || !enemyPos
-              || enemyUnit.owner === owner
-              || !visibility.isVisible(owner, enemyPos.x, enemyPos.y)
-            ) {
-              continue;
-            }
-            state.lastEnemySightingTick = currentTick;
-            state.lastEnemySightingPosition = { x: enemyPos.x, y: enemyPos.y };
-            break;
-          }
-        }
-
-        const populationState = population.get(owner);
-        const populationBlocked = Boolean(
-          populationState && populationState.current >= populationState.cap,
-        );
-
-        // Build-order loop: pick the next missing building (houses,
-        // gather camps, military buildings, age prerequisites) and
-        // dispatch an idle villager to place it. The scouting-response
-        // check wedges a Watch Tower into the build order when an
-        // enemy has been spotted within the last decision interval.
-        if (ownerTownCenterPosition) {
-          const sightingFresh =
-            state.lastEnemySightingTick >= 0
-            && currentTick - state.lastEnemySightingTick <= interval * 2;
-          if (
-            sightingFresh
-            && state.lastEnemySightingPosition
-            && !findOwnedBuilding(owner, 'watch-tower')
-            // Iter-3 V3-15: dropped the Blacksmith prereq here too —
-            // canonical AoE2 lets a Feudal-Age player build a Watch
-            // Tower as soon as the Feudal-Age tech finishes.
-          ) {
-            const builderId = findAvailableVillager(owner);
-            const anchor = pickWatchTowerPlacement(
-              ownerTownCenterPosition,
-              state.lastEnemySightingPosition,
-            );
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, 'watch-tower', anchor);
-            }
-          }
-
-          const missing = (buildingType: BuildableBuildingType): boolean => {
-            if (buildingType === 'house') {
-              // Houses are the exception to the "one is enough" rule —
-              // we keep needing more as we grow. "Missing" here means
-              // "population is blocked or near-blocked AND the owner
-              // is not already constructing a House".
-              if (populationBlocked) {
-                return !isConstructingBuilding(owner, 'house');
-              }
-              return false;
-            }
-            // `findOwnedBuilding` catches both in-progress and
-            // complete buildings — we only want to kick a new build
-            // when neither exists. Otherwise the AI would assign
-            // every spare villager to duplicate construction sites.
-            return !findOwnedBuilding(owner, buildingType);
-          };
-
-          // Count ongoing villager builds so the AI doesn't pull
-          // EVERY villager into construction mode — at least one
-          // should stay gathering so the economy keeps flowing.
-          let ongoingBuilds = 0;
-          for (const [, cmd] of unitCommands.entries()) {
-            if (cmd.type !== 'build') continue;
-            const buildingRef = cmd.buildingRef;
-            if (!buildingRef) continue;
-            const bid = currentEntityId(activeWorld, buildingRef);
-            if (bid === null) continue;
-            const b = activeWorld.getComponent<BuildingComponent>(bid, 'building');
-            if (b && b.owner === owner) ongoingBuilds += 1;
-          }
-          const totalVillagers = countOwnedUnits(owner, 'villager');
-          // Cap at (totalVillagers - 1) so there's always at least one
-          // gatherer left. Tiny AIs with 1 villager get 1 builder
-          // (their single villager).
-          const maxConcurrentBuilds = Math.max(1, totalVillagers - 1);
-
-          // FU4: Imperial-Age Wonder pursuit takes priority over the
-          // standard build-order list. Once the AI clears the
-          // villager + resource thresholds the next idle villager
-          // places the Wonder. After the Wonder is up the AI keeps
-          // producing military to defend it (the Wonder-countdown
-          // system handles the win condition); pickNextBuildTarget
-          // continues to work for non-Wonder Imperial buildings.
-          const aiResources = playerResources.get(owner);
-          const wonderPursuit =
-            ownerTownCenterPosition !== null
-            && aiResources !== undefined
-            && shouldPursueWonder(
-              currentAge,
-              hasOwnedWonder(owner),
-              countOwnedUnits(owner, 'villager'),
-              aiResources,
-            );
-          if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
-            const builderId = findAvailableVillager(owner);
-            const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, 'wonder', anchor);
-            }
-          }
-
-          const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked);
-          if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
-            const builderId = findAvailableVillager(owner);
-            const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, nextBuild, anchor);
-            }
-          }
-        }
-
-        // Age-up saving heuristic: hoisted above both the villager
-        // training + military training blocks so they share the same
-        // "don't burn food / gold when we're close to the age-up"
-        // gate. Training that costs food or gold pauses when the AI
-        // has >= 60% of the research cost on hand but isn't at the
-        // full threshold yet. That narrow window lets the stockpile
-        // climb over the line without food getting siphoned into
-        // villagers + the unit mix. FU4: previously only military
-        // training was gated; villagers (50 food each) could drain
-        // the stockpile back below the Castle-Age cost even while
-        // military was paused.
-        const nextAgeTech: ResearchableTechnologyType | null =
-          currentAge === 'dark-age' ? 'feudal-age'
-          : currentAge === 'feudal-age' ? 'castle-age'
-          : currentAge === 'castle-age' ? 'imperial-age'
-          : null;
-        const savingForAgeUp = ((): boolean => {
-          if (!nextAgeTech) return false;
-          const s = playerResources.get(owner);
-          if (!s) return false;
-          const cost = researchCost(nextAgeTech);
-          const foodTarget = cost.food ?? 0;
-          const goldTarget = cost.gold ?? 0;
-          const foodProgress = foodTarget > 0 ? s.food / foodTarget : 1;
-          const goldProgress = goldTarget > 0 ? s.gold / goldTarget : 1;
-          const minProgress = Math.min(foodProgress, goldProgress);
-          return minProgress >= 0.6 && !canAfford(s, cost);
-        })();
-
-        // Age-up loop: if the Town Center is idle and the age-up tech
-        // is affordable, queue it. The AI also keeps a small safety
-        // buffer (food + gold) so production does not stall during
-        // the long research countdown.
-        if (ownerTownCenterId !== null) {
-          const tcConstruction = constructionStates.get(ownerTownCenterId);
-          if (!tcConstruction || tcConstruction.isComplete) {
-            const stockpile = playerResources.get(owner);
-            const bufferCost = ageUpResourceBuffer(currentAge);
-            const hasBuffer = stockpile ? canAfford(stockpile, bufferCost) : false;
-            const nextAge = pickNextAgeResearch(
-              currentAge,
-              (tech) => {
-                if (tech === 'feudal-age') return canAdvanceToFeudalAge(owner);
-                if (tech === 'castle-age') return canAdvanceToCastleAge(owner);
-                if (tech === 'imperial-age') return canAdvanceToImperialAge(owner);
-                return false;
-              },
-              (tech) => {
-                const s = playerResources.get(owner);
-                return s ? canAfford(s, researchCost(tech)) : false;
-              },
-            );
-            if (nextAge && hasBuffer) {
-              // enqueueResearch dedupes by `entry.technologyType`
-              // already — duplicate calls while the research is in
-              // flight silently return false.
-              enqueueResearch(ownerTownCenterId, nextAge);
-            }
-
-            // Villager training: keep the Town Center producing
-            // villagers up to an age-scaled cap. Stops early when
-            // population-blocked to avoid stacking queue entries
-            // that sit isBlocked until a House completes. Also
-            // pauses while saving for age-up so the 50-food villager
-            // cost doesn't siphon the stockpile back below the Castle
-            // / Imperial Age threshold once military has paused.
-            // FU4: Imperial-Age cap bumped above 40 so the AI can
-            // reach the Wonder-pursuit villager threshold.
-            const tcQueue = productionQueues.get(ownerTownCenterId) ?? [];
-            const villagerCap =
-              currentAge === 'dark-age' ? 6
-              : currentAge === 'imperial-age' ? 50
-              : 14;
-            const currentVillagers =
-              countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager');
-            if (
-              !populationBlocked
-              && !savingForAgeUp
-              && currentVillagers < villagerCap
-              && tcQueue.length < 2
-            ) {
-              enqueueTraining(ownerTownCenterId, 'villager');
-            }
-          }
-        }
-
-        // Military production: walk the per-age unit mix and enqueue
-        // up to one unit per decision tick. Training pauses when the
-        // AI has nearly enough for the next age-up — otherwise the
-        // military lines eat all the food and the AI stalls between
-        // ages. Each age only trains units the AI actually has
-        // buildings for (pickNextBuildTarget ensures those buildings
-        // get built in order).
-        const mix = pickUnitMix(currentAge);
-        if (!savingForAgeUp) {
-          for (const { unitType, producer } of mix) {
-            const producerId = findIdleProducer(owner, producer);
-            if (producerId === null) continue;
-            const stockpile = playerResources.get(owner);
-            if (!stockpile) continue;
-            if (!canAfford(stockpile, trainingCost(unitType))) continue;
-            if (!getTrainOptions(owner, producer).includes(unitType)) continue;
-            enqueueTraining(producerId, unitType);
-          }
-        }
-
-        // Upgrades: if any research option is affordable and useful,
-        // queue it. Cheap one-time upgrades (Fletching / Crossbowman
-        // / Pikeman / Light Cavalry / etc.) pay off long-term and the
-        // AI has plenty of spare resource once it enters Castle Age.
-        // FU4: paused during age-up saving so blacksmith / range techs
-        // (each 100-200 food) don't siphon the food stockpile back
-        // below the Castle / Imperial Age research threshold.
-        if (!savingForAgeUp) {
-          for (const buildingType of [
-            'blacksmith',
-            'archery-range',
-            'barracks',
-            'stable',
-            'siege-workshop',
-            'castle',
-          ] as const) {
-            const buildingId = findIdleProducer(owner, buildingType);
-            if (buildingId === null) continue;
-            const options = getResearchOptions(owner, buildingType);
-            if (options.length === 0) continue;
-            const stockpile = playerResources.get(owner);
-            if (!stockpile) continue;
-            for (const tech of options) {
-              if (canAfford(stockpile, researchCost(tech))) {
-                enqueueResearch(buildingId, tech);
-                break;
-              }
-            }
-          }
-        }
-
-        // FU4: Monk training. Trains up to AI_MONK_COUNT_CAP Monks
-        // from a completed Monastery in Castle / Imperial Age. Two-to-
-        // three Monks suffice to heal the pushing army and ferry every
-        // map relic back to the Monastery, while keeping gold spend
-        // below the cavalry / archer line.
-        if (
-          !savingForAgeUp
-          && (currentAge === 'castle-age' || currentAge === 'imperial-age')
-        ) {
-          const monasteryId = findIdleProducer(owner, 'monastery');
-          if (monasteryId !== null) {
-            const ownedMonks =
-              countOwnedUnits(owner, 'monk') + countQueuedUnits(monasteryId, 'monk');
-            const stockpile = playerResources.get(owner);
-            if (
-              ownedMonks < AI_MONK_COUNT_CAP
-              && stockpile
-              && canAfford(stockpile, trainingCost('monk'))
-              && getTrainOptions(owner, 'monastery').includes('monk')
-            ) {
-              enqueueTraining(monasteryId, 'monk');
-            }
-          }
-        }
-
-        // FU4: Monk task assignment. Each owned Monk that has no
-        // current task gets routed to: (1) deposit a carried relic at
-        // the nearest friendly Monastery; (2) pick up the nearest
-        // visible neutral relic; or (3) heal the nearest wounded
-        // friendly military unit. Conversion (enemy-targeting) is
-        // intentionally skipped in v1 — the spec defers it to a later
-        // FU pass — so the AI Monk loop only reads the friendly-side
-        // surface.
-        assignAiMonkTasks(owner);
-
-        // Attack-group management: prune destroyed / converted units,
-        // then accumulate idle military into the group until the
-        // age-gated threshold is met. Once met, dispatch the group at
-        // the human's Town Center.
-        const liveMilitary = ownedMilitaryUnitIds(owner);
-        state.attackGroup = state.attackGroup.filter((id) => liveMilitary.has(id));
-        const militaryUnits = findOwnedMilitaryUnits(owner);
-        for (const { id } of militaryUnits) {
-          if (!state.attackGroup.includes(id)) {
-            state.attackGroup.push(id);
-          }
-        }
-
-        const threshold = attackGroupSize(currentAge);
-        const shouldPush = state.attackGroup.length >= threshold;
-
-        for (const id of state.attackGroup) {
-          const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-          const position = activeWorld.getComponent<Position>(id, 'position');
-          if (!unit || !position) continue;
-
-          const currentCommand = unitCommands.get(id);
-          if (currentCommand?.type === 'attack') {
-            const targetId = currentEntityId(activeWorld, currentCommand.targetEntityRef);
-            if (targetId !== null) {
-              const hasUnitTarget =
-                currentCommand.targetEntityKind === 'unit'
-                && activeWorld.getComponent<UnitComponent>(targetId, 'unit')
-                && activeWorld.getComponent<Position>(targetId, 'position');
-              const hasBuildingTarget =
-                currentCommand.targetEntityKind === 'building'
-                && activeWorld.getComponent<BuildingComponent>(targetId, 'building')
-                && activeWorld.getComponent<Position>(targetId, 'position');
-              const hasResourceTarget =
-                currentCommand.targetEntityKind === 'resource'
-                && activeWorld.getComponent<ResourceComponent>(targetId, 'resource')
-                && wildlifeStates.get(targetId)?.isAlive
-                && activeWorld.getComponent<Position>(targetId, 'position');
-              if (hasUnitTarget || hasBuildingTarget || hasResourceTarget) {
-                continue;
-              }
-            }
-          }
-
-          // Units in the attack group always prefer an enemy in their
-          // own vision; the group leader's sight usually drags the
-          // target selection into the human base after the initial
-          // move command. The human villager fallback preserves the
-          // old Barracks-rush behavior — the AI-rush browser test
-          // depends on the AI killing at least one human villager.
-          const humanVillagerId = findOwnedUnit(HUMAN_PLAYER_ID, 'villager');
-          if (shouldPush && humanVillagerId !== null && issueUnitAttackCommand(id, humanVillagerId, 'unit')) {
-            continue;
-          }
-
-          const visibleTargetId = findPreferredVisibleEnemyUnit(owner, position);
-          if (visibleTargetId !== null) {
-            issueUnitAttackCommand(id, visibleTargetId, 'unit');
-            continue;
-          }
-
-          const visibleBuildingId = findPreferredVisibleEnemyBuilding(owner, position);
-          if (visibleBuildingId !== null && issueUnitAttackCommand(id, visibleBuildingId, 'building')) {
-            continue;
-          }
-
-          if (shouldPush) {
-            if (humanTownCenterId !== null && issueUnitAttackCommand(id, humanTownCenterId, 'building')) {
-              continue;
-            }
-
-            if (humanTownCenterPosition) {
-              issueUnitMoveCommand(id, humanTownCenterPosition);
-            }
-          }
-        }
-      }
-    },
+  registerAiSystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    visibility,
+    townCenterRefs,
+    aiStates,
+    population,
+    playerResources,
+    constructionStates,
+    productionQueues,
+    unitCommands,
+    wildlifeStates,
+    currentEntityId,
+    getPlayerAge,
+    villagerRebalance,
+    findOwnedBuilding,
+    findAvailableVillager,
+    findOwnedUnit,
+    findIdleProducer,
+    ownedMilitaryUnitIds,
+    findOwnedMilitaryUnits,
+    hasOwnedWonder,
+    isConstructingBuilding,
+    pickWatchTowerPlacement,
+    startConstruction,
+    findBuildPlacementNear,
+    countOwnedUnits,
+    countQueuedUnits,
+    canAdvanceToFeudalAge,
+    canAdvanceToCastleAge,
+    canAdvanceToImperialAge,
+    enqueueResearch,
+    enqueueTraining,
+    getTrainOptions,
+    getResearchOptions,
+    assignAiMonkTasks,
+    findPreferredVisibleEnemyUnit,
+    findPreferredVisibleEnemyBuilding,
+    issueUnitAttackCommand,
+    issueUnitMoveCommand,
   });
+
 
   registerAutoAggressionSystem({
     world,
@@ -4961,336 +4157,37 @@ function createWorld(
     issueUnitAttackCommand,
   });
 
-  world.registerSystem({
-    name: 'prototypePlayerCommands',
-    phase: 'update',
-    after: ['prototypeAi', 'prototypeAutoAggression'],
-    execute(activeWorld) {
-      for (const [id, command] of [...unitCommands.entries()]) {
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        if (!position || !unit) {
-          clearUnitCommand(id);
-          continue;
-        }
-
-        if (command.type === 'attack') {
-          const attackerCombat = combatStates.get(id);
-          const targetId = currentEntityId(activeWorld, command.targetEntityRef);
-          if (targetId === null || !attackerCombat || !command.targetEntityKind) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          if (attackerCombat.cooldownTicks > 0) {
-            attackerCombat.cooldownTicks -= 1;
-          }
-
-          // FU7: Trebuchet pack/unpack. If a Trebuchet is mid-transition,
-          // burn a tick on the transition (no move, no fire) and move on.
-          // The second phase — branching on packed vs unpacked per target
-          // kind — is inlined in each sub-branch below after the distance
-          // is computed, since "in range" differs for unit / resource /
-          // building targets.
-          if (unit.unitType === 'trebuchet' && advanceTrebuchetTransition(id)) {
-            continue;
-          }
-
-          if (command.targetEntityKind === 'unit') {
-            const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-            const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
-            const targetCombat = combatStates.get(targetId);
-            if (!targetPosition || !targetUnit || !targetCombat || targetUnit.owner === unit.owner) {
-              clearUnitCommand(id);
-              continue;
-            }
-
-            if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              // FU7: an unpacked Trebuchet is stationary — it cannot walk
-              // toward an out-of-range target. Hold the attack command so
-              // the player observes "nothing happens" rather than silently
-              // clearing the order (they may re-pack later or the target
-              // may return to range). A packed Trebuchet walks normally.
-              if (isTrebuchetStationary(id)) {
-                continue;
-              }
-              const unitRangePlan = findUnitRangePlan(
-                id,
-                targetPosition,
-                attackerCombat.attackRange,
-                activeWorld,
-              );
-              if (!unitRangePlan) {
-                clearUnitCommand(id);
-                continue;
-              }
-              moveUnitOneSubgridStep(id, unitRangePlan.nextStep, activeWorld);
-              continue;
-            }
-
-            // Minimum-range dead zone: Mangonel arcs cannot land at
-            // adjacent cells (min range 3). If the target is inside max
-            // range but closer than the attacker's min range, simply
-            // skip the tick — the target can walk out or close for melee
-            // on its own; v1 does not auto-reposition the siege unit.
-            if (
-              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
-            ) {
-              continue;
-            }
-
-            // FU7: a packed Trebuchet cannot fire — it must unpack first.
-            // Kick off the unpack transition; a later tick will clear the
-            // pack flag and let the standard fire logic run.
-            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-              beginTrebuchetUnpack(id);
-              continue;
-            }
-
-            if (attackerCombat.cooldownTicks > 0) {
-              continue;
-            }
-
-            // FU1: armor subtracts from attacker damage, floored at 1 so
-            // that ever-larger armor stacks never heal or no-op a hit.
-            // Matches AoE2 DE "minimum 1 damage" rule for unit-vs-unit.
-            const rawDamage =
-              attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
-            targetCombat.currentHp -= Math.max(1, rawDamage - targetCombat.armor);
-            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-            markOutOfBandRenderChange();
-
-            if (targetCombat.currentHp <= 0) {
-              // FU7: credit the attacker's owner with a military kill.
-              ensurePlayerScoreCounters(unit.owner).unitsKilled += 1;
-              destroyUnitEntity(targetId);
-              clearUnitCommand(id);
-            }
-            continue;
-          }
-
-          if (command.targetEntityKind === 'resource') {
-            const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-            const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
-            const targetWildlife = wildlifeStates.get(targetId);
-            if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
-              clearUnitCommand(id);
-              continue;
-            }
-
-            if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              // FU7: unpacked Trebuchet holds ground — see the unit branch.
-              if (isTrebuchetStationary(id)) {
-                continue;
-              }
-              const wildlifeRangePlan = findUnitRangePlan(
-                id,
-                targetPosition,
-                attackerCombat.attackRange,
-                activeWorld,
-              );
-              if (!wildlifeRangePlan) {
-                clearUnitCommand(id);
-                continue;
-              }
-              moveUnitOneSubgridStep(id, wildlifeRangePlan.nextStep, activeWorld);
-              continue;
-            }
-
-            // Mangonel min-range dead zone (see the unit branch above) —
-            // applies equally to wildlife / resource targets.
-            if (
-              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
-            ) {
-              continue;
-            }
-
-            // FU7: packed Trebuchet unpacks before firing.
-            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-              beginTrebuchetUnpack(id);
-              continue;
-            }
-
-            if (attackerCombat.cooldownTicks > 0) {
-              continue;
-            }
-
-            targetWildlife.currentHp -= attackerCombat.attackDamage;
-            targetWildlife.targetEntityRef = getEntityRef(id);
-            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-            markOutOfBandRenderChange();
-
-            if (targetWildlife.currentHp <= 0) {
-              killWildlifeEntity(targetId);
-              clearUnitCommand(id);
-            }
-            continue;
-          }
-
-          const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-          const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
-          const targetHealth = buildingHealthStates.get(targetId);
-          if (!targetPosition || !targetBuilding || !targetHealth || targetBuilding.owner === unit.owner) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          if (distanceToBuilding(targetId, position) > attackerCombat.attackRange) {
-            // FU7: unpacked Trebuchet holds ground — see the unit branch.
-            if (isTrebuchetStationary(id)) {
-              continue;
-            }
-            const buildingApproachPlan = findBuildingApproachPlan(
-              id,
-              targetId,
-              attackerCombat.attackRange,
-              activeWorld,
-            );
-            if (!buildingApproachPlan) {
-              clearUnitCommand(id);
-              continue;
-            }
-            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
-            continue;
-          }
-
-          // Mangonel min-range dead zone (see the unit branch above) —
-          // also applies when a Mangonel is targeting a building it
-          // somehow ended up standing on top of.
-          if (
-            distanceToBuilding(targetId, position) < unitMinAttackRange(unit.unitType)
-          ) {
-            continue;
-          }
-
-          // FU7: packed Trebuchet unpacks before firing at a building.
-          // Trebuchets are the canonical building-killer so this is the
-          // most common path — position next to a Castle / TC, then
-          // unpack over 50 ticks, then rain siege damage.
-          if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-            beginTrebuchetUnpack(id);
-            continue;
-          }
-
-          if (attackerCombat.cooldownTicks > 0) {
-            continue;
-          }
-
-          // FU1: buildings do not carry armor in v1, but floor the raw
-          // damage at 0 so negative-armor-style shenanigans (future
-          // engine changes) cannot heal a building via an attack.
-          targetHealth.currentHp -= Math.max(
-            0,
-            attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType),
-          );
-          attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-          markOutOfBandRenderChange();
-
-          if (targetHealth.currentHp <= 0) {
-            destroyBuildingEntity(targetId);
-            clearUnitCommand(id);
-          }
-          continue;
-        }
-
-        if (command.type === 'move') {
-          // FU7: Trebuchet pack/unpack. An unpacked Trebuchet must pack
-          // before it can start walking toward a move target; during the
-          // pack (or any in-flight transition) it stays put. This runs
-          // BEFORE the movePlan lookup so a transient transition never
-          // prematurely clears the move command on a blocked plan.
-          if (unit.unitType === 'trebuchet') {
-            if (advanceTrebuchetTransition(id)) {
-              continue;
-            }
-            if (isTrebuchetStationary(id)) {
-              beginTrebuchetPack(id);
-              continue;
-            }
-          }
-
-          const movePlan = resolveMovePlanFromCache(id, command.target, activeWorld);
-          if (!movePlan) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          moveUnitOneSubgridStep(id, movePlan.nextStep, activeWorld);
-          continue;
-        }
-
-        const buildingId = currentEntityId(activeWorld, command.buildingRef);
-        if (buildingId === null) {
-          clearUnitCommand(id);
-          continue;
-        }
-
-        const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
-        const construction = constructionStates.get(buildingId);
-        const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
-        if (!building || !construction || construction.isComplete || !buildingApproachPlan) {
-          clearUnitCommand(id);
-          continue;
-        }
-
-        if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
-          moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
-          continue;
-        }
-
-        construction.buildProgressTicks += 1;
-        if (construction.buildProgressTicks >= construction.totalBuildTicks) {
-          construction.buildProgressTicks = construction.totalBuildTicks;
-          construction.isComplete = true;
-
-          const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');
-          if (renderable) {
-            renderable.tint = buildingTint(building.buildingType, building.owner, true);
-            renderable.visualVariant = 'complete';
-            // In-place renderable mutations don't go through the
-            // RenderAdapter's component-change hook, so flag an out-of-
-            // band refresh — otherwise the projection stays at
-            // 'construction' forever.
-            markOutOfBandRenderChange();
-          }
-
-          const defaultVisionRadius = buildingVisionRadius(building.buildingType);
-          if (
-            defaultVisionRadius !== null
-            && !activeWorld.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
-          ) {
-            activeWorld.addComponent(buildingId, 'visionSource', {
-              playerId: building.owner,
-              radius: defaultVisionRadius,
-            });
-          }
-
-          const buildingCombatState = createBuildingCombatState(building.buildingType);
-          if (buildingCombatState) {
-            buildingCombatStates.set(buildingId, buildingCombatState);
-          }
-
-          const populationState = population.get(building.owner);
-          if (populationState) {
-            populationState.cap += construction.populationProvided;
-          }
-
-          // Slice 8: hook the generic completion path (score counters,
-          // Wonder-countdown start). Must fire for every construction
-          // completion, including non-Wonder buildings, so scores stay
-          // accurate across the whole match.
-          onBuildingConstructionComplete(buildingId, building.owner, building.buildingType);
-
-          clearUnitCommand(id);
-        }
-      }
-    },
+  registerPlayerCommandsSystem({
+    world,
+    unitCommands,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    constructionStates,
+    wildlifeStates,
+    population,
+    clearUnitCommand,
+    currentEntityId,
+    distanceToBuilding,
+    advanceTrebuchetTransition,
+    isTrebuchetStationary,
+    isTrebuchetSilent,
+    beginTrebuchetUnpack,
+    beginTrebuchetPack,
+    findUnitRangePlan,
+    findBuildingApproachPlan,
+    moveUnitOneSubgridStep,
+    isUnitAtTarget,
+    resolveMovePlanFromCache,
+    markOutOfBandRenderChange,
+    ensurePlayerScoreCounters,
+    destroyUnitEntity,
+    killWildlifeEntity,
+    destroyBuildingEntity,
+    getEntityRef,
+    onBuildingConstructionComplete,
   });
+
 
   // (monkHealCounters + monkConvertProcessedThisTick are hoisted to the
   // top of `createWorld` so save/load can serialize the heal counter.
