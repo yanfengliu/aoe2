@@ -54,6 +54,7 @@ import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
+import { createCellPassability } from './bridge/cellPassability';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
 import { createUnitCommandOps } from './bridge/unitCommandOps';
@@ -92,7 +93,6 @@ import {
 } from './prototypeScenario';
 import {
   buildingBuildTimeTicks,
-  buildingGarrisonCapacity,
   buildingPopulationProvided,
 } from './prototypeBuildingRules';
 import { resourceKindToEconomyResource } from './prototypeEconomyRules';
@@ -1075,6 +1075,36 @@ function createWorld(
   });
 
 
+  // Cell passability + occupancy queries live in `bridge/cellPassability`.
+  // Wired here, BEFORE the scenario spawn loop, because that loop calls
+  // `buildingOccupiesCell` / `isTerrainPassableForUnit` /
+  // `isCellBlockedByBuilding` / `isCellBlockedByResource` during fixture
+  // validation.
+  const {
+    buildingOccupiesCell,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
+    isCellPassableForSpawn,
+    isCellPassableForUnit,
+    isCellPassableForWildlife,
+    isHarvestableResource,
+    isPlacementBlocked,
+    isGarrisonedUnit,
+    getActionOptions,
+  } = createCellPassability({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    worldOccupancy,
+    tiles,
+    constructionStates,
+    wildlifeStates,
+    garrisonedByBuilding,
+    garrisonedUnitToBuilding,
+  });
+
   // Skip the entity-spawn loop when loading from a save blob — every
   // entity is already in the deserialized world. Side-map population
   // happens further below from `savedGame.sideMaps`.
@@ -1673,108 +1703,8 @@ function createWorld(
     return matchState.outcome === 'running';
   }
 
-  function buildingOccupiesCell(
-    buildingId: number,
-    x: number,
-    y: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    const position = activeWorld.getComponent<Position>(buildingId, 'position');
-    const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!position || !building) {
-      return false;
-    }
-
-    const construction = constructionStates.get(buildingId);
-    const footprint = construction ?? {
-      width: buildingFootprint(building.buildingType).width,
-      height: buildingFootprint(building.buildingType).height,
-    };
-
-    return (
-      x >= position.x
-      && x < position.x + footprint.width
-      && y >= position.y
-      && y < position.y + footprint.height
-    );
-  }
-
-  function isTerrainPassableForUnit(
-    x: number,
-    y: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
-      return false;
-    }
-
-    const tile = tiles[y]?.[x];
-    const terrain = tile === undefined ? null : activeWorld.getComponent<TerrainComponent>(tile, 'terrain');
-    return terrain ? terrain.kind !== 'water' && terrain.kind !== 'forest' : false;
-  }
-
-  function isCellBlockedByBuilding(x: number, y: number): boolean {
-    return worldOccupancy.isCellBlockedByBuilding(x, y);
-  }
-
-  function isCellBlockedByResource(
-    x: number,
-    y: number,
-    ignoredResourceId: number | null = null,
-  ): boolean {
-    return worldOccupancy.isCellBlockedByResource(x, y, ignoredResourceId);
-  }
-
-  function isCellPassableForSpawn(x: number, y: number): boolean {
-    return worldOccupancy.isCellPassableForSpawn(x, y);
-  }
-
-  function isCellPassableForUnit(
-    unitId: number,
-    x: number,
-    y: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    // Movement-planning helpers share an entity-aware callback shape even
-    // though coarse-cell unit crowding is intentionally ignored for pathing.
-    void unitId;
-    void activeWorld;
-    return isCellPassableForSpawn(x, y);
-  }
-
-  function isCellPassableForWildlife(
-    resourceId: number,
-    x: number,
-    y: number,
-  ): boolean {
-    return worldOccupancy.isCellPassableForWildlife(resourceId, x, y);
-  }
-
-  function isHarvestableResource(
-    resourceId: number,
-    resource: ResourceComponent,
-  ): boolean {
-    if (resource.amount <= 0) {
-      return false;
-    }
-
-    // Relics are never harvestable via the gather-drop economy; Monks pick
-    // them up through a dedicated command flow (Slice 5).
-    if (resource.resourceType === 'relic') {
-      return false;
-    }
-
-    const wildlife = wildlifeStates.get(resourceId);
-    if (!wildlife) {
-      return true;
-    }
-
-    return !wildlife.isAlive && resource.resourceType !== 'wolf';
-  }
-
-  function isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
-    return worldOccupancy.isPlacementBlocked(x, y, width, height);
-  }
+  // (Cell passability factory call moved up to before the scenario spawn
+  //  loop so its outputs are in scope at spawn-validation time.)
 
   // Movement plan ops live in `bridge/movementPlanOps`. The factory closes
   // over the per-unit path cache and the two passability predicates
@@ -1842,22 +1772,6 @@ function createWorld(
     // order from the player or AI doesn't inherit the previous order's
     // stuck window.
     gathererDropOffStuckSinceTick.delete(id);
-  }
-
-  function isGarrisonedUnit(id: number): boolean {
-    return garrisonedUnitToBuilding.has(id);
-  }
-
-  function getActionOptions(owner: number, buildingType: BuildingType, buildingId: number): ActionType[] {
-    if (
-      owner === HUMAN_PLAYER_ID
-      && buildingGarrisonCapacity(buildingType) > 0
-      && (garrisonedByBuilding.get(buildingId)?.length ?? 0) > 0
-    ) {
-      return ['ungarrison'];
-    }
-
-    return [];
   }
 
   function isVisibleToHuman(position: Position, owner: number | null): boolean {
