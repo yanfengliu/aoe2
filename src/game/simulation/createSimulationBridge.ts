@@ -58,6 +58,24 @@ import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
+import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
+import type { MemoryEntry } from './bridge/memoryTypes';
+import { registerAutoAggressionSystem } from './bridge/systems/autoAggressionSystem';
+import { registerConquestOutcomeSystem } from './bridge/systems/conquestOutcomeSystem';
+import { registerFogMemorySystem } from './bridge/systems/fogMemorySystem';
+import { registerHerdableMovementSystem } from './bridge/systems/herdableMovementSystem';
+import { registerHerdableOwnershipSystem } from './bridge/systems/herdableOwnershipSystem';
+import { registerMonkBehaviorSystem } from './bridge/systems/monkBehaviorSystem';
+import { registerProductionQueueSystem } from './bridge/systems/productionQueueSystem';
+import { registerScoutMovementSystem } from './bridge/systems/scoutMovementSystem';
+import { registerTowerCombatSystem } from './bridge/systems/towerCombatSystem';
+import { registerVillagerEconomySystem } from './bridge/systems/villagerEconomySystem';
+import { registerWildlifeCombatSystem } from './bridge/systems/wildlifeCombatSystem';
+import { registerRelicCountdownSystem } from './bridge/systems/relicCountdownSystem';
+import { registerRelicGoldSystem } from './bridge/systems/relicGoldSystem';
+import { registerVisibilitySystem } from './bridge/systems/visibilitySystem';
+import { registerWinConditionResolverSystem } from './bridge/systems/winConditionResolverSystem';
+import { registerWonderCountdownSystem } from './bridge/systems/wonderCountdownSystem';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -67,7 +85,6 @@ import {
   createPrototypeScenario,
 } from './prototypeScenario';
 import {
-  buildingArrowCount,
   buildingBuildTimeTicks,
   buildingGarrisonCapacity,
   buildingMaxHp,
@@ -86,8 +103,6 @@ import {
 import {
   canAfford,
   constructionCost,
-  gatherAmountFor,
-  gatherTicksFor,
   isBuyMarketAction,
   marketCommodityForAction,
   researchCost,
@@ -108,7 +123,6 @@ import {
   isGunpowderUnit,
   isInfantryUnit,
   isMeleeUnit,
-  isStaticMemorableResourceType,
   isWildlifeResourceType,
   unitAttackDamage,
   unitAttackRange,
@@ -117,7 +131,6 @@ import {
   unitReloadTicks,
   unitSize,
   unitTint,
-  unitVisionRadius,
 } from './prototypeUnitRules';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
@@ -139,7 +152,6 @@ import {
   ageUpResourceBuffer,
   attackGroupSize,
   decisionIntervalTicks,
-  gatherMultiplier,
   pickNextAgeResearch,
   pickNextBuildTarget,
   pickUnitMix,
@@ -186,21 +198,9 @@ import type {
   WanderBoundsComponent,
 } from './types';
 
-// Snapshot of a static entity (building or resource) captured the last time the player saw
-// it. Used by fog memory rendering. Purely a data value — no ECS component involved — so it
-// survives after the source entity is destroyed or leaves vision.
-export interface MemoryEntry {
-  kind: 'building' | 'resource';
-  entityType: ProjectedEntityView['entityType'];
-  position: Position;
-  footprintWidth: number;
-  footprintHeight: number;
-  tint: number;
-  owner: number | null;
-  size: number;
-  visualVariant: ProjectedEntityView['visualVariant'];
-  lastSeenTick: number;
-}
+// MemoryEntry has moved to `bridge/memoryTypes` — re-export so external
+// consumers of this module's types still resolve.
+export type { MemoryEntry } from './bridge/memoryTypes';
 
 export interface SimulationBridge {
   step(deltaMs: number): void;
@@ -272,12 +272,12 @@ const MONK_HEAL_TICK_INTERVAL = 10;
 const MONK_HEAL_HP_PER_INTERVAL = 1;
 const MONK_CONVERT_PROGRESS_PER_TICK = 1;
 const MONK_CONVERT_FLIP_THRESHOLD = 50;
-const MONK_ACTION_RANGE = 4;
+// MONK_ACTION_RANGE moved to bridge/systems/monkBehaviorSystem.
 const MARKET_TRANSACTION_AMOUNT = 100;
 const MARKET_FEE_RATE = 0.3;
 const MARKET_RATE_STEP = 3;
 const MARKET_MIN_RATE = 20;
-const SHEEP_SUBGRID_STEP_PER_TICK = 1;
+// SHEEP_SUBGRID_STEP_PER_TICK moved to bridge/systems/herdableMovementSystem.
 const CARDINAL_NEIGHBOR_OFFSETS: Position[] = [
   { x: 1, y: 0 },
   { x: -1, y: 0 },
@@ -479,29 +479,15 @@ function createWorld(
   // resets to null and must restart from scratch when a new Wonder is
   // built. Countdown length defaults to WONDER_COUNTDOWN_TICKS but a
   // per-player scenario override (`wonderCountdownOverrideTicks`) can
-  // shrink it for test speed.
-  interface WonderCountdownEntry {
-    remainingTicks: number;
-    totalTicks: number;
-    // FU7: records the `world.tick` at which the countdown hit zero.
-    // Null while a countdown is still in flight. Read by the combined
-    // Wonder/Relic winner resolver so the "first to complete" rule is
-    // explicit rather than implicit system-registration order.
-    lastCompletedTick: number | null;
-  }
+  // shrink it for test speed. Entry shape lives in `bridge/countdownTypes`.
   const wonderCountdowns = new Map<number, WonderCountdownEntry>();
   const wonderCountdownOverrides = new Map<number, number>();
   // Slice 8: Relic victory state. Countdown starts as soon as one owner
   // holds every relic on the map inside their Monasteries. Decrements
   // every tick. At 0 the owner wins by Relic victory. If the ownership
   // picture changes (a relic drops, a relic is picked up by another
-  // Monk, etc.) the countdown resets to null.
-  interface RelicCountdownEntry {
-    remainingTicks: number;
-    totalTicks: number;
-    // FU7: see WonderCountdownEntry.lastCompletedTick.
-    lastCompletedTick: number | null;
-  }
+  // Monk, etc.) the countdown resets to null. Entry shape lives in
+  // `bridge/countdownTypes`.
   const relicCountdowns = new Map<number, RelicCountdownEntry>();
   const relicCountdownOverrides = new Map<number, number>();
   // Slice 8: per-owner score counters incremented on game-event ticks.
@@ -691,7 +677,7 @@ function createWorld(
   // dropped on successful re-plan, on `clearGathererOrder`, on unit
   // destruction, and on save/load (scratch state, not serialized).
   const gathererDropOffStuckSinceTick = new Map<number, number>();
-  const GATHER_DROPOFF_RETRY_INTERVAL = 30;
+  // GATHER_DROPOFF_RETRY_INTERVAL moved to bridge/systems/villagerEconomySystem.
   // Iter-3 V3-6: per-owner set of in-flight research technologies. The
   // iter-2 H2-1 cost-dedupe scanned every owned producer's queue per
   // enqueueResearch call (O(producers × queue depth)); this side map
@@ -4963,117 +4949,16 @@ function createWorld(
     },
   });
 
-  // Canonical-AoE2 stance defaults. Runs after `prototypeAi` (so the AI
-  // owns the wider planner-style aggression for its push) and before
-  // `prototypePlayerCommands` (so commands the AI / auto-aggression
-  // issued this tick are processed in the same tick). The rule is per-
-  // unit, not per-player: any unit whose `unitCommands` slot is empty,
-  // not garrisoned, and alive, scans for an enemy in its personal LOS
-  // and engages. Military uses `unitVisionRadius` (Aggressive Stance);
-  // villager uses melee attack range = 1 (Defensive Stance: counter-
-  // attack adjacent only). Monks and wildlife are skipped — Monks have
-  // their own task subsystem, and wildlife is not in the `unit` query.
-  // Players whose AI is explicitly disabled (`disableAi: true` on the
-  // start spec) are also skipped here so test fixtures can spawn a
-  // fully-passive enemy without the planner OR auto-aggression
-  // animating its units.
-  world.registerSystem({
-    name: 'prototypeAutoAggression',
-    phase: 'update',
-    after: ['prototypeAi'],
-    before: ['prototypePlayerCommands'],
-    execute(activeWorld) {
-      for (const id of activeWorld.query('position', 'unit')) {
-        if (unitCommands.has(id)) {
-          continue;
-        }
-        if (isGarrisonedUnit(id)) {
-          continue;
-        }
-
-        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        if (!unit || !position) {
-          continue;
-        }
-        if (unit.unitType === 'monk') {
-          continue;
-        }
-
-        // Passive-player gate: only the human and AI-driven players
-        // run auto-aggression on their units. The seeding site at the
-        // top of `createWorld` (search `start.disableAi`) skips
-        // `ensureAiState` when a fixture sets `disableAi: true`, so
-        // those owners are missing from `aiStates`. Reusing the
-        // `aiStates` map as the gate keeps the "is this owner active?"
-        // check in one place — but it does mean: if any future code
-        // path purges `aiStates` (e.g. on defeat), that owner's units
-        // also lose auto-aggression. Document the coupling here and
-        // revisit if a real player needs to lose AI but keep stance.
-        if (unit.owner !== HUMAN_PLAYER_ID && !aiStates.has(unit.owner)) {
-          continue;
-        }
-
-        const combat = combatStates.get(id);
-        if (!combat || combat.currentHp <= 0) {
-          continue;
-        }
-
-        // Honor active gather work as a "player order" equivalent: a
-        // villager with a live `GathererComponent.task` (gathering /
-        // returning a load / mid-drop-off) or an explicit gather order
-        // from the player must NOT be yanked off its resource by an
-        // adjacent enemy. Canonical AoE2 returns the villager to the
-        // resource after the attacker leaves, but our `unitCommands`
-        // model has no return-to-resource memory yet — clearing the
-        // gather here would silently drop the player's order. Deferred:
-        // a follow-up to swing back at the adjacent attacker AND keep
-        // the gather order intact (would need a new transient retaliate
-        // state alongside the gatherer task).
-        if (unit.unitType === 'villager') {
-          const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
-          if (gatherer && (gatherer.task !== 'idle' || gatherer.hasExplicitGatherOrder)) {
-            continue;
-          }
-        }
-
-        // Read the unit's live vision source instead of the canonical
-        // per-type table. Tech upgrades modify `visionSource.radius`
-        // (e.g. Tracking on Scouts), and fixtures occasionally override
-        // a unit's vision to keep it blind for a specific test setup —
-        // both stay honored because we read the actual component here.
-        // Villagers always get the Defensive-Stance radius of 1 (melee
-        // attack range), regardless of their fog-of-war vision.
-        const visionSource = activeWorld.getComponent<VisionSourceComponent>(id, 'visionSource');
-        const radius =
-          unit.unitType === 'villager'
-            ? 1
-            : visionSource?.radius ?? unitVisionRadius(unit.unitType);
-
-        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
-        if (enemyUnitId !== null) {
-          issueUnitAttackCommand(id, enemyUnitId, 'unit');
-          continue;
-        }
-
-        if (unit.unitType === 'villager') {
-          // Villagers in Defensive Stance never pursue buildings on
-          // their own — their canon behavior is "swing back at adjacent
-          // attackers". A radius-1 building scan would also bias them
-          // into attacking palisades they happen to brush past.
-          continue;
-        }
-
-        const enemyBuildingId = findPreferredEnemyBuildingInRadius(
-          unit.owner,
-          position,
-          radius,
-        );
-        if (enemyBuildingId !== null) {
-          issueUnitAttackCommand(id, enemyBuildingId, 'building');
-        }
-      }
-    },
+  registerAutoAggressionSystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    unitCommands,
+    aiStates,
+    combatStates,
+    isGarrisonedUnit,
+    findPreferredEnemyUnitInRadius,
+    findPreferredEnemyBuildingInRadius,
+    issueUnitAttackCommand,
   });
 
   world.registerSystem({
@@ -5413,805 +5298,109 @@ function createWorld(
   // live in `bridge/monkTaskOps`; they close over the same side maps.)
 
 
-  world.registerSystem({
-    name: 'prototypeMonkBehavior',
-    phase: 'update',
-    after: ['prototypePlayerCommands'],
-    execute(activeWorld) {
-      // Reset the per-tick "convert progress already applied" guard so
-      // every target starts the tick eligible for exactly one progress
-      // increment, no matter how many Monks are in range.
-      monkConvertProcessedThisTick.clear();
-      // Iterate over a snapshot because some tasks (deposit / pickup) mutate
-      // the map (clear on completion or destroy the relic entity).
-      for (const [monkId, task] of [...monkTasks.entries()]) {
-        const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
-        const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
-        if (!monkUnit || !monkPosition || monkUnit.unitType !== 'monk') {
-          monkTasks.delete(monkId);
-          continue;
-        }
-
-        const targetId = currentEntityId(activeWorld, task.targetEntityRef);
-        if (targetId === null) {
-          monkTasks.delete(monkId);
-          continue;
-        }
-
-        const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-        if (!targetPosition) {
-          monkTasks.delete(monkId);
-          continue;
-        }
-
-        // Build-target deposit: the Monastery uses its footprint for range.
-        const distance =
-          task.kind === 'deposit'
-            ? distanceToBuilding(targetId, monkPosition)
-            : manhattanDistance(monkPosition, targetPosition);
-
-        if (distance > MONK_ACTION_RANGE) {
-          // Walk toward the target. For deposit we use the building-approach
-          // plan so the Monk clears the footprint cells.
-          const plan =
-            task.kind === 'deposit'
-              ? findBuildingApproachPlan(monkId, targetId, MONK_ACTION_RANGE, activeWorld)
-              : findUnitRangePlan(monkId, targetPosition, MONK_ACTION_RANGE, activeWorld);
-          if (!plan) {
-            monkTasks.delete(monkId);
-            continue;
-          }
-          moveUnitOneSubgridStep(monkId, plan.nextStep, activeWorld);
-          continue;
-        }
-
-        if (task.kind === 'heal') {
-          applyMonkHeal(monkId, targetId, monkUnit);
-          continue;
-        }
-
-        if (task.kind === 'convert') {
-          applyMonkConvert(monkId, targetId, monkUnit, activeWorld);
-          continue;
-        }
-
-        if (task.kind === 'pickup') {
-          applyMonkPickup(monkId, targetId);
-          continue;
-        }
-
-        if (task.kind === 'deposit') {
-          applyMonkDeposit(monkId, targetId, monkUnit, activeWorld);
-          continue;
-        }
-      }
-
-      // Relic follow: every Monk carrying a relic this tick moves the relic
-      // entity to the Monk's current cell so the rendered position tracks.
-      for (const [monkId, relicId] of [...monkCarriedRelic.entries()]) {
-        const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
-        const relicPosition = activeWorld.getComponent<Position>(relicId, 'position');
-        if (!monkPosition || !relicPosition) {
-          monkCarriedRelic.delete(monkId);
-          continue;
-        }
-        if (relicPosition.x !== monkPosition.x || relicPosition.y !== monkPosition.y) {
-          setPositionAndSyncOccupancy(
-            relicId,
-            { x: monkPosition.x, y: monkPosition.y },
-            activeWorld,
-          );
-        }
-      }
-    },
+  registerMonkBehaviorSystem({
+    world,
+    monkTasks,
+    monkConvertProcessedThisTick,
+    monkCarriedRelic,
+    distanceToBuilding,
+    findBuildingApproachPlan,
+    findUnitRangePlan,
+    moveUnitOneSubgridStep,
+    setPositionAndSyncOccupancy,
+    applyMonkHeal,
+    applyMonkConvert,
+    applyMonkPickup,
+    applyMonkDeposit,
   });
 
-  world.registerSystem({
-    name: 'prototypeRelicGold',
-    phase: 'update',
-    after: ['prototypeMonkBehavior'],
-    execute(activeWorld) {
-      // Per tick, every owner with deposited relics gets +1 gold per relic.
-      // Iterate Monasteries and accumulate into each owner's resource bank.
-      for (const [monasteryId, count] of relicsInMonastery.entries()) {
-        if (count <= 0) {
-          continue;
-        }
-        const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');
-        if (!building || building.buildingType !== 'monastery') {
-          relicsInMonastery.delete(monasteryId);
-          continue;
-        }
-        const stockpile = playerResources.get(building.owner);
-        if (!stockpile) {
-          continue;
-        }
-        stockpile.gold += count;
-      }
-    },
+  registerRelicGoldSystem({ world, relicsInMonastery, playerResources });
+
+  registerProductionQueueSystem({
+    world,
+    productionQueues,
+    population,
+    rallyPoints,
+    inFlightTechByOwner,
+    findBuildingSpawnPosition,
+    addUnitEntity,
+    issueUnitMoveCommand,
+    applyTechnology,
   });
 
-  world.registerSystem({
-    name: 'prototypeProductionQueues',
-    phase: 'update',
-    after: ['prototypePlayerCommands'],
-    execute() {
-      for (const [buildingId, queue] of productionQueues.entries()) {
-        if (queue.length === 0) {
-          continue;
-        }
-
-        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-        const position = world.getComponent<Position>(buildingId, 'position');
-        if (!building || !position) {
-          productionQueues.set(buildingId, []);
-          continue;
-        }
-
-        const entry = queue[0];
-        if (entry.kind === 'unit') {
-          const populationState = population.get(building.owner);
-          if (!populationState || !entry.unitType) {
-            continue;
-          }
-
-          if (populationState.current >= populationState.cap) {
-            entry.isBlocked = true;
-            continue;
-          }
-        }
-
-        entry.isBlocked = false;
-        if (entry.remainingTicks > 0) {
-          entry.remainingTicks -= 1;
-          if (entry.remainingTicks > 0) {
-            continue;
-          }
-        }
-
-        if (entry.kind === 'unit' && entry.unitType) {
-          const spawnPosition = findBuildingSpawnPosition(position, building.buildingType);
-          if (!spawnPosition) {
-            entry.isBlocked = true;
-            entry.remainingTicks = 0;
-            continue;
-          }
-
-          const unitId = addUnitEntity(building.owner, entry.unitType, spawnPosition, {
-            playerId: building.owner,
-            radius: unitVisionRadius(entry.unitType),
-          });
-          // Score counter for trained units is incremented inside
-          // `addUnitEntity`, covering both scenario spawns and production-
-          // queue spawns uniformly.
-          const rallyPoint = rallyPoints.get(buildingId);
-          if (rallyPoint) {
-            issueUnitMoveCommand(unitId, rallyPoint);
-          }
-        }
-
-        if (entry.kind === 'technology' && entry.technologyType) {
-          applyTechnology(building.owner, entry.technologyType);
-          // Iter-3 V3-6: drop the in-flight marker once the research
-          // resolves. Future enqueueResearch calls for the same tech
-          // get filtered earlier by `getResearchOptions`'s
-          // hasTechnology gate.
-          inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
-        }
-
-        queue.shift();
-      }
-    },
+  registerScoutMovementSystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    unitCommands,
+    isCellPassableForUnit,
+    setPositionAndSyncOccupancy,
+    syncUnitTransformToPosition,
   });
 
-  world.registerSystem({
-    name: 'prototypeScoutMovement',
-    phase: 'update',
-    after: ['prototypePlayerCommands'],
-    execute(activeWorld) {
-      for (const id of activeWorld.query('position', 'velocity', 'wanderBounds')) {
-        if (unitCommands.has(id)) {
-          continue;
-        }
-
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const velocity = activeWorld.getComponent<VelocityComponent>(id, 'velocity');
-        const bounds = activeWorld.getComponent<WanderBoundsComponent>(id, 'wanderBounds');
-        const transform = activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform');
-        if (!position || !velocity || !bounds) {
-          continue;
-        }
-
-        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        if (!unit || unit.unitType !== 'scout' || unit.owner === HUMAN_PLAYER_ID) {
-          continue;
-        }
-
-        const slottedPosition = getUnitTargetTransformForCell(id, position);
-        const currentFineX = transform?.fineX ?? slottedPosition.fineX;
-        const currentFineY = transform?.fineY ?? slottedPosition.fineY;
-        const nextX = currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK;
-        const nextY = currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK;
-
-        if (
-          nextX < bounds.minX * UNIT_SUBGRID_RESOLUTION
-          || nextX > bounds.maxX * UNIT_SUBGRID_RESOLUTION
-        ) {
-          velocity.dx *= -1;
-        }
-        if (
-          nextY < bounds.minY * UNIT_SUBGRID_RESOLUTION
-          || nextY > bounds.maxY * UNIT_SUBGRID_RESOLUTION
-        ) {
-          velocity.dy *= -1;
-        }
-
-        if (transform) {
-          transform.fineX = clamp(
-            currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK,
-            bounds.minX * UNIT_SUBGRID_RESOLUTION,
-            bounds.maxX * UNIT_SUBGRID_RESOLUTION,
-          );
-          transform.fineY = clamp(
-            currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK,
-            bounds.minY * UNIT_SUBGRID_RESOLUTION,
-            bounds.maxY * UNIT_SUBGRID_RESOLUTION,
-          );
-          const nextGridPosition = gridPositionFromUnitTransform(transform);
-          if (
-            (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y)
-            && isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld)
-          ) {
-            setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
-          } else if (
-            nextGridPosition.x !== position.x
-            || nextGridPosition.y !== position.y
-          ) {
-            syncUnitTransformToPosition(id, position, activeWorld);
-          }
-          continue;
-        }
-
-        const nextPosition = {
-          x: clamp(position.x + velocity.dx, bounds.minX, bounds.maxX),
-          y: clamp(position.y + velocity.dy, bounds.minY, bounds.maxY),
-        };
-        if (isCellPassableForUnit(id, nextPosition.x, nextPosition.y, activeWorld)) {
-          setPositionAndSyncOccupancy(id, nextPosition, activeWorld);
-        }
-      }
-    },
+  registerVillagerEconomySystem({
+    world,
+    unitCommands,
+    sheepMoveOrders,
+    gathererDropOffStuckSinceTick,
+    playerResources,
+    aiStates,
+    shouldMaintainGatheringOrder,
+    assignNearestResource,
+    findResourceApproachPlan,
+    isHarvestableResource,
+    isUnitAtTarget,
+    moveUnitOneSubgridStep,
+    destroyResourceEntity,
+    findNearestDropOffBuilding,
+    findBuildingApproachPlan,
+    ensurePlayerScoreCounters,
   });
 
-  world.registerSystem({
-    name: 'prototypeVillagerEconomy',
-    phase: 'update',
-    after: ['prototypePlayerCommands'],
-    execute(activeWorld) {
-      for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
-        if (unitCommands.has(id)) {
-          continue;
-        }
-
-        const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
-        if (!unit || !position || !gatherer || unit.unitType !== 'villager') {
-          continue;
-        }
-
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner);
-        }
-
-        if (gatherer.task === 'to-resource') {
-          const targetResource = gatherer.targetResourceId === null
-            ? null
-            : activeWorld.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
-          const resourceApproachPlan = gatherer.targetResourceId === null
-            ? null
-            : findResourceApproachPlan(id, gatherer.targetResourceId, activeWorld);
-
-          if (
-            !targetResource
-            || !isHarvestableResource(gatherer.targetResourceId ?? -1, targetResource)
-            || !resourceApproachPlan
-          ) {
-            gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-            gatherer.targetResourceId = null;
-          } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
-            gatherer.task = 'gathering';
-            gatherer.gatherProgressTicks = 0;
-            // A villager that has reached a sheep to harvest pins the sheep in place.
-            // Any outstanding player move order on that sheep would otherwise keep
-            // walking the sheep away each tick, thrashing the gather loop between
-            // 'gathering' and 're-approach'. The player can re-issue the move order
-            // after the villager finishes the sheep or moves off. Guard on the
-            // resource type so the delete is a no-op for non-sheep gather targets
-            // (ids are globally unique so it would be a no-op anyway, but the
-            // guarded version makes intent explicit).
-            if (
-              gatherer.targetResourceId !== null
-              && targetResource.resourceType === 'sheep'
-            ) {
-              sheepMoveOrders.delete(gatherer.targetResourceId);
-            }
-          } else {
-            moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
-          }
-        }
-
-        if (gatherer.task === 'gathering') {
-          if (gatherer.targetResourceId === null) {
-            gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-          } else {
-            const targetPosition = activeWorld.getComponent<Position>(
-              gatherer.targetResourceId,
-              'position',
-            );
-            const targetResource = activeWorld.getComponent<ResourceComponent>(
-              gatherer.targetResourceId,
-              'resource',
-            );
-            const resourceApproachPlan = findResourceApproachPlan(
-              id,
-              gatherer.targetResourceId,
-              activeWorld,
-            );
-
-            if (
-              !targetPosition
-              || !targetResource
-              || !isHarvestableResource(gatherer.targetResourceId, targetResource)
-              || !resourceApproachPlan
-              || !isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)
-            ) {
-              gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-              gatherer.targetResourceId = null;
-              gatherer.gatherProgressTicks = 0;
-            } else {
-              gatherer.gatherProgressTicks += 1;
-              if (
-                gatherer.gatherProgressTicks
-                >= gatherTicksFor(targetResource.resourceType)
-              ) {
-                gatherer.gatherProgressTicks = 0;
-                const carriedResource = resourceKindToEconomyResource(targetResource.resourceType);
-                if (carriedResource === null) {
-                  gatherer.task = 'idle';
-                  gatherer.targetResourceId = null;
-                  continue;
-                }
-                const gatherAmount = Math.min(
-                  gatherAmountFor(targetResource.resourceType),
-                  targetResource.amount,
-                  gatherer.carryCapacity - gatherer.carriedAmount,
-                );
-                targetResource.amount -= gatherAmount;
-                gatherer.carriedResource = carriedResource;
-                gatherer.carriedAmount += gatherAmount;
-
-                if (targetResource.amount <= 0) {
-                  const depletedResourceId = gatherer.targetResourceId;
-                  gatherer.targetResourceId = null;
-                  if (depletedResourceId !== null) {
-                    destroyResourceEntity(depletedResourceId);
-                  }
-                }
-
-                if (targetResource.amount <= 0 || gatherer.carriedAmount >= gatherer.carryCapacity) {
-                  gatherer.task = 'to-dropoff';
-                }
-              }
-            }
-          }
-        }
-
-        if (gatherer.task === 'to-dropoff') {
-          const carriedResource = gatherer.carriedResource;
-          if (carriedResource === null || gatherer.carriedAmount <= 0) {
-            // Iter-2 H2-2 first branch: only zero the carry when there
-            // is genuinely nothing to deliver.
-            gatherer.task = 'idle';
-            gatherer.carriedAmount = 0;
-            gatherer.carriedResource = null;
-            gathererDropOffStuckSinceTick.delete(id);
-            continue;
-          }
-
-          // Iter-3 V3-5: throttle the per-tick re-plan when the gatherer
-          // is stuck. Re-plan no more often than every
-          // GATHER_DROPOFF_RETRY_INTERVAL ticks; in between, just
-          // preserve the carry and idle the gatherer.
-          const stuckSince = gathererDropOffStuckSinceTick.get(id);
-          const shouldRetry = stuckSince === undefined
-            || (activeWorld.tick - stuckSince) >= GATHER_DROPOFF_RETRY_INTERVAL;
-          if (!shouldRetry) {
-            continue;
-          }
-
-          const dropOffId = findNearestDropOffBuilding(
-            activeWorld,
-            unit.owner,
-            carriedResource,
-            position,
-          );
-          gatherer.dropOffBuildingId = dropOffId;
-          const dropOffPlan = dropOffId === null
-            ? null
-            : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
-
-          if (!dropOffPlan) {
-            // Stay in 'to-dropoff' so a future tick re-checks for a
-            // newly-available drop-off; do not touch the carry. Mark
-            // the gatherer as stuck so the next retry waits the
-            // throttle window.
-            gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
-          } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
-            const stockpile = playerResources.get(unit.owner);
-            // Slice 10: AI difficulty modifies the gather-rate via a
-            // per-player multiplier applied at drop-off time. Easy
-            // AIs bank 70% of their carried amount, hard AIs bank 130%
-            // — the worked simulation still walks villagers through
-            // the full gather → return cycle, we only scale the
-            // stockpile increment. Humans gather at 1.0.
-            const aiState = aiStates.get(unit.owner);
-            const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
-            const deposited = Math.round(gatherer.carriedAmount * multiplier);
-            if (stockpile) {
-              stockpile[carriedResource] += deposited;
-            }
-            // Slice 8: track every unit of dropped-off resource toward the
-            // end-of-match score. A small per-unit weight keeps the score
-            // readable (1000 gathered ≈ 50 points; see computePlayerScore).
-            ensurePlayerScoreCounters(unit.owner).resourcesGathered += deposited;
-            gatherer.task = 'idle';
-            gatherer.carriedAmount = 0;
-            gatherer.carriedResource = null;
-            gatherer.targetResourceId = null;
-            gatherer.gatherProgressTicks = 0;
-            gathererDropOffStuckSinceTick.delete(id);
-          } else {
-            // Path is open this tick — clear any stale stuck flag so
-            // the next "stuck" event fires the retry-window from
-            // scratch.
-            gathererDropOffStuckSinceTick.delete(id);
-            moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
-          }
-        }
-
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner);
-        }
-      }
-    },
+  registerWildlifeCombatSystem({
+    world,
+    wildlifeStates,
+    combatStates,
+    currentEntityId,
+    getEntityRef,
+    findNearestHostileWildlifeTarget,
+    findWildlifeRangePlan,
+    setPositionAndSyncOccupancy,
+    destroyUnitEntity,
+    markOutOfBandRenderChange,
   });
 
-  world.registerSystem({
-    name: 'prototypeWildlifeCombat',
-    phase: 'update',
-    after: ['prototypeVillagerEconomy'],
-    execute(activeWorld) {
-      for (const id of activeWorld.query('position', 'resource')) {
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
-        const wildlife = wildlifeStates.get(id);
-        if (!position || !resource || !wildlife?.isAlive) {
-          continue;
-        }
+  registerHerdableOwnershipSystem({ world, markOutOfBandRenderChange });
 
-        if (wildlife.cooldownTicks > 0) {
-          wildlife.cooldownTicks -= 1;
-        }
-
-        let targetId = currentEntityId(activeWorld, wildlife.targetEntityRef);
-        let targetPosition = targetId === null
-          ? null
-          : activeWorld.getComponent<Position>(targetId, 'position');
-        let targetCombat = targetId === null ? null : combatStates.get(targetId);
-
-        if (!targetPosition || !targetCombat || targetCombat.currentHp <= 0) {
-          wildlife.targetEntityRef = null;
-          targetId = null;
-        }
-
-        if (targetId === null && wildlife.autoAggro) {
-          targetId = findNearestHostileWildlifeTarget(position, wildlife.aggroRange, activeWorld);
-          wildlife.targetEntityRef = targetId === null ? null : getEntityRef(targetId);
-          targetPosition = targetId === null
-            ? null
-            : activeWorld.getComponent<Position>(targetId, 'position');
-          targetCombat = targetId === null ? null : combatStates.get(targetId);
-        }
-
-        if (!targetId || !targetPosition || !targetCombat) {
-          continue;
-        }
-
-        if (manhattanDistance(position, targetPosition) > wildlife.attackRange) {
-          const movePlan = findWildlifeRangePlan(id, targetPosition, wildlife.attackRange, activeWorld);
-          if (!movePlan) {
-            wildlife.targetEntityRef = null;
-            continue;
-          }
-
-          setPositionAndSyncOccupancy(id, movePlan.nextStep, activeWorld);
-          continue;
-        }
-
-        if (wildlife.cooldownTicks > 0) {
-          continue;
-        }
-
-        // FU1: wildlife hits respect target armor, floored at 1 so a
-        // heavily-armored unit still takes a scrape per hit.
-        targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetCombat.armor);
-        wildlife.cooldownTicks = wildlife.reloadTicks;
-        markOutOfBandRenderChange();
-
-        if (targetCombat.currentHp <= 0) {
-          destroyUnitEntity(targetId);
-          wildlife.targetEntityRef = null;
-        }
-      }
-    },
+  registerHerdableMovementSystem({
+    world,
+    sheepMoveOrders,
+    getUnitTransform,
+    findMovementPlan,
+    getNearestMoveCandidates,
+    isCellPassableForWildlife,
+    moveUnitOneSubgridStep,
+    markOutOfBandRenderChange,
   });
 
-  world.registerSystem({
-    name: 'prototypeHerdableOwnership',
-    phase: 'update',
-    after: ['prototypeWildlifeCombat'],
-    execute(activeWorld) {
-      if (updateSheepOwnership(activeWorld)) {
-        markOutOfBandRenderChange();
-      }
-    },
+  registerVisibilitySystem({ world, visibility, trackedVisibilitySources });
+
+  registerFogMemorySystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    visibility,
+    getOrCreateMemoryMap,
   });
 
-  world.registerSystem({
-    name: 'prototypeHerdableMovement',
-    phase: 'update',
-    before: ['prototypePlayerCommands'],
-    execute(activeWorld) {
-      for (const [sheepId, target] of [...sheepMoveOrders.entries()]) {
-        const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
-        const transform = getUnitTransform(sheepId, activeWorld);
-        if (
-          !resource
-          || !transform
-          || resource.resourceType !== 'sheep'
-          || resource.amount <= 0
-          || resource.owner === null
-        ) {
-          sheepMoveOrders.delete(sheepId);
-          continue;
-        }
-
-        if (isUnitTransformAtTarget(transform, sheepId, target)) {
-          sheepMoveOrders.delete(sheepId);
-          continue;
-        }
-
-        const start = gridPositionFromUnitTransform(transform);
-        const plan = findMovementPlan(
-          sheepId,
-          start,
-          getNearestMoveCandidates(target),
-          false,
-          activeWorld,
-          isCellPassableForWildlife,
-        );
-        if (!plan) {
-          sheepMoveOrders.delete(sheepId);
-          continue;
-        }
-
-        // The path planner picks the nearest passable cell when the requested
-        // target is itself blocked. If we have already arrived at that planner
-        // destination, treat the order as complete instead of re-planning the
-        // same dead-end every tick.
-        if (isUnitTransformAtTarget(transform, sheepId, plan.destination)) {
-          sheepMoveOrders.delete(sheepId);
-          continue;
-        }
-
-        moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
-        markOutOfBandRenderChange();
-      }
-    },
-  });
-
-  world.registerSystem({
-    name: 'prototypeVisibility',
-    phase: 'update',
-    after: ['prototypeHerdableOwnership'],
-    execute(activeWorld) {
-      syncVisibilitySources(activeWorld, visibility, trackedVisibilitySources);
-    },
-  });
-
-  world.registerSystem({
-    name: 'prototypeFogMemory',
-    phase: 'update',
-    after: ['prototypeVisibility'],
-    execute(activeWorld) {
-      const humanMemory = getOrCreateMemoryMap(HUMAN_PLAYER_ID);
-
-      // Refresh every building the human player currently sees. Iter-3 V3-1:
-      // visibility is tested over the full footprint to match the projector
-      // (createProjector uses isFootprintVisible) and the iter-2 M2-1
-      // target-finding fix. A 4x4 Castle whose anchor is in fog but whose
-      // edge is visible would otherwise render live but never persist to
-      // fog memory and disappear entirely on vision loss.
-      for (const id of activeWorld.query('position', 'building', 'renderable')) {
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-        const renderable = activeWorld.getComponent<RenderableComponent>(id, 'renderable');
-        if (!position || !building || !renderable) {
-          continue;
-        }
-        if (
-          !isFootprintVisible(
-            visibility,
-            HUMAN_PLAYER_ID,
-            position.x,
-            position.y,
-            renderable.footprintWidth,
-            renderable.footprintHeight,
-          )
-        ) {
-          continue;
-        }
-        humanMemory.set(id, {
-          kind: 'building',
-          entityType: building.buildingType,
-          position: { x: position.x, y: position.y },
-          footprintWidth: renderable.footprintWidth,
-          footprintHeight: renderable.footprintHeight,
-          tint: renderable.tint,
-          owner: building.owner,
-          size: renderable.size,
-          visualVariant: renderable.visualVariant,
-          lastSeenTick: activeWorld.tick,
-        });
-      }
-
-      // Refresh every static resource the human player currently sees. Sheep,
-      // boars, wolves, and fish are movable or otherwise mobile and therefore
-      // excluded — their last-seen position would go stale the moment they leave
-      // vision and walk away. Only tree / berry-bush / gold-mine / stone-mine
-      // qualify (see `isStaticMemorableResourceType`).
-      for (const id of activeWorld.query('position', 'resource', 'renderable')) {
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
-        const renderable = activeWorld.getComponent<RenderableComponent>(id, 'renderable');
-        if (!position || !resource || !renderable) {
-          continue;
-        }
-        if (!isStaticMemorableResourceType(resource.resourceType)) {
-          continue;
-        }
-        if (!visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y)) {
-          continue;
-        }
-        humanMemory.set(id, {
-          kind: 'resource',
-          entityType: resource.resourceType,
-          position: { x: position.x, y: position.y },
-          footprintWidth: renderable.footprintWidth,
-          footprintHeight: renderable.footprintHeight,
-          tint: renderable.tint,
-          owner: resource.owner,
-          size: renderable.size,
-          visualVariant: renderable.visualVariant,
-          lastSeenTick: activeWorld.tick,
-        });
-      }
-
-      // Forget memories of entities that no longer exist (resource depleted, building
-      // destroyed) AND whose last-known cell is currently visible — i.e. the player
-      // saw it disappear. If the entity simply walked out of vision, we keep the
-      // stale snapshot. Map iterators are safe against deletion during iteration,
-      // so iterate the Map directly instead of materializing an entries array.
-      for (const [entityId, entry] of humanMemory) {
-        const stillExists = activeWorld.getComponent<Position>(entityId, 'position') !== undefined;
-        if (stillExists) {
-          continue;
-        }
-        if (visibility.isVisible(HUMAN_PLAYER_ID, entry.position.x, entry.position.y)) {
-          humanMemory.delete(entityId);
-        }
-      }
-    },
-  });
-
-  world.registerSystem({
-    name: 'prototypeTowerCombat',
-    phase: 'update',
-    after: ['prototypeVisibility'],
-    execute(activeWorld) {
-      for (const id of activeWorld.query('position', 'building')) {
-        const position = activeWorld.getComponent<Position>(id, 'position');
-        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-        const construction = constructionStates.get(id);
-        const buildingCombat = buildingCombatStates.get(id);
-
-        if (
-          !position
-          || !building
-          || !buildingCombat
-          || (construction && !construction.isComplete)
-        ) {
-          continue;
-        }
-
-        if (buildingCombat.cooldownTicks > 0) {
-          buildingCombat.cooldownTicks -= 1;
-        }
-
-        const garrisonIds = garrisonedByBuilding.get(id) ?? [];
-        // FU3: count archer-line garrison members for the Castle's
-        // extra-arrows bonus. For Town Center / Watch Tower the archer
-        // count is ignored — buildingArrowCount only reads it for Castle.
-        let garrisonedArcherCount = 0;
-        for (const garrisonedId of garrisonIds) {
-          const garrisonedUnit = activeWorld.getComponent<UnitComponent>(garrisonedId, 'unit');
-          if (garrisonedUnit && isArcherLineUnit(garrisonedUnit.unitType)) {
-            garrisonedArcherCount += 1;
-          }
-        }
-
-        const arrowCount = buildingArrowCount(
-          building.buildingType,
-          garrisonIds.length,
-          garrisonedArcherCount,
-        );
-        // FU3: use the closest footprint cell to the target for range
-        // checks on large buildings (e.g. a 4x4 Castle anchored at
-        // top-left would otherwise need +3 more range to fire from its
-        // opposite edge). `findPreferredVisibleEnemyUnitInRangeOfBuilding`
-        // threads the footprint into the distance math.
-        const footprint = buildingFootprint(building.buildingType);
-        const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
-          building.owner,
-          position,
-          footprint,
-          buildingCombat.attackRange,
-        );
-        if (targetId === null || buildingCombat.cooldownTicks > 0 || arrowCount <= 0) {
-          continue;
-        }
-
-        const targetCombat = combatStates.get(targetId);
-        if (!targetCombat) {
-          continue;
-        }
-
-        for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
-          const activeTargetCombat = combatStates.get(targetId);
-          if (!activeTargetCombat) {
-            break;
-          }
-
-          // FU1: tower / TC / Castle arrows respect unit armor, floored
-          // at 1 so heavily-armored Imperial units still take at least a
-          // single point per arrow.
-          activeTargetCombat.currentHp -= Math.max(
-            1,
-            buildingCombat.attackDamage - activeTargetCombat.armor,
-          );
-          markOutOfBandRenderChange();
-          if (activeTargetCombat.currentHp <= 0) {
-            // FU7: credit the firing tower's owner with the kill.
-            ensurePlayerScoreCounters(building.owner).unitsKilled += 1;
-            destroyUnitEntity(targetId);
-            break;
-          }
-        }
-
-        buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
-      }
-    },
+  registerTowerCombatSystem({
+    world,
+    constructionStates,
+    buildingCombatStates,
+    combatStates,
+    garrisonedByBuilding,
+    findPreferredVisibleEnemyUnitInRangeOfBuilding,
+    destroyUnitEntity,
+    markOutOfBandRenderChange,
+    ensurePlayerScoreCounters,
   });
 
   // Slice 8 + FU7 tune: score weights for the end-of-match summary.
@@ -6240,188 +5429,34 @@ function createWorld(
   // `prototypeWinConditionResolver` downstream decides who actually wins
   // (Wonder / Relic) so the "first to complete" rule is explicit instead
   // of implicit system-registration order.
-  world.registerSystem({
-    name: 'prototypeWonderCountdown',
-    phase: 'postUpdate',
-    execute() {
-      if (!isMatchRunning()) {
-        return;
-      }
-      for (const [buildingId, entry] of [...wonderCountdowns.entries()]) {
-        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-        if (!building) {
-          wonderCountdowns.delete(buildingId);
-          continue;
-        }
-        // Skip entries that already hit zero — they keep their
-        // `lastCompletedTick` stamp until the resolver fires.
-        if (entry.lastCompletedTick !== null) {
-          continue;
-        }
-        entry.remainingTicks -= 1;
-        if (entry.remainingTicks <= 0) {
-          entry.lastCompletedTick = world.tick;
-        }
-      }
-    },
+  registerWonderCountdownSystem({ world, wonderCountdowns, isMatchRunning });
+
+  // Relic countdown system: see `bridge/systems/relicCountdownSystem`.
+  registerRelicCountdownSystem({
+    world,
+    relicCountdowns,
+    relicCountdownOverrides,
+    currentRelicHoldingOwner,
+    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
+    isMatchRunning,
   });
 
-  // Slice 8: Relic countdown. An owner who holds every relic on the map
-  // in their Monasteries (zero live relics anywhere else) begins counting
-  // down. `currentRelicHoldingOwner` lives in `bridge/matchEndOps` — the
-  // factory closes over monkCarriedRelic + relicsInMonastery so the
-  // in-flight vs deposited distinction stays in one place.
-  world.registerSystem({
-    name: 'prototypeRelicCountdown',
-    phase: 'postUpdate',
-    after: ['prototypeWonderCountdown'],
-    execute() {
-      if (!isMatchRunning()) {
-        return;
-      }
-      const holdingOwner = currentRelicHoldingOwner();
-      if (holdingOwner === null) {
-        relicCountdowns.clear();
-        return;
-      }
-      let entry = relicCountdowns.get(holdingOwner);
-      if (!entry) {
-        const totalTicks = relicCountdownOverrides.get(holdingOwner) ?? RELIC_COUNTDOWN_TICKS;
-        entry = { remainingTicks: totalTicks, totalTicks, lastCompletedTick: null };
-        relicCountdowns.set(holdingOwner, entry);
-      }
-      // Clear any stale entry belonging to a different owner (e.g. the
-      // holding picture flipped between players without hitting the
-      // liveRelicCount > 0 early-return).
-      for (const existingOwner of [...relicCountdowns.keys()]) {
-        if (existingOwner !== holdingOwner) {
-          relicCountdowns.delete(existingOwner);
-        }
-      }
-      // FU7: once completed, a relic countdown no longer ticks — the
-      // resolver picks a winner below.
-      if (entry.lastCompletedTick !== null) {
-        return;
-      }
-      entry.remainingTicks -= 1;
-      if (entry.remainingTicks <= 0) {
-        entry.lastCompletedTick = world.tick;
-      }
-    },
+  registerWinConditionResolverSystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    wonderCountdowns,
+    relicCountdowns,
+    isMatchRunning,
+    finalizeMatchEnd,
   });
 
-  // FU7: resolves Wonder vs Relic outcomes with an explicit
-  // `lastCompletedTick`-based tie-break. Previously the outcome was
-  // implicit in system-registration order (Wonder runs before Relic, so
-  // Wonder won on simultaneous completion). Now the rule is:
-  //   1. Whichever countdown's `lastCompletedTick` is smaller wins (the
-  //      one that actually hit zero first in simulation time).
-  //   2. On the same tick, Wonder beats Relic (stable, documented).
-  // Decouples win-condition semantics from the system scheduling order.
-  world.registerSystem({
-    name: 'prototypeWinConditionResolver',
-    phase: 'postUpdate',
-    after: ['prototypeRelicCountdown'],
-    execute() {
-      if (!isMatchRunning()) {
-        return;
-      }
-      // Find the earliest Wonder completion (there can be more than one
-      // if multiple Wonders stood, though the one-per-owner rule makes
-      // this rare). Smaller `lastCompletedTick` = earlier completion.
-      let earliestWonderTick: number | null = null;
-      let earliestWonderOwner: number | null = null;
-      for (const [buildingId, entry] of wonderCountdowns.entries()) {
-        if (entry.lastCompletedTick === null) {
-          continue;
-        }
-        const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-        if (!building) {
-          continue;
-        }
-        if (earliestWonderTick === null || entry.lastCompletedTick < earliestWonderTick) {
-          earliestWonderTick = entry.lastCompletedTick;
-          earliestWonderOwner = building.owner;
-        }
-      }
-      // Find the earliest Relic completion.
-      let earliestRelicTick: number | null = null;
-      let earliestRelicOwner: number | null = null;
-      for (const [owner, entry] of relicCountdowns.entries()) {
-        if (entry.lastCompletedTick === null) {
-          continue;
-        }
-        if (earliestRelicTick === null || entry.lastCompletedTick < earliestRelicTick) {
-          earliestRelicTick = entry.lastCompletedTick;
-          earliestRelicOwner = owner;
-        }
-      }
-      if (earliestWonderTick === null && earliestRelicTick === null) {
-        return;
-      }
-      // Decide which completion wins. On a true tie (same tick), Wonder
-      // is the stable choice — it's the more expensive commit and
-      // matches AoE2 convention that Wonder victories are showier.
-      const wonderWins =
-        earliestWonderTick !== null
-        && (earliestRelicTick === null || earliestWonderTick <= earliestRelicTick);
-      if (wonderWins && earliestWonderOwner !== null) {
-        const winnerIsHuman = earliestWonderOwner === HUMAN_PLAYER_ID;
-        finalizeMatchEnd(
-          winnerIsHuman ? 'victory' : 'defeat',
-          'wonder',
-          winnerIsHuman
-            ? 'Wonder Victory! Your Wonder endured the countdown.'
-            : 'Wonder Defeat: an enemy Wonder endured the countdown.',
-        );
-        return;
-      }
-      if (earliestRelicOwner !== null) {
-        const winnerIsHuman = earliestRelicOwner === HUMAN_PLAYER_ID;
-        finalizeMatchEnd(
-          winnerIsHuman ? 'victory' : 'defeat',
-          'relic',
-          winnerIsHuman
-            ? 'Relic Victory! You held every relic for the full countdown.'
-            : 'Relic Defeat: an opponent held every relic for the full countdown.',
-        );
-      }
-    },
-  });
-
-  world.registerSystem({
-    name: 'prototypeConquestOutcome',
-    phase: 'postUpdate',
-    after: ['prototypeWinConditionResolver'],
-    execute() {
-      if (!isMatchRunning()) {
-        return;
-      }
-
-      const humanAlive = playerHasConquestPresence(HUMAN_PLAYER_ID);
-      const enemyOwners = [...playerResources.keys()].filter((owner) => owner !== HUMAN_PLAYER_ID);
-      const allEnemiesEliminated = enemyOwners.every((owner) => !playerHasConquestPresence(owner));
-
-      // Iter-3 V3-12: simultaneous mutual annihilation must produce
-      // 'draw', not 'defeat'. Pre-fix the human-first early return
-      // stamped 'defeat' even when the same tick had wiped every
-      // enemy too. Compute both predicates first, then choose.
-      if (!humanAlive && allEnemiesEliminated) {
-        finalizeMatchEnd(
-          'draw',
-          'conquest',
-          'Mutual annihilation: every player\'s units and buildings were destroyed on the same tick.',
-        );
-        return;
-      }
-      if (!humanAlive) {
-        finalizeMatchEnd('defeat', 'conquest', 'All of your units and buildings have been destroyed.');
-        return;
-      }
-      if (allEnemiesEliminated) {
-        finalizeMatchEnd('victory', 'conquest', 'All enemy forces have been eliminated.');
-      }
-    },
+  registerConquestOutcomeSystem({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    playerResources,
+    playerHasConquestPresence,
+    isMatchRunning,
+    finalizeMatchEnd,
   });
 
   syncVisibilitySources(world, visibility, trackedVisibilitySources);

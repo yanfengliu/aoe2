@@ -6,7 +6,7 @@
 
 import type { VisibilityMap } from 'civ-engine';
 
-import type { MemoryEntry } from '../createSimulationBridge';
+import type { MemoryEntry } from './memoryTypes';
 import type { ProjectedEntityView } from '../types';
 import { isFootprintExplored, isFootprintVisible } from './pureHelpers';
 
