@@ -15,12 +15,6 @@ import {
   cloneResources,
   defaultCivilizationName,
   createInitialMarketRates,
-  isAtTarget,
-  getUnitTargetTransformForCell,
-  clampUnitTransformToMap,
-  gridPositionFromUnitTransform,
-  isUnitTransformAtTarget,
-  stepUnitTransformToward,
   shouldMaintainGatheringOrder,
   isResourceCandidate,
   isEconomyVillager,
@@ -31,7 +25,6 @@ import {
   isFootprintVisible,
   compareProjectedRenderEntities,
   UNIT_SUBGRID_RESOLUTION,
-  UNIT_SUBGRID_STEP_PER_TICK,
   type GameEvents,
   type GameCommands,
   type GameComponents,
@@ -55,6 +48,7 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import { createTransformOps } from './bridge/transformOps';
 import { createVisibilityQueries } from './bridge/visibilityQueries';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
@@ -856,70 +850,25 @@ function createWorld(
   });
 
 
-  function getUnitTransform(
-    id: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitTransformComponent | null {
-    return activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform') ?? null;
-  }
-
-  function syncUnitTransformToPosition(
-    id: number,
-    position: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): void {
-    const transform = getUnitTransform(id, activeWorld);
-    if (!transform) {
-      return;
-    }
-
-    const targetTransform = getUnitTargetTransformForCell(id, position);
-    transform.fineX = targetTransform.fineX;
-    transform.fineY = targetTransform.fineY;
-  }
-
-  function moveUnitOneSubgridStep(
-    id: number,
-    target: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
-    stepUnits: number = UNIT_SUBGRID_STEP_PER_TICK,
-  ): Position | null {
-    const transform = getUnitTransform(id, activeWorld);
-    if (!transform) {
-      return null;
-    }
-
-    const targetTransform = getUnitTargetTransformForCell(id, target);
-    const nextTransform = clampUnitTransformToMap(stepUnitTransformToward(transform, targetTransform, stepUnits));
-    transform.fineX = nextTransform.fineX;
-    transform.fineY = nextTransform.fineY;
-
-    const nextGridPosition = gridPositionFromUnitTransform(nextTransform);
-    const currentGridPosition = activeWorld.getComponent<Position>(id, 'position');
-    if (
-      !currentGridPosition
-      || currentGridPosition.x !== nextGridPosition.x
-      || currentGridPosition.y !== nextGridPosition.y
-    ) {
-      setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
-    }
-
-    return nextGridPosition;
-  }
-
-  function isUnitAtTarget(
-    id: number,
-    target: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): boolean {
-    const transform = getUnitTransform(id, activeWorld);
-    if (!transform) {
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      return position ? isAtTarget(position, target) : false;
-    }
-
-    return isUnitTransformAtTarget(transform, id, target);
-  }
+  // Unit-transform + occupancy ops live in `bridge/transformOps`.
+  const {
+    getUnitTransform,
+    syncUnitTransformToPosition,
+    moveUnitOneSubgridStep,
+    isUnitAtTarget,
+    setPositionAndSyncOccupancy,
+    clearPositionAndSyncOccupancy,
+    syncSpawnedEntityOccupancy,
+    rebuildWorldOccupancyFromWorld,
+  } = createTransformOps({
+    world,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    worldOccupancy,
+    tiles,
+    constructionStates,
+    isBootstrappingScenario: () => isBootstrappingScenario,
+  });
 
   // Player-state queries live in `bridge/playerQueries`. The factory closes
   // over the per-player side maps + the world; the AI planner / option
@@ -955,97 +904,8 @@ function createWorld(
   // `hasTechnology` so per-tech stat stacking stays in one place.
   const createCombatState = createCombatStateFactory({ hasTechnology });
 
-  function syncOccupancyForEntity(
-    entity: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): void {
-    const position = activeWorld.getComponent<Position>(entity, 'position');
-    if (!position) {
-      worldOccupancy.release(entity);
-      return;
-    }
-
-    const building = activeWorld.getComponent<BuildingComponent>(entity, 'building');
-    if (building) {
-      const construction = constructionStates.get(entity);
-      const footprint = construction ?? buildingFootprint(building.buildingType);
-      worldOccupancy.syncBuilding(entity, position, footprint);
-      return;
-    }
-
-    if (activeWorld.getComponent<ResourceComponent>(entity, 'resource')) {
-      worldOccupancy.syncResource(entity, position);
-      return;
-    }
-
-    if (activeWorld.getComponent<UnitComponent>(entity, 'unit')) {
-      worldOccupancy.syncUnit(entity, position);
-      return;
-    }
-
-    worldOccupancy.release(entity);
-  }
-
-  function setPositionAndSyncOccupancy(
-    entity: number,
-    position: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): void {
-    activeWorld.setPosition(entity, position);
-    syncOccupancyForEntity(entity, activeWorld);
-  }
-
-  function clearPositionAndSyncOccupancy(
-    entity: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): void {
-    worldOccupancy.release(entity);
-    activeWorld.removeComponent(entity, 'position');
-  }
-
-  function syncSpawnedEntityOccupancy(entity: number): void {
-    if (!isBootstrappingScenario) {
-      syncOccupancyForEntity(entity);
-      return;
-    }
-
-    try {
-      syncOccupancyForEntity(entity);
-    } catch {
-      // Fresh-scenario validation should own the user-facing error for
-      // invalid fixture spawns so the thrown message still names the
-      // offending seed instead of leaking an occupancy-grid internals
-      // error first.
-    }
-  }
-
-  function rebuildWorldOccupancyFromWorld(): void {
-    worldOccupancy.reset();
-
-    const blockedTerrainCells: Position[] = [];
-    for (let y = 0; y < MAP_HEIGHT; y += 1) {
-      for (let x = 0; x < MAP_WIDTH; x += 1) {
-        const tile = tiles[y]?.[x];
-        const terrain = tile === undefined ? null : world.getComponent<TerrainComponent>(tile, 'terrain');
-        if (!terrain || (terrain.kind !== 'water' && terrain.kind !== 'forest')) {
-          continue;
-        }
-
-        blockedTerrainCells.push({ x, y });
-      }
-    }
-    worldOccupancy.blockTerrain(blockedTerrainCells);
-
-    for (const entity of world.query('position', 'building')) {
-      syncOccupancyForEntity(entity);
-    }
-    for (const entity of world.query('position', 'resource')) {
-      syncOccupancyForEntity(entity);
-    }
-    for (const entity of world.query('position', 'unit')) {
-      syncOccupancyForEntity(entity);
-    }
-  }
+  // (occupancy + spawn-occupancy + rebuild moved to `bridge/transformOps`
+  //  alongside the unit-transform helpers.)
 
   // Entity creation lives in `bridge/entityCreateOps`. The factory closes
   // over every side map an entity-creation path may write to.
