@@ -29,7 +29,7 @@ export interface MonkTask {
 export interface MonkBehaviorSystemDeps {
   world: GameWorld;
   monkTasks: Map<number, MonkTask>;
-  monkConvertProcessedThisTick: Set<number>;
+  monkConvertProcessedThisTick: Map<number, number>;
   monkCarriedRelic: Map<number, number>;
   distanceToBuilding: (id: number, position: Position) => number;
   findBuildingApproachPlan: (
@@ -93,7 +93,12 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute(activeWorld) {
-      monkConvertProcessedThisTick.clear();
+      // V4-14: drop stale-tick entries to keep the guard map bounded.
+      // The guard is tick-tagged so a missed clear() doesn't break the
+      // per-tick contract; this loop is purely for memory hygiene.
+      for (const [id, tick] of monkConvertProcessedThisTick) {
+        if (tick !== activeWorld.tick) monkConvertProcessedThisTick.delete(id);
+      }
       for (const [monkId, task] of [...monkTasks.entries()]) {
         const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
         const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');

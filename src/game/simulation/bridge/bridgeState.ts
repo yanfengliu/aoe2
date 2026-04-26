@@ -72,7 +72,15 @@ export interface BridgeState {
   garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
   aiStates: Map<number, AiState>;
   monkHealCounters: Map<number, number>;
-  monkConvertProcessedThisTick: Set<number>;
+  // V4-14: tick-tagged per-target guard. Entry is the tick on which the
+  // first Monk processed conversion against the target. The `applyMonkConvert`
+  // consumer checks `=== activeWorld.tick` to enforce one progress increment
+  // per target per tick regardless of how many Monks are racing. Tagging by
+  // tick makes the guard self-clearing across ticks — even if the periodic
+  // .clear() in monkBehaviorSystem skipped a tick (e.g. if a future caller
+  // invoked applyMonkConvert from a different system phase), the per-tick
+  // guarantee still holds because stale-tick entries no longer match.
+  monkConvertProcessedThisTick: Map<number, number>;
   productionQueues: Map<number, ProductionQueueEntry[]>;
   constructionStates: Map<number, ConstructionState>;
   combatStates: Map<number, CombatState>;
@@ -114,7 +122,7 @@ export function createBridgeState(): BridgeState {
     garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),
     monkHealCounters: new Map(),
-    monkConvertProcessedThisTick: new Set(),
+    monkConvertProcessedThisTick: new Map(),
     productionQueues: new Map(),
     constructionStates: new Map(),
     combatStates: new Map(),

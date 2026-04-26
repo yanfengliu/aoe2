@@ -134,8 +134,10 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // Per-tick guard FIRST (review C-1): two enemy Monks processed in
     // the same tick must not flip-flop progress to zero. The first-
     // processed Monk wins ownership of the increment; later Monks just
-    // store the existing state and bail.
-    if (monkConvertProcessedThisTick.has(targetId)) {
+    // store the existing state and bail. V4-14: guard is tick-tagged
+    // (Map<targetId, tick>) so the per-tick contract holds even if the
+    // periodic clear in monkBehaviorSystem misses a phase boundary.
+    if (monkConvertProcessedThisTick.get(targetId) === activeWorld.tick) {
       conversionState.set(targetId, convState);
       return;
     }
@@ -143,7 +145,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       convState.byOwner = monkUnit.owner;
       convState.progress = 0;
     }
-    monkConvertProcessedThisTick.add(targetId);
+    monkConvertProcessedThisTick.set(targetId, activeWorld.tick);
     convState.progress += monkConvertProgressPerTick;
     if (convState.progress >= monkConvertFlipThreshold) {
       flipConvertedUnit(targetId, targetUnit, monkUnit, monkId, activeWorld);
