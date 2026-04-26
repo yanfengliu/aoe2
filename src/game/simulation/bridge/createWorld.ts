@@ -22,7 +22,6 @@ import { createBridgeState } from './bridgeState';
 import { registerComponentTypes } from './scenarioSeedOps';
 import { wireBridgeOps } from './wireBridgeOps';
 import {
-  HUMAN_PLAYER_ID,
   MAP_HEIGHT,
   MAP_WIDTH,
   TPS,
