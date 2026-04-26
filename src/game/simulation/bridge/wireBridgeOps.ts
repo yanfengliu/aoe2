@@ -1,7 +1,6 @@
 import {
   buildingFootprint,
   currentEntityId,
-  shouldMaintainGatheringOrder,
 } from './pureHelpers';
 import type { UnitTaskState } from '../types';
 import { unitTint } from '../prototypeUnitRules';
@@ -10,27 +9,21 @@ import {
   AI_WATCH_TOWER_FORWARD_STEP,
   DEFAULT_DIFFICULTY,
 } from '../ai';
-import { syncVisibilitySources } from './visibility';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
 import { createMonkTaskOps } from './monkTaskOps';
 import { createTechnologyOps } from './technologyOps';
 import { createMatchEndOps } from './matchEndOps';
 import { createAiDecisionOps } from './aiDecisionOps';
-import { createPlacementOps } from './placementOps';
-import { createSaveGameOps } from './saveGameOps';
 import { createEntityDestroyOps } from './entityDestroyOps';
 import { createCombatStateFactory } from './combatStateFactory';
 import { createEntityCreateOps } from './entityCreateOps';
-import { createHumanInputOps } from './humanInputOps';
 import { createCellPassability } from './cellPassability';
-import { registerAllSystems } from './registerAllSystems';
 import {
   hydrateFromSavedGame,
   seedFreshScenario,
 } from './scenarioSeedOps';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
-import { createEconomyStateOps } from './economyStateOps';
 import { createTransformOps } from './transformOps';
 import { createVisibilityQueries } from './visibilityQueries';
 import { createSelectionInputOps } from './selectionInputOps';
@@ -42,6 +35,7 @@ import { createPlayerQueries } from './playerQueries';
 import { createSelectionStateOps } from './selectionStateOps';
 import { createTargetFindingOps } from './targetFindingOps';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
+import { registerBridgeSystems } from './registerBridgeSystems';
 import {
   HUMAN_PLAYER_ID,
   MAP_HEIGHT,
@@ -56,7 +50,6 @@ import {
   MONK_CONVERT_PROGRESS_PER_TICK,
   MONK_HEAL_HP_PER_INTERVAL,
   MONK_HEAL_TICK_INTERVAL,
-  RELIC_COUNTDOWN_TICKS,
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
   WONDER_COUNTDOWN_TICKS,
@@ -93,7 +86,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     markOutOfBandRenderChange,
     getSeed,
   } = deps;
-  const { trackedVisibilitySources, movePathCache, trebuchetPackStates, lastSeenStatic } = state;
+  const { movePathCache, trebuchetPackStates, lastSeenStatic } = state;
 
   const trebuchetStateOps = createTrebuchetStateOps(trebuchetPackStates);
 
@@ -476,117 +469,65 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getEntityRef,
   });
 
-  registerAllSystems({
+  const finalize = registerBridgeSystems({
     world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    visibility,
-    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     state,
+    visibility,
+    matchState,
+    placementMode,
+    isMatchRunning,
     currentEntityId,
-    ...playerQueries,
-    ...aiDecisionOps,
+    getEntityRef,
+    ensurePlayerScoreCounters,
+    clearUnitCommand,
+    markOutOfBandRenderChange,
+    enqueueRejection,
+    getSeed,
+    getUnitTaskState,
+    playerQueries,
+    aiDecisionOps,
+    targetFindingOps,
+    trebuchetStateOps,
+    movementPlanOps,
+    entityDestroyOps,
+    entityCreateOps,
+    monkOps,
+    transformOps,
+    matchEndOps,
     startConstruction,
     findBuildPlacementNear,
     enqueueResearch,
     enqueueTraining,
     getTrainOptions,
     getResearchOptions,
-    ...targetFindingOps,
     issueUnitAttackCommand,
     issueUnitMoveCommand,
-    clearUnitCommand,
     distanceToBuilding,
-    ...trebuchetStateOps,
-    ...movementPlanOps,
-    markOutOfBandRenderChange,
-    ensurePlayerScoreCounters,
-    ...entityDestroyOps,
-    getEntityRef,
-    ...entityCreateOps,
-    ...monkOps,
     findBuildingSpawnPosition,
     applyTechnology,
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
-    shouldMaintainGatheringOrder,
-    findNearestDropOffBuilding,
-    ...transformOps,
     isGarrisonedUnit,
-    isMatchRunning,
-    isAiMilitaryUnit,
+    isPlacementBlocked,
     getOrCreateMemoryMap,
-    ...matchEndOps,
-  });
-
-  syncVisibilitySources(world, visibility, trackedVisibilitySources);
-
-  const {
-    issueMoveCommand,
-    issueContextCommand,
-    issueContextCommandAtEntityInternal,
-    queueTrainUnit,
-    queueResearch,
-    issueAction,
-    issueMarketAction,
-  } = createHumanInputOps({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    state,
-    placementMode,
-    isMatchRunning,
     getSelectedEntityId,
     getSelectedEntityIds,
     getSelectedOwnedSheepIds,
     getSelectedHumanUnitIds,
+    getSelectedHumanVillagerIds,
     isEntityVisibleToHuman,
-    enqueueRejection,
-    issueUnitMoveCommand,
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    enqueueTraining,
-    enqueueResearch,
     executeMarketAction,
     ungarrisonBuilding,
   });
 
-  const {
-    getPlacementPreview,
-    beginBuildingPlacement,
-    confirmBuildingPlacement,
-  } = createPlacementOps({
-    world,
-    state,
-    placementMode,
-    isMatchRunning,
-    getSelectedHumanVillagerIds,
-    isPlacementBlocked,
-    startConstruction,
-    enqueueRejection,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-  });
-
-  const { saveGame } = createSaveGameOps({
-    world,
-    visibility,
-    getSeed,
-    matchState,
-    state,
-  });
-
-  const { getEconomyState } = createEconomyStateOps({ world, state, getUnitTaskState });
-
   return {
-    saveGame,
-    getEconomyState,
+    ...finalize,
     getPlayerAge,
     getSelectionState,
-    getPlacementPreview,
     getEntityHealth,
     selectEntityAtCell,
     selectEntityById,
@@ -595,15 +536,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     selectUnitsByIds,
     selectUnitsInBox,
     clearSelection,
-    issueContextCommand,
-    issueContextCommandAtEntity: issueContextCommandAtEntityInternal,
-    issueMoveCommand,
-    issueAction,
-    queueTrainUnit,
-    queueResearch,
-    issueMarketAction,
-    beginBuildingPlacement,
-    confirmBuildingPlacement,
     getDebugSnapshot,
     getFogMemoryEntities,
     getHumanFogMemorySize,
