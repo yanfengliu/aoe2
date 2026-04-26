@@ -104,18 +104,39 @@ function getSnapshot(
   };
 }
 
+// Iter-3 V3-25: install once, resolve bridge dynamically. Pre-fix,
+// `installBrowserTestApi` captured the bridge at install time and was
+// re-called on each load — leaving any test that captured a reference
+// to the prior `window.__AOE2_TEST__` object pointing at a stale
+// bridge. The Playwright suite always re-resolves
+// `window.__AOE2_TEST__` per call, so it didn't bite — but a future
+// test holding a long-lived ref would silently observe pre-load state.
+//
+// New shape: pass a `getBridge: () => BrowserTestBridge` thunk.
+// createApp owns the live bridge cell; the API closures resolve via
+// the thunk every call. Subsequent loads only need to update the cell;
+// no re-install is required. Object.freeze hardens against accidental
+// mutation by tests.
 export function installBrowserTestApi(
   target: Window,
   game: Phaser.Game,
-  bridge: BrowserTestBridge,
+  getBridge: () => BrowserTestBridge,
   scene: GameScene,
 ): void {
-  target.__AOE2_TEST__ = {
+  // If an API object is already installed, reuse it: tests that
+  // captured a reference now see the live bridge through the same
+  // closure thunks. The earlier `target.__AOE2_TEST__ = { ... }`
+  // assignment-style replacement is gone.
+  if (target.__AOE2_TEST__) {
+    return;
+  }
+
+  const api: BrowserTestApi = {
     isBooted: () => game.isBooted && scene.scene.isActive(),
-    getHudState: () => bridge.getHudState(),
-    getRenderState: () => bridge.getRenderState(),
-    getEconomyState: () => bridge.getEconomyState(),
-    getSelectionState: () => bridge.getSelectionState(),
+    getHudState: () => getBridge().getHudState(),
+    getRenderState: () => getBridge().getRenderState(),
+    getEconomyState: () => getBridge().getEconomyState(),
+    getSelectionState: () => getBridge().getSelectionState(),
     getCameraState: () => {
       scene.syncFromBridge(true);
       return scene.getCameraState();
@@ -137,7 +158,7 @@ export function installBrowserTestApi(
       // authoritative source so the value isn't wrong without the
       // sync, but the asymmetry is a correctness footgun.
       scene.syncFromBridge(true);
-      return bridge.getPlacementPreview(cellX, cellY);
+      return getBridge().getPlacementPreview(cellX, cellY);
     },
     getBuildingVisualStates: () => {
       scene.syncFromBridge(true);
@@ -160,7 +181,7 @@ export function installBrowserTestApi(
       return point;
     },
     selectEntityAtCell: (cellX: number, cellY: number) => {
-      const didSelect = bridge.selectEntityAtCell(cellX, cellY);
+      const didSelect = getBridge().selectEntityAtCell(cellX, cellY);
       scene.syncFromBridge(true);
       return didSelect;
     },
@@ -170,26 +191,26 @@ export function installBrowserTestApi(
       return didSelect;
     },
     selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => {
-      const didSelect = bridge.selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
+      const didSelect = getBridge().selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
       scene.syncFromBridge(true);
       return didSelect;
     },
     selectUnitsInBox: (minX, minY, maxX, maxY) => {
-      const didSelect = bridge.selectUnitsInBox(minX, minY, maxX, maxY);
+      const didSelect = getBridge().selectUnitsInBox(minX, minY, maxX, maxY);
       scene.syncFromBridge(true);
       return didSelect;
     },
     confirmBuildingPlacement: (cellX: number, cellY: number) => {
-      const didPlace = bridge.confirmBuildingPlacement(cellX, cellY);
+      const didPlace = getBridge().confirmBuildingPlacement(cellX, cellY);
       scene.syncFromBridge(true);
       return didPlace;
     },
     clearSelection: () => {
-      bridge.clearSelection();
+      getBridge().clearSelection();
       scene.syncFromBridge(true);
     },
     issueContextCommand: (cellX: number, cellY: number) => {
-      const didIssue = bridge.issueContextCommand(cellX, cellY);
+      const didIssue = getBridge().issueContextCommand(cellX, cellY);
       scene.syncFromBridge(true);
       return didIssue;
     },
@@ -199,21 +220,22 @@ export function installBrowserTestApi(
       return didIssue;
     },
     issueMoveCommand: (cellX: number, cellY: number) => {
-      const didIssue = bridge.issueMoveCommand(cellX, cellY);
+      const didIssue = getBridge().issueMoveCommand(cellX, cellY);
       scene.syncFromBridge(true);
       return didIssue;
     },
-    getSnapshot: () => getSnapshot(bridge, scene),
+    getSnapshot: () => getSnapshot(getBridge(), scene),
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));
       const safeDeltaMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 100;
-
+      const liveBridge = getBridge();
       for (let index = 0; index < safeCount; index += 1) {
-        bridge.step(safeDeltaMs);
+        liveBridge.step(safeDeltaMs);
       }
 
       scene.syncFromBridge(true);
-      return getSnapshot(bridge, scene);
+      return getSnapshot(liveBridge, scene);
     },
   };
+  target.__AOE2_TEST__ = Object.freeze(api);
 }

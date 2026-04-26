@@ -44,10 +44,11 @@ export function createApp(): Phaser.Game {
     const nextBridge = createSimulationBridge(seed, { savedGame: blob });
     bridge = nextBridge;
     scene.setBridge(nextBridge);
-    // Re-install the browser test API so tests (Playwright) see the
-    // swapped bridge too. `installBrowserTestApi` overwrites
-    // `window.__AOE2_TEST__` in place, which is all that's required.
-    installBrowserTestApi(window, game, nextBridge, scene);
+    // Iter-3 V3-25: no re-install required. `installBrowserTestApi`
+    // resolves the live bridge dynamically through the getter passed
+    // at first install, so updating the local `bridge` cell is enough
+    // for the API to reflect the swap. Holders of a long-lived
+    // reference to `window.__AOE2_TEST__` continue seeing live state.
   }
 
   const hudController = createHudController(hudRoot, {
@@ -91,7 +92,7 @@ export function createApp(): Phaser.Game {
     scene: [scene],
   });
 
-  installBrowserTestApi(window, game, bridge, scene);
+  installBrowserTestApi(window, game, () => bridge, scene);
 
   return game;
 }
