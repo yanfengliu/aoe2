@@ -53,6 +53,7 @@ import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
+import { createHumanInputOps } from './bridge/humanInputOps';
 import { createTrainingMarketOps } from './bridge/trainingMarketOps';
 import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
@@ -93,12 +94,7 @@ import {
   buildingPopulationProvided,
   canGarrisonAt,
 } from './prototypeBuildingRules';
-import {
-  researchCost,
-  resourceKindToEconomyResource,
-  resourcesMissing,
-  trainingCost,
-} from './prototypeEconomyRules';
+import { resourceKindToEconomyResource } from './prototypeEconomyRules';
 import {
   unitAttackDamage,
   unitAttackRange,
@@ -3238,235 +3234,46 @@ function createWorld(
     placementMode.current = null;
   }
 
-  function issueMoveCommand(x: number, y: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
+  // Human-input command surface (issueMoveCommand / issueContextCommand /
+  // issueContextCommandAtEntityInternal / queueTrainUnit / queueResearch /
+  // issueAction / issueMarketAction) lives in `bridge/humanInputOps`. Each
+  // wraps a lower-level helper with the match-running gate, the rally-point
+  // branch for selected own buildings, and per-action rejection messages.
+  const {
+    issueMoveCommand,
+    issueContextCommand,
+    issueContextCommandAtEntityInternal,
+    queueTrainUnit,
+    queueResearch,
+    issueAction,
+    issueMarketAction,
+  } = createHumanInputOps({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    playerResources,
+    rallyPoints,
+    constructionStates,
+    placementMode,
+    isMatchRunning,
+    getSelectedEntityId: () => getSelectedEntityId(),
+    getSelectedEntityIds: () => getSelectedEntityIds(),
+    getSelectedOwnedSheepIds: () => getSelectedOwnedSheepIds(),
+    getSelectedHumanUnitIds: () => getSelectedHumanUnitIds(),
+    isEntityVisibleToHuman: (id) => isEntityVisibleToHuman(id),
+    enqueueRejection,
+    issueUnitMoveCommand,
+    issueUnitContextCommand: (unitId, target) => issueUnitContextCommand(unitId, target),
+    issueUnitContextCommandAtEntity: (unitId, targetEntityId) =>
+      issueUnitContextCommandAtEntity(unitId, targetEntityId),
+    issueSheepMoveCommand,
+    enqueueTraining,
+    enqueueResearch,
+    executeMarketAction,
+    ungarrisonBuilding,
+  });
 
-    const ownedSheepIds = getSelectedOwnedSheepIds();
-    const selectedUnitIds = getSelectedHumanUnitIds();
-    if (ownedSheepIds.length === 0 && selectedUnitIds.length === 0) {
-      return false;
-    }
-
-    placementMode.current = null;
-    let didIssue = false;
-    for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitMoveCommand(unitId, { x, y }) || didIssue;
-    }
-    for (const sheepId of ownedSheepIds) {
-      didIssue = issueSheepMoveCommand(sheepId, { x, y }) || didIssue;
-    }
-
-    return didIssue;
-  }
-
-  function issueContextCommand(x: number, y: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId !== null) {
-      const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-      if (building && building.owner === HUMAN_PLAYER_ID && getSelectedEntityIds().length === 1) {
-        const construction = constructionStates.get(selectedEntityId);
-        if (construction && !construction.isComplete) {
-          return false;
-        }
-
-        rallyPoints.set(selectedEntityId, {
-          x: clamp(x, 0, MAP_WIDTH - 1),
-          y: clamp(y, 0, MAP_HEIGHT - 1),
-        });
-        placementMode.current = null;
-        return true;
-      }
-    }
-
-    const ownedSheepIds = getSelectedOwnedSheepIds();
-    const selectedUnitIds = getSelectedHumanUnitIds();
-    if (ownedSheepIds.length === 0 && selectedUnitIds.length === 0) {
-      return false;
-    }
-
-    const target = {
-      x: clamp(x, 0, MAP_WIDTH - 1),
-      y: clamp(y, 0, MAP_HEIGHT - 1),
-    };
-    placementMode.current = null;
-    let didIssue = false;
-    for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitContextCommand(unitId, target) || didIssue;
-    }
-    for (const sheepId of ownedSheepIds) {
-      didIssue = issueSheepMoveCommand(sheepId, target) || didIssue;
-    }
-
-    return didIssue;
-  }
-
-  function issueContextCommandAtEntityInternal(entityId: number): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const targetPosition = world.getComponent<Position>(entityId, 'position');
-    if (!targetPosition) {
-      return false;
-    }
-
-    // Memory entities (explored-but-not-visible) can show up in the projector's render
-    // frame, which means hit-testing in the scene can resolve a fog-hidden entity id.
-    // Reject those commands here so the player cannot gather, attack, or otherwise
-    // interact with anything they cannot currently see. Owned entities skip this
-    // check via `isEntityFootprintVisibleToHuman`.
-    if (!isEntityVisibleToHuman(entityId)) {
-      enqueueRejection('Target not visible.');
-      return false;
-    }
-
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (building && building.owner === HUMAN_PLAYER_ID && getSelectedEntityIds().length === 1) {
-      const construction = constructionStates.get(selectedEntityId);
-      if (construction && !construction.isComplete) {
-        return false;
-      }
-
-      rallyPoints.set(selectedEntityId, {
-        x: clamp(targetPosition.x, 0, MAP_WIDTH - 1),
-        y: clamp(targetPosition.y, 0, MAP_HEIGHT - 1),
-      });
-      placementMode.current = null;
-      return true;
-    }
-
-    const ownedSheepIds = getSelectedOwnedSheepIds();
-    const selectedUnitIds = getSelectedHumanUnitIds();
-    if (ownedSheepIds.length === 0 && selectedUnitIds.length === 0) {
-      return false;
-    }
-
-    placementMode.current = null;
-    let didIssue = false;
-    for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitContextCommandAtEntity(unitId, entityId) || didIssue;
-    }
-    for (const sheepId of ownedSheepIds) {
-      didIssue = issueSheepMoveCommand(sheepId, targetPosition) || didIssue;
-    }
-
-    return didIssue;
-  }
-
-  function queueTrainUnit(unitType: TrainableUnitType): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== HUMAN_PLAYER_ID) {
-      return false;
-    }
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) {
-      enqueueRejection('Building is still under construction.');
-      return false;
-    }
-
-    const didEnqueue = enqueueTraining(selectedEntityId, unitType);
-    if (!didEnqueue) {
-      const stockpile = playerResources.get(HUMAN_PLAYER_ID);
-      if (stockpile) {
-        const missing = resourcesMissing(stockpile, trainingCost(unitType));
-        if (missing) {
-          enqueueRejection(`Not enough ${missing}.`);
-          return false;
-        }
-      }
-      enqueueRejection('Cannot train that unit here.');
-    }
-    return didEnqueue;
-  }
-
-  function queueResearch(technologyType: ResearchableTechnologyType): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== HUMAN_PLAYER_ID) {
-      return false;
-    }
-
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) {
-      enqueueRejection('Building is still under construction.');
-      return false;
-    }
-
-    const didEnqueue = enqueueResearch(selectedEntityId, technologyType);
-    if (!didEnqueue) {
-      const stockpile = playerResources.get(HUMAN_PLAYER_ID);
-      if (stockpile) {
-        const missing = resourcesMissing(stockpile, researchCost(technologyType));
-        if (missing) {
-          enqueueRejection(`Not enough ${missing}.`);
-          return false;
-        }
-      }
-      enqueueRejection('Cannot research that here.');
-    }
-    return didEnqueue;
-  }
-
-  function issueAction(actionType: ActionType): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) {
-      return false;
-    }
-
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== HUMAN_PLAYER_ID) {
-      return false;
-    }
-
-    switch (actionType) {
-      case 'ungarrison':
-        return ungarrisonBuilding(selectedEntityId);
-    }
-  }
-
-  function issueMarketAction(actionType: MarketActionType): boolean {
-    if (!isMatchRunning()) {
-      return false;
-    }
-
-    const didTrade = executeMarketAction(actionType);
-    if (!didTrade) {
-      enqueueRejection('Market trade rejected. Check resources and selection.');
-    }
-    return didTrade;
-  }
 
   // Phase 3 placement ops. The factory closes over the mutable
   // `placementMode` holder plus the bridge-local collaborators
