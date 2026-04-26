@@ -3408,6 +3408,28 @@ function createWorld(
       return false;
     }
 
+    // Iter-2 verify follow-up: dedupe across ALL owned producer queues,
+    // not just this one. The H2-1 fix made applyTechnology idempotent
+    // on the bonus side, but a player race-queueing the same tech at
+    // two producer buildings would still spend the cost twice (only
+    // one bonus would land). Reject the duplicate up front.
+    for (const [otherBuildingId, otherQueue] of productionQueues.entries()) {
+      if (otherBuildingId === buildingId) {
+        continue;
+      }
+      const otherBuilding = world.getComponent<BuildingComponent>(otherBuildingId, 'building');
+      if (!otherBuilding || otherBuilding.owner !== building.owner) {
+        continue;
+      }
+      if (
+        otherQueue.some(
+          (entry) => entry.kind === 'technology' && entry.technologyType === technologyType,
+        )
+      ) {
+        return false;
+      }
+    }
+
     const stockpile = playerResources.get(building.owner);
     if (!stockpile) {
       return false;

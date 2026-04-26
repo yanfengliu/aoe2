@@ -1,5 +1,4 @@
 import {
-  VisibilityMap,
   World,
   type EntityRef,
   type Position,

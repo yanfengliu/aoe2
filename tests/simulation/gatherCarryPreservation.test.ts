@@ -72,6 +72,13 @@ describe('iter-2 H2-2 — gather carry preserved when no drop-off path exists', 
     expect(treeAfter).toBeDefined();
     expect(treeAfter!.amount).toBeGreaterThanOrEqual(190);
 
+    // Villager still carries the original load (the stronger contract:
+    // not just "tree didn't deplete further" but "the carry is intact").
+    const villagerAfter = findOwnedVillager(bridge, 1);
+    expect(villagerAfter).toBeDefined();
+    expect(villagerAfter!.carriedResource).toBe('wood');
+    expect(villagerAfter!.carriedAmount).toBe(10);
+
     // Stockpile didn't grow — there was no drop-off to deposit at.
     expect(bridge.getEconomyState().playerResources[1].wood).toBe(200);
   }, 30_000);
