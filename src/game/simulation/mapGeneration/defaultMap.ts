@@ -18,8 +18,18 @@ export function createDefaultMap(seed: string): PrototypeScenario {
   const starts = createPlayerStarts();
   const spawns = createSpawnList();
 
+  // Iter-3 V3-13: hand the static-landmark cells to each player's
+  // procedural opening so its forest-cluster walker won't land a tree
+  // on the forward-house anchor, scout cell, or relic positions —
+  // any overlap would otherwise hit the bridge bootstrap validator.
+  const reservedCells = [
+    FORWARD_ENEMY_HOUSE_POSITION,
+    FORWARD_ENEMY_SCOUT_POSITION,
+    ...DEFAULT_RELIC_POSITIONS,
+  ];
+
   for (const start of starts) {
-    applyStandardPlayerOpeningProcedural(terrain, start, spawns, seed);
+    applyStandardPlayerOpeningProcedural(terrain, start, spawns, seed, reservedCells);
   }
 
   paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');

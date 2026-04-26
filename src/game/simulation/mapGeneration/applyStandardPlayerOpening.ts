@@ -305,6 +305,13 @@ export function applyStandardPlayerOpeningProcedural(
   start: PlayerStartSpec,
   spawns: SpawnList,
   seed: string,
+  // Iter-3 V3-13: extra cells the cluster placer must NOT spawn into
+  // (e.g. defaultMap's FORWARD_ENEMY_HOUSE_POSITION, FORWARD_ENEMY_SCOUT_POSITION,
+  // DEFAULT_RELIC_POSITIONS). Without this, owner-2's forest cluster
+  // walker could land a tree on the forward-house anchor, and the
+  // bridge bootstrap validator would throw on the building/resource
+  // overlap.
+  reservedCells: ReadonlyArray<{ x: number; y: number }> = [],
 ): void {
   paintDisc(terrain, start.townCenter, 4, 'grass');
 
@@ -351,6 +358,11 @@ export function applyStandardPlayerOpeningProcedural(
       && Math.abs(y - (start.townCenter.y + 1)) <= corridorExtent;
     if (onHorizontalCorridor || onVerticalCorridor) {
       return true;
+    }
+    for (const reserved of reservedCells) {
+      if (reserved.x === x && reserved.y === y) {
+        return true;
+      }
     }
     return spawns.isCellOccupiedByResource(x, y);
   };

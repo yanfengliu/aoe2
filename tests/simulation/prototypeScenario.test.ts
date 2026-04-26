@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { getBuildingFootprint } from '../../src/game/content/buildingFootprints';
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   DEFAULT_SEED,
   MAP_HEIGHT,
@@ -563,5 +564,39 @@ describe('createPrototypeScenario', () => {
       (spawn) => spawn.kind === 'stone-mine' && spawn.baseOwner === humanStart?.owner,
     ).length;
     expect(humanStones).toBeGreaterThanOrEqual(2);
+  });
+
+  it('default map: forward enemy house anchor is never claimed by a forest cluster (V3-13)', () => {
+    // Iter-3 V3-13: forest-cluster placement at owner-2's TC reaches
+    // ring-12 cells around (39.5, 15.5); pre-fix some seeds dropped a
+    // tree on FORWARD_ENEMY_HOUSE_POSITION (39, 18) and the bridge
+    // bootstrap validator threw on the resource/building overlap.
+    // Sample a small seed corpus to exercise the procedural variation.
+    const seeds = [
+      'aoe2-prototype',
+      'iter3-corpus-1',
+      'iter3-corpus-2',
+      'iter3-corpus-3',
+      'iter3-corpus-4',
+      'iter3-corpus-5',
+      'iter3-corpus-6',
+      'iter3-corpus-7',
+      'iter3-corpus-8',
+      'iter3-corpus-9',
+    ];
+
+    for (const seed of seeds) {
+      const scenario = createPrototypeScenario(seed);
+      const treeOnHouseCell = scenario.spawns.some(
+        (spawn) =>
+          spawn.kind === 'tree'
+          && spawn.x === 39
+          && spawn.y === 18,
+      );
+      expect(treeOnHouseCell, `seed=${seed}: tree must not occupy forward house cell (39, 18)`).toBe(false);
+
+      // Sanity: bridge boots cleanly with the same seed.
+      expect(() => createSimulationBridge(seed)).not.toThrow();
+    }
   });
 });
