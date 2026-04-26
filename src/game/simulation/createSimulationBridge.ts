@@ -24,7 +24,6 @@ import {
   buildingFootprint,
   isFootprintVisible,
   compareProjectedRenderEntities,
-  UNIT_SUBGRID_RESOLUTION,
   type GameEvents,
   type GameCommands,
   type GameComponents,
@@ -48,6 +47,7 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import { createDebugSnapshotOps } from './bridge/debugSnapshotOps';
 import { createTransformOps } from './bridge/transformOps';
 import { createVisibilityQueries } from './bridge/visibilityQueries';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
@@ -487,67 +487,6 @@ function createWorld(
   // whichever slice they need; the arrays remain short because active
   // unit commands and AI entries cap at the handful of moving units /
   // non-human owners.
-  function getDebugSnapshot(): SimulationDebugSnapshot {
-    const unitPaths: SimulationDebugSnapshot['unitPaths'] = [];
-    for (const [unitId, command] of unitCommands.entries()) {
-      const position = world.getComponent<Position>(unitId, 'position');
-      if (!position) {
-        continue;
-      }
-      unitPaths.push({
-        id: unitId,
-        fromX: position.x,
-        fromY: position.y,
-        toX: command.target.x,
-        toY: command.target.y,
-        commandType: command.type,
-      });
-    }
-
-    const aiSummaries: SimulationDebugSnapshot['aiSummaries'] = [];
-    for (const [owner, state] of aiStates.entries()) {
-      aiSummaries.push({
-        owner,
-        difficulty: state.difficulty,
-        plan: state.plan,
-        villagerTargets: { ...state.villagerTargets } as Partial<Record<string, number>>,
-        attackGroupSize: state.attackGroup.length,
-      });
-    }
-
-    // Slice 12 Task D: coarse-vs-fine probe. Every unit with both a
-    // `Position` (coarse integer cell) and a `UnitTransform` (fine
-    // sub-grid coordinates) contributes one entry. Fine coordinates are
-    // reported in whole-cell units so the renderer can draw the line
-    // directly without rescaling.
-    const coarseVsFine: SimulationDebugSnapshot['coarseVsFine'] = [];
-    for (const unitId of world.query('position', 'unit', 'unitTransform')) {
-      const position = world.getComponent<Position>(unitId, 'position');
-      const transform = world.getComponent<UnitTransformComponent>(unitId, 'unitTransform');
-      if (!position || !transform) {
-        continue;
-      }
-      coarseVsFine.push({
-        id: unitId,
-        coarseX: position.x,
-        coarseY: position.y,
-        fineX: transform.fineX / UNIT_SUBGRID_RESOLUTION,
-        fineY: transform.fineY / UNIT_SUBGRID_RESOLUTION,
-      });
-    }
-
-    return {
-      tick: world.tick,
-      // Per-tick ms, entity count, and visible cell count flow through the
-      // HUD via `getHudState()`; the debug overlay can surface those
-      // directly from the HUD snapshot without touching the world again.
-      tickDurationMs: 0,
-      entityCount: 0,
-      unitPaths,
-      aiSummaries,
-      coarseVsFine,
-    };
-  }
   const garrisonedByBuilding = new Map<number, number[]>();
   const garrisonedUnitToBuilding = new Map<number, number>();
   const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
@@ -557,6 +496,13 @@ function createWorld(
   // loop; save/load serializes it through the same side-map boundary
   // as every other piece of runtime state (see `SerializedSideMaps`).
   const aiStates = new Map<number, AiState>();
+
+  // Debug snapshot lives in `bridge/debugSnapshotOps`.
+  const { getDebugSnapshot } = createDebugSnapshotOps({
+    world,
+    unitCommands,
+    aiStates,
+  });
 
   function clearUnitCommand(unitId: number): void {
     unitCommands.delete(unitId);
