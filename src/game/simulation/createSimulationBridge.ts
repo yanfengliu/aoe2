@@ -682,6 +682,31 @@ function createWorld(
   const buildingHealthStates = new Map<number, BuildingHealthState>();
   const buildingCombatStates = new Map<number, BuildingCombatState>();
   const wildlifeStates = new Map<number, WildlifeState>();
+  // Iter-3 V3-5: per-gatherer "stuck since" tick. The H2-2 fix
+  // preserves the carry when findBuildingApproachPlan is null, but
+  // the prior implementation re-ran findNearestDropOffBuilding + the
+  // A* search every tick for every stuck villager. This map throttles
+  // the retry to GATHER_DROPOFF_RETRY_INTERVAL ticks. Entries are
+  // dropped on successful re-plan, on `clearGathererOrder`, on unit
+  // destruction, and on save/load (scratch state, not serialized).
+  const gathererDropOffStuckSinceTick = new Map<number, number>();
+  const GATHER_DROPOFF_RETRY_INTERVAL = 30;
+  // Iter-3 V3-6: per-owner set of in-flight research technologies. The
+  // iter-2 H2-1 cost-dedupe scanned every owned producer's queue per
+  // enqueueResearch call (O(producers × queue depth)); this side map
+  // makes the lookup O(1). Updated on every queue push and queue
+  // shift. Rebuildable from `productionQueues`, so we don't serialize
+  // it — the load path walks the loaded queues and re-populates the
+  // set instead.
+  const inFlightTechByOwner = new Map<number, Set<ResearchableTechnologyType>>();
+  function inFlightTechSetFor(owner: number): Set<ResearchableTechnologyType> {
+    let set = inFlightTechByOwner.get(owner);
+    if (!set) {
+      set = new Set<ResearchableTechnologyType>();
+      inFlightTechByOwner.set(owner, set);
+    }
+    return set;
+  }
   const matchState: MatchState = {
     outcome: 'running',
     summary: '',
@@ -1961,6 +1986,20 @@ function createWorld(
         })),
       );
     }
+    // Iter-3 V3-6: rebuild inFlightTechByOwner from the loaded
+    // production queues — it's derivable cache, not authoritative
+    // state, so we don't store it in the blob.
+    for (const [buildingId, queue] of productionQueues.entries()) {
+      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+      if (!building) {
+        continue;
+      }
+      for (const entry of queue) {
+        if (entry.kind === 'technology' && entry.technologyType) {
+          inFlightTechSetFor(building.owner).add(entry.technologyType);
+        }
+      }
+    }
     for (const [id, state] of blob.constructionStates) {
       constructionStates.set(id, { ...state });
     }
@@ -2526,6 +2565,10 @@ function createWorld(
     gatherer.targetResourceId = null;
     gatherer.dropOffBuildingId = null;
     gatherer.gatherProgressTicks = 0;
+    // Iter-3 V3-5: drop the throttle marker too so a brand-new gather
+    // order from the player or AI doesn't inherit the previous order's
+    // stuck window.
+    gathererDropOffStuckSinceTick.delete(id);
   }
 
   function isGarrisonedUnit(id: number): boolean {
@@ -3110,6 +3153,8 @@ function createWorld(
     monkHealCounters.delete(id);
     // FU7: release trebuchet pack-state bookkeeping on destroy.
     trebuchetPackStates.delete(id);
+    // Iter-3 V3-5: drop the throttle marker for the H2-2 retry path.
+    gathererDropOffStuckSinceTick.delete(id);
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
@@ -3419,32 +3464,17 @@ function createWorld(
       return false;
     }
 
-    const queue = productionQueues.get(buildingId) ?? [];
-    if (queue.some((entry) => entry.kind === 'technology' && entry.technologyType === technologyType)) {
+    // Iter-2 verify follow-up + Iter-3 V3-6: dedupe across ALL owned
+    // producer queues. The H2-1 fix made applyTechnology idempotent on
+    // the bonus side; this guard prevents the cost being charged twice
+    // when a player race-queues the same tech at two producer
+    // buildings. The lookup is O(1) via inFlightTechByOwner instead of
+    // O(producers × queue depth).
+    if (inFlightTechSetFor(building.owner).has(technologyType)) {
       return false;
     }
 
-    // Iter-2 verify follow-up: dedupe across ALL owned producer queues,
-    // not just this one. The H2-1 fix made applyTechnology idempotent
-    // on the bonus side, but a player race-queueing the same tech at
-    // two producer buildings would still spend the cost twice (only
-    // one bonus would land). Reject the duplicate up front.
-    for (const [otherBuildingId, otherQueue] of productionQueues.entries()) {
-      if (otherBuildingId === buildingId) {
-        continue;
-      }
-      const otherBuilding = world.getComponent<BuildingComponent>(otherBuildingId, 'building');
-      if (!otherBuilding || otherBuilding.owner !== building.owner) {
-        continue;
-      }
-      if (
-        otherQueue.some(
-          (entry) => entry.kind === 'technology' && entry.technologyType === technologyType,
-        )
-      ) {
-        return false;
-      }
-    }
+    const queue = productionQueues.get(buildingId) ?? [];
 
     const stockpile = playerResources.get(building.owner);
     if (!stockpile) {
@@ -3467,6 +3497,7 @@ function createWorld(
       isBlocked: false,
     });
     productionQueues.set(buildingId, queue);
+    inFlightTechSetFor(building.owner).add(technologyType);
     return true;
   }
 
@@ -5508,6 +5539,11 @@ function createWorld(
 
         if (entry.kind === 'technology' && entry.technologyType) {
           applyTechnology(building.owner, entry.technologyType);
+          // Iter-3 V3-6: drop the in-flight marker once the research
+          // resolves. Future enqueueResearch calls for the same tech
+          // get filtered earlier by `getResearchOptions`'s
+          // hasTechnology gate.
+          inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
         }
 
         queue.shift();
@@ -5719,35 +5755,49 @@ function createWorld(
         }
 
         if (gatherer.task === 'to-dropoff') {
-          const dropOffId =
-            gatherer.carriedResource === null
-              ? null
-              : findNearestDropOffBuilding(
-                activeWorld,
-                unit.owner,
-                gatherer.carriedResource,
-                position,
-              );
+          const carriedResource = gatherer.carriedResource;
+          if (carriedResource === null || gatherer.carriedAmount <= 0) {
+            // Iter-2 H2-2 first branch: only zero the carry when there
+            // is genuinely nothing to deliver.
+            gatherer.task = 'idle';
+            gatherer.carriedAmount = 0;
+            gatherer.carriedResource = null;
+            gathererDropOffStuckSinceTick.delete(id);
+            continue;
+          }
+
+          // Iter-3 V3-5: throttle the per-tick re-plan when the gatherer
+          // is stuck. Re-plan no more often than every
+          // GATHER_DROPOFF_RETRY_INTERVAL ticks; in between, just
+          // preserve the carry and idle the gatherer.
+          const stuckSince = gathererDropOffStuckSinceTick.get(id);
+          const shouldRetry = stuckSince === undefined
+            || (activeWorld.tick - stuckSince) >= GATHER_DROPOFF_RETRY_INTERVAL;
+          if (!shouldRetry) {
+            continue;
+          }
+
+          const dropOffId = findNearestDropOffBuilding(
+            activeWorld,
+            unit.owner,
+            carriedResource,
+            position,
+          );
           gatherer.dropOffBuildingId = dropOffId;
           const dropOffPlan = dropOffId === null
             ? null
             : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
 
-          // Iter-2 H2-2: only zero out the carry when there is genuinely
-          // nothing to deliver (empty resource type or amount). When the
-          // villager IS carrying a load but the path / drop-off building
-          // is momentarily unreachable (enemy unit on the path, drop-off
-          // mid-rebuild, or no owned drop-off at all), preserve the load
-          // and re-evaluate next tick. Canonical AoE2 idles the
-          // villager holding its carry until the path reopens.
-          const carriedResource = gatherer.carriedResource;
-          if (carriedResource === null || gatherer.carriedAmount <= 0) {
-            gatherer.task = 'idle';
-            gatherer.carriedAmount = 0;
-            gatherer.carriedResource = null;
-          } else if (!dropOffPlan) {
-            // Stay in 'to-dropoff' so the next tick re-checks for a
-            // newly-available drop-off; do not touch the carry.
+          if (!dropOffPlan) {
+            // Stay in 'to-dropoff' so a future tick re-checks for a
+            // newly-available drop-off; do not touch the carry. Mark
+            // the gatherer as stuck so the next retry waits the
+            // throttle window.
+            if (stuckSince === undefined) {
+              gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
+            } else {
+              gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
+            }
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             // Slice 10: AI difficulty modifies the gather-rate via a
@@ -5771,7 +5821,12 @@ function createWorld(
             gatherer.carriedResource = null;
             gatherer.targetResourceId = null;
             gatherer.gatherProgressTicks = 0;
+            gathererDropOffStuckSinceTick.delete(id);
           } else {
+            // Path is open this tick — clear any stale stuck flag so
+            // the next "stuck" event fires the retry-window from
+            // scratch.
+            gathererDropOffStuckSinceTick.delete(id);
             moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
           }
         }
