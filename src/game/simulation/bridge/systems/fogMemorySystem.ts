@@ -67,6 +67,11 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
       }
 
       // Refresh every static resource the human player currently sees.
+      // V4-21: anchor-only visibility is correct here only because every
+      // memorable static resource (tree, berry-bush, gold-mine, stone-mine)
+      // is 1x1 — `isFootprintVisible(... 1, 1)` reduces to `isVisible`. If
+      // a future memorable resource has a multi-cell footprint, switch to
+      // `isFootprintVisible` here and on the cleanup path below.
       for (const id of activeWorld.query('position', 'resource', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');

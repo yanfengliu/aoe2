@@ -18,44 +18,37 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
       writes into).
-      - `bridge/` — helper modules factored out of `createSimulationBridge.ts`
-        to keep the entry file from drifting back into god-class shape.
-        Each module either exports plain helpers or a dep-bag factory whose
-        side-map ownership still lives in `createWorld` so save/load and
-        destroy-entity hooks share the same references:
-        - `pureHelpers.ts` — pure helpers (clamp, grid/coordinate
-          transforms, economy/resource helpers, footprint and projection
-          comparators) plus the shared `GameEvents` / `GameCommands` /
-          `GameComponents` / `GameWorld` type aliases and the
-          `UNIT_SUBGRID_*` / `UNIT_CELL_SLOT_OFFSETS` / `MARKET_BASE_RATE`
-          constants.
-        - `visibility.ts` — `createProjector` (RenderAdapter projection),
-          `syncVisibilitySources`, and the sheep claim / ownership helpers
-          plus `SHEEP_VISION_RADIUS` / `MAX_HERDABLE_CLAIM_RADIUS`.
-        - `trebuchetState.ts` — `createTrebuchetStateOps` factory wrapping
-          the Trebuchet pack/unpack transition over `trebuchetPackStates`.
-        - `fogMemoryOps.ts` — `createFogMemoryOps` factory bundling
-          `getOrCreateMemoryMap`, `getFogMemoryEntities`,
-          `getHumanFogMemorySize`.
-        - `monkTaskOps.ts` — `createMonkTaskOps` factory for the Monk
-          heal / convert / pickup / deposit lifecycle, including AI-side
-          task assignment and human-side context-click routing.
-        - `technologyOps.ts` — technology / upgrade application (research
-          completion, per-unit / per-building stat propagation, civ
-          unique-tech handling).
-        - `matchEndOps.ts` — match-end / score / win-condition resolution
-          (conquest, Wonder, relic timers, score tally).
-        - `aiDecisionOps.ts` — Slice-10 AI decision helpers (villager
-          retargeting, attack-group forming, plan transitions).
-        - `placementOps.ts` — placement preview + building placement
-          confirmation (footprint validation, occupancy reservation).
-        - `saveGameOps.ts` — `createSaveGameOps` factory: serializes the
-          world snapshot, visibility, match state, and every side map into
-          a `SaveBlob`.
-        - `targetFindingOps.ts` — target-priority tables and helpers for
-          finding visible enemies, nearest drop-offs, and nearest wildlife.
-        `createSimulationBridge.ts` imports from `bridge/` rather than
-        re-declaring any of this.
+      - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
+
+        Boot/orchestration tier:
+        - `createWorld.ts` — entry point invoked by the facade. Builds (or deserializes) the civ-engine `World`, instantiates `BridgeState`, builds tile grids, then calls `wireBridgeOps` and `assembleBridgeApi`.
+        - `wireBridgeOps.ts` — pre-seed factory wiring (entity-create/destroy ops, target finding, technology, match-end, etc.) and the call into `seedFreshScenario` (skipped on save-load).
+        - `wirePostSeedOps.ts` — post-seed factory wiring (visibility queries, selection input, training/market, monk tasks, AI decision, unit command).
+        - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems` and creates the post-register input ops (placement, save, economy state, human input).
+        - `registerAllSystems.ts` — bundles all 18 ECS system registrations.
+        - `assembleBridgeApi.ts` — composes the `SimulationBridge` public surface from the ops + state.
+        - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts` — fresh-scenario seeding and save-blob hydration (separated so the facade can pick the right path).
+
+        State + types tier:
+        - `bridgeState.ts` — single `createBridgeState()` factory that owns every side map (`unitCommands`, `monkTasks`, `garrisonedByBuilding`, `productionQueues`, `combatStates`, `aiStates`, `gathererDropOffStuckSinceTick`, etc.).
+        - `sharedTypes.ts` — `UnitCommand` / `MonkTask` / `ConstructionState` / `TrebuchetPackState` shared between the facade and the helper-ops modules.
+        - `bridgeConstants.ts`, `countdownTypes.ts`, `memoryTypes.ts`, `movementTypes.ts`, `createWorldResult.ts`, `wireBridgeOpsTypes.ts`, `registerAllSystemsTypes.ts`, `combatStateFactory.ts` — shared constants and type contracts.
+        - `bridgeHelpers.ts` — small helper closures (`ensurePlayerScoreCounters`, `ensureAiState`, `inFlightTechSetFor`, `clearUnitCommand`, `setUnitCommand`, command-rejection queue).
+        - `pureHelpers.ts` — pure helpers (clamp, grid/coordinate transforms, footprint visibility, etc.) plus `GameEvents` / `GameCommands` / `GameWorld` type aliases.
+
+        Systems tier (`bridge/systems/*` — 18 ECS factories):
+        - `aiSystem.ts`, `autoAggressionSystem.ts`, `playerCommandsSystem.ts`, `monkBehaviorSystem.ts`, `productionQueueSystem.ts`, `scoutMovementSystem.ts`, `villagerEconomySystem.ts`, `wildlifeCombatSystem.ts`, `herdableMovementSystem.ts`, `herdableOwnershipSystem.ts`, `visibilitySystem.ts`, `fogMemorySystem.ts`, `towerCombatSystem.ts`, `relicGoldSystem.ts`, `wonderCountdownSystem.ts`, `relicCountdownSystem.ts`, `winConditionResolverSystem.ts`, `conquestOutcomeSystem.ts`. Each factory takes a typed deps interface and registers exactly one `world.registerSystem({...})`. Execution order is driven by explicit `before`/`after` deps, not registration sequence.
+
+        Helper-ops tier (factories used by either systems or the input surface):
+        - `playerQueries.ts`, `aiDecisionOps.ts`, `targetFindingOps.ts`, `selectionFinders.ts` — read-side queries.
+        - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators.
+        - `humanInputOps.ts`, `selectionInputOps.ts`, `selectionStateOps.ts`, `unitCommandOps.ts` — command surface.
+        - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers.
+        - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries.
+        - `optionsRules.ts` — train/research/market/build option lookup.
+        - `renderStateOps.ts`, `debugSnapshotOps.ts`, `economyStateOps.ts`, `saveGameOps.ts` — read-side projections to the HUD/test surface.
+
+        `createSimulationBridge.ts` imports from `bridge/` rather than re-declaring any of this. The four shared types in `sharedTypes.ts` are re-exported from the facade so external `SimulationBridge` consumers keep stable import paths.
       - `mapGeneration/` — deterministic procedural map generators and the
         spawn-list helper that enforces one-resource-per-cell. Hosts the
         default + Black Forest + Arena generators plus the shared terrain
@@ -67,15 +60,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         selection, sheep, scenario validation). The `fixtures/index.ts`
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
-  - `phaser/` — Phaser-specific scenes and render projection. Hosts
-    `scenes/GameScene.ts` (scene class wiring lifecycle, input, and
-    projection-driven render orchestration) plus a `scenes/gameScene/`
-    subdirectory for the dep-bag renderer factories factored out of the
-    scene file: `debugOverlay.ts` (world-space debug-mode overlays),
-    `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts`
-    (selection ring + placement preview + marquee paints), and
-    `cameraController.ts` (per-frame update, middle-drag pan, edge-pan,
-    zoom/scroll clamp, HUD-facing camera queries).
+  - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), and `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay).
   - `ui/` — DOM HUD controller
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts

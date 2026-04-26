@@ -57,10 +57,13 @@ When you do dispatch, the team roles below describe how to brief them. The Team 
 
 - Codex:
   - `git diff [branch] | codex exec --model gpt-5.4 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <prompt>`
+  - On Windows, `--sandbox read-only` blocks PowerShell `Select-String` invocations the model sometimes attempts; the model recovers via direct file reads, so the review still completes.
 - Gemini:
-  - `git diff [branch] | gemini -p <prompt> --model gemini-3.1-pro-preview`
+  - `git diff [branch] | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text`
+  - `--approval-mode plan` is required: without it, gemini-3.x models attempt to call `run_shell_command` / `invoke_agent` and return zero output. Plan mode is read-only.
 - Claude:
-  - `git diff [branch] | claude -p --model opus --effort xhigh --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+  - With diff piped via stdin: `git diff [branch] | claude -p --model opus --effort xhigh --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+  - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model opus --effort xhigh --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
 - For full-codebase reviews (no diff), drop the `git diff` pipe and let each CLI agentically explore the workspace from its CWD; keep the same model/effort flags.
 - **Diff reviews take ~5 minutes per CLI on a multi-hundred-line diff.** Run them in parallel with `run_in_background: true`. Wait via a single background `until` poller (`until [ -s codex.txt ] && [ -s claude.txt ] && [ -s gemini.txt ]; do sleep 8; done`) so the harness's no-long-sleeps guard doesn't fire and you don't poll repeatedly.
 - **If a CLI is unreachable** (quota exhaustion, model name rejected by harness), proceed with the remaining reviewers and note the unreachable CLI in the devlog. Two converging reviews are still useful signal — do not block the workflow on a third.
