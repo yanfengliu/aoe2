@@ -92,6 +92,77 @@ export function createMiningCampFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Iter-2 H2-2 regression: player 1 has a villager + a tree, but the
+// only owned building is a Mill (food drop-off only). The villager
+// fills its carry from the tree and the to-dropoff branch finds no
+// owned wood drop-off building. Without the fix, the gather-system
+// silently zeroes the load every tick. With the fix, the load
+// persists until a wood drop-off becomes reachable.
+export function createVillagerNoWoodDropoffFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingResources: {
+          food: 200,
+          wood: 200,
+          gold: 100,
+          stone: 200,
+        },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        // Disable the AI planner for player 2 so it doesn't train its
+        // own villagers and steal-gather from player 1's lone tree
+        // (which would corrupt this regression test's measurements).
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      // Player 1's only owned building is a Mill — accepts food only,
+      // not wood. Intentionally NO Town Center and NO Lumber Camp.
+      {
+        kind: 'mill',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 11,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'tree',
+        x: 13,
+        y: 8,
+        owner: null,
+        baseOwner: 1,
+        amount: 200,
+      },
+      {
+        kind: 'town-center',
+        x: 24,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createFishFixture(seed: string): PrototypeScenario {
   const terrain = createGrassFixtureTerrain();
   for (let y = 7; y <= 9; y += 1) {

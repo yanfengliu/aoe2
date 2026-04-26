@@ -59,6 +59,7 @@ import {
   createFeudalStableFixture,
   createFeudalWatchTowerFixture,
   createFishFixture,
+  createVillagerNoWoodDropoffFixture,
   createFogMemoryFixture,
   createFu3CastleEdgeRangeFixture,
   createFu3CastleFiveArchersFixture,
@@ -753,6 +754,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'fish-fixture') {
     return createFishFixture(seed);
+  }
+
+  if (seed === 'villager-no-wood-dropoff-fixture') {
+    return createVillagerNoWoodDropoffFixture(seed);
   }
 
   if (seed === 'boar-aggro-fixture') {

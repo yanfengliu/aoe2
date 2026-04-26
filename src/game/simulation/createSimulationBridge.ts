@@ -5691,10 +5691,21 @@ function createWorld(
             ? null
             : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
 
-          if (!dropOffPlan || gatherer.carriedResource === null || gatherer.carriedAmount <= 0) {
+          // Iter-2 H2-2: only zero out the carry when there is genuinely
+          // nothing to deliver (empty resource type or amount). When the
+          // villager IS carrying a load but the path / drop-off building
+          // is momentarily unreachable (enemy unit on the path, drop-off
+          // mid-rebuild, or no owned drop-off at all), preserve the load
+          // and re-evaluate next tick. Canonical AoE2 idles the
+          // villager holding its carry until the path reopens.
+          const carriedResource = gatherer.carriedResource;
+          if (carriedResource === null || gatherer.carriedAmount <= 0) {
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
+          } else if (!dropOffPlan) {
+            // Stay in 'to-dropoff' so the next tick re-checks for a
+            // newly-available drop-off; do not touch the carry.
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             // Slice 10: AI difficulty modifies the gather-rate via a
@@ -5707,7 +5718,7 @@ function createWorld(
             const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
             const deposited = Math.round(gatherer.carriedAmount * multiplier);
             if (stockpile) {
-              stockpile[gatherer.carriedResource] += deposited;
+              stockpile[carriedResource] += deposited;
             }
             // Slice 8: track every unit of dropped-off resource toward the
             // end-of-match score. A small per-unit weight keeps the score
