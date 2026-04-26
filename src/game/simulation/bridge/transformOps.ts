@@ -158,9 +158,14 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     }
     try {
       syncOccupancyForEntity(entity);
-    } catch {
+    } catch (err) {
       // Fresh-scenario validation owns the user-facing error for invalid
       // fixture spawns; suppress so the seed-named throw stays primary.
+      // V4-15: log so unexpected errors surface in dev instead of being
+      // silently swallowed under the bootstrap-mode umbrella.
+      if (typeof console !== 'undefined') {
+        console.warn('syncSpawnedEntityOccupancy suppressed during bootstrap', err);
+      }
     }
   }
 

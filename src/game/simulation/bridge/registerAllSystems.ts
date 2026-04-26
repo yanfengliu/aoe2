@@ -105,15 +105,11 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getNearestMoveCandidates,
     isGarrisonedUnit,
     isMatchRunning,
-    isAiMilitaryUnit,
     getOrCreateMemoryMap,
     currentRelicHoldingOwner,
     finalizeMatchEnd,
     playerHasConquestPresence,
   } = deps;
-  // isAiMilitaryUnit is currently unused by this surface; keep it accepted
-  // so future systems can opt into the same shared deps shape.
-  void isAiMilitaryUnit;
 
   const {
     townCenterRefs,

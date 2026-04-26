@@ -141,7 +141,9 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     phase: 'update',
     after: ['prototypeAi', 'prototypeAutoAggression'],
     execute(activeWorld) {
-      for (const [id, command] of [...unitCommands.entries()]) {
+      // Map iteration is delete-during-iterate-safe per ECMAScript spec, so
+      // clearUnitCommand(id) inside the loop body does not need a snapshot.
+      for (const [id, command] of unitCommands.entries()) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
         if (!position || !unit) {

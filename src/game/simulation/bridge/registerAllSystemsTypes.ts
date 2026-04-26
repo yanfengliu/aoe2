@@ -223,7 +223,6 @@ export interface RegisterAllSystemsDeps {
   getNearestMoveCandidates: (target: Position) => Position[];
   isGarrisonedUnit: (id: number) => boolean;
   isMatchRunning: () => boolean;
-  isAiMilitaryUnit: (unitType: UnitType) => boolean;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
   currentRelicHoldingOwner: () => number | null;
   finalizeMatchEnd: (

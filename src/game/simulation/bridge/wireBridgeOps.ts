@@ -248,7 +248,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setUnitCommand,
     getEntityRef,
     getCurrentEntityId,
-    enqueueRejection,
     markOutOfBandRenderChange,
     isMatchRunning,
     createCombatState,

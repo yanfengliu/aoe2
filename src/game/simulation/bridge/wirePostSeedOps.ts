@@ -11,10 +11,8 @@ import { currentEntityId } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type {
   BuildableBuildingType,
-  BuildingComponent,
   BuildingType,
   ResourceComponent,
-  UnitComponent,
   UnitType,
 } from '../types';
 import { unitTint } from '../prototypeUnitRules';
@@ -61,7 +59,6 @@ export interface WirePostSeedDeps {
   setUnitCommand: (id: number, command: import('../createSimulationBridge').UnitCommand) => void;
   getEntityRef: (id: number) => EntityRef | null;
   getCurrentEntityId: (ref: EntityRef | null) => number | null;
-  enqueueRejection: (reason: string) => void;
   markOutOfBandRenderChange: () => void;
   isMatchRunning: () => boolean;
   // Pre-seed factory outputs
@@ -117,7 +114,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     setUnitCommand,
     getEntityRef,
     getCurrentEntityId,
-    enqueueRejection,
     markOutOfBandRenderChange,
     isMatchRunning,
     createCombatState,
@@ -143,7 +139,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getBuildOptions,
     getVisibleResearchOptions,
   } = deps;
-  void enqueueRejection; // currently unused here; kept for parity
 
   const visibilityQueries = createVisibilityQueries({
     world,
@@ -340,5 +335,3 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     unitCommandOps,
   };
 }
-// Suppress unused-import lint for type-only re-exports.
-export type { BuildingComponent, UnitComponent };

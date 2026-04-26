@@ -249,6 +249,8 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     switch (actionType) {
       case 'ungarrison':
         return ungarrisonBuilding(selectedEntityId);
+      default:
+        return false;
     }
   }
 
