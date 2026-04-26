@@ -76,6 +76,19 @@ export function createDebugOverlayController(
     if (event.defaultPrevented) {
       return;
     }
+    // Iter-3 V3-23: ignore F2 when typing into a form control. Prevents
+    // the overlay from toggling when the player is using the
+    // save-load paste-blob textarea, the seed input, or any future
+    // input fields.
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+      || (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
     event.preventDefault();
     cycleMode();
   };

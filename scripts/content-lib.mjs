@@ -15,9 +15,17 @@ function parseRange(value) {
   const trimmed = value.trim();
   const match = /^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/.exec(trimmed);
   if (match) {
+    const min = Number(match[1]);
+    const max = Number(match[2]);
+    // Iter-3 V3-20: reject silently-inverted ranges. CSVs are
+    // hand-edited; an off-by-one swap would otherwise install bogus
+    // bounds into the content bundle without any build-time warning.
+    if (min > max) {
+      throw new Error(`Range "${trimmed}" has min > max — check the CSV for a swapped pair.`);
+    }
     return {
-      min: Number(match[1]),
-      max: Number(match[2]),
+      min,
+      max,
       raw: trimmed,
     };
   }
@@ -189,6 +197,16 @@ export function parseCsv(text) {
   if (current.length > 0 || row.length > 0) {
     pushCell();
     pushRow();
+  }
+
+  // Iter-3 V3-21: detect unclosed quotes. A typo of `"long swordsman`
+  // (missing closing quote) flips inQuotes permanently and consumes
+  // every subsequent comma + newline as literal text — turning the
+  // rest of the file into one mega-row with all cells jammed
+  // together. CSVs are trusted today, but the build emits no warning
+  // on this kind of malformed input. Throw early so the build fails.
+  if (inQuotes) {
+    throw new Error('CSV ended inside a quoted cell — check for an unclosed double quote.');
   }
 
   const [headerRow, ...dataRows] = rows;
