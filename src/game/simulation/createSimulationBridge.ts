@@ -16,8 +16,6 @@ import {
   createInitialMarketRates,
   shouldMaintainGatheringOrder,
   buildingFootprint,
-  isFootprintVisible,
-  compareProjectedRenderEntities,
   type GameEvents,
   type GameCommands,
   type GameComponents,
@@ -37,6 +35,7 @@ import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
+import { createRenderStateOps } from './bridge/renderStateOps';
 import {
   hydrateFromSavedGame,
   registerComponentTypes,
@@ -113,7 +112,6 @@ import type {
   PopulationState,
   ProductionQueueEntry,
   ProjectedEntityView,
-  ProjectedFrameView,
   ResearchableTechnologyType,
   RenderState,
   SelectionState,
@@ -1913,12 +1911,6 @@ export function createSimulationBridge(
   // key in getRenderState includes this counter so any change to the
   // projected entities invalidates the cache automatically.
   let renderStoreVersion = 0;
-  let renderStateCache: {
-    tick: number;
-    renderStoreVersion: number;
-    fogMemorySize: number;
-    value: { tick: number; entities: ProjectedEntityView[]; frame: ProjectedFrameView | null };
-  } | null = null;
 
   function flushOutOfBandRenderChange(): void {
     if (consumeOutOfBandRenderChange()) {
@@ -1926,6 +1918,16 @@ export function createSimulationBridge(
       renderStoreVersion += 1;
     }
   }
+
+  // Render-state assembly + per-tick memo lives in `bridge/renderStateOps`.
+  const { getRenderState: getRenderStateInternal } = createRenderStateOps({
+    visibility,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    renderStore,
+    getHumanFogMemorySize,
+    getFogMemoryEntities,
+    getRenderStoreVersion: () => renderStoreVersion,
+  });
 
   let accumulatorMs = 0;
 
@@ -1955,123 +1957,7 @@ export function createSimulationBridge(
     },
     getRenderState() {
       flushOutOfBandRenderChange();
-
-      // Iter-3 V3-19 (and prior iter-1 H-4): per-tick memo. Multiple
-      // callers (HUD RAF, GameScene.syncFromBridge, browserTestApi
-      // getSnapshot) call this within the same tick, and the work
-      // below — filter every entity by isFootprintVisible, build a
-      // dedupe Set, possibly merge memory entries, possibly re-sort
-      // — is not cheap. A no-state-changed second call returns the
-      // cached result.
-      //
-      // Cache key: (tick, renderStoreVersion, fogMemorySize). The
-      // version counter is bumped whenever flushOutOfBandRenderChange
-      // re-runs the projector (selection / construction-complete /
-      // tech-upgrade / similar), so the cache is invalidated for any
-      // mid-tick change that could affect the projected list.
-      const currentTick = renderStore.getTick();
-      const currentFogMemorySize = getHumanFogMemorySize();
-      if (
-        renderStateCache !== null
-        && renderStateCache.tick === currentTick
-        && renderStateCache.renderStoreVersion === renderStoreVersion
-        && renderStateCache.fogMemorySize === currentFogMemorySize
-      ) {
-        return renderStateCache.value;
-      }
-
-      // The render adapter only re-projects entities on component changes, so a static
-      // enemy building or resource's projected view can linger in the render store after
-      // it has left the human player's vision. Filter those out here so they can be
-      // surfaced as memory entities instead. Units are NOT filtered: they update their
-      // transform each tick, so the adapter re-runs the visibility check on them as a
-      // side-effect of component changes. Sheep carry a fractional subgrid x/y when
-      // moving, so floor to an integer cell before querying the visibility grid.
-      // Buildings can span multiple cells, so check the full footprint — a Town
-      // Center with one corner in vision must render as live, not memory.
-      //
-      // `renderStore.getEntities()` already returns a sorted array. We preserve that
-      // order so the common no-memory path returns the live list as-is without
-      // building a dedupe Set, projecting memory views, or re-sorting. Each one of
-      // those would otherwise allocate every frame for no benefit in the common case.
-      const liveEntitiesRaw = renderStore.getEntities();
-      const liveEntities = liveEntitiesRaw.filter((entity) => {
-        if (entity.kind !== 'building' && entity.kind !== 'resource') {
-          return true;
-        }
-        if (entity.owner === HUMAN_PLAYER_ID) {
-          return true;
-        }
-        return isFootprintVisible(
-          visibility,
-          HUMAN_PLAYER_ID,
-          entity.x,
-          entity.y,
-          entity.footprintWidth,
-          entity.footprintHeight,
-        );
-      });
-
-      // Fast path: if the human player has no fog memory at all, skip the dedupe
-      // Set, the memory projection, and the merge sort entirely. This is the
-      // common case every frame after warmup.
-      if (currentFogMemorySize === 0) {
-        const value = {
-          tick: currentTick,
-          entities: liveEntities,
-          frame: renderStore.getFrame(),
-        };
-        renderStateCache = {
-          tick: currentTick,
-          renderStoreVersion,
-          fogMemorySize: currentFogMemorySize,
-          value,
-        };
-        return value;
-      }
-
-      const liveIds = new Set<number>();
-      for (const entity of liveEntities) {
-        liveIds.add(entity.id);
-      }
-      const memoryEntities = getFogMemoryEntities(liveIds);
-      if (memoryEntities.length === 0) {
-        const value = {
-          tick: currentTick,
-          entities: liveEntities,
-          frame: renderStore.getFrame(),
-        };
-        renderStateCache = {
-          tick: currentTick,
-          renderStoreVersion,
-          fogMemorySize: currentFogMemorySize,
-          value,
-        };
-        return value;
-      }
-
-      // Merge live and memory entries into one sorted array. Live entries are
-      // already sorted by (layer, y, x); memory entries are not, so a single sort
-      // of the combined array is the simplest way to keep the rendering layer
-      // order intact. The comparator is hoisted to module scope so we don't
-      // allocate a fresh closure each frame.
-      const merged = liveEntities.slice();
-      for (const entity of memoryEntities) {
-        merged.push(entity);
-      }
-      merged.sort(compareProjectedRenderEntities);
-      const value = {
-        tick: currentTick,
-        entities: merged,
-        frame: renderStore.getFrame(),
-      };
-      renderStateCache = {
-        tick: currentTick,
-        renderStoreVersion,
-        fogMemorySize: currentFogMemorySize,
-        value,
-      };
-      return value;
+      return getRenderStateInternal();
     },
     getRenderInterpolationAlpha() {
       const tickMs = 1000 / TPS;
