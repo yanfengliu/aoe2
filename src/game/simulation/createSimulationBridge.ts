@@ -1,5 +1,4 @@
 import {
-  findGridPath,
   RenderAdapter,
   VisibilityMap,
   World,
@@ -17,7 +16,6 @@ import {
   defaultCivilizationName,
   createInitialMarketRates,
   isAtTarget,
-  clonePosition,
   getUnitTargetTransformForCell,
   clampUnitTransformToMap,
   gridPositionFromUnitTransform,
@@ -54,6 +52,7 @@ import { createAiDecisionOps } from './bridge/aiDecisionOps';
 import { createPlacementOps } from './bridge/placementOps';
 import { createSaveGameOps } from './bridge/saveGameOps';
 import { createEntityDestroyOps } from './bridge/entityDestroyOps';
+import { createMovementPlanOps } from './bridge/movementPlanOps';
 import { createOptionsRules } from './bridge/optionsRules';
 import { createSelectionStateOps } from './bridge/selectionStateOps';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
@@ -344,11 +343,6 @@ interface WildlifeState extends CombatState {
   corpsePersists: boolean;
   aggroRange: number;
   targetEntityRef: EntityRef | null;
-}
-
-interface UnitMovementPlan {
-  destination: Position;
-  nextStep: Position;
 }
 
 interface ResolvedMovementPath {
@@ -2077,350 +2071,31 @@ function createWorld(
     return worldOccupancy.isPlacementBlocked(x, y, width, height);
   }
 
-  function uniquePositions(positions: Position[]): Position[] {
-    const seen = new Set<string>();
-    const unique: Position[] = [];
+  // Movement plan ops live in `bridge/movementPlanOps`. The factory closes
+  // over the per-unit path cache and the two passability predicates
+  // (`isCellPassableForUnit` for units / `isCellPassableForWildlife` for
+  // sheep/wildlife). Exposes the same set of plan helpers + the spatial
+  // utility queries (uniquePositions, getCellsWithinRange,
+  // getApproachCellsForFootprint, getNearestMoveCandidates).
+  const {
+    uniquePositions,
+    getApproachCellsForFootprint,
+    getNearestMoveCandidates,
+    findMovementPlan,
+    resolveMovePlanFromCache,
+    findResourceApproachPlan,
+    findBuildingApproachPlan,
+    findUnitRangePlan,
+    findWildlifeRangePlan,
+  } = createMovementPlanOps({
+    world,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+    movePathCache,
+    isCellPassableForUnit,
+    isCellPassableForWildlife,
+  });
 
-    for (const position of positions) {
-      const key = `${position.x},${position.y}`;
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      unique.push(position);
-    }
-
-    return unique;
-  }
-
-  function getCellsWithinRange(center: Position, range: number): Position[] {
-    const cells: Position[] = [];
-
-    for (let y = center.y - range; y <= center.y + range; y += 1) {
-      for (let x = center.x - range; x <= center.x + range; x += 1) {
-        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
-          continue;
-        }
-
-        const distance = Math.abs(center.x - x) + Math.abs(center.y - y);
-        if (distance > range) {
-          continue;
-        }
-
-        cells.push({ x, y });
-      }
-    }
-
-    return cells;
-  }
-
-  function getApproachCellsForFootprint(anchor: Position, width: number, height: number, range = 1): Position[] {
-    const candidates: Position[] = [];
-    const minX = anchor.x - range;
-    const maxX = anchor.x + width - 1 + range;
-    const minY = anchor.y - range;
-    const maxY = anchor.y + height - 1 + range;
-
-    for (let y = minY; y <= maxY; y += 1) {
-      for (let x = minX; x <= maxX; x += 1) {
-        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
-          continue;
-        }
-
-        const dx =
-          x < anchor.x ? anchor.x - x
-          : x > anchor.x + width - 1 ? x - (anchor.x + width - 1)
-          : 0;
-        const dy =
-          y < anchor.y ? anchor.y - y
-          : y > anchor.y + height - 1 ? y - (anchor.y + height - 1)
-          : 0;
-        const distance = dx + dy;
-        if (distance === 0 || distance > range) {
-          continue;
-        }
-
-        candidates.push({ x, y });
-      }
-    }
-
-    return uniquePositions(candidates);
-  }
-
-  function getNearestMoveCandidates(target: Position): Position[] {
-    const candidates: Position[] = [];
-    const maxRadius = Math.max(MAP_WIDTH, MAP_HEIGHT);
-
-    for (let radius = 0; radius <= maxRadius; radius += 1) {
-      for (let y = target.y - radius; y <= target.y + radius; y += 1) {
-        for (let x = target.x - radius; x <= target.x + radius; x += 1) {
-          if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
-            continue;
-          }
-
-          const distance = Math.abs(target.x - x) + Math.abs(target.y - y);
-          if (distance !== radius) {
-            continue;
-          }
-
-          candidates.push({ x, y });
-        }
-      }
-    }
-
-    return uniquePositions(candidates);
-  }
-
-  function findMovementPathToCandidates(
-    unitId: number,
-    start: Position,
-    candidates: Position[],
-    preferCurrentCell: boolean,
-    activeWorld: World<GameEvents, GameCommands> = world,
-    isPassable: (
-      entityId: number,
-      x: number,
-      y: number,
-      worldState: World<GameEvents, GameCommands>,
-    ) => boolean = isCellPassableForUnit,
-  ): ResolvedMovementPath | null {
-    const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
-      isPassable(unitId, candidate.x, candidate.y, activeWorld),
-    );
-
-    if (preferCurrentCell) {
-      const currentCellCandidate = uniqueCandidates.find(
-        (candidate) => candidate.x === start.x && candidate.y === start.y,
-      );
-      if (currentCellCandidate) {
-        return {
-          destination: clonePosition(currentCellCandidate),
-          path: [clonePosition(start)],
-        };
-      }
-    }
-
-    for (const destination of uniqueCandidates) {
-      const pathResult = findGridPath({
-        width: MAP_WIDTH,
-        height: MAP_HEIGHT,
-        start,
-        goal: destination,
-        blocked: (x, y) => !isPassable(unitId, x, y, activeWorld),
-      });
-      if (!pathResult) {
-        continue;
-      }
-
-      return {
-        destination: clonePosition(destination),
-        // Clone the A* output before caching or shaping it so callers never
-        // depend on civ-engine reusing returned Position objects or arrays.
-        path: pathResult.path.map((step) => clonePosition(step)),
-      };
-    }
-
-    return null;
-  }
-
-  function findMovementPlan(
-    unitId: number,
-    start: Position,
-    candidates: Position[],
-    preferCurrentCell: boolean,
-    activeWorld: World<GameEvents, GameCommands> = world,
-    isPassable: (
-      entityId: number,
-      x: number,
-      y: number,
-      worldState: World<GameEvents, GameCommands>,
-    ) => boolean = isCellPassableForUnit,
-  ): UnitMovementPlan | null {
-    const movementPath = findMovementPathToCandidates(
-      unitId,
-      start,
-      candidates,
-      preferCurrentCell,
-      activeWorld,
-      isPassable,
-    );
-    if (movementPath) {
-      return {
-        destination: movementPath.destination,
-        nextStep: movementPath.path[1] ?? movementPath.destination,
-      };
-    }
-
-    return null;
-  }
-
-  function resolveMovePlanFromCache(
-    unitId: number,
-    target: Position,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(unitId, 'position');
-    if (!position) {
-      movePathCache.delete(unitId);
-      return null;
-    }
-
-    const cachedMovePath = movePathCache.get(unitId);
-    if (cachedMovePath) {
-      while (
-        cachedMovePath.nextPathIndex < cachedMovePath.path.length
-        && isAtTarget(position, cachedMovePath.path[cachedMovePath.nextPathIndex]!)
-      ) {
-        cachedMovePath.nextPathIndex += 1;
-      }
-
-      const previousPathIndex = Math.max(0, cachedMovePath.nextPathIndex - 1);
-      const previousStep = cachedMovePath.path[previousPathIndex];
-      if (!isAtTarget(cachedMovePath.destination, target)
-        // This cache is intentionally move-only, so the "has the original
-        // click target opened up?" check uses move-command passability.
-        && isCellPassableForUnit(unitId, target.x, target.y, activeWorld)) {
-        // A blocked click target can become free while the unit is still
-        // following the old fallback route (for example when a tree is
-        // chopped down). Drop the cached fallback immediately so we
-        // re-solve toward the player's real click target on this tick.
-        movePathCache.delete(unitId);
-      } else if (
-        previousStep
-        && isAtTarget(position, previousStep)
-      ) {
-        const nextStep = cachedMovePath.path[cachedMovePath.nextPathIndex] ?? cachedMovePath.destination;
-        if (
-          isAtTarget(position, cachedMovePath.destination)
-          && !isAtTarget(cachedMovePath.destination, target)
-        ) {
-          // If we cached a "nearest reachable fallback" because the clicked
-          // cell was blocked earlier, re-check the real target once we reach
-          // that fallback before deciding the move order is finished.
-          movePathCache.delete(unitId);
-        } else {
-          // Move-command passability ignores other units, so validating the
-          // immediate next cell is enough to keep the cached route honest
-          // without re-solving the whole path every tick.
-          if (
-            isAtTarget(position, nextStep)
-            || isCellPassableForUnit(unitId, nextStep.x, nextStep.y, activeWorld)
-          ) {
-            return {
-              destination: cachedMovePath.destination,
-              nextStep,
-            };
-          }
-        }
-      }
-    }
-
-    const refreshedMovementPath = findMovementPathToCandidates(
-      unitId,
-      position,
-      getNearestMoveCandidates(target),
-      false,
-      activeWorld,
-      isCellPassableForUnit,
-    );
-    if (!refreshedMovementPath) {
-      movePathCache.delete(unitId);
-      return null;
-    }
-    const refreshedMovePath: CachedMovePath = {
-      destination: refreshedMovementPath.destination,
-      path: refreshedMovementPath.path,
-      nextPathIndex: refreshedMovementPath.path.length > 1 ? 1 : 0,
-    };
-    movePathCache.set(unitId, refreshedMovePath);
-
-    return {
-      destination: refreshedMovePath.destination,
-      nextStep: refreshedMovePath.path[refreshedMovePath.nextPathIndex] ?? refreshedMovePath.destination,
-    };
-  }
-
-  function findResourceApproachPlan(
-    unitId: number,
-    resourceId: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(unitId, 'position');
-    const resourcePosition = activeWorld.getComponent<Position>(resourceId, 'position');
-    if (!position || !resourcePosition) {
-      return null;
-    }
-
-    return findMovementPlan(
-      unitId,
-      position,
-      getApproachCellsForFootprint(resourcePosition, 1, 1, 1),
-      true,
-      activeWorld,
-    );
-  }
-
-  function findBuildingApproachPlan(
-    unitId: number,
-    buildingId: number,
-    range = 1,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(unitId, 'position');
-    const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
-    const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!position || !buildingPosition || !building) {
-      return null;
-    }
-
-    const footprint = buildingFootprint(building.buildingType);
-    return findMovementPlan(
-      unitId,
-      position,
-      getApproachCellsForFootprint(buildingPosition, footprint.width, footprint.height, range),
-      true,
-      activeWorld,
-    );
-  }
-
-  function findUnitRangePlan(
-    unitId: number,
-    targetPosition: Position,
-    range: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(unitId, 'position');
-    if (!position) {
-      return null;
-    }
-
-    const candidates = getCellsWithinRange(targetPosition, range)
-      .filter((candidate) => !(candidate.x === targetPosition.x && candidate.y === targetPosition.y));
-    return findMovementPlan(unitId, position, candidates, true, activeWorld);
-  }
-
-  function findWildlifeRangePlan(
-    resourceId: number,
-    targetPosition: Position,
-    range: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(resourceId, 'position');
-    if (!position) {
-      return null;
-    }
-
-    const candidates = getCellsWithinRange(targetPosition, range)
-      .filter((candidate) => !(candidate.x === targetPosition.x && candidate.y === targetPosition.y));
-    return findMovementPlan(
-      resourceId,
-      position,
-      candidates,
-      true,
-      activeWorld,
-      isCellPassableForWildlife,
-    );
-  }
 
   function findSafeSpawnPosition(candidates: Position[]): Position | null {
     // Slice 12 Task A: delegate the "cell passable + at least one passable
