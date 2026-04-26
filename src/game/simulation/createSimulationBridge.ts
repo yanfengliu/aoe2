@@ -17,9 +17,6 @@ import {
   createInitialMarketRates,
   shouldMaintainGatheringOrder,
   isResourceCandidate,
-  isEconomyVillager,
-  isEconomyResourceEntry,
-  cloneQueue,
   manhattanDistance,
   buildingFootprint,
   isFootprintVisible,
@@ -48,6 +45,7 @@ import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
 import { createCellPassability } from './bridge/cellPassability';
 import { createDebugSnapshotOps } from './bridge/debugSnapshotOps';
+import { createEconomyStateOps } from './bridge/economyStateOps';
 import { createTransformOps } from './bridge/transformOps';
 import { createVisibilityQueries } from './bridge/visibilityQueries';
 import { createSelectionInputOps } from './bridge/selectionInputOps';
@@ -86,16 +84,8 @@ import {
   TPS,
   createPrototypeScenario,
 } from './prototypeScenario';
-import {
-  buildingBuildTimeTicks,
-  buildingPopulationProvided,
-} from './prototypeBuildingRules';
 import { resourceKindToEconomyResource } from './prototypeEconomyRules';
-import {
-  unitAttackDamage,
-  unitAttackRange,
-  unitTint,
-} from './prototypeUnitRules';
+import { unitTint } from './prototypeUnitRules';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
 import { findSafeSpawnWithEgress } from './spawn';
@@ -2341,125 +2331,22 @@ function createWorld(
     aiStates,
   });
 
+  // Economy snapshot lives in `bridge/economyStateOps`.
+  const { getEconomyState } = createEconomyStateOps({
+    world,
+    combatStates,
+    constructionStates,
+    productionQueues,
+    playerAges,
+    playerResources,
+    population,
+    getUnitTaskState: (id) => getUnitTaskState(id),
+  });
+
   return {
     world,
     saveGame,
-    getEconomyState() {
-      const villagers = [...world.query('unit', 'gatherer')]
-        .map((id) => {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-          if (!unit || !gatherer) {
-            return null;
-          }
-
-          return {
-            owner: unit.owner,
-            task: getUnitTaskState(id),
-            desiredResource: gatherer.desiredResource,
-            carriedResource: gatherer.carriedResource,
-            carriedAmount: gatherer.carriedAmount,
-          };
-        })
-        .filter(isEconomyVillager);
-
-      const resources = [...world.query('position', 'resource')]
-        .map((id) => {
-          const position = world.getComponent<Position>(id, 'position');
-          const resource = world.getComponent<ResourceComponent>(id, 'resource');
-          if (!position || !resource) {
-            return null;
-          }
-
-          return {
-            id,
-            resourceType: resource.resourceType,
-            amount: resource.amount,
-            maxAmount: resource.maxAmount,
-            owner: resource.owner,
-            baseOwner: resource.baseOwner,
-            x: position.x,
-            y: position.y,
-          };
-        })
-        .filter(isEconomyResourceEntry);
-
-      const units = [...world.query('position', 'unit')]
-        .map((id) => {
-          const position = world.getComponent<Position>(id, 'position');
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
-          if (!position || !unit) {
-            return null;
-          }
-
-          return {
-            id,
-            owner: unit.owner,
-            unitType: unit.unitType,
-            x: position.x,
-            y: position.y,
-            task: getUnitTaskState(id),
-            attackDamage: combat?.attackDamage ?? unitAttackDamage(unit.unitType),
-            attackRange: combat?.attackRange ?? unitAttackRange(unit.unitType),
-            armor: combat?.armor ?? 0,
-          };
-        })
-        .filter((entry): entry is EconomyState['units'][number] => entry !== null);
-
-      const buildings = [...world.query('position', 'building')]
-        .map((id) => {
-          const position = world.getComponent<Position>(id, 'position');
-          const building = world.getComponent<BuildingComponent>(id, 'building');
-          if (!position || !building) {
-            return null;
-          }
-
-          const construction = constructionStates.get(id);
-          const footprint = buildingFootprint(building.buildingType);
-          return {
-            id,
-            owner: building.owner,
-            buildingType: building.buildingType,
-            x: position.x,
-            y: position.y,
-            footprintWidth: footprint.width,
-            footprintHeight: footprint.height,
-            isComplete: construction ? construction.isComplete : true,
-            buildProgressTicks: construction
-              ? construction.buildProgressTicks
-              : buildingBuildTimeTicks(building.buildingType),
-            totalBuildTicks: construction
-              ? construction.totalBuildTicks
-              : buildingBuildTimeTicks(building.buildingType),
-            populationProvided: buildingPopulationProvided(building.buildingType),
-            queue: cloneQueue(productionQueues.get(id) ?? []),
-          };
-        })
-        .filter((entry): entry is EconomyState['buildings'][number] => entry !== null);
-
-      return {
-        ages: Object.fromEntries(
-          [...playerAges.entries()].map(([playerId, age]) => [playerId, age]),
-        ),
-        playerResources: Object.fromEntries(
-          [...playerResources.entries()].map(([playerId, resources]) => [
-            playerId,
-            cloneResources(resources),
-          ]),
-        ),
-        population: Object.fromEntries(
-          [...population.entries()].map(([playerId, value]) => [
-            playerId,
-            { ...value },
-          ]),
-        ),
-        villagers,
-        resources,
-        units,
-        buildings,
-      };
-    },
+    getEconomyState,
     getPopulationState(playerId: number) {
       return { ...(population.get(playerId) ?? { current: 0, cap: 0 }) };
     },
