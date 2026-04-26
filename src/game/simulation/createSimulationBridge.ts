@@ -13,7 +13,6 @@ import {
   rebuildTileGridFromWorld,
   currentEntityId,
   cloneResources,
-  createInitialMarketRates,
   shouldMaintainGatheringOrder,
   buildingFootprint,
   type GameEvents,
@@ -34,6 +33,7 @@ import { createEntityDestroyOps } from './bridge/entityDestroyOps';
 import { createCombatStateFactory } from './bridge/combatStateFactory';
 import { createEntityCreateOps } from './bridge/entityCreateOps';
 import { createHumanInputOps } from './bridge/humanInputOps';
+import { createBridgeState, type BridgeState } from './bridge/bridgeState';
 import { createCellPassability } from './bridge/cellPassability';
 import { registerAllSystems } from './bridge/registerAllSystems';
 import { createRenderStateOps } from './bridge/renderStateOps';
@@ -56,8 +56,6 @@ import { createOptionsRules } from './bridge/optionsRules';
 import { createPlayerQueries } from './bridge/playerQueries';
 import { createSelectionStateOps } from './bridge/selectionStateOps';
 import { createTargetFindingOps } from './bridge/targetFindingOps';
-import type { RelicCountdownEntry, WonderCountdownEntry } from './bridge/countdownTypes';
-import type { MemoryEntry } from './bridge/memoryTypes';
 import {
   DEFAULT_SEED,
   HUMAN_PLAYER_ID,
@@ -93,7 +91,6 @@ import type {
   PlayerResources,
   PlacementPreviewState,
   PopulationState,
-  ProductionQueueEntry,
   ProjectedEntityView,
   ResearchableTechnologyType,
   RenderState,
@@ -102,7 +99,6 @@ import type {
   TrainableUnitType,
   UnitTaskState,
   UnitType,
-  VisionSourceComponent,
 } from './types';
 
 // MemoryEntry has moved to `bridge/memoryTypes` — re-export so external
@@ -227,49 +223,9 @@ export interface TrebuchetPackState {
   transitionTicksRemaining: number;
 }
 
-interface CombatState {
-  currentHp: number;
-  maxHp: number;
-  attackDamage: number;
-  attackRange: number;
-  reloadTicks: number;
-  cooldownTicks: number;
-  // Additive armor granted by Blacksmith techs (Plate Mail Armor for infantry,
-  // Plate Barding Armor for cavalry). Base unit types ship with armor 0; only
-  // techs bump this value. Armor does not currently reduce damage in combat
-  // calculations — this tracks the researched state so the HUD / tests can
-  // surface the bonus. Damage-reduction hooks land in a later slice.
-  armor: number;
-}
-
-interface BuildingHealthState {
-  currentHp: number;
-  maxHp: number;
-}
-
-interface BuildingCombatState {
-  attackDamage: number;
-  attackRange: number;
-  reloadTicks: number;
-  cooldownTicks: number;
-}
-
-interface WildlifeState extends CombatState {
-  autoAggro: boolean;
-  isAlive: boolean;
-  corpsePersists: boolean;
-  aggroRange: number;
-  targetEntityRef: EntityRef | null;
-}
-
-interface ResolvedMovementPath {
-  destination: Position;
-  path: Position[];
-}
-
-interface CachedMovePath extends ResolvedMovementPath {
-  nextPathIndex: number;
-}
+// CombatState / BuildingCombatState / BuildingHealthState / WildlifeState
+// shapes live in `bridge/systems/systemTypes` (shared with the per-system
+// factories). CachedMovePath shape lives in `bridge/bridgeState`.
 
 function createWorld(
   seed: string,
@@ -336,71 +292,52 @@ function createWorld(
   worldOccupancy.attachWorld(world);
   let isBootstrappingScenario = !savedGame;
 
-  const trackedVisibilitySources = new Map<number, number>();
-  const playerAges = new Map<number, AgeType>();
-  const playerCivilizations = new Map<number, string>();
-  const researchedTechnologies = new Map<number, Set<ResearchableTechnologyType>>();
-  const playerResources = new Map<number, PlayerResources>();
-  const marketExchangeRates = createInitialMarketRates();
-  const population = new Map<number, PopulationState>();
-  const townCenterRefs = new Map<number, EntityRef>();
-  const villagerOrdinals = new Map<number, number>();
-  const unitCommands = new Map<number, UnitCommand>();
-  // Transient move-order routes live outside `unitCommands` so save/load keeps
-  // serializing only durable intent (command kind + target/entity refs).
-  const movePathCache = new Map<number, CachedMovePath>();
-  const sheepMoveOrders = new Map<number, Position>();
-  const rallyPoints = new Map<number, Position>();
-  // Slice 5 Monk state. Monks operate outside the standard attack loop: the
-  // `monkTasks` map records what each selected Monk should do on the next tick
-  // (heal a friendly wounded unit, convert an enemy unit, pickup a neutral
-  // relic, or deposit a carried relic in a friendly Monastery). The system
-  // `prototypeMonkBehavior` reads these per tick.
-  const monkTasks = new Map<number, MonkTask>();
-  // Convert progress per target entity id. Ticks up by
-  // `MONK_CONVERT_PROGRESS_PER_TICK` while a Monk is in range and targeting
-  // the enemy; when progress reaches `MONK_CONVERT_FLIP_THRESHOLD` the target
-  // flips to the Monk's owner and this map entry clears.
-  const conversionState = new Map<number, { byOwner: number; progress: number }>();
-  // Which relic entity (if any) each Monk is carrying. Per tick the relic
-  // entity's position is moved to the Monk's cell.
-  const monkCarriedRelic = new Map<number, number>();
-  // Per-Monastery count of deposited relics. Per tick, every owner gets +1
-  // gold for each relic deposited in their Monasteries (see prototypeRelicGold).
-  const relicsInMonastery = new Map<number, number>();
-  const trebuchetPackStates = new Map<number, TrebuchetPackState>();
-  // Slice 8: Wonder victory state. Countdown starts as soon as a player's
-  // Wonder completes construction; decrements every tick. At 0 the owner
-  // wins by Wonder victory. If the Wonder is destroyed the countdown
-  // resets to null and must restart from scratch when a new Wonder is
-  // built. Countdown length defaults to WONDER_COUNTDOWN_TICKS but a
-  // per-player scenario override (`wonderCountdownOverrideTicks`) can
-  // shrink it for test speed. Entry shape lives in `bridge/countdownTypes`.
-  const wonderCountdowns = new Map<number, WonderCountdownEntry>();
-  const wonderCountdownOverrides = new Map<number, number>();
-  // Slice 8: Relic victory state. Countdown starts as soon as one owner
-  // holds every relic on the map inside their Monasteries. Decrements
-  // every tick. At 0 the owner wins by Relic victory. If the ownership
-  // picture changes (a relic drops, a relic is picked up by another
-  // Monk, etc.) the countdown resets to null. Entry shape lives in
-  // `bridge/countdownTypes`.
-  const relicCountdowns = new Map<number, RelicCountdownEntry>();
-  const relicCountdownOverrides = new Map<number, number>();
-  // Slice 8: per-owner score counters incremented on game-event ticks.
-  // The final score is computed in `finalizeMatchEnd` using the weights
-  // documented in `computePlayerScore`.
-  interface PlayerScoreCounters {
-    unitsProduced: number;
-    buildingsProduced: number;
-    resourcesGathered: number;
-    // FU7: military kills (enemy units destroyed by this player's units or
-    // buildings). Rewards combat play so a defensive booming economy does
-    // not trivially outscore a raiding army at match end.
-    unitsKilled: number;
-    wonderCompleted: boolean;
-  }
-  const playerScoreCounters = new Map<number, PlayerScoreCounters>();
-  function ensurePlayerScoreCounters(owner: number): PlayerScoreCounters {
+  // Side-map state lives in `bridge/bridgeState`. Destructured locally so
+  // the rest of createWorld reads them as bare names.
+  const state = createBridgeState();
+  const {
+    trackedVisibilitySources,
+    playerAges,
+    playerCivilizations,
+    researchedTechnologies,
+    playerResources,
+    marketExchangeRates,
+    population,
+    townCenterRefs,
+    villagerOrdinals,
+    unitCommands,
+    movePathCache,
+    sheepMoveOrders,
+    rallyPoints,
+    monkTasks,
+    conversionState,
+    monkCarriedRelic,
+    relicsInMonastery,
+    trebuchetPackStates,
+    wonderCountdowns,
+    wonderCountdownOverrides,
+    relicCountdowns,
+    relicCountdownOverrides,
+    playerScoreCounters,
+    lastSeenStatic,
+    garrisonedByBuilding,
+    garrisonedUnitToBuilding,
+    garrisonedUnitVisionSources,
+    aiStates,
+    monkHealCounters,
+    monkConvertProcessedThisTick,
+    productionQueues,
+    constructionStates,
+    combatStates,
+    buildingHealthStates,
+    buildingCombatStates,
+    wildlifeStates,
+    inFlightTechByOwner,
+    gathererDropOffStuckSinceTick,
+  } = state;
+  function ensurePlayerScoreCounters(
+    owner: number,
+  ): BridgeState['playerScoreCounters'] extends Map<number, infer V> ? V : never {
     let counters = playerScoreCounters.get(owner);
     if (!counters) {
       counters = {
@@ -426,13 +363,8 @@ function createWorld(
     isTrebuchetSilent,
   } = createTrebuchetStateOps(trebuchetPackStates);
 
-  // Per-player last-seen snapshot of static buildings and resources (Item 3, Slice 1).
-  // Keyed by playerId -> entityId -> snapshot. Refreshed every tick for entities currently
-  // visible to the player; read at render-projection time for cells that are
-  // explored-but-not-visible, so the player remembers enemy bases and resource patches that
-  // have since left vision. Units are excluded in v1. Read helpers live in
-  // `bridge/fogMemoryOps`; save/load hydration still writes through this map directly.
-  const lastSeenStatic = new Map<number, Map<number, MemoryEntry>>();
+  // Read helpers for the per-player fog memory snapshot. The bridge owns
+  // `state.lastSeenStatic`; this factory bundles the read accessors.
   const {
     getOrCreateMemoryMap,
     getFogMemoryEntities,
@@ -442,21 +374,6 @@ function createWorld(
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
   });
-
-  // Slice 11: snapshot for the F2 debug overlay. The HUD calls this every
-  // frame in modes that request pathing / ai-state / perf. Readers pick
-  // whichever slice they need; the arrays remain short because active
-  // unit commands and AI entries cap at the handful of moving units /
-  // non-human owners.
-  const garrisonedByBuilding = new Map<number, number[]>();
-  const garrisonedUnitToBuilding = new Map<number, number>();
-  const garrisonedUnitVisionSources = new Map<number, VisionSourceComponent>();
-  // Slice 10: per-owner AI state. Keyed by player id (non-human owners
-  // get an entry at scenario bootstrap via `ensureAiState`). The
-  // `prototypeAi` system reads this to drive a planner-style decision
-  // loop; save/load serializes it through the same side-map boundary
-  // as every other piece of runtime state (see `SerializedSideMaps`).
-  const aiStates = new Map<number, AiState>();
 
   // Debug snapshot lives in `bridge/debugSnapshotOps`.
   const { getDebugSnapshot } = createDebugSnapshotOps({
@@ -479,10 +396,10 @@ function createWorld(
     owner: number,
     difficulty: DifficultyLevel = DEFAULT_DIFFICULTY,
   ): AiState {
-    let state = aiStates.get(owner);
-    if (!state) {
+    let aiState = aiStates.get(owner);
+    if (!aiState) {
       const age = playerAges.get(owner) ?? 'dark-age';
-      state = {
+      aiState = {
         difficulty,
         plan: planForAge(age),
         villagerTargets: { ...villagerTargetsForAge(age) },
@@ -491,43 +408,11 @@ function createWorld(
         lastEnemySightingTick: -1,
         lastEnemySightingPosition: null,
       };
-      aiStates.set(owner, state);
+      aiStates.set(owner, aiState);
     }
-    return state;
+    return aiState;
   }
-  // Slice 5 Monk runtime counters. Hoisted to the top of `createWorld`
-  // alongside the other side maps so the Slice 9 save/load path can
-  // both serialize and rehydrate them. The original declaration site
-  // was inside the prototypeMonkBehavior system body; the system still
-  // closes over these maps via the surrounding closure.
-  const monkHealCounters = new Map<number, number>();
-  // Per-tick "already progressed this tick" guard for convert. Cleared at
-  // the start of every prototypeMonkBehavior pass, so it never holds
-  // cross-tick state worth saving.
-  const monkConvertProcessedThisTick = new Set<number>();
-  const productionQueues = new Map<number, ProductionQueueEntry[]>();
-  const constructionStates = new Map<number, ConstructionState>();
-  const combatStates = new Map<number, CombatState>();
-  const buildingHealthStates = new Map<number, BuildingHealthState>();
-  const buildingCombatStates = new Map<number, BuildingCombatState>();
-  const wildlifeStates = new Map<number, WildlifeState>();
-  // Iter-3 V3-5: per-gatherer "stuck since" tick. The H2-2 fix
-  // preserves the carry when findBuildingApproachPlan is null, but
-  // the prior implementation re-ran findNearestDropOffBuilding + the
-  // A* search every tick for every stuck villager. This map throttles
-  // the retry to GATHER_DROPOFF_RETRY_INTERVAL ticks. Entries are
-  // dropped on successful re-plan, on `clearGathererOrder`, on unit
-  // destruction, and on save/load (scratch state, not serialized).
-  const gathererDropOffStuckSinceTick = new Map<number, number>();
-  // GATHER_DROPOFF_RETRY_INTERVAL moved to bridge/systems/villagerEconomySystem.
-  // Iter-3 V3-6: per-owner set of in-flight research technologies. The
-  // iter-2 H2-1 cost-dedupe scanned every owned producer's queue per
-  // enqueueResearch call (O(producers × queue depth)); this side map
-  // makes the lookup O(1). Updated on every queue push and queue
-  // shift. Rebuildable from `productionQueues`, so we don't serialize
-  // it — the load path walks the loaded queues and re-populates the
-  // set instead.
-  const inFlightTechByOwner = new Map<number, Set<ResearchableTechnologyType>>();
+
   function inFlightTechSetFor(owner: number): Set<ResearchableTechnologyType> {
     let set = inFlightTechByOwner.get(owner);
     if (!set) {
