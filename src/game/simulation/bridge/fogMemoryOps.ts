@@ -8,6 +8,7 @@ import type { VisibilityMap } from 'civ-engine';
 
 import type { MemoryEntry } from '../createSimulationBridge';
 import type { ProjectedEntityView } from '../types';
+import { isFootprintExplored, isFootprintVisible } from './pureHelpers';
 
 export interface FogMemoryOps {
   // Return (creating if missing) the per-player memory map. Used by the
@@ -57,11 +58,29 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
       if (liveEntityIds.has(entityId)) {
         continue;
       }
-      const isExplored = visibility.isExplored(humanPlayerId, entry.position.x, entry.position.y);
+      // Iter-3 V3-1: surface a memory entry as long as ANY cell of its
+      // footprint is explored / visible. The prior anchor-only check
+      // hid memory entries for partially-explored multi-cell buildings
+      // (the iter-2 M2-1 sibling at the projection layer).
+      const isExplored = isFootprintExplored(
+        visibility,
+        humanPlayerId,
+        entry.position.x,
+        entry.position.y,
+        entry.footprintWidth,
+        entry.footprintHeight,
+      );
       if (!isExplored) {
         continue;
       }
-      const isVisible = visibility.isVisible(humanPlayerId, entry.position.x, entry.position.y);
+      const isVisible = isFootprintVisible(
+        visibility,
+        humanPlayerId,
+        entry.position.x,
+        entry.position.y,
+        entry.footprintWidth,
+        entry.footprintHeight,
+      );
       // If the entity is currently visible and the live projector is not emitting it
       // (e.g. it was static and never visible at renderAdapter connect time, so the
       // initial snapshot skipped it), surface it from memory as a live (non-memory)

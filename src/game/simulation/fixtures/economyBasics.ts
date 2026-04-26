@@ -229,6 +229,71 @@ export function createFishFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Iter-3 V3-1 + V3-2 regression: human scout positioned so its vision
+// radius 4 reaches one non-anchor cell of an enemy 4x4 castle, while the
+// castle's anchor sits outside vision. Used to lock the contract that
+// fog-memory refresh and click-selection hit-test both treat the castle
+// as visible (footprint visibility, matching createProjector and the
+// iter-2 M2-1 fix in target finding).
+export function createFogMemoryCastleEdgeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 4, y: 4 },
+      },
+      {
+        owner: 2,
+        townCenter: { x: 50, y: 30 },
+        // Disable AI for the test fixture so the player-2 AI doesn't
+        // train units / explore and contaminate visibility on tick 0.
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        // Human scout positioned so its radius-4 vision sees ONLY the
+        // (18, 16) corner cell of the enemy castle below — the (15, 13)
+        // anchor at distance 5+3=8 is outside vision; (18, 16) at
+        // distance 2+0=2 is comfortably inside.
+        kind: 'scout',
+        x: 20,
+        y: 16,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'castle',
+        x: 15,
+        y: 13,
+        owner: 2,
+        baseOwner: 2,
+      },
+      {
+        kind: 'town-center',
+        x: 50,
+        y: 30,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createResourceDepletionFixture(seed: string): PrototypeScenario {
   return {
     seed,

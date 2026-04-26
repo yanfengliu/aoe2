@@ -17,6 +17,7 @@ export {
   createMiningCampFixture,
   createFishFixture,
   createVillagerNoWoodDropoffFixture,
+  createFogMemoryCastleEdgeFixture,
   createResourceDepletionFixture,
   createMoveTargetUnblocksFixture,
   createNarrowCorridorFixture,

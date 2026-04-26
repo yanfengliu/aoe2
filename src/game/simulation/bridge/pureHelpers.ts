@@ -399,6 +399,10 @@ interface IsVisibleQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
 }
 
+interface IsExploredQuery {
+  isExplored: (playerId: number, x: number, y: number) => boolean;
+}
+
 export function isFootprintVisible(
   visibility: IsVisibleQuery,
   playerId: number,
@@ -412,6 +416,30 @@ export function isFootprintVisible(
   for (let offsetY = 0; offsetY < footprintHeight; offsetY += 1) {
     for (let offsetX = 0; offsetX < footprintWidth; offsetX += 1) {
       if (visibility.isVisible(playerId, flooredX + offsetX, flooredY + offsetY)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Iter-3 V3-1 sibling helper: any-cell explored variant of
+// isFootprintVisible. Fog-memory projection needs to surface memory
+// entries whose footprint touches an explored cell, not just where the
+// stored anchor cell is explored.
+export function isFootprintExplored(
+  visibility: IsExploredQuery,
+  playerId: number,
+  anchorX: number,
+  anchorY: number,
+  footprintWidth: number,
+  footprintHeight: number,
+): boolean {
+  const flooredX = Math.floor(anchorX);
+  const flooredY = Math.floor(anchorY);
+  for (let offsetY = 0; offsetY < footprintHeight; offsetY += 1) {
+    for (let offsetX = 0; offsetX < footprintWidth; offsetX += 1) {
+      if (visibility.isExplored(playerId, flooredX + offsetX, flooredY + offsetY)) {
         return true;
       }
     }

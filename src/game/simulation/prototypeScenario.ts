@@ -60,6 +60,7 @@ import {
   createFeudalWatchTowerFixture,
   createFishFixture,
   createVillagerNoWoodDropoffFixture,
+  createFogMemoryCastleEdgeFixture,
   createFogMemoryFixture,
   createFu3CastleEdgeRangeFixture,
   createFu3CastleFiveArchersFixture,
@@ -758,6 +759,10 @@ export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario 
 
   if (seed === 'villager-no-wood-dropoff-fixture') {
     return createVillagerNoWoodDropoffFixture(seed);
+  }
+
+  if (seed === 'fog-memory-castle-edge-fixture') {
+    return createFogMemoryCastleEdgeFixture(seed);
   }
 
   if (seed === 'boar-aggro-fixture') {

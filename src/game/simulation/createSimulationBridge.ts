@@ -2660,7 +2660,23 @@ function createWorld(
     for (const id of world.query('position', 'building')) {
       const position = world.getComponent<Position>(id, 'position');
       const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (position && building && buildingOccupiesCell(id, x, y) && isVisibleToHuman(position, building.owner)) {
+      const renderable = world.getComponent<RenderableComponent>(id, 'renderable');
+      if (
+        position
+        && building
+        && renderable
+        && buildingOccupiesCell(id, x, y)
+        // Iter-3 V3-2: footprint visibility instead of anchor-only so a
+        // partially-visible 4x4 Castle/TC/Wonder is still selectable when
+        // the player clicks the visible edge cell. Mirrors the iter-2
+        // M2-1 fix in target finding.
+        && isEntityFootprintVisibleToHuman(
+          position,
+          building.owner,
+          renderable.footprintWidth,
+          renderable.footprintHeight,
+        )
+      ) {
         candidates.push({
           id,
           kind: 'building',
@@ -5913,9 +5929,12 @@ function createWorld(
     execute(activeWorld) {
       const humanMemory = getOrCreateMemoryMap(HUMAN_PLAYER_ID);
 
-      // Refresh every building the human player currently sees. Buildings span a
-      // footprint; visibility is tested on the anchor cell, which matches how the
-      // projector itself decides whether an entity is visible.
+      // Refresh every building the human player currently sees. Iter-3 V3-1:
+      // visibility is tested over the full footprint to match the projector
+      // (createProjector uses isFootprintVisible) and the iter-2 M2-1
+      // target-finding fix. A 4x4 Castle whose anchor is in fog but whose
+      // edge is visible would otherwise render live but never persist to
+      // fog memory and disappear entirely on vision loss.
       for (const id of activeWorld.query('position', 'building', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -5923,7 +5942,16 @@ function createWorld(
         if (!position || !building || !renderable) {
           continue;
         }
-        if (!visibility.isVisible(HUMAN_PLAYER_ID, position.x, position.y)) {
+        if (
+          !isFootprintVisible(
+            visibility,
+            HUMAN_PLAYER_ID,
+            position.x,
+            position.y,
+            renderable.footprintWidth,
+            renderable.footprintHeight,
+          )
+        ) {
           continue;
         }
         humanMemory.set(id, {
