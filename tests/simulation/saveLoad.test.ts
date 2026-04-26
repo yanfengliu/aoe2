@@ -199,4 +199,36 @@ describe('Slice 9 — save/load round-trip', () => {
 
     expect(economy2.ages).toEqual(economy1.ages);
   });
+
+  it('reports the saved-game seed via getHudState() after load (review V2-1 follow-up)', () => {
+    // Companion to the H-1 projector-seed test above: getHudState().seed
+    // is the seed surface the HUD + browser test snapshot consume. After
+    // load it must equal `savedGame.seed`, not the outer constructor seed.
+    const savedSeed = 'conquest-victory-fixture';
+    const otherSeed = 'aoe2-prototype';
+    expect(savedSeed).not.toBe(otherSeed);
+    const bridge1 = createSimulationBridge(savedSeed);
+    bridge1.step(1000);
+    const blob = bridge1.saveGame();
+
+    const loadedBridge = createSimulationBridge(otherSeed, { savedGame: blob });
+    expect(loadedBridge.getHudState().seed).toBe(savedSeed);
+  });
+
+  it('writes the saved-game seed (not the outer constructor seed) when re-saving a loaded match (review V2-1 follow-up)', () => {
+    // Re-saving a loaded match must not silently rebrand the blob with
+    // the outer constructor seed; that breaks the determinism contract
+    // for the load → re-save round-trip.
+    const savedSeed = 'conquest-victory-fixture';
+    const otherSeed = 'aoe2-prototype';
+    expect(savedSeed).not.toBe(otherSeed);
+    const bridge1 = createSimulationBridge(savedSeed);
+    bridge1.step(1000);
+    const firstBlob = bridge1.saveGame();
+    expect(firstBlob.seed).toBe(savedSeed);
+
+    const loadedBridge = createSimulationBridge(otherSeed, { savedGame: firstBlob });
+    const secondBlob = loadedBridge.saveGame();
+    expect(secondBlob.seed).toBe(savedSeed);
+  });
 });

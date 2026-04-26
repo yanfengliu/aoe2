@@ -7311,7 +7311,7 @@ export function createSimulationBridge(
         tickDurationMs,
         fpsTarget: TPS,
         worldSize: `${MAP_WIDTH}x${MAP_HEIGHT}`,
-        seed,
+        seed: effectiveSeed,
         currentAge: getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: getPlayerResources(HUMAN_PLAYER_ID),
         population: getPopulationState(HUMAN_PLAYER_ID),
