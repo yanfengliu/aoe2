@@ -8,6 +8,7 @@ import { clamp } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import { createRenderStateOps } from './bridge/renderStateOps';
+import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
@@ -201,6 +202,12 @@ export function createSimulationBridge(
   });
 
   let accumulatorMs = 0;
+  // Stops the tick loop when the engine throws WorldTickFailureError. The
+  // engine's fail-fast contract (since v0.4.0) marks the world as poisoned
+  // on any tick failure; calling step() again would either throw repeatedly
+  // or run on inconsistent state. We surface the halt via getHudState() so
+  // the failure is visible instead of silently degrading.
+  const haltState = createTickHaltState();
 
   const issueContextCommandAtEntity = (entityId: number): boolean => {
     const didIssue = issueContextCommandAtEntityInternal(entityId);
@@ -214,6 +221,9 @@ export function createSimulationBridge(
   return {
     step(deltaMs: number) {
       flushOutOfBandRenderChange();
+      if (haltState.halted) {
+        return;
+      }
       if (getMatchState().outcome !== 'running') {
         return;
       }
@@ -222,7 +232,10 @@ export function createSimulationBridge(
       const tickMs = 1000 / TPS;
 
       while (accumulatorMs >= tickMs) {
-        world.step();
+        if (!tryTick(() => world.step(), haltState)) {
+          accumulatorMs = 0;
+          break;
+        }
         accumulatorMs -= tickMs;
       }
     },
@@ -258,6 +271,7 @@ export function createSimulationBridge(
         playerResources: getPlayerResources(HUMAN_PLAYER_ID),
         population: getPopulationState(HUMAN_PLAYER_ID),
         matchState: getMatchState(),
+        engineHalted: haltState.halted,
       };
     },
     getEconomyState,

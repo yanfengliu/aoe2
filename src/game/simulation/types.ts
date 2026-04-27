@@ -401,6 +401,14 @@ export interface PlacementPreviewState {
   isValid: boolean;
 }
 
+export interface EngineHaltDetails {
+  tick: number;
+  phase: string;
+  code: string;
+  systemName: string | null;
+  message: string;
+}
+
 export interface HudState {
   tick: number;
   entityCount: number;
@@ -415,6 +423,7 @@ export interface HudState {
   playerResources: PlayerResources;
   population: PopulationState;
   matchState: MatchState;
+  engineHalted: EngineHaltDetails | null;
 }
 
 // Slice 11: debug-overlay snapshot. Each field populated so the HUD can
