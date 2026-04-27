@@ -39,6 +39,7 @@ import {
   createWorldLayersRenderer,
   type WorldLayersRenderer,
 } from './gameScene/worldLayers';
+import { isUnitType as isUnitTypeExternal } from './gameScene/unitTypeMap';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
@@ -988,47 +989,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
-    return entityType !== null && entityType in ALL_UNIT_TYPES;
+    return isUnitTypeExternal(entityType);
   }
 }
-
-// Iter-3 V3-3: exhaustive UnitType lookup so adding a new unit to
-// `UnitType` in types.ts forces a TypeScript error here if the lookup
-// isn't updated. The `satisfies Record<UnitType, true>` clause is the
-// load-bearing piece — drop it and the iter-2 / FU2 / FU3 drift returns.
-const ALL_UNIT_TYPES = {
-  villager: true,
-  scout: true,
-  militia: true,
-  spearman: true,
-  archer: true,
-  skirmisher: true,
-  knight: true,
-  crossbowman: true,
-  pikeman: true,
-  'light-cavalry': true,
-  camel: true,
-  'cavalry-archer': true,
-  monk: true,
-  mangonel: true,
-  scorpion: true,
-  'battering-ram': true,
-  longbowman: true,
-  arbalest: true,
-  halberdier: true,
-  hussar: true,
-  'heavy-cavalry-archer': true,
-  cavalier: true,
-  champion: true,
-  'elite-longbowman': true,
-  onager: true,
-  'heavy-scorpion': true,
-  'siege-ram': true,
-  'bombard-cannon': true,
-  trebuchet: true,
-  'man-at-arms': true,
-  'long-swordsman': true,
-  'two-handed-swordsman': true,
-  paladin: true,
-  'heavy-camel': true,
-} as const satisfies Record<UnitType, true>;

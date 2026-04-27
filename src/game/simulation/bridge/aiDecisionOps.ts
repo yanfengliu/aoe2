@@ -216,6 +216,17 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     // ratio rather than the absolute gap means the rebalance fires
     // even when every kind is under its target — a common case when
     // total villagers is smaller than total desired villagers.
+    //
+    // Iter-2 V5-2 considered: zero-target kinds with actual > 0 are
+    // skipped (continue) below. Iter-2 explored treating them as
+    // POSITIVE_INFINITY donors, but that breaks the load-bearing
+    // dark-age gold accumulation — `assignVillagerRole(ordinal=3)`
+    // spawns the 4th villager on gold (canonical AoE2 opening), while
+    // `villagerTargetsForAge('dark-age')` reports gold=0. The current
+    // skip lets that villager keep gathering enough gold for the
+    // feudal age-up cost. Treating the trap as "the bug" actively
+    // breaks AI age progression. Revisit only if AI build plans gain
+    // dynamic target flips mid-age.
     const kinds: EconomyResourceKind[] = ['food', 'wood', 'gold', 'stone'];
     let worstKind: EconomyResourceKind | null = null;
     let worstRatio = Number.POSITIVE_INFINITY;
