@@ -8,7 +8,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
 ## Repository layout
 
 - `src/` — game code (TypeScript)
-  - `app/bootstrap/` — app startup, dev HTTP API used by browser tests
+  - `app/bootstrap/` — app startup. `installBrowserTestApi(...)` exposes the
+    in-page `window.__AOE2_TEST__` test seam Playwright drives during browser
+    tests; there is no separate dev HTTP server.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `simulation/` — simulation bridge, scenario setup, command handlers.

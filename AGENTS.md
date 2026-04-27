@@ -100,11 +100,9 @@ Code changes are not done until the docs match. Before declaring any task comple
 - `docs/changelog.md` — new version entry with what shipped, why, validation, and behavior callouts. Audience is external; focus on what users need to know to migrate. Keep dev-internal commentary in the devlog. Pure refactors, type-safety hardening, doc sweeps, internal cleanups, and efficiency wins with no observable effect do NOT get changelog entries.
 - `package.json` — version bump per the Versioning convention below. Same scope: only bump for user-visible changes.
 
-**Always update if the change introduces or removes API surface (new exports, new methods, new types, removed APIs, renamed APIs):**
+**Always update if the change introduces or removes public API surface (new exports, new methods, new types, removed APIs, renamed APIs):**
 
-- `docs/api-reference.md` — every new public type, method, and standalone utility gets its own section. Removed APIs get removed (not just struck through). Stale signatures must be updated.
-- `README.md` — Feature Overview table mentions the new capability if it's a user-visible feature; Public Surface bullets list the new top-level export if applicable.
-- `docs/README.md` — index links the new guide if one is added.
+- `README.md` — Feature Overview / Public Surface mentions the new capability if it's a user-visible feature; Public Surface bullets list the new top-level export if applicable.
 
 **Always update if the change is structural (new subsystem, new boundary, changed data flow):**
 
@@ -112,17 +110,14 @@ Code changes are not done until the docs match. Before declaring any task comple
 - `docs/architecture/drift-log.md` — append a row with date + change + reason.
 - `docs/architecture/decisions.md` — append a Key Architectural Decision row when the change reflects a non-obvious tradeoff worth recording. Never delete an existing decision; add a newer one that supersedes it.
 
-**Update if applicable to the change's topic:**
-
-- `docs/guides/<topic>.md` — every guide whose subject overlaps the change. A new resource API → `resources.md`. A new system feature → `systems-and-simulation.md`. A new spatial primitive → `spatial-grid.md` / `rts-primitives.md`. A new AI-relevant surface → `ai-integration.md`. A new field-data utility → `map-generation.md`. A new tutorial-grade feature → `building-a-game.md` and `getting-started.md`. The `concepts.md` standalone-utilities list and tick-lifecycle ASCII must reflect new utilities and lifecycle changes.
-- Examples and tutorials must use the current API. If a guide demonstrates the deprecated pattern, replace the demo, don't add a "new way" sidebar.
-
 **Verification step (mandatory before declaring task done):**
 
 - Invoke the `doc-review` skill or grep for removed-API names across `docs/` and `README.md`. The audit must come back clean for the change's diff. Stale references in historical changelog / devlog / drift-log entries are intentional context and should remain — every other surface must reflect current reality.
 - The multi-CLI code review must explicitly verify doc accuracy as part of its review prompt — include "verify docs in the diff match implementation; flag any stale signatures, removed APIs still mentioned, or missing coverage of new APIs in canonical guides."
 
-**Why this is mandatory:** doc drift compounds. A single stale signature in `api-reference.md` becomes the source of truth for the next reader, then for the next feature built on top, then for an external consumer. Treating documentation as part of the change (not after the change) is the only way to keep the surface trustworthy. If a feature is too small to merit a guide update, it is small enough to merit one sentence in the relevant existing guide — silence is not a valid signal.
+**Why this is mandatory:** doc drift compounds. A single stale signature becomes the source of truth for the next reader, then for the next feature built on top. Treating documentation as part of the change (not after the change) is the only way to keep the surface trustworthy.
+
+**Note on retired files (iter-2 V5-5):** the project does NOT maintain `docs/api-reference.md`, `docs/guides/<topic>.md`, or `docs/README.md`. The canonical surfaces are README.md (entry-point summary), `docs/architecture/ARCHITECTURE.md` (boundaries + topology), `docs/architecture/decisions.md` (Key Architectural Decisions), `docs/architecture/drift-log.md` (structural change log), the per-task devlogs, and `docs/changelog.md` (user-visible bumps). The `SimulationBridge` interface in `src/game/simulation/createSimulationBridge.ts` is the canonical "API reference" — TypeScript types are the source of truth. This scoping decision parallels iter-1 V4-22's versioning relaxation: the project is internal-only, so heavyweight external doc surfaces are deferred until external consumers exist.
 
 ### Architecture
 

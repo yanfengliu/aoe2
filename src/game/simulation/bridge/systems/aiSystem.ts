@@ -70,7 +70,6 @@ export interface AiSystemDeps {
   findOwnedBuilding: (owner: number, buildingType: BuildingType) => number | null;
   findAvailableVillager: (owner: number) => number | null;
   findOwnedUnit: (owner: number, unitType: UnitType) => number | null;
-  findIdleProducer: (owner: number, buildingType: BuildingType) => number | null;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
   hasOwnedWonder: (owner: number) => boolean;
@@ -131,7 +130,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     findOwnedBuilding,
     findAvailableVillager,
     findOwnedUnit,
-    findIdleProducer,
     ownedMilitaryUnitIds,
     findOwnedMilitaryUnits,
     hasOwnedWonder,
@@ -223,6 +221,46 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         const populationBlocked = Boolean(
           populationState && populationState.current >= populationState.cap,
         );
+
+        // V5-8: precompute the owner's buildings grouped by type once
+        // per decision tick. Pre-fix the AI called the closure-form
+        // findIdleProducer 10–14 times per decision tick (one per unit
+        // type in pickUnitMix + one per building type for research +
+        // monastery), each doing a full world.query('building') scan.
+        // This reduces it to one scan per decision tick. The local
+        // findIdleProducerLocal preserves the V3-24 load-balanced
+        // selection (least-loaded, id-tiebreak for save/load determinism).
+        const ownerBuildingsByType = new Map<BuildingType, number[]>();
+        for (const id of activeWorld.query('building')) {
+          const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+          if (!building || building.owner !== owner) continue;
+          const list = ownerBuildingsByType.get(building.buildingType);
+          if (list) {
+            list.push(id);
+          } else {
+            ownerBuildingsByType.set(building.buildingType, [id]);
+          }
+        }
+        const findIdleProducerLocal = (buildingType: BuildingType): number | null => {
+          const candidates = ownerBuildingsByType.get(buildingType);
+          if (!candidates) return null;
+          let bestId: number | null = null;
+          let bestQueueLength = Number.POSITIVE_INFINITY;
+          for (const id of candidates) {
+            const construction = constructionStates.get(id);
+            if (construction && !construction.isComplete) continue;
+            const queueLength = productionQueues.get(id)?.length ?? 0;
+            if (queueLength >= 2) continue;
+            if (
+              queueLength < bestQueueLength
+              || (queueLength === bestQueueLength && bestId !== null && id < bestId)
+            ) {
+              bestId = id;
+              bestQueueLength = queueLength;
+            }
+          }
+          return bestId;
+        };
 
         if (ownerTownCenterPosition) {
           const sightingFresh =
@@ -356,7 +394,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         const mix = pickUnitMix(currentAge);
         if (!savingForAgeUp) {
           for (const { unitType, producer } of mix) {
-            const producerId = findIdleProducer(owner, producer);
+            const producerId = findIdleProducerLocal(producer);
             if (producerId === null) continue;
             const stockpile = playerResources.get(owner);
             if (!stockpile) continue;
@@ -375,7 +413,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             'siege-workshop',
             'castle',
           ] as const) {
-            const buildingId = findIdleProducer(owner, buildingType);
+            const buildingId = findIdleProducerLocal(buildingType);
             if (buildingId === null) continue;
             const options = getResearchOptions(owner, buildingType);
             if (options.length === 0) continue;
@@ -394,7 +432,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           !savingForAgeUp
           && (currentAge === 'castle-age' || currentAge === 'imperial-age')
         ) {
-          const monasteryId = findIdleProducer(owner, 'monastery');
+          const monasteryId = findIdleProducerLocal('monastery');
           if (monasteryId !== null) {
             // V5-1: O(1) monk count via monksByOwner side map.
             const ownedMonks =

@@ -155,15 +155,23 @@ export function createSaveLoadPanel(
       showToast('Save failed.');
       return;
     }
+    // V5-4: localStorage may be unavailable in private browsing, exhausted
+    // by quota, or blocked by security context. The JSON blob is already
+    // built — fall back to download so the user keeps the save instead of
+    // losing it entirely.
+    let storedToLocalStorage = true;
     try {
       window.localStorage.setItem(SAVE_STORAGE_KEY, json);
     } catch (error) {
+      storedToLocalStorage = false;
       console.warn('Could not write save to localStorage:', error);
-      showToast('Save failed (storage unavailable).');
-      return;
     }
     triggerBlobDownload(json);
-    showToast('Game saved.');
+    showToast(
+      storedToLocalStorage
+        ? 'Game saved.'
+        : 'Storage unavailable; save downloaded.',
+    );
     refreshLoadSourceAvailability();
   }
 

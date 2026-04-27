@@ -47,11 +47,6 @@ export interface AiDecisionOps {
   // AI_WATCH_TOWER_FORWARD_STEP toward the sighting so the tower sits
   // forward of the base rather than on top of it.
   pickWatchTowerPlacement(townCenter: Position, sighting: Position): Position | null;
-  // Find one owned building of the requested type whose construction is
-  // complete AND that has capacity in its production queue (≤ 2
-  // entries, matching human-player UX). Returns null if nothing
-  // qualifies; the AI tries again on the next decision tick.
-  findIdleProducer(owner: number, buildingType: BuildingType): number | null;
   // Assign the owner's idle villagers to gather from the desired
   // resource, walking toward the `villagerTargets` distribution one
   // reassignment at a time per decision tick.
@@ -143,37 +138,6 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       y: Math.round(townCenter.y + (dy * step) / distance),
     };
     return findBuildPlacementNear(toward, 'watch-tower');
-  }
-
-  function findIdleProducer(owner: number, buildingType: BuildingType): number | null {
-    // Iter-3 V3-24: load-balance across producers. The prior
-    // implementation returned the first match in iteration order, so
-    // a multi-base AI's forward Barracks never trained until the home
-    // Barracks filled its 2-entry queue. Now we walk every owned
-    // producer of the matching type and return the LEAST-LOADED one
-    // (lowest queue length, ties broken by entity id for determinism
-    // under save/load).
-    let bestId: number | null = null;
-    let bestQueueLength = Number.POSITIVE_INFINITY;
-    for (const id of world.query('building')) {
-      const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!building || building.owner !== owner || building.buildingType !== buildingType) {
-        continue;
-      }
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-      const queueLength = productionQueues.get(id)?.length ?? 0;
-      if (queueLength >= 2) {
-        continue;
-      }
-      if (queueLength < bestQueueLength || (queueLength === bestQueueLength && bestId !== null && id < bestId)) {
-        bestId = id;
-        bestQueueLength = queueLength;
-      }
-    }
-    return bestId;
   }
 
   function villagerRebalance(
@@ -276,7 +240,6 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     findOwnedMilitaryUnits,
     ownedMilitaryUnitIds,
     pickWatchTowerPlacement,
-    findIdleProducer,
     villagerRebalance,
   };
 }

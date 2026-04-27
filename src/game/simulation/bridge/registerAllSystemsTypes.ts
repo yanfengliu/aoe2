@@ -46,7 +46,6 @@ export interface RegisterAllSystemsDeps {
   findOwnedBuilding: (owner: number, buildingType: BuildingComponent['buildingType']) => number | null;
   findAvailableVillager: (owner: number) => number | null;
   findOwnedUnit: (owner: number, unitType: UnitType) => number | null;
-  findIdleProducer: (owner: number, buildingType: BuildingComponent['buildingType']) => number | null;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
   hasOwnedWonder: (owner: number) => boolean;

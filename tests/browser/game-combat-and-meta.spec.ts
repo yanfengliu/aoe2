@@ -467,4 +467,77 @@ test.describe('browser gameplay smoke tests - combat and meta', () => {
     // trigger for 2-3 frames of wall-clock.
     expect(postLoadSnapshot.economyState.playerResources[1]!.food).toBe(savedFood);
   });
+
+  // Iter-2 V5-4: Save flow drops back to a download when localStorage is
+  // unavailable (private browsing, quota exhausted, security context).
+  // Pre-fix the Save handler returned early after toasting "Save failed
+  // (storage unavailable)" without invoking the existing
+  // triggerBlobDownload fallback, losing the JSON blob entirely.
+  test('save invokes the download fallback when localStorage.setItem throws (review V5-4)', async ({
+    page,
+  }) => {
+    await game.waitForBoot(page);
+
+    await page.evaluate(() => {
+      window.localStorage.removeItem('aoe2-save-v1');
+    });
+
+    // Make localStorage.setItem throw to simulate quota / private mode,
+    // and intercept URL.createObjectURL to record fallback download
+    // attempts (anchor.click() triggers the browser's download chrome
+    // but Playwright's download event is racy here; the URL hook is
+    // deterministic).
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __saveFailureRestore?: () => void;
+        __downloadAttempts: number;
+      };
+      const originalSet = Storage.prototype.setItem;
+      const originalCreate = URL.createObjectURL.bind(URL);
+      w.__downloadAttempts = 0;
+      Storage.prototype.setItem = function setItemStub() {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+      };
+      URL.createObjectURL = (blob: Blob) => {
+        if (blob.type === 'application/json') {
+          w.__downloadAttempts += 1;
+        }
+        return originalCreate(blob);
+      };
+      w.__saveFailureRestore = () => {
+        Storage.prototype.setItem = originalSet;
+        URL.createObjectURL = originalCreate;
+      };
+    });
+
+    await page.locator('[data-hud="save-button"]').click();
+
+    // Toast text confirms the fix's branch: storage unavailable but
+    // download triggered.
+    await expect(page.locator('[data-hud="toast-container"]')).toContainText(
+      /storage unavailable/i,
+    );
+    await expect(page.locator('[data-hud="toast-container"]')).toContainText(
+      /downloaded/i,
+    );
+
+    // Download fallback was actually invoked.
+    const downloadAttempts = await page.evaluate(() => {
+      const w = window as unknown as { __downloadAttempts: number };
+      return w.__downloadAttempts;
+    });
+    expect(downloadAttempts).toBeGreaterThanOrEqual(1);
+
+    // Storage was never written.
+    const storedAfterFailure = await page.evaluate(
+      () => window.localStorage.getItem('aoe2-save-v1'),
+    );
+    expect(storedAfterFailure).toBeNull();
+
+    // Restore so subsequent tests in the file aren't affected.
+    await page.evaluate(() => {
+      const w = window as unknown as { __saveFailureRestore?: () => void };
+      w.__saveFailureRestore?.();
+    });
+  });
 });
