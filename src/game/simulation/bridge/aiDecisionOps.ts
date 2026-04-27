@@ -7,7 +7,6 @@
 import type { Position } from 'civ-engine';
 
 import type {
-  BuildingComponent,
   BuildingType,
   EconomyResourceKind,
   GathererComponent,
@@ -57,8 +56,7 @@ export interface AiDecisionOps {
 }
 
 export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
-  const { world, state, findBuildPlacementNear, aiWatchTowerForwardStep } = deps;
-  const { constructionStates, productionQueues } = state;
+  const { world, findBuildPlacementNear, aiWatchTowerForwardStep } = deps;
 
   function isAiMilitaryUnit(unitType: UnitType): boolean {
     switch (unitType) {
