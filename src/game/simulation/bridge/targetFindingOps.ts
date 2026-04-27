@@ -90,10 +90,11 @@ export interface TargetFindingOps {
     radius: number,
   ): number | null;
   // Personal-LOS variant of `findPreferredVisibleEnemyBuilding`. Same
-  // contract as `findPreferredEnemyUnitInRadius` for buildings, with
-  // construction-incomplete buildings filtered out (you cannot attack
-  // a partially-built building anyway and they are an off-by-one
-  // gameplay footgun for auto-aggression).
+  // contract as `findPreferredEnemyUnitInRadius` for buildings.
+  // Foundations under construction ARE valid targets (canonical AoE2:
+  // damageable while building); the per-tick HP ramp lives in
+  // playerCommandsSystem and the foundation's currentHp survives
+  // damage taken during construction.
   findPreferredEnemyBuildingInRadius(
     viewerOwner: number,
     origin: Position,
