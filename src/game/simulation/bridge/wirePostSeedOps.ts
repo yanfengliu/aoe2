@@ -261,7 +261,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
 
   const aiDecisionOps = createAiDecisionOps({
     world,
-    state,
     findBuildPlacementNear,
     aiWatchTowerForwardStep: AI_WATCH_TOWER_FORWARD_STEP,
   });

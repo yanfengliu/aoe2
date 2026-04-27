@@ -1,0 +1,19 @@
+No new important issues were introduced by this batch in the paths I checked.
+
+- **V5-1 — OK.** `monksByOwner` is wired consistently across the Monk lifecycle: declared in `src/game/simulation/bridge/bridgeState.ts:83`, populated in `entityCreateOps.ts:152`, removed in `entityDestroyOps.ts:110`, repaired on conversion in `monkTaskAppliers.ts:175`, rebuilt after `World.deserialize(...)` in `hydrateFromSavedGame.ts:299`, and consumed in `aiSystem.ts:432` and `aiSystem.ts:449`. Fresh-unit creation routes through `addUnitEntity` (`scenarioSeedOps.ts:301`, `productionQueueSystem.ts:88`), the load path is covered by the hydrate rebuild, and the only raw `world.destroyEntity(...)` calls for units are inside `entityDestroyOps.ts`, so I did not find a Monk creation/destruction path that bypasses the side map. The converted-monk edge case is also safe: if the prior owner’s set is already absent, `flipConvertedUnit(...)` just skips the delete and adds the Monk to the new owner.
+
+- **V5-2 — REVERTED-VALID.** The `villagerRebalance` logic in `src/game/simulation/bridge/aiDecisionOps.ts:170` is unchanged; this batch only adds the rationale comment above the existing `desired <= 0` skip. That matches the documented revert: current dark-age AI still relies on the fourth villager staying on gold even though `villagerTargetsForAge('dark-age').gold` is `0`.
+
+- **V5-3 — OK.** `src/phaser/scenes/gameScene/unitTypeMap.ts` is the new extracted file, `GameScene.ts` now delegates through `isUnitTypeExternal(...)`, and the exhaustive `as const satisfies Record<UnitType, true>` clause is preserved verbatim.
+
+- **V5-4 — OK.** `src/ui/hud/saveLoadPanel.ts:149` no longer returns early when `localStorage.setItem(...)` throws; it still runs `triggerBlobDownload(json)` and changes the toast to the storage-unavailable message. The new browser regression in `tests/browser/game-combat-and-meta.spec.ts:476` forces `Storage.prototype.setItem` to throw and asserts the download path fires.
+
+- **V5-5 — OK.** The three doc reconciliations are present and match the code: `docs/architecture/ARCHITECTURE.md` now describes `window.__AOE2_TEST__`, `AGENTS.md` no longer mandates the non-existent `docs/api-reference.md` / `docs/guides/` / `docs/README.md` surfaces, and `docs/devlog/summary.md` no longer says V4-22 “needs user input.”
+
+- **V5-6 — OK.** `tests/simulation/saveLoad.test.ts:235` now uses a real villager id from `getEconomyState()` instead of a synthetic orphan id, so the post-load check actually exercises the persisted throttle entry instead of the orphan-prune behavior.
+
+- **V5-7 — REVERTED-VALID.** No code change was needed. The guard is still tick-tagged in `monkTaskAppliers.ts:131`, and `monkBehaviorSystem.ts:87` only deletes stale entries for memory hygiene. If an old tick remains in the map, it does not block conversion because the equality check is against `activeWorld.tick`, so the “correct-by-construction” reasoning holds.
+
+- **V5-8 — OK.** `src/game/simulation/bridge/systems/aiSystem.ts:222` precomputes `ownerBuildingsByType` once per AI decision tick, and `findIdleProducerLocal(...)` preserves the prior selector contract: same owner/type, skip incomplete construction, skip queues `>= 2`, choose least-loaded, then lower entity id on ties. That matches the old `findIdleProducer(...)` logic from `aiDecisionOps.ts` without the repeated full-world scans. Rebuilding the grouped list inside each AI execute pass means newly completed buildings are seen on the next decision tick, and buildings started later in the same tick would have been filtered out by the old helper anyway because they are incomplete.
+
+- **New issues introduced by the batch — none found.** I did not find a new type hole, a save/load determinism break in the inspected paths, or a broken invariant around the Monk side map or the producer precompute.

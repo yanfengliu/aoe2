@@ -17,7 +17,6 @@ import type { GameWorld } from './pureHelpers';
 
 export interface AiDecisionDeps {
   world: GameWorld;
-  state: import('./bridgeState').BridgeState;
   // Collaborator. The placement-anchor search lives in createWorld
   // because it reads worldOccupancy + tile passability; the factory
   // defers to it so pickWatchTowerPlacement keeps one footprint-aware

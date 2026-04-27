@@ -1,0 +1,25 @@
+You are a senior code reviewer verifying a fix batch. The repo is a TypeScript Age-of-Empires-2 prototype on top of `civ-engine`. Iter-2 of `/full-review` flagged 8 findings (V5-1 through V5-8); the fix batch is now committed on branch `agent/review-findings-2026-04-26-iter2-batch1`. Verify the fixes landed correctly and didn't introduce new issues.
+
+Context to load before reviewing:
+- `docs/reviews/full/2026-04-26/2/REVIEW.md` — the iter-2 synthesis with the original 8 findings.
+- The diff from `8d20013` (iter-1 HEAD) through `ce4e81a` (current HEAD) — five commits adding V5-1, V5-3, V5-4, V5-5, V5-6, V5-8 fixes plus docs + version bump.
+- Current state of the working tree (read whatever files you need).
+
+For each finding, verify:
+- **V5-1** `monksByOwner` side map in `bridge/bridgeState.ts:75-93`, updated in `bridge/entityCreateOps.ts` (addUnitEntity), `bridge/entityDestroyOps.ts` (destroyUnitEntity), `bridge/monkTaskAppliers.ts` (flipConvertedUnit). Rebuilt in `bridge/hydrateFromSavedGame.ts:298-310`. Used in `bridge/systems/aiSystem.ts:413-416,400` to replace the V4-12 `countOwnedUnits(owner, 'monk')` guard with O(1) Set-size lookup.
+- **V5-2** REVERTED on investigation. `bridge/aiDecisionOps.ts:212-237` documents why (load-bearing for AI dark-age gold accumulation; canonical AoE2 V3 spawns on gold via `assignVillagerRole(ordinal=3)` while `villagerTargetsForAge('dark-age').gold=0`). Verify the rebalance logic is unchanged from main.
+- **V5-3** `src/phaser/scenes/gameScene/unitTypeMap.ts` is a new ~48-LOC file holding `ALL_UNIT_TYPES` + `isUnitType`. `GameScene.ts` imports it and shrinks 1034 → 994 LOC. The `as const satisfies Record<UnitType, true>` clause is preserved verbatim.
+- **V5-4** `src/ui/hud/saveLoadPanel.ts:148-176` no longer drops the save when `localStorage.setItem` throws. New browser test in `tests/browser/game-combat-and-meta.spec.ts:476-549` patches `Storage.prototype.setItem` + `URL.createObjectURL` and asserts the fallback fires.
+- **V5-5** Three doc reconciliations: (a) `docs/architecture/ARCHITECTURE.md:11` describes `__AOE2_TEST__` instead of HTTP API; (b) `AGENTS.md` "Documentation discipline" section relaxes mandates for `docs/api-reference.md`/`docs/guides/`/`docs/README.md`; (c) `docs/devlog/summary.md:3` no longer says V4-22 "needs user input".
+- **V5-6** `tests/simulation/saveLoad.test.ts:235-269` strengthened to use a real villager id; the post-load throttle map now preserves the entry (vs pre-fix where the orphan-prune deleted the synthetic id).
+- **V5-7** No code change. Documented inline as correct-by-construction.
+- **V5-8** `bridge/systems/aiSystem.ts:222-258` precomputes `ownerBuildingsByType` once per AI decision tick and uses a local `findIdleProducerLocal`. Removes the `findIdleProducer` dep entirely from `bridge/aiDecisionOps.ts`, `bridge/registerAllSystems.ts`, `bridge/registerAllSystemsTypes.ts`, and `AiSystemDeps`. The V3-24 load-balanced selection contract (LEAST-LOADED with id-tiebreak) is preserved.
+
+Plus three docs/version commits: `package.json` bumped 0.1.1 → 0.1.2, `docs/changelog.md` adds the V5-4 entry, `docs/devlog/summary.md` + `docs/devlog/detailed/2026-04-26_2026-04-26.md` get iter-2 entries, `docs/architecture/drift-log.md` gets a row.
+
+For your review:
+- For each finding, give a verdict: **OK**, **NEEDS-CHANGE** (specify what's wrong), or **REVERTED-VALID** (V5-2 / V5-7).
+- Look for any new issues introduced by the fix batch — type holes, breaking-change risks for save/load determinism, regressions in invariants documented in past iterations.
+- Verify the V5-1 side map is consistent with all 33 entries in `BridgeState`. Specifically: is there any path that creates a Monk without going through `addUnitEntity`? Is there any path that destroys a Monk without going through `destroyUnitEntity`? Does the conversion path correctly handle the case where the converted monk's prior owner has the entire `monksByOwner` set deleted?
+- Verify the V5-8 batch precomputation is sound: do the `findIdleProducerLocal` results match what `findIdleProducer` would have returned? Does the building-list rebuild every decision tick capture newly constructed buildings (production-queue checks already exclude in-progress construction)?
+- Plain text. Do not modify files. Do not propose patches.
