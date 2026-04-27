@@ -5,6 +5,7 @@ import type {
   MatchState,
   ResearchableTechnologyType,
   TrainableUnitType,
+  UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { SaveBlob } from '../saveSchema';
@@ -59,6 +60,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     aiStates,
     unitCommands,
     gathererDropOffStuckSinceTick,
+    monksByOwner,
   } = state;
 
   const blob = savedGame.sideMaps;
@@ -292,6 +294,21 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     for (const [id, tick] of blob.gathererDropOffStuckSinceTick) {
       gathererDropOffStuckSinceTick.set(id, tick);
     }
+  }
+
+  // V5-1: rebuild monksByOwner from the loaded world. The side map is
+  // derivable from world.query('unit'), so it's not persisted in the
+  // save blob — just rebuilt here. Doing it after the unit-related side
+  // maps so any prior cleanup (e.g. orphan-prune) doesn't matter.
+  for (const id of world.query('unit')) {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    if (!unit || unit.unitType !== 'monk') continue;
+    let monkSet = monksByOwner.get(unit.owner);
+    if (!monkSet) {
+      monkSet = new Set();
+      monksByOwner.set(unit.owner, monkSet);
+    }
+    monkSet.add(id);
   }
 
   matchState.outcome = savedGame.matchState.outcome;

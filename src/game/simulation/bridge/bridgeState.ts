@@ -71,6 +71,16 @@ export interface BridgeState {
   garrisonedUnitToBuilding: Map<number, number>;
   garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
   aiStates: Map<number, AiState>;
+  // V5-1: O(1) monk presence lookup keyed by owner. Iter-1 V4-12 used
+  // countOwnedUnits(owner, 'monk') as the AI assignAiMonkTasks skip-guard,
+  // but countOwnedUnits walks world.query('unit') — same cost as the
+  // function it was meant to bypass, doubling the steady-state cost when
+  // an AI has Monks. This side map lets the guard be a Set.size lookup.
+  // Updated in entityCreateOps.addUnitEntity, entityDestroyOps.destroyUnitEntity,
+  // and monkTaskAppliers.flipConvertedUnit (defensively — Monks are not
+  // typically convertible in canonical AoE2 but the contract holds either
+  // way). Rebuilt from world.query('unit') on save-load hydration.
+  monksByOwner: Map<number, Set<number>>;
   monkHealCounters: Map<number, number>;
   // V4-14: tick-tagged per-target guard. Entry is the tick on which the
   // first Monk processed conversion against the target. The `applyMonkConvert`
@@ -121,6 +131,7 @@ export function createBridgeState(): BridgeState {
     garrisonedUnitToBuilding: new Map(),
     garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),
+    monksByOwner: new Map(),
     monkHealCounters: new Map(),
     monkConvertProcessedThisTick: new Map(),
     productionQueues: new Map(),

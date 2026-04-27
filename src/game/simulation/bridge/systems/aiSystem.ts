@@ -63,6 +63,7 @@ export interface AiSystemDeps {
   productionQueues: Map<number, ProductionQueueEntry[]>;
   unitCommands: Map<number, UnitCommandLike>;
   wildlifeStates: Map<number, WildlifeState>;
+  monksByOwner: Map<number, Set<number>>;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => import('../../types').AgeType;
   villagerRebalance: (owner: number, targets: AiState['villagerTargets']) => void;
@@ -123,6 +124,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     productionQueues,
     unitCommands,
     wildlifeStates,
+    monksByOwner,
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
@@ -394,8 +396,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         ) {
           const monasteryId = findIdleProducer(owner, 'monastery');
           if (monasteryId !== null) {
+            // V5-1: O(1) monk count via monksByOwner side map.
             const ownedMonks =
-              countOwnedUnits(owner, 'monk') + countQueuedUnits(monasteryId, 'monk');
+              (monksByOwner.get(owner)?.size ?? 0) + countQueuedUnits(monasteryId, 'monk');
             const stockpile = playerResources.get(owner);
             if (
               ownedMonks < AI_MONK_COUNT_CAP
@@ -408,10 +411,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           }
         }
 
-        // V4-12: skip the full unit-query scan if this AI doesn't own any
-        // Monks. Per-AI per-decision-tick saving with no Monks: ~250
-        // component lookups → 0.
-        if (countOwnedUnits(owner, 'monk') > 0) {
+        // V5-1: O(1) skip-guard via monksByOwner side map. Iter-1 V4-12
+        // used countOwnedUnits(owner, 'monk') for this gate, but
+        // countOwnedUnits walks world.query('unit') — same cost as
+        // assignAiMonkTasks itself, doubling the steady-state cost when
+        // an AI has Monks. The side map is maintained in entityCreateOps,
+        // entityDestroyOps, and monkTaskAppliers.flipConvertedUnit; rebuilt
+        // on save-load.
+        if ((monksByOwner.get(owner)?.size ?? 0) > 0) {
           assignAiMonkTasks(owner);
         }
 

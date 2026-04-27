@@ -70,6 +70,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     monkCarriedRelic,
     conversionState,
     monkHealCounters,
+    monksByOwner,
     trebuchetPackStates,
     gathererDropOffStuckSinceTick,
     townCenterRefs,
@@ -105,6 +106,15 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       const populationState = population.get(unit.owner);
       if (populationState) {
         populationState.current = Math.max(0, populationState.current - 1);
+      }
+      if (unit.unitType === 'monk') {
+        const monkSet = monksByOwner.get(unit.owner);
+        if (monkSet) {
+          monkSet.delete(id);
+          if (monkSet.size === 0) {
+            monksByOwner.delete(unit.owner);
+          }
+        }
       }
     }
 

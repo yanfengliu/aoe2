@@ -111,6 +111,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     wonderCountdowns,
     wonderCountdownOverrides,
     wildlifeStates,
+    monksByOwner,
   } = state;
 
   function addUnitEntity(
@@ -146,6 +147,15 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
         packed: true,
         transitionTicksRemaining: 0,
       });
+    }
+
+    if (unitType === 'monk') {
+      let monkSet = monksByOwner.get(owner);
+      if (!monkSet) {
+        monkSet = new Set();
+        monksByOwner.set(owner, monkSet);
+      }
+      monkSet.add(entity);
     }
 
     if (unitType === 'villager') {

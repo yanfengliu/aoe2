@@ -80,6 +80,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     combatStates,
     unitCommands,
     population,
+    monksByOwner,
   } = state;
 
   function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
@@ -170,6 +171,25 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     const nextPopulation = population.get(monkUnit.owner);
     if (nextPopulation) {
       nextPopulation.current += 1;
+    }
+    // V5-1: keep the monksByOwner side map in sync if a Monk is converted.
+    // Canonical AoE2 makes Monks immune to conversion, but the contract
+    // must hold either way — without this update, a converted Monk would
+    // remain in the old owner's set forever.
+    if (targetUnit.unitType === 'monk') {
+      const previousSet = monksByOwner.get(previousOwner);
+      if (previousSet) {
+        previousSet.delete(targetId);
+        if (previousSet.size === 0) {
+          monksByOwner.delete(previousOwner);
+        }
+      }
+      let nextSet = monksByOwner.get(monkUnit.owner);
+      if (!nextSet) {
+        nextSet = new Set();
+        monksByOwner.set(monkUnit.owner, nextSet);
+      }
+      nextSet.add(targetId);
     }
     const visionSource = activeWorld.getComponent<VisionSourceComponent>(
       targetId,
