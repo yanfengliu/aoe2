@@ -263,7 +263,7 @@ function renderSelectionDetails(selectionState: SelectionState): string {
       renderSelectionDetail(
         'health',
         'Health',
-        `${selectionState.health.current} / ${selectionState.health.max}`,
+        `${Math.floor(selectionState.health.current)} / ${selectionState.health.max}`,
       ),
     );
   }

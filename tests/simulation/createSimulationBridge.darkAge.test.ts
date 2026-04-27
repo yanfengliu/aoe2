@@ -158,6 +158,47 @@ describe('createSimulationBridge dark age economy progression', () => {
     expect(finalHealth).toEqual({ currentHp: 75, maxHp: 75 });
   }, 20_000);
 
+  it('preserves mid-construction HP across save/load round-trip', () => {
+    const original = createSimulationBridge(DEFAULT_SEED);
+    expect(original.selectEntityAtCell(6, 8)).toBe(true);
+    const housePosition = placeBuildingNearTownCenter(original, 'house');
+
+    const findHouseIn = (bridge: ReturnType<typeof createSimulationBridge>) =>
+      bridge
+        .getEconomyState()
+        .buildings.find(
+          (b) =>
+            b.owner === 1
+            && b.buildingType === 'house'
+            && b.x === housePosition.x
+            && b.y === housePosition.y,
+        );
+
+    expect(
+      stepBridgeUntil(
+        original,
+        () => {
+          const house = findHouseIn(original);
+          return house !== undefined && house.buildProgressTicks > house.totalBuildTicks * 0.3
+            && house.buildProgressTicks < house.totalBuildTicks * 0.7;
+        },
+        { maxSteps: 600 },
+      ),
+    ).toBe(true);
+    const midHouse = findHouseIn(original)!;
+    const savedHealth = original.getEntityHealth(midHouse.id)!;
+    expect(savedHealth.currentHp).toBeGreaterThan(7);
+    expect(savedHealth.currentHp).toBeLessThan(75);
+
+    const blob = original.saveGame();
+    const restored = createSimulationBridge(DEFAULT_SEED, { savedGame: blob });
+    const restoredHouse = findHouseIn(restored)!;
+    expect(restoredHouse.buildProgressTicks).toBe(midHouse.buildProgressTicks);
+    const restoredHealth = restored.getEntityHealth(restoredHouse.id)!;
+    expect(restoredHealth.currentHp).toBe(savedHealth.currentHp);
+    expect(restoredHealth.maxHp).toBe(savedHealth.maxHp);
+  }, 20_000);
+
   it('redirects a selected villager to gather gold through an explicit context order', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
 

@@ -395,7 +395,10 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           construction.buildProgressTicks = construction.totalBuildTicks;
           construction.isComplete = true;
           if (buildingHealth) {
-            buildingHealth.currentHp = buildingHealth.maxHp;
+            buildingHealth.currentHp = Math.min(
+              buildingHealth.maxHp,
+              Math.round(buildingHealth.currentHp),
+            );
           }
 
           const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');

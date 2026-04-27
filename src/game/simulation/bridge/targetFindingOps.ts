@@ -459,11 +459,6 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
         continue;
       }
 
-      const construction = constructionStates.get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-
       const distance = manhattanDistance(origin, position);
       if (distance > radius) {
         continue;
