@@ -148,3 +148,6 @@ bash.exe.stackdump
 code_review/
 # Local test outputs (vitest reporter logs, etc.)
 tmp/
+
+# Brainstorming visual companion (skill state, transient mockups)
+.superpowers/
