@@ -6,10 +6,38 @@ import {
 } from '../../game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../game/simulation/saveSchema';
 import { GameScene } from '../../phaser/scenes/GameScene';
-import { createHudController } from '../../ui/hud/createHudController';
+import { createHudController, type HudController } from '../../ui/hud/createHudController';
 import { installBrowserTestApi } from './browserTestApi';
+import { createPauseControl } from '../../game/control/PauseControl';
+import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
+import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
+import {
+  createAnnotationController,
+  type AnnotationController,
+} from '../../game/recording/AnnotationController';
+import {
+  createAnnotationForm,
+  type AnnotationFormView,
+} from '../../ui/annotation/AnnotationForm';
+import {
+  createMarkerListPanel,
+  type MarkerListPanel,
+} from '../../ui/annotation/MarkerListPanel';
 
-export function createApp(): Phaser.Game {
+interface AnnotationStack {
+  recording: RecordingService;
+  annotationController: AnnotationController;
+  markerListPanel: MarkerListPanel;
+  form: AnnotationFormView;
+  unsubscribePersistenceError: () => void;
+  dispose(): Promise<void>;
+}
+
+// Spec 2 (annotation-ui v0.1.5) AO-12: createApp is async because
+// RecordingService.start() awaits IDB connection. main.ts awaits this
+// before mounting Phaser; on rejection, main.ts catches and renders a
+// fatal error message in document.body.
+export async function createApp(): Promise<Phaser.Game> {
   const gameRoot = document.getElementById('game-root');
   const hudRoot = document.getElementById('hud-root');
 
@@ -19,43 +47,133 @@ export function createApp(): Phaser.Game {
 
   // Iter-3 V3-22: distinguish "param absent" (use DEFAULT_SEED) from
   // "param explicitly empty / whitespace" (warn + still fall through).
-  // The previous expression collapsed both to undefined silently, so a
-  // user typing `?seed=` to "reset" got the same canonical fixture map
-  // as a user with no `?seed=` at all.
   const rawSeed = new URL(window.location.href).searchParams.get('seed');
   const trimmedSeed = rawSeed?.trim() ?? '';
   if (rawSeed !== null && trimmedSeed === '') {
     console.warn('[aoe2] ?seed= URL parameter was empty; falling back to DEFAULT_SEED.');
   }
   const seed = trimmedSeed === '' ? undefined : trimmedSeed;
-  // FU5: the bridge reference is mutable so the HUD Load button can swap
-  // in a rehydrated simulation. Everything downstream (scene, HUD,
-  // browser test API) is rewired to the new bridge when `loadGame` fires.
-  let bridge: SimulationBridge = createSimulationBridge(seed);
 
-  // GameScene receives the debug-mode getter up front so its render loop
-  // can read the current overlay mode every frame (selection-bounds,
-  // pathing, etc.) without further plumbing.
-  const scene = new GameScene(bridge, {
+  // FU5: bridge reference is mutable so HUD Load can swap in a
+  // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
+  // (PauseControl, AnnotationController, MarkerListPanel) continue to
+  // resolve the live bridge after a swap.
+  let bridge: SimulationBridge = createSimulationBridge(seed);
+  const bridgeRef = (): SimulationBridge => bridge;
+
+  // hudController is needed by the annotation stack (toastHandle), so
+  // create it BEFORE the first stack rebuild. It receives `handleLoadGame`
+  // (defined further down) via the loadGame field.
+  let scene: GameScene;
+  let hudController: HudController;
+
+  // Spec 2 AO-3: PauseControl + HotkeyRegistry shared across rebuilds.
+  // Both work against the live bridge via bridgeRef indirection.
+  const pauseControl = createPauseControl(bridgeRef);
+  const hotkeyRegistry = createHotkeyRegistry();
+
+  // Spec 2 AO-12 single-flight cell — closure-scoped per design-5 review.
+  let _pendingRebuild: Promise<AnnotationStack> | null = null;
+
+  async function rebuildAnnotationStack(
+    prior?: AnnotationStack,
+  ): Promise<AnnotationStack> {
+    if (prior) {
+      try {
+        await prior.dispose();
+      } catch (err) {
+        // Best-effort: log + toast and continue with construction so the
+        // user keeps an annotation surface (impl-1 review fix). The
+        // disabled-mirror flag prevents toast spam from the underlying
+        // mirror failure.
+        console.error('[aoe2] prior annotation-stack dispose failed', err);
+        try {
+          hudController?.toastHandle.showToast(
+            `recording cleanup failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        } catch { /* HUD may not be ready yet */ }
+      }
+    }
+    const recording = createRecordingService({ world: bridgeRef().world });
+    // FR-1 fix (Codex MAJOR): register the persistence-error listener
+    // BEFORE start() so any error fired during start (e.g., synchronous
+    // indexedDB.open failure in Safari private mode) is captured.
+    const unsubscribePersistenceError = recording.onPersistenceError((err) => {
+      hudController.toastHandle.showToast(`recording: ${err.message}`);
+    });
+    await recording.start();
+    const form = createAnnotationForm();
+    form.mount(hudRoot!);
+    const annotationController = createAnnotationController({
+      recording,
+      pauseControl,
+      form,
+      worldRef: () => bridgeRef().world,
+      selection: { getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs() },
+      canvasRef: () => {
+        const canvas = gameRoot!.querySelector('canvas');
+        return canvas instanceof HTMLCanvasElement ? canvas : null;
+      },
+      toast: hudController.toastHandle,
+    });
+    const markerListPanel = createMarkerListPanel({
+      recording,
+      pauseControl,
+      toast: hudController.toastHandle,
+      bridge: {
+        panCameraTo: (target) => scene.panCameraTo(target),
+        select: (refs) => bridgeRef().select(refs),
+      },
+      worldRef: () => bridgeRef().world,
+    });
+    markerListPanel.mount(hudRoot!);
+    return {
+      recording,
+      annotationController,
+      markerListPanel,
+      form,
+      unsubscribePersistenceError,
+      async dispose() {
+        // Claude FR-1 MINOR M1: reset PauseControl so the new stack
+        // starts unpaused. PauseControl tracks `paused` locally; if
+        // dispose happens while the form is open, the local cache is
+        // stale and the next pause() short-circuits, leaving the new
+        // bridge ticking with a phantom-paused indicator.
+        try { pauseControl.resume(); } catch { /* best-effort */ }
+        unsubscribePersistenceError();
+        annotationController.dispose();
+        markerListPanel.dispose();
+        form.dispose();
+        await recording.stop();
+      },
+    };
+  }
+
+  // Single-flight rebuild: every concurrent rebuild observes the prior
+  // fully-disposed stack and serializes via the _pendingRebuild chain.
+  function chainRebuild(prior: Promise<AnnotationStack> | undefined): Promise<AnnotationStack> {
+    const next = (async () => {
+      const resolved = prior === undefined ? undefined : await prior.catch(() => undefined);
+      return rebuildAnnotationStack(resolved);
+    })();
+    _pendingRebuild = next;
+    return next;
+  }
+
+  async function handleLoadGame(blob: SaveBlob): Promise<void> {
+    bridge = createSimulationBridge(seed, { savedGame: blob });
+    scene.setBridge(bridge);
+    // Chain off any in-flight rebuild OR the live stack — whichever is
+    // most recent.
+    const priorPromise = _pendingRebuild ?? Promise.resolve(stack);
+    stack = await chainRebuild(priorPromise);
+  }
+
+  scene = new GameScene(bridge, {
     getDebugOverlayMode: () => hudController.getDebugOverlayMode(),
   });
 
-  function handleLoadGame(blob: SaveBlob): void {
-    const nextBridge = createSimulationBridge(seed, { savedGame: blob });
-    bridge = nextBridge;
-    scene.setBridge(nextBridge);
-    // Iter-3 V3-25: no re-install required. `installBrowserTestApi`
-    // resolves the live bridge dynamically through the getter passed
-    // at first install, so updating the local `bridge` cell is enough
-    // for the API to reflect the swap. Holders of a long-lived
-    // reference to `window.__AOE2_TEST__` continue seeing live state.
-  }
-
-  const hudController = createHudController(hudRoot, {
-    // The HUD receives a stable facade whose methods always delegate to
-    // the currently-live bridge, so swapping the bridge on load does not
-    // require re-creating the HUD. Arrow bodies re-read `bridge` on every
-    // call.
+  hudController = createHudController(hudRoot, {
     getHudState: () => bridge.getHudState(),
     getRenderState: () => bridge.getRenderState(),
     getEconomyState: () => bridge.getEconomyState(),
@@ -75,6 +193,15 @@ export function createApp(): Phaser.Game {
     loadGame: handleLoadGame,
   });
 
+  // Initial annotation stack. handleLoadGame replaces this cell on bridge swap.
+  let stack: AnnotationStack = await chainRebuild(undefined);
+
+  // Hotkey closures resolve `stack` at call time, so handleLoadGame's
+  // reassignment is observed automatically (Alt+M after load fires the
+  // new stack's controller).
+  hotkeyRegistry.register({ key: 'm', alt: true }, () => stack.annotationController.onHotkey());
+  hotkeyRegistry.register({ key: 'l', alt: true }, () => stack.markerListPanel.toggleVisibility());
+
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: gameRoot,
@@ -93,6 +220,11 @@ export function createApp(): Phaser.Game {
   });
 
   installBrowserTestApi(window, game, () => bridge, scene);
+
+  game.events.on('destroy', () => {
+    void stack.dispose();
+    hotkeyRegistry.dispose();
+  });
 
   return game;
 }

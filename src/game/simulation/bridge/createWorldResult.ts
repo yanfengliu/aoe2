@@ -1,3 +1,5 @@
+import type { EntityRef } from 'civ-engine';
+
 import type {
   ActionType,
   AgeType,
@@ -41,6 +43,12 @@ export interface CreateWorldResult {
   filterSelectableUnitIds: (ids: number[]) => number[];
   selectUnitsByIds: (ids: number[]) => boolean;
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
+  // Spec 2 (annotation-ui v0.1.5) AO-2: selection refs (with generation)
+  // and select-from-refs entry point — exposed so the AnnotationController
+  // can resolve the current selection to MarkerRefs.entities preserving
+  // generation, and so MarkerListPanel row clicks can pass refs back through.
+  getSelectedEntityRefs: () => readonly EntityRef[];
+  selectByRefs: (refs: readonly EntityRef[]) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number) => boolean;
   issueContextCommandAtEntity: (entityId: number) => boolean;

@@ -14,6 +14,8 @@ export interface AssembleBridgeApiDeps
     | 'getMatchState'
     | 'isSelected'
     | 'consumeOutOfBandRenderChange'
+    | 'getSelectedEntityRefs'
+    | 'selectByRefs'
   > {
   world: GameWorld;
   state: BridgeState;
@@ -21,6 +23,8 @@ export interface AssembleBridgeApiDeps
   getHumanWonderCountdownTicks: () => number | null;
   getHumanRelicCountdownTicks: () => number | null;
   getSelectedEntityIds: () => number[];
+  getSelectedEntityRefs: () => readonly import('civ-engine').EntityRef[];
+  selectByRefs: (refs: readonly import('civ-engine').EntityRef[]) => boolean;
   hasOutOfBandRenderChangeRef: { current: boolean };
 }
 
@@ -31,6 +35,8 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
     getSelectedEntityIds,
+    getSelectedEntityRefs,
+    selectByRefs,
     hasOutOfBandRenderChangeRef,
     ...rest
   } = deps;
@@ -63,6 +69,10 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
       hasOutOfBandRenderChangeRef.current = false;
       return didChange;
     },
+    // Spec 2 (annotation-ui v0.1.5) AO-2: surface refs + select-from-refs
+    // through to the public bridge API.
+    getSelectedEntityRefs,
+    selectByRefs,
   };
 }
 

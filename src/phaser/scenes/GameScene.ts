@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { EntityRef, Position } from 'civ-engine';
 
 import {
   HUMAN_PLAYER_ID,
@@ -646,6 +647,29 @@ export class GameScene extends Phaser.Scene {
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
     this.cameraController?.centerOnWorldPosition(worldX, worldY);
+  }
+
+  // Spec 2 (annotation-ui v0.1.5) AO-4: pan camera to a target — either an
+  // EntityRef (looked up via the bridge.world's isCurrent + Position
+  // component) or a Position value (direct). Resolution direction is the
+  // OPPOSITE of bridge.world.getEntityRef (which takes an id and returns
+  // the current EntityRef): we have the EntityRef and need the position.
+  // Stale refs (generation mismatch) and entities without a position
+  // component are no-op (caller handles toast separately if desired).
+  panCameraTo(target: EntityRef | Position): void {
+    if (!this.cameraController) return;
+    if ('id' in target && 'generation' in target) {
+      const ref = target as EntityRef;
+      const world = this.bridge.world;
+      if (!world.isCurrent(ref)) return;
+      const pos = world.getComponent<Position>(ref.id, 'position');
+      if (!pos) return;
+      this.cameraController.centerOnWorldPosition(pos.x, pos.y);
+      return;
+    }
+    if ('x' in target && 'y' in target) {
+      this.cameraController.centerOnWorldPosition(target.x, target.y);
+    }
   }
 
   getScreenPointForCell(cellX: number, cellY: number): { x: number; y: number } | null {

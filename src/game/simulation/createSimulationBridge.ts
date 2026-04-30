@@ -3,8 +3,10 @@ import {
   VisibilityMap,
   WorldDebugger,
 } from 'civ-engine';
+import type { EntityRef } from 'civ-engine';
 
 import { clamp } from './bridge/pureHelpers';
+import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import { createRenderStateOps } from './bridge/renderStateOps';
@@ -35,12 +37,34 @@ export type { MemoryEntry } from './bridge/memoryTypes';
 
 export interface SimulationBridge {
   step(deltaMs: number): void;
+  // Spec 2 (annotation-ui v0.1.5) AO-2: read-only access to the engine
+  // World instance. Required by RecordingService (binds the SessionRecorder
+  // to this World) and AnnotationController.worldRef. Stable for THIS
+  // bridge's lifetime — the live bridge cell is reassigned on save/load,
+  // so consumers must call `bridgeRef().world` (or equivalent indirection)
+  // rather than capturing this reference once.
+  readonly world: GameWorld;
+  // Spec 2 (annotation-ui v0.1.5) AO-2: manual pause/resume gate. Toggles
+  // a NEW closure-local `pauseState.pausedManually` flag (NOT haltState).
+  // step() early-returns when pausedManually is true; render projections
+  // continue to flow because the pause gate is placed AFTER
+  // flushOutOfBandRenderChange. getHudState().engineHalted continues to
+  // reflect failure-halt only.
+  setPaused(paused: boolean): void;
   getRenderState(): RenderState;
   getRenderInterpolationAlpha(): number;
   getHudState(): HudState;
   getEconomyState(): EconomyState;
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
+  // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
+  // setters that preserve EntityRef.generation. Used by AnnotationController
+  // to resolve the current selection to MarkerRefs.entities, and by
+  // MarkerListPanel row clicks to re-select previously-recorded entities.
+  // `select` returns void; callers pre-filter stale refs and don't need
+  // a "selected anything" signal.
+  getSelectedEntityRefs(): readonly EntityRef[];
+  select(refs: readonly EntityRef[]): void;
   getMatchState(): MatchState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   // FU4: probe an entity's current/max HP. Reads the canonical combat
@@ -140,6 +164,7 @@ export function createSimulationBridge(
     selectOwnedUnitsByTypeInRect,
     filterSelectableUnitIds,
     selectUnitsByIds,
+    selectByRefs,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand,
@@ -157,6 +182,7 @@ export function createSimulationBridge(
     getDebugSnapshot,
     getFogMemoryEntities,
     getHumanFogMemorySize,
+    getSelectedEntityRefs,
   } =
     createWorld(effectiveSeed, visibility, savedGame);
   const renderStore = new RenderStore();
@@ -209,6 +235,15 @@ export function createSimulationBridge(
   // the failure is visible instead of silently degrading.
   const haltState = createTickHaltState();
 
+  // Spec 2 (annotation-ui v0.1.5) AO-2: a separate manual-pause state bag,
+  // distinct from haltState (which carries EngineHaltDetails for actual
+  // engine failures). pausedManually is toggled by setPaused(boolean) and
+  // gated in step() AFTER flushOutOfBandRenderChange (so render projections
+  // continue to flow while paused) and BEFORE the haltState/match-outcome
+  // checks. Reusing haltState here would surface manual pause as a tick
+  // failure via getHudState().engineHalted.
+  const pauseState: { pausedManually: boolean } = { pausedManually: false };
+
   const issueContextCommandAtEntity = (entityId: number): boolean => {
     const didIssue = issueContextCommandAtEntityInternal(entityId);
     if (!didIssue) {
@@ -221,6 +256,13 @@ export function createSimulationBridge(
   return {
     step(deltaMs: number) {
       flushOutOfBandRenderChange();
+      // Spec 2 AO-2: manual pause gate. Placed AFTER flushOutOfBandRenderChange
+      // so render projections continue to flow while paused, and BEFORE the
+      // existing haltState / match-outcome checks so the HUD's engineHalted
+      // (which reads haltState.halted) doesn't reflect manual pause.
+      if (pauseState.pausedManually) {
+        return;
+      }
       if (haltState.halted) {
         return;
       }
@@ -238,6 +280,22 @@ export function createSimulationBridge(
         }
         accumulatorMs -= tickMs;
       }
+    },
+    // Spec 2 AO-2: world getter — exposes the engine World instance for
+    // RecordingService / AnnotationController / MarkerListPanel.
+    get world() {
+      return world;
+    },
+    setPaused(paused: boolean) {
+      pauseState.pausedManually = paused;
+    },
+    getSelectedEntityRefs,
+    // Spec 2 AO-2 (impl-1 review fix): return void per DESIGN §7 contract.
+    // Callers pre-filter through world.isCurrent so a "did anything
+    // select?" boolean isn't part of the contract; selectByRefs's internal
+    // boolean is opaque to public consumers.
+    select(refs: readonly EntityRef[]) {
+      selectByRefs(refs);
     },
     getRenderState() {
       flushOutOfBandRenderChange();

@@ -64,6 +64,7 @@ export interface SelectionInputOps {
     unitType?: UnitType,
   ): number[];
   selectUnitIds(ids: number[]): boolean;
+  selectByRefs(refs: readonly EntityRef[]): boolean;
   filterSelectableUnitIds(ids: number[]): number[];
   selectUnitsByIds(ids: number[]): boolean;
   getHumanOwnedSheepIdsInRect(
@@ -81,6 +82,7 @@ export interface SelectionInputOps {
     maxY: number,
   ): boolean;
   getSelectedEntityIds(): number[];
+  getSelectedEntityRefs(): readonly EntityRef[];
   getSelectedEntityId(): number | null;
   removeSelectedEntity(id: number): void;
   findResourceAtCell(x: number, y: number): number | null;
@@ -248,6 +250,61 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     return true;
   }
 
+  // Spec 2 (annotation-ui v0.1.5) AO-2: select-from-refs entry point.
+  // Filters out stale refs (entities whose generation no longer matches);
+  // updates selection.refs to the surviving (id-resolvable) ones. Returns
+  // true iff the resulting selection is non-empty.
+  function selectByRefs(refs: readonly EntityRef[]): boolean {
+    const surviving: EntityRef[] = [];
+    const seenIds = new Set<number>();
+    for (const ref of refs) {
+      const id = getCurrentEntityId(ref);
+      if (id === null || seenIds.has(id)) continue;
+      seenIds.add(id);
+      surviving.push(ref);
+    }
+    selection.refs = surviving;
+    selection.focusCell = null;
+    if (selection.refs.length === 0) {
+      placementMode.current = null;
+      return false;
+    }
+    placementMode.current = null;
+    return true;
+  }
+
+  // Spec 2 (annotation-ui v0.1.5) AO-2: parallel getter alongside
+  // getSelectedEntityIds. Returns the EntityRef array (with generation)
+  // directly so consumers (annotation marker emission) can preserve
+  // generation through to civ-engine's MarkerRefs.entities — bare ids
+  // would lose the generation and trip 'entity_liveness' validation.
+  //
+  // PRUNES STALE refs in-place (impl-1 review M3): the recorder
+  // VALIDATES via world.isCurrent and THROWS MarkerValidationError on
+  // stale refs (NOT filters). If a unit dies between selection and the
+  // next Alt+M, exposing the stale ref would crash the marker emission.
+  // Mirror the same prune-on-read behavior as getSelectedEntityIds
+  // (selectionInputOps.ts:346-365) so the contract is symmetric.
+  function getSelectedEntityRefs(): readonly EntityRef[] {
+    const survivingRefs: EntityRef[] = [];
+    const seenIds = new Set<number>();
+    for (const ref of selection.refs) {
+      const id = getCurrentEntityId(ref);
+      if (id === null || seenIds.has(id)) continue;
+      seenIds.add(id);
+      survivingRefs.push(ref);
+    }
+    if (survivingRefs.length !== selection.refs.length) {
+      selection.refs = survivingRefs;
+      if (selection.refs.length === 0) {
+        selection.focusCell = null;
+        placementMode.current = null;
+      }
+    }
+    // Defensive copy so callers can't mutate selection.refs.
+    return survivingRefs.slice();
+  }
+
   function filterSelectableUnitIds(ids: number[]): number[] {
     if (!isMatchRunning()) return [];
 
@@ -412,12 +469,14 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     entityOccupiesCell,
     getHumanUnitIdsInRect,
     selectUnitIds,
+    selectByRefs,
     filterSelectableUnitIds,
     selectUnitsByIds,
     getHumanOwnedSheepIdsInRect,
     selectUnitsInBox,
     selectOwnedUnitsByTypeInRect,
     getSelectedEntityIds,
+    getSelectedEntityRefs,
     getSelectedEntityId,
     removeSelectedEntity,
     resolveSelectionTile,

@@ -571,3 +571,272 @@ body {
     max-width: 320px;
   }
 }
+
+/* Spec 2 (annotation-ui v0.1.5): AnnotationForm modal + MarkerListPanel.
+   Both opt into pointer-events because #hud-root blocks them by default
+   so the Phaser canvas can receive input. */
+
+.annotation-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100% - 32px));
+  background: rgba(17, 24, 26, 0.96);
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  z-index: 10;
+  color: rgba(243, 232, 207, 0.95);
+  font-size: 13px;
+}
+
+.annotation-form--hidden {
+  display: none;
+}
+
+.annotation-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.annotation-form__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.annotation-form__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.annotation-form__text {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  background: rgba(8, 14, 16, 0.7);
+  color: inherit;
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 6px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.annotation-form__severity {
+  border: 1px solid rgba(221, 196, 145, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.annotation-form__severity legend {
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+}
+
+.annotation-form__severity label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.annotation-form__category {
+  width: 100%;
+  background: rgba(8, 14, 16, 0.7);
+  color: inherit;
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.annotation-form__screenshot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.annotation-form__error {
+  color: #ff8b8b;
+  font-size: 12px;
+}
+
+.annotation-form__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.annotation-form__buttons button {
+  pointer-events: auto;
+  background: rgba(221, 196, 145, 0.15);
+  color: inherit;
+  border: 1px solid rgba(221, 196, 145, 0.4);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.annotation-form__buttons button:hover {
+  background: rgba(221, 196, 145, 0.25);
+}
+
+.marker-list-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: min(360px, 40vw);
+  max-height: 60vh;
+  overflow: auto;
+  background: rgba(17, 24, 26, 0.94);
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  z-index: 8;
+  color: rgba(243, 232, 207, 0.95);
+  font-size: 12px;
+}
+
+.marker-list-panel--hidden {
+  display: none;
+}
+
+.marker-list-panel__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.marker-list-panel__empty {
+  font-size: 11px;
+  color: rgba(243, 232, 207, 0.55);
+  padding: 6px 0;
+}
+
+.marker-list-panel__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.marker-list-panel__row:hover {
+  background: rgba(221, 196, 145, 0.1);
+}
+
+.marker-list-panel__tick {
+  font-variant-numeric: tabular-nums;
+  color: rgba(243, 232, 207, 0.6);
+  font-size: 11px;
+}
+
+.marker-list-panel__sev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.marker-list-panel__sev--info { background: rgba(120, 170, 240, 0.4); }
+.marker-list-panel__sev--warning { background: rgba(240, 200, 100, 0.5); }
+.marker-list-panel__sev--bug { background: rgba(240, 130, 130, 0.5); }
+.marker-list-panel__sev--blocker { background: rgba(220, 80, 80, 0.6); }
+
+.marker-list-panel__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marker-list-panel__author {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(243, 232, 207, 0.55);
+}
+
+.marker-list-panel__prior {
+  margin-top: 12px;
+  border-top: 1px solid rgba(221, 196, 145, 0.2);
+  padding-top: 10px;
+}
+
+.marker-list-panel__prior-toggle {
+  background: none;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 0;
+  text-align: left;
+  width: 100%;
+}
+
+.marker-list-panel__prior-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.marker-list-panel__prior-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(8, 14, 16, 0.5);
+  font-size: 11px;
+}
+
+.marker-list-panel__prior-when {
+  font-variant-numeric: tabular-nums;
+  color: rgba(243, 232, 207, 0.55);
+}
+
+.marker-list-panel__prior-id {
+  font-family: ui-monospace, monospace;
+  color: rgba(243, 232, 207, 0.7);
+}
+
+.marker-list-panel__warn {
+  color: rgba(240, 200, 100, 0.9);
+  font-size: 14px;
+}
+
+.marker-list-panel__prior-row button {
+  background: rgba(221, 196, 145, 0.15);
+  color: inherit;
+  border: 1px solid rgba(221, 196, 145, 0.4);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.marker-list-panel__prior-row button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

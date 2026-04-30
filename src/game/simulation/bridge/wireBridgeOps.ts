@@ -289,9 +289,11 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
     filterSelectableUnitIds,
     selectUnitsByIds,
+    selectByRefs,
     selectUnitsInBox,
     selectOwnedUnitsByTypeInRect,
     getSelectedEntityIds,
+    getSelectedEntityRefs,
     getSelectedEntityId,
     distanceToBuilding,
   } = selectionInputOps;
@@ -384,6 +386,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     selectOwnedUnitsByTypeInRect,
     filterSelectableUnitIds,
     selectUnitsByIds,
+    selectByRefs,
     selectUnitsInBox,
     clearSelection,
     getDebugSnapshot,
@@ -392,5 +395,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
     getSelectedEntityIds,
+    getSelectedEntityRefs,
   };
 }

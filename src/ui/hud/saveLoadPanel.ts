@@ -26,7 +26,11 @@ export interface SaveLoadElements {
 
 export interface SaveLoadDeps {
   saveGame(): SaveBlob;
-  loadGame(blob: SaveBlob): void;
+  // Spec 2 (annotation-ui v0.1.5) AO-5: widened to async because the
+  // matching `HudBridge.loadGame` now awaits the new `RecordingService`'s
+  // start() call inside `rebuildAnnotationStack`. The panel awaits this
+  // promise and toasts success on resolve / failure on reject.
+  loadGame(blob: SaveBlob): Promise<void>;
   showToast(text: string): void;
 }
 
@@ -175,7 +179,16 @@ export function createSaveLoadPanel(
     refreshLoadSourceAvailability();
   }
 
-  function handleLoadConfirmClick(): void {
+  // Spec 2 AO-5: button-disable affordance + single-flight guard. The
+  // RecordingService.rebuildAnnotationStack helper is single-flight inside
+  // createApp, but disabling the Load button between click and resolution
+  // gives the user clear feedback and prevents the trivial double-click
+  // race (which would otherwise serialize through the rebuild chain).
+  let loadInFlight = false;
+
+  async function handleLoadConfirmClick(): Promise<void> {
+    if (loadInFlight) return;
+
     let blobJson: string | null = null;
     if (loadSourcePasteInput?.checked) {
       blobJson = loadPasteTextarea?.value.trim() ?? '';
@@ -204,8 +217,15 @@ export function createSaveLoadPanel(
       return;
     }
 
+    loadInFlight = true;
+    if (loadConfirmButton) loadConfirmButton.disabled = true;
+    if (loadButton) loadButton.disabled = true;
     try {
-      loadGame(parsed);
+      // Spec 2 AO-5: loadGame returns Promise<void>; await for the
+      // async recording-service rebuild before showing the success
+      // toast. Sync rejections are also caught (Promise.reject /
+      // synchronous throw paths).
+      await loadGame(parsed);
     } catch (error) {
       console.warn('Load failed:', error);
       const message = error instanceof Error && error.message.length > 0
@@ -213,6 +233,10 @@ export function createSaveLoadPanel(
         : 'Load failed.';
       showToast(message);
       return;
+    } finally {
+      loadInFlight = false;
+      if (loadConfirmButton) loadConfirmButton.disabled = false;
+      if (loadButton) loadButton.disabled = false;
     }
 
     showToast('Game loaded.');

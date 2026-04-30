@@ -61,12 +61,15 @@ interface HudBridge {
   // HUD writes the returned blob to localStorage and triggers a
   // download.
   saveGame(): SaveBlob;
-  // FU5: swap the running simulation with one rehydrated from `blob`.
-  // `createApp` owns the bridge + scene wiring so it implements this
-  // callback and rewires the scene, HUD, and browser test API to the
-  // new bridge. Throws on schema mismatch so the HUD can toast the
-  // failure.
-  loadGame(blob: SaveBlob): void;
+  // FU5 (widened in Spec 2 v0.1.5 AO-5): swap the running simulation with
+  // one rehydrated from `blob`. `createApp` owns the bridge + scene
+  // wiring so it implements this callback and rewires the scene, HUD, and
+  // browser test API to the new bridge. **Returns a Promise** so async
+  // work (e.g., the new RecordingService.start() in Spec 2's
+  // rebuildAnnotationStack helper) can be awaited; the saveLoadPanel
+  // shows the success toast only after the promise resolves and a
+  // failure toast on rejection. Throws / rejects on schema mismatch.
+  loadGame(blob: SaveBlob): Promise<void>;
 }
 
 // Slice 11: debug-overlay mode type is re-exported so GameScene +
@@ -79,6 +82,12 @@ export interface HudController {
   // itself renders the text overlay for ai-state / perf.
   getDebugOverlayMode(): DebugOverlayMode;
   cycleDebugOverlayMode(): DebugOverlayMode;
+  // Spec 2 (annotation-ui v0.1.5) AO-5: expose the toast handle so
+  // RecordingService.onPersistenceError can surface IDB failures (quota
+  // exceeded, transaction abort) and MarkerListPanel can toast on
+  // stale-ref clicks. The toast queue / DOM is private to this
+  // controller; only the showToast entry point is exported.
+  toastHandle: { showToast(text: string): void };
   // Iter-3 V3-11 / iter-2 M2-6 / iter-1 H-7: tear-down hook so HMR,
   // browser-test teardown, or any future "reset to title" path can
   // cancel the per-frame RAF loop, drop window-level listeners, and
@@ -458,6 +467,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   return {
     getDebugOverlayMode: debugOverlayController.getMode,
     cycleDebugOverlayMode: debugOverlayController.cycleMode,
+    toastHandle: { showToast },
     destroy() {
       if (isDestroyed) {
         return;
