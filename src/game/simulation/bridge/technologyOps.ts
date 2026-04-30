@@ -5,10 +5,10 @@
 // `rewriteQueuedPredecessorUnits`) in one module.
 //
 // Same flat dep-bag pattern as the other `bridge/` extractions: the factory
-// closes over every side map and collaborator; ownership still lives in
-// createWorld so save/load serialization, production-queue bookkeeping, and
-// the other ~80 touches of these maps in the bridge keep using the same
-// references.
+// closes over every side map and collaborator; ownership lives in
+// `bridge/bridgeState.ts` so save/load serialization, production-queue
+// bookkeeping, and the other touches of these maps across the bridge modules
+// keep using the same references.
 
 import type {
   RenderableComponent,

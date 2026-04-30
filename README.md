@@ -39,6 +39,11 @@ Camera:
 - Mouse hover near a screen edge to pan in that direction when the game is fullscreen or the browser window fully fills the monitor
 - Mouse wheel to zoom
 
+Annotations (capture-only, v0.1.5):
+
+- `Alt+M` opens the annotation form to add a marker against the current selection or tick
+- `Alt+L` toggles the bottom-right marker list panel (current session + Prior Sessions for crash recovery)
+
 ## Test fixtures
 
 The dev server accepts a `?seed=<name>` URL parameter to load deterministic test scenarios. See the devlog under `docs/devlog/` for the current list of seeds.

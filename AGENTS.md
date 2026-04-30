@@ -83,7 +83,7 @@ Operational details for the multi-CLI review rule above.
 Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` at session start. Key directories:
 
 - `src`: app code.
-- `docs`: architecture, devlogs, threads, API, tutorials, guides.
+- `docs`: architecture (`architecture/`), devlogs (`devlog/`), threads (`threads/`), engine feedback (`engine-feedback/`), debugging notes (`debugging/`), learning lessons (`learning/`), and `changelog.md`. The project does not maintain API/tutorial/guide docs (see "Note on retired files" below).
 - `design`: app and mechanism notes.
 
 ### Discipline (mandatory; not optional)

@@ -20,7 +20,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
       writes into).
-      - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
+      - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink (and follow-up extractions), the orchestrator is a thin facade (under 400 LOC) that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 
         Boot/orchestration tier:
         - `createWorld.ts` — entry point invoked by the facade. Builds (or deserializes) the civ-engine `World`, instantiates `BridgeState`, builds tile grids, then calls `wireBridgeOps` and `assembleBridgeApi`.
@@ -45,7 +45,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         - `playerQueries.ts`, `aiDecisionOps.ts`, `targetFindingOps.ts`, `selectionFinders.ts` — read-side queries.
         - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators.
         - `humanInputOps.ts`, `selectionInputOps.ts`, `selectionStateOps.ts`, `unitCommandOps.ts` — command surface.
-        - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers.
+        - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts`, `tickHaltGuard.ts` — system-specific helpers (`tickHaltGuard.ts` wraps `world.step()` so engine fail-fast `WorldTickFailureError` halts further ticks and surfaces in `HudState.engineHalted`).
         - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries.
         - `optionsRules.ts` — train/research/market/build option lookup.
         - `renderStateOps.ts`, `debugSnapshotOps.ts`, `economyStateOps.ts`, `saveGameOps.ts` — read-side projections to the HUD/test surface.
@@ -62,8 +62,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         selection, sheep, scenario validation). The `fixtures/index.ts`
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
-  - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), and `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay).
-  - `ui/` — DOM HUD controller
+  - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay), and `unitTypeMap.ts` (the shared `ALL_UNIT_TYPES` table + `isUnitType` guard).
+  - `ui/` — DOM HUD controller (`hud/`) plus the annotation-UI surfaces (`annotation/AnnotationForm.ts` for marker capture and `annotation/MarkerListPanel.ts` for the current-session + prior-session list).
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
 - `design/` — game design spec, stat CSVs, implementation plan

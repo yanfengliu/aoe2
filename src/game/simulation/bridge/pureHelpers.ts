@@ -30,10 +30,10 @@ import type {
   WanderBoundsComponent,
 } from '../types';
 
-// Shared bridge-level type aliases. Mirrors the `GameEvents` / `GameCommands` /
-// `GameComponents` triple declared inline in `createSimulationBridge.ts`, but
-// lifted here so helper modules under `bridge/` can speak the same type
-// language without a circular import back into the bridge entry point.
+// Shared bridge-level type aliases. The `GameEvents` / `GameCommands` /
+// `GameComponents` triple lives here so the bridge facade (`createSimulationBridge.ts`)
+// and every module under `bridge/` can speak the same type language without a
+// circular import back into the bridge entry point.
 export type GameEvents = Record<string, never>;
 export type GameCommands = Record<string, never>;
 export type GameComponents = {

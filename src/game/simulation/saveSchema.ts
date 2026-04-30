@@ -7,7 +7,8 @@
 // `WorldSnapshot` and `VisibilityMapState` come straight from
 // `civ-engine`; their internal shape is engine-owned and they are passed
 // through as opaque JSON values. The repo's responsibility is the side
-// maps that live in the `createWorld` closure outside any ECS component.
+// maps owned by `bridge/bridgeState.ts:createBridgeState()` that live
+// outside any ECS component.
 //
 // All `Map<K, V>` side maps serialize as `[[k, v], ...]` arrays so a
 // single `new Map(arr)` call rehydrates them. Inner `Set`s serialize as
