@@ -168,7 +168,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   // selection. Lower numbers are picked first (after the priority sort,
   // ties break by Manhattan distance). Castles and Town Centers are
   // intentionally pushed to the bottom: they have huge HP pools and are
-  // poor first-strikes (Gemini Medium review). Watch Towers are still
+  // poor first-strikes (per a prior review finding). Watch Towers are still
   // worth attacking quickly. Everything else stays in the middle so the
   // sort is stable for buildings without an explicit reason to defer.
   function buildingTargetPriority(buildingType: BuildingType): number {

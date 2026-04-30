@@ -1,11 +1,11 @@
 # Annotation UI — Implementation Plan
 
-**Status:** Accepted v2 (2026-04-29). 3-CLI plan-2 review converged: Gemini ACCEPT, Claude ACCEPT-with-1-MAJOR-clarification, Codex ITERATE on 1 MAJOR + 3 MINORs. Both MAJORs (FR-1 anti-regression vs AO-4; AO-7b/AO-8 tee scope) resolved inline. See `2026-04-29/plan-2/REVIEW.md`. Ready for PHASE 1 implementation.
+**Status:** Accepted v2 (2026-04-29). Multi-CLI plan-2 review converged: Claude ACCEPT-with-1-MAJOR-clarification, Codex ITERATE on 1 MAJOR + 3 MINORs (Gemini was used for the iter-2 review at the time but is no longer in the toolchain — see AGENTS.md update for the rationale). Both MAJORs (FR-1 anti-regression vs AO-4; AO-7b/AO-8 tee scope) resolved inline. See `2026-04-29/plan-2/REVIEW.md`. Ready for PHASE 1 implementation.
 
 Implements DESIGN.md v5 (ACCEPT). Coordinated two-repo drop: civ-engine v0.8.10 → 0.8.11 (additive `AgentDriverContext.addMarker / attach` + default-sink change), aoe2 v0.1.4 → 0.1.5 (annotation UI + recording service + IDB mirror).
 
 v2 deltas from v1:
-- **TDD discipline:** PHASE 1 merges CE-1+CE-2 into a single TDD task (write failing tests → implement → tests pass). PHASE 1's review checkpoint and PHASE 3 FR-1 list **Codex + Gemini + Claude** per aoe2 AGENTS.md (v1 omitted Gemini). Diff command corrected to `git diff` / `git diff main`.
+- **TDD discipline:** PHASE 1 merges CE-1+CE-2 into a single TDD task (write failing tests → implement → tests pass). PHASE 1's review checkpoint and PHASE 3 FR-1 list **Codex + Claude** per aoe2 AGENTS.md. Diff command corrected to `git diff` / `git diff main`.
 - **Test environment:** AO-1 adds `fake-indexeddb` + `jsdom` to devDependencies, updates `vitest.config.ts` for jsdom env, smoke-tests vitest alias inheritance for `node:crypto`.
 - **AO-7 split:** IndexedDBMirror split into AO-7a (open/close/recordMeta + lifecycle), AO-7b (per-stream record* + tee + fake-timer flush testing), AO-7c (listSessions + reconstructBundle + typed errors), AO-7d (discard + readAttachmentBytes + quota path).
 - **`pausedManually` carrier:** AO-2 specifies a new `pauseState: { pausedManually: boolean }` bag on bridge state, NOT in `tickHaltGuard.ts`'s `haltState`.
@@ -21,7 +21,7 @@ v2 deltas from v1:
 
 **Discipline:** TDD per AGENTS.md. Each task: write test → fail → make pass → run gates → commit-on-green for civ-engine; final all-task commit for aoe2 (one coherent v0.1.5).
 
-**Process note:** Design iterations 1–5 used Codex + Claude only. aoe2's AGENTS.md requires Codex + Gemini + Claude. Plan-2 review onward uses all three; the design-iteration omission is logged in `docs/learning/lessons.md` as a process regression to avoid in future threads.
+**Process note:** Earlier iterations of this plan briefly used a third CLI (Gemini) per a then-extant AGENTS.md rule. AGENTS.md was subsequently updated to drop Gemini from the reviewer list (see civ-engine + aoe2 AGENTS.md). Forward-looking review checkpoints in this plan use Codex + Claude only.
 
 ## 0. Sequencing
 
@@ -30,7 +30,7 @@ PHASE 1 — civ-engine v0.8.11 (must merge first)
   CE-0  Verify `decide` runs BEFORE `world.step` in runner ordering (read ai-playtester.ts)
   CE-1  Single TDD task: write failing tests for ctx.addMarker / ctx.attach / default-sink-allowSidecar / future-tick rejection / regression on existing destructure-only consumers; THEN implement AgentDriverContext extension + default sink change to make them pass
   CE-2  Docs: civ-engine api-reference.md (verified to exist), devlog, changelog, README version badge, version bump 0.8.10 → 0.8.11
-  CE-3  Multi-CLI review (Codex + Gemini + Claude) on civ-engine diff, iterate, commit
+  CE-3  Multi-CLI review (Codex + Claude) on civ-engine diff, iterate, commit
 
 PHASE 2 — aoe2 v0.1.5 (one coherent commit at end; tests pass throughout)
   AO-0  npm install (pick up civ-engine v0.8.11 from file: link); record civ-engine HEAD sha in devlog for drift detection
@@ -55,7 +55,7 @@ PHASE 2 — aoe2 v0.1.5 (one coherent commit at end; tests pass throughout)
         NOTE: aoe2 does NOT maintain docs/api-reference.md or docs/guides/ (per AGENTS.md V5-5)
 
 PHASE 3 — Final review + commit
-  FR-1  Multi-CLI code review (Codex + Gemini + Claude) of the full aoe2 v0.1.5 diff via `git diff main`; doc-accuracy verification clause in the prompt
+  FR-1  Multi-CLI code review (Codex + Claude) of the full aoe2 v0.1.5 diff via `git diff main`; doc-accuracy verification clause in the prompt
   FR-2  Address findings, iterate to nitpick-only (Tie-Breaker if engineer/reviewers diverge after 3 iterations per AGENTS.md)
   FR-3  Land aoe2 v0.1.5 commit on main; thread → docs/threads/done/annotation-ui/
 ```
@@ -168,10 +168,9 @@ After CE-1 + CE-2, run multi-CLI code review per AGENTS.md `Code review` section
 ```bash
 # 3 CLIs in parallel via run_in_background
 git diff | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <prompt> > codex.txt
-git diff | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text > gemini.txt
 git diff | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)" > claude.txt
 # Single until-poller waits for all three
-until [ -s codex.txt ] && [ -s gemini.txt ] && [ -s claude.txt ]; do sleep 8; done
+until [ -s codex.txt ] && [ -s claude.txt ]; do sleep 8; done
 ```
 
 Prompt includes the AGENTS.md baseline + a doc-accuracy clause: "verify docs in the diff match implementation; flag any stale signatures, removed APIs still mentioned, or missing coverage of new APIs in canonical guides."
@@ -579,11 +578,10 @@ Before declaring task done: invoke the `doc-review` skill (if available) OR run 
 
 ### FR-1 — Multi-CLI code review of the full aoe2 v0.1.5 diff (3 CLIs per AGENTS.md)
 
-Per aoe2 AGENTS.md `Code review` section: dispatch Codex + Gemini + Claude in parallel using `run_in_background: true` and a single `until [ -s codex.txt ] && [ -s gemini.txt ] && [ -s claude.txt ]; do sleep 8; done` poller.
+Per aoe2 AGENTS.md `Code review` section: dispatch Codex + Claude in parallel using `run_in_background: true` and a single `until [ -s codex.txt ] && [ -s claude.txt ]; do sleep 8; done` poller.
 
 ```bash
 git diff main | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <prompt> > codex.txt
-git diff main | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text > gemini.txt
 git diff main | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)" > claude.txt
 ```
 
@@ -642,8 +640,6 @@ The plan-1 review (`docs/threads/current/annotation-ui/2026-04-29/plan-1/REVIEW.
 
 4. **Phase boundaries:** strict serial. PHASE 1 (civ-engine v0.8.11) lands first. PHASE 2 (aoe2 v0.1.5) starts only after PHASE 1's commit lands on civ-engine main; AO-0 records the civ-engine HEAD sha at PHASE 2 start to guard against drift mid-implementation.
 
-## 7. Process note: design-iteration regression
+## 7. Process note: reviewer toolchain
 
-Design iterations 1–5 used Codex + Claude only. aoe2's AGENTS.md `Code review` section requires Codex + Gemini + Claude. Plan-2 review onward (this iteration's review and PHASE 1 / PHASE 3 reviews) uses all three CLIs. The omission is logged in `docs/learning/lessons.md` under AO-14:
-
-> Multi-CLI design review must use all CLIs listed in AGENTS.md from iteration 1. The annotation-ui design saw 5 iterations with Codex + Claude only because the agent assumed civ-engine's 2-CLI list applied; aoe2's list is 3-CLI (Codex + Gemini + Claude). The full review came in 1 of 3 iterations on plan-1 catching the miss; convergence was unaffected because the design ACCEPT was already convergent across the 2 CLIs that did review, but future threads must use the full list from iteration 1.
+Earlier iterations of this thread experimented with a third CLI (Gemini) per a then-extant AGENTS.md rule. AGENTS.md was subsequently updated to drop Gemini from the toolchain. The current review pipeline is Codex + Claude in parallel; this matches both repos' AGENTS.md and is reflected in CE-3 / FR-1 above.

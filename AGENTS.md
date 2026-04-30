@@ -4,7 +4,7 @@
 - For each desired change, make the change easy, then make the easy change.
 - Before implementing a change, write a plan.
 - Verify every change against this project's gates: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. All four must pass before declaring a task done.
-- **Multi-CLI code review is mandatory for every behavior or code change before declaring the task done.** Run Codex + Gemini + Claude per the Code review section, synthesize their findings into `docs/threads/current/<objective>/<date>/<iteration_number>/REVIEW.md`, address every real finding, and re-review until reviewers nitpick instead of catching real bugs. Move the thread to `docs/threads/done/<objective>/` when the task is closed. This applies to all changes — single-file fixes, doc-only edits with code implications, refactors, and big features alike. Do not rationalize your way out of review with phrases like "single-file behavior fix," "trivial change," "TDD coverage is sufficient," "subagent dispatch is a tool not a mandate," or any equivalent. The Code review section is non-negotiable; the Team-of-subagents flexibility clause does NOT cover the multi-CLI review step. Skipping review is a process regression and must be corrected by running the review post-hoc on the same branch before merge.
+- **Multi-CLI code review is mandatory for every behavior or code change before declaring the task done.** Run Codex + Claude per the Code review section, synthesize their findings into `docs/threads/current/<objective>/<date>/<iteration_number>/REVIEW.md`, address every real finding, and re-review until reviewers nitpick instead of catching real bugs. Move the thread to `docs/threads/done/<objective>/` when the task is closed. This applies to all changes — single-file fixes, doc-only edits with code implications, refactors, and big features alike. Do not rationalize your way out of review with phrases like "single-file behavior fix," "trivial change," "TDD coverage is sufficient," "subagent dispatch is a tool not a mandate," or any equivalent. The Code review section is non-negotiable; the Team-of-subagents flexibility clause does NOT cover the multi-CLI review step. Skipping review is a process regression and must be corrected by running the review post-hoc on the same branch before merge.
 - When the change is visual:
   - Capture a before screenshot.
   - Apply the change.
@@ -44,7 +44,7 @@ When you do dispatch, the team roles below describe how to brief them. The Team 
 
 Operational details for the multi-CLI review rule above.
 
-- Use Codex / Gemini / Claude in CLI to independently review every change. Aspects to review:
+- Use Codex / Claude in CLI to independently review every change. Aspects to review:
   1. Design — easily scales, generalizes, debugs, can be understood and reasoned about, stays lean.
   2. Test coverage.
   3. Correctness.
@@ -60,17 +60,14 @@ Operational details for the multi-CLI review rule above.
   - `git diff [branch] | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <prompt>`
   - Requires Codex CLI ≥ 0.125.0 — older builds reject the model name with `requires a newer version of Codex`. Upgrade with `npm install -g @openai/codex@latest`. Codex caps reasoning effort at `xhigh` (no `max` value).
   - On Windows, `--sandbox read-only` blocks PowerShell `Select-String` invocations the model sometimes attempts; the model recovers via direct file reads, so the review still completes.
-- Gemini:
-  - `git diff [branch] | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text`
-  - `--approval-mode plan` is required: without it, gemini-3.x models attempt to call `run_shell_command` / `invoke_agent` and return zero output. Plan mode is read-only.
 - Claude:
   - With diff piped via stdin: `git diff [branch] | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
   - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model "claude-opus-4-7[1m]" --effort max --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
   - The `[1m]` suffix selects the 1 M-token-context variant of Opus 4.7 (the default `opus` alias may resolve to the 200 K variant). Quote the model string so the shell doesn't glob-expand the brackets.
 - **Keep model IDs current.** Bump these strings whenever a more capable variant ships (e.g. `claude-opus-5-0[1m]`, `gpt-5.6`). Verify with a one-line smoke test (`echo "ok" | <cli> ...`) before committing the bump — silent fallback to an older model is the failure mode to guard against.
 - For full-codebase reviews (no diff), drop the `git diff` pipe and let each CLI agentically explore the workspace from its CWD; keep the same model/effort flags.
-- **Diff reviews take ~5 minutes per CLI on a multi-hundred-line diff.** Run them in parallel with `run_in_background: true`. Wait via a single background `until` poller (`until [ -s codex.txt ] && [ -s claude.txt ] && [ -s gemini.txt ]; do sleep 8; done`) so the harness's no-long-sleeps guard doesn't fire and you don't poll repeatedly.
-- **If a CLI is unreachable** (quota exhaustion, model name rejected by harness), proceed with the remaining reviewers and note the unreachable CLI in the devlog. Two converging reviews are still useful signal — do not block the workflow on a third.
+- **Diff reviews take ~5 minutes per CLI on a multi-hundred-line diff.** Run them in parallel with `run_in_background: true`. Wait via a single background `until` poller (`until [ -s codex.txt ] && [ -s claude.txt ]; do sleep 8; done`) so the harness's no-long-sleeps guard doesn't fire and you don't poll repeatedly.
+- **If a CLI is unreachable** (quota exhaustion, model name rejected by harness), proceed with the remaining reviewer and note the unreachable CLI in the devlog. Convergence is the signal to stop iterating; one reviewer is acceptable for a single iteration when the other is unreachable, but always retry the unreachable CLI on the next iteration.
 
 ## Git
 
