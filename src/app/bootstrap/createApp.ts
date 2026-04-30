@@ -64,7 +64,12 @@ export async function createApp(): Promise<Phaser.Game> {
   // hudController is needed by the annotation stack (toastHandle), so
   // create it BEFORE the first stack rebuild. It receives `handleLoadGame`
   // (defined further down) via the loadGame field.
+  // Forward declarations: `scene` and `hudController` are assigned once
+  // before the first `chainRebuild` call but the assignment must happen
+  // AFTER `rebuildAnnotationStack` is defined (the helper closes over them).
+  // eslint-disable-next-line prefer-const
   let scene: GameScene;
+  // eslint-disable-next-line prefer-const
   let hudController: HudController;
 
   // Spec 2 AO-3: PauseControl + HotkeyRegistry shared across rebuilds.

@@ -2,7 +2,7 @@
 // New surface: bridge.world (read-only getter), bridge.setPaused(boolean),
 // bridge.getSelectedEntityRefs(), bridge.select(refs).
 
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { EntityRef } from 'civ-engine';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -79,12 +79,6 @@ describe('AO-2 bridge additive surfaces', () => {
   });
 
   describe('bridge.setPaused', () => {
-    let stepSpy: ReturnType<typeof vi.spyOn>;
-
-    beforeEach(() => {
-      stepSpy = vi.fn() as unknown as ReturnType<typeof vi.spyOn>;
-    });
-
     it('setPaused(true) prevents world.step from running on subsequent step() calls', () => {
       const bridge = createSimulationBridge(SEED);
       const initialTick = bridge.world.tick;

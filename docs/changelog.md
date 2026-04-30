@@ -26,8 +26,8 @@ User-visible behavior changes only. Pure refactors, doc sweeps, type-safety hard
 ### Open follow-ups (deferred from v0.1.5 per scope)
 
 - Replay scrubber + TimelinePanel (deferred to v0.1.6 per ADR 4 — needs aoe2 bridge-snapshot support first).
-- Vitest integration suite (AO-12.5) consolidating cross-component flows that today rely on per-component unit tests.
-- Playwright e2e + visual diff baselines (AO-13) — deferred until the headless browser test environment is set up to capture canvas snapshots.
+- ~~Vitest integration suite (AO-12.5)~~ — landed in follow-up: `tests/integration/annotation-ui.integration.test.ts` (6 cross-component scenarios using fake-indexeddb + jsdom).
+- Playwright e2e (AO-13) — behavior specs landed in follow-up at `tests/browser/annotation-ui.spec.ts` (3 specs: hotkey flow, cancel discards, hotkey-suppressed-while-text-input-focused). Visual diff baselines are present but `test.fixme`'d pending the user running `npm run test:browser -- --update-snapshots` locally to capture + commit the PNG baselines (must also stabilize tick rendering first since `marker.tick` varies per machine).
 
 ## 0.1.4 — 2026-04-26
 

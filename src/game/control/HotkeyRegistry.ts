@@ -88,7 +88,7 @@ export function createHotkeyRegistry(options: HotkeyRegistryOptions = {}): Hotke
     // Server / Node tests without a document — no-op registry that still
     // accepts register calls but never fires handlers.
     return {
-      register: (_spec, _handler) => () => {},
+      register: () => () => {},
       dispose: () => {},
     };
   }

@@ -56,7 +56,6 @@ export function createAnnotationForm(): AnnotationFormView {
   let severityRadios: HTMLInputElement[] = [];
   let categorySelect: HTMLSelectElement | null = null;
   let screenshotCheckbox: HTMLInputElement | null = null;
-  let saveButton: HTMLButtonElement | null = null;
   let cancelButton: HTMLButtonElement | null = null;
   let errorEl: HTMLDivElement | null = null;
   let isVisible = false;
@@ -119,7 +118,8 @@ export function createAnnotationForm(): AnnotationFormView {
     screenshotCheckbox = formEl.querySelector<HTMLInputElement>(
       '[data-testid="annotation-form-screenshot"]',
     );
-    saveButton = formEl.querySelector<HTMLButtonElement>('[data-testid="annotation-form-save"]');
+    // The save button is wired through the form's `submit` event, not a
+    // direct click handler, so we don't need a tracked reference.
     cancelButton = formEl.querySelector<HTMLButtonElement>(
       '[data-testid="annotation-form-cancel"]',
     );

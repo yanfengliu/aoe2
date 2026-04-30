@@ -17,7 +17,7 @@
 //     - schema-mismatched sessions: disabled Export + tooltip
 //     - closedNormally:false: warning icon + tooltip
 
-import type { EntityRef, Marker, Position, World } from 'civ-engine';
+import type { EntityRef, Position, World } from 'civ-engine';
 
 import type { RecordingService } from '../../game/recording/RecordingService';
 import type { PauseControl } from '../../game/control/PauseControl';

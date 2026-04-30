@@ -596,7 +596,7 @@ export class IndexedDBMirror {
         reject(err);
       };
       // Apply pending writes.
-      for (const [_sessionId, row] of pending.metaUpdates) {
+      for (const row of pending.metaUpdates.values()) {
         tx.objectStore(STORE_NAMES.meta).put(row);
       }
       for (const { sessionId, entry } of pending.ticks) {

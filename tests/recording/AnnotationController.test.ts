@@ -6,11 +6,6 @@ import type { EntityRef, World } from 'civ-engine';
 import { createAnnotationController } from '../../src/game/recording/AnnotationController';
 import type { AnnotationFormView, AnnotationFormSubmission } from '../../src/ui/annotation/AnnotationForm';
 
-interface MockRefs {
-  entities?: readonly EntityRef[];
-  tickRange?: { from: number; to: number };
-}
-
 const stubForm = (): AnnotationFormView & {
   emitSubmit: (input: AnnotationFormSubmission) => void;
   emitCancel: () => void;

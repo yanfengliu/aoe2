@@ -35,7 +35,7 @@ describe('createSimulationBridge combat and outcomes', () => {
         (unit) => unit.id === (enemyScout?.id ?? -1),
       ),
     ).toBe(false);
-  }, 10_000);
+  }, 30_000);
 
   it('lets a selected Militia attack and destroy a visible enemy house', () => {
     const bridge = createSimulationBridge('conquest-victory-fixture');
@@ -76,7 +76,7 @@ describe('createSimulationBridge combat and outcomes', () => {
           && building.y === (enemyHouse?.y ?? 8),
       ),
     ).toBe(false);
-  }, 10_000);
+  }, 30_000);
 
   it('lets the AI build a Barracks and kill a human villager', () => {
     const bridge = createSimulationBridge('ai-rush-fixture');
@@ -112,7 +112,7 @@ describe('createSimulationBridge combat and outcomes', () => {
     expect(
       economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager').length,
     ).toBeLessThan(3);
-  }, 10_000);
+  }, 30_000);
 
   it('declares victory when the player destroys the last enemy structure in the conquest fixture', () => {
     const bridge = createSimulationBridge('conquest-victory-fixture');

@@ -327,30 +327,40 @@ describe('MarkerListPanel — Prior Sessions section', () => {
     const blob = new Blob(['{"sessionId":"s1"}'], { type: 'application/json' });
     recording.listPriorSessions = vi.fn(() => Promise.resolve([makePrior('s1')]));
     recording.exportPriorSession = vi.fn(() => Promise.resolve(blob));
-    // Stub URL.createObjectURL since jsdom may not provide it.
     if (typeof URL.createObjectURL !== 'function') {
       (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = () => 'blob://stub';
       (URL as unknown as { revokeObjectURL: (s: string) => void }).revokeObjectURL = () => {};
     }
-    const host = mountedHost();
-    const panel = createMarkerListPanel({
-      recording: recording as never,
-      pauseControl,
-      toast,
-      bridge,
-      worldRef: () => world,
-      autoRefresh: false,
-    });
-    panel.mount(host);
-    panel.toggleVisibility();
-    const toggle = host.querySelector<HTMLButtonElement>('[data-testid="marker-list-prior-toggle"]')!;
-    toggle.click();
-    await new Promise((r) => setTimeout(r, 0));
-    const exportBtn = host.querySelector<HTMLButtonElement>('[data-testid="marker-list-prior-export"]')!;
-    exportBtn.click();
-    await new Promise((r) => setTimeout(r, 0));
-    expect(recording.exportPriorSession).toHaveBeenCalledWith('s1');
-    panel.dispose();
+    // jsdom emits "Not implemented: navigation to another Document" stderr
+    // for HTMLAnchorElement.click() on a download link. The click is the
+    // right semantic in real browsers (triggers download); in tests it's
+    // a no-op anyway. Stub on the prototype so the real click path runs
+    // through a vi.fn that doesn't navigate.
+    const realClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = vi.fn();
+    try {
+      const host = mountedHost();
+      const panel = createMarkerListPanel({
+        recording: recording as never,
+        pauseControl,
+        toast,
+        bridge,
+        worldRef: () => world,
+        autoRefresh: false,
+      });
+      panel.mount(host);
+      panel.toggleVisibility();
+      const toggle = host.querySelector<HTMLButtonElement>('[data-testid="marker-list-prior-toggle"]')!;
+      toggle.click();
+      await new Promise((r) => setTimeout(r, 0));
+      const exportBtn = host.querySelector<HTMLButtonElement>('[data-testid="marker-list-prior-export"]')!;
+      exportBtn.click();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(recording.exportPriorSession).toHaveBeenCalledWith('s1');
+      panel.dispose();
+    } finally {
+      HTMLAnchorElement.prototype.click = realClick;
+    }
   });
 
   it('Discard with confirm=true calls discardPriorSession + re-renders', async () => {
