@@ -38,7 +38,6 @@ export interface HumanInputOpsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  ungarrisonBuilding: (buildingId: number) => boolean;
 }
 
 export interface HumanInputOps {
@@ -70,7 +69,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    ungarrisonBuilding,
   } = deps;
   const { playerResources, constructionStates } = state;
 
@@ -260,6 +258,10 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return true;
   }
 
+  // Phase 1B (building.action): bridge facade. HUD-side selection +
+  // ownership guards (validator can't see humanPlayerId), then submits
+  // building.action via submitWithResult. Handler delegates to the
+  // action-specific direct helper.
   function issueAction(actionType: ActionType): boolean {
     if (!isMatchRunning()) return false;
 
@@ -269,12 +271,13 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!building || building.owner !== humanPlayerId) return false;
 
-    switch (actionType) {
-      case 'ungarrison':
-        return ungarrisonBuilding(selectedEntityId);
-      default:
-        return false;
-    }
+    if (actionType !== 'ungarrison') return false;
+
+    const result = world.submitWithResult('building.action', {
+      buildingId: selectedEntityId,
+      actionType,
+    });
+    return result.accepted;
   }
 
   // Phase 1B (market.action): bridge facade. Submits `market.action`;

@@ -428,7 +428,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    ungarrisonBuilding,
   });
 
   // Phase 1A scaffold + Phase 1B per-command registrations (DESIGN v17 §6.4).
@@ -477,6 +476,10 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       constructionStates: state.constructionStates,
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,
+    },
+    ungarrisonBuildingDirect: ungarrisonBuilding,
+    buildingActionValidatorDeps: {
+      constructionStates: state.constructionStates,
     },
   });
 

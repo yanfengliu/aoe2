@@ -69,6 +69,11 @@ import {
   type BuildingSetRallyPointValidatorDeps,
 } from '../handlers/building/buildingSetRallyPointValidator';
 import { makeBuildingSetRallyPointHandler } from '../handlers/building/buildingSetRallyPointHandler';
+import {
+  makeBuildingActionValidator,
+  type BuildingActionValidatorDeps,
+} from '../handlers/building/buildingActionValidator';
+import { makeBuildingActionHandler } from '../handlers/building/buildingActionHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -138,6 +143,10 @@ export interface CommandHandlerDeps {
   // or shared-state race; the validator's structural check is sufficient.
   rallyPoints: Map<number, Position>;
   buildingSetRallyPointValidatorDeps: BuildingSetRallyPointValidatorDeps;
+  // Phase 1B (building.action): action-specific direct helpers. Each
+  // BuildingActionType maps to its own helper; today only 'ungarrison'.
+  ungarrisonBuildingDirect: (buildingId: number) => boolean;
+  buildingActionValidatorDeps: BuildingActionValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -214,6 +223,14 @@ export function registerCommandHandlers(
   );
   world.registerHandler('building.setRallyPoint', makeBuildingSetRallyPointHandler({
     rallyPoints: deps.rallyPoints,
+  }));
+  // Phase 1B — building.action
+  world.registerValidator(
+    'building.action',
+    makeBuildingActionValidator(deps.buildingActionValidatorDeps),
+  );
+  world.registerHandler('building.action', makeBuildingActionHandler({
+    ungarrisonBuildingDirect: deps.ungarrisonBuildingDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

@@ -97,7 +97,6 @@ export interface RegisterBridgeSystemsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  ungarrisonBuilding: (id: number) => boolean;
 }
 
 export interface RegisterBridgeSystemsResult {
@@ -173,7 +172,6 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    ungarrisonBuilding,
   } = deps;
   const { trackedVisibilitySources } = state;
 
@@ -254,7 +252,6 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    ungarrisonBuilding,
   });
 
   const {

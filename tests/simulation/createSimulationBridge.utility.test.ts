@@ -137,6 +137,9 @@ describe('createSimulationBridge utility progression', () => {
       actionOptions: ['ungarrison'],
     });
     expect(bridge.issueAction('ungarrison')).toBe(true);
+    // Phase 1B building.action: handler runs at start of next step's
+    // processCommands. Step once so the ungarrison mutation lands.
+    bridge.step(100);
 
     const villagersAfterUngarrison = bridge
       .getEconomyState()
@@ -187,6 +190,8 @@ describe('createSimulationBridge utility progression', () => {
       actionOptions: ['ungarrison'],
     });
     expect(bridge.issueAction('ungarrison')).toBe(true);
+    // Phase 1B building.action: ungarrison mutation lands at next step.
+    bridge.step(100);
 
     expect(
       bridge.getEconomyState().units.filter(
