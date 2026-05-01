@@ -325,6 +325,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
+    setSheepMoveCommandDirect,
     getSelectedHumanUnitIds,
     getSelectedHumanVillagerIds,
     issueUnitContextCommand,
@@ -436,6 +437,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
+    setSheepMoveCommandDirect,
   });
 
   return {

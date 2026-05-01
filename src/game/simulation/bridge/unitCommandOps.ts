@@ -98,6 +98,8 @@ export interface UnitCommandOps {
   routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
   // Phase 1B unit.contextAtEntity: routing helper by entity id.
   routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean;
+  // Phase 1B sheep.move: direct-mutation helper.
+  setSheepMoveCommandDirect(sheepId: number, target: Position): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -172,7 +174,8 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
-  function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
+  // Direct-mutation helper. Used by the sheep.move handler.
+  function setSheepMoveCommandDirect(sheepId: number, target: Position): boolean {
     const resource = world.getComponent<ResourceComponent>(sheepId, 'resource');
     if (
       !resource
@@ -188,6 +191,13 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       y: clamp(target.y, 0, mapHeight - 1),
     });
     return true;
+  }
+
+  // Bridge facade. Submits sheep.move; handler delegates to
+  // setSheepMoveCommandDirect at start of next step.
+  function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
+    const result = world.submitWithResult('sheep.move', { sheepId, target });
+    return result.accepted;
   }
 
   function getSelectedOwnedSheepIds(): number[] {
@@ -492,6 +502,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
+    setSheepMoveCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
