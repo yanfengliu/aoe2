@@ -94,7 +94,16 @@ export interface RegisterAllSystemsDeps {
     targetId: number,
     targetKind: 'unit' | 'building' | 'resource',
   ) => boolean;
+  // Phase 1B unit.move (DESIGN v17 §6.4): commandified facade — used by
+  // human-input dispatch only. NOT for systems running inside execute.
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
+  // Phase 1B unit.move (DESIGN v17 §6.4 B1): direct-mutation helper for
+  // deterministic-resolution systems (productionQueueSystem rally,
+  // monkTaskOps appliers). Mirrors the full facade body.
+  setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  // Phase 1B unit.move (DESIGN v17 §6.5): intention pusher for AI-decision
+  // systems. Pushes to `pendingCommands`; dispatcher submits AFTER step.
+  pushUnitMoveIntention: (unitId: number, target: Position) => boolean;
   // Player-commands deps.
   clearUnitCommand: (id: number) => void;
   distanceToBuilding: (id: number, position: Position) => number;

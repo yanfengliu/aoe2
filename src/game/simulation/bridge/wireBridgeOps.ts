@@ -1,3 +1,5 @@
+import type { Position } from 'civ-engine';
+
 import { buildingFootprint, currentEntityId } from './pureHelpers';
 import type { UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
@@ -310,6 +312,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const { applyTechnology } = technologyOps;
   const {
     issueUnitMoveCommand,
+    setUnitMoveCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
@@ -355,6 +358,15 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getResearchOptions,
     issueUnitAttackCommand,
     issueUnitMoveCommand,
+    setUnitMoveCommandDirect,
+    // Phase 1B unit.move (DESIGN v17 §6.5): AI-decision systems push to
+    // `pendingCommands` during `execute`; the dispatcher submits between
+    // ticks. Returns `true` so callers can preserve their existing
+    // `if (issued)` flow even though the actual handler runs at next step.
+    pushUnitMoveIntention: (unitId: number, target: Position) => {
+      state.pendingCommands.push({ type: 'unit.move', data: { unitId, target } });
+      return true;
+    },
     distanceToBuilding,
     findBuildingSpawnPosition,
     applyTechnology,
@@ -377,9 +389,12 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     ungarrisonBuilding,
   });
 
-  // Phase 1A: command-handler scaffold registration (DESIGN v17 §6.4 Tier 0).
-  // Empty until Phase 1B commits add per-command validators + handlers.
-  registerCommandHandlers(world, {});
+  // Phase 1A scaffold + Phase 1B per-command registrations (DESIGN v17 §6.4).
+  // Each Phase 1B commit threads its direct-mutation helper into deps so the
+  // handler delegates to the same code path deterministic systems use.
+  registerCommandHandlers(world, {
+    setUnitMoveCommandDirect,
+  });
 
   return {
     ...finalize,

@@ -275,6 +275,12 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getEntityRef,
     destroyResourceEntity: (id) => entityDestroyOps.destroyResourceEntity(id),
     buildingOccupiesCell,
+    // Phase 1B unit.move (impl-2 review fix): the monkTaskOps callers of
+    // this dep are HUD-time only — `issueMonkContextCommandAtEntity` is
+    // reached from `unitCommandOps`'s human-input routing, NOT from
+    // `monkBehaviorSystem.execute` (which calls the `applyMonk*` task-
+    // appliers, none of which take this dep). Use the COMMANDIFIED facade
+    // so HUD monk-context fallback moves get recorded via submitWithResult.
     issueUnitMoveCommand: (unitId, target) => unitCommandOps.issueUnitMoveCommand(unitId, target),
     isAiMilitaryUnit,
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),

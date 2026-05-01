@@ -74,6 +74,8 @@ export interface RegisterBridgeSystemsDeps {
   getResearchOptions: RegisterAllSystemsArg['getResearchOptions'];
   issueUnitAttackCommand: RegisterAllSystemsArg['issueUnitAttackCommand'];
   issueUnitMoveCommand: RegisterAllSystemsArg['issueUnitMoveCommand'];
+  setUnitMoveCommandDirect: RegisterAllSystemsArg['setUnitMoveCommandDirect'];
+  pushUnitMoveIntention: RegisterAllSystemsArg['pushUnitMoveIntention'];
   distanceToBuilding: RegisterAllSystemsArg['distanceToBuilding'];
   findBuildingSpawnPosition: RegisterAllSystemsArg['findBuildingSpawnPosition'];
   applyTechnology: RegisterAllSystemsArg['applyTechnology'];
@@ -148,6 +150,8 @@ export function registerBridgeSystems(
     getResearchOptions,
     issueUnitAttackCommand,
     issueUnitMoveCommand,
+    setUnitMoveCommandDirect,
+    pushUnitMoveIntention,
     distanceToBuilding,
     findBuildingSpawnPosition,
     applyTechnology,
@@ -200,6 +204,8 @@ export function registerBridgeSystems(
     getResearchOptions,
     issueUnitAttackCommand,
     issueUnitMoveCommand,
+    setUnitMoveCommandDirect,
+    pushUnitMoveIntention,
     clearUnitCommand,
     distanceToBuilding,
     markOutOfBandRenderChange,

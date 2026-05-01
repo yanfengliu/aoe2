@@ -69,7 +69,12 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'villager')).toBe(true);
     // Issue a plain move to a distant empty cell far from any resource.
     expect(bridge.issueMoveCommand(2, 2)).toBe(true);
-    // Verify the move command registered before the unit arrives.
+    // Phase 1B (DESIGN v17 §6.5): the bridge facade now routes through
+    // `world.submitWithResult('unit.move', ...)`. Validator runs at submit
+    // time (returns true here); handler runs at start of next step's
+    // `processCommands`. Step once so the handler executes before
+    // checking the activity verb.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'moving', target: null });
   });
 

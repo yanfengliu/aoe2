@@ -64,7 +64,23 @@ export interface UnitCommandOpsDeps {
 }
 
 export interface UnitCommandOps {
+  // Phase 1B (DESIGN v17 §6.3): public commandified facade — used by
+  // HUD-time entry points (humanInputOps.issueMoveCommand, internal
+  // fallthrough from issueUnitContextCommand/AtEntity, and the
+  // monkTaskOps human-context fallback). Calls
+  // `world.submitWithResult('unit.move', ...)`. Validator runs
+  // synchronously; handler runs at start of NEXT step.
+  // Returns the validator's accept/reject decision (NOT whether the move
+  // happened — that's deferred to next step's processCommands).
   issueUnitMoveCommand(unitId: number, target: Position): boolean;
+  // Phase 1B (DESIGN v17 §6.4): private direct-mutation helper — used by
+  // deterministic-resolution systems (productionQueueSystem rally,
+  // monkTaskOps appliers). Mirrors the full facade body's invariants
+  // (unit guard, clearGathererOrder, monkTasks.delete, target clamp,
+  // movePathCache.delete via setUnitCommand). Safe to call from ANY
+  // context. NOT for AI-decision systems (those use pendingCommands
+  // intentions per §6.5).
+  setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -113,7 +129,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   } = deps;
   const { sheepMoveOrders, monkTasks, wildlifeStates, constructionStates } = state;
 
-  function issueUnitMoveCommand(unitId: number, target: Position): boolean {
+  // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
+  // Used by deterministic-resolution systems and by the `unit.move` handler.
+  function setUnitMoveCommandDirect(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) return false;
 
@@ -127,6 +145,14 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       },
     });
     return true;
+  }
+
+  // Bridge facade. HUD / hotkey handlers call this; it routes through
+  // civ-engine's command channel so the recorder captures the intent.
+  // Handler delegates to setUnitMoveCommandDirect at start of next step.
+  function issueUnitMoveCommand(unitId: number, target: Position): boolean {
+    const result = world.submitWithResult('unit.move', { unitId, target });
+    return result.accepted;
   }
 
   function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
@@ -382,6 +408,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   return {
     issueUnitMoveCommand,
+    setUnitMoveCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,

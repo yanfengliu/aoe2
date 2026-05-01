@@ -1,7 +1,7 @@
 // Command handler + validator registration site (DESIGN v17 §6.2 / §6.4).
 //
 // Phase 1A scaffolding: function exists and is called from `wireBridgeOps`,
-// but no handlers are registered yet. Each Phase 1B commit adds one validator
+// but no handlers were registered. Each Phase 1B commit adds one validator
 // + handler pair (15 commands total per §6.1). Phase 3A will add a parallel
 // call site in `wireReplaySystems` so the replay world re-registers the
 // same handlers.
@@ -24,12 +24,18 @@
 //  - `{ executed: true, code: 'executed', ... }`: handler ran without throwing.
 //  - `{ executed: false, code: 'missing_handler' | ... }`: handler failed.
 
-import type { GameWorld } from './pureHelpers';
+import type { Position } from 'civ-engine';
 
-// Phase 1A: deps placeholder. Phase 1B handlers will receive bridge ops
-// (BridgeStateAccessor in Phase 2; raw bridge state Maps/Sets transitionally).
-// For now this is a marker type so the registration site type-checks.
-export type CommandHandlerDeps = Record<string, never>;
+import type { GameWorld } from './pureHelpers';
+import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
+import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
+
+export interface CommandHandlerDeps {
+  // Phase 1B (unit.move): direct-mutation helper used by the unit.move
+  // handler so live + replay + deterministic-system paths all execute
+  // identical code (per DESIGN v17 §6.4 B1 fix).
+  setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+}
 
 /** Register all 15 command type validators + handlers on the given world.
  *  Currently called only by `wireBridgeOps` (live). Phase 3A will add a
@@ -37,15 +43,13 @@ export type CommandHandlerDeps = Record<string, never>;
  *  same handlers because `SessionReplayer.openAt` re-submits recorded
  *  commands and would throw `ReplayHandlerMissingError` otherwise. */
 export function registerCommandHandlers(
-  _world: GameWorld,
-  _deps: CommandHandlerDeps,
+  world: GameWorld,
+  deps: CommandHandlerDeps,
 ): void {
-  // Phase 1A: empty body. Each Phase 1B commit adds one pair:
-  //   _world.registerValidator('unit.move', unitMoveValidator);
-  //   _world.registerHandler('unit.move', (data, world) => unitMoveHandler(data, world, _deps));
-  //   ... 14 more ...
-  // Underscore prefix on params silences the unused-vars lint until Phase 1B
-  // wires the first handler.
-  void _world;
-  void _deps;
+  // Phase 1B — unit.move
+  world.registerValidator('unit.move', unitMoveValidator);
+  world.registerHandler('unit.move', makeUnitMoveHandler({
+    setUnitMoveCommandDirect: deps.setUnitMoveCommandDirect,
+  }));
+  // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

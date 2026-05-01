@@ -62,7 +62,12 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     findNearestHostileWildlifeTarget,
     issueUnitAttackCommand,
-    issueUnitMoveCommand,
+    // Phase 1B unit.move: aiSystem and productionQueueSystem each get a
+    // distinct impl (pushUnitMoveIntention / setUnitMoveCommandDirect).
+    // The bridge facade `issueUnitMoveCommand` is HUD-only — never threaded
+    // into systems running inside `execute`.
+    setUnitMoveCommandDirect,
+    pushUnitMoveIntention,
     clearUnitCommand,
     distanceToBuilding,
     advanceTrebuchetTransition,
@@ -176,7 +181,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
     issueUnitAttackCommand,
-    issueUnitMoveCommand,
+    // AI-decision system — uses the intention pusher per DESIGN v17 §6.5.
+    issueUnitMoveCommand: pushUnitMoveIntention,
   });
 
   registerAutoAggressionSystem({
@@ -248,7 +254,10 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     inFlightTechByOwner,
     findBuildingSpawnPosition,
     addUnitEntity,
-    issueUnitMoveCommand,
+    // Deterministic-resolution system — uses the direct-mutation helper
+    // per DESIGN v17 §6.4 B1 fix (mid-tick `submitWithResult` would violate
+    // civ-engine's determinism contract).
+    issueUnitMoveCommand: setUnitMoveCommandDirect,
     applyTechnology,
   });
 
