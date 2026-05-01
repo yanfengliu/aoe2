@@ -73,6 +73,8 @@ export interface RegisterBridgeSystemsDeps {
   getTrainOptions: RegisterAllSystemsArg['getTrainOptions'];
   getResearchOptions: RegisterAllSystemsArg['getResearchOptions'];
   issueUnitAttackCommand: RegisterAllSystemsArg['issueUnitAttackCommand'];
+  pushUnitAttackIntention: RegisterAllSystemsArg['pushUnitAttackIntention'];
+  hasPendingUnitCommand: RegisterAllSystemsArg['hasPendingUnitCommand'];
   issueUnitMoveCommand: RegisterAllSystemsArg['issueUnitMoveCommand'];
   setUnitMoveCommandDirect: RegisterAllSystemsArg['setUnitMoveCommandDirect'];
   pushUnitMoveIntention: RegisterAllSystemsArg['pushUnitMoveIntention'];
@@ -149,6 +151,8 @@ export function registerBridgeSystems(
     getTrainOptions,
     getResearchOptions,
     issueUnitAttackCommand,
+    pushUnitAttackIntention,
+    hasPendingUnitCommand,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
@@ -203,6 +207,8 @@ export function registerBridgeSystems(
     getTrainOptions,
     getResearchOptions,
     issueUnitAttackCommand,
+    pushUnitAttackIntention,
+    hasPendingUnitCommand,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,

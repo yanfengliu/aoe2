@@ -42,7 +42,10 @@ describe('dispatcher.drainPendingCommands', () => {
 
     const queue = createPendingCommandsQueue();
     queue.push({ type: 'unit.move', data: { unitId: 1, target: { x: 0, y: 0 } } });
-    queue.push({ type: 'unit.attack', data: { unitId: 1, targetEntityId: 2 } });
+    queue.push({
+      type: 'unit.attack',
+      data: { unitId: 1, targetEntityId: 2, targetEntityKind: 'unit' },
+    });
 
     const submitted = drainPendingCommands(world, queue);
 

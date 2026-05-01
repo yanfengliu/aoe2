@@ -316,6 +316,9 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
+    setUnitAttackCommandDirect,
+    // ^ used below for the registerCommandHandlers deps; not threaded
+    // into systems because no deterministic-resolution system needs it.
     getSelectedHumanUnitIds,
     getSelectedHumanVillagerIds,
     issueUnitContextCommand,
@@ -357,6 +360,35 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getTrainOptions,
     getResearchOptions,
     issueUnitAttackCommand,
+    // Phase 1B unit.attack (DESIGN v17 §6.5): AI-decision systems push to
+    // `pendingCommands`. Returns `true` so callers can preserve `if (issued)`
+    // flow.
+    pushUnitAttackIntention: (
+      attackerId: number,
+      targetId: number,
+      targetKind: 'unit' | 'building' | 'resource',
+    ) => {
+      state.pendingCommands.push({
+        type: 'unit.attack',
+        data: { unitId: attackerId, targetEntityId: targetId, targetEntityKind: targetKind },
+      });
+      return true;
+    },
+    // Phase 1B unit.attack (post review-impl-3): preserves the pre-1B
+    // priority where aiSystem's strategic target wins over autoAggression's
+    // local target when both want the same unit on the same tick. Linear
+    // scan over the queue (typically <10 entries per tick during AI macro);
+    // returns true if any unit.move/unit.attack intention is queued for the
+    // given unit.
+    hasPendingUnitCommand: (unitId: number) => {
+      for (const cmd of state.pendingCommands) {
+        if ((cmd.type === 'unit.move' || cmd.type === 'unit.attack')
+            && cmd.data.unitId === unitId) {
+          return true;
+        }
+      }
+      return false;
+    },
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     // Phase 1B unit.move (DESIGN v17 §6.5): AI-decision systems push to
@@ -394,6 +426,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // handler delegates to the same code path deterministic systems use.
   registerCommandHandlers(world, {
     setUnitMoveCommandDirect,
+    setUnitAttackCommandDirect,
   });
 
   return {

@@ -61,7 +61,11 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredEnemyBuildingInRadius,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     findNearestHostileWildlifeTarget,
-    issueUnitAttackCommand,
+    // Phase 1B unit.attack: aiSystem + autoAggressionSystem use the
+    // intention pusher (AI-decision). No deterministic-system call sites
+    // for attack today, so no direct helper threaded through this layer.
+    pushUnitAttackIntention,
+    hasPendingUnitCommand,
     // Phase 1B unit.move: aiSystem and productionQueueSystem each get a
     // distinct impl (pushUnitMoveIntention / setUnitMoveCommandDirect).
     // The bridge facade `issueUnitMoveCommand` is HUD-only — never threaded
@@ -180,8 +184,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     assignAiMonkTasks,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
-    issueUnitAttackCommand,
-    // AI-decision system — uses the intention pusher per DESIGN v17 §6.5.
+    // AI-decision system — uses the intention pushers per DESIGN v17 §6.5.
+    issueUnitAttackCommand: pushUnitAttackIntention,
     issueUnitMoveCommand: pushUnitMoveIntention,
   });
 
@@ -194,7 +198,9 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
     findPreferredEnemyBuildingInRadius,
-    issueUnitAttackCommand,
+    hasPendingUnitCommand,
+    // AI-decision system — uses the intention pusher per DESIGN v17 §6.5/§6.6.
+    issueUnitAttackCommand: pushUnitAttackIntention,
   });
 
   registerPlayerCommandsSystem({

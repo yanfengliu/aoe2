@@ -60,7 +60,12 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'militia')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(enemyScout!.id)).toBe(true);
 
-    // The attack command registers immediately; no stepping required.
+    // Phase 1B unit.attack (DESIGN v17 §6.5): the bridge facade routes
+    // through `world.submitWithResult('unit.attack', ...)`. Validator runs
+    // at submit time; handler runs at start of next step's
+    // `processCommands`. Step once so the attack command is set on the
+    // militia before checking the activity verb.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'attacking', target: { kind: 'unit', type: 'scout' } });
   }, 10_000);
 
@@ -403,9 +408,11 @@ describe('selection activity — hidden cases', () => {
 
   it('enemy building selection returns null activity', () => {
     // fog-memory-fixture: player-1 scout at (10,10) with vision radius 4,
-    // enemy house at (14,10) — distance 4, on the exact boundary. Step 2 ticks
-    // so visibility propagates (matches fogMemory.test.ts pattern).
+    // enemy house at (14,10) — distance 4, on the exact boundary. Step 3 ticks
+    // so visibility propagates (matches fogMemory.test.ts pattern post-Phase
+    // 1B unit.attack — see that file for the +1 tick rationale).
     const bridge = createSimulationBridge('fog-memory-fixture');
+    bridge.step(100);
     bridge.step(100);
     bridge.step(100);
     const enemyHouse = bridge

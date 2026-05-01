@@ -89,11 +89,25 @@ export interface RegisterAllSystemsDeps {
     activeWorld: CivWorld,
   ) => number | null;
   // Command-issuance closures.
+  // Phase 1B unit.attack (DESIGN v17 §6.5): commandified facade for HUD use;
+  // intention pusher for AI-decision systems (aiSystem + autoAggressionSystem).
+  // No deterministic-resolution system calls attack today, so no direct
+  // helper threaded through this layer (the handler reaches the helper via
+  // `unitCommandOps` → `registerCommandHandlers` deps directly).
   issueUnitAttackCommand: (
     attackerId: number,
     targetId: number,
     targetKind: 'unit' | 'building' | 'resource',
   ) => boolean;
+  pushUnitAttackIntention: (
+    attackerId: number,
+    targetId: number,
+    targetKind: 'unit' | 'building' | 'resource',
+  ) => boolean;
+  // Phase 1B unit.attack (post review-impl-3): guard helper for AI-decision
+  // systems that need to coordinate ordering (e.g., autoAggression should
+  // skip a unit aiSystem already commanded this tick).
+  hasPendingUnitCommand: (unitId: number) => boolean;
   // Phase 1B unit.move (DESIGN v17 §6.4): commandified facade — used by
   // human-input dispatch only. NOT for systems running inside execute.
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;

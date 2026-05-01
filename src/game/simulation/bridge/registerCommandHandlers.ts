@@ -29,12 +29,20 @@ import type { Position } from 'civ-engine';
 import type { GameWorld } from './pureHelpers';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
+import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
+import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
   // handler so live + replay + deterministic-system paths all execute
   // identical code (per DESIGN v17 §6.4 B1 fix).
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  // Phase 1B (unit.attack): same pattern.
+  setUnitAttackCommandDirect: (
+    unitId: number,
+    targetEntityId: number,
+    targetEntityKind: 'unit' | 'building' | 'resource',
+  ) => boolean;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -50,6 +58,11 @@ export function registerCommandHandlers(
   world.registerValidator('unit.move', unitMoveValidator);
   world.registerHandler('unit.move', makeUnitMoveHandler({
     setUnitMoveCommandDirect: deps.setUnitMoveCommandDirect,
+  }));
+  // Phase 1B — unit.attack
+  world.registerValidator('unit.attack', unitAttackValidator);
+  world.registerHandler('unit.attack', makeUnitAttackHandler({
+    setUnitAttackCommandDirect: deps.setUnitAttackCommandDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

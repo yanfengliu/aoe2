@@ -81,6 +81,13 @@ export interface UnitCommandOps {
   // context. NOT for AI-decision systems (those use pendingCommands
   // intentions per §6.5).
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
+  // Phase 1B (DESIGN v17 §6.4): direct-mutation helper for unit.attack —
+  // same role as setUnitMoveCommandDirect but for attack commands.
+  setUnitAttackCommandDirect(
+    unitId: number,
+    targetEntityId: number,
+    targetEntityKind: 'unit' | 'building' | 'resource',
+  ): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -185,7 +192,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     });
   }
 
-  function issueUnitAttackCommand(
+  // Direct-mutation helper. Same body as the pre-Phase-1B
+  // `issueUnitAttackCommand`. Used by deterministic-resolution systems
+  // and by the `unit.attack` handler.
+  function setUnitAttackCommandDirect(
     unitId: number,
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
@@ -217,6 +227,19 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       targetEntityKind,
     });
     return true;
+  }
+
+  // Bridge facade. HUD / hotkey handlers + internal context-routing call
+  // this; it routes through civ-engine's command channel so the recorder
+  // captures the intent. Handler delegates to setUnitAttackCommandDirect
+  // at start of next step.
+  function issueUnitAttackCommand(
+    unitId: number,
+    targetEntityId: number,
+    targetEntityKind: 'unit' | 'building' | 'resource',
+  ): boolean {
+    const result = world.submitWithResult('unit.attack', { unitId, targetEntityId, targetEntityKind });
+    return result.accepted;
   }
 
   function getSelectedHumanUnitIds(): number[] {
@@ -409,6 +432,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   return {
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
+    setUnitAttackCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,

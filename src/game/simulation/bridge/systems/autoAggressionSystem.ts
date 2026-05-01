@@ -41,6 +41,12 @@ export interface AutoAggressionSystemDeps {
     position: Position,
     radius: number,
   ) => number | null;
+  // Phase 1B unit.attack: returns true if a `unit.move`/`unit.attack` intention
+  // is already queued in pendingCommands for the given unit (preserves the
+  // pre-1B priority where aiSystem's strategic target won when both AI systems
+  // wanted to command the same unit on the same tick — see `wireBridgeOps.ts`
+  // for the closure body).
+  hasPendingUnitCommand: (unitId: number) => boolean;
   issueUnitAttackCommand: (
     attackerId: number,
     targetId: number,
@@ -58,6 +64,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
     findPreferredEnemyBuildingInRadius,
+    hasPendingUnitCommand,
     issueUnitAttackCommand,
   } = deps;
 
@@ -69,6 +76,15 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     execute(activeWorld) {
       for (const id of activeWorld.query('position', 'unit')) {
         if (unitCommands.has(id)) {
+          continue;
+        }
+        // Phase 1B unit.attack (post review-impl-3): if aiSystem already
+        // pushed a strategic intention for this unit THIS tick, skip auto-
+        // aggression to preserve pre-1B priority (aiSystem strategic target
+        // wins over autoAggression's local target). Without this guard, the
+        // dispatcher's FIFO drain would let autoAggression's intention
+        // overwrite aiSystem's at start of next step's processCommands.
+        if (hasPendingUnitCommand(id)) {
           continue;
         }
         if (isGarrisonedUnit(id)) {

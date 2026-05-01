@@ -9,7 +9,12 @@ describe('fog memory', () => {
 
     // Give the tick machinery a few steps so visibility runs and the house starts out
     // properly visible to the scout at (10, 10) (distance 4 from house at (14, 10)).
-    for (let i = 0; i < 2; i += 1) {
+    // Phase 1B unit.attack adds 1-tick delay between AI auto-aggression decisions
+    // and their effect on bridge state (intention pushed at tick K, dispatcher
+    // submits between ticks, handler runs at start of K+1). Bumping from 2 to 3
+    // steps absorbs that lag for AI vision sources whose presence depends on
+    // attack-issuance timing.
+    for (let i = 0; i < 3; i += 1) {
       bridge.step(100);
     }
 

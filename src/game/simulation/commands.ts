@@ -28,7 +28,14 @@ export type BuildingActionType = ActionType;
 export type GameCommands = {
   // --- Unit orders (issued by human input directly OR by AI dispatcher post-step) ---
   'unit.move': { unitId: number; target: Position };
-  'unit.attack': { unitId: number; targetEntityId: number };
+  'unit.attack': {
+    unitId: number;
+    targetEntityId: number;
+    // Kind tag preserved from the bridge facade so the handler routes
+    // ownership/wildlife checks correctly (mirrors the pre-Phase-1B
+    // `issueUnitAttackCommand` signature).
+    targetEntityKind: 'unit' | 'building' | 'resource';
+  };
   'unit.gather': { unitId: number; resourceId: number };
   'unit.context': { unitId: number; target: Position };
   'unit.contextAtEntity': { unitId: number; targetEntityId: number };
