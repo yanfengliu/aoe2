@@ -16,6 +16,9 @@ describe('createSimulationBridge production progression', () => {
     expect(bridge.getSelectionState().buildOptions).toContain('town-center');
     expect(bridge.beginBuildingPlacement('town-center')).toBe(true);
     expect(bridge.confirmBuildingPlacement(14, 8)).toBe(true);
+    // Phase 1B building.placeConfirm: spend lands at start of next step's
+    // processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       wood: 425,
       stone: 250,

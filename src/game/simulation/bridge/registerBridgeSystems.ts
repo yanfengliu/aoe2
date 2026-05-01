@@ -268,7 +268,6 @@ export function registerBridgeSystems(
     isMatchRunning,
     getSelectedHumanVillagerIds,
     isPlacementBlocked,
-    startConstruction,
     enqueueRejection,
     humanPlayerId: HUMAN_PLAYER_ID,
     mapWidth: MAP_WIDTH,

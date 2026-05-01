@@ -27,7 +27,12 @@
 import type { Position } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
-import type { MarketActionType, ResearchableTechnologyType, TrainableUnitType } from '../types';
+import type {
+  BuildableBuildingType,
+  MarketActionType,
+  ResearchableTechnologyType,
+  TrainableUnitType,
+} from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
@@ -54,6 +59,11 @@ import {
   type MarketActionValidatorDeps,
 } from '../handlers/market/marketActionValidator';
 import { makeMarketActionHandler } from '../handlers/market/marketActionHandler';
+import {
+  makeBuildingPlaceConfirmValidator,
+  type BuildingPlaceConfirmValidatorDeps,
+} from '../handlers/building/buildingPlaceConfirmValidator';
+import { makeBuildingPlaceConfirmHandler } from '../handlers/building/buildingPlaceConfirmHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -107,6 +117,17 @@ export interface CommandHandlerDeps {
   // on stale-state miss (same B2 trade-off as queue.train / queue.research).
   executeMarketActionDirect: (playerId: number, actionType: MarketActionType) => boolean;
   marketActionValidatorDeps: MarketActionValidatorDeps;
+  // Phase 1B (building.placeConfirm): authoritative-resolution helper.
+  // Pre-1B `startConstruction` body — canonical entry for both human-input
+  // (via this handler) and AI (called directly today, Phase 1C will switch
+  // to the intention pattern). Atomic: spend + addBuildingEntity +
+  // unit-command set.
+  startConstructionDirect: (
+    builderId: number,
+    buildingType: BuildableBuildingType,
+    anchor: Position,
+  ) => boolean;
+  buildingPlaceConfirmValidatorDeps: BuildingPlaceConfirmValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -167,6 +188,14 @@ export function registerCommandHandlers(
   world.registerValidator('market.action', makeMarketActionValidator(deps.marketActionValidatorDeps));
   world.registerHandler('market.action', makeMarketActionHandler({
     executeMarketActionDirect: deps.executeMarketActionDirect,
+  }));
+  // Phase 1B — building.placeConfirm
+  world.registerValidator(
+    'building.placeConfirm',
+    makeBuildingPlaceConfirmValidator(deps.buildingPlaceConfirmValidatorDeps),
+  );
+  world.registerHandler('building.placeConfirm', makeBuildingPlaceConfirmHandler({
+    startConstructionDirect: deps.startConstructionDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

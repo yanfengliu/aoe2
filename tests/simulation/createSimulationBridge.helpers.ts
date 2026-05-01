@@ -72,6 +72,11 @@ export function placeBuildingNearTownCenter(
     }
 
     expect(bridge.confirmBuildingPlacement(anchor.x, anchor.y)).toBe(true);
+    // Phase 1B building.placeConfirm: handler runs at start of next step's
+    // processCommands (spend + addBuildingEntity + setUnitCommand build).
+    // Step once so the foundation + resource spend land before callers
+    // read state.
+    bridge.step(100);
     return anchor;
   }
 
@@ -90,6 +95,9 @@ export function placeBuildingNearTownCenter(
         }
 
         expect(bridge.confirmBuildingPlacement(x, y)).toBe(true);
+        // Phase 1B building.placeConfirm: step once so the spend +
+        // foundation land before callers read state.
+        bridge.step(100);
         return { x, y };
       }
     }

@@ -109,6 +109,48 @@ describe('createSimulationBridge command rejection queue', () => {
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(goldBefore);
   }, 15_000);
 
+  it('B2 invariant: same-frame building.placeConfirm batch over budget — handler re-check silently no-ops the unaffordable + occupied-cell surplus', () => {
+    // DESIGN v17 §6.4 B2: validator does best-effort affordability +
+    // placement-not-blocked against the pre-spend state; handler
+    // (startConstructionDirect) re-checks authoritatively. Two same-frame
+    // building.placeConfirm commands at the same anchor will both
+    // validator-accept (validator can't see prior-frame submissions);
+    // first handler succeeds, second handler hits placement-blocked
+    // (foundation occupies the cell) and silently no-ops.
+    const bridge = createSimulationBridge();
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    // Submit twice at the same anchor without intervening step.
+    expect(bridge.confirmBuildingPlacement(14, 14)).toBe(true);
+    // Second confirm: first validator-acceptance cleared placementMode,
+    // so the bridge facade's "placementMode.current === null" guard
+    // fires and the second submission silently rejects at HUD time
+    // (mirroring pre-1B). To exercise the validator-level B2 contract,
+    // we re-enter placement mode after the first submission.
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    expect(bridge.confirmBuildingPlacement(14, 14)).toBe(true);
+
+    // Both submissions accepted at validator time (food/wood unchanged
+    // pre-step; isPlacementBlocked sees pre-handler occupancy).
+    const woodBefore = bridge.getHudState().playerResources.wood;
+    const housesBefore = bridge
+      .getEconomyState()
+      .buildings.filter((b) => b.owner === 1 && b.buildingType === 'house').length;
+
+    bridge.step(100);
+
+    // After step: handler 1 builds the house at (10, 10) and spends; handler 2
+    // re-checks placement, finds the foundation occupies the cell, silently
+    // no-ops. Net: 1 house, 1 spend.
+    const houses = bridge.getEconomyState().buildings.filter((b) => b.owner === 1 && b.buildingType === 'house');
+    expect(houses.length - housesBefore).toBe(1);
+    // House cost is 25 wood. Exactly one foundation landed → exactly one
+    // 25-wood spend. The second handler hit the placement-blocked re-check
+    // and silent-no-op'd (no double-spend).
+    expect(woodBefore - bridge.getHudState().playerResources.wood).toBe(25);
+  }, 15_000);
+
   it('B2 invariant: same-frame queue.train batch over budget — handler re-check silently no-ops the unaffordable surplus', () => {
     // DESIGN v17 §6.4 B2: validator does best-effort affordability against
     // the pre-spend stockpile, so all N submissions in the same frame

@@ -19,8 +19,6 @@
 // Note: the move is strictly logic-preserving; behavior matches the
 // pre-extraction bridge byte-for-byte.
 
-import type { Position } from 'civ-engine';
-
 import type {
   BuildableBuildingType,
   PlacementPreviewState,
@@ -55,11 +53,6 @@ export interface PlacementDeps {
   isMatchRunning: () => boolean;
   getSelectedHumanVillagerIds: () => number[];
   isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
-  startConstruction: (
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ) => boolean;
   enqueueRejection: (reason: string) => void;
   // Constants passed through as deps so tests could tweak them without
   // rewiring the module-level scenario-config imports here.
@@ -82,7 +75,6 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     isMatchRunning,
     getSelectedHumanVillagerIds,
     isPlacementBlocked,
-    startConstruction,
     enqueueRejection,
     humanPlayerId,
     mapWidth,
@@ -143,6 +135,11 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     return true;
   }
 
+  // Phase 1B (building.placeConfirm): bridge facade. Submits
+  // `building.placeConfirm`; validator runs structural + placement +
+  // affordability checks synchronously; handler delegates to
+  // startConstructionDirect at start of next step's processCommands.
+  // Translates validator codes to pre-1B toast strings.
   function confirmBuildingPlacement(x: number, y: number): boolean {
     if (!isMatchRunning()) {
       return false;
@@ -163,31 +160,28 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       y: clamp(y, 0, mapHeight - 1),
     };
     const buildingType = placementMode.current;
-    const didStartConstruction = startConstruction(selectedVillagerId, buildingType, anchor);
-    if (didStartConstruction) {
+    const result = world.submitWithResult('building.placeConfirm', {
+      builderId: selectedVillagerId,
+      buildingType,
+      position: anchor,
+    });
+    if (result.accepted) {
       placementMode.current = null;
-    } else {
-      // Slice 11: report the most likely reason. Placement blocked by
-      // terrain / units / existing buildings is the most common case; fall
-      // back to resource shortage otherwise.
-      const footprint = buildingFootprint(buildingType);
-      if (isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height)) {
-        enqueueRejection('Placement blocked.');
-      } else {
-        const stockpile = playerResources.get(humanPlayerId);
-        if (stockpile) {
-          const missing = resourcesMissing(stockpile, constructionCost(buildingType));
-          if (missing) {
-            enqueueRejection(`Not enough ${missing}.`);
-          } else {
-            enqueueRejection('Cannot build here.');
-          }
-        } else {
-          enqueueRejection('Cannot build here.');
-        }
-      }
+      return true;
     }
-    return didStartConstruction;
+    // Translate validator codes to the pre-1B rejection toast strings.
+    if (result.code === 'placement_blocked') {
+      enqueueRejection('Placement blocked.');
+    } else if (result.code === 'insufficient_resources') {
+      const stockpile = playerResources.get(humanPlayerId);
+      const missing = stockpile
+        ? resourcesMissing(stockpile, constructionCost(buildingType))
+        : null;
+      enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot build here.');
+    } else {
+      enqueueRejection('Cannot build here.');
+    }
+    return false;
   }
 
   return {

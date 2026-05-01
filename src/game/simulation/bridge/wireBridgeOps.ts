@@ -464,6 +464,14 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       marketFeeRate: MARKET_FEE_RATE,
       marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     },
+    startConstructionDirect: startConstruction,
+    buildingPlaceConfirmValidatorDeps: {
+      playerResources: state.playerResources,
+      getBuildOptions,
+      isPlacementBlocked,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+    },
   });
 
   return {
