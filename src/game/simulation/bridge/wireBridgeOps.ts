@@ -481,6 +481,14 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     buildingActionValidatorDeps: {
       constructionStates: state.constructionStates,
     },
+    beginTrebuchetPackDirect: trebuchetStateOps.beginTrebuchetPack,
+    trebuchetPackValidatorDeps: {
+      trebuchetPackStates: state.trebuchetPackStates,
+    },
+    beginTrebuchetUnpackDirect: trebuchetStateOps.beginTrebuchetUnpack,
+    trebuchetUnpackValidatorDeps: {
+      trebuchetPackStates: state.trebuchetPackStates,
+    },
   });
 
   return {

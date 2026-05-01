@@ -74,6 +74,16 @@ import {
   type BuildingActionValidatorDeps,
 } from '../handlers/building/buildingActionValidator';
 import { makeBuildingActionHandler } from '../handlers/building/buildingActionHandler';
+import {
+  makeTrebuchetPackValidator,
+  type TrebuchetPackValidatorDeps,
+} from '../handlers/trebuchet/trebuchetPackValidator';
+import { makeTrebuchetPackHandler } from '../handlers/trebuchet/trebuchetPackHandler';
+import {
+  makeTrebuchetUnpackValidator,
+  type TrebuchetUnpackValidatorDeps,
+} from '../handlers/trebuchet/trebuchetUnpackValidator';
+import { makeTrebuchetUnpackHandler } from '../handlers/trebuchet/trebuchetUnpackHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -147,6 +157,16 @@ export interface CommandHandlerDeps {
   // BuildingActionType maps to its own helper; today only 'ungarrison'.
   ungarrisonBuildingDirect: (buildingId: number) => boolean;
   buildingActionValidatorDeps: BuildingActionValidatorDeps;
+  // Phase 1B (trebuchet.pack / trebuchet.unpack): direct helpers wrap the
+  // existing beginTrebuchetPack / beginTrebuchetUnpack — both are still
+  // called by playerCommandsSystem (deterministic-resolution per §6.4 B1)
+  // when a trebuchet's move/attack command triggers a state change.
+  // The validator + handler are registered for replay observability and
+  // future submitters (Phase 1C+ AI, future HUD button).
+  beginTrebuchetPackDirect: (unitId: number) => void;
+  trebuchetPackValidatorDeps: TrebuchetPackValidatorDeps;
+  beginTrebuchetUnpackDirect: (unitId: number) => void;
+  trebuchetUnpackValidatorDeps: TrebuchetUnpackValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -232,5 +252,21 @@ export function registerCommandHandlers(
   world.registerHandler('building.action', makeBuildingActionHandler({
     ungarrisonBuildingDirect: deps.ungarrisonBuildingDirect,
   }));
-  // Each subsequent Phase 1B commit adds one validator + handler pair here.
+  // Phase 1B — trebuchet.pack
+  world.registerValidator(
+    'trebuchet.pack',
+    makeTrebuchetPackValidator(deps.trebuchetPackValidatorDeps),
+  );
+  world.registerHandler('trebuchet.pack', makeTrebuchetPackHandler({
+    beginTrebuchetPackDirect: deps.beginTrebuchetPackDirect,
+  }));
+  // Phase 1B — trebuchet.unpack
+  world.registerValidator(
+    'trebuchet.unpack',
+    makeTrebuchetUnpackValidator(deps.trebuchetUnpackValidatorDeps),
+  );
+  world.registerHandler('trebuchet.unpack', makeTrebuchetUnpackHandler({
+    beginTrebuchetUnpackDirect: deps.beginTrebuchetUnpackDirect,
+  }));
+  // All 15 Phase 1B commands now wired.
 }
