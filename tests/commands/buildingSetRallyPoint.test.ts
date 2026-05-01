@@ -61,10 +61,12 @@ describe('buildingSetRallyPointValidator', () => {
   });
 
   it('rejects out-of-bounds target', () => {
+    const world = freshWorld();
+    const tcId = makeBuilding(world, 'town-center');
     const validator = makeValidator();
     const result = validator(
-      { buildingId: 1, target: { x: 99, y: 0 } },
-      freshWorld(),
+      { buildingId: tcId, target: { x: 99, y: 0 } },
+      world,
     );
     expect(result).toEqual({ code: 'out_of_bounds', message: expect.any(String) });
   });

@@ -21,6 +21,11 @@ export type BuildingSetRallyPointValidator = (
 export function makeBuildingSetRallyPointValidator(
   deps: BuildingSetRallyPointValidatorDeps,
 ): BuildingSetRallyPointValidator {
+  // Check order mirrors buildingPlaceConfirmValidator (impl-12 review F3 —
+  // structural id checks first, entity-shape checks next, OOB last):
+  // an out-of-bounds target on a dead building reports `building_not_found`
+  // rather than `out_of_bounds`, so log analyzers can key on the most
+  // specific real failure.
   return (data, world) => {
     if (!Number.isInteger(data.buildingId)) {
       return { code: 'invalid_building_id', message: 'Building id must be an integer.' };
@@ -30,14 +35,6 @@ export function makeBuildingSetRallyPointValidator(
       || !Number.isInteger(data.target?.y)
     ) {
       return { code: 'invalid_target', message: 'Target coordinates must be integers.' };
-    }
-    if (
-      data.target.x < 0
-      || data.target.x >= deps.mapWidth
-      || data.target.y < 0
-      || data.target.y >= deps.mapHeight
-    ) {
-      return { code: 'out_of_bounds', message: 'Target is out of map bounds.' };
     }
     if (!world.isAlive(data.buildingId)) {
       return { code: 'building_not_found', message: 'Building no longer exists.' };
@@ -49,6 +46,14 @@ export function makeBuildingSetRallyPointValidator(
     const construction = deps.constructionStates.get(data.buildingId);
     if (construction && !construction.isComplete) {
       return { code: 'under_construction', message: 'Building is still under construction.' };
+    }
+    if (
+      data.target.x < 0
+      || data.target.x >= deps.mapWidth
+      || data.target.y < 0
+      || data.target.y >= deps.mapHeight
+    ) {
+      return { code: 'out_of_bounds', message: 'Target is out of map bounds.' };
     }
     return true;
   };
