@@ -47,7 +47,6 @@ export interface MonkTaskDeps {
     y: number,
     activeWorld?: World<GameEvents, GameCommands>,
   ) => boolean;
-  issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   currentEntityId: (
@@ -94,12 +93,11 @@ export interface MonkTaskOps {
   clearMonkTask(monkId: number): void;
   // Human-side click routing.
   findMonkContextTargetAtCell(x: number, y: number, monkOwner: number): number | null;
-  issueMonkContextCommandAtEntity(
-    monkId: number,
-    targetEntityId: number,
-    monkUnit: UnitComponent,
-    targetPosition: Position,
-  ): boolean;
+  // Phase 1B (DESIGN v17 §6.4) bridge facade: submits `monk.contextAtEntity`.
+  // Validator runs synchronously inside `submitWithResult`; handler runs at
+  // start of NEXT step's `processCommands` and delegates to
+  // `routeMonkContextAtEntityCommandDirect` (in unitCommandOps).
+  issueMonkContextCommandAtEntity(monkId: number, targetEntityId: number): boolean;
 }
 
 export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
@@ -112,7 +110,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     getEntityRef,
     destroyResourceEntity,
     buildingOccupiesCell,
-    issueUnitMoveCommand,
     isAiMilitaryUnit,
     isVisibleToOwner,
     currentEntityId,
@@ -306,54 +303,18 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     return null;
   }
 
+  // Phase 1B (DESIGN v17 §6.4) bridge facade. Submits `monk.contextAtEntity`.
+  // The pre-1B body lives as `routeMonkContextAtEntityCommandDirect` in
+  // unitCommandOps.ts; the handler delegates to it at start of next step.
   function issueMonkContextCommandAtEntity(
     monkId: number,
     targetEntityId: number,
-    monkUnit: UnitComponent,
-    targetPosition: Position,
   ): boolean {
-    const targetEntityRef = getEntityRef(targetEntityId);
-    if (!targetEntityRef) {
-      return false;
-    }
-
-    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
-    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
-    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-
-    if (targetUnit) {
-      if (targetUnit.owner === monkUnit.owner) {
-        const combat = combatStates.get(targetEntityId);
-        if (combat && combat.currentHp < combat.maxHp) {
-          return setMonkTask(monkId, 'heal', targetEntityRef);
-        }
-        return issueUnitMoveCommand(monkId, targetPosition);
-      }
-
-      // Enemy unit: convert. Skip conversion on other Monks (no canonical
-      // rule against it but v1 keeps the target set simple — convert only
-      // "normal" units).
-      return setMonkTask(monkId, 'convert', targetEntityRef);
-    }
-
-    if (
-      targetResource
-      && targetResource.resourceType === 'relic'
-      && monkCarriedRelic.get(monkId) === undefined
-    ) {
-      return setMonkTask(monkId, 'pickup', targetEntityRef);
-    }
-
-    if (
-      targetBuilding
-      && targetBuilding.owner === monkUnit.owner
-      && targetBuilding.buildingType === 'monastery'
-      && monkCarriedRelic.get(monkId) !== undefined
-    ) {
-      return setMonkTask(monkId, 'deposit', targetEntityRef);
-    }
-
-    return issueUnitMoveCommand(monkId, targetPosition);
+    const result = world.submitWithResult('monk.contextAtEntity', {
+      unitId: monkId,
+      targetEntityId,
+    });
+    return result.accepted;
   }
 
   return {

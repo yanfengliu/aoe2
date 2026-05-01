@@ -98,6 +98,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     productionQueues,
     unitCommands,
     monkTasks,
+    monkCarriedRelic,
     trebuchetPackStates,
     constructionStates,
   } = state;
@@ -345,6 +346,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       humanPlayerId,
       unitCommands,
       monkTasks,
+      monkCarriedRelic,
       trebuchetPackStates,
       productionQueues,
       constructionStates,

@@ -13,6 +13,7 @@ import type {
   UnitComponent,
   UnitType,
 } from '../types';
+import type { MonkTask } from './sharedTypes';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
@@ -42,13 +43,12 @@ export interface UnitCommandOpsDeps {
   findHostileBuildingAtCell: (x: number, y: number, attackerOwner: number) => number | null;
   findHostileWildlifeAtCell: (x: number, y: number) => number | null;
   findMonkContextTargetAtCell: (x: number, y: number, owner: number) => number | null;
-  issueMonkContextCommandAtEntity: (
-    monkId: number,
-    targetEntityId: number,
-    monkUnit: UnitComponent,
-    targetPosition: Position,
-  ) => boolean;
+  issueMonkContextCommandAtEntity: (monkId: number, targetEntityId: number) => boolean;
   clearMonkTask: (monkId: number) => void;
+  // Phase 1B (DESIGN v17 §6.4): used by routeMonkContextAtEntityCommandDirect
+  // (the direct-mutation routing helper backing the `monk.contextAtEntity`
+  // handler).
+  setMonkTask: (monkId: number, kind: MonkTask['kind'], targetEntityRef: EntityRef) => boolean;
   garrisonUnit: (unitId: number, buildingId: number) => boolean;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
   findNearestDropOffBuilding: (
@@ -98,6 +98,14 @@ export interface UnitCommandOps {
   routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
   // Phase 1B unit.contextAtEntity: routing helper by entity id.
   routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean;
+  // Phase 1B monk.contextAtEntity: routing helper for monk context-at-entity.
+  // Reads the monk + target afresh, dispatches to setMonkTask
+  // (heal/convert/pickup/deposit) or setUnitMoveCommandDirect (move-fallback).
+  // Lives in unitCommandOps because it composes setMonkTask (from monkTaskOps)
+  // with setUnitMoveCommandDirect (from unitCommandOps); putting it in
+  // monkTaskOps would create a wiring-order cycle since unitCommandOps is
+  // built after monkTaskOps.
+  routeMonkContextAtEntityCommandDirect(monkId: number, targetEntityId: number): boolean;
   // Phase 1B sheep.move: direct-mutation helper.
   setSheepMoveCommandDirect(sheepId: number, target: Position): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
@@ -138,6 +146,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findMonkContextTargetAtCell,
     issueMonkContextCommandAtEntity,
     clearMonkTask,
+    setMonkTask,
     garrisonUnit,
     isHarvestableResource,
     findNearestDropOffBuilding,
@@ -146,7 +155,14 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitCommand,
     getEntityRef,
   } = deps;
-  const { sheepMoveOrders, monkTasks, wildlifeStates, constructionStates } = state;
+  const {
+    sheepMoveOrders,
+    monkTasks,
+    wildlifeStates,
+    constructionStates,
+    combatStates,
+    monkCarriedRelic,
+  } = state;
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
   // Used by deterministic-resolution systems and by the `unit.move` handler.
@@ -361,10 +377,11 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return true;
   }
 
-  // Bridge facade. HUD context-click. Monk path stays HUD-routing
-  // (calls existing facade chain since monk.contextAtEntity isn't
-  // commandified yet — will improve in that commit). Non-monk path
-  // submits unit.context for handler-side routing.
+  // Bridge facade. HUD context-click. Monk path delegates to
+  // `issueMonkContextCommandAtEntity` which submits `monk.contextAtEntity`;
+  // the move-fallback (no monk-context target at the cell) clears any
+  // existing task and submits `unit.move` via the commandified facade.
+  // Non-monk path submits `unit.context` for handler-side routing.
   function issueUnitContextCommand(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit || unit.owner !== humanPlayerId) return false;
@@ -372,10 +389,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     if (unit.unitType === 'monk') {
       const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
       if (monkTargetEntityId !== null) {
-        const monkTargetPosition = world.getComponent<Position>(monkTargetEntityId, 'position');
-        if (monkTargetPosition) {
-          return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
-        }
+        return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId);
       }
       clearMonkTask(unitId);
       return issueUnitMoveCommand(unitId, target);
@@ -425,16 +439,71 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return setUnitMoveCommandDirect(unitId, targetPosition);
   }
 
-  // Bridge facade. Monk path stays HUD-routing (calls existing
-  // issueMonkContextCommandAtEntity facade). Non-monk path submits
-  // unit.contextAtEntity for handler routing.
+  // Direct-mutation routing helper for `monk.contextAtEntity` (DESIGN v17
+  // §6.4). Body verbatim from the pre-1B `issueMonkContextCommandAtEntity`,
+  // modulo: re-fetches `monkUnit` + `targetPosition` itself (handler runs at
+  // start of next step, so HUD-time captures could be stale), and the move-
+  // fallback uses `setUnitMoveCommandDirect` instead of the commandified
+  // facade (avoids mid-tick `submitWithResult` from inside `processCommands`).
+  function routeMonkContextAtEntityCommandDirect(
+    monkId: number,
+    targetEntityId: number,
+  ): boolean {
+    const monkUnit = world.getComponent<UnitComponent>(monkId, 'unit');
+    if (!monkUnit) return false;
+    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
+    if (!targetPosition) return false;
+    const targetEntityRef = getEntityRef(targetEntityId);
+    if (!targetEntityRef) return false;
+
+    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
+    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
+    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
+
+    if (targetUnit) {
+      if (targetUnit.owner === monkUnit.owner) {
+        const combat = combatStates.get(targetEntityId);
+        if (combat && combat.currentHp < combat.maxHp) {
+          return setMonkTask(monkId, 'heal', targetEntityRef);
+        }
+        return setUnitMoveCommandDirect(monkId, targetPosition);
+      }
+      // Enemy unit: convert. Skip conversion on other Monks (no canonical
+      // rule against it but v1 keeps the target set simple — convert only
+      // "normal" units).
+      return setMonkTask(monkId, 'convert', targetEntityRef);
+    }
+
+    if (
+      targetResource
+      && targetResource.resourceType === 'relic'
+      && monkCarriedRelic.get(monkId) === undefined
+    ) {
+      return setMonkTask(monkId, 'pickup', targetEntityRef);
+    }
+
+    if (
+      targetBuilding
+      && targetBuilding.owner === monkUnit.owner
+      && targetBuilding.buildingType === 'monastery'
+      && monkCarriedRelic.get(monkId) !== undefined
+    ) {
+      return setMonkTask(monkId, 'deposit', targetEntityRef);
+    }
+
+    return setUnitMoveCommandDirect(monkId, targetPosition);
+  }
+
+  // Bridge facade. Monk path submits `monk.contextAtEntity` (handler
+  // re-routes via `routeMonkContextAtEntityCommandDirect`). Non-monk path
+  // submits `unit.contextAtEntity`.
   function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
 
     if (unit.unitType === 'monk') {
-      return issueMonkContextCommandAtEntity(unitId, targetEntityId, unit, targetPosition);
+      return issueMonkContextCommandAtEntity(unitId, targetEntityId);
     }
 
     const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId });
@@ -502,6 +571,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
+    routeMonkContextAtEntityCommandDirect,
     setSheepMoveCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,

@@ -196,7 +196,9 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(spearmanId)).toBe(true);
 
-    // The monk task registers; check activity immediately.
+    // Phase 1B monk.contextAtEntity: handler routes to setMonkTask at start
+    // of next step's processCommands. Step once so the heal task lands.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'healing', target: { kind: 'unit', type: 'spearman' } });
   }, 60_000);
 
@@ -210,13 +212,33 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(enemyMilitia!.id)).toBe(true);
 
-    // The convert task registers immediately.
+    // Phase 1B monk.contextAtEntity: handler routes to setMonkTask at start
+    // of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'converting', target: { kind: 'unit', type: 'militia' } });
   }, 10_000);
 
   it('monk retrieving a relic reports Retrieving relic', () => {
     // monk-relic-fixture: monk at (14,8), relic at (15,8), monastery at (18,8).
+    // MONK_ACTION_RANGE=4, distance(monk, relic)=1, so a single step would
+    // both queue the pickup task AND apply it (relic gets carried). To keep
+    // the 'retrieving' verb observable, push the monk to (10,8) first so
+    // distance to relic becomes 5 (> action range), and the pickup task
+    // remains in monkTasks while the monk approaches across multiple ticks.
     const bridge = createSimulationBridge('monk-relic-fixture');
+
+    expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
+    expect(bridge.issueMoveCommand(14, 14)).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => {
+          const m = findFirstOwnedUnit(bridge, HUMAN_PLAYER_ID, 'monk');
+          return m !== undefined && m.x === 14 && m.y === 14;
+        },
+        { maxSteps: 200 },
+      ),
+    ).toBe(true);
 
     const relic = findFirstResource(bridge, 'relic');
     expect(relic).toBeDefined();
@@ -226,7 +248,10 @@ describe('selection activity — owned unit', () => {
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(relicId)).toBe(true);
 
-    // The pickup task registers immediately.
+    // Phase 1B monk.contextAtEntity: handler routes to setMonkTask at start
+    // of next step's processCommands. With distance > range the pickup
+    // task remains active across multiple ticks (monk approaches the relic).
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'retrieving', target: null });
   }, 10_000);
 
@@ -266,12 +291,17 @@ describe('selection activity — owned unit', () => {
       .getEconomyState()
       .buildings.find((b) => b.owner === HUMAN_PLAYER_ID && b.buildingType === 'monastery');
     expect(monastery).toBeDefined();
+    // After pickup, monk is co-located with relic at (14,8) carrying it.
+    // Issue the deposit and assert WITHOUT stepping: the bridge facade's
+    // submitWithResult queues the command (handler runs at start of NEXT
+    // step), so monkTasks is unchanged and monkCarriedRelic still has the
+    // relic. The activity layer's monkCarriedRelic fallthrough reports
+    // 'carrying' from the carry state alone.
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(monastery!.id)).toBe(true);
-
-    // The deposit task registers immediately.
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'carrying', target: null });
   }, 30_000);
+
 
   it('trebuchet unpacking reports Unpacking', () => {
     // trebuchet-vs-building-fixture: trebuchet inside range, attack command

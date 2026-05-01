@@ -39,6 +39,7 @@ export interface SelectionActivitySources {
   humanPlayerId: number;
   unitCommands: Map<number, UnitCommand>;
   monkTasks: Map<number, MonkTask>;
+  monkCarriedRelic: Map<number, number>;
   trebuchetPackStates: Map<number, TrebuchetPackState>;
   productionQueues: Map<number, ProductionQueueEntry[]>;
   constructionStates: Map<number, ConstructionState>;
@@ -138,6 +139,19 @@ export function computeUnitActivity(
     if (cmd.type === 'move') {
       return { verb: 'moving', target: null };
     }
+  }
+
+  // A monk that has picked up a relic but has no current task or active
+  // command is still "carrying" the relic — surface that state instead of
+  // falling through to 'idle'. Phase 1B monk.contextAtEntity: the bridge
+  // facade queues the deposit command instead of mutating monkTasks
+  // synchronously, so HUD-time activity reads see the carry state alone
+  // until the handler runs at the start of the next step. Positioned
+  // AFTER unitCommands so an active move order on a carrying monk still
+  // wins ('moving') — the player's explicit intent takes precedence over
+  // the passive carry state.
+  if (sources.monkCarriedRelic.has(id)) {
+    return { verb: 'carrying', target: null };
   }
 
   // Villager gathering state lives on GathererComponent, not unitCommands.

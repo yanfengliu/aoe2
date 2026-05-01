@@ -39,6 +39,8 @@ import { unitContextAtEntityValidator } from '../handlers/unit/unitContextAtEnti
 import { makeUnitContextAtEntityHandler } from '../handlers/unit/unitContextAtEntityHandler';
 import { sheepMoveValidator } from '../handlers/sheep/sheepMoveValidator';
 import { makeSheepMoveHandler } from '../handlers/sheep/sheepMoveHandler';
+import { monkContextAtEntityValidator } from '../handlers/monk/monkContextAtEntityValidator';
+import { makeMonkContextAtEntityHandler } from '../handlers/monk/monkContextAtEntityHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -63,6 +65,10 @@ export interface CommandHandlerDeps {
   routeUnitContextAtEntityCommandDirect: (unitId: number, targetEntityId: number) => boolean;
   // Phase 1B (sheep.move).
   setSheepMoveCommandDirect: (sheepId: number, target: Position) => boolean;
+  // Phase 1B (monk.contextAtEntity): routing helper. Reads the monk + target
+  // afresh, dispatches to setMonkTask (heal/convert/pickup/deposit) or
+  // setUnitMoveCommandDirect (move-fallback). Lives in unitCommandOps.
+  routeMonkContextAtEntityCommandDirect: (monkId: number, targetEntityId: number) => boolean;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -103,6 +109,11 @@ export function registerCommandHandlers(
   world.registerValidator('sheep.move', sheepMoveValidator);
   world.registerHandler('sheep.move', makeSheepMoveHandler({
     setSheepMoveCommandDirect: deps.setSheepMoveCommandDirect,
+  }));
+  // Phase 1B — monk.contextAtEntity
+  world.registerValidator('monk.contextAtEntity', monkContextAtEntityValidator);
+  world.registerHandler('monk.contextAtEntity', makeMonkContextAtEntityHandler({
+    routeMonkContextAtEntityCommandDirect: deps.routeMonkContextAtEntityCommandDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }
