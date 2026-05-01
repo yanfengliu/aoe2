@@ -53,6 +53,8 @@ describe('createSimulationBridge production progression', () => {
       selectedEntityType: 'town-center',
     });
     expect(bridge.queueTrainUnit('villager')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources.food).toBe(150);
 
     for (let index = 0; index < 260; index += 1) {
@@ -137,6 +139,8 @@ describe('createSimulationBridge production progression', () => {
       trainOptions: ['scout'],
     });
     expect(bridge.queueTrainUnit('scout')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources.food).toBe(170);
 
     for (let index = 0; index < 320; index += 1) {

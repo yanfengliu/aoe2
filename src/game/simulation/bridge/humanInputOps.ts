@@ -38,7 +38,6 @@ export interface HumanInputOpsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  enqueueTraining: (buildingId: number, unitType: TrainableUnitType) => boolean;
   enqueueResearch: (buildingId: number, technologyType: ResearchableTechnologyType) => boolean;
   executeMarketAction: (actionType: MarketActionType) => boolean;
   ungarrisonBuilding: (buildingId: number) => boolean;
@@ -73,7 +72,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    enqueueTraining,
     enqueueResearch,
     executeMarketAction,
     ungarrisonBuilding,
@@ -178,33 +176,42 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return didIssue;
   }
 
+  // Phase 1B (queue.train): bridge facade. Submits `queue.train`; the
+  // validator runs synchronously and rejects with a code that the facade
+  // translates to the same toast string the pre-1B body produced. The
+  // handler runs at start of next step's processCommands and re-checks
+  // affordability authoritatively (B2 fix).
   function queueTrainUnit(unitType: TrainableUnitType): boolean {
     if (!isMatchRunning()) return false;
 
     const selectedEntityId = getSelectedEntityId();
     if (selectedEntityId === null) return false;
 
+    // The validator does not know `humanPlayerId`, so the ownership check
+    // stays at HUD time. Pre-1B parity: a non-owned building selection
+    // returns false silently (no toast).
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!building || building.owner !== humanPlayerId) return false;
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) {
-      enqueueRejection('Building is still under construction.');
+
+    const result = world.submitWithResult('queue.train', {
+      buildingId: selectedEntityId,
+      unitType,
+    });
+    if (!result.accepted) {
+      if (result.code === 'under_construction') {
+        enqueueRejection('Building is still under construction.');
+      } else if (result.code === 'insufficient_resources') {
+        const stockpile = playerResources.get(humanPlayerId);
+        const missing = stockpile
+          ? resourcesMissing(stockpile, trainingCost(unitType))
+          : null;
+        enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot train that unit here.');
+      } else {
+        enqueueRejection('Cannot train that unit here.');
+      }
       return false;
     }
-
-    const didEnqueue = enqueueTraining(selectedEntityId, unitType);
-    if (!didEnqueue) {
-      const stockpile = playerResources.get(humanPlayerId);
-      if (stockpile) {
-        const missing = resourcesMissing(stockpile, trainingCost(unitType));
-        if (missing) {
-          enqueueRejection(`Not enough ${missing}.`);
-          return false;
-        }
-      }
-      enqueueRejection('Cannot train that unit here.');
-    }
-    return didEnqueue;
+    return true;
   }
 
   function queueResearch(technologyType: ResearchableTechnologyType): boolean {

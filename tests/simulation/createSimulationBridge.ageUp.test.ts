@@ -101,6 +101,8 @@ describe('createSimulationBridge age-up progression', () => {
     });
     expect(bridge.getSelectionState().trainOptions).toContain('knight');
     expect(bridge.queueTrainUnit('knight')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 140,
       gold: 125,

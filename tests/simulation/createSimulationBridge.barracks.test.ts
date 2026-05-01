@@ -26,6 +26,8 @@ describe('createSimulationBridge barracks production', () => {
     });
     const resourcesBeforeTraining = bridge.getHudState().playerResources;
     expect(bridge.queueTrainUnit('militia')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources.food).toBe(resourcesBeforeTraining.food - 60);
     expect(bridge.getHudState().playerResources.gold).toBe(resourcesBeforeTraining.gold - 20);
 

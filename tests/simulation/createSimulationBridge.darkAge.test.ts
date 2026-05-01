@@ -14,6 +14,9 @@ describe('createSimulationBridge dark age economy progression', () => {
       trainOptions: ['villager'],
     });
     expect(bridge.queueTrainUnit('villager')).toBe(true);
+    // Phase 1B queue.train: handler spends resources at start of next step's
+    // processCommands. Step once so the spend + queue insert land.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources.food).toBe(150);
     expect(bridge.getSelectionState().queue).toHaveLength(1);
 

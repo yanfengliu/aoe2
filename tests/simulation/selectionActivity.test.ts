@@ -384,6 +384,9 @@ describe('selection activity — owned building', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'town-center')).toBe(true);
     expect(bridge.queueTrainUnit('villager')).toBe(true);
+    // Phase 1B queue.train: handler enqueues into productionQueues at start
+    // of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'training', target: { kind: 'unit', type: 'villager' } });
   });
 

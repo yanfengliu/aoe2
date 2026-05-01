@@ -440,6 +440,12 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     routeUnitContextAtEntityCommandDirect,
     routeMonkContextAtEntityCommandDirect,
     setSheepMoveCommandDirect,
+    enqueueTrainingDirect: enqueueTraining,
+    queueTrainValidatorDeps: {
+      constructionStates: state.constructionStates,
+      playerResources: state.playerResources,
+      getTrainOptions,
+    },
   });
 
   return {

@@ -42,6 +42,10 @@ describe('createSimulationBridge command rejection queue', () => {
     const successes: boolean[] = [];
     for (let index = 0; index < 5; index += 1) {
       successes.push(bridge.queueTrainUnit('villager'));
+      // Phase 1B queue.train: validators see the post-spend stockpile only
+      // after the prior submission's handler has run. Step between
+      // submissions so the affordability rejection lands on the 5th attempt.
+      bridge.step(100);
     }
     expect(successes.some((ok) => ok === false)).toBe(true);
 
@@ -56,5 +60,32 @@ describe('createSimulationBridge command rejection queue', () => {
       drained = bridge.consumeCommandRejection();
     }
     expect(foundFoodReason).toBe(true);
+  });
+
+  it('B2 invariant: same-frame queue.train batch over budget — handler re-check silently no-ops the unaffordable surplus', () => {
+    // DESIGN v17 §6.4 B2: validator does best-effort affordability against
+    // the pre-spend stockpile, so all N submissions in the same frame
+    // accept. The handler's authoritative re-check (in enqueueTrainingDirect)
+    // catches the post-spend overdraw and silently returns false. After ONE
+    // bridge.step processes the queued commands, exactly M succeed (where
+    // M = floor(stockpile / cost)) and the remaining N - M have no effect.
+    const bridge = createSimulationBridge();
+    expect(selectOwnedBuildingDirect(bridge, 1, 'town-center')).toBe(true);
+    // Standard starting food = 200; villager cost = 50; affordable count = 4.
+    // Submit 5 same-frame; expect exactly 4 enqueued + food drained to 0.
+    const submissions: boolean[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      submissions.push(bridge.queueTrainUnit('villager'));
+    }
+    expect(submissions).toEqual([true, true, true, true, true]);
+    // Pre-step: nothing has executed yet — production queue empty + food unchanged.
+    expect(bridge.getSelectionState().queue).toHaveLength(0);
+    expect(bridge.getHudState().playerResources.food).toBe(200);
+
+    // One step drains all 5 commands. Handler 1-4 succeed; handler 5 silent
+    // no-ops (insufficient food).
+    bridge.step(100);
+    expect(bridge.getSelectionState().queue).toHaveLength(4);
+    expect(bridge.getHudState().playerResources.food).toBe(0);
   });
 });

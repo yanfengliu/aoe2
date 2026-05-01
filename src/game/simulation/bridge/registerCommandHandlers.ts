@@ -27,6 +27,7 @@
 import type { Position } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
+import type { TrainableUnitType } from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
@@ -41,6 +42,8 @@ import { sheepMoveValidator } from '../handlers/sheep/sheepMoveValidator';
 import { makeSheepMoveHandler } from '../handlers/sheep/sheepMoveHandler';
 import { monkContextAtEntityValidator } from '../handlers/monk/monkContextAtEntityValidator';
 import { makeMonkContextAtEntityHandler } from '../handlers/monk/monkContextAtEntityHandler';
+import { makeQueueTrainValidator, type QueueTrainValidatorDeps } from '../handlers/queue/queueTrainValidator';
+import { makeQueueTrainHandler } from '../handlers/queue/queueTrainHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -69,6 +72,16 @@ export interface CommandHandlerDeps {
   // afresh, dispatches to setMonkTask (heal/convert/pickup/deposit) or
   // setUnitMoveCommandDirect (move-fallback). Lives in unitCommandOps.
   routeMonkContextAtEntityCommandDirect: (monkId: number, targetEntityId: number) => boolean;
+  // Phase 1B (queue.train): authoritative-resolution helper. Pre-1B
+  // `enqueueTraining` body — does structural + affordability re-checks +
+  // spendResources + queue mutation atomically. Returns false on stale-
+  // state miss (e.g., two queue.train commands in same frame whose total
+  // cost exceeds the stockpile — second handler silently no-ops).
+  enqueueTrainingDirect: (buildingId: number, unitType: TrainableUnitType) => boolean;
+  // Validator deps for `queue.train` (validators read mutable state — must
+  // be threaded so they see the same constructionStates / playerResources
+  // / getTrainOptions the bridge uses).
+  queueTrainValidatorDeps: QueueTrainValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -114,6 +127,11 @@ export function registerCommandHandlers(
   world.registerValidator('monk.contextAtEntity', monkContextAtEntityValidator);
   world.registerHandler('monk.contextAtEntity', makeMonkContextAtEntityHandler({
     routeMonkContextAtEntityCommandDirect: deps.routeMonkContextAtEntityCommandDirect,
+  }));
+  // Phase 1B — queue.train
+  world.registerValidator('queue.train', makeQueueTrainValidator(deps.queueTrainValidatorDeps));
+  world.registerHandler('queue.train', makeQueueTrainHandler({
+    enqueueTrainingDirect: deps.enqueueTrainingDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

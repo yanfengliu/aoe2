@@ -18,6 +18,8 @@ describe('createSimulationBridge utility progression', () => {
     });
     expect(bridge.getSelectionState().trainOptions).toContain('spearman');
     expect(bridge.queueTrainUnit('spearman')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 215,
       wood: 125,
@@ -54,6 +56,8 @@ describe('createSimulationBridge utility progression', () => {
     });
     expect(bridge.getSelectionState().trainOptions).toContain('skirmisher');
     expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
+    // Phase 1B queue.train: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 215,
       wood: 225,
