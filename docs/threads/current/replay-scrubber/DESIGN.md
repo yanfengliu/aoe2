@@ -10,7 +10,7 @@
 
 **v16 deltas vs v15:** addresses iter-15 review (Codex BLOCKER + MAJOR; Claude MAJOR-1 + MAJOR-2 + MINOR-2 + 3 NITs — all accuracy/precision in example code, no architectural changes).
 
-- **`setUnitMoveCommandDirect` mirrors the FULL facade body** — 5 invariants per ground truth (`unitCommandOps.ts:116-130` + `bridgeHelpers.ts:111-114`): (1) unit-existence guard via `world.isAlive`; (2) `clearGathererOrder`; (3) `monkTasks.delete`; (4) target clamp to `[0, mapWidth-1] × [0, mapHeight-1]`; (5) call existing `setUnitCommand(...)` helper which internally does `movePathCache.delete` + `unitCommands.set`. Handler `unitMoveHandler` delegates to the helper so live + replay + deterministic-system paths all execute identical code.
+- **`setUnitMoveCommandDirect` mirrors the FULL facade body** — 5 invariants per ground truth (`unitCommandOps.ts:116-130` + `bridgeHelpers.ts:111-114`): (1) unit-existence guard via `world.getComponent<UnitComponent>(unitId, 'unit')` (NOT `isAlive` alone — `isAlive` returns true for any alive entity including buildings/resources); (2) `clearGathererOrder`; (3) `monkTasks.delete`; (4) target clamp to `[0, mapWidth-1] × [0, mapHeight-1]`; (5) call existing `setUnitCommand(...)` helper which internally does `movePathCache.delete` + `unitCommands.set`. Handler `unitMoveHandler` delegates to the helper so live + replay + deterministic-system paths all execute identical code.
 - **API references corrected** to ground truth: `world.isAlive(entityId)` (NOT `hasEntity`); `submitWithResult` returns `{ accepted: boolean, code?, message? }` shape (NOT `{ kind: 'rejected' }`); unknown command type queues and fails at `processCommands` with `missing_handler` (NOT a sync throw).
 - **Coordinate clamping** specified as HANDLER responsibility for all position-bearing commands. Validators reject only structurally-invalid coordinates (NaN, non-integer).
 - **Cost re-derivation** for state-dependent handlers (especially `market.action`'s gold cost from current `marketExchangeRates` — prior handlers in same frame may have mutated rates). Made explicit in §6.2 B2 fix prose.
@@ -80,7 +80,7 @@
     const cost = TRAIN_COSTS[unitType];
     const playerId = playerIdOf(buildingId);
     const resources = accessor.get(playerResourcesCodec).get(playerId);
-    if (!canPay(resources, cost)) return;  // silent no-op; recorder still captures as success
+    if (!canPay(resources, cost)) return;  // silent no-op; recorder still captures as `executed: true`
     // Deduct + enqueue:
     deductResources(playerId, cost);
     accessor.mutate(productionQueuesCodec, (m) => {
@@ -91,7 +91,7 @@
   };
   ```
 
-  Recorder captures success (validator accepted) regardless of handler's silent-noop branch. Replay re-runs handler against same state → same outcome. Determinism preserved. Live UX: AI economy stops at affordability boundary just like today (the per-handler re-check enforces the same invariant the synchronous deduct-as-you-go code does).
+  Recorder captures the execution as `executed: true` (handler ran without throwing) regardless of handler's silent-noop branch. Replay re-runs handler against same state → same outcome. Determinism preserved. Live UX: AI economy stops at affordability boundary just like today (the per-handler re-check enforces the same invariant the synchronous deduct-as-you-go code does).
 
   Same pattern for `queue.research` (resource cost AND `inFlightTechByOwner` re-check — same-tech batches must respect the same-frame in-flight guard), `market.action` (resource availability AND **cost MUST be re-derived from current `marketExchangeRates`** — prior handlers in the same frame may have already mutated rates), `building.placeConfirm` (resource cost + buildable-position-still-valid + occupancy re-check). Handlers documented as "validator-plus" in §6.2.
 
@@ -1410,7 +1410,7 @@ civ-engine separates **validation** (pre-acceptance, can reject) from **handling
 ```ts
 // src/game/simulation/handlers/unit/unitMoveValidator.ts (NEW)
 // Validators run synchronously inside submitWithResult BEFORE the command queues.
-// Return null to accept, or { code, message } to reject (recorder captures as RejectionResult).
+// Return `true` to accept, `false` for generic reject, or { code, message, ... } for detailed reject (recorder captures as RejectionResult). NEVER return `null` — civ-engine's normalizer throws.
 // Use `world.isAlive(entityId)` for entity-existence checks (NOT `hasEntity`).
 export const unitMoveValidator: ValidatorFn<GameCommands, 'unit.move'> = (data, world) => {
   const unitId = data.unitId;
