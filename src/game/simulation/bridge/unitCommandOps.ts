@@ -96,6 +96,8 @@ export interface UnitCommandOps {
   // Bridge facade dispatches monk routing BEFORE submission; this helper
   // is non-monk only.
   routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
+  // Phase 1B unit.contextAtEntity: routing helper by entity id.
+  routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -373,24 +375,22 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
-  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
+  // Direct-mutation routing helper. Used by the unit.contextAtEntity
+  // handler. Monk routing is hoisted to the bridge facade.
+  function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
-
-    if (unit.unitType === 'monk') {
-      return issueMonkContextCommandAtEntity(unitId, targetEntityId, unit, targetPosition);
-    }
+    if (!unit || !targetPosition) return false;
 
     const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
     if (targetUnit && targetUnit.owner !== unit.owner) {
-      return issueUnitAttackCommand(unitId, targetEntityId, 'unit');
+      return setUnitAttackCommandDirect(unitId, targetEntityId, 'unit');
     }
 
     const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
     if (targetBuilding) {
       if (targetBuilding.owner !== unit.owner) {
-        return issueUnitAttackCommand(unitId, targetEntityId, 'building');
+        return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');
       }
 
       const construction = constructionStates.get(targetEntityId);
@@ -405,14 +405,30 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
     const wildlife = wildlifeStates.get(targetEntityId);
     if (targetResource && wildlife?.isAlive) {
-      return issueUnitAttackCommand(unitId, targetEntityId, 'resource');
+      return setUnitAttackCommandDirect(unitId, targetEntityId, 'resource');
     }
 
-    if (unit.unitType === 'villager' && issueUnitGatherCommand(unitId, targetEntityId)) {
+    if (unit.unitType === 'villager' && setUnitGatherCommandDirect(unitId, targetEntityId)) {
       return true;
     }
 
-    return issueUnitMoveCommand(unitId, targetPosition);
+    return setUnitMoveCommandDirect(unitId, targetPosition);
+  }
+
+  // Bridge facade. Monk path stays HUD-routing (calls existing
+  // issueMonkContextCommandAtEntity facade). Non-monk path submits
+  // unit.contextAtEntity for handler routing.
+  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
+    if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
+
+    if (unit.unitType === 'monk') {
+      return issueMonkContextCommandAtEntity(unitId, targetEntityId, unit, targetPosition);
+    }
+
+    const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId });
+    return result.accepted;
   }
 
   function selectEntityAtCell(x: number, y: number): boolean {
@@ -475,6 +491,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
+    routeUnitContextAtEntityCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,

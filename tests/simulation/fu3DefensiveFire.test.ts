@@ -67,10 +67,32 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
       .units.filter((u) => u.owner === 1 && u.unitType === 'archer');
     expect(archers.length).toBe(3);
 
+    // Capture pre-garrison enemy HP — Phase 1B unit.contextAtEntity changed
+    // garrison from synchronous to "handler runs at start of next step".
+    // The first step that drains the garrison commands ALSO runs combat
+    // resolution; if the Castle had its reload ready it would fire arrows
+    // BEFORE we could capture a clean beforeHp. So capture HP first, then
+    // garrison + step the full 15-tick window.
+    const enemy = findFirstOwnedUnit(bridge, 2, 'champion');
+    expect(enemy).toBeDefined();
+    const beforeHp = getUnitHp(bridge, enemy!.id);
+    expect(beforeHp).toBe(70);
+
     // Drive the 3 archers into the Castle via the context-command path.
     for (const archer of archers) {
       expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
       expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+    }
+
+    // 15 ticks < one reload (20 ticks), so exactly one reload fires.
+    // Castle should fire 4 arrows (1 base + 3 archers). Champion has 0
+    // default armor, so each arrow deals 11 damage. 4 arrows = 44 damage.
+    // First step's processCommands drains the garrison commands; same
+    // step's combat phase fires the reload with all 3 archers garrisoned
+    // (handlers run at processCommands at the START of the step, before
+    // combat-state resolution).
+    for (let i = 0; i < 15; i += 1) {
+      bridge.step(100);
     }
 
     // Confirm all three archers garrisoned (no longer on the map).
@@ -82,18 +104,6 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     const inventory = bridge.getSelectionState().inventory ?? '';
     expect(inventory).toContain('3 / 20 garrisoned');
-
-    const enemy = findFirstOwnedUnit(bridge, 2, 'champion');
-    expect(enemy).toBeDefined();
-    const beforeHp = getUnitHp(bridge, enemy!.id);
-    expect(beforeHp).toBe(70);
-
-    // 15 ticks < one reload (20 ticks), so exactly one reload fires.
-    // Castle should fire 4 arrows (1 base + 3 archers). Champion has 0
-    // default armor, so each arrow deals 11 damage. 4 arrows = 44 damage.
-    for (let i = 0; i < 15; i += 1) {
-      bridge.step(100);
-    }
 
     const afterHp = getUnitHp(bridge, enemy!.id);
     expect(afterHp).toBe(beforeHp! - 44);
@@ -112,9 +122,22 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
       .units.filter((u) => u.owner === 1 && u.unitType === 'archer');
     expect(archers.length).toBe(5);
 
+    // Capture pre-garrison enemy HP (see 3-archer test above for rationale).
+    const enemy = findFirstOwnedUnit(bridge, 2, 'champion');
+    expect(enemy).toBeDefined();
+    const beforeHp = getUnitHp(bridge, enemy!.id);
+    expect(beforeHp).toBe(70);
+
     for (const archer of archers) {
       expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
       expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+    }
+
+    // 15 ticks < one reload (20 ticks). 5 arrows per shot × 11 damage =
+    // 55 damage. HP 70 → 15. If the cap were 1+5=6 the damage would be
+    // 66 and we'd overshoot HP 70 → death.
+    for (let i = 0; i < 15; i += 1) {
+      bridge.step(100);
     }
 
     expect(
@@ -123,18 +146,6 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     expect(bridge.getSelectionState().inventory ?? '').toContain('5 / 20 garrisoned');
-
-    const enemy = findFirstOwnedUnit(bridge, 2, 'champion');
-    expect(enemy).toBeDefined();
-    const beforeHp = getUnitHp(bridge, enemy!.id);
-    expect(beforeHp).toBe(70);
-
-    // 15 ticks < one reload (20 ticks). 5 arrows per shot × 11 damage =
-    // 55 damage. HP 70 → 15. If the cap were 1+5=6 the damage would be
-    // 66 and we'd overshoot HP 70 → death.
-    for (let i = 0; i < 15; i += 1) {
-      bridge.step(100);
-    }
 
     const afterHp = getUnitHp(bridge, enemy!.id);
     expect(afterHp).toBe(beforeHp! - 55);

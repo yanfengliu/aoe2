@@ -213,6 +213,9 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     // Garrison 15 villagers (above the TC / Watch Tower cap of 5) — all
     // should succeed under the Castle's 20 capacity.
+    // Phase 1B unit.contextAtEntity: each issueContextCommandAtEntity call
+    // submits unit.contextAtEntity; handler runs at start of next step.
+    // Step inside the loop so each garrison lands before the next select.
     for (let i = 0; i < 15; i += 1) {
       const id = villagerIds[i];
       // Select the single villager by its id, then issue the garrison
@@ -221,6 +224,7 @@ describe('Slice 6 Castle + Longbowman', () => {
       expect(villager).toBeDefined();
       expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
       expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      bridge.step(100);
     }
 
     // Re-select the Castle via direct bridge and read garrison count.
