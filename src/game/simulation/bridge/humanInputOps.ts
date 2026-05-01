@@ -72,7 +72,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueSheepMoveCommand,
     ungarrisonBuilding,
   } = deps;
-  const { playerResources, rallyPoints, constructionStates } = state;
+  const { playerResources, constructionStates } = state;
 
   function issueMoveCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) return false;
@@ -102,12 +102,21 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         const construction = constructionStates.get(selectedEntityId);
         if (construction && !construction.isComplete) return false;
 
-        rallyPoints.set(selectedEntityId, {
-          x: clamp(x, 0, mapWidth - 1),
-          y: clamp(y, 0, mapHeight - 1),
+        // Phase 1B (building.setRallyPoint): submit instead of mutating
+        // synchronously. Validator does the structural check; handler
+        // applies the rallyPoints.set at start of next step.
+        const result = world.submitWithResult('building.setRallyPoint', {
+          buildingId: selectedEntityId,
+          target: {
+            x: clamp(x, 0, mapWidth - 1),
+            y: clamp(y, 0, mapHeight - 1),
+          },
         });
-        placementMode.current = null;
-        return true;
+        if (result.accepted) {
+          placementMode.current = null;
+          return true;
+        }
+        return false;
       }
     }
 
@@ -149,12 +158,20 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       const construction = constructionStates.get(selectedEntityId);
       if (construction && !construction.isComplete) return false;
 
-      rallyPoints.set(selectedEntityId, {
-        x: clamp(targetPosition.x, 0, mapWidth - 1),
-        y: clamp(targetPosition.y, 0, mapHeight - 1),
+      // Phase 1B (building.setRallyPoint): same shape as the cell-based
+      // rally-point branch in issueContextCommand.
+      const result = world.submitWithResult('building.setRallyPoint', {
+        buildingId: selectedEntityId,
+        target: {
+          x: clamp(targetPosition.x, 0, mapWidth - 1),
+          y: clamp(targetPosition.y, 0, mapHeight - 1),
+        },
       });
-      placementMode.current = null;
-      return true;
+      if (result.accepted) {
+        placementMode.current = null;
+        return true;
+      }
+      return false;
     }
 
     const ownedSheepIds = getSelectedOwnedSheepIds();

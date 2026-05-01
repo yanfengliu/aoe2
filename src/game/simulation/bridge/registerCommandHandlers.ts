@@ -64,6 +64,11 @@ import {
   type BuildingPlaceConfirmValidatorDeps,
 } from '../handlers/building/buildingPlaceConfirmValidator';
 import { makeBuildingPlaceConfirmHandler } from '../handlers/building/buildingPlaceConfirmHandler';
+import {
+  makeBuildingSetRallyPointValidator,
+  type BuildingSetRallyPointValidatorDeps,
+} from '../handlers/building/buildingSetRallyPointValidator';
+import { makeBuildingSetRallyPointHandler } from '../handlers/building/buildingSetRallyPointHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -128,6 +133,11 @@ export interface CommandHandlerDeps {
     anchor: Position,
   ) => boolean;
   buildingPlaceConfirmValidatorDeps: BuildingPlaceConfirmValidatorDeps;
+  // Phase 1B (building.setRallyPoint): handler-side rallyPoints map.
+  // No re-check helper needed — rally-point setting has no resource cost
+  // or shared-state race; the validator's structural check is sufficient.
+  rallyPoints: Map<number, Position>;
+  buildingSetRallyPointValidatorDeps: BuildingSetRallyPointValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -196,6 +206,14 @@ export function registerCommandHandlers(
   );
   world.registerHandler('building.placeConfirm', makeBuildingPlaceConfirmHandler({
     startConstructionDirect: deps.startConstructionDirect,
+  }));
+  // Phase 1B — building.setRallyPoint
+  world.registerValidator(
+    'building.setRallyPoint',
+    makeBuildingSetRallyPointValidator(deps.buildingSetRallyPointValidatorDeps),
+  );
+  world.registerHandler('building.setRallyPoint', makeBuildingSetRallyPointHandler({
+    rallyPoints: deps.rallyPoints,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

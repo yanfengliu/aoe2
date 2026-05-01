@@ -472,6 +472,12 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,
     },
+    rallyPoints: state.rallyPoints,
+    buildingSetRallyPointValidatorDeps: {
+      constructionStates: state.constructionStates,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+    },
   });
 
   return {
