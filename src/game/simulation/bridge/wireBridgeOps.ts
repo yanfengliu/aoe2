@@ -28,6 +28,8 @@ import {
   MAP_WIDTH,
 } from '../prototypeScenario';
 import {
+  MARKET_FEE_RATE,
+  MARKET_TRANSACTION_AMOUNT,
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
   WONDER_COUNTDOWN_TICKS,
@@ -303,7 +305,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
     enqueueTraining,
     enqueueResearch,
-    executeMarketAction,
+    executeMarketActionDirect,
+    playerOwnsCompletedMarket,
     ungarrisonBuilding,
     startConstruction,
     findBuildPlacementNear,
@@ -425,7 +428,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    executeMarketAction,
     ungarrisonBuilding,
   });
 
@@ -452,6 +454,15 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       playerResources: state.playerResources,
       getResearchOptions,
       inFlightTechSetFor,
+    },
+    executeMarketActionDirect,
+    marketActionValidatorDeps: {
+      playerResources: state.playerResources,
+      marketExchangeRates: state.marketExchangeRates,
+      getMarketOptions,
+      playerOwnsCompletedMarket,
+      marketFeeRate: MARKET_FEE_RATE,
+      marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     },
   });
 

@@ -239,12 +239,17 @@ describe('createSimulationBridge utility progression', () => {
 
     const resourcesAfterBuild = bridge.getHudState().playerResources;
     expect(bridge.issueMarketAction('sell-wood')).toBe(true);
+    // Phase 1B market.action: handler applies trade at start of next step's
+    // processCommands. Step between each market action so the test reads
+    // the post-trade stockpile + post-trade exchange-rate.
+    bridge.step(100);
 
     const resourcesAfterFirstSale = bridge.getHudState().playerResources;
     expect(resourcesAfterFirstSale.wood).toBe(resourcesAfterBuild.wood - 100);
     expect(resourcesAfterFirstSale.gold).toBeGreaterThan(resourcesAfterBuild.gold);
 
     expect(bridge.issueMarketAction('sell-wood')).toBe(true);
+    bridge.step(100);
 
     const resourcesAfterSecondSale = bridge.getHudState().playerResources;
     expect(resourcesAfterSecondSale.wood).toBe(resourcesAfterFirstSale.wood - 100);
@@ -253,12 +258,14 @@ describe('createSimulationBridge utility progression', () => {
     );
 
     expect(bridge.issueMarketAction('buy-food')).toBe(true);
+    bridge.step(100);
 
     const resourcesAfterFirstBuy = bridge.getHudState().playerResources;
     expect(resourcesAfterFirstBuy.food).toBe(resourcesAfterSecondSale.food + 100);
     expect(resourcesAfterSecondSale.gold - resourcesAfterFirstBuy.gold).toBeGreaterThan(0);
 
     expect(bridge.issueMarketAction('buy-food')).toBe(true);
+    bridge.step(100);
 
     const resourcesAfterSecondBuy = bridge.getHudState().playerResources;
     expect(resourcesAfterSecondBuy.food).toBe(resourcesAfterFirstBuy.food + 100);

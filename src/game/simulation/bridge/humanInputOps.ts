@@ -1,9 +1,9 @@
 // Human-input command surface. Wraps the bridge's lower-level command
-// helpers (issueUnit*Command, issueSheepMoveCommand, enqueueTraining /
-// enqueueResearch / executeMarketAction / ungarrisonBuilding) with the
+// helpers (issueUnit*Command, issueSheepMoveCommand, ungarrisonBuilding)
+// + Phase 1B commandified facades (queueTrainUnit / queueResearch /
+// issueMarketAction submit through `world.submitWithResult`) with the
 // match-running gate, the rally-point branch for selected own buildings,
-// and the per-action affordability rejection messages. Mirrors the pre-
-// extraction inline implementation byte-for-byte.
+// and the per-action affordability rejection messages.
 
 import type { Position } from 'civ-engine';
 import type {
@@ -38,7 +38,6 @@ export interface HumanInputOpsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  executeMarketAction: (actionType: MarketActionType) => boolean;
   ungarrisonBuilding: (buildingId: number) => boolean;
 }
 
@@ -71,7 +70,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    executeMarketAction,
     ungarrisonBuilding,
   } = deps;
   const { playerResources, rallyPoints, constructionStates } = state;
@@ -262,14 +260,43 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     }
   }
 
+  // Phase 1B (market.action): bridge facade. Submits `market.action`;
+  // validator runs structural + affordability checks, handler re-checks
+  // at start of next step's processCommands.
+  //
+  // Pre-1B parity: a non-market selection (or no selection) emits the
+  // same 'Market trade rejected. ...' toast via the rejection queue.
+  // Existing test `commandRejection.test.ts` "drains FIFO" exercises this
+  // path with a no-selection click.
   function issueMarketAction(actionType: MarketActionType): boolean {
     if (!isMatchRunning()) return false;
 
-    const didTrade = executeMarketAction(actionType);
-    if (!didTrade) {
+    const selectedEntityId = getSelectedEntityId();
+    const building =
+      selectedEntityId !== null
+        ? world.getComponent<BuildingComponent>(selectedEntityId, 'building')
+        : undefined;
+    const construction =
+      selectedEntityId !== null ? constructionStates.get(selectedEntityId) : undefined;
+    const selectionIsMarket =
+      !!building
+      && building.owner === humanPlayerId
+      && building.buildingType === 'market'
+      && (!construction || construction.isComplete);
+    if (!selectionIsMarket) {
       enqueueRejection('Market trade rejected. Check resources and selection.');
+      return false;
     }
-    return didTrade;
+
+    const result = world.submitWithResult('market.action', {
+      playerId: humanPlayerId,
+      actionType,
+    });
+    if (!result.accepted) {
+      enqueueRejection('Market trade rejected. Check resources and selection.');
+      return false;
+    }
+    return true;
   }
 
   return {

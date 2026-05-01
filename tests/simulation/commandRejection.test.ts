@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
-import { selectOwnedBuildingDirect } from './createSimulationBridge.helpers';
+import {
+  placeBuildingNearTownCenter,
+  selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
+} from './createSimulationBridge.helpers';
 
 // Slice 11: the bridge queues command-rejection reasons so the HUD can
 // surface them as toasts. These tests drive the bridge directly; the HUD
@@ -61,6 +65,49 @@ describe('createSimulationBridge command rejection queue', () => {
     }
     expect(foundFoodReason).toBe(true);
   });
+
+  it('B2 invariant: same-frame market.action batch over budget — handler re-check silently no-ops the unaffordable surplus', () => {
+    // DESIGN v17 §6.4 B2: validator does best-effort affordability against
+    // the pre-trade stockpile, so all N submissions in the same frame
+    // accept. Handler's authoritative re-check (in executeMarketActionDirect)
+    // catches the post-spend overdraw and silently returns false.
+    //
+    // Setup: feudal-market-fixture starts food=200, market costs no food.
+    // After 280 steps (market construction + a touch of gathering), food
+    // is around 200 still. Each sell-food removes 100 food. Submit 5
+    // sell-food commands same-frame; validator sees food=200 every time
+    // and accepts all 5; handler 1 + 2 succeed (food → 100 → 0), handler
+    // 3-5 silent no-op (food=0 < 100).
+    const bridge = createSimulationBridge('feudal-market-fixture');
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    placeBuildingNearTownCenter(bridge, 'market', 1, [{ x: 17, y: 8 }]);
+    for (let i = 0; i < 280; i += 1) bridge.step(100);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
+
+    const foodBefore = bridge.getHudState().playerResources.food;
+    expect(foodBefore).toBeGreaterThanOrEqual(100); // sell-food cost
+    const goldBefore = bridge.getHudState().playerResources.gold;
+    const affordableSells = Math.floor(foodBefore / 100);
+
+    const submissions: boolean[] = [];
+    for (let i = 0; i < affordableSells + 3; i += 1) {
+      submissions.push(bridge.issueMarketAction('sell-food'));
+    }
+    // All submissions validator-accept (validator sees pre-spend stockpile).
+    expect(submissions.every((ok) => ok === true)).toBe(true);
+    // Pre-step: nothing has applied yet.
+    expect(bridge.getHudState().playerResources.food).toBe(foodBefore);
+    expect(bridge.getHudState().playerResources.gold).toBe(goldBefore);
+
+    bridge.step(100);
+    // After step: handlers applied sequentially. M = affordableSells
+    // succeed; the surplus 3 hit the re-check and silent-no-op. Final
+    // food drops by exactly affordableSells * 100, gold increases by
+    // the cumulative trade revenue.
+    expect(bridge.getHudState().playerResources.food).toBe(foodBefore - affordableSells * 100);
+    expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(goldBefore);
+  }, 15_000);
 
   it('B2 invariant: same-frame queue.train batch over budget — handler re-check silently no-ops the unaffordable surplus', () => {
     // DESIGN v17 §6.4 B2: validator does best-effort affordability against

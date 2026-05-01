@@ -89,7 +89,11 @@ export interface TrainingMarketOpsDeps {
 export interface TrainingMarketOps {
   enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean;
   enqueueResearch(buildingId: number, technologyType: ResearchableTechnologyType): boolean;
-  executeMarketAction(actionType: MarketActionType): boolean;
+  // Phase 1B (market.action): direct helper used by the handler. Pre-1B
+  // `executeMarketAction` body modulo selection lookup.
+  executeMarketActionDirect(playerId: number, actionType: MarketActionType): boolean;
+  // Validator helper — re-checked at handler time too (B2 fix).
+  playerOwnsCompletedMarket(playerId: number): boolean;
   garrisonUnit(unitId: number, buildingId: number): boolean;
   ungarrisonBuilding(buildingId: number): boolean;
   startConstruction(
@@ -103,7 +107,6 @@ export interface TrainingMarketOps {
 export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMarketOps {
   const {
     world,
-    humanPlayerId,
     mapWidth,
     mapHeight,
     marketFeeRate,
@@ -113,7 +116,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     state,
     placementMode,
     inFlightTechSetFor,
-    getSelectedEntityId,
     getTrainOptions,
     getResearchOptions,
     getMarketOptions,
@@ -218,23 +220,15 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return true;
   }
 
-  function executeMarketAction(actionType: MarketActionType): boolean {
-    const selectedEntityId = getSelectedEntityId();
-    if (selectedEntityId === null) return false;
+  // Phase 1B (market.action) authoritative-resolution helper. Body
+  // verbatim modulo: `playerId` replaces selection-lookup; checks the
+  // player owns at least one COMPLETED market building. Used by the
+  // market.action handler at start of next step's processCommands.
+  function executeMarketActionDirect(playerId: number, actionType: MarketActionType): boolean {
+    if (!playerOwnsCompletedMarket(playerId)) return false;
+    if (!getMarketOptions(playerId, 'market').includes(actionType)) return false;
 
-    const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
-    if (!building || building.owner !== humanPlayerId || building.buildingType !== 'market') {
-      return false;
-    }
-
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) return false;
-
-    if (!getMarketOptions(building.owner, building.buildingType).includes(actionType)) {
-      return false;
-    }
-
-    const stockpile = playerResources.get(building.owner);
+    const stockpile = playerResources.get(playerId);
     if (!stockpile) return false;
 
     const commodity = marketCommodityForAction(actionType);
@@ -253,6 +247,23 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     stockpile.gold += Math.floor(rate * (1 - marketFeeRate));
     marketExchangeRates[commodity] = Math.max(marketMinRate, rate - marketRateStep);
     return true;
+  }
+
+  // Returns true iff the player owns at least one completed market
+  // building. The market.action validator and handler both use this to
+  // gate the trade — pre-1B `executeMarketAction` enforced this implicitly
+  // via the selected-entity lookup.
+  function playerOwnsCompletedMarket(playerId: number): boolean {
+    for (const id of world.query('building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== playerId || building.buildingType !== 'market') {
+        continue;
+      }
+      const construction = constructionStates.get(id);
+      if (construction && !construction.isComplete) continue;
+      return true;
+    }
+    return false;
   }
 
   function garrisonUnit(unitId: number, buildingId: number): boolean {
@@ -417,7 +428,8 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   return {
     enqueueTraining,
     enqueueResearch,
-    executeMarketAction,
+    executeMarketActionDirect,
+    playerOwnsCompletedMarket,
     garrisonUnit,
     ungarrisonBuilding,
     startConstruction,

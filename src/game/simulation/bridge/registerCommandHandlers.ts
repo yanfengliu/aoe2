@@ -27,7 +27,7 @@
 import type { Position } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
-import type { ResearchableTechnologyType, TrainableUnitType } from '../types';
+import type { MarketActionType, ResearchableTechnologyType, TrainableUnitType } from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
@@ -49,6 +49,11 @@ import {
   type QueueResearchValidatorDeps,
 } from '../handlers/queue/queueResearchValidator';
 import { makeQueueResearchHandler } from '../handlers/queue/queueResearchHandler';
+import {
+  makeMarketActionValidator,
+  type MarketActionValidatorDeps,
+} from '../handlers/market/marketActionValidator';
+import { makeMarketActionHandler } from '../handlers/market/marketActionHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -97,6 +102,11 @@ export interface CommandHandlerDeps {
     technologyType: ResearchableTechnologyType,
   ) => boolean;
   queueResearchValidatorDeps: QueueResearchValidatorDeps;
+  // Phase 1B (market.action): authoritative trade helper. Re-checks market
+  // ownership + affordability + applies the trade atomically. Silent no-op
+  // on stale-state miss (same B2 trade-off as queue.train / queue.research).
+  executeMarketActionDirect: (playerId: number, actionType: MarketActionType) => boolean;
+  marketActionValidatorDeps: MarketActionValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -152,6 +162,11 @@ export function registerCommandHandlers(
   world.registerValidator('queue.research', makeQueueResearchValidator(deps.queueResearchValidatorDeps));
   world.registerHandler('queue.research', makeQueueResearchHandler({
     enqueueResearchDirect: deps.enqueueResearchDirect,
+  }));
+  // Phase 1B — market.action
+  world.registerValidator('market.action', makeMarketActionValidator(deps.marketActionValidatorDeps));
+  world.registerHandler('market.action', makeMarketActionHandler({
+    executeMarketActionDirect: deps.executeMarketActionDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

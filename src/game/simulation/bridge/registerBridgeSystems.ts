@@ -97,7 +97,6 @@ export interface RegisterBridgeSystemsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  executeMarketAction: Parameters<typeof createHumanInputOps>[0]['executeMarketAction'];
   ungarrisonBuilding: (id: number) => boolean;
 }
 
@@ -174,7 +173,6 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    executeMarketAction,
     ungarrisonBuilding,
   } = deps;
   const { trackedVisibilitySources } = state;
@@ -256,7 +254,6 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    executeMarketAction,
     ungarrisonBuilding,
   });
 
