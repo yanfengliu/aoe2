@@ -30,6 +30,8 @@ describe('createSimulationBridge age-up progression', () => {
       researchOptions: ['feudal-age'],
     });
     expect(bridge.queueResearch('feudal-age')).toBe(true);
+    // Phase 1B queue.research: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources.food).toBe(200);
 
     for (let index = 0; index < 1320; index += 1) {
@@ -84,6 +86,8 @@ describe('createSimulationBridge age-up progression', () => {
       researchOptions: ['castle-age'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(true);
+    // Phase 1B queue.research: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 200,
       gold: 200,

@@ -27,7 +27,7 @@
 import type { Position } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
-import type { TrainableUnitType } from '../types';
+import type { ResearchableTechnologyType, TrainableUnitType } from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
@@ -44,6 +44,11 @@ import { monkContextAtEntityValidator } from '../handlers/monk/monkContextAtEnti
 import { makeMonkContextAtEntityHandler } from '../handlers/monk/monkContextAtEntityHandler';
 import { makeQueueTrainValidator, type QueueTrainValidatorDeps } from '../handlers/queue/queueTrainValidator';
 import { makeQueueTrainHandler } from '../handlers/queue/queueTrainHandler';
+import {
+  makeQueueResearchValidator,
+  type QueueResearchValidatorDeps,
+} from '../handlers/queue/queueResearchValidator';
+import { makeQueueResearchHandler } from '../handlers/queue/queueResearchHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -82,6 +87,16 @@ export interface CommandHandlerDeps {
   // be threaded so they see the same constructionStates / playerResources
   // / getTrainOptions the bridge uses).
   queueTrainValidatorDeps: QueueTrainValidatorDeps;
+  // Phase 1B (queue.research): same shape as queue.train — authoritative
+  // helper + validator deps. Validator additionally checks the in-flight
+  // tech set so a same-frame batch of two `queue.research` commands for
+  // the same tech accepts BOTH at validator time (pre-spend stockpile +
+  // pre-add tech set) and the second silently no-ops at handler time.
+  enqueueResearchDirect: (
+    buildingId: number,
+    technologyType: ResearchableTechnologyType,
+  ) => boolean;
+  queueResearchValidatorDeps: QueueResearchValidatorDeps;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -132,6 +147,11 @@ export function registerCommandHandlers(
   world.registerValidator('queue.train', makeQueueTrainValidator(deps.queueTrainValidatorDeps));
   world.registerHandler('queue.train', makeQueueTrainHandler({
     enqueueTrainingDirect: deps.enqueueTrainingDirect,
+  }));
+  // Phase 1B — queue.research
+  world.registerValidator('queue.research', makeQueueResearchValidator(deps.queueResearchValidatorDeps));
+  world.registerHandler('queue.research', makeQueueResearchHandler({
+    enqueueResearchDirect: deps.enqueueResearchDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

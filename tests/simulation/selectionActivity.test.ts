@@ -409,6 +409,9 @@ describe('selection activity — owned building', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
     expect(selectOwnedBuildingDirect(bridge, HUMAN_PLAYER_ID, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('forging')).toBe(true);
+    // Phase 1B queue.research: handler enqueues into productionQueues at
+    // start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'researching', target: { kind: 'technology', type: 'forging' } });
   });
 });

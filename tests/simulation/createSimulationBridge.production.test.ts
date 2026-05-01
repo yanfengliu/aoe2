@@ -88,6 +88,8 @@ describe('createSimulationBridge production progression', () => {
     expect(bridge.getSelectionState().selectedEntityType).toBe('blacksmith');
     expect(researchOptions).toContain('fletching');
     expect(bridge.queueResearch('fletching')).toBe(true);
+    // Phase 1B queue.research: spend lands at start of next step's processCommands.
+    bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
       food: 150,
       gold: 200,

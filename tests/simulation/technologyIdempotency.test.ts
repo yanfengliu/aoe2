@@ -66,6 +66,10 @@ describe('iter-2 H2-1 — research idempotency across multiple producer building
     // Queue at Blacksmith A.
     expect(bridge.selectEntityAtCell(4, 6)).toBe(true);
     expect(bridge.queueResearch('forging')).toBe(true);
+    // Phase 1B queue.research: spend + in-flight tech registration land
+    // at start of next step's processCommands. Step once so the second
+    // queueResearch sees the in-flight tech and rejects.
+    bridge.step(100);
 
     const foodAfterFirstQueue = bridge.getEconomyState().playerResources[1].food;
     const goldAfterFirstQueue = bridge.getEconomyState().playerResources[1].gold;

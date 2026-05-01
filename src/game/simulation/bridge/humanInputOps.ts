@@ -38,7 +38,6 @@ export interface HumanInputOpsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
-  enqueueResearch: (buildingId: number, technologyType: ResearchableTechnologyType) => boolean;
   executeMarketAction: (actionType: MarketActionType) => boolean;
   ungarrisonBuilding: (buildingId: number) => boolean;
 }
@@ -72,7 +71,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    enqueueResearch,
     executeMarketAction,
     ungarrisonBuilding,
   } = deps;
@@ -214,6 +212,9 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return true;
   }
 
+  // Phase 1B (queue.research): bridge facade. Submits `queue.research`;
+  // validator runs synchronously and rejects with a code that the facade
+  // translates to the same toast string the pre-1B body produced.
   function queueResearch(technologyType: ResearchableTechnologyType): boolean {
     if (!isMatchRunning()) return false;
 
@@ -223,25 +224,25 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!building || building.owner !== humanPlayerId) return false;
 
-    const construction = constructionStates.get(selectedEntityId);
-    if (construction && !construction.isComplete) {
-      enqueueRejection('Building is still under construction.');
+    const result = world.submitWithResult('queue.research', {
+      buildingId: selectedEntityId,
+      technologyType,
+    });
+    if (!result.accepted) {
+      if (result.code === 'under_construction') {
+        enqueueRejection('Building is still under construction.');
+      } else if (result.code === 'insufficient_resources') {
+        const stockpile = playerResources.get(humanPlayerId);
+        const missing = stockpile
+          ? resourcesMissing(stockpile, researchCost(technologyType))
+          : null;
+        enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot research that here.');
+      } else {
+        enqueueRejection('Cannot research that here.');
+      }
       return false;
     }
-
-    const didEnqueue = enqueueResearch(selectedEntityId, technologyType);
-    if (!didEnqueue) {
-      const stockpile = playerResources.get(humanPlayerId);
-      if (stockpile) {
-        const missing = resourcesMissing(stockpile, researchCost(technologyType));
-        if (missing) {
-          enqueueRejection(`Not enough ${missing}.`);
-          return false;
-        }
-      }
-      enqueueRejection('Cannot research that here.');
-    }
-    return didEnqueue;
+    return true;
   }
 
   function issueAction(actionType: ActionType): boolean {

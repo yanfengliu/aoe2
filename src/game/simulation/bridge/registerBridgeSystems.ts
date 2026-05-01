@@ -256,7 +256,6 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
-    enqueueResearch,
     executeMarketAction,
     ungarrisonBuilding,
   });

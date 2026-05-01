@@ -446,6 +446,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       playerResources: state.playerResources,
       getTrainOptions,
     },
+    enqueueResearchDirect: enqueueResearch,
+    queueResearchValidatorDeps: {
+      constructionStates: state.constructionStates,
+      playerResources: state.playerResources,
+      getResearchOptions,
+      inFlightTechSetFor,
+    },
   });
 
   return {

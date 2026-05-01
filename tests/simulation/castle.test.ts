@@ -119,6 +119,8 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('fletching')).toBe(true);
+    // Phase 1B queue.research: step once so handler enqueues before polling.
+    bridge.step(100);
 
     expect(
       stepBridgeUntil(bridge, () => {
@@ -175,6 +177,10 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('fletching')).toBe(true);
+    // Phase 1B queue.research: handler enqueues at start of next step's
+    // processCommands. Step once so the queue insert lands before the
+    // `queue empty` polling predicate would return true on a still-empty queue.
+    bridge.step(100);
 
     expect(
       stepBridgeUntil(bridge, () => {
