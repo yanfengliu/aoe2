@@ -31,6 +31,8 @@ import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
 import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
+import { unitGatherValidator } from '../handlers/unit/unitGatherValidator';
+import { makeUnitGatherHandler } from '../handlers/unit/unitGatherHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -43,6 +45,8 @@ export interface CommandHandlerDeps {
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
   ) => boolean;
+  // Phase 1B (unit.gather): same pattern.
+  setUnitGatherCommandDirect: (unitId: number, resourceId: number) => boolean;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -63,6 +67,11 @@ export function registerCommandHandlers(
   world.registerValidator('unit.attack', unitAttackValidator);
   world.registerHandler('unit.attack', makeUnitAttackHandler({
     setUnitAttackCommandDirect: deps.setUnitAttackCommandDirect,
+  }));
+  // Phase 1B — unit.gather
+  world.registerValidator('unit.gather', unitGatherValidator);
+  world.registerHandler('unit.gather', makeUnitGatherHandler({
+    setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

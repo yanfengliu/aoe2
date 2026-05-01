@@ -316,9 +316,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
+    // setUnitAttackCommandDirect + setUnitGatherCommandDirect are used by the
+    // registerCommandHandlers call below, but NOT threaded into any system —
+    // no deterministic-resolution system calls attack or gather today, and
+    // their AI-decision counterparts (when they exist) push intentions
+    // instead. Bridge facade routes HUD-time calls through submitWithResult.
     setUnitAttackCommandDirect,
-    // ^ used below for the registerCommandHandlers deps; not threaded
-    // into systems because no deterministic-resolution system needs it.
+    setUnitGatherCommandDirect,
     getSelectedHumanUnitIds,
     getSelectedHumanVillagerIds,
     issueUnitContextCommand,
@@ -427,6 +431,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   registerCommandHandlers(world, {
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
+    setUnitGatherCommandDirect,
   });
 
   return {

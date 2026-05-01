@@ -88,6 +88,8 @@ export interface UnitCommandOps {
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
   ): boolean;
+  // Phase 1B unit.gather: same direct-mutation helper pattern.
+  setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -256,7 +258,11 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     });
   }
 
-  function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
+  // Direct-mutation helper. Same body as the pre-Phase-1B
+  // `issueUnitGatherCommand`. Used by the `unit.gather` handler (no
+  // deterministic-system or AI call sites today — gather goes through
+  // the HUD context-command fallthrough only).
+  function setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
     const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
@@ -282,6 +288,15 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     );
     gatherer.gatherProgressTicks = 0;
     return true;
+  }
+
+  // Bridge facade. HUD-time context-command fallthrough calls this; routes
+  // through civ-engine's command channel so the recorder captures gather
+  // intent. Handler delegates to setUnitGatherCommandDirect at start of
+  // next step.
+  function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
+    const result = world.submitWithResult('unit.gather', { unitId, resourceId });
+    return result.accepted;
   }
 
   function issueUnitContextCommand(unitId: number, target: Position): boolean {
@@ -433,6 +448,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
+    setUnitGatherCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
