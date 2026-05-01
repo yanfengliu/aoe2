@@ -90,6 +90,12 @@ export interface UnitCommandOps {
   ): boolean;
   // Phase 1B unit.gather: same direct-mutation helper pattern.
   setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean;
+  // Phase 1B unit.context: routing helper. Reads world state to dispatch
+  // to garrison/attack/gather/move via the direct helpers. Used by the
+  // unit.context handler so live + replay execute identical routing.
+  // Bridge facade dispatches monk routing BEFORE submission; this helper
+  // is non-monk only.
+  routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
   issueSheepMoveCommand(sheepId: number, target: Position): boolean;
   getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
@@ -299,21 +305,16 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
-  function issueUnitContextCommand(unitId: number, target: Position): boolean {
+  // Direct-mutation routing helper. Reads world state to dispatch to
+  // garrison / attack / gather / move via the corresponding direct
+  // helpers. Used by the `unit.context` handler so live + replay paths
+  // execute identical routing logic against identical world state.
+  function routeUnitContextCommandDirect(unitId: number, target: Position): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!unit || unit.owner !== humanPlayerId) return false;
-
-    if (unit.unitType === 'monk') {
-      const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
-      if (monkTargetEntityId !== null) {
-        const monkTargetPosition = world.getComponent<Position>(monkTargetEntityId, 'position');
-        if (monkTargetPosition) {
-          return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
-        }
-      }
-      clearMonkTask(unitId);
-      return issueUnitMoveCommand(unitId, target);
-    }
+    if (!unit) return false;
+    // Monk routing is handled by the bridge facade BEFORE submission
+    // (HUD-side fast path). The validator rejects monk units so this
+    // branch only runs for non-monks.
 
     const resourceId =
       unit.unitType === 'villager' ? findResourceAtCell(target.x, target.y) : null;
@@ -331,21 +332,45 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       return garrisonUnit(unitId, ownedGarrisonBuildingId);
     }
     if (hostileUnitId !== null) {
-      return issueUnitAttackCommand(unitId, hostileUnitId, 'unit');
+      return setUnitAttackCommandDirect(unitId, hostileUnitId, 'unit');
     }
     if (hostileBuildingId !== null) {
-      return issueUnitAttackCommand(unitId, hostileBuildingId, 'building');
+      return setUnitAttackCommandDirect(unitId, hostileBuildingId, 'building');
     }
     if (hostileWildlifeId !== null) {
-      return issueUnitAttackCommand(unitId, hostileWildlifeId, 'resource');
+      return setUnitAttackCommandDirect(unitId, hostileWildlifeId, 'resource');
     }
     if (resourceId === null) {
-      return issueUnitMoveCommand(unitId, target);
+      return setUnitMoveCommandDirect(unitId, target);
     }
-    if (!issueUnitGatherCommand(unitId, resourceId)) {
-      return issueUnitMoveCommand(unitId, target);
+    if (!setUnitGatherCommandDirect(unitId, resourceId)) {
+      return setUnitMoveCommandDirect(unitId, target);
     }
     return true;
+  }
+
+  // Bridge facade. HUD context-click. Monk path stays HUD-routing
+  // (calls existing facade chain since monk.contextAtEntity isn't
+  // commandified yet — will improve in that commit). Non-monk path
+  // submits unit.context for handler-side routing.
+  function issueUnitContextCommand(unitId: number, target: Position): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!unit || unit.owner !== humanPlayerId) return false;
+
+    if (unit.unitType === 'monk') {
+      const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
+      if (monkTargetEntityId !== null) {
+        const monkTargetPosition = world.getComponent<Position>(monkTargetEntityId, 'position');
+        if (monkTargetPosition) {
+          return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId, unit, monkTargetPosition);
+        }
+      }
+      clearMonkTask(unitId);
+      return issueUnitMoveCommand(unitId, target);
+    }
+
+    const result = world.submitWithResult('unit.context', { unitId, target });
+    return result.accepted;
   }
 
   function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
@@ -449,6 +474,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
+    routeUnitContextCommandDirect,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,

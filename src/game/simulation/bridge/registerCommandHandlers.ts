@@ -33,6 +33,8 @@ import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
 import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
 import { unitGatherValidator } from '../handlers/unit/unitGatherValidator';
 import { makeUnitGatherHandler } from '../handlers/unit/unitGatherHandler';
+import { unitContextValidator } from '../handlers/unit/unitContextValidator';
+import { makeUnitContextHandler } from '../handlers/unit/unitContextHandler';
 
 export interface CommandHandlerDeps {
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
@@ -47,6 +49,11 @@ export interface CommandHandlerDeps {
   ) => boolean;
   // Phase 1B (unit.gather): same pattern.
   setUnitGatherCommandDirect: (unitId: number, resourceId: number) => boolean;
+  // Phase 1B (unit.context): routing helper. Reads world state and
+  // dispatches to garrison/attack/gather/move via the corresponding
+  // direct helpers. Non-monk only — monk path is handled by the bridge
+  // facade BEFORE submission.
+  routeUnitContextCommandDirect: (unitId: number, target: Position) => boolean;
 }
 
 /** Register all 15 command type validators + handlers on the given world.
@@ -72,6 +79,11 @@ export function registerCommandHandlers(
   world.registerValidator('unit.gather', unitGatherValidator);
   world.registerHandler('unit.gather', makeUnitGatherHandler({
     setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
+  }));
+  // Phase 1B — unit.context
+  world.registerValidator('unit.context', unitContextValidator);
+  world.registerHandler('unit.context', makeUnitContextHandler({
+    routeUnitContextCommandDirect: deps.routeUnitContextCommandDirect,
   }));
   // Each subsequent Phase 1B commit adds one validator + handler pair here.
 }

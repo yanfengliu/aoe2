@@ -323,6 +323,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     // instead. Bridge facade routes HUD-time calls through submitWithResult.
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
+    routeUnitContextCommandDirect,
     getSelectedHumanUnitIds,
     getSelectedHumanVillagerIds,
     issueUnitContextCommand,
@@ -432,6 +433,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
+    routeUnitContextCommandDirect,
   });
 
   return {

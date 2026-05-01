@@ -118,6 +118,9 @@ describe('createSimulationBridge utility progression', () => {
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.issueContextCommand(8, 8)).toBe(true);
+    // Phase 1B unit.context: handler routes to garrisonUnit at start of next
+    // step's processCommands. Step once so the garrison mutation lands.
+    bridge.step(100);
     expect(
       bridge.getEconomyState().units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
@@ -165,6 +168,9 @@ describe('createSimulationBridge utility progression', () => {
 
     expect(bridge.selectEntityAtCell(villager?.x ?? 0, villager?.y ?? 0)).toBe(true);
     expect(bridge.issueContextCommand(watchTowerAnchor.x, watchTowerAnchor.y)).toBe(true);
+    // Phase 1B unit.context: handler routes to garrisonUnit at start of next
+    // step's processCommands. Step once so the garrison mutation lands.
+    bridge.step(100);
     expect(
       bridge.getEconomyState().units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
