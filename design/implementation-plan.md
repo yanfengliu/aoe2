@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document turns [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>) into an execution plan.
+This document turns [spec-final.md](spec-final.md) into an execution plan.
 
 It is not another gameplay spec. It defines:
 
@@ -19,7 +19,7 @@ The goal is to turn this repo into a playable `Age of Empires II: Definitive Edi
 
 ### 1.1 Product Assumptions
 
-- The canonical design is [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>).
+- The canonical design is [spec-final.md](spec-final.md).
 - The game scope is standard Random Map only.
 - The game scope is single-player only: one human player, AI opponents, optional AI allies.
 - The local CSVs under `design/stats/` remain the content source of truth.
@@ -477,7 +477,7 @@ Each major phase should end with a short human playtest checklist:
 
 The project is implementation-complete for this revision when:
 
-- it satisfies the acceptance criteria in [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>)
+- it satisfies the acceptance criteria in [spec-final.md](spec-final.md)
 - a human can start a standard Random Map skirmish, play through all ages, fight AI, and finish the match
 - the game is driven by normalized content data rather than hard-coded gameplay tables
 - the remaining unsupported civ content is explicit and measurable
