@@ -18,6 +18,7 @@ import { createOptionsRules } from './optionsRules';
 import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
+import { registerCommandHandlers } from './registerCommandHandlers';
 import { wirePostSeedOps } from './wirePostSeedOps';
 import {
   HUMAN_PLAYER_ID,
@@ -375,6 +376,10 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     executeMarketAction,
     ungarrisonBuilding,
   });
+
+  // Phase 1A: command-handler scaffold registration (DESIGN v17 §6.4 Tier 0).
+  // Empty until Phase 1B commits add per-command validators + handlers.
+  registerCommandHandlers(world, {});
 
   return {
     ...finalize,

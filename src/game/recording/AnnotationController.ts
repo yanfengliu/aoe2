@@ -36,7 +36,10 @@ export interface AnnotationControllerConfig {
   readonly recording: RecordingService;
   readonly pauseControl: PauseControl;
   readonly form: AnnotationFormView;
-  readonly worldRef: () => World;
+  // Permissive World typing — only reads world.isCurrent() etc., doesn't
+  // submit commands. Allows tests to pass bare `new World()`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly worldRef: () => World<any, any, any>;
   readonly selection: { getSelectedEntityRefs(): readonly EntityRef[] };
   /** Returns the canvas to capture for screenshot attachments. May
    *  return null if no canvas is mounted yet (then the screenshot

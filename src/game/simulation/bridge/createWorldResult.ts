@@ -19,9 +19,14 @@ import type {
 } from '../types';
 import type { SaveBlob } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
+import type { PendingCommandsQueue } from '../dispatcher';
 
 export interface CreateWorldResult {
   world: GameWorld;
+  // Phase 1A: AI intention queue handle exposed so createSimulationBridge's
+  // tick loop can call drainPendingCommands(world, pendingCommands) between
+  // ticks. Same reference held internally by AI-decision systems (Phase 1B).
+  pendingCommands: PendingCommandsQueue;
   saveGame: () => SaveBlob;
   getEconomyState: () => EconomyState;
   getPopulationState: (playerId: number) => PopulationState;

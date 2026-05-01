@@ -91,7 +91,12 @@ export function createWorld(
   // grid instead of allocating a fresh set of tile entities.
   const tiles: number[][] = savedGame
     ? rebuildTileGridFromWorld(world)
-    : createTileGrid(world);
+    // createTileGrid's signature uses default `World` generics (Record<string, never>
+    // for events/commands). Our GameWorld carries the GameCommands surface which
+    // doesn't structurally fit `Record<string, never>`. Cast through `unknown`
+    // since createTileGrid only reads world.grid + creates entities — doesn't
+    // touch the command map.
+    : createTileGrid(world as unknown as World);
 
   const ops = wireBridgeOps({
     world,

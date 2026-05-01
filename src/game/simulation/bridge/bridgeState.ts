@@ -27,6 +27,10 @@ import type {
   TrebuchetPackState,
   UnitCommand,
 } from './sharedTypes';
+import {
+  createPendingCommandsQueue,
+  type PendingCommandsQueue,
+} from '../dispatcher';
 
 interface CachedMovePath {
   destination: Position;
@@ -99,6 +103,11 @@ export interface BridgeState {
   wildlifeStates: Map<number, WildlifeState>;
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
   gathererDropOffStuckSinceTick: Map<number, number>;
+  // Phase 1A: AI intention queue (DESIGN v17 §6.5). AI-decision systems push
+  // to this during their `execute` phase; the main game loop drains it via
+  // `dispatcher.drainPendingCommands(world, queue)` BETWEEN ticks. Cleared
+  // every tick by the dispatcher itself; not persisted across saves.
+  pendingCommands: PendingCommandsQueue;
 }
 
 export function createBridgeState(): BridgeState {
@@ -142,5 +151,6 @@ export function createBridgeState(): BridgeState {
     wildlifeStates: new Map(),
     inFlightTechByOwner: new Map(),
     gathererDropOffStuckSinceTick: new Map(),
+    pendingCommands: createPendingCommandsQueue(),
   };
 }

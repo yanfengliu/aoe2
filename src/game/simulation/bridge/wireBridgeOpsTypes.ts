@@ -54,6 +54,7 @@ export interface WireBridgeOpsDeps {
 export type WireBridgeOpsResult = Omit<
   CreateWorldResult,
   | 'world'
+  | 'pendingCommands'
   | 'getPopulationState'
   | 'getPlayerResources'
   | 'getMatchState'

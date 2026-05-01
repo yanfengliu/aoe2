@@ -11,6 +11,7 @@ import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
+import { drainPendingCommands } from './dispatcher';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
@@ -183,6 +184,7 @@ export function createSimulationBridge(
     getFogMemoryEntities,
     getHumanFogMemorySize,
     getSelectedEntityRefs,
+    pendingCommands,
   } =
     createWorld(effectiveSeed, visibility, savedGame);
   const renderStore = new RenderStore();
@@ -278,6 +280,12 @@ export function createSimulationBridge(
           accumulatorMs = 0;
           break;
         }
+        // Phase 1A: drain AI intention queue between ticks (DESIGN v17 §6.5).
+        // AI-decision systems push intentions during execute; this between-step
+        // call submits each via world.submitWithResult so the recorder captures
+        // them with submissionTick = world.tick (post-step). No-op while the
+        // queue is empty (Phase 1B fills it as AI systems are refactored).
+        drainPendingCommands(world, pendingCommands);
         accumulatorMs -= tickMs;
       }
     },

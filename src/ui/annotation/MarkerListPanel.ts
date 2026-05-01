@@ -42,7 +42,10 @@ export interface MarkerListPanelConfig {
     panCameraTo(target: EntityRef | Position): void;
     select(refs: readonly EntityRef[]): void;
   };
-  readonly worldRef: () => World;
+  // Permissive World typing — only reads world.isCurrent etc., doesn't
+  // submit commands. Allows tests to pass bare `new World()`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly worldRef: () => World<any, any, any>;
   /** When true (default), uses setInterval polling. Tests pass false
    *  and call refresh() manually for deterministic assertions. */
   readonly autoRefresh?: boolean;

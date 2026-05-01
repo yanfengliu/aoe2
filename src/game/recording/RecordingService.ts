@@ -39,7 +39,12 @@ import { SessionNotFoundError } from './IndexedDBMirrorErrors';
 export type PersistenceErrorListener = (err: Error) => void;
 
 export interface RecordingServiceConfig {
-  readonly world: World;
+  // Permissive `World` typing — RecordingService only reads world.serialize()
+  // / world.tick / observers. It doesn't submit or validate commands so it
+  // doesn't need the typed GameCommands surface. Tests construct bare
+  // `new World()` and pass it through; production passes `GameWorld`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly world: World<any, any, any>;
   /** Session label for bundle metadata. Default: 'aoe2-session-<ISO date>'. */
   readonly sourceLabel?: string;
   /** Forwarded to SessionRecorder. Default 1000. Null disables periodic snapshots. */

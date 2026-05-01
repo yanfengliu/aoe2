@@ -35,7 +35,10 @@ import type {
 // lifted here so helper modules under `bridge/` can speak the same type
 // language without a circular import back into the bridge entry point.
 export type GameEvents = Record<string, never>;
-export type GameCommands = Record<string, never>;
+// GameCommands is the civ-engine command surface (15 types per DESIGN v17 §6.1).
+// Imported here so World<...> wrappers below carry the right command map.
+import type { GameCommands } from '../commands';
+export type { GameCommands };
 export type GameComponents = {
   position: Position;
   terrain: TerrainComponent;

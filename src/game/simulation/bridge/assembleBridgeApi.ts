@@ -9,6 +9,7 @@ export interface AssembleBridgeApiDeps
   extends Omit<
     CreateWorldResult,
     | 'world'
+    | 'pendingCommands'
     | 'getPopulationState'
     | 'getPlayerResources'
     | 'getMatchState'
@@ -44,6 +45,7 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
 
   return {
     ...rest,
+    pendingCommands: state.pendingCommands,
     getPopulationState(playerId: number) {
       return { ...(population.get(playerId) ?? { current: 0, cap: 0 }) };
     },
