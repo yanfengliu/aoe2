@@ -57,12 +57,14 @@ export function registerTier3SyncSystem(deps: {
       // persisted shape inline (rather than constructing an intermediate
       // SerializedMatchState + stripping it) — `wonderCountdownTicks` /
       // `relicCountdownTicks` are recomputed per-tick by the live API,
-      // so we omit them from the persisted shape.
+      // so we omit them from the persisted shape. Shallow-clone `scores`
+      // so a future in-place mutation on `matchState.scores` doesn't
+      // retroactively rewrite the persisted snapshot.
       const persisted: PersistedMatchState = {
         outcome: matchState.outcome,
         summary: matchState.summary,
         winCondition: matchState.winCondition,
-        scores: matchState.scores,
+        scores: matchState.scores ? { ...matchState.scores } : null,
       };
       activeWorld.setState(
         TIER_3_SLOTS.matchState,

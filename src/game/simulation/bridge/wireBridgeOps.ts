@@ -26,6 +26,10 @@ import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
+import { registerOutputTail } from './registerOutputTail';
+import { BridgeStateAccessor } from './bridgeStateAccessor';
+import { VisibilityCell } from './visibilityCell';
+import { bootstrapFlush } from './bootstrapFlush';
 import { wirePostSeedOps } from './wirePostSeedOps';
 import {
   HUMAN_PLAYER_ID,
@@ -527,6 +531,27 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     trebuchetUnpackValidatorDeps: {
       trebuchetPackStates: state.trebuchetPackStates,
     },
+  });
+
+  // Phase 2C — bridge-state migration scaffolding integration. The accessor
+  // is constructed here (lazy world ref since `world` is the same instance
+  // used throughout `wireBridgeOps`); the visibility cell wraps the
+  // pre-existing visibility map. Neither is used by any ops module yet
+  // (Phase 2D's slot-by-slot migration job); the integration here just
+  // ensures the per-tick output-phase tail runs (so matchState stays
+  // current in `world.state.aoe2.matchState`) and that the bootstrap
+  // snapshot has populated `aoe2.bridgeMeta` / `aoe2.matchState` /
+  // `aoe2.visibility` slots before tick 1.
+  const accessor = new BridgeStateAccessor(() => world);
+  const visibilityCell = new VisibilityCell(visibility);
+  registerOutputTail({ world, accessor, visibilityCell, matchState });
+  bootstrapFlush({
+    world,
+    accessor,
+    visibilityCell,
+    matchState,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
   });
 
   return {
