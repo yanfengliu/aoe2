@@ -32,7 +32,6 @@ const FILE_EXTS = ['.ts', '.tsx'];
 const LEGACY_VIOLATIONS: Record<string, number> = {
   'src/phaser/scenes/GameScene.ts': 1018,
   'src/game/simulation/fixtures/economyBasics.ts': 830,
-  'tests/simulation/imperialUpgrades.test.ts': 788,
   'src/game/simulation/bridge/systems/aiSystem.ts': 788,
   'tests/simulation/monastery.test.ts': 756,
   'src/game/recording/IndexedDBMirror.ts': 698,
