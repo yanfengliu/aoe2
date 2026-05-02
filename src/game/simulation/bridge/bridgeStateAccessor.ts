@@ -48,27 +48,43 @@ export class BridgeStateAccessor {
    *  `accessor.get(codec).set(...)` mutations are visible across same-tick
    *  reads (the cache-coherence invariant).
    *
+   *  The JSON read from `world.getState` is `structuredClone`'d before
+   *  passing to `codec.deserialize`. Without this clone,
+   *  `flatMapCodec.deserialize`'s `new Map(j ?? [])` shallow-wraps the
+   *  value-references `world.state` holds, so mutating
+   *  `accessor.get(codec).get(id).field` would alias-mutate `world.state`
+   *  directly, bypassing dirty-tracking. The contract is enforced on BOTH
+   *  read and write boundaries (matching clone in `flush()`).
+   *
    *  **Mutation footgun**: if you mutate the returned native value (push to a
    *  productionQueue array, set on a combatStates Map, etc.), you MUST pair
    *  it with `markDirty(codec)` or the change won't be persisted to
-   *  `world.state` at flush time. Snapshot/replay won't see the mutation —
-   *  exactly the failure mode Phase 2 exists to prevent. Prefer the
-   *  `mutate(codec, fn)` helper, which guarantees the markDirty pairing. */
+   *  `world.state` at flush time. Snapshot/replay won't see the mutation.
+   *  Prefer the `mutate(codec, fn)` helper, which guarantees the markDirty
+   *  pairing. */
   get<TNative, TJson>(codec: SlotCodec<TNative, TJson>): TNative {
     if (!this._cache.has(codec.slot)) {
       const json = this.requireWorld().getState(codec.slot) as
         | TJson
         | undefined;
-      this._cache.set(codec.slot, codec.deserialize(json));
+      const decoupled = json === undefined
+        ? undefined
+        : (structuredClone(json) as TJson);
+      this._cache.set(codec.slot, codec.deserialize(decoupled));
     }
     return this._cache.get(codec.slot) as TNative;
   }
 
   /** Mark a slot dirty after a mutation. Codec-typed overload prevents
-   *  string typos at the call site. Untyped string overload kept for tests
-   *  and any future caller that needs to mark a Tier-3 slot dirty by key
-   *  without owning a codec instance — but flush silently skips slots
-   *  whose key is not in `SLOT_CODECS_BY_KEY` (Tier-1 only).
+   *  string typos at the call site; the string overload exists for tests
+   *  that exercise the unknown-slot error path.
+   *
+   *  `flush()` THROWS if a dirty slot's key is not in `SLOT_CODECS_BY_KEY`
+   *  — see flush's docstring for rationale. Tier-3 slots
+   *  (`aoe2.visibility`, `aoe2.matchState`, `aoe2.bridgeMeta`) are NOT in
+   *  the Tier-1 registry; they are written by `tier3SyncSystem`, not
+   *  through the accessor. Do not call `markDirty` for Tier-3 slots —
+   *  flush will throw.
    *
    *  Cheap (one Set.add). The slot's codec is consulted at `flush()` time. */
   markDirty<TNative, TJson>(codec: SlotCodec<TNative, TJson>): void;
@@ -93,19 +109,46 @@ export class BridgeStateAccessor {
 
   /** Tick-end (or pre-`saveGame()`) flush: re-serialize dirty caches back to
    *  `world.state` via codecs. Iterating the dirty set keeps the cost
-   *  proportional to mutated slots, not the full 35-slot table. */
+   *  proportional to mutated slots, not the full 35-slot table.
+   *
+   *  Each serialized slot is `structuredClone`'d before `setState` so that
+   *  `world.state` does NOT alias the cached Map's value-objects. Without
+   *  this clone, `accessor.get(codec).get(id)` returns a value-reference
+   *  shared with `world.state`, and any property mutation on that reference
+   *  (e.g. `combatState.currentHp -= 5`) propagates to `world.state`
+   *  immediately, bypassing the dirty-tracking contract. `structuredClone`
+   *  is used over `JSON.parse(JSON.stringify(...))` because it preserves
+   *  `undefined` values that JSON.stringify silently drops.
+   *
+   *  A dirty slot whose key is not in `SLOT_CODECS_BY_KEY` is an explicit
+   *  error: silent skip would lose the write AND clear the dirty flag,
+   *  causing silent data loss. Validation runs as a single pre-pass so an
+   *  unknown slot does not strand subsequent valid writes mid-iteration —
+   *  if the throw fires, no slot has been flushed yet and the dirty set is
+   *  intact for the next call. */
   flush(): void {
     if (this._dirty.size === 0) return;
     const w = this.requireWorld();
+    // Pre-pass: any unknown slot is fatal. Iterating the dirty Set is
+    // insertion-order; without this pre-validation, an unknown slot would
+    // throw mid-loop and strand any later valid slots in `_cache` with
+    // `_dirty` un-cleared, wedging future flushes behind the same error.
     for (const slot of this._dirty) {
-      const codec = SLOT_CODECS_BY_KEY.get(slot);
-      if (codec === undefined) continue;
+      if (!SLOT_CODECS_BY_KEY.has(slot)) {
+        throw new Error(
+          `BridgeStateAccessor.flush: slot '${slot}' was marked dirty but is not in SLOT_CODECS_BY_KEY. ` +
+            `Either register the slot's codec in TIER_1_CODECS, or stop calling accessor.mutate/markDirty for this slot.`,
+        );
+      }
+    }
+    for (const slot of this._dirty) {
+      // SLOT_CODECS_BY_KEY.get is non-null after the pre-pass.
+      const codec = SLOT_CODECS_BY_KEY.get(slot)!;
       const native = this._cache.get(slot);
       if (native === undefined) continue;
-      // Codec serialize() returns a JsonValue-compatible shape by contract;
-      // cast to satisfy world.setState's strict signature without pulling in
-      // the JsonValue alias (which is internal to civ-engine's json.ts module).
-      w.setState(slot, codec.serialize(native) as unknown as Parameters<typeof w.setState>[1]);
+      const serialized = codec.serialize(native);
+      const decoupled = structuredClone(serialized);
+      w.setState(slot, decoupled as Parameters<typeof w.setState>[1]);
     }
     this._dirty.clear();
   }

@@ -209,6 +209,118 @@ describe('BridgeStateAccessor', () => {
     });
   });
 
+  describe('alias decoupling on both boundaries', () => {
+    it('mutating a value-object after flush does NOT mutate world.state', () => {
+      // Without the structuredClone in flush(), codec.serialize's
+      // Array.from(map) tuples share value-references with the cached Map,
+      // world.setState stores that array, and subsequent property
+      // mutations on the cached Map's values would propagate to
+      // world.state without dirty-tracking.
+      const world = makeWorld();
+      const accessor = new BridgeStateAccessor(() => world);
+      accessor.mutate(combatStatesCodec, (m) =>
+        m.set(1, {
+          currentHp: 100,
+          maxHp: 100,
+          armor: 0,
+          attackDamage: 5,
+          attackRange: 1,
+          reloadTicks: 10,
+          cooldownTicks: 0,
+        }),
+      );
+      accessor.flush();
+      const beforeMutation = structuredClone(
+        world.getState(combatStatesCodec.slot),
+      );
+
+      // Mutate a property on the cached Map's value-object WITHOUT
+      // calling markDirty. Without the flush-side structuredClone, this
+      // property mutation would propagate to world.state immediately,
+      // bypassing dirty-tracking.
+      const cached = accessor.get(combatStatesCodec).get(1)!;
+      cached.currentHp = 50;
+
+      expect(world.getState(combatStatesCodec.slot)).toEqual(beforeMutation);
+    });
+
+    it('mutating a value-object after reset()+get does NOT mutate world.state', () => {
+      // The flush-side clone alone is insufficient: post-reset, the next
+      // get() reads world.state and shallow-deserializes via
+      // codec.deserialize, so cached value-references would alias
+      // world.state UNLESS deserialize input is also decoupled.
+      // structuredClone at the read boundary closes that gap.
+      const world = makeWorld();
+      const accessor = new BridgeStateAccessor(() => world);
+      accessor.mutate(combatStatesCodec, (m) =>
+        m.set(7, {
+          currentHp: 80,
+          maxHp: 100,
+          armor: 1,
+          attackDamage: 5,
+          attackRange: 1,
+          reloadTicks: 10,
+          cooldownTicks: 0,
+        }),
+      );
+      accessor.flush();
+      // Simulate post-applySnapshot transition: reset clears the cache.
+      accessor.reset();
+      const beforeMutation = structuredClone(
+        world.getState(combatStatesCodec.slot),
+      );
+
+      // First get() after reset re-reads world.state. Without the read-
+      // side clone, the cached Map's value would alias the world.state
+      // tuple's value, so this property mutation would propagate.
+      const restored = accessor.get(combatStatesCodec).get(7)!;
+      restored.currentHp = 1;
+
+      expect(world.getState(combatStatesCodec.slot)).toEqual(beforeMutation);
+    });
+
+    it('flush throws when a dirty slot has no codec in the registry', () => {
+      // Silent `continue` would lose the write and clear the dirty flag.
+      const world = makeWorld();
+      const accessor = new BridgeStateAccessor(() => world);
+      accessor.markDirty('aoe2.unknownSlot');
+      expect(() => accessor.flush()).toThrow(/aoe2\.unknownSlot/);
+    });
+
+    it('flush pre-pass: throwing on an unknown slot does NOT strand later valid writes', () => {
+      // Without pre-validation, an unknown slot would throw mid-loop after
+      // possibly skipping valid writes (insertion-order iteration), AND
+      // leave _dirty un-cleared so subsequent flush() calls re-throw on
+      // the same slot — wedging every legitimate later mutation behind
+      // the loud error. Pre-pass validation guarantees the throw fires
+      // BEFORE any setState; the dirty set stays intact so callers can
+      // recover by deleting the bad slot and retrying.
+      const world = makeWorld();
+      const accessor = new BridgeStateAccessor(() => world);
+      // Mark a valid slot dirty FIRST (so it would be flushed first under
+      // insertion-order iteration), then a bad slot.
+      accessor.mutate(combatStatesCodec, (m) =>
+        m.set(99, {
+          currentHp: 10,
+          maxHp: 10,
+          armor: 0,
+          attackDamage: 0,
+          attackRange: 0,
+          reloadTicks: 0,
+          cooldownTicks: 0,
+        }),
+      );
+      accessor.markDirty('aoe2.unknownSlot');
+
+      // First flush throws on unknown.
+      expect(() => accessor.flush()).toThrow(/aoe2\.unknownSlot/);
+      // World.state should NOT have a partial flush of combatStates.
+      expect(world.getState(combatStatesCodec.slot)).toBeUndefined();
+      // dirty set still has both slots (pre-pass aborts before clearing).
+      expect(accessor.dirtySize).toBe(2);
+    });
+  });
+
   describe('reset', () => {
     it('clears cache and dirty set so next read re-materializes', () => {
       const world = makeWorld();

@@ -16,6 +16,7 @@
   3. Mention the audit result in the commit message.
   Skipping any step is a process regression — supply-chain risk compounds silently.
 - **Multi-CLI code review is mandatory for every behavior or code change before declaring the task done.** Run Codex + Claude per the Code review section, synthesize their findings into `docs/threads/current/<objective>/<date>/<iteration_number>/REVIEW.md`, address every real finding, and re-review until reviewers nitpick instead of catching real bugs. Move the thread to `docs/threads/done/<objective>/` when the task is closed. This applies to all changes — single-file fixes, doc-only edits with code implications, refactors, and big features alike. Do not rationalize your way out of review with phrases like "single-file behavior fix," "trivial change," "TDD coverage is sufficient," "subagent dispatch is a tool not a mandate," or any equivalent. The Code review section is non-negotiable; the Team-of-subagents flexibility clause does NOT cover the multi-CLI review step. Skipping review is a process regression and must be corrected by running the review post-hoc on the same branch before merge.
+- **Verify reviewer claims against the codebase before acting on them.** As the driver (team lead / main agent), when a reviewer says "function X has signature Y" or "this contract is broken," grep / read the actual file before merging the fix. A reviewer might be working from training knowledge, a stale snapshot, or a hallucinated symbol. The cost of one extra `Read` is negligible; the cost of acting on a stale or wrong claim is rework + iteration debt. This pairs with the "Reviewers MUST read the codebase" rule in the Code review section — what gets verified is more important than who said it.
 - When the change is visual:
   - Capture a before screenshot.
   - Apply the change.
@@ -55,6 +56,10 @@ When you do dispatch, the team roles below describe how to brief them. The Team 
 
 Operational details for the multi-CLI review rule above.
 
+- **Reviewers MUST read the codebase to ground their claims.** Every review prompt must include the directive: *"Verify each claim in the plan/diff against the live codebase — grep for the symbols, function signatures, column names, and file paths it references; do not approve based on prompt text alone."* Without this directive baked in, two reviewers can APPROVE a design with a real defect that only the codebase-reading reviewer catches. Convergence is measured by *substantive finding count*, not *vote count* — a HIGH defect from one reviewer outweighs APPROVED from two. Per-CLI reading capability:
+  - **Claude** reads via the Read/Glob/Grep tools you grant it (`--allowedTools "Read,Glob,Grep,..."`). Treat as load-bearing for code-vs-spec correctness.
+  - **Codex** can read files when `--sandbox read-only` runs WITHOUT `--ignore-user-config`. The user rules file (`~/.codex/rules/default.rules`) then permits Windows-native file ops (`findstr`, `type`, `dir`, `ls`) as fallback when bash hits the PowerShell deny rule. Smoke-test occasionally with `echo "Read X and report" | codex exec --sandbox read-only --ephemeral` — codex must return content, not bail on "PowerShell blocked."
+  - **Gemini** in `--approval-mode plan` does NOT have file-reading tools and reviews from the prompt + training knowledge alone. Treat as structural-sanity signal only.
 - Use Codex / Claude in CLI to independently review every change. Aspects to review:
   1. Design — easily scales, generalizes, debugs, can be understood and reasoned about, stays lean.
   2. Test coverage.
@@ -72,10 +77,9 @@ Operational details for the multi-CLI review rule above.
   - `npm install -g @google/gemini-cli@latest`
   - Verify versions afterwards (`codex --version`, `gemini --version`).
 - Codex:
-  - `git diff [branch] | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral --ignore-user-config <prompt>`
-  - `--ignore-user-config` is mandatory on Windows where the PowerShell deny rule blocks codex's startup skill loader; verified working 2026-05-01.
+  - `git diff [branch] | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral <prompt>`
+  - **Do NOT pass `--ignore-user-config`.** That flag bypasses `~/.codex/rules/default.rules`, which is what permits codex on this Windows machine to use Windows-native commands (`findstr`, `type`, `dir`, `ls`) when its bash wrapper hits the PowerShell deny rule. Without those rules, codex's `read-only` sandbox blocks every shell tool and the reviewer silently falls back to "review without reading the code." Verified 2026-05-02.
   - Codex caps reasoning effort at `xhigh` (no `max` value).
-  - On Windows, `--sandbox read-only` blocks PowerShell `Select-String` invocations the model sometimes attempts; the model recovers via direct file reads, so the review still completes.
 - Claude:
   - With diff piped via stdin: `git diff [branch] | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
   - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model "claude-opus-4-7[1m]" --effort max --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
