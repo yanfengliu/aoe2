@@ -31,6 +31,44 @@ import type { MatchState } from '../types';
 import type { PersistedMatchState } from '../saveSchema';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
 
+// Pure Tier-3 flush body extracted so saveGameOps can call it at save
+// time WITHOUT relying on the next output phase. Without this, full-review
+// iter-1 R2-C2 (Codex MAJOR) would bite Phase 2F's schema-2 saves where
+// `world.serialize()` is the source of truth: a save mid-tick would lose
+// up to one tick of visibility/matchState updates because the per-tick
+// `tier3SyncSystem` hadn't run yet.
+//
+// Visibility flush is unconditional in the save-time path: even if the
+// cell is "clean", that just means tier3SyncSystem's last execute ran
+// AND no source moved since — but a cold load (restart from blob) won't
+// have run tier3SyncSystem at all, so we must publish at least once
+// before serialize. Cell is then marked clean so the next per-tick run
+// stays optimized.
+export function flushTier3State(
+  world: GameWorld,
+  visibilityCell: VisibilityCell,
+  matchState: MatchState,
+): void {
+  world.setState(
+    TIER_3_SLOTS.visibility,
+    visibilityCell.map.getState() as unknown as Parameters<
+      typeof world.setState
+    >[1],
+  );
+  visibilityCell.markClean();
+
+  const persisted: PersistedMatchState = {
+    outcome: matchState.outcome,
+    summary: matchState.summary,
+    winCondition: matchState.winCondition,
+    scores: matchState.scores ? { ...matchState.scores } : null,
+  };
+  world.setState(
+    TIER_3_SLOTS.matchState,
+    persisted as unknown as Parameters<typeof world.setState>[1],
+  );
+}
+
 export function registerTier3SyncSystem(deps: {
   world: GameWorld;
   visibilityCell: VisibilityCell;

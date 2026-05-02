@@ -186,8 +186,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
     // AI-decision system — uses the intention pushers per DESIGN v17 §6.5.
-    issueUnitAttackCommand: pushUnitAttackIntention,
-    issueUnitMoveCommand: pushUnitMoveIntention,
+    submitUnitAttackIntention: pushUnitAttackIntention,
+    submitUnitMoveIntention: pushUnitMoveIntention,
   });
 
   registerAutoAggressionSystem({
@@ -201,7 +201,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredEnemyBuildingInRadius,
     hasPendingUnitCommand,
     // AI-decision system — uses the intention pusher per DESIGN v17 §6.5/§6.6.
-    issueUnitAttackCommand: pushUnitAttackIntention,
+    submitUnitAttackIntention: pushUnitAttackIntention,
   });
 
   registerPlayerCommandsSystem({

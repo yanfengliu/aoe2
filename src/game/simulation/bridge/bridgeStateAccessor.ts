@@ -129,10 +129,19 @@ export class BridgeStateAccessor {
   flush(): void {
     if (this._dirty.size === 0) return;
     const w = this.requireWorld();
-    // Pre-pass: any unknown slot is fatal. Iterating the dirty Set is
-    // insertion-order; without this pre-validation, an unknown slot would
-    // throw mid-loop and strand any later valid slots in `_cache` with
-    // `_dirty` un-cleared, wedging future flushes behind the same error.
+    // Pre-pass: validate every dirty slot BEFORE writing any. A throw
+    // mid-loop would strand later slots in `_cache` with `_dirty`
+    // un-cleared and would also leak partial writes to `world.state`,
+    // breaking the atomic-flush contract.
+    //
+    // Two checks:
+    // 1. Slot is registered in SLOT_CODECS_BY_KEY (else: typo'd
+    //    markDirty / unmigrated codec).
+    // 2. Slot has a cached native value (else: markDirty without a
+    //    prior get/mutate — the cache is the source of truth, so a
+    //    silent flush would leave `world.state.aoe2.<slot>`
+    //    permanently stale). Full-review iter-2 (Codex + Claude
+    //    MEDIUM) — moved into pre-pass for true atomicity.
     for (const slot of this._dirty) {
       if (!SLOT_CODECS_BY_KEY.has(slot)) {
         throw new Error(
@@ -140,12 +149,18 @@ export class BridgeStateAccessor {
             `Either register the slot's codec in TIER_1_CODECS, or stop calling accessor.mutate/markDirty for this slot.`,
         );
       }
+      if (!this._cache.has(slot)) {
+        throw new Error(
+          `BridgeStateAccessor.flush: slot '${slot}' was marked dirty but no native value is cached. ` +
+            `Did you call accessor.markDirty without a prior accessor.get/mutate? ` +
+            `Use accessor.mutate(codec, ...) so the cache is populated, or read via accessor.get(codec) before markDirty.`,
+        );
+      }
     }
     for (const slot of this._dirty) {
-      // SLOT_CODECS_BY_KEY.get is non-null after the pre-pass.
+      // SLOT_CODECS_BY_KEY.get + _cache.get are non-null after the pre-pass.
       const codec = SLOT_CODECS_BY_KEY.get(slot)!;
-      const native = this._cache.get(slot);
-      if (native === undefined) continue;
+      const native = this._cache.get(slot)!;
       const serialized = codec.serialize(native);
       const decoupled = structuredClone(serialized);
       w.setState(slot, decoupled as Parameters<typeof w.setState>[1]);

@@ -47,7 +47,10 @@ export interface AutoAggressionSystemDeps {
   // wanted to command the same unit on the same tick — see `wireBridgeOps.ts`
   // for the closure body).
   hasPendingUnitCommand: (unitId: number) => boolean;
-  issueUnitAttackCommand: (
+  // Phase 1C + iter-1 R2-D4: contract is push-intention, not synchronous
+  // facade. Renamed to make the boolean return obvious (always true =
+  // queued; not a synchronous accept/reject).
+  submitUnitAttackIntention: (
     attackerId: number,
     targetId: number,
     targetKind: 'unit' | 'building' | 'resource',
@@ -65,7 +68,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     findPreferredEnemyUnitInRadius,
     findPreferredEnemyBuildingInRadius,
     hasPendingUnitCommand,
-    issueUnitAttackCommand,
+    submitUnitAttackIntention,
   } = deps;
 
   world.registerSystem({
@@ -124,7 +127,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
 
         const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
         if (enemyUnitId !== null) {
-          issueUnitAttackCommand(id, enemyUnitId, 'unit');
+          submitUnitAttackIntention(id, enemyUnitId, 'unit');
           continue;
         }
 
@@ -138,7 +141,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           radius,
         );
         if (enemyBuildingId !== null) {
-          issueUnitAttackCommand(id, enemyBuildingId, 'building');
+          submitUnitAttackIntention(id, enemyBuildingId, 'building');
         }
       }
     },

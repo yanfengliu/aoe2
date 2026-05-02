@@ -123,12 +123,19 @@ export interface AiSystemDeps {
   assignAiMonkTasks: (owner: number) => void;
   findPreferredVisibleEnemyUnit: (owner: number, position: Position) => number | null;
   findPreferredVisibleEnemyBuilding: (owner: number, position: Position) => number | null;
-  issueUnitAttackCommand: (
+  // Phase 1C: AI-decision systems push intentions; the dispatcher submits
+  // between ticks. These are NOT synchronous facades — return value is
+  // always true (queued; handler runs at next tick). Renamed from
+  // `issueUnit*Command` per full-review iter-1 R2-M2/R2-D4 to match the
+  // contract: pre-1B's facade returned false on stale targets and the
+  // fallback chain depended on that; post-1C the chain semantics changed
+  // and the misleading name caused R2-M2's silent dead-fallback bug.
+  submitUnitAttackIntention: (
     attackerId: number,
     targetId: number,
     targetKind: 'unit' | 'building' | 'resource',
   ) => boolean;
-  issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
+  submitUnitMoveIntention: (unitId: number, target: Position) => boolean;
 }
 
 export function registerAiSystem(deps: AiSystemDeps): void {
@@ -170,8 +177,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     assignAiMonkTasks,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
-    issueUnitAttackCommand,
-    issueUnitMoveCommand,
+    submitUnitAttackIntention,
+    submitUnitMoveIntention,
   } = deps;
 
   world.registerSystem({
@@ -623,6 +630,15 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && canAfford(stockpile, villagerCost)
             ) {
               pushQueueTrainIntention(ownerTownCenterId, 'villager');
+              // Iter-1 Gemini MINOR: mirror the military / research push
+              // pattern at line 555-558. Today the TC is evaluated exactly
+              // once per decision tick so the increment doesn't matter,
+              // but a future multi-TC or multi-pass change would re-enter
+              // here and over-commit without this. Keep the invariant.
+              pendingTrainsByBuilding.set(
+                ownerTownCenterId,
+                (pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0) + 1,
+              );
             }
           }
         }
@@ -732,39 +748,37 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             }
           }
 
+          // Phase 1C + iter-1 R2-M2: the `submitUnit*Intention` deps always
+          // return true (queue push, handler runs at next tick). The pre-1B
+          // `&& submit(...)` early-out idiom relied on the facade returning
+          // false when the target was stale; that contract no longer holds,
+          // so the chain is split into separate clauses.
           const humanVillagerId = findOwnedUnit(humanPlayerId, 'villager');
-          if (
-            shouldPush
-            && humanVillagerId !== null
-            && issueUnitAttackCommand(id, humanVillagerId, 'unit')
-          ) {
+          if (shouldPush && humanVillagerId !== null) {
+            submitUnitAttackIntention(id, humanVillagerId, 'unit');
             continue;
           }
 
           const visibleTargetId = findPreferredVisibleEnemyUnit(owner, position);
           if (visibleTargetId !== null) {
-            issueUnitAttackCommand(id, visibleTargetId, 'unit');
+            submitUnitAttackIntention(id, visibleTargetId, 'unit');
             continue;
           }
 
           const visibleBuildingId = findPreferredVisibleEnemyBuilding(owner, position);
-          if (
-            visibleBuildingId !== null
-            && issueUnitAttackCommand(id, visibleBuildingId, 'building')
-          ) {
+          if (visibleBuildingId !== null) {
+            submitUnitAttackIntention(id, visibleBuildingId, 'building');
             continue;
           }
 
           if (shouldPush) {
-            if (
-              humanTownCenterId !== null
-              && issueUnitAttackCommand(id, humanTownCenterId, 'building')
-            ) {
+            if (humanTownCenterId !== null) {
+              submitUnitAttackIntention(id, humanTownCenterId, 'building');
               continue;
             }
 
             if (humanTownCenterPosition) {
-              issueUnitMoveCommand(id, humanTownCenterPosition);
+              submitUnitMoveIntention(id, humanTownCenterPosition);
             }
           }
         }

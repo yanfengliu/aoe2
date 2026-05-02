@@ -374,4 +374,34 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) =>
     pruneOrphanEntityKeys(m),
   );
+
+  // Full-review iter-1 Gemini MAJOR: orphan VALUES too. The maps below
+  // store entity IDs in their values; without value-side cleanup they
+  // would survive `pruneOrphanEntityKeys` (which only walks keys),
+  // pollute the next save, and break the cross-reference invariant on
+  // the NEXT load (turning a transient corruption into a permanent
+  // wedge). Runs AFTER the cross-ref invariant so a partially-corrupted
+  // save with mismatched-but-alive entities still throws loudly there;
+  // this only handles the dead-id case where the only correct action is
+  // silent cleanup.
+  for (const [buildingId, list] of garrisonedByBuilding) {
+    const filtered = list.filter((unitId) => world.getEntityRef(unitId) !== null);
+    if (filtered.length !== list.length) {
+      if (filtered.length === 0) {
+        garrisonedByBuilding.delete(buildingId);
+      } else {
+        garrisonedByBuilding.set(buildingId, filtered);
+      }
+    }
+  }
+  for (const [unitId, buildingId] of [...garrisonedUnitToBuilding]) {
+    if (world.getEntityRef(buildingId) === null) {
+      garrisonedUnitToBuilding.delete(unitId);
+    }
+  }
+  for (const [monkId, relicId] of [...monkCarriedRelic]) {
+    if (world.getEntityRef(relicId) === null) {
+      monkCarriedRelic.delete(monkId);
+    }
+  }
 }

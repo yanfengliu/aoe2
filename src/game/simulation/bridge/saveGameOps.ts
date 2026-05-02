@@ -19,6 +19,8 @@ import { SAVE_SCHEMA_VERSION } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import type { VisibilityCell } from './visibilityCell';
+import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
@@ -47,6 +49,10 @@ export interface SaveGameDeps {
   // Phase 2D — slots that have moved to `world.state.aoe2.*` are read
   // through the accessor at save time.
   accessor: BridgeStateAccessor;
+  // Phase 2E + full-review iter-1 R2-C2: Tier-3 (visibility/matchState)
+  // flushing into world.state.aoe2.* must also happen at save time so
+  // schema-2 saves backed by `world.serialize()` see current values.
+  visibilityCell: VisibilityCell;
 }
 
 export interface SaveGameOps {
@@ -54,17 +60,18 @@ export interface SaveGameOps {
 }
 
 export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
-  const { world, visibility, getSeed, matchState, state, accessor } = deps;
-  // Phase 2D — guard against stale accessor cache at save time. The
-  // bridgeSnapshotSystem flushes the accessor on every output phase, so
-  // in normal between-tick saves the cache is already clean. But if a
-  // future caller invokes saveGame() mid-tick (or between input and
-  // update phases), Tier-1 mutations made this tick won't be in
-  // world.state yet. Phase 2F's schema-2 will rely solely on
-  // world.serialize, so a missed flush would lose data; flushing
-  // unconditionally here makes save-time consistency a local guarantee.
+  const { world, visibility, getSeed, matchState, state, accessor, visibilityCell } = deps;
+  // Phase 2D + 2E — flush BOTH Tier-1 (accessor) AND Tier-3 (visibility +
+  // matchState) into world.state.aoe2.* before serialize. Without this,
+  // full-review iter-1 R2-C2 (Codex MAJOR) bites Phase 2F's schema-2
+  // path: saving mid-tick (or between input + update phases) would
+  // capture a stale snapshot — Tier-1 mutations made this tick wouldn't
+  // be in world.state yet (per-tick `bridgeSnapshotSystem` runs at
+  // output phase), and `aoe2.visibility` / `aoe2.matchState` would
+  // similarly lag the per-tick `tier3SyncSystem`.
   function flushBeforeSerialize(): void {
     accessor.flush();
+    flushTier3State(world, visibilityCell, matchState);
   }
   const {
     trackedVisibilitySources,

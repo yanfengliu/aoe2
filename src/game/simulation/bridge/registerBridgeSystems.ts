@@ -298,6 +298,7 @@ export function registerBridgeSystems(
     matchState,
     state,
     accessor,
+    visibilityCell,
   });
 
   const { getEconomyState } = createEconomyStateOps({ world, state, accessor, getUnitTaskState });

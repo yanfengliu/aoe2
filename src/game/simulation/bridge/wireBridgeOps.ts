@@ -1,6 +1,7 @@
 import type { Position } from 'civ-engine';
 
 import { buildingFootprint, currentEntityId } from './pureHelpers';
+import { hasPendingUnitCommand } from './pendingCommandQuery';
 import type {
   BuildableBuildingType,
   ResearchableTechnologyType,
@@ -458,15 +459,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     // scan over the queue (typically <10 entries per tick during AI macro);
     // returns true if any unit.move/unit.attack intention is queued for the
     // given unit.
-    hasPendingUnitCommand: (unitId: number) => {
-      for (const cmd of state.pendingCommands) {
-        if ((cmd.type === 'unit.move' || cmd.type === 'unit.attack')
-            && cmd.data.unitId === unitId) {
-          return true;
-        }
-      }
-      return false;
-    },
+    hasPendingUnitCommand: (unitId: number) => hasPendingUnitCommand(state.pendingCommands, unitId),
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     // Phase 1B unit.move (DESIGN v17 §6.5): AI-decision systems push to
