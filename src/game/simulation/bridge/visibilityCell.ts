@@ -14,7 +14,7 @@
 import type { VisibilityMap } from 'civ-engine';
 
 export class VisibilityCell {
-  private readonly _map: VisibilityMap;
+  private _map: VisibilityMap;
   private _dirty = true;
 
   constructor(map: VisibilityMap) {
@@ -25,6 +25,16 @@ export class VisibilityCell {
    *  directly should call `markDirty()` afterwards. */
   get map(): VisibilityMap {
     return this._map;
+  }
+
+  /** Swap the underlying VisibilityMap (e.g., after `applySnapshot` or
+   *  replay-bridge hydration where the map is rebuilt from a snapshot).
+   *  Auto-marks dirty so the next sync writes the new state. The cell
+   *  identity stays stable so `tier3SyncSystem`'s closure over the cell
+   *  ref keeps working without re-registration. */
+  replace(next: VisibilityMap): void {
+    this._map = next;
+    this._dirty = true;
   }
 
   /** Mark the visibility map as having pending writes. Called by every system

@@ -237,6 +237,28 @@ export interface SerializedMatchState {
   relicCountdownTicks: number | null;
 }
 
+// Phase 2B: persisted match state for `world.state.aoe2.matchState`.
+// Strips derived per-tick fields (`wonderCountdownTicks`, `relicCountdownTicks`)
+// because those are recomputed by the live bridge API on every read; persisting
+// them would surface stale values to anything reading the slot directly during
+// a snapshot or replay. Schema-1 SaveBlobs keep the full `SerializedMatchState`
+// for back-compat; the migration path strips the same way before writing.
+export type PersistedMatchState = Omit<
+  SerializedMatchState,
+  'wonderCountdownTicks' | 'relicCountdownTicks'
+>;
+
+export function serializeMatchStateForWorldState(
+  m: SerializedMatchState,
+): PersistedMatchState {
+  return {
+    outcome: m.outcome,
+    summary: m.summary,
+    winCondition: m.winCondition,
+    scores: m.scores,
+  };
+}
+
 export interface SaveBlob {
   schema: typeof SAVE_SCHEMA_VERSION;
   seed: string;
