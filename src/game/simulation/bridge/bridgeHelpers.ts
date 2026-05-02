@@ -20,7 +20,10 @@ import {
 } from '../ai';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
-import { gathererDropOffStuckSinceTickCodec } from './bridgeStateSerialize';
+import {
+  gathererDropOffStuckSinceTickCodec,
+  playerAgesCodec,
+} from './bridgeStateSerialize';
 import { findSafeSpawnWithEgress } from '../spawn';
 import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
 
@@ -35,6 +38,8 @@ interface PlayerScoreCounters {
 export interface BridgeHelpersDeps {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D — accessor for migrated slots (playerAges read in ensureAiState).
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
 }
 
 export interface BridgeHelpers {
@@ -49,11 +54,10 @@ export interface BridgeHelpers {
 }
 
 export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
-  const { world, state } = deps;
+  const { world, state, accessor } = deps;
   const {
     playerScoreCounters,
     aiStates,
-    playerAges,
     inFlightTechByOwner,
     unitCommands,
     movePathCache,
@@ -80,7 +84,7 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   ): AiState {
     let aiState = aiStates.get(owner);
     if (!aiState) {
-      const age = playerAges.get(owner) ?? 'dark-age';
+      const age = accessor.get(playerAgesCodec).get(owner) ?? 'dark-age';
       aiState = {
         difficulty,
         plan: planForAge(age),

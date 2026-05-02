@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
+import { playerAgesCodec } from './bridgeStateSerialize';
 import {
   isArcherLineUnit,
   isCavalryUnit,
@@ -46,6 +47,8 @@ interface CombatStateLike {
 export interface TechnologyDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — playerAges write via accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   createCombatState: (owner: number, unitType: UnitType) => CombatStateLike;
   // Tells the bridge that an in-place mutation just changed a projector-
   // relevant component (renderable, unit, building, resource owner/type).
@@ -76,10 +79,9 @@ export interface TechnologyOps {
 }
 
 export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
-  const { world, state, createCombatState, markOutOfBandRenderChange } = deps;
+  const { world, state, accessor, createCombatState, markOutOfBandRenderChange } = deps;
   const {
     researchedTechnologies,
-    playerAges,
     combatStates,
     productionQueues,
   } = state;
@@ -158,16 +160,16 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
 
     switch (technologyType) {
       case 'feudal-age':
-        playerAges.set(owner, 'feudal-age');
+        accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'feudal-age'));
         break;
       case 'castle-age':
-        playerAges.set(owner, 'castle-age');
+        accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'castle-age'));
         break;
       case 'imperial-age':
         // Slice 7A: flip the player to Imperial Age. Individual unit-line
         // upgrade callbacks (Arbalest / Halberdier / Hussar / etc.) land in
         // Slices 7B–7D; 7A only wires the age flip so the gate tests pass.
-        playerAges.set(owner, 'imperial-age');
+        accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'imperial-age'));
         break;
       case 'fletching':
         for (const id of world.query('unit')) {

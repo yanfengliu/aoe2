@@ -24,22 +24,24 @@ import {
   buildingPopulationProvided,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
+import { playerAgesCodec } from './bridgeStateSerialize';
 
 export interface EconomyStateOpsDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — playerAges read via accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   getUnitTaskState: (id: number) => UnitTaskState;
 }
 
 export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
   getEconomyState(): EconomyState;
 } {
-  const { world, state, getUnitTaskState } = deps;
+  const { world, state, accessor, getUnitTaskState } = deps;
   const {
     combatStates,
     constructionStates,
     productionQueues,
-    playerAges,
     playerResources,
     population,
   } = state;
@@ -128,9 +130,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
       .filter((entry): entry is EconomyState['buildings'][number] => entry !== null);
 
     return {
-      ages: Object.fromEntries(
-        [...playerAges.entries()].map(([playerId, age]) => [playerId, age]),
-      ),
+      ages: Object.fromEntries(accessor.get(playerAgesCodec)),
       playerResources: Object.fromEntries(
         [...playerResources.entries()].map(([playerId, resources]) => [
           playerId,

@@ -237,6 +237,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
     state,
+    accessor,
     placementMode,
     getSelectedEntityIds,
     resolveSelectionTile,
@@ -260,6 +261,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const technologyOps = createTechnologyOps({
     world,
     state,
+    accessor,
     createCombatState,
     markOutOfBandRenderChange,
   });

@@ -4,7 +4,6 @@
 
 import type { EntityRef, Position } from 'civ-engine';
 import type {
-  AgeType,
   PlayerResources,
   PopulationState,
   ProductionQueueEntry,
@@ -48,8 +47,9 @@ interface PlayerScoreCounters {
 
 export interface BridgeState {
   trackedVisibilitySources: Map<number, number>;
-  playerAges: Map<number, AgeType>;
-  playerCivilizations: Map<number, string>;
+  // Phase 2D: `playerAges` + `playerCivilizations` migrated to
+  // `world.state.aoe2.playerAges` / `aoe2.playerCivilizations` via
+  // accessor + codec.
   researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
   playerResources: Map<number, PlayerResources>;
   marketExchangeRates: { food: number; wood: number; stone: number };
@@ -117,8 +117,6 @@ export interface BridgeState {
 export function createBridgeState(): BridgeState {
   return {
     trackedVisibilitySources: new Map(),
-    playerAges: new Map(),
-    playerCivilizations: new Map(),
     researchedTechnologies: new Map(),
     playerResources: new Map(),
     marketExchangeRates: createInitialMarketRates(),

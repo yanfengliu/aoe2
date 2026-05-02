@@ -16,6 +16,8 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
   villagerOrdinalsCodec,
 } from './bridgeStateSerialize';
 
@@ -35,8 +37,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
   const {
     trackedVisibilitySources,
-    playerAges,
-    playerCivilizations,
     researchedTechnologies,
     playerResources,
     marketExchangeRates,
@@ -79,12 +79,16 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [k, v] of blob.trackedVisibilitySources) {
     trackedVisibilitySources.set(k, v);
   }
-  for (const [owner, age] of blob.playerAges) {
-    playerAges.set(owner, age as AgeType);
-  }
-  for (const [owner, civ] of blob.playerCivilizations) {
-    playerCivilizations.set(owner, civ);
-  }
+  accessor.mutate(playerAgesCodec, (m) => {
+    for (const [owner, age] of blob.playerAges) {
+      m.set(owner, age as AgeType);
+    }
+  });
+  accessor.mutate(playerCivilizationsCodec, (m) => {
+    for (const [owner, civ] of blob.playerCivilizations) {
+      m.set(owner, civ);
+    }
+  });
   for (const [owner, techs] of blob.researchedTechnologies) {
     researchedTechnologies.set(owner, new Set(techs as ResearchableTechnologyType[]));
   }

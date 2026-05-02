@@ -284,7 +284,7 @@ export function registerBridgeSystems(
     accessor,
   });
 
-  const { getEconomyState } = createEconomyStateOps({ world, state, getUnitTaskState });
+  const { getEconomyState } = createEconomyStateOps({ world, state, accessor, getUnitTaskState });
 
   return {
     saveGame,

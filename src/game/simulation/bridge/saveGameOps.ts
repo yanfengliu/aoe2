@@ -22,6 +22,8 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
   villagerOrdinalsCodec,
 } from './bridgeStateSerialize';
 
@@ -64,8 +66,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   }
   const {
     trackedVisibilitySources,
-    playerAges,
-    playerCivilizations,
     researchedTechnologies,
     playerResources,
     marketExchangeRates,
@@ -114,8 +114,8 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
       },
       sideMaps: {
         trackedVisibilitySources: [...trackedVisibilitySources.entries()],
-        playerAges: [...playerAges.entries()],
-        playerCivilizations: [...playerCivilizations.entries()],
+        playerAges: [...accessor.get(playerAgesCodec).entries()],
+        playerCivilizations: [...accessor.get(playerCivilizationsCodec).entries()],
         researchedTechnologies: [...researchedTechnologies.entries()].map(
           ([owner, set]) => [owner, [...set]],
         ),

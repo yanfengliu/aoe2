@@ -26,6 +26,9 @@ export interface PlayerScoreCounters {
 export interface WireBridgeOpsDeps {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D — accessor constructed in createWorld so bridgeHelpers
+  // (also constructed in createWorld) can consume it for migrated slots.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   visibility: VisibilityMap;
   matchState: MatchState;
   savedGame: SaveBlob | undefined;

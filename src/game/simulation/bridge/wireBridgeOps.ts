@@ -27,7 +27,6 @@ import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
 import { registerOutputTail } from './registerOutputTail';
-import { BridgeStateAccessor } from './bridgeStateAccessor';
 import { VisibilityCell } from './visibilityCell';
 import { bootstrapFlush } from './bootstrapFlush';
 import { wirePostSeedOps } from './wirePostSeedOps';
@@ -54,6 +53,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
     world,
     state,
+    accessor,
     visibility,
     matchState,
     savedGame,
@@ -77,13 +77,9 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   } = deps;
   const { movePathCache, trebuchetPackStates, lastSeenStatic } = state;
 
-  // Phase 2D — bridge-state migration. The accessor is constructed
-  // early so ops modules that mutate migrated slots (currently:
-  // `villagerOrdinals` via entityCreateOps + scenarioSeedOps + saveGameOps
-  // + hydrateFromSavedGame) can receive it as a dep. The visibility cell
-  // wraps the existing visibility map; both feed `registerOutputTail`
-  // below for per-tick flush.
-  const accessor = new BridgeStateAccessor(() => world);
+  // Phase 2D — accessor is constructed in `createWorld.ts` (so
+  // bridgeHelpers can also consume it) and threaded in via deps.
+  // visibility cell still constructed here since it's bridge-internal.
   const visibilityCell = new VisibilityCell(visibility);
 
   const trebuchetStateOps = createTrebuchetStateOps(trebuchetPackStates);
@@ -125,7 +121,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     rebuildWorldOccupancyFromWorld,
   } = transformOps;
 
-  const playerQueries = createPlayerQueries({ world, state });
+  const playerQueries = createPlayerQueries({ world, state, accessor });
   const {
     hasTechnology,
     hasCompletedBuilding,

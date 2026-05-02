@@ -32,7 +32,11 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { updateSheepOwnership } from './visibility';
-import { villagerOrdinalsCodec } from './bridgeStateSerialize';
+import {
+  playerAgesCodec,
+  playerCivilizationsCodec,
+  villagerOrdinalsCodec,
+} from './bridgeStateSerialize';
 import type { DifficultyLevel } from '../ai';
 import type {
   PrototypeScenario,
@@ -112,8 +116,6 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     ensureAiState,
   } = deps;
   const {
-    playerAges,
-    playerCivilizations,
     researchedTechnologies,
     playerResources,
     population,
@@ -121,12 +123,23 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     relicCountdownOverrides,
   } = state;
 
+  // Phase 2D — batch the per-player Map writes into single mutate calls
+  // to mirror hydrateFromSavedGame's pattern. Functionally identical to
+  // calling mutate per-player (BridgeStateAccessor's _dirty.add is
+  // idempotent), but stylistically consistent so future heavier-weight
+  // mutate semantics (per-call invariant checks) won't surprise this
+  // call site.
+  accessor.mutate(playerAgesCodec, (m) => {
+    for (const start of scenario.starts) {
+      m.set(start.owner, start.startingAge ?? 'dark-age');
+    }
+  });
+  accessor.mutate(playerCivilizationsCodec, (m) => {
+    for (const start of scenario.starts) {
+      m.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
+    }
+  });
   for (const start of scenario.starts) {
-    playerAges.set(start.owner, start.startingAge ?? 'dark-age');
-    playerCivilizations.set(
-      start.owner,
-      start.civilization ?? defaultCivilizationName(start.owner),
-    );
     researchedTechnologies.set(
       start.owner,
       new Set(start.startingResearchedTechnologies ?? []),

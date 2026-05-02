@@ -19,6 +19,7 @@ import {
 } from './bridgeHelpers';
 import { assembleBridgeApi } from './assembleBridgeApi';
 import { createBridgeState } from './bridgeState';
+import { BridgeStateAccessor } from './bridgeStateAccessor';
 import { registerComponentTypes } from './scenarioSeedOps';
 import { wireBridgeOps } from './wireBridgeOps';
 import {
@@ -55,7 +56,12 @@ export function createWorld(
   worldOccupancy.attachWorld(world);
 
   const state = createBridgeState();
-  const helpers = createBridgeHelpers({ world, state });
+  // Phase 2D — accessor needs to be available to bridgeHelpers (which
+  // reads playerAges via accessor in ensureAiState). Constructed here
+  // so subsequent ops can consume it. wireBridgeOps does NOT re-construct;
+  // it receives this instance.
+  const accessor = new BridgeStateAccessor(() => world);
+  const helpers = createBridgeHelpers({ world, state, accessor });
 
   const matchState: MatchState = {
     outcome: 'running',
@@ -101,6 +107,7 @@ export function createWorld(
   const ops = wireBridgeOps({
     world,
     state,
+    accessor,
     visibility,
     matchState,
     savedGame,

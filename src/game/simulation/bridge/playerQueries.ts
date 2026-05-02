@@ -23,10 +23,16 @@ import {
   latestResearchedInChain as latestResearchedInChainExternal,
   type UpgradeChainEntry,
 } from '../upgradeChains';
+import {
+  playerAgesCodec,
+  playerCivilizationsCodec,
+} from './bridgeStateSerialize';
 
 export interface PlayerQueriesDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — accessor for migrated slots (playerAges, playerCivilizations).
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
 }
 
 export interface PlayerQueries {
@@ -53,13 +59,11 @@ export interface PlayerQueries {
 }
 
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
-  const { world, state } = deps;
+  const { world, state, accessor } = deps;
   const {
     unitCommands,
     productionQueues,
     constructionStates,
-    playerAges,
-    playerCivilizations,
     researchedTechnologies,
   } = state;
 
@@ -161,11 +165,11 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   }
 
   function getPlayerAge(owner: number): AgeType {
-    return playerAges.get(owner) ?? 'dark-age';
+    return accessor.get(playerAgesCodec).get(owner) ?? 'dark-age';
   }
 
   function getPlayerCivilization(owner: number): string {
-    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
+    return accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner);
   }
 
   function isAtLeastAge(owner: number, minAge: AgeType): boolean {

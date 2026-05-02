@@ -29,6 +29,7 @@ import {
   buildingGarrisonCapacity,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
+import { playerCivilizationsCodec } from './bridgeStateSerialize';
 import {
   computeUnitActivity,
   getBuildingActivity,
@@ -41,6 +42,8 @@ export interface SelectionStateOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
   state: BridgeState;
+  // Phase 2D — playerCivilizations read via accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   placementMode: { current: BuildableBuildingType | null };
   getSelectedEntityIds: () => number[];
   resolveSelectionTile: (selectedEntityId: number, position: Position) => Position;
@@ -75,6 +78,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     world,
     humanPlayerId,
     state,
+    accessor,
     placementMode,
     getSelectedEntityIds,
     resolveSelectionTile,
@@ -94,7 +98,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     buildingCombatStates,
     wildlifeStates,
     garrisonedByBuilding,
-    playerCivilizations,
     productionQueues,
     unitCommands,
     monkTasks,
@@ -186,7 +189,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     if (kind === 'resource' || owner === null) {
       return null;
     }
-    return playerCivilizations.get(owner) ?? defaultCivilizationName(owner);
+    return accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner);
   }
 
   function getSelectionInventory(
