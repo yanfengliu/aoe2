@@ -24,7 +24,9 @@ import {
   monkHealCountersCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
+  relicCountdownOverridesCodec,
   villagerOrdinalsCodec,
+  wonderCountdownOverridesCodec,
 } from './bridgeStateSerialize';
 
 interface MatchStateLike {
@@ -79,9 +81,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     monkCarriedRelic,
     relicsInMonastery,
     wonderCountdowns,
-    wonderCountdownOverrides,
     relicCountdowns,
-    relicCountdownOverrides,
     playerScoreCounters,
     trebuchetPackStates,
     lastSeenStatic,
@@ -185,7 +185,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
             lastCompletedTick: entry.lastCompletedTick,
           },
         ]),
-        wonderCountdownOverrides: [...wonderCountdownOverrides.entries()],
+        wonderCountdownOverrides: [...accessor.get(wonderCountdownOverridesCodec).entries()],
         relicCountdowns: [...relicCountdowns.entries()].map(([id, entry]) => [
           id,
           {
@@ -194,7 +194,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
             lastCompletedTick: entry.lastCompletedTick,
           },
         ]),
-        relicCountdownOverrides: [...relicCountdownOverrides.entries()],
+        relicCountdownOverrides: [...accessor.get(relicCountdownOverridesCodec).entries()],
         playerScoreCounters: [...playerScoreCounters.entries()].map(([owner, counters]) => [
           owner,
           { ...counters },

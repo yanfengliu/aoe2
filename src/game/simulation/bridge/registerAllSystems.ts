@@ -144,7 +144,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     garrisonedByBuilding,
     wonderCountdowns,
     relicCountdowns,
-    relicCountdownOverrides,
   } = state;
 
   registerAiSystem({
@@ -348,7 +347,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerRelicCountdownSystem({
     world,
     relicCountdowns,
-    relicCountdownOverrides,
+    accessor,
     currentRelicHoldingOwner,
     defaultRelicCountdownTicks,
     isMatchRunning,

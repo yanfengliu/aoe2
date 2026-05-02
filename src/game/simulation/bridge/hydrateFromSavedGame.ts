@@ -18,7 +18,9 @@ import {
   monkHealCountersCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
+  relicCountdownOverridesCodec,
   villagerOrdinalsCodec,
+  wonderCountdownOverridesCodec,
 } from './bridgeStateSerialize';
 
 export interface SaveLoadHydrationDeps {
@@ -49,9 +51,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     monkCarriedRelic,
     relicsInMonastery,
     wonderCountdowns,
-    wonderCountdownOverrides,
     relicCountdowns,
-    relicCountdownOverrides,
     playerScoreCounters,
     trebuchetPackStates,
     lastSeenStatic,
@@ -160,9 +160,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       lastCompletedTick: entry.lastCompletedTick ?? null,
     });
   }
-  for (const [owner, ticks] of blob.wonderCountdownOverrides) {
-    wonderCountdownOverrides.set(owner, ticks);
-  }
+  accessor.mutate(wonderCountdownOverridesCodec, (m) => {
+    for (const [owner, ticks] of blob.wonderCountdownOverrides) {
+      m.set(owner, ticks);
+    }
+  });
   for (const [owner, entry] of blob.relicCountdowns) {
     relicCountdowns.set(owner, {
       remainingTicks: entry.remainingTicks,
@@ -170,9 +172,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       lastCompletedTick: entry.lastCompletedTick ?? null,
     });
   }
-  for (const [owner, ticks] of blob.relicCountdownOverrides) {
-    relicCountdownOverrides.set(owner, ticks);
-  }
+  accessor.mutate(relicCountdownOverridesCodec, (m) => {
+    for (const [owner, ticks] of blob.relicCountdownOverrides) {
+      m.set(owner, ticks);
+    }
+  });
   for (const [owner, counters] of blob.playerScoreCounters) {
     playerScoreCounters.set(owner, {
       unitsProduced: counters.unitsProduced,

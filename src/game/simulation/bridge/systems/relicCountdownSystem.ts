@@ -6,11 +6,14 @@
 
 import type { GameWorld } from '../pureHelpers';
 import type { RelicCountdownEntry } from '../countdownTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { relicCountdownOverridesCodec } from '../bridgeStateSerialize';
 
 export interface RelicCountdownSystemDeps {
   world: GameWorld;
   relicCountdowns: Map<number, RelicCountdownEntry>;
-  relicCountdownOverrides: Map<number, number>;
+  // Phase 2D — relicCountdownOverrides flows through accessor.
+  accessor: BridgeStateAccessor;
   currentRelicHoldingOwner: () => number | null;
   defaultRelicCountdownTicks: number;
   isMatchRunning: () => boolean;
@@ -20,7 +23,7 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
   const {
     world,
     relicCountdowns,
-    relicCountdownOverrides,
+    accessor,
     currentRelicHoldingOwner,
     defaultRelicCountdownTicks,
     isMatchRunning,
@@ -41,7 +44,7 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
       }
       let entry = relicCountdowns.get(holdingOwner);
       if (!entry) {
-        const totalTicks = relicCountdownOverrides.get(holdingOwner) ?? defaultRelicCountdownTicks;
+        const totalTicks = accessor.get(relicCountdownOverridesCodec).get(holdingOwner) ?? defaultRelicCountdownTicks;
         entry = { remainingTicks: totalTicks, totalTicks, lastCompletedTick: null };
         relicCountdowns.set(holdingOwner, entry);
       }

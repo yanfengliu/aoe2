@@ -35,7 +35,9 @@ import { updateSheepOwnership } from './visibility';
 import {
   playerAgesCodec,
   playerCivilizationsCodec,
+  relicCountdownOverridesCodec,
   villagerOrdinalsCodec,
+  wonderCountdownOverridesCodec,
 } from './bridgeStateSerialize';
 import type { DifficultyLevel } from '../ai';
 import type {
@@ -119,8 +121,6 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     researchedTechnologies,
     playerResources,
     population,
-    wonderCountdownOverrides,
-    relicCountdownOverrides,
   } = state;
 
   // Phase 2D — batch the per-player Map writes into single mutate calls
@@ -155,16 +155,12 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     // Phase 2D — villagerOrdinals routes through the accessor.
     accessor.mutate(villagerOrdinalsCodec, (m) => m.set(start.owner, 0));
     if (typeof start.wonderCountdownOverrideTicks === 'number') {
-      wonderCountdownOverrides.set(
-        start.owner,
-        Math.max(1, start.wonderCountdownOverrideTicks),
-      );
+      const ticks = Math.max(1, start.wonderCountdownOverrideTicks);
+      accessor.mutate(wonderCountdownOverridesCodec, (m) => m.set(start.owner, ticks));
     }
     if (typeof start.relicCountdownOverrideTicks === 'number') {
-      relicCountdownOverrides.set(
-        start.owner,
-        Math.max(1, start.relicCountdownOverrideTicks),
-      );
+      const ticks = Math.max(1, start.relicCountdownOverrideTicks);
+      accessor.mutate(relicCountdownOverridesCodec, (m) => m.set(start.owner, ticks));
     }
     if (start.owner !== humanPlayerId && !start.disableAi) {
       ensureAiState(start.owner, start.difficulty ?? defaultDifficulty);

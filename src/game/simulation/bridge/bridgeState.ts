@@ -68,9 +68,9 @@ export interface BridgeState {
   relicsInMonastery: Map<number, number>;
   trebuchetPackStates: Map<number, TrebuchetPackState>;
   wonderCountdowns: Map<number, WonderCountdownEntry>;
-  wonderCountdownOverrides: Map<number, number>;
+  // Phase 2D: `wonderCountdownOverrides` / `relicCountdownOverrides`
+  // migrated to `world.state.aoe2.*` via accessor + codec.
   relicCountdowns: Map<number, RelicCountdownEntry>;
-  relicCountdownOverrides: Map<number, number>;
   playerScoreCounters: Map<number, PlayerScoreCounters>;
   lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
   garrisonedByBuilding: Map<number, number[]>;
@@ -132,9 +132,7 @@ export function createBridgeState(): BridgeState {
     relicsInMonastery: new Map(),
     trebuchetPackStates: new Map(),
     wonderCountdowns: new Map(),
-    wonderCountdownOverrides: new Map(),
     relicCountdowns: new Map(),
-    relicCountdownOverrides: new Map(),
     playerScoreCounters: new Map(),
     lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),

@@ -33,7 +33,10 @@ import { resourceTint } from '../prototypeEconomyRules';
 import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { villagerOrdinalsCodec } from './bridgeStateSerialize';
+import {
+  villagerOrdinalsCodec,
+  wonderCountdownOverridesCodec,
+} from './bridgeStateSerialize';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -118,7 +121,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     constructionStates,
     townCenterRefs,
     wonderCountdowns,
-    wonderCountdownOverrides,
     wildlifeStates,
     monksByOwner,
   } = state;
@@ -205,7 +207,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     counters.buildingsProduced += 1;
     if (buildingType === 'wonder') {
       counters.wonderCompleted = true;
-      const totalTicks = wonderCountdownOverrides.get(owner) ?? wonderCountdownTicks;
+      const totalTicks = accessor.get(wonderCountdownOverridesCodec).get(owner) ?? wonderCountdownTicks;
       wonderCountdowns.set(buildingId, {
         remainingTicks: totalTicks,
         totalTicks,
