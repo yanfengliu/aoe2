@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   selectOwnedBuildingDirect,
-  selectOwnedUnitDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
@@ -19,13 +18,6 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
   return bridge
     .getEconomyState()
     .units.find((unit) => unit.owner === owner && unit.unitType === unitType);
-}
-
-function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {
-  if (!bridge.selectEntityAtCell(x, y)) {
-    return null;
-  }
-  return bridge.getSelectionState().health?.current ?? null;
 }
 
 describe('Imperial-Age Archery Range upgrades', () => {

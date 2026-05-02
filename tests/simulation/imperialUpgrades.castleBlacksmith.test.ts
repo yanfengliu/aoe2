@@ -21,12 +21,6 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
     .units.find((unit) => unit.owner === owner && unit.unitType === unitType);
 }
 
-function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | null {
-  if (!bridge.selectEntityAtCell(x, y)) {
-    return null;
-  }
-  return bridge.getSelectionState().health?.current ?? null;
-}
 
 describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
   it('exposes elite-longbowman-upgrade at the Castle for a Britons owner in Imperial Age', () => {
