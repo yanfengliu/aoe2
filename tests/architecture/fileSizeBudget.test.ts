@@ -36,7 +36,6 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   'src/game/simulation/bridge/wireBridgeOps.ts': 605,
   'src/game/simulation/bridge/unitCommandOps.ts': 588,
   'tests/browser/game-selection.spec.ts': 572,
-  'src/game/simulation/mapGeneration/applyStandardPlayerOpening.ts': 545,
   'tests/browser/game-combat-and-meta.spec.ts': 543,
   'tests/browser/game-simulation-and-exploration.spec.ts': 522,
   'tests/browser/game-hud-and-camera.spec.ts': 506,
