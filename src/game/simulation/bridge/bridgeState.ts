@@ -104,7 +104,8 @@ export interface BridgeState {
   buildingCombatStates: Map<number, BuildingCombatState>;
   wildlifeStates: Map<number, WildlifeState>;
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
-  gathererDropOffStuckSinceTick: Map<number, number>;
+  // Phase 2D: `gathererDropOffStuckSinceTick` migrated to
+  // `world.state.aoe2.gathererDropOffStuckSinceTick` via accessor + codec.
   // Phase 1A: AI intention queue (DESIGN v17 §6.5). AI-decision systems push
   // to this during their `execute` phase; the main game loop drains it via
   // `dispatcher.drainPendingCommands(world, queue)` BETWEEN ticks. Cleared
@@ -151,7 +152,6 @@ export function createBridgeState(): BridgeState {
     buildingCombatStates: new Map(),
     wildlifeStates: new Map(),
     inFlightTechByOwner: new Map(),
-    gathererDropOffStuckSinceTick: new Map(),
     pendingCommands: createPendingCommandsQueue(),
   };
 }

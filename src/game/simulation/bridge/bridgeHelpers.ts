@@ -20,6 +20,7 @@ import {
 } from '../ai';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
+import { gathererDropOffStuckSinceTickCodec } from './bridgeStateSerialize';
 import { findSafeSpawnWithEgress } from '../spawn';
 import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
 
@@ -224,9 +225,10 @@ export function createSpawnFinders(deps: {
 export function createGathererOrderOps(deps: {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D — gathererDropOffStuckSinceTick now flows through accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
 }): { clearGathererOrder: (id: number) => void } {
-  const { world, state } = deps;
-  const { gathererDropOffStuckSinceTick } = state;
+  const { world, accessor } = deps;
   function clearGathererOrder(id: number): void {
     const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
     if (!gatherer) {
@@ -237,7 +239,7 @@ export function createGathererOrderOps(deps: {
     gatherer.targetResourceId = null;
     gatherer.dropOffBuildingId = null;
     gatherer.gatherProgressTicks = 0;
-    gathererDropOffStuckSinceTick.delete(id);
+    accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
   }
   return { clearGathererOrder };
 }

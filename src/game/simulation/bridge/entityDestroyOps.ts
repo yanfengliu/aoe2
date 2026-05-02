@@ -12,12 +12,16 @@ import type {
 } from '../types';
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
+import { gathererDropOffStuckSinceTickCodec } from './bridgeStateSerialize';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
 export interface EntityDestroyOpsDeps {
   world: GameWorld;
   mapWidth: number;
   mapHeight: number;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — gathererDropOffStuckSinceTick flows through accessor.
+  accessor: BridgeStateAccessor;
   removeSelectedEntity: (id: number) => void;
   clearUnitCommand: (id: number) => void;
   getApproachCellsForFootprint: (
@@ -51,6 +55,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     mapWidth,
     mapHeight,
     state,
+    accessor,
     removeSelectedEntity,
     clearUnitCommand,
     getApproachCellsForFootprint,
@@ -72,7 +77,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     monkHealCounters,
     monksByOwner,
     trebuchetPackStates,
-    gathererDropOffStuckSinceTick,
     townCenterRefs,
     productionQueues,
     rallyPoints,
@@ -127,7 +131,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     conversionState.delete(id);
     monkHealCounters.delete(id);
     trebuchetPackStates.delete(id);
-    gathererDropOffStuckSinceTick.delete(id);
+    accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }

@@ -196,6 +196,7 @@ export function registerBridgeSystems(
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
+    accessor,
     state,
     currentEntityId,
     findBuildPlacementNear,

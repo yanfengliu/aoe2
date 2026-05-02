@@ -13,7 +13,10 @@ import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { villagerOrdinalsCodec } from './bridgeStateSerialize';
+import {
+  gathererDropOffStuckSinceTickCodec,
+  villagerOrdinalsCodec,
+} from './bridgeStateSerialize';
 
 export interface SaveLoadHydrationDeps {
   world: GameWorld;
@@ -63,7 +66,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     wildlifeStates,
     aiStates,
     unitCommands,
-    gathererDropOffStuckSinceTick,
     monksByOwner,
   } = state;
 
@@ -298,9 +300,13 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   // Iter-4 V4-7: drop-off retry throttle survives save+load. Older blobs
   // (pre-V4-7) omit the field; treat absence as "no throttled gatherers".
   if (blob.gathererDropOffStuckSinceTick) {
-    for (const [id, tick] of blob.gathererDropOffStuckSinceTick) {
-      gathererDropOffStuckSinceTick.set(id, tick);
-    }
+    accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => {
+      if (blob.gathererDropOffStuckSinceTick) {
+        for (const [id, tick] of blob.gathererDropOffStuckSinceTick) {
+          m.set(id, tick);
+        }
+      }
+    });
   }
 
   // V5-1: rebuild monksByOwner from the loaded world. The side map is
@@ -354,5 +360,8 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(garrisonedUnitVisionSources);
   pruneOrphanEntityKeys(garrisonedByBuilding);
   pruneOrphanEntityKeys(garrisonedUnitToBuilding);
-  pruneOrphanEntityKeys(gathererDropOffStuckSinceTick);
+  // Phase 2D — prune via accessor.
+  accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) =>
+    pruneOrphanEntityKeys(m),
+  );
 }

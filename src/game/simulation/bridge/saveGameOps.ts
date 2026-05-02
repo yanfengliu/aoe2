@@ -19,7 +19,10 @@ import { SAVE_SCHEMA_VERSION } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { villagerOrdinalsCodec } from './bridgeStateSerialize';
+import {
+  gathererDropOffStuckSinceTickCodec,
+  villagerOrdinalsCodec,
+} from './bridgeStateSerialize';
 
 interface MatchStateLike {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
@@ -92,7 +95,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     buildingCombatStates,
     wildlifeStates,
     aiStates,
-    gathererDropOffStuckSinceTick,
   } = state;
 
   function saveGame(): SaveBlob {
@@ -293,7 +295,10 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
               : null,
           },
         ]),
-        gathererDropOffStuckSinceTick: [...gathererDropOffStuckSinceTick.entries()],
+        // Phase 2D — gathererDropOffStuckSinceTick reads via accessor.
+        gathererDropOffStuckSinceTick: [
+          ...accessor.get(gathererDropOffStuckSinceTickCodec).entries(),
+        ],
       },
     };
   }

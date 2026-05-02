@@ -23,6 +23,7 @@ import {
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
 import { gatherMultiplier } from '../../ai';
+import { gathererDropOffStuckSinceTickCodec } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitCommand } from './systemTypes';
 
@@ -42,7 +43,12 @@ export interface VillagerEconomySystemDeps {
   world: GameWorld;
   unitCommands: Map<number, UnitCommand>;
   sheepMoveOrders: Map<number, Position>;
-  gathererDropOffStuckSinceTick: Map<number, number>;
+  // Phase 2D — gathererDropOffStuckSinceTick now flows through the
+  // accessor + codec. Hot-loop pattern: get the cached Map once at the
+  // start of execute(), mutate directly, mark dirty once at the end.
+  // The mutate-per-call alternative would add a Set.add per gather
+  // step which doesn't scale to dozens of villagers @ 10 TPS.
+  accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   playerResources: Map<number, PlayerResources>;
   aiStates: Map<number, AiStateLike>;
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
@@ -84,7 +90,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     world,
     unitCommands,
     sheepMoveOrders,
-    gathererDropOffStuckSinceTick,
+    accessor,
     playerResources,
     aiStates,
     shouldMaintainGatheringOrder,
@@ -166,6 +172,27 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute(activeWorld) {
+      // Phase 2D — get the cached Map once at the start; mutate directly
+      // in the gather loop; mark dirty once at the end. This avoids
+      // accessor.mutate's Set.add per gather step (~20 villagers @ 10 TPS
+      // = 200 mutations/sec; the set-once pattern collapses to 1).
+      //
+      // The helpers ALSO short-circuit on no-op deletes (Map.delete returns
+      // false when the key wasn't present). Without this gate, every
+      // villager's regular drop-off step would mark the slot dirty even
+      // though the map content didn't change, forcing unnecessary
+      // flush+setState every tick. Both reviewers (Gemini + Claude impl-21)
+      // converged on this finding.
+      const stuckMap = accessor.get(gathererDropOffStuckSinceTickCodec);
+      let stuckMapDirty = false;
+      function clearStuck(id: number): void {
+        if (stuckMap.delete(id)) stuckMapDirty = true;
+      }
+      function setStuck(id: number, tick: number): void {
+        stuckMap.set(id, tick);
+        stuckMapDirty = true;
+      }
+
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
         if (unitCommands.has(id)) {
           continue;
@@ -286,11 +313,11 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             gatherer.task = 'idle';
             gatherer.carriedAmount = 0;
             gatherer.carriedResource = null;
-            gathererDropOffStuckSinceTick.delete(id);
+            clearStuck(id);
             continue;
           }
 
-          const stuckSince = gathererDropOffStuckSinceTick.get(id);
+          const stuckSince = stuckMap.get(id);
           const shouldRetry = stuckSince === undefined
             || (activeWorld.tick - stuckSince) >= GATHER_DROPOFF_RETRY_INTERVAL;
           if (!shouldRetry) {
@@ -309,7 +336,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
 
           if (!dropOffPlan) {
-            gathererDropOffStuckSinceTick.set(id, activeWorld.tick);
+            setStuck(id, activeWorld.tick);
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
             const aiState = aiStates.get(unit.owner);
@@ -324,9 +351,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             gatherer.carriedResource = null;
             gatherer.targetResourceId = null;
             gatherer.gatherProgressTicks = 0;
-            gathererDropOffStuckSinceTick.delete(id);
+            clearStuck(id);
           } else {
-            gathererDropOffStuckSinceTick.delete(id);
+            clearStuck(id);
             moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
           }
         }
@@ -334,6 +361,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
           assignNearestResource(activeWorld, id, gatherer, unit.owner);
         }
+      }
+
+      // Phase 2D — mark the slot dirty once at end-of-tick if any
+      // gather-loop iteration touched the cached Map. The output-phase
+      // bridgeSnapshotSystem flushes via codec at end of tick.
+      if (stuckMapDirty) {
+        accessor.markDirty(gathererDropOffStuckSinceTickCodec);
       }
     },
   });

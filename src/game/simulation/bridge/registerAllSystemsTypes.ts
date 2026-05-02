@@ -39,6 +39,9 @@ export interface RegisterAllSystemsDeps {
   visibility: VisibilityMap;
   defaultRelicCountdownTicks: number;
   state: BridgeState;
+  // Phase 2D — accessor for migrated slots. Threaded into systems that
+  // mutate Tier-1 slots flowing through `world.state.aoe2.*`.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   // AI helper closures.
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => AgeType;

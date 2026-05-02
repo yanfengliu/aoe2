@@ -50,6 +50,9 @@ type CreateCombatState = (owner: number, unitType: UnitType) => CombatStateLike;
 export interface WirePostSeedDeps {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D — accessor for migrated slots (currently `villagerOrdinals`,
+  // `gathererDropOffStuckSinceTick`).
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   visibility: VisibilityMap;
   selection: { refs: EntityRef[]; focusCell: Position | null };
   placementMode: { current: BuildableBuildingType | null };
@@ -106,6 +109,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const {
     world,
     state,
+    accessor,
     visibility,
     selection,
     placementMode,
@@ -182,6 +186,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     state,
+    accessor,
     removeSelectedEntity,
     clearUnitCommand,
     getApproachCellsForFootprint,

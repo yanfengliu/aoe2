@@ -215,7 +215,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isCellPassableForSpawn,
     buildingFootprint,
   });
-  const { clearGathererOrder } = createGathererOrderOps({ world, state });
+  const { clearGathererOrder } = createGathererOrderOps({ world, state, accessor });
 
   if (!savedGame && scenario) {
     seedFreshScenario({
@@ -266,6 +266,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const postSeed = wirePostSeedOps({
     world,
     state,
+    accessor,
     visibility,
     selection,
     placementMode,
