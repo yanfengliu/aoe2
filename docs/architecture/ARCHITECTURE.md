@@ -19,20 +19,32 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       authoritative blocker/crowding contract), `selectionActivity.ts`
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
-      writes into).
+      writes into). Phase 1A added two more siblings: `commands.ts` (the
+      `GameCommands` type alias for the 15-command surface that drives
+      every gameplay-state mutation) and `dispatcher.ts` (the
+      `drainPendingCommands(world, queue)` between-step helper that
+      submits AI-decision intentions via `world.submitWithResult`).
       - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 
         Boot/orchestration tier:
         - `createWorld.ts` — entry point invoked by the facade. Builds (or deserializes) the civ-engine `World`, instantiates `BridgeState`, builds tile grids, then calls `wireBridgeOps` and `assembleBridgeApi`.
-        - `wireBridgeOps.ts` — pre-seed factory wiring (entity-create/destroy ops, target finding, technology, match-end, etc.) and the call into `seedFreshScenario` (skipped on save-load).
+        - `wireBridgeOps.ts` — pre-seed factory wiring (entity-create/destroy ops, target finding, technology, match-end, etc.) and the call into `seedFreshScenario` (skipped on save-load). Constructs the Phase 2A `BridgeStateAccessor` + `VisibilityCell` near the top so all downstream factories can consume them, and the Phase 2E `visibilityFingerprints` Map shared between the bootstrap call and the per-tick visibilitySystem.
         - `wirePostSeedOps.ts` — post-seed factory wiring (visibility queries, selection input, training/market, monk tasks, AI decision, unit command).
-        - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems` and creates the post-register input ops (placement, save, economy state, human input).
-        - `registerAllSystems.ts` — bundles all 18 ECS system registrations.
+        - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems`; calls the Phase 2C `bootstrapFlush` that populates the three Tier-3 slots once at construction; calls `registerOutputTail` so `tier3SyncSystem` + `bridgeSnapshotSystem` run at the end of every output phase; and creates the post-register input ops (placement, save, economy state, human input).
+        - `registerAllSystems.ts` — bundles all 18 ECS system registrations + the 4 Tier-1 codec accessors threaded through them.
+        - `bootstrapFlush.ts` — once-at-construction writer for `aoe2.bridgeMeta` / `aoe2.matchState` / `aoe2.visibility` so snapshots taken before tick 1 are complete.
         - `assembleBridgeApi.ts` — composes the `SimulationBridge` public surface from the ops + state.
-        - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts` — fresh-scenario seeding and save-blob hydration (separated so the facade can pick the right path).
+        - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts` — fresh-scenario seeding and save-blob hydration (separated so the facade can pick the right path). Hydrate runs the cross-ref garrison invariant FIRST, then key-side `pruneOrphanEntityKeys`, then value-side dead-id pruning for entity-id-typed values (Gemini full-review iter-1 R2-G1).
 
         State + types tier:
-        - `bridgeState.ts` — single `createBridgeState()` factory that owns every side map (`unitCommands`, `monkTasks`, `garrisonedByBuilding`, `productionQueues`, `combatStates`, `aiStates`, `gathererDropOffStuckSinceTick`, etc.).
+        - `bridgeState.ts` — single `createBridgeState()` factory that owns every side map. As Phase 2D progresses, each migrated slot drops from this struct and lives in `world.state.aoe2.<slot>` instead, accessed via `BridgeStateAccessor.mutate(codec, ...)`.
+        - `bridgeStateSerialize.ts` — 35 Tier-1 `SlotCodec<TNative, TJson>` pairs (`flatMapCodec`, `mapOfSetCodec`, `mapOfMapCodec` factories) + `TIER_1_CODECS` registry + `SLOT_CODECS_BY_KEY` lookup + the three Tier-3 slot-name constants. Phase 2A.
+        - `bridgeStateAccessor.ts` — per-tick cache layer with lazy-bound world reference. Public surface: `get<T>(codec)` (lazy deserialize from `world.state` + decoupled clone), `mutate(codec, fn)` (read-modify-write + automatic markDirty), `markDirty(codec)`, `flush()` (atomic — pre-pass throws on unknown slots OR uncached dirty marks before any write), `reset()` (post-load cache invalidation). Phase 2A + iter-1 R2 atomicity.
+        - `visibilityCell.ts` — wraps `VisibilityMap` with a dirty bit so `tier3SyncSystem` skips the visibility re-publish when no source moved. `markDirty()` is called by `syncVisibilitySources` only when an actual fingerprint change happens (Phase 2E).
+        - `tier3SyncSystem.ts` — output-phase system that writes `aoe2.visibility` (gated by cell dirty bit) + `aoe2.matchState` (unconditional, small/flat). Exports `flushTier3State` for save-time use (full-review iter-1 R2-C2).
+        - `bridgeSnapshotSystem.ts` — output-phase system that calls `accessor.flush()`. Registered LAST in output phase via `registerOutputTail`.
+        - `registerOutputTail.ts` — registration site that bundles the two output-phase systems above with their ordering invariant pinned.
+        - `pendingCommandQuery.ts` — pure exhaustive-switch `hasPendingUnitCommand(queue, unitId)` predicate. autoAggression uses it to skip units aiSystem already pushed an intention for. Adding a new GameCommands variant without a case is a TS compile error here (full-review iter-1 R2-M1).
         - `sharedTypes.ts` — `UnitCommand` / `MonkTask` / `ConstructionState` / `TrebuchetPackState` shared between the facade and the helper-ops modules.
         - `bridgeConstants.ts`, `countdownTypes.ts`, `memoryTypes.ts`, `movementTypes.ts`, `createWorldResult.ts`, `wireBridgeOpsTypes.ts`, `registerAllSystemsTypes.ts`, `combatStateFactory.ts` — shared constants and type contracts.
         - `bridgeHelpers.ts` — small helper closures (`ensurePlayerScoreCounters`, `ensureAiState`, `inFlightTechSetFor`, `clearUnitCommand`, `setUnitCommand`, command-rejection queue).
