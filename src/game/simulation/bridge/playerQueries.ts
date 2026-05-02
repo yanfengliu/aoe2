@@ -39,7 +39,6 @@ export interface PlayerQueries {
   hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean;
   findOwnedBuilding(owner: number, buildingType: BuildingType): number | null;
   findOwnedUnit(owner: number, unitType: UnitType): number | null;
-  findAvailableVillager(owner: number): number | null;
   countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number;
   countOwnedUnits(owner: number, unitType: UnitType): number;
   countCompletedOwnedBuildings(
@@ -61,7 +60,6 @@ export interface PlayerQueries {
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   const { world, state, accessor } = deps;
   const {
-    unitCommands,
     productionQueues,
     constructionStates,
     researchedTechnologies,
@@ -89,16 +87,6 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
       }
     }
     return null;
-  }
-
-  function findAvailableVillager(owner: number): number | null {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (unit?.owner === owner && unit.unitType === 'villager' && !unitCommands.has(id)) {
-        return id;
-      }
-    }
-    return findOwnedUnit(owner, 'villager');
   }
 
   function countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number {
@@ -214,7 +202,6 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     hasTechnology,
     findOwnedBuilding,
     findOwnedUnit,
-    findAvailableVillager,
     countQueuedUnits,
     countOwnedUnits,
     countCompletedOwnedBuildings,

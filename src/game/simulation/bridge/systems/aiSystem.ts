@@ -73,7 +73,6 @@ export interface AiSystemDeps {
   getPlayerAge: (owner: number) => import('../../types').AgeType;
   villagerRebalance: (owner: number, targets: AiState['villagerTargets']) => void;
   findOwnedBuilding: (owner: number, buildingType: BuildingType) => number | null;
-  findAvailableVillager: (owner: number) => number | null;
   findOwnedUnit: (owner: number, unitType: UnitType) => number | null;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
@@ -150,7 +149,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     getPlayerAge,
     villagerRebalance,
     findOwnedBuilding,
-    findAvailableVillager,
     findOwnedUnit,
     ownedMilitaryUnitIds,
     findOwnedMilitaryUnits,
@@ -199,13 +197,19 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       // Build the lookups once per tick (O(N) where N = queue length;
       // typically <30 entries during AI macro).
       const pendingTrainsByBuilding = new Map<number, number>();
+      // Per-building research push count. Production queues mix train and
+      // research entries (`productionQueues[buildingId]` is a single list),
+      // so the queue-length cap that gates new pushes must include
+      // pending research pushes alongside pending trains. Without this,
+      // a TC with one queued villager could accept (a) age-up research
+      // push and (b) another villager push in the same tick, producing
+      // an actual queue of length 3 against the AI's intended cap of 2.
+      const pendingResearchByBuilding = new Map<number, number>();
       const pendingResearchKeys = new Set<string>(); // `${owner}:${tech}`
       const pendingBuildsByOwner = new Map<number, number>();
       // Type-guarded extraction. cmd.data is typed as Record<string, unknown>
-      // at this layer (see RegisterAllSystemsDeps.pendingCommands). Push sites
-      // in wireBridgeOps.ts always produce well-formed payloads, but a
-      // malformed entry should be ignored here rather than corrupting the
-      // gating maps with NaN / undefined keys.
+      // at this layer; push sites always produce well-formed payloads, but a
+      // malformed entry should be ignored rather than corrupt the gating maps.
       for (const cmd of pendingCommands) {
         if (cmd.type === 'queue.train') {
           const buildingId = cmd.data.buildingId;
@@ -218,6 +222,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           const buildingId = cmd.data.buildingId;
           const tech = cmd.data.technologyType;
           if (typeof buildingId !== 'number' || typeof tech !== 'string') continue;
+          pendingResearchByBuilding.set(
+            buildingId,
+            (pendingResearchByBuilding.get(buildingId) ?? 0) + 1,
+          );
           const building = activeWorld.getComponent<BuildingComponent>(
             buildingId,
             'building',
@@ -321,6 +329,46 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             ownerBuildingsByType.set(building.buildingType, [id]);
           }
         }
+
+        // Per-tick claimed-villagers tracker. Post-1C, building.placeConfirm
+        // intentions don't immediately update unitCommands — the handler
+        // runs at the start of next tick. So a single AI decision tick
+        // that pushes both watch-tower AND wonder/nextBuild intentions can
+        // see the same villager as "available" in all three
+        // findAvailableVillagerForBuild calls, dispatching the same unit
+        // to two foundations. Handler 1 builds at site A; Handler 2
+        // overwrites the unitCommand and builds at site B; the foundation
+        // at A is stranded with no builder. Track claimed villagers
+        // locally and exclude them.
+        const claimedVillagers = new Set<number>();
+        const findAvailableVillagerForBuild = (
+          ownerId: number,
+        ): number | null => {
+          for (const id of activeWorld.query('unit')) {
+            const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+            if (
+              unit?.owner === ownerId
+              && unit.unitType === 'villager'
+              && !unitCommands.has(id)
+              && !claimedVillagers.has(id)
+            ) {
+              return id;
+            }
+          }
+          // Fallback: any owned villager not yet claimed (mirrors the
+          // owned-villager fallback that the original helper had).
+          for (const id of activeWorld.query('unit')) {
+            const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+            if (
+              unit?.owner === ownerId
+              && unit.unitType === 'villager'
+              && !claimedVillagers.has(id)
+            ) {
+              return id;
+            }
+          }
+          return null;
+        };
         const findIdleProducerLocal = (buildingType: BuildingType): number | null => {
           const candidates = ownerBuildingsByType.get(buildingType);
           if (!candidates) return null;
@@ -329,12 +377,15 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           for (const id of candidates) {
             const construction = constructionStates.get(id);
             if (construction && !construction.isComplete) continue;
-            // Phase 1C: include pending queue.train intentions for this
-            // building so the AI doesn't re-push every decision tick before
-            // the handler lands and over-spend the stockpile.
+            // Phase 1C: include pending queue.train AND queue.research
+            // intentions for this building. productionQueues mixes train
+            // and research entries in a single list, so the queue-length
+            // cap that gates new pushes must account for both.
             const persistedLength = productionQueues.get(id)?.length ?? 0;
-            const pendingLength = pendingTrainsByBuilding.get(id) ?? 0;
-            const queueLength = persistedLength + pendingLength;
+            const pendingTrainLength = pendingTrainsByBuilding.get(id) ?? 0;
+            const pendingResearchLength = pendingResearchByBuilding.get(id) ?? 0;
+            const queueLength =
+              persistedLength + pendingTrainLength + pendingResearchLength;
             if (queueLength >= 2) continue;
             if (
               queueLength < bestQueueLength
@@ -356,18 +407,13 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             && state.lastEnemySightingPosition
             && !findOwnedBuilding(owner, 'watch-tower')
           ) {
-            const builderId = findAvailableVillager(owner);
+            const builderId = findAvailableVillagerForBuild(owner);
             const anchor = pickWatchTowerPlacement(
               ownerTownCenterPosition,
               state.lastEnemySightingPosition,
             );
             // Phase 1C: gate on raw stockpile affordability (symmetry with
-            // wonder/nextBuild paths below). Watch tower is cheap so this
-            // rarely blocks, but keeping the check explicit makes the AI's
-            // behavior easier to reason about — the handler silent-no-op
-            // would still catch unaffordable pushes, but spending a free
-            // intention slot on something we KNOW we can't afford is wasted
-            // work in `pendingCommands`.
+            // wonder/nextBuild paths below).
             const watchTowerCost = constructionCost('watch-tower');
             if (
               builderId !== null
@@ -376,11 +422,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && canAfford(stockpile, watchTowerCost)
             ) {
               pushBuildingPlaceConfirmIntention(builderId, 'watch-tower', anchor);
+              claimedVillagers.add(builderId);
               // Phase 1C: watch tower push happens BEFORE the ongoingBuilds
               // calculation below, so we must update pendingBuildsByOwner so
-              // the calculation reflects this tick's push. Pre-1B counted via
-              // unitCommands (synchronously updated by startConstruction);
-              // post-1C handler runs next tick and unitCommands lags.
+              // the calculation reflects this tick's push.
               pendingBuildsByOwner.set(
                 owner,
                 (pendingBuildsByOwner.get(owner) ?? 0) + 1,
@@ -425,10 +470,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               aiResources,
             );
           if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
-            const builderId = findAvailableVillager(owner);
+            const builderId = findAvailableVillagerForBuild(owner);
             const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
-            // Phase 1C: gate on raw stockpile affordability — same-tick
-            // double-pushes are caught by pendingBuildsByOwner above.
             const wonderCost = constructionCost('wonder');
             if (
               builderId !== null
@@ -437,13 +480,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && canAfford(stockpile, wonderCost)
             ) {
               pushBuildingPlaceConfirmIntention(builderId, 'wonder', anchor);
+              claimedVillagers.add(builderId);
               ongoingBuilds += 1;
             }
           }
 
           const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked);
           if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
-            const builderId = findAvailableVillager(owner);
+            const builderId = findAvailableVillagerForBuild(owner);
             const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
             const buildCost = constructionCost(nextBuild);
             if (
@@ -453,6 +497,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && canAfford(stockpile, buildCost)
             ) {
               pushBuildingPlaceConfirmIntention(builderId, nextBuild, anchor);
+              claimedVillagers.add(builderId);
               ongoingBuilds += 1;
             }
           }
@@ -524,16 +569,11 @@ export function registerAiSystem(deps: AiSystemDeps): void {
                 return stockpile ? canAfford(stockpile, researchCost(tech)) : false;
               },
             );
-            // Phase 1C: skip if a queue.research for the same age tech is
-            // already pending (handler hasn't yet flipped inFlightTechByOwner).
-            if (
-              nextAge
-              && hasBuffer
-              && !pendingResearchKeys.has(`${owner}:${nextAge}`)
-            ) {
-              pushQueueResearchIntention(ownerTownCenterId, nextAge);
-            }
-
+            // Compute the TC's effective queue length BEFORE the age-up
+            // research gate. productionQueues mixes train and research
+            // entries in a single list; without this gate, a TC already
+            // at the cap of 2 would still accept age-up research and
+            // land at length 3 (handler has no queue-cap recheck).
             const tcPersistedQueueLength = productionQueues.get(ownerTownCenterId)?.length ?? 0;
             // The AI only ever pushes villagers to TC, so every pending TC
             // queue.train counts as a pending villager. If a future change
@@ -542,7 +582,31 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             // villagerCap gate would block real villager training prematurely
             // — narrow this lookup to villager-typed pending trains then.
             const tcPendingTrains = pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0;
-            const tcEffectiveQueueLength = tcPersistedQueueLength + tcPendingTrains;
+            let tcPendingResearch = pendingResearchByBuilding.get(ownerTownCenterId) ?? 0;
+            // Mixed-queue cap: trains + research share the productionQueue.
+            const tcEffectiveQueueLengthBeforeAgeUp =
+              tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
+
+            // Phase 1C: skip if a queue.research for the same age tech is
+            // already pending (handler hasn't yet flipped inFlightTechByOwner).
+            // Also gate on tcEffectiveQueueLength so we don't push age-up
+            // research onto a full queue.
+            if (
+              nextAge
+              && hasBuffer
+              && !pendingResearchKeys.has(`${owner}:${nextAge}`)
+              && tcEffectiveQueueLengthBeforeAgeUp < 2
+            ) {
+              pushQueueResearchIntention(ownerTownCenterId, nextAge);
+              tcPendingResearch += 1;
+              pendingResearchByBuilding.set(ownerTownCenterId, tcPendingResearch);
+              pendingResearchKeys.add(`${owner}:${nextAge}`);
+            }
+
+            // Recompute the queue length post-age-up push so the villager
+            // gate below sees the freshly-pushed age-up entry.
+            const tcEffectiveQueueLength =
+              tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
             const villagerCap =
               currentAge === 'dark-age' ? 6
               : currentAge === 'imperial-age' ? 50
@@ -584,6 +648,13 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               const cost = researchCost(tech);
               if (canAfford(stockpile, cost)) {
                 pushQueueResearchIntention(buildingId, tech);
+                // Update per-tick gating maps so subsequent same-tick
+                // findIdleProducerLocal calls see this slot consumed.
+                pendingResearchByBuilding.set(
+                  buildingId,
+                  (pendingResearchByBuilding.get(buildingId) ?? 0) + 1,
+                );
+                pendingResearchKeys.add(`${owner}:${tech}`);
                 break;
               }
             }

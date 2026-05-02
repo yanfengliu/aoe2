@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gates:
+    name: ${{ matrix.os }} — typecheck + lint + test + build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux is the canonical CI target. windows-latest catches the FU8
+        # vitest worker RPC quirks documented in vitest.config.ts.
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # vitest config FU8 explains why Node 20+ is required (birpc round-trip
+          # behavior). Match the local Windows toolchain.
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build content
+        run: npm run content:build
+
+      - name: Build
+        run: npm run build
+
+      - name: Vitest unit suite
+        run: npm test
+        env:
+          # Avoid color output in CI logs.
+          FORCE_COLOR: '0'
