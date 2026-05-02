@@ -41,6 +41,12 @@ export interface RegisterBridgeSystemsDeps {
   visibility: VisibilityMap;
   matchState: MatchState;
   placementMode: { current: BuildableBuildingType | null };
+  // Phase 2E: visibility cell + fingerprint cache for the syncVisibility-
+  // Sources bootstrap call AND the per-tick visibilitySystem. Both consume
+  // the same instances so the per-tick optimization sees the bootstrap-
+  // populated fingerprints and skips the redundant first-tick re-set.
+  visibilityCell: import('./visibilityCell').VisibilityCell;
+  visibilityFingerprints: Map<number, import('./visibility').VisibilitySourceFingerprint>;
   isMatchRunning: () => boolean;
   // Phase 2D — accessor threaded into createSaveGameOps for migrated slots.
   accessor: BridgeStateAccessor;
@@ -125,6 +131,8 @@ export function registerBridgeSystems(
     placementMode,
     isMatchRunning,
     accessor,
+    visibilityCell,
+    visibilityFingerprints,
     currentEntityId,
     getEntityRef,
     ensurePlayerScoreCounters,
@@ -197,6 +205,8 @@ export function registerBridgeSystems(
     visibility,
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     accessor,
+    visibilityCell,
+    visibilityFingerprints,
     state,
     currentEntityId,
     findBuildPlacementNear,
@@ -228,7 +238,13 @@ export function registerBridgeSystems(
     getOrCreateMemoryMap,
   });
 
-  syncVisibilitySources(world, visibility, trackedVisibilitySources);
+  syncVisibilitySources(
+    world,
+    visibility,
+    trackedVisibilitySources,
+    visibilityFingerprints,
+    visibilityCell,
+  );
 
   const {
     issueMoveCommand,

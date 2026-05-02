@@ -133,12 +133,36 @@ export function createProjector(
   };
 }
 
+// Per-source fingerprint — captures the (playerId, x, y, radius) we last wrote
+// to the visibility map for a given vision-source entity. Used by
+// syncVisibilitySources to skip the no-op setSource/markDirty path when
+// nothing about the source has changed since last tick. Visibility traversal
+// is the second-most expensive per-tick operation behind A* path resolution;
+// without this gate, every stationary unit would re-trigger the visibility
+// cell's dirty flag every tick, defeating the cell's whole purpose.
+//
+// playerId is a load-bearing field: monk conversion (monkTaskAppliers) and
+// sheep claim transfer (syncSheepVisionSource) both mutate visionSource.
+// playerId in place. Without playerId in the fingerprint, those flips would
+// silently skip the setSource path AND leave a stale source registered for
+// the previous owner — the new owner gets no vision from the converted unit
+// until it moves, and the old owner retains vision indefinitely.
+export interface VisibilitySourceFingerprint {
+  playerId: number;
+  x: number;
+  y: number;
+  radius: number;
+}
+
 export function syncVisibilitySources(
   world: World<GameEvents, GameCommands>,
   visibility: VisibilityMap,
   trackedSources: Map<number, number>,
+  fingerprints: Map<number, VisibilitySourceFingerprint>,
+  visibilityCell: import('./visibilityCell').VisibilityCell,
 ): void {
   const activeSources = new Map<number, number>();
+  let dirty = false;
 
   for (const id of world.query('position', 'visionSource')) {
     const position = world.getComponent<Position>(id, 'position');
@@ -147,12 +171,40 @@ export function syncVisibilitySources(
       continue;
     }
 
+    activeSources.set(id, source.playerId);
+    const prev = fingerprints.get(id);
+    if (
+      prev !== undefined
+      && prev.playerId === source.playerId
+      && prev.x === position.x
+      && prev.y === position.y
+      && prev.radius === source.radius
+    ) {
+      // No-op: source has the same fingerprint as last tick, so the
+      // visibility map already reflects it.
+      continue;
+    }
+
+    // Owner-flip path: VisibilityMap stores sources per (playerId, id), so
+    // a playerId change is logically a removal under the old key + a fresh
+    // insert under the new key. setSource alone would leak the old entry
+    // and leave the previous owner with permanent vision of the unit.
+    if (prev !== undefined && prev.playerId !== source.playerId) {
+      visibility.removeSource(prev.playerId, id);
+    }
+
     visibility.setSource(source.playerId, id, {
       x: position.x,
       y: position.y,
       radius: source.radius,
     });
-    activeSources.set(id, source.playerId);
+    fingerprints.set(id, {
+      playerId: source.playerId,
+      x: position.x,
+      y: position.y,
+      radius: source.radius,
+    });
+    dirty = true;
   }
 
   for (const [id, playerId] of trackedSources.entries()) {
@@ -161,10 +213,16 @@ export function syncVisibilitySources(
     }
     visibility.removeSource(playerId, id);
     trackedSources.delete(id);
+    fingerprints.delete(id);
+    dirty = true;
   }
 
   for (const [id, playerId] of activeSources.entries()) {
     trackedSources.set(id, playerId);
+  }
+
+  if (dirty) {
+    visibilityCell.markDirty();
   }
 
   visibility.update();

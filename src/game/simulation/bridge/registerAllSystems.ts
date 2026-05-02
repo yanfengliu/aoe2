@@ -33,6 +33,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     defaultRelicCountdownTicks,
     state,
     accessor,
+    visibilityCell,
+    visibilityFingerprints,
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
@@ -319,7 +321,13 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     markOutOfBandRenderChange,
   });
 
-  registerVisibilitySystem({ world, visibility, trackedVisibilitySources });
+  registerVisibilitySystem({
+    world,
+    visibility,
+    trackedVisibilitySources,
+    visibilityCell,
+    fingerprints: visibilityFingerprints,
+  });
 
   registerFogMemorySystem({
     world,

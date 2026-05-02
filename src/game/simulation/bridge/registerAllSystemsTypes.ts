@@ -42,6 +42,16 @@ export interface RegisterAllSystemsDeps {
   // Phase 2D — accessor for migrated slots. Threaded into systems that
   // mutate Tier-1 slots flowing through `world.state.aoe2.*`.
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
+  // Phase 2E — visibility cell shared with the per-tick visibilitySystem,
+  // which marks the cell dirty only when a vision source's fingerprint
+  // changed (or one was added/removed). Stationary-source ticks no longer
+  // re-publish visibility state at output phase.
+  visibilityCell: import('./visibilityCell').VisibilityCell;
+  // Phase 2E — fingerprint cache; same instance is used by the bootstrap
+  // syncVisibilitySources call (in registerBridgeSystems) and by the per-
+  // tick visibilitySystem so post-bootstrap tick-1 sees the prefilled
+  // fingerprints and stays steady-state when nothing moved.
+  visibilityFingerprints: Map<number, import('./visibility').VisibilitySourceFingerprint>;
   // AI helper closures.
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => AgeType;

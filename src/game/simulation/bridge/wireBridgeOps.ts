@@ -81,6 +81,19 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // bridgeHelpers can also consume it) and threaded in via deps.
   // visibility cell still constructed here since it's bridge-internal.
   const visibilityCell = new VisibilityCell(visibility);
+  // Phase 2E: closure-scoped fingerprint cache shared between the
+  // bootstrap syncVisibilitySources call (in registerBridgeSystems) and
+  // the per-tick visibilitySystem. The per-tick system uses these to
+  // detect "no source moved this tick" and skip the visibility cell's
+  // markDirty path; without sharing the bootstrap-populated cache, tick 1
+  // would redundantly re-setSource every entity. Save/load doesn't
+  // round-trip these — every bridge construction (fresh world or post-
+  // load) starts with an empty Map and the bootstrap call (which runs
+  // after world hydration, before tick 1) repopulates it from world.query.
+  const visibilityFingerprints = new Map<
+    number,
+    import('./visibility').VisibilitySourceFingerprint
+  >();
 
   const trebuchetStateOps = createTrebuchetStateOps(trebuchetPackStates);
 
@@ -365,6 +378,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     placementMode,
     isMatchRunning,
     accessor,
+    visibilityCell,
+    visibilityFingerprints,
     currentEntityId,
     getEntityRef,
     ensurePlayerScoreCounters,
