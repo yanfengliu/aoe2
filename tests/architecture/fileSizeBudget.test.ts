@@ -41,7 +41,6 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   'src/game/simulation/fixtures/ai.ts': 565,
   'src/game/simulation/mapGeneration/applyStandardPlayerOpening.ts': 545,
   'tests/browser/game-combat-and-meta.spec.ts': 543,
-  'tests/simulation/createSimulationBridge.bootstrap.test.ts': 535,
   'tests/browser/game-simulation-and-exploration.spec.ts': 522,
   'tests/browser/game-hud-and-camera.spec.ts': 506,
   'src/game/simulation/fixtures/combatMatchups/infantryAndCavalry.ts': 505,
