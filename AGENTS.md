@@ -67,20 +67,36 @@ Operational details for the multi-CLI review rule above.
 
   > "You are a senior code reviewer. Flag bugs, security issues, and performance concerns. Do NOT modify files or propose patches. Only return findings, explanations, and suggestions in plain text. Only point out an issue if it is real and important. If there is no issue, say so instead of nit-picking."
 
+- **Always upgrade Codex and Gemini CLIs before each review session** (defensive against silent model-name rejection and sandbox-policy regressions in older builds):
+  - `npm install -g @openai/codex@latest`
+  - `npm install -g @google/gemini-cli@latest`
+  - Verify versions afterwards (`codex --version`, `gemini --version`).
 - Codex:
   - `git diff [branch] | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh -c approval_policy=never --sandbox read-only --ephemeral --ignore-user-config <prompt>`
   - `--ignore-user-config` is mandatory on Windows where the PowerShell deny rule blocks codex's startup skill loader; verified working 2026-05-01.
-  - Requires Codex CLI ≥ 0.125.0 — older builds reject the model name with `requires a newer version of Codex`. Upgrade with `npm install -g @openai/codex@latest`. Codex caps reasoning effort at `xhigh` (no `max` value).
+  - Codex caps reasoning effort at `xhigh` (no `max` value).
   - On Windows, `--sandbox read-only` blocks PowerShell `Select-String` invocations the model sometimes attempts; the model recovers via direct file reads, so the review still completes.
 - Claude:
   - With diff piped via stdin: `git diff [branch] | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
   - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model "claude-opus-4-7[1m]" --effort max --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
   - The `[1m]` suffix selects the 1 M-token-context variant of Opus 4.7 (the default `opus` alias may resolve to the 200 K variant). Quote the model string so the shell doesn't glob-expand the brackets.
+- Gemini:
+  - `git diff [branch] | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text`
+  - `--approval-mode plan` is required: without it, gemini-3.x models attempt to call `run_shell_command` / `invoke_agent` and return zero output. Plan mode is read-only.
+  - Upgrade before every session: `npm install -g @google/gemini-cli@latest` (same rationale as Codex — silent model-rejection regressions in older builds).
 - **Keep model IDs current.** Bump these strings whenever a more capable variant ships (e.g. `claude-opus-5-0[1m]`, `gpt-5.6`). Verify with a one-line smoke test (`echo "ok" | <cli> ...`) before committing the bump — silent fallback to an older model is the failure mode to guard against.
 - For full-codebase reviews (no diff), drop the `git diff` pipe and let each CLI agentically explore the workspace from its CWD; keep the same model/effort flags.
 - **Diff reviews take ~5 minutes per CLI on a multi-hundred-line diff.** Run them in parallel with `run_in_background: true`. Wait via a single background `until` poller (`until [ -s codex.txt ] && [ -s claude.txt ]; do sleep 8; done`) so the harness's no-long-sleeps guard doesn't fire and you don't poll repeatedly.
-- **Reading codex review output efficiently.** Codex's `tmp/review-runs/.../codex.txt` echoes the entire piped stdin plus exec-sandbox chatter, then prints the actual review TWICE near the end. A naive Read burns 30K-100K tokens of repeated content.
-  - **Primary approach — make Codex bracket its review with markers.** Add the following sentence to every Codex review prompt: `Begin your review with the literal token "===BEGIN-REVIEW===" on its own line and end with "===END-REVIEW===" on its own line. Do not emit those markers anywhere else in your output.` Then extract with `awk '/===BEGIN-REVIEW===/{p=1; next} /===END-REVIEW===/{exit} p' codex.txt`.
+- **Reading codex review output efficiently.** Codex's `tmp/review-runs/.../codex.txt` echoes the entire piped stdin (including the prompt that quotes the BEGIN/END markers as instructions) plus exec-sandbox chatter, then prints the actual review TWICE near the end. A naive `awk` from the first marker captures the PROMPT (which contains the literal marker strings as instructions to Codex), not the review. This is the root cause of the "Codex unreachable" misdiagnosis observed in impls 16–24 of the v0.1.6 thread.
+  - **Primary approach — make Codex bracket its review with markers, AND extract from the LAST occurrence.** Add the following sentence to every Codex review prompt: `Begin your review with the literal token "===BEGIN-REVIEW===" on its own line and end with "===END-REVIEW===" on its own line. Do not emit those markers anywhere else in your output.`
+  - **Correct extraction** (only the actual review, NOT the prompt-echo):
+    ```bash
+    # Slice everything from the FIRST `^codex$` line onward — Codex prints
+    # this header right before its real response. Then grab the BEGIN/END
+    # block. This avoids matching the markers inside the prompt-echo.
+    sed -n '/^codex$/,$p' codex.txt | awk '/===BEGIN-REVIEW===/{p=1; next} /===END-REVIEW===/{exit} p'
+    ```
+  - **Wrong extraction (the bug):** `awk '/===BEGIN-REVIEW===/{p=1; next} /===END-REVIEW===/{exit} p' codex.txt` grabs the FIRST pair, which is the literal markers in the prompt-echo. Every review using this extraction silently lost Codex's actual findings.
   - **Fallback when markers are missing**: `wc -l codex.txt`, then `Read` with `offset = lines - 250`. Or `sed -n '/<\/stdin>/,$p' codex.txt | head -300`.
   - Claude output is clean — markers optional there.
 - **If a CLI is unreachable** (quota exhaustion, model name rejected by harness), proceed with the remaining reviewer and note the unreachable CLI in the devlog. Convergence is the signal to stop iterating; one reviewer is acceptable for a single iteration when the other is unreachable, but always retry the unreachable CLI on the next iteration.

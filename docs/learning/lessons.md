@@ -16,6 +16,28 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Codex review extraction must skip the prompt-echo — 2026-05-02
+
+| Field | Value |
+|---|---|
+| Surfaced by | User-driven post-mortem after I claimed "Codex unreachable" across 8 multi-CLI reviews (impls 16–24 of `docs/threads/current/replay-scrubber/`). User: "Did all your code and docs get reviewed?" → "Then you can't claim that upgrading codex was the fix" |
+| Reviewer findings | n/a — process lesson |
+| Fix commit | (this commit) — AGENTS.md extraction snippet |
+| Test added | n/a — process lesson |
+| Behavior delta | Pre-fix: across impls 16–24, 8 multi-CLI reviews recorded "Codex unreachable" in the synthesis. In reality, Codex emitted real HIGH/MAJOR findings (same-tick over-push bypass of queue cap; alias-mutation in shallow codecs; visibility staleness post-bootstrap) that I missed because the awk extraction matched the FIRST `===BEGIN-REVIEW===` marker in the file — which sits inside the prompt-echo, not the actual review. The shipped commits carry these unaddressed bugs. |
+
+Context: `codex exec --ephemeral` echoes its full stdin (prompt + diff + source-file reads) into the output before printing the actual review. When the prompt itself contains the literal string `===BEGIN-REVIEW===` (because we instruct Codex to bracket its review with that marker), `awk '/===BEGIN-REVIEW===/{p=1; next} /===END-REVIEW===/{exit} p'` matches the prompt's restatement of the marker as instructions, captures the prompt's body as if it were the review, and stops at the prompt's restatement of `===END-REVIEW===`. The actual review — Codex's real findings — sits at the END of the file, after a `^codex$` header line that delimits the prompt-echo from the response.
+
+Lesson: when extracting structured output from a tool that echoes its input (Codex `exec`, any tool with `--ephemeral`-style stdin transcription), anchor the extraction on a tool-emitted marker that does NOT appear in the prompt. For Codex specifically, slice from `^codex$` first, then awk the BEGIN/END pair from that suffix:
+
+```bash
+sed -n '/^codex$/,$p' codex.txt | awk '/===BEGIN-REVIEW===/{p=1; next} /===END-REVIEW===/{exit} p'
+```
+
+A successful smoke test (e.g. `codex exec` returning `ok`) does NOT validate the extraction logic — it only validates the tool. Always sanity-check by counting reviewer findings against expectations: if Gemini found 4 issues and Claude found 6, "Codex no findings" three commits in a row should raise a flag, not be assumed to mean Codex is unreachable. Convergence is signal; persistent divergence between reviewers is also signal.
+
+Pointer: [AGENTS.md](../../AGENTS.md) — Code review section's Codex extraction snippet; affected reviews under `docs/threads/current/replay-scrubber/2026-05-01/impl-{16..24}/REVIEW.md` (post-mortem note added).
+
 ## Reorder AI decisions when handler-FIFO order matters — 2026-05-01
 
 | Field | Value |
