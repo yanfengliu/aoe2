@@ -21,6 +21,7 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  monkHealCountersCodec,
   villagerOrdinalsCodec,
 } from './bridgeStateSerialize';
 
@@ -76,7 +77,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     monkTasks,
     conversionState,
     monkCarriedRelic,
-    monkHealCounters,
     relicsInMonastery,
     wonderCountdowns,
     wonderCountdownOverrides,
@@ -175,7 +175,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           { byOwner: state.byOwner, progress: state.progress },
         ]),
         monkCarriedRelic: [...monkCarriedRelic.entries()],
-        monkHealCounters: [...monkHealCounters.entries()],
+        monkHealCounters: [...accessor.get(monkHealCountersCodec).entries()],
         relicsInMonastery: [...relicsInMonastery.entries()],
         wonderCountdowns: [...wonderCountdowns.entries()].map(([id, entry]) => [
           id,

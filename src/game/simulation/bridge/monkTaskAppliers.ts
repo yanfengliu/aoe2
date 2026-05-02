@@ -15,10 +15,14 @@ import type {
 } from '../types';
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { monkHealCountersCodec } from './bridgeStateSerialize';
 
 export interface MonkTaskAppliersDeps {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D — accessor for migrated slots (monkHealCounters).
+  accessor: BridgeStateAccessor;
   clearUnitCommand: (id: number) => void;
   clearGathererOrder: (id: number) => void;
   markOutOfBandRenderChange: () => void;
@@ -57,6 +61,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   const {
     world,
     state,
+    accessor,
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,
@@ -73,7 +78,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   const {
     monkTasks,
     monkCarriedRelic,
-    monkHealCounters,
     monkConvertProcessedThisTick,
     conversionState,
     relicsInMonastery,
@@ -86,14 +90,19 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
     const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
     const targetCombat = combatStates.get(targetId);
+    const monkHealCounters = accessor.get(monkHealCountersCodec);
     if (!targetUnit || !targetCombat || targetUnit.owner !== monkUnit.owner) {
       clearMonkTask(monkId);
-      monkHealCounters.delete(monkId);
+      if (monkHealCounters.delete(monkId)) {
+        accessor.markDirty(monkHealCountersCodec);
+      }
       return;
     }
     if (targetCombat.currentHp >= targetCombat.maxHp) {
       clearMonkTask(monkId);
-      monkHealCounters.delete(monkId);
+      if (monkHealCounters.delete(monkId)) {
+        accessor.markDirty(monkHealCountersCodec);
+      }
       return;
     }
     const counter = (monkHealCounters.get(monkId) ?? 0) + 1;
@@ -107,6 +116,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     } else {
       monkHealCounters.set(monkId, counter);
     }
+    accessor.markDirty(monkHealCountersCodec);
   }
 
   function applyMonkConvert(

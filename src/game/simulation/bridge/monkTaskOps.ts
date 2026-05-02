@@ -33,6 +33,8 @@ import { createMonkTaskAppliers } from './monkTaskAppliers';
 export interface MonkTaskDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — accessor for migrated slots (monkHealCounters via appliers).
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   // Collaborators. Thin wrappers around bridge-local helpers; the factory
   // just calls them — the implementations still live in createWorld because
   // they touch other side maps this subsystem intentionally does not own.
@@ -104,6 +106,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   const {
     world,
     state,
+    accessor,
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,
@@ -193,6 +196,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   const appliers = createMonkTaskAppliers({
     world,
     state,
+    accessor,
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,

@@ -274,6 +274,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const monkOps = createMonkTaskOps({
     world,
     state,
+    accessor,
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,

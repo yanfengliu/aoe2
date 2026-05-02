@@ -12,7 +12,10 @@ import type {
 } from '../types';
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
-import { gathererDropOffStuckSinceTickCodec } from './bridgeStateSerialize';
+import {
+  gathererDropOffStuckSinceTickCodec,
+  monkHealCountersCodec,
+} from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
 export interface EntityDestroyOpsDeps {
@@ -74,7 +77,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     monkTasks,
     monkCarriedRelic,
     conversionState,
-    monkHealCounters,
     monksByOwner,
     trebuchetPackStates,
     townCenterRefs,
@@ -129,7 +131,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     monkTasks.delete(id);
     monkCarriedRelic.delete(id);
     conversionState.delete(id);
-    monkHealCounters.delete(id);
+    accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
     trebuchetPackStates.delete(id);
     accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
     world.destroyEntity(id);

@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  monkHealCountersCodec,
   villagerOrdinalsCodec,
 } from './bridgeStateSerialize';
 
@@ -46,7 +47,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     monkTasks,
     conversionState,
     monkCarriedRelic,
-    monkHealCounters,
     relicsInMonastery,
     wonderCountdowns,
     wonderCountdownOverrides,
@@ -141,9 +141,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [id, relicId] of blob.monkCarriedRelic) {
     monkCarriedRelic.set(id, relicId);
   }
-  for (const [id, count] of blob.monkHealCounters) {
-    monkHealCounters.set(id, count);
-  }
+  accessor.mutate(monkHealCountersCodec, (m) => {
+    for (const [id, count] of blob.monkHealCounters) {
+      m.set(id, count);
+    }
+  });
   for (const [id, count] of blob.relicsInMonastery) {
     relicsInMonastery.set(id, count);
   }
@@ -347,7 +349,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(monkTasks);
   pruneOrphanEntityKeys(conversionState);
   pruneOrphanEntityKeys(monkCarriedRelic);
-  pruneOrphanEntityKeys(monkHealCounters);
+  accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(relicsInMonastery);
   pruneOrphanEntityKeys(wonderCountdowns);
   pruneOrphanEntityKeys(trebuchetPackStates);

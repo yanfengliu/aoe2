@@ -87,7 +87,8 @@ export interface BridgeState {
   // typically convertible in canonical AoE2 but the contract holds either
   // way). Rebuilt from world.query('unit') on save-load hydration.
   monksByOwner: Map<number, Set<number>>;
-  monkHealCounters: Map<number, number>;
+  // Phase 2D: `monkHealCounters` migrated to `world.state.aoe2.monkHealCounters`
+  // via accessor + codec.
   // V4-14: tick-tagged per-target guard. Entry is the tick on which the
   // first Monk processed conversion against the target. The `applyMonkConvert`
   // consumer checks `=== activeWorld.tick` to enforce one progress increment
@@ -143,7 +144,6 @@ export function createBridgeState(): BridgeState {
     garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),
     monksByOwner: new Map(),
-    monkHealCounters: new Map(),
     monkConvertProcessedThisTick: new Map(),
     productionQueues: new Map(),
     constructionStates: new Map(),
