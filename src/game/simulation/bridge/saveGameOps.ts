@@ -18,6 +18,8 @@ import type { SaveBlob } from '../saveSchema';
 import { SAVE_SCHEMA_VERSION } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { villagerOrdinalsCodec } from './bridgeStateSerialize';
 
 interface MatchStateLike {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
@@ -34,6 +36,9 @@ export interface SaveGameDeps {
   getSeed: () => string;
   matchState: MatchStateLike;
   state: BridgeState;
+  // Phase 2D — slots that have moved to `world.state.aoe2.*` are read
+  // through the accessor at save time.
+  accessor: BridgeStateAccessor;
 }
 
 export interface SaveGameOps {
@@ -41,7 +46,18 @@ export interface SaveGameOps {
 }
 
 export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
-  const { world, visibility, getSeed, matchState, state } = deps;
+  const { world, visibility, getSeed, matchState, state, accessor } = deps;
+  // Phase 2D — guard against stale accessor cache at save time. The
+  // bridgeSnapshotSystem flushes the accessor on every output phase, so
+  // in normal between-tick saves the cache is already clean. But if a
+  // future caller invokes saveGame() mid-tick (or between input and
+  // update phases), Tier-1 mutations made this tick won't be in
+  // world.state yet. Phase 2F's schema-2 will rely solely on
+  // world.serialize, so a missed flush would lose data; flushing
+  // unconditionally here makes save-time consistency a local guarantee.
+  function flushBeforeSerialize(): void {
+    accessor.flush();
+  }
   const {
     trackedVisibilitySources,
     playerAges,
@@ -51,7 +67,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     marketExchangeRates,
     population,
     townCenterRefs,
-    villagerOrdinals,
     unitCommands,
     sheepMoveOrders,
     rallyPoints,
@@ -81,6 +96,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   } = state;
 
   function saveGame(): SaveBlob {
+    flushBeforeSerialize();
     return {
       schema: SAVE_SCHEMA_VERSION,
       seed: getSeed(),
@@ -111,7 +127,8 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           owner,
           { id: ref.id, generation: ref.generation },
         ]),
-        villagerOrdinals: [...villagerOrdinals.entries()],
+        // Phase 2D — villagerOrdinals reads via the accessor.
+        villagerOrdinals: [...accessor.get(villagerOrdinalsCodec).entries()],
         unitCommands: [...unitCommands.entries()].map(([id, cmd]) => [
           id,
           {

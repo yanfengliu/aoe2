@@ -55,7 +55,9 @@ export interface BridgeState {
   marketExchangeRates: { food: number; wood: number; stone: number };
   population: Map<number, PopulationState>;
   townCenterRefs: Map<number, EntityRef>;
-  villagerOrdinals: Map<number, number>;
+  // Phase 2D: `villagerOrdinals` migrated to `world.state.aoe2.villagerOrdinals`
+  // via the accessor + `villagerOrdinalsCodec`. Reads/writes go through
+  // `accessor.get(villagerOrdinalsCodec)` / `accessor.mutate(...)` instead.
   unitCommands: Map<number, UnitCommand>;
   movePathCache: Map<number, CachedMovePath>;
   sheepMoveOrders: Map<number, Position>;
@@ -120,7 +122,6 @@ export function createBridgeState(): BridgeState {
     marketExchangeRates: createInitialMarketRates(),
     population: new Map(),
     townCenterRefs: new Map(),
-    villagerOrdinals: new Map(),
     unitCommands: new Map(),
     movePathCache: new Map(),
     sheepMoveOrders: new Map(),

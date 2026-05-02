@@ -74,9 +74,10 @@ export function bootstrapFlush(deps: {
     persisted as unknown as Parameters<typeof world.setState>[1],
   );
 
-  // 4. Initial Tier-1 flush. Currently a no-op (Phase 2D's slot-by-slot
-  // migration is what populates the dirty set); kept here so when ops
-  // modules start using accessor.mutate(...) before the first tick, the
-  // initial values are reflected in the bootstrap snapshot.
+  // 4. Initial Tier-1 flush. Phase 2D migrations populate the dirty set
+  // during seed / hydrate (e.g., `villagerOrdinals` is set per-player by
+  // `seedPlayerStarts` and per-villager-spawn by `addUnitEntity`); the
+  // flush writes those mutations to `world.state.aoe2.*` so the
+  // bootstrap snapshot is complete.
   accessor.flush();
 }

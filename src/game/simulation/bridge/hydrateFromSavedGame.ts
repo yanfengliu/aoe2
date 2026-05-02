@@ -12,18 +12,23 @@ import type { SaveBlob } from '../saveSchema';
 import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { villagerOrdinalsCodec } from './bridgeStateSerialize';
 
 export interface SaveLoadHydrationDeps {
   world: GameWorld;
   savedGame: SaveBlob;
   matchState: MatchState;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — slots that have moved to `world.state.aoe2.*` are written
+  // through the accessor on hydrate.
+  accessor: BridgeStateAccessor;
   setUnitCommand: (id: number, command: UnitCommand) => void;
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
 }
 
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
-  const { world, savedGame, matchState, state, setUnitCommand, inFlightTechSetFor } = deps;
+  const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
   const {
     trackedVisibilitySources,
     playerAges,
@@ -33,7 +38,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     marketExchangeRates,
     population,
     townCenterRefs,
-    villagerOrdinals,
     sheepMoveOrders,
     rallyPoints,
     monkTasks,
@@ -95,9 +99,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     const ref = refFromSerialized(refData);
     if (ref) townCenterRefs.set(owner, ref);
   }
-  for (const [owner, ord] of blob.villagerOrdinals) {
-    villagerOrdinals.set(owner, ord);
-  }
+  // Phase 2D — villagerOrdinals routes through the accessor.
+  accessor.mutate(villagerOrdinalsCodec, (m) => {
+    for (const [owner, ord] of blob.villagerOrdinals) {
+      m.set(owner, ord);
+    }
+  });
   for (const [id, cmd] of blob.unitCommands) {
     const restored: UnitCommand = {
       type: cmd.type,

@@ -77,6 +77,15 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   } = deps;
   const { movePathCache, trebuchetPackStates, lastSeenStatic } = state;
 
+  // Phase 2D — bridge-state migration. The accessor is constructed
+  // early so ops modules that mutate migrated slots (currently:
+  // `villagerOrdinals` via entityCreateOps + scenarioSeedOps + saveGameOps
+  // + hydrateFromSavedGame) can receive it as a dep. The visibility cell
+  // wraps the existing visibility map; both feed `registerOutputTail`
+  // below for per-tick flush.
+  const accessor = new BridgeStateAccessor(() => world);
+  const visibilityCell = new VisibilityCell(visibility);
+
   const trebuchetStateOps = createTrebuchetStateOps(trebuchetPackStates);
 
   const {
@@ -155,6 +164,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     world,
     wonderCountdownTicks: WONDER_COUNTDOWN_TICKS,
     state,
+    accessor,
     ensurePlayerScoreCounters,
     createCombatState,
     syncSpawnedEntityOccupancy,
@@ -219,6 +229,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       standardPopulationCap: STANDARD_POPULATION_CAP,
       defaultDifficulty: DEFAULT_DIFFICULTY,
       state,
+      accessor,
       ensureAiState,
       addBuildingEntity,
       addUnitEntity,
@@ -236,6 +247,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       savedGame,
       matchState,
       state,
+      accessor,
       setUnitCommand,
       inFlightTechSetFor,
     });
@@ -355,6 +367,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     matchState,
     placementMode,
     isMatchRunning,
+    accessor,
     currentEntityId,
     getEntityRef,
     ensurePlayerScoreCounters,
@@ -533,17 +546,11 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     },
   });
 
-  // Phase 2C — bridge-state migration scaffolding integration. The accessor
-  // is constructed here (lazy world ref since `world` is the same instance
-  // used throughout `wireBridgeOps`); the visibility cell wraps the
-  // pre-existing visibility map. Neither is used by any ops module yet
-  // (Phase 2D's slot-by-slot migration job); the integration here just
-  // ensures the per-tick output-phase tail runs (so matchState stays
-  // current in `world.state.aoe2.matchState`) and that the bootstrap
-  // snapshot has populated `aoe2.bridgeMeta` / `aoe2.matchState` /
-  // `aoe2.visibility` slots before tick 1.
-  const accessor = new BridgeStateAccessor(() => world);
-  const visibilityCell = new VisibilityCell(visibility);
+  // Phase 2C/2D — bridge-state migration. Accessor and visibility cell
+  // were constructed at the TOP of wireBridgeOps (so ops modules consuming
+  // migrated slots like `villagerOrdinals` could receive them as deps).
+  // Now register the output tail + run bootstrapFlush to populate the
+  // Tier-3 slots before tick 1.
   registerOutputTail({ world, accessor, visibilityCell, matchState });
   bootstrapFlush({
     world,

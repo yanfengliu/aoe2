@@ -32,6 +32,8 @@ import {
 import { resourceTint } from '../prototypeEconomyRules';
 import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { villagerOrdinalsCodec } from './bridgeStateSerialize';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -55,6 +57,13 @@ export interface EntityCreateOpsDeps {
   world: GameWorld;
   wonderCountdownTicks: number;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — bridge-state migration. Slots that have been migrated to
+  // `world.state.aoe2.*` flow through the accessor; the corresponding
+  // `state.X` fields are gone from `BridgeState`. `villagerOrdinals` is
+  // the first slot to migrate (per-owner running counter for villager
+  // role assignment). Future per-slot migrations land in this same
+  // surface.
+  accessor: BridgeStateAccessor;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
   createCombatState: (owner: number, unitType: UnitType) => CombatState;
   syncSpawnedEntityOccupancy: (entity: number) => void;
@@ -93,6 +102,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     world,
     wonderCountdownTicks,
     state,
+    accessor,
     ensurePlayerScoreCounters,
     createCombatState,
     syncSpawnedEntityOccupancy,
@@ -104,7 +114,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     buildingHealthStates,
     buildingCombatStates,
     trebuchetPackStates,
-    villagerOrdinals,
     productionQueues,
     constructionStates,
     townCenterRefs,
@@ -159,8 +168,13 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     }
 
     if (unitType === 'villager') {
-      const ordinal = villagerOrdinals.get(owner) ?? 0;
-      villagerOrdinals.set(owner, ordinal + 1);
+      // Phase 2D — villagerOrdinals routes through accessor.mutate.
+      // Read+increment+write the per-owner counter via the cached Map; the
+      // mutation gets flushed to world.state.aoe2.villagerOrdinals at
+      // tick-end via bridgeSnapshotSystem.
+      const ordinals = accessor.get(villagerOrdinalsCodec);
+      const ordinal = ordinals.get(owner) ?? 0;
+      accessor.mutate(villagerOrdinalsCodec, (m) => m.set(owner, ordinal + 1));
       world.addComponent(entity, 'gatherer', {
         desiredResource: assignVillagerRole(owner, ordinal),
         hasExplicitGatherOrder: false,

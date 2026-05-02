@@ -19,6 +19,7 @@ import { createPlacementOps } from './placementOps';
 import { createSaveGameOps } from './saveGameOps';
 import { createEconomyStateOps } from './economyStateOps';
 import { registerAllSystems } from './registerAllSystems';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { PlayerQueries } from './playerQueries';
 import type { AiDecisionOps } from './aiDecisionOps';
 import type { TargetFindingOps } from './targetFindingOps';
@@ -41,6 +42,8 @@ export interface RegisterBridgeSystemsDeps {
   matchState: MatchState;
   placementMode: { current: BuildableBuildingType | null };
   isMatchRunning: () => boolean;
+  // Phase 2D — accessor threaded into createSaveGameOps for migrated slots.
+  accessor: BridgeStateAccessor;
   // Helpers from bridgeHelpers
   currentEntityId: RegisterAllSystemsArg['currentEntityId'];
   getEntityRef: (id: number) => EntityRef | null;
@@ -121,6 +124,7 @@ export function registerBridgeSystems(
     matchState,
     placementMode,
     isMatchRunning,
+    accessor,
     currentEntityId,
     getEntityRef,
     ensurePlayerScoreCounters,
@@ -276,6 +280,7 @@ export function registerBridgeSystems(
     getSeed,
     matchState,
     state,
+    accessor,
   });
 
   const { getEconomyState } = createEconomyStateOps({ world, state, getUnitTaskState });

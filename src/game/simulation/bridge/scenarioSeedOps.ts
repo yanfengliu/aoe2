@@ -32,6 +32,7 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { updateSheepOwnership } from './visibility';
+import { villagerOrdinalsCodec } from './bridgeStateSerialize';
 import type { DifficultyLevel } from '../ai';
 import type {
   PrototypeScenario,
@@ -50,6 +51,9 @@ export interface ScenarioSeedDeps {
   standardPopulationCap: number;
   defaultDifficulty: DifficultyLevel;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D — bridge-state migration. Slots that have moved to
+  // `world.state.aoe2.*` flow through the accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   // Helper closures.
   ensureAiState: (owner: number, difficulty: DifficultyLevel) => void;
   addBuildingEntity: (
@@ -104,6 +108,7 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     standardPopulationCap,
     defaultDifficulty,
     state,
+    accessor,
     ensureAiState,
   } = deps;
   const {
@@ -112,7 +117,6 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     researchedTechnologies,
     playerResources,
     population,
-    villagerOrdinals,
     wonderCountdownOverrides,
     relicCountdownOverrides,
   } = state;
@@ -135,7 +139,8 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       current: 0,
       cap: standardPopulationCap,
     });
-    villagerOrdinals.set(start.owner, 0);
+    // Phase 2D — villagerOrdinals routes through the accessor.
+    accessor.mutate(villagerOrdinalsCodec, (m) => m.set(start.owner, 0));
     if (typeof start.wonderCountdownOverrideTicks === 'number') {
       wonderCountdownOverrides.set(
         start.owner,
