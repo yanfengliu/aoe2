@@ -1,7 +1,12 @@
 import type { Position } from 'civ-engine';
 
 import { buildingFootprint, currentEntityId } from './pureHelpers';
-import type { UnitTaskState } from '../types';
+import type {
+  BuildableBuildingType,
+  ResearchableTechnologyType,
+  TrainableUnitType,
+  UnitTaskState,
+} from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
@@ -364,12 +369,45 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     monkOps,
     transformOps,
     matchEndOps,
-    startConstruction,
     findBuildPlacementNear,
-    enqueueResearch,
-    enqueueTraining,
     getTrainOptions,
     getResearchOptions,
+    // Phase 1C — AI intention pushers. Mirror `pushUnitAttackIntention` /
+    // `pushUnitMoveIntention` shape: write to `state.pendingCommands`;
+    // dispatcher submits between ticks; handler applies at start of next
+    // tick's processCommands.
+    pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => {
+      state.pendingCommands.push({
+        type: 'queue.train',
+        data: { buildingId, unitType },
+      });
+    },
+    pushQueueResearchIntention: (
+      buildingId: number,
+      technologyType: ResearchableTechnologyType,
+    ) => {
+      state.pendingCommands.push({
+        type: 'queue.research',
+        data: { buildingId, technologyType },
+      });
+    },
+    pushBuildingPlaceConfirmIntention: (
+      builderId: number,
+      buildingType: BuildableBuildingType,
+      anchor: Position,
+    ) => {
+      state.pendingCommands.push({
+        type: 'building.placeConfirm',
+        data: { builderId, buildingType, position: anchor },
+      });
+    },
+    // Pass the queue by reference. aiSystem captures this once at register
+    // time and reads it every tick to fold pending intentions into its
+    // gates. The dispatcher must mutate `state.pendingCommands` IN PLACE
+    // (push + length=0 to drain) — never reassign `state.pendingCommands = []`,
+    // or aiSystem's captured reference goes stale and the gates silently
+    // break.
+    pendingCommands: state.pendingCommands,
     issueUnitAttackCommand,
     // Phase 1B unit.attack (DESIGN v17 §6.5): AI-decision systems push to
     // `pendingCommands`. Returns `true` so callers can preserve `if (issued)`

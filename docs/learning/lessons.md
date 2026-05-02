@@ -16,6 +16,38 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Reorder AI decisions when handler-FIFO order matters — 2026-05-01
+
+| Field | Value |
+|---|---|
+| Surfaced by | `docs/threads/current/replay-scrubber/2026-05-01/impl-16/REVIEW.md`; debug trace at `docs/debugging/2026-05-01-phase-1c-ai-intention-refactor.md` |
+| Reviewer findings | n/a — surfaced during Phase 1C self-debug before review |
+| Fix commit | (Phase 1C commit on `main`) |
+| Test added | `tests/simulation/aiPlayer.test.ts > "preserves baseline barracks-rush behavior: AI builds a Barracks and trains Militia on ai-rush-fixture"` (existing test that broke under the naive refactor) |
+| Behavior delta | Pre-fix: post-1C AI never trained militia within 3000-tick budget on `ai-rush-fixture` because the +1-tick handler delay shifted barracks-completion out of alignment with the corner-case tick where pre-1B's villager gate accidentally blocked food spend. Post-fix: militia trains at tick ~480 (210 ticks training time after the militia push at tick 270 — same training pacing as pre-1B). |
+
+Context: when synchronous AI helpers (`enqueueTraining` / `enqueueResearch` / `startConstruction`) are replaced by intention pushes that handlers apply at next tick, the AI's decision logic loses the natural same-tick stockpile feedback. Pre-1B's barracks-rush relied on a single corner-case tick (barracks-complete + tcQueue full + food preserved) that the +1-tick handler delay erased.
+
+Lesson: when over-acceptance is intentional (B1/B2 contract: validator best-effort, handler authoritative re-check), priority must be encoded in the **push order** because the FIFO-ordered handler resolves contention in submission order. Don't try to recover synchronous semantics with reserved-resource gating — that fights the contract and creates new failure modes (the second push fails canAfford against the local reserve while the validator would have approved it). Instead, decide push priority once at design time: high-priority intentions (military for a barracks-rush AI) push first; subsequent intentions over-spend on paper but the handler picks the affordable subset and the surplus silently no-ops. If a second AI strategy ever exists (e.g., booming), condition the push order on plan kind rather than reverting to reservations.
+
+Pointer: [src/game/simulation/bridge/systems/aiSystem.ts](../../src/game/simulation/bridge/systems/aiSystem.ts) — `pickUnitMix` block ordered before villager training; KAD-0005 in [docs/architecture/decisions.md](../architecture/decisions.md).
+
+## Test-timeout margin under full-suite parallelism — 2026-05-01
+
+| Field | Value |
+|---|---|
+| Surfaced by | Phase 1C full-suite run; one timeout in `tests/simulation/createSimulationBridge.ageUp.test.ts > "can research Feudal Age, build an Archery Range, and train an Archer"` |
+| Reviewer findings | n/a — surfaced during validation gate, not review |
+| Fix commit | (Phase 1C commit on `main`) — bumped 3 ageUp test timeouts 40_000 → 60_000 |
+| Test added | n/a — process lesson; the existing test was the symptom |
+| Behavior delta | Pre-fix: the test passed in isolation (33 s) and pre-1C in the full suite (just barely fit under 40 s with parallel-worker contention). Post-1C: still 32 s in isolation, but full-suite parallelism on Windows pushed past the 40 s ceiling. Post-fix: 60 s ceiling absorbs the FU8 RPC-flake variance. |
+
+Context: vitest workers on Windows have a known birpc round-trip flake (FU8, documented in `vitest.config.ts`) that bites only under the cumulative load of a long-running full-suite run. A test that just barely fits its per-test timeout in isolation will flake the moment any change shifts cumulative duration even slightly.
+
+Lesson: a test that passes in isolation but fails under full-suite parallelism is not a flake to ignore — the per-test timeout has insufficient margin against the FU8 RPC-flake variance. Cross-check pre-change duration in isolation against the timeout ceiling; if the margin is less than ~20%, bump the timeout proactively (or optimize the per-tick cost) rather than committing and letting the next change push it over. The `vitest.config.ts` FU8 comment already acknowledges Windows-specific RPC flakes; per-test timeouts should be set assuming that load, not isolation timing.
+
+Pointer: [vitest.config.ts](../../vitest.config.ts) — FU8 explanation; [tests/simulation/createSimulationBridge.ageUp.test.ts](../../tests/simulation/createSimulationBridge.ageUp.test.ts) — bumped per-test timeouts.
+
 ## Villager gather state is on GathererComponent, not unitCommands - 2026-04-23
 Context: adding an "activity" label ("Gathering wood", "Returning food") to the selection panel, the first draft read `unitCommands.get(id)` expecting a `move` command carrying `targetEntityKind === 'resource'`.
 Lesson: `issueUnitGatherCommand` clears `unitCommands` and writes `GathererComponent.task` directly (`'to-resource' | 'gathering' | 'to-dropoff'`). `unitCommands` never holds gather state in normal play, and `UnitCommand.targetEntityKind === 'resource'` is only produced by attack commands against wildlife. Any sim-side feature that wants to know "what is this villager doing right now" must consult `GathererComponent` alongside (and often instead of) `unitCommands`.

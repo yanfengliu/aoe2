@@ -54,19 +54,32 @@ export interface RegisterAllSystemsDeps {
     townCenterPosition: Position,
     enemyPosition: Position,
   ) => Position | null;
-  startConstruction: (
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ) => boolean;
   findBuildPlacementNear: (nearby: Position, buildingType: BuildingComponent['buildingType']) => Position | null;
   countOwnedUnits: (owner: number, unitType: UnitType) => number;
   countQueuedUnits: (buildingId: number, unitType: TrainableUnitType) => number;
   canAdvanceToFeudalAge: (owner: number) => boolean;
   canAdvanceToCastleAge: (owner: number) => boolean;
   canAdvanceToImperialAge: (owner: number) => boolean;
-  enqueueResearch: (buildingId: number, technologyType: ResearchableTechnologyType) => boolean;
-  enqueueTraining: (buildingId: number, unitType: TrainableUnitType) => boolean;
+  // Phase 1C: AI-decision intention pushers. Mirror existing
+  // `pushUnitAttackIntention` / `pushUnitMoveIntention` semantics. The
+  // synchronous pre-1C helpers (startConstruction / enqueueResearch /
+  // enqueueTraining) are reachable to handlers via `wireBridgeOps` →
+  // `registerCommandHandlers` deps; no system inside `registerAllSystems`
+  // calls them anymore, so they aren't part of THIS interface.
+  pushQueueResearchIntention: (
+    buildingId: number,
+    technologyType: ResearchableTechnologyType,
+  ) => void;
+  pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
+  pushBuildingPlaceConfirmIntention: (
+    builderId: number,
+    buildingType: BuildableBuildingType,
+    anchor: Position,
+  ) => void;
+  // Read-only handle to the dispatcher's pending intention queue. aiSystem
+  // folds these counts into its gates so it doesn't re-push every decision
+  // tick before handlers land.
+  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
   getTrainOptions: (owner: number, buildingType: BuildingComponent['buildingType']) => TrainableUnitType[];
   getResearchOptions: (
     owner: number,

@@ -62,14 +62,11 @@ export interface RegisterBridgeSystemsDeps {
   transformOps: TransformOps;
   matchEndOps: MatchEndOps;
   // Direct values
-  startConstruction: (
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ) => boolean;
   findBuildPlacementNear: RegisterAllSystemsArg['findBuildPlacementNear'];
-  enqueueResearch: RegisterAllSystemsArg['enqueueResearch'];
-  enqueueTraining: RegisterAllSystemsArg['enqueueTraining'];
+  pushQueueResearchIntention: RegisterAllSystemsArg['pushQueueResearchIntention'];
+  pushQueueTrainIntention: RegisterAllSystemsArg['pushQueueTrainIntention'];
+  pushBuildingPlaceConfirmIntention: RegisterAllSystemsArg['pushBuildingPlaceConfirmIntention'];
+  pendingCommands: RegisterAllSystemsArg['pendingCommands'];
   getTrainOptions: RegisterAllSystemsArg['getTrainOptions'];
   getResearchOptions: RegisterAllSystemsArg['getResearchOptions'];
   issueUnitAttackCommand: RegisterAllSystemsArg['issueUnitAttackCommand'];
@@ -142,10 +139,11 @@ export function registerBridgeSystems(
     monkOps,
     transformOps,
     matchEndOps,
-    startConstruction,
     findBuildPlacementNear,
-    enqueueResearch,
-    enqueueTraining,
+    pushQueueResearchIntention,
+    pushQueueTrainIntention,
+    pushBuildingPlaceConfirmIntention,
+    pendingCommands,
     getTrainOptions,
     getResearchOptions,
     issueUnitAttackCommand,
@@ -196,10 +194,11 @@ export function registerBridgeSystems(
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     state,
     currentEntityId,
-    startConstruction,
     findBuildPlacementNear,
-    enqueueResearch,
-    enqueueTraining,
+    pushQueueResearchIntention,
+    pushQueueTrainIntention,
+    pushBuildingPlaceConfirmIntention,
+    pendingCommands,
     getTrainOptions,
     getResearchOptions,
     issueUnitAttackCommand,

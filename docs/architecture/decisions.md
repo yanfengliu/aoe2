@@ -65,3 +65,40 @@ of scope.
 Consequences:
 - No networking code, lobby flows, or replay systems.
 - Simulation does not need lockstep or peer-to-peer guarantees.
+
+---
+
+## KAD-0005 — AI-decision systems push intentions; handler does authoritative re-check (no per-tick reserved-resource gating)
+Date: 2026-05-01
+Status: Active
+
+aiSystem (and other AI-decision systems registered for the `update` phase) does
+not mutate `playerResources` / `productionQueues` / construction state directly.
+It pushes intention records to `state.pendingCommands`; the dispatcher submits
+each via `world.submitWithResult` between ticks; the matching handler runs at
+the start of the next tick's `processCommands`. Per DESIGN v17 §6.4 B1/B2, the
+validator is best-effort (sees pre-spend stockpile and approves up to the cap)
+and the handler does the authoritative spend with silent-no-op fallback when
+state has shifted. Same-tick over-acceptance (multiple pushes that collectively
+exceed budget) is intentional — the handler picks the affordable subset.
+
+The Phase 1C iteration that tried per-tick reserved-resource gating (a local
+copy of the stockpile decremented after each push) was abandoned because it
+fought against B1/B2: blocking pushes ahead-of-time meant a barracks-rush AI
+never trained militia (the villager push depleted the reserve copy before the
+militia gate ran). The structural fix is to push greedily based on the raw
+stockpile, gate only against duplicate intentions still in `pendingCommands`
+(via `pendingTrainsByBuilding` / `pendingResearchKeys` / `pendingBuildsByOwner`
+lookups), and order pushes so that priority items go FIRST and the FIFO-ordered
+handler resolves contention naturally.
+
+Consequences:
+- aiSystem reads `state.pendingCommands` to fold in-flight intentions into its
+  gates so it doesn't re-push every decision tick.
+- `pickUnitMix` runs BEFORE villager training in aiSystem so military pushes
+  precede villager pushes when the AI is barracks-rushing.
+- The `dispatcher.drainPendingCommands` contract is mutate-in-place (push +
+  `length = 0`); reassigning the queue array would break aiSystem's reference.
+- A future multi-strategy AI (boom vs rush) would condition the push order on
+  plan kind, but the single-strategy AI today gets hardcoded military-first
+  ordering.

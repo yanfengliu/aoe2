@@ -35,7 +35,12 @@ import {
   villagerTargetsForAge,
   type AiState,
 } from '../../ai';
-import { canAfford, researchCost, trainingCost } from '../../prototypeEconomyRules';
+import {
+  canAfford,
+  constructionCost,
+  researchCost,
+  trainingCost,
+} from '../../prototypeEconomyRules';
 import type { WildlifeState } from './systemTypes';
 
 type CivWorld = World<GameEvents, GameCommands>;
@@ -78,11 +83,16 @@ export interface AiSystemDeps {
     townCenterPosition: Position,
     enemyPosition: Position,
   ) => Position | null;
-  startConstruction: (
+  // Phase 1C — AI-decision intention push (DESIGN v17 §6.5/§6.6). The
+  // dispatcher's `drainPendingCommands` between ticks submits each via
+  // `world.submitWithResult`; the corresponding handler runs at the start
+  // of the NEXT tick's `processCommands`. Pre-1B `startConstruction` lives
+  // on as `startConstructionDirect` for the handler delegate path.
+  pushBuildingPlaceConfirmIntention: (
     builderId: number,
     buildingType: BuildableBuildingType,
     anchor: Position,
-  ) => boolean;
+  ) => void;
   findBuildPlacementNear: (
     nearby: Position,
     buildingType: BuildingType,
@@ -92,8 +102,20 @@ export interface AiSystemDeps {
   canAdvanceToFeudalAge: (owner: number) => boolean;
   canAdvanceToCastleAge: (owner: number) => boolean;
   canAdvanceToImperialAge: (owner: number) => boolean;
-  enqueueResearch: (buildingId: number, technologyType: ResearchableTechnologyType) => boolean;
-  enqueueTraining: (buildingId: number, unitType: TrainableUnitType) => boolean;
+  pushQueueResearchIntention: (
+    buildingId: number,
+    technologyType: ResearchableTechnologyType,
+  ) => void;
+  pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
+  // Phase 1C — read-only handle to the dispatcher's pending intention
+  // queue. aiSystem inspects it each decision tick to compute "effective"
+  // queue / in-flight counts: an intention pushed this tick won't appear in
+  // `productionQueues` / `inFlightTechByOwner` until the handler runs at
+  // the NEXT tick, so without this gate aiSystem would re-push every
+  // decision tick and over-spend across the silent-no-op B2 surface.
+  pendingCommands: Array<
+    { type: string; data: Record<string, unknown> }
+  >;
   getTrainOptions: (owner: number, buildingType: BuildingType) => TrainableUnitType[];
   getResearchOptions: (
     owner: number,
@@ -135,15 +157,16 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     hasOwnedWonder,
     isConstructingBuilding,
     pickWatchTowerPlacement,
-    startConstruction,
+    pushBuildingPlaceConfirmIntention,
     findBuildPlacementNear,
     countOwnedUnits,
     countQueuedUnits,
     canAdvanceToFeudalAge,
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,
-    enqueueResearch,
-    enqueueTraining,
+    pushQueueResearchIntention,
+    pushQueueTrainIntention,
+    pendingCommands,
     getTrainOptions,
     getResearchOptions,
     assignAiMonkTasks,
@@ -167,6 +190,53 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           : activeWorld.getComponent<Position>(humanTownCenterId, 'position');
 
       const currentTick = activeWorld.tick;
+
+      // Phase 1C — fold pending intentions into the gates aiSystem uses
+      // to decide whether to push more. Without this, an intention pushed
+      // last decision tick (handler hasn't run yet) is invisible to
+      // `productionQueues.length` / `inFlightTechByOwner.has(...)` /
+      // `unitCommands.entries()` and the AI re-pushes every tick.
+      // Build the lookups once per tick (O(N) where N = queue length;
+      // typically <30 entries during AI macro).
+      const pendingTrainsByBuilding = new Map<number, number>();
+      const pendingResearchKeys = new Set<string>(); // `${owner}:${tech}`
+      const pendingBuildsByOwner = new Map<number, number>();
+      // Type-guarded extraction. cmd.data is typed as Record<string, unknown>
+      // at this layer (see RegisterAllSystemsDeps.pendingCommands). Push sites
+      // in wireBridgeOps.ts always produce well-formed payloads, but a
+      // malformed entry should be ignored here rather than corrupting the
+      // gating maps with NaN / undefined keys.
+      for (const cmd of pendingCommands) {
+        if (cmd.type === 'queue.train') {
+          const buildingId = cmd.data.buildingId;
+          if (typeof buildingId !== 'number') continue;
+          pendingTrainsByBuilding.set(
+            buildingId,
+            (pendingTrainsByBuilding.get(buildingId) ?? 0) + 1,
+          );
+        } else if (cmd.type === 'queue.research') {
+          const buildingId = cmd.data.buildingId;
+          const tech = cmd.data.technologyType;
+          if (typeof buildingId !== 'number' || typeof tech !== 'string') continue;
+          const building = activeWorld.getComponent<BuildingComponent>(
+            buildingId,
+            'building',
+          );
+          if (building) {
+            pendingResearchKeys.add(`${building.owner}:${tech}`);
+          }
+        } else if (cmd.type === 'building.placeConfirm') {
+          const builderId = cmd.data.builderId;
+          if (typeof builderId !== 'number') continue;
+          const builder = activeWorld.getComponent<UnitComponent>(builderId, 'unit');
+          if (builder) {
+            pendingBuildsByOwner.set(
+              builder.owner,
+              (pendingBuildsByOwner.get(builder.owner) ?? 0) + 1,
+            );
+          }
+        }
+      }
 
       for (const [owner, state] of aiStates.entries()) {
         const interval = decisionIntervalTicks(state.difficulty);
@@ -192,6 +262,16 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           state.villagerTargets = { ...desiredTargets };
         }
         villagerRebalance(owner, state.villagerTargets);
+
+        // Phase 1C: gates use the raw stockpile directly. DESIGN v17 §6.4
+        // B1/B2 specify validators are best-effort and handlers do the
+        // authoritative spend with silent-no-op fallback on stale state, so
+        // over-acceptance within a single decision tick is intentional —
+        // the handler picks the affordable subset. The pending-queue-length
+        // / pendingResearchKeys / pendingBuildsByOwner gates above already
+        // prevent legit duplicate spam (re-pushing the same intention while
+        // an earlier copy is still in `pendingCommands`).
+        const stockpile = playerResources.get(owner);
 
         if (ownerTownCenterPosition) {
           for (const enemyId of activeWorld.queryInRadius(
@@ -249,7 +329,12 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           for (const id of candidates) {
             const construction = constructionStates.get(id);
             if (construction && !construction.isComplete) continue;
-            const queueLength = productionQueues.get(id)?.length ?? 0;
+            // Phase 1C: include pending queue.train intentions for this
+            // building so the AI doesn't re-push every decision tick before
+            // the handler lands and over-spend the stockpile.
+            const persistedLength = productionQueues.get(id)?.length ?? 0;
+            const pendingLength = pendingTrainsByBuilding.get(id) ?? 0;
+            const queueLength = persistedLength + pendingLength;
             if (queueLength >= 2) continue;
             if (
               queueLength < bestQueueLength
@@ -276,8 +361,30 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               ownerTownCenterPosition,
               state.lastEnemySightingPosition,
             );
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, 'watch-tower', anchor);
+            // Phase 1C: gate on raw stockpile affordability (symmetry with
+            // wonder/nextBuild paths below). Watch tower is cheap so this
+            // rarely blocks, but keeping the check explicit makes the AI's
+            // behavior easier to reason about — the handler silent-no-op
+            // would still catch unaffordable pushes, but spending a free
+            // intention slot on something we KNOW we can't afford is wasted
+            // work in `pendingCommands`.
+            const watchTowerCost = constructionCost('watch-tower');
+            if (
+              builderId !== null
+              && anchor
+              && stockpile
+              && canAfford(stockpile, watchTowerCost)
+            ) {
+              pushBuildingPlaceConfirmIntention(builderId, 'watch-tower', anchor);
+              // Phase 1C: watch tower push happens BEFORE the ongoingBuilds
+              // calculation below, so we must update pendingBuildsByOwner so
+              // the calculation reflects this tick's push. Pre-1B counted via
+              // unitCommands (synchronously updated by startConstruction);
+              // post-1C handler runs next tick and unitCommands lags.
+              pendingBuildsByOwner.set(
+                owner,
+                (pendingBuildsByOwner.get(owner) ?? 0) + 1,
+              );
             }
           }
 
@@ -301,6 +408,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             const b = activeWorld.getComponent<BuildingComponent>(bid, 'building');
             if (b && b.owner === owner) ongoingBuilds += 1;
           }
+          // Phase 1C: include pending building.placeConfirm intentions —
+          // unitCommands.build only flips after the handler runs.
+          ongoingBuilds += pendingBuildsByOwner.get(owner) ?? 0;
           const totalVillagers = countOwnedUnits(owner, 'villager');
           const maxConcurrentBuilds = Math.max(1, totalVillagers - 1);
 
@@ -317,8 +427,17 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
             const builderId = findAvailableVillager(owner);
             const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, 'wonder', anchor);
+            // Phase 1C: gate on raw stockpile affordability — same-tick
+            // double-pushes are caught by pendingBuildsByOwner above.
+            const wonderCost = constructionCost('wonder');
+            if (
+              builderId !== null
+              && anchor
+              && stockpile
+              && canAfford(stockpile, wonderCost)
+            ) {
+              pushBuildingPlaceConfirmIntention(builderId, 'wonder', anchor);
+              ongoingBuilds += 1;
             }
           }
 
@@ -326,8 +445,15 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
             const builderId = findAvailableVillager(owner);
             const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
-            if (builderId !== null && anchor) {
-              startConstruction(builderId, nextBuild, anchor);
+            const buildCost = constructionCost(nextBuild);
+            if (
+              builderId !== null
+              && anchor
+              && stockpile
+              && canAfford(stockpile, buildCost)
+            ) {
+              pushBuildingPlaceConfirmIntention(builderId, nextBuild, anchor);
+              ongoingBuilds += 1;
             }
           }
         }
@@ -350,10 +476,40 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           return minProgress >= 0.6 && !canAfford(s, cost);
         })();
 
+        // Phase 1C: pickUnitMix BEFORE villager training. Pre-1B accidentally
+        // trained military at the rare tick where tcQueue was full (villager
+        // gate blocked) AND barracks just completed. Post-1C, the +1-tick
+        // handler delay shifts that corner case out of alignment, so a
+        // barracks-rush AI never trains militia. The structural fix is to
+        // make military priority explicit: push military first, then age-up
+        // research, then villager. When food is tight enough that only one
+        // can train, the FIFO-ordered handler picks military.
+        const mix = pickUnitMix(currentAge);
+        if (!savingForAgeUp) {
+          for (const { unitType, producer } of mix) {
+            const producerId = findIdleProducerLocal(producer);
+            if (producerId === null) continue;
+            if (!stockpile) continue;
+            const cost = trainingCost(unitType);
+            if (!canAfford(stockpile, cost)) continue;
+            if (!getTrainOptions(owner, producer).includes(unitType)) continue;
+            pushQueueTrainIntention(producerId, unitType);
+            // Phase 1C — increment so subsequent same-producer pushes (feudal+
+            // pickUnitMix returns multiple unit types per producer) see this
+            // push in their findIdleProducerLocal queue-length gate. Without
+            // this, both archer and skirmisher would funnel into the same
+            // archery-range in one tick, then the second handler would
+            // silent-no-op on queue-full (per Gemini iter-1 F2).
+            pendingTrainsByBuilding.set(
+              producerId,
+              (pendingTrainsByBuilding.get(producerId) ?? 0) + 1,
+            );
+          }
+        }
+
         if (ownerTownCenterId !== null) {
           const tcConstruction = constructionStates.get(ownerTownCenterId);
           if (!tcConstruction || tcConstruction.isComplete) {
-            const stockpile = playerResources.get(owner);
             const bufferCost = ageUpResourceBuffer(currentAge);
             const hasBuffer = stockpile ? canAfford(stockpile, bufferCost) : false;
             const nextAge = pickNextAgeResearch(
@@ -365,42 +521,45 @@ export function registerAiSystem(deps: AiSystemDeps): void {
                 return false;
               },
               (tech) => {
-                const s = playerResources.get(owner);
-                return s ? canAfford(s, researchCost(tech)) : false;
+                return stockpile ? canAfford(stockpile, researchCost(tech)) : false;
               },
             );
-            if (nextAge && hasBuffer) {
-              enqueueResearch(ownerTownCenterId, nextAge);
+            // Phase 1C: skip if a queue.research for the same age tech is
+            // already pending (handler hasn't yet flipped inFlightTechByOwner).
+            if (
+              nextAge
+              && hasBuffer
+              && !pendingResearchKeys.has(`${owner}:${nextAge}`)
+            ) {
+              pushQueueResearchIntention(ownerTownCenterId, nextAge);
             }
 
-            const tcQueue = productionQueues.get(ownerTownCenterId) ?? [];
+            const tcPersistedQueueLength = productionQueues.get(ownerTownCenterId)?.length ?? 0;
+            // The AI only ever pushes villagers to TC, so every pending TC
+            // queue.train counts as a pending villager. If a future change
+            // adds a non-villager TC train (e.g., a king or a fishing-boat),
+            // this currentVillagers calculation would over-count and the
+            // villagerCap gate would block real villager training prematurely
+            // — narrow this lookup to villager-typed pending trains then.
+            const tcPendingTrains = pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0;
+            const tcEffectiveQueueLength = tcPersistedQueueLength + tcPendingTrains;
             const villagerCap =
               currentAge === 'dark-age' ? 6
               : currentAge === 'imperial-age' ? 50
               : 14;
             const currentVillagers =
-              countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager');
+              countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager') + tcPendingTrains;
+            const villagerCost = trainingCost('villager');
             if (
               !populationBlocked
               && !savingForAgeUp
               && currentVillagers < villagerCap
-              && tcQueue.length < 2
+              && tcEffectiveQueueLength < 2
+              && stockpile
+              && canAfford(stockpile, villagerCost)
             ) {
-              enqueueTraining(ownerTownCenterId, 'villager');
+              pushQueueTrainIntention(ownerTownCenterId, 'villager');
             }
-          }
-        }
-
-        const mix = pickUnitMix(currentAge);
-        if (!savingForAgeUp) {
-          for (const { unitType, producer } of mix) {
-            const producerId = findIdleProducerLocal(producer);
-            if (producerId === null) continue;
-            const stockpile = playerResources.get(owner);
-            if (!stockpile) continue;
-            if (!canAfford(stockpile, trainingCost(unitType))) continue;
-            if (!getTrainOptions(owner, producer).includes(unitType)) continue;
-            enqueueTraining(producerId, unitType);
           }
         }
 
@@ -417,11 +576,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             if (buildingId === null) continue;
             const options = getResearchOptions(owner, buildingType);
             if (options.length === 0) continue;
-            const stockpile = playerResources.get(owner);
             if (!stockpile) continue;
             for (const tech of options) {
-              if (canAfford(stockpile, researchCost(tech))) {
-                enqueueResearch(buildingId, tech);
+              // Phase 1C: skip techs whose queue.research intention is
+              // already pending (handler hasn't flipped inFlightTechByOwner).
+              if (pendingResearchKeys.has(`${owner}:${tech}`)) continue;
+              const cost = researchCost(tech);
+              if (canAfford(stockpile, cost)) {
+                pushQueueResearchIntention(buildingId, tech);
                 break;
               }
             }
@@ -437,14 +599,13 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             // V5-1: O(1) monk count via monksByOwner side map.
             const ownedMonks =
               (monksByOwner.get(owner)?.size ?? 0) + countQueuedUnits(monasteryId, 'monk');
-            const stockpile = playerResources.get(owner);
             if (
               ownedMonks < AI_MONK_COUNT_CAP
               && stockpile
               && canAfford(stockpile, trainingCost('monk'))
               && getTrainOptions(owner, 'monastery').includes('monk')
             ) {
-              enqueueTraining(monasteryId, 'monk');
+              pushQueueTrainIntention(monasteryId, 'monk');
             }
           }
         }
