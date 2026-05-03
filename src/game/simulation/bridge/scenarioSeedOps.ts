@@ -40,6 +40,7 @@ import {
   playerResourcesCodec,
   populationCodec,
   relicCountdownOverridesCodec,
+  researchedTechnologiesCodec,
   relicsInMonasteryCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
@@ -118,13 +119,9 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     standardStartingResources,
     standardPopulationCap,
     defaultDifficulty,
-    state,
     accessor,
     ensureAiState,
   } = deps;
-  const {
-    researchedTechnologies,
-  } = state;
 
   // Phase 2D — batch the per-player Map writes into single mutate calls
   // to mirror hydrateFromSavedGame's pattern. Functionally identical to
@@ -151,9 +148,8 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     }
   });
   for (const start of scenario.starts) {
-    researchedTechnologies.set(
-      start.owner,
-      new Set(start.startingResearchedTechnologies ?? []),
+    accessor.mutate(researchedTechnologiesCodec, (m) =>
+      m.set(start.owner, new Set(start.startingResearchedTechnologies ?? [])),
     );
     accessor.mutate(populationCodec, (m) =>
       m.set(start.owner, {

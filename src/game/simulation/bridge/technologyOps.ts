@@ -24,6 +24,7 @@ import {
   combatStatesCodec,
   playerAgesCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import {
   isArcherLineUnit,
@@ -83,10 +84,7 @@ export interface TechnologyOps {
 }
 
 export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
-  const { world, state, accessor, createCombatState, markOutOfBandRenderChange } = deps;
-  const {
-    researchedTechnologies,
-  } = state;
+  const { world, accessor, createCombatState, markOutOfBandRenderChange } = deps;
 
   function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
     let didUpgrade = false;
@@ -160,11 +158,14 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     // blast-furnace, bracer, every armor tier, ...) so the second call
     // would silently double the bonus. Skip if the tech is already
     // applied for this owner.
-    const ownerSet = researchedTechnologies.get(owner);
+    const ownerSet = accessor.get(researchedTechnologiesCodec).get(owner);
     if (ownerSet?.has(technologyType)) {
       return;
     }
-    ownerSet?.add(technologyType);
+    if (ownerSet) {
+      ownerSet.add(technologyType);
+      accessor.markDirty(researchedTechnologiesCodec);
+    }
 
     switch (technologyType) {
       case 'feudal-age':

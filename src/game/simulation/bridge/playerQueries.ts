@@ -28,6 +28,7 @@ import {
   playerAgesCodec,
   playerCivilizationsCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 
 export interface PlayerQueriesDeps {
@@ -60,13 +61,10 @@ export interface PlayerQueries {
 }
 
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
-  const { world, state, accessor } = deps;
-  const {
-    researchedTechnologies,
-  } = state;
+  const { world, accessor } = deps;
 
   function hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean {
-    return researchedTechnologies.get(owner)?.has(technologyType) ?? false;
+    return accessor.get(researchedTechnologiesCodec).get(owner)?.has(technologyType) ?? false;
   }
 
   function findOwnedBuilding(owner: number, buildingType: BuildingType): number | null {

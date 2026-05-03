@@ -36,6 +36,7 @@ import {
   playerResourcesCodec,
   populationCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
   wildlifeStatesCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -99,7 +100,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     flushTier3State(world, visibilityCell, matchState);
   }
   const {
-    researchedTechnologies,
     unitCommands,
     monkTasks,
   } = state;
@@ -123,7 +123,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         trackedVisibilitySources: [...accessor.get(trackedVisibilitySourcesCodec).entries()],
         playerAges: [...accessor.get(playerAgesCodec).entries()],
         playerCivilizations: [...accessor.get(playerCivilizationsCodec).entries()],
-        researchedTechnologies: [...researchedTechnologies.entries()].map(
+        researchedTechnologies: [...accessor.get(researchedTechnologiesCodec).entries()].map(
           ([owner, set]) => [owner, [...set]],
         ),
         playerResources: [...accessor.get(playerResourcesCodec).entries()].map(([owner, res]) => [

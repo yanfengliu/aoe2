@@ -24,7 +24,7 @@ interface CachedMovePath {
 export interface BridgeState {
   // Phase 2D: `trackedVisibilitySources` + `playerAges` + `playerCivilizations`
   // migrated to `world.state.aoe2.*` via accessor + codec.
-  researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
+  // Phase 2D: `researchedTechnologies` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `playerResources` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `marketExchangeRates` migrated to
   // `world.state.aoe2.marketExchangeRates` via accessor + codec.
@@ -91,7 +91,6 @@ export interface BridgeState {
 
 export function createBridgeState(): BridgeState {
   return {
-    researchedTechnologies: new Map(),
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),

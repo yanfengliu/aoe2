@@ -30,6 +30,7 @@ import {
   monkCarriedRelicCodec,
   playerResourcesCodec,
   populationCodec,
+  researchedTechnologiesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
@@ -63,7 +64,6 @@ export interface SaveLoadHydrationDeps {
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
   const {
-    researchedTechnologies,
     monkTasks,
     unitCommands,
     monksByOwner,
@@ -91,9 +91,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(owner, civ);
     }
   });
-  for (const [owner, techs] of blob.researchedTechnologies) {
-    researchedTechnologies.set(owner, new Set(techs as ResearchableTechnologyType[]));
-  }
+  accessor.mutate(researchedTechnologiesCodec, (m) => {
+    m.clear();
+    for (const [owner, techs] of blob.researchedTechnologies) {
+      m.set(owner, new Set(techs as ResearchableTechnologyType[]));
+    }
+  });
   accessor.mutate(playerResourcesCodec, (m) => {
     m.clear();
     for (const [owner, res] of blob.playerResources) {
