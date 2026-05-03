@@ -137,7 +137,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkCarriedRelic,
     monksByOwner,
     inFlightTechByOwner,
-    sheepMoveOrders,
     garrisonedByBuilding,
   } = state;
 
@@ -274,7 +273,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerVillagerEconomySystem({
     world,
     unitCommands,
-    sheepMoveOrders,
     accessor,
     playerResources,
     aiStates,
@@ -306,7 +304,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerHerdableMovementSystem({
     world,
-    sheepMoveOrders,
+    accessor,
     getUnitTransform,
     findMovementPlan,
     getNearestMoveCandidates,

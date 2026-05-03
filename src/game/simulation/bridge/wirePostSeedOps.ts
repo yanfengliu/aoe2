@@ -307,6 +307,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     state,
+    accessor,
     selection,
     placementMode,
     isMatchRunning,

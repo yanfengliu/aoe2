@@ -49,7 +49,7 @@ export interface BridgeState {
   // `accessor.get(villagerOrdinalsCodec)` / `accessor.mutate(...)` instead.
   unitCommands: Map<number, UnitCommand>;
   movePathCache: Map<number, CachedMovePath>;
-  sheepMoveOrders: Map<number, Position>;
+  // Phase 2D: `sheepMoveOrders` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `rallyPoints` migrated to `world.state.aoe2.rallyPoints` via accessor + codec.
   monkTasks: Map<number, MonkTask>;
   conversionState: Map<number, { byOwner: number; progress: number }>;
@@ -110,7 +110,6 @@ export function createBridgeState(): BridgeState {
     population: new Map(),
     unitCommands: new Map(),
     movePathCache: new Map(),
-    sheepMoveOrders: new Map(),
     monkTasks: new Map(),
     conversionState: new Map(),
     monkCarriedRelic: new Map(),

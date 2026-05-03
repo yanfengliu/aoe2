@@ -17,6 +17,7 @@ import {
   monkHealCountersCodec,
   rallyPointsCodec,
   relicsInMonasteryCodec,
+  sheepMoveOrdersCodec,
   townCenterRefsCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
@@ -89,7 +90,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     buildingCombatStates,
     inFlightTechByOwner,
     wildlifeStates,
-    sheepMoveOrders,
   } = state;
 
   function destroyUnitEntity(id: number): void {
@@ -265,7 +265,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   function destroyResourceEntity(id: number): void {
     removeSelectedEntity(id);
     wildlifeStates.delete(id);
-    sheepMoveOrders.delete(id);
+    accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(id));
     for (const [monkId, carriedId] of monkCarriedRelic.entries()) {
       if (carriedId === id) {
         monkCarriedRelic.delete(monkId);

@@ -23,7 +23,7 @@ import {
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
 import { gatherMultiplier } from '../../ai';
-import { gathererDropOffStuckSinceTickCodec } from '../bridgeStateSerialize';
+import { gathererDropOffStuckSinceTickCodec, sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitCommand } from './systemTypes';
 
@@ -42,7 +42,7 @@ interface PlayerScoreCountersLike {
 export interface VillagerEconomySystemDeps {
   world: GameWorld;
   unitCommands: Map<number, UnitCommand>;
-  sheepMoveOrders: Map<number, Position>;
+  // Phase 2D: sheepMoveOrders migrated to world.state.aoe2.* via accessor.
   // Phase 2D — gathererDropOffStuckSinceTick now flows through the
   // accessor + codec. Hot-loop pattern: get the cached Map once at the
   // start of execute(), mutate directly, mark dirty once at the end.
@@ -89,7 +89,6 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
   const {
     world,
     unitCommands,
-    sheepMoveOrders,
     accessor,
     playerResources,
     aiStates,
@@ -234,7 +233,8 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               gatherer.targetResourceId !== null
               && targetResource.resourceType === 'sheep'
             ) {
-              sheepMoveOrders.delete(gatherer.targetResourceId);
+              const tid = gatherer.targetResourceId;
+              accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(tid));
             }
           } else {
             moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);

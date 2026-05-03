@@ -21,6 +21,7 @@ import {
   rallyPointsCodec,
   relicCountdownsCodec,
   relicsInMonasteryCodec,
+  sheepMoveOrdersCodec,
   townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
@@ -49,7 +50,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     researchedTechnologies,
     playerResources,
     population,
-    sheepMoveOrders,
     monkTasks,
     conversionState,
     monkCarriedRelic,
@@ -135,9 +135,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     }
     setUnitCommand(id, restored);
   }
-  for (const [id, pos] of blob.sheepMoveOrders) {
-    sheepMoveOrders.set(id, { x: pos.x, y: pos.y });
-  }
+  accessor.mutate(sheepMoveOrdersCodec, (m) => {
+    for (const [id, pos] of blob.sheepMoveOrders) {
+      m.set(id, { x: pos.x, y: pos.y });
+    }
+  });
   accessor.mutate(rallyPointsCodec, (m) => {
     for (const [id, pos] of blob.rallyPoints) {
       m.set(id, { x: pos.x, y: pos.y });
@@ -368,7 +370,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     }
   };
   pruneOrphanEntityKeys(unitCommands);
-  pruneOrphanEntityKeys(sheepMoveOrders);
+  accessor.mutate(sheepMoveOrdersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(monkTasks);
   pruneOrphanEntityKeys(conversionState);

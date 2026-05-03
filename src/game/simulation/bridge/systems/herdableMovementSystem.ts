@@ -13,6 +13,8 @@ import {
   type GameWorld,
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -20,7 +22,8 @@ const SHEEP_SUBGRID_STEP_PER_TICK = 1;
 
 export interface HerdableMovementSystemDeps {
   world: GameWorld;
-  sheepMoveOrders: Map<number, Position>;
+  // Phase 2D: sheepMoveOrders migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   getUnitTransform: (id: number, activeWorld: CivWorld) => UnitTransformComponent | null;
   findMovementPlan: (
     entityId: number,
@@ -49,7 +52,7 @@ export interface HerdableMovementSystemDeps {
 export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps): void {
   const {
     world,
-    sheepMoveOrders,
+    accessor,
     getUnitTransform,
     findMovementPlan,
     getNearestMoveCandidates,
@@ -63,6 +66,8 @@ export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps)
     phase: 'update',
     before: ['prototypePlayerCommands'],
     execute(activeWorld) {
+      const sheepMoveOrders = accessor.get(sheepMoveOrdersCodec);
+      let dirty = false;
       for (const [sheepId, target] of [...sheepMoveOrders.entries()]) {
         const resource = activeWorld.getComponent<ResourceComponent>(sheepId, 'resource');
         const transform = getUnitTransform(sheepId, activeWorld);
@@ -74,11 +79,13 @@ export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps)
           || resource.owner === null
         ) {
           sheepMoveOrders.delete(sheepId);
+          dirty = true;
           continue;
         }
 
         if (isUnitTransformAtTarget(transform, sheepId, target)) {
           sheepMoveOrders.delete(sheepId);
+          dirty = true;
           continue;
         }
 
@@ -93,16 +100,21 @@ export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps)
         );
         if (!plan) {
           sheepMoveOrders.delete(sheepId);
+          dirty = true;
           continue;
         }
 
         if (isUnitTransformAtTarget(transform, sheepId, plan.destination)) {
           sheepMoveOrders.delete(sheepId);
+          dirty = true;
           continue;
         }
 
         moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
         markOutOfBandRenderChange();
+      }
+      if (dirty) {
+        accessor.markDirty(sheepMoveOrdersCodec);
       }
     },
   });

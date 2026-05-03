@@ -29,6 +29,7 @@ import {
   rallyPointsCodec,
   relicCountdownsCodec,
   relicsInMonasteryCodec,
+  sheepMoveOrdersCodec,
   townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
@@ -86,7 +87,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     playerResources,
     population,
     unitCommands,
-    sheepMoveOrders,
     monkTasks,
     conversionState,
     monkCarriedRelic,
@@ -159,7 +159,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
             ...(cmd.targetEntityKind ? { targetEntityKind: cmd.targetEntityKind } : {}),
           },
         ]),
-        sheepMoveOrders: [...sheepMoveOrders.entries()].map(([id, pos]) => [
+        sheepMoveOrders: [...accessor.get(sheepMoveOrdersCodec).entries()].map(([id, pos]) => [
           id,
           { x: pos.x, y: pos.y },
         ]),

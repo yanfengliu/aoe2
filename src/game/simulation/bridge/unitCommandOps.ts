@@ -19,6 +19,8 @@ import { canGarrisonAt } from '../prototypeBuildingRules';
 import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { sheepMoveOrdersCodec } from './bridgeStateSerialize';
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
@@ -26,6 +28,8 @@ export interface UnitCommandOpsDeps {
   mapWidth: number;
   mapHeight: number;
   state: BridgeState;
+  // Phase 2D: sheepMoveOrders migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   selection: { refs: EntityRef[]; focusCell: Position | null };
   placementMode: { current: import('../types').BuildableBuildingType | null };
   isMatchRunning: () => boolean;
@@ -132,6 +136,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     mapWidth,
     mapHeight,
     state,
+    accessor,
     selection,
     placementMode,
     isMatchRunning,
@@ -156,7 +161,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     getEntityRef,
   } = deps;
   const {
-    sheepMoveOrders,
     monkTasks,
     wildlifeStates,
     constructionStates,
@@ -202,10 +206,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       return false;
     }
 
-    sheepMoveOrders.set(sheepId, {
+    accessor.mutate(sheepMoveOrdersCodec, (m) => m.set(sheepId, {
       x: clamp(target.x, 0, mapWidth - 1),
       y: clamp(target.y, 0, mapHeight - 1),
-    });
+    }));
     return true;
   }
 
