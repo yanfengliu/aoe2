@@ -123,7 +123,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   const {
     population,
-    playerResources,
     unitCommands,
     monkTasks,
     monkConvertProcessedThisTick,
@@ -137,7 +136,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     visibility,
     accessor,
     population,
-    playerResources,
     unitCommands,
     monksByOwner,
     currentEntityId,
@@ -226,7 +224,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     applyMonkDeposit,
   });
 
-  registerRelicGoldSystem({ world, accessor, playerResources });
+  registerRelicGoldSystem({ world, accessor });
 
   registerProductionQueueSystem({
     world,
@@ -255,7 +253,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     unitCommands,
     accessor,
-    playerResources,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,
@@ -337,7 +334,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerConquestOutcomeSystem({
     world,
     humanPlayerId,
-    playerResources,
+    accessor,
     isMatchRunning,
     finalizeMatchEnd,
   });

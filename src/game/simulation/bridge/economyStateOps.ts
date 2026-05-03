@@ -28,6 +28,7 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   playerAgesCodec,
+  playerResourcesCodec,
   productionQueuesCodec,
 } from './bridgeStateSerialize';
 
@@ -44,7 +45,6 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
 } {
   const { world, state, accessor, getUnitTaskState } = deps;
   const {
-    playerResources,
     population,
   } = state;
 
@@ -134,7 +134,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
     return {
       ages: Object.fromEntries(accessor.get(playerAgesCodec)),
       playerResources: Object.fromEntries(
-        [...playerResources.entries()].map(([playerId, resources]) => [
+        [...accessor.get(playerResourcesCodec).entries()].map(([playerId, resources]) => [
           playerId,
           cloneResources(resources),
         ]),

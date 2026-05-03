@@ -20,7 +20,10 @@ import {
   trainingCost,
 } from '../prototypeEconomyRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { constructionStatesCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerResourcesCodec,
+} from './bridgeStateSerialize';
 
 export interface HumanInputOpsDeps {
   world: GameWorld;
@@ -60,7 +63,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     humanPlayerId,
     mapWidth,
     mapHeight,
-    state,
     accessor,
     placementMode,
     isMatchRunning,
@@ -75,7 +77,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
   } = deps;
-  const { playerResources } = state;
 
   function issueMoveCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) return false;
@@ -217,7 +218,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       if (result.code === 'under_construction') {
         enqueueRejection('Building is still under construction.');
       } else if (result.code === 'insufficient_resources') {
-        const stockpile = playerResources.get(humanPlayerId);
+        const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
         const missing = stockpile
           ? resourcesMissing(stockpile, trainingCost(unitType))
           : null;
@@ -250,7 +251,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       if (result.code === 'under_construction') {
         enqueueRejection('Building is still under construction.');
       } else if (result.code === 'insufficient_resources') {
-        const stockpile = playerResources.get(humanPlayerId);
+        const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
         const missing = stockpile
           ? resourcesMissing(stockpile, researchCost(technologyType))
           : null;

@@ -133,6 +133,7 @@ export function createWorld(
   return assembleBridgeApi({
     world,
     state,
+    accessor,
     matchState,
     consumeCommandRejection,
     hasOutOfBandRenderChangeRef,

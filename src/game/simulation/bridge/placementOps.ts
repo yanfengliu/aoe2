@@ -33,6 +33,8 @@ import {
   constructionCost,
   resourcesMissing,
 } from '../prototypeEconomyRules';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { playerResourcesCodec } from './bridgeStateSerialize';
 
 export interface PlacementModeHolder {
   // Shared mutable slot. When non-null, the player is in "click a cell
@@ -46,6 +48,8 @@ export interface PlacementModeHolder {
 export interface PlacementDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   placementMode: PlacementModeHolder;
   // Collaborators. Thin wrappers around bridge-local helpers; the
   // factory defers to them so selection, match-running, and
@@ -70,7 +74,7 @@ export interface PlacementOps {
 export function createPlacementOps(deps: PlacementDeps): PlacementOps {
   const {
     world,
-    state,
+    accessor,
     placementMode,
     isMatchRunning,
     getSelectedHumanVillagerIds,
@@ -80,7 +84,6 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     mapWidth,
     mapHeight,
   } = deps;
-  const { playerResources } = state;
 
   function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
     if (placementMode.current === null) {
@@ -173,7 +176,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     if (result.code === 'placement_blocked') {
       enqueueRejection('Placement blocked.');
     } else if (result.code === 'insufficient_resources') {
-      const stockpile = playerResources.get(humanPlayerId);
+      const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
       const missing = stockpile
         ? resourcesMissing(stockpile, constructionCost(buildingType))
         : null;

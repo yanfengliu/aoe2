@@ -33,6 +33,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
+  playerResourcesCodec,
   productionQueuesCodec,
   wildlifeStatesCodec,
   marketExchangeRatesCodec,
@@ -98,7 +99,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   }
   const {
     researchedTechnologies,
-    playerResources,
     population,
     unitCommands,
     monkTasks,
@@ -126,7 +126,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         researchedTechnologies: [...researchedTechnologies.entries()].map(
           ([owner, set]) => [owner, [...set]],
         ),
-        playerResources: [...playerResources.entries()].map(([owner, res]) => [
+        playerResources: [...accessor.get(playerResourcesCodec).entries()].map(([owner, res]) => [
           owner,
           { ...res },
         ]),

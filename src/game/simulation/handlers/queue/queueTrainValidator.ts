@@ -7,17 +7,20 @@
 
 import type { World } from 'civ-engine';
 
-import type { BuildingComponent, BuildingType, PlayerResources, TrainableUnitType } from '../../types';
+import type { BuildingComponent, BuildingType, TrainableUnitType } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canTrainAt } from '../../prototypeBuildingRules';
 import { trainingCost, canAfford } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
-import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerResourcesCodec,
+} from '../../bridge/bridgeStateSerialize';
 
 export interface QueueTrainValidatorDeps {
-  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: constructionStates + playerResources migrated to
+  // world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  playerResources: Map<number, PlayerResources>;
   // The owner-aware filter (covers age/civ gating); validator imports only
   // for the "can owner train this from this building" check.
   getTrainOptions: (
@@ -53,7 +56,7 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     ) {
       return { code: 'cannot_train', message: 'Cannot train that unit here.' };
     }
-    const stockpile = deps.playerResources.get(building.owner);
+    const stockpile = deps.accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }

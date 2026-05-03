@@ -4,7 +4,6 @@
 
 import type { Position } from 'civ-engine';
 import type {
-  PlayerResources,
   PopulationState,
   ResearchableTechnologyType,
 } from '../types';
@@ -27,7 +26,7 @@ export interface BridgeState {
   // Phase 2D: `trackedVisibilitySources` + `playerAges` + `playerCivilizations`
   // migrated to `world.state.aoe2.*` via accessor + codec.
   researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
-  playerResources: Map<number, PlayerResources>;
+  // Phase 2D: `playerResources` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `marketExchangeRates` migrated to
   // `world.state.aoe2.marketExchangeRates` via accessor + codec.
   population: Map<number, PopulationState>;
@@ -94,7 +93,6 @@ export interface BridgeState {
 export function createBridgeState(): BridgeState {
   return {
     researchedTechnologies: new Map(),
-    playerResources: new Map(),
     population: new Map(),
     unitCommands: new Map(),
     movePathCache: new Map(),

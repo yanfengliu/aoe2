@@ -10,7 +10,6 @@ import type {
   BuildableBuildingType,
   BuildingComponent,
   BuildingType,
-  PlayerResources,
   PopulationState,
   ResearchableTechnologyType,
   ResourceComponent,
@@ -43,6 +42,7 @@ import {
 import {
   aiStatesCodec,
   constructionStatesCodec,
+  playerResourcesCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
   wildlifeStatesCodec,
@@ -66,7 +66,7 @@ export interface AiSystemDeps {
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   population: Map<number, PopulationState>;
-  playerResources: Map<number, PlayerResources>;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   unitCommands: Map<number, UnitCommandLike>;
   // Phase 2D: wildlifeStates migrated to world.state.aoe2.* via accessor.
   monksByOwner: Map<number, Set<number>>;
@@ -146,7 +146,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     visibility,
     accessor,
     population,
-    playerResources,
     unitCommands,
     monksByOwner,
     currentEntityId,
@@ -284,7 +283,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // / pendingResearchKeys / pendingBuildsByOwner gates above already
         // prevent legit duplicate spam (re-pushing the same intention while
         // an earlier copy is still in `pendingCommands`).
-        const stockpile = playerResources.get(owner);
+        const stockpile = accessor.get(playerResourcesCodec).get(owner);
 
         if (ownerTownCenterPosition) {
           for (const enemyId of activeWorld.queryInRadius(
@@ -464,7 +463,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           const totalVillagers = countOwnedUnits(owner, 'villager');
           const maxConcurrentBuilds = Math.max(1, totalVillagers - 1);
 
-          const aiResources = playerResources.get(owner);
+          const aiResources = accessor.get(playerResourcesCodec).get(owner);
           const wonderPursuit =
             ownerTownCenterPosition !== null
             && aiResources !== undefined
@@ -515,7 +514,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           : null;
         const savingForAgeUp = ((): boolean => {
           if (!nextAgeTech) return false;
-          const s = playerResources.get(owner);
+          const s = accessor.get(playerResourcesCodec).get(owner);
           if (!s) return false;
           const cost = researchCost(nextAgeTech);
           const foodTarget = cost.food ?? 0;

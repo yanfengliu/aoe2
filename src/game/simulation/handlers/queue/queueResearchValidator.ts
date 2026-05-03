@@ -8,19 +8,21 @@ import type { World } from 'civ-engine';
 import type {
   BuildingComponent,
   BuildingType,
-  PlayerResources,
   ResearchableTechnologyType,
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canResearchAt } from '../../prototypeBuildingRules';
 import { researchCost, canAfford } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
-import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerResourcesCodec,
+} from '../../bridge/bridgeStateSerialize';
 
 export interface QueueResearchValidatorDeps {
-  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: constructionStates + playerResources migrated to
+  // world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  playerResources: Map<number, PlayerResources>;
   getResearchOptions: (
     owner: number,
     buildingType: BuildingType,
@@ -58,7 +60,7 @@ export function makeQueueResearchValidator(deps: QueueResearchValidatorDeps): Qu
     if (deps.inFlightTechSetFor(building.owner).has(data.technologyType)) {
       return { code: 'in_flight_tech', message: 'Research is already in progress.' };
     }
-    const stockpile = deps.playerResources.get(building.owner);
+    const stockpile = deps.accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }

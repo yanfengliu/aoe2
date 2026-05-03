@@ -13,6 +13,7 @@ import type {
 import type { GameWorld } from './pureHelpers';
 import {
   monkCarriedRelicCodec,
+  playerResourcesCodec,
   playerScoreCountersCodec,
   relicCountdownsCodec,
   relicsInMonasteryCodec,
@@ -54,10 +55,7 @@ export interface MatchEndOps {
 }
 
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
-  const { world, matchState, humanPlayerId, state, accessor } = deps;
-  const {
-    playerResources,
-  } = state;
+  const { world, matchState, humanPlayerId, accessor } = deps;
 
   function computePlayerScore(owner: number): number {
     const counters = accessor.get(playerScoreCountersCodec).get(owner) ?? {
@@ -95,7 +93,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
     matchState.wonderCountdownTicks = null;
     matchState.relicCountdownTicks = null;
     const scores: Record<number, number> = {};
-    for (const owner of playerResources.keys()) {
+    for (const owner of accessor.get(playerResourcesCodec).keys()) {
       scores[owner] = computePlayerScore(owner);
     }
     matchState.scores = scores;

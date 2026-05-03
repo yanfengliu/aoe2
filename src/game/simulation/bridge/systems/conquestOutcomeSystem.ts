@@ -3,13 +3,18 @@
 // they win. If only enemies do, they lose. Mutual annihilation on the same
 // tick is treated as a draw (Iter-3 V3-12).
 
-import type { BuildingComponent, PlayerResources, UnitComponent } from '../../types';
+import type { BuildingComponent, UnitComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { playerResourcesCodec } from '../bridgeStateSerialize';
 
 export interface ConquestOutcomeSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
-  playerResources: Map<number, PlayerResources>;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
+  // The keys() set is used as the canonical owner-list (every owner with a
+  // resource bank, including AI players seeded by scenarioSeedOps).
+  accessor: BridgeStateAccessor;
   isMatchRunning: () => boolean;
   finalizeMatchEnd: (
     outcome: 'victory' | 'defeat' | 'draw',
@@ -22,7 +27,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
   const {
     world,
     humanPlayerId,
-    playerResources,
+    accessor,
     isMatchRunning,
     finalizeMatchEnd,
   } = deps;
@@ -43,7 +48,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
       // owners, early-exit when the set empties. Worst case is one full
       // unit + building scan — same as a single playerHasConquestPresence
       // call but covers all players in one pass.
-      const remainingOwners = new Set(playerResources.keys());
+      const remainingOwners = new Set(accessor.get(playerResourcesCodec).keys());
       for (const id of activeWorld.query('unit')) {
         if (remainingOwners.size === 0) break;
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
@@ -62,7 +67,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
       }
       const humanAlive = !remainingOwners.has(humanPlayerId);
       let allEnemiesEliminated = true;
-      for (const owner of playerResources.keys()) {
+      for (const owner of accessor.get(playerResourcesCodec).keys()) {
         if (owner === humanPlayerId) continue;
         if (!remainingOwners.has(owner)) {
           allEnemiesEliminated = false;

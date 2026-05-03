@@ -15,6 +15,9 @@ import type {
   PlayerResources,
   UnitType,
 } from '../../src/game/simulation/types';
+import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
+import { playerResourcesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
 
 const STARTING_RESOURCES: PlayerResources = {
   food: 1000,
@@ -40,13 +43,33 @@ function makeVillager(world: World<GameEvents, GameCommands, GameComponents>, ow
   return id;
 }
 
-function makeValidator(overrides: {
-  playerResources?: Map<number, PlayerResources>;
-  getBuildOptions?: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
-  isPlacementBlocked?: (x: number, y: number, w: number, h: number) => boolean;
-} = {}) {
+function freshAccessor(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  playerResources?: Map<number, PlayerResources>,
+): BridgeStateAccessor {
+  const accessor = new BridgeStateAccessor(() => world as unknown as GameWorld);
+  accessor.mutate(playerResourcesCodec, (m) => {
+    if (playerResources !== undefined) {
+      for (const [owner, res] of playerResources) {
+        m.set(owner, { ...res });
+      }
+    } else {
+      m.set(1, { ...STARTING_RESOURCES });
+    }
+  });
+  return accessor;
+}
+
+function makeValidator(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  overrides: {
+    playerResources?: Map<number, PlayerResources>;
+    getBuildOptions?: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
+    isPlacementBlocked?: (x: number, y: number, w: number, h: number) => boolean;
+  } = {},
+) {
   return makeBuildingPlaceConfirmValidator({
-    playerResources: overrides.playerResources ?? new Map([[1, { ...STARTING_RESOURCES }]]),
+    accessor: freshAccessor(world, overrides.playerResources),
     getBuildOptions:
       overrides.getBuildOptions ?? (() => ['house'] as readonly BuildableBuildingType[]),
     isPlacementBlocked: overrides.isPlacementBlocked ?? (() => false),
@@ -57,61 +80,49 @@ function makeValidator(overrides: {
 
 describe('buildingPlaceConfirmValidator', () => {
   it('rejects non-integer builderId', () => {
-    const validator = makeValidator();
-    const result = validator(
-      { builderId: 1.5, buildingType: 'house', position: { x: 0, y: 0 } },
-      freshWorld(),
-    );
+    const world = freshWorld();
+    const validator = makeValidator(world);
+    const result = validator({ builderId: 1.5, buildingType: 'house', position: { x: 0, y: 0 } }, world);
     expect(result).toEqual({ code: 'invalid_builder_id', message: expect.any(String) });
   });
 
   it('rejects non-integer position', () => {
-    const validator = makeValidator();
-    const result = validator(
-      { builderId: 1, buildingType: 'house', position: { x: 0.5, y: 0 } },
-      freshWorld(),
-    );
+    const world = freshWorld();
+    const validator = makeValidator(world);
+    const result = validator({ builderId: 1, buildingType: 'house', position: { x: 0.5, y: 0 } }, world);
     expect(result).toEqual({ code: 'invalid_position', message: expect.any(String) });
   });
 
   it('rejects when builder is dead', () => {
-    const validator = makeValidator();
-    const result = validator(
-      { builderId: 9999, buildingType: 'house', position: { x: 0, y: 0 } },
-      freshWorld(),
-    );
+    const world = freshWorld();
+    const validator = makeValidator(world);
+    const result = validator({ builderId: 9999, buildingType: 'house', position: { x: 0, y: 0 } }, world);
     expect(result).toEqual({ code: 'builder_not_found', message: expect.any(String) });
   });
 
   it('rejects when alive entity is not a unit', () => {
-    const validator = makeValidator();
     const world = freshWorld();
     world.registerComponent('terrain');
     const tileId = world.createEntity();
     world.addComponent(tileId, 'terrain', { kind: 'grass' });
-    const result = validator(
-      { builderId: tileId, buildingType: 'house', position: { x: 0, y: 0 } },
-      world,
-    );
+    const validator = makeValidator(world);
+    const result = validator({ builderId: tileId, buildingType: 'house', position: { x: 0, y: 0 } }, world);
     expect(result).toEqual({ code: 'not_a_unit', message: expect.any(String) });
   });
 
   it('rejects when unit is not a villager', () => {
-    const validator = makeValidator();
     const world = freshWorld();
     const id = world.createEntity();
     world.addComponent(id, 'unit', { unitType: 'archer', owner: 1 });
-    const result = validator(
-      { builderId: id, buildingType: 'house', position: { x: 0, y: 0 } },
-      world,
-    );
+    const validator = makeValidator(world);
+    const result = validator({ builderId: id, buildingType: 'house', position: { x: 0, y: 0 } }, world);
     expect(result).toEqual({ code: 'not_a_villager', message: expect.any(String) });
   });
 
   it('rejects when build options does not include the building type', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
-    const validator = makeValidator({
+    const validator = makeValidator(world, {
       getBuildOptions: () => [] as readonly BuildableBuildingType[],
     });
     const result = validator(
@@ -124,9 +135,7 @@ describe('buildingPlaceConfirmValidator', () => {
   it('rejects when placement is blocked', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
-    const validator = makeValidator({
-      isPlacementBlocked: () => true,
-    });
+    const validator = makeValidator(world, { isPlacementBlocked: () => true });
     const result = validator(
       { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },
       world,
@@ -137,9 +146,7 @@ describe('buildingPlaceConfirmValidator', () => {
   it('rejects when no stockpile exists for the owner', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
-    const validator = makeValidator({
-      playerResources: new Map(),
-    });
+    const validator = makeValidator(world, { playerResources: new Map() });
     const result = validator(
       { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },
       world,
@@ -150,7 +157,7 @@ describe('buildingPlaceConfirmValidator', () => {
   it('rejects when owner cannot afford the cost', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
-    const validator = makeValidator({
+    const validator = makeValidator(world, {
       playerResources: new Map([[1, { food: 0, wood: 0, gold: 0, stone: 0 }]]),
     });
     const result = validator(
@@ -163,7 +170,7 @@ describe('buildingPlaceConfirmValidator', () => {
   it('accepts a fully valid build request', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
-    const validator = makeValidator();
+    const validator = makeValidator(world);
     const result = validator(
       { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },
       world,

@@ -37,6 +37,7 @@ import {
   playerCivilizationsCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
+  playerResourcesCodec,
   relicCountdownOverridesCodec,
   relicsInMonasteryCodec,
   villagerOrdinalsCodec,
@@ -122,7 +123,6 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   } = deps;
   const {
     researchedTechnologies,
-    playerResources,
     population,
   } = state;
 
@@ -142,14 +142,18 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       m.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
     }
   });
+  accessor.mutate(playerResourcesCodec, (m) => {
+    for (const start of scenario.starts) {
+      m.set(
+        start.owner,
+        cloneResources(start.startingResources ?? standardStartingResources),
+      );
+    }
+  });
   for (const start of scenario.starts) {
     researchedTechnologies.set(
       start.owner,
       new Set(start.startingResearchedTechnologies ?? []),
-    );
-    playerResources.set(
-      start.owner,
-      cloneResources(start.startingResources ?? standardStartingResources),
     );
     population.set(start.owner, {
       current: 0,

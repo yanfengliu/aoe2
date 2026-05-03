@@ -1,9 +1,11 @@
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CreateWorldResult } from './createWorldResult';
 import type { GameWorld } from './pureHelpers';
 import { cloneResources } from './pureHelpers';
 import type { MatchState } from '../types';
 import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
+import { playerResourcesCodec } from './bridgeStateSerialize';
 
 export interface AssembleBridgeApiDeps
   extends Omit<
@@ -20,6 +22,8 @@ export interface AssembleBridgeApiDeps
   > {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   matchState: MatchState;
   getHumanWonderCountdownTicks: () => number | null;
   getHumanRelicCountdownTicks: () => number | null;
@@ -32,6 +36,7 @@ export interface AssembleBridgeApiDeps
 export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResult {
   const {
     state,
+    accessor,
     matchState,
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
@@ -41,7 +46,7 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     hasOutOfBandRenderChangeRef,
     ...rest
   } = deps;
-  const { population, playerResources } = state;
+  const { population } = state;
 
   return {
     ...rest,
@@ -51,7 +56,7 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     },
     getPlayerResources(playerId: number) {
       return cloneResources(
-        playerResources.get(playerId) ?? STANDARD_STARTING_RESOURCES,
+        accessor.get(playerResourcesCodec).get(playerId) ?? STANDARD_STARTING_RESOURCES,
       );
     },
     getMatchState() {

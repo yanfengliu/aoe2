@@ -16,7 +16,10 @@ import type {
   ResearchableTechnologyType,
 } from '../../src/game/simulation/types';
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
-import { constructionStatesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerResourcesCodec,
+} from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type { ConstructionState } from '../../src/game/simulation/bridge/sharedTypes';
 
 const STARTING_RESOURCES: PlayerResources = {
@@ -46,6 +49,7 @@ function makeBuilding(world: World<GameEvents, GameCommands, GameComponents>, bu
 function freshAccessor(
   world: World<GameEvents, GameCommands, GameComponents>,
   constructionStates?: Map<number, { isComplete: boolean }>,
+  playerResources?: Map<number, PlayerResources>,
 ): BridgeStateAccessor {
   const accessor = new BridgeStateAccessor(() => world);
   if (constructionStates && constructionStates.size > 0) {
@@ -53,6 +57,17 @@ function freshAccessor(
       for (const [id, partial] of constructionStates) {
         m.set(id, partial as ConstructionState);
       }
+    });
+  }
+  if (playerResources !== undefined) {
+    accessor.mutate(playerResourcesCodec, (m) => {
+      for (const [owner, res] of playerResources) {
+        m.set(owner, { ...res });
+      }
+    });
+  } else {
+    accessor.mutate(playerResourcesCodec, (m) => {
+      m.set(1, { ...STARTING_RESOURCES });
     });
   }
   return accessor;
@@ -68,8 +83,7 @@ function makeValidator(
   } = {},
 ) {
   return makeQueueResearchValidator({
-    accessor: freshAccessor(world, overrides.constructionStates),
-    playerResources: overrides.playerResources ?? new Map([[1, { ...STARTING_RESOURCES }]]),
+    accessor: freshAccessor(world, overrides.constructionStates, overrides.playerResources),
     getResearchOptions:
       overrides.getResearchOptions
       ?? (() => ['feudal-age'] as readonly ResearchableTechnologyType[]),

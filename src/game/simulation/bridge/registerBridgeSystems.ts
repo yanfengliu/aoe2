@@ -281,6 +281,7 @@ export function registerBridgeSystems(
   } = createPlacementOps({
     world,
     state,
+    accessor,
     placementMode,
     isMatchRunning,
     getSelectedHumanVillagerIds,

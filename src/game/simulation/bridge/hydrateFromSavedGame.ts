@@ -28,6 +28,7 @@ import {
   productionQueuesCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
+  playerResourcesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
@@ -62,7 +63,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
   const {
     researchedTechnologies,
-    playerResources,
     population,
     monkTasks,
     unitCommands,
@@ -94,9 +94,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [owner, techs] of blob.researchedTechnologies) {
     researchedTechnologies.set(owner, new Set(techs as ResearchableTechnologyType[]));
   }
-  for (const [owner, res] of blob.playerResources) {
-    playerResources.set(owner, { ...res });
-  }
+  accessor.mutate(playerResourcesCodec, (m) => {
+    m.clear();
+    for (const [owner, res] of blob.playerResources) {
+      m.set(owner, { ...res });
+    }
+  });
   accessor.mutate(marketExchangeRatesCodec, (m) => {
     m.food = blob.marketExchangeRates.food;
     m.wood = blob.marketExchangeRates.wood;

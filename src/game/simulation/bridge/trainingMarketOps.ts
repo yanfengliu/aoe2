@@ -44,6 +44,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   marketExchangeRatesCodec,
+  playerResourcesCodec,
   productionQueuesCodec,
 } from './bridgeStateSerialize';
 
@@ -125,7 +126,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     marketTransactionAmount,
     marketRateStep,
     marketMinRate,
-    state,
     accessor,
     placementMode,
     inFlightTechSetFor,
@@ -147,9 +147,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     getEntityRef,
     markOutOfBandRenderChange,
   } = deps;
-  const {
-    playerResources,
-  } = state;
 
   function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
@@ -165,13 +162,14 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const stockpile = playerResources.get(building.owner);
+    const stockpile = accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) return false;
 
     const cost = trainingCost(unitType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
+    accessor.markDirty(playerResourcesCodec);
     const totalTicks = trainingTimeTicks(unitType);
     accessor.mutate(productionQueuesCodec, (m) => {
       const queue = m.get(buildingId) ?? [];
@@ -207,13 +205,14 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const stockpile = playerResources.get(building.owner);
+    const stockpile = accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) return false;
 
     const cost = researchCost(technologyType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
+    accessor.markDirty(playerResourcesCodec);
     const totalTicks = researchTimeTicks(technologyType);
     accessor.mutate(productionQueuesCodec, (m) => {
       const queue = m.get(buildingId) ?? [];
@@ -239,7 +238,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!playerOwnsCompletedMarket(playerId)) return false;
     if (!getMarketOptions(playerId, 'market').includes(actionType)) return false;
 
-    const stockpile = playerResources.get(playerId);
+    const stockpile = accessor.get(playerResourcesCodec).get(playerId);
     if (!stockpile) return false;
 
     const commodity = marketCommodityForAction(actionType);
@@ -248,6 +247,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       const goldCost = Math.ceil(rate * (1 + marketFeeRate));
       if (stockpile.gold < goldCost) return false;
       stockpile.gold -= goldCost;
+      accessor.markDirty(playerResourcesCodec);
       stockpile[commodity] += marketTransactionAmount;
       accessor.mutate(marketExchangeRatesCodec, (m) => {
         m[commodity] = rate + marketRateStep;
@@ -258,6 +258,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (stockpile[commodity] < marketTransactionAmount) return false;
     stockpile[commodity] -= marketTransactionAmount;
     stockpile.gold += Math.floor(rate * (1 - marketFeeRate));
+    accessor.markDirty(playerResourcesCodec);
     accessor.mutate(marketExchangeRatesCodec, (m) => {
       m[commodity] = Math.max(marketMinRate, rate - marketRateStep);
     });
@@ -389,13 +390,14 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const stockpile = playerResources.get(unit.owner);
+    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
     if (!stockpile) return false;
 
     const cost = constructionCost(buildingType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
+    accessor.markDirty(playerResourcesCodec);
     const buildingId = addBuildingEntity(unit.owner, buildingType, clampedAnchor, false);
     const buildingRef = getEntityRef(buildingId);
     if (!buildingRef) {

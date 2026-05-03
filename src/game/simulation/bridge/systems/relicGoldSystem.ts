@@ -1,20 +1,23 @@
 // Per tick, every owner with deposited relics gets +1 gold per relic.
 // Iterates Monasteries and accumulates into each owner's resource bank.
 
-import type { BuildingComponent, PlayerResources } from '../../types';
+import type { BuildingComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { relicsInMonasteryCodec } from '../bridgeStateSerialize';
+import {
+  playerResourcesCodec,
+  relicsInMonasteryCodec,
+} from '../bridgeStateSerialize';
 
 export interface RelicGoldSystemDeps {
   world: GameWorld;
-  // Phase 2D: relicsInMonastery migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: relicsInMonastery + playerResources migrated to
+  // world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  playerResources: Map<number, PlayerResources>;
 }
 
 export function registerRelicGoldSystem(deps: RelicGoldSystemDeps): void {
-  const { world, accessor, playerResources } = deps;
+  const { world, accessor } = deps;
 
   world.registerSystem({
     name: 'prototypeRelicGold',
@@ -22,7 +25,9 @@ export function registerRelicGoldSystem(deps: RelicGoldSystemDeps): void {
     after: ['prototypeMonkBehavior'],
     execute(activeWorld) {
       const relicsInMonastery = accessor.get(relicsInMonasteryCodec);
+      const playerResources = accessor.get(playerResourcesCodec);
       let dirty = false;
+      let resourcesDirty = false;
       for (const [monasteryId, count] of relicsInMonastery.entries()) {
         if (count <= 0) {
           continue;
@@ -38,9 +43,13 @@ export function registerRelicGoldSystem(deps: RelicGoldSystemDeps): void {
           continue;
         }
         stockpile.gold += count;
+        resourcesDirty = true;
       }
       if (dirty) {
         accessor.markDirty(relicsInMonasteryCodec);
+      }
+      if (resourcesDirty) {
+        accessor.markDirty(playerResourcesCodec);
       }
     },
   });

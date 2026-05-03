@@ -506,19 +506,16 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     enqueueTrainingDirect: enqueueTraining,
     queueTrainValidatorDeps: {
       accessor,
-      playerResources: state.playerResources,
       getTrainOptions,
     },
     enqueueResearchDirect: enqueueResearch,
     queueResearchValidatorDeps: {
       accessor,
-      playerResources: state.playerResources,
       getResearchOptions,
       inFlightTechSetFor,
     },
     executeMarketActionDirect,
     marketActionValidatorDeps: {
-      playerResources: state.playerResources,
       accessor,
       getMarketOptions,
       playerOwnsCompletedMarket,
@@ -527,7 +524,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     },
     startConstructionDirect: startConstruction,
     buildingPlaceConfirmValidatorDeps: {
-      playerResources: state.playerResources,
+      accessor,
       getBuildOptions,
       isPlacementBlocked,
       mapWidth: MAP_WIDTH,

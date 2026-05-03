@@ -4,18 +4,21 @@
 
 import type { World } from 'civ-engine';
 
-import type { BuildingType, MarketActionType, PlayerResources } from '../../types';
+import type { BuildingType, MarketActionType } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import {
   isBuyMarketAction,
   marketCommodityForAction,
 } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
-import { marketExchangeRatesCodec } from '../../bridge/bridgeStateSerialize';
+import {
+  marketExchangeRatesCodec,
+  playerResourcesCodec,
+} from '../../bridge/bridgeStateSerialize';
 
 export interface MarketActionValidatorDeps {
-  playerResources: Map<number, PlayerResources>;
-  // Phase 2D: marketExchangeRates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: marketExchangeRates + playerResources migrated to
+  // world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   getMarketOptions: (owner: number, buildingType: BuildingType) => readonly MarketActionType[];
   playerOwnsCompletedMarket: (playerId: number) => boolean;
@@ -44,7 +47,7 @@ export function makeMarketActionValidator(deps: MarketActionValidatorDeps): Mark
     if (!deps.getMarketOptions(data.playerId, 'market').includes(data.actionType)) {
       return { code: 'cannot_trade', message: 'Cannot trade with that action.' };
     }
-    const stockpile = deps.playerResources.get(data.playerId);
+    const stockpile = deps.accessor.get(playerResourcesCodec).get(data.playerId);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the player.' };
     }

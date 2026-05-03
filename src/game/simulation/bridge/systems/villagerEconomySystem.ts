@@ -7,7 +7,6 @@
 import type { Position, World } from 'civ-engine';
 import type {
   GathererComponent,
-  PlayerResources,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
@@ -26,6 +25,7 @@ import { gatherMultiplier } from '../../ai';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
+  playerResourcesCodec,
   sheepMoveOrdersCodec,
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
@@ -49,7 +49,7 @@ export interface VillagerEconomySystemDeps {
   // The mutate-per-call alternative would add a Set.add per gather
   // step which doesn't scale to dozens of villagers @ 10 TPS.
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
-  playerResources: Map<number, PlayerResources>;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
   findResourceApproachPlan: (
@@ -90,7 +90,6 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     world,
     unitCommands,
     accessor,
-    playerResources,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,
@@ -337,12 +336,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           if (!dropOffPlan) {
             setStuck(id, activeWorld.tick);
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
-            const stockpile = playerResources.get(unit.owner);
+            const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
             const aiState = accessor.get(aiStatesCodec).get(unit.owner);
             const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
             const deposited = Math.round(gatherer.carriedAmount * multiplier);
             if (stockpile) {
               stockpile[carriedResource] += deposited;
+              accessor.markDirty(playerResourcesCodec);
             }
             ensurePlayerScoreCounters(unit.owner).resourcesGathered += deposited;
             gatherer.task = 'idle';

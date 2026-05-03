@@ -6,16 +6,18 @@ import type { World } from 'civ-engine';
 
 import type {
   BuildableBuildingType,
-  PlayerResources,
   UnitComponent,
   UnitType,
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canAfford, constructionCost } from '../../prototypeEconomyRules';
 import { buildingFootprint } from '../../bridge/pureHelpers';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface BuildingPlaceConfirmValidatorDeps {
-  playerResources: Map<number, PlayerResources>;
+  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
   isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
   mapWidth: number;
@@ -69,7 +71,7 @@ export function makeBuildingPlaceConfirmValidator(
     if (deps.isPlacementBlocked(data.position.x, data.position.y, footprint.width, footprint.height)) {
       return { code: 'placement_blocked', message: 'Placement blocked.' };
     }
-    const stockpile = deps.playerResources.get(unit.owner);
+    const stockpile = deps.accessor.get(playerResourcesCodec).get(unit.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
