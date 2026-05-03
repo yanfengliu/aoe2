@@ -20,6 +20,7 @@ import {
   playerScoreCountersCodec,
   rallyPointsCodec,
   relicCountdownsCodec,
+  townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
@@ -47,7 +48,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     researchedTechnologies,
     playerResources,
     population,
-    townCenterRefs,
     sheepMoveOrders,
     monkTasks,
     conversionState,
@@ -105,10 +105,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [owner, pop] of blob.population) {
     population.set(owner, { ...pop });
   }
-  for (const [owner, refData] of blob.townCenterRefs) {
-    const ref = refFromSerialized(refData);
-    if (ref) townCenterRefs.set(owner, ref);
-  }
+  accessor.mutate(townCenterRefsCodec, (m) => {
+    for (const [owner, refData] of blob.townCenterRefs) {
+      const ref = refFromSerialized(refData);
+      if (ref) m.set(owner, ref);
+    }
+  });
   // Phase 2D — villagerOrdinals routes through the accessor.
   accessor.mutate(villagerOrdinalsCodec, (m) => {
     for (const [owner, ord] of blob.villagerOrdinals) {

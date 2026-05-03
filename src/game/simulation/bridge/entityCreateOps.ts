@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  townCenterRefsCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
@@ -120,7 +121,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     trebuchetPackStates,
     productionQueues,
     constructionStates,
-    townCenterRefs,
     wildlifeStates,
     monksByOwner,
   } = state;
@@ -247,7 +247,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     if (buildingType === 'town-center') {
       const entityRef = getEntityRef(entity);
       if (entityRef) {
-        townCenterRefs.set(owner, entityRef);
+        accessor.mutate(townCenterRefsCodec, (m) => m.set(owner, entityRef));
       }
     }
 

@@ -2,7 +2,7 @@
 // here. createWorld instantiates one of these and threads it into every
 // factory + system; nothing else mutates these maps directly.
 
-import type { EntityRef, Position } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type {
   PlayerResources,
   PopulationState,
@@ -43,7 +43,7 @@ export interface BridgeState {
   // Phase 2D: `marketExchangeRates` migrated to
   // `world.state.aoe2.marketExchangeRates` via accessor + codec.
   population: Map<number, PopulationState>;
-  townCenterRefs: Map<number, EntityRef>;
+  // Phase 2D: `townCenterRefs` migrated to `world.state.aoe2.townCenterRefs` via accessor + codec.
   // Phase 2D: `villagerOrdinals` migrated to `world.state.aoe2.villagerOrdinals`
   // via the accessor + `villagerOrdinalsCodec`. Reads/writes go through
   // `accessor.get(villagerOrdinalsCodec)` / `accessor.mutate(...)` instead.
@@ -108,7 +108,6 @@ export function createBridgeState(): BridgeState {
     researchedTechnologies: new Map(),
     playerResources: new Map(),
     population: new Map(),
-    townCenterRefs: new Map(),
     unitCommands: new Map(),
     movePathCache: new Map(),
     sheepMoveOrders: new Map(),

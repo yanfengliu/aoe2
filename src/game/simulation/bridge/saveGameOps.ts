@@ -28,6 +28,7 @@ import {
   playerScoreCountersCodec,
   rallyPointsCodec,
   relicCountdownsCodec,
+  townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
@@ -83,7 +84,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     researchedTechnologies,
     playerResources,
     population,
-    townCenterRefs,
     unitCommands,
     sheepMoveOrders,
     monkTasks,
@@ -132,7 +132,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         ]),
         marketExchangeRates: { ...accessor.get(marketExchangeRatesCodec) },
         population: [...population.entries()].map(([owner, pop]) => [owner, { ...pop }]),
-        townCenterRefs: [...townCenterRefs.entries()].map(([owner, ref]) => [
+        townCenterRefs: [...accessor.get(townCenterRefsCodec).entries()].map(([owner, ref]) => [
           owner,
           { id: ref.id, generation: ref.generation },
         ]),

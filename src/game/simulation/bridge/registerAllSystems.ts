@@ -122,7 +122,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   } = deps;
 
   const {
-    townCenterRefs,
     aiStates,
     population,
     playerResources,
@@ -147,7 +146,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     visibility,
-    townCenterRefs,
+    accessor,
     aiStates,
     population,
     playerResources,

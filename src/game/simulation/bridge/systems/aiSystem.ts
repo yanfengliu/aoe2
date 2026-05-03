@@ -42,6 +42,7 @@ import {
   trainingCost,
 } from '../../prototypeEconomyRules';
 import type { WildlifeState } from './systemTypes';
+import { townCenterRefsCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -60,7 +61,9 @@ export interface AiSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
-  townCenterRefs: Map<number, EntityRef>;
+  // Phase 2D: townCenterRefs migrated to world.state.aoe2.* via accessor.
+  // Per-tick reads happen via accessor.get(townCenterRefsCodec).
+  accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   aiStates: Map<number, AiState>;
   population: Map<number, PopulationState>;
   playerResources: Map<number, PlayerResources>;
@@ -143,7 +146,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     world,
     humanPlayerId,
     visibility,
-    townCenterRefs,
+    accessor,
     aiStates,
     population,
     playerResources,
@@ -187,7 +190,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     execute(activeWorld) {
       const humanTownCenterId = currentEntityId(
         activeWorld,
-        townCenterRefs.get(humanPlayerId),
+        accessor.get(townCenterRefsCodec).get(humanPlayerId),
       );
       const humanTownCenterPosition =
         humanTownCenterId === null
@@ -260,7 +263,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         }
         state.lastDecisionTick = currentTick;
 
-        const ownerTownCenterId = currentEntityId(activeWorld, townCenterRefs.get(owner));
+        const ownerTownCenterId = currentEntityId(activeWorld, accessor.get(townCenterRefsCodec).get(owner));
         const ownerTownCenterPosition =
           ownerTownCenterId === null
             ? null

@@ -16,6 +16,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
   rallyPointsCodec,
+  townCenterRefsCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -81,7 +82,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     conversionState,
     monksByOwner,
     trebuchetPackStates,
-    townCenterRefs,
     productionQueues,
     constructionStates,
     buildingHealthStates,
@@ -147,9 +147,9 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     garrisonedByBuilding.delete(id);
 
     if (building?.buildingType === 'town-center') {
-      const townCenterRef = townCenterRefs.get(building.owner) ?? null;
+      const townCenterRef = accessor.get(townCenterRefsCodec).get(building.owner) ?? null;
       if (isSameEntity(townCenterRef, id, world)) {
-        townCenterRefs.delete(building.owner);
+        accessor.mutate(townCenterRefsCodec, (m) => m.delete(building.owner));
       }
     }
 
