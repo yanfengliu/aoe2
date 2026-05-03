@@ -25,6 +25,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
+  playerScoreCountersCodec,
   trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -89,7 +90,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     relicsInMonastery,
     wonderCountdowns,
     relicCountdowns,
-    playerScoreCounters,
     trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
@@ -202,7 +202,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           },
         ]),
         relicCountdownOverrides: [...accessor.get(relicCountdownOverridesCodec).entries()],
-        playerScoreCounters: [...playerScoreCounters.entries()].map(([owner, counters]) => [
+        playerScoreCounters: [...accessor.get(playerScoreCountersCodec).entries()].map(([owner, counters]) => [
           owner,
           { ...counters },
         ]),

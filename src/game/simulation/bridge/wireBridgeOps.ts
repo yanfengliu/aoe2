@@ -115,6 +115,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     matchState,
     humanPlayerId: HUMAN_PLAYER_ID,
     state,
+    accessor,
   });
   const { getHumanWonderCountdownTicks, getHumanRelicCountdownTicks } = matchEndOps;
 

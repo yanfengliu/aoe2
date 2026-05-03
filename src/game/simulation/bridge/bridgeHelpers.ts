@@ -23,6 +23,7 @@ import type { BridgeState } from './bridgeState';
 import {
   gathererDropOffStuckSinceTickCodec,
   playerAgesCodec,
+  playerScoreCountersCodec,
 } from './bridgeStateSerialize';
 import { findSafeSpawnWithEgress } from '../spawn';
 import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
@@ -56,15 +57,22 @@ export interface BridgeHelpers {
 export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   const { world, state, accessor } = deps;
   const {
-    playerScoreCounters,
     aiStates,
     inFlightTechByOwner,
     unitCommands,
     movePathCache,
   } = state;
 
+  // Phase 2D: playerScoreCounters lives in world.state.aoe2.* via accessor.
+  // Callers mutate the returned counters object directly (e.g.
+  // `counters.unitsProduced += 1`); we mark dirty unconditionally because
+  // the typical call pattern is ensure-then-mutate. Pure read-only reads
+  // (e.g. matchEndOps reading at end-of-match) over-mark slightly but the
+  // re-serialize cost is small and the alternative (forcing every caller
+  // to wrap mutations in accessor.mutate) leaks the migration surface.
   function ensurePlayerScoreCounters(owner: number): PlayerScoreCounters {
-    let counters = playerScoreCounters.get(owner);
+    const map = accessor.get(playerScoreCountersCodec);
+    let counters = map.get(owner);
     if (!counters) {
       counters = {
         unitsProduced: 0,
@@ -73,8 +81,9 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
         unitsKilled: 0,
         wonderCompleted: false,
       };
-      playerScoreCounters.set(owner, counters);
+      map.set(owner, counters);
     }
+    accessor.markDirty(playerScoreCountersCodec);
     return counters;
   }
 

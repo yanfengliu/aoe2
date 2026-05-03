@@ -17,6 +17,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
+  playerScoreCountersCodec,
   trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -52,7 +53,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     relicsInMonastery,
     wonderCountdowns,
     relicCountdowns,
-    playerScoreCounters,
     trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
@@ -181,15 +181,17 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(owner, ticks);
     }
   });
-  for (const [owner, counters] of blob.playerScoreCounters) {
-    playerScoreCounters.set(owner, {
-      unitsProduced: counters.unitsProduced,
-      buildingsProduced: counters.buildingsProduced,
-      resourcesGathered: counters.resourcesGathered,
-      unitsKilled: counters.unitsKilled ?? 0,
-      wonderCompleted: counters.wonderCompleted,
-    });
-  }
+  accessor.mutate(playerScoreCountersCodec, (m) => {
+    for (const [owner, counters] of blob.playerScoreCounters) {
+      m.set(owner, {
+        unitsProduced: counters.unitsProduced,
+        buildingsProduced: counters.buildingsProduced,
+        resourcesGathered: counters.resourcesGathered,
+        unitsKilled: counters.unitsKilled ?? 0,
+        wonderCompleted: counters.wonderCompleted,
+      });
+    }
+  });
   for (const [id, packState] of blob.trebuchetPackStates ?? []) {
     trebuchetPackStates.set(id, {
       packed: packState.packed,

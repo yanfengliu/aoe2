@@ -11,12 +11,15 @@ import type {
   ResourceComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
+import { playerScoreCountersCodec } from './bridgeStateSerialize';
 
 export interface MatchEndDeps {
   world: GameWorld;
   matchState: MatchState;
   humanPlayerId: number;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: playerScoreCounters migrated to world.state.aoe2.* via accessor.
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
 }
 
 export interface MatchEndOps {
@@ -45,9 +48,8 @@ export interface MatchEndOps {
 }
 
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
-  const { world, matchState, humanPlayerId, state } = deps;
+  const { world, matchState, humanPlayerId, state, accessor } = deps;
   const {
-    playerScoreCounters,
     relicsInMonastery,
     wonderCountdowns,
     relicCountdowns,
@@ -56,7 +58,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   } = state;
 
   function computePlayerScore(owner: number): number {
-    const counters = playerScoreCounters.get(owner) ?? {
+    const counters = accessor.get(playerScoreCountersCodec).get(owner) ?? {
       unitsProduced: 0,
       buildingsProduced: 0,
       resourcesGathered: 0,

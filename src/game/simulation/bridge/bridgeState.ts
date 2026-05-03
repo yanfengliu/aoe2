@@ -36,14 +36,6 @@ interface CachedMovePath {
   nextPathIndex: number;
 }
 
-interface PlayerScoreCounters {
-  unitsProduced: number;
-  buildingsProduced: number;
-  resourcesGathered: number;
-  unitsKilled: number;
-  wonderCompleted: boolean;
-}
-
 export interface BridgeState {
   // Phase 2D: `trackedVisibilitySources` + `playerAges` + `playerCivilizations`
   // migrated to `world.state.aoe2.*` via accessor + codec.
@@ -69,7 +61,8 @@ export interface BridgeState {
   // Phase 2D: `wonderCountdownOverrides` / `relicCountdownOverrides`
   // migrated to `world.state.aoe2.*` via accessor + codec.
   relicCountdowns: Map<number, RelicCountdownEntry>;
-  playerScoreCounters: Map<number, PlayerScoreCounters>;
+  // Phase 2D: `playerScoreCounters` migrated to
+  // `world.state.aoe2.playerScoreCounters` via accessor + codec.
   lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
   garrisonedByBuilding: Map<number, number[]>;
   garrisonedUnitToBuilding: Map<number, number>;
@@ -129,7 +122,6 @@ export function createBridgeState(): BridgeState {
     trebuchetPackStates: new Map(),
     wonderCountdowns: new Map(),
     relicCountdowns: new Map(),
-    playerScoreCounters: new Map(),
     lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),
     garrisonedUnitToBuilding: new Map(),
