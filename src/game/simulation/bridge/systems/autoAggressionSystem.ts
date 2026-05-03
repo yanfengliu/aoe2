@@ -21,16 +21,15 @@ import type {
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
 import type { UnitCommand } from './systemTypes';
-import { combatStatesCodec } from '../bridgeStateSerialize';
+import { aiStatesCodec, combatStatesCodec } from '../bridgeStateSerialize';
 
 export interface AutoAggressionSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   unitCommands: Map<number, UnitCommand>;
-  // Sentinel: reading aiStates.has(owner) gates whether auto-aggression runs
-  // for that owner. The bridge owns the AiState shape.
-  aiStates: Map<number, unknown>;
-  // Phase 2D: combatStates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: combatStates + aiStates migrated to world.state.aoe2.* via accessor.
+  // Sentinel: reading accessor.get(aiStatesCodec).has(owner) gates whether
+  // auto-aggression runs for that owner.
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   isGarrisonedUnit: (id: number) => boolean;
   findPreferredEnemyUnitInRadius: (
@@ -64,7 +63,6 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     world,
     humanPlayerId,
     unitCommands,
-    aiStates,
     accessor,
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
@@ -105,7 +103,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           continue;
         }
 
-        if (unit.owner !== humanPlayerId && !aiStates.has(unit.owner)) {
+        if (unit.owner !== humanPlayerId && !accessor.get(aiStatesCodec).has(unit.owner)) {
           continue;
         }
 

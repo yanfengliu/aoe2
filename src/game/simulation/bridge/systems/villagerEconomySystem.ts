@@ -23,17 +23,17 @@ import {
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
 import { gatherMultiplier } from '../../ai';
-import { gathererDropOffStuckSinceTickCodec, sheepMoveOrdersCodec } from '../bridgeStateSerialize';
+import {
+  aiStatesCodec,
+  gathererDropOffStuckSinceTickCodec,
+  sheepMoveOrdersCodec,
+} from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitCommand } from './systemTypes';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
 const GATHER_DROPOFF_RETRY_INTERVAL = 30;
-
-interface AiStateLike {
-  difficulty: import('../../ai').DifficultyLevel;
-}
 
 interface PlayerScoreCountersLike {
   resourcesGathered: number;
@@ -50,7 +50,7 @@ export interface VillagerEconomySystemDeps {
   // step which doesn't scale to dozens of villagers @ 10 TPS.
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   playerResources: Map<number, PlayerResources>;
-  aiStates: Map<number, AiStateLike>;
+  // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
   findResourceApproachPlan: (
     villagerId: number,
@@ -91,7 +91,6 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     unitCommands,
     accessor,
     playerResources,
-    aiStates,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,
@@ -339,7 +338,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             setStuck(id, activeWorld.tick);
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = playerResources.get(unit.owner);
-            const aiState = aiStates.get(unit.owner);
+            const aiState = accessor.get(aiStatesCodec).get(unit.owner);
             const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
             const deposited = Math.round(gatherer.carriedAmount * multiplier);
             if (stockpile) {

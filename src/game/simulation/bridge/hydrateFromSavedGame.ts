@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  aiStatesCodec,
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   constructionStatesCodec,
@@ -64,7 +65,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    aiStates,
     unitCommands,
     monksByOwner,
   } = state;
@@ -338,19 +338,22 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, { ...bc });
     }
   });
-  for (const [owner, ai] of blob.aiStates ?? []) {
-    aiStates.set(owner, {
-      difficulty: ai.difficulty,
-      plan: ai.plan as AiPlan,
-      villagerTargets: { ...ai.villagerTargets },
-      attackGroup: [...ai.attackGroup],
-      lastDecisionTick: ai.lastDecisionTick,
-      lastEnemySightingTick: ai.lastEnemySightingTick,
-      lastEnemySightingPosition: ai.lastEnemySightingPosition
-        ? { x: ai.lastEnemySightingPosition.x, y: ai.lastEnemySightingPosition.y }
-        : null,
-    });
-  }
+  accessor.mutate(aiStatesCodec, (m) => {
+    m.clear();
+    for (const [owner, ai] of blob.aiStates ?? []) {
+      m.set(owner, {
+        difficulty: ai.difficulty,
+        plan: ai.plan as AiPlan,
+        villagerTargets: { ...ai.villagerTargets },
+        attackGroup: [...ai.attackGroup],
+        lastDecisionTick: ai.lastDecisionTick,
+        lastEnemySightingTick: ai.lastEnemySightingTick,
+        lastEnemySightingPosition: ai.lastEnemySightingPosition
+          ? { x: ai.lastEnemySightingPosition.x, y: ai.lastEnemySightingPosition.y }
+          : null,
+      });
+    }
+  });
   accessor.mutate(wildlifeStatesCodec, (m) => {
     m.clear();
     for (const [id, wildState] of blob.wildlifeStates) {

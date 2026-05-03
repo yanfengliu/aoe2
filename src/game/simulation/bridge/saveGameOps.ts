@@ -24,6 +24,7 @@ import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
+  aiStatesCodec,
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
@@ -101,7 +102,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    aiStates,
   } = state;
 
   function saveGame(): SaveBlob {
@@ -287,7 +287,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
               : null,
           },
         ]),
-        aiStates: [...aiStates.entries()].map(([owner, state]) => [
+        aiStates: [...accessor.get(aiStatesCodec).entries()].map(([owner, state]) => [
           owner,
           {
             difficulty: state.difficulty,

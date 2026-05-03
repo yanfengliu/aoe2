@@ -122,7 +122,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   } = deps;
 
   const {
-    aiStates,
     population,
     playerResources,
     unitCommands,
@@ -137,7 +136,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    aiStates,
     population,
     playerResources,
     unitCommands,
@@ -176,7 +174,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     unitCommands,
-    aiStates,
     accessor,
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
@@ -259,7 +256,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     unitCommands,
     accessor,
     playerResources,
-    aiStates,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,

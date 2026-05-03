@@ -8,7 +8,6 @@ import type {
   PopulationState,
   ResearchableTechnologyType,
 } from '../types';
-import type { AiState } from '../ai';
 import type {
   MonkTask,
   UnitCommand,
@@ -54,7 +53,7 @@ export interface BridgeState {
   // Phase 2D: `garrisonedByBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `garrisonedUnitToBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `garrisonedUnitVisionSources` migrated to `world.state.aoe2.*` via accessor + codec.
-  aiStates: Map<number, AiState>;
+  // Phase 2D: `aiStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // V5-1: O(1) monk presence lookup keyed by owner. Iter-1 V4-12 used
   // countOwnedUnits(owner, 'monk') as the AI assignAiMonkTasks skip-guard,
   // but countOwnedUnits walks world.query('unit') — same cost as the
@@ -100,7 +99,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
     inFlightTechByOwner: new Map(),

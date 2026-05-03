@@ -21,6 +21,7 @@ import {
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import {
+  aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
   playerAgesCodec,
   playerScoreCountersCodec,
@@ -57,7 +58,6 @@ export interface BridgeHelpers {
 export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   const { world, state, accessor } = deps;
   const {
-    aiStates,
     inFlightTechByOwner,
     unitCommands,
     movePathCache,
@@ -87,11 +87,15 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
     return counters;
   }
 
+  // Phase 2D: aiStates migrated. Same ensure-then-mutate pattern as
+  // ensurePlayerScoreCounters above — return the live cached value, callers
+  // mutate fields in place, we mark dirty unconditionally.
   function ensureAiState(
     owner: number,
     difficulty: DifficultyLevel = DEFAULT_DIFFICULTY,
   ): AiState {
-    let aiState = aiStates.get(owner);
+    const map = accessor.get(aiStatesCodec);
+    let aiState = map.get(owner);
     if (!aiState) {
       const age = accessor.get(playerAgesCodec).get(owner) ?? 'dark-age';
       aiState = {
@@ -103,8 +107,9 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
         lastEnemySightingTick: -1,
         lastEnemySightingPosition: null,
       };
-      aiStates.set(owner, aiState);
+      map.set(owner, aiState);
     }
+    accessor.markDirty(aiStatesCodec);
     return aiState;
   }
 

@@ -8,17 +8,21 @@ import type {
   UnitTransformComponent,
 } from '../types';
 import { UNIT_SUBGRID_RESOLUTION, type GameWorld } from './pureHelpers';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { aiStatesCodec } from './bridgeStateSerialize';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
   getDebugSnapshot(): SimulationDebugSnapshot;
 } {
-  const { world, state } = deps;
-  const { unitCommands, aiStates } = state;
+  const { world, state, accessor } = deps;
+  const { unitCommands } = state;
 
   function getDebugSnapshot(): SimulationDebugSnapshot {
     const unitPaths: SimulationDebugSnapshot['unitPaths'] = [];
@@ -36,7 +40,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
     }
 
     const aiSummaries: SimulationDebugSnapshot['aiSummaries'] = [];
-    for (const [owner, aiState] of aiStates.entries()) {
+    for (const [owner, aiState] of accessor.get(aiStatesCodec).entries()) {
       aiSummaries.push({
         owner,
         difficulty: aiState.difficulty,

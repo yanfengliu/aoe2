@@ -41,6 +41,7 @@ import {
   trainingCost,
 } from '../../prototypeEconomyRules';
 import {
+  aiStatesCodec,
   constructionStatesCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
@@ -63,7 +64,7 @@ export interface AiSystemDeps {
   // Phase 2D: townCenterRefs migrated to world.state.aoe2.* via accessor.
   // Per-tick reads happen via accessor.get(townCenterRefsCodec).
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
-  aiStates: Map<number, AiState>;
+  // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   population: Map<number, PopulationState>;
   playerResources: Map<number, PlayerResources>;
   unitCommands: Map<number, UnitCommandLike>;
@@ -144,7 +145,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    aiStates,
     population,
     playerResources,
     unitCommands,
@@ -250,12 +250,13 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         }
       }
 
-      for (const [owner, state] of aiStates.entries()) {
+      for (const [owner, state] of accessor.get(aiStatesCodec).entries()) {
         const interval = decisionIntervalTicks(state.difficulty);
         if (state.lastDecisionTick >= 0 && currentTick - state.lastDecisionTick < interval) {
           continue;
         }
         state.lastDecisionTick = currentTick;
+        accessor.markDirty(aiStatesCodec);
 
         const ownerTownCenterId = currentEntityId(activeWorld, accessor.get(townCenterRefsCodec).get(owner));
         const ownerTownCenterPosition =
