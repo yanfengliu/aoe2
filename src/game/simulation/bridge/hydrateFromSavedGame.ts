@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  conversionStateCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
@@ -51,7 +52,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    conversionState,
     monkCarriedRelic,
     trebuchetPackStates,
     lastSeenStatic,
@@ -149,9 +149,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     const ref = refFromSerialized(task.targetEntityRef);
     if (ref) monkTasks.set(id, { kind: task.kind, targetEntityRef: ref });
   }
-  for (const [id, conv] of blob.conversionState) {
-    conversionState.set(id, { byOwner: conv.byOwner, progress: conv.progress });
-  }
+  accessor.mutate(conversionStateCodec, (m) => {
+    for (const [id, conv] of blob.conversionState) {
+      m.set(id, { byOwner: conv.byOwner, progress: conv.progress });
+    }
+  });
   for (const [id, relicId] of blob.monkCarriedRelic) {
     monkCarriedRelic.set(id, relicId);
   }
@@ -373,7 +375,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(sheepMoveOrdersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(monkTasks);
-  pruneOrphanEntityKeys(conversionState);
+  accessor.mutate(conversionStateCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(monkCarriedRelic);
   accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(relicsInMonasteryCodec, (m) => pruneOrphanEntityKeys(m));

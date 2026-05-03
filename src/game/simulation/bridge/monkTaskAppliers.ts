@@ -16,7 +16,11 @@ import type {
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { monkHealCountersCodec, relicsInMonasteryCodec } from './bridgeStateSerialize';
+import {
+  conversionStateCodec,
+  monkHealCountersCodec,
+  relicsInMonasteryCodec,
+} from './bridgeStateSerialize';
 
 export interface MonkTaskAppliersDeps {
   world: GameWorld;
@@ -79,7 +83,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkTasks,
     monkCarriedRelic,
     monkConvertProcessedThisTick,
-    conversionState,
     combatStates,
     unitCommands,
     population,
@@ -125,9 +128,11 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     activeWorld: World<GameEvents, GameCommands>,
   ): void {
     const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+    const conversionState = accessor.get(conversionStateCodec);
     if (!targetUnit || targetUnit.owner === monkUnit.owner) {
       clearMonkTask(monkId);
       conversionState.delete(targetId);
+      accessor.markDirty(conversionStateCodec);
       return;
     }
     // Iter-3 V3-7: vision/LOS interrupt. Moving the converting unit out
@@ -149,6 +154,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // periodic clear in monkBehaviorSystem misses a phase boundary.
     if (monkConvertProcessedThisTick.get(targetId) === activeWorld.tick) {
       conversionState.set(targetId, convState);
+      accessor.markDirty(conversionStateCodec);
       return;
     }
     if (convState.byOwner !== monkUnit.owner) {
@@ -162,6 +168,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       return;
     }
     conversionState.set(targetId, convState);
+    accessor.markDirty(conversionStateCodec);
   }
 
   function flipConvertedUnit(
@@ -232,7 +239,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
         clearUnitCommand(commanderId);
       }
     }
-    conversionState.delete(targetId);
+    accessor.mutate(conversionStateCodec, (m) => m.delete(targetId));
     clearMonkTask(monkId);
     markOutOfBandRenderChange();
   }

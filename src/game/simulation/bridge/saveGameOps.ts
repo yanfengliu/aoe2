@@ -23,6 +23,7 @@ import type { VisibilityCell } from './visibilityCell';
 import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
+  conversionStateCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
@@ -88,7 +89,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    conversionState,
     monkCarriedRelic,
     trebuchetPackStates,
     lastSeenStatic,
@@ -177,7 +177,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
             },
           },
         ]),
-        conversionState: [...conversionState.entries()].map(([id, state]) => [
+        conversionState: [...accessor.get(conversionStateCodec).entries()].map(([id, state]) => [
           id,
           { byOwner: state.byOwner, progress: state.progress },
         ]),

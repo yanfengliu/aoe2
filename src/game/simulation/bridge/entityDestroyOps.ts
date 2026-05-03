@@ -13,6 +13,7 @@ import type {
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
+  conversionStateCodec,
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
   rallyPointsCodec,
@@ -81,7 +82,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     combatStates,
     monkTasks,
     monkCarriedRelic,
-    conversionState,
     monksByOwner,
     trebuchetPackStates,
     productionQueues,
@@ -130,7 +130,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     combatStates.delete(id);
     monkTasks.delete(id);
     monkCarriedRelic.delete(id);
-    conversionState.delete(id);
+    accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
     trebuchetPackStates.delete(id);
     accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));

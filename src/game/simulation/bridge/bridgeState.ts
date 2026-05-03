@@ -52,7 +52,7 @@ export interface BridgeState {
   // Phase 2D: `sheepMoveOrders` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `rallyPoints` migrated to `world.state.aoe2.rallyPoints` via accessor + codec.
   monkTasks: Map<number, MonkTask>;
-  conversionState: Map<number, { byOwner: number; progress: number }>;
+  // Phase 2D: `conversionState` migrated to `world.state.aoe2.*` via accessor + codec.
   monkCarriedRelic: Map<number, number>;
   // Phase 2D: `relicsInMonastery` migrated to `world.state.aoe2.*` via accessor + codec.
   trebuchetPackStates: Map<number, TrebuchetPackState>;
@@ -111,7 +111,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    conversionState: new Map(),
     monkCarriedRelic: new Map(),
     trebuchetPackStates: new Map(),
     lastSeenStatic: new Map(),
