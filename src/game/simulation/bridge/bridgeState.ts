@@ -60,7 +60,7 @@ export interface BridgeState {
   // Phase 2D: `playerScoreCounters` migrated to
   // `world.state.aoe2.playerScoreCounters` via accessor + codec.
   // Phase 2D: `lastSeenStatic` migrated to `world.state.aoe2.*` via accessor + codec.
-  garrisonedByBuilding: Map<number, number[]>;
+  // Phase 2D: `garrisonedByBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
   garrisonedUnitToBuilding: Map<number, number>;
   garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
   aiStates: Map<number, AiState>;
@@ -109,7 +109,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    garrisonedByBuilding: new Map(),
     garrisonedUnitToBuilding: new Map(),
     garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),

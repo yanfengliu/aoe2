@@ -9,6 +9,8 @@ import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
 import type { BuildingCombatState, CombatState } from './systemTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { garrisonedByBuildingCodec } from '../bridgeStateSerialize';
 
 interface ConstructionStateLike {
   isComplete: boolean;
@@ -23,7 +25,8 @@ export interface TowerCombatSystemDeps {
   constructionStates: Map<number, ConstructionStateLike>;
   buildingCombatStates: Map<number, BuildingCombatState>;
   combatStates: Map<number, CombatState>;
-  garrisonedByBuilding: Map<number, number[]>;
+  // Phase 2D: garrisonedByBuilding migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
     position: Position,
@@ -41,7 +44,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     constructionStates,
     buildingCombatStates,
     combatStates,
-    garrisonedByBuilding,
+    accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,
     markOutOfBandRenderChange,
@@ -72,7 +75,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           buildingCombat.cooldownTicks -= 1;
         }
 
-        const garrisonIds = garrisonedByBuilding.get(id) ?? [];
+        const garrisonIds = accessor.get(garrisonedByBuildingCodec).get(id) ?? [];
         let garrisonedArcherCount = 0;
         for (const garrisonedId of garrisonIds) {
           const garrisonedUnit = activeWorld.getComponent<UnitComponent>(garrisonedId, 'unit');

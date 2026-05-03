@@ -203,6 +203,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     worldOccupancy,
     tiles,
     state,
+    accessor,
   });
 
   const movementPlanOps = createMovementPlanOps({

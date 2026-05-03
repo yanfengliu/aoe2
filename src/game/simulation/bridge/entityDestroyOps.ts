@@ -14,6 +14,7 @@ import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   conversionStateCodec,
+  garrisonedByBuildingCodec,
   gathererDropOffStuckSinceTickCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -78,7 +79,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   } = deps;
   const {
     garrisonedUnitToBuilding,
-    garrisonedByBuilding,
     garrisonedUnitVisionSources,
     population,
     combatStates,
@@ -95,14 +95,15 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   function destroyUnitEntity(id: number): void {
     const garrisonBuildingId = garrisonedUnitToBuilding.get(id) ?? null;
     if (garrisonBuildingId !== null) {
-      const garrisonedUnits = garrisonedByBuilding.get(garrisonBuildingId) ?? [];
-      garrisonedByBuilding.set(
-        garrisonBuildingId,
-        garrisonedUnits.filter((candidateId) => candidateId !== id),
-      );
-      if ((garrisonedByBuilding.get(garrisonBuildingId)?.length ?? 0) === 0) {
-        garrisonedByBuilding.delete(garrisonBuildingId);
-      }
+      accessor.mutate(garrisonedByBuildingCodec, (m) => {
+        const garrisonedUnits = m.get(garrisonBuildingId) ?? [];
+        const filtered = garrisonedUnits.filter((candidateId) => candidateId !== id);
+        if (filtered.length === 0) {
+          m.delete(garrisonBuildingId);
+        } else {
+          m.set(garrisonBuildingId, filtered);
+        }
+      });
       garrisonedUnitToBuilding.delete(id);
       garrisonedUnitVisionSources.delete(id);
     }
@@ -141,10 +142,10 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   function destroyBuildingEntity(id: number): void {
     const building = world.getComponent<BuildingComponent>(id, 'building');
     const construction = constructionStates.get(id);
-    for (const garrisonedUnitId of garrisonedByBuilding.get(id) ?? []) {
+    for (const garrisonedUnitId of accessor.get(garrisonedByBuildingCodec).get(id) ?? []) {
       destroyUnitEntity(garrisonedUnitId);
     }
-    garrisonedByBuilding.delete(id);
+    accessor.mutate(garrisonedByBuildingCodec, (m) => m.delete(id));
 
     if (building?.buildingType === 'town-center') {
       const townCenterRef = accessor.get(townCenterRefsCodec).get(building.owner) ?? null;

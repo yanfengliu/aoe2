@@ -16,6 +16,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
+  garrisonedByBuildingCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -55,7 +56,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    garrisonedByBuilding,
     garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
     productionQueues,
@@ -236,9 +236,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       outer.set(playerId, inner);
     }
   });
-  for (const [id, list] of blob.garrisonedByBuilding) {
-    garrisonedByBuilding.set(id, [...list]);
-  }
+  accessor.mutate(garrisonedByBuildingCodec, (m) => {
+    for (const [id, list] of blob.garrisonedByBuilding) {
+      m.set(id, [...list]);
+    }
+  });
   for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
     garrisonedUnitToBuilding.set(id, buildingId);
   }
@@ -246,7 +248,8 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
   }
   // Cross-reference invariant for the garrison maps (Iter-1 H-3).
-  for (const [buildingId, list] of garrisonedByBuilding) {
+  const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
+  for (const [buildingId, list] of garrisonedByBuildingForCheck) {
     for (const unitId of list) {
       const reverse = garrisonedUnitToBuilding.get(unitId);
       if (reverse !== buildingId) {
@@ -257,7 +260,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     }
   }
   for (const [unitId, buildingId] of garrisonedUnitToBuilding) {
-    const list = garrisonedByBuilding.get(buildingId);
+    const list = garrisonedByBuildingForCheck.get(buildingId);
     if (!list || !list.includes(unitId)) {
       throw new Error(
         `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (not present in garrisonedByBuilding).`,
@@ -394,7 +397,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(buildingCombatStates);
   pruneOrphanEntityKeys(wildlifeStates);
   pruneOrphanEntityKeys(garrisonedUnitVisionSources);
-  pruneOrphanEntityKeys(garrisonedByBuilding);
+  accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(garrisonedUnitToBuilding);
   // Phase 2D — prune via accessor.
   accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) =>
@@ -410,16 +413,18 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   // save with mismatched-but-alive entities still throws loudly there;
   // this only handles the dead-id case where the only correct action is
   // silent cleanup.
-  for (const [buildingId, list] of garrisonedByBuilding) {
-    const filtered = list.filter((unitId) => world.getEntityRef(unitId) !== null);
-    if (filtered.length !== list.length) {
-      if (filtered.length === 0) {
-        garrisonedByBuilding.delete(buildingId);
-      } else {
-        garrisonedByBuilding.set(buildingId, filtered);
+  accessor.mutate(garrisonedByBuildingCodec, (m) => {
+    for (const [buildingId, list] of m) {
+      const filtered = list.filter((unitId) => world.getEntityRef(unitId) !== null);
+      if (filtered.length !== list.length) {
+        if (filtered.length === 0) {
+          m.delete(buildingId);
+        } else {
+          m.set(buildingId, filtered);
+        }
       }
     }
-  }
+  });
   for (const [unitId, buildingId] of [...garrisonedUnitToBuilding]) {
     if (world.getEntityRef(buildingId) === null) {
       garrisonedUnitToBuilding.delete(unitId);

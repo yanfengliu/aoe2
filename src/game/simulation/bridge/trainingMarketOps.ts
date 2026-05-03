@@ -38,7 +38,7 @@ import {
 
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { marketExchangeRatesCodec } from './bridgeStateSerialize';
+import { garrisonedByBuildingCodec, marketExchangeRatesCodec } from './bridgeStateSerialize';
 
 export interface TrainingMarketOpsDeps {
   world: GameWorld;
@@ -144,7 +144,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     playerResources,
     productionQueues,
     constructionStates,
-    garrisonedByBuilding,
     garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
   } = state;
@@ -288,7 +287,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const currentUnits = garrisonedByBuilding.get(buildingId) ?? [];
+    const currentUnits = accessor.get(garrisonedByBuildingCodec).get(buildingId) ?? [];
     if (currentUnits.length >= capacity || isGarrisonedUnit(unitId)) {
       return false;
     }
@@ -304,8 +303,11 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     clearPositionAndSyncOccupancy(unitId);
     garrisonedUnitToBuilding.set(unitId, buildingId);
-    currentUnits.push(unitId);
-    garrisonedByBuilding.set(buildingId, currentUnits);
+    accessor.mutate(garrisonedByBuildingCodec, (m) => {
+      const list = m.get(buildingId) ?? [];
+      list.push(unitId);
+      m.set(buildingId, list);
+    });
     clearSelection();
     placementMode.current = null;
     markOutOfBandRenderChange();
@@ -315,7 +317,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   function ungarrisonBuilding(buildingId: number): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     const buildingPosition = world.getComponent<Position>(buildingId, 'position');
-    const garrisonedUnits = garrisonedByBuilding.get(buildingId) ?? [];
+    const garrisonedUnits = accessor.get(garrisonedByBuildingCodec).get(buildingId) ?? [];
     if (!building || !buildingPosition || garrisonedUnits.length === 0) {
       return false;
     }
@@ -345,11 +347,13 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       didUngarrisonUnit = true;
     }
 
-    if (remainingGarrisonedUnits.length > 0) {
-      garrisonedByBuilding.set(buildingId, remainingGarrisonedUnits);
-    } else {
-      garrisonedByBuilding.delete(buildingId);
-    }
+    accessor.mutate(garrisonedByBuildingCodec, (m) => {
+      if (remainingGarrisonedUnits.length > 0) {
+        m.set(buildingId, remainingGarrisonedUnits);
+      } else {
+        m.delete(buildingId);
+      }
+    });
 
     if (didUngarrisonUnit) {
       markOutOfBandRenderChange();

@@ -136,7 +136,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkConvertProcessedThisTick,
     monksByOwner,
     inFlightTechByOwner,
-    garrisonedByBuilding,
   } = state;
 
   registerAiSystem({
@@ -332,7 +331,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     constructionStates,
     buildingCombatStates,
     combatStates,
-    garrisonedByBuilding,
+    accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,
     markOutOfBandRenderChange,

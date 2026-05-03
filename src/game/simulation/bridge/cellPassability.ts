@@ -17,6 +17,8 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { garrisonedByBuildingCodec } from './bridgeStateSerialize';
 type CivWorld = World<GameEvents, GameCommands>;
 
 interface WorldOccupancyLike {
@@ -35,6 +37,8 @@ export interface CellPassabilityDeps {
   worldOccupancy: WorldOccupancyLike;
   tiles: number[][];
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: garrisonedByBuilding migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export interface CellPassability {
@@ -78,11 +82,11 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     worldOccupancy,
     tiles,
     state,
+    accessor,
   } = deps;
   const {
     constructionStates,
     wildlifeStates,
-    garrisonedByBuilding,
     garrisonedUnitToBuilding,
   } = state;
 
@@ -190,7 +194,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     if (
       owner === humanPlayerId
       && buildingGarrisonCapacity(buildingType) > 0
-      && (garrisonedByBuilding.get(buildingId)?.length ?? 0) > 0
+      && (accessor.get(garrisonedByBuildingCodec).get(buildingId)?.length ?? 0) > 0
     ) {
       return ['ungarrison'];
     }

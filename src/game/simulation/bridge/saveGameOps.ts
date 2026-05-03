@@ -24,6 +24,7 @@ import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
+  garrisonedByBuildingCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -92,7 +93,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    garrisonedByBuilding,
     garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
     productionQueues,
@@ -231,10 +231,9 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
             },
           ]),
         ]),
-        garrisonedByBuilding: [...garrisonedByBuilding.entries()].map(([id, list]) => [
-          id,
-          [...list],
-        ]),
+        garrisonedByBuilding: [...accessor.get(garrisonedByBuildingCodec).entries()].map(
+          ([id, list]) => [id, [...list]],
+        ),
         garrisonedUnitToBuilding: [...garrisonedUnitToBuilding.entries()],
         garrisonedUnitVisionSources: [...garrisonedUnitVisionSources.entries()].map(
           ([id, src]) => [id, { playerId: src.playerId, radius: src.radius }],

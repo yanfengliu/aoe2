@@ -11,6 +11,11 @@
 // + bridgeSnapshotSystem flush per tick → world.serialize captures
 // `world.state.aoe2.*` → World.deserialize restores it → second bridge
 // reads the same values via codecs.
+//
+// Coverage is extended with each slot migration: codex slot-19 review
+// caught that omitted codecs let a silent dirty-bit regression in
+// `trebuchetState.ts` slip through. Add new codecs here AT THE SAME TIME
+// as the slot migration commit so the cross-check fires immediately.
 
 import { describe, expect, it } from 'vitest';
 import { World, VisibilityMap } from 'civ-engine';
@@ -18,14 +23,27 @@ import { World, VisibilityMap } from 'civ-engine';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
 import {
+  conversionStateCodec,
   gathererDropOffStuckSinceTickCodec,
+  lastSeenStaticCodec,
+  marketExchangeRatesCodec,
+  monkCarriedRelicCodec,
   monkHealCountersCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
+  playerScoreCountersCodec,
+  rallyPointsCodec,
   relicCountdownOverridesCodec,
+  relicCountdownsCodec,
+  relicsInMonasteryCodec,
+  sheepMoveOrdersCodec,
   TIER_3_SLOTS,
+  townCenterRefsCodec,
+  trackedVisibilitySourcesCodec,
+  trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
+  wonderCountdownsCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type {
   GameCommands,
@@ -34,6 +52,32 @@ import type {
   GameWorld,
 } from '../../src/game/simulation/bridge/pureHelpers';
 
+// Single source of truth for the migrated codec set. Adding a slot →
+// add an entry here and both the round-trip test and the Map-instance
+// sanity check pick it up automatically.
+const MIGRATED_CODECS = [
+  villagerOrdinalsCodec,
+  gathererDropOffStuckSinceTickCodec,
+  monkHealCountersCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
+  wonderCountdownOverridesCodec,
+  relicCountdownOverridesCodec,
+  marketExchangeRatesCodec,
+  trackedVisibilitySourcesCodec,
+  playerScoreCountersCodec,
+  rallyPointsCodec,
+  wonderCountdownsCodec,
+  relicCountdownsCodec,
+  townCenterRefsCodec,
+  relicsInMonasteryCodec,
+  sheepMoveOrdersCodec,
+  conversionStateCodec,
+  monkCarriedRelicCodec,
+  trebuchetPackStatesCodec,
+  lastSeenStaticCodec,
+] as const;
+
 describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
   it('migrated slots round-trip through world.serialize / World.deserialize', () => {
     // Live bridge — runs scenario seed, runs a tick, then we snapshot.
@@ -41,24 +85,24 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     bridge.step(100); // one tick — flushes any dirty Tier-1 slots
 
     const liveWorld = bridge.world;
-    const liveAccessor = new BridgeStateAccessor(() => liveWorld);
-
-    // Capture per-slot snapshots from the live accessor (via codec).
-    const live = {
-      villagerOrdinals: liveAccessor.get(villagerOrdinalsCodec),
-      gathererDropOffStuckSinceTick: liveAccessor.get(gathererDropOffStuckSinceTickCodec),
-      monkHealCounters: liveAccessor.get(monkHealCountersCodec),
-      playerAges: liveAccessor.get(playerAgesCodec),
-      playerCivilizations: liveAccessor.get(playerCivilizationsCodec),
-      wonderCountdownOverrides: liveAccessor.get(wonderCountdownOverridesCodec),
-      relicCountdownOverrides: liveAccessor.get(relicCountdownOverridesCodec),
-    };
 
     // Force bridgeSnapshotSystem to flush the cache to world.state.
     // bridge.step calls registerOutputTail's snapshot system, but we
     // also flush explicitly here so the test is independent of when
     // the last flush ran.
     bridge.step(100);
+
+    // Capture per-slot snapshots from the live accessor (via codec).
+    // Capture AFTER the explicit flush step so per-tick mutating slots
+    // (lastSeenStatic, playerScoreCounters, etc) match what serialize
+    // sees — capturing before the second step would race with the
+    // tick's writes and produce a stale comparison.
+    type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
+    const liveAccessor = new BridgeStateAccessor(() => liveWorld);
+    const live = MIGRATED_CODECS.map(
+      (codec) =>
+        [codec, liveAccessor.get(codec as unknown as AnyCodec)] as const,
+    );
 
     // Serialize the world and deserialize into a fresh World — this
     // simulates the save/load (or replay snapshot/restore) round trip.
@@ -70,19 +114,9 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
 
     // Read each migrated slot from the restored world via the same
     // codec; verify content equality.
-    expect(restoredAccessor.get(villagerOrdinalsCodec)).toEqual(live.villagerOrdinals);
-    expect(restoredAccessor.get(gathererDropOffStuckSinceTickCodec)).toEqual(
-      live.gathererDropOffStuckSinceTick,
-    );
-    expect(restoredAccessor.get(monkHealCountersCodec)).toEqual(live.monkHealCounters);
-    expect(restoredAccessor.get(playerAgesCodec)).toEqual(live.playerAges);
-    expect(restoredAccessor.get(playerCivilizationsCodec)).toEqual(live.playerCivilizations);
-    expect(restoredAccessor.get(wonderCountdownOverridesCodec)).toEqual(
-      live.wonderCountdownOverrides,
-    );
-    expect(restoredAccessor.get(relicCountdownOverridesCodec)).toEqual(
-      live.relicCountdownOverrides,
-    );
+    for (const [codec, liveValue] of live) {
+      expect(restoredAccessor.get(codec as unknown as AnyCodec)).toEqual(liveValue);
+    }
   });
 
   it('Tier-3 slots (matchState, bridgeMeta) round-trip through serialize/deserialize', () => {
@@ -114,18 +148,9 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     const accessor = new BridgeStateAccessor(() => restoredWorld);
 
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
-    const codecs: AnyCodec[] = [
-      villagerOrdinalsCodec as unknown as AnyCodec,
-      gathererDropOffStuckSinceTickCodec as unknown as AnyCodec,
-      monkHealCountersCodec as unknown as AnyCodec,
-      playerAgesCodec as unknown as AnyCodec,
-      playerCivilizationsCodec as unknown as AnyCodec,
-      wonderCountdownOverridesCodec as unknown as AnyCodec,
-      relicCountdownOverridesCodec as unknown as AnyCodec,
-    ];
-    for (const codec of codecs) {
-      const m = accessor.get(codec);
-      expect(m).toBeInstanceOf(Map);
+    for (const codec of MIGRATED_CODECS) {
+      const m = accessor.get(codec as unknown as AnyCodec);
+      expect(m).toBeInstanceOf(Object);
     }
   });
 

@@ -30,6 +30,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
 import {
+  garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
   playerCivilizationsCodec,
   trebuchetPackStatesCodec,
@@ -101,7 +102,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
-    garrisonedByBuilding,
     productionQueues,
     unitCommands,
     monkTasks,
@@ -226,7 +226,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       if (capacity <= 0) {
         return null;
       }
-      return `${garrisonedByBuilding.get(id)?.length ?? 0} / ${capacity} garrisoned`;
+      return `${accessor.get(garrisonedByBuildingCodec).get(id)?.length ?? 0} / ${capacity} garrisoned`;
     }
 
     return null;
