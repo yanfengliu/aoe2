@@ -24,7 +24,7 @@ import {
   buildingPopulationProvided,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
-import { playerAgesCodec } from './bridgeStateSerialize';
+import { playerAgesCodec, productionQueuesCodec } from './bridgeStateSerialize';
 
 export interface EconomyStateOpsDeps {
   world: GameWorld;
@@ -41,7 +41,6 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
   const {
     combatStates,
     constructionStates,
-    productionQueues,
     playerResources,
     population,
   } = state;
@@ -124,7 +123,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
             ? construction.totalBuildTicks
             : buildingBuildTimeTicks(building.buildingType),
           populationProvided: buildingPopulationProvided(building.buildingType),
-          queue: cloneQueue(productionQueues.get(id) ?? []),
+          queue: cloneQueue(accessor.get(productionQueuesCodec).get(id) ?? []),
         };
       })
       .filter((entry): entry is EconomyState['buildings'][number] => entry !== null);

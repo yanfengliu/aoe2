@@ -43,6 +43,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   marketExchangeRatesCodec,
+  productionQueuesCodec,
 } from './bridgeStateSerialize';
 
 export interface TrainingMarketOpsDeps {
@@ -147,7 +148,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   } = deps;
   const {
     playerResources,
-    productionQueues,
     constructionStates,
   } = state;
 
@@ -172,17 +172,19 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
-    const queue = productionQueues.get(buildingId) ?? [];
     const totalTicks = trainingTimeTicks(unitType);
-    queue.push({
-      kind: 'unit',
-      label: unitType,
-      unitType,
-      remainingTicks: totalTicks,
-      totalTicks,
-      isBlocked: false,
+    accessor.mutate(productionQueuesCodec, (m) => {
+      const queue = m.get(buildingId) ?? [];
+      queue.push({
+        kind: 'unit',
+        label: unitType,
+        unitType,
+        remainingTicks: totalTicks,
+        totalTicks,
+        isBlocked: false,
+      });
+      m.set(buildingId, queue);
     });
-    productionQueues.set(buildingId, queue);
     return true;
   }
 
@@ -205,7 +207,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const queue = productionQueues.get(buildingId) ?? [];
     const stockpile = playerResources.get(building.owner);
     if (!stockpile) return false;
 
@@ -214,15 +215,18 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     spendResources(stockpile, cost);
     const totalTicks = researchTimeTicks(technologyType);
-    queue.push({
-      kind: 'technology',
-      label: technologyType,
-      technologyType,
-      remainingTicks: totalTicks,
-      totalTicks,
-      isBlocked: false,
+    accessor.mutate(productionQueuesCodec, (m) => {
+      const queue = m.get(buildingId) ?? [];
+      queue.push({
+        kind: 'technology',
+        label: technologyType,
+        technologyType,
+        remainingTicks: totalTicks,
+        totalTicks,
+        isBlocked: false,
+      });
+      m.set(buildingId, queue);
     });
-    productionQueues.set(buildingId, queue);
     inFlightTechSetFor(building.owner).add(technologyType);
     return true;
   }

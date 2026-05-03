@@ -6,7 +6,6 @@ import type { Position } from 'civ-engine';
 import type {
   PlayerResources,
   PopulationState,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
 } from '../types';
 import type { AiState } from '../ai';
@@ -84,7 +83,7 @@ export interface BridgeState {
   // invoked applyMonkConvert from a different system phase), the per-tick
   // guarantee still holds because stale-tick entries no longer match.
   monkConvertProcessedThisTick: Map<number, number>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
+  // Phase 2D: `productionQueues` migrated to `world.state.aoe2.*` via accessor + codec.
   constructionStates: Map<number, ConstructionState>;
   combatStates: Map<number, CombatState>;
   buildingHealthStates: Map<number, BuildingHealthState>;
@@ -111,7 +110,6 @@ export function createBridgeState(): BridgeState {
     aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
-    productionQueues: new Map(),
     constructionStates: new Map(),
     combatStates: new Map(),
     buildingHealthStates: new Map(),

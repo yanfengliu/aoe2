@@ -9,7 +9,6 @@ import type {
   BuildingComponent,
   BuildingType,
   PopulationState,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   TrainableUnitType,
   VisionSourceComponent,
@@ -17,13 +16,12 @@ import type {
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { rallyPointsCodec } from '../bridgeStateSerialize';
+import { productionQueuesCodec, rallyPointsCodec } from '../bridgeStateSerialize';
 
 export interface ProductionQueueSystemDeps {
   world: GameWorld;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
   population: Map<number, PopulationState>;
-  // Phase 2D: rallyPoints migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: rallyPoints + productionQueues migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
   findBuildingSpawnPosition: (
@@ -43,7 +41,6 @@ export interface ProductionQueueSystemDeps {
 export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): void {
   const {
     world,
-    productionQueues,
     population,
     accessor,
     inFlightTechByOwner,
@@ -58,6 +55,8 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute() {
+      const productionQueues = accessor.get(productionQueuesCodec);
+      let dirty = false;
       for (const [buildingId, queue] of productionQueues.entries()) {
         if (queue.length === 0) {
           continue;
@@ -67,6 +66,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
         const position = world.getComponent<Position>(buildingId, 'position');
         if (!building || !position) {
           productionQueues.set(buildingId, []);
+          dirty = true;
           continue;
         }
 
@@ -79,11 +79,13 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
 
           if (populationState.current >= populationState.cap) {
             entry.isBlocked = true;
+            dirty = true;
             continue;
           }
         }
 
         entry.isBlocked = false;
+        dirty = true;
         if (entry.remainingTicks > 0) {
           entry.remainingTicks -= 1;
           if (entry.remainingTicks > 0) {
@@ -115,6 +117,9 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
         }
 
         queue.shift();
+      }
+      if (dirty) {
+        accessor.markDirty(productionQueuesCodec);
       }
     },
   });

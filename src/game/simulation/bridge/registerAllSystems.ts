@@ -126,7 +126,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     population,
     playerResources,
     constructionStates,
-    productionQueues,
     unitCommands,
     wildlifeStates,
     combatStates,
@@ -147,7 +146,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     population,
     playerResources,
     constructionStates,
-    productionQueues,
     unitCommands,
     wildlifeStates,
     monksByOwner,
@@ -246,7 +244,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerProductionQueueSystem({
     world,
-    productionQueues,
     population,
     accessor,
     inFlightTechByOwner,

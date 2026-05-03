@@ -20,7 +20,7 @@ import type {
 } from '../types';
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
-import { playerAgesCodec } from './bridgeStateSerialize';
+import { playerAgesCodec, productionQueuesCodec } from './bridgeStateSerialize';
 import {
   isArcherLineUnit,
   isCavalryUnit,
@@ -83,7 +83,6 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
   const {
     researchedTechnologies,
     combatStates,
-    productionQueues,
   } = state;
 
   function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
@@ -130,6 +129,8 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     from: TrainableUnitType,
     to: TrainableUnitType,
   ): void {
+    const productionQueues = accessor.get(productionQueuesCodec);
+    let dirty = false;
     for (const [buildingId, queue] of productionQueues.entries()) {
       const building = world.getComponent<BuildingComponent>(buildingId, 'building');
       if (!building || building.owner !== owner) {
@@ -139,8 +140,12 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         if (entry.kind === 'unit' && entry.unitType === from) {
           entry.unitType = to;
           entry.label = to;
+          dirty = true;
         }
       }
+    }
+    if (dirty) {
+      accessor.markDirty(productionQueuesCodec);
     }
   }
 

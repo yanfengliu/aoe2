@@ -24,6 +24,9 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
 import {
   conversionStateCodec,
+  garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
+  garrisonedUnitVisionSourcesCodec,
   gathererDropOffStuckSinceTickCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
@@ -32,6 +35,7 @@ import {
   playerAgesCodec,
   playerCivilizationsCodec,
   playerScoreCountersCodec,
+  productionQueuesCodec,
   rallyPointsCodec,
   relicCountdownOverridesCodec,
   relicCountdownsCodec,
@@ -76,6 +80,10 @@ const MIGRATED_CODECS = [
   monkCarriedRelicCodec,
   trebuchetPackStatesCodec,
   lastSeenStaticCodec,
+  garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
+  garrisonedUnitVisionSourcesCodec,
+  productionQueuesCodec,
 ] as const;
 
 describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
@@ -135,10 +143,13 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     expect(restored.getState(TIER_3_SLOTS.matchState)).toEqual(liveMatchState);
   });
 
-  it('reading migrated slots from a fresh deserialized world via accessor codecs returns Map instances', () => {
+  it('reading migrated slots from a fresh deserialized world via accessor codecs returns codec-shaped values', () => {
     // Sanity check that codec.deserialize is invoked correctly by the
     // accessor lazy-read path on a serialized→deserialized world (not
-    // the original live world).
+    // the original live world). Most codecs return Map (flatMap, mapOfMap,
+    // mapOfSet); a small minority return a plain Record (e.g.
+    // marketExchangeRates). Per slot-21 Claude review iter-1: assert the
+    // RIGHT shape per codec instead of a too-lax `instanceof Object`.
     const bridge = createSimulationBridge('feudal-age-fixture');
     bridge.step(100);
     const snapshot = bridge.world.serialize();
@@ -147,10 +158,20 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     ) as unknown as GameWorld;
     const accessor = new BridgeStateAccessor(() => restoredWorld);
 
+    // marketExchangeRatesCodec is the ONE record-shaped codec — its
+    // serialize/deserialize uses a plain object, not a Map.
+    const RECORD_CODECS = new Set([marketExchangeRatesCodec]);
+
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
     for (const codec of MIGRATED_CODECS) {
-      const m = accessor.get(codec as unknown as AnyCodec);
-      expect(m).toBeInstanceOf(Object);
+      const value = accessor.get(codec as unknown as AnyCodec);
+      if (RECORD_CODECS.has(codec as unknown as typeof marketExchangeRatesCodec)) {
+        expect(value).not.toBeInstanceOf(Map);
+        expect(typeof value).toBe('object');
+        expect(value).not.toBeNull();
+      } else {
+        expect(value).toBeInstanceOf(Map);
+      }
     }
   });
 

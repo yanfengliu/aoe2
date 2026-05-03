@@ -20,6 +20,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
+  productionQueuesCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -58,7 +59,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    productionQueues,
     constructionStates,
     combatStates,
     buildingHealthStates,
@@ -236,12 +236,24 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       outer.set(playerId, inner);
     }
   });
+  // Codex slot-21 review HIGH: clear before populate. World.deserialize
+  // restored `world.state.aoe2.garrisonedByBuilding` from `worldSnapshot`,
+  // and now we populate from `sideMaps`. Without clearing first, a corrupt
+  // save where `sideMaps.garrisonedByBuilding` is missing an entry would
+  // silently pick up the stale entry from worldSnapshot — masking the
+  // cross-reference invariant that's supposed to fire on load-time
+  // corruption. Same logic for the reverse map below. Phase 2F will
+  // unify to a single source of truth (worldSnapshot only) but until
+  // then, sideMaps is treated as the strict source of truth for the
+  // garrison invariant.
   accessor.mutate(garrisonedByBuildingCodec, (m) => {
+    m.clear();
     for (const [id, list] of blob.garrisonedByBuilding) {
       m.set(id, [...list]);
     }
   });
   accessor.mutate(garrisonedUnitToBuildingCodec, (m) => {
+    m.clear();
     for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
       m.set(id, buildingId);
     }
@@ -272,24 +284,26 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       );
     }
   }
-  for (const [id, queue] of blob.productionQueues) {
-    productionQueues.set(
-      id,
-      queue.map((entry) => ({
-        kind: entry.kind,
-        label: entry.label,
-        ...(entry.unitType !== undefined ? { unitType: entry.unitType as TrainableUnitType } : {}),
-        ...(entry.technologyType !== undefined
-          ? { technologyType: entry.technologyType as ResearchableTechnologyType }
-          : {}),
-        remainingTicks: entry.remainingTicks,
-        totalTicks: entry.totalTicks,
-        isBlocked: entry.isBlocked,
-      })),
-    );
-  }
+  accessor.mutate(productionQueuesCodec, (m) => {
+    for (const [id, queue] of blob.productionQueues) {
+      m.set(
+        id,
+        queue.map((entry) => ({
+          kind: entry.kind,
+          label: entry.label,
+          ...(entry.unitType !== undefined ? { unitType: entry.unitType as TrainableUnitType } : {}),
+          ...(entry.technologyType !== undefined
+            ? { technologyType: entry.technologyType as ResearchableTechnologyType }
+            : {}),
+          remainingTicks: entry.remainingTicks,
+          totalTicks: entry.totalTicks,
+          isBlocked: entry.isBlocked,
+        })),
+      );
+    }
+  });
   // Iter-3 V3-6: rebuild inFlightTechByOwner from the loaded queues.
-  for (const [buildingId, queue] of productionQueues.entries()) {
+  for (const [buildingId, queue] of accessor.get(productionQueuesCodec).entries()) {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     if (!building) continue;
     for (const entry of queue) {
@@ -395,7 +409,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(relicsInMonasteryCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(wonderCountdownsCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(trebuchetPackStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(productionQueues);
+  accessor.mutate(productionQueuesCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(constructionStates);
   pruneOrphanEntityKeys(combatStates);
   pruneOrphanEntityKeys(buildingHealthStates);

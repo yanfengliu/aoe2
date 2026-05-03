@@ -33,6 +33,7 @@ import {
   garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
   playerCivilizationsCodec,
+  productionQueuesCodec,
   trebuchetPackStatesCodec,
 } from './bridgeStateSerialize';
 import {
@@ -102,7 +103,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
-    productionQueues,
     unitCommands,
     monkTasks,
     constructionStates,
@@ -353,7 +353,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       monkTasks,
       monkCarriedRelic: accessor.get(monkCarriedRelicCodec),
       trebuchetPackStates: accessor.get(trebuchetPackStatesCodec),
-      productionQueues,
+      productionQueues: accessor.get(productionQueuesCodec),
       constructionStates,
       getCurrentEntityId,
     };
@@ -399,7 +399,9 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       trainOptions,
       visibleResearchOptions,
       researchOptions,
-      queue: building ? cloneQueue(productionQueues.get(selectedEntityId) ?? []) : [],
+      queue: building
+        ? cloneQueue(accessor.get(productionQueuesCodec).get(selectedEntityId) ?? [])
+        : [],
       placementMode: placementMode.current,
     };
   }

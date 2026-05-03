@@ -20,6 +20,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  productionQueuesCodec,
   trebuchetPackStatesCodec,
   rallyPointsCodec,
   relicsInMonasteryCodec,
@@ -84,7 +85,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     combatStates,
     monkTasks,
     monksByOwner,
-    productionQueues,
     constructionStates,
     buildingHealthStates,
     buildingCombatStates,
@@ -167,7 +167,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     removeSelectedEntity(id);
 
     if (building) {
-      const queue = productionQueues.get(id);
+      const queue = accessor.get(productionQueuesCodec).get(id);
       if (queue) {
         for (const entry of queue) {
           if (entry.kind === 'technology' && entry.technologyType) {
@@ -177,7 +177,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       }
     }
 
-    productionQueues.delete(id);
+    accessor.mutate(productionQueuesCodec, (m) => m.delete(id));
     accessor.mutate(rallyPointsCodec, (m) => {
       m.delete(id);
     });

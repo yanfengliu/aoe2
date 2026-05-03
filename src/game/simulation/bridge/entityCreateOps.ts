@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  productionQueuesCodec,
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
@@ -119,7 +120,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
-    productionQueues,
     constructionStates,
     wildlifeStates,
     monksByOwner,
@@ -264,9 +264,11 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       || buildingType === 'monastery'
       || buildingType === 'castle'
     ) {
-      if (!productionQueues.has(entity)) {
-        productionQueues.set(entity, []);
-      }
+      accessor.mutate(productionQueuesCodec, (m) => {
+        if (!m.has(entity)) {
+          m.set(entity, []);
+        }
+      });
     }
 
     const defaultVisionRadius = buildingVisionRadius(buildingType);

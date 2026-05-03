@@ -12,7 +12,6 @@ import type {
   BuildingType,
   PlayerResources,
   PopulationState,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
   ResourceComponent,
   TrainableUnitType,
@@ -42,7 +41,7 @@ import {
   trainingCost,
 } from '../../prototypeEconomyRules';
 import type { WildlifeState } from './systemTypes';
-import { townCenterRefsCodec } from '../bridgeStateSerialize';
+import { productionQueuesCodec, townCenterRefsCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -68,7 +67,6 @@ export interface AiSystemDeps {
   population: Map<number, PopulationState>;
   playerResources: Map<number, PlayerResources>;
   constructionStates: Map<number, ConstructionStateLike>;
-  productionQueues: Map<number, ProductionQueueEntry[]>;
   unitCommands: Map<number, UnitCommandLike>;
   wildlifeStates: Map<number, WildlifeState>;
   monksByOwner: Map<number, Set<number>>;
@@ -151,7 +149,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     population,
     playerResources,
     constructionStates,
-    productionQueues,
     unitCommands,
     wildlifeStates,
     monksByOwner,
@@ -391,7 +388,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             // intentions for this building. productionQueues mixes train
             // and research entries in a single list, so the queue-length
             // cap that gates new pushes must account for both.
-            const persistedLength = productionQueues.get(id)?.length ?? 0;
+            const persistedLength = accessor.get(productionQueuesCodec).get(id)?.length ?? 0;
             const pendingTrainLength = pendingTrainsByBuilding.get(id) ?? 0;
             const pendingResearchLength = pendingResearchByBuilding.get(id) ?? 0;
             const queueLength =
@@ -584,7 +581,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             // entries in a single list; without this gate, a TC already
             // at the cap of 2 would still accept age-up research and
             // land at length 3 (handler has no queue-cap recheck).
-            const tcPersistedQueueLength = productionQueues.get(ownerTownCenterId)?.length ?? 0;
+            const tcPersistedQueueLength = accessor.get(productionQueuesCodec).get(ownerTownCenterId)?.length ?? 0;
             // The AI only ever pushes villagers to TC, so every pending TC
             // queue.train counts as a pending villager. If a future change
             // adds a non-villager TC train (e.g., a king or a fishing-boat),

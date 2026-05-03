@@ -26,6 +26,7 @@ import {
 import {
   playerAgesCodec,
   playerCivilizationsCodec,
+  productionQueuesCodec,
 } from './bridgeStateSerialize';
 
 export interface PlayerQueriesDeps {
@@ -60,7 +61,6 @@ export interface PlayerQueries {
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   const { world, state, accessor } = deps;
   const {
-    productionQueues,
     constructionStates,
     researchedTechnologies,
   } = state;
@@ -90,7 +90,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   }
 
   function countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number {
-    const queue = productionQueues.get(buildingId) ?? [];
+    const queue = accessor.get(productionQueuesCodec).get(buildingId) ?? [];
     return queue.filter((entry) => entry.kind === 'unit' && entry.unitType === unitType).length;
   }
 
