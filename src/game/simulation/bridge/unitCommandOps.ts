@@ -25,6 +25,7 @@ import {
   constructionStatesCodec,
   monkCarriedRelicCodec,
   sheepMoveOrdersCodec,
+  wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 
 export interface UnitCommandOpsDeps {
@@ -167,7 +168,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   } = deps;
   const {
     monkTasks,
-    wildlifeStates,
   } = state;
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
@@ -254,7 +254,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       if (!targetBuilding || targetBuilding.owner === unit.owner) return false;
     } else {
       const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-      const wildlife = wildlifeStates.get(targetEntityId);
+      const wildlife = accessor.get(wildlifeStatesCodec).get(targetEntityId);
       if (!targetResource || !wildlife || !wildlife.isAlive) return false;
     }
 
@@ -433,7 +433,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     }
 
     const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-    const wildlife = wildlifeStates.get(targetEntityId);
+    const wildlife = accessor.get(wildlifeStatesCodec).get(targetEntityId);
     if (targetResource && wildlife?.isAlive) {
       return setUnitAttackCommandDirect(unitId, targetEntityId, 'resource');
     }

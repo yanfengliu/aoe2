@@ -33,6 +33,7 @@ import {
   garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
   productionQueuesCodec,
+  wildlifeStatesCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -100,7 +101,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    wildlifeStates,
     aiStates,
   } = state;
 
@@ -265,7 +265,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           id,
           { ...state },
         ]),
-        wildlifeStates: [...wildlifeStates.entries()].map(([id, state]) => [
+        wildlifeStates: [...accessor.get(wildlifeStatesCodec).entries()].map(([id, state]) => [
           id,
           {
             currentHp: state.currentHp,

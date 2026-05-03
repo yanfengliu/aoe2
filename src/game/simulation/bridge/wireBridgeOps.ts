@@ -202,7 +202,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     mapHeight: MAP_HEIGHT,
     worldOccupancy,
     tiles,
-    state,
     accessor,
   });
 

@@ -36,6 +36,7 @@ import {
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
   trackedVisibilitySourcesCodec,
+  wildlifeStatesCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -63,7 +64,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    wildlifeStates,
     aiStates,
     unitCommands,
     monksByOwner,
@@ -351,23 +351,26 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
         : null,
     });
   }
-  for (const [id, wildState] of blob.wildlifeStates) {
-    const ref = wildState.targetEntityRef ? refFromSerialized(wildState.targetEntityRef) : null;
-    wildlifeStates.set(id, {
-      currentHp: wildState.currentHp,
-      maxHp: wildState.maxHp,
-      attackDamage: wildState.attackDamage,
-      attackRange: wildState.attackRange,
-      reloadTicks: wildState.reloadTicks,
-      cooldownTicks: wildState.cooldownTicks,
-      armor: wildState.armor,
-      autoAggro: wildState.autoAggro,
-      isAlive: wildState.isAlive,
-      corpsePersists: wildState.corpsePersists,
-      aggroRange: wildState.aggroRange,
-      targetEntityRef: ref,
-    });
-  }
+  accessor.mutate(wildlifeStatesCodec, (m) => {
+    m.clear();
+    for (const [id, wildState] of blob.wildlifeStates) {
+      const ref = wildState.targetEntityRef ? refFromSerialized(wildState.targetEntityRef) : null;
+      m.set(id, {
+        currentHp: wildState.currentHp,
+        maxHp: wildState.maxHp,
+        attackDamage: wildState.attackDamage,
+        attackRange: wildState.attackRange,
+        reloadTicks: wildState.reloadTicks,
+        cooldownTicks: wildState.cooldownTicks,
+        armor: wildState.armor,
+        autoAggro: wildState.autoAggro,
+        isAlive: wildState.isAlive,
+        corpsePersists: wildState.corpsePersists,
+        aggroRange: wildState.aggroRange,
+        targetEntityRef: ref,
+      });
+    }
+  });
 
   // Iter-4 V4-7: drop-off retry throttle survives save+load. Older blobs
   // (pre-V4-7) omit the field; treat absence as "no throttled gatherers".
@@ -428,7 +431,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(combatStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(buildingHealthStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(buildingCombatStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(wildlifeStates);
+  accessor.mutate(wildlifeStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedUnitToBuildingCodec, (m) => pruneOrphanEntityKeys(m));

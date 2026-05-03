@@ -22,6 +22,7 @@ import {
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
+  wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -40,7 +41,9 @@ export interface CellPassabilityDeps {
   mapHeight: number;
   worldOccupancy: WorldOccupancyLike;
   tiles: number[][];
-  state: import('./bridgeState').BridgeState;
+  // Phase 2D: all slots cellPassability needs (constructionStates,
+  // garrisonedByBuilding, garrisonedUnitToBuilding, wildlifeStates) are
+  // on the accessor now; the BridgeState dep is no longer needed.
   // Phase 2D: garrisonedByBuilding migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
 }
@@ -85,12 +88,8 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     mapHeight,
     worldOccupancy,
     tiles,
-    state,
     accessor,
   } = deps;
-  const {
-    wildlifeStates,
-  } = state;
 
   function buildingOccupiesCell(
     buildingId: number,
@@ -169,7 +168,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     if (resource.amount <= 0) return false;
     if (resource.resourceType === 'relic') return false;
 
-    const wildlife = wildlifeStates.get(resourceId);
+    const wildlife = accessor.get(wildlifeStatesCodec).get(resourceId);
     if (!wildlife) return true;
 
     return !wildlife.isAlive && resource.resourceType !== 'wolf';

@@ -39,6 +39,7 @@ import {
   playerCivilizationsCodec,
   productionQueuesCodec,
   trebuchetPackStatesCodec,
+  wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 import {
   computeUnitActivity,
@@ -103,7 +104,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getVisibleResearchOptions,
   } = deps;
   const {
-    wildlifeStates,
     unitCommands,
     monkTasks,
   } = state;
@@ -129,7 +129,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
 
     const resource = world.getComponent<ResourceComponent>(id, 'resource');
     if (resource) {
-      const wildlife = wildlifeStates.get(id);
+      const wildlife = accessor.get(wildlifeStatesCodec).get(id);
       if (!wildlife || !wildlife.isAlive) {
         return null;
       }
@@ -160,7 +160,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       return accessor.get(buildingCombatStatesCodec).get(id)?.attackDamage ?? null;
     }
     if (resource) {
-      const wildlife = wildlifeStates.get(id);
+      const wildlife = accessor.get(wildlifeStatesCodec).get(id);
       return wildlife?.isAlive ? wildlife.attackDamage : null;
     }
     return null;
@@ -179,7 +179,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       return 0;
     }
     if (resource) {
-      return wildlifeStates.get(id)?.isAlive ? 0 : null;
+      return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;
     }
     return null;
   }

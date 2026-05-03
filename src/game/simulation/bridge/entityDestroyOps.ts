@@ -30,6 +30,7 @@ import {
   relicsInMonasteryCodec,
   sheepMoveOrdersCodec,
   townCenterRefsCodec,
+  wildlifeStatesCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -89,7 +90,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     monkTasks,
     monksByOwner,
     inFlightTechByOwner,
-    wildlifeStates,
   } = state;
 
   function destroyUnitEntity(id: number): void {
@@ -245,7 +245,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
 
   function killWildlifeEntity(id: number): void {
     const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    const wildlife = wildlifeStates.get(id);
+    const wildlife = accessor.get(wildlifeStatesCodec).get(id);
     if (!resource || !wildlife) {
       return;
     }
@@ -265,7 +265,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
 
   function destroyResourceEntity(id: number): void {
     removeSelectedEntity(id);
-    wildlifeStates.delete(id);
+    accessor.mutate(wildlifeStatesCodec, (m) => m.delete(id));
     accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(id));
     accessor.mutate(monkCarriedRelicCodec, (m) => {
       for (const [monkId, carriedId] of m.entries()) {

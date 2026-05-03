@@ -40,11 +40,11 @@ import {
   researchCost,
   trainingCost,
 } from '../../prototypeEconomyRules';
-import type { WildlifeState } from './systemTypes';
 import {
   constructionStatesCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
+  wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
@@ -67,7 +67,7 @@ export interface AiSystemDeps {
   population: Map<number, PopulationState>;
   playerResources: Map<number, PlayerResources>;
   unitCommands: Map<number, UnitCommandLike>;
-  wildlifeStates: Map<number, WildlifeState>;
+  // Phase 2D: wildlifeStates migrated to world.state.aoe2.* via accessor.
   monksByOwner: Map<number, Set<number>>;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => import('../../types').AgeType;
@@ -148,7 +148,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     population,
     playerResources,
     unitCommands,
-    wildlifeStates,
     monksByOwner,
     currentEntityId,
     getPlayerAge,
@@ -738,7 +737,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               const hasResourceTarget =
                 currentCommand.targetEntityKind === 'resource'
                 && activeWorld.getComponent<ResourceComponent>(targetId, 'resource')
-                && wildlifeStates.get(targetId)?.isAlive
+                && accessor.get(wildlifeStatesCodec).get(targetId)?.isAlive
                 && activeWorld.getComponent<Position>(targetId, 'position');
               if (hasUnitTarget || hasBuildingTarget || hasResourceTarget) {
                 continue;

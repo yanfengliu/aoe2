@@ -10,7 +10,10 @@ import { buildingFootprint, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { constructionStatesCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  wildlifeStatesCodec,
+} from './bridgeStateSerialize';
 
 export interface SelectionFindersDeps {
   world: GameWorld;
@@ -37,8 +40,7 @@ export interface SelectionFinders {
 }
 
 export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFinders {
-  const { world, humanPlayerId, visibility, state, accessor, buildingOccupiesCell } = deps;
-  const { wildlifeStates } = state;
+  const { world, humanPlayerId, visibility, accessor, buildingOccupiesCell } = deps;
 
   function findResourceAtCell(x: number, y: number): number | null {
     for (const id of world.query('position', 'resource')) {
@@ -99,7 +101,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
     for (const id of world.query('position', 'resource')) {
       const position = world.getComponent<Position>(id, 'position');
       const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      const wildlife = wildlifeStates.get(id);
+      const wildlife = accessor.get(wildlifeStatesCodec).get(id);
       if (
         position?.x === x
         && position.y === y

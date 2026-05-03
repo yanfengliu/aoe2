@@ -10,9 +10,6 @@ import type {
 } from '../types';
 import type { AiState } from '../ai';
 import type {
-  WildlifeState,
-} from './systems/systemTypes';
-import type {
   MonkTask,
   UnitCommand,
 } from './sharedTypes';
@@ -84,7 +81,7 @@ export interface BridgeState {
   // Phase 2D: `combatStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `buildingHealthStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `buildingCombatStates` migrated to `world.state.aoe2.*` via accessor + codec.
-  wildlifeStates: Map<number, WildlifeState>;
+  // Phase 2D: `wildlifeStates` migrated to `world.state.aoe2.*` via accessor + codec.
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
   // Phase 2D: `gathererDropOffStuckSinceTick` migrated to
   // `world.state.aoe2.gathererDropOffStuckSinceTick` via accessor + codec.
@@ -106,7 +103,6 @@ export function createBridgeState(): BridgeState {
     aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
-    wildlifeStates: new Map(),
     inFlightTechByOwner: new Map(),
     pendingCommands: createPendingCommandsQueue(),
   };

@@ -42,6 +42,7 @@ import {
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
+  wildlifeStatesCodec,
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
@@ -121,7 +122,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   } = deps;
   const {
     population,
-    wildlifeStates,
     monksByOwner,
   } = state;
 
@@ -344,7 +344,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     }
 
     if (isWildlifeResourceType(resourceType)) {
-      wildlifeStates.set(entity, createWildlifeState(resourceType));
+      accessor.mutate(wildlifeStatesCodec, (m) => m.set(entity, createWildlifeState(resourceType)));
     }
 
     syncSpawnedEntityOccupancy(entity);

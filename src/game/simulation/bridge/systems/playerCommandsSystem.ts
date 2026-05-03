@@ -25,16 +25,14 @@ import {
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
-import type {
-  UnitCommand,
-  WildlifeState,
-} from './systemTypes';
+import type { UnitCommand } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
@@ -49,7 +47,6 @@ export interface PlayerCommandsSystemDeps {
   // Phase 2D: constructionStates + combatStates + buildingHealthStates +
   // buildingCombatStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  wildlifeStates: Map<number, WildlifeState>;
   population: Map<number, PopulationState>;
   clearUnitCommand: (unitId: number) => void;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
@@ -105,7 +102,6 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     world,
     unitCommands,
     accessor,
-    wildlifeStates,
     population,
     clearUnitCommand,
     currentEntityId,
@@ -221,7 +217,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           if (command.targetEntityKind === 'resource') {
             const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
             const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
-            const targetWildlife = wildlifeStates.get(targetId);
+            const targetWildlife = accessor.get(wildlifeStatesCodec).get(targetId);
             if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
               clearUnitCommand(id);
               continue;

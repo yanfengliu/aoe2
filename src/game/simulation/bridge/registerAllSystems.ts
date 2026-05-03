@@ -126,7 +126,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     population,
     playerResources,
     unitCommands,
-    wildlifeStates,
     monkTasks,
     monkConvertProcessedThisTick,
     monksByOwner,
@@ -142,7 +141,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     population,
     playerResources,
     unitCommands,
-    wildlifeStates,
     monksByOwner,
     currentEntityId,
     getPlayerAge,
@@ -192,7 +190,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     accessor,
     unitCommands,
-    wildlifeStates,
     population,
     clearUnitCommand,
     currentEntityId,
@@ -276,7 +273,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerWildlifeCombatSystem({
     world,
-    wildlifeStates,
     accessor,
     currentEntityId,
     getEntityRef,
