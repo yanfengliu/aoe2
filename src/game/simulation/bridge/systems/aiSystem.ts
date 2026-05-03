@@ -41,7 +41,11 @@ import {
   trainingCost,
 } from '../../prototypeEconomyRules';
 import type { WildlifeState } from './systemTypes';
-import { productionQueuesCodec, townCenterRefsCodec } from '../bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  productionQueuesCodec,
+  townCenterRefsCodec,
+} from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -50,10 +54,6 @@ interface UnitCommandLike {
   targetEntityRef?: EntityRef | null;
   targetEntityKind?: 'unit' | 'building' | 'resource' | null;
   buildingRef?: EntityRef | null;
-}
-
-interface ConstructionStateLike {
-  isComplete: boolean;
 }
 
 export interface AiSystemDeps {
@@ -66,7 +66,6 @@ export interface AiSystemDeps {
   aiStates: Map<number, AiState>;
   population: Map<number, PopulationState>;
   playerResources: Map<number, PlayerResources>;
-  constructionStates: Map<number, ConstructionStateLike>;
   unitCommands: Map<number, UnitCommandLike>;
   wildlifeStates: Map<number, WildlifeState>;
   monksByOwner: Map<number, Set<number>>;
@@ -148,7 +147,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     aiStates,
     population,
     playerResources,
-    constructionStates,
     unitCommands,
     wildlifeStates,
     monksByOwner,
@@ -382,7 +380,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           let bestId: number | null = null;
           let bestQueueLength = Number.POSITIVE_INFINITY;
           for (const id of candidates) {
-            const construction = constructionStates.get(id);
+            const construction = accessor.get(constructionStatesCodec).get(id);
             if (construction && !construction.isComplete) continue;
             // Phase 1C: include pending queue.train AND queue.research
             // intentions for this building. productionQueues mixes train
@@ -560,7 +558,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         }
 
         if (ownerTownCenterId !== null) {
-          const tcConstruction = constructionStates.get(ownerTownCenterId);
+          const tcConstruction = accessor.get(constructionStatesCodec).get(ownerTownCenterId);
           if (!tcConstruction || tcConstruction.isComplete) {
             const bufferCost = ageUpResourceBuffer(currentAge);
             const hasBuffer = stockpile ? canAfford(stockpile, bufferCost) : false;

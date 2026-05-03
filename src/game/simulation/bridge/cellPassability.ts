@@ -19,6 +19,7 @@ import {
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  constructionStatesCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
 } from './bridgeStateSerialize';
@@ -88,7 +89,6 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     accessor,
   } = deps;
   const {
-    constructionStates,
     wildlifeStates,
   } = state;
 
@@ -102,7 +102,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
     if (!position || !building) return false;
 
-    const construction = constructionStates.get(buildingId);
+    const construction = accessor.get(constructionStatesCodec).get(buildingId);
     const footprint = construction ?? {
       width: buildingFootprint(building.buildingType).width,
       height: buildingFootprint(building.buildingType).height,

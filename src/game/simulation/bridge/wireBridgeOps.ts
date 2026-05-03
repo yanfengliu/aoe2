@@ -125,7 +125,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     mapHeight: MAP_HEIGHT,
     worldOccupancy,
     tiles,
-    state,
+    accessor,
     isBootstrappingScenario: () => isBootstrappingScenarioRef.current,
   });
   const {
@@ -506,13 +506,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setSheepMoveCommandDirect,
     enqueueTrainingDirect: enqueueTraining,
     queueTrainValidatorDeps: {
-      constructionStates: state.constructionStates,
+      accessor,
       playerResources: state.playerResources,
       getTrainOptions,
     },
     enqueueResearchDirect: enqueueResearch,
     queueResearchValidatorDeps: {
-      constructionStates: state.constructionStates,
+      accessor,
       playerResources: state.playerResources,
       getResearchOptions,
       inFlightTechSetFor,
@@ -535,14 +535,12 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       mapHeight: MAP_HEIGHT,
     },
     buildingSetRallyPointValidatorDeps: {
-      constructionStates: state.constructionStates,
+      accessor,
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,
     },
     ungarrisonBuildingDirect: ungarrisonBuilding,
-    buildingActionValidatorDeps: {
-      constructionStates: state.constructionStates,
-    },
+    buildingActionValidatorDeps: { accessor },
     beginTrebuchetPackDirect: trebuchetStateOps.beginTrebuchetPack,
     trebuchetPackValidatorDeps: { accessor },
     beginTrebuchetUnpackDirect: trebuchetStateOps.beginTrebuchetUnpack,

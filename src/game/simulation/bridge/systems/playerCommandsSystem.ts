@@ -32,15 +32,10 @@ import type {
   UnitCommand,
   WildlifeState,
 } from './systemTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { constructionStatesCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-  buildProgressTicks: number;
-  totalBuildTicks: number;
-  populationProvided: number;
-}
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;
@@ -52,7 +47,8 @@ export interface PlayerCommandsSystemDeps {
   combatStates: Map<number, CombatState>;
   buildingHealthStates: Map<number, BuildingHealthState>;
   buildingCombatStates: Map<number, BuildingCombatState>;
-  constructionStates: Map<number, ConstructionStateLike>;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   wildlifeStates: Map<number, WildlifeState>;
   population: Map<number, PopulationState>;
   clearUnitCommand: (unitId: number) => void;
@@ -111,7 +107,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
-    constructionStates,
+    accessor,
     wildlifeStates,
     population,
     clearUnitCommand,
@@ -369,7 +365,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         }
 
         const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
-        const construction = constructionStates.get(buildingId);
+        const construction = accessor.get(constructionStatesCodec).get(buildingId);
         const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
         if (!building || !construction || construction.isComplete || !buildingApproachPlan) {
           clearUnitCommand(id);
@@ -382,6 +378,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         }
 
         construction.buildProgressTicks += 1;
+        accessor.markDirty(constructionStatesCodec);
         const buildingHealth = buildingHealthStates.get(buildingId);
         if (buildingHealth && construction.totalBuildTicks > 0) {
           const startHp = Math.max(1, Math.floor(buildingHealth.maxHp * 0.1));

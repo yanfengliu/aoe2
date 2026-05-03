@@ -11,10 +11,12 @@ import type { BuildingComponent, BuildingType, PlayerResources, TrainableUnitTyp
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canTrainAt } from '../../prototypeBuildingRules';
 import { trainingCost, canAfford } from '../../prototypeEconomyRules';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface QueueTrainValidatorDeps {
-  // Bridge state surfaces — read only.
-  constructionStates: Map<number, { isComplete: boolean }>;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   playerResources: Map<number, PlayerResources>;
   // The owner-aware filter (covers age/civ gating); validator imports only
   // for the "can owner train this from this building" check.
@@ -41,7 +43,7 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (!building) {
       return { code: 'not_a_building', message: 'Entity is not a building.' };
     }
-    const construction = deps.constructionStates.get(data.buildingId);
+    const construction = deps.accessor.get(constructionStatesCodec).get(data.buildingId);
     if (construction && !construction.isComplete) {
       return { code: 'under_construction', message: 'Building is still under construction.' };
     }

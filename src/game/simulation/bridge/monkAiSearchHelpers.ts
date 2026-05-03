@@ -14,7 +14,10 @@ import type {
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { monkCarriedRelicCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  monkCarriedRelicCodec,
+} from './bridgeStateSerialize';
 
 export interface MonkAiSearchDeps {
   world: GameWorld;
@@ -34,7 +37,7 @@ export interface MonkAiSearchHelpers {
 
 export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchHelpers {
   const { world, state, accessor, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
-  const { constructionStates, combatStates } = state;
+  const { combatStates } = state;
 
   function findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null {
     let bestId: number | null = null;
@@ -50,7 +53,7 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
       ) {
         continue;
       }
-      const construction = constructionStates.get(id);
+      const construction = accessor.get(constructionStatesCodec).get(id);
       if (construction && !construction.isComplete) {
         continue;
       }

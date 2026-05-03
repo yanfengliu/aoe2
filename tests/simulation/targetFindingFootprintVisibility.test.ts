@@ -60,6 +60,18 @@ function createMockVisibility(visibleCells: Set<string>) {
   };
 }
 
+// Phase 2D: targetFindingOps now reads constructionStates via the accessor
+// (`accessor.get(constructionStatesCodec)`) instead of `state.constructionStates`.
+// The targets in this test are all completed buildings (no construction
+// state present), so a mock accessor that returns an empty Map for the
+// codec is sufficient.
+function createMockAccessor(): Parameters<typeof createTargetFindingOps>[0]['accessor'] {
+  const empty = new Map();
+  return {
+    get: () => empty,
+  } as unknown as Parameters<typeof createTargetFindingOps>[0]['accessor'];
+}
+
 describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visibility', () => {
   it('returns a 4x4 castle when a non-anchor cell is visible but the anchor is not', () => {
     // Player-1 castle (4x4) anchored at (10, 10) — occupies (10,10) to
@@ -86,7 +98,8 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map(), constructionStates: new Map() } as never,
+      state: { combatStates: new Map() } as never,
+      accessor: createMockAccessor(),
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });
@@ -113,7 +126,8 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map(), constructionStates: new Map() } as never,
+      state: { combatStates: new Map() } as never,
+      accessor: createMockAccessor(),
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });
@@ -140,7 +154,8 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map(), constructionStates: new Map() } as never,
+      state: { combatStates: new Map() } as never,
+      accessor: createMockAccessor(),
     });
 
     const result = ops.findPreferredVisibleEnemyBuilding(2, { x: 16, y: 12 });

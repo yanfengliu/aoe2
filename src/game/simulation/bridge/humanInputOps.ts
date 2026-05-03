@@ -19,6 +19,8 @@ import {
   resourcesMissing,
   trainingCost,
 } from '../prototypeEconomyRules';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { constructionStatesCodec } from './bridgeStateSerialize';
 
 export interface HumanInputOpsDeps {
   world: GameWorld;
@@ -26,6 +28,8 @@ export interface HumanInputOpsDeps {
   mapWidth: number;
   mapHeight: number;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   placementMode: { current: import('../types').BuildableBuildingType | null };
   isMatchRunning: () => boolean;
   getSelectedEntityId: () => number | null;
@@ -57,6 +61,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     mapWidth,
     mapHeight,
     state,
+    accessor,
     placementMode,
     isMatchRunning,
     getSelectedEntityId,
@@ -70,7 +75,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
   } = deps;
-  const { playerResources, constructionStates } = state;
+  const { playerResources } = state;
 
   function issueMoveCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) return false;
@@ -97,7 +102,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     if (selectedEntityId !== null) {
       const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
       if (building && building.owner === humanPlayerId && getSelectedEntityIds().length === 1) {
-        const construction = constructionStates.get(selectedEntityId);
+        const construction = accessor.get(constructionStatesCodec).get(selectedEntityId);
         if (construction && !construction.isComplete) return false;
 
         // Phase 1B (building.setRallyPoint): submit instead of mutating
@@ -153,7 +158,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
 
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (building && building.owner === humanPlayerId && getSelectedEntityIds().length === 1) {
-      const construction = constructionStates.get(selectedEntityId);
+      const construction = accessor.get(constructionStatesCodec).get(selectedEntityId);
       if (construction && !construction.isComplete) return false;
 
       // Phase 1B (building.setRallyPoint): same shape as the cell-based
@@ -297,7 +302,9 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         ? world.getComponent<BuildingComponent>(selectedEntityId, 'building')
         : undefined;
     const construction =
-      selectedEntityId !== null ? constructionStates.get(selectedEntityId) : undefined;
+      selectedEntityId !== null
+        ? accessor.get(constructionStatesCodec).get(selectedEntityId)
+        : undefined;
     const selectionIsMarket =
       !!building
       && building.owner === humanPlayerId

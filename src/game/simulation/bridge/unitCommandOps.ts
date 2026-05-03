@@ -20,7 +20,11 @@ import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { monkCarriedRelicCodec, sheepMoveOrdersCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  monkCarriedRelicCodec,
+  sheepMoveOrdersCodec,
+} from './bridgeStateSerialize';
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
@@ -163,7 +167,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   const {
     monkTasks,
     wildlifeStates,
-    constructionStates,
     combatStates,
   } = state;
 
@@ -420,7 +423,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
         return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');
       }
 
-      const construction = constructionStates.get(targetEntityId);
+      const construction = accessor.get(constructionStatesCodec).get(targetEntityId);
       if (
         canGarrisonAt(targetBuilding.buildingType, unit.unitType)
         && (!construction || construction.isComplete)

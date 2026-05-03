@@ -15,6 +15,7 @@ import type {
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
 import { createSelectionFinders } from './selectionFinders';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
 export interface SelectableEntityCandidate {
   id: number;
@@ -34,6 +35,9 @@ export interface SelectionInputOpsDeps {
   mapHeight: number;
   visibility: VisibilityMap;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: constructionStates threaded via accessor (passed through to
+  // selectionFinders).
+  accessor: BridgeStateAccessor;
   selection: SelectionRefsHolder;
   placementMode: { current: import('../types').BuildableBuildingType | null };
   isMatchRunning: () => boolean;
@@ -107,6 +111,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     mapHeight,
     visibility,
     state,
+    accessor,
     selection,
     placementMode,
     isMatchRunning,
@@ -460,6 +465,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     humanPlayerId,
     visibility,
     state,
+    accessor,
     buildingOccupiesCell,
   });
 

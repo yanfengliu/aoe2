@@ -14,9 +14,12 @@ import type {
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canResearchAt } from '../../prototypeBuildingRules';
 import { researchCost, canAfford } from '../../prototypeEconomyRules';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface QueueResearchValidatorDeps {
-  constructionStates: Map<number, { isComplete: boolean }>;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   playerResources: Map<number, PlayerResources>;
   getResearchOptions: (
     owner: number,
@@ -42,7 +45,7 @@ export function makeQueueResearchValidator(deps: QueueResearchValidatorDeps): Qu
     if (!building) {
       return { code: 'not_a_building', message: 'Entity is not a building.' };
     }
-    const construction = deps.constructionStates.get(data.buildingId);
+    const construction = deps.accessor.get(constructionStatesCodec).get(data.buildingId);
     if (construction && !construction.isComplete) {
       return { code: 'under_construction', message: 'Building is still under construction.' };
     }

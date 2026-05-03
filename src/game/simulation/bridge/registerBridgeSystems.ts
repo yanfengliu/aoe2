@@ -259,6 +259,7 @@ export function registerBridgeSystems(
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     state,
+    accessor,
     placementMode,
     isMatchRunning,
     getSelectedEntityId,

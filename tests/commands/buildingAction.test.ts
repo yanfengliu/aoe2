@@ -12,6 +12,9 @@ import type {
 } from '../../src/game/simulation/bridge/pureHelpers';
 import type { BuildingType } from '../../src/game/simulation/types';
 import type { BuildingActionType } from '../../src/game/simulation/commands';
+import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
+import { constructionStatesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import type { ConstructionState } from '../../src/game/simulation/bridge/sharedTypes';
 
 function freshWorld() {
   const world = new World<GameEvents, GameCommands, GameComponents>({
@@ -30,48 +33,71 @@ function makeBuilding(world: World<GameEvents, GameCommands, GameComponents>, bu
   return id;
 }
 
-function makeValidator(overrides: {
-  constructionStates?: Map<number, { isComplete: boolean }>;
-} = {}) {
+function freshAccessor(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  constructionStates?: Map<number, { isComplete: boolean }>,
+): BridgeStateAccessor {
+  const accessor = new BridgeStateAccessor(() => world);
+  if (constructionStates && constructionStates.size > 0) {
+    accessor.mutate(constructionStatesCodec, (m) => {
+      for (const [id, partial] of constructionStates) {
+        // ConstructionState carries more fields, but the validator only
+        // consults `.isComplete`; widen with a structural cast.
+        m.set(id, partial as ConstructionState);
+      }
+    });
+  }
+  return accessor;
+}
+
+function makeValidator(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  overrides: {
+    constructionStates?: Map<number, { isComplete: boolean }>;
+  } = {},
+) {
   return makeBuildingActionValidator({
-    constructionStates: overrides.constructionStates ?? new Map(),
+    accessor: freshAccessor(world, overrides.constructionStates),
   });
 }
 
 describe('buildingActionValidator', () => {
   it('rejects non-integer buildingId', () => {
-    const validator = makeValidator();
+    const world = freshWorld();
+    const validator = makeValidator(world);
     const result = validator(
       { buildingId: 1.5, actionType: 'ungarrison' },
-      freshWorld(),
+      world,
     );
     expect(result).toEqual({ code: 'invalid_building_id', message: expect.any(String) });
   });
 
   it('rejects unknown action type', () => {
-    const validator = makeValidator();
+    const world = freshWorld();
+    const validator = makeValidator(world);
     const result = validator(
       { buildingId: 1, actionType: 'never-supported-action' as BuildingActionType },
-      freshWorld(),
+      world,
     );
     expect(result).toEqual({ code: 'unknown_action', message: expect.any(String) });
   });
 
   it('rejects when building is dead', () => {
-    const validator = makeValidator();
+    const world = freshWorld();
+    const validator = makeValidator(world);
     const result = validator(
       { buildingId: 9999, actionType: 'ungarrison' },
-      freshWorld(),
+      world,
     );
     expect(result).toEqual({ code: 'building_not_found', message: expect.any(String) });
   });
 
   it('rejects when alive entity is not a building', () => {
-    const validator = makeValidator();
     const world = freshWorld();
     world.registerComponent('terrain');
     const tileId = world.createEntity();
     world.addComponent(tileId, 'terrain', { kind: 'grass' });
+    const validator = makeValidator(world);
     const result = validator(
       { buildingId: tileId, actionType: 'ungarrison' },
       world,
@@ -82,7 +108,7 @@ describe('buildingActionValidator', () => {
   it('rejects when building is under construction', () => {
     const world = freshWorld();
     const tcId = makeBuilding(world, 'town-center');
-    const validator = makeValidator({
+    const validator = makeValidator(world, {
       constructionStates: new Map([[tcId, { isComplete: false }]]),
     });
     const result = validator(
@@ -95,7 +121,7 @@ describe('buildingActionValidator', () => {
   it('accepts a fully valid request', () => {
     const world = freshWorld();
     const tcId = makeBuilding(world, 'town-center');
-    const validator = makeValidator();
+    const validator = makeValidator(world);
     const result = validator(
       { buildingId: tcId, actionType: 'ungarrison' },
       world,

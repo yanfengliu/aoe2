@@ -16,7 +16,6 @@ import type {
   WildlifeState,
 } from './systems/systemTypes';
 import type {
-  ConstructionState,
   MonkTask,
   UnitCommand,
 } from './sharedTypes';
@@ -84,7 +83,7 @@ export interface BridgeState {
   // guarantee still holds because stale-tick entries no longer match.
   monkConvertProcessedThisTick: Map<number, number>;
   // Phase 2D: `productionQueues` migrated to `world.state.aoe2.*` via accessor + codec.
-  constructionStates: Map<number, ConstructionState>;
+  // Phase 2D: `constructionStates` migrated to `world.state.aoe2.*` via accessor + codec.
   combatStates: Map<number, CombatState>;
   buildingHealthStates: Map<number, BuildingHealthState>;
   buildingCombatStates: Map<number, BuildingCombatState>;
@@ -110,7 +109,6 @@ export function createBridgeState(): BridgeState {
     aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
-    constructionStates: new Map(),
     combatStates: new Map(),
     buildingHealthStates: new Map(),
     buildingCombatStates: new Map(),

@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  constructionStatesCodec,
   conversionStateCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
@@ -59,7 +60,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    constructionStates,
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
@@ -312,9 +312,14 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       }
     }
   }
-  for (const [id, conState] of blob.constructionStates) {
-    constructionStates.set(id, { ...conState });
-  }
+  // Codex slot-21 review HIGH: clear before populate (same logic as the
+  // garrison slots).
+  accessor.mutate(constructionStatesCodec, (m) => {
+    m.clear();
+    for (const [id, conState] of blob.constructionStates) {
+      m.set(id, { ...conState });
+    }
+  });
   for (const [id, combat] of blob.combatStates) {
     combatStates.set(id, { ...combat });
   }
@@ -410,7 +415,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(wonderCountdownsCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(trebuchetPackStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(productionQueuesCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(constructionStates);
+  accessor.mutate(constructionStatesCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(combatStates);
   pruneOrphanEntityKeys(buildingHealthStates);
   pruneOrphanEntityKeys(buildingCombatStates);

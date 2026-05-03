@@ -13,6 +13,7 @@ import type {
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
+  constructionStatesCodec,
   conversionStateCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
@@ -85,7 +86,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     combatStates,
     monkTasks,
     monksByOwner,
-    constructionStates,
     buildingHealthStates,
     buildingCombatStates,
     inFlightTechByOwner,
@@ -141,7 +141,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
 
   function destroyBuildingEntity(id: number): void {
     const building = world.getComponent<BuildingComponent>(id, 'building');
-    const construction = constructionStates.get(id);
+    const construction = accessor.get(constructionStatesCodec).get(id);
     for (const garrisonedUnitId of accessor.get(garrisonedByBuildingCodec).get(id) ?? []) {
       destroyUnitEntity(garrisonedUnitId);
     }
@@ -181,7 +181,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     accessor.mutate(rallyPointsCodec, (m) => {
       m.delete(id);
     });
-    constructionStates.delete(id);
+    accessor.mutate(constructionStatesCodec, (m) => m.delete(id));
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
     accessor.mutate(wonderCountdownsCodec, (m) => {

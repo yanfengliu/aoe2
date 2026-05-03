@@ -39,6 +39,7 @@ import {
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  constructionStatesCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
@@ -148,14 +149,13 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   } = deps;
   const {
     playerResources,
-    constructionStates,
   } = state;
 
   function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     if (!building) return false;
 
-    const construction = constructionStates.get(buildingId);
+    const construction = accessor.get(constructionStatesCodec).get(buildingId);
     if (construction && !construction.isComplete) return false;
 
     if (
@@ -195,7 +195,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     if (!building) return false;
 
-    const construction = constructionStates.get(buildingId);
+    const construction = accessor.get(constructionStatesCodec).get(buildingId);
     if (construction && !construction.isComplete) return false;
 
     if (!canResearchAt(building.buildingType, technologyType)) return false;
@@ -274,7 +274,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       if (!building || building.owner !== playerId || building.buildingType !== 'market') {
         continue;
       }
-      const construction = constructionStates.get(id);
+      const construction = accessor.get(constructionStatesCodec).get(id);
       if (construction && !construction.isComplete) continue;
       return true;
     }

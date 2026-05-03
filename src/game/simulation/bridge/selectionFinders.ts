@@ -9,12 +9,16 @@ import type {
 import { buildingFootprint, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { constructionStatesCodec } from './bridgeStateSerialize';
 
 export interface SelectionFindersDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
   state: BridgeState;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   buildingOccupiesCell: (entityId: number, x: number, y: number) => boolean;
 }
 
@@ -33,8 +37,8 @@ export interface SelectionFinders {
 }
 
 export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFinders {
-  const { world, humanPlayerId, visibility, state, buildingOccupiesCell } = deps;
-  const { wildlifeStates, constructionStates } = state;
+  const { world, humanPlayerId, visibility, state, accessor, buildingOccupiesCell } = deps;
+  const { wildlifeStates } = state;
 
   function findResourceAtCell(x: number, y: number): number | null {
     for (const id of world.query('position', 'resource')) {
@@ -125,7 +129,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         && canGarrisonAt(building.buildingType, unitType)
         && buildingOccupiesCell(id, x, y)
       ) {
-        const construction = constructionStates.get(id);
+        const construction = accessor.get(constructionStatesCodec).get(id);
         if (construction && !construction.isComplete) continue;
         return id;
       }

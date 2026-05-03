@@ -10,11 +10,10 @@ import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
 import type { BuildingCombatState, CombatState } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { garrisonedByBuildingCodec } from '../bridgeStateSerialize';
-
-interface ConstructionStateLike {
-  isComplete: boolean;
-}
+import {
+  constructionStatesCodec,
+  garrisonedByBuildingCodec,
+} from '../bridgeStateSerialize';
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;
@@ -22,10 +21,10 @@ interface PlayerScoreCountersLike {
 
 export interface TowerCombatSystemDeps {
   world: GameWorld;
-  constructionStates: Map<number, ConstructionStateLike>;
   buildingCombatStates: Map<number, BuildingCombatState>;
   combatStates: Map<number, CombatState>;
-  // Phase 2D: garrisonedByBuilding migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: garrisonedByBuilding + constructionStates migrated to
+  // world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
@@ -41,7 +40,6 @@ export interface TowerCombatSystemDeps {
 export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
   const {
     world,
-    constructionStates,
     buildingCombatStates,
     combatStates,
     accessor,
@@ -59,7 +57,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
       for (const id of activeWorld.query('position', 'building')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-        const construction = constructionStates.get(id);
+        const construction = accessor.get(constructionStatesCodec).get(id);
         const buildingCombat = buildingCombatStates.get(id);
 
         if (

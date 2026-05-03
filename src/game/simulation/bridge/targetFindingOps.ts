@@ -30,6 +30,8 @@ import {
   manhattanDistance,
 } from './pureHelpers';
 import { getBuildingFootprint } from '../../content/buildingFootprints';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { constructionStatesCodec } from './bridgeStateSerialize';
 
 interface VisibilityQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
@@ -39,6 +41,8 @@ export interface TargetFindingDeps {
   world: GameWorld;
   visibility: VisibilityQuery;
   state: import('./bridgeState').BridgeState;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export interface TargetFindingOps {
@@ -103,8 +107,8 @@ export interface TargetFindingOps {
 }
 
 export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOps {
-  const { world, visibility, state } = deps;
-  const { combatStates, constructionStates } = state;
+  const { world, visibility, state, accessor } = deps;
+  const { combatStates } = state;
 
   // Per-unitType targeting priority for AI / unit-vs-unit target
   // selection. Lower numbers are picked first (after the priority sort,
@@ -350,7 +354,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
         continue;
       }
 
-      const construction = constructionStates.get(id);
+      const construction = accessor.get(constructionStatesCodec).get(id);
       if (construction && !construction.isComplete) {
         continue;
       }

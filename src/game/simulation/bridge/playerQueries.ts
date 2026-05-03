@@ -24,6 +24,7 @@ import {
   type UpgradeChainEntry,
 } from '../upgradeChains';
 import {
+  constructionStatesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
   productionQueuesCodec,
@@ -61,7 +62,6 @@ export interface PlayerQueries {
 export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   const { world, state, accessor } = deps;
   const {
-    constructionStates,
     researchedTechnologies,
   } = state;
 
@@ -115,7 +115,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
       if (!building || building.owner !== owner || !filter(building.buildingType)) {
         continue;
       }
-      const construction = constructionStates.get(id);
+      const construction = accessor.get(constructionStatesCodec).get(id);
       if (construction && !construction.isComplete) {
         continue;
       }
@@ -134,7 +134,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
       if (!building || building.owner !== owner || building.buildingType !== buildingType) {
         continue;
       }
-      const construction = constructionStates.get(id);
+      const construction = accessor.get(constructionStatesCodec).get(id);
       if (construction && !construction.isComplete) {
         return true;
       }

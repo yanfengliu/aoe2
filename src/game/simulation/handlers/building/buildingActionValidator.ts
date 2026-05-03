@@ -8,13 +8,16 @@ import type { World } from 'civ-engine';
 import type { BuildingComponent } from '../../types';
 import type { BuildingActionType } from '../../commands';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
 
 const SUPPORTED_ACTIONS: ReadonlySet<BuildingActionType> = new Set<BuildingActionType>([
   'ungarrison',
 ]);
 
 export interface BuildingActionValidatorDeps {
-  constructionStates: Map<number, { isComplete: boolean }>;
+  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export type BuildingActionValidator = (
@@ -39,7 +42,7 @@ export function makeBuildingActionValidator(
     if (!building) {
       return { code: 'not_a_building', message: 'Entity is not a building.' };
     }
-    const construction = deps.constructionStates.get(data.buildingId);
+    const construction = deps.accessor.get(constructionStatesCodec).get(data.buildingId);
     if (construction && !construction.isComplete) {
       return { code: 'under_construction', message: 'Building is still under construction.' };
     }

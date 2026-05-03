@@ -159,6 +159,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     mapHeight: MAP_HEIGHT,
     visibility,
     state,
+    accessor,
     selection,
     placementMode,
     isMatchRunning,
@@ -256,7 +257,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getVisibleResearchOptions,
   });
 
-  const targetFindingOps = createTargetFindingOps({ world, visibility, state });
+  const targetFindingOps = createTargetFindingOps({ world, visibility, state, accessor });
   const { findNearestDropOffBuilding } = targetFindingOps;
 
   const technologyOps = createTechnologyOps({

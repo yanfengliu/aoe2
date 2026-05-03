@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  constructionStatesCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
@@ -120,7 +121,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
-    constructionStates,
     wildlifeStates,
     monksByOwner,
   } = state;
@@ -293,13 +293,15 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     }
 
     if (!isComplete) {
-      constructionStates.set(entity, {
-        isComplete: false,
-        buildProgressTicks: 0,
-        totalBuildTicks: buildingBuildTimeTicks(buildingType),
-        populationProvided: buildingPopulationProvided(buildingType),
-        width: footprint.width,
-        height: footprint.height,
+      accessor.mutate(constructionStatesCodec, (m) => {
+        m.set(entity, {
+          isComplete: false,
+          buildProgressTicks: 0,
+          totalBuildTicks: buildingBuildTimeTicks(buildingType),
+          populationProvided: buildingPopulationProvided(buildingType),
+          width: footprint.width,
+          height: footprint.height,
+        });
       });
     } else {
       onBuildingConstructionComplete(entity, owner, buildingType);

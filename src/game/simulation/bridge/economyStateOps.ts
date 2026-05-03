@@ -24,7 +24,11 @@ import {
   buildingPopulationProvided,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
-import { playerAgesCodec, productionQueuesCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerAgesCodec,
+  productionQueuesCodec,
+} from './bridgeStateSerialize';
 
 export interface EconomyStateOpsDeps {
   world: GameWorld;
@@ -40,7 +44,6 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
   const { world, state, accessor, getUnitTaskState } = deps;
   const {
     combatStates,
-    constructionStates,
     playerResources,
     population,
   } = state;
@@ -105,7 +108,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
         const building = world.getComponent<BuildingComponent>(id, 'building');
         if (!position || !building) return null;
 
-        const construction = constructionStates.get(id);
+        const construction = accessor.get(constructionStatesCodec).get(id);
         const footprint = buildingFootprint(building.buildingType);
         return {
           id,

@@ -125,7 +125,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     aiStates,
     population,
     playerResources,
-    constructionStates,
     unitCommands,
     wildlifeStates,
     combatStates,
@@ -145,7 +144,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     aiStates,
     population,
     playerResources,
-    constructionStates,
     unitCommands,
     wildlifeStates,
     monksByOwner,
@@ -195,11 +193,11 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerPlayerCommandsSystem({
     world,
+    accessor,
     unitCommands,
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
-    constructionStates,
     wildlifeStates,
     population,
     clearUnitCommand,
@@ -325,7 +323,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerTowerCombatSystem({
     world,
-    constructionStates,
     buildingCombatStates,
     combatStates,
     accessor,

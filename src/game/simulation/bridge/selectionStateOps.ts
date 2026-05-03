@@ -30,6 +30,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
 import {
+  constructionStatesCodec,
   garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
   playerCivilizationsCodec,
@@ -105,7 +106,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     wildlifeStates,
     unitCommands,
     monkTasks,
-    constructionStates,
   } = state;
 
   function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
@@ -354,7 +354,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       monkCarriedRelic: accessor.get(monkCarriedRelicCodec),
       trebuchetPackStates: accessor.get(trebuchetPackStatesCodec),
       productionQueues: accessor.get(productionQueuesCodec),
-      constructionStates,
+      constructionStates: accessor.get(constructionStatesCodec),
       getCurrentEntityId,
     };
 
