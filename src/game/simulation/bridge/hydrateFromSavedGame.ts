@@ -17,6 +17,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
+  trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
   relicCountdownOverridesCodec,
@@ -39,7 +40,6 @@ export interface SaveLoadHydrationDeps {
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
   const {
-    trackedVisibilitySources,
     researchedTechnologies,
     playerResources,
     population,
@@ -76,9 +76,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     return ref;
   };
 
-  for (const [k, v] of blob.trackedVisibilitySources) {
-    trackedVisibilitySources.set(k, v);
-  }
+  accessor.mutate(trackedVisibilitySourcesCodec, (m) => {
+    for (const [k, v] of blob.trackedVisibilitySources) {
+      m.set(k, v);
+    }
+  });
   accessor.mutate(playerAgesCodec, (m) => {
     for (const [owner, age] of blob.playerAges) {
       m.set(owner, age as AgeType);

@@ -183,7 +183,6 @@ export function registerBridgeSystems(
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
   } = deps;
-  const { trackedVisibilitySources } = state;
 
   // Order matters: when a key appears in both a spread object and an
   // explicit field, the LATER assignment wins. The spreads contain
@@ -241,7 +240,7 @@ export function registerBridgeSystems(
   syncVisibilitySources(
     world,
     visibility,
-    trackedVisibilitySources,
+    accessor,
     visibilityFingerprints,
     visibilityCell,
   );

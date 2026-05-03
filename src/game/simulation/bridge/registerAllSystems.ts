@@ -141,7 +141,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     rallyPoints,
     inFlightTechByOwner,
     sheepMoveOrders,
-    trackedVisibilitySources,
     garrisonedByBuilding,
     wonderCountdowns,
     relicCountdowns,
@@ -324,7 +323,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerVisibilitySystem({
     world,
     visibility,
-    trackedVisibilitySources,
+    accessor,
     visibilityCell,
     fingerprints: visibilityFingerprints,
   });

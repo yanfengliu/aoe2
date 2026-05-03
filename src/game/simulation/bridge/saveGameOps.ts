@@ -25,6 +25,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   marketExchangeRatesCodec,
   monkHealCountersCodec,
+  trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
   relicCountdownOverridesCodec,
@@ -75,7 +76,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     flushTier3State(world, visibilityCell, matchState);
   }
   const {
-    trackedVisibilitySources,
     researchedTechnologies,
     playerResources,
     population,
@@ -120,7 +120,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         relicCountdownTicks: matchState.relicCountdownTicks,
       },
       sideMaps: {
-        trackedVisibilitySources: [...trackedVisibilitySources.entries()],
+        trackedVisibilitySources: [...accessor.get(trackedVisibilitySourcesCodec).entries()],
         playerAges: [...accessor.get(playerAgesCodec).entries()],
         playerCivilizations: [...accessor.get(playerCivilizationsCodec).entries()],
         researchedTechnologies: [...researchedTechnologies.entries()].map(

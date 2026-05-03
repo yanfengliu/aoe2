@@ -45,10 +45,8 @@ interface PlayerScoreCounters {
 }
 
 export interface BridgeState {
-  trackedVisibilitySources: Map<number, number>;
-  // Phase 2D: `playerAges` + `playerCivilizations` migrated to
-  // `world.state.aoe2.playerAges` / `aoe2.playerCivilizations` via
-  // accessor + codec.
+  // Phase 2D: `trackedVisibilitySources` + `playerAges` + `playerCivilizations`
+  // migrated to `world.state.aoe2.*` via accessor + codec.
   researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
   playerResources: Map<number, PlayerResources>;
   // Phase 2D: `marketExchangeRates` migrated to
@@ -116,7 +114,6 @@ export interface BridgeState {
 
 export function createBridgeState(): BridgeState {
   return {
-    trackedVisibilitySources: new Map(),
     researchedTechnologies: new Map(),
     playerResources: new Map(),
     population: new Map(),

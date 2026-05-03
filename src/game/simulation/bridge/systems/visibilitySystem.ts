@@ -6,11 +6,16 @@ import { VisibilityMap } from 'civ-engine';
 import type { GameWorld } from '../pureHelpers';
 import { syncVisibilitySources, type VisibilitySourceFingerprint } from '../visibility';
 import type { VisibilityCell } from '../visibilityCell';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 
 export interface VisibilitySystemDeps {
   world: GameWorld;
   visibility: VisibilityMap;
-  trackedVisibilitySources: Map<number, number>;
+  // Phase 2D: trackedVisibilitySources slot is read/written via accessor
+  // (replaces the direct `Map<number, number>` reference that lived in
+  // BridgeState). syncVisibilitySources fetches the cached Map once and
+  // marks dirty exactly once per tick.
+  accessor: BridgeStateAccessor;
   // Phase 2E: vision-cell dirty bit. syncVisibilitySources only marks
   // the cell dirty when a source's fingerprint changed (or a source was
   // added/removed), so steady-state ticks with no movement skip the
@@ -25,7 +30,7 @@ export interface VisibilitySystemDeps {
 }
 
 export function registerVisibilitySystem(deps: VisibilitySystemDeps): void {
-  const { world, visibility, trackedVisibilitySources, visibilityCell, fingerprints } = deps;
+  const { world, visibility, accessor, visibilityCell, fingerprints } = deps;
 
   world.registerSystem({
     name: 'prototypeVisibility',
@@ -35,7 +40,7 @@ export function registerVisibilitySystem(deps: VisibilitySystemDeps): void {
       syncVisibilitySources(
         activeWorld,
         visibility,
-        trackedVisibilitySources,
+        accessor,
         fingerprints,
         visibilityCell,
       );

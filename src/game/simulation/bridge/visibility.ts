@@ -27,6 +27,7 @@ import type {
   UnitTransformComponent,
   VisionSourceComponent,
 } from '../types';
+import { trackedVisibilitySourcesCodec } from './bridgeStateSerialize';
 
 export const SHEEP_VISION_RADIUS = 4;
 export const MAX_HERDABLE_CLAIM_RADIUS = 6;
@@ -157,10 +158,16 @@ export interface VisibilitySourceFingerprint {
 export function syncVisibilitySources(
   world: World<GameEvents, GameCommands>,
   visibility: VisibilityMap,
-  trackedSources: Map<number, number>,
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor,
   fingerprints: Map<number, VisibilitySourceFingerprint>,
   visibilityCell: import('./visibilityCell').VisibilityCell,
 ): void {
+  // Phase 2D: trackedSources lives in world.state.aoe2.trackedVisibilitySources
+  // via the accessor + codec. Hot-loop pattern — fetch the cached Map once,
+  // mutate in place across the function body, mark dirty exactly once at
+  // the end if any mutation happened.
+  const trackedSources = accessor.get(trackedVisibilitySourcesCodec);
+  let trackedSourcesDirty = false;
   const activeSources = new Map<number, number>();
   let dirty = false;
 
@@ -214,11 +221,19 @@ export function syncVisibilitySources(
     visibility.removeSource(playerId, id);
     trackedSources.delete(id);
     fingerprints.delete(id);
+    trackedSourcesDirty = true;
     dirty = true;
   }
 
   for (const [id, playerId] of activeSources.entries()) {
-    trackedSources.set(id, playerId);
+    if (trackedSources.get(id) !== playerId) {
+      trackedSources.set(id, playerId);
+      trackedSourcesDirty = true;
+    }
+  }
+
+  if (trackedSourcesDirty) {
+    accessor.markDirty(trackedVisibilitySourcesCodec);
   }
 
   if (dirty) {
