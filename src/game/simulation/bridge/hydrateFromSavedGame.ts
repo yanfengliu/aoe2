@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -41,7 +42,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     trackedVisibilitySources,
     researchedTechnologies,
     playerResources,
-    marketExchangeRates,
     population,
     townCenterRefs,
     sheepMoveOrders,
@@ -95,9 +95,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [owner, res] of blob.playerResources) {
     playerResources.set(owner, { ...res });
   }
-  marketExchangeRates.food = blob.marketExchangeRates.food;
-  marketExchangeRates.wood = blob.marketExchangeRates.wood;
-  marketExchangeRates.stone = blob.marketExchangeRates.stone;
+  accessor.mutate(marketExchangeRatesCodec, (m) => {
+    m.food = blob.marketExchangeRates.food;
+    m.wood = blob.marketExchangeRates.wood;
+    m.stone = blob.marketExchangeRates.stone;
+  });
   for (const [owner, pop] of blob.population) {
     population.set(owner, { ...pop });
   }

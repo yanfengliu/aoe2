@@ -37,6 +37,8 @@ import {
 } from '../prototypeEconomyRules';
 
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { marketExchangeRatesCodec } from './bridgeStateSerialize';
 
 export interface TrainingMarketOpsDeps {
   world: GameWorld;
@@ -48,6 +50,9 @@ export interface TrainingMarketOpsDeps {
   marketRateStep: number;
   marketMinRate: number;
   state: BridgeState;
+  // Phase 2D — `marketExchangeRates` migrated to
+  // `world.state.aoe2.marketExchangeRates` via accessor + codec.
+  accessor: BridgeStateAccessor;
   placementMode: { current: BuildableBuildingType | null };
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
   getSelectedEntityId: () => number | null;
@@ -114,6 +119,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     marketRateStep,
     marketMinRate,
     state,
+    accessor,
     placementMode,
     inFlightTechSetFor,
     getTrainOptions,
@@ -141,7 +147,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     garrisonedByBuilding,
     garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
-    marketExchangeRates,
   } = state;
 
   function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
@@ -232,20 +237,24 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!stockpile) return false;
 
     const commodity = marketCommodityForAction(actionType);
-    const rate = marketExchangeRates[commodity];
+    const rate = accessor.get(marketExchangeRatesCodec)[commodity];
     if (isBuyMarketAction(actionType)) {
       const goldCost = Math.ceil(rate * (1 + marketFeeRate));
       if (stockpile.gold < goldCost) return false;
       stockpile.gold -= goldCost;
       stockpile[commodity] += marketTransactionAmount;
-      marketExchangeRates[commodity] = rate + marketRateStep;
+      accessor.mutate(marketExchangeRatesCodec, (m) => {
+        m[commodity] = rate + marketRateStep;
+      });
       return true;
     }
 
     if (stockpile[commodity] < marketTransactionAmount) return false;
     stockpile[commodity] -= marketTransactionAmount;
     stockpile.gold += Math.floor(rate * (1 - marketFeeRate));
-    marketExchangeRates[commodity] = Math.max(marketMinRate, rate - marketRateStep);
+    accessor.mutate(marketExchangeRatesCodec, (m) => {
+      m[commodity] = Math.max(marketMinRate, rate - marketRateStep);
+    });
     return true;
   }
 

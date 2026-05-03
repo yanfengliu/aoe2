@@ -207,6 +207,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     marketRateStep: MARKET_RATE_STEP,
     marketMinRate: MARKET_MIN_RATE,
     state,
+    accessor,
     placementMode,
     inFlightTechSetFor,
     getSelectedEntityId,

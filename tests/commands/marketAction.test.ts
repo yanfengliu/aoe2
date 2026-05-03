@@ -9,12 +9,15 @@ import type {
   GameCommands,
   GameComponents,
   GameEvents,
+  GameWorld,
 } from '../../src/game/simulation/bridge/pureHelpers';
 import type {
   BuildingType,
   MarketActionType,
   PlayerResources,
 } from '../../src/game/simulation/types';
+import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
+import { marketExchangeRatesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 
 const STARTING_RESOURCES: PlayerResources = {
   food: 1000,
@@ -32,6 +35,19 @@ function freshWorld() {
   });
 }
 
+function freshAccessorWithRates(
+  world: GameWorld,
+  rates: { food: number; wood: number; stone: number },
+): BridgeStateAccessor {
+  const accessor = new BridgeStateAccessor(() => world);
+  accessor.mutate(marketExchangeRatesCodec, (m) => {
+    m.food = rates.food;
+    m.wood = rates.wood;
+    m.stone = rates.stone;
+  });
+  return accessor;
+}
+
 function makeValidator(overrides: {
   playerResources?: Map<number, PlayerResources>;
   marketExchangeRates?: { food: number; wood: number; stone: number };
@@ -39,10 +55,16 @@ function makeValidator(overrides: {
   playerOwnsCompletedMarket?: (playerId: number) => boolean;
   marketFeeRate?: number;
   marketTransactionAmount?: number;
+  world?: GameWorld;
 } = {}) {
+  const world = overrides.world ?? (freshWorld() as GameWorld);
+  const accessor = freshAccessorWithRates(
+    world,
+    overrides.marketExchangeRates ?? { food: 100, wood: 100, stone: 130 },
+  );
   return makeMarketActionValidator({
     playerResources: overrides.playerResources ?? new Map([[1, { ...STARTING_RESOURCES }]]),
-    marketExchangeRates: overrides.marketExchangeRates ?? { food: 100, wood: 100, stone: 130 },
+    accessor,
     getMarketOptions:
       overrides.getMarketOptions
       ?? (() => ['buy-food', 'sell-food', 'buy-wood', 'sell-wood', 'buy-stone', 'sell-stone'] as readonly MarketActionType[]),

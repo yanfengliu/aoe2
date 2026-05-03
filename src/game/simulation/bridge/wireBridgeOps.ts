@@ -517,7 +517,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     executeMarketActionDirect,
     marketActionValidatorDeps: {
       playerResources: state.playerResources,
-      marketExchangeRates: state.marketExchangeRates,
+      accessor,
       getMarketOptions,
       playerOwnsCompletedMarket,
       marketFeeRate: MARKET_FEE_RATE,

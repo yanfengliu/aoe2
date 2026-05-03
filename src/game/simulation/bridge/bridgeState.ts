@@ -10,7 +10,6 @@ import type {
   ResearchableTechnologyType,
   VisionSourceComponent,
 } from '../types';
-import { createInitialMarketRates } from './pureHelpers';
 import type { AiState } from '../ai';
 import type { MemoryEntry } from './memoryTypes';
 import type { RelicCountdownEntry, WonderCountdownEntry } from './countdownTypes';
@@ -52,7 +51,8 @@ export interface BridgeState {
   // accessor + codec.
   researchedTechnologies: Map<number, Set<ResearchableTechnologyType>>;
   playerResources: Map<number, PlayerResources>;
-  marketExchangeRates: { food: number; wood: number; stone: number };
+  // Phase 2D: `marketExchangeRates` migrated to
+  // `world.state.aoe2.marketExchangeRates` via accessor + codec.
   population: Map<number, PopulationState>;
   townCenterRefs: Map<number, EntityRef>;
   // Phase 2D: `villagerOrdinals` migrated to `world.state.aoe2.villagerOrdinals`
@@ -119,7 +119,6 @@ export function createBridgeState(): BridgeState {
     trackedVisibilitySources: new Map(),
     researchedTechnologies: new Map(),
     playerResources: new Map(),
-    marketExchangeRates: createInitialMarketRates(),
     population: new Map(),
     townCenterRefs: new Map(),
     unitCommands: new Map(),

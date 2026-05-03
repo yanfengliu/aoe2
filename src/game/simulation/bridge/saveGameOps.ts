@@ -23,6 +23,7 @@ import type { VisibilityCell } from './visibilityCell';
 import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
+  marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -77,7 +78,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     trackedVisibilitySources,
     researchedTechnologies,
     playerResources,
-    marketExchangeRates,
     population,
     townCenterRefs,
     unitCommands,
@@ -130,7 +130,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           owner,
           { ...res },
         ]),
-        marketExchangeRates: { ...marketExchangeRates },
+        marketExchangeRates: { ...accessor.get(marketExchangeRatesCodec) },
         population: [...population.entries()].map(([owner, pop]) => [owner, { ...pop }]),
         townCenterRefs: [...townCenterRefs.entries()].map(([owner, ref]) => [
           owner,

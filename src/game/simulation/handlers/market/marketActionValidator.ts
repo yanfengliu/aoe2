@@ -10,10 +10,13 @@ import {
   isBuyMarketAction,
   marketCommodityForAction,
 } from '../../prototypeEconomyRules';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { marketExchangeRatesCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface MarketActionValidatorDeps {
   playerResources: Map<number, PlayerResources>;
-  marketExchangeRates: { food: number; wood: number; stone: number };
+  // Phase 2D: marketExchangeRates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   getMarketOptions: (owner: number, buildingType: BuildingType) => readonly MarketActionType[];
   playerOwnsCompletedMarket: (playerId: number) => boolean;
   // Threaded as deps (NOT imported from bridgeConstants) so the validator
@@ -46,7 +49,7 @@ export function makeMarketActionValidator(deps: MarketActionValidatorDeps): Mark
       return { code: 'no_stockpile', message: 'No resource stockpile for the player.' };
     }
     const commodity = marketCommodityForAction(data.actionType);
-    const rate = deps.marketExchangeRates[commodity];
+    const rate = deps.accessor.get(marketExchangeRatesCodec)[commodity];
     if (isBuyMarketAction(data.actionType)) {
       const goldCost = Math.ceil(rate * (1 + deps.marketFeeRate));
       if (stockpile.gold < goldCost) {
