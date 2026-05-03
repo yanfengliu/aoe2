@@ -54,7 +54,7 @@ export interface BridgeState {
   monkTasks: Map<number, MonkTask>;
   conversionState: Map<number, { byOwner: number; progress: number }>;
   monkCarriedRelic: Map<number, number>;
-  relicsInMonastery: Map<number, number>;
+  // Phase 2D: `relicsInMonastery` migrated to `world.state.aoe2.*` via accessor + codec.
   trebuchetPackStates: Map<number, TrebuchetPackState>;
   // Phase 2D: `wonderCountdowns` + `relicCountdowns` + `wonderCountdownOverrides`
   // + `relicCountdownOverrides` all migrated to `world.state.aoe2.*` via
@@ -114,7 +114,6 @@ export function createBridgeState(): BridgeState {
     monkTasks: new Map(),
     conversionState: new Map(),
     monkCarriedRelic: new Map(),
-    relicsInMonastery: new Map(),
     trebuchetPackStates: new Map(),
     lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),

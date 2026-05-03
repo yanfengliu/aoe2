@@ -16,6 +16,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
   rallyPointsCodec,
+  relicsInMonasteryCodec,
   townCenterRefsCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
@@ -86,7 +87,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     constructionStates,
     buildingHealthStates,
     buildingCombatStates,
-    relicsInMonastery,
     inFlightTechByOwner,
     wildlifeStates,
     sheepMoveOrders,
@@ -192,7 +192,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     // mapWidth + mapHeight; on failure stack remaining relics on the
     // anchor cell (relics have no unit-occupancy, so visual overlap is
     // tolerated).
-    const storedRelicCount = relicsInMonastery.get(id) ?? 0;
+    const storedRelicCount = accessor.get(relicsInMonasteryCodec).get(id) ?? 0;
     const relicDropPositions: Position[] = [];
     if (storedRelicCount > 0 && building) {
       const position = world.getComponent<Position>(id, 'position');
@@ -234,7 +234,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         }
       }
     }
-    relicsInMonastery.delete(id);
+    accessor.mutate(relicsInMonasteryCodec, (m) => m.delete(id));
     world.destroyEntity(id);
     for (const dropPosition of relicDropPositions) {
       addResourceEntity('relic', dropPosition, 0, null);

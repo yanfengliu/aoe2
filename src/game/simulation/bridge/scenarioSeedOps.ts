@@ -36,6 +36,7 @@ import {
   playerAgesCodec,
   playerCivilizationsCodec,
   relicCountdownOverridesCodec,
+  relicsInMonasteryCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
 } from './bridgeStateSerialize';
@@ -272,8 +273,9 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
     addResourceEntity,
     findScenarioSpawnPosition,
     state,
+    accessor,
   } = deps;
-  const { buildingHealthStates, combatStates, relicsInMonastery } = state;
+  const { buildingHealthStates, combatStates } = state;
 
   const overlapWhitelist = new Set<number>();
   for (const spawn of scenario.spawns) {
@@ -293,7 +295,9 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
         }
       }
       if (typeof spawn.startingRelicsInMonastery === 'number' && spawn.kind === 'monastery') {
-        relicsInMonastery.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery));
+        accessor.mutate(relicsInMonasteryCodec, (m) =>
+          m.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery!)),
+        );
       }
       if (spawn.allowOverlappingSpawn) {
         overlapWhitelist.add(buildingId);

@@ -14,6 +14,7 @@ import type { GameWorld } from './pureHelpers';
 import {
   playerScoreCountersCodec,
   relicCountdownsCodec,
+  relicsInMonasteryCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 
@@ -54,7 +55,6 @@ export interface MatchEndOps {
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   const { world, matchState, humanPlayerId, state, accessor } = deps;
   const {
-    relicsInMonastery,
     monkCarriedRelic,
     playerResources,
   } = state;
@@ -68,7 +68,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
       wonderCompleted: false,
     };
     let relicsHeld = 0;
-    for (const [monasteryId, count] of relicsInMonastery.entries()) {
+    for (const [monasteryId, count] of accessor.get(relicsInMonasteryCodec).entries()) {
       const building = world.getComponent<BuildingComponent>(monasteryId, 'building');
       if (building?.owner === owner) {
         relicsHeld += count;
@@ -145,7 +145,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
     // Aggregate deposited relics by owner.
     const totalByOwner = new Map<number, number>();
     let grandTotal = 0;
-    for (const [monasteryId, count] of relicsInMonastery.entries()) {
+    for (const [monasteryId, count] of accessor.get(relicsInMonasteryCodec).entries()) {
       if (count <= 0) {
         continue;
       }

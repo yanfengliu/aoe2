@@ -136,7 +136,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkConvertProcessedThisTick,
     monkCarriedRelic,
     monksByOwner,
-    relicsInMonastery,
     inFlightTechByOwner,
     sheepMoveOrders,
     garrisonedByBuilding,
@@ -246,7 +245,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     applyMonkDeposit,
   });
 
-  registerRelicGoldSystem({ world, relicsInMonastery, playerResources });
+  registerRelicGoldSystem({ world, accessor, playerResources });
 
   registerProductionQueueSystem({
     world,

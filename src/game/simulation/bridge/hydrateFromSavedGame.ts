@@ -20,6 +20,7 @@ import {
   playerScoreCountersCodec,
   rallyPointsCodec,
   relicCountdownsCodec,
+  relicsInMonasteryCodec,
   townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
@@ -52,7 +53,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     monkTasks,
     conversionState,
     monkCarriedRelic,
-    relicsInMonastery,
     trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
@@ -158,9 +158,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, count);
     }
   });
-  for (const [id, count] of blob.relicsInMonastery) {
-    relicsInMonastery.set(id, count);
-  }
+  accessor.mutate(relicsInMonasteryCodec, (m) => {
+    for (const [id, count] of blob.relicsInMonastery) {
+      m.set(id, count);
+    }
+  });
   accessor.mutate(wonderCountdownsCodec, (m) => {
     for (const [id, entry] of blob.wonderCountdowns) {
       m.set(id, {
@@ -372,7 +374,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(conversionState);
   pruneOrphanEntityKeys(monkCarriedRelic);
   accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(relicsInMonastery);
+  accessor.mutate(relicsInMonasteryCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(wonderCountdownsCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(trebuchetPackStates);
   pruneOrphanEntityKeys(productionQueues);

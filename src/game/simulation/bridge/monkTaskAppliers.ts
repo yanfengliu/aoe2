@@ -16,7 +16,7 @@ import type {
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { monkHealCountersCodec } from './bridgeStateSerialize';
+import { monkHealCountersCodec, relicsInMonasteryCodec } from './bridgeStateSerialize';
 
 export interface MonkTaskAppliersDeps {
   world: GameWorld;
@@ -80,7 +80,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkCarriedRelic,
     monkConvertProcessedThisTick,
     conversionState,
-    relicsInMonastery,
     combatStates,
     unitCommands,
     population,
@@ -273,7 +272,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     }
     destroyResourceEntity(relicId);
     monkCarriedRelic.delete(monkId);
-    relicsInMonastery.set(monasteryId, (relicsInMonastery.get(monasteryId) ?? 0) + 1);
+    accessor.mutate(relicsInMonasteryCodec, (m) => m.set(monasteryId, (m.get(monasteryId) ?? 0) + 1));
     clearMonkTask(monkId);
     markOutOfBandRenderChange();
   }
