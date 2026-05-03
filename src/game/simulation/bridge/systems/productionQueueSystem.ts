@@ -16,6 +16,7 @@ import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
+  inFlightTechByOwnerCodec,
   populationCodec,
   productionQueuesCodec,
   rallyPointsCodec,
@@ -24,9 +25,9 @@ import {
 export interface ProductionQueueSystemDeps {
   world: GameWorld;
   // Phase 2D: population migrated to world.state.aoe2.* via accessor.
-  // Phase 2D: rallyPoints + productionQueues migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: rallyPoints + productionQueues + inFlightTechByOwner migrated
+  // to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
   findBuildingSpawnPosition: (
     buildingPosition: Position,
     buildingType: BuildingType,
@@ -45,7 +46,6 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
   const {
     world,
     accessor,
-    inFlightTechByOwner,
     findBuildingSpawnPosition,
     addUnitEntity,
     issueUnitMoveCommand,
@@ -115,7 +115,9 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
 
         if (entry.kind === 'technology' && entry.technologyType) {
           applyTechnology(building.owner, entry.technologyType);
-          inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
+          // Phase 2D: inFlightTechByOwner is Tier-2 — runtime cache only,
+          // NOT flushed. No markDirty call.
+          accessor.get(inFlightTechByOwnerCodec).get(building.owner)?.delete(entry.technologyType);
         }
 
         queue.shift();

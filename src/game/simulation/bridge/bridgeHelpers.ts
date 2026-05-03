@@ -23,6 +23,7 @@ import type { BridgeState } from './bridgeState';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
+  inFlightTechByOwnerCodec,
   playerAgesCodec,
   playerScoreCountersCodec,
 } from './bridgeStateSerialize';
@@ -58,7 +59,6 @@ export interface BridgeHelpers {
 export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   const { world, state, accessor } = deps;
   const {
-    inFlightTechByOwner,
     unitCommands,
     movePathCache,
   } = state;
@@ -113,11 +113,17 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
     return aiState;
   }
 
+  // Phase 2D: inFlightTechByOwner migrated. Tier-2 — NOT in TIER_1_CODECS,
+  // NOT flushed to worldSnapshot — rebuilt from productionQueues on
+  // hydrate. The accessor is used purely as a runtime cache so all bridge
+  // reads stay on the same surface; we deliberately do NOT call markDirty
+  // because the accessor would throw at flush time for an unregistered slot.
   function inFlightTechSetFor(owner: number): Set<ResearchableTechnologyType> {
-    let set = inFlightTechByOwner.get(owner);
+    const map = accessor.get(inFlightTechByOwnerCodec);
+    let set = map.get(owner);
     if (!set) {
       set = new Set<ResearchableTechnologyType>();
-      inFlightTechByOwner.set(owner, set);
+      map.set(owner, set);
     }
     return set;
   }

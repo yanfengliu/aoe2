@@ -126,7 +126,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkTasks,
     monkConvertProcessedThisTick,
     monksByOwner,
-    inFlightTechByOwner,
   } = state;
 
   registerAiSystem({
@@ -226,7 +225,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerProductionQueueSystem({
     world,
     accessor,
-    inFlightTechByOwner,
     findBuildingSpawnPosition,
     addUnitEntity,
     // Deterministic-resolution system — uses the direct-mutation helper

@@ -4,9 +4,6 @@
 
 import type { Position } from 'civ-engine';
 import type {
-  ResearchableTechnologyType,
-} from '../types';
-import type {
   MonkTask,
   UnitCommand,
 } from './sharedTypes';
@@ -79,7 +76,7 @@ export interface BridgeState {
   // Phase 2D: `buildingHealthStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `buildingCombatStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `wildlifeStates` migrated to `world.state.aoe2.*` via accessor + codec.
-  inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
+  // Phase 2D: `inFlightTechByOwner` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `gathererDropOffStuckSinceTick` migrated to
   // `world.state.aoe2.gathererDropOffStuckSinceTick` via accessor + codec.
   // Phase 1A: AI intention queue (DESIGN v17 §6.5). AI-decision systems push
@@ -96,7 +93,6 @@ export function createBridgeState(): BridgeState {
     monkTasks: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
-    inFlightTechByOwner: new Map(),
     pendingCommands: createPendingCommandsQueue(),
   };
 }

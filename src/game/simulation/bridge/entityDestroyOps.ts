@@ -19,6 +19,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   gathererDropOffStuckSinceTickCodec,
+  inFlightTechByOwnerCodec,
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
@@ -89,7 +90,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   const {
     monkTasks,
     monksByOwner,
-    inFlightTechByOwner,
   } = state;
 
   function destroyUnitEntity(id: number): void {
@@ -173,7 +173,9 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       if (queue) {
         for (const entry of queue) {
           if (entry.kind === 'technology' && entry.technologyType) {
-            inFlightTechByOwner.get(building.owner)?.delete(entry.technologyType);
+            // Phase 2D: inFlightTechByOwner is Tier-2 — runtime cache only,
+            // NOT flushed. No markDirty call.
+            accessor.get(inFlightTechByOwnerCodec).get(building.owner)?.delete(entry.technologyType);
           }
         }
       }

@@ -24,6 +24,7 @@ import {
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
+  inFlightTechByOwnerCodec,
   lastSeenStaticCodec,
   productionQueuesCodec,
   marketExchangeRatesCodec,
@@ -312,6 +313,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     }
   });
   // Iter-3 V3-6: rebuild inFlightTechByOwner from the loaded queues.
+  // Phase 2D: clear first (the accessor's cache may have entries from the
+  // pre-load world; the rebuild authoritatively reflects the loaded
+  // queues). inFlightTechByOwner is Tier-2 — runtime cache only, never
+  // flushed to worldSnapshot; we deliberately use accessor.get + clear()
+  // rather than accessor.mutate so the Tier-2 dirty-bit invariant holds.
+  accessor.get(inFlightTechByOwnerCodec).clear();
   for (const [buildingId, queue] of accessor.get(productionQueuesCodec).entries()) {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     if (!building) continue;
