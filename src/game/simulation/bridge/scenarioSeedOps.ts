@@ -35,6 +35,7 @@ import { updateSheepOwnership } from './visibility';
 import {
   playerAgesCodec,
   playerCivilizationsCodec,
+  buildingHealthStatesCodec,
   combatStatesCodec,
   relicCountdownOverridesCodec,
   relicsInMonasteryCodec,
@@ -273,10 +274,8 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
     addUnitEntity,
     addResourceEntity,
     findScenarioSpawnPosition,
-    state,
     accessor,
   } = deps;
-  const { buildingHealthStates } = state;
 
   const overlapWhitelist = new Set<number>();
   for (const spawn of scenario.spawns) {
@@ -290,9 +289,10 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
         spawn.vision,
       );
       if (typeof spawn.startHp === 'number') {
-        const healthState = buildingHealthStates.get(buildingId);
+        const healthState = accessor.get(buildingHealthStatesCodec).get(buildingId);
         if (healthState) {
           healthState.currentHp = Math.max(1, Math.min(healthState.maxHp, spawn.startHp));
+          accessor.markDirty(buildingHealthStatesCodec);
         }
       }
       if (typeof spawn.startingRelicsInMonastery === 'number' && spawn.kind === 'monastery') {

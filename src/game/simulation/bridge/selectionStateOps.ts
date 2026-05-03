@@ -30,6 +30,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
 import {
+  buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
@@ -101,7 +102,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getVisibleResearchOptions,
   } = deps;
   const {
-    buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
     unitCommands,
@@ -120,7 +120,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
 
     const building = world.getComponent<BuildingComponent>(id, 'building');
     if (building) {
-      const health = buildingHealthStates.get(id);
+      const health = accessor.get(buildingHealthStatesCodec).get(id);
       if (!health) {
         return null;
       }

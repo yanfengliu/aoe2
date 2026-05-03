@@ -24,6 +24,7 @@ import { flushTier3State } from './tier3SyncSystem';
 import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
+  buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
@@ -98,7 +99,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
     aiStates,
@@ -257,7 +257,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           { ...state },
         ]),
         combatStates: [...accessor.get(combatStatesCodec).entries()].map(([id, state]) => [id, { ...state }]),
-        buildingHealthStates: [...buildingHealthStates.entries()].map(([id, state]) => [
+        buildingHealthStates: [...accessor.get(buildingHealthStatesCodec).entries()].map(([id, state]) => [
           id,
           { ...state },
         ]),

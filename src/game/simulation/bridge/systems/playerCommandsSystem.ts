@@ -27,12 +27,12 @@ import {
 import type { UnitMovementPlan } from '../movementTypes';
 import type {
   BuildingCombatState,
-  BuildingHealthState,
   UnitCommand,
   WildlifeState,
 } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
+  buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
 } from '../bridgeStateSerialize';
@@ -46,9 +46,9 @@ interface PlayerScoreCountersLike {
 export interface PlayerCommandsSystemDeps {
   world: GameWorld;
   unitCommands: Map<number, UnitCommand>;
-  buildingHealthStates: Map<number, BuildingHealthState>;
   buildingCombatStates: Map<number, BuildingCombatState>;
-  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: constructionStates + combatStates + buildingHealthStates
+  // migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   wildlifeStates: Map<number, WildlifeState>;
   population: Map<number, PopulationState>;
@@ -105,7 +105,6 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
   const {
     world,
     unitCommands,
-    buildingHealthStates,
     buildingCombatStates,
     accessor,
     wildlifeStates,
@@ -278,7 +277,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
           const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
           const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
-          const targetHealth = buildingHealthStates.get(targetId);
+          const targetHealth = accessor.get(buildingHealthStatesCodec).get(targetId);
           if (!targetPosition || !targetBuilding || !targetHealth || targetBuilding.owner === unit.owner) {
             clearUnitCommand(id);
             continue;
@@ -321,6 +320,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             0,
             attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType),
           );
+          accessor.markDirty(buildingHealthStatesCodec);
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
           accessor.markDirty(combatStatesCodec);
           markOutOfBandRenderChange();
@@ -383,7 +383,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
         construction.buildProgressTicks += 1;
         accessor.markDirty(constructionStatesCodec);
-        const buildingHealth = buildingHealthStates.get(buildingId);
+        const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);
         if (buildingHealth && construction.totalBuildTicks > 0) {
           const startHp = Math.max(1, Math.floor(buildingHealth.maxHp * 0.1));
           const hpPerTick = (buildingHealth.maxHp - startHp) / construction.totalBuildTicks;
@@ -391,6 +391,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             buildingHealth.maxHp,
             buildingHealth.currentHp + hpPerTick,
           );
+          accessor.markDirty(buildingHealthStatesCodec);
         }
         if (construction.buildProgressTicks >= construction.totalBuildTicks) {
           construction.buildProgressTicks = construction.totalBuildTicks;
@@ -400,6 +401,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               buildingHealth.maxHp,
               Math.round(buildingHealth.currentHp),
             );
+            accessor.markDirty(buildingHealthStatesCodec);
           }
 
           const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');

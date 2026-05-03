@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
   productionQueuesCodec,
@@ -119,7 +120,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   } = deps;
   const {
     population,
-    buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
     monksByOwner,
@@ -241,10 +241,12 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       visualVariant: isComplete ? 'complete' : 'construction',
     });
     const fullHp = buildingMaxHp(buildingType);
-    buildingHealthStates.set(entity, {
-      currentHp: isComplete ? fullHp : Math.max(1, Math.floor(fullHp * 0.1)),
-      maxHp: fullHp,
-    });
+    accessor.mutate(buildingHealthStatesCodec, (m) =>
+      m.set(entity, {
+        currentHp: isComplete ? fullHp : Math.max(1, Math.floor(fullHp * 0.1)),
+        maxHp: fullHp,
+      }),
+    );
 
     if (buildingType === 'town-center') {
       const entityRef = getEntityRef(entity);
