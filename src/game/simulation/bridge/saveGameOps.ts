@@ -34,6 +34,7 @@ import {
   garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
   playerResourcesCodec,
+  populationCodec,
   productionQueuesCodec,
   wildlifeStatesCodec,
   marketExchangeRatesCodec,
@@ -99,7 +100,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   }
   const {
     researchedTechnologies,
-    population,
     unitCommands,
     monkTasks,
   } = state;
@@ -131,7 +131,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           { ...res },
         ]),
         marketExchangeRates: { ...accessor.get(marketExchangeRatesCodec) },
-        population: [...population.entries()].map(([owner, pop]) => [owner, { ...pop }]),
+        population: [...accessor.get(populationCodec).entries()].map(([owner, pop]) => [owner, { ...pop }]),
         townCenterRefs: [...accessor.get(townCenterRefsCodec).entries()].map(([owner, ref]) => [
           owner,
           { id: ref.id, generation: ref.generation },

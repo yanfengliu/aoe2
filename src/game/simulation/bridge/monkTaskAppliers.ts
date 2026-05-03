@@ -21,6 +21,7 @@ import {
   conversionStateCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  populationCodec,
   relicsInMonasteryCodec,
 } from './bridgeStateSerialize';
 
@@ -85,7 +86,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkTasks,
     monkConvertProcessedThisTick,
     unitCommands,
-    population,
     monksByOwner,
   } = state;
 
@@ -181,13 +181,16 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   ): void {
     const previousOwner = targetUnit.owner;
     targetUnit.owner = monkUnit.owner;
-    const previousPopulation = population.get(previousOwner);
+    const populationMap = accessor.get(populationCodec);
+    const previousPopulation = populationMap.get(previousOwner);
     if (previousPopulation) {
       previousPopulation.current = Math.max(0, previousPopulation.current - 1);
+      accessor.markDirty(populationCodec);
     }
-    const nextPopulation = population.get(monkUnit.owner);
+    const nextPopulation = populationMap.get(monkUnit.owner);
     if (nextPopulation) {
       nextPopulation.current += 1;
+      accessor.markDirty(populationCodec);
     }
     // V5-1: keep the monksByOwner side map in sync if a Monk is converted.
     // Canonical AoE2 makes Monks immune to conversion, but the contract

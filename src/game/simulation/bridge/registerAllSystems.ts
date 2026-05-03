@@ -122,7 +122,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   } = deps;
 
   const {
-    population,
     unitCommands,
     monkTasks,
     monkConvertProcessedThisTick,
@@ -135,7 +134,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    population,
     unitCommands,
     monksByOwner,
     currentEntityId,
@@ -185,7 +183,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     accessor,
     unitCommands,
-    population,
     clearUnitCommand,
     currentEntityId,
     distanceToBuilding,
@@ -228,7 +225,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerProductionQueueSystem({
     world,
-    population,
     accessor,
     inFlightTechByOwner,
     findBuildingSpawnPosition,

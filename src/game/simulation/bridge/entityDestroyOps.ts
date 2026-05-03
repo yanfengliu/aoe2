@@ -24,6 +24,7 @@ import {
   combatStatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  populationCodec,
   productionQueuesCodec,
   trebuchetPackStatesCodec,
   rallyPointsCodec,
@@ -86,7 +87,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     markOutOfBandRenderChange,
   } = deps;
   const {
-    population,
     monkTasks,
     monksByOwner,
     inFlightTechByOwner,
@@ -110,9 +110,10 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
 
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (unit) {
-      const populationState = population.get(unit.owner);
+      const populationState = accessor.get(populationCodec).get(unit.owner);
       if (populationState) {
         populationState.current = Math.max(0, populationState.current - 1);
+        accessor.markDirty(populationCodec);
       }
       if (unit.unitType === 'monk') {
         const monkSet = monksByOwner.get(unit.owner);
@@ -155,12 +156,13 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     }
 
     if (building) {
-      const populationState = population.get(building.owner);
+      const populationState = accessor.get(populationCodec).get(building.owner);
       const populationProvided =
         construction?.populationProvided ?? buildingPopulationProvided(building.buildingType);
       const isComplete = construction?.isComplete ?? true;
       if (populationState && isComplete && populationProvided > 0) {
         populationState.cap = Math.max(populationState.current, populationState.cap - populationProvided);
+        accessor.markDirty(populationCodec);
       }
     }
 

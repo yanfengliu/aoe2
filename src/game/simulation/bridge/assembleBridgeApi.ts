@@ -5,7 +5,10 @@ import type { GameWorld } from './pureHelpers';
 import { cloneResources } from './pureHelpers';
 import type { MatchState } from '../types';
 import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
-import { playerResourcesCodec } from './bridgeStateSerialize';
+import {
+  playerResourcesCodec,
+  populationCodec,
+} from './bridgeStateSerialize';
 
 export interface AssembleBridgeApiDeps
   extends Omit<
@@ -46,13 +49,12 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     hasOutOfBandRenderChangeRef,
     ...rest
   } = deps;
-  const { population } = state;
 
   return {
     ...rest,
     pendingCommands: state.pendingCommands,
     getPopulationState(playerId: number) {
-      return { ...(population.get(playerId) ?? { current: 0, cap: 0 }) };
+      return { ...(accessor.get(populationCodec).get(playerId) ?? { current: 0, cap: 0 }) };
     },
     getPlayerResources(playerId: number) {
       return cloneResources(

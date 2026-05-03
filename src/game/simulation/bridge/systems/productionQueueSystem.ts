@@ -8,7 +8,6 @@ import type { Position } from 'civ-engine';
 import type {
   BuildingComponent,
   BuildingType,
-  PopulationState,
   ResearchableTechnologyType,
   TrainableUnitType,
   VisionSourceComponent,
@@ -16,11 +15,15 @@ import type {
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { productionQueuesCodec, rallyPointsCodec } from '../bridgeStateSerialize';
+import {
+  populationCodec,
+  productionQueuesCodec,
+  rallyPointsCodec,
+} from '../bridgeStateSerialize';
 
 export interface ProductionQueueSystemDeps {
   world: GameWorld;
-  population: Map<number, PopulationState>;
+  // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   // Phase 2D: rallyPoints + productionQueues migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
@@ -41,7 +44,6 @@ export interface ProductionQueueSystemDeps {
 export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): void {
   const {
     world,
-    population,
     accessor,
     inFlightTechByOwner,
     findBuildingSpawnPosition,
@@ -72,7 +74,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
 
         const entry = queue[0];
         if (entry.kind === 'unit') {
-          const populationState = population.get(building.owner);
+          const populationState = accessor.get(populationCodec).get(building.owner);
           if (!populationState || !entry.unitType) {
             continue;
           }

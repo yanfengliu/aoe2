@@ -10,7 +10,6 @@ import type {
   BuildableBuildingType,
   BuildingComponent,
   BuildingType,
-  PopulationState,
   ResearchableTechnologyType,
   ResourceComponent,
   TrainableUnitType,
@@ -43,6 +42,7 @@ import {
   aiStatesCodec,
   constructionStatesCodec,
   playerResourcesCodec,
+  populationCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
   wildlifeStatesCodec,
@@ -65,7 +65,7 @@ export interface AiSystemDeps {
   // Per-tick reads happen via accessor.get(townCenterRefsCodec).
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
-  population: Map<number, PopulationState>;
+  // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   unitCommands: Map<number, UnitCommandLike>;
   // Phase 2D: wildlifeStates migrated to world.state.aoe2.* via accessor.
@@ -145,7 +145,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    population,
     unitCommands,
     monksByOwner,
     currentEntityId,
@@ -309,7 +308,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           }
         }
 
-        const populationState = population.get(owner);
+        const populationState = accessor.get(populationCodec).get(owner);
         const populationBlocked = Boolean(
           populationState && populationState.current >= populationState.cap,
         );

@@ -7,7 +7,6 @@
 import type { EntityRef, Position, World } from 'civ-engine';
 import type {
   BuildingComponent,
-  PopulationState,
   RenderableComponent,
   ResourceComponent,
   UnitComponent,
@@ -32,6 +31,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  populationCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
@@ -47,7 +47,7 @@ export interface PlayerCommandsSystemDeps {
   // Phase 2D: constructionStates + combatStates + buildingHealthStates +
   // buildingCombatStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
-  population: Map<number, PopulationState>;
+  // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   clearUnitCommand: (unitId: number) => void;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   distanceToBuilding: (id: number, position: Position) => number;
@@ -102,7 +102,6 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     world,
     unitCommands,
     accessor,
-    population,
     clearUnitCommand,
     currentEntityId,
     distanceToBuilding,
@@ -421,9 +420,10 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             accessor.mutate(buildingCombatStatesCodec, (m) => m.set(buildingId, buildingCombatState));
           }
 
-          const populationState = population.get(building.owner);
+          const populationState = accessor.get(populationCodec).get(building.owner);
           if (populationState) {
             populationState.cap += construction.populationProvided;
+            accessor.markDirty(populationCodec);
           }
 
           onBuildingConstructionComplete(buildingId, building.owner, building.buildingType);

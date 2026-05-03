@@ -29,6 +29,7 @@ import {
   constructionStatesCodec,
   playerAgesCodec,
   playerResourcesCodec,
+  populationCodec,
   productionQueuesCodec,
 } from './bridgeStateSerialize';
 
@@ -43,10 +44,7 @@ export interface EconomyStateOpsDeps {
 export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
   getEconomyState(): EconomyState;
 } {
-  const { world, state, accessor, getUnitTaskState } = deps;
-  const {
-    population,
-  } = state;
+  const { world, accessor, getUnitTaskState } = deps;
 
   function getEconomyState(): EconomyState {
     const villagers = [...world.query('unit', 'gatherer')]
@@ -140,7 +138,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
         ]),
       ),
       population: Object.fromEntries(
-        [...population.entries()].map(([playerId, value]) => [
+        [...accessor.get(populationCodec).entries()].map(([playerId, value]) => [
           playerId,
           { ...value },
         ]),

@@ -38,6 +38,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  populationCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
@@ -121,7 +122,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     getEntityRef,
   } = deps;
   const {
-    population,
     monksByOwner,
   } = state;
 
@@ -145,9 +145,10 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       visualVariant: 'default',
     });
 
-    const populationState = population.get(owner);
+    const populationState = accessor.get(populationCodec).get(owner);
     if (populationState) {
       populationState.current += 1;
+      accessor.markDirty(populationCodec);
     }
 
     ensurePlayerScoreCounters(owner).unitsProduced += 1;
@@ -288,10 +289,11 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       accessor.mutate(buildingCombatStatesCodec, (m) => m.set(entity, buildingCombatState));
     }
 
-    const populationState = population.get(owner);
+    const populationState = accessor.get(populationCodec).get(owner);
     const populationProvided = buildingPopulationProvided(buildingType);
     if (isComplete && populationState && populationProvided > 0) {
       populationState.cap += populationProvided;
+      accessor.markDirty(populationCodec);
     }
 
     if (!isComplete) {

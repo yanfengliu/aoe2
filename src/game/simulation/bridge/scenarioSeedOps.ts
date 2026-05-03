@@ -38,6 +38,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   playerResourcesCodec,
+  populationCodec,
   relicCountdownOverridesCodec,
   relicsInMonasteryCodec,
   villagerOrdinalsCodec,
@@ -123,7 +124,6 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   } = deps;
   const {
     researchedTechnologies,
-    population,
   } = state;
 
   // Phase 2D — batch the per-player Map writes into single mutate calls
@@ -155,10 +155,12 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       start.owner,
       new Set(start.startingResearchedTechnologies ?? []),
     );
-    population.set(start.owner, {
-      current: 0,
-      cap: standardPopulationCap,
-    });
+    accessor.mutate(populationCodec, (m) =>
+      m.set(start.owner, {
+        current: 0,
+        cap: standardPopulationCap,
+      }),
+    );
     // Phase 2D — villagerOrdinals routes through the accessor.
     accessor.mutate(villagerOrdinalsCodec, (m) => m.set(start.owner, 0));
     if (typeof start.wonderCountdownOverrideTicks === 'number') {
