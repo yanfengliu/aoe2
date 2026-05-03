@@ -13,10 +13,14 @@ import type {
 } from '../types';
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { monkCarriedRelicCodec } from './bridgeStateSerialize';
 
 export interface MonkAiSearchDeps {
   world: GameWorld;
   state: BridgeState;
+  // Phase 2D: monkCarriedRelic migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   aiMonkHealHpFraction: number;
@@ -29,8 +33,8 @@ export interface MonkAiSearchHelpers {
 }
 
 export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchHelpers {
-  const { world, state, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
-  const { constructionStates, monkCarriedRelic, combatStates } = state;
+  const { world, state, accessor, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
+  const { constructionStates, combatStates } = state;
 
   function findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null {
     let bestId: number | null = null;
@@ -62,7 +66,7 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
   // Returns the nearest neutral relic visible to the Monk's owner; carried
   // relics are excluded because their position tracks the carrying Monk.
   function findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null {
-    const carriedRelicIds = new Set<number>(monkCarriedRelic.values());
+    const carriedRelicIds = new Set<number>(accessor.get(monkCarriedRelicCodec).values());
     let bestId: number | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const id of world.query('resource', 'position')) {

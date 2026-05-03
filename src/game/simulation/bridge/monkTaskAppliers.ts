@@ -18,6 +18,7 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   conversionStateCodec,
+  monkCarriedRelicCodec,
   monkHealCountersCodec,
   relicsInMonasteryCodec,
 } from './bridgeStateSerialize';
@@ -81,7 +82,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   } = deps;
   const {
     monkTasks,
-    monkCarriedRelic,
     monkConvertProcessedThisTick,
     combatStates,
     unitCommands,
@@ -250,12 +250,14 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       clearMonkTask(monkId);
       return;
     }
-    for (const [otherMonkId, carriedId] of monkCarriedRelic.entries()) {
-      if (carriedId === relicId && otherMonkId !== monkId) {
-        monkCarriedRelic.delete(otherMonkId);
+    accessor.mutate(monkCarriedRelicCodec, (m) => {
+      for (const [otherMonkId, carriedId] of m.entries()) {
+        if (carriedId === relicId && otherMonkId !== monkId) {
+          m.delete(otherMonkId);
+        }
       }
-    }
-    monkCarriedRelic.set(monkId, relicId);
+      m.set(monkId, relicId);
+    });
     clearMonkTask(monkId);
     markOutOfBandRenderChange();
   }
@@ -266,7 +268,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkUnit: UnitComponent,
     activeWorld: World<GameEvents, GameCommands>,
   ): void {
-    const relicId = monkCarriedRelic.get(monkId);
+    const relicId = accessor.get(monkCarriedRelicCodec).get(monkId);
     const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');
     if (
       relicId === undefined
@@ -278,7 +280,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       return;
     }
     destroyResourceEntity(relicId);
-    monkCarriedRelic.delete(monkId);
+    accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(monkId));
     accessor.mutate(relicsInMonasteryCodec, (m) => m.set(monasteryId, (m.get(monasteryId) ?? 0) + 1));
     clearMonkTask(monkId);
     markOutOfBandRenderChange();

@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import {
+  monkCarriedRelicCodec,
   playerScoreCountersCodec,
   relicCountdownsCodec,
   relicsInMonasteryCodec,
@@ -55,7 +56,6 @@ export interface MatchEndOps {
 export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   const { world, matchState, humanPlayerId, state, accessor } = deps;
   const {
-    monkCarriedRelic,
     playerResources,
   } = state;
 
@@ -139,7 +139,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
     }
     // Any Monk carrying a relic means it is "in flight" — not held by an
     // owner, ownership picture is ambiguous until deposited.
-    if (monkCarriedRelic.size > 0) {
+    if (accessor.get(monkCarriedRelicCodec).size > 0) {
       return null;
     }
     // Aggregate deposited relics by owner.

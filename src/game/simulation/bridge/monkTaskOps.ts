@@ -29,6 +29,7 @@ import type { MonkTask } from './sharedTypes';
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import { createMonkAiSearchHelpers } from './monkAiSearchHelpers';
 import { createMonkTaskAppliers } from './monkTaskAppliers';
+import { monkCarriedRelicCodec } from './bridgeStateSerialize';
 
 export interface MonkTaskDeps {
   world: GameWorld;
@@ -123,7 +124,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
   } = deps;
-  const { monkTasks, monkCarriedRelic, combatStates } = state;
+  const { monkTasks, combatStates } = state;
 
   function assignAiMonkTasks(owner: number): void {
     for (const monkId of world.query('unit')) {
@@ -142,7 +143,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       }
 
       // Priority 1: deposit a carried relic.
-      if (monkCarriedRelic.has(monkId)) {
+      if (accessor.get(monkCarriedRelicCodec).has(monkId)) {
         const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
         if (monasteryId !== null) {
           const monasteryRef = getEntityRef(monasteryId);
@@ -183,6 +184,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   const aiSearch = createMonkAiSearchHelpers({
     world,
     state,
+    accessor,
     isAiMilitaryUnit,
     isVisibleToOwner,
     aiMonkHealHpFraction,

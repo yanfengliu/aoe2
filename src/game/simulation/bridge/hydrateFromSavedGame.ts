@@ -17,6 +17,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
   marketExchangeRatesCodec,
+  monkCarriedRelicCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
@@ -52,7 +53,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    monkCarriedRelic,
     trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
@@ -154,9 +154,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, { byOwner: conv.byOwner, progress: conv.progress });
     }
   });
-  for (const [id, relicId] of blob.monkCarriedRelic) {
-    monkCarriedRelic.set(id, relicId);
-  }
+  accessor.mutate(monkCarriedRelicCodec, (m) => {
+    for (const [id, relicId] of blob.monkCarriedRelic) {
+      m.set(id, relicId);
+    }
+  });
   accessor.mutate(monkHealCountersCodec, (m) => {
     for (const [id, count] of blob.monkHealCounters) {
       m.set(id, count);
@@ -376,7 +378,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(monkTasks);
   accessor.mutate(conversionStateCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(monkCarriedRelic);
+  accessor.mutate(monkCarriedRelicCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(relicsInMonasteryCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(wonderCountdownsCodec, (m) => pruneOrphanEntityKeys(m));
@@ -419,9 +421,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       garrisonedUnitToBuilding.delete(unitId);
     }
   }
-  for (const [monkId, relicId] of [...monkCarriedRelic]) {
-    if (world.getEntityRef(relicId) === null) {
-      monkCarriedRelic.delete(monkId);
+  accessor.mutate(monkCarriedRelicCodec, (m) => {
+    for (const [monkId, relicId] of [...m]) {
+      if (world.getEntityRef(relicId) === null) {
+        m.delete(monkId);
+      }
     }
-  }
+  });
 }

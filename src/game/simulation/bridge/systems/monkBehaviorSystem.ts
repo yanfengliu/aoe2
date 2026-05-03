@@ -14,6 +14,8 @@ import {
   type GameWorld,
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { monkCarriedRelicCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -30,7 +32,8 @@ export interface MonkBehaviorSystemDeps {
   world: GameWorld;
   monkTasks: Map<number, MonkTask>;
   monkConvertProcessedThisTick: Map<number, number>;
-  monkCarriedRelic: Map<number, number>;
+  // Phase 2D: monkCarriedRelic migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   distanceToBuilding: (id: number, position: Position) => number;
   findBuildingApproachPlan: (
     unitId: number,
@@ -76,7 +79,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
     world,
     monkTasks,
     monkConvertProcessedThisTick,
-    monkCarriedRelic,
+    accessor,
     distanceToBuilding,
     findBuildingApproachPlan,
     findUnitRangePlan,
@@ -161,11 +164,14 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
       // Carried-relic follow: every Monk carrying a relic this tick moves the
       // relic entity to the Monk's current cell so the rendered position
       // tracks.
+      const monkCarriedRelic = accessor.get(monkCarriedRelicCodec);
+      let carriedDirty = false;
       for (const [monkId, relicId] of [...monkCarriedRelic.entries()]) {
         const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
         const relicPosition = activeWorld.getComponent<Position>(relicId, 'position');
         if (!monkPosition || !relicPosition) {
           monkCarriedRelic.delete(monkId);
+          carriedDirty = true;
           continue;
         }
         if (relicPosition.x !== monkPosition.x || relicPosition.y !== monkPosition.y) {
@@ -175,6 +181,9 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
             activeWorld,
           );
         }
+      }
+      if (carriedDirty) {
+        accessor.markDirty(monkCarriedRelicCodec);
       }
     },
   });

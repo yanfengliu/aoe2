@@ -134,7 +134,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     buildingCombatStates,
     monkTasks,
     monkConvertProcessedThisTick,
-    monkCarriedRelic,
     monksByOwner,
     inFlightTechByOwner,
     garrisonedByBuilding,
@@ -230,9 +229,9 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerMonkBehaviorSystem({
     world,
+    accessor,
     monkTasks,
     monkConvertProcessedThisTick,
-    monkCarriedRelic,
     distanceToBuilding,
     findBuildingApproachPlan,
     findUnitRangePlan,

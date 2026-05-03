@@ -20,7 +20,7 @@ import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { sheepMoveOrdersCodec } from './bridgeStateSerialize';
+import { monkCarriedRelicCodec, sheepMoveOrdersCodec } from './bridgeStateSerialize';
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
@@ -165,7 +165,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     wildlifeStates,
     constructionStates,
     combatStates,
-    monkCarriedRelic,
   } = state;
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
@@ -481,7 +480,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     if (
       targetResource
       && targetResource.resourceType === 'relic'
-      && monkCarriedRelic.get(monkId) === undefined
+      && accessor.get(monkCarriedRelicCodec).get(monkId) === undefined
     ) {
       return setMonkTask(monkId, 'pickup', targetEntityRef);
     }
@@ -490,7 +489,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       targetBuilding
       && targetBuilding.owner === monkUnit.owner
       && targetBuilding.buildingType === 'monastery'
-      && monkCarriedRelic.get(monkId) !== undefined
+      && accessor.get(monkCarriedRelicCodec).get(monkId) !== undefined
     ) {
       return setMonkTask(monkId, 'deposit', targetEntityRef);
     }

@@ -15,6 +15,7 @@ import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   conversionStateCodec,
   gathererDropOffStuckSinceTickCodec,
+  monkCarriedRelicCodec,
   monkHealCountersCodec,
   rallyPointsCodec,
   relicsInMonasteryCodec,
@@ -81,7 +82,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     population,
     combatStates,
     monkTasks,
-    monkCarriedRelic,
     monksByOwner,
     trebuchetPackStates,
     productionQueues,
@@ -129,7 +129,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     clearUnitCommand(id);
     combatStates.delete(id);
     monkTasks.delete(id);
-    monkCarriedRelic.delete(id);
+    accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
     trebuchetPackStates.delete(id);
@@ -266,11 +266,13 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     removeSelectedEntity(id);
     wildlifeStates.delete(id);
     accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(id));
-    for (const [monkId, carriedId] of monkCarriedRelic.entries()) {
-      if (carriedId === id) {
-        monkCarriedRelic.delete(monkId);
+    accessor.mutate(monkCarriedRelicCodec, (m) => {
+      for (const [monkId, carriedId] of m.entries()) {
+        if (carriedId === id) {
+          m.delete(monkId);
+        }
       }
-    }
+    });
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }
