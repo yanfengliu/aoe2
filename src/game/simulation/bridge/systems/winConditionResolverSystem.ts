@@ -8,12 +8,15 @@
 
 import type { BuildingComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
-import type { RelicCountdownEntry, WonderCountdownEntry } from '../countdownTypes';
+import type { RelicCountdownEntry } from '../countdownTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { wonderCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface WinConditionResolverSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
+  // Phase 2D: wonderCountdowns migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   relicCountdowns: Map<number, RelicCountdownEntry>;
   isMatchRunning: () => boolean;
   finalizeMatchEnd: (
@@ -27,7 +30,7 @@ export function registerWinConditionResolverSystem(deps: WinConditionResolverSys
   const {
     world,
     humanPlayerId,
-    wonderCountdowns,
+    accessor,
     relicCountdowns,
     isMatchRunning,
     finalizeMatchEnd,
@@ -41,6 +44,7 @@ export function registerWinConditionResolverSystem(deps: WinConditionResolverSys
       if (!isMatchRunning()) {
         return;
       }
+      const wonderCountdowns = accessor.get(wonderCountdownsCodec);
       let earliestWonderTick: number | null = null;
       let earliestWonderOwner: number | null = null;
       for (const [buildingId, entry] of wonderCountdowns.entries()) {

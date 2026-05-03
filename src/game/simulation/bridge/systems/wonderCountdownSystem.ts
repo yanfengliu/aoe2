@@ -6,16 +6,18 @@
 
 import type { BuildingComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
-import type { WonderCountdownEntry } from '../countdownTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { wonderCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface WonderCountdownSystemDeps {
   world: GameWorld;
-  wonderCountdowns: Map<number, WonderCountdownEntry>;
+  // Phase 2D: wonderCountdowns migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   isMatchRunning: () => boolean;
 }
 
 export function registerWonderCountdownSystem(deps: WonderCountdownSystemDeps): void {
-  const { world, wonderCountdowns, isMatchRunning } = deps;
+  const { world, accessor, isMatchRunning } = deps;
 
   world.registerSystem({
     name: 'prototypeWonderCountdown',
@@ -24,10 +26,13 @@ export function registerWonderCountdownSystem(deps: WonderCountdownSystemDeps): 
       if (!isMatchRunning()) {
         return;
       }
+      const wonderCountdowns = accessor.get(wonderCountdownsCodec);
+      let dirty = false;
       for (const [buildingId, entry] of [...wonderCountdowns.entries()]) {
         const building = world.getComponent<BuildingComponent>(buildingId, 'building');
         if (!building) {
           wonderCountdowns.delete(buildingId);
+          dirty = true;
           continue;
         }
         if (entry.lastCompletedTick !== null) {
@@ -37,6 +42,10 @@ export function registerWonderCountdownSystem(deps: WonderCountdownSystemDeps): 
         if (entry.remainingTicks <= 0) {
           entry.lastCompletedTick = world.tick;
         }
+        dirty = true;
+      }
+      if (dirty) {
+        accessor.markDirty(wonderCountdownsCodec);
       }
     },
   });

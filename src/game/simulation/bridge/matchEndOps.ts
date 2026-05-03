@@ -11,7 +11,7 @@ import type {
   ResourceComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
-import { playerScoreCountersCodec } from './bridgeStateSerialize';
+import { playerScoreCountersCodec, wonderCountdownsCodec } from './bridgeStateSerialize';
 
 export interface MatchEndDeps {
   world: GameWorld;
@@ -51,7 +51,6 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   const { world, matchState, humanPlayerId, state, accessor } = deps;
   const {
     relicsInMonastery,
-    wonderCountdowns,
     relicCountdowns,
     monkCarriedRelic,
     playerResources,
@@ -106,7 +105,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   // most one Wonder per owner, but the helper stays defensive).
   function getHumanWonderCountdownTicks(): number | null {
     let minRemaining: number | null = null;
-    for (const [buildingId, entry] of wonderCountdowns.entries()) {
+    for (const [buildingId, entry] of accessor.get(wonderCountdownsCodec).entries()) {
       const building = world.getComponent<BuildingComponent>(buildingId, 'building');
       if (building?.owner !== humanPlayerId) {
         continue;

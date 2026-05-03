@@ -28,6 +28,7 @@ import {
   playerScoreCountersCodec,
   rallyPointsCodec,
   trackedVisibilitySourcesCodec,
+  wonderCountdownsCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
   relicCountdownOverridesCodec,
@@ -88,7 +89,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     conversionState,
     monkCarriedRelic,
     relicsInMonastery,
-    wonderCountdowns,
     relicCountdowns,
     trebuchetPackStates,
     lastSeenStatic,
@@ -184,7 +184,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         monkCarriedRelic: [...monkCarriedRelic.entries()],
         monkHealCounters: [...accessor.get(monkHealCountersCodec).entries()],
         relicsInMonastery: [...relicsInMonastery.entries()],
-        wonderCountdowns: [...wonderCountdowns.entries()].map(([id, entry]) => [
+        wonderCountdowns: [...accessor.get(wonderCountdownsCodec).entries()].map(([id, entry]) => [
           id,
           {
             remainingTicks: entry.remainingTicks,

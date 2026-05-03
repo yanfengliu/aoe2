@@ -36,6 +36,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
+  wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 
 interface PlayerScoreCountersLike {
@@ -120,7 +121,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     productionQueues,
     constructionStates,
     townCenterRefs,
-    wonderCountdowns,
     wildlifeStates,
     monksByOwner,
   } = state;
@@ -208,10 +208,12 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     if (buildingType === 'wonder') {
       counters.wonderCompleted = true;
       const totalTicks = accessor.get(wonderCountdownOverridesCodec).get(owner) ?? wonderCountdownTicks;
-      wonderCountdowns.set(buildingId, {
-        remainingTicks: totalTicks,
-        totalTicks,
-        lastCompletedTick: null,
+      accessor.mutate(wonderCountdownsCodec, (m) => {
+        m.set(buildingId, {
+          remainingTicks: totalTicks,
+          totalTicks,
+          lastCompletedTick: null,
+        });
       });
     }
   }

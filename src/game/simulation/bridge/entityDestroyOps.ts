@@ -16,6 +16,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
   rallyPointsCodec,
+  wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
@@ -85,7 +86,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     constructionStates,
     buildingHealthStates,
     buildingCombatStates,
-    wonderCountdowns,
     relicsInMonastery,
     inFlightTechByOwner,
     wildlifeStates,
@@ -183,7 +183,9 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);
-    wonderCountdowns.delete(id);
+    accessor.mutate(wonderCountdownsCodec, (m) => {
+      m.delete(id);
+    });
 
     // Stored relics on a destroyed Monastery spill back onto the map.
     // Search outward until enough free cells are collected, capped at

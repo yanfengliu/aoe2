@@ -141,7 +141,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     inFlightTechByOwner,
     sheepMoveOrders,
     garrisonedByBuilding,
-    wonderCountdowns,
     relicCountdowns,
   } = state;
 
@@ -346,7 +345,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     ensurePlayerScoreCounters,
   });
 
-  registerWonderCountdownSystem({ world, wonderCountdowns, isMatchRunning });
+  registerWonderCountdownSystem({ world, accessor, isMatchRunning });
 
   registerRelicCountdownSystem({
     world,
@@ -360,7 +359,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerWinConditionResolverSystem({
     world,
     humanPlayerId,
-    wonderCountdowns,
+    accessor,
     relicCountdowns,
     isMatchRunning,
     finalizeMatchEnd,
