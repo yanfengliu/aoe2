@@ -38,7 +38,11 @@ import {
 
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { garrisonedByBuildingCodec, marketExchangeRatesCodec } from './bridgeStateSerialize';
+import {
+  garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
+  marketExchangeRatesCodec,
+} from './bridgeStateSerialize';
 
 export interface TrainingMarketOpsDeps {
   world: GameWorld;
@@ -144,7 +148,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     playerResources,
     productionQueues,
     constructionStates,
-    garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
   } = state;
 
@@ -302,7 +305,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     }
 
     clearPositionAndSyncOccupancy(unitId);
-    garrisonedUnitToBuilding.set(unitId, buildingId);
+    accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.set(unitId, buildingId));
     accessor.mutate(garrisonedByBuildingCodec, (m) => {
       const list = m.get(buildingId) ?? [];
       list.push(unitId);
@@ -342,7 +345,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
         world.addComponent(unitId, 'visionSource', storedVisionSource);
         garrisonedUnitVisionSources.delete(unitId);
       }
-      garrisonedUnitToBuilding.delete(unitId);
+      accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.delete(unitId));
       clearGathererOrder(unitId);
       didUngarrisonUnit = true;
     }

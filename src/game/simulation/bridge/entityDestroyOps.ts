@@ -15,6 +15,7 @@ import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   conversionStateCodec,
   garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
   gathererDropOffStuckSinceTickCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -78,7 +79,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     markOutOfBandRenderChange,
   } = deps;
   const {
-    garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
     population,
     combatStates,
@@ -93,7 +93,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   } = state;
 
   function destroyUnitEntity(id: number): void {
-    const garrisonBuildingId = garrisonedUnitToBuilding.get(id) ?? null;
+    const garrisonBuildingId = accessor.get(garrisonedUnitToBuildingCodec).get(id) ?? null;
     if (garrisonBuildingId !== null) {
       accessor.mutate(garrisonedByBuildingCodec, (m) => {
         const garrisonedUnits = m.get(garrisonBuildingId) ?? [];
@@ -104,7 +104,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
           m.set(garrisonBuildingId, filtered);
         }
       });
-      garrisonedUnitToBuilding.delete(id);
+      accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.delete(id));
       garrisonedUnitVisionSources.delete(id);
     }
 

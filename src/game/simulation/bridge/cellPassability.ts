@@ -18,7 +18,10 @@ import {
 } from './pureHelpers';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { garrisonedByBuildingCodec } from './bridgeStateSerialize';
+import {
+  garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
+} from './bridgeStateSerialize';
 type CivWorld = World<GameEvents, GameCommands>;
 
 interface WorldOccupancyLike {
@@ -87,7 +90,6 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
   const {
     constructionStates,
     wildlifeStates,
-    garrisonedUnitToBuilding,
   } = state;
 
   function buildingOccupiesCell(
@@ -183,7 +185,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
   }
 
   function isGarrisonedUnit(id: number): boolean {
-    return garrisonedUnitToBuilding.has(id);
+    return accessor.get(garrisonedUnitToBuildingCodec).has(id);
   }
 
   function getActionOptions(

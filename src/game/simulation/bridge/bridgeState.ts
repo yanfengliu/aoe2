@@ -61,7 +61,7 @@ export interface BridgeState {
   // `world.state.aoe2.playerScoreCounters` via accessor + codec.
   // Phase 2D: `lastSeenStatic` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `garrisonedByBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
-  garrisonedUnitToBuilding: Map<number, number>;
+  // Phase 2D: `garrisonedUnitToBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
   garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
   aiStates: Map<number, AiState>;
   // V5-1: O(1) monk presence lookup keyed by owner. Iter-1 V4-12 used
@@ -109,7 +109,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    garrisonedUnitToBuilding: new Map(),
     garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),
     monksByOwner: new Map(),

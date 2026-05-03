@@ -17,6 +17,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
   garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -56,7 +57,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
     productionQueues,
     constructionStates,
@@ -241,17 +241,20 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, [...list]);
     }
   });
-  for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
-    garrisonedUnitToBuilding.set(id, buildingId);
-  }
+  accessor.mutate(garrisonedUnitToBuildingCodec, (m) => {
+    for (const [id, buildingId] of blob.garrisonedUnitToBuilding) {
+      m.set(id, buildingId);
+    }
+  });
   for (const [id, src] of blob.garrisonedUnitVisionSources) {
     garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
   }
   // Cross-reference invariant for the garrison maps (Iter-1 H-3).
   const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
+  const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
   for (const [buildingId, list] of garrisonedByBuildingForCheck) {
     for (const unitId of list) {
-      const reverse = garrisonedUnitToBuilding.get(unitId);
+      const reverse = garrisonedUnitToBuildingForCheck.get(unitId);
       if (reverse !== buildingId) {
         throw new Error(
           `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (garrisonedUnitToBuilding=${reverse ?? 'absent'}).`,
@@ -259,7 +262,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       }
     }
   }
-  for (const [unitId, buildingId] of garrisonedUnitToBuilding) {
+  for (const [unitId, buildingId] of garrisonedUnitToBuildingForCheck) {
     const list = garrisonedByBuildingForCheck.get(buildingId);
     if (!list || !list.includes(unitId)) {
       throw new Error(
@@ -398,7 +401,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(wildlifeStates);
   pruneOrphanEntityKeys(garrisonedUnitVisionSources);
   accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(garrisonedUnitToBuilding);
+  accessor.mutate(garrisonedUnitToBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   // Phase 2D — prune via accessor.
   accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) =>
     pruneOrphanEntityKeys(m),
@@ -425,11 +428,13 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       }
     }
   });
-  for (const [unitId, buildingId] of [...garrisonedUnitToBuilding]) {
-    if (world.getEntityRef(buildingId) === null) {
-      garrisonedUnitToBuilding.delete(unitId);
+  accessor.mutate(garrisonedUnitToBuildingCodec, (m) => {
+    for (const [unitId, buildingId] of [...m]) {
+      if (world.getEntityRef(buildingId) === null) {
+        m.delete(unitId);
+      }
     }
-  }
+  });
   accessor.mutate(monkCarriedRelicCodec, (m) => {
     for (const [monkId, relicId] of [...m]) {
       if (world.getEntityRef(relicId) === null) {
