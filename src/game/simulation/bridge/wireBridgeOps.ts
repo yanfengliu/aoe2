@@ -76,7 +76,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     markOutOfBandRenderChange,
     getSeed,
   } = deps;
-  const { movePathCache, lastSeenStatic } = state;
+  const { movePathCache } = state;
 
   // Phase 2D — accessor is constructed in `createWorld.ts` (so
   // bridgeHelpers can also consume it) and threaded in via deps.
@@ -103,7 +103,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getFogMemoryEntities,
     getHumanFogMemorySize,
   } = createFogMemoryOps({
-    fogMemory: lastSeenStatic,
+    accessor,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
   });

@@ -16,6 +16,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
   conversionStateCodec,
+  lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -54,7 +55,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    lastSeenStatic,
     garrisonedByBuilding,
     garrisonedUnitToBuilding,
     garrisonedUnitVisionSources,
@@ -216,24 +216,26 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       });
     }
   });
-  for (const [playerId, innerEntries] of blob.lastSeenStatic) {
-    const inner = new Map<number, MemoryEntry>();
-    for (const [entityId, entry] of innerEntries) {
-      inner.set(entityId, {
-        kind: entry.kind,
-        entityType: entry.entityType as MemoryEntry['entityType'],
-        position: { x: entry.position.x, y: entry.position.y },
-        footprintWidth: entry.footprintWidth,
-        footprintHeight: entry.footprintHeight,
-        tint: entry.tint,
-        owner: entry.owner,
-        size: entry.size,
-        visualVariant: entry.visualVariant as MemoryEntry['visualVariant'],
-        lastSeenTick: entry.lastSeenTick,
-      });
+  accessor.mutate(lastSeenStaticCodec, (outer) => {
+    for (const [playerId, innerEntries] of blob.lastSeenStatic) {
+      const inner = new Map<number, MemoryEntry>();
+      for (const [entityId, entry] of innerEntries) {
+        inner.set(entityId, {
+          kind: entry.kind,
+          entityType: entry.entityType as MemoryEntry['entityType'],
+          position: { x: entry.position.x, y: entry.position.y },
+          footprintWidth: entry.footprintWidth,
+          footprintHeight: entry.footprintHeight,
+          tint: entry.tint,
+          owner: entry.owner,
+          size: entry.size,
+          visualVariant: entry.visualVariant as MemoryEntry['visualVariant'],
+          lastSeenTick: entry.lastSeenTick,
+        });
+      }
+      outer.set(playerId, inner);
     }
-    lastSeenStatic.set(playerId, inner);
-  }
+  });
   for (const [id, list] of blob.garrisonedByBuilding) {
     garrisonedByBuilding.set(id, [...list]);
   }

@@ -1,18 +1,24 @@
 // Fog memory ops. Reads / writes the per-player last-seen snapshot side map
-// keyed by playerId -> entityId -> MemoryEntry. Caller owns the map; the
-// factory just bundles the read helpers so createWorld doesn't have to carry
-// them inline. Mutations from other callers (save/load hydration, per-tick
-// refresh) still go through the same map reference by design.
+// keyed by playerId -> entityId -> MemoryEntry. Phase 2D moved the side map
+// onto `world.state.aoe2.lastSeenStatic` via accessor + codec; the factory
+// now closes over a BridgeStateAccessor and the get-or-create helper goes
+// through `accessor.mutate` so the dirty bit fires on every tick that
+// writes to fog memory.
 
 import type { VisibilityMap } from 'civ-engine';
 
 import type { MemoryEntry } from './memoryTypes';
 import type { ProjectedEntityView } from '../types';
 import { isFootprintExplored, isFootprintVisible } from './pureHelpers';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { lastSeenStaticCodec } from './bridgeStateSerialize';
 
 export interface FogMemoryOps {
   // Return (creating if missing) the per-player memory map. Used by the
-  // per-tick refresh pathway that writes last-seen snapshots.
+  // per-tick refresh pathway that writes last-seen snapshots. Marks
+  // `lastSeenStatic` dirty up-front so any subsequent in-place mutation
+  // of the returned inner Map (set / delete) is captured by the accessor's
+  // end-of-tick flush.
   getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry>;
   // Build `ProjectedEntityView` entries for every memory record whose
   // position is explored-but-not-visible, deduped against any live entity
@@ -30,25 +36,29 @@ export interface FogMemoryOps {
 }
 
 export interface FogMemoryDeps {
-  fogMemory: Map<number, Map<number, MemoryEntry>>;
+  // Phase 2D: lastSeenStatic migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   humanPlayerId: number;
   visibility: VisibilityMap;
 }
 
 export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
-  const { fogMemory, humanPlayerId, visibility } = deps;
+  const { accessor, humanPlayerId, visibility } = deps;
 
   function getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry> {
-    let map = fogMemory.get(playerId);
-    if (!map) {
-      map = new Map<number, MemoryEntry>();
-      fogMemory.set(playerId, map);
-    }
-    return map;
+    let inner: Map<number, MemoryEntry> | undefined;
+    accessor.mutate(lastSeenStaticCodec, (outer) => {
+      inner = outer.get(playerId);
+      if (!inner) {
+        inner = new Map<number, MemoryEntry>();
+        outer.set(playerId, inner);
+      }
+    });
+    return inner!;
   }
 
   function getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[] {
-    const humanMemory = fogMemory.get(humanPlayerId);
+    const humanMemory = accessor.get(lastSeenStaticCodec).get(humanPlayerId);
     if (!humanMemory || humanMemory.size === 0) {
       return [];
     }
@@ -109,7 +119,7 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
   }
 
   function getHumanFogMemorySize(): number {
-    return fogMemory.get(humanPlayerId)?.size ?? 0;
+    return accessor.get(lastSeenStaticCodec).get(humanPlayerId)?.size ?? 0;
   }
 
   return {

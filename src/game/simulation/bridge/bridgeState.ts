@@ -11,7 +11,6 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import type { AiState } from '../ai';
-import type { MemoryEntry } from './memoryTypes';
 import type {
   BuildingCombatState,
   BuildingHealthState,
@@ -60,7 +59,7 @@ export interface BridgeState {
   // accessor + codec.
   // Phase 2D: `playerScoreCounters` migrated to
   // `world.state.aoe2.playerScoreCounters` via accessor + codec.
-  lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
+  // Phase 2D: `lastSeenStatic` migrated to `world.state.aoe2.*` via accessor + codec.
   garrisonedByBuilding: Map<number, number[]>;
   garrisonedUnitToBuilding: Map<number, number>;
   garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
@@ -110,7 +109,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),
     garrisonedUnitToBuilding: new Map(),
     garrisonedUnitVisionSources: new Map(),
