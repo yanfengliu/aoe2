@@ -29,7 +29,10 @@ import type { MonkTask } from './sharedTypes';
 import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import { createMonkAiSearchHelpers } from './monkAiSearchHelpers';
 import { createMonkTaskAppliers } from './monkTaskAppliers';
-import { monkCarriedRelicCodec } from './bridgeStateSerialize';
+import {
+  combatStatesCodec,
+  monkCarriedRelicCodec,
+} from './bridgeStateSerialize';
 
 export interface MonkTaskDeps {
   world: GameWorld;
@@ -124,7 +127,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
   } = deps;
-  const { monkTasks, combatStates } = state;
+  const { monkTasks } = state;
 
   function assignAiMonkTasks(owner: number): void {
     for (const monkId of world.query('unit')) {
@@ -183,7 +186,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   // the relic until one is built).
   const aiSearch = createMonkAiSearchHelpers({
     world,
-    state,
     accessor,
     isAiMilitaryUnit,
     isVisibleToOwner,
@@ -259,7 +261,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       if (unit.owner !== monkOwner) {
         continue;
       }
-      const combat = combatStates.get(id);
+      const combat = accessor.get(combatStatesCodec).get(id);
       if (!combat || combat.currentHp >= combat.maxHp) {
         continue;
       }

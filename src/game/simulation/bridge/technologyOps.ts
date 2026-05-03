@@ -20,7 +20,11 @@ import type {
 } from '../types';
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
-import { playerAgesCodec, productionQueuesCodec } from './bridgeStateSerialize';
+import {
+  combatStatesCodec,
+  playerAgesCodec,
+  productionQueuesCodec,
+} from './bridgeStateSerialize';
 import {
   isArcherLineUnit,
   isCavalryUnit,
@@ -82,7 +86,6 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
   const { world, state, accessor, createCombatState, markOutOfBandRenderChange } = deps;
   const {
     researchedTechnologies,
-    combatStates,
   } = state;
 
   function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
@@ -93,7 +96,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         continue;
       }
 
-      const combat = combatStates.get(id);
+      const combat = accessor.get(combatStatesCodec).get(id);
       const hpRatio = combat && combat.maxHp > 0 ? combat.currentHp / combat.maxHp : 1;
       unit.unitType = to;
 
@@ -116,7 +119,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         1,
         Math.min(nextCombat.maxHp, Math.round(nextCombat.maxHp * hpRatio)),
       );
-      combatStates.set(id, nextCombat);
+      accessor.mutate(combatStatesCodec, (m) => m.set(id, nextCombat));
       didUpgrade = true;
     }
     if (didUpgrade) {
@@ -179,7 +182,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'fletching':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -304,7 +307,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'bracer':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -316,7 +319,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'blast-furnace':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
             continue;
           }
@@ -327,7 +330,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'plate-mail-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
             continue;
           }
@@ -338,7 +341,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'plate-barding':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
             continue;
           }
@@ -350,7 +353,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'forging':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
             continue;
           }
@@ -361,7 +364,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'scale-mail-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
             continue;
           }
@@ -372,7 +375,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'scale-barding-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
             continue;
           }
@@ -383,7 +386,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'padded-archer-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -395,7 +398,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'iron-casting':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
             continue;
           }
@@ -406,7 +409,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'chain-mail-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
             continue;
           }
@@ -417,7 +420,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'chain-barding-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
             continue;
           }
@@ -428,7 +431,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'leather-archer-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -439,7 +442,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'bodkin-arrow':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -452,7 +455,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'ring-archer-armor':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
             continue;
           }
@@ -468,7 +471,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // required before the unit can be queued.
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = combatStates.get(id);
+          const combat = accessor.get(combatStatesCodec).get(id);
           if (!unit || !combat || unit.owner !== owner) {
             continue;
           }
@@ -478,6 +481,14 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
     }
+    // Phase 2D: many tech branches mutate combat objects in place
+    // (combat.attackDamage += 1, combat.armor += 1, etc.). The accessor's
+    // dirty bit needs to fire so the bridgeSnapshotSystem captures the
+    // changes at end of tick. Conservatively mark dirty once at end of
+    // every applyTechnology call — the few tech branches that don't touch
+    // combat (e.g. unlock-only techs) are still correct, just one
+    // unnecessary serialize per such tech.
+    accessor.markDirty(combatStatesCodec);
   }
 
   return {

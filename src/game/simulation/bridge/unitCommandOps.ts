@@ -21,6 +21,7 @@ import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   monkCarriedRelicCodec,
   sheepMoveOrdersCodec,
@@ -167,7 +168,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   const {
     monkTasks,
     wildlifeStates,
-    combatStates,
   } = state;
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
@@ -468,7 +468,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
     if (targetUnit) {
       if (targetUnit.owner === monkUnit.owner) {
-        const combat = combatStates.get(targetEntityId);
+        const combat = accessor.get(combatStatesCodec).get(targetEntityId);
         if (combat && combat.currentHp < combat.maxHp) {
           return setMonkTask(monkId, 'heal', targetEntityRef);
         }

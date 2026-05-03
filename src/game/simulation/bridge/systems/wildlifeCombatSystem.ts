@@ -6,14 +6,17 @@
 import type { EntityRef, Position, World } from 'civ-engine';
 import { manhattanDistance, type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
-import type { CombatState, WildlifeState } from './systemTypes';
+import type { WildlifeState } from './systemTypes';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { combatStatesCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
 export interface WildlifeCombatSystemDeps {
   world: GameWorld;
   wildlifeStates: Map<number, WildlifeState>;
-  combatStates: Map<number, CombatState>;
+  // Phase 2D: combatStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null) => number | null;
   getEntityRef: (id: number) => EntityRef | null;
   findNearestHostileWildlifeTarget: (
@@ -40,7 +43,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
   const {
     world,
     wildlifeStates,
-    combatStates,
+    accessor,
     currentEntityId,
     getEntityRef,
     findNearestHostileWildlifeTarget,
@@ -70,7 +73,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
         let targetPosition = targetId === null
           ? null
           : activeWorld.getComponent<Position>(targetId, 'position');
-        let targetCombat = targetId === null ? null : combatStates.get(targetId);
+        let targetCombat = targetId === null ? null : accessor.get(combatStatesCodec).get(targetId);
 
         if (!targetPosition || !targetCombat || targetCombat.currentHp <= 0) {
           wildlife.targetEntityRef = null;
@@ -83,7 +86,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
           targetPosition = targetId === null
             ? null
             : activeWorld.getComponent<Position>(targetId, 'position');
-          targetCombat = targetId === null ? null : combatStates.get(targetId);
+          targetCombat = targetId === null ? null : accessor.get(combatStatesCodec).get(targetId);
         }
 
         if (!targetId || !targetPosition || !targetCombat) {
@@ -108,6 +111,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
         // FU1: wildlife hits respect target armor, floored at 1 so a
         // heavily-armored unit still takes a scrape per hit.
         targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetCombat.armor);
+        accessor.markDirty(combatStatesCodec);
         wildlife.cooldownTicks = wildlife.reloadTicks;
         markOutOfBandRenderChange();
 

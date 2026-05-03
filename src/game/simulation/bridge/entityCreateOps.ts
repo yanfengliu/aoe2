@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
@@ -118,7 +119,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   } = deps;
   const {
     population,
-    combatStates,
     buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
@@ -151,7 +151,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     }
 
     ensurePlayerScoreCounters(owner).unitsProduced += 1;
-    combatStates.set(entity, createCombatState(owner, unitType));
+    accessor.mutate(combatStatesCodec, (m) => m.set(entity, createCombatState(owner, unitType)));
 
     if (unitType === 'trebuchet') {
       accessor.mutate(trebuchetPackStatesCodec, (m) => {

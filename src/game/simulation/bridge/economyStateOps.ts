@@ -25,6 +25,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   playerAgesCodec,
   productionQueuesCodec,
@@ -43,7 +44,6 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
 } {
   const { world, state, accessor, getUnitTaskState } = deps;
   const {
-    combatStates,
     playerResources,
     population,
   } = state;
@@ -86,7 +86,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
       .map((id) => {
         const position = world.getComponent<Position>(id, 'position');
         const unit = world.getComponent<UnitComponent>(id, 'unit');
-        const combat = combatStates.get(id);
+        const combat = accessor.get(combatStatesCodec).get(id);
         if (!position || !unit) return null;
         return {
           id,

@@ -12,17 +12,18 @@ import type {
   UnitType,
 } from '../types';
 import { manhattanDistance, type GameWorld } from './pureHelpers';
-import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   monkCarriedRelicCodec,
 } from './bridgeStateSerialize';
 
 export interface MonkAiSearchDeps {
   world: GameWorld;
-  state: BridgeState;
-  // Phase 2D: monkCarriedRelic migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: all slots this helper needs (combatStates, constructionStates,
+  // monkCarriedRelic) live on the accessor now; the BridgeState dep was
+  // removed when the last raw-map read was migrated.
   accessor: BridgeStateAccessor;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
@@ -36,8 +37,7 @@ export interface MonkAiSearchHelpers {
 }
 
 export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchHelpers {
-  const { world, state, accessor, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
-  const { combatStates } = state;
+  const { world, accessor, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
 
   function findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null {
     let bestId: number | null = null;
@@ -115,7 +115,7 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
       ) {
         continue;
       }
-      const combat = combatStates.get(id);
+      const combat = accessor.get(combatStatesCodec).get(id);
       if (!combat || combat.maxHp <= 0 || combat.currentHp <= 0) {
         continue;
       }

@@ -12,7 +12,6 @@ import type { AiState } from '../ai';
 import type {
   BuildingCombatState,
   BuildingHealthState,
-  CombatState,
   WildlifeState,
 } from './systems/systemTypes';
 import type {
@@ -84,7 +83,7 @@ export interface BridgeState {
   monkConvertProcessedThisTick: Map<number, number>;
   // Phase 2D: `productionQueues` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `constructionStates` migrated to `world.state.aoe2.*` via accessor + codec.
-  combatStates: Map<number, CombatState>;
+  // Phase 2D: `combatStates` migrated to `world.state.aoe2.*` via accessor + codec.
   buildingHealthStates: Map<number, BuildingHealthState>;
   buildingCombatStates: Map<number, BuildingCombatState>;
   wildlifeStates: Map<number, WildlifeState>;
@@ -109,7 +108,6 @@ export function createBridgeState(): BridgeState {
     aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
-    combatStates: new Map(),
     buildingHealthStates: new Map(),
     buildingCombatStates: new Map(),
     wildlifeStates: new Map(),

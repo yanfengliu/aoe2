@@ -98,7 +98,6 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map() } as never,
       accessor: createMockAccessor(),
     });
 
@@ -126,7 +125,6 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map() } as never,
       accessor: createMockAccessor(),
     });
 
@@ -154,7 +152,6 @@ describe('iter-2 M2-1 — findPreferredVisibleEnemyBuilding uses footprint visib
     const ops = createTargetFindingOps({
       world,
       visibility,
-      state: { combatStates: new Map() } as never,
       accessor: createMockAccessor(),
     });
 

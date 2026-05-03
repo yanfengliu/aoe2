@@ -35,6 +35,7 @@ import { updateSheepOwnership } from './visibility';
 import {
   playerAgesCodec,
   playerCivilizationsCodec,
+  combatStatesCodec,
   relicCountdownOverridesCodec,
   relicsInMonasteryCodec,
   villagerOrdinalsCodec,
@@ -275,7 +276,7 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
     state,
     accessor,
   } = deps;
-  const { buildingHealthStates, combatStates } = state;
+  const { buildingHealthStates } = state;
 
   const overlapWhitelist = new Set<number>();
   for (const spawn of scenario.spawns) {
@@ -324,9 +325,10 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
         world.addComponent(unitId, 'wanderBounds', spawn.wanderBounds);
       }
       if (typeof spawn.startHp === 'number') {
-        const combat = combatStates.get(unitId);
+        const combat = accessor.get(combatStatesCodec).get(unitId);
         if (combat) {
           combat.currentHp = Math.max(1, Math.min(combat.maxHp, spawn.startHp));
+          accessor.markDirty(combatStatesCodec);
         }
       }
       if (spawn.allowOverlappingSpawn) {

@@ -19,6 +19,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   gathererDropOffStuckSinceTickCodec,
+  combatStatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
   productionQueuesCodec,
@@ -83,7 +84,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   } = deps;
   const {
     population,
-    combatStates,
     monkTasks,
     monksByOwner,
     buildingHealthStates,
@@ -128,7 +128,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     removeSelectedEntity(id);
 
     clearUnitCommand(id);
-    combatStates.delete(id);
+    accessor.mutate(combatStatesCodec, (m) => m.delete(id));
     monkTasks.delete(id);
     accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));

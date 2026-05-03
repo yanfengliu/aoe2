@@ -30,6 +30,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
@@ -100,7 +101,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getVisibleResearchOptions,
   } = deps;
   const {
-    combatStates,
     buildingHealthStates,
     buildingCombatStates,
     wildlifeStates,
@@ -111,7 +111,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
   function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (unit) {
-      const combat = combatStates.get(id);
+      const combat = accessor.get(combatStatesCodec).get(id);
       if (!combat) {
         return null;
       }
@@ -154,7 +154,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     resource: ResourceComponent | undefined,
   ): number | null {
     if (unit) {
-      return combatStates.get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
+      return accessor.get(combatStatesCodec).get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
     }
     if (building) {
       return buildingCombatStates.get(id)?.attackDamage ?? null;
@@ -173,7 +173,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     id: number,
   ): number | null {
     if (unit) {
-      return combatStates.get(id)?.armor ?? 0;
+      return accessor.get(combatStatesCodec).get(id)?.armor ?? 0;
     }
     if (building) {
       return 0;

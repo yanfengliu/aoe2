@@ -257,7 +257,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getVisibleResearchOptions,
   });
 
-  const targetFindingOps = createTargetFindingOps({ world, visibility, state, accessor });
+  const targetFindingOps = createTargetFindingOps({ world, visibility, accessor });
   const { findNearestDropOffBuilding } = targetFindingOps;
 
   const technologyOps = createTechnologyOps({

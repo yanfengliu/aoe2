@@ -17,6 +17,7 @@ import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  combatStatesCodec,
   conversionStateCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -83,7 +84,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   const {
     monkTasks,
     monkConvertProcessedThisTick,
-    combatStates,
     unitCommands,
     population,
     monksByOwner,
@@ -91,7 +91,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
 
   function applyMonkHeal(monkId: number, targetId: number, monkUnit: UnitComponent): void {
     const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
-    const targetCombat = combatStates.get(targetId);
+    const targetCombat = accessor.get(combatStatesCodec).get(targetId);
     const monkHealCounters = accessor.get(monkHealCountersCodec);
     if (!targetUnit || !targetCombat || targetUnit.owner !== monkUnit.owner) {
       clearMonkTask(monkId);
@@ -113,6 +113,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
         targetCombat.maxHp,
         targetCombat.currentHp + monkHealHpPerInterval,
       );
+      accessor.markDirty(combatStatesCodec);
       markOutOfBandRenderChange();
       monkHealCounters.set(monkId, 0);
     } else {

@@ -28,12 +28,14 @@ import type { UnitMovementPlan } from '../movementTypes';
 import type {
   BuildingCombatState,
   BuildingHealthState,
-  CombatState,
   UnitCommand,
   WildlifeState,
 } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { constructionStatesCodec } from '../bridgeStateSerialize';
+import {
+  combatStatesCodec,
+  constructionStatesCodec,
+} from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -44,7 +46,6 @@ interface PlayerScoreCountersLike {
 export interface PlayerCommandsSystemDeps {
   world: GameWorld;
   unitCommands: Map<number, UnitCommand>;
-  combatStates: Map<number, CombatState>;
   buildingHealthStates: Map<number, BuildingHealthState>;
   buildingCombatStates: Map<number, BuildingCombatState>;
   // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
@@ -104,7 +105,6 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
   const {
     world,
     unitCommands,
-    combatStates,
     buildingHealthStates,
     buildingCombatStates,
     accessor,
@@ -148,7 +148,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         }
 
         if (command.type === 'attack') {
-          const attackerCombat = combatStates.get(id);
+          const attackerCombat = accessor.get(combatStatesCodec).get(id);
           const targetId = currentEntityId(activeWorld, command.targetEntityRef);
           if (targetId === null || !attackerCombat || !command.targetEntityKind) {
             clearUnitCommand(id);
@@ -157,6 +157,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
           if (attackerCombat.cooldownTicks > 0) {
             attackerCombat.cooldownTicks -= 1;
+            accessor.markDirty(combatStatesCodec);
           }
 
           if (unit.unitType === 'trebuchet' && advanceTrebuchetTransition(id)) {
@@ -166,7 +167,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           if (command.targetEntityKind === 'unit') {
             const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
             const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
-            const targetCombat = combatStates.get(targetId);
+            const targetCombat = accessor.get(combatStatesCodec).get(targetId);
             if (!targetPosition || !targetUnit || !targetCombat || targetUnit.owner === unit.owner) {
               clearUnitCommand(id);
               continue;
@@ -209,6 +210,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
             targetCombat.currentHp -= Math.max(1, rawDamage - targetCombat.armor);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+            accessor.markDirty(combatStatesCodec);
             markOutOfBandRenderChange();
 
             if (targetCombat.currentHp <= 0) {
@@ -264,6 +266,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             targetWildlife.currentHp -= attackerCombat.attackDamage;
             targetWildlife.targetEntityRef = getEntityRef(id);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+            accessor.markDirty(combatStatesCodec);
             markOutOfBandRenderChange();
 
             if (targetWildlife.currentHp <= 0) {
@@ -319,6 +322,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType),
           );
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
+          accessor.markDirty(combatStatesCodec);
           markOutOfBandRenderChange();
 
           if (targetHealth.currentHp <= 0) {

@@ -8,9 +8,10 @@ import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
-import type { BuildingCombatState, CombatState } from './systemTypes';
+import type { BuildingCombatState } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
+  combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
 } from '../bridgeStateSerialize';
@@ -22,9 +23,8 @@ interface PlayerScoreCountersLike {
 export interface TowerCombatSystemDeps {
   world: GameWorld;
   buildingCombatStates: Map<number, BuildingCombatState>;
-  combatStates: Map<number, CombatState>;
-  // Phase 2D: garrisonedByBuilding + constructionStates migrated to
-  // world.state.aoe2.* via accessor.
+  // Phase 2D: garrisonedByBuilding + constructionStates + combatStates
+  // migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
@@ -41,7 +41,6 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
   const {
     world,
     buildingCombatStates,
-    combatStates,
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,
@@ -98,13 +97,13 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           continue;
         }
 
-        const targetCombat = combatStates.get(targetId);
+        const targetCombat = accessor.get(combatStatesCodec).get(targetId);
         if (!targetCombat) {
           continue;
         }
 
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
-          const activeTargetCombat = combatStates.get(targetId);
+          const activeTargetCombat = accessor.get(combatStatesCodec).get(targetId);
           if (!activeTargetCombat) {
             break;
           }
@@ -113,6 +112,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
             1,
             buildingCombat.attackDamage - activeTargetCombat.armor,
           );
+          accessor.markDirty(combatStatesCodec);
           markOutOfBandRenderChange();
           if (activeTargetCombat.currentHp <= 0) {
             ensurePlayerScoreCounters(building.owner).unitsKilled += 1;

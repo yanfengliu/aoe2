@@ -31,7 +31,10 @@ import {
 } from './pureHelpers';
 import { getBuildingFootprint } from '../../content/buildingFootprints';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { constructionStatesCodec } from './bridgeStateSerialize';
+import {
+  combatStatesCodec,
+  constructionStatesCodec,
+} from './bridgeStateSerialize';
 
 interface VisibilityQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
@@ -40,8 +43,8 @@ interface VisibilityQuery {
 export interface TargetFindingDeps {
   world: GameWorld;
   visibility: VisibilityQuery;
-  state: import('./bridgeState').BridgeState;
-  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: combatStates + constructionStates migrated to world.state.aoe2.*
+  // via accessor; the BridgeState dep is no longer needed here.
   accessor: BridgeStateAccessor;
 }
 
@@ -107,8 +110,7 @@ export interface TargetFindingOps {
 }
 
 export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOps {
-  const { world, visibility, state, accessor } = deps;
-  const { combatStates } = state;
+  const { world, visibility, accessor } = deps;
 
   // Per-unitType targeting priority for AI / unit-vs-unit target
   // selection. Lower numbers are picked first (after the priority sort,
@@ -389,7 +391,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     )) {
       const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
       const position = activeWorld.getComponent<Position>(unitId, 'position');
-      const combat = combatStates.get(unitId);
+      const combat = accessor.get(combatStatesCodec).get(unitId);
       if (!unit || !position || !combat || combat.currentHp <= 0) {
         continue;
       }
@@ -424,7 +426,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
         continue;
       }
 
-      const combat = combatStates.get(id);
+      const combat = accessor.get(combatStatesCodec).get(id);
       if (combat && combat.currentHp <= 0) {
         continue;
       }
