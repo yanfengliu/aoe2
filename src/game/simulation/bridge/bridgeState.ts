@@ -8,7 +8,6 @@ import type {
   PopulationState,
   ProductionQueueEntry,
   ResearchableTechnologyType,
-  VisionSourceComponent,
 } from '../types';
 import type { AiState } from '../ai';
 import type {
@@ -62,7 +61,7 @@ export interface BridgeState {
   // Phase 2D: `lastSeenStatic` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `garrisonedByBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `garrisonedUnitToBuilding` migrated to `world.state.aoe2.*` via accessor + codec.
-  garrisonedUnitVisionSources: Map<number, VisionSourceComponent>;
+  // Phase 2D: `garrisonedUnitVisionSources` migrated to `world.state.aoe2.*` via accessor + codec.
   aiStates: Map<number, AiState>;
   // V5-1: O(1) monk presence lookup keyed by owner. Iter-1 V4-12 used
   // countOwnedUnits(owner, 'monk') as the AI assignAiMonkTasks skip-guard,
@@ -109,7 +108,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    garrisonedUnitVisionSources: new Map(),
     aiStates: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),

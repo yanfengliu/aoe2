@@ -26,6 +26,7 @@ import {
   conversionStateCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
+  garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -94,7 +95,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    garrisonedUnitVisionSources,
     productionQueues,
     constructionStates,
     combatStates,
@@ -235,7 +235,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           ([id, list]) => [id, [...list]],
         ),
         garrisonedUnitToBuilding: [...accessor.get(garrisonedUnitToBuildingCodec).entries()],
-        garrisonedUnitVisionSources: [...garrisonedUnitVisionSources.entries()].map(
+        garrisonedUnitVisionSources: [...accessor.get(garrisonedUnitVisionSourcesCodec).entries()].map(
           ([id, src]) => [id, { playerId: src.playerId, radius: src.radius }],
         ),
         productionQueues: [...productionQueues.entries()].map(([id, queue]) => [

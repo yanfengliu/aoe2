@@ -18,6 +18,7 @@ import {
   conversionStateCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
+  garrisonedUnitVisionSourcesCodec,
   lastSeenStaticCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
@@ -57,7 +58,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    garrisonedUnitVisionSources,
     productionQueues,
     constructionStates,
     combatStates,
@@ -246,9 +246,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, buildingId);
     }
   });
-  for (const [id, src] of blob.garrisonedUnitVisionSources) {
-    garrisonedUnitVisionSources.set(id, { playerId: src.playerId, radius: src.radius });
-  }
+  accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => {
+    for (const [id, src] of blob.garrisonedUnitVisionSources) {
+      m.set(id, { playerId: src.playerId, radius: src.radius });
+    }
+  });
   // Cross-reference invariant for the garrison maps (Iter-1 H-3).
   const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
   const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
@@ -399,7 +401,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(buildingHealthStates);
   pruneOrphanEntityKeys(buildingCombatStates);
   pruneOrphanEntityKeys(wildlifeStates);
-  pruneOrphanEntityKeys(garrisonedUnitVisionSources);
+  accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedUnitToBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   // Phase 2D — prune via accessor.

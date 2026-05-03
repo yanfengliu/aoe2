@@ -16,6 +16,7 @@ import {
   conversionStateCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
+  garrisonedUnitVisionSourcesCodec,
   gathererDropOffStuckSinceTickCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
@@ -79,7 +80,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     markOutOfBandRenderChange,
   } = deps;
   const {
-    garrisonedUnitVisionSources,
     population,
     combatStates,
     monkTasks,
@@ -105,7 +105,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         }
       });
       accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.delete(id));
-      garrisonedUnitVisionSources.delete(id);
+      accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => m.delete(id));
     }
 
     const unit = world.getComponent<UnitComponent>(id, 'unit');
