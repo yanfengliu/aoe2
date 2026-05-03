@@ -12,7 +12,6 @@ import type {
 } from '../types';
 import type { AiState } from '../ai';
 import type { MemoryEntry } from './memoryTypes';
-import type { RelicCountdownEntry } from './countdownTypes';
 import type {
   BuildingCombatState,
   BuildingHealthState,
@@ -57,10 +56,9 @@ export interface BridgeState {
   monkCarriedRelic: Map<number, number>;
   relicsInMonastery: Map<number, number>;
   trebuchetPackStates: Map<number, TrebuchetPackState>;
-  // Phase 2D: `wonderCountdowns` migrated to `world.state.aoe2.wonderCountdowns` via accessor + codec.
-  // Phase 2D: `wonderCountdownOverrides` / `relicCountdownOverrides`
-  // migrated to `world.state.aoe2.*` via accessor + codec.
-  relicCountdowns: Map<number, RelicCountdownEntry>;
+  // Phase 2D: `wonderCountdowns` + `relicCountdowns` + `wonderCountdownOverrides`
+  // + `relicCountdownOverrides` all migrated to `world.state.aoe2.*` via
+  // accessor + codec.
   // Phase 2D: `playerScoreCounters` migrated to
   // `world.state.aoe2.playerScoreCounters` via accessor + codec.
   lastSeenStatic: Map<number, Map<number, MemoryEntry>>;
@@ -119,7 +117,6 @@ export function createBridgeState(): BridgeState {
     monkCarriedRelic: new Map(),
     relicsInMonastery: new Map(),
     trebuchetPackStates: new Map(),
-    relicCountdowns: new Map(),
     lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),
     garrisonedUnitToBuilding: new Map(),

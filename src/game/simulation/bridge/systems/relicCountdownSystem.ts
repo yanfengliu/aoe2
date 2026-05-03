@@ -5,14 +5,12 @@
 // deposited distinction stays in one place.
 
 import type { GameWorld } from '../pureHelpers';
-import type { RelicCountdownEntry } from '../countdownTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { relicCountdownOverridesCodec } from '../bridgeStateSerialize';
+import { relicCountdownOverridesCodec, relicCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface RelicCountdownSystemDeps {
   world: GameWorld;
-  relicCountdowns: Map<number, RelicCountdownEntry>;
-  // Phase 2D — relicCountdownOverrides flows through accessor.
+  // Phase 2D: relicCountdowns + relicCountdownOverrides both flow through accessor.
   accessor: BridgeStateAccessor;
   currentRelicHoldingOwner: () => number | null;
   defaultRelicCountdownTicks: number;
@@ -22,7 +20,6 @@ export interface RelicCountdownSystemDeps {
 export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): void {
   const {
     world,
-    relicCountdowns,
     accessor,
     currentRelicHoldingOwner,
     defaultRelicCountdownTicks,
@@ -38,8 +35,13 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
         return;
       }
       const holdingOwner = currentRelicHoldingOwner();
+      const relicCountdowns = accessor.get(relicCountdownsCodec);
+      let dirty = false;
       if (holdingOwner === null) {
-        relicCountdowns.clear();
+        if (relicCountdowns.size > 0) {
+          relicCountdowns.clear();
+          accessor.markDirty(relicCountdownsCodec);
+        }
         return;
       }
       let entry = relicCountdowns.get(holdingOwner);
@@ -47,22 +49,26 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
         const totalTicks = accessor.get(relicCountdownOverridesCodec).get(holdingOwner) ?? defaultRelicCountdownTicks;
         entry = { remainingTicks: totalTicks, totalTicks, lastCompletedTick: null };
         relicCountdowns.set(holdingOwner, entry);
+        dirty = true;
       }
       // Clear stale entries for owners no longer holding all relics.
       for (const existingOwner of [...relicCountdowns.keys()]) {
         if (existingOwner !== holdingOwner) {
           relicCountdowns.delete(existingOwner);
+          dirty = true;
         }
       }
       // FU7: once completed, the countdown freezes at 0 — the resolver picks
       // the winner downstream.
       if (entry.lastCompletedTick !== null) {
+        if (dirty) accessor.markDirty(relicCountdownsCodec);
         return;
       }
       entry.remainingTicks -= 1;
       if (entry.remainingTicks <= 0) {
         entry.lastCompletedTick = world.tick;
       }
+      accessor.markDirty(relicCountdownsCodec);
     },
   });
 }

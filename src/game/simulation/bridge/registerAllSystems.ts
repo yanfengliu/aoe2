@@ -141,7 +141,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     inFlightTechByOwner,
     sheepMoveOrders,
     garrisonedByBuilding,
-    relicCountdowns,
   } = state;
 
   registerAiSystem({
@@ -349,7 +348,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerRelicCountdownSystem({
     world,
-    relicCountdowns,
     accessor,
     currentRelicHoldingOwner,
     defaultRelicCountdownTicks,
@@ -360,7 +358,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     accessor,
-    relicCountdowns,
     isMatchRunning,
     finalizeMatchEnd,
   });

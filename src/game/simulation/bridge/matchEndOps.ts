@@ -11,7 +11,11 @@ import type {
   ResourceComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
-import { playerScoreCountersCodec, wonderCountdownsCodec } from './bridgeStateSerialize';
+import {
+  playerScoreCountersCodec,
+  relicCountdownsCodec,
+  wonderCountdownsCodec,
+} from './bridgeStateSerialize';
 
 export interface MatchEndDeps {
   world: GameWorld;
@@ -51,7 +55,6 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   const { world, matchState, humanPlayerId, state, accessor } = deps;
   const {
     relicsInMonastery,
-    relicCountdowns,
     monkCarriedRelic,
     playerResources,
   } = state;
@@ -118,7 +121,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
   }
 
   function getHumanRelicCountdownTicks(): number | null {
-    return relicCountdowns.get(humanPlayerId)?.remainingTicks ?? null;
+    return accessor.get(relicCountdownsCodec).get(humanPlayerId)?.remainingTicks ?? null;
   }
 
   function currentRelicHoldingOwner(): number | null {

@@ -19,6 +19,7 @@ import {
   monkHealCountersCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
+  relicCountdownsCodec,
   trackedVisibilitySourcesCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
@@ -52,7 +53,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     conversionState,
     monkCarriedRelic,
     relicsInMonastery,
-    relicCountdowns,
     trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
@@ -173,13 +173,15 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(owner, ticks);
     }
   });
-  for (const [owner, entry] of blob.relicCountdowns) {
-    relicCountdowns.set(owner, {
-      remainingTicks: entry.remainingTicks,
-      totalTicks: entry.totalTicks,
-      lastCompletedTick: entry.lastCompletedTick ?? null,
-    });
-  }
+  accessor.mutate(relicCountdownsCodec, (m) => {
+    for (const [owner, entry] of blob.relicCountdowns) {
+      m.set(owner, {
+        remainingTicks: entry.remainingTicks,
+        totalTicks: entry.totalTicks,
+        lastCompletedTick: entry.lastCompletedTick ?? null,
+      });
+    }
+  });
   accessor.mutate(relicCountdownOverridesCodec, (m) => {
     for (const [owner, ticks] of blob.relicCountdownOverrides) {
       m.set(owner, ticks);
