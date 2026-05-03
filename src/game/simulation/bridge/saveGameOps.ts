@@ -27,6 +27,7 @@ import {
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  trebuchetPackStatesCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
   relicCountdownsCodec,
@@ -90,7 +91,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     population,
     unitCommands,
     monkTasks,
-    trebuchetPackStates,
     lastSeenStatic,
     garrisonedByBuilding,
     garrisonedUnitToBuilding,
@@ -209,7 +209,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         // FU7: persist Trebuchet pack/unpack state so a Trebuchet mid-
         // transition when the player saves resumes mid-transition on
         // load instead of quietly resetting to "packed".
-        trebuchetPackStates: [...trebuchetPackStates.entries()].map(([id, state]) => [
+        trebuchetPackStates: [...accessor.get(trebuchetPackStatesCodec).entries()].map(([id, state]) => [
           id,
           { packed: state.packed, transitionTicksRemaining: state.transitionTicksRemaining },
         ]),

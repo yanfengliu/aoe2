@@ -17,6 +17,7 @@ import {
   gathererDropOffStuckSinceTickCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  trebuchetPackStatesCodec,
   rallyPointsCodec,
   relicsInMonasteryCodec,
   sheepMoveOrdersCodec,
@@ -83,7 +84,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     combatStates,
     monkTasks,
     monksByOwner,
-    trebuchetPackStates,
     productionQueues,
     constructionStates,
     buildingHealthStates,
@@ -132,7 +132,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
-    trebuchetPackStates.delete(id);
+    accessor.mutate(trebuchetPackStatesCodec, (m) => m.delete(id));
     accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
     world.destroyEntity(id);
     markOutOfBandRenderChange();

@@ -21,7 +21,6 @@ import type {
 import type {
   ConstructionState,
   MonkTask,
-  TrebuchetPackState,
   UnitCommand,
 } from './sharedTypes';
 import {
@@ -55,7 +54,7 @@ export interface BridgeState {
   // Phase 2D: `conversionState` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `monkCarriedRelic` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `relicsInMonastery` migrated to `world.state.aoe2.*` via accessor + codec.
-  trebuchetPackStates: Map<number, TrebuchetPackState>;
+  // Phase 2D: `trebuchetPackStates` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `wonderCountdowns` + `relicCountdowns` + `wonderCountdownOverrides`
   // + `relicCountdownOverrides` all migrated to `world.state.aoe2.*` via
   // accessor + codec.
@@ -111,7 +110,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     monkTasks: new Map(),
-    trebuchetPackStates: new Map(),
     lastSeenStatic: new Map(),
     garrisonedByBuilding: new Map(),
     garrisonedUnitToBuilding: new Map(),

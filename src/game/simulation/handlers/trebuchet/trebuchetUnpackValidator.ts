@@ -5,11 +5,13 @@
 import type { World } from 'civ-engine';
 
 import type { UnitComponent } from '../../types';
-import type { TrebuchetPackState } from '../../bridge/sharedTypes';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { trebuchetPackStatesCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface TrebuchetUnpackValidatorDeps {
-  trebuchetPackStates: Map<number, TrebuchetPackState>;
+  // Phase 2D: trebuchetPackStates migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export type TrebuchetUnpackValidator = (
@@ -34,7 +36,7 @@ export function makeTrebuchetUnpackValidator(
     if (unit.unitType !== 'trebuchet') {
       return { code: 'not_a_trebuchet', message: 'Only trebuchets can unpack.' };
     }
-    const packState = deps.trebuchetPackStates.get(data.unitId);
+    const packState = deps.accessor.get(trebuchetPackStatesCodec).get(data.unitId);
     if (!packState) {
       return { code: 'no_pack_state', message: 'Trebuchet has no pack state.' };
     }

@@ -1,11 +1,12 @@
 // FU7: helpers for the Trebuchet pack/unpack lifecycle. Centralized so every
 // caller (attack pathway, move pathway, save/load hydration) keeps a single
 // source of truth for transition semantics. All five operations share the
-// same `trebuchetPackStates` side map; the factory closes over it so callers
-// treat the returned ops as plain methods without threading the map through
-// every call site.
+// same `trebuchetPackStates` side map; Phase 2D moved that map onto
+// `world.state.aoe2.*` and the factory now closes over a BridgeStateAccessor
+// so reads/writes route through the codec + dirty bit.
 
-import type { TrebuchetPackState } from './sharedTypes';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { trebuchetPackStatesCodec } from './bridgeStateSerialize';
 
 const TREBUCHET_PACK_TRANSITION_TICKS = 50;
 
@@ -36,10 +37,10 @@ export interface TrebuchetStateOps {
 }
 
 export function createTrebuchetStateOps(
-  trebuchetPackStates: Map<number, TrebuchetPackState>,
+  accessor: BridgeStateAccessor,
 ): TrebuchetStateOps {
   function advanceTrebuchetTransition(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
+    const state = accessor.get(trebuchetPackStatesCodec).get(unitId);
     if (!state || state.transitionTicksRemaining <= 0) {
       return false;
     }
@@ -47,27 +48,30 @@ export function createTrebuchetStateOps(
     if (state.transitionTicksRemaining <= 0) {
       state.packed = !state.packed;
     }
+    accessor.markDirty(trebuchetPackStatesCodec);
     return true;
   }
 
   function beginTrebuchetUnpack(unitId: number): void {
-    const state = trebuchetPackStates.get(unitId);
+    const state = accessor.get(trebuchetPackStatesCodec).get(unitId);
     if (!state || !state.packed || state.transitionTicksRemaining > 0) {
       return;
     }
     state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
+    accessor.markDirty(trebuchetPackStatesCodec);
   }
 
   function beginTrebuchetPack(unitId: number): void {
-    const state = trebuchetPackStates.get(unitId);
+    const state = accessor.get(trebuchetPackStatesCodec).get(unitId);
     if (!state || state.packed || state.transitionTicksRemaining > 0) {
       return;
     }
     state.transitionTicksRemaining = TREBUCHET_PACK_TRANSITION_TICKS;
+    accessor.markDirty(trebuchetPackStatesCodec);
   }
 
   function isTrebuchetStationary(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
+    const state = accessor.get(trebuchetPackStatesCodec).get(unitId);
     if (!state) {
       return false;
     }
@@ -75,7 +79,7 @@ export function createTrebuchetStateOps(
   }
 
   function isTrebuchetSilent(unitId: number): boolean {
-    const state = trebuchetPackStates.get(unitId);
+    const state = accessor.get(trebuchetPackStatesCodec).get(unitId);
     if (!state) {
       return false;
     }

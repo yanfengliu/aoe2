@@ -29,7 +29,11 @@ import {
   buildingGarrisonCapacity,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
-import { monkCarriedRelicCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
+import {
+  monkCarriedRelicCodec,
+  playerCivilizationsCodec,
+  trebuchetPackStatesCodec,
+} from './bridgeStateSerialize';
 import {
   computeUnitActivity,
   getBuildingActivity,
@@ -101,7 +105,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     productionQueues,
     unitCommands,
     monkTasks,
-    trebuchetPackStates,
     constructionStates,
   } = state;
 
@@ -349,7 +352,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       unitCommands,
       monkTasks,
       monkCarriedRelic: accessor.get(monkCarriedRelicCodec),
-      trebuchetPackStates,
+      trebuchetPackStates: accessor.get(trebuchetPackStatesCodec),
       productionQueues,
       constructionStates,
       getCurrentEntityId,

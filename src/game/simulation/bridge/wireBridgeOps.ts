@@ -76,7 +76,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     markOutOfBandRenderChange,
     getSeed,
   } = deps;
-  const { movePathCache, trebuchetPackStates, lastSeenStatic } = state;
+  const { movePathCache, lastSeenStatic } = state;
 
   // Phase 2D — accessor is constructed in `createWorld.ts` (so
   // bridgeHelpers can also consume it) and threaded in via deps.
@@ -96,7 +96,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     import('./visibility').VisibilitySourceFingerprint
   >();
 
-  const trebuchetStateOps = createTrebuchetStateOps(trebuchetPackStates);
+  const trebuchetStateOps = createTrebuchetStateOps(accessor);
 
   const {
     getOrCreateMemoryMap,
@@ -543,13 +543,9 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       constructionStates: state.constructionStates,
     },
     beginTrebuchetPackDirect: trebuchetStateOps.beginTrebuchetPack,
-    trebuchetPackValidatorDeps: {
-      trebuchetPackStates: state.trebuchetPackStates,
-    },
+    trebuchetPackValidatorDeps: { accessor },
     beginTrebuchetUnpackDirect: trebuchetStateOps.beginTrebuchetUnpack,
-    trebuchetUnpackValidatorDeps: {
-      trebuchetPackStates: state.trebuchetPackStates,
-    },
+    trebuchetUnpackValidatorDeps: { accessor },
   });
 
   // Phase 2C/2D — bridge-state migration. Accessor and visibility cell

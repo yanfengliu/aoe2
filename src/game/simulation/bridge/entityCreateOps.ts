@@ -35,6 +35,7 @@ import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   townCenterRefsCodec,
+  trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
@@ -118,7 +119,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     combatStates,
     buildingHealthStates,
     buildingCombatStates,
-    trebuchetPackStates,
     productionQueues,
     constructionStates,
     wildlifeStates,
@@ -154,9 +154,11 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     combatStates.set(entity, createCombatState(owner, unitType));
 
     if (unitType === 'trebuchet') {
-      trebuchetPackStates.set(entity, {
-        packed: true,
-        transitionTicksRemaining: 0,
+      accessor.mutate(trebuchetPackStatesCodec, (m) => {
+        m.set(entity, {
+          packed: true,
+          transitionTicksRemaining: 0,
+        });
       });
     }
 

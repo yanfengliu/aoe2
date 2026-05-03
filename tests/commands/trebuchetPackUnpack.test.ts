@@ -1,4 +1,7 @@
 // Phase 1B trebuchet.pack + trebuchet.unpack tests.
+// Phase 2D: validators consume `accessor: BridgeStateAccessor` instead of a
+// raw `Map<number, TrebuchetPackState>` — tests construct a real accessor
+// over a fresh World and seed pack states via `accessor.mutate`.
 
 import { describe, it, expect } from 'vitest';
 
@@ -13,6 +16,8 @@ import type {
   GameEvents,
 } from '../../src/game/simulation/bridge/pureHelpers';
 import type { TrebuchetPackState } from '../../src/game/simulation/bridge/sharedTypes';
+import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
+import { trebuchetPackStatesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 
 function freshWorld() {
   const world = new World<GameEvents, GameCommands, GameComponents>({
@@ -25,24 +30,50 @@ function freshWorld() {
   return world;
 }
 
-function makeUnit(world: World<GameEvents, GameCommands, GameComponents>, unitType: string, owner = 1) {
+function makeUnit(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  unitType: string,
+  owner = 1,
+) {
   const id = world.createEntity();
   world.addComponent(id, 'unit', { unitType, owner });
   return id;
 }
 
+function freshAccessorWithPackStates(
+  world: World<GameEvents, GameCommands, GameComponents>,
+  entries: Array<[number, TrebuchetPackState]>,
+): BridgeStateAccessor {
+  const accessor = new BridgeStateAccessor(() => world);
+  if (entries.length > 0) {
+    accessor.mutate(trebuchetPackStatesCodec, (m) => {
+      for (const [id, state] of entries) {
+        m.set(id, state);
+      }
+    });
+  }
+  return accessor;
+}
+
 describe('trebuchetPackValidator', () => {
-  function makeValidator(packStates: Map<number, TrebuchetPackState>) {
-    return makeTrebuchetPackValidator({ trebuchetPackStates: packStates });
+  function makeValidator(
+    world: World<GameEvents, GameCommands, GameComponents>,
+    entries: Array<[number, TrebuchetPackState]>,
+  ) {
+    return makeTrebuchetPackValidator({
+      accessor: freshAccessorWithPackStates(world, entries),
+    });
   }
 
   it('rejects non-integer unitId', () => {
-    const result = makeValidator(new Map())({ unitId: 1.5 }, freshWorld());
+    const world = freshWorld();
+    const result = makeValidator(world, [])({ unitId: 1.5 }, world);
     expect(result).toEqual({ code: 'invalid_unit_id', message: expect.any(String) });
   });
 
   it('rejects when unit is dead', () => {
-    const result = makeValidator(new Map())({ unitId: 9999 }, freshWorld());
+    const world = freshWorld();
+    const result = makeValidator(world, [])({ unitId: 9999 }, world);
     expect(result).toEqual({ code: 'unit_not_found', message: expect.any(String) });
   });
 
@@ -51,67 +82,71 @@ describe('trebuchetPackValidator', () => {
     world.registerComponent('terrain');
     const tileId = world.createEntity();
     world.addComponent(tileId, 'terrain', { kind: 'grass' });
-    const result = makeValidator(new Map())({ unitId: tileId }, world);
+    const result = makeValidator(world, [])({ unitId: tileId }, world);
     expect(result).toEqual({ code: 'not_a_unit', message: expect.any(String) });
   });
 
   it('rejects when unit is not a trebuchet', () => {
     const world = freshWorld();
     const archerId = makeUnit(world, 'archer');
-    const result = makeValidator(new Map())({ unitId: archerId }, world);
+    const result = makeValidator(world, [])({ unitId: archerId }, world);
     expect(result).toEqual({ code: 'not_a_trebuchet', message: expect.any(String) });
   });
 
   it('rejects when no pack state exists', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const result = makeValidator(new Map())({ unitId: trebId }, world);
+    const result = makeValidator(world, [])({ unitId: trebId }, world);
     expect(result).toEqual({ code: 'no_pack_state', message: expect.any(String) });
   });
 
   it('rejects when already packed', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
+    const result = makeValidator(world, [
       [trebId, { packed: true, transitionTicksRemaining: 0 }],
-    ]);
-    const result = makeValidator(packStates)({ unitId: trebId }, world);
+    ])({ unitId: trebId }, world);
     expect(result).toEqual({ code: 'already_packed', message: expect.any(String) });
   });
 
   it('rejects when in transition', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
+    const result = makeValidator(world, [
       [trebId, { packed: false, transitionTicksRemaining: 25 }],
-    ]);
-    const result = makeValidator(packStates)({ unitId: trebId }, world);
+    ])({ unitId: trebId }, world);
     expect(result).toEqual({ code: 'in_transition', message: expect.any(String) });
   });
 
   it('accepts a valid pack request (unpacked + idle)', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
+    const result = makeValidator(world, [
       [trebId, { packed: false, transitionTicksRemaining: 0 }],
-    ]);
-    const result = makeValidator(packStates)({ unitId: trebId }, world);
+    ])({ unitId: trebId }, world);
     expect(result).toBe(true);
   });
 });
 
 describe('trebuchetUnpackValidator', () => {
-  function makeValidator(packStates: Map<number, TrebuchetPackState>) {
-    return makeTrebuchetUnpackValidator({ trebuchetPackStates: packStates });
+  function makeValidator(
+    world: World<GameEvents, GameCommands, GameComponents>,
+    entries: Array<[number, TrebuchetPackState]>,
+  ) {
+    return makeTrebuchetUnpackValidator({
+      accessor: freshAccessorWithPackStates(world, entries),
+    });
   }
 
   it('rejects non-integer unitId', () => {
-    const result = makeValidator(new Map())({ unitId: 1.5 }, freshWorld());
+    const world = freshWorld();
+    const result = makeValidator(world, [])({ unitId: 1.5 }, world);
     expect(result).toEqual({ code: 'invalid_unit_id', message: expect.any(String) });
   });
 
   it('rejects when unit is dead', () => {
-    const result = makeValidator(new Map())({ unitId: 9999 }, freshWorld());
+    const world = freshWorld();
+    const result = makeValidator(world, [])({ unitId: 9999 }, world);
     expect(result).toEqual({ code: 'unit_not_found', message: expect.any(String) });
   });
 
@@ -120,41 +155,39 @@ describe('trebuchetUnpackValidator', () => {
     world.registerComponent('terrain');
     const tileId = world.createEntity();
     world.addComponent(tileId, 'terrain', { kind: 'grass' });
-    const result = makeValidator(new Map())({ unitId: tileId }, world);
+    const result = makeValidator(world, [])({ unitId: tileId }, world);
     expect(result).toEqual({ code: 'not_a_unit', message: expect.any(String) });
   });
 
   it('rejects when unit is not a trebuchet', () => {
     const world = freshWorld();
     const archerId = makeUnit(world, 'archer');
-    const result = makeValidator(new Map())({ unitId: archerId }, world);
+    const result = makeValidator(world, [])({ unitId: archerId }, world);
     expect(result).toEqual({ code: 'not_a_trebuchet', message: expect.any(String) });
   });
 
   it('rejects when no pack state exists', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const result = makeValidator(new Map())({ unitId: trebId }, world);
+    const result = makeValidator(world, [])({ unitId: trebId }, world);
     expect(result).toEqual({ code: 'no_pack_state', message: expect.any(String) });
   });
 
   it('rejects when already unpacked', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
+    const result = makeValidator(world, [
       [trebId, { packed: false, transitionTicksRemaining: 0 }],
-    ]);
-    const result = makeValidator(packStates)({ unitId: trebId }, world);
+    ])({ unitId: trebId }, world);
     expect(result).toEqual({ code: 'already_unpacked', message: expect.any(String) });
   });
 
   it('accepts a valid unpack request (packed + idle)', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
+    const result = makeValidator(world, [
       [trebId, { packed: true, transitionTicksRemaining: 0 }],
-    ]);
-    const result = makeValidator(packStates)({ unitId: trebId }, world);
+    ])({ unitId: trebId }, world);
     expect(result).toBe(true);
   });
 });
@@ -168,11 +201,11 @@ describe('trebuchet validators — cross-direction transition precedence', () =>
   it('pack validator reports in_transition during a mid-unpack transition', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
-      // Mid-unpack: packed flag still true (flips at ticks=0).
+    // Mid-unpack: packed flag still true (flips at ticks=0).
+    const accessor = freshAccessorWithPackStates(world, [
       [trebId, { packed: true, transitionTicksRemaining: 25 }],
     ]);
-    const result = makeTrebuchetPackValidator({ trebuchetPackStates: packStates })(
+    const result = makeTrebuchetPackValidator({ accessor })(
       { unitId: trebId },
       world,
     );
@@ -182,11 +215,11 @@ describe('trebuchet validators — cross-direction transition precedence', () =>
   it('unpack validator reports in_transition during a mid-pack transition', () => {
     const world = freshWorld();
     const trebId = makeUnit(world, 'trebuchet');
-    const packStates = new Map<number, TrebuchetPackState>([
-      // Mid-pack: packed flag still false.
+    // Mid-pack: packed flag still false.
+    const accessor = freshAccessorWithPackStates(world, [
       [trebId, { packed: false, transitionTicksRemaining: 25 }],
     ]);
-    const result = makeTrebuchetUnpackValidator({ trebuchetPackStates: packStates })(
+    const result = makeTrebuchetUnpackValidator({ accessor })(
       { unitId: trebId },
       world,
     );
