@@ -24,6 +24,12 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       every gameplay-state mutation) and `dispatcher.ts` (the
       `drainPendingCommands(world, queue)` between-step helper that
       submits AI-decision intentions via `world.submitWithResult`).
+      Phase 1B added the `handlers/` directory: per-command validator +
+      handler pairs grouped by domain (`unit/` 5 commands, `building/`
+      3 commands, `market/`, `monk/`, `queue/`, `sheep/`, `trebuchet/`).
+      `bridge/registerCommandHandlers.ts` is the single registration site
+      that wires every pair into the engine via `world.registerValidator`
+      / `world.registerHandler`.
       - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 
         Boot/orchestration tier:
