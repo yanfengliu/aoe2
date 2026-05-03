@@ -26,12 +26,12 @@ import {
 } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
 import type {
-  BuildingCombatState,
   UnitCommand,
   WildlifeState,
 } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
+  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
@@ -46,9 +46,8 @@ interface PlayerScoreCountersLike {
 export interface PlayerCommandsSystemDeps {
   world: GameWorld;
   unitCommands: Map<number, UnitCommand>;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  // Phase 2D: constructionStates + combatStates + buildingHealthStates
-  // migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: constructionStates + combatStates + buildingHealthStates +
+  // buildingCombatStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   wildlifeStates: Map<number, WildlifeState>;
   population: Map<number, PopulationState>;
@@ -105,7 +104,6 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
   const {
     world,
     unitCommands,
-    buildingCombatStates,
     accessor,
     wildlifeStates,
     population,
@@ -424,7 +422,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
           const buildingCombatState = createBuildingCombatState(building.buildingType);
           if (buildingCombatState) {
-            buildingCombatStates.set(buildingId, buildingCombatState);
+            accessor.mutate(buildingCombatStatesCodec, (m) => m.set(buildingId, buildingCombatState));
           }
 
           const populationState = population.get(building.owner);

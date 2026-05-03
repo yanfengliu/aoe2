@@ -15,6 +15,7 @@ import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   gathererDropOffStuckSinceTickCodec,
+  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   constructionStatesCodec,
   combatStatesCodec,
@@ -62,7 +63,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     playerResources,
     population,
     monkTasks,
-    buildingCombatStates,
     wildlifeStates,
     aiStates,
     unitCommands,
@@ -332,9 +332,12 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, { ...hp });
     }
   });
-  for (const [id, bc] of blob.buildingCombatStates) {
-    buildingCombatStates.set(id, { ...bc });
-  }
+  accessor.mutate(buildingCombatStatesCodec, (m) => {
+    m.clear();
+    for (const [id, bc] of blob.buildingCombatStates) {
+      m.set(id, { ...bc });
+    }
+  });
   for (const [owner, ai] of blob.aiStates ?? []) {
     aiStates.set(owner, {
       difficulty: ai.difficulty,
@@ -424,7 +427,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(constructionStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(combatStatesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(buildingHealthStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(buildingCombatStates);
+  accessor.mutate(buildingCombatStatesCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(wildlifeStates);
   accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));

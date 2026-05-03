@@ -127,7 +127,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     playerResources,
     unitCommands,
     wildlifeStates,
-    buildingCombatStates,
     monkTasks,
     monkConvertProcessedThisTick,
     monksByOwner,
@@ -193,7 +192,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     accessor,
     unitCommands,
-    buildingCombatStates,
     wildlifeStates,
     population,
     clearUnitCommand,
@@ -319,7 +317,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerTowerCombatSystem({
     world,
-    buildingCombatStates,
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,

@@ -34,6 +34,7 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
@@ -120,7 +121,6 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   } = deps;
   const {
     population,
-    buildingCombatStates,
     wildlifeStates,
     monksByOwner,
   } = state;
@@ -285,7 +285,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
 
     const buildingCombatState = createBuildingCombatState(buildingType);
     if (isComplete && buildingCombatState) {
-      buildingCombatStates.set(entity, buildingCombatState);
+      accessor.mutate(buildingCombatStatesCodec, (m) => m.set(entity, buildingCombatState));
     }
 
     const populationState = population.get(owner);

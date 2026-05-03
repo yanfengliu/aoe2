@@ -30,6 +30,7 @@ import {
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
 import {
+  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
@@ -102,7 +103,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getVisibleResearchOptions,
   } = deps;
   const {
-    buildingCombatStates,
     wildlifeStates,
     unitCommands,
     monkTasks,
@@ -157,7 +157,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       return accessor.get(combatStatesCodec).get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
     }
     if (building) {
-      return buildingCombatStates.get(id)?.attackDamage ?? null;
+      return accessor.get(buildingCombatStatesCodec).get(id)?.attackDamage ?? null;
     }
     if (resource) {
       const wildlife = wildlifeStates.get(id);

@@ -8,9 +8,9 @@ import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
-import type { BuildingCombatState } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
+  buildingCombatStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
@@ -22,9 +22,8 @@ interface PlayerScoreCountersLike {
 
 export interface TowerCombatSystemDeps {
   world: GameWorld;
-  buildingCombatStates: Map<number, BuildingCombatState>;
-  // Phase 2D: garrisonedByBuilding + constructionStates + combatStates
-  // migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: garrisonedByBuilding + constructionStates + combatStates +
+  // buildingCombatStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
@@ -40,7 +39,6 @@ export interface TowerCombatSystemDeps {
 export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
   const {
     world,
-    buildingCombatStates,
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,
@@ -57,7 +55,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
         const construction = accessor.get(constructionStatesCodec).get(id);
-        const buildingCombat = buildingCombatStates.get(id);
+        const buildingCombat = accessor.get(buildingCombatStatesCodec).get(id);
 
         if (
           !position
@@ -70,6 +68,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
 
         if (buildingCombat.cooldownTicks > 0) {
           buildingCombat.cooldownTicks -= 1;
+          accessor.markDirty(buildingCombatStatesCodec);
         }
 
         const garrisonIds = accessor.get(garrisonedByBuildingCodec).get(id) ?? [];
@@ -122,6 +121,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         }
 
         buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
+        accessor.markDirty(buildingCombatStatesCodec);
       }
     },
   });

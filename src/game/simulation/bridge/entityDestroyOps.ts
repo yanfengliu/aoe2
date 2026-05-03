@@ -19,6 +19,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   gathererDropOffStuckSinceTickCodec,
+  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   monkCarriedRelicCodec,
@@ -87,7 +88,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     population,
     monkTasks,
     monksByOwner,
-    buildingCombatStates,
     inFlightTechByOwner,
     wildlifeStates,
   } = state;
@@ -183,7 +183,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     });
     accessor.mutate(constructionStatesCodec, (m) => m.delete(id));
     accessor.mutate(buildingHealthStatesCodec, (m) => m.delete(id));
-    buildingCombatStates.delete(id);
+    accessor.mutate(buildingCombatStatesCodec, (m) => m.delete(id));
     accessor.mutate(wonderCountdownsCodec, (m) => {
       m.delete(id);
     });
