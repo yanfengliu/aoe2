@@ -9,8 +9,11 @@ import type {
   GameCommands,
   GameComponents,
   GameEvents,
+  GameWorld,
 } from '../../src/game/simulation/bridge/pureHelpers';
 import type { BuildingType } from '../../src/game/simulation/types';
+import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
+import { rallyPointsCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 
 function freshWorld() {
   const world = new World<GameEvents, GameCommands, GameComponents>({
@@ -119,10 +122,11 @@ describe('buildingSetRallyPointValidator', () => {
 });
 
 describe('buildingSetRallyPointHandler', () => {
-  it('mutates the rallyPoints map with the target position', () => {
-    const rallyPoints = new Map<number, { x: number; y: number }>();
-    const handler = makeBuildingSetRallyPointHandler({ rallyPoints });
-    handler({ buildingId: 7, target: { x: 3, y: 4 } }, freshWorld());
-    expect(rallyPoints.get(7)).toEqual({ x: 3, y: 4 });
+  it('mutates the rallyPoints map (in world.state.aoe2.rallyPoints) with the target position', () => {
+    const world = freshWorld() as GameWorld;
+    const accessor = new BridgeStateAccessor(() => world);
+    const handler = makeBuildingSetRallyPointHandler({ accessor });
+    handler({ buildingId: 7, target: { x: 3, y: 4 } }, world);
+    expect(accessor.get(rallyPointsCodec).get(7)).toEqual({ x: 3, y: 4 });
   });
 });

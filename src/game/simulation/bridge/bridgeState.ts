@@ -51,7 +51,7 @@ export interface BridgeState {
   unitCommands: Map<number, UnitCommand>;
   movePathCache: Map<number, CachedMovePath>;
   sheepMoveOrders: Map<number, Position>;
-  rallyPoints: Map<number, Position>;
+  // Phase 2D: `rallyPoints` migrated to `world.state.aoe2.rallyPoints` via accessor + codec.
   monkTasks: Map<number, MonkTask>;
   conversionState: Map<number, { byOwner: number; progress: number }>;
   monkCarriedRelic: Map<number, number>;
@@ -114,7 +114,6 @@ export function createBridgeState(): BridgeState {
     unitCommands: new Map(),
     movePathCache: new Map(),
     sheepMoveOrders: new Map(),
-    rallyPoints: new Map(),
     monkTasks: new Map(),
     conversionState: new Map(),
     monkCarriedRelic: new Map(),

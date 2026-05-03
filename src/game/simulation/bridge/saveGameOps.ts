@@ -26,6 +26,7 @@ import {
   marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
+  rallyPointsCodec,
   trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -83,7 +84,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     townCenterRefs,
     unitCommands,
     sheepMoveOrders,
-    rallyPoints,
     monkTasks,
     conversionState,
     monkCarriedRelic,
@@ -163,7 +163,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           id,
           { x: pos.x, y: pos.y },
         ]),
-        rallyPoints: [...rallyPoints.entries()].map(([id, pos]) => [
+        rallyPoints: [...accessor.get(rallyPointsCodec).entries()].map(([id, pos]) => [
           id,
           { x: pos.x, y: pos.y },
         ]),

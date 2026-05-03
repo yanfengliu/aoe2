@@ -15,6 +15,7 @@ import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   gathererDropOffStuckSinceTickCodec,
   monkHealCountersCodec,
+  rallyPointsCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
@@ -81,7 +82,6 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     trebuchetPackStates,
     townCenterRefs,
     productionQueues,
-    rallyPoints,
     constructionStates,
     buildingHealthStates,
     buildingCombatStates,
@@ -177,7 +177,9 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     }
 
     productionQueues.delete(id);
-    rallyPoints.delete(id);
+    accessor.mutate(rallyPointsCodec, (m) => {
+      m.delete(id);
+    });
     constructionStates.delete(id);
     buildingHealthStates.delete(id);
     buildingCombatStates.delete(id);

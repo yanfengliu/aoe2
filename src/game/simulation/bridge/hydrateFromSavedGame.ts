@@ -18,6 +18,7 @@ import {
   marketExchangeRatesCodec,
   monkHealCountersCodec,
   playerScoreCountersCodec,
+  rallyPointsCodec,
   trackedVisibilitySourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -46,7 +47,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     population,
     townCenterRefs,
     sheepMoveOrders,
-    rallyPoints,
     monkTasks,
     conversionState,
     monkCarriedRelic,
@@ -136,9 +136,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   for (const [id, pos] of blob.sheepMoveOrders) {
     sheepMoveOrders.set(id, { x: pos.x, y: pos.y });
   }
-  for (const [id, pos] of blob.rallyPoints) {
-    rallyPoints.set(id, { x: pos.x, y: pos.y });
-  }
+  accessor.mutate(rallyPointsCodec, (m) => {
+    for (const [id, pos] of blob.rallyPoints) {
+      m.set(id, { x: pos.x, y: pos.y });
+    }
+  });
   for (const [id, task] of blob.monkTasks) {
     const ref = refFromSerialized(task.targetEntityRef);
     if (ref) monkTasks.set(id, { kind: task.kind, targetEntityRef: ref });
@@ -359,7 +361,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   };
   pruneOrphanEntityKeys(unitCommands);
   pruneOrphanEntityKeys(sheepMoveOrders);
-  pruneOrphanEntityKeys(rallyPoints);
+  accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
   pruneOrphanEntityKeys(monkTasks);
   pruneOrphanEntityKeys(conversionState);
   pruneOrphanEntityKeys(monkCarriedRelic);

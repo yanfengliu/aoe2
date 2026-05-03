@@ -495,6 +495,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // Each Phase 1B commit threads its direct-mutation helper into deps so the
   // handler delegates to the same code path deterministic systems use.
   registerCommandHandlers(world, {
+    accessor,
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
@@ -532,7 +533,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,
     },
-    rallyPoints: state.rallyPoints,
     buildingSetRallyPointValidatorDeps: {
       constructionStates: state.constructionStates,
       mapWidth: MAP_WIDTH,

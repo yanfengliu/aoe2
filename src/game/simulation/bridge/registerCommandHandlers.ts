@@ -86,6 +86,9 @@ import {
 import { makeTrebuchetUnpackHandler } from '../handlers/trebuchet/trebuchetUnpackHandler';
 
 export interface CommandHandlerDeps {
+  // Phase 2D: accessor for migrated slots (currently rallyPoints; expand
+  // as more slots migrate).
+  accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   // Phase 1B (unit.move): direct-mutation helper used by the unit.move
   // handler so live + replay + deterministic-system paths all execute
   // identical code (per DESIGN v17 §6.4 B1 fix).
@@ -148,10 +151,9 @@ export interface CommandHandlerDeps {
     anchor: Position,
   ) => boolean;
   buildingPlaceConfirmValidatorDeps: BuildingPlaceConfirmValidatorDeps;
-  // Phase 1B (building.setRallyPoint): handler-side rallyPoints map.
+  // Phase 2D: rallyPoints migrated to world.state.aoe2.* via accessor.
   // No re-check helper needed — rally-point setting has no resource cost
   // or shared-state race; the validator's structural check is sufficient.
-  rallyPoints: Map<number, Position>;
   buildingSetRallyPointValidatorDeps: BuildingSetRallyPointValidatorDeps;
   // Phase 1B (building.action): action-specific direct helpers. Each
   // BuildingActionType maps to its own helper; today only 'ungarrison'.
@@ -242,7 +244,7 @@ export function registerCommandHandlers(
     makeBuildingSetRallyPointValidator(deps.buildingSetRallyPointValidatorDeps),
   );
   world.registerHandler('building.setRallyPoint', makeBuildingSetRallyPointHandler({
-    rallyPoints: deps.rallyPoints,
+    accessor: deps.accessor,
   }));
   // Phase 1B — building.action
   world.registerValidator(

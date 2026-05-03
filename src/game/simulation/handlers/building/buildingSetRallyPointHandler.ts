@@ -1,13 +1,17 @@
 // Handler for `building.setRallyPoint` command (DESIGN v17 §6.2 / §6.4).
-// Direct mutation: rallyPoints.set(buildingId, target). No re-check needed
-// — rally points have no resource cost or shared-state race condition.
+// Direct mutation via accessor: writes to world.state.aoe2.rallyPoints. No
+// re-check needed — rally points have no resource cost or shared-state
+// race condition.
 
-import type { Position, World } from 'civ-engine';
+import type { World } from 'civ-engine';
 
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
+import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
+import { rallyPointsCodec } from '../../bridge/bridgeStateSerialize';
 
 export interface BuildingSetRallyPointHandlerDeps {
-  rallyPoints: Map<number, Position>;
+  // Phase 2D: rallyPoints migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
 }
 
 export type BuildingSetRallyPointHandler = (
@@ -19,6 +23,8 @@ export function makeBuildingSetRallyPointHandler(
   deps: BuildingSetRallyPointHandlerDeps,
 ): BuildingSetRallyPointHandler {
   return (data) => {
-    deps.rallyPoints.set(data.buildingId, { x: data.target.x, y: data.target.y });
+    deps.accessor.mutate(rallyPointsCodec, (m) => {
+      m.set(data.buildingId, { x: data.target.x, y: data.target.y });
+    });
   };
 }

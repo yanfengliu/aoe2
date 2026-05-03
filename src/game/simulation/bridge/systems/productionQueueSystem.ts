@@ -16,12 +16,15 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { rallyPointsCodec } from '../bridgeStateSerialize';
 
 export interface ProductionQueueSystemDeps {
   world: GameWorld;
   productionQueues: Map<number, ProductionQueueEntry[]>;
   population: Map<number, PopulationState>;
-  rallyPoints: Map<number, Position>;
+  // Phase 2D: rallyPoints migrated to world.state.aoe2.* via accessor.
+  accessor: BridgeStateAccessor;
   inFlightTechByOwner: Map<number, Set<ResearchableTechnologyType>>;
   findBuildingSpawnPosition: (
     buildingPosition: Position,
@@ -42,7 +45,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
     world,
     productionQueues,
     population,
-    rallyPoints,
+    accessor,
     inFlightTechByOwner,
     findBuildingSpawnPosition,
     addUnitEntity,
@@ -100,7 +103,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
             playerId: building.owner,
             radius: unitVisionRadius(entry.unitType),
           });
-          const rallyPoint = rallyPoints.get(buildingId);
+          const rallyPoint = accessor.get(rallyPointsCodec).get(buildingId);
           if (rallyPoint) {
             issueUnitMoveCommand(unitId, rallyPoint);
           }
