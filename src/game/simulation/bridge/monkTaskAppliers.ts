@@ -83,7 +83,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkConvertFlipThreshold,
   } = deps;
   const {
-    monkTasks,
     monkConvertProcessedThisTick,
     unitCommands,
     monksByOwner,
@@ -225,7 +224,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // Post-conversion cleanup: drop the unit's prior orders and any new-
     // owner attack commands targeting it.
     clearUnitCommand(targetId);
-    monkTasks.delete(targetId);
+    clearMonkTask(targetId);
     const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
     if (targetGatherer) {
       clearGathererOrder(targetId);

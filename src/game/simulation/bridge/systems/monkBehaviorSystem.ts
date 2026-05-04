@@ -15,7 +15,7 @@ import {
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { monkCarriedRelicCodec } from '../bridgeStateSerialize';
+import { monkCarriedRelicCodec, monkTasksCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -30,9 +30,8 @@ export interface MonkTask {
 
 export interface MonkBehaviorSystemDeps {
   world: GameWorld;
-  monkTasks: Map<number, MonkTask>;
   monkConvertProcessedThisTick: Map<number, number>;
-  // Phase 2D: monkCarriedRelic migrated to world.state.aoe2.* via accessor.
+  // Phase 2D: monkTasks + monkCarriedRelic migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   distanceToBuilding: (id: number, position: Position) => number;
   findBuildingApproachPlan: (
@@ -77,7 +76,6 @@ export interface MonkBehaviorSystemDeps {
 export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
   const {
     world,
-    monkTasks,
     monkConvertProcessedThisTick,
     accessor,
     distanceToBuilding,
@@ -102,23 +100,28 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
       for (const [id, tick] of monkConvertProcessedThisTick) {
         if (tick !== activeWorld.tick) monkConvertProcessedThisTick.delete(id);
       }
+      const monkTasks = accessor.get(monkTasksCodec);
+      let monkTasksDirty = false;
+      const deleteMonkTask = (monkId: number): void => {
+        if (monkTasks.delete(monkId)) monkTasksDirty = true;
+      };
       for (const [monkId, task] of [...monkTasks.entries()]) {
         const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
         const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
         if (!monkUnit || !monkPosition || monkUnit.unitType !== 'monk') {
-          monkTasks.delete(monkId);
+          deleteMonkTask(monkId);
           continue;
         }
 
         const targetId = currentEntityId(activeWorld, task.targetEntityRef);
         if (targetId === null) {
-          monkTasks.delete(monkId);
+          deleteMonkTask(monkId);
           continue;
         }
 
         const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
         if (!targetPosition) {
-          monkTasks.delete(monkId);
+          deleteMonkTask(monkId);
           continue;
         }
 
@@ -133,7 +136,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
               ? findBuildingApproachPlan(monkId, targetId, MONK_ACTION_RANGE, activeWorld)
               : findUnitRangePlan(monkId, targetPosition, MONK_ACTION_RANGE, activeWorld);
           if (!plan) {
-            monkTasks.delete(monkId);
+            deleteMonkTask(monkId);
             continue;
           }
           moveUnitOneSubgridStep(monkId, plan.nextStep, activeWorld);
@@ -160,6 +163,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
           continue;
         }
       }
+      if (monkTasksDirty) accessor.markDirty(monkTasksCodec);
 
       // Carried-relic follow: every Monk carrying a relic this tick moves the
       // relic entity to the Monk's current cell so the rendered position

@@ -124,7 +124,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   const {
     unitCommands,
-    monkTasks,
     monkConvertProcessedThisTick,
     monksByOwner,
   } = state;
@@ -209,7 +208,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerMonkBehaviorSystem({
     world,
     accessor,
-    monkTasks,
     monkConvertProcessedThisTick,
     distanceToBuilding,
     findBuildingApproachPlan,

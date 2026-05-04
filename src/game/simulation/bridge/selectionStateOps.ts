@@ -36,6 +36,7 @@ import {
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
+  monkTasksCodec,
   playerCivilizationsCodec,
   productionQueuesCodec,
   trebuchetPackStatesCodec,
@@ -103,10 +104,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getResearchOptions,
     getVisibleResearchOptions,
   } = deps;
-  const {
-    unitCommands,
-    monkTasks,
-  } = state;
+  const { unitCommands } = state;
 
   function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -350,7 +348,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       world,
       humanPlayerId,
       unitCommands,
-      monkTasks,
+      monkTasks: accessor.get(monkTasksCodec),
       monkCarriedRelic: accessor.get(monkCarriedRelicCodec),
       trebuchetPackStates: accessor.get(trebuchetPackStatesCodec),
       productionQueues: accessor.get(productionQueuesCodec),

@@ -32,12 +32,13 @@ import { createMonkTaskAppliers } from './monkTaskAppliers';
 import {
   combatStatesCodec,
   monkCarriedRelicCodec,
+  monkTasksCodec,
 } from './bridgeStateSerialize';
 
 export interface MonkTaskDeps {
   world: GameWorld;
   state: import('./bridgeState').BridgeState;
-  // Phase 2D — accessor for migrated slots (monkHealCounters via appliers).
+  // Phase 2D — accessor for migrated slots, including monkTasks.
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   // Collaborators. Thin wrappers around bridge-local helpers; the factory
   // just calls them — the implementations still live in createWorld because
@@ -138,8 +139,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
   } = deps;
-  const { monkTasks } = state;
-
   type AiMonkTaskCandidate = {
     monkId: number;
     kind: MonkTask['kind'];
@@ -157,7 +156,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       }
       // Skip Monks already on a task — let the existing one finish so
       // we don't thrash mid-walk.
-      if (monkTasks.has(monkId)) {
+      if (accessor.get(monkTasksCodec).has(monkId)) {
         continue;
       }
       const monkPosition = world.getComponent<Position>(monkId, 'position');
@@ -260,12 +259,15 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     // Clear any lingering combat/move command on the Monk; the behaviour
     // system will drive movement for the duration of the task.
     clearUnitCommand(monkId);
-    monkTasks.set(monkId, { kind, targetEntityRef });
+    accessor.mutate(monkTasksCodec, (m) => m.set(monkId, { kind, targetEntityRef }));
     return true;
   }
 
   function clearMonkTask(monkId: number): void {
-    monkTasks.delete(monkId);
+    const monkTasks = accessor.get(monkTasksCodec);
+    if (monkTasks.delete(monkId)) {
+      accessor.markDirty(monkTasksCodec);
+    }
   }
 
   // Context-click target selection for a Monk. A Monk clicking a cell

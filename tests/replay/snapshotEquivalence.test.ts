@@ -32,6 +32,7 @@ import {
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  monkTasksCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
   playerScoreCountersCodec,
@@ -78,6 +79,7 @@ const MIGRATED_CODECS = [
   sheepMoveOrdersCodec,
   conversionStateCodec,
   monkCarriedRelicCodec,
+  monkTasksCodec,
   trebuchetPackStatesCodec,
   lastSeenStaticCodec,
   garrisonedByBuildingCodec,
@@ -85,6 +87,40 @@ const MIGRATED_CODECS = [
   garrisonedUnitVisionSourcesCodec,
   productionQueuesCodec,
 ] as const;
+
+type EconomyUnit = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['units'][number];
+type EconomyResource = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['resources'][number];
+
+function findOwnedUnit(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  owner: number,
+  unitType: string,
+): EconomyUnit | undefined {
+  return bridge.getEconomyState().units.find(
+    (unit) => unit.owner === owner && unit.unitType === unitType,
+  );
+}
+
+function findResource(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  resourceType: string,
+): EconomyResource | undefined {
+  return bridge.getEconomyState().resources.find(
+    (resource) => resource.resourceType === resourceType,
+  );
+}
+
+function stepUntil(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  predicate: () => boolean,
+  maxSteps: number,
+): boolean {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (predicate()) return true;
+    bridge.step(100);
+  }
+  return predicate();
+}
 
 describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
   it('migrated slots round-trip through world.serialize / World.deserialize', () => {
@@ -125,6 +161,51 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     for (const [codec, liveValue] of live) {
       expect(restoredAccessor.get(codec as unknown as AnyCodec)).toEqual(liveValue);
     }
+  });
+
+  it('active Monk tasks flush into world.state for snapshots', () => {
+    const bridge = createSimulationBridge('monk-relic-fixture');
+    const initialMonk = findOwnedUnit(bridge, 1, 'monk');
+    expect(initialMonk).toBeDefined();
+
+    const moveResult = bridge.world.submitWithResult('unit.move', {
+      unitId: initialMonk!.id,
+      target: { x: 14, y: 14 },
+    });
+    expect(moveResult.accepted).toBe(true);
+    expect(
+      stepUntil(
+        bridge,
+        () => {
+          const monk = findOwnedUnit(bridge, 1, 'monk');
+          return monk !== undefined && monk.x === 14 && monk.y === 14;
+        },
+        200,
+      ),
+    ).toBe(true);
+
+    const relic = findResource(bridge, 'relic');
+    expect(relic).toBeDefined();
+    const taskResult = bridge.world.submitWithResult('monk.contextAtEntity', {
+      unitId: initialMonk!.id,
+      targetEntityId: relic!.id,
+    });
+    expect(taskResult.accepted).toBe(true);
+
+    bridge.step(100);
+
+    const serialized = bridge.world.getState(monkTasksCodec.slot) as
+      | Array<[number, { kind: string; targetEntityRef: { id: number; generation: number } }]>
+      | undefined;
+    expect(serialized).toEqual([
+      [
+        initialMonk!.id,
+        {
+          kind: 'pickup',
+          targetEntityRef: { id: relic!.id, generation: 0 },
+        },
+      ],
+    ]);
   });
 
   it('Tier-3 slots (matchState, bridgeMeta) round-trip through serialize/deserialize', () => {

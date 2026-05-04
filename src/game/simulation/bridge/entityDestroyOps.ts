@@ -25,6 +25,7 @@ import {
   combatStatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  monkTasksCodec,
   populationCodec,
   productionQueuesCodec,
   trebuchetPackStatesCodec,
@@ -87,10 +88,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     addResourceEntity,
     markOutOfBandRenderChange,
   } = deps;
-  const {
-    monkTasks,
-    monksByOwner,
-  } = state;
+  const { monksByOwner } = state;
 
   function destroyUnitEntity(id: number): void {
     const garrisonBuildingId = accessor.get(garrisonedUnitToBuildingCodec).get(id) ?? null;
@@ -130,7 +128,8 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
 
     clearUnitCommand(id);
     accessor.mutate(combatStatesCodec, (m) => m.delete(id));
-    monkTasks.delete(id);
+    const monkTasks = accessor.get(monkTasksCodec);
+    if (monkTasks.delete(id)) accessor.markDirty(monkTasksCodec);
     accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));

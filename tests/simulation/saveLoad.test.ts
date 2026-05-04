@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { monkTasksCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from '../../src/game/simulation/saveSchema';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
+type EconomyUnit = ReturnType<Bridge['getEconomyState']>['units'][number];
+type EconomyResource = ReturnType<Bridge['getEconomyState']>['resources'][number];
 
 // Pull the bridge state we want to compare across the round trip.
 // `playerScores` and `winCondition` come straight off matchState; the
@@ -47,6 +50,26 @@ function captureSnapshot(bridge: Bridge): {
     wonderCountdown: match.wonderCountdownTicks,
     relicCountdown: match.relicCountdownTicks,
   };
+}
+
+function findOwnedUnit(bridge: Bridge, owner: number, unitType: string): EconomyUnit | undefined {
+  return bridge.getEconomyState().units.find(
+    (unit) => unit.owner === owner && unit.unitType === unitType,
+  );
+}
+
+function findResource(bridge: Bridge, resourceType: string): EconomyResource | undefined {
+  return bridge.getEconomyState().resources.find(
+    (resource) => resource.resourceType === resourceType,
+  );
+}
+
+function stepUntil(bridge: Bridge, predicate: () => boolean, maxSteps: number): boolean {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (predicate()) return true;
+    bridge.step(100);
+  }
+  return predicate();
 }
 
 describe('Slice 9 — save/load round-trip', () => {
@@ -230,6 +253,57 @@ describe('Slice 9 — save/load round-trip', () => {
     const loadedBridge = createSimulationBridge(otherSeed, { savedGame: firstBlob });
     const secondBlob = loadedBridge.saveGame();
     expect(secondBlob.seed).toBe(savedSeed);
+  });
+
+  it('treats schema-1 sideMaps.monkTasks as authoritative over stale world snapshot state', () => {
+    const bridge = createSimulationBridge('monk-relic-fixture');
+    const initialMonk = findOwnedUnit(bridge, 1, 'monk');
+    expect(initialMonk).toBeDefined();
+
+    const moveResult = bridge.world.submitWithResult('unit.move', {
+      unitId: initialMonk!.id,
+      target: { x: 14, y: 14 },
+    });
+    expect(moveResult.accepted).toBe(true);
+    expect(
+      stepUntil(
+        bridge,
+        () => {
+          const monk = findOwnedUnit(bridge, 1, 'monk');
+          return monk !== undefined && monk.x === 14 && monk.y === 14;
+        },
+        200,
+      ),
+    ).toBe(true);
+
+    const relic = findResource(bridge, 'relic');
+    expect(relic).toBeDefined();
+    const taskResult = bridge.world.submitWithResult('monk.contextAtEntity', {
+      unitId: initialMonk!.id,
+      targetEntityId: relic!.id,
+    });
+    expect(taskResult.accepted).toBe(true);
+    bridge.step(100);
+
+    const blob = bridge.saveGame();
+    expect(blob.sideMaps.monkTasks).toHaveLength(1);
+    expect(
+      'state' in blob.worldSnapshot
+        ? blob.worldSnapshot.state[monkTasksCodec.slot]
+        : undefined,
+    ).toEqual(blob.sideMaps.monkTasks);
+
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlob;
+    divergent.sideMaps.monkTasks = [];
+
+    const loadedBridge = createSimulationBridge('monk-relic-fixture', { savedGame: divergent });
+    const reSaved = loadedBridge.saveGame();
+    expect(reSaved.sideMaps.monkTasks).toEqual([]);
+    expect(
+      'state' in reSaved.worldSnapshot
+        ? reSaved.worldSnapshot.state[monkTasksCodec.slot]
+        : undefined,
+    ).toEqual([]);
   });
 
   it('persists the gatherer drop-off retry throttle field (review V4-7)', () => {

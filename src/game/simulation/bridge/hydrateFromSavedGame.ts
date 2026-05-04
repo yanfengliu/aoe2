@@ -30,6 +30,7 @@ import {
   productionQueuesCodec,
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
+  monkTasksCodec,
   playerResourcesCodec,
   populationCodec,
   researchedTechnologiesCodec,
@@ -65,11 +66,7 @@ export interface SaveLoadHydrationDeps {
 
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
-  const {
-    monkTasks,
-    unitCommands,
-    monksByOwner,
-  } = state;
+  const { unitCommands, monksByOwner } = state;
 
   const blob = savedGame.sideMaps;
   state.pendingCommands.length = 0;
@@ -158,10 +155,13 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, { x: pos.x, y: pos.y });
     }
   });
-  for (const [id, task] of blob.monkTasks) {
-    const ref = refFromSerialized(task.targetEntityRef);
-    if (ref) monkTasks.set(id, { kind: task.kind, targetEntityRef: ref });
-  }
+  accessor.mutate(monkTasksCodec, (m) => {
+    m.clear();
+    for (const [id, task] of blob.monkTasks) {
+      const ref = refFromSerialized(task.targetEntityRef);
+      if (ref) m.set(id, { kind: task.kind, targetEntityRef: ref });
+    }
+  });
   accessor.mutate(conversionStateCodec, (m) => {
     for (const [id, conv] of blob.conversionState) {
       m.set(id, { byOwner: conv.byOwner, progress: conv.progress });
@@ -441,7 +441,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   pruneOrphanEntityKeys(unitCommands);
   accessor.mutate(sheepMoveOrdersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
-  pruneOrphanEntityKeys(monkTasks);
+  accessor.mutate(monkTasksCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(conversionStateCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(monkCarriedRelicCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));

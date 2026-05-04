@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { monkTasksCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import {
   stepBridgeUntil,
@@ -50,6 +51,36 @@ describe('createSimulationBridge core systems', () => {
     ).toBeLessThan(1);
     expect(tickOneTownCenter?.x).toBe(townCenter?.x);
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
+  });
+
+  it('does not publish monkTasks diffs for ordinary unit moves with no prior Monk task', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+    const scout = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'scout');
+    expect(scout).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(scout?.x ?? 0, scout?.y ?? 0)).toBe(true);
+    expect(bridge.issueMoveCommand(Math.max((scout?.x ?? 0) - 5, 0), scout?.y ?? 0)).toBe(true);
+
+    bridge.step(100);
+
+    expect(bridge.world.getDiff()?.state.set).not.toHaveProperty(monkTasksCodec.slot);
+  });
+
+  it('does not publish monkTasks diffs for idle Monk context-move fallback', () => {
+    const bridge = createSimulationBridge('monk-relic-fixture');
+    const monk = bridge
+      .getEconomyState()
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'monk');
+    expect(monk).toBeDefined();
+
+    expect(bridge.selectEntityAtCell(monk?.x ?? 0, monk?.y ?? 0)).toBe(true);
+    expect(bridge.issueContextCommand(14, 14)).toBe(true);
+
+    bridge.step(100);
+
+    expect(bridge.world.getDiff()?.state.set).not.toHaveProperty(monkTasksCodec.slot);
   });
 
   it('relocates an initial unit spawn if the requested cell would trap it', () => {

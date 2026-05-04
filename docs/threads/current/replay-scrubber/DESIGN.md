@@ -10,7 +10,7 @@
 
 **v16 deltas vs v15:** addresses iter-15 review (Codex BLOCKER + MAJOR; Claude MAJOR-1 + MAJOR-2 + MINOR-2 + 3 NITs — all accuracy/precision in example code, no architectural changes).
 
-- **`setUnitMoveCommandDirect` mirrors the FULL facade body** — 5 invariants per ground truth (`unitCommandOps.ts:116-130` + `bridgeHelpers.ts:111-114`): (1) unit-existence guard via `world.getComponent<UnitComponent>(unitId, 'unit')` (NOT `isAlive` alone — `isAlive` returns true for any alive entity including buildings/resources); (2) `clearGathererOrder`; (3) `monkTasks.delete`; (4) target clamp to `[0, mapWidth-1] × [0, mapHeight-1]`; (5) call existing `setUnitCommand(...)` helper which internally does `movePathCache.delete` + `unitCommands.set`. Handler `unitMoveHandler` delegates to the helper so live + replay + deterministic-system paths all execute identical code.
+- **`setUnitMoveCommandDirect` mirrors the FULL facade body** — 5 invariants per ground truth (`unitCommandOps.ts` + `bridgeHelpers.ts`): (1) unit-existence guard via `world.getComponent<UnitComponent>(unitId, 'unit')` (NOT `isAlive` alone — `isAlive` returns true for any alive entity including buildings/resources); (2) `clearGathererOrder`; (3) clear the accessor-backed `monkTasksCodec` entry if one exists; (4) target clamp to `[0, mapWidth-1] × [0, mapHeight-1]`; (5) call existing `setUnitCommand(...)` helper which internally does `movePathCache.delete` + `unitCommands.set`. Handler `unitMoveHandler` delegates to the helper so live + replay + deterministic-system paths all execute identical code.
 - **API references corrected** to ground truth: `world.isAlive(entityId)` (NOT `hasEntity`); `submitWithResult` returns `{ accepted: boolean, code?, message? }` shape (NOT `{ kind: 'rejected' }`); unknown command type queues and fails at `processCommands` with `missing_handler` (NOT a sync throw).
 - **Coordinate clamping** specified as HANDLER responsibility for all position-bearing commands. Validators reject only structurally-invalid coordinates (NaN, non-integer).
 - **Cost re-derivation** for state-dependent handlers (especially `market.action`'s gold cost from current `marketExchangeRates` — prior handlers in same frame may have mutated rates). Made explicit in §6.2 B2 fix prose.
@@ -47,7 +47,7 @@
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) return false;                          // 1. unit-existence guard (mirrors facade)
     clearGathererOrder(unitId);                       // 2. clear prior gatherer order
-    monkTasks.delete(unitId);                         // 3. clear prior monk task
+    clearMonkTaskIfPresent(unitId);                   // 3. clear prior accessor-backed monk task
     const clamped = clampToMap(target, mapWidth, mapHeight);  // 4. coord clamp
     setUnitCommand(unitId, { type: 'move', target: clamped }); // 5. setUnitCommand internally does movePathCache.delete + unitCommands.set
     return true;
@@ -1430,7 +1430,7 @@ export const unitMoveValidator: ValidatorFn<GameCommands, 'unit.move'> = (data, 
 export const unitMoveHandler: HandlerFn<GameCommands, 'unit.move'> = (data, world) => {
   // Delegate to the shared helper (same code path as deterministic-system call sites
   // per §6.4 B1 fix). Helper handles unit-existence guard, clearGathererOrder,
-  // monkTasks.delete, target clamp, and movePathCache.delete + unitCommands.set.
+  // accessor-backed monk task clear, target clamp, and movePathCache.delete + unitCommands.set.
   setUnitMoveCommandDirect(data.unitId, data.target);
 };
 ```

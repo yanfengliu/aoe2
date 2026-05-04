@@ -1,12 +1,9 @@
-// Bridge side-map state. Every Map<entityId, ...> the bridge tracks lives
-// here. createWorld instantiates one of these and threads it into every
-// factory + system; nothing else mutates these maps directly.
+// Bridge-owned side-map state for the few maps not yet moved into
+// world.state or intentionally kept as runtime caches. createWorld
+// instantiates one of these and threads it into factories + systems.
 
 import type { Position } from 'civ-engine';
-import type {
-  MonkTask,
-  UnitCommand,
-} from './sharedTypes';
+import type { UnitCommand } from './sharedTypes';
 import {
   createPendingCommandsQueue,
   type PendingCommandsQueue,
@@ -34,7 +31,8 @@ export interface BridgeState {
   movePathCache: Map<number, CachedMovePath>;
   // Phase 2D: `sheepMoveOrders` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `rallyPoints` migrated to `world.state.aoe2.rallyPoints` via accessor + codec.
-  monkTasks: Map<number, MonkTask>;
+  // Phase 2D: `monkTasks` migrated to `world.state.aoe2.monkTasks`
+  // via accessor + codec.
   // Phase 2D: `conversionState` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `monkCarriedRelic` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `relicsInMonastery` migrated to `world.state.aoe2.*` via accessor + codec.
@@ -91,7 +89,6 @@ export function createBridgeState(): BridgeState {
   return {
     unitCommands: new Map(),
     movePathCache: new Map(),
-    monkTasks: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
     pendingCommands: createPendingCommandsQueue(),

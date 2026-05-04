@@ -42,6 +42,7 @@ import {
   marketExchangeRatesCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  monkTasksCodec,
   trebuchetPackStatesCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
@@ -103,7 +104,6 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   const {
     pendingCommands,
     unitCommands,
-    monkTasks,
   } = state;
 
   function saveGame(): SaveBlob {
@@ -170,7 +170,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
           id,
           { x: pos.x, y: pos.y },
         ]),
-        monkTasks: [...monkTasks.entries()].map(([id, task]) => [
+        monkTasks: [...accessor.get(monkTasksCodec).entries()].map(([id, task]) => [
           id,
           {
             kind: task.kind,

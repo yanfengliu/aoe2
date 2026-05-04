@@ -127,20 +127,20 @@ Consequences:
 Date: 2026-05-01 (full-review iter-1 R2-D1 / R2-C1 deferral decision).
 Status: Superseded in part by KAD-0008.
 
-2026-05-04 update: superseded in part by KAD-0008. The AI-side direct mutation described here has been removed; the remaining `monkTasks` migration concern is keeping command handlers and deterministic monk behavior as the task mutation sites when the raw Map becomes accessor-backed.
+2026-05-04 update: superseded in part by KAD-0008 and closed by KAD-0009. The AI-side direct mutation described here has been removed, and `monkTasks` now uses the accessor-backed `world.state.aoe2.monkTasks` slot while command handlers and deterministic monk behavior remain the mutation sites.
 
 Context: Phase 1C's DESIGN v17 §6.5 specifies that AI-decision systems push intentions to `pendingCommands` and the resolution-half handler applies them at the next tick. PLAN v4 §1C step 1B specifies splitting `monkBehaviorSystem` into `monkBehaviorDecisionSystem` (decision; pushes intentions) and `monkBehaviorResolutionSystem` (deterministic; mutation).
 
 At the time of the 2026-05-01 decision, `aiSystem.execute → assignAiMonkTasks → setMonkTask` mutated `state.monkTasks` directly during the `update` phase. The split was deferred during Phase 1C because monk task selection involves per-monk cost-benefit reasoning (heal target priority, relic pickup vs deposit, conversion target valuation) that did not obviously map to the 15 already-designed commands.
 
-The deviation is safe TODAY because `monkTasks` is not yet a migrated Tier-1 slot (KAD-0006). The recorder's diff-listener snapshot watches `world.state.aoe2.*`, not the bridge-side `state.monkTasks` Map, so live mutation by aiSystem is invisible to the recording.
+At that time, the deviation was safe because `monkTasks` was not yet a migrated Tier-1 slot (KAD-0006). The recorder's diff-listener snapshot watched `world.state.aoe2.*`, not the bridge-side `state.monkTasks` Map, so live mutation by aiSystem was invisible to the recording.
 
 Original decision: `monkTasks` was a **Phase 2D blocker** because migrating the slot while `aiSystem` still wrote tasks directly would let mid-tick mutations enter `world.state.aoe2.monkTasks` and conflict with replay re-derivation.
 
 Original consequences, superseded in part by KAD-0008:
 - On 2026-05-01, Phase 2D could not migrate `monkTasks` to accessor-based mutation while AI direct assignment remained.
 - KAD-0008 later found the existing `monk.contextAtEntity` command is sufficient for AI assignment, so no new four-command monk assignment surface is needed for the AI path.
-- Until `monkTasks` itself migrates, `relicGoldSystem` and other consumers of `prototypeMonkBehavior` continue to read from the live Map via `state.monkTasks`.
+- KAD-0009 completed the slot migration; `prototypeMonkBehavior` now reads the accessor-backed task map.
 
 ## KAD-0008 - AI monk task assignment reuses `monk.contextAtEntity` intentions
 
@@ -157,4 +157,19 @@ Consequences:
 - AI-only owner/task guards prevent a stale queued assignment from becoming a different action after target or monk ownership changes.
 - `SaveBlob.sideMaps.pendingCommands` persists bridge-owned AI intentions until they are drained into the engine command queue immediately before the next tick.
 - AI monk task effects are intentionally delayed by one tick. `tests/simulation/aiPlayer.test.ts` covers this with the `ai-monk-relic-fixture`: the first decision step queues the pickup while the relic remains on the map, and the next step processes the command and carries the relic.
-- The AI-side blocker for `monkTasks` migration is cleared. The remaining migration should replace the raw task Map with an accessor-backed codec while preserving command handlers and deterministic monk behavior as the mutation sites.
+- The AI-side blocker for `monkTasks` migration is cleared. KAD-0009 completed the raw Map replacement with an accessor-backed codec while preserving command handlers and deterministic monk behavior as the mutation sites.
+
+## KAD-0009 - Monk task state is accessor-backed
+
+Date: 2026-05-04.
+Status: Active.
+
+Context: after KAD-0008, AI monk assignment no longer wrote `state.monkTasks` from `aiSystem`; it queued `monk.contextAtEntity` intentions and let the handler apply the task on the next tick. That removed the replay conflict that blocked migrating the task map itself.
+
+Decision: `monkTasks` is a Tier-1 accessor-backed slot stored at `world.state.aoe2.monkTasks` via `monkTasksCodec`. `BridgeState` no longer owns a raw task Map. `monkTaskOps.setMonkTask/clearMonkTask`, `prototypeMonkBehavior`, entity destruction, unit move cleanup, save/load hydration, and selection/activity projection all read or mutate the accessor-backed Map. Schema-1 `SaveBlob.sideMaps.monkTasks` remains as a compatibility projection until Phase 2F removes redundant side-map fields.
+
+Consequences:
+- Active Monk tasks are visible to `world.serialize()` snapshots after the output flush.
+- Phase 2D no longer has a `monkTasks` exception; `unitCommands` remains the last bridge-owned Tier-1 codec.
+- Command handlers and deterministic Monk behavior remain the only task mutation sites; AI decision systems continue to queue intentions.
+- Phase 2F can proceed to the schema-2 save format only after `unitCommands` is migrated or explicitly reclassified out of Tier-1.

@@ -4,7 +4,7 @@
 
 **Spec reference:** `docs/threads/current/replay-scrubber/DESIGN.md` v15.
 
-**v4 deltas vs v3:** PLAN brought into line with DESIGN v15 — Phase 1B handlers must do execution-time re-checks of mutable state (resources, in-flight tech, market rates, placement occupancy); wildlife-split language removed (single deterministic system per ground truth); monk split naming explicit (`prototypeMonkBehavior` for resolution half; `prototypeMonkBehaviorDecision` for decision half); `setXCommandDirect` helper contract spec'd to mirror full facade behavior (clearGathererOrder, monkTasks.delete) to avoid footgun.
+**v4 deltas vs v3:** PLAN brought into line with DESIGN v15 — Phase 1B handlers must do execution-time re-checks of mutable state (resources, in-flight tech, market rates, placement occupancy); wildlife-split language removed (single deterministic system per ground truth); monk split naming explicit (`prototypeMonkBehavior` for resolution half; `prototypeMonkBehaviorDecision` for decision half); `setXCommandDirect` helper contract spec'd to mirror full facade behavior (clearGathererOrder, accessor-backed monk task clear) to avoid footgun.
 
 ## Goal
 
@@ -65,7 +65,7 @@ For each of the 15 commands in DESIGN §6.1, in this order:
 3. Register both in `registerCommandHandlers.ts` via `world.registerValidator` + `world.registerHandler`.
 4. **Cross-system call-site sweep** (v15 B1 fix): for the underlying ops module's primary mutation function, identify every existing call site:
    - **External-input call sites** (HUD, hotkey, AI dispatcher): switch to `world.submitWithResult('cmd.type', data)`. Translate validator code/message to existing toast string via `formatRejectionReason`.
-   - **Deterministic-system call sites** (e.g., productionQueueSystem rally): switch to a new `setXCommandDirect(...)` private helper. Helper mirrors the full facade behavior (e.g., `setUnitMoveCommandDirect` calls `clearGathererOrder(unitId)` and `monkTasks.delete(unitId)` plus the `unitCommands.set(...)`) to avoid silently-broken state when called from non-spawn contexts.
+   - **Deterministic-system call sites** (e.g., productionQueueSystem rally): switch to a new `setXCommandDirect(...)` private helper. Helper mirrors the full facade behavior (e.g., `setUnitMoveCommandDirect` calls `clearGathererOrder(unitId)`, clears the accessor-backed `monkTasksCodec` entry when present, and then applies `unitCommands.set(...)`) to avoid silently-broken state when called from non-spawn contexts.
 5. Update AI-decision systems (per §6.6) that previously mutated this state directly: instead of mutating, push an intention to `pendingCommands` queue. Dispatcher submits AFTER step.
 6. Tests:
    - Human input path: bridge method called → validator passes → submit → recorded. Handler runs at next step start → state mutated.
@@ -114,7 +114,7 @@ Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, 
 
 (Was Phase A4. Per-slot incremental migration; now command handlers also use the accessor.)
 
-2026-05-04 status: the AI-side `monkTasks` blocker from KAD-0007 has been narrowed. `aiSystem` now queues AI monk assignment through persisted `monk.contextAtEntity` intentions with expected-owner/task-kind guards, and the handler applies the actual pickup/deposit/heal task on the next tick only if the intent still matches. The remaining `monkTasks` migration work should focus on replacing the raw task Map with an accessor-backed codec while keeping command handlers and deterministic monk behavior as the mutation sites.
+2026-05-04 status: the AI-side `monkTasks` blocker from KAD-0007 has been cleared and the slot itself is migrated. `aiSystem` queues AI monk assignment through persisted `monk.contextAtEntity` intentions with expected-owner/task-kind guards, while command handlers and deterministic monk behavior mutate `world.state.aoe2.monkTasks` through `monkTasksCodec` + `BridgeStateAccessor`. `unitCommands` remains the last bridge-owned Tier-1 codec before Phase 2F can drop redundant schema-1 side-map projections.
 
 ### Phase 2E — `syncVisibilitySources` fingerprint cache
 

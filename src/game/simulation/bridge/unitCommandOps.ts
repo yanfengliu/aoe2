@@ -24,6 +24,7 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   monkCarriedRelicCodec,
+  monkTasksCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 import { createSheepCommandOps, type SheepCommandOps } from './sheepCommandOps';
@@ -89,7 +90,7 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // Phase 1B (DESIGN v17 §6.4): private direct-mutation helper — used by
   // deterministic-resolution systems (productionQueueSystem rally,
   // monkTaskOps appliers). Mirrors the full facade body's invariants
-  // (unit guard, clearGathererOrder, monkTasks.delete, target clamp,
+  // (unit guard, clearGathererOrder, guarded monkTasksCodec clear, target clamp,
   // movePathCache.delete via setUnitCommand). Safe to call from ANY
   // context. NOT for AI-decision systems (those use pendingCommands
   // intentions per §6.5).
@@ -134,7 +135,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     humanPlayerId,
     mapWidth,
     mapHeight,
-    state,
     accessor,
     selection,
     placementMode,
@@ -159,9 +159,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitCommand,
     getEntityRef,
   } = deps;
-  const {
-    monkTasks,
-  } = state;
   const selectionOps = createUnitSelectionOps({
     world,
     humanPlayerId,
@@ -188,7 +185,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     if (!unit) return false;
 
     clearGathererOrder(unitId);
-    monkTasks.delete(unitId);
+    const monkTasks = accessor.get(monkTasksCodec);
+    if (monkTasks.delete(unitId)) {
+      accessor.markDirty(monkTasksCodec);
+    }
     setUnitCommand(unitId, {
       type: 'move',
       target: {
