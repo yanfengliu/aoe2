@@ -24,9 +24,10 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   monkCarriedRelicCodec,
-  sheepMoveOrdersCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
+import { createSheepCommandOps, type SheepCommandOps } from './sheepCommandOps';
+import { createUnitSelectionOps, type UnitSelectionOps } from './unitSelectionOps';
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
@@ -73,7 +74,7 @@ export interface UnitCommandOpsDeps {
   getEntityRef: (id: number) => EntityRef | null;
 }
 
-export interface UnitCommandOps {
+export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // Phase 1B (DESIGN v17 §6.3): public commandified facade — used by
   // HUD-time entry points (humanInputOps.issueMoveCommand, internal
   // fallthrough from issueUnitContextCommand/AtEntity, and the
@@ -116,23 +117,14 @@ export interface UnitCommandOps {
   // monkTaskOps would create a wiring-order cycle since unitCommandOps is
   // built after monkTaskOps.
   routeMonkContextAtEntityCommandDirect(monkId: number, targetEntityId: number): boolean;
-  // Phase 1B sheep.move: direct-mutation helper.
-  setSheepMoveCommandDirect(sheepId: number, target: Position): boolean;
-  issueSheepMoveCommand(sheepId: number, target: Position): boolean;
-  getSelectedOwnedSheepIds(): number[];
   issueUnitAttackCommand(
     unitId: number,
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
   ): boolean;
-  getSelectedHumanUnitIds(): number[];
-  getSelectedHumanVillagerIds(): number[];
   issueUnitContextCommand(unitId: number, target: Position): boolean;
   issueUnitGatherCommand(unitId: number, resourceId: number): boolean;
   issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean;
-  selectEntityAtCell(x: number, y: number): boolean;
-  selectEntityById(id: number): boolean;
-  clearSelection(): void;
 }
 
 export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
@@ -169,6 +161,24 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   const {
     monkTasks,
   } = state;
+  const selectionOps = createUnitSelectionOps({
+    world,
+    humanPlayerId,
+    selection,
+    placementMode,
+    isMatchRunning,
+    isEntityVisibleToHuman,
+    getSelectedEntityIds,
+    getSelectableEntitiesAtCell,
+    getEntityRef,
+  });
+  const sheepOps = createSheepCommandOps({
+    world,
+    humanPlayerId,
+    mapWidth,
+    mapHeight,
+    accessor,
+  });
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
   // Used by deterministic-resolution systems and by the `unit.move` handler.
@@ -194,44 +204,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   function issueUnitMoveCommand(unitId: number, target: Position): boolean {
     const result = world.submitWithResult('unit.move', { unitId, target });
     return result.accepted;
-  }
-
-  // Direct-mutation helper. Used by the sheep.move handler.
-  function setSheepMoveCommandDirect(sheepId: number, target: Position): boolean {
-    const resource = world.getComponent<ResourceComponent>(sheepId, 'resource');
-    if (
-      !resource
-      || resource.resourceType !== 'sheep'
-      || resource.owner !== humanPlayerId
-      || resource.amount <= 0
-    ) {
-      return false;
-    }
-
-    accessor.mutate(sheepMoveOrdersCodec, (m) => m.set(sheepId, {
-      x: clamp(target.x, 0, mapWidth - 1),
-      y: clamp(target.y, 0, mapHeight - 1),
-    }));
-    return true;
-  }
-
-  // Bridge facade. Submits sheep.move; handler delegates to
-  // setSheepMoveCommandDirect at start of next step.
-  function issueSheepMoveCommand(sheepId: number, target: Position): boolean {
-    const result = world.submitWithResult('sheep.move', { sheepId, target });
-    return result.accepted;
-  }
-
-  function getSelectedOwnedSheepIds(): number[] {
-    return getSelectedEntityIds().filter((id) => {
-      const resource = world.getComponent<ResourceComponent>(id, 'resource');
-      return (
-        resource !== undefined
-        && resource.resourceType === 'sheep'
-        && resource.owner === humanPlayerId
-        && resource.amount > 0
-      );
-    });
   }
 
   // Direct-mutation helper. Same body as the pre-Phase-1B
@@ -282,20 +254,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   ): boolean {
     const result = world.submitWithResult('unit.attack', { unitId, targetEntityId, targetEntityKind });
     return result.accepted;
-  }
-
-  function getSelectedHumanUnitIds(): number[] {
-    return getSelectedEntityIds().filter((id) => {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit?.owner === humanPlayerId;
-    });
-  }
-
-  function getSelectedHumanVillagerIds(): number[] {
-    return getSelectedHumanUnitIds().filter((id) => {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit?.unitType === 'villager';
-    });
   }
 
   // Direct-mutation helper. Same body as the pre-Phase-1B
@@ -516,61 +474,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
-  function selectEntityAtCell(x: number, y: number): boolean {
-    if (!isMatchRunning()) return false;
-
-    const selectableEntities = getSelectableEntitiesAtCell(x, y);
-    const currentSelectionIds = getSelectedEntityIds();
-    const currentSelectionId = currentSelectionIds.length === 1 ? currentSelectionIds[0] : null;
-    const lastClickedSameCell =
-      selection.focusCell !== null
-      && selection.focusCell.x === x
-      && selection.focusCell.y === y;
-    let nextSelection = selectableEntities[0]?.id ?? null;
-
-    if (lastClickedSameCell && currentSelectionId !== null && selectableEntities.length > 1) {
-      const currentIndex = selectableEntities.findIndex(
-        (candidate) => candidate.id === currentSelectionId,
-      );
-      if (currentIndex >= 0) {
-        nextSelection = selectableEntities[(currentIndex + 1) % selectableEntities.length]?.id ?? null;
-      }
-    }
-
-    selection.refs =
-      nextSelection === null
-        ? []
-        : [getEntityRef(nextSelection)].filter((ref): ref is EntityRef => ref !== null);
-    if (nextSelection === null) {
-      selection.focusCell = null;
-      placementMode.current = null;
-      return false;
-    }
-
-    selection.focusCell = { x, y };
-    placementMode.current = null;
-    return selection.refs.length > 0;
-  }
-
-  function selectEntityById(id: number): boolean {
-    if (!isMatchRunning() || !isEntityVisibleToHuman(id)) return false;
-
-    const entityRef = getEntityRef(id);
-    if (!entityRef) return false;
-
-    selection.refs = [entityRef];
-    selection.focusCell = null;
-    placementMode.current = null;
-    return true;
-  }
-
-  function clearSelection(): void {
-    selection.refs = [];
-    selection.focusCell = null;
-    placementMode.current = null;
-  }
-
   return {
+    ...selectionOps,
+    ...sheepOps,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
@@ -578,17 +484,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
     routeMonkContextAtEntityCommandDirect,
-    setSheepMoveCommandDirect,
-    issueSheepMoveCommand,
-    getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
-    getSelectedHumanUnitIds,
-    getSelectedHumanVillagerIds,
     issueUnitContextCommand,
     issueUnitGatherCommand,
     issueUnitContextCommandAtEntity,
-    selectEntityAtCell,
-    selectEntityById,
-    clearSelection,
   };
 }

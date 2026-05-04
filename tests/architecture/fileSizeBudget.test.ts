@@ -34,7 +34,6 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   'src/game/simulation/bridge/systems/aiSystem.ts': 788,
   'src/game/recording/IndexedDBMirror.ts': 698,
   'src/game/simulation/bridge/wireBridgeOps.ts': 605,
-  'src/game/simulation/bridge/unitCommandOps.ts': 588,
 };
 
 function walk(root: string, base = root): string[] {

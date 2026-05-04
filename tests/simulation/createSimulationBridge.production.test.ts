@@ -8,6 +8,8 @@ import {
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
+const PRODUCTION_TEST_TIMEOUT_MS = 30_000;
+
 describe('createSimulationBridge production progression', () => {
   it('can build an additional Town Center in Castle Age and use it to train a Villager', () => {
     const bridge = createSimulationBridge('castle-town-center-fixture');
@@ -69,7 +71,7 @@ describe('createSimulationBridge production progression', () => {
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ),
     ).toHaveLength(2);
-  }, 15_000);
+  }, PRODUCTION_TEST_TIMEOUT_MS);
 
   it('can research Fletching and apply it to existing and newly trained Archers', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
@@ -124,7 +126,7 @@ describe('createSimulationBridge production progression', () => {
     expect(
       playerArchers.every((unit) => unit.attackDamage === 5 && unit.attackRange === 5),
     ).toBe(true);
-  }, 15_000);
+  }, PRODUCTION_TEST_TIMEOUT_MS);
 
   it('can build a Stable in Feudal Age and train a Scout Cavalry from it', () => {
     const bridge = createSimulationBridge('feudal-stable-fixture');
@@ -179,7 +181,7 @@ describe('createSimulationBridge production progression', () => {
         { maxSteps: 240 },
       ),
     ).toBe(true);
-  }, 15_000);
+  }, PRODUCTION_TEST_TIMEOUT_MS);
 
   it('blocks Stable production when no safe spawn tile is available', () => {
     const bridge = createSimulationBridge('blocked-stable-spawn-fixture');
@@ -203,5 +205,5 @@ describe('createSimulationBridge production progression', () => {
       isBlocked: true,
       remainingTicks: 0,
     });
-  }, 15_000);
+  }, PRODUCTION_TEST_TIMEOUT_MS);
 });

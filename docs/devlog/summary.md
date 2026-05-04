@@ -1,3 +1,7 @@
+## 2026-05-04 (v0.1.6 roadmap continuation)
+- **File-size queue:** `unitCommandOps.ts` split into `unitSelectionOps.ts` + `sheepCommandOps.ts`; removed from `fileSizeBudget` legacy exemptions. Codex review found no issues; Claude was quota-blocked until May 5 7pm PT. Targeted file-size/command gates pass, and the final full gates pass after the Vitest runner stabilization below.
+- **Vitest gate stabilization:** `vitest.config.ts` now defaults to the `threads` pool with a 30s test timeout, and `createSimulationBridge.production.test.ts` uses a shared 30s cap after full-suite fork-pool runs showed all assertions passing but exited non-zero from `onTaskUpdate` RPC timeouts. `npm test`, typecheck, lint, and build pass.
+
 ## 2026-05-02 (v0.1.6 in flight)
 - **/full-review iter-1+2 — correctness batch:** R2-M1 autoAggression race, Gemini MAJOR pruneOrphanEntityKeys value-side leak, R2-C2 saveGame Tier-3 flush, Gemini MEDIUM accessor.flush atomicity, R2-M2/D4 pushIntention rename + dead-fallback fix, Gemini MINOR TC villager-train accumulator. Iter-2 closed atomicity placement, half-dead test gap, exhaustive switch. 725 passed.
 - **Phase 2E:** visibility staleness fix — `(playerId, x, y, radius)` fingerprint cache + owner-flip remove+reinsert; closes Codex impl-19 MAJOR.
