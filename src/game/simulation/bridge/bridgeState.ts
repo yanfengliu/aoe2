@@ -82,7 +82,8 @@ export interface BridgeState {
   // Phase 1A: AI intention queue (DESIGN v17 §6.5). AI-decision systems push
   // to this during their `execute` phase; the main game loop drains it via
   // `dispatcher.drainPendingCommands(world, queue)` BETWEEN ticks. Cleared
-  // every tick by the dispatcher itself; not persisted across saves.
+  // by the dispatcher after submission; persisted across saves so a save taken
+  // between AI decision and the next tick does not drop queued intentions.
   pendingCommands: PendingCommandsQueue;
 }
 

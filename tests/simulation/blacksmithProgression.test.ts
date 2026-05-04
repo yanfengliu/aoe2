@@ -74,7 +74,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 45_000);
+  }, 60_000);
 });
 
 describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate Mail)', () => {

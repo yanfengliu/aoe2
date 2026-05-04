@@ -5,7 +5,14 @@ import type { World } from 'civ-engine';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 
 export interface MonkContextAtEntityHandlerDeps {
-  routeMonkContextAtEntityCommandDirect: (monkId: number, targetEntityId: number) => boolean;
+  routeMonkContextAtEntityCommandDirect: (
+    monkId: number,
+    targetEntityId: number,
+    options?: Pick<
+      GameCommands['monk.contextAtEntity'],
+      'expectedOwner' | 'intendedTaskKind'
+    >,
+  ) => boolean;
 }
 
 export type MonkContextAtEntityHandler = (
@@ -17,6 +24,9 @@ export function makeMonkContextAtEntityHandler(
   deps: MonkContextAtEntityHandlerDeps,
 ): MonkContextAtEntityHandler {
   return (data) => {
-    deps.routeMonkContextAtEntityCommandDirect(data.unitId, data.targetEntityId);
+    deps.routeMonkContextAtEntityCommandDirect(data.unitId, data.targetEntityId, {
+      expectedOwner: data.expectedOwner,
+      intendedTaskKind: data.intendedTaskKind,
+    });
   };
 }

@@ -23,7 +23,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       `GameCommands` type alias for the 15-command surface that drives
       every gameplay-state mutation) and `dispatcher.ts` (the
       `drainPendingCommands(world, queue)` between-step helper that
-      submits AI-decision intentions via `world.submitWithResult`).
+      submits AI-decision intentions via `world.submitWithResult` immediately
+      before the next tick, including persisted AI monk `monk.contextAtEntity`
+      task intentions).
       - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 
         Boot/orchestration tier:
@@ -57,7 +59,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         - `playerQueries.ts`, `aiDecisionOps.ts`, `targetFindingOps.ts`, `selectionFinders.ts` — read-side queries.
         - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators.
         - `humanInputOps.ts`, `selectionInputOps.ts`, `selectionStateOps.ts`, `unitCommandOps.ts`, `unitSelectionOps.ts`, `sheepCommandOps.ts` — command and selection surface.
-        - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers.
+        - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers. `monkTaskOps.ts` now exposes both the legacy direct AI task assignment helper and the AI-decision intention producer; `aiSystem` uses the intention path so pickup/deposit/heal task creation goes through `monk.contextAtEntity` on the next tick.
         - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries.
         - `optionsRules.ts` — train/research/market/build option lookup.
         - `renderStateOps.ts`, `debugSnapshotOps.ts`, `economyStateOps.ts`, `saveGameOps.ts` — read-side projections to the HUD/test surface.

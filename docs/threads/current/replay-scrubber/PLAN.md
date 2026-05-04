@@ -114,6 +114,8 @@ Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, 
 
 (Was Phase A4. Per-slot incremental migration; now command handlers also use the accessor.)
 
+2026-05-04 status: the AI-side `monkTasks` blocker from KAD-0007 has been narrowed. `aiSystem` now queues AI monk assignment through persisted `monk.contextAtEntity` intentions with expected-owner/task-kind guards, and the handler applies the actual pickup/deposit/heal task on the next tick only if the intent still matches. The remaining `monkTasks` migration work should focus on replacing the raw task Map with an accessor-backed codec while keeping command handlers and deterministic monk behavior as the mutation sites.
+
 ### Phase 2E — `syncVisibilitySources` fingerprint cache
 
 (Was Phase A5.)

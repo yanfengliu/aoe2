@@ -276,16 +276,17 @@ export function createSimulationBridge(
       const tickMs = 1000 / TPS;
 
       while (accumulatorMs >= tickMs) {
+        // Phase 1A: drain AI intention queue between ticks (DESIGN v17 §6.5).
+        // AI-decision systems push intentions during execute; this pre-step
+        // call submits any previous tick's intentions via world.submitWithResult
+        // so they process at the start of this tick. Intentions pushed by this
+        // tick stay bridge-owned until the next tick, which lets saveGame()
+        // persist the one-tick command-boundary window.
+        drainPendingCommands(world, pendingCommands);
         if (!tryTick(() => world.step(), haltState)) {
           accumulatorMs = 0;
           break;
         }
-        // Phase 1A: drain AI intention queue between ticks (DESIGN v17 §6.5).
-        // AI-decision systems push intentions during execute; this between-step
-        // call submits each via world.submitWithResult so the recorder captures
-        // them with submissionTick = world.tick (post-step). No-op while the
-        // queue is empty (Phase 1B fills it as AI systems are refactored).
-        drainPendingCommands(world, pendingCommands);
         accumulatorMs -= tickMs;
       }
     },

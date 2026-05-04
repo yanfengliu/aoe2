@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { SaveBlob } from '../saveSchema';
+import { clonePendingCommand } from '../dispatcher';
 import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
@@ -71,6 +72,8 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   } = state;
 
   const blob = savedGame.sideMaps;
+  state.pendingCommands.length = 0;
+  state.pendingCommands.push(...(blob.pendingCommands ?? []).map(clonePendingCommand));
   const refFromSerialized = (s: { id: number; generation: number }): EntityRef | null => {
     const ref = world.getEntityRef(s.id);
     if (!ref || ref.generation !== s.generation) return null;

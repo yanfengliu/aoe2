@@ -219,6 +219,131 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
 });
 
 describe('FU4 AI Monks', () => {
+  it('defers AI Monk task assignment through the command queue', () => {
+    const bridge = createSimulationBridge('ai-monk-relic-fixture');
+    const initialEconomy = bridge.getEconomyState();
+    const monk = initialEconomy.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'monk',
+    );
+    const relic = initialEconomy.resources.find((resource) => resource.resourceType === 'relic');
+    expect(monk).toBeDefined();
+    expect(relic).toBeDefined();
+    if (!monk || !relic) return;
+
+    bridge.step(100);
+
+    const afterDecision = bridge.getEconomyState();
+    expect(afterDecision.resources.some((resource) => resource.id === relic.id)).toBe(true);
+    expect(
+      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+        ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
+      ),
+    ).toBe(false);
+
+    bridge.step(100);
+
+    expect(
+      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+        ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
+      ),
+    ).toBe(true);
+  }, 120_000);
+
+  it('preserves queued AI Monk assignment across save/load before the handler tick', () => {
+    const bridge = createSimulationBridge('ai-monk-relic-fixture');
+    const initialEconomy = bridge.getEconomyState();
+    const monk = initialEconomy.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'monk',
+    );
+    const relic = initialEconomy.resources.find((resource) => resource.resourceType === 'relic');
+    expect(monk).toBeDefined();
+    expect(relic).toBeDefined();
+    if (!monk || !relic) return;
+
+    bridge.step(100);
+    const blob = bridge.saveGame();
+    expect(
+      blob.sideMaps.pendingCommands?.some(
+        (command) =>
+          command.type === 'monk.contextAtEntity'
+          && command.data.unitId === monk.id
+          && command.data.targetEntityId === relic.id
+          && command.data.expectedOwner === 2
+          && command.data.intendedTaskKind === 'pickup',
+      ),
+    ).toBe(true);
+
+    const loaded = createSimulationBridge('ai-monk-relic-fixture', {
+      savedGame: JSON.parse(JSON.stringify(blob)) as typeof blob,
+    });
+    loaded.step(100);
+
+    expect(
+      loaded.saveGame().sideMaps.monkCarriedRelic.some(
+        ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
+      ),
+    ).toBe(true);
+  }, 120_000);
+
+  it('keeps saved pending AI Monk intentions isolated from the live queue', () => {
+    const bridge = createSimulationBridge('ai-monk-relic-fixture');
+    const initialEconomy = bridge.getEconomyState();
+    const monk = initialEconomy.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'monk',
+    );
+    const relic = initialEconomy.resources.find((resource) => resource.resourceType === 'relic');
+    expect(monk).toBeDefined();
+    expect(relic).toBeDefined();
+    if (!monk || !relic) return;
+
+    bridge.step(100);
+    const blob = bridge.saveGame();
+    const queued = blob.sideMaps.pendingCommands?.find(
+      (command) => command.type === 'monk.contextAtEntity',
+    );
+    expect(queued).toBeDefined();
+    if (!queued || queued.type !== 'monk.contextAtEntity') return;
+
+    queued.data.targetEntityId = -1;
+    bridge.step(100);
+
+    expect(
+      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+        ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
+      ),
+    ).toBe(true);
+  }, 120_000);
+
+  it('no-ops queued AI Monk assignments whose intended task no longer matches', () => {
+    const bridge = createSimulationBridge('ai-monk-relic-fixture');
+    const initialEconomy = bridge.getEconomyState();
+    const monk = initialEconomy.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'monk',
+    );
+    const relic = initialEconomy.resources.find((resource) => resource.resourceType === 'relic');
+    expect(monk).toBeDefined();
+    expect(relic).toBeDefined();
+    if (!monk || !relic) return;
+
+    const result = bridge.world.submitWithResult('monk.contextAtEntity', {
+      unitId: monk.id,
+      targetEntityId: relic.id,
+      expectedOwner: 2,
+      intendedTaskKind: 'heal',
+    });
+    expect(result.accepted).toBe(true);
+
+    bridge.step(100);
+
+    const afterMismatch = bridge.saveGame();
+    expect(afterMismatch.sideMaps.monkTasks).toEqual([]);
+    expect(
+      afterMismatch.sideMaps.monkCarriedRelic.some(
+        ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
+      ),
+    ).toBe(false);
+  }, 120_000);
+
   it('builds a Monastery in Castle Age on the ai-monk-fixture', () => {
     const bridge = createSimulationBridge('ai-monk-fixture');
     let aiMonasteryComplete = false;

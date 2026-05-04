@@ -15,6 +15,7 @@
 // as `[[k1, [[k2, v], ...]]]`.
 
 import type { VisibilityMapState, WorldSnapshot } from 'civ-engine';
+import type { PendingCommand } from './dispatcher';
 
 // Bumping this number breaks every existing save file. The loader
 // rejects any blob whose `schema` does not match this constant.
@@ -111,6 +112,7 @@ export interface SerializedSideMaps {
   townCenterRefs: SerializedEntityRefSideMap;
   villagerOrdinals: SerializedMap<number, number>;
   unitCommands: SerializedEntityKeyedSideMap<SerializedUnitCommand>;
+  pendingCommands?: PendingCommand[];
   sheepMoveOrders: SerializedEntityKeyedSideMap<{ x: number; y: number }>;
   rallyPoints: SerializedEntityKeyedSideMap<{ x: number; y: number }>;
   monkTasks: SerializedEntityKeyedSideMap<SerializedMonkTask>;

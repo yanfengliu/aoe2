@@ -22,6 +22,7 @@ import type { AiState } from '../ai';
 import type { UnitMovementPlan } from './movementTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
+import type { MonkTask } from './sharedTypes';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -97,7 +98,19 @@ export interface RegisterAllSystemsDeps {
     owner: number,
     buildingType: BuildingComponent['buildingType'],
   ) => ResearchableTechnologyType[];
-  assignAiMonkTasks: (owner: number) => void;
+  pushAiMonkTaskIntentions: (
+    owner: number,
+    pushMonkContextAtEntityIntention: (
+      monkId: number,
+      targetEntityId: number,
+      options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
+    ) => void,
+  ) => void;
+  pushMonkContextAtEntityIntention: (
+    monkId: number,
+    targetEntityId: number,
+    options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
+  ) => void;
   findPreferredVisibleEnemyUnit: (owner: number, position: Position) => number | null;
   findPreferredVisibleEnemyBuilding: (owner: number, position: Position) => number | null;
   findPreferredEnemyUnitInRadius: (owner: number, position: Position, radius: number) => number | null;
@@ -141,7 +154,8 @@ export interface RegisterAllSystemsDeps {
   // monkTaskOps appliers). Mirrors the full facade body.
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
   // Phase 1B unit.move (DESIGN v17 §6.5): intention pusher for AI-decision
-  // systems. Pushes to `pendingCommands`; dispatcher submits AFTER step.
+  // systems. Pushes to `pendingCommands`; dispatcher submits before the
+  // next step.
   pushUnitMoveIntention: (unitId: number, target: Position) => boolean;
   // Player-commands deps.
   clearUnitCommand: (id: number) => void;

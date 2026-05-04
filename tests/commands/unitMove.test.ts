@@ -147,7 +147,7 @@ describe('AI intention pattern (DESIGN v17 §6.5) — push then drain', () => {
     queue.push({ type: 'unit.move', data: { unitId: 1, target: { x: 0, y: 0 } } });
     queue.push({ type: 'unit.move', data: { unitId: 2, target: { x: 1, y: 1 } } });
 
-    // Dispatcher runs BETWEEN ticks (after world.step()):
+    // Dispatcher runs BETWEEN ticks before the next world.step():
     const submitted = drainPendingCommands(world, queue);
     expect(submitted).toBe(2);
     expect(queue.length).toBe(0);

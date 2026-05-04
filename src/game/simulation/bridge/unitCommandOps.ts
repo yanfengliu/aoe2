@@ -14,7 +14,7 @@ import type {
   UnitType,
 } from '../types';
 import type { MonkTask } from './sharedTypes';
-import { clamp, type GameWorld } from './pureHelpers';
+import { clamp, type GameCommands, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
@@ -28,6 +28,8 @@ import {
 } from './bridgeStateSerialize';
 import { createSheepCommandOps, type SheepCommandOps } from './sheepCommandOps';
 import { createUnitSelectionOps, type UnitSelectionOps } from './unitSelectionOps';
+
+type MonkContextRouteOptions = Pick<GameCommands['monk.contextAtEntity'], 'expectedOwner' | 'intendedTaskKind'>;
 
 export interface UnitCommandOpsDeps {
   world: GameWorld;
@@ -109,14 +111,13 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
   // Phase 1B unit.contextAtEntity: routing helper by entity id.
   routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean;
-  // Phase 1B monk.contextAtEntity: routing helper for monk context-at-entity.
-  // Reads the monk + target afresh, dispatches to setMonkTask
-  // (heal/convert/pickup/deposit) or setUnitMoveCommandDirect (move-fallback).
-  // Lives in unitCommandOps because it composes setMonkTask (from monkTaskOps)
-  // with setUnitMoveCommandDirect (from unitCommandOps); putting it in
-  // monkTaskOps would create a wiring-order cycle since unitCommandOps is
-  // built after monkTaskOps.
-  routeMonkContextAtEntityCommandDirect(monkId: number, targetEntityId: number): boolean;
+  // Phase 1B monk.contextAtEntity: reads monk + target afresh, then routes to
+  // setMonkTask or move-fallback. Kept here to avoid a monkTaskOps wiring cycle.
+  routeMonkContextAtEntityCommandDirect(
+    monkId: number,
+    targetEntityId: number,
+    options?: MonkContextRouteOptions,
+  ): boolean;
   issueUnitAttackCommand(
     unitId: number,
     targetEntityId: number,
@@ -412,9 +413,13 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   function routeMonkContextAtEntityCommandDirect(
     monkId: number,
     targetEntityId: number,
+    options: MonkContextRouteOptions = {},
   ): boolean {
     const monkUnit = world.getComponent<UnitComponent>(monkId, 'unit');
     if (!monkUnit) return false;
+    if (options.expectedOwner !== undefined && monkUnit.owner !== options.expectedOwner) {
+      return false;
+    }
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!targetPosition) return false;
     const targetEntityRef = getEntityRef(targetEntityId);
@@ -423,19 +428,22 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
     const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
     const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
+    const matchesIntendedTask = (kind: MonkTask['kind']): boolean =>
+      options.intendedTaskKind === undefined || options.intendedTaskKind === kind;
+    const suppressFallback = options.intendedTaskKind !== undefined;
 
     if (targetUnit) {
       if (targetUnit.owner === monkUnit.owner) {
         const combat = accessor.get(combatStatesCodec).get(targetEntityId);
         if (combat && combat.currentHp < combat.maxHp) {
-          return setMonkTask(monkId, 'heal', targetEntityRef);
+          return matchesIntendedTask('heal') ? setMonkTask(monkId, 'heal', targetEntityRef) : false;
         }
-        return setUnitMoveCommandDirect(monkId, targetPosition);
+        return suppressFallback ? false : setUnitMoveCommandDirect(monkId, targetPosition);
       }
       // Enemy unit: convert. Skip conversion on other Monks (no canonical
       // rule against it but v1 keeps the target set simple — convert only
       // "normal" units).
-      return setMonkTask(monkId, 'convert', targetEntityRef);
+      return matchesIntendedTask('convert') ? setMonkTask(monkId, 'convert', targetEntityRef) : false;
     }
 
     if (
@@ -443,7 +451,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       && targetResource.resourceType === 'relic'
       && accessor.get(monkCarriedRelicCodec).get(monkId) === undefined
     ) {
-      return setMonkTask(monkId, 'pickup', targetEntityRef);
+      return matchesIntendedTask('pickup') ? setMonkTask(monkId, 'pickup', targetEntityRef) : false;
     }
 
     if (
@@ -452,10 +460,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       && targetBuilding.buildingType === 'monastery'
       && accessor.get(monkCarriedRelicCodec).get(monkId) !== undefined
     ) {
-      return setMonkTask(monkId, 'deposit', targetEntityRef);
+      return matchesIntendedTask('deposit') ? setMonkTask(monkId, 'deposit', targetEntityRef) : false;
     }
 
-    return setUnitMoveCommandDirect(monkId, targetPosition);
+    return suppressFallback ? false : setUnitMoveCommandDirect(monkId, targetPosition);
   }
 
   // Bridge facade. Monk path submits `monk.contextAtEntity` (handler

@@ -7,11 +7,11 @@
 // causing a one-step offset between live and replay.
 //
 // Pattern: AI-decision systems push intentions to `pendingCommands` during
-// their `execute` phase. After `world.step()` returns, the main game loop
-// calls `drainPendingCommands(world, queue)` BETWEEN ticks. The recorder
-// captures these submissions with `submissionTick = K` (post-step world.tick);
-// they process at start of step K+1. Replay re-applies recorded commands
-// at the same boundary.
+// their `execute` phase. Before the next `world.step()` call, the main game
+// loop calls `drainPendingCommands(world, queue)` BETWEEN ticks. The recorder
+// captures these submissions with `submissionTick = K` (the post-previous-step
+// world.tick); they process at start of step K+1. Replay re-applies recorded
+// commands at the same boundary.
 
 import type { GameCommands } from './commands';
 import type { GameWorld } from './bridge/pureHelpers';
@@ -30,9 +30,13 @@ export function createPendingCommandsQueue(): PendingCommandsQueue {
   return [];
 }
 
-/** Drains all pending intentions and submits each to the world. Called once
- *  after every `world.step()` in the main game loop. Returns the number of
- *  commands submitted (useful for tests). */
+export function clonePendingCommand(command: PendingCommand): PendingCommand {
+  return { type: command.type, data: structuredClone(command.data) } as PendingCommand;
+}
+
+/** Drains all pending intentions and submits each to the world. Called before
+ *  each `world.step()` in the main game loop. Returns the number of commands
+ *  submitted (useful for tests). */
 export function drainPendingCommands(
   world: GameWorld,
   queue: PendingCommandsQueue,

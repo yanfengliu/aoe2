@@ -99,6 +99,9 @@ Consequences:
   precede villager pushes when the AI is barracks-rushing.
 - The `dispatcher.drainPendingCommands` contract is mutate-in-place (push +
   `length = 0`); reassigning the queue array would break aiSystem's reference.
+- The bridge drains this queue immediately before the next `world.step()`, not
+  immediately after the decision tick, so `saveGame()` can persist queued
+  intentions taken in the one-tick command-boundary window.
 - A future multi-strategy AI (boom vs rush) would condition the push order on
   plan kind, but the single-strategy AI today gets hardcoded military-first
   ordering.
@@ -122,16 +125,36 @@ Consequences:
 ## KAD-0007 — AI monk task decisions remain in resolution-phase aiSystem mutation, deferred from Phase 1C's intention split
 
 Date: 2026-05-01 (full-review iter-1 R2-D1 / R2-C1 deferral decision).
+Status: Superseded in part by KAD-0008.
+
+2026-05-04 update: superseded in part by KAD-0008. The AI-side direct mutation described here has been removed; the remaining `monkTasks` migration concern is keeping command handlers and deterministic monk behavior as the task mutation sites when the raw Map becomes accessor-backed.
 
 Context: Phase 1C's DESIGN v17 §6.5 specifies that AI-decision systems push intentions to `pendingCommands` and the resolution-half handler applies them at the next tick. PLAN v4 §1C step 1B specifies splitting `monkBehaviorSystem` into `monkBehaviorDecisionSystem` (decision; pushes intentions) and `monkBehaviorResolutionSystem` (deterministic; mutation).
 
-Today, `aiSystem.execute → assignAiMonkTasks → setMonkTask` mutates `state.monkTasks` directly during the `update` phase. The split was deferred during Phase 1C because monk task selection involves per-monk cost-benefit reasoning (heal target priority, relic pickup vs deposit, conversion target valuation) that doesn't map cleanly to a single intention shape — at minimum it would need 4 commands (`monk.heal`, `monk.convert`, `monk.pickup`, `monk.deposit`) each with their own validator + handler. Phase 1C's scope was the 15 already-designed commands; adding 4 more was out-of-band.
+At the time of the 2026-05-01 decision, `aiSystem.execute → assignAiMonkTasks → setMonkTask` mutated `state.monkTasks` directly during the `update` phase. The split was deferred during Phase 1C because monk task selection involves per-monk cost-benefit reasoning (heal target priority, relic pickup vs deposit, conversion target valuation) that did not obviously map to the 15 already-designed commands.
 
 The deviation is safe TODAY because `monkTasks` is not yet a migrated Tier-1 slot (KAD-0006). The recorder's diff-listener snapshot watches `world.state.aoe2.*`, not the bridge-side `state.monkTasks` Map, so live mutation by aiSystem is invisible to the recording.
 
-Decision: `monkTasks` is a **Phase 2D blocker**. The slot's migration (read/write through accessor + codec) MUST be paired with the `monkBehaviorSystem` split per PLAN v4 §1C step 1B; migrating without the split would let aiSystem's mid-tick mutations enter `world.state.aoe2.monkTasks` AND the replay path's re-derivation would conflict (replay re-runs aiSystem from the recorded snapshot; live + replay re-derivations of `assignAiMonkTasks` aren't bit-identical because they depend on visibility and target priority that may diverge under FoW).
+Original decision: `monkTasks` was a **Phase 2D blocker** because migrating the slot while `aiSystem` still wrote tasks directly would let mid-tick mutations enter `world.state.aoe2.monkTasks` and conflict with replay re-derivation.
+
+Original consequences, superseded in part by KAD-0008:
+- On 2026-05-01, Phase 2D could not migrate `monkTasks` to accessor-based mutation while AI direct assignment remained.
+- KAD-0008 later found the existing `monk.contextAtEntity` command is sufficient for AI assignment, so no new four-command monk assignment surface is needed for the AI path.
+- Until `monkTasks` itself migrates, `relicGoldSystem` and other consumers of `prototypeMonkBehavior` continue to read from the live Map via `state.monkTasks`.
+
+## KAD-0008 - AI monk task assignment reuses `monk.contextAtEntity` intentions
+
+Date: 2026-05-04.
+Status: Active.
+
+Context: KAD-0007 correctly identified `aiSystem.execute -> assignAiMonkTasks -> setMonkTask` as the remaining AI-side direct write to `state.monkTasks`. Its proposed fix assumed new command types would be needed for heal, convert, pickup, and deposit. The live command surface already has `monk.contextAtEntity`, and its handler delegates to `routeMonkContextAtEntityCommandDirect`, which re-fetches monk and target state and maps the context target to heal, convert, pickup, deposit, or move fallback.
+
+Decision: AI monk task assignment uses the existing `monk.contextAtEntity` command boundary. `monkTaskOps.pushAiMonkTaskIntentions(owner, pushMonkContextAtEntityIntention)` shares the same target-selection priority as the legacy direct helper: carried relic deposit, then visible neutral relic pickup, then wounded friendly military heal. `aiSystem` calls this intention producer instead of `assignAiMonkTasks(owner)`. `wireBridgeOps` appends the pending command to `state.pendingCommands` with `expectedOwner` and `intendedTaskKind`; `dispatcher.drainPendingCommands` submits it before the next tick; the handler applies the task at the next `processCommands` phase only if the owner and intended task still match.
 
 Consequences:
-- Phase 2D MUST NOT migrate `monkTasks` to accessor-based mutation until the split lands. The Phase 2D slot-migration task list explicitly excludes `monkTasks`.
-- The eventual split adds 4 commands to `GameCommands` (or one parameterized `monk.assignTask`), with validators that re-fetch monk + target state, and handlers that delegate to the existing `setMonkTask` body. aiSystem's `assignAiMonkTasks` becomes a pure decision producer that pushes to `pendingCommands`.
-- Until the split, `relicGoldSystem` and other consumers of `prototypeMonkBehavior` continue to read from the live Map via `state.monkTasks`.
+- No new four-command monk assignment surface is needed for the AI path.
+- Human and AI monk context routing now share the same handler revalidation and `routeMonkContextAtEntityCommandDirect` behavior.
+- AI-only owner/task guards prevent a stale queued assignment from becoming a different action after target or monk ownership changes.
+- `SaveBlob.sideMaps.pendingCommands` persists bridge-owned AI intentions until they are drained into the engine command queue immediately before the next tick.
+- AI monk task effects are intentionally delayed by one tick. `tests/simulation/aiPlayer.test.ts` covers this with the `ai-monk-relic-fixture`: the first decision step queues the pickup while the relic remains on the map, and the next step processes the command and carries the relic.
+- The AI-side blocker for `monkTasks` migration is cleared. The remaining migration should replace the raw task Map with an accessor-backed codec while preserving command handlers and deterministic monk behavior as the mutation sites.

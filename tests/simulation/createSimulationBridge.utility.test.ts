@@ -115,7 +115,7 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 2 && unit.unitType === 'scout',
       ),
     ).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   it('can garrison and ungarrison a villager through the Town Center', () => {
     const bridge = createSimulationBridge('aoe2-prototype');

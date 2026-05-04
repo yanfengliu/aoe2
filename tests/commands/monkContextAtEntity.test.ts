@@ -90,6 +90,32 @@ describe('monkContextAtEntityValidator', () => {
     expect(result).toEqual({ code: 'target_not_found', message: expect.any(String) });
   });
 
+  it('rejects stale AI intentions when the monk owner changed', () => {
+    const world = freshWorld();
+    const monkId = makeUnit(world, 'monk', 1);
+    const targetId = makeUnit(world, 'archer', 2);
+    const result = monkContextAtEntityValidator(
+      { unitId: monkId, targetEntityId: targetId, expectedOwner: 2 },
+      world,
+    );
+    expect(result).toEqual({ code: 'owner_changed', message: expect.any(String) });
+  });
+
+  it('rejects malformed AI intended task kinds', () => {
+    const world = freshWorld();
+    const monkId = makeUnit(world, 'monk');
+    const targetId = makeUnit(world, 'archer', 2);
+    const result = monkContextAtEntityValidator(
+      {
+        unitId: monkId,
+        targetEntityId: targetId,
+        intendedTaskKind: 'dance' as GameCommands['monk.contextAtEntity']['intendedTaskKind'],
+      },
+      world,
+    );
+    expect(result).toEqual({ code: 'invalid_task_kind', message: expect.any(String) });
+  });
+
   it('accepts when monk + target both alive', () => {
     const world = freshWorld();
     const monkId = makeUnit(world, 'monk');
@@ -104,14 +130,35 @@ describe('monkContextAtEntityValidator', () => {
 
 describe('monkContextAtEntityHandler', () => {
   it('delegates to routeMonkContextAtEntityCommandDirect', () => {
-    const calls: Array<{ unitId: number; targetEntityId: number }> = [];
+    const calls: Array<{
+      unitId: number;
+      targetEntityId: number;
+      options: Pick<
+        GameCommands['monk.contextAtEntity'],
+        'expectedOwner' | 'intendedTaskKind'
+      > | undefined;
+    }> = [];
     const handler = makeMonkContextAtEntityHandler({
-      routeMonkContextAtEntityCommandDirect: (unitId, targetEntityId) => {
-        calls.push({ unitId, targetEntityId });
+      routeMonkContextAtEntityCommandDirect: (unitId, targetEntityId, options) => {
+        calls.push({ unitId, targetEntityId, options });
         return true;
       },
     });
-    handler({ unitId: 7, targetEntityId: 12 }, freshWorld());
-    expect(calls).toEqual([{ unitId: 7, targetEntityId: 12 }]);
+    handler(
+      {
+        unitId: 7,
+        targetEntityId: 12,
+        expectedOwner: 2,
+        intendedTaskKind: 'pickup',
+      },
+      freshWorld(),
+    );
+    expect(calls).toEqual([
+      {
+        unitId: 7,
+        targetEntityId: 12,
+        options: { expectedOwner: 2, intendedTaskKind: 'pickup' },
+      },
+    ]);
   });
 });

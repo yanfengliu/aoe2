@@ -16,6 +16,7 @@ import type { VisibilityMap } from 'civ-engine';
 
 import type { SaveBlob } from '../saveSchema';
 import { SAVE_SCHEMA_VERSION } from '../saveSchema';
+import { clonePendingCommand } from '../dispatcher';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -100,6 +101,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     flushTier3State(world, visibilityCell, matchState);
   }
   const {
+    pendingCommands,
     unitCommands,
     monkTasks,
   } = state;
@@ -138,6 +140,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         ]),
         // Phase 2D — villagerOrdinals reads via the accessor.
         villagerOrdinals: [...accessor.get(villagerOrdinalsCodec).entries()],
+        pendingCommands: pendingCommands.map(clonePendingCommand),
         unitCommands: [...unitCommands.entries()].map(([id, cmd]) => [
           id,
           {

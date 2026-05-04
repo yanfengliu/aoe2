@@ -432,6 +432,19 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
         data: { builderId, buildingType, position: anchor },
       });
     },
+    pushMonkContextAtEntityIntention: (
+      monkId: number,
+      targetEntityId: number,
+      options: {
+        expectedOwner: number;
+        intendedTaskKind: import('./sharedTypes').MonkTask['kind'];
+      },
+    ) => {
+      state.pendingCommands.push({
+        type: 'monk.contextAtEntity',
+        data: { unitId: monkId, targetEntityId, ...options },
+      });
+    },
     // Pass the queue by reference. aiSystem captures this once at register
     // time and reads it every tick to fold pending intentions into its
     // gates. The dispatcher must mutate `state.pendingCommands` IN PLACE

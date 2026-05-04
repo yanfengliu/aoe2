@@ -73,6 +73,17 @@ export interface MonkTaskOps {
   // AI-side per-decision-tick task assignment. Walks every owned Monk and
   // routes it to the highest-priority idle task (deposit > pickup > heal).
   assignAiMonkTasks(owner: number): void;
+  // AI-decision system counterpart to assignAiMonkTasks. Pushes a
+  // `monk.contextAtEntity` intention so the command handler applies the
+  // same task-routing rules at the start of the next tick.
+  pushAiMonkTaskIntentions(
+    owner: number,
+    pushMonkContextAtEntityIntention: (
+      monkId: number,
+      targetEntityId: number,
+      options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
+    ) => void,
+  ): void;
   // Search helpers used by `assignAiMonkTasks` and save/load tests.
   findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
   findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null;
@@ -129,7 +140,16 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   } = deps;
   const { monkTasks } = state;
 
-  function assignAiMonkTasks(owner: number): void {
+  type AiMonkTaskCandidate = {
+    monkId: number;
+    kind: MonkTask['kind'];
+    targetEntityId: number;
+  };
+
+  function visitAiMonkTaskCandidates(
+    owner: number,
+    accept: (candidate: AiMonkTaskCandidate) => void,
+  ): void {
     for (const monkId of world.query('unit')) {
       const unit = world.getComponent<UnitComponent>(monkId, 'unit');
       if (!unit || unit.owner !== owner || unit.unitType !== 'monk') {
@@ -149,10 +169,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       if (accessor.get(monkCarriedRelicCodec).has(monkId)) {
         const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
         if (monasteryId !== null) {
-          const monasteryRef = getEntityRef(monasteryId);
-          if (monasteryRef) {
-            setMonkTask(monkId, 'deposit', monasteryRef);
-          }
+          accept({ monkId, kind: 'deposit', targetEntityId: monasteryId });
         }
         continue;
       }
@@ -160,22 +177,41 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       // Priority 2: pick up the nearest visible neutral relic.
       const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
       if (relicId !== null) {
-        const relicRef = getEntityRef(relicId);
-        if (relicRef) {
-          setMonkTask(monkId, 'pickup', relicRef);
-          continue;
-        }
+        accept({ monkId, kind: 'pickup', targetEntityId: relicId });
+        continue;
       }
 
       // Priority 3: heal the nearest wounded friendly military unit.
       const woundedId = findNearestWoundedFriendlyMilitary(owner, monkPosition);
       if (woundedId !== null) {
-        const woundedRef = getEntityRef(woundedId);
-        if (woundedRef) {
-          setMonkTask(monkId, 'heal', woundedRef);
-        }
+        accept({ monkId, kind: 'heal', targetEntityId: woundedId });
       }
     }
+  }
+
+  function assignAiMonkTasks(owner: number): void {
+    visitAiMonkTaskCandidates(owner, ({ monkId, kind, targetEntityId }) => {
+      const targetEntityRef = getEntityRef(targetEntityId);
+      if (targetEntityRef) {
+        setMonkTask(monkId, kind, targetEntityRef);
+      }
+    });
+  }
+
+  function pushAiMonkTaskIntentions(
+    owner: number,
+    pushMonkContextAtEntityIntention: (
+      monkId: number,
+      targetEntityId: number,
+      options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
+    ) => void,
+  ): void {
+    visitAiMonkTaskCandidates(owner, ({ monkId, kind, targetEntityId }) => {
+      pushMonkContextAtEntityIntention(monkId, targetEntityId, {
+        expectedOwner: owner,
+        intendedTaskKind: kind,
+      });
+    });
   }
 
   // FU4 AI helper. Returns the nearest owned, completed Monastery to a
@@ -327,6 +363,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
 
   return {
     assignAiMonkTasks,
+    pushAiMonkTaskIntentions,
     findNearestOwnedMonasteryToDeposit,
     findNearestVisibleNeutralRelic,
     findNearestWoundedFriendlyMilitary,

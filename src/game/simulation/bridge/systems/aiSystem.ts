@@ -1,9 +1,5 @@
-// AI planner driver. Runs once per `decisionIntervalTicks(difficulty)` for
-// each AI-controlled owner. Each pass: refresh the plan + villager targets
-// for the current age, react to scouted enemies, walk the build order,
-// queue villager / military / monk training, kick research that's
-// affordable, and dispatch the attack group when it crosses the
-// age-gated threshold.
+// AI planner driver. Runs once per decision interval for each AI owner:
+// macro plan, production/research intentions, monk tasks, and attack pushes.
 
 import { VisibilityMap, type EntityRef, type Position, type World } from 'civ-engine';
 import type {
@@ -17,6 +13,7 @@ import type {
   UnitType,
 } from '../../types';
 import { type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
+import type { MonkTask } from '../sharedTypes';
 import {
   AI_BASE_VISION_RADIUS,
   AI_MONK_COUNT_CAP,
@@ -49,6 +46,11 @@ import {
 } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
+type PushMonkContextAtEntityIntention = (
+  monkId: number,
+  targetEntityId: number,
+  options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
+) => void;
 
 interface UnitCommandLike {
   type: 'attack' | 'move' | 'build';
@@ -113,15 +115,17 @@ export interface AiSystemDeps {
   // `productionQueues` / `inFlightTechByOwner` until the handler runs at
   // the NEXT tick, so without this gate aiSystem would re-push every
   // decision tick and over-spend across the silent-no-op B2 surface.
-  pendingCommands: Array<
-    { type: string; data: Record<string, unknown> }
-  >;
+  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
   getTrainOptions: (owner: number, buildingType: BuildingType) => TrainableUnitType[];
   getResearchOptions: (
     owner: number,
     buildingType: BuildingType,
   ) => ResearchableTechnologyType[];
-  assignAiMonkTasks: (owner: number) => void;
+  pushAiMonkTaskIntentions: (
+    owner: number,
+    pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention,
+  ) => void;
+  pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention;
   findPreferredVisibleEnemyUnit: (owner: number, position: Position) => number | null;
   findPreferredVisibleEnemyBuilding: (owner: number, position: Position) => number | null;
   // Phase 1C: AI-decision systems push intentions; the dispatcher submits
@@ -169,7 +173,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     pendingCommands,
     getTrainOptions,
     getResearchOptions,
-    assignAiMonkTasks,
+    pushAiMonkTaskIntentions,
+    pushMonkContextAtEntityIntention,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
     submitUnitAttackIntention,
@@ -698,10 +703,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // countOwnedUnits walks world.query('unit') — same cost as
         // assignAiMonkTasks itself, doubling the steady-state cost when
         // an AI has Monks. The side map is maintained in entityCreateOps,
-        // entityDestroyOps, and monkTaskAppliers.flipConvertedUnit; rebuilt
-        // on save-load.
+        // entityDestroyOps, and monkTaskAppliers.flipConvertedUnit.
         if ((monksByOwner.get(owner)?.size ?? 0) > 0) {
-          assignAiMonkTasks(owner);
+          pushAiMonkTaskIntentions(owner, pushMonkContextAtEntityIntention);
         }
 
         const liveMilitary = ownedMilitaryUnitIds(owner);

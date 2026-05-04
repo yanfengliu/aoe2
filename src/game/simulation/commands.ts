@@ -24,6 +24,7 @@ import type {
 // type alias in types.ts; v0.1.6 keeps the alias for back-compat and adds
 // `BuildingActionType` as the canonical name used by the command surface.
 export type BuildingActionType = ActionType;
+export type MonkContextTaskKind = 'heal' | 'convert' | 'pickup' | 'deposit';
 
 export type GameCommands = {
   // --- Unit orders (issued by human input directly OR by AI dispatcher post-step) ---
@@ -41,7 +42,12 @@ export type GameCommands = {
   'unit.contextAtEntity': { unitId: number; targetEntityId: number };
   // --- Specialty unit orders ---
   'sheep.move': { sheepId: number; target: Position };
-  'monk.contextAtEntity': { unitId: number; targetEntityId: number };
+  'monk.contextAtEntity': {
+    unitId: number;
+    targetEntityId: number;
+    expectedOwner?: number;
+    intendedTaskKind?: MonkContextTaskKind;
+  };
   'trebuchet.pack': { unitId: number };
   'trebuchet.unpack': { unitId: number };
   // --- Production / research / economy ---
