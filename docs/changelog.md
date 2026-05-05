@@ -1,6 +1,19 @@
 # Changelog
 
-User-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins with no observable effect are recorded in `docs/devlog/` instead.
+This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
+
+## 0.1.6 - 2026-05-05
+
+### Phase 2F: schema-2 save format
+
+New saves now use schema 2 and contain only `seed` plus `worldSnapshot`; the duplicated top-level `sideMaps`, `visibility`, and `matchState` fields are no longer emitted. The world snapshot carries the migrated `world.state.aoe2.*` state directly, including active unit commands, Monk tasks, visibility, match state, and the save-critical pending AI intention queue.
+
+Compatibility: schema-1 saves still load. The legacy loader treats `sideMaps.*` as authoritative over stale duplicate `worldSnapshot.state` slots, then re-saves as schema 2. A save taken between an AI decision tick and the dispatcher drain preserves queued AI Monk intentions through `aoe2.pendingCommands`.
+
+### Validation
+
+- `npm run typecheck` / `npm run lint` / `npm run build`: pass.
+- `npm test`: pass with 99 files, 743 passed, 1 skipped.
 
 ## 0.1.6-rc1 — 2026-05-02
 

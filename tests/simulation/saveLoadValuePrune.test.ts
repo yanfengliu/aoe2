@@ -19,7 +19,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import {
+  garrisonedByBuildingCodec,
+  garrisonedUnitToBuildingCodec,
+  monkCarriedRelicCodec,
+} from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type { SaveBlob } from '../../src/game/simulation/saveSchema';
+import {
+  legacySchema1FromBridge,
+  stateSlot,
+} from './saveBlobTestUtils';
 
 describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
   // Find an alive building entity in the bootstrap fixture so we can
@@ -39,7 +48,7 @@ describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
   it('garrisonedByBuilding silently filters dead unit IDs out of LIVE building value arrays (half-dead case — fix-specific regression)', () => {
     const liveBuildingId = pickLiveBuildingId();
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     // Live-key + dead-value: pre-fix, the live building key survives
     // `pruneOrphanEntityKeys`, but the dead unit value would survive
     // too (value-side pruning didn't exist). The cross-ref invariant
@@ -61,7 +70,7 @@ describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
     // Post-fix: dead unit 9999 is filtered from the live building's
     // garrisoned-by list. The list is now empty, so the entry is
     // removed entirely (matches the empty-list-cleanup path).
-    const saved = next.sideMaps.garrisonedByBuilding.find(
+    const saved = stateSlot<Array<[number, number[]]>>(next, garrisonedByBuildingCodec.slot).find(
       ([id]) => id === liveBuildingId,
     );
     if (saved !== undefined) {
@@ -71,13 +80,15 @@ describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
     // key-side `pruneOrphanEntityKeys` — verify just to anchor the
     // round-trip is consistent post-fix.
     expect(
-      next.sideMaps.garrisonedUnitToBuilding.some(([uId]) => uId === 9999),
+      stateSlot<Array<[number, number]>>(next, garrisonedUnitToBuildingCodec.slot).some(
+        ([uId]) => uId === 9999,
+      ),
     ).toBe(false);
   });
 
   it('garrisonedByBuilding silently drops dead-pair entries (full dead-pair case)', () => {
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     const corrupt: SaveBlob = {
       ...blob,
       sideMaps: {
@@ -88,13 +99,13 @@ describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
     };
     const reloaded = createSimulationBridge('aoe2-prototype', { savedGame: corrupt });
     const next = reloaded.saveGame();
-    expect(next.sideMaps.garrisonedByBuilding).toEqual([]);
-    expect(next.sideMaps.garrisonedUnitToBuilding).toEqual([]);
+    expect(stateSlot(next, garrisonedByBuildingCodec.slot)).toEqual([]);
+    expect(stateSlot(next, garrisonedUnitToBuildingCodec.slot)).toEqual([]);
   });
 
   it('monkCarriedRelic silently drops entries whose relic value is dead', () => {
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     const corrupt: SaveBlob = {
       ...blob,
       sideMaps: {
@@ -104,6 +115,6 @@ describe('Save-load value-side pruning (Gemini MAJOR R2-G1)', () => {
     };
     const reloaded = createSimulationBridge('aoe2-prototype', { savedGame: corrupt });
     const next = reloaded.saveGame();
-    expect(next.sideMaps.monkCarriedRelic).toEqual([]);
+    expect(stateSlot(next, monkCarriedRelicCodec.slot)).toEqual([]);
   });
 });

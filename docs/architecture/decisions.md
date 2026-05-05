@@ -188,3 +188,18 @@ Consequences:
 - Schema-1 `sideMaps.unitCommands` is authoritative over stale `worldSnapshot.state.aoe2.unitCommands` during load.
 - `BridgeState` no longer owns any Tier-1 codec slot; it is limited to runtime caches, derived maps, and the pending bridge-intention queue.
 - Phase 2F can begin converting the save format to schema-2 without a remaining Tier-1 bridge-owned exception.
+
+## KAD-0011 - Schema-2 saves use world snapshots as the source of truth
+
+Date: 2026-05-05.
+Status: Active.
+
+Context: Phase 2D moved every Tier-1 bridge-state codec into `world.state.aoe2.*`, while Phase 2B/2C/2E made `aoe2.visibility` and `aoe2.matchState` available in snapshots. Schema-1 saves still duplicated those values through top-level `visibility`, `matchState`, and `sideMaps`, which kept save/load coupled to a parallel bridge projection even though `world.serialize()` had become complete.
+
+Decision: current saves are schema 2 and contain only `seed` plus `worldSnapshot`. `saveGameOps` flushes the accessor, Tier-3 state, and the save-critical AI pending-command queue before serialization; bootstrap and the output tail also write a cloned `aoe2.pendingCommands` snapshot so recorder-visible `world.serialize()` snapshots do not miss just-loaded legacy queues or retain stale drained commands. Schema-2 load reads visibility, match state, and pending commands from `worldSnapshot.state.aoe2.*`; schema-1 load remains supported and treats legacy `sideMaps` as authoritative over stale duplicate world-state slots.
+
+Consequences:
+- New save JSON no longer emits top-level `sideMaps`, `visibility`, or `matchState`.
+- Existing schema-1 user saves continue to load through `hydrateFromSavedGame`.
+- `pendingCommands` is not a Tier-1 codec, but it is persisted through `aoe2.pendingCommands` so a save or recorder snapshot between AI decision and dispatcher drain does not drop queued intentions.
+- `SaveBlob` is now a discriminated union (`SaveBlobV1 | SaveBlobV2`), and callers that inspect legacy fields must narrow to schema 1 first.

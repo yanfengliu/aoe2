@@ -297,7 +297,6 @@ export function registerBridgeSystems(
 
   const { saveGame } = createSaveGameOps({
     world,
-    visibility,
     getSeed,
     matchState,
     state,

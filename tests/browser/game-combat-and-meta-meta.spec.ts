@@ -203,11 +203,11 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
     expect(storedBlob).not.toBeNull();
     expect(typeof storedBlob).toBe('string');
     const parsedBlob = JSON.parse(storedBlob!);
-    expect(parsedBlob.schema).toBe(1);
+    expect(parsedBlob.schema).toBe(2);
     expect(parsedBlob.seed).toBe('aoe2-prototype');
     const savedTick: number = parsedBlob.worldSnapshot.tick;
     expect(savedTick).toBeGreaterThan(0);
-    const savedFood: number = parsedBlob.sideMaps.playerResources.find(
+    const savedFood: number = parsedBlob.worldSnapshot.state['aoe2.playerResources'].find(
       ([playerId]: [number, unknown]) => playerId === 1,
     )![1].food;
 

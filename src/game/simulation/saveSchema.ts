@@ -1,8 +1,9 @@
-// Slice 9: Save / Load schema. A `SaveBlob` is a JSON-serializable
-// snapshot of the entire in-flight game (world, side maps, visibility,
-// match state). The loader (`createSimulationBridge(seed, { savedGame })`)
-// requires `schema === SAVE_SCHEMA_VERSION` exactly; the project does not
-// support cross-version migration, so any schema bump is breaking.
+// Slice 9 + Phase 2F: Save / Load schema. Schema 1 stored the engine
+// snapshot plus duplicated bridge side maps, visibility, and match state
+// at the top level. Schema 2 makes `worldSnapshot` the single source of
+// truth: Tier-1 and Tier-3 bridge state live under `world.state.aoe2.*`.
+// The loader accepts schema 1 for existing user saves and migrates those
+// legacy top-level fields into the world-state slots during hydration.
 //
 // `WorldSnapshot` and `VisibilityMapState` come straight from
 // `civ-engine`; their internal shape is engine-owned and they are passed
@@ -17,9 +18,8 @@
 import type { VisibilityMapState, WorldSnapshot } from 'civ-engine';
 import type { PendingCommand } from './dispatcher';
 
-// Bumping this number breaks every existing save file. The loader
-// rejects any blob whose `schema` does not match this constant.
-export const SAVE_SCHEMA_VERSION = 1;
+export const LEGACY_SAVE_SCHEMA_VERSION = 1;
+export const SAVE_SCHEMA_VERSION = 2;
 
 // Serialized form of a `Map<K, V>`. Equivalent to `Array.from(map.entries())`
 // and rehydrated via `new Map<K, V>(serializedMap)`.
@@ -261,8 +261,8 @@ export function serializeMatchStateForWorldState(
   };
 }
 
-export interface SaveBlob {
-  schema: typeof SAVE_SCHEMA_VERSION;
+export interface SaveBlobV1 {
+  schema: typeof LEGACY_SAVE_SCHEMA_VERSION;
   seed: string;
   // `WorldSnapshot` is the engine-owned ECS snapshot from
   // `world.serialize()`. It carries entity ids, generations, all
@@ -274,4 +274,27 @@ export interface SaveBlob {
   visibility: VisibilityMapState;
   matchState: SerializedMatchState;
   sideMaps: SerializedSideMaps;
+}
+
+export interface SaveBlobV2 {
+  schema: typeof SAVE_SCHEMA_VERSION;
+  seed: string;
+  // Schema 2's world snapshot carries every persisted aoe2 bridge slot in
+  // `worldSnapshot.state`, including visibility/match state and the
+  // save-critical pending command queue.
+  worldSnapshot: WorldSnapshot;
+}
+
+export type SaveBlob = SaveBlobV1 | SaveBlobV2;
+
+export function isSaveBlobV1(blob: SaveBlob): blob is SaveBlobV1 {
+  return blob.schema === LEGACY_SAVE_SCHEMA_VERSION;
+}
+
+export function isSaveBlobV2(blob: SaveBlob): blob is SaveBlobV2 {
+  return blob.schema === SAVE_SCHEMA_VERSION;
+}
+
+export function isSupportedSaveSchema(schema: number): schema is SaveBlob['schema'] {
+  return schema === LEGACY_SAVE_SCHEMA_VERSION || schema === SAVE_SCHEMA_VERSION;
 }

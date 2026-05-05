@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
+  monkCarriedRelicCodec,
+  monkTasksCodec,
+} from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import type { PendingCommand } from '../../src/game/simulation/dispatcher';
+import {
+  PENDING_COMMANDS_STATE_SLOT,
+  codecSlotValue,
+  stateSlot,
+} from './saveBlobTestUtils';
+import {
   attackGroupSize,
   decisionIntervalTicks,
   gatherMultiplier,
@@ -235,7 +245,7 @@ describe('FU4 AI Monks', () => {
     const afterDecision = bridge.getEconomyState();
     expect(afterDecision.resources.some((resource) => resource.id === relic.id)).toBe(true);
     expect(
-      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+      codecSlotValue(bridge.saveGame(), monkCarriedRelicCodec).some(
         ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
       ),
     ).toBe(false);
@@ -243,7 +253,7 @@ describe('FU4 AI Monks', () => {
     bridge.step(100);
 
     expect(
-      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+      codecSlotValue(bridge.saveGame(), monkCarriedRelicCodec).some(
         ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
       ),
     ).toBe(true);
@@ -263,7 +273,7 @@ describe('FU4 AI Monks', () => {
     bridge.step(100);
     const blob = bridge.saveGame();
     expect(
-      blob.sideMaps.pendingCommands?.some(
+      stateSlot<PendingCommand[]>(blob, PENDING_COMMANDS_STATE_SLOT).some(
         (command) =>
           command.type === 'monk.contextAtEntity'
           && command.data.unitId === monk.id
@@ -279,7 +289,13 @@ describe('FU4 AI Monks', () => {
     loaded.step(100);
 
     expect(
-      loaded.saveGame().sideMaps.monkCarriedRelic.some(
+      stateSlot<PendingCommand[]>(
+        { worldSnapshot: loaded.world.serialize() },
+        PENDING_COMMANDS_STATE_SLOT,
+      ),
+    ).toEqual([]);
+    expect(
+      codecSlotValue(loaded.saveGame(), monkCarriedRelicCodec).some(
         ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
       ),
     ).toBe(true);
@@ -298,7 +314,7 @@ describe('FU4 AI Monks', () => {
 
     bridge.step(100);
     const blob = bridge.saveGame();
-    const queued = blob.sideMaps.pendingCommands?.find(
+    const queued = stateSlot<PendingCommand[]>(blob, PENDING_COMMANDS_STATE_SLOT).find(
       (command) => command.type === 'monk.contextAtEntity',
     );
     expect(queued).toBeDefined();
@@ -308,7 +324,7 @@ describe('FU4 AI Monks', () => {
     bridge.step(100);
 
     expect(
-      bridge.saveGame().sideMaps.monkCarriedRelic.some(
+      codecSlotValue(bridge.saveGame(), monkCarriedRelicCodec).some(
         ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
       ),
     ).toBe(true);
@@ -336,9 +352,9 @@ describe('FU4 AI Monks', () => {
     bridge.step(100);
 
     const afterMismatch = bridge.saveGame();
-    expect(afterMismatch.sideMaps.monkTasks).toEqual([]);
+    expect(codecSlotValue(afterMismatch, monkTasksCodec)).toEqual([]);
     expect(
-      afterMismatch.sideMaps.monkCarriedRelic.some(
+      codecSlotValue(afterMismatch, monkCarriedRelicCodec).some(
         ([monkId, relicId]) => monkId === monk.id && relicId === relic.id,
       ),
     ).toBe(false);

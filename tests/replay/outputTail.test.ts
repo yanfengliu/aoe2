@@ -43,7 +43,7 @@ describe('registerOutputTail', () => {
     const visibilityCell = new VisibilityCell(new VisibilityMap(20, 20));
     const matchState = makeMatchState();
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [] });
 
     accessor.mutate(combatStatesCodec, (m) =>
       m.set(42, {
@@ -75,7 +75,7 @@ describe('registerOutputTail', () => {
     matchState.outcome = 'victory';
     matchState.winCondition = 'wonder';
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [] });
     world.step();
 
     const persisted = world.getState(TIER_3_SLOTS.matchState) as
@@ -95,7 +95,7 @@ describe('registerOutputTail', () => {
     const visibilityCell = new VisibilityCell(new VisibilityMap(20, 20));
     const matchState = makeMatchState();
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [] });
 
     // First tick: cell starts dirty → visibility WRITTEN.
     expect(visibilityCell.isDirty).toBe(true);
@@ -154,7 +154,7 @@ describe('registerOutputTail', () => {
       execute: () => trace.push('controlOutput'),
     });
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [] });
 
     world.step();
 

@@ -15,10 +15,9 @@ import { createMatchEndOps } from './matchEndOps';
 import { createCombatStateFactory } from './combatStateFactory';
 import { createEntityCreateOps } from './entityCreateOps';
 import { createCellPassability } from './cellPassability';
-import {
-  hydrateFromSavedGame,
-  seedFreshScenario,
-} from './scenarioSeedOps';
+import { hydrateFromSavedGame, seedFreshScenario } from './scenarioSeedOps';
+import { hydrateRuntimeFromWorldState } from './hydrateFromWorldState';
+import { isSaveBlobV1 } from '../saveSchema';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
@@ -253,14 +252,24 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   }
 
   if (savedGame) {
-    hydrateFromSavedGame({
-      world,
-      savedGame,
-      matchState,
-      state,
-      accessor,
-      inFlightTechSetFor,
-    });
+    if (isSaveBlobV1(savedGame)) {
+      hydrateFromSavedGame({
+        world,
+        savedGame,
+        matchState,
+        state,
+        accessor,
+        inFlightTechSetFor,
+      });
+    } else {
+      hydrateRuntimeFromWorldState({
+        world,
+        matchState,
+        state,
+        accessor,
+        inFlightTechSetFor,
+      });
+    }
   }
 
   isBootstrappingScenarioRef.current = false;
@@ -560,12 +569,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // migrated slots like `villagerOrdinals` could receive them as deps).
   // Now register the output tail + run bootstrapFlush to populate the
   // Tier-3 slots before tick 1.
-  registerOutputTail({ world, accessor, visibilityCell, matchState });
+  registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: state.pendingCommands });
   bootstrapFlush({
     world,
     accessor,
     visibilityCell,
     matchState,
+    pendingCommands: state.pendingCommands,
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
   });

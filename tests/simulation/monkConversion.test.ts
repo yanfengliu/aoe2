@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { monkTasksCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import {
+  asSchema2Blob,
+  worldStateOf,
+} from './saveBlobTestUtils';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -29,9 +34,9 @@ describe('Slice 5 Monk conversion — flip-flop regression (review C-1)', () => 
     expect(monk2).toBeDefined();
     expect(militia).toBeDefined();
 
-    const blob = bootBridge.saveGame();
+    const blob = asSchema2Blob(bootBridge.saveGame());
     const targetEntityRef = { id: militia!.id, generation: 0 };
-    blob.sideMaps.monkTasks = [
+    worldStateOf(blob)[monkTasksCodec.slot] = [
       [monk1!.id, { kind: 'convert', targetEntityRef }],
       [monk2!.id, { kind: 'convert', targetEntityRef }],
     ];

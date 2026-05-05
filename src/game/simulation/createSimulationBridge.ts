@@ -2,6 +2,7 @@ import {
   RenderAdapter,
   VisibilityMap,
   WorldDebugger,
+  type VisibilityMapState,
 } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
@@ -9,12 +10,18 @@ import { clamp } from './bridge/pureHelpers';
 import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
+import { TIER_3_SLOTS } from './bridge/bridgeStateSerialize';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { drainPendingCommands } from './dispatcher';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from './prototypeScenario';
 import { RenderStore } from './renderStore';
-import { SAVE_SCHEMA_VERSION, type SaveBlob } from './saveSchema';
+import {
+  SAVE_SCHEMA_VERSION,
+  isSaveBlobV1,
+  isSupportedSaveSchema,
+  type SaveBlob,
+} from './saveSchema';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -124,6 +131,24 @@ export type {
 // shapes live in `bridge/systems/systemTypes` (shared with the per-system
 // factories). CachedMovePath shape lives in `bridge/bridgeState`.
 
+function worldSnapshotState(savedGame: SaveBlob): Record<string, unknown> {
+  const snapshot = savedGame.worldSnapshot as { state?: Record<string, unknown> };
+  if (!snapshot.state) {
+    throw new Error(`Save schema ${savedGame.schema} is missing worldSnapshot.state.`);
+  }
+  return snapshot.state;
+}
+
+function visibilityStateFromSave(savedGame: SaveBlob): VisibilityMapState {
+  if (isSaveBlobV1(savedGame)) {
+    return savedGame.visibility;
+  }
+  const visibility = worldSnapshotState(savedGame)[TIER_3_SLOTS.visibility];
+  if (!visibility) {
+    throw new Error(`Save schema ${savedGame.schema} is missing ${TIER_3_SLOTS.visibility}.`);
+  }
+  return visibility as VisibilityMapState;
+}
 
 export interface CreateSimulationBridgeOptions {
   // Slice 9: when present, hydrate the new bridge from this save blob
@@ -138,16 +163,16 @@ export function createSimulationBridge(
   options: CreateSimulationBridgeOptions = {},
 ): SimulationBridge {
   const savedGame = options.savedGame;
-  if (savedGame && savedGame.schema !== SAVE_SCHEMA_VERSION) {
+  if (savedGame && !isSupportedSaveSchema(savedGame.schema)) {
     throw new Error(
-      `Save schema mismatch: expected ${SAVE_SCHEMA_VERSION}, got ${savedGame.schema}.`,
+      `Save schema mismatch: expected 1 or ${SAVE_SCHEMA_VERSION}, got ${savedGame.schema}.`,
     );
   }
   // When loading, the seed comes from the blob so the new World's
   // deterministic rng matches the original simulation byte-for-byte.
   const effectiveSeed = savedGame ? savedGame.seed : seed;
   const visibility = savedGame
-    ? VisibilityMap.fromState(savedGame.visibility)
+    ? VisibilityMap.fromState(visibilityStateFromSave(savedGame))
     : new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
   const {
     world,

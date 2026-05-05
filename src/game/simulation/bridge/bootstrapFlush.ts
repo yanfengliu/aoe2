@@ -16,7 +16,9 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
 import type { MatchState } from '../types';
 import type { PersistedMatchState } from '../saveSchema';
+import type { PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
+import { flushPendingCommandsState } from './tier3SyncSystem';
 
 interface BridgeMeta {
   mapWidth: number;
@@ -28,10 +30,11 @@ export function bootstrapFlush(deps: {
   accessor: BridgeStateAccessor;
   visibilityCell: VisibilityCell;
   matchState: MatchState;
+  pendingCommands: PendingCommandsQueue;
   mapWidth: number;
   mapHeight: number;
 }): void {
-  const { world, accessor, visibilityCell, matchState, mapWidth, mapHeight } = deps;
+  const { world, accessor, visibilityCell, matchState, pendingCommands, mapWidth, mapHeight } = deps;
 
   // 1. aoe2.bridgeMeta — written once and never re-written. Holds the map
   // dimensions so loaders can recover map size for any snapshot regardless
@@ -74,7 +77,9 @@ export function bootstrapFlush(deps: {
     persisted as unknown as Parameters<typeof world.setState>[1],
   );
 
-  // 4. Initial Tier-1 flush. Phase 2D migrations populate the dirty set
+  flushPendingCommandsState(world, pendingCommands);
+
+  // 5. Initial Tier-1 flush. Phase 2D migrations populate the dirty set
   // during seed / hydrate (e.g., `villagerOrdinals` is set per-player by
   // `seedPlayerStarts` and per-villager-spawn by `addUnitEntity`); the
   // flush writes those mutations to `world.state.aoe2.*` so the

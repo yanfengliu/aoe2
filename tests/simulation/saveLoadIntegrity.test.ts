@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../src/game/simulation/saveSchema';
+import { legacySchema1FromBridge } from './saveBlobTestUtils';
 
 // Review H-3 (`docs/reviews/full/2026-04-25/1/REVIEW.md`). The two
 // garrison side maps are structurally redundant: every entry in
@@ -13,7 +14,7 @@ import type { SaveBlob } from '../../src/game/simulation/saveSchema';
 describe('Save-load garrison side-map cross-reference (review H-3)', () => {
   it('throws when a unit appears in garrisonedByBuilding but not in garrisonedUnitToBuilding', () => {
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     const corrupt: SaveBlob = {
       ...blob,
       sideMaps: {
@@ -30,7 +31,7 @@ describe('Save-load garrison side-map cross-reference (review H-3)', () => {
 
   it('throws when garrisonedUnitToBuilding points to a building whose list lacks the unit', () => {
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     const corrupt: SaveBlob = {
       ...blob,
       sideMaps: {
@@ -47,7 +48,7 @@ describe('Save-load garrison side-map cross-reference (review H-3)', () => {
 
   it('throws when garrisonedUnitToBuilding points to a building absent from garrisonedByBuilding', () => {
     const bridge = createSimulationBridge();
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     const corrupt: SaveBlob = {
       ...blob,
       sideMaps: {

@@ -15,6 +15,7 @@
 
 import type { GameWorld } from './pureHelpers';
 import type { MatchState } from '../types';
+import type { PendingCommandsQueue } from '../dispatcher';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
 import { registerTier3SyncSystem } from './tier3SyncSystem';
@@ -25,8 +26,9 @@ export function registerOutputTail(deps: {
   accessor: BridgeStateAccessor;
   visibilityCell: VisibilityCell;
   matchState: MatchState;
+  pendingCommands: PendingCommandsQueue;
 }): void {
-  const { world, accessor, visibilityCell, matchState } = deps;
-  registerTier3SyncSystem({ world, visibilityCell, matchState });
+  const { world, accessor, visibilityCell, matchState, pendingCommands } = deps;
+  registerTier3SyncSystem({ world, visibilityCell, matchState, pendingCommands });
   registerBridgeSnapshotSystem({ world, accessor });
 }

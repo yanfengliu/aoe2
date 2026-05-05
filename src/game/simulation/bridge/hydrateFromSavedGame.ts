@@ -1,19 +1,21 @@
 import type { EntityRef } from 'civ-engine';
 import type {
   AgeType,
-  BuildingComponent,
   MatchState,
   ResearchableTechnologyType,
   TrainableUnitType,
-  UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
-import type { SaveBlob } from '../saveSchema';
+import type { SaveBlobV1 } from '../saveSchema';
 import { clonePendingCommand } from '../dispatcher';
 import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import {
+  clearLegacyTier1MapSlots,
+  rebuildHydratedRuntimeState,
+} from './hydrateFromWorldState';
 import {
   gathererDropOffStuckSinceTickCodec,
   aiStatesCodec,
@@ -25,7 +27,6 @@ import {
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
-  inFlightTechByOwnerCodec,
   lastSeenStaticCodec,
   productionQueuesCodec,
   marketExchangeRatesCodec,
@@ -55,7 +56,7 @@ import {
 
 export interface SaveLoadHydrationDeps {
   world: GameWorld;
-  savedGame: SaveBlob;
+  savedGame: SaveBlobV1;
   matchState: MatchState;
   state: import('./bridgeState').BridgeState;
   // Phase 2D — slots that have moved to `world.state.aoe2.*` are written
@@ -66,9 +67,9 @@ export interface SaveLoadHydrationDeps {
 
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const { world, savedGame, matchState, state, accessor, inFlightTechSetFor } = deps;
-  const { monksByOwner } = state;
 
   const blob = savedGame.sideMaps;
+  clearLegacyTier1MapSlots(accessor);
   state.pendingCommands.length = 0;
   state.pendingCommands.push(...(blob.pendingCommands ?? []).map(clonePendingCommand));
   const refFromSerialized = (s: { id: number; generation: number }): EntityRef | null => {
@@ -277,27 +278,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(id, { playerId: src.playerId, radius: src.radius });
     }
   });
-  // Cross-reference invariant for the garrison maps (Iter-1 H-3).
-  const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
-  const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
-  for (const [buildingId, list] of garrisonedByBuildingForCheck) {
-    for (const unitId of list) {
-      const reverse = garrisonedUnitToBuildingForCheck.get(unitId);
-      if (reverse !== buildingId) {
-        throw new Error(
-          `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (garrisonedUnitToBuilding=${reverse ?? 'absent'}).`,
-        );
-      }
-    }
-  }
-  for (const [unitId, buildingId] of garrisonedUnitToBuildingForCheck) {
-    const list = garrisonedByBuildingForCheck.get(buildingId);
-    if (!list || !list.includes(unitId)) {
-      throw new Error(
-        `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (not present in garrisonedByBuilding).`,
-      );
-    }
-  }
   accessor.mutate(productionQueuesCodec, (m) => {
     for (const [id, queue] of blob.productionQueues) {
       m.set(
@@ -316,24 +296,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       );
     }
   });
-  // Iter-3 V3-6: rebuild inFlightTechByOwner from the loaded queues.
-  // Phase 2D: clear first (the accessor's cache may have entries from the
-  // pre-load world; the rebuild authoritatively reflects the loaded
-  // queues). inFlightTechByOwner is Tier-2 — runtime cache only, never
-  // flushed to worldSnapshot; we deliberately use accessor.get + clear()
-  // rather than accessor.mutate so the Tier-2 dirty-bit invariant holds.
-  accessor.get(inFlightTechByOwnerCodec).clear();
-  for (const [buildingId, queue] of accessor.get(productionQueuesCodec).entries()) {
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!building) continue;
-    for (const entry of queue) {
-      if (entry.kind === 'technology' && entry.technologyType) {
-        inFlightTechSetFor(building.owner).add(entry.technologyType);
-      }
-    }
-  }
-  // Codex slot-21 review HIGH: clear before populate (same logic as the
-  // garrison slots).
   accessor.mutate(constructionStatesCodec, (m) => {
     m.clear();
     for (const [id, conState] of blob.constructionStates) {
@@ -407,20 +369,14 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     });
   }
 
-  // V5-1: rebuild monksByOwner from the loaded world. The side map is
-  // derivable from world.query('unit'), so it's not persisted in the
-  // save blob — just rebuilt here. Doing it after the unit-related side
-  // maps so any prior cleanup (e.g. orphan-prune) doesn't matter.
-  for (const id of world.query('unit')) {
-    const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (!unit || unit.unitType !== 'monk') continue;
-    let monkSet = monksByOwner.get(unit.owner);
-    if (!monkSet) {
-      monkSet = new Set();
-      monksByOwner.set(unit.owner, monkSet);
-    }
-    monkSet.add(id);
-  }
+  // Runtime-only caches are derivable from loaded world state and side maps,
+  // so rebuild them after all serialized maps have been applied.
+  rebuildHydratedRuntimeState({
+    world,
+    state,
+    accessor,
+    inFlightTechSetFor,
+  });
 
   matchState.outcome = savedGame.matchState.outcome;
   matchState.summary = savedGame.matchState.summary;
@@ -430,6 +386,27 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
     : null;
   matchState.wonderCountdownTicks = savedGame.matchState.wonderCountdownTicks;
   matchState.relicCountdownTicks = savedGame.matchState.relicCountdownTicks;
+
+  const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
+  const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
+  for (const [buildingId, list] of garrisonedByBuildingForCheck) {
+    for (const unitId of list) {
+      const reverse = garrisonedUnitToBuildingForCheck.get(unitId);
+      if (reverse !== buildingId) {
+        throw new Error(
+          `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (garrisonedUnitToBuilding=${reverse ?? 'absent'}).`,
+        );
+      }
+    }
+  }
+  for (const [unitId, buildingId] of garrisonedUnitToBuildingForCheck) {
+    const list = garrisonedByBuildingForCheck.get(buildingId);
+    if (!list || !list.includes(unitId)) {
+      throw new Error(
+        `Save invariant violated: garrison cross-reference mismatch for unit ${unitId} / building ${buildingId} (not present in garrisonedByBuilding).`,
+      );
+    }
+  }
 
   // Iter-3 V3-8: orphan-key prune across every entity-id-keyed side map.
   const pruneOrphanEntityKeys = (sideMap: Map<number, unknown>): void => {

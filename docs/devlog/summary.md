@@ -1,3 +1,6 @@
+## 2026-05-05 (v0.1.6 schema-2 save format)
+- **Schema-2 save format:** New saves emit `schema: 2` with only `seed + worldSnapshot`; top-level `sideMaps`, `visibility`, and `matchState` are gone. Schema-1 saves still load through the legacy side-map hydration path and re-save as schema 2. `aoe2.pendingCommands` persists AI intentions queued between decision and dispatcher drain. Final Codex review found no substantive issues, Claude stayed quota-blocked, and full gates pass.
+
 ## 2026-05-04 (v0.1.6 roadmap continuation)
 - **AI monk intention split:** `aiSystem` now queues AI monk task decisions as `monk.contextAtEntity` intentions instead of mutating `monkTasks` directly. Queued AI monk commands carry expected owner/task guards, `pendingCommands` persists across save/load with cloned payloads, and the existing monk handler revalidates pickup/deposit/heal on the next tick. Full gates pass.
 - **Monk task state migration:** `monkTasks` now lives in `world.state.aoe2.monkTasks` via `monkTasksCodec` + `BridgeStateAccessor`. Active Monk tasks flush into snapshots, schema-1 `sideMaps.monkTasks` is authoritative on load, and no-op Monk-task cleanup avoids empty tick diffs. Full gates pass.

@@ -2,10 +2,28 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
+  gathererDropOffStuckSinceTickCodec,
   monkTasksCodec,
+  playerResourcesCodec,
+  productionQueuesCodec,
+  TIER_3_SLOTS,
   unitCommandsCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
-import { SAVE_SCHEMA_VERSION, type SaveBlob } from '../../src/game/simulation/saveSchema';
+import {
+  SAVE_SCHEMA_VERSION,
+  type SaveBlob,
+  type SaveBlobV1,
+} from '../../src/game/simulation/saveSchema';
+import type { PendingCommand } from '../../src/game/simulation/dispatcher';
+import {
+  asSchema2Blob,
+  codecSlotValue,
+  expectNoLegacyTopLevelFields,
+  legacySchema1FromBridge,
+  PENDING_COMMANDS_STATE_SLOT,
+  stateSlot,
+  worldStateOf,
+} from './saveBlobTestUtils';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 type EconomyUnit = ReturnType<Bridge['getEconomyState']>['units'][number];
@@ -88,10 +106,14 @@ describe('Slice 9 — save/load round-trip', () => {
     const parsed: SaveBlob = JSON.parse(json) as SaveBlob;
     expect(parsed.schema).toBe(SAVE_SCHEMA_VERSION);
     expect(parsed.worldSnapshot.tick).toBeGreaterThan(0);
-    expect(Array.isArray(parsed.sideMaps.playerResources)).toBe(true);
-    expect(parsed.matchState.outcome).toBe('running');
-    expect(parsed.visibility.width).toBeGreaterThan(0);
-    expect(parsed.visibility.height).toBeGreaterThan(0);
+    expectNoLegacyTopLevelFields(parsed);
+    const state = worldStateOf(parsed);
+    expect(Array.isArray(state[playerResourcesCodec.slot])).toBe(true);
+    expect(stateSlot(parsed, TIER_3_SLOTS.matchState)).toMatchObject({ outcome: 'running' });
+    expect(stateSlot(parsed, TIER_3_SLOTS.visibility)).toMatchObject({
+      width: expect.any(Number),
+      height: expect.any(Number),
+    });
   });
 
   it('rehydrates economy + match state on the conquest-victory fixture', () => {
@@ -288,7 +310,7 @@ describe('Slice 9 — save/load round-trip', () => {
     expect(taskResult.accepted).toBe(true);
     bridge.step(100);
 
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     expect(blob.sideMaps.monkTasks).toHaveLength(1);
     expect(
       'state' in blob.worldSnapshot
@@ -296,12 +318,11 @@ describe('Slice 9 — save/load round-trip', () => {
         : undefined,
     ).toEqual(blob.sideMaps.monkTasks);
 
-    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlob;
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlobV1;
     divergent.sideMaps.monkTasks = [];
 
     const loadedBridge = createSimulationBridge('monk-relic-fixture', { savedGame: divergent });
     const reSaved = loadedBridge.saveGame();
-    expect(reSaved.sideMaps.monkTasks).toEqual([]);
     expect(
       'state' in reSaved.worldSnapshot
         ? reSaved.worldSnapshot.state[monkTasksCodec.slot]
@@ -313,7 +334,6 @@ describe('Slice 9 — save/load round-trip', () => {
     const bridge = createSimulationBridge('unit-move-facade');
     const initialVillager = findOwnedUnit(bridge, 1, 'villager');
     expect(initialVillager).toBeDefined();
-
     const moveResult = bridge.world.submitWithResult('unit.move', {
       unitId: initialVillager!.id,
       target: { x: 0, y: 0 },
@@ -321,10 +341,10 @@ describe('Slice 9 — save/load round-trip', () => {
     expect(moveResult.accepted).toBe(true);
     bridge.step(100);
 
-    const blob = bridge.saveGame();
+    const blob = legacySchema1FromBridge(bridge);
     expect(blob.sideMaps.unitCommands).toHaveLength(1);
 
-    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlob;
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlobV1;
     expect('state' in divergent.worldSnapshot).toBe(true);
     (
       divergent.worldSnapshot as {
@@ -335,12 +355,107 @@ describe('Slice 9 — save/load round-trip', () => {
 
     const loadedBridge = createSimulationBridge('unit-move-facade', { savedGame: divergent });
     const reSaved = loadedBridge.saveGame();
-    expect(reSaved.sideMaps.unitCommands).toEqual([]);
     expect(
       'state' in reSaved.worldSnapshot
         ? reSaved.worldSnapshot.state[unitCommandsCodec.slot]
         : undefined,
     ).toEqual([]);
+  });
+
+  it('treats schema-1 sideMaps.productionQueues as authoritative over stale world snapshot state', () => {
+    const bridge = createSimulationBridge('unit-move-facade');
+    const building = bridge.getEconomyState().buildings[0];
+    expect(building).toBeDefined();
+
+    const blob = legacySchema1FromBridge(bridge);
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlobV1;
+    expect('state' in divergent.worldSnapshot).toBe(true);
+    (
+      divergent.worldSnapshot as {
+        state: Record<string, unknown>;
+      }
+    ).state[productionQueuesCodec.slot] = [
+      [
+        building!.id,
+        [
+          {
+            kind: 'unit',
+            label: 'Militia',
+            unitType: 'militia',
+            remainingTicks: 1,
+            totalTicks: 1,
+            isBlocked: false,
+          },
+        ],
+      ],
+    ];
+    divergent.sideMaps.productionQueues = [];
+
+    const loadedBridge = createSimulationBridge('unit-move-facade', { savedGame: divergent });
+    expect(codecSlotValue(loadedBridge.saveGame(), productionQueuesCodec)).toEqual([]);
+  });
+
+  it('treats schema-1 sideMaps.pendingCommands as authoritative for immediate post-load snapshots', () => {
+    const bridge = createSimulationBridge('unit-move-facade');
+    const villager = findOwnedUnit(bridge, 1, 'villager');
+    const building = bridge.getEconomyState().buildings[0];
+    expect(villager).toBeDefined();
+    expect(building).toBeDefined();
+
+    const blob = legacySchema1FromBridge(bridge);
+    const queued: PendingCommand = {
+      type: 'unit.move',
+      data: { unitId: villager!.id, target: { x: 1, y: 1 } },
+    };
+    const stale: PendingCommand = {
+      type: 'queue.train',
+      data: { buildingId: building!.id, unitType: 'villager' },
+    };
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlobV1;
+    (
+      divergent.worldSnapshot as {
+        state: Record<string, unknown>;
+      }
+    ).state[PENDING_COMMANDS_STATE_SLOT] = [stale];
+    divergent.sideMaps.pendingCommands = [queued];
+
+    const loadedBridge = createSimulationBridge('unit-move-facade', { savedGame: divergent });
+    expect(
+      stateSlot<PendingCommand[]>(
+        { worldSnapshot: loadedBridge.world.serialize() },
+        PENDING_COMMANDS_STATE_SLOT,
+      ),
+    ).toEqual([queued]);
+  });
+
+  it('hydrates schema-2 active unit commands from world snapshot state', () => {
+    const bridge = createSimulationBridge('unit-move-facade');
+    const initialVillager = findOwnedUnit(bridge, 1, 'villager');
+    expect(initialVillager).toBeDefined();
+
+    const moveResult = bridge.world.submitWithResult('unit.move', {
+      unitId: initialVillager!.id,
+      target: { x: 0, y: 0 },
+    });
+    expect(moveResult.accepted).toBe(true);
+    bridge.step(100);
+
+    const schema2 = asSchema2Blob(bridge.saveGame());
+    const savedCommands = stateSlot<Array<[number, unknown]>>(schema2, unitCommandsCodec.slot);
+    expect(savedCommands).toHaveLength(1);
+
+    const loadedBridge = createSimulationBridge('unit-move-facade', { savedGame: schema2 });
+    expect(stateSlot(loadedBridge.saveGame(), unitCommandsCodec.slot)).toEqual(savedCommands);
+  });
+
+  it('throws when a schema-2 world snapshot is missing match state', () => {
+    const bridge = createSimulationBridge('aoe2-prototype');
+    const schema2 = asSchema2Blob(bridge.saveGame());
+    delete worldStateOf(schema2)[TIER_3_SLOTS.matchState];
+
+    expect(() => createSimulationBridge('aoe2-prototype', { savedGame: schema2 })).toThrow(
+      /aoe2\.matchState/,
+    );
   });
 
   it('persists the gatherer drop-off retry throttle field (review V4-7)', () => {
@@ -352,8 +467,8 @@ describe('Slice 9 — save/load round-trip', () => {
     const bridge = createSimulationBridge('aoe2-prototype');
     bridge.step(1000);
     const blob = bridge.saveGame();
-    expect(blob.sideMaps.gathererDropOffStuckSinceTick).toBeDefined();
-    expect(Array.isArray(blob.sideMaps.gathererDropOffStuckSinceTick)).toBe(true);
+    expect(stateSlot(blob, gathererDropOffStuckSinceTickCodec.slot)).toBeDefined();
+    expect(Array.isArray(stateSlot(blob, gathererDropOffStuckSinceTickCodec.slot))).toBe(true);
 
     // Find a real villager id in the saved economy state. The throttle
     // map is keyed on entity id; using a real id means the post-load
@@ -366,9 +481,9 @@ describe('Slice 9 — save/load round-trip', () => {
     const stuckSinceTick = blob.worldSnapshot.tick - 10;
 
     // Inject the throttle entry for the real villager.
-    blob.sideMaps.gathererDropOffStuckSinceTick = [[realVillagerId, stuckSinceTick]];
-    const json = JSON.parse(JSON.stringify(blob)) as SaveBlob;
-    expect(json.sideMaps.gathererDropOffStuckSinceTick).toEqual([
+    worldStateOf(blob)[gathererDropOffStuckSinceTickCodec.slot] = [[realVillagerId, stuckSinceTick]];
+    const json = JSON.parse(JSON.stringify(asSchema2Blob(blob))) as SaveBlob;
+    expect(stateSlot(json, gathererDropOffStuckSinceTickCodec.slot)).toEqual([
       [realVillagerId, stuckSinceTick],
     ]);
 
@@ -376,8 +491,10 @@ describe('Slice 9 — save/load round-trip', () => {
     // the V3-8 orphan-prune leaves it. The throttle entry survives the
     // round trip — that's the V4-7 contract.
     const loaded = createSimulationBridge('aoe2-prototype', { savedGame: json });
-    const postLoadThrottle =
-      loaded.saveGame().sideMaps.gathererDropOffStuckSinceTick;
+    const postLoadThrottle = stateSlot(
+      loaded.saveGame(),
+      gathererDropOffStuckSinceTickCodec.slot,
+    );
     expect(postLoadThrottle).toEqual([[realVillagerId, stuckSinceTick]]);
   });
 });

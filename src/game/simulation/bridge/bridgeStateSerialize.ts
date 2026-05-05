@@ -266,4 +266,5 @@ export const TIER_3_SLOTS = {
   visibility: 'aoe2.visibility',
   matchState: 'aoe2.matchState',
   bridgeMeta: 'aoe2.bridgeMeta',
+  pendingCommands: 'aoe2.pendingCommands',
 } as const;
