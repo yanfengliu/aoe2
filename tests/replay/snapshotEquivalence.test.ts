@@ -1,10 +1,9 @@
-// Phase 2G partial — snapshot equivalence test for migrated Tier-1 slots.
+// Phase 2G — snapshot equivalence test for migrated Tier-1 slots.
 //
 // Per DESIGN v17 §5.6: a `world.serialize()` snapshot followed by
 // `World.deserialize` should reconstruct the bridge's Tier-1 slots
-// exactly. Until ALL 35 slots are migrated, this test only verifies the
-// slots that HAVE been migrated. Each new Phase 2D commit can extend the
-// expected list.
+// exactly. Phase 2F closed the final bridge-owned Tier-1 exception, so
+// this test now iterates the authoritative `TIER_1_CODECS` registry.
 //
 // The test exercises the full Phase 2C pipeline: bridge construction →
 // bootstrapFlush populates Tier-3 + dirty Tier-1 slots → tier3SyncSystem
@@ -23,33 +22,11 @@ import { World, VisibilityMap } from 'civ-engine';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
 import {
-  conversionStateCodec,
-  garrisonedByBuildingCodec,
-  garrisonedUnitToBuildingCodec,
-  garrisonedUnitVisionSourcesCodec,
-  gathererDropOffStuckSinceTickCodec,
-  lastSeenStaticCodec,
   marketExchangeRatesCodec,
-  monkCarriedRelicCodec,
-  monkHealCountersCodec,
   monkTasksCodec,
-  playerAgesCodec,
-  playerCivilizationsCodec,
-  playerScoreCountersCodec,
-  productionQueuesCodec,
-  rallyPointsCodec,
-  relicCountdownOverridesCodec,
-  relicCountdownsCodec,
-  relicsInMonasteryCodec,
-  sheepMoveOrdersCodec,
+  TIER_1_CODECS,
   TIER_3_SLOTS,
-  townCenterRefsCodec,
-  trackedVisibilitySourcesCodec,
-  trebuchetPackStatesCodec,
   unitCommandsCodec,
-  villagerOrdinalsCodec,
-  wonderCountdownOverridesCodec,
-  wonderCountdownsCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type {
   GameCommands,
@@ -58,36 +35,42 @@ import type {
   GameWorld,
 } from '../../src/game/simulation/bridge/pureHelpers';
 
-// Single source of truth for the migrated codec set. Adding a slot →
-// add an entry here and both the round-trip test and the Map-instance
-// sanity check pick it up automatically.
-const MIGRATED_CODECS = [
-  villagerOrdinalsCodec,
-  gathererDropOffStuckSinceTickCodec,
-  monkHealCountersCodec,
-  playerAgesCodec,
-  playerCivilizationsCodec,
-  wonderCountdownOverridesCodec,
-  relicCountdownOverridesCodec,
-  marketExchangeRatesCodec,
-  trackedVisibilitySourcesCodec,
-  playerScoreCountersCodec,
-  rallyPointsCodec,
-  unitCommandsCodec,
-  wonderCountdownsCodec,
-  relicCountdownsCodec,
-  townCenterRefsCodec,
-  relicsInMonasteryCodec,
-  sheepMoveOrdersCodec,
-  conversionStateCodec,
-  monkCarriedRelicCodec,
-  monkTasksCodec,
-  trebuchetPackStatesCodec,
-  lastSeenStaticCodec,
-  garrisonedByBuildingCodec,
-  garrisonedUnitToBuildingCodec,
-  garrisonedUnitVisionSourcesCodec,
-  productionQueuesCodec,
+const EXPECTED_TIER_1_SLOTS = [
+  'aoe2.playerAges',
+  'aoe2.playerCivilizations',
+  'aoe2.playerResources',
+  'aoe2.population',
+  'aoe2.trackedVisibilitySources',
+  'aoe2.villagerOrdinals',
+  'aoe2.researchedTechnologies',
+  'aoe2.marketExchangeRates',
+  'aoe2.townCenterRefs',
+  'aoe2.playerScoreCounters',
+  'aoe2.aiStates',
+  'aoe2.unitCommands',
+  'aoe2.sheepMoveOrders',
+  'aoe2.monkTasks',
+  'aoe2.monkCarriedRelic',
+  'aoe2.monkHealCounters',
+  'aoe2.conversionState',
+  'aoe2.trebuchetPackStates',
+  'aoe2.garrisonedUnitToBuilding',
+  'aoe2.garrisonedUnitVisionSources',
+  'aoe2.gathererDropOffStuckSinceTick',
+  'aoe2.rallyPoints',
+  'aoe2.relicsInMonastery',
+  'aoe2.productionQueues',
+  'aoe2.constructionStates',
+  'aoe2.buildingHealthStates',
+  'aoe2.buildingCombatStates',
+  'aoe2.wonderCountdowns',
+  'aoe2.wonderCountdownOverrides',
+  'aoe2.relicCountdowns',
+  'aoe2.relicCountdownOverrides',
+  'aoe2.garrisonedByBuilding',
+  'aoe2.combatStates',
+  'aoe2.wildlifeStates',
+  'aoe2.lastSeenStatic',
 ] as const;
 
 type EconomyUnit = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['units'][number];
@@ -124,8 +107,12 @@ function stepUntil(
   return predicate();
 }
 
-describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
-  it('migrated slots round-trip through world.serialize / World.deserialize', () => {
+describe('Phase 2G — Tier-1/Tier-3 snapshot equivalence', () => {
+  it('pins the expected Phase 2G Tier-1 slot inventory', () => {
+    expect(TIER_1_CODECS.map((codec) => codec.slot)).toEqual(EXPECTED_TIER_1_SLOTS);
+  });
+
+  it('every registered Tier-1 slot round-trips through world.serialize / World.deserialize', () => {
     // Live bridge — runs scenario seed, runs a tick, then we snapshot.
     const bridge = createSimulationBridge('feudal-age-fixture');
     bridge.step(100); // one tick — flushes any dirty Tier-1 slots
@@ -145,7 +132,7 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     // tick's writes and produce a stale comparison.
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
     const liveAccessor = new BridgeStateAccessor(() => liveWorld);
-    const live = MIGRATED_CODECS.map(
+    const live = TIER_1_CODECS.map(
       (codec) =>
         [codec, liveAccessor.get(codec as unknown as AnyCodec)] as const,
     );
@@ -237,20 +224,23 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     ]);
   });
 
-  it('Tier-3 slots (matchState, bridgeMeta) round-trip through serialize/deserialize', () => {
+  it('Tier-3 slots round-trip through serialize/deserialize', () => {
     const bridge = createSimulationBridge('feudal-age-fixture');
     bridge.step(100);
 
     const liveMeta = bridge.world.getState(TIER_3_SLOTS.bridgeMeta);
     const liveMatchState = bridge.world.getState(TIER_3_SLOTS.matchState);
+    const livePendingCommands = bridge.world.getState(TIER_3_SLOTS.pendingCommands);
     expect(liveMeta).toBeDefined();
     expect(liveMatchState).toBeDefined();
+    expect(Array.isArray(livePendingCommands)).toBe(true);
 
     const snapshot = bridge.world.serialize();
     const restored = World.deserialize<GameEvents, GameCommands, GameComponents>(snapshot);
 
     expect(restored.getState(TIER_3_SLOTS.bridgeMeta)).toEqual(liveMeta);
     expect(restored.getState(TIER_3_SLOTS.matchState)).toEqual(liveMatchState);
+    expect(restored.getState(TIER_3_SLOTS.pendingCommands)).toEqual(livePendingCommands);
   });
 
   it('reading migrated slots from a fresh deserialized world via accessor codecs returns codec-shaped values', () => {
@@ -273,7 +263,7 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
     const RECORD_CODECS = new Set([marketExchangeRatesCodec]);
 
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
-    for (const codec of MIGRATED_CODECS) {
+    for (const codec of TIER_1_CODECS) {
       const value = accessor.get(codec as unknown as AnyCodec);
       if (RECORD_CODECS.has(codec as unknown as typeof marketExchangeRatesCodec)) {
         expect(value).not.toBeInstanceOf(Map);

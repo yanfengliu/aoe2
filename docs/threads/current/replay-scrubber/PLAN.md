@@ -128,6 +128,8 @@ Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, 
 
 (Was Phase A7.) Snapshot/load round-trip across all Tier-1 + Tier-3 slots — does NOT include command-replay equivalence (that's Phase 3A.5). Verifies: after running N ticks of a fresh game with no commands, `world.serialize()` followed by load + `applySnapshot` reconstructs an equivalent bridge state for all migrated slots. Frame-by-frame deep equality.
 
+2026-05-05 status: closed. `tests/replay/snapshotEquivalence.test.ts` pins the exact 35-slot Tier-1 inventory, iterates `TIER_1_CODECS` for registry-driven serialize/deserialize equivalence, covers Tier-3 `visibility`, `matchState`, `bridgeMeta`, and `pendingCommands`, and preserves active Monk-task/unit-command snapshot regressions. `tests/replay/bridgeSnapshotPerf.test.ts` adds the Phase 2G bounded all-slot flush and schema-2 save serialization perf gate. Phase 3A / 3A.5 is next.
+
 **Version bump:** 0.1.5.x → 0.1.6-rc1 when migration lands.
 
 ## Phase 3 — Replay scrubber UI (per the existing DESIGN §5.3-§5.5, §5.7)
