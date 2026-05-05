@@ -47,6 +47,7 @@ export interface ReplayController {
   readonly mode: ReplayMode;
   readonly currentTick: number;
   readonly bundleMetadata: SessionMetadata | null;
+  readonly bundle: ReplayBundle | null;
   readonly world: GameWorld | null;
   enterReplay(bundle: ReplayBundle, atTick?: number): void;
   exitReplay(): void;
@@ -60,6 +61,14 @@ export interface ReplayController {
   isPlaying(): boolean;
   onModeChange(listener: ReplayModeListener): () => void;
   onTickChange(listener: ReplayTickListener): () => void;
+}
+
+export function exitReplayBeforeLiveBridgeReplacement(
+  controller: Pick<ReplayController, 'mode' | 'exitReplay'>,
+): void {
+  if (controller.mode === 'replay') {
+    controller.exitReplay();
+  }
 }
 
 export interface ReplayControllerConfig {
@@ -290,13 +299,14 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     context.world.step();
     getReplayWorldContext(context.world)?.accessor.reset();
     displayedTick = context.world.tick;
-    emitTick();
 
     if (context.world.tick >= upperBound) {
       playing = false;
       cancelFrame();
+      emitTick();
       return false;
     }
+    emitTick();
     return true;
   }
 
@@ -376,6 +386,9 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     },
     get bundleMetadata() {
       return replayContext?.bundle.metadata ?? null;
+    },
+    get bundle() {
+      return replayContext?.bundle ?? null;
     },
     get world() {
       return replayContext?.world ?? null;

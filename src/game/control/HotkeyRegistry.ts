@@ -38,7 +38,13 @@ interface Registration {
 const isTextInputElement = (el: EventTarget | null): boolean => {
   if (!(el instanceof Element)) return false;
   const tag = el.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+  if (tag === 'INPUT') {
+    if (el instanceof HTMLInputElement) {
+      return el.type.toLowerCase() !== 'range';
+    }
+    return true;
+  }
+  if (tag === 'TEXTAREA') return true;
   // Check the contentEditable attribute directly. el.isContentEditable is
   // a derived getter that real browsers compute based on the attribute +
   // ancestors; jsdom's implementation can lag, so prefer the attribute
@@ -101,6 +107,7 @@ export function createHotkeyRegistry(options: HotkeyRegistryOptions = {}): Hotke
     if (isTextInputElement(event.target)) return;
     for (const reg of registrations) {
       if (matches(reg.spec, event)) {
+        event.preventDefault();
         reg.handler();
         return;
       }

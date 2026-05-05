@@ -1,17 +1,22 @@
-# aoe2 v0.1.6 Implementation Plan — Commandify + Bridge-State Migration + Replay Scrubber
+# aoe2 Replay Scrubber Implementation Plan — Commandify + Bridge-State Migration + Timeline
 
-**Status:** Draft v4 (2026-04-30). Scope: full feature per DESIGN v15. User chose option A (commandify) over deferral.
+**Status:** Closed v6 (2026-05-05). Scope has been split into coherent shipped units: v0.1.6 covers commandify, bridge-state migration, schema-2 saves, and replay-controller foundation; v0.1.7 ships the user-visible Phase 3C TimelinePanel. Phase 3D/3E replay-load sources and browser scrubber e2e remain future work and should open a fresh `docs/threads/current/<objective>/` thread unless this historical thread is intentionally reopened. User chose option A (commandify) over deferral.
 
-**Spec reference:** `docs/threads/current/replay-scrubber/DESIGN.md` v15.
+**Spec reference:** `docs/threads/done/replay-scrubber/DESIGN.md` v21.
 
 **v4 deltas vs v3:** PLAN brought into line with DESIGN v15 — Phase 1B handlers must do execution-time re-checks of mutable state (resources, in-flight tech, market rates, placement occupancy); wildlife-split language removed (single deterministic system per ground truth); monk split naming explicit (`prototypeMonkBehavior` for resolution half; `prototypeMonkBehaviorDecision` for decision half); `setXCommandDirect` helper contract spec'd to mirror full facade behavior (clearGathererOrder, accessor-backed monk task clear) to avoid footgun.
 
+**v5 deltas vs v4:** The original full `v0.1.6` plan is now historical context. Schema-2 save work took `0.1.6`, so Phase 3C ships as `0.1.7`; Phase 3D/3E are explicitly not part of the Phase 3C closure criteria.
+
+**v6 deltas vs v5:** The thread is closed under `docs/threads/done/replay-scrubber/`. Future replay-load/e2e work should create a new current objective thread rather than writing new review iterations into this done thread.
+
 ## Goal
 
-Ship aoe2 v0.1.6 with three layered features:
+Ship the replay-scrubber roadmap as layered, reviewable units:
 1. **Commandify** every gameplay-state-mutating bridge method into civ-engine commands. Unlocks recorded bundles having command provenance, replay forward, counterfactual replay (Spec 5), AI playtester (Spec 9), and matches the engine's intended programmatic surface.
 2. **Bridge-state migration** of 35 Tier-1 + 3 Tier-3 slots to `world.state.aoe2.*` via per-slot codecs. Makes `world.serialize()` snapshots complete; enables clean schema-2 saves.
-3. **Replay scrubber UI** — ReplayController, TimelinePanel, drag scrubber, play/pause, hotspot pins. Operates on bundles with full command provenance.
+3. **Replay foundation and TimelinePanel** — ReplayController, TimelinePanel, drag scrubber, play/pause, marker/hotspot pins, replay hotkeys, and transactional live-bridge replacement. Operates on bundles with full command provenance.
+4. **Future replay completion** — replay-load sources, replay-mode annotation affordances, and browser scrubber e2e remain Phase 3D/3E follow-up work.
 
 ## Phasing rationale
 
@@ -96,7 +101,7 @@ For each of the 15 commands in DESIGN §6.1, in this order:
 
 ## Phase 2 — Bridge-state migration (per the existing 11-iter design)
 
-Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, now Phase 2 of the full v0.1.6 plan).
+Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, now Phase 2 of the historical full-v0.1.6 plan).
 
 ### Phase 2A — Codec dispatch + `BridgeStateAccessor` + `VisibilityCell`
 
@@ -163,6 +168,8 @@ Per DESIGN §5.4. ADRs 8-10. Stateful play mode using closure-local `replayConte
 
 Per DESIGN §5.5. Bottom-strip overlay, marker pins, hotspot pins, scrubber controls.
 
+2026-05-05 status: closed for the TimelinePanel layer and shipped as 0.1.7 after the schema-2 save work already claimed 0.1.6. `src/game/replay/TimelinePanel.ts` now renders the replay-only bottom strip, marker pins from `bundle.markers`, hotspot pins from `bundleHotspots(bundle, { includeMarkers: false })`, play/pause, +/-1 step, exit, current/total tick, source label, and a coalesced range scrubber that commits on change/pointerup. Forward/play/end controls and unreachable pins are inert for bundles without command payloads or targets outside the capped replay range. `src/game/replay/ReplayHotkeys.ts` binds Space, ArrowLeft/ArrowRight, Home/End, Escape, and Alt+T only while replay mode is active. `src/app/bootstrap/createApp.ts` mounts the panel into the HUD root, wires replay hotkeys through `HotkeyRegistry`, and exits replay before host save-load replaces the live bridge. CSS reserves bottom viewport space while the panel is visible so the playfield and bottom HUD do not overlap it.
+
 ### Phase 3D — Annotation UI in replay mode
 
 Per DESIGN §5.7. Alt+M disabled in replay; Alt+L read-only.
@@ -171,11 +178,11 @@ Per DESIGN §5.7. Alt+M disabled in replay; Alt+L read-only.
 
 `tests/replay/scrubber-e2e.test.ts` — open a recorded bundle in the UI, scrub to several ticks, verify selection/HUD/canvas state. `tests/replay/play-equivalence.test.ts` — pressing play from tick T advances state identically to the live recording at the same ticks.
 
-**Version bump:** 0.1.6-rc1 → 0.1.6 final.
+**Version bump:** Phase 3C shipped as 0.1.7 because schema-2 saves already claimed 0.1.6. Phase 3D/3E will choose a future version when they ship.
 
 ## Multi-CLI review checkpoints
 
-Each phase commit triggers multi-CLI review per AGENTS.md. Synthesize into `docs/threads/current/replay-scrubber/<date>/impl-N/REVIEW.md`. Address findings before proceeding to the next phase.
+Each shipped phase commit triggered multi-CLI review per AGENTS.md. Historical reviews for this closed objective live under `docs/threads/done/replay-scrubber/<date>/impl-N/REVIEW.md`. Future Phase 3D/3E work should create a new `docs/threads/current/<objective>/` thread and synthesize reviews there.
 
 ## Risks + mitigations
 
@@ -187,7 +194,7 @@ Each phase commit triggers multi-CLI review per AGENTS.md. Synthesize into `docs
 
 ## Out-of-scope notes
 
-Deferred to v0.1.7+:
+Deferred to future releases:
 - Counterfactual-replay UI for aoe2 (using Spec 5's `forkAt` + ForkBuilder). Engine-side machinery exists; aoe2-side UI hooks deferred.
 - AgentDriver-driven AI playtester. Engine-side AgentDriver (Spec 9) exists; aoe2-side adapter deferred.
 - Advanced hotspot triage UI in TimelinePanel.
@@ -196,11 +203,19 @@ Deferred to v0.1.7+:
 
 ## Success criteria
 
-v0.1.6 ships when:
-- Migration equivalence test (Phase 2G) passes: every Tier-1 + Tier-3 slot round-trips through serialize/applySnapshot.
-- Round-trip-via-commands test (Phase 3A.5) passes: live game with human + AI inputs replayable via `openAt` to structurally equal end state, including pending-command boundary and pending-snapshot replay paths.
-- Validator-replay-consistency test (Phase 3A.5) passes: initial-snapshot replay's `submitWithResult` results and command executions match the recorded stream.
-- Scrubber e2e test (Phase 3E) passes: drag scrubber works in browser.
-- All four gates green: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
-- Multi-CLI review on the final commit returns ACCEPT.
-- Docs updated per AGENTS.md mandatory checklist (changelog, devlog, ARCHITECTURE.md, drift-log, decisions.md).
+v0.1.6 shipped when:
+- Migration equivalence test (Phase 2G) passed: every Tier-1 + Tier-3 slot round-trips through serialize/applySnapshot.
+- Round-trip-via-commands test (Phase 3A.5) passed: live game with human + AI inputs replayable via `openAt` to structurally equal end state, including pending-command boundary and pending-snapshot replay paths.
+- Validator-replay-consistency test (Phase 3A.5) passed: initial-snapshot replay's `submitWithResult` results and command executions match the recorded stream.
+- Schema-2 save/changelog/version docs landed with all four gates green.
+
+v0.1.7 Phase 3C closes when:
+- TimelinePanel renders replay-only controls, marker/hotspot pins, coalesced scrubber, source/tick readout, and inert no-payload/out-of-range controls.
+- ReplayHotkeys bind only during replay mode and preserve form-focus suppression except for the timeline range input.
+- Save-load bridge replacement creates the replacement bridge first, exits replay immediately before install, and leaves replay active on failed creation.
+- Desktop, mobile portrait, mobile landscape, and 320px narrow mobile visual checks show no overlap between timeline, playfield, and bottom HUD.
+- All four gates are green: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
+- Multi-CLI review converges with no substantive open findings; Claude quota blockers are recorded if still unreachable.
+- Docs are updated per AGENTS.md mandatory checklist (changelog, devlog, ARCHITECTURE.md, drift-log, decisions.md).
+
+Future Phase 3D/3E closure will add replay-load sources, replay-mode annotation affordances, and browser scrubber e2e coverage.

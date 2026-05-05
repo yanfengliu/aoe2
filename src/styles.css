@@ -21,6 +21,7 @@ body,
 
 body {
   overflow: hidden;
+  --timeline-panel-reserve: 78px;
 }
 
 #game-root {
@@ -32,6 +33,13 @@ body {
   max-height: 100vh;
   width: min(100vw, calc(100vh * 5 / 3));
   height: min(100vh, calc(100vw * 3 / 5));
+}
+
+body:has(.timeline-panel:not([hidden])) #game-root {
+  bottom: var(--timeline-panel-reserve);
+  max-height: calc(100vh - var(--timeline-panel-reserve));
+  width: min(100vw, calc((100vh - var(--timeline-panel-reserve)) * 5 / 3));
+  height: min(calc(100vh - var(--timeline-panel-reserve)), calc(100vw * 3 / 5));
 }
 
 #hud-root {
@@ -115,6 +123,11 @@ body {
   justify-content: end;
   align-items: end;
   gap: 10px;
+  transition: margin-bottom 120ms ease;
+}
+
+#hud-root:has(.timeline-panel:not([hidden])) .hud-bottom {
+  margin-bottom: 66px;
 }
 
 .hud-panel {
@@ -839,4 +852,165 @@ body {
 .marker-list-panel__prior-row button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Phase 3C: replay timeline. The strip sits at the bottom center and
+   leaves the normal HUD corners readable while replay mode is active. */
+.timeline-panel {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(221, 196, 145, 0.38);
+  border-radius: 8px;
+  background: rgba(13, 20, 22, 0.94);
+  color: #f4ead1;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+  pointer-events: auto;
+  z-index: 12;
+}
+
+.timeline-panel[hidden] {
+  display: none;
+}
+
+.timeline-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.timeline-panel__button {
+  min-width: 40px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(221, 196, 145, 0.36);
+  border-radius: 6px;
+  background: rgba(28, 40, 44, 0.95);
+  color: #f4ead1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.timeline-panel__button:hover {
+  border-color: rgba(221, 196, 145, 0.72);
+  background: rgba(50, 66, 70, 0.95);
+}
+
+.timeline-panel__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timeline-panel__button--primary {
+  min-width: 58px;
+  background: rgba(91, 70, 51, 0.95);
+}
+
+.timeline-panel__button--exit {
+  min-width: 52px;
+}
+
+.timeline-panel__tick {
+  min-width: 88px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.timeline-panel__source {
+  max-width: 170px;
+  overflow: hidden;
+  color: rgba(244, 234, 209, 0.68);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-panel__track-wrap {
+  position: relative;
+  min-width: 0;
+  height: 34px;
+  display: grid;
+  align-items: center;
+}
+
+.timeline-panel__range {
+  width: 100%;
+  margin: 0;
+  accent-color: #d4b35f;
+  cursor: pointer;
+}
+
+.timeline-panel__pins {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 2px;
+  height: 12px;
+  pointer-events: none;
+}
+
+.timeline-panel__pin {
+  --timeline-pin-color: #78aaf0;
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1px solid rgba(8, 14, 16, 0.9);
+  border-radius: 50%;
+  background: var(--timeline-pin-color);
+  box-shadow: 0 0 0 1px rgba(244, 234, 209, 0.2);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.timeline-panel__pin--hotspot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.timeline-panel__pin:hover {
+  box-shadow: 0 0 0 3px rgba(244, 234, 209, 0.24);
+}
+
+.timeline-panel__pin:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+@media (max-width: 760px) {
+  body:has(.timeline-panel:not([hidden])) {
+    --timeline-panel-reserve: 156px;
+  }
+
+  .timeline-panel {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #hud-root:has(.timeline-panel:not([hidden])) .hud-bottom {
+    margin-bottom: 156px;
+  }
+
+  .timeline-panel__controls {
+    flex-wrap: wrap;
+  }
+
+  .timeline-panel__source {
+    display: none;
+  }
 }

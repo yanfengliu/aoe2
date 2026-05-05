@@ -20,7 +20,7 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 | Field | Value |
 |---|---|
-| Surfaced by | User-driven post-mortem after I claimed "Codex unreachable" across 8 multi-CLI reviews (impls 16–24 of `docs/threads/current/replay-scrubber/`). User: "Did all your code and docs get reviewed?" → "Then you can't claim that upgrading codex was the fix" |
+| Surfaced by | User-driven post-mortem after I claimed "Codex unreachable" across 8 multi-CLI reviews (impls 16–24 of `docs/threads/done/replay-scrubber/`). User: "Did all your code and docs get reviewed?" → "Then you can't claim that upgrading codex was the fix" |
 | Reviewer findings | n/a — process lesson |
 | Fix commit | (this commit) — AGENTS.md extraction snippet |
 | Test added | n/a — process lesson |
@@ -36,13 +36,13 @@ sed -n '/^codex$/,$p' codex.txt | awk '/===BEGIN-REVIEW===/{p=1; next} /===END-R
 
 A successful smoke test (e.g. `codex exec` returning `ok`) does NOT validate the extraction logic — it only validates the tool. Always sanity-check by counting reviewer findings against expectations: if Gemini found 4 issues and Claude found 6, "Codex no findings" three commits in a row should raise a flag, not be assumed to mean Codex is unreachable. Convergence is signal; persistent divergence between reviewers is also signal.
 
-Pointer: [AGENTS.md](../../AGENTS.md) — Code review section's Codex extraction snippet; affected reviews under `docs/threads/current/replay-scrubber/2026-05-01/impl-{16..24}/REVIEW.md` (post-mortem note added).
+Pointer: [AGENTS.md](../../AGENTS.md) — Code review section's Codex extraction snippet; affected reviews under `docs/threads/done/replay-scrubber/2026-05-01/impl-{16..24}/REVIEW.md` (post-mortem note added).
 
 ## Reorder AI decisions when handler-FIFO order matters — 2026-05-01
 
 | Field | Value |
 |---|---|
-| Surfaced by | `docs/threads/current/replay-scrubber/2026-05-01/impl-16/REVIEW.md`; debug trace at `docs/debugging/2026-05-01-phase-1c-ai-intention-refactor.md` |
+| Surfaced by | `docs/threads/done/replay-scrubber/2026-05-01/impl-16/REVIEW.md`; debug trace at `docs/debugging/2026-05-01-phase-1c-ai-intention-refactor.md` |
 | Reviewer findings | n/a — surfaced during Phase 1C self-debug before review |
 | Fix commit | (Phase 1C commit on `main`) |
 | Test added | `tests/simulation/aiPlayer.test.ts > "preserves baseline barracks-rush behavior: AI builds a Barracks and trains Militia on ai-rush-fixture"` (existing test that broke under the naive refactor) |

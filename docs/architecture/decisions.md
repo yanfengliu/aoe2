@@ -235,3 +235,19 @@ Consequences:
 - Playback has O(1)-per-tick progression after entry/scrub instead of repeatedly rebuilding from `openAt(currentTick + 1)`.
 - Drag scrubbing can feel instantaneous in Phase 3C because pointer-move events can coalesce into a single final `openAt` commit.
 - `ReplayController` is now the boundary Phase 3C/3D UI code should target rather than calling `SessionReplayer` or replay bridge helpers directly.
+
+## KAD-0014 - Replay timeline UI targets the controller boundary
+
+Date: 2026-05-05.
+Status: Active.
+
+Context: Phase 3C needed a visible scrubber without letting DOM controls, HUD code, or Phaser reach into `SessionReplayer` internals. The panel also had to coexist with the existing game canvas and bottom HUD, and the app's save-load path can replace the live bridge while replay mode is active.
+
+Decision: `TimelinePanel` is an aoe2-side DOM component mounted by `createApp` into the HUD root. It reads only `ReplayController` state (`mode`, `bundle`, `bundleMetadata`, `currentTick`, `isPlaying`) and calls controller actions (`scrubTo`, `commitPendingScrub`, `play`, `pause`, `stepForward`, `stepBackward`, `jumpToMarker`, `exitReplay`). Marker pins come from `bundle.markers`; hotspot pins come from `bundleHotspots(bundle, { includeMarkers: false })` so marker pins and derived hotspot pins remain visually distinct. `ReplayHotkeys` binds Space, ArrowLeft/ArrowRight, Home/End, Escape, and Alt+T only while replay mode is active, letting the shared `HotkeyRegistry` call `preventDefault()` for actual replay shortcuts without swallowing those keys in live mode. `createApp` calls `exitReplayBeforeLiveBridgeReplacement(replayController)` before save-load replaces the host bridge, so replay exit cannot later restore a stale pre-load bridge.
+
+Consequences:
+- Phase 3C UI code does not call `SessionReplayer` or replay-world helpers directly; the controller remains the single replay-mode state boundary.
+- Drag scrubs can update the visible tick optimistically through coalesced `scrubTo(..., { coalesce: true })` calls and commit once on `change`/`pointerup`.
+- The fixed timeline panel reserves bottom viewport space through CSS while visible, keeping the playfield and bottom HUD from overlapping the panel across desktop and mobile viewports.
+- Replay hotkeys do not claim browser defaults in live mode, but they do prevent default page scroll/button activation when they are active replay controls.
+- No-command-payload bundles keep forward/play/end controls and unreachable pins inert at the UI layer, matching `ReplayController`'s intentional refusal to advance such bundles beyond the initial tick.

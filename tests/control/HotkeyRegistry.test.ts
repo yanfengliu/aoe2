@@ -60,6 +60,65 @@ describe('HotkeyRegistry', () => {
     registry.dispose();
   });
 
+  it('does not suppress range inputs used as game controls', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: 'Escape' }, handler);
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    document.body.appendChild(input);
+    input.focus();
+
+    dispatch(document, { key: 'Escape', target: input });
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    input.remove();
+    registry.dispose();
+  });
+
+  it('suppresses hotkeys from checkbox and radio inputs in forms', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: 'm', alt: true }, handler);
+
+    for (const type of ['checkbox', 'radio']) {
+      const input = document.createElement('input');
+      input.type = type;
+      document.body.appendChild(input);
+      input.focus();
+
+      dispatch(document, { key: 'm', altKey: true, target: input });
+
+      input.remove();
+    }
+
+    expect(handler).not.toHaveBeenCalled();
+    registry.dispose();
+  });
+
+  it('prevents native key defaults when a registered hotkey fires', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: ' ' }, handler);
+
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+    const event = new KeyboardEvent('keydown', {
+      key: ' ',
+      bubbles: true,
+      cancelable: true,
+    });
+    button.dispatchEvent(event);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+
+    button.remove();
+    registry.dispose();
+  });
+
   it('suppressed when focus is on a textarea', () => {
     const handler = vi.fn();
     const registry = createHotkeyRegistry();

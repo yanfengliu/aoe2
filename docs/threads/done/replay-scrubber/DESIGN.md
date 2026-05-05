@@ -1,6 +1,12 @@
 # Replay Scrubber + Bridge-Snapshot — Design Spec
 
-**Status:** Draft v18 (2026-05-05). aoe2 v0.1.6 ships the FULL feature: commandify aoe2 input + AI intention dispatcher + bridge-state migration + replay scrubber UI. The user chose option A (commandify) over deferral — AI-native architectural correctness over implementation cost.
+**Status:** Closed v21 (2026-05-05). aoe2 v0.1.6/v0.1.7 shipped the replay-scrubber roadmap in coherent user-visible units: commandify aoe2 input + AI intention dispatcher + bridge-state migration + schema-2 saves in v0.1.6, then the user-visible Phase 3C TimelinePanel in v0.1.7. Phase 3D/3E replay-load sources and browser scrubber e2e remain future work and should open a fresh `docs/threads/current/<objective>/` thread unless this historical thread is intentionally reopened. The user chose option A (commandify) over deferral — AI-native architectural correctness over implementation cost.
+
+**v21 deltas vs v20:** The thread is closed under `docs/threads/done/replay-scrubber/`. Future replay-load/e2e work should create a new current objective thread rather than writing new review iterations into this done thread.
+
+**v20 deltas vs v19:** Thread-level scope wording now reflects the shipped version split. Older full-`v0.1.6` sections remain historical design trail unless this header or the Phase 3 status notes say they are current. The authoritative current closure is: v0.1.6 owns schema-2/foundation, v0.1.7 owns Phase 3C TimelinePanel, and `ReplayLoadDialog` / three-source replay loading / browser scrubber e2e stay Phase 3D/3E follow-up.
+
+**v19 deltas vs v18:** Phase 3C implementation adds the aoe2-side `TimelinePanel` and `ReplayHotkeys` layer and bumps the app to 0.1.7 because the panel is user-visible after schema-2 already shipped as 0.1.6. The panel is mounted in the HUD root and remains visible only in replay mode; CSS reserves bottom viewport space while it is visible so the fixed strip does not overlap the playfield or bottom HUD. Marker pins come directly from `bundle.markers`, while hotspot pins use `bundleHotspots(bundle, { includeMarkers: false })` so annotation markers are not duplicated as hotspots. Replay keyboard shortcuts are bound only while replay mode is active, letting the shared hotkey registry prevent default for real replay controls without swallowing Space/Arrow/Alt+T in live mode. Bundles without command payloads keep forward/play/end controls and unreachable pins inert because the controller cannot replay beyond the initial tick without recorded command data. The app save-load path exits replay before replacing the host bridge so replay exit cannot restore a stale pre-load bridge.
 
 **v18 deltas vs v17:** Phase 3A implementation found that `prototypeAi` is not yet a pure no-op-safe replay stub because it still owns replay-visible AI bookkeeping (`aiStates.lastDecisionTick`, `attackGroup`, and villager desired-resource rebalance) in addition to command-intention emission. Replay therefore registers `prototypeAi` and `prototypeAutoAggression` with real intention emitters into the replay world's bridge-owned pending queue: recorded command payloads still drive execution, while AI-decision systems reproduce the serialized `aoe2.pendingCommands` boundary state. Phase 3A also adds a replay-only pending drain before AI systems run so hydrated pending queues from snapshots do not leak into later ticks, and tightens schema-2 hydration so replay construction does not materialize absent empty Tier-1 slots while validating/pruning hydrated state. The regression coverage is `tests/replay/roundTripViaCommands.test.ts` and `tests/replay/validatorReplayConsistency.test.ts`.
 
@@ -194,7 +200,7 @@
 
 The cost is significant — every input handler becomes a command. The user's directive: *"Don't worry about cost. Always do the right thing. AI-native at every step."* The 11 iterations of bridge-state migration design + Phase A's structural plan stay intact; commandify is layered ON TOP of the migration.
 
-- **v0.1.6 scope (this spec, full feature):**
+- **Historical v0.1.6 full-feature target (now split across v0.1.6/v0.1.7 plus future Phase 3D/3E):**
   1. **Commandify** every gameplay-state-mutating bridge method (§6 — NEW). 12-14 command types covering unit orders, production, market, building placement, trebuchet pack/unpack.
   2. **Bridge-state migration** to `world.state.aoe2.*` (§5.1, §5.2, §5.6 — Phase A from v12 scope).
   3. **Replay scrubber UI** (§5.3, §5.4, §5.5, §5.7 — restored from v12 deferral).
@@ -522,7 +528,7 @@ The cost is significant — every input handler becomes a command. The user's di
 - **M4 — `bridgeSnapshotSystem` ordering:** registered as the LAST `output` phase system via `before: []` and explicit ordering tests. Recorder's snapshot hook fires AFTER `output` phase (existing engine behavior at `world.ts:1746-1763`).
 - **M5 — RecordingService bound to live world:** explicit callout that the recorder stays attached to the live world via direct reference, NOT through `bridgeRef().world`. Replay-mode bridge swaps don't move the recorder. AnnotationController/MarkerListPanel disable in replay mode anyway (see §5.6).
 - **M6 — perf benchmark required pre-Phase B:** Phase A includes a benchmark that asserts `bridgeSnapshotSystem` overhead < 5ms at game-end-state representative size. If realized cost is higher, options (in order of preference): batch the snapshot to every-Nth-tick instead of every tick, reduce `snapshotInterval` for the recorder so misses cost less to recover, pursue engine-side `Map`/`Set` support in setState.
-- **M7 — scrub-UX mitigation in v0.1.6:** frame-coalesced drag promoted from "deferred to v0.1.7" to v0.1.6 scope. Mid-drag the scrubber renders a placeholder; only the final mouseup tick triggers `openAt`. Reverse-step LRU cache stays deferred.
+- **M7 — scrub-UX mitigation in the historical full-v0.1.6 target:** frame-coalesced drag promoted from "deferred" into the scrubber scope. In the implemented split, this ships with v0.1.7 Phase 3C. Mid-drag the scrubber renders a placeholder; only the final mouseup tick triggers `openAt`. Reverse-step LRU cache stays deferred.
 - **L1 — timeline padded:** Phase A budget revised from 1.5 weeks to ~3 weeks, total ~4 weeks.
 
 ---
@@ -531,7 +537,7 @@ The cost is significant — every input handler becomes a command. The user's di
 
 **Coordinated repos:** aoe2 only. No civ-engine changes required.
 
-**Scope:** ship full-fidelity in-game replay scrubbing of any recorded `SessionBundle` — load a bundle (current session, IDB Prior Session, or imported file), navigate to any tick, see the game state exactly as it was recorded (combat, units, economy, fog memory, AI state, all bridge-derived state). Per the user's design decision (2026-04-30), v0.1.6 ships **Option B (full fidelity)**, not the MVP variant — bridge state moves into `world.state` via `setState` so `WorldSnapshot` captures it, and replay perfectly restores it.
+**Current scope:** ship full-fidelity replay in coherent increments. v0.1.6 moved bridge state into `world.state`, shipped schema-2 saves, and added replay-world/controller foundations; v0.1.7 ships the Phase 3C in-game TimelinePanel for already-entered replay mode. Loading bundles from current session / IDB Prior Sessions / imported files and browser scrubber e2e are still Phase 3D/3E follow-up work. Older references below to "full v0.1.6" are historical planning context, not the current release boundary.
 
 **Related primitives (consumed, not modified):**
 - `SessionReplayer.fromBundle(bundle, { worldFactory })` + `openAt(tick)` — civ-engine Spec 1
@@ -539,22 +545,20 @@ The cost is significant — every input handler becomes a command. The user's di
 - `bundleHotspots(bundle)` — civ-engine v0.8.13 (renders as timeline pin icons)
 - `RecordingService` + `IndexedDBMirror` — aoe2 v0.1.5 (already provides Prior Sessions list)
 
-## 1. Goals (v0.1.6)
+## 1. Goals and Version Split
 
-1. **Bridge state lives in `world.state`** (JSON-compatible array form per H3) so every `world.serialize()` snapshot captures the full bridge layer. 35 Tier-1 slots + 3 Tier-3 slots (`VisibilityMap` + `MatchState` + `bridgeMeta`) migrate per the inventory in §3.
-2. **Two-step replay world construction**: `worldFactory(snapshot) => World` (engine-compatible signature) + `makeReplayBridge(world)` (aoe2 helper that rebuilds a bridge over hydrated `world.state.aoe2.*` slots).
-3. **`ReplayController`** owns live-vs-replay mode. Entering replay pauses the live game; loading swaps the renderer's bridge cell to a replay-mode bridge; exiting restores the live bridge.
-4. **`TimelinePanel`** bottom-strip UI with marker pins, hotspot pins (from `bundleHotspots`), draggable scrubber (with frame-coalescing per M7), replay controls (play/pause, step ±1, jump-to-marker, jump-to-tick).
-5. **Three sources of replays**: current live session, IDB Prior Sessions, imported `.json` bundle file.
-6. **Scrubbing UX**: drag scrubber (coalesced to mouseup-tick), click timeline, keyboard arrows / Home / End / Space (play/pause), marker/hotspot pins clickable.
+1. **v0.1.6 shipped foundation:** bridge state lives in `world.state` (JSON-compatible array form per H3), schema-2 saves use complete world snapshots, replay worlds reconstruct from snapshots, and `ReplayController` owns live-vs-replay mode.
+2. **v0.1.7 ships Phase 3C UI:** `TimelinePanel` bottom strip with marker pins, hotspot pins (from `bundleHotspots`), draggable coalesced scrubber, replay controls, tick/source readout, inert no-payload/out-of-range targets, and replay-only keyboard shortcuts.
+3. **Future Phase 3D/3E:** three replay sources (current live session, IDB Prior Sessions, imported `.json` bundle file), replay-mode annotation affordances, and browser scrubber e2e.
 
-## 2. Non-Goals (v0.1.6)
+## 2. Non-Goals (v0.1.7 Phase 3C)
 
 - **No replay-driven authorship.** Read-only navigation; no editing or substituting commands during replay (Spec 5's `forkAt` is the engine surface for that, exposed in a future aoe2 release).
 - **No multi-player replay sync.** Single-player only.
-- **No reverse-step LRU cache.** "Step back 1 tick" is `replayer.openAt(currentTick - 1)`. Optimization deferred to v0.1.7.
+- **No reverse-step LRU cache.** "Step back 1 tick" is `replayer.openAt(currentTick - 1)`. Optimization deferred.
 - **No `.aoebundle` file format.** Imported files are existing `SessionBundle` JSON.
 - **No agent-driven scrubber automation.** Scrubber is the surface; future agent integrations consume it via dispatched browser actions.
+- **No replay-load dialog in Phase 3C.** The timeline is wired for replay mode; user-facing bundle source selection remains Phase 3D.
 
 ## 3. Bridge State Inventory (v2 — corrected)
 
@@ -681,11 +685,11 @@ src/game/replay/                   NEW directory
   ReplayController.ts              NEW — owns live ↔ replay mode toggle, scrub/step/play
   TimelinePanel.ts                 NEW — bottom-strip timeline UI
   ReplayHotkeys.ts                 NEW — Space, ←/→, Home/End, Esc, Alt+T
-  scrubFrameCoalesce.ts            NEW — drag-mouseup-only scrub commit per M7
+  drag coalescing                  IMPLEMENTED inside ReplayController + TimelinePanel; no separate module
 
 src/ui/
-  ReplayLoadDialog.ts              NEW — three-source modal
-  PriorSessionsRow.ts              MOD — adds "Replay" button alongside Export/Discard
+  ReplayLoadDialog.ts              FUTURE Phase 3D — three-source modal
+  PriorSessionsRow.ts              FUTURE Phase 3D — adds "Replay" button alongside Export/Discard
 
 src/app/bootstrap/
   createApp.ts                     MOD — wires ReplayController + TimelinePanel into bridge cell
@@ -699,7 +703,8 @@ tests/
     ReplayController.test.ts       NEW
     TimelinePanel.test.ts          NEW
     replay-equivalence.test.ts     NEW — load(saveAtTickN) ≡ openAt(N)
-    scrubFrameCoalesce.test.ts     NEW
+    ReplayHotkeys.test.ts          NEW
+    coalesced scrub coverage       in ReplayController.test.ts + TimelinePanel.test.ts
   integration/
     replay-scrubber.integration.test.ts  NEW
   saveLoad/
@@ -1198,11 +1203,13 @@ export interface ReplayController {
 
 Bottom-strip overlay (full-width, below the game canvas — does not overlap game). Visible only in replay mode. Hotkey toggle: **Alt+T**.
 
+Implementation note (2026-05-05): the panel is mounted in the HUD root as a fixed bottom strip. While `.timeline-panel:not([hidden])` is present, CSS reserves bottom viewport space for `#game-root` and offsets `.hud-bottom`; desktop and mobile visual checks verify the playfield and bottom HUD do not overlap the panel.
+
 Renders:
 - A horizontal track [0, bundle.metadata.endTick]
 - Draggable scrubber thumb (frame-coalesced per M7)
 - Marker pins (from `bundle.markers`) — colored by category
-- Hotspot pins (from `bundleHotspots(bundle)`) — colored by severity (red high, yellow medium)
+- Hotspot pins (from `bundleHotspots(bundle, { includeMarkers: false })`) — colored by severity (red high, yellow medium)
 - Play/pause button, ±1 step buttons, current/total tick display, exit button
 - Pointer + keyboard input
 
@@ -1695,9 +1702,9 @@ export interface SaveBlobV2 {
 
 **Rationale:** The engine already provides everything we need (Spec 1's `openAt`, Spec 4's BundleViewer if richer navigation is needed, v0.8.13's `bundleHotspots`). Bridge-snapshot is an aoe2-side concern.
 
-### ADR 7 — Three load sources, single Replay action
+### ADR 7 — Three load sources, single Replay action (future Phase 3D)
 
-**Decision:** `ReplayLoadDialog` supports three sources (live current, IDB Prior Session, file import); all resolve to a `SessionBundle` and invoke `replayController.enterReplay(bundle)`. The "Prior Sessions" v0.1.5 panel adds a "Replay" button alongside the existing Export/Discard.
+**Decision:** Future `ReplayLoadDialog` supports three sources (live current, IDB Prior Session, file import); all resolve to a `SessionBundle` and invoke `replayController.enterReplay(bundle)`. The "Prior Sessions" v0.1.5 panel adds a "Replay" button alongside the existing Export/Discard. This is not implemented in v0.1.7 Phase 3C.
 
 **Rationale:** All three sources are useful. Current-session covers "I just had something interesting happen, scrub back." Prior Sessions covers "yesterday's run had a weird bug." File import covers cross-session sharing (agent-recorded bundles).
 
@@ -1707,7 +1714,7 @@ export interface SaveBlobV2 {
 
 **Rationale:** Simple model that preserves the user's session. RecordingService continues observing the live world (via direct binding, not bridge cell), so the live recording isn't corrupted by replay scrubbing.
 
-### ADR 9 — Frame-coalesced drag scrubbing (v0.1.6 scope per M7)
+### ADR 9 — Frame-coalesced drag scrubbing (v0.1.7 Phase 3C scope)
 
 **Decision:** While the user drags the scrubber thumb, `scrubTo(tick, { coalesce: true })` does NOT call `replayer.openAt(tick)` immediately. Instead the panel renders a placeholder ("Scrubbing to tick N…") and only commits the openAt on mouseup. Click-on-track and keyboard navigation always commit immediately.
 
@@ -1762,8 +1769,8 @@ If this passes, the bridge layer reproduces deterministically from `world.state`
 - `makeReplayBridge` rebuilds bridge from `world.state.aoe2.*` slots correctly (matches a freshly-built live bridge structurally).
 - `ReplayController` mode toggling preserves live bridge / world. `play()` reuses cached `replayContext.world` across scheduled frames — calls `submitWithResult` + `world.step()` directly per simulation-tick advance, NOT `replayer.openAt(tick+1)` per frame (per ADR 10). Regression test: spy on `replayer.openAt` and assert it is not called during playback frames after initial entry.
 - `TimelinePanel` renders pins for markers + hotspots; click jumps to tick.
-- `ReplayHotkeys` Space toggles play/pause; arrow keys step ±1; Home/End jump to bounds; Alt+T toggles panel.
-- `scrubFrameCoalesce` mid-drag doesn't fire openAt; mouseup-tick does.
+- `ReplayHotkeys` Space toggles play/pause; arrow keys step ±1; Home/End jump to bounds; Escape exits replay; Alt+T toggles panel only while replay mode is active.
+- Coalesced scrubbing mid-drag doesn't fire `openAt`; change/pointerup commits the pending tick.
 
 **Integration tests** (vitest + jsdom):
 - `replay-equivalence.test.ts` — the determinism invariant above. Runs across multiple game-run shapes (small skirmish, mid-game, late-game with monk conversions and tower combat — to exercise `conversionState` + `buildingCombatStates`).
@@ -1790,7 +1797,7 @@ Realistic costs (per Claude H4 + M6):
 
 - **`scrubTo(tick)` cost**: `replayer.openAt(tick)` from closest snapshot. Worst case (between snapshots, snapshotInterval=1000): up to 1000 `world.step()` calls. At ~0.5ms/step in a sim with no UI, that's ~500ms. **Mitigated for drag** by frame-coalescing (ADR 9). Click and keyboard scrubbing still pay the cost, but the user expects a brief load on those.
 
-## 11. Optimizations deferred to v0.1.7+
+## 11. Optimizations deferred to future replay polish
 
 - **Reverse-step LRU cache**: `stepBackward` is O(replay-from-snapshot); could cache state at each visited tick.
 - **Adaptive snapshot interval**: dynamically increase recorder snapshot frequency for replay-friendly bundles.
@@ -1798,7 +1805,7 @@ Realistic costs (per Claude H4 + M6):
 
 ## 12. Versioning
 
-aoe2: `0.1.5 → 0.1.6` (c-bump per H6 resolution). Rationale: with back-compat for schema-1 SaveBlobs (ADR 4), this is non-breaking from a user-visible perspective. New saves use schema-2; old saves continue to load. Per AGENTS.md, c-bump applies to non-breaking additive changes.
+aoe2: `0.1.5 → 0.1.6` for schema-2 save format (c-bump per H6 resolution), then `0.1.6 → 0.1.7` for the user-visible Phase 3C TimelinePanel. Rationale: with back-compat for schema-1 SaveBlobs (ADR 4), schema-2 is non-breaking from a user-visible perspective; the timeline panel is also a non-breaking additive feature. Per AGENTS.md, c-bump applies to non-breaking additive changes.
 
 civ-engine: unchanged. No engine bump required for v0.1.6.
 
@@ -1809,7 +1816,7 @@ civ-engine: unchanged. No engine bump required for v0.1.6.
 3. **`engineHalted` state during replay**: replay world is isolated; allow replay regardless of live engineHalted.
 4. **Mid-tick replay entry**: not allowed; replay only starts at tick boundaries (live bridge enforces this via `setPaused`).
 5. **Annotation hotkeys disabled in replay**: Alt+M disabled; Alt+L visible but read-only (clicking a marker scrubs to its tick).
-6. **Default snapshot interval for recordings that anticipate replay**: keep current default (1000) for v0.1.6; tune in v0.1.7 if user feedback suggests.
+6. **Default snapshot interval for recordings that anticipate replay**: keep current default (1000); tune in a future replay-polish release if user feedback suggests.
 
 ---
 
@@ -1819,7 +1826,7 @@ civ-engine: unchanged. No engine bump required for v0.1.6.
 2. **Phase B — `createReplayWorldOnly` + `makeReplayBridge`** (~3 days): factory + bridge-construction helper. Tests against live World.
 3. **Phase C — `ReplayController`** (~3 days): mode toggling, bridge swapping, scrub/step/play logic with frame-coalescing. Unit tests.
 4. **Phase D — `TimelinePanel`** (~3 days): bottom-strip UI, marker/hotspot pins, drag scrubber, keyboard shortcuts. Browser tests.
-5. **Phase E — `ReplayLoadDialog`** (~2 days): three-source modal, IDB integration, file import.
-6. **Phase F — Integration + docs** (~3 days): full workflow tests, schema-1 back-compat tests, changelog, devlog, guide updates.
+5. **Future Phase 3D — `ReplayLoadDialog`** (~2 days): three-source modal, IDB integration, file import.
+6. **Future Phase 3E — Integration + docs** (~3 days): full workflow tests, schema-1 back-compat tests, changelog, devlog, guide updates.
 
 Total: ~4 weeks of focused work. Detailed step-by-step in PLAN.md.

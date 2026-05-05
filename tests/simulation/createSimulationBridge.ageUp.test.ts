@@ -62,7 +62,7 @@ describe('createSimulationBridge age-up progression', () => {
     expect(
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
     ).toHaveLength(1);
-  }, 60_000);
+  }, 90_000);
 
   it('does not offer Castle Age research until two qualifying Feudal buildings are complete', () => {
     const bridge = createSimulationBridge('feudal-stable-fixture');

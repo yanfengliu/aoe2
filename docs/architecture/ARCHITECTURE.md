@@ -8,16 +8,23 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
 ## Repository layout
 
 - `src/` — game code (TypeScript)
-  - `app/bootstrap/` — app startup. `installBrowserTestApi(...)` exposes the
-    in-page `window.__AOE2_TEST__` test seam Playwright drives during browser
-    tests; there is no separate dev HTTP server.
+  - `app/bootstrap/` — app startup. `createApp.ts` owns the live/replay bridge
+    cell, mounts the DOM HUD and replay timeline panel, binds replay hotkeys,
+    and calls `replaceBridgeForLoad.ts` so save-load exits replay before
+    swapping the live bridge. `installBrowserTestApi(...)` exposes the in-page
+    `window.__AOE2_TEST__` test seam Playwright drives during browser tests;
+    there is no separate dev HTTP server.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
-      replay bridge, coalesces drag scrubs, steps cached replay worlds by
-      submitting recorded commands before `world.step()`, and restores the live
-      bridge on exit.
+      replay bridge, coalesces drag scrubs, exposes the current replay bundle
+      for UI consumers, steps cached replay worlds by submitting recorded
+      commands before `world.step()`, and restores the live bridge on exit.
+      `TimelinePanel.ts` renders the replay-only bottom strip, marker pins,
+      hotspot pins, and scrub controls against the controller boundary.
+      `ReplayHotkeys.ts` binds replay navigation keys only while replay mode is
+      active.
     - `simulation/` — simulation bridge, scenario setup, command handlers.
       Top-level siblings of `createSimulationBridge.ts` include
       `worldOccupancy.ts` (the `OccupancyBinding` adapter that keeps the

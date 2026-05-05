@@ -23,6 +23,12 @@ import {
   createMarkerListPanel,
   type MarkerListPanel,
 } from '../../ui/annotation/MarkerListPanel';
+import {
+  createReplayController,
+} from '../../game/replay/ReplayController';
+import { createTimelinePanel } from '../../game/replay/TimelinePanel';
+import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
+import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -76,6 +82,16 @@ export async function createApp(): Promise<Phaser.Game> {
   // Both work against the live bridge via bridgeRef indirection.
   const pauseControl = createPauseControl(bridgeRef);
   const hotkeyRegistry = createHotkeyRegistry();
+  const replayController = createReplayController({
+    bridgeCell: {
+      current: () => bridge,
+      replace: (nextBridge) => {
+        bridge = nextBridge;
+        scene.setBridge(nextBridge);
+      },
+    },
+    isLivePaused: () => pauseControl.isPaused(),
+  });
 
   // Spec 2 AO-12 single-flight cell — closure-scoped per design-5 review.
   let _pendingRebuild: Promise<AnnotationStack> | null = null;
@@ -166,8 +182,14 @@ export async function createApp(): Promise<Phaser.Game> {
   }
 
   async function handleLoadGame(blob: SaveBlob): Promise<void> {
-    bridge = createSimulationBridge(seed, { savedGame: blob });
-    scene.setBridge(bridge);
+    replaceLiveBridgeAfterReplayExit({
+      replayController,
+      createBridge: () => createSimulationBridge(seed, { savedGame: blob }),
+      replaceBridge: (nextBridge) => {
+        bridge = nextBridge;
+        scene.setBridge(nextBridge);
+      },
+    });
     // Chain off any in-flight rebuild OR the live stack — whichever is
     // most recent.
     const priorPromise = _pendingRebuild ?? Promise.resolve(stack);
@@ -197,6 +219,8 @@ export async function createApp(): Promise<Phaser.Game> {
     saveGame: () => bridge.saveGame(),
     loadGame: handleLoadGame,
   });
+  const timelinePanel = createTimelinePanel({ controller: replayController });
+  timelinePanel.mount(hudRoot);
 
   // Initial annotation stack. handleLoadGame replaces this cell on bridge swap.
   let stack: AnnotationStack = await chainRebuild(undefined);
@@ -206,6 +230,11 @@ export async function createApp(): Promise<Phaser.Game> {
   // new stack's controller).
   hotkeyRegistry.register({ key: 'm', alt: true }, () => stack.annotationController.onHotkey());
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack.markerListPanel.toggleVisibility());
+  const replayHotkeys = registerReplayHotkeys({
+    hotkeys: hotkeyRegistry,
+    controller: replayController,
+    panel: timelinePanel,
+  });
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -228,6 +257,8 @@ export async function createApp(): Promise<Phaser.Game> {
 
   game.events.on('destroy', () => {
     void stack.dispose();
+    replayHotkeys.dispose();
+    timelinePanel.dispose();
     hotkeyRegistry.dispose();
   });
 

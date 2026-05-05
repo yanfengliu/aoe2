@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SessionReplayer } from 'civ-engine';
 
-import { createReplayController, type ReplayController, type ReplayControllerConfig, type ReplayFrameScheduler } from '../../src/game/replay/ReplayController';
+import {
+  createReplayController,
+  exitReplayBeforeLiveBridgeReplacement,
+  type ReplayController,
+  type ReplayControllerConfig,
+  type ReplayFrameScheduler,
+} from '../../src/game/replay/ReplayController';
 import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
@@ -203,6 +209,37 @@ describe('Phase 3B - ReplayController', () => {
     expect(controller.isPlaying()).toBe(false);
   });
 
+  it('emits the terminal playback tick after clearing playing state', () => {
+    const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
+    const scheduler = createFrameScheduler();
+    const oneTickBundle = {
+      ...bundle,
+      metadata: {
+        ...bundle.metadata,
+        endTick: bundle.metadata.startTick + 1,
+        persistedEndTick: bundle.metadata.startTick + 1,
+        durationTicks: 1,
+      },
+    };
+    const controller = createController({
+      bridgeCell: {
+        current: () => liveBridge,
+        replace: () => undefined,
+      },
+      makeReplayBridge: stubBridge,
+      scheduler,
+    });
+    const playingStates: boolean[] = [];
+    controller.onTickChange(() => playingStates.push(controller.isPlaying()));
+
+    controller.enterReplay(oneTickBundle, oneTickBundle.metadata.startTick);
+    controller.play();
+    scheduler.flushNext();
+
+    expect(controller.currentTick).toBe(oneTickBundle.metadata.endTick);
+    expect(playingStates.at(-1)).toBe(false);
+  });
+
   it('paces playback by simulation tick duration rather than display frame count', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
@@ -394,5 +431,26 @@ describe('Phase 3B - ReplayController', () => {
     expect(bridge.getHudState().seed).toBe('ai-rush-fixture');
     expect(bridge.getRenderState().tick).toBe(tick);
     expect(bridge.getRenderInterpolationAlpha()).toBe(0.42);
+  });
+
+  it('lets host save/load swaps leave replay mode before replacing the live bridge cell', () => {
+    let mode: ReplayController['mode'] = 'replay';
+    const controller: Pick<ReplayController, 'mode' | 'exitReplay'> = {
+      get mode() {
+        return mode;
+      },
+      exitReplay: vi.fn(() => {
+        mode = 'live';
+      }),
+    };
+
+    exitReplayBeforeLiveBridgeReplacement(controller);
+
+    expect(controller.exitReplay).toHaveBeenCalledTimes(1);
+    expect(controller.mode).toBe('live');
+
+    exitReplayBeforeLiveBridgeReplacement(controller);
+
+    expect(controller.exitReplay).toHaveBeenCalledTimes(1);
   });
 });

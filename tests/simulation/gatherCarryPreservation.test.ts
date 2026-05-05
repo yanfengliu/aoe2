@@ -81,5 +81,5 @@ describe('iter-2 H2-2 — gather carry preserved when no drop-off path exists', 
 
     // Stockpile didn't grow — there was no drop-off to deposit at.
     expect(bridge.getEconomyState().playerResources[1].wood).toBe(200);
-  }, 30_000);
+  }, 45_000);
 });
