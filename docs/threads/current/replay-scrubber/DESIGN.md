@@ -1005,7 +1005,7 @@ Recorder snapshots fire AFTER the output phase completes (per `world.ts:1746-176
 
 ### 5.3 `worldFactory` + `makeReplayBridge` (split per BLOCKER fix)
 
-`SessionReplayer.openAt()` calls `worldFactory(snapshot): World` (`session-replayer.ts:242`) and returns ONLY the rebuilt world. But the replay path needs the accessor + visibility cell + matchState that `createReplayWorldOnly` constructed internally — `makeReplayBridge(world)` and `_playState.accessor.reset()` (§5.4) all operate on those instances. v7's solution: a module-level `WeakMap<GameWorld, ReplayWorldContext>` channel.
+`SessionReplayer.openAt()` calls `worldFactory(snapshot): World` (`session-replayer.ts:242`) and returns ONLY the rebuilt world. But the replay path needs the accessor + visibility cell + matchState that `createReplayWorldOnly` constructed internally — `makeReplayBridge(world)` and `ReplayController.play()` cache resets (§5.4) all operate on those instances. v7's solution: a module-level `WeakMap<GameWorld, ReplayWorldContext>` channel.
 
 ```ts
 // src/game/simulation/replayWorldContext.ts (NEW)
@@ -1132,11 +1132,10 @@ export interface ReplayController {
   stepBackward(): void;
   jumpToMarker(markerId: string): void;
 
-  /** Stateful play mode (ADR 10): caches the current replay world+bridge as
-   *  the play state; each requestAnimationFrame submits next-tick recorded
-   *  commands and calls world.step() directly (same algorithm as openAt's
-   *  internal step loop, but per-tick instead of from-snapshot). Returns to
-   *  openAt-from-snapshot only on scrubTo() jumps. */
+  /** Stateful play mode (ADR 10): keeps the current replay world+bridge cached.
+   *  Scheduled frames accumulate elapsed time at TPS, submit recorded commands,
+   *  and call world.step() directly until the accumulator is drained. Returns
+   *  to openAt-from-snapshot only on committed scrubTo() jumps. */
   play(): void;
   pause(): void;
   isPlaying(): boolean;
@@ -1146,23 +1145,24 @@ export interface ReplayController {
 }
 ```
 
-**2026-05-05 implementation note:** `src/game/replay/ReplayController.ts` implements this contract with a `replayContext` cell plus `displayedTick` instead of the earlier private `_currentReplayContext` / `_playState` names used below. `commitPendingScrub()` is the explicit mouseup/drag-end hook for ADR 9: coalesced `scrubTo(tick, { coalesce: true })` updates the displayed tick without rebuilding, and `commitPendingScrub()` or non-coalesced `scrubTo(tick)` performs the `openAt` + bridge replacement. `makeReplayBridge(world)` reads the WeakMap-attached replay API and returns a full read-capable `SimulationBridge`; its scene-frame `step(delta)` intentionally does not advance replay time, so only `ReplayController.play()` calls `world.step()`.
+**2026-05-05 implementation note:** `src/game/replay/ReplayController.ts` implements this contract with a closure-local `replayContext` cell plus `displayedTick`; older `_currentReplayContext` / `_playState` names are historical design-iteration terminology only. `commitPendingScrub()` is the explicit mouseup/drag-end hook for ADR 9: coalesced `scrubTo(tick, { coalesce: true })` updates the displayed tick without rebuilding, and `commitPendingScrub()` or non-coalesced `scrubTo(tick)` performs the `openAt` + bridge replacement. `makeReplayBridge(world)` reads the WeakMap-attached replay API and returns a full read-capable `SimulationBridge`; its scene-frame `step(delta)` intentionally does not advance replay time, so only `ReplayController.play()` calls `world.step()`. Replay entry captures the live pause state before forcing replay pause and restores that exact state on normal exit or failed bridge replacement.
 
 **`enterReplay` flow:**
-1. `liveBridge.setPaused(true)` — pause live game
+1. Capture `priorPaused = isLivePaused()`; replay-controller hosts must provide the live pause-state getter because `SimulationBridge` intentionally has no pause getter
 2. `liveBridge` reference saved in closure
 3. `replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly })`
 4. `const tick = atTick ?? bundle.metadata.startTick;`
 5. `world = replayer.openAt(tick)`
 6. `replayBridge = makeReplayBridge(world)`
-7. `bridgeCell.replace(replayBridge)` — renderer reassigns
-8. **Seed `_currentReplayContext = { world, bridge: replayBridge, accessor: replayBridge.accessor, visibilityCell: replayBridge.visibilityCell, matchState: replayBridge.matchState, tick }`** — same shape as `scrubTo()`'s tail; required so `play()` can spread directly into `_playState` (per v8-deltas — Codex iter-7 MAJOR fix).
-9. emit `onModeChange('replay')`; emit `onTickChange(tick)`
+7. `liveBridge.setPaused(true)` — pause live game immediately before the bridge swap
+8. `bridgeCell.replace(replayBridge)` — renderer reassigns; on failure, restore `priorPaused`
+9. Seed `replayContext = { bundle, replayer, world, bridge: replayBridge, commandsByTick }` and set `displayedTick = tick`; required so `play()` can advance the cached world without reopening snapshots.
+10. emit `onModeChange('replay')`; emit `onTickChange(tick)`
 
 **`exitReplay` flow:**
 1. `replayBridge` discarded (GC)
 2. `bridgeCell.replace(liveBridge)`
-3. `liveBridge.setPaused(false)`
+3. `liveBridge.setPaused(priorPaused)` — restore the live pause state that existed before replay entry
 4. emit `onModeChange('live')`
 
 **`scrubTo(tick)` flow:**
@@ -1170,32 +1170,29 @@ export interface ReplayController {
 2. `world = replayer.openAt(tick)` — replay from closest snapshot. (`openAt` calls our `createReplayWorldOnly` worldFactory under the hood, which attaches `ReplayWorldContext` to the returned world.)
 3. `replayBridge = makeReplayBridge(world)` — bridge reads the WeakMap-attached accessor/cell/matchState
 4. `bridgeCell.replace(replayBridge)` — renderer reassigns
-5. cache the replay context as `_currentReplayContext = { world, bridge: replayBridge, accessor: replayBridge.accessor, visibilityCell: replayBridge.visibilityCell, matchState: replayBridge.matchState, tick }` for `play()` to consume
+5. cache the replay context as `replayContext = { ...current, world, bridge: replayBridge }` and clear `pendingScrubTick`
 6. emit `onTickChange(tick)`
 
 **`play()` flow** (per ADR 10 — stateful playback):
-1. If no `_playState`, snapshot from `_currentReplayContext` → `_playState = { ..._currentReplayContext }` (spread carries world/bridge/accessor/visibilityCell/matchState/tick into play state)
-2. `requestAnimationFrame(_advanceOneFrame)`
+1. Require replay mode and command payloads; bundles without command payloads fail loudly instead of trying to synthesize forward playback.
+2. Set `playing = true`, reset the playback accumulator/last-frame clock, and schedule the next frame.
 
-**`_advanceOneFrame` body:**
-1. Compute `upper = bundle.metadata.incomplete ? bundle.metadata.persistedEndTick : bundle.metadata.endTick`. If `_playState.tick >= upper`: `pause()`; return. (Matches `openAt`'s upper bound at `session-replayer.ts:206` so play and scrub use identical semantics for incomplete bundles.)
-2. Submit recorded commands at `submissionTick === _playState.tick` via `world.submitWithResult(rc.type, rc.data)`. **Defensive parity with `openAt`**: before each submit, check `world.hasCommandHandler(rc.type)` and throw `ReplayHandlerMissingError` if absent (mirrors `session-replayer.ts:247-252`). In normal operation `createReplayWorldOnly` registers all handlers, so this never fires.
-3. Try `world.step()`. On `WorldTickFailureError`: `pause()`; emit error; return.
-4. `_playState.tick = world.tick` — re-read from the world (single source of truth for tick number after step).
-5. `_playState.accessor.reset()` — drop bridge caches so the next render reads the freshly-stepped state.
-6. emit `onTickChange(_playState.tick)`.
-7. `requestAnimationFrame(_advanceOneFrame)` (loop).
+**scheduled frame body:**
+1. Accumulate elapsed frame time in milliseconds at `1000 / TPS`. The first frame starts with one tick of accumulated time so Play advances immediately.
+2. While the accumulator has at least one tick, compute the incomplete-aware upper bound. If the current tick is already at the upper bound, pause and reset the playback clock.
+3. `replayUpperBoundFor(bundle)` folds the first `metadata.failedTicks` entry into the upper bound, so playback stops at the last known-good tick and does not step into a recorded failure boundary.
+4. Submit recorded commands at `submissionTick === currentTick` via `world.submitWithResult(rc.type, rc.data)`. **Defensive parity with `openAt`**: before each submit, check `world.hasCommandHandler(rc.type)` and throw `ReplayHandlerMissingError` if absent (mirrors `session-replayer.ts:247-252`).
+5. Try `world.step()`. Step exceptions propagate through the scheduled frame callback after playback is stopped; `ReplayController` currently exposes mode/tick listeners only, not a replay-error listener.
+6. Re-read `world.tick`, reset the replay accessor cache, update `displayedTick`, emit `onTickChange`, update interpolation alpha from the remaining accumulator, and schedule the next frame if still playing.
 
-**`pause()` flow** (order matters — capture tick BEFORE nulling `_playState`):
+**`pause()` flow:**
 1. cancel pending requestAnimationFrame
-2. `const lastTick = _playState?.tick ?? _currentReplayContext.tick;` — capture played-to tick into a local
-3. `_currentReplayContext = { ..._currentReplayContext, tick: lastTick };` — update context so subsequent `scrubTo`/`play` resumes from where playback ended
-4. `_playState = null;` — null AFTER tick is captured
-5. emit `onPlayChange(false)`
+2. `playing = false`
+3. reset the playback accumulator, last-frame timestamp, and interpolation alpha
 
 **`stepForward()` / `stepBackward()`** call `scrubTo(currentTick ± 1)`. Cheap because adjacent snapshots are usually 1 tick apart in `openAt`'s loop, but worst-case is O(snapshotInterval).
 
-**Note on `_currentReplayContext.world` post-play semantics:** captured as a one-line JSDoc on the `_currentReplayContext.world` field declaration in `ReplayController.ts` rather than tracked here long-term (v10 — Claude iter-9 NIT). Summary: post-`play()`, the field references the played-to world, NOT a fresh `openAt(_currentReplayContext.tick)` result. Subsequent `scrubTo(t)` rebuilds via `openAt(t)`; subsequent `play()` resumes from the same world.
+**Note on `replayContext.world` post-play semantics:** the implementation keeps `replayContext` as a closure cell in `ReplayController.ts`, not as the older `_currentReplayContext` field from earlier design iterations. Post-`play()`, `replayContext.world` references the played-to world, NOT a fresh `openAt(currentTick)` result. Subsequent committed `scrubTo(t)` rebuilds via `openAt(t)`; subsequent `play()` resumes from the same cached world.
 
 ### 5.5 `TimelinePanel` (UI)
 
@@ -1706,7 +1703,7 @@ export interface SaveBlobV2 {
 
 ### ADR 8 — Replay mode pauses live; exit restores
 
-**Decision:** `enterReplay` calls `liveBridge.setPaused(true)`. `exitReplay` reverses. Live World instance is preserved across the replay session.
+**Decision:** `enterReplay` captures the current live pause state, calls `liveBridge.setPaused(true)`, and stores the live bridge. `exitReplay` restores the captured pause state, so a game that was manually paused before replay remains paused after replay exit. Live World instance is preserved across the replay session.
 
 **Rationale:** Simple model that preserves the user's session. RecordingService continues observing the live world (via direct binding, not bridge cell), so the live recording isn't corrupted by replay scrubbing.
 
@@ -1718,16 +1715,16 @@ export interface SaveBlobV2 {
 
 ### ADR 10 — Stateful play() mode caches replay world+bridge across frames
 
-**Decision:** `play()` does NOT call `replayer.openAt(currentTick + 1)` per animation frame. Instead, the controller maintains a `_playState = { world, bridge, accessor, tick }` cell that is initialized from the current scrub context on `play()` entry. Each frame:
-1. Submits recorded commands at `submissionTick === _playState.tick` via `world.submitWithResult(rc.type, rc.data)` — same algorithm as `SessionReplayer.openAt`'s internal step loop.
-2. Calls `world.step()` directly on the cached world.
-3. Calls `accessor.reset()` so bridge caches re-materialize from the freshly-stepped state.
-4. Increments `_playState.tick`.
-5. Schedules the next frame.
+**Decision:** `play()` does NOT call `replayer.openAt(currentTick + 1)` per animation frame. Instead, the controller reuses the `replayContext.world` materialized by `enterReplay()` or the last committed `scrubTo()`, accumulates frame time at `1000 / TPS`, and advances the cached world while the accumulator contains whole ticks:
+1. Submit recorded commands at `submissionTick === replayContext.world.tick` via `world.submitWithResult(rc.type, rc.data)` — same algorithm as `SessionReplayer.openAt`'s internal step loop.
+2. Call `world.step()` directly on the cached world.
+3. Reset the replay accessor from `getReplayWorldContext(world)` so bridge caches re-materialize from freshly-stepped state.
+4. Re-read `world.tick` into `displayedTick`.
+5. Schedule the next frame only if playback is still active.
 
-Returns to `openAt`-from-snapshot only on `scrubTo()` jumps (which clear `_playState` and reset to a fresh world from the closest snapshot).
+Returns to `openAt`-from-snapshot only on committed `scrubTo()` jumps, which replace `replayContext.world` with a fresh world from the closest snapshot. Coalesced scrubs may update `displayedTick` for UI feedback, but failed commits roll display state back to the last committed replay context.
 
-**Rationale:** `replayer.openAt(currentTick + 1)` per frame is O(snapshotInterval) per call. Near tick 999 of a 1000-tick snapshot interval, every frame replays 999 ticks → ~500ms per frame → 2 fps. Stateful play caches the world between frames, paying only one `step()` per advance — same cost as live game. Caveat: this requires us to manually trickle in `bundle.commands` per tick (which is what `openAt` does internally) — the controller pre-builds a `cmdsByTick: Map<number, RecordedCommand[]>` from `bundle.commands` once per `enterReplay`.
+**Rationale:** `replayer.openAt(currentTick + 1)` per frame is O(snapshotInterval) per call. Near tick 999 of a 1000-tick snapshot interval, every frame replays 999 ticks → ~500ms per frame → 2 fps. Stateful play caches the world between frames, paying only one `step()` per simulation-tick advance — same cost as live game. Caveat: this requires us to manually trickle in `bundle.commands` per tick (which is what `openAt` does internally) — the controller pre-builds a `commandsByTick: Map<number, RecordedCommand[]>` from `bundle.commands` once per `enterReplay`.
 
 **Determinism check:** `world.submitWithResult(rc.type, rc.data)` followed by `world.step()` reproduces the exact same execution as the original recording (the engine's command queue + system pipeline are deterministic). Verified by the equivalence invariant in §7.
 
@@ -1763,7 +1760,7 @@ If this passes, the bridge layer reproduces deterministically from `world.state`
 - `bridgeSnapshotPerf.test.ts` — benchmark per M6: assert combined flush cost (`tier3SyncSystem` + `bridgeSnapshotSystem`) stays bounded under representative load. **Two scenarios** (v9 — was Tier-1-only in v7-v8): (1) full-game-end state with all 35 Tier-1 slots populated, < 5 ms/tick; (2) 8-player late-game with full exploration (~30k explored cells/player) for `tier3SyncSystem`'s `visibility.getState()` cost — combined Tier-1 + Tier-3 + recorder sink writes < 5 ms/tick. Also verify the `VisibilityCell` dirty-bit gate skips visibility writes when the cell is not dirty (no setSource since last tick) — establishes the no-mutation idle cost is bounded.
 - `bootstrapFlush.test.ts` — verify `initialSnapshot.state['aoe2.visibility']`, `aoe2.matchState`, `aoe2.bridgeMeta`, plus a sample Tier-1 slot are all populated immediately after `freshGameFlow`/`schema2Flow`/`schema1Flow` returns (i.e., BEFORE any `world.step()`). Equivalence: `replayer.openAt(startTick)` from the resulting bundle reconstructs an equivalent bridge state.
 - `makeReplayBridge` rebuilds bridge from `world.state.aoe2.*` slots correctly (matches a freshly-built live bridge structurally).
-- `ReplayController` mode toggling preserves live bridge / world. `play()` reuses the cached `_playState.world` across frames — calls `submitWithResult` + `world.step()` directly per frame, NOT `replayer.openAt(tick+1)` per frame (per ADR 10). Regression test: spy on `replayer.openAt` and assert it's called at most once per `scrubTo()` / `enterReplay()`, not per animation frame during `play()`.
+- `ReplayController` mode toggling preserves live bridge / world. `play()` reuses cached `replayContext.world` across scheduled frames — calls `submitWithResult` + `world.step()` directly per simulation-tick advance, NOT `replayer.openAt(tick+1)` per frame (per ADR 10). Regression test: spy on `replayer.openAt` and assert it is not called during playback frames after initial entry.
 - `TimelinePanel` renders pins for markers + hotspots; click jumps to tick.
 - `ReplayHotkeys` Space toggles play/pause; arrow keys step ±1; Home/End jump to bounds; Alt+T toggles panel.
 - `scrubFrameCoalesce` mid-drag doesn't fire openAt; mouseup-tick does.

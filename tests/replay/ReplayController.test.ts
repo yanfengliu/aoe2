@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SessionReplayer } from 'civ-engine';
 
-import {
-  createReplayController,
-  type ReplayFrameScheduler,
-} from '../../src/game/replay/ReplayController';
+import { createReplayController, type ReplayController, type ReplayControllerConfig, type ReplayFrameScheduler } from '../../src/game/replay/ReplayController';
 import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
@@ -47,6 +44,20 @@ function stubBridge(world: GameWorld): SimulationBridge {
   } as unknown as SimulationBridge;
 }
 
+function trackPauseState(bridge: SimulationBridge): { isPaused(): boolean } {
+  let paused = false;
+  const setPaused = bridge.setPaused.bind(bridge);
+  bridge.setPaused = vi.fn((next: boolean) => {
+    paused = next;
+    setPaused(next);
+  });
+  return { isPaused: () => paused };
+}
+
+function createController(config: Omit<ReplayControllerConfig, 'isLivePaused'> & Partial<Pick<ReplayControllerConfig, 'isLivePaused'>>): ReplayController {
+  return createReplayController({ isLivePaused: () => false, ...config });
+}
+
 describe('Phase 3B - ReplayController', () => {
   it('enters and exits replay mode by pausing live simulation and replacing the bridge cell', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
@@ -56,7 +67,7 @@ describe('Phase 3B - ReplayController', () => {
     });
     const modeChanges: string[] = [];
     const tickChanges: number[] = [];
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace,
@@ -90,11 +101,36 @@ describe('Phase 3B - ReplayController', () => {
     expect(modeChanges).toEqual(['replay', 'live']);
   });
 
+  it('restores a pre-existing live pause state when exiting replay', () => {
+    const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
+    const pauseState = trackPauseState(liveBridge);
+    liveBridge.setPaused(true);
+    const liveTick = liveBridge.world.tick;
+    let currentBridge: SimulationBridge = liveBridge;
+    const controller = createController({
+      bridgeCell: {
+        current: () => currentBridge,
+        replace: (next) => {
+          currentBridge = next;
+        },
+      },
+      isLivePaused: pauseState.isPaused,
+      makeReplayBridge: stubBridge,
+    });
+
+    controller.enterReplay(bundle, bundle.metadata.startTick);
+    controller.exitReplay();
+    liveBridge.step(1000);
+
+    expect(pauseState.isPaused()).toBe(true);
+    expect(liveBridge.world.tick).toBe(liveTick);
+  });
+
   it('coalesces drag scrubs until a non-coalesced scrub commits the replay world', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
     const makeReplayBridgeSpy = vi.fn(stubBridge);
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -123,7 +159,7 @@ describe('Phase 3B - ReplayController', () => {
   it('does not leave the live bridge paused when replay entry construction fails', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     const liveTick = liveBridge.world.tick;
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => liveBridge,
         replace: () => {},
@@ -144,7 +180,7 @@ describe('Phase 3B - ReplayController', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
     const scheduler = createFrameScheduler();
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -158,10 +194,7 @@ describe('Phase 3B - ReplayController', () => {
     controller.enterReplay(bundle, bundle.metadata.startTick);
     controller.play();
     scheduler.flushNext();
-    const expectedWorld = SessionReplayer.fromBundle(
-      bundle,
-      { worldFactory: createReplayWorldOnly },
-    ).openAt(bundle.metadata.startTick + 1);
+    const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly }).openAt(bundle.metadata.startTick + 1);
 
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
     expect(currentBridge.world.serialize()).toEqual(expectedWorld.serialize());
@@ -174,7 +207,7 @@ describe('Phase 3B - ReplayController', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
     const scheduler = createFrameScheduler();
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -197,6 +230,42 @@ describe('Phase 3B - ReplayController', () => {
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 2);
   });
 
+  it('plays the cached replay world without reopening snapshots per frame', () => {
+    const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
+    let currentBridge: SimulationBridge = liveBridge;
+    const scheduler = createFrameScheduler();
+    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly });
+    const openAtSpy = vi.spyOn(replayer, 'openAt');
+    const fromBundleSpy = vi
+      .spyOn(SessionReplayer, 'fromBundle')
+      .mockReturnValue(replayer as never);
+    try {
+      const controller = createController({
+        bridgeCell: {
+          current: () => currentBridge,
+          replace: (next) => {
+            currentBridge = next;
+          },
+        },
+        makeReplayBridge: stubBridge,
+        scheduler,
+      });
+
+      controller.enterReplay(bundle, bundle.metadata.startTick);
+      expect(openAtSpy).toHaveBeenCalledTimes(1);
+
+      controller.play();
+      scheduler.flushNext(0);
+      scheduler.flushNext(100);
+
+      expect(controller.currentTick).toBe(bundle.metadata.startTick + 2);
+      expect(openAtSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      fromBundleSpy.mockRestore();
+      openAtSpy.mockRestore();
+    }
+  });
+
   it('stops playback before recorded failed ticks', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
@@ -208,7 +277,7 @@ describe('Phase 3B - ReplayController', () => {
         failedTicks: [bundle.metadata.startTick + 2],
       },
     };
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -241,7 +310,7 @@ describe('Phase 3B - ReplayController', () => {
         durationTicks: 1,
       },
     };
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -260,7 +329,7 @@ describe('Phase 3B - ReplayController', () => {
   it('keeps controller methods safe to pass as callbacks', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -284,7 +353,7 @@ describe('Phase 3B - ReplayController', () => {
   it('preserves still-live replay selection across committed scrubs', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => currentBridge,
         replace: (next) => {
@@ -306,7 +375,7 @@ describe('Phase 3B - ReplayController', () => {
 
   it('creates a renderable replay bridge that scene frames cannot advance', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
-    const controller = createReplayController({
+    const controller = createController({
       bridgeCell: {
         current: () => liveBridge,
         replace: () => {},

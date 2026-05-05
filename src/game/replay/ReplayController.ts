@@ -64,6 +64,7 @@ export interface ReplayController {
 
 export interface ReplayControllerConfig {
   bridgeCell: ReplayBridgeCell;
+  isLivePaused: () => boolean;
   worldFactory?: ReplayWorldFactory;
   makeReplayBridge?: ReplayBridgeFactory;
   scheduler?: ReplayFrameScheduler;
@@ -157,6 +158,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
 
   let mode: ReplayMode = 'live';
   let liveBridge: SimulationBridge | null = null;
+  let liveWasPausedBeforeReplay = false;
   let replayContext: ReplayContext | null = null;
   let displayedTick = config.bridgeCell.current().world.tick;
   let pendingScrubTick: number | null = null;
@@ -198,11 +200,12 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     if (selectedRefs.length > 0) {
       bridge.select(selectedRefs);
     }
-    replayContext = { ...current, world, bridge };
+    const nextContext = { ...current, world, bridge };
+    config.bridgeCell.replace(bridge);
+    replayContext = nextContext;
     pendingScrubTick = null;
     displayedTick = targetTick;
     renderInterpolationAlpha = 0;
-    config.bridgeCell.replace(bridge);
     emitTick();
   }
 
@@ -243,7 +246,17 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
 
   function commitPendingScrub(): void {
     if (pendingScrubTick === null) return;
-    openReplayAt(pendingScrubTick);
+    try {
+      openReplayAt(pendingScrubTick);
+    } catch (err) {
+      const context = replayContext;
+      if (context) {
+        pendingScrubTick = null;
+        displayedTick = context.world.tick;
+        emitTick();
+      }
+      throw err;
+    }
   }
 
   function submitRecordedCommands(context: ReplayContext, tick: number): void {
@@ -323,17 +336,18 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     cancelFrame();
     resetPlaybackClock();
     const bridgeToRestore = liveBridge;
-    replayContext = null;
-    pendingScrubTick = null;
-    mode = 'live';
     if (bridgeToRestore) {
       config.bridgeCell.replace(bridgeToRestore);
-      bridgeToRestore.setPaused(false);
+      bridgeToRestore.setPaused(liveWasPausedBeforeReplay);
       displayedTick = bridgeToRestore.world.tick;
     } else {
       displayedTick = config.bridgeCell.current().world.tick;
     }
+    replayContext = null;
+    pendingScrubTick = null;
+    mode = 'live';
     liveBridge = null;
+    liveWasPausedBeforeReplay = false;
     emitMode();
     emitTick();
   }
@@ -372,6 +386,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       }
       resetPlaybackClock();
       const bridgeToRestore = config.bridgeCell.current();
+      const priorPaused = config.isLivePaused();
       const replayer = SessionReplayer.fromBundle(
         bundle,
         { worldFactory },
@@ -390,10 +405,11 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       try {
         config.bridgeCell.replace(bridge);
       } catch (err) {
-        bridgeToRestore.setPaused(false);
+        bridgeToRestore.setPaused(priorPaused);
         throw err;
       }
       liveBridge = bridgeToRestore;
+      liveWasPausedBeforeReplay = priorPaused;
       replayContext = nextContext;
       mode = 'replay';
       pendingScrubTick = null;
