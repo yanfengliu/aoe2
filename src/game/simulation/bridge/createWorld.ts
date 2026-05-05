@@ -39,6 +39,7 @@ export function createWorld(
   seed: string,
   visibility: VisibilityMap,
   savedGame: SaveBlob | undefined,
+  systemMode: 'live' | 'replay' = 'live',
 ): CreateWorldResult {
   // World.deserialize preserves entity ids + generations and restores
   // every component store, so EntityRefs captured by saved side maps
@@ -106,6 +107,7 @@ export function createWorld(
 
   const ops = wireBridgeOps({
     world,
+    systemMode,
     state,
     accessor,
     visibility,

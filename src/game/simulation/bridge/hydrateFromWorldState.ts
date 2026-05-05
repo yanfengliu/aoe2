@@ -29,6 +29,7 @@ import {
   sheepMoveOrdersCodec,
   TIER_1_CODECS,
   TIER_3_SLOTS,
+  type SlotCodec,
   trebuchetPackStatesCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
@@ -131,59 +132,77 @@ export function validateAndPruneHydratedState(deps: RuntimeHydrationDeps): void 
     }
   }
 
-  const pruneOrphanEntityKeys = (sideMap: Map<number, unknown>): void => {
+  const pruneOrphanEntityKeys = (sideMap: Map<number, unknown>): boolean => {
+    let changed = false;
     for (const id of [...sideMap.keys()]) {
       if (!world.getEntityRef(id)) {
         sideMap.delete(id);
+        changed = true;
       }
     }
+    return changed;
   };
 
-  accessor.mutate(unitCommandsCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(sheepMoveOrdersCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(monkTasksCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(conversionStateCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(monkCarriedRelicCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(monkHealCountersCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(relicsInMonasteryCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(wonderCountdownsCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(trebuchetPackStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(productionQueuesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(constructionStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(combatStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(buildingHealthStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(buildingCombatStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(wildlifeStatesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(garrisonedUnitToBuildingCodec, (m) => pruneOrphanEntityKeys(m));
-  accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => pruneOrphanEntityKeys(m));
+  const pruneEntityKeyedSlot = <TValue, TJson>(
+    codec: SlotCodec<Map<number, TValue>, TJson>,
+  ): void => {
+    const sideMap = accessor.get(codec);
+    if (pruneOrphanEntityKeys(sideMap)) accessor.markDirty(codec);
+  };
 
-  accessor.mutate(garrisonedByBuildingCodec, (m) => {
-    for (const [buildingId, list] of m) {
-      const filtered = list.filter((unitId) => world.getEntityRef(unitId) !== null);
-      if (filtered.length !== list.length) {
-        if (filtered.length === 0) {
-          m.delete(buildingId);
-        } else {
-          m.set(buildingId, filtered);
-        }
+  pruneEntityKeyedSlot(unitCommandsCodec);
+  pruneEntityKeyedSlot(sheepMoveOrdersCodec);
+  pruneEntityKeyedSlot(rallyPointsCodec);
+  pruneEntityKeyedSlot(monkTasksCodec);
+  pruneEntityKeyedSlot(conversionStateCodec);
+  pruneEntityKeyedSlot(monkCarriedRelicCodec);
+  pruneEntityKeyedSlot(monkHealCountersCodec);
+  pruneEntityKeyedSlot(relicsInMonasteryCodec);
+  pruneEntityKeyedSlot(wonderCountdownsCodec);
+  pruneEntityKeyedSlot(trebuchetPackStatesCodec);
+  pruneEntityKeyedSlot(productionQueuesCodec);
+  pruneEntityKeyedSlot(constructionStatesCodec);
+  pruneEntityKeyedSlot(combatStatesCodec);
+  pruneEntityKeyedSlot(buildingHealthStatesCodec);
+  pruneEntityKeyedSlot(buildingCombatStatesCodec);
+  pruneEntityKeyedSlot(wildlifeStatesCodec);
+  pruneEntityKeyedSlot(garrisonedUnitVisionSourcesCodec);
+  pruneEntityKeyedSlot(garrisonedByBuildingCodec);
+  pruneEntityKeyedSlot(garrisonedUnitToBuildingCodec);
+  pruneEntityKeyedSlot(gathererDropOffStuckSinceTickCodec);
+
+  const garrisonedByBuilding = accessor.get(garrisonedByBuildingCodec);
+  let garrisonedByBuildingChanged = false;
+  for (const [buildingId, list] of [...garrisonedByBuilding]) {
+    const filtered = list.filter((unitId) => world.getEntityRef(unitId) !== null);
+    if (filtered.length !== list.length) {
+      if (filtered.length === 0) {
+        garrisonedByBuilding.delete(buildingId);
+      } else {
+        garrisonedByBuilding.set(buildingId, filtered);
       }
+      garrisonedByBuildingChanged = true;
     }
-  });
-  accessor.mutate(garrisonedUnitToBuildingCodec, (m) => {
-    for (const [unitId, buildingId] of [...m]) {
-      if (world.getEntityRef(buildingId) === null) {
-        m.delete(unitId);
-      }
+  }
+  if (garrisonedByBuildingChanged) accessor.markDirty(garrisonedByBuildingCodec);
+
+  const garrisonedUnitToBuilding = accessor.get(garrisonedUnitToBuildingCodec);
+  let garrisonedUnitToBuildingChanged = false;
+  for (const [unitId, buildingId] of [...garrisonedUnitToBuilding]) {
+    if (world.getEntityRef(buildingId) === null) {
+      garrisonedUnitToBuilding.delete(unitId);
+      garrisonedUnitToBuildingChanged = true;
     }
-  });
-  accessor.mutate(monkCarriedRelicCodec, (m) => {
-    for (const [monkId, relicId] of [...m]) {
-      if (world.getEntityRef(relicId) === null) {
-        m.delete(monkId);
-      }
+  }
+  if (garrisonedUnitToBuildingChanged) accessor.markDirty(garrisonedUnitToBuildingCodec);
+
+  const monkCarriedRelic = accessor.get(monkCarriedRelicCodec);
+  let monkCarriedRelicChanged = false;
+  for (const [monkId, relicId] of [...monkCarriedRelic]) {
+    if (world.getEntityRef(relicId) === null) {
+      monkCarriedRelic.delete(monkId);
+      monkCarriedRelicChanged = true;
     }
-  });
+  }
+  if (monkCarriedRelicChanged) accessor.markDirty(monkCarriedRelicCodec);
 }

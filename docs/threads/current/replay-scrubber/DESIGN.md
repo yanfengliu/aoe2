@@ -1,6 +1,8 @@
 # Replay Scrubber + Bridge-Snapshot — Design Spec
 
-**Status:** Draft v17 (2026-04-30). aoe2 v0.1.6 ships the FULL feature: commandify aoe2 input + AI intention dispatcher + bridge-state migration + replay scrubber UI. The user chose option A (commandify) over deferral — AI-native architectural correctness over implementation cost.
+**Status:** Draft v18 (2026-05-05). aoe2 v0.1.6 ships the FULL feature: commandify aoe2 input + AI intention dispatcher + bridge-state migration + replay scrubber UI. The user chose option A (commandify) over deferral — AI-native architectural correctness over implementation cost.
+
+**v18 deltas vs v17:** Phase 3A implementation found that `prototypeAi` is not yet a pure no-op-safe replay stub because it still owns replay-visible AI bookkeeping (`aiStates.lastDecisionTick`, `attackGroup`, and villager desired-resource rebalance) in addition to command-intention emission. Replay therefore registers `prototypeAi` and `prototypeAutoAggression` with real intention emitters into the replay world's bridge-owned pending queue: recorded command payloads still drive execution, while AI-decision systems reproduce the serialized `aoe2.pendingCommands` boundary state. Phase 3A also adds a replay-only pending drain before AI systems run so hydrated pending queues from snapshots do not leak into later ticks, and tightens schema-2 hydration so replay construction does not materialize absent empty Tier-1 slots while validating/pruning hydrated state. The regression coverage is `tests/replay/roundTripViaCommands.test.ts` and `tests/replay/validatorReplayConsistency.test.ts`.
 
 **v17 deltas vs v16:** addresses iter-16 convergence review (Codex 2 BLOCKERs + 1 MAJOR; Claude 2 MAJORs + 1 MINOR — all are stale-example-code accuracy issues against ground truth, no architectural changes).
 
@@ -105,7 +107,7 @@
 
 - **MINOR (Claude — `monkBehaviorSystem` split naming):** v15 §6.6 spells out: resolution-half keeps `'prototypeMonkBehavior'` (because `relicGoldSystem.ts:19` declares `after: ['prototypeMonkBehavior']` and reads relic-carrier state mutated by the resolution half). Decision-half gets new name `'prototypeMonkBehaviorDecision'`.
 
-- **MINOR (Claude — PLAN Phase 1A "no behavior change" inaccurate):** v15 PLAN softens to "No gameplay behavior change yet; game-loop structure adds an empty-queue dispatcher call after each `world.step()`."
+- **MINOR (Claude — PLAN Phase 1A "no behavior change" inaccurate):** v15 PLAN softens to "No gameplay behavior change yet; game-loop structure adds an empty-queue dispatcher call before each `world.step()`."
 
 - **NIT (Claude — `BuildingActionType` naming):** today `types.ts:122` exports `ActionType = 'ungarrison'`. v15 PLAN Phase 1B step 13 renames `ActionType` → `BuildingActionType` (back-compat alias optional). DESIGN §6.1 references `BuildingActionType` directly.
 
@@ -117,7 +119,7 @@
 
   v14 introduces the **intention/dispatcher pattern**:
   1. AI-decision systems run in `update` phase as before. They write "intentions" into a `pendingCommands` queue (ordinary bridge state — a per-player array).
-  2. After `world.step()` returns, the aoe2 game loop calls `dispatcher.drainPendingCommands(world)` which reads the queue and calls `world.submit(...)` for each entry. This happens BETWEEN ticks (outside `world.step`).
+  2. Immediately before the next `world.step()`, the aoe2 bridge loop calls `dispatcher.drainPendingCommands(world)` which reads the queue and calls `world.submit(...)` for each entry. This happens BETWEEN ticks (outside `world.step`) and lets saves/snapshots taken after the decision tick preserve the one-tick pending-command window.
   3. Recorder captures these as commands with `submissionTick = K` (post-step world.tick); they process at start of step K+1.
   4. Replay's `openAt` re-applies recorded commands at the SAME between-step boundary; AI systems are disabled in replay (no double-submission, no offset).
 
@@ -125,8 +127,8 @@
   ```ts
   // Live game loop:
   function gameLoop() {
+    dispatcher.drainPendingCommands(world); // submits prior-step intentions; recorder captures
     world.step();                          // AI writes pendingCommands intentions
-    dispatcher.drainPendingCommands(world); // submits each intention; recorder captures
     // ... rendering ...
     requestAnimationFrame(gameLoop);
   }
@@ -174,7 +176,7 @@
 
   Total command types: **15** (was 14 in v13 — heading reads "15 types" now).
 
-- **MINOR (validator state-dependent rejections):** validators run on every `submitWithResult` including replayer's resubmissions. If a validator reads bridge state that depends on Phase-2 codec output not yet wired correctly, OR depends on AI re-decisions that were disabled, it can reject in replay where it accepted in live → silent divergence. v14 adds Phase 3 regression test asserting `submitWithResult` results during `openAt`-replay match the recorded `RecordedExecution` byte-for-byte.
+- **MINOR (validator state-dependent rejections):** validators run on every `submitWithResult` including replayer's resubmissions. If a validator reads bridge state that depends on Phase-2 codec output not yet wired correctly, OR depends on AI decision boundary state not reproduced in replay, it can reject in replay where it accepted in live → silent divergence. v14 adds Phase 3 regression coverage: the initial-snapshot command stream checks `submitWithResult` results and executions exactly, while closest-snapshot replay paths use structural `openAt` equality because civ-engine snapshots intentionally do not carry `nextCommandResultSequence`.
 
 - **MINOR (UX rejection messages):** today `enqueueRejection('Not enough food.')` strings; after commandify, validators return code/message tuples. v14 §6.3 spells out: bridge facade translates validator codes back to existing strings via `formatRejectionReason(code, data)` helper; toast UX preserved.
 
@@ -1539,7 +1541,7 @@ After each command lands, the corresponding bridge method's body becomes a thin 
      pendingCommands.push({ type: 'unit.move', data: { unitId, target } });
    }
    ```
-2. After `world.step()` returns, the aoe2 game loop calls a between-step **dispatcher**:
+2. Before the next `world.step()`, the aoe2 game loop calls a between-step **dispatcher**:
    ```ts
    // src/game/simulation/dispatcher.ts (NEW v14)
    export function drainPendingCommands(world: GameWorld, queue: PendingCommandsQueue): void {
@@ -1550,13 +1552,13 @@ After each command lands, the corresponding bridge method's body becomes a thin 
    }
    ```
 3. Recorder captures these submissions with `submissionTick = K` (post-step value); they process at start of step K+1 — same boundary as live.
-4. Replay disables AI-decision systems entirely; recorded commands re-apply at the same boundary; resolution systems run identically.
+4. Replay re-applies recorded commands at the same boundary for execution. Replay-mode AI-decision systems may still repopulate `pendingCommands` as serialized boundary state, but the replay-only drain clears hydrated/stale queue entries before those systems run and no dispatcher submits those replay-generated pending entries.
 
 ```ts
-// Live game loop (in createApp.ts main tick handler):
+// Live bridge loop (in createSimulationBridge.ts):
 function tick() {
+  drainPendingCommands(world, pendingCommands);    // submits prior-step intentions; recorder captures
   world.step();                                    // AI writes pendingCommands intentions
-  drainPendingCommands(world, pendingCommands);    // submits each; recorder captures
   // ... rendering, UI updates ...
   requestAnimationFrame(tick);
 }
@@ -1606,7 +1608,7 @@ Deterministic-resolution systems (movement, combat resolution, visibility, fog m
 
 `wireReplaySystems` registers:
 - All "deterministic resolution" systems (real registrations).
-- All "AI-decision" systems as **stub no-op registrations** under the same names (`prototypeAi`, `prototypeAutoAggression`, etc.) — v14 M3 fix. This satisfies cross-system `before`/`after` constraint references without firing AI logic.
+- Replay-safe "AI-decision" registrations under the same names — v14 M3 fix plus v18 bookkeeping correction. `prototypeAi` and `prototypeAutoAggression` run with real intention emitters into the replay world's bridge-owned `pendingCommands` queue. A replay-only pending drain clears hydrated or prior-step pending entries before those decision systems run; recorded command payloads submitted by `SessionReplayer.openAt` remain the only source of command execution. This satisfies cross-system `before`/`after` constraint references without double-submitting AI command payloads, and it preserves serialized pending-command state when `openAt(t)` lands exactly on an AI-decision boundary.
 
 `wireBridgeOps` (live) registers all systems normally.
 

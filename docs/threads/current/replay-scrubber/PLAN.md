@@ -30,15 +30,15 @@ Each commit lands on `main` per AGENTS.md. Multi-CLI review on every commit.
 - `src/game/simulation/bridge/pureHelpers.ts` (MOD) — replace `GameCommands = Record<string, never>` with import from `commands.ts`.
 - `src/game/simulation/handlers/` (NEW DIR) — placeholder per-command validator + handler file pairs (will fill incrementally in Phase 1B).
 - `src/game/simulation/bridge/registerCommandHandlers.ts` (NEW) — `registerCommandHandlers(world, deps)` calls `world.registerValidator(type, validator)` and `world.registerHandler(type, handler)` for each command. Initially empty; each pair registered as it lands.
-- `src/game/simulation/dispatcher.ts` (NEW v14) — `drainPendingCommands(world, queue)` reads pendingCommands intentions and submits via `world.submitWithResult`. Called by main game loop AFTER each `world.step()`.
+- `src/game/simulation/dispatcher.ts` (NEW v14) — `drainPendingCommands(world, queue)` reads pendingCommands intentions and submits via `world.submitWithResult`. Called by the bridge loop immediately BEFORE the next `world.step()`, after the prior step has queued intentions.
 - `src/game/simulation/bridge/wireBridgeOps.ts` (MOD) — call `registerCommandHandlers(world, ...)` after `registerBridgeSystems`. Add `pendingCommands` queue to bridge state.
-- `src/app/bootstrap/createApp.ts` (MOD) — main game-loop tick calls `dispatcher.drainPendingCommands(world, pendingCommands)` after `world.step()`.
+- `src/game/simulation/createSimulationBridge.ts` (MOD) — main game-loop tick calls `dispatcher.drainPendingCommands(world, pendingCommands)` before each `world.step()`.
 
 **Tests:**
 - `tests/commands/commandSurface.test.ts` — sanity: `world.hasCommandHandler('unit.move')` returns true after wireBridgeOps. Submit a command of unknown type — verify ground-truth behavior (queues, then fails at command processing with `missing_handler` per `world.ts:1774`; NOT a synchronous throw at submit time).
 - `tests/commands/dispatcher.test.ts` — push intentions to queue, call drainPendingCommands, verify submitWithResult was called for each entry, queue is empty afterward.
 
-**No gameplay behavior change yet** — game-loop structure adds an empty-queue dispatcher call after each `world.step()` (no-op until Phase 1B/1C). Plan-stage deliverable: cross-system call-site audit table (every `issueXCommand` call site classified as "external-input → facade" vs "deterministic-system → direct helper" per DESIGN v15 §6.4 B1 fix).
+**No gameplay behavior change yet** — game-loop structure adds an empty-queue dispatcher call before each `world.step()` (no-op until Phase 1B/1C). Plan-stage deliverable: cross-system call-site audit table (every `issueXCommand` call site classified as "external-input → facade" vs "deterministic-system → direct helper" per DESIGN v15 §6.4 B1 fix).
 
 ### Phase 1B — Migrate per-command (one commit per command)
 
@@ -66,10 +66,10 @@ For each of the 15 commands in DESIGN §6.1, in this order:
 4. **Cross-system call-site sweep** (v15 B1 fix): for the underlying ops module's primary mutation function, identify every existing call site:
    - **External-input call sites** (HUD, hotkey, AI dispatcher): switch to `world.submitWithResult('cmd.type', data)`. Translate validator code/message to existing toast string via `formatRejectionReason`.
    - **Deterministic-system call sites** (e.g., productionQueueSystem rally): switch to a new `setXCommandDirect(...)` private helper. Helper mirrors the full facade behavior (e.g., `setUnitMoveCommandDirect` calls `clearGathererOrder(unitId)`, clears the accessor-backed `monkTasksCodec` entry when present, and then applies `unitCommands.set(...)`) to avoid silently-broken state when called from non-spawn contexts.
-5. Update AI-decision systems (per §6.6) that previously mutated this state directly: instead of mutating, push an intention to `pendingCommands` queue. Dispatcher submits AFTER step.
+5. Update AI-decision systems (per §6.6) that previously mutated this state directly: instead of mutating, push an intention to `pendingCommands` queue. Dispatcher submits immediately before the next step.
 6. Tests:
    - Human input path: bridge method called → validator passes → submit → recorded. Handler runs at next step start → state mutated.
-   - AI intention path: AI system pushes intention → step ends → dispatcher drains → submit → recorded. Handler runs at next step start.
+   - AI intention path: AI system pushes intention during a step → next bridge tick drains before `world.step()` → submit → recorded. Handler runs at that next step's command-processing start.
    - Rejection path: invalid input (e.g., dead unit) → validator returns `{code, message}` → recorder captures `RejectionResult`. Bridge facade's `formatRejectionReason` produces the original toast string.
    - **Batched-same-frame regression** (v15 B2 fix): for `queue.train`, `queue.research`, `market.action`, `building.placeConfirm`: submit N commands in same frame whose total cost exceeds player resources. Verify exactly K (the affordable count) succeeded; remaining handlers silent-no-opped.
    - **Helper-vs-facade parity**: deterministic-system path through `setXCommandDirect` produces structurally identical state to facade path through `submitWithResult` for the same input.
@@ -138,16 +138,20 @@ Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, 
 
 Per DESIGN §5.3. `wireReplaySystems` registers:
 - All deterministic-resolution systems (real registrations).
-- All AI-decision systems as **stub no-op registrations** under the same names (M3 fix — preserves constraint references like `autoAggressionSystem.after = ['prototypeAi']`).
+- Replay-safe AI-decision registrations under the same names (M3 fix — preserves constraint references like `autoAggressionSystem.after = ['prototypeAi']`). `prototypeAi` and `prototypeAutoAggression` run with real intention emitters into the replay world’s bridge-owned `pendingCommands` queue. The replay-only pending drain clears hydrated or prior-step pending intentions before those systems run, while `SessionReplayer`'s recorded command payloads remain the only source of actual command execution.
 - ALL command handlers + validators via `registerCommandHandlers` (M2 fix — `session-replayer.ts:247` throws `ReplayHandlerMissingError` if missing).
 
 WeakMap context channel for accessor/cell/matchState sharing.
 
+2026-05-05 status: closed. `createReplayWorldOnly(snapshot)` wraps schema-2 world snapshots, builds a replay-mode bridge world, registers all command handlers, keeps deterministic systems real, stores replay context in a WeakMap, preserves pending-command boundary state in replay, and avoids schema-2 hydration materializing absent empty Tier-1 slots during replay construction.
+
 ### Phase 3A.5 — Round-trip equivalence test (deferred from Phase 1C — B3 fix)
 
-`tests/replay/round-trip-via-commands.test.ts` — run a 100-tick fresh game with a mix of human + AI inputs (commands recorded, bridge state in world.state.aoe2.* via Phase 2 migration). Capture the bundle. Open `replayer.openAt(100)` → reconstructs world. Assert structural equality between live world and replay world.
+`tests/replay/roundTripViaCommands.test.ts` — run fresh games with a mix of human + AI inputs (commands recorded, bridge state in world.state.aoe2.* via Phase 2 migration). Capture the bundle. Open `replayer.openAt(targetTick)` → reconstructs world. Assert structural equality between live world and replay world, including an AI pending-command boundary tick and a closest-snapshot path that starts from a snapshot containing `aoe2.pendingCommands`.
 
-Plus `tests/replay/validator-replay-consistency.test.ts` (m2 fix) — for every recorded `RecordedExecution`, replay's `submitWithResult` returns a result matching the recorded one byte-for-byte. Catches state-dependent validator divergence.
+Plus `tests/replay/validatorReplayConsistency.test.ts` (M2 fix) — from the initial snapshot path, every recorded command is re-submitted and replay's `submitWithResult` result plus execution stream must match the recording. This catches state-dependent validator divergence on the full command stream; mid-bundle snapshot paths intentionally rely on structural replay checks because civ-engine snapshots do not carry `nextCommandResultSequence`.
+
+2026-05-05 status: closed for the Phase 3A/A.5 foundation. `tests/replay/roundTripViaCommands.test.ts` records from the initial snapshot only (`terminalSnapshot: false`, no periodic snapshots), includes both a human `unit.move` and AI-recorded commands, verifies `SessionReplayer.openAt(endTick)` structurally equals the live world, verifies an AI-decision boundary tick still reconstructs pending commands, and verifies replay clears stale hydrated pending commands when advancing from a pending snapshot. `tests/replay/validatorReplayConsistency.test.ts` re-submits every recorded command from the initial snapshot path and checks the synchronous validation result and execution stream exactly.
 
 ### Phase 3B — `ReplayController` (mode toggle, scrubTo, play, pause, step)
 
@@ -192,8 +196,8 @@ Deferred to v0.1.7+:
 
 v0.1.6 ships when:
 - Migration equivalence test (Phase 2G) passes: every Tier-1 + Tier-3 slot round-trips through serialize/applySnapshot.
-- Round-trip-via-commands test (Phase 3A.5) passes: live game with human + AI inputs replayable via `openAt` to structurally equal end state.
-- Validator-replay-consistency test (Phase 3A.5) passes: replay's `submitWithResult` results match recorded `RecordedExecution` byte-for-byte.
+- Round-trip-via-commands test (Phase 3A.5) passes: live game with human + AI inputs replayable via `openAt` to structurally equal end state, including pending-command boundary and pending-snapshot replay paths.
+- Validator-replay-consistency test (Phase 3A.5) passes: initial-snapshot replay's `submitWithResult` results and command executions match the recorded stream.
 - Scrubber e2e test (Phase 3E) passes: drag scrubber works in browser.
 - All four gates green: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
 - Multi-CLI review on the final commit returns ACCEPT.

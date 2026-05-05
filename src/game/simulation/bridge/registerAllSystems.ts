@@ -28,6 +28,7 @@ import { registerWonderCountdownSystem } from './systems/wonderCountdownSystem';
 export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   const {
     world,
+    systemMode = 'live',
     humanPlayerId,
     visibility,
     defaultRelicCountdownTicks,
@@ -126,6 +127,10 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkConvertProcessedThisTick,
     monksByOwner,
   } = state;
+
+  if (systemMode === 'replay') {
+    registerReplayPendingCommandDrainSystem(world, pendingCommands);
+  }
 
   registerAiSystem({
     world,
@@ -326,5 +331,19 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     accessor,
     isMatchRunning,
     finalizeMatchEnd,
+  });
+}
+
+function registerReplayPendingCommandDrainSystem(
+  world: RegisterAllSystemsDeps['world'],
+  pendingCommands: RegisterAllSystemsDeps['pendingCommands'],
+): void {
+  world.registerSystem({
+    name: 'aoe2ReplayPendingCommandDrain',
+    phase: 'update',
+    before: ['prototypeAi'],
+    execute() {
+      pendingCommands.length = 0;
+    },
   });
 }

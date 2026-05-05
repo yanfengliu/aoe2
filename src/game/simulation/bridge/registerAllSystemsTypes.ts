@@ -36,6 +36,7 @@ interface PlayerScoreCountersLike {
 
 export interface RegisterAllSystemsDeps {
   world: GameWorld;
+  systemMode?: 'live' | 'replay';
   humanPlayerId: number;
   visibility: VisibilityMap;
   defaultRelicCountdownTicks: number;

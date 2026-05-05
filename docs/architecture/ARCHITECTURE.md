@@ -25,7 +25,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       `drainPendingCommands(world, queue)` between-step helper that
       submits AI-decision intentions via `world.submitWithResult` immediately
       before the next tick, including persisted AI monk `monk.contextAtEntity`
-      task intentions).
+      task intentions). `replay/` contains the Phase 3A replay-world helpers:
+      `createReplayWorldOnly(snapshot)` builds a replay-mode bridge world for
+      `SessionReplayer.openAt`, while `replayWorldContext.ts` stores the
+      accessor, visibility cell, match state, and pending-command queue in a
+      WeakMap keyed by replay `World`.
       - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 
         Boot/orchestration tier:
@@ -33,10 +37,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         - `wireBridgeOps.ts` — pre-seed factory wiring (entity-create/destroy ops, target finding, technology, match-end, etc.) and the call into `seedFreshScenario` (skipped on save-load). Constructs the Phase 2A `BridgeStateAccessor` + `VisibilityCell` near the top so all downstream factories can consume them, and the Phase 2E `visibilityFingerprints` Map shared between the bootstrap call and the per-tick visibilitySystem.
         - `wirePostSeedOps.ts` — post-seed factory wiring (visibility queries, selection input, training/market, monk tasks, AI decision, unit command).
         - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems`; calls the Phase 2C `bootstrapFlush` that populates the three Tier-3 slots once at construction; calls `registerOutputTail` so `tier3SyncSystem` + `bridgeSnapshotSystem` run at the end of every output phase; and creates the post-register input ops (placement, save, economy state, human input).
-        - `registerAllSystems.ts` — bundles all 18 ECS system registrations + the 4 Tier-1 codec accessors threaded through them.
+        - `registerAllSystems.ts` — bundles all 18 ECS system registrations + the 4 Tier-1 codec accessors threaded through them. In replay mode it keeps deterministic systems real, runs replay-safe AI-decision systems with real intention emitters into the replay-only pending queue, and registers `aoe2ReplayPendingCommandDrain` before `prototypeAi` so hydrated pending snapshots do not leak while AI-decision boundary state can still be reproduced.
         - `bootstrapFlush.ts` — once-at-construction writer for `aoe2.bridgeMeta` / `aoe2.matchState` / `aoe2.visibility` / `aoe2.pendingCommands` so snapshots taken before tick 1 are complete.
         - `assembleBridgeApi.ts` — composes the `SimulationBridge` public surface from the ops + state.
-        - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts`, `hydrateFromWorldState.ts` — fresh-scenario seeding, schema-1 side-map hydration, and schema-2 world-state hydration. Schema-1 hydrate treats legacy `SaveBlob.sideMaps` as authoritative, while schema-2 hydrate reads pending commands and runtime cache rebuild inputs from `worldSnapshot.state.aoe2.*`. Both paths enforce the garrison cross-ref invariant and entity-id orphan pruning before the bridge resumes.
+        - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts`, `hydrateFromWorldState.ts` — fresh-scenario seeding, schema-1 side-map hydration, and schema-2 world-state hydration. Schema-1 hydrate treats legacy `SaveBlob.sideMaps` as authoritative, while schema-2 hydrate reads pending commands and runtime cache rebuild inputs from `worldSnapshot.state.aoe2.*`. Both paths enforce the garrison cross-ref invariant and entity-id orphan pruning before the bridge resumes; schema-2 pruning only flushes slots that actually changed so replay construction does not add absent empty Tier-1 state keys.
 
         State + types tier:
         - `bridgeState.ts` — single `createBridgeState()` factory that owns bridge-only runtime caches and side maps that are intentionally not Tier-1 serialized state (`movePathCache`, `monksByOwner`, `monkConvertProcessedThisTick`, `pendingCommands`). Phase 2D moved the Tier-1 codec slots, including `monkTasks` and `unitCommands`, into `world.state.aoe2.<slot>` through `BridgeStateAccessor.mutate(codec, ...)`; Phase 2F persists `pendingCommands` through `aoe2.pendingCommands` at save time so AI intentions queued between ticks survive schema-2 save/load.

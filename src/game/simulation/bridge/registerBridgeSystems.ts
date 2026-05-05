@@ -37,6 +37,7 @@ type RegisterAllSystemsArg = Parameters<typeof registerAllSystems>[0];
 
 export interface RegisterBridgeSystemsDeps {
   world: GameWorld;
+  systemMode?: RegisterAllSystemsArg['systemMode'];
   state: BridgeState;
   visibility: VisibilityMap;
   matchState: MatchState;
@@ -126,6 +127,7 @@ export function registerBridgeSystems(
 ): RegisterBridgeSystemsResult {
   const {
     world,
+    systemMode,
     state,
     visibility,
     matchState,
@@ -202,6 +204,7 @@ export function registerBridgeSystems(
     ...transformOps,
     ...matchEndOps,
     world,
+    systemMode,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,

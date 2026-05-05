@@ -203,3 +203,19 @@ Consequences:
 - Existing schema-1 user saves continue to load through `hydrateFromSavedGame`.
 - `pendingCommands` is not a Tier-1 codec, but it is persisted through `aoe2.pendingCommands` so a save or recorder snapshot between AI decision and dispatcher drain does not drop queued intentions.
 - `SaveBlob` is now a discriminated union (`SaveBlobV1 | SaveBlobV2`), and callers that inspect legacy fields must narrow to schema 1 first.
+
+## KAD-0012 - Replay worlds reuse bridge wiring with replay-safe AI bookkeeping
+
+Date: 2026-05-05.
+Status: Active.
+
+Context: Phase 3A needs `SessionReplayer.openAt` to reconstruct aoe2 worlds from `world.serialize()` snapshots plus recorded command payloads. DESIGN v17 expected all AI-decision systems to be no-op stubs in replay, but the implementation check found `prototypeAi` still mutates replay-visible state that is not command payload: `aiStates.lastDecisionTick`, attack-group bookkeeping, and villager desired-resource rebalance. Review also found that `aoe2.pendingCommands` is serialized boundary state: if `openAt(t)` lands immediately after an AI-decision tick, the live snapshot contains intentions that will be submitted at tick `t`, while the recorded command payloads at `t` are not replayed until advancing to `t + 1`.
+
+Decision: replay worlds are built through the same bridge wiring as live schema-2 load, but `registerAllSystems` accepts a replay mode. Deterministic systems remain real. `prototypeAi` and `prototypeAutoAggression` are registered in replay with real intention emitters into the replay world's bridge-owned `pendingCommands` queue, so replay-visible AI bookkeeping and pending-command boundary state reproduce without submitting those intentions. A replay-only `aoe2ReplayPendingCommandDrain` runs before `prototypeAi` during replay steps to clear hydrated or prior-step pending entries; `SessionReplayer.openAt` recorded command payloads remain the only source of command execution. `createReplayWorldOnly(snapshot)` wraps the snapshot as a schema-2 load and stores replay context in a WeakMap keyed by world for later replay-controller bridge construction.
+
+Consequences:
+- `SessionReplayer.openAt(endTick)` can replay from the initial snapshot only and reach structural equality with a live run that includes human and AI commands.
+- `SessionReplayer.openAt(t)` can also land on an AI pending-command boundary and reconstruct the serialized `aoe2.pendingCommands` queue for that target tick.
+- Replay does not double-submit AI `unit.move`, `unit.attack`, queue, research, construction, or monk-context intentions because replay-generated pending entries are never dispatched.
+- Schema-2 hydration pruning only marks slots dirty when it actually removes stale entity references; replay construction no longer materializes absent empty Tier-1 state keys.
+- The remaining architectural debt is that `prototypeAi` is not yet a pure command-emitting decision system. A future cleanup can commandify or isolate AI bookkeeping, then simplify replay mode back toward pure stubs.

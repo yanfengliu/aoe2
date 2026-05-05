@@ -2,12 +2,7 @@ import type { Position } from 'civ-engine';
 
 import { buildingFootprint, currentEntityId } from './pureHelpers';
 import { hasPendingUnitCommand } from './pendingCommandQuery';
-import type {
-  BuildableBuildingType,
-  ResearchableTechnologyType,
-  TrainableUnitType,
-  UnitTaskState,
-} from '../types';
+import type { BuildableBuildingType, ResearchableTechnologyType, TrainableUnitType, UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
@@ -30,11 +25,8 @@ import { registerOutputTail } from './registerOutputTail';
 import { VisibilityCell } from './visibilityCell';
 import { bootstrapFlush } from './bootstrapFlush';
 import { wirePostSeedOps } from './wirePostSeedOps';
-import {
-  HUMAN_PLAYER_ID,
-  MAP_HEIGHT,
-  MAP_WIDTH,
-} from '../prototypeScenario';
+import { setReplayWorldContext } from '../replay/replayWorldContext';
+import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import {
   MARKET_FEE_RATE,
   MARKET_TRANSACTION_AMOUNT,
@@ -44,14 +36,12 @@ import {
 } from './bridgeConstants';
 
 export type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
-import type {
-  WireBridgeOpsDeps,
-  WireBridgeOpsResult,
-} from './wireBridgeOpsTypes';
+import type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
 
 export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
     world,
+    systemMode = 'live',
     state,
     accessor,
     visibility,
@@ -382,6 +372,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
 
   const finalize = registerBridgeSystems({
     world,
+    systemMode,
     state,
     visibility,
     matchState,
@@ -579,6 +570,10 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
   });
+
+  if (systemMode === 'replay') {
+    setReplayWorldContext(world, { accessor, visibility, visibilityCell, matchState, pendingCommands: state.pendingCommands });
+  }
 
   return {
     ...finalize,
