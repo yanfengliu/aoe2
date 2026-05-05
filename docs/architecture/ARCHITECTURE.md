@@ -13,6 +13,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     tests; there is no separate dev HTTP server.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
+    - `replay/` — app-level replay orchestration. `ReplayController.ts`
+      preserves and pauses the live bridge, swaps the mutable bridge cell to a
+      replay bridge, coalesces drag scrubs, steps cached replay worlds by
+      submitting recorded commands before `world.step()`, and restores the live
+      bridge on exit.
     - `simulation/` — simulation bridge, scenario setup, command handlers.
       Top-level siblings of `createSimulationBridge.ts` include
       `worldOccupancy.ts` (the `OccupancyBinding` adapter that keeps the
@@ -25,10 +30,12 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       `drainPendingCommands(world, queue)` between-step helper that
       submits AI-decision intentions via `world.submitWithResult` immediately
       before the next tick, including persisted AI monk `monk.contextAtEntity`
-      task intentions). `replay/` contains the Phase 3A replay-world helpers:
+      task intentions). `replay/` contains the replay-world helpers:
       `createReplayWorldOnly(snapshot)` builds a replay-mode bridge world for
-      `SessionReplayer.openAt`, while `replayWorldContext.ts` stores the
-      accessor, visibility cell, match state, and pending-command queue in a
+      `SessionReplayer.openAt`, `makeReplayBridge(world)` wraps that world in
+      the full `SimulationBridge` read surface without letting scene frames
+      advance replay time, and `replayWorldContext.ts` stores the accessor,
+      visibility cell, match state, pending-command queue, and bridge API in a
       WeakMap keyed by replay `World`.
       - `bridge/` — helper modules factored out of `createSimulationBridge.ts`. After Phase 4 + Phase 5 of the createSimulationBridge shrink, the orchestrator is a 332-LOC facade that delegates world construction, render projection, and command dispatch to the modules below. Side-map ownership lives in `bridgeState.ts:createBridgeState()`; `createWorld.ts` instantiates it once and threads the same references through every dep-bag factory so save/load and destroy-entity hooks see consistent state.
 

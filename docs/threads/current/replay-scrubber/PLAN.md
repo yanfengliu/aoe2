@@ -157,6 +157,8 @@ Plus `tests/replay/validatorReplayConsistency.test.ts` (M2 fix) — from the ini
 
 Per DESIGN §5.4. ADRs 8-10. Stateful play mode using `_playState`. Frame-coalesced drag scrubbing.
 
+2026-05-05 status: closed for the controller layer. `src/game/replay/ReplayController.ts` now owns live/replay mode, stores the paused live bridge, swaps the mutable bridge cell to a replay bridge, clamps scrub targets to the same incomplete-aware upper bound as `SessionReplayer.openAt`, supports coalesced drag scrubbing via `scrubTo(tick, { coalesce: true })` plus `commitPendingScrub()`, and plays forward by submitting recorded commands for the current tick before stepping the cached replay world. `src/game/simulation/replay/makeReplayBridge.ts` wraps replay worlds in the full `SimulationBridge` read surface while making scene-frame `step(delta)` non-advancing so only `ReplayController.play()` moves replay time. `tests/replay/ReplayController.test.ts` covers mode enter/exit, live pause/resume, coalesced scrubbing, command-driven playback parity with `SessionReplayer.openAt`, and replay bridge render/HUD reads.
+
 ### Phase 3C — `TimelinePanel` UI
 
 Per DESIGN §5.5. Bottom-strip overlay, marker pins, hotspot pins, scrubber controls.

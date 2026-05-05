@@ -219,3 +219,19 @@ Consequences:
 - Replay does not double-submit AI `unit.move`, `unit.attack`, queue, research, construction, or monk-context intentions because replay-generated pending entries are never dispatched.
 - Schema-2 hydration pruning only marks slots dirty when it actually removes stale entity references; replay construction no longer materializes absent empty Tier-1 state keys.
 - The remaining architectural debt is that `prototypeAi` is not yet a pure command-emitting decision system. A future cleanup can commandify or isolate AI bookkeeping, then simplify replay mode back toward pure stubs.
+
+## KAD-0013 - ReplayController owns replay-time advancement
+
+Date: 2026-05-05.
+Status: Active.
+
+Context: Phase 3A made `SessionReplayer.openAt(tick)` capable of reconstructing aoe2 worlds, but the app still needed a bridge-level owner for replay mode. Phaser's `GameScene.update` calls `bridge.step(delta)` every frame, while replay playback must advance by recorded command ticks, not by normal live-frame accumulation. Drag scrubbing also cannot call `openAt` on every pointer move because worst-case replay-from-snapshot cost is proportional to snapshot interval.
+
+Decision: replay mode is owned by `src/game/replay/ReplayController.ts`. `enterReplay(bundle)` pauses and stores the live bridge, builds a replay world through `SessionReplayer.fromBundle(... createReplayWorldOnly ...)`, wraps it with `makeReplayBridge(world)`, and replaces the mutable bridge cell. `makeReplayBridge(world)` exposes the same read/selection surface as `SimulationBridge`, but its scene-frame `step()` only flushes view changes and never advances the world. `ReplayController.play()` is the only replay-time advancer: each scheduled frame submits recorded commands for the current tick, checks `hasCommandHandler` like `SessionReplayer.openAt`, calls `world.step()`, resets the replay accessor cache, and emits the new tick. Coalesced scrub calls update the displayed tick without rebuilding until `commitPendingScrub()` or a non-coalesced scrub commits.
+
+Consequences:
+- Live simulation time is paused and preserved while the user inspects replay state.
+- Replay rendering can reuse the existing Phaser/HUD bridge surface without letting the scene loop accidentally advance replay worlds.
+- Playback has O(1)-per-tick progression after entry/scrub instead of repeatedly rebuilding from `openAt(currentTick + 1)`.
+- Drag scrubbing can feel instantaneous in Phase 3C because pointer-move events can coalesce into a single final `openAt` commit.
+- `ReplayController` is now the boundary Phase 3C/3D UI code should target rather than calling `SessionReplayer` or replay bridge helpers directly.

@@ -572,7 +572,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   });
 
   if (systemMode === 'replay') {
-    setReplayWorldContext(world, { accessor, visibility, visibilityCell, matchState, pendingCommands: state.pendingCommands });
+    setReplayWorldContext(world, { accessor, visibility, visibilityCell, matchState, pendingCommands: state.pendingCommands, seed: getSeed() });
   }
 
   return {

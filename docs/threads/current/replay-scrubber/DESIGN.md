@@ -1117,8 +1117,9 @@ export type ReplayMode = 'live' | 'replay';
 
 export interface ReplayController {
   readonly mode: ReplayMode;
-  readonly currentTick: number | null;
+  readonly currentTick: number;
   readonly bundleMetadata: SessionMetadata | null;
+  readonly world: GameWorld | null;
 
   enterReplay(bundle: SessionBundle, atTick?: number): void;
   exitReplay(): void;
@@ -1126,6 +1127,7 @@ export interface ReplayController {
   /** Calls replayer.openAt(tick) and rebuilds the replay bridge.
    *  Internally frame-coalesced for drag UX (only commits on mouseup-tick). */
   scrubTo(tick: number, options?: { coalesce?: boolean }): void;
+  commitPendingScrub(): void;
   stepForward(): void;
   stepBackward(): void;
   jumpToMarker(markerId: string): void;
@@ -1143,6 +1145,8 @@ export interface ReplayController {
   onTickChange(listener: (tick: number) => void): () => void;
 }
 ```
+
+**2026-05-05 implementation note:** `src/game/replay/ReplayController.ts` implements this contract with a `replayContext` cell plus `displayedTick` instead of the earlier private `_currentReplayContext` / `_playState` names used below. `commitPendingScrub()` is the explicit mouseup/drag-end hook for ADR 9: coalesced `scrubTo(tick, { coalesce: true })` updates the displayed tick without rebuilding, and `commitPendingScrub()` or non-coalesced `scrubTo(tick)` performs the `openAt` + bridge replacement. `makeReplayBridge(world)` reads the WeakMap-attached replay API and returns a full read-capable `SimulationBridge`; its scene-frame `step(delta)` intentionally does not advance replay time, so only `ReplayController.play()` calls `world.step()`.
 
 **`enterReplay` flow:**
 1. `liveBridge.setPaused(true)` — pause live game
