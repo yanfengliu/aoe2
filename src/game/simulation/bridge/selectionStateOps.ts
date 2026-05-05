@@ -40,6 +40,7 @@ import {
   playerCivilizationsCodec,
   productionQueuesCodec,
   trebuchetPackStatesCodec,
+  unitCommandsCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 import {
@@ -48,12 +49,9 @@ import {
   getSelectionActivityBreakdown,
   type SelectionActivitySources,
 } from '../selectionActivity';
-import type { BridgeState } from './bridgeState';
-
 export interface SelectionStateOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
-  state: BridgeState;
   // Phase 2D — playerCivilizations read via accessor.
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   placementMode: { current: BuildableBuildingType | null };
@@ -89,7 +87,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
   const {
     world,
     humanPlayerId,
-    state,
     accessor,
     placementMode,
     getSelectedEntityIds,
@@ -104,8 +101,6 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getResearchOptions,
     getVisibleResearchOptions,
   } = deps;
-  const { unitCommands } = state;
-
   function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (unit) {
@@ -347,7 +342,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     const activitySources: SelectionActivitySources = {
       world,
       humanPlayerId,
-      unitCommands,
+      unitCommands: accessor.get(unitCommandsCodec),
       monkTasks: accessor.get(monkTasksCodec),
       monkCarriedRelic: accessor.get(monkCarriedRelicCodec),
       trebuchetPackStates: accessor.get(trebuchetPackStatesCodec),

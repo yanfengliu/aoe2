@@ -43,6 +43,7 @@ import {
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
   trackedVisibilitySourcesCodec,
+  unitCommandsCodec,
   wildlifeStatesCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
@@ -60,13 +61,12 @@ export interface SaveLoadHydrationDeps {
   // Phase 2D — slots that have moved to `world.state.aoe2.*` are written
   // through the accessor on hydrate.
   accessor: BridgeStateAccessor;
-  setUnitCommand: (id: number, command: UnitCommand) => void;
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
 }
 
 export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
-  const { world, savedGame, matchState, state, accessor, setUnitCommand, inFlightTechSetFor } = deps;
-  const { unitCommands, monksByOwner } = state;
+  const { world, savedGame, matchState, state, accessor, inFlightTechSetFor } = deps;
+  const { monksByOwner } = state;
 
   const blob = savedGame.sideMaps;
   state.pendingCommands.length = 0;
@@ -127,24 +127,25 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       m.set(owner, ord);
     }
   });
-  for (const [id, cmd] of blob.unitCommands) {
-    const restored: UnitCommand = {
-      type: cmd.type,
-      target: { x: cmd.target.x, y: cmd.target.y },
-    };
-    if (cmd.targetEntityKind) {
-      restored.targetEntityKind = cmd.targetEntityKind;
+  accessor.mutate(unitCommandsCodec, (m) => {
+    m.clear();
+    for (const [id, cmd] of blob.unitCommands) {
+      const restored: UnitCommand = {
+        type: cmd.type,
+        target: { x: cmd.target.x, y: cmd.target.y },
+      };
+      if (cmd.targetEntityKind) restored.targetEntityKind = cmd.targetEntityKind;
+      if (cmd.targetEntityRef) {
+        const ref = refFromSerialized(cmd.targetEntityRef);
+        if (ref) restored.targetEntityRef = ref;
+      }
+      if (cmd.buildingRef) {
+        const ref = refFromSerialized(cmd.buildingRef);
+        if (ref) restored.buildingRef = ref;
+      }
+      m.set(id, restored);
     }
-    if (cmd.targetEntityRef) {
-      const ref = refFromSerialized(cmd.targetEntityRef);
-      if (ref) restored.targetEntityRef = ref;
-    }
-    if (cmd.buildingRef) {
-      const ref = refFromSerialized(cmd.buildingRef);
-      if (ref) restored.buildingRef = ref;
-    }
-    setUnitCommand(id, restored);
-  }
+  });
   accessor.mutate(sheepMoveOrdersCodec, (m) => {
     for (const [id, pos] of blob.sheepMoveOrders) {
       m.set(id, { x: pos.x, y: pos.y });
@@ -438,7 +439,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
       }
     }
   };
-  pruneOrphanEntityKeys(unitCommands);
+  accessor.mutate(unitCommandsCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(sheepMoveOrdersCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(rallyPointsCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(monkTasksCodec, (m) => pruneOrphanEntityKeys(m));
@@ -458,9 +459,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(garrisonedByBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   accessor.mutate(garrisonedUnitToBuildingCodec, (m) => pruneOrphanEntityKeys(m));
   // Phase 2D — prune via accessor.
-  accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) =>
-    pruneOrphanEntityKeys(m),
-  );
+  accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => pruneOrphanEntityKeys(m));
 
   // Full-review iter-1 Gemini MAJOR: orphan VALUES too. The maps below
   // store entity IDs in their values; without value-side cleanup they

@@ -170,6 +170,21 @@ Decision: `monkTasks` is a Tier-1 accessor-backed slot stored at `world.state.ao
 
 Consequences:
 - Active Monk tasks are visible to `world.serialize()` snapshots after the output flush.
-- Phase 2D no longer has a `monkTasks` exception; `unitCommands` remains the last bridge-owned Tier-1 codec.
+- Phase 2D no longer has a `monkTasks` exception; KAD-0010 later closed the final `unitCommands` exception.
 - Command handlers and deterministic Monk behavior remain the only task mutation sites; AI decision systems continue to queue intentions.
-- Phase 2F can proceed to the schema-2 save format only after `unitCommands` is migrated or explicitly reclassified out of Tier-1.
+- KAD-0010 later migrated `unitCommands`, closing the final Tier-1 bridge-owned slot before Phase 2F.
+
+## KAD-0010 - Unit command state is accessor-backed
+
+Date: 2026-05-04.
+Status: Active.
+
+Context: after KAD-0009, `unitCommands` was the final bridge-owned Tier-1 codec. It was still stored in `BridgeState.unitCommands`, so active move/build/attack orders were absent from `world.serialize()` snapshots even though `unitCommandsCodec` was already registered in `TIER_1_CODECS`. That left Phase 2F unable to treat `worldSnapshot.state.aoe2.*` as the save source of truth.
+
+Decision: `unitCommands` is a Tier-1 accessor-backed slot stored at `world.state.aoe2.unitCommands` via `unitCommandsCodec`. `setUnitCommand` and `clearUnitCommand` are the command mutation boundary and preserve the existing `movePathCache` invalidation. Systems and projections read the command map through `accessor.get(unitCommandsCodec)` at execution/read time, so accessor resets after load cannot leave stale captured map references. Schema-1 `SaveBlob.sideMaps.unitCommands` remains a compatibility projection until Phase 2F removes duplicate side-map fields.
+
+Consequences:
+- Active unit commands are visible to `world.serialize()` snapshots after the output flush.
+- Schema-1 `sideMaps.unitCommands` is authoritative over stale `worldSnapshot.state.aoe2.unitCommands` during load.
+- `BridgeState` no longer owns any Tier-1 codec slot; it is limited to runtime caches, derived maps, and the pending bridge-intention queue.
+- Phase 2F can begin converting the save format to schema-2 without a remaining Tier-1 bridge-owned exception.

@@ -19,18 +19,14 @@ import {
   type GameWorld,
 } from '../pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../pureHelpers';
+import { unitCommandsCodec } from '../bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
-
-interface UnitCommand {
-  type: string;
-  // Other fields exist; this system only checks "is there one".
-}
 
 export interface ScoutMovementSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
-  unitCommands: Map<number, UnitCommand>;
+  accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   isCellPassableForUnit: (
     entityId: number,
     x: number,
@@ -53,7 +49,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
   const {
     world,
     humanPlayerId,
-    unitCommands,
+    accessor,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
     syncUnitTransformToPosition,
@@ -64,6 +60,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute(activeWorld) {
+      const unitCommands = accessor.get(unitCommandsCodec);
       for (const id of activeWorld.query('position', 'velocity', 'wanderBounds')) {
         if (unitCommands.has(id)) {
           continue;

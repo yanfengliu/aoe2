@@ -46,6 +46,7 @@ import {
   townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
   trebuchetPackStatesCodec,
+  unitCommandsCodec,
   villagerOrdinalsCodec,
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
@@ -72,6 +73,7 @@ const MIGRATED_CODECS = [
   trackedVisibilitySourcesCodec,
   playerScoreCountersCodec,
   rallyPointsCodec,
+  unitCommandsCodec,
   wonderCountdownsCodec,
   relicCountdownsCodec,
   townCenterRefsCodec,
@@ -203,6 +205,33 @@ describe('Phase 2G — Tier-1 snapshot equivalence (incremental)', () => {
         {
           kind: 'pickup',
           targetEntityRef: { id: relic!.id, generation: 0 },
+        },
+      ],
+    ]);
+  });
+
+  it('active unit commands flush into world.state for snapshots', () => {
+    const bridge = createSimulationBridge('unit-move-facade');
+    const initialVillager = findOwnedUnit(bridge, 1, 'villager');
+    expect(initialVillager).toBeDefined();
+
+    const result = bridge.world.submitWithResult('unit.move', {
+      unitId: initialVillager!.id,
+      target: { x: 0, y: 0 },
+    });
+    expect(result.accepted).toBe(true);
+
+    bridge.step(100);
+
+    const serialized = bridge.world.getState(unitCommandsCodec.slot) as
+      | Array<[number, { type: string; target: { x: number; y: number } }]>
+      | undefined;
+    expect(serialized).toEqual([
+      [
+        initialVillager!.id,
+        {
+          type: 'move',
+          target: { x: 0, y: 0 },
         },
       ],
     ]);

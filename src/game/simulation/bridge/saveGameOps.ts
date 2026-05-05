@@ -51,6 +51,7 @@ import {
   sheepMoveOrdersCodec,
   townCenterRefsCodec,
   trackedVisibilitySourcesCodec,
+  unitCommandsCodec,
   wonderCountdownsCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -101,10 +102,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
     accessor.flush();
     flushTier3State(world, visibilityCell, matchState);
   }
-  const {
-    pendingCommands,
-    unitCommands,
-  } = state;
+  const { pendingCommands } = state;
 
   function saveGame(): SaveBlob {
     flushBeforeSerialize();
@@ -141,7 +139,7 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
         // Phase 2D — villagerOrdinals reads via the accessor.
         villagerOrdinals: [...accessor.get(villagerOrdinalsCodec).entries()],
         pendingCommands: pendingCommands.map(clonePendingCommand),
-        unitCommands: [...unitCommands.entries()].map(([id, cmd]) => [
+        unitCommands: [...accessor.get(unitCommandsCodec).entries()].map(([id, cmd]) => [
           id,
           {
             type: cmd.type,

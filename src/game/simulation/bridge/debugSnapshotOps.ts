@@ -9,11 +9,10 @@ import type {
 } from '../types';
 import { UNIT_SUBGRID_RESOLUTION, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { aiStatesCodec } from './bridgeStateSerialize';
+import { aiStatesCodec, unitCommandsCodec } from './bridgeStateSerialize';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
-  state: import('./bridgeState').BridgeState;
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
 }
@@ -21,12 +20,11 @@ export interface DebugSnapshotOpsDeps {
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
   getDebugSnapshot(): SimulationDebugSnapshot;
 } {
-  const { world, state, accessor } = deps;
-  const { unitCommands } = state;
+  const { world, accessor } = deps;
 
   function getDebugSnapshot(): SimulationDebugSnapshot {
     const unitPaths: SimulationDebugSnapshot['unitPaths'] = [];
-    for (const [unitId, command] of unitCommands.entries()) {
+    for (const [unitId, command] of accessor.get(unitCommandsCodec).entries()) {
       const position = world.getComponent<Position>(unitId, 'position');
       if (!position) continue;
       unitPaths.push({

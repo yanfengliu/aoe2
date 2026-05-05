@@ -42,6 +42,7 @@ import {
   populationCodec,
   productionQueuesCodec,
   townCenterRefsCodec,
+  unitCommandsCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
@@ -51,13 +52,6 @@ type PushMonkContextAtEntityIntention = (
   targetEntityId: number,
   options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
 ) => void;
-
-interface UnitCommandLike {
-  type: 'attack' | 'move' | 'build';
-  targetEntityRef?: EntityRef | null;
-  targetEntityKind?: 'unit' | 'building' | 'resource' | null;
-  buildingRef?: EntityRef | null;
-}
 
 export interface AiSystemDeps {
   world: GameWorld;
@@ -69,7 +63,7 @@ export interface AiSystemDeps {
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
-  unitCommands: Map<number, UnitCommandLike>;
+  // Phase 2D: unitCommands migrated to world.state.aoe2.* via accessor.
   // Phase 2D: wildlifeStates migrated to world.state.aoe2.* via accessor.
   monksByOwner: Map<number, Set<number>>;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
@@ -149,7 +143,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    unitCommands,
     monksByOwner,
     currentEntityId,
     getPlayerAge,
@@ -195,6 +188,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           : activeWorld.getComponent<Position>(humanTownCenterId, 'position');
 
       const currentTick = activeWorld.tick;
+      const unitCommands = accessor.get(unitCommandsCodec);
 
       // Phase 1C — fold pending intentions into the gates aiSystem uses
       // to decide whether to push more. Without this, an intention pushed

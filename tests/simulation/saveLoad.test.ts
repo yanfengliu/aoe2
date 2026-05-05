@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
-import { monkTasksCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import {
+  monkTasksCodec,
+  unitCommandsCodec,
+} from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { SAVE_SCHEMA_VERSION, type SaveBlob } from '../../src/game/simulation/saveSchema';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -302,6 +305,40 @@ describe('Slice 9 — save/load round-trip', () => {
     expect(
       'state' in reSaved.worldSnapshot
         ? reSaved.worldSnapshot.state[monkTasksCodec.slot]
+        : undefined,
+    ).toEqual([]);
+  });
+
+  it('treats schema-1 sideMaps.unitCommands as authoritative over stale world snapshot state', () => {
+    const bridge = createSimulationBridge('unit-move-facade');
+    const initialVillager = findOwnedUnit(bridge, 1, 'villager');
+    expect(initialVillager).toBeDefined();
+
+    const moveResult = bridge.world.submitWithResult('unit.move', {
+      unitId: initialVillager!.id,
+      target: { x: 0, y: 0 },
+    });
+    expect(moveResult.accepted).toBe(true);
+    bridge.step(100);
+
+    const blob = bridge.saveGame();
+    expect(blob.sideMaps.unitCommands).toHaveLength(1);
+
+    const divergent = JSON.parse(JSON.stringify(blob)) as SaveBlob;
+    expect('state' in divergent.worldSnapshot).toBe(true);
+    (
+      divergent.worldSnapshot as {
+        state: Record<string, unknown>;
+      }
+    ).state[unitCommandsCodec.slot] = blob.sideMaps.unitCommands;
+    divergent.sideMaps.unitCommands = [];
+
+    const loadedBridge = createSimulationBridge('unit-move-facade', { savedGame: divergent });
+    const reSaved = loadedBridge.saveGame();
+    expect(reSaved.sideMaps.unitCommands).toEqual([]);
+    expect(
+      'state' in reSaved.worldSnapshot
+        ? reSaved.worldSnapshot.state[unitCommandsCodec.slot]
         : undefined,
     ).toEqual([]);
   });

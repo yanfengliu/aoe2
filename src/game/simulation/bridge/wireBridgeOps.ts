@@ -108,7 +108,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     visibility,
   });
 
-  const { getDebugSnapshot } = createDebugSnapshotOps({ world, state, accessor });
+  const { getDebugSnapshot } = createDebugSnapshotOps({ world, accessor });
 
   const matchEndOps = createMatchEndOps({
     world,
@@ -259,7 +259,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       matchState,
       state,
       accessor,
-      setUnitCommand,
       inFlightTechSetFor,
     });
   }

@@ -123,7 +123,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   } = deps;
 
   const {
-    unitCommands,
     monkConvertProcessedThisTick,
     monksByOwner,
   } = state;
@@ -133,7 +132,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     humanPlayerId,
     visibility,
     accessor,
-    unitCommands,
     monksByOwner,
     currentEntityId,
     getPlayerAge,
@@ -169,7 +167,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerAutoAggressionSystem({
     world,
     humanPlayerId,
-    unitCommands,
     accessor,
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
@@ -182,7 +179,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerPlayerCommandsSystem({
     world,
     accessor,
-    unitCommands,
     clearUnitCommand,
     currentEntityId,
     distanceToBuilding,
@@ -237,7 +233,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerScoutMovementSystem({
     world,
     humanPlayerId,
-    unitCommands,
+    accessor,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
     syncUnitTransformToPosition,
@@ -245,7 +241,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerVillagerEconomySystem({
     world,
-    unitCommands,
     accessor,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,

@@ -3,7 +3,6 @@
 // instantiates one of these and threads it into factories + systems.
 
 import type { Position } from 'civ-engine';
-import type { UnitCommand } from './sharedTypes';
 import {
   createPendingCommandsQueue,
   type PendingCommandsQueue,
@@ -27,7 +26,8 @@ export interface BridgeState {
   // Phase 2D: `villagerOrdinals` migrated to `world.state.aoe2.villagerOrdinals`
   // via the accessor + `villagerOrdinalsCodec`. Reads/writes go through
   // `accessor.get(villagerOrdinalsCodec)` / `accessor.mutate(...)` instead.
-  unitCommands: Map<number, UnitCommand>;
+  // Phase 2D: `unitCommands` migrated to `world.state.aoe2.unitCommands`
+  // via accessor + codec.
   movePathCache: Map<number, CachedMovePath>;
   // Phase 2D: `sheepMoveOrders` migrated to `world.state.aoe2.*` via accessor + codec.
   // Phase 2D: `rallyPoints` migrated to `world.state.aoe2.rallyPoints` via accessor + codec.
@@ -87,7 +87,6 @@ export interface BridgeState {
 
 export function createBridgeState(): BridgeState {
   return {
-    unitCommands: new Map(),
     movePathCache: new Map(),
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),

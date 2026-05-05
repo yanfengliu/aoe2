@@ -27,9 +27,9 @@ import {
   gathererDropOffStuckSinceTickCodec,
   playerResourcesCodec,
   sheepMoveOrdersCodec,
+  unitCommandsCodec,
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
-import type { UnitCommand } from './systemTypes';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
@@ -41,7 +41,6 @@ interface PlayerScoreCountersLike {
 
 export interface VillagerEconomySystemDeps {
   world: GameWorld;
-  unitCommands: Map<number, UnitCommand>;
   // Phase 2D: sheepMoveOrders migrated to world.state.aoe2.* via accessor.
   // Phase 2D — gathererDropOffStuckSinceTick now flows through the
   // accessor + codec. Hot-loop pattern: get the cached Map once at the
@@ -88,7 +87,6 @@ export interface VillagerEconomySystemDeps {
 export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): void {
   const {
     world,
-    unitCommands,
     accessor,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
@@ -180,6 +178,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       // though the map content didn't change, forcing unnecessary
       // flush+setState every tick. Both reviewers (Gemini + Claude impl-21)
       // converged on this finding.
+      const unitCommands = accessor.get(unitCommandsCodec);
       const stuckMap = accessor.get(gathererDropOffStuckSinceTickCodec);
       let stuckMapDirty = false;
       function clearStuck(id: number): void {

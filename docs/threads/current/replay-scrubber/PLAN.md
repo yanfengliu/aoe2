@@ -114,7 +114,7 @@ Per DESIGN.md §5.1 / §5.2 / §5.6 (Phases A1-A7 from the previous PLAN draft, 
 
 (Was Phase A4. Per-slot incremental migration; now command handlers also use the accessor.)
 
-2026-05-04 status: the AI-side `monkTasks` blocker from KAD-0007 has been cleared and the slot itself is migrated. `aiSystem` queues AI monk assignment through persisted `monk.contextAtEntity` intentions with expected-owner/task-kind guards, while command handlers and deterministic monk behavior mutate `world.state.aoe2.monkTasks` through `monkTasksCodec` + `BridgeStateAccessor`. `unitCommands` remains the last bridge-owned Tier-1 codec before Phase 2F can drop redundant schema-1 side-map projections.
+2026-05-04 status: the AI-side `monkTasks` blocker from KAD-0007 has been cleared, and both remaining command/task slots are migrated. `aiSystem` queues AI monk assignment through persisted `monk.contextAtEntity` intentions with expected-owner/task-kind guards; command handlers and deterministic monk behavior mutate `world.state.aoe2.monkTasks`. `unitCommands` now lives at `world.state.aoe2.unitCommands` as well, with command handlers and deterministic systems reading through `unitCommandsCodec` + `BridgeStateAccessor`. Phase 2D has no remaining bridge-owned Tier-1 codec exception, so Phase 2F can begin dropping redundant schema-1 side-map projections.
 
 ### Phase 2E — `syncVisibilitySources` fingerprint cache
 

@@ -26,6 +26,7 @@ import {
   inFlightTechByOwnerCodec,
   playerAgesCodec,
   playerScoreCountersCodec,
+  unitCommandsCodec,
 } from './bridgeStateSerialize';
 import { findSafeSpawnWithEgress } from '../spawn';
 import { CARDINAL_NEIGHBOR_OFFSETS } from './bridgeConstants';
@@ -59,7 +60,6 @@ export interface BridgeHelpers {
 export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   const { world, state, accessor } = deps;
   const {
-    unitCommands,
     movePathCache,
   } = state;
 
@@ -129,13 +129,16 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   }
 
   function clearUnitCommand(unitId: number): void {
-    unitCommands.delete(unitId);
+    const unitCommands = accessor.get(unitCommandsCodec);
+    if (unitCommands.delete(unitId)) {
+      accessor.markDirty(unitCommandsCodec);
+    }
     movePathCache.delete(unitId);
   }
 
   function setUnitCommand(unitId: number, command: UnitCommand): void {
     movePathCache.delete(unitId);
-    unitCommands.set(unitId, command);
+    accessor.mutate(unitCommandsCodec, (m) => m.set(unitId, command));
   }
 
   function getCurrentEntityId(ref: EntityRef | null): number | null {
@@ -153,7 +156,7 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
     if (isGarrisonedUnit(id)) {
       return 'garrisoned';
     }
-    const command = unitCommands.get(id);
+    const command = accessor.get(unitCommandsCodec).get(id);
     if (command) {
       switch (command.type) {
         case 'move':

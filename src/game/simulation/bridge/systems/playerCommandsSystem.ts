@@ -24,7 +24,6 @@ import {
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
-import type { UnitCommand } from './systemTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
@@ -32,6 +31,7 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   populationCodec,
+  unitCommandsCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
@@ -43,7 +43,6 @@ interface PlayerScoreCountersLike {
 
 export interface PlayerCommandsSystemDeps {
   world: GameWorld;
-  unitCommands: Map<number, UnitCommand>;
   // Phase 2D: constructionStates + combatStates + buildingHealthStates +
   // buildingCombatStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
@@ -100,7 +99,6 @@ export interface PlayerCommandsSystemDeps {
 export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): void {
   const {
     world,
-    unitCommands,
     accessor,
     clearUnitCommand,
     currentEntityId,
@@ -129,6 +127,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     phase: 'update',
     after: ['prototypeAi', 'prototypeAutoAggression'],
     execute(activeWorld) {
+      const unitCommands = accessor.get(unitCommandsCodec);
       // Map iteration is delete-during-iterate-safe per ECMAScript spec, so
       // clearUnitCommand(id) inside the loop body does not need a snapshot.
       for (const [id, command] of unitCommands.entries()) {

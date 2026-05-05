@@ -238,7 +238,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const selectionStateOps = createSelectionStateOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    state,
     accessor,
     placementMode,
     getSelectedEntityIds,

@@ -23,6 +23,7 @@ import {
   monkHealCountersCodec,
   populationCodec,
   relicsInMonasteryCodec,
+  unitCommandsCodec,
 } from './bridgeStateSerialize';
 
 export interface MonkTaskAppliersDeps {
@@ -84,7 +85,6 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   } = deps;
   const {
     monkConvertProcessedThisTick,
-    unitCommands,
     monksByOwner,
   } = state;
 
@@ -225,6 +225,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // owner attack commands targeting it.
     clearUnitCommand(targetId);
     clearMonkTask(targetId);
+    const unitCommands = accessor.get(unitCommandsCodec);
     const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
     if (targetGatherer) {
       clearGathererOrder(targetId);

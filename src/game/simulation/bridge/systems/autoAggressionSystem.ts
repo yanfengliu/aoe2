@@ -20,13 +20,15 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
-import type { UnitCommand } from './systemTypes';
-import { aiStatesCodec, combatStatesCodec } from '../bridgeStateSerialize';
+import {
+  aiStatesCodec,
+  combatStatesCodec,
+  unitCommandsCodec,
+} from '../bridgeStateSerialize';
 
 export interface AutoAggressionSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
-  unitCommands: Map<number, UnitCommand>;
   // Phase 2D: combatStates + aiStates migrated to world.state.aoe2.* via accessor.
   // Sentinel: reading accessor.get(aiStatesCodec).has(owner) gates whether
   // auto-aggression runs for that owner.
@@ -62,7 +64,6 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
   const {
     world,
     humanPlayerId,
-    unitCommands,
     accessor,
     isGarrisonedUnit,
     findPreferredEnemyUnitInRadius,
@@ -77,6 +78,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     after: ['prototypeAi'],
     before: ['prototypePlayerCommands'],
     execute(activeWorld) {
+      const unitCommands = accessor.get(unitCommandsCodec);
       for (const id of activeWorld.query('position', 'unit')) {
         if (unitCommands.has(id)) {
           continue;
