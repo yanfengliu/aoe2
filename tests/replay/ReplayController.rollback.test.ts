@@ -176,4 +176,55 @@ describe('Phase 3B - ReplayController rollback', () => {
     expect(pauseState.isPaused()).toBe(true);
     expect(liveBridge.world.tick).toBe(liveTick);
   });
+
+  // Slice 4 (replay-load-and-e2e v0.1.11): when the user is already in
+  // replay mode and `enterReplay` is called with a bundle that
+  // SessionReplayer rejects (e.g., missing `metadata.engineVersion`),
+  // the controller must NOT exitReplay before construction. Otherwise
+  // an unrelated import attempt with a malformed file would silently
+  // drop the user out of their current replay session — a partial
+  // apply. This regression locks the transactional-construction
+  // guarantee.
+  it('preserves an existing replay session when enterReplay throws on a bad bundle', () => {
+    const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
+    let currentBridge: SimulationBridge = liveBridge;
+    const controller = createReplayController({
+      bridgeCell: {
+        current: () => currentBridge,
+        replace: (next) => { currentBridge = next; },
+      },
+      isLivePaused: () => false,
+      makeReplayBridge: stubBridge,
+      // Make replayer construction fail on demand to simulate the
+      // engine rejecting a malformed bundle (e.g., missing
+      // metadata.engineVersion).
+      worldFactory: ((snapshot: unknown) => {
+        if ((snapshot as { __failConstruction?: boolean }).__failConstruction) {
+          throw new Error('SessionReplayer rejected bundle');
+        }
+        return liveBridge.world;
+      }) as never,
+    });
+
+    // First enter replay legitimately so the controller is in 'replay'.
+    controller.enterReplay(bundle);
+    expect(controller.mode).toBe('replay');
+    const beforeTick = controller.currentTick;
+    const replayBridge = currentBridge;
+
+    // Now attempt a second enterReplay with a bundle that fails
+    // construction. The original replay session must survive intact.
+    const badBundle = {
+      ...bundle,
+      initialSnapshot: {
+        ...bundle.initialSnapshot,
+        __failConstruction: true,
+      } as unknown as typeof bundle.initialSnapshot,
+    };
+    expect(() => controller.enterReplay(badBundle)).toThrow('SessionReplayer rejected bundle');
+
+    expect(controller.mode).toBe('replay');
+    expect(controller.currentTick).toBe(beforeTick);
+    expect(currentBridge).toBe(replayBridge);
+  });
 });

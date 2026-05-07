@@ -394,12 +394,13 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       return replayContext?.world ?? null;
     },
     enterReplay(bundle: ReplayBundle, atTick = bundle.metadata.startTick) {
-      if (mode === 'replay') {
-        exitReplay();
-      }
-      resetPlaybackClock();
-      const bridgeToRestore = config.bridgeCell.current();
-      const priorPaused = config.isLivePaused();
+      // Build the new replay context BEFORE mutating any state. If the
+      // SessionReplayer constructor or replayer.openAt throws, the
+      // controller stays in its pre-call state — no exitReplay(), no
+      // setPaused, no bridge swap. Closes the partial-apply bug class
+      // for bundles that fail engine-level validation (schemaVersion
+      // mismatch, missing metadata.engineVersion, range violations,
+      // etc.) when the user is already in replay mode. Slice-4 review.
       const replayer = SessionReplayer.fromBundle(
         bundle,
         { worldFactory },
@@ -414,6 +415,14 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
         bridge,
         commandsByTick: indexCommands(bundle.commands),
       };
+
+      // Construction succeeded — safe to mutate state from here.
+      if (mode === 'replay') {
+        exitReplay();
+      }
+      resetPlaybackClock();
+      const bridgeToRestore = config.bridgeCell.current();
+      const priorPaused = config.isLivePaused();
       bridgeToRestore.setPaused(true);
       try {
         config.bridgeCell.replace(bridge);

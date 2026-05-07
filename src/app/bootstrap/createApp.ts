@@ -32,6 +32,7 @@ import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
 import { loadCurrentSessionAsReplay } from '../../game/replay/loadCurrentSession';
 import { loadPriorSessionAsReplay } from '../../game/replay/loadPriorSession';
+import { createReplayFileImport } from '../../ui/replay/replayFileImport';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -273,9 +274,23 @@ export async function createApp(): Promise<Phaser.Game> {
     },
     isReplayMode: () => replayController.mode === 'replay',
     subscribeReplayModeChange: (listener) => replayController.onModeChange(() => listener()),
+    // The replayFileImport binding is initialized AFTER createHudController
+    // returns. Closure access is safe because the HUD only invokes
+    // `replayFromFile` from a click handler, never synchronously during
+    // controller construction. If a future change adds a synchronous
+    // poll/probe of `bridge.replayFromFile?.()`, move the
+    // `createReplayFileImport(...)` call above this `createHudController`
+    // call to avoid a TDZ regression (mirroring slice 2's `let stack`
+    // forward-declaration pattern).
+    replayFromFile: () => replayFileImport.promptForFile(),
   });
   const timelinePanel = createTimelinePanel({ controller: replayController });
   timelinePanel.mount(hudRoot);
+  const replayFileImport = createReplayFileImport({
+    host: hudRoot,
+    replayController,
+    toast: hudController.toastHandle,
+  });
 
   // Initial annotation stack. handleLoadGame replaces this cell on bridge swap.
   stack = await chainRebuild(undefined);
@@ -317,6 +332,7 @@ export async function createApp(): Promise<Phaser.Game> {
     if (stack) void stack.dispose();
     replayHotkeys.dispose();
     timelinePanel.dispose();
+    replayFileImport.dispose();
     hotkeyRegistry.dispose();
   });
 

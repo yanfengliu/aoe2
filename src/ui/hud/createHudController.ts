@@ -82,6 +82,10 @@ interface HudBridge {
   // unsubscribe function. Optional so tests don't have to stand up the
   // full controller subscription surface.
   subscribeReplayModeChange?(listener: () => void): () => void;
+  // Slice 4 (v0.1.11): the "Replay file" HUD button. Triggers the
+  // file-picker flow that opens an exported SessionBundle JSON in replay
+  // mode. Optional so pre-Slice-4 callers can omit the wiring.
+  replayFromFile?(): void;
 }
 
 // Slice 11: debug-overlay mode type is re-exported so GameScene +
@@ -158,6 +162,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   const replayCurrentSessionButtonEl = root.querySelector<HTMLButtonElement>(
     '[data-hud="replay-current-session-button"]',
   );
+  const replayFileImportButtonEl = root.querySelector<HTMLButtonElement>(
+    '[data-hud="replay-file-import-button"]',
+  );
   // Slice 11: debug-overlay controller owns the F2 cycle, the mode
   // pointer, and the text summary. GameScene reads the mode through
   // the `HudController` facade returned below.
@@ -214,6 +221,12 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       subscribeToModeChange: bridge.subscribeReplayModeChange,
     });
     teardownCallbacks.push(() => replayButtonHandle.destroy());
+  }
+
+  if (replayFileImportButtonEl) {
+    const handler = (): void => bridge.replayFromFile?.();
+    replayFileImportButtonEl.addEventListener('click', handler);
+    teardownCallbacks.push(() => replayFileImportButtonEl.removeEventListener('click', handler));
   }
 
   // Selection panel: icons + details + queue + command buttons. Skips
