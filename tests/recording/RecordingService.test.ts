@@ -232,6 +232,37 @@ describe('RecordingService — IDB persistence + listPriorSessions', () => {
     await svc.start();
     await expect(svc.exportPriorSession('no-such')).rejects.toBeInstanceOf(SessionNotFoundError);
   });
+
+  // Slice 3 (replay-load-and-e2e v0.1.10) coverage for the new
+  // loadPriorSessionBundle surface.
+
+  it('loadPriorSessionBundle returns the reconstructed bundle for an existing prior session', async () => {
+    const dbName = uniqueDbName();
+    const svc1 = newService({ databaseName: dbName });
+    await svc1.start();
+    svc1.addMarker({ kind: 'annotation', text: 'prior-replay-test', data: { author: 'human' } });
+    await svc1.stop();
+
+    const svc2 = newService({ databaseName: dbName });
+    await svc2.start();
+    const prior = await svc2.listPriorSessions();
+    expect(prior.length).toBe(1);
+    const bundle = await svc2.loadPriorSessionBundle(prior[0].sessionId);
+    expect(bundle.metadata.sessionId).toBe(prior[0].sessionId);
+    expect(bundle.markers.some((m) => m.text === 'prior-replay-test')).toBe(true);
+  });
+
+  it('loadPriorSessionBundle throws SessionNotFoundError for unknown id', async () => {
+    const svc = newService();
+    await svc.start();
+    await expect(svc.loadPriorSessionBundle('no-such')).rejects.toBeInstanceOf(SessionNotFoundError);
+  });
+
+  it('loadPriorSessionBundle throws SessionNotFoundError when inMemoryOnly disables the mirror', async () => {
+    const svc = newService({ inMemoryOnly: true });
+    await svc.start();
+    await expect(svc.loadPriorSessionBundle('any-id')).rejects.toBeInstanceOf(SessionNotFoundError);
+  });
 });
 
 describe('RecordingService — onPersistenceError', () => {

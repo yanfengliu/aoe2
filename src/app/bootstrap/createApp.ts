@@ -31,6 +31,7 @@ import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
 import { loadCurrentSessionAsReplay } from '../../game/replay/loadCurrentSession';
+import { loadPriorSessionAsReplay } from '../../game/replay/loadPriorSession';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -160,6 +161,15 @@ export async function createApp(): Promise<Phaser.Game> {
         bundle: () => replayController.bundle,
         jumpToMarker: (markerId) => replayController.jumpToMarker(markerId),
         onModeChange: (listener) => replayController.onModeChange(listener),
+      },
+      onReplayPriorSession: async (sessionId: string) => {
+        const result = await loadPriorSessionAsReplay({ replayController, recording }, sessionId);
+        if (result.status === 'no-payloads') {
+          throw new Error('session has no recorded commands; nothing to replay forward');
+        }
+        if (result.status === 'error') {
+          throw result.error ?? new Error('unknown replay error');
+        }
       },
     });
     markerListPanel.mount(hudRoot!);

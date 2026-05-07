@@ -68,6 +68,12 @@ export interface MarkerListPanelConfig {
    *  section, and routes row clicks through `jumpToMarker`. The adapter
    *  is optional so tests and pre-Slice-1 callers stay unchanged. */
   readonly replay?: MarkerListPanelReplayAdapter;
+  /** Slice 3 (v0.1.10): when present, each Prior Sessions row gains a
+   *  "Replay" button alongside Export / Discard. Click invokes this
+   *  callback with the row's sessionId. The panel disables the row's
+   *  three buttons during the async call and re-enables them on resolve
+   *  or reject. Optional so live-mode tests stay unchanged. */
+  readonly onReplayPriorSession?: (sessionId: string) => Promise<void>;
 }
 
 export interface MarkerListPanel {
@@ -82,7 +88,7 @@ export interface MarkerListPanel {
 }
 
 export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerListPanel {
-  const { recording, pauseControl, toast, bridge, worldRef, replay } = config;
+  const { recording, pauseControl, toast, bridge, worldRef, replay, onReplayPriorSession } = config;
   const autoRefresh = config.autoRefresh ?? true;
   const currentMode = (): MarkerListPanelMode => replay?.mode() ?? 'live';
 
@@ -189,6 +195,24 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
         const exportTitle = exportDisabled
           ? `schema version ${s.schemaVersion} differs from current; export disabled`
           : 'Download bundle JSON';
+        // Slice 3: Replay button is gated on the schema-version check
+        // (same as Export) AND on the empty-session check (closedNormally
+        // is false AND there are zero elapsed ticks → no payloads to
+        // replay forward). Sessions that ran for at least one tick are
+        // allowed even when closedNormally is false because the controller
+        // can replay up to the last good tick. Hidden entirely when no
+        // `onReplayPriorSession` callback is wired so pre-Slice-3 callers
+        // stay unchanged.
+        const replayEmptyAbnormal = !s.closedNormally && s.endTick === s.startTick;
+        const replayDisabled = exportDisabled || replayEmptyAbnormal;
+        const replayTitle = exportDisabled
+          ? `schema version ${s.schemaVersion} differs from current; replay disabled`
+          : replayEmptyAbnormal
+            ? 'session ended abnormally with zero elapsed ticks; nothing to replay'
+            : 'Open this session in replay mode';
+        const replayHtml = onReplayPriorSession
+          ? `<button type="button" data-testid="marker-list-prior-replay" data-session-id="${escapeHtml(s.sessionId)}" ${replayDisabled ? 'disabled' : ''} title="${escapeHtml(replayTitle)}">Replay</button>`
+          : '';
         return `
           <div class="marker-list-panel__prior-row" data-testid="marker-list-prior-row" data-session-id="${escapeHtml(s.sessionId)}">
             <span class="marker-list-panel__prior-when">${escapeHtml(s.recordedAt)}</span>
@@ -197,6 +221,7 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
             <span class="marker-list-panel__prior-markers">${s.markerCount} markers</span>
             ${warn}
             <button type="button" data-testid="marker-list-prior-export" data-session-id="${escapeHtml(s.sessionId)}" ${exportDisabled ? 'disabled' : ''} title="${escapeHtml(exportTitle)}">Export</button>
+            ${replayHtml}
             <button type="button" data-testid="marker-list-prior-discard" data-session-id="${escapeHtml(s.sessionId)}">Discard</button>
           </div>
         `;
@@ -264,6 +289,31 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
             `export failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
+      }
+      return;
+    }
+
+    if (target.dataset.testid === 'marker-list-prior-replay' && onReplayPriorSession) {
+      const buttonEl = target as HTMLButtonElement;
+      if (buttonEl.disabled) return;
+      const row = buttonEl.closest<HTMLElement>('[data-testid="marker-list-prior-row"]');
+      const rowButtons = row ? row.querySelectorAll<HTMLButtonElement>('button') : null;
+      // Disable every button in the row while the async load runs so
+      // double-clicks / interleaved Export + Discard cannot race.
+      rowButtons?.forEach((btn) => { btn.disabled = true; });
+      try {
+        await onReplayPriorSession(sessionId);
+      } catch (err) {
+        if (err instanceof SchemaMismatchError) {
+          toast.showToast(`schema mismatch: stored=${err.storedVersion}, current=${err.expectedVersion}`);
+        } else {
+          toast.showToast(`replay failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      } finally {
+        // Re-render the prior list so the disabled state is canonical
+        // (the freshly rendered DOM has the schema-mismatch gate applied
+        // exactly once).
+        renderPriorSessions();
       }
       return;
     }

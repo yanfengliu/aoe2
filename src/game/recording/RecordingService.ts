@@ -195,6 +195,16 @@ export interface RecordingService {
   exportBundle(): Promise<Blob>;
   listPriorSessions(): Promise<readonly PriorSessionDescriptor[]>;
   exportPriorSession(sessionId: string): Promise<Blob>;
+  // Slice 3 (replay-load-and-e2e v0.1.10): reconstructs a SessionBundle
+  // for the given prior session id. Used by the MarkerListPanel "Replay"
+  // button to feed `replayController.enterReplay(bundle)`. Throws
+  // SessionNotFoundError when the IDB mirror is unavailable
+  // (inMemoryOnly: true) OR the row is missing, and propagates
+  // SchemaMismatchError from the underlying mirror when the persisted
+  // schema version differs from the running engine. Attachments stay
+  // sidecar-stored; re-embedding only happens on `exportPriorSession`
+  // because replay does not need self-contained JSON.
+  loadPriorSessionBundle(sessionId: string): Promise<SessionBundle>;
   discardPriorSession(sessionId: string): Promise<void>;
   onPersistenceError(listener: PersistenceErrorListener): () => void;
 }
@@ -347,6 +357,13 @@ export function createRecordingService(config: RecordingServiceConfig): Recordin
         }
         return bytes;
       });
+    },
+
+    async loadPriorSessionBundle(priorId: string): Promise<SessionBundle> {
+      if (mirror === null) {
+        throw new SessionNotFoundError(priorId);
+      }
+      return mirror.reconstructBundle(priorId);
     },
 
     async discardPriorSession(priorId: string): Promise<void> {

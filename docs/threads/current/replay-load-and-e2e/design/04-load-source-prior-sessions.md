@@ -8,7 +8,7 @@ Add a "Replay" button alongside the existing Export / Discard buttons in `Marker
 
 - `Replay` button per Prior Session row, alongside Export and Discard.
 - Button is disabled when the row's `schemaVersion !== current` (same gate Export uses).
-- Button is disabled when `closedNormally === false` AND the metadata's endTick equals startTick (no payloads to replay). When the session ended abnormally but ran for several ticks, replay is still allowed because partial bundles can be replayed up to the last good tick.
+- Button is also disabled when `closedNormally === false && endTick === startTick` (an abnormally-closed session that ran for zero ticks has no payloads to replay forward). When the session ended abnormally but ran for at least one tick, replay is still allowed because the controller can replay up to the last good tick. Slice-3 implementation matches this contract via a combined `replayDisabled = exportDisabled || replayEmptyAbnormal` gate in `MarkerListPanel.renderPriorSessions`.
 - Click flow:
   1. Disable the row's buttons during the async load.
   2. Call `recording.loadPriorSessionBundle(sessionId)` (NEW — see surface changes).
