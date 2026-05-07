@@ -95,7 +95,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
   - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), and `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay).
-  - `ui/` — DOM HUD controller
+  - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/`, `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
 - `design/` — game design spec, stat CSVs, implementation plan

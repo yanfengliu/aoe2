@@ -310,7 +310,13 @@ export async function createApp(): Promise<Phaser.Game> {
     scene: [scene],
   });
 
-  installBrowserTestApi(window, game, () => bridge, scene);
+  installBrowserTestApi(window, game, () => bridge, scene, {
+    replay: {
+      getReplayMode: () => replayController.mode,
+      getReplayCurrentTick: () => replayController.currentTick,
+      openReplayLoadDialog: () => { void replayLoadDialog.open(); },
+    },
+  });
 
   game.events.on('destroy', () => {
     if (stack) void stack.dispose();

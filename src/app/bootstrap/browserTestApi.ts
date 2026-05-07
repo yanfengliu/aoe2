@@ -50,6 +50,15 @@ export interface BrowserTestSnapshot {
   cameraState: CameraState | null;
 }
 
+// Slice 6 (replay-load-and-e2e v0.1.13): replay-related test surface.
+// Lets Playwright assert replay mode + current tick + open the dialog
+// programmatically without poking at internal HUD/dialog markup.
+export interface BrowserTestReplayApi {
+  getReplayMode(): 'live' | 'replay';
+  getReplayCurrentTick(): number;
+  openReplayLoadDialog(): void;
+}
+
 export interface BrowserTestApi {
   isBooted(): boolean;
   getHudState(): HudState;
@@ -57,6 +66,11 @@ export interface BrowserTestApi {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
+  /** Slice 6: replay test surface. Required at runtime — `createApp`
+   *  always installs it. The field is non-optional in the type so
+   *  Playwright specs can read `api.replay.getReplayMode()` without
+   *  optional-chaining at every call site. */
+  replay: BrowserTestReplayApi;
   getSelectionBoxState(): SelectionBoxState | null;
   getPlacementPreviewState(): PlacementPreviewViewState | null;
   getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
@@ -117,11 +131,18 @@ function getSnapshot(
 // the thunk every call. Subsequent loads only need to update the cell;
 // no re-install is required. Object.freeze hardens against accidental
 // mutation by tests.
+export interface BrowserTestApiInstallOptions {
+  /** Slice 6: replay surface wired through to replayController. Required
+   *  — every install site must provide it. */
+  replay: BrowserTestReplayApi;
+}
+
 export function installBrowserTestApi(
   target: Window,
   game: Phaser.Game,
   getBridge: () => BrowserTestBridge,
   scene: GameScene,
+  options: BrowserTestApiInstallOptions,
 ): void {
   // Iter-3 V3-25 follow-up: do NOT short-circuit when an API is
   // already installed. Re-install replaces the object so a full
@@ -235,6 +256,7 @@ export function installBrowserTestApi(
       scene.syncFromBridge(true);
       return getSnapshot(liveBridge, scene);
     },
+    replay: options.replay,
   };
   target.__AOE2_TEST__ = Object.freeze(api);
 }
