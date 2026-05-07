@@ -6,26 +6,28 @@ Surface the simplest replay-load path: take the in-progress `RecordingService.bu
 
 ## User-visible changes
 
-- A new HUD button labeled "Replay (live session)" appears in the same region as Save/Load. Disabled when `recording.bundle()` returns null (no recording started yet) or returns a bundle whose `metadata.endTick === metadata.startTick` (no ticks elapsed — replay forward is impossible per `ReplayController.assertReplayPayloadsAvailable`).
+- A new HUD button labeled "Replay" appears in the same region as Save/Load. Disabled when `recording.bundle()` returns null (no recording started yet) or returns a bundle with empty `commands`. The empty-commands rule mirrors the civ-engine `SessionReplayer.openAt` contract: a target tick `> startTick` with no recorded commands throws `no_replay_payloads`. An elapsed bundle without commands could only replay tick 0 (the initial snapshot), which is not useful, so the button stays disabled.
 - Click: `replayController.enterReplay(recording.bundle()!)`. On error (e.g., `BundleIntegrityError` for empty payloads), toast the error message and stay in live mode.
 - The TimelinePanel becomes visible automatically because it gates on `replayController.mode === 'replay'` (already implemented in v0.1.7).
 
 ## Surface changes
 
-- A new helper `loadCurrentSessionAsReplay({ replayController, recording, toast })` in `src/game/replay/loadCurrentSession.ts` (NEW) that:
+- A new helper `loadCurrentSessionAsReplay({ replayController, recording })` in `src/game/replay/loadCurrentSession.ts` (NEW) that:
   - Reads `recording.bundle()`.
-  - Returns `{ status: 'no-bundle' | 'no-payloads' | 'ok'; error?: Error }`.
+  - Returns `{ status: 'no-bundle' | 'no-payloads' | 'ok' | 'error'; error?: Error }`.
   - On `ok`, calls `replayController.enterReplay(bundle)`.
   - On error from `enterReplay`, returns `{ status: 'error', error }`.
-- HUD wiring: `createHudController` adds an optional `replayCurrentSession?: () => void` callback. The button's `disabled` state polls `recording.bundle()` reachability (similar to the Save/Load disabled-when-empty pattern).
+- HUD wiring: `createHudController` adds three optional `HudBridge` fields (`replayCurrentSession`, `isReplayCurrentSessionAvailable`, `isReplayMode`) plus a `subscribeReplayModeChange` thunk. The button's `disabled` state refreshes on three signals: an immediate `replayController.onModeChange` listener (no poll lag on enter/exit replay), a 500ms poll (catches recording-bundle changes that have no event channel), and a re-check inside the click handler before invoking `onClick` (closes the staleness window between polls).
+- The new helper module `src/ui/hud/replayCurrentSessionButton.ts` (NEW) owns the button's enabled-state lifecycle and exposes a `destroy()` that unsubscribes both the listener and the poll. The HUD HTML template moves into `src/ui/hud/hudTemplate.ts` (NEW) so `createHudController.ts` stays under the 500-LOC budget after the new fields landed.
+- `src/app/bootstrap/createApp.ts` declares `let stack: AnnotationStack | undefined` near the top so the bridge thunks can guard with truthiness instead of hitting the temporal-dead-zone — the HUD button's initial `refresh()` fires before the first `await chainRebuild(undefined)` resolves.
 
 ## Test contract (TDD-first)
 
 `tests/replay/loadCurrentSession.test.ts` (NEW):
 
 1. `loadCurrentSessionAsReplay` with no bundle returns `{ status: 'no-bundle' }` and does NOT call `enterReplay`.
-2. With a bundle whose `metadata.endTick === metadata.startTick` and `commands.length === 0` (no payloads), returns `{ status: 'no-payloads' }` and does NOT call `enterReplay`.
-3. With a valid bundle (commands present OR endTick > startTick), calls `enterReplay(bundle)` and returns `{ status: 'ok' }`.
+2. With a bundle whose `commands.length === 0` (no payloads — even if `endTick > startTick`), returns `{ status: 'no-payloads' }` and does NOT call `enterReplay`.
+3. With a valid bundle (`commands.length > 0`), calls `enterReplay(bundle)` and returns `{ status: 'ok' }`.
 4. When `enterReplay` throws, returns `{ status: 'error', error: ... }` and does not propagate.
 
 `tests/ui/hud-replay-button.test.ts` (NEW, `@vitest-environment jsdom`):

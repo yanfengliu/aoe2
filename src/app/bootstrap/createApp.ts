@@ -30,6 +30,7 @@ import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
+import { loadCurrentSessionAsReplay } from '../../game/replay/loadCurrentSession';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -78,6 +79,13 @@ export async function createApp(): Promise<Phaser.Game> {
   let scene: GameScene;
   // eslint-disable-next-line prefer-const
   let hudController: HudController;
+  // Slice 2 (v0.1.9): the replay-current-session HUD button polls
+  // `stack.recording.bundle()` to derive its disabled state — and the
+  // poll fires synchronously inside `createHudController` BEFORE the
+  // first `await chainRebuild(undefined)` resolves the first stack.
+  // Declare the stack reference up-front as `undefined` so the closures
+  // can guard with truthiness instead of hitting the TDZ.
+  let stack: AnnotationStack | undefined;
 
   // Spec 2 AO-3: PauseControl + HotkeyRegistry shared across rebuilds.
   // Both work against the live bridge via bridgeRef indirection.
@@ -198,8 +206,10 @@ export async function createApp(): Promise<Phaser.Game> {
       },
     });
     // Chain off any in-flight rebuild OR the live stack — whichever is
-    // most recent.
-    const priorPromise = _pendingRebuild ?? Promise.resolve(stack);
+    // most recent. handleLoadGame only runs after the initial stack lands,
+    // so `stack` is always defined here in practice; the explicit check
+    // satisfies TS narrowing now that `stack` is `AnnotationStack | undefined`.
+    const priorPromise = _pendingRebuild ?? (stack ? Promise.resolve(stack) : undefined);
     stack = await chainRebuild(priorPromise);
   }
 
@@ -225,21 +235,49 @@ export async function createApp(): Promise<Phaser.Game> {
     getDebugSnapshot: () => bridge.getDebugSnapshot(),
     saveGame: () => bridge.saveGame(),
     loadGame: handleLoadGame,
+    replayCurrentSession: () => {
+      if (!stack) return;
+      const result = loadCurrentSessionAsReplay({
+        replayController,
+        recording: { bundle: () => stack?.recording.bundle() ?? null },
+      });
+      if (result.status === 'no-bundle') {
+        hudController.toastHandle.showToast('No live recording yet — start a match before replaying.');
+      } else if (result.status === 'no-payloads') {
+        hudController.toastHandle.showToast('Live session has no replay payloads yet.');
+      } else if (result.status === 'error') {
+        hudController.toastHandle.showToast(`Replay failed: ${result.error?.message ?? 'unknown error'}`);
+      }
+    },
+    // The HUD button polls this before the first stack is constructed, so
+    // the closure must guard `stack` with truthiness. Once stack lands the
+    // poll picks up automatically via the 500ms refresh interval.
+    isReplayCurrentSessionAvailable: () => {
+      if (!stack) return false;
+      const bundle = stack.recording.bundle();
+      // Per civ-engine SessionReplayer.openAt: a target tick > startTick
+      // with empty `commands` throws `no_replay_payloads`. Match that
+      // contract here so the button only enables when forward replay is
+      // actually possible.
+      return bundle != null && bundle.commands.length > 0;
+    },
+    isReplayMode: () => replayController.mode === 'replay',
+    subscribeReplayModeChange: (listener) => replayController.onModeChange(() => listener()),
   });
   const timelinePanel = createTimelinePanel({ controller: replayController });
   timelinePanel.mount(hudRoot);
 
   // Initial annotation stack. handleLoadGame replaces this cell on bridge swap.
-  let stack: AnnotationStack = await chainRebuild(undefined);
+  stack = await chainRebuild(undefined);
 
   // Hotkey closures resolve `stack` at call time, so handleLoadGame's
   // reassignment is observed automatically (Alt+M after load fires the
   // new stack's controller).
   hotkeyRegistry.register(
     { key: 'm', alt: true },
-    gateAnnotationHotkeyOnReplayMode(replayController, () => stack.annotationController.onHotkey()),
+    gateAnnotationHotkeyOnReplayMode(replayController, () => stack?.annotationController.onHotkey()),
   );
-  hotkeyRegistry.register({ key: 'l', alt: true }, () => stack.markerListPanel.toggleVisibility());
+  hotkeyRegistry.register({ key: 'l', alt: true }, () => stack?.markerListPanel.toggleVisibility());
   const replayHotkeys = registerReplayHotkeys({
     hotkeys: hotkeyRegistry,
     controller: replayController,
@@ -266,7 +304,7 @@ export async function createApp(): Promise<Phaser.Game> {
   installBrowserTestApi(window, game, () => bridge, scene);
 
   game.events.on('destroy', () => {
-    void stack.dispose();
+    if (stack) void stack.dispose();
     replayHotkeys.dispose();
     timelinePanel.dispose();
     hotkeyRegistry.dispose();
