@@ -30,9 +30,8 @@ import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
-import { loadCurrentSessionAsReplay } from '../../game/replay/loadCurrentSession';
 import { loadPriorSessionAsReplay } from '../../game/replay/loadPriorSession';
-import { createReplayFileImport } from '../../ui/replay/replayFileImport';
+import { createReplayLoadDialog } from '../../ui/replay/replayLoadDialog';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -81,12 +80,14 @@ export async function createApp(): Promise<Phaser.Game> {
   let scene: GameScene;
   // eslint-disable-next-line prefer-const
   let hudController: HudController;
-  // Slice 2 (v0.1.9): the replay-current-session HUD button polls
-  // `stack.recording.bundle()` to derive its disabled state — and the
-  // poll fires synchronously inside `createHudController` BEFORE the
-  // first `await chainRebuild(undefined)` resolves the first stack.
-  // Declare the stack reference up-front as `undefined` so the closures
-  // can guard with truthiness instead of hitting the TDZ.
+  // Slice 5 (v0.1.12): the ReplayLoadDialog's `recording` config closes
+  // over `stack` lazily (its `bundle()`, `listPriorSessions()`, and
+  // `loadPriorSessionBundle()` thunks all read `stack?.recording.X`).
+  // The dialog is constructed BEFORE the first `await chainRebuild(undefined)`
+  // resolves, so the closures must observe `stack === undefined` until the
+  // initial annotation stack lands. Declaring the binding here with an
+  // `undefined` initial value gives the closures a defined slot to read
+  // (no TDZ) and lets `handleLoadGame` reassign `stack` on save/load.
   let stack: AnnotationStack | undefined;
 
   // Spec 2 AO-3: PauseControl + HotkeyRegistry shared across rebuilds.
@@ -246,49 +247,32 @@ export async function createApp(): Promise<Phaser.Game> {
     getDebugSnapshot: () => bridge.getDebugSnapshot(),
     saveGame: () => bridge.saveGame(),
     loadGame: handleLoadGame,
-    replayCurrentSession: () => {
-      if (!stack) return;
-      const result = loadCurrentSessionAsReplay({
-        replayController,
-        recording: { bundle: () => stack?.recording.bundle() ?? null },
-      });
-      if (result.status === 'no-bundle') {
-        hudController.toastHandle.showToast('No live recording yet — start a match before replaying.');
-      } else if (result.status === 'no-payloads') {
-        hudController.toastHandle.showToast('Live session has no replay payloads yet.');
-      } else if (result.status === 'error') {
-        hudController.toastHandle.showToast(`Replay failed: ${result.error?.message ?? 'unknown error'}`);
-      }
-    },
-    // The HUD button polls this before the first stack is constructed, so
-    // the closure must guard `stack` with truthiness. Once stack lands the
-    // poll picks up automatically via the 500ms refresh interval.
-    isReplayCurrentSessionAvailable: () => {
-      if (!stack) return false;
-      const bundle = stack.recording.bundle();
-      // Per civ-engine SessionReplayer.openAt: a target tick > startTick
-      // with empty `commands` throws `no_replay_payloads`. Match that
-      // contract here so the button only enables when forward replay is
-      // actually possible.
-      return bundle != null && bundle.commands.length > 0;
-    },
     isReplayMode: () => replayController.mode === 'replay',
     subscribeReplayModeChange: (listener) => replayController.onModeChange(() => listener()),
-    // The replayFileImport binding is initialized AFTER createHudController
-    // returns. Closure access is safe because the HUD only invokes
-    // `replayFromFile` from a click handler, never synchronously during
-    // controller construction. If a future change adds a synchronous
-    // poll/probe of `bridge.replayFromFile?.()`, move the
-    // `createReplayFileImport(...)` call above this `createHudController`
-    // call to avoid a TDZ regression (mirroring slice 2's `let stack`
-    // forward-declaration pattern).
-    replayFromFile: () => replayFileImport.promptForFile(),
+    // Slice 5 (v0.1.12): unified replay-load entry point. The dialog is
+    // initialized AFTER createHudController returns; this closure is
+    // only invoked from a user click on the "Replay…" button, so the
+    // `replayLoadDialog` binding is always defined by the time we read
+    // it. (Same TDZ-safe pattern documented for slice 4's file-import
+    // closure — moved here.)
+    openReplayLoadDialog: () => { void replayLoadDialog.open(); },
   });
   const timelinePanel = createTimelinePanel({ controller: replayController });
   timelinePanel.mount(hudRoot);
-  const replayFileImport = createReplayFileImport({
+  const replayLoadDialog = createReplayLoadDialog({
     host: hudRoot,
     replayController,
+    recording: {
+      // Lazily resolve through the live `stack` so the dialog always
+      // reads the current annotation stack's recording surface
+      // (handleLoadGame replaces stack on save/load).
+      bundle: () => stack?.recording.bundle() ?? null,
+      listPriorSessions: () => stack ? stack.recording.listPriorSessions() : Promise.resolve([]),
+      loadPriorSessionBundle: (sessionId: string) => {
+        if (!stack) return Promise.reject(new Error('recording not ready'));
+        return stack.recording.loadPriorSessionBundle(sessionId);
+      },
+    },
     toast: hudController.toastHandle,
   });
 
@@ -332,7 +316,7 @@ export async function createApp(): Promise<Phaser.Game> {
     if (stack) void stack.dispose();
     replayHotkeys.dispose();
     timelinePanel.dispose();
-    replayFileImport.dispose();
+    replayLoadDialog.dispose();
     hotkeyRegistry.dispose();
   });
 

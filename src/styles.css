@@ -1014,3 +1014,131 @@ body:has(.timeline-panel:not([hidden])) #game-root {
     display: none;
   }
 }
+
+/* Slice 5 (replay-load-and-e2e v0.1.12): ReplayLoadDialog modal. Native
+   <dialog> already provides centered modal + backdrop; we only style
+   the inner template for legibility and HUD-consistent look. */
+.replay-load-dialog__root {
+  background: #1a2729;
+  color: #e8eef0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0;
+  min-width: 420px;
+  max-width: 80vw;
+  font: inherit;
+}
+
+.replay-load-dialog__root::backdrop {
+  background: rgba(8, 14, 16, 0.6);
+}
+
+.replay-load-dialog {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+.replay-load-dialog__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.replay-load-dialog__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.replay-load-dialog__tabs > button {
+  background: none;
+  border: none;
+  color: #c4cdd0;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+}
+
+.replay-load-dialog__tabs > button[data-active="true"] {
+  color: #fff;
+  border-bottom-color: #6cc6ff;
+}
+
+.replay-load-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 60px;
+}
+
+.replay-load-dialog__hint {
+  margin: 0;
+  font-size: 13px;
+  color: #b0b8bb;
+}
+
+.replay-load-dialog__primary {
+  align-self: flex-start;
+  background: #2c5d6e;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.replay-load-dialog__primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.replay-load-dialog__prior-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.replay-load-dialog__prior-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.replay-load-dialog__prior-row:hover {
+  background: rgba(108, 198, 255, 0.12);
+}
+
+.replay-load-dialog__empty {
+  color: #888;
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.replay-load-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.replay-load-dialog__cancel {
+  background: none;
+  color: #b0b8bb;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}

@@ -20,7 +20,6 @@ import {
 } from './debugOverlay';
 import { createPostGameSummary } from './postGameSummary';
 import { createSaveLoadPanel } from './saveLoadPanel';
-import { createReplayCurrentSessionButton } from './replayCurrentSessionButton';
 import {
   formatAgeName,
   formatCountdownTicks,
@@ -72,20 +71,16 @@ interface HudBridge {
   // shows the success toast only after the promise resolves and a
   // failure toast on rejection. Throws / rejects on schema mismatch.
   loadGame(blob: SaveBlob): Promise<void>;
-  // Slice 2 (v0.1.9): the "Replay (live session)" HUD button. Optional so
-  // pre-Slice-2 callers leave the button permanently disabled.
-  replayCurrentSession?(): void;
-  isReplayCurrentSessionAvailable?(): boolean;
+  // Slice 5 (v0.1.12): the unified "Replay…" HUD button. Triggers the
+  // ReplayLoadDialog modal that consolidates the three load sources
+  // (live session / prior session / file import). Optional so pre-Slice-5
+  // callers can omit the wiring (the button stays inert).
+  openReplayLoadDialog?(): void;
+  // Lets the HUD listen to enter/exit replay events; the unified button
+  // is disabled while replay mode is already active. Optional so tests
+  // can omit the subscription surface.
   isReplayMode?(): boolean;
-  // Lets the HUD button refresh its disabled state immediately on
-  // enter/exit replay, instead of waiting for the 500ms poll. Returns an
-  // unsubscribe function. Optional so tests don't have to stand up the
-  // full controller subscription surface.
   subscribeReplayModeChange?(listener: () => void): () => void;
-  // Slice 4 (v0.1.11): the "Replay file" HUD button. Triggers the
-  // file-picker flow that opens an exported SessionBundle JSON in replay
-  // mode. Optional so pre-Slice-4 callers can omit the wiring.
-  replayFromFile?(): void;
 }
 
 // Slice 11: debug-overlay mode type is re-exported so GameScene +
@@ -159,11 +154,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   );
   const loadConfirmButton = root.querySelector<HTMLButtonElement>('[data-hud="load-confirm"]');
   const loadCancelButton = root.querySelector<HTMLButtonElement>('[data-hud="load-cancel"]');
-  const replayCurrentSessionButtonEl = root.querySelector<HTMLButtonElement>(
-    '[data-hud="replay-current-session-button"]',
-  );
-  const replayFileImportButtonEl = root.querySelector<HTMLButtonElement>(
-    '[data-hud="replay-file-import-button"]',
+  const replayLoadButtonEl = root.querySelector<HTMLButtonElement>(
+    '[data-hud="replay-load-button"]',
   );
   // Slice 11: debug-overlay controller owns the F2 cycle, the mode
   // pointer, and the text summary. GameScene reads the mode through
@@ -212,21 +204,23 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   );
   teardownCallbacks.push(() => saveLoadPanel.destroy());
 
-  if (replayCurrentSessionButtonEl) {
-    const replayButtonHandle = createReplayCurrentSessionButton({
-      button: replayCurrentSessionButtonEl,
-      onClick: () => bridge.replayCurrentSession?.(),
-      isAvailable: () => bridge.isReplayCurrentSessionAvailable?.() ?? false,
-      isReplayMode: () => bridge.isReplayMode?.() ?? false,
-      subscribeToModeChange: bridge.subscribeReplayModeChange,
+  if (replayLoadButtonEl) {
+    // The unified "Replay…" button. Disabled while replay mode is
+    // already active (re-entry guard). Subscribes to replayController
+    // mode-change events so the disabled state flips immediately on
+    // enter/exit; falls back to the click-time refresh if no
+    // subscription is wired.
+    const handler = (): void => bridge.openReplayLoadDialog?.();
+    const refreshDisabled = (): void => {
+      replayLoadButtonEl.disabled = bridge.isReplayMode?.() ?? false;
+    };
+    replayLoadButtonEl.addEventListener('click', handler);
+    refreshDisabled();
+    const unsubscribe = bridge.subscribeReplayModeChange?.(refreshDisabled);
+    teardownCallbacks.push(() => {
+      replayLoadButtonEl.removeEventListener('click', handler);
+      unsubscribe?.();
     });
-    teardownCallbacks.push(() => replayButtonHandle.destroy());
-  }
-
-  if (replayFileImportButtonEl) {
-    const handler = (): void => bridge.replayFromFile?.();
-    replayFileImportButtonEl.addEventListener('click', handler);
-    teardownCallbacks.push(() => replayFileImportButtonEl.removeEventListener('click', handler));
   }
 
   // Selection panel: icons + details + queue + command buttons. Skips

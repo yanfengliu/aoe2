@@ -53,8 +53,7 @@ export const HUD_TEMPLATE_HTML = `
             data-hud="load-button"
             data-tooltip="Load a saved match from browser storage or paste in a save blob."
           >Load</button>
-          <button type="button" class="hud-save-load__button" data-hud="replay-current-session-button" data-tooltip="Open the in-progress live session in replay mode." disabled>Replay</button>
-          <button type="button" class="hud-save-load__button" data-hud="replay-file-import-button" data-tooltip="Open a recorded session bundle (JSON file) in replay mode.">Replay file</button>
+          <button type="button" class="hud-save-load__button" data-hud="replay-load-button" data-tooltip="Open a recorded session in replay mode (live, prior session, or imported file).">Replay…</button>
         </div>
       </div>
       <div class="hud-load-panel" data-hud="load-panel" hidden>
