@@ -2,6 +2,19 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.8 - 2026-05-06
+
+### Phase 3D Slice 1: replay-mode annotation affordances
+
+While the replay timeline is open, Alt+M (open annotation form) is silent — annotation creation is gated to live mode because the live recorder is paused under the replay bridge swap. The Alt+L marker list now shows the *replay bundle's* markers in tick-desc order (no more live-recording markers that don't apply to the replayed scene), the Prior Sessions section is hidden, and clicking a row scrubs the timeline to that marker's tick instead of pausing+panning+selecting. The panel flips behavior automatically on enter/exit replay; no extra keystroke is required. Live-mode behavior (current-session markers, Prior Sessions Export/Discard, row-click pause+pan+select) is unchanged.
+
+Severity, tick, and class-attribute interpolation in marker rows are now defensively HTML-escaped/coerced so a malformed bundle field cannot break out of the row markup. This is preventative hardening for the upcoming file-import slice.
+
+### Validation
+
+- `npm test`: pass with 109 files, 797 passed, 1 skipped.
+- `npm run typecheck` / `npm run lint` / `npm run build`: pass.
+
 ## 0.1.7 - 2026-05-05
 
 ### Phase 3C: replay timeline panel

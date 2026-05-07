@@ -1,4 +1,6 @@
-## 2026-05-06 (docs housekeeping)
+## 2026-05-06 (v0.1.8 replay-mode annotation affordances + thread setup)
+- **Phase 3D Slice 1 — replay-mode annotation affordances (v0.1.8):** Alt+M is silent in replay mode; `MarkerListPanel` flips to the replay bundle's markers (read-only, hidden Prior Sessions section, row click → `jumpToMarker`); `Set`-based severity clamp + escaped tick/id/severity render block prototype-pollution and malformed-JsonValue exploits in the upcoming file-import slice. `gateAnnotationHotkeyOnReplayMode` helper makes Alt+M gating explicit and unit-testable. Codex iter-1 + iter-2 found three IMPORTANT issues (version drift, JsonValue escaping, prototype-pollution clamp); all fixed inline. iter-3 Codex + Claude both said "ship it." Full gates pass.
+- **`replay-load-and-e2e` thread opened:** new `docs/threads/current/replay-load-and-e2e/` carries Phase 3D + 3E (load sources for current session / IDB Prior Sessions / file import; unifying ReplayLoadDialog modal; browser e2e + integration). DESIGN.md + PLAN.md + design/01-08 sub-files + iter-{1,2,3} REVIEW.md committed alongside Slice 1.
 - **Closed replay-scrubber DESIGN.md split:** the 1832-line single-file spec became a 24-line index plus 14 bounded sub-files under `docs/threads/done/replay-scrubber/design/`, ordered to match the original section numbering. Verified lossless by line count and H2/H3 section count. Going forward, design docs will be split into bounded sub-files by default. No code change.
 
 ## 2026-05-05 (v0.1.7 replay timeline + v0.1.6 schema-2 save format)

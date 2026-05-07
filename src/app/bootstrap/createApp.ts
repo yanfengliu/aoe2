@@ -29,6 +29,7 @@ import {
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
+import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -146,6 +147,12 @@ export async function createApp(): Promise<Phaser.Game> {
         select: (refs) => bridgeRef().select(refs),
       },
       worldRef: () => bridgeRef().world,
+      replay: {
+        mode: () => replayController.mode,
+        bundle: () => replayController.bundle,
+        jumpToMarker: (markerId) => replayController.jumpToMarker(markerId),
+        onModeChange: (listener) => replayController.onModeChange(listener),
+      },
     });
     markerListPanel.mount(hudRoot!);
     return {
@@ -228,7 +235,10 @@ export async function createApp(): Promise<Phaser.Game> {
   // Hotkey closures resolve `stack` at call time, so handleLoadGame's
   // reassignment is observed automatically (Alt+M after load fires the
   // new stack's controller).
-  hotkeyRegistry.register({ key: 'm', alt: true }, () => stack.annotationController.onHotkey());
+  hotkeyRegistry.register(
+    { key: 'm', alt: true },
+    gateAnnotationHotkeyOnReplayMode(replayController, () => stack.annotationController.onHotkey()),
+  );
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack.markerListPanel.toggleVisibility());
   const replayHotkeys = registerReplayHotkeys({
     hotkeys: hotkeyRegistry,

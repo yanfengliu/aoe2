@@ -17,12 +17,21 @@
 //     - schema-mismatched sessions: disabled Export + tooltip
 //     - closedNormally:false: warning icon + tooltip
 
-import type { EntityRef, Position, World } from 'civ-engine';
+import type { EntityRef, Marker, Position, World } from 'civ-engine';
 
 import type { RecordingService } from '../../game/recording/RecordingService';
 import type { PauseControl } from '../../game/control/PauseControl';
 import type { PriorSessionDescriptor } from '../../game/recording/IndexedDBMirror';
 import { SchemaMismatchError } from '../../game/recording/IndexedDBMirrorErrors';
+
+export type MarkerListPanelMode = 'live' | 'replay';
+
+export interface MarkerListPanelReplayAdapter {
+  mode(): MarkerListPanelMode;
+  bundle(): { markers: readonly Marker[] } | null;
+  jumpToMarker(markerId: string): void;
+  onModeChange(listener: (mode: MarkerListPanelMode) => void): () => void;
+}
 
 const POLL_INTERVAL_MS = 1000;
 const TEXT_SNIPPET_MAX_LEN = 60;
@@ -33,6 +42,11 @@ const SEVERITY_ICONS: Record<string, string> = {
   bug: 'B',
   blocker: 'X',
 };
+
+// Set lookup avoids prototype-chain pollution (`SEVERITY_ICONS['constructor']`
+// returns the inherited Object constructor, which is truthy and would bypass
+// the intended fallback). Iter-2 review finding.
+const ALLOWED_SEVERITIES: ReadonlySet<string> = new Set(Object.keys(SEVERITY_ICONS));
 
 export interface MarkerListPanelConfig {
   readonly recording: RecordingService;
@@ -49,6 +63,11 @@ export interface MarkerListPanelConfig {
   /** When true (default), uses setInterval polling. Tests pass false
    *  and call refresh() manually for deterministic assertions. */
   readonly autoRefresh?: boolean;
+  /** Slice 1 (v0.1.8): when present and `mode() === 'replay'`, the panel
+   *  reads markers from the replay bundle, hides the Prior Sessions
+   *  section, and routes row clicks through `jumpToMarker`. The adapter
+   *  is optional so tests and pre-Slice-1 callers stay unchanged. */
+  readonly replay?: MarkerListPanelReplayAdapter;
 }
 
 export interface MarkerListPanel {
@@ -63,18 +82,21 @@ export interface MarkerListPanel {
 }
 
 export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerListPanel {
-  const { recording, pauseControl, toast, bridge, worldRef } = config;
+  const { recording, pauseControl, toast, bridge, worldRef, replay } = config;
   const autoRefresh = config.autoRefresh ?? true;
+  const currentMode = (): MarkerListPanelMode => replay?.mode() ?? 'live';
 
   let mounted: HTMLElement | null = null;
   let panelEl: HTMLDivElement | null = null;
   let currentSessionListEl: HTMLDivElement | null = null;
   let priorSessionsToggle: HTMLButtonElement | null = null;
   let priorSessionsListEl: HTMLDivElement | null = null;
+  let priorSessionsContainerEl: HTMLDivElement | null = null;
   let visible = false;
   let priorSessionsExpanded = false;
   let priorSessionsCache: readonly PriorSessionDescriptor[] | null = null;
   let pollHandle: ReturnType<typeof setInterval> | null = null;
+  let unsubscribeModeChange: (() => void) | null = null;
 
   const buildDom = (): HTMLDivElement => {
     const root = document.createElement('div');
@@ -100,9 +122,18 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
       : `${text.slice(0, TEXT_SNIPPET_MAX_LEN - 1)}…`;
   };
 
+  const collectMarkersForCurrentMode = (): readonly Marker[] => {
+    if (currentMode() === 'replay') {
+      const bundle = replay?.bundle();
+      if (!bundle) return [];
+      return [...bundle.markers].sort((left, right) => right.tick - left.tick);
+    }
+    return recording.markers();
+  };
+
   const renderCurrentSession = (): void => {
     if (!currentSessionListEl) return;
-    const markers = recording.markers();
+    const markers = collectMarkersForCurrentMode();
     if (markers.length === 0) {
       currentSessionListEl.innerHTML =
         '<div class="marker-list-panel__empty" data-testid="marker-list-current-empty">No markers yet.</div>';
@@ -114,21 +145,28 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
           m.data && typeof m.data === 'object' && 'author' in (m.data as Record<string, unknown>)
             ? String((m.data as { author: unknown }).author)
             : 'unknown';
-        const severity =
+        const severityRaw =
           m.data && typeof m.data === 'object' && 'severity' in (m.data as Record<string, unknown>)
             ? String((m.data as { severity: unknown }).severity)
             : 'info';
-        const icon = SEVERITY_ICONS[severity] ?? 'i';
+        const severity = ALLOWED_SEVERITIES.has(severityRaw) ? severityRaw : 'info';
+        const icon = SEVERITY_ICONS[severity];
+        const tickValue = Number.isFinite(m.tick) ? Math.trunc(m.tick).toString() : '0';
         return `
-          <div class="marker-list-panel__row" data-testid="marker-list-current-row" data-marker-index="${i}">
-            <span class="marker-list-panel__tick">${m.tick}</span>
-            <span class="marker-list-panel__sev marker-list-panel__sev--${severity}">${icon}</span>
+          <div class="marker-list-panel__row" data-testid="marker-list-current-row" data-marker-index="${i}" data-marker-id="${escapeHtml(m.id)}">
+            <span class="marker-list-panel__tick">${escapeHtml(tickValue)}</span>
+            <span class="marker-list-panel__sev marker-list-panel__sev--${escapeHtml(severity)}">${icon}</span>
             <span class="marker-list-panel__text">${escapeHtml(truncateText(m.text))}</span>
             <span class="marker-list-panel__author">${escapeHtml(author)}</span>
           </div>
         `;
       })
       .join('');
+  };
+
+  const applyPriorSectionVisibility = (): void => {
+    if (!priorSessionsContainerEl) return;
+    priorSessionsContainerEl.hidden = currentMode() === 'replay';
   };
 
   const renderPriorSessions = (): void => {
@@ -172,6 +210,11 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
     if (!row) return;
     const idx = Number(row.dataset.markerIndex ?? '-1');
     if (idx < 0) return;
+    if (currentMode() === 'replay') {
+      const markerId = row.dataset.markerId;
+      if (markerId && replay) replay.jumpToMarker(markerId);
+      return;
+    }
     const markers = recording.markers();
     const marker = markers[idx];
     if (!marker) return;
@@ -277,11 +320,20 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
       currentSessionListEl = panelEl.querySelector<HTMLDivElement>('[data-testid="marker-list-current"]');
       priorSessionsToggle = panelEl.querySelector<HTMLButtonElement>('[data-testid="marker-list-prior-toggle"]');
       priorSessionsListEl = panelEl.querySelector<HTMLDivElement>('[data-testid="marker-list-prior"]');
+      priorSessionsContainerEl = panelEl.querySelector<HTMLDivElement>('.marker-list-panel__prior');
       host.appendChild(panelEl);
 
       currentSessionListEl?.addEventListener('click', handleCurrentRowClick);
       priorSessionsListEl?.addEventListener('click', handlePriorActionClick);
       priorSessionsToggle?.addEventListener('click', handlePriorToggle);
+
+      applyPriorSectionVisibility();
+      if (replay) {
+        unsubscribeModeChange = replay.onModeChange(() => {
+          applyPriorSectionVisibility();
+          if (visible) renderCurrentSession();
+        });
+      }
     },
 
     toggleVisibility(): void {
@@ -318,11 +370,14 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
       currentSessionListEl?.removeEventListener('click', handleCurrentRowClick);
       priorSessionsListEl?.removeEventListener('click', handlePriorActionClick);
       priorSessionsToggle?.removeEventListener('click', handlePriorToggle);
+      unsubscribeModeChange?.();
+      unsubscribeModeChange = null;
       if (panelEl && mounted) {
         try { mounted.removeChild(panelEl); } catch { /* best-effort */ }
       }
       mounted = null;
       panelEl = null;
+      priorSessionsContainerEl = null;
     },
   };
 }
