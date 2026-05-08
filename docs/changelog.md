@@ -2,6 +2,29 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.16 - 2026-05-07
+
+### Feature: Scrub-workflow Playwright e2e
+
+The fourth deferred follow-up from the v0.1.12 thread close lands. New `tests/browser/replay-scrub.spec.ts` (3 tests) drives the timeline scrubber + step buttons against a real replay session and asserts on `__AOE2_TEST__.replay.getReplayCurrentTick()`:
+
+- **Timeline range scrub commits to the requested tick.** Sets the `<input type=range>` value via DOM event dispatch (input + change), waits for the controller to apply the scrub, then asserts `getReplayCurrentTick()` matches.
+- **Step-back/forward buttons advance one tick at a time.** Seeds a mid-replay tick, then exercises both buttons.
+- **Exit button leaves replay mode.** Asserts the timeline's exit handler returns the controller to live mode.
+
+The "Playwright drag synthesis" referenced in the v0.1.12 thread close turned out unnecessary — the timeline thumb is a native `<input type=range>`, so a value-set + change-event dispatch covers the same ground without `page.mouse.down/move/up` choreography.
+
+### Internal: tightened race condition on prior-row click in test API
+
+The replay-load dialog's prior-row click triggers an async IDB fetch before `enterReplay` fires. Reading `getReplayMode()` immediately after the click can race the resolve. The new spec uses `expect.poll` to wait for the mode flip, mirroring the pattern Playwright recommends for async state changes.
+
+### Validation
+
+- `npm test`: 863 unit tests + 1 skip pass; same 5 pre-existing full-suite contention flakes ride through unchanged.
+- `npm run typecheck` / `npm run lint` / `npm run build`: pass.
+- `npx playwright test tests/browser/replay-scrub.spec.ts`: **3 / 3 pass** on chromium.
+- Full Playwright suite: 89 pass, 2 skip, 5 failed in unrelated specs (`game-progression-and-production`, `game-rendering-and-world`, `game-simulation-and-exploration-core`) — these are pre-existing rendering/behavior assertion mismatches (e.g., market resources expected 800 got 700; garrison villager count expected 2 got 3; building visual flags off) not introduced by this commit. The 8 replay-related Playwright tests (5 dialog + 3 scrub) all pass.
+
 ## 0.1.15 - 2026-05-07
 
 ### Bug fix: ReplayLoadDialog non-interactive in real browsers
