@@ -1081,6 +1081,53 @@ Rules:
 - Dying units retain their slot through death cleanup; spawns at the same point must wait or be offset to a free slot or neighbor tile.
 - Renderers may interpolate between consecutive slot offsets for movement smoothness, but the per-unit visual position at every frame must remain distinct from every other unit's.
 
+### 12.7 Movement Targets and Slot Reservation
+
+A move command's logical destination is a cell plus a slot, not a bare cell. The simulation resolves slot assignment in two complementary ways depending on how the command was issued.
+
+**Lazy redirect on arrival (single-unit moves).**
+
+- When one unit is commanded to a cell, the move command targets that cell. The unit moves toward it without reserving a slot in advance; on arrival the simulation occupies any free slot the engine returns.
+- If the target cell is fully packed when the unit arrives, the simulation searches the neighborhood (BFS from the target, default radius 16 cells, stopping at the first cell with a free slot) and redirects the unit to that cell. The move command's target is rewritten to the redirected cell so movement does not re-aim at the original full target — this is what prevents the oscillation that would occur if the unit kept trying to enter a permanently-full cell.
+- If the search exhausts the radius without finding a free slot, the unit overflows at the original target as the last-resort fallback. Visual stacking is accepted in that pathological case; a debug-overlay flag should surface it.
+
+**Eager pre-reservation (group moves).**
+
+- When N units are commanded simultaneously to the same destination (drag-select then right-click, attack-move group, stance-driven group regroup), the simulation pre-allocates N distinct slots starting from the target cell and spiraling outward in a deterministic order. Each unit's move command targets its individual reserved slot, not the bare destination.
+- Pre-allocated slots are reservations, not occupations: a third party that arrives at a reserved cell first may legitimately take the slot. A displaced unit whose reservation is invalidated falls back to the lazy redirect path above.
+- The pre-reservation pass runs once at command issuance. Subsequent ticks do not re-allocate; if reservations are stolen they are not refreshed.
+
+**Reservation lifecycle.**
+
+A unit's slot reservation is released when:
+
+- the unit arrives at the reserved cell and the reservation transitions to an occupation;
+- the unit receives a new move / attack / gather / garrison / build / patrol / stop command (the new command replaces the prior reservation, allocating fresh if it is also a move);
+- the unit dies, is destroyed, is converted to another player, or is garrisoned;
+- the reservation has been outstanding longer than a bounded TTL (default: 30 simulation seconds) without progress toward the target — this guards against runaway reservations from unreachable destinations.
+
+**Determinism, save / load, and replay.**
+
+- Reservations are part of authoritative simulation state. They must be serialized in saves so a load restores the same per-unit reservations, and they must replay byte-identically from the recorded command stream.
+- The pre-reservation algorithm is deterministic: same set of unit IDs + same target cell + same world state produces the same per-unit slot assignment.
+- Reservations do not survive across schema-incompatible save / load cycles; a bumped save schema may reset reservations and force the next tick of movement to re-allocate via the lazy path.
+
+**Edge cases.**
+
+- **Mid-flight target becomes fully blocked** (a building was placed on the destination, terrain changed, the cell flipped to water): pathfinding rejects the route. The simulation cancels the move and the reservation; the unit picks a new target via the standard "approach as close as possible" rule used by any other unreachable destination.
+- **Reserved cell is taken before arrival**: as above — the displaced unit falls back to lazy redirect.
+- **Spawned unit lands on a full cell** (train completion, ungarrison, conversion drop, transport unload, scenario seed): treat as a single-unit move arriving "instantly" — apply the lazy redirect rule, find the nearest free slot.
+- **Wandering / patrolling units** crossing through a populated cell: each unit's slot is allocated on entry and released on exit. No reservation is needed for transit because the unit is not stopping.
+- **Combat engage**: when N units are commanded to attack one target, treat as a group move whose destination is the cell range around the target. Pre-allocate slots in a ring around the attack target. Same algorithm as group move with a different center selection.
+- **Resource gather clusters** (villagers around a tree, a herd of sheep): each gatherer's stationing slot is allocated by lazy redirect on arrival at the resource cell. The slot is held while the unit is gathering and freed when the unit moves on (deposit run, switch resource, etc.).
+- **Building construction**: each builder villager occupies a slot in a cell adjacent to the foundation. The construction system selects construction-side slots via the same lazy-on-arrival rule.
+- **Mass formations** (50+ units): the pre-reservation algorithm must scale linearly with group size and tolerate map-edge truncation (the spiral hitting bounds returns fewer slots than requested; the remaining units fall through to lazy redirect on arrival).
+- **Map edge / out-of-bounds**: the BFS / spiral skip out-of-bounds cells; reservation may run short.
+- **Naval vs land**: only same-domain neighbor cells count as candidates (a land unit's redirect cannot land on water; a fishing ship's cannot land on grass).
+- **Performance**: occupancy queries are O(slots_per_cell) per cell visited; both algorithms are bounded so worst-case cost is small even for dense moves.
+
+The renderer is unaffected by the reservation system — it reads the unit's transform position only, exactly as it does today. All reservation bookkeeping lives in simulation state.
+
 ## 13. AI Opponent Behavior
 
 ### 13.1 Difficulty Levels
