@@ -1,4 +1,5 @@
-## 2026-05-07 (v0.1.13 thread closure)
+## 2026-05-07 (v0.1.13 thread closure + deferred follow-ups)
+- **escapeHtml consolidation (internal-only refactor):** lifted the 5-char HTML escape (`& < > " '`) to one canonical `src/ui/utils/escapeHtml.ts` from three duplicates; postGameSummary's copy was missing apostrophe coverage (defense-in-depth, text-context no-op). New `tests/ui/escapeHtml.test.ts` (6 tests) locks the contract. Codex + Claude both clean on iter-1 (one NIT on test name, fixed). No version bump.
 - **Phase 3E Slice 6 — replay-flow integration + Playwright e2e (v0.1.13):** vitest+jsdom integration suite (6 tests against real `recordCommandReplayFixture` bundles) covering all three load sources + the slice-4 transactional `enterReplay` guarantee at the integration boundary; Playwright e2e (4 tests) drives the actual app via `__AOE2_TEST__.replay.{getReplayMode,getReplayCurrentTick,openReplayLoadDialog}` — open/cancel, deterministic 120-tick live-confirm + Escape exit, file-tab malformed-JSON rejection, programmatic open. No canvas pixel snapshots. Browser test API gains a required `replay` sub-object. **Thread closes** — `replay-load-and-e2e` moves from `current/` to `done/` after Slice 6.
 
 ## 2026-05-06 (v0.1.8 + v0.1.9 + v0.1.10 + v0.1.11 + v0.1.12 + thread setup)

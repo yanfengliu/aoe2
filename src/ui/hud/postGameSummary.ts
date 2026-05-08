@@ -1,4 +1,5 @@
 import type { HudState, MatchState } from '../../game/simulation/types';
+import { escapeHtml } from '../utils/escapeHtml';
 
 // Slice 8: post-game summary card content. Summary text drives the
 // existing browser-test assertions; adding winCondition + scores below
@@ -18,14 +19,6 @@ function formatWinConditionLabel(
     default:
       return '';
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 // Slice 8: render the post-game summary markup. Preserves the

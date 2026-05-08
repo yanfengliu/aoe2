@@ -15,6 +15,7 @@ import { SchemaMismatchError } from '../../game/recording/IndexedDBMirrorErrors'
 import { loadCurrentSessionAsReplay } from '../../game/replay/loadCurrentSession';
 import { loadPriorSessionAsReplay } from '../../game/replay/loadPriorSession';
 import { parseSessionBundleFile } from '../../game/replay/parseSessionBundleFile';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export type ReplayLoadSource = 'live' | 'prior' | 'file';
 
@@ -101,18 +102,6 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       panel.hidden = panel.dataset.source !== source;
     }
   };
-
-  const escapeHtml = (s: string): string =>
-    s.replace(/[&<>"']/g, (ch) => {
-      switch (ch) {
-        case '&': return '&amp;';
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '"': return '&quot;';
-        case "'": return '&#39;';
-        default: return ch;
-      }
-    });
 
   const renderPriorList = (): void => {
     if (priorSessionsCache === null || priorSessionsCache.length === 0) {

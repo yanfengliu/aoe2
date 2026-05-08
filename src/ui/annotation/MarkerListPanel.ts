@@ -23,6 +23,7 @@ import type { RecordingService } from '../../game/recording/RecordingService';
 import type { PauseControl } from '../../game/control/PauseControl';
 import type { PriorSessionDescriptor } from '../../game/recording/IndexedDBMirror';
 import { SchemaMismatchError } from '../../game/recording/IndexedDBMirrorErrors';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export type MarkerListPanelMode = 'live' | 'replay';
 
@@ -431,18 +432,6 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
     },
   };
 }
-
-const escapeHtml = (s: string): string =>
-  s.replace(/[&<>"']/g, (ch) => {
-    switch (ch) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case "'": return '&#39;';
-      default: return ch;
-    }
-  });
 
 const triggerDownload = (blob: Blob, filename: string): void => {
   if (typeof window === 'undefined' || typeof URL.createObjectURL !== 'function') return;
