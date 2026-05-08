@@ -426,7 +426,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return true;
   }
 
-
   function findBuildPlacementNear(
     origin: Position,
     buildingType: BuildableBuildingType,

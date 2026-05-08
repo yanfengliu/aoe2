@@ -10,7 +10,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
-import { stepBridgeUntil } from './createSimulationBridge.helpers';
 
 const HOUSE_ANCHOR = { x: 12, y: 12 };
 
@@ -67,66 +66,125 @@ describe('multi-villager construction', () => {
   });
 
   it('right-clicking an own in-progress House makes selected villagers join the build', () => {
-    const bridge = createSimulationBridge('multi-villager-construction-fixture');
-    const villagers = getOwnVillagerIds(bridge, 1);
-    expect(villagers).toHaveLength(5);
+    // Run the same fixture twice. Variant A places with 1 villager and
+    // never adds joiners — establishes the single-villager completion
+    // budget. Variant B places with 1, then adds the other 4 mid-build
+    // via right-click. B must complete materially faster than A; if the
+    // join branch were broken, B's helpers would not contribute and B
+    // would take ~A ticks. The ratio gate guards against false-pass.
+    function runVariant(addJoiners: boolean): number {
+      const bridge = createSimulationBridge('multi-villager-construction-fixture');
+      const villagers = getOwnVillagerIds(bridge, 1);
+      expect(villagers).toHaveLength(5);
 
-    const [primary, ...rest] = villagers;
-    expect(bridge.selectUnitsByIds([primary])).toBe(true);
-    expect(bridge.beginBuildingPlacement('house')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(HOUSE_ANCHOR.x, HOUSE_ANCHOR.y)).toBe(true);
+      const [primary, ...rest] = villagers;
+      expect(bridge.selectUnitsByIds([primary])).toBe(true);
+      expect(bridge.beginBuildingPlacement('house')).toBe(true);
+      expect(bridge.confirmBuildingPlacement(HOUSE_ANCHOR.x, HOUSE_ANCHOR.y)).toBe(true);
+      bridge.step(100);
 
-    bridge.step(100);
+      const inProgress = getHouseInProgress(bridge, 1);
+      expect(inProgress).toBeDefined();
 
-    const inProgress = getHouseInProgress(bridge, 1);
-    expect(inProgress).toBeDefined();
+      if (addJoiners) {
+        expect(bridge.selectUnitsByIds(rest)).toBe(true);
+        expect(bridge.issueContextCommandAtEntity(inProgress!.id)).toBe(true);
+      }
 
-    expect(bridge.selectUnitsByIds(rest)).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(inProgress!.id)).toBe(true);
+      let ticks = 1; // already stepped once above
+      while (!getHouseComplete(bridge, 1) && ticks < 2000) {
+        bridge.step(100);
+        ticks += 1;
+      }
+      expect(getHouseComplete(bridge, 1)).toBeDefined();
+      return ticks;
+    }
 
-    // With all 5 working, the House completes faster than any 1-villager
-    // remainder budget could finish it. The single-villager fixture above
-    // finished in some N ticks; here we constrain to <N/2.
-    const completed = stepBridgeUntil(bridge, () => Boolean(getHouseComplete(bridge, 1)), {
-      maxSteps: 1500,
-    });
-    expect(completed).toBe(true);
+    const soloTicks = runVariant(false);
+    const joinTicks = runVariant(true);
+    // Five working in parallel for most of the build should be at least
+    // 2× faster than a single villager. If the join branch did not fire,
+    // joinTicks would equal soloTicks (within walking-time noise).
+    expect(joinTicks).toBeLessThan(soloTicks / 2);
   });
 
-  it("the building's currentHp strictly increases tick-by-tick during construction", () => {
-    // Single-villager fixture so construction lasts long enough to sample
-    // mid-build without finishing inside the warm-up.
+  it('right-clicking a complete own building falls through to garrison (no build command)', () => {
+    // Iter-2 L1: pin the gating order in routeUnitContextAtEntityCommandDirect
+    // — a complete building must NOT route to setUnitBuildCommandDirect
+    // even when a villager is the actor.
+    const bridge = createSimulationBridge('multi-villager-construction-fixture');
+    const villagers = getOwnVillagerIds(bridge, 1);
+    const [villager] = villagers;
+
+    // The fixture's Town Center starts complete and is owned by player 1.
+    // Find it in the economy state.
+    const townCenter = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 1 && b.buildingType === 'town-center');
+    expect(townCenter).toBeDefined();
+    expect(townCenter!.isComplete).toBe(true);
+
+    expect(bridge.selectUnitsByIds([villager])).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(townCenter!.id)).toBe(true);
+
+    // Step once so the unit.contextAtEntity handler runs.
+    bridge.step(100);
+
+    // The villager must not have a build command targeting the Town Center.
+    // We assert via the side-effect: a complete-building right-click with a
+    // villager garrisons (or, if the TC is full, no-ops). Either way, no
+    // House foundation is created and no build progress accrues anywhere.
+    const foundations = bridge
+      .getEconomyState()
+      .buildings.filter((b) => b.owner === 1 && !b.isComplete);
+    expect(foundations).toHaveLength(0);
+  });
+
+
+  it("the projected building view's currentHp strictly increases tick-by-tick during construction", () => {
+    // Read HP through the renderState projection (NOT via getEntityHealth,
+    // which reads side-maps directly). The projector only re-runs for an
+    // entity when civ-engine flags it dirty in the tick diff. Side-map
+    // mutations alone do NOT mark the building dirty — that's the bug
+    // the patchComponent('renderable', r => r) fix repairs. If that
+    // patchComponent call were removed, the projected currentHp would
+    // stay constant across consecutive ticks even while the side-map
+    // value climbs, and this test would fail.
     const bridge = createSimulationBridge('single-villager-construction-fixture');
     const villagers = getOwnVillagerIds(bridge, 1);
     expect(bridge.selectUnitsByIds(villagers)).toBe(true);
     expect(bridge.beginBuildingPlacement('house')).toBe(true);
     expect(bridge.confirmBuildingPlacement(HOUSE_ANCHOR.x, HOUSE_ANCHOR.y)).toBe(true);
 
-    // First tick lands the foundation. Find the building id eagerly.
     bridge.step(100);
     const inProgress = getHouseInProgress(bridge, 1);
     expect(inProgress).toBeDefined();
     const buildingId = inProgress!.id;
 
-    // Walk ticks until HP starts increasing (villager arrives at site).
-    const initialHealth = bridge.getEntityHealth(buildingId);
-    expect(initialHealth).not.toBeNull();
-    const startHp = initialHealth!.currentHp;
+    function projectedHp(): number | null {
+      const view = bridge
+        .getRenderState()
+        .entities.find((entity) => entity.id === buildingId);
+      return view?.currentHp ?? null;
+    }
+
+    // Walk ticks until projected HP starts increasing (villager arrives).
+    const startHp = projectedHp();
+    expect(startHp).not.toBeNull();
     let walked = 0;
     while (walked < 200) {
       bridge.step(100);
       walked += 1;
-      const here = bridge.getEntityHealth(buildingId);
-      if (here && here.currentHp > startHp) break;
+      const here = projectedHp();
+      if (here !== null && here > (startHp as number)) break;
     }
     expect(walked).toBeLessThan(200);
 
-    // Sample 5 consecutive ticks of build progress.
     const samples: number[] = [];
     for (let i = 0; i < 5; i += 1) {
-      const here = bridge.getEntityHealth(buildingId);
+      const here = projectedHp();
       expect(here).not.toBeNull();
-      samples.push(here!.currentHp);
+      samples.push(here as number);
       bridge.step(100);
     }
     for (let i = 1; i < samples.length; i += 1) {

@@ -416,8 +416,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
         construction
         && !construction.isComplete
         && unit.unitType === 'villager'
+        && setUnitBuildCommandDirect(unitId, targetEntityId)
       ) {
-        return setUnitBuildCommandDirect(unitId, targetEntityId);
+        return true;
       }
 
       if (

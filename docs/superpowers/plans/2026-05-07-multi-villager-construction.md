@@ -233,13 +233,11 @@ function startConstructionWithBuildersDirect(
   return true;
 }
 
-function startConstruction(
-  builderId: number,
-  buildingType: BuildableBuildingType,
-  anchor: Position,
-): boolean {
-  return startConstructionWithBuildersDirect([builderId], buildingType, anchor);
-}
+// Note: the single-id startConstruction wrapper was DROPPED in
+// implementation — wireBridgeOps was the only consumer, and once it
+// migrated to startConstructionWithBuildersDirect there were no
+// remaining callers. Earlier draft of this plan kept it as a thin
+// wrapper; the final code removes it cleanly.
 ```
 
 - [ ] **Step 2: Add to the interface**

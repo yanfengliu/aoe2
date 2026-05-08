@@ -43,7 +43,7 @@ Two related defects in the construction loop today:
 
 ### Validator changes
 
-`buildingPlaceConfirmValidator.ts` adds a check for each id in `additionalBuilderIds`: must be a current entity, owned by the same player as `builderId`, and a villager. Mismatched / missing extra builders are silently dropped at handler time (best-effort), but the validator rejects the whole command if the entire selection is invalid (e.g., zero valid builders, including the primary).
+`buildingPlaceConfirmValidator.ts` only enforces array shape + integer entries on `additionalBuilderIds`. Per-id alive / villager / same-owner checks are deliberately deferred to handler time (silent skip on mismatch), mirroring the AI tolerance pattern already used by `routeMonkContextAtEntityCommandDirect` etc. The primary `builderId` retains its full validator suite (alive, villager, owner-owns-build-option, can-afford), so the command is rejected outright when the *primary* is invalid; helper ids are best-effort.
 
 ### Handler changes
 
@@ -54,7 +54,7 @@ Two related defects in the construction loop today:
 - Create the building entity once.
 - For each id in the full list (primary + additional), if it is still a current entity, owned by the same player, and a villager: `clearGathererOrder(id)` + `setUnitCommand(id, { type: 'build', target, buildingRef })`. Skip-on-mismatch is silent (best-effort, matches existing AI tolerance for stale ids).
 
-The existing `startConstruction(builderId, ...)` becomes a thin wrapper that calls `startConstructionWithBuildersDirect([builderId], ...)`. AI paths keep their current shape.
+The pre-existing single-id `startConstruction(builderId, ...)` had no remaining live consumers once `wireBridgeOps` switched to the multi-builder helper, so it is removed entirely rather than kept as a wrapper. AI paths already submit `building.placeConfirm` through the command channel and are unaffected.
 
 ### HUD entry point
 
