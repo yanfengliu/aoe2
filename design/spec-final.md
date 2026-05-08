@@ -1067,6 +1067,19 @@ Movement values come from unit data, but the rules system must support:
 - formation drag or cohesion effects
 - stance-driven chase limits
 
+### 12.6 Unit Spacing and Sub-Tile Occupancy
+
+Multiple units may share a tile, but no two units may occupy the exact same point at the same simulation tick.
+
+Rules:
+
+- Sub-tile occupancy is supported via deterministic slot packing. The default pattern is a 4x4 grid of 16 slots per tile; an implementation may choose a different pattern provided slots are distinct, stable across ticks, and reproducible from inputs.
+- Any placement, spawn, move, ungarrison, train completion, transport unload, conversion drop, or replay-rehydration must resolve to a free slot. If the target tile is fully packed, fall back to a neighboring tile rather than stacking two units on the same slot.
+- Buildings, resources, impassable terrain, and out-of-bounds claims block whole tiles; units cannot share a whole-cell-blocked tile.
+- Garrisoned, transported, or otherwise-contained units have no independent world position and are exempt from the rule until released.
+- Dying units retain their slot through death cleanup; spawns at the same point must wait or be offset.
+- Renderers may interpolate sub-tile positions for visual smoothness without changing the simulation slot assignment.
+
 ## 13. AI Opponent Behavior
 
 ### 13.1 Difficulty Levels

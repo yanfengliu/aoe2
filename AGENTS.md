@@ -212,6 +212,17 @@ Code changes are not done until the docs match. Before declaring any task comple
 - If a future session makes you realize that your previous debug sessions on the same topic did not fully solve the problem, update past docs to avoid misunderstandings.
 - Clean up the temporary files (such as stack dump, test results) created during debugging after you are done.
 
+## Game spec
+
+`design/spec-final.md` is the authoritative game definition. The goal is that the spec alone (plus the structured data under `design/stats/`) is sufficient for an agent to implement and iterate the entire game without further user clarification.
+
+- **Persist every user-described rule, behavior, mechanic, content change, UX expectation, or constraint into `design/spec-final.md` as part of the same task.** Adding the rule to the spec is preparatory work that runs alongside (not after) implementation. A task is not done until the spec reflects the new rule.
+- Place new content under the section that best matches its topic (combat, pathfinding, units, UI, simulation, etc.); add a new subsection if no existing one fits.
+- If the user's description conflicts with existing spec language, edit the spec so it stays internally consistent — do not let two contradictory rules coexist.
+- Spec updates are independent of the devlog/changelog/architecture pipelines; the spec captures rules, the devlog captures activity, the changelog captures user-visible behavior bumps. Update all surfaces that apply.
+- Spec updates do not replace the TDD + multi-CLI review gates for code/test changes that follow from the new rule.
+- This rule was added 2026-05-08 after the user emphasized that a complete spec is what enables autonomous hand-off iteration without per-change intervention.
+
 ## Game specific
 
 - Record current `civ-engine` weaknesses and misses in `docs/engine-feedback/current.md` as you work. Historical observations belong in `docs/engine-feedback/past.md`. Before you write to the current file, use a subagent to audit if its content is still valid and up to date. If too long, stale, or the issues are already addressed, it should be adjusted.
