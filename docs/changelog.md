@@ -2,6 +2,25 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.17 - 2026-05-07
+
+### Feature: Multi-villager construction with smooth HP-bar
+
+Three intertwined construction defects fixed in one feature:
+
+- **Selecting N villagers and placing a building now assigns the build command to all N.** Construction speed scales linearly with builder count. Previously only the first selected villager got the command; the rest stood idle.
+- **Right-clicking an own in-progress building site routes selected villagers to join the build.** Previously the right-click fell through to the move fallback and additional villagers walked toward the foundation but never built.
+- **The construction HP bar now updates every tick during construction.** Previously the bar appeared frozen because side-map mutations (`buildingHealthStates`) do not mark the building entity dirty for civ-engine's renderAdapter — the projector never re-ran for the foundation, so the projected `currentHp` value stayed constant until something else marked the entity dirty (selection, damage, completion). A no-op `world.patchComponent('renderable', r => r)` per builder-at-site per tick is enough to flag the entity dirty, after which the projector fills the bar smoothly. Multi-builder ticks dedupe at civ-engine's dirty-set level so the cost stays one re-projection per construction site per tick.
+
+`building.placeConfirm`'s payload extends with optional `additionalBuilderIds: number[]` (backward compatible — old replays with just `builderId` continue to work). The validator only enforces array shape + integer entries; per-id alive / villager / same-owner checks are best-effort at handler time, mirroring the AI tolerance pattern already in use elsewhere.
+
+### Validation
+
+- `npm test` / `npm run typecheck` / `npm run lint` / `npm run build`: all four green.
+- New scenario tests in `tests/simulation/multiVillagerConstruction.test.ts` (4 tests) cover linear-scaling speedup, mid-build right-click join, complete-building fall-through (gating-order pin), and per-tick projected-HP updates (verifies the regression is actually caught — the test reads via the projector, so commenting out the `patchComponent` call makes it fail).
+- New fixtures `multi-villager-construction-fixture` / `single-villager-construction-fixture` for deterministic tick-count comparisons.
+- Multi-CLI review iter-1 (Codex + Claude) caught 3 real bugs (HP-bar test bypassed projector, mid-build budget too loose, in-progress branch ate fall-through on helper failure) plus 3 LOW/NIT findings; all closed in iter-2. Iter-2 Codex unreachable (budget); iter-2 Claude verified clean.
+
 ## 0.1.16 - 2026-05-07
 
 ### Feature: Scrub-workflow Playwright e2e
