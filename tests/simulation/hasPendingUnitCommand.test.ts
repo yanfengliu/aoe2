@@ -63,6 +63,24 @@ describe('hasPendingUnitCommand — pending-intention filter for autoAggression'
     expect(hasPendingUnitCommand(queue, 0)).toBe(false);
   });
 
+  it('matches building.placeConfirm by additionalBuilderIds (multi-villager build)', () => {
+    const queue: PendingCommand[] = [
+      {
+        type: 'building.placeConfirm',
+        data: {
+          builderId: 5,
+          buildingType: 'house',
+          position: { x: 1, y: 1 },
+          additionalBuilderIds: [42, 99],
+        },
+      },
+    ];
+    expect(hasPendingUnitCommand(queue, 5)).toBe(true);
+    expect(hasPendingUnitCommand(queue, 42)).toBe(true);
+    expect(hasPendingUnitCommand(queue, 99)).toBe(true);
+    expect(hasPendingUnitCommand(queue, 7)).toBe(false);
+  });
+
   it('matches sheep.move by sheepId (R2-M1)', () => {
     const queue: PendingCommand[] = [
       { type: 'sheep.move', data: { sheepId: 42, target: { x: 1, y: 1 } } },

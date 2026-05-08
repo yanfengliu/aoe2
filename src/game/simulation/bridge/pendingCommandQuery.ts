@@ -42,6 +42,7 @@ export function hasPendingUnitCommand(
         break;
       case 'building.placeConfirm':
         if (cmd.data.builderId === unitId) return true;
+        if (cmd.data.additionalBuilderIds?.includes(unitId)) return true;
         break;
       // The following commands don't take a unit-id field that overwrites
       // unitCommand[id], so they don't conflict — but they're enumerated
