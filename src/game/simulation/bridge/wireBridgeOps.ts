@@ -339,7 +339,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     executeMarketActionDirect,
     playerOwnsCompletedMarket,
     ungarrisonBuilding,
-    startConstruction,
     startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   } = trainingMarketOps;

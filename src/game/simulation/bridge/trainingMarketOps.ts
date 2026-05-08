@@ -109,11 +109,6 @@ export interface TrainingMarketOps {
   playerOwnsCompletedMarket(playerId: number): boolean;
   garrisonUnit(unitId: number, buildingId: number): boolean;
   ungarrisonBuilding(buildingId: number): boolean;
-  startConstruction(
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ): boolean;
   // Multi-villager construction: spend resources once, create the building
   // once, then set a `build` command on each id in the list. Stale or
   // out-of-faction helper ids are silently skipped (AI tolerance pattern).
@@ -431,13 +426,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return true;
   }
 
-  function startConstruction(
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ): boolean {
-    return startConstructionWithBuildersDirect([builderId], buildingType, anchor);
-  }
 
   function findBuildPlacementNear(
     origin: Position,
@@ -482,7 +470,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     playerOwnsCompletedMarket,
     garrisonUnit,
     ungarrisonBuilding,
-    startConstruction,
     startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   };

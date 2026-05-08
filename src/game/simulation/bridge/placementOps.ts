@@ -148,12 +148,13 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       return false;
     }
 
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (placementMode.current === null || selectedVillagerId === null) {
+    const selectedVillagerIds = getSelectedHumanVillagerIds();
+    const primaryId = selectedVillagerIds[0] ?? null;
+    if (placementMode.current === null || primaryId === null) {
       return false;
     }
 
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
+    const unit = world.getComponent<UnitComponent>(primaryId, 'unit');
     if (!unit || unit.owner !== humanPlayerId || unit.unitType !== 'villager') {
       return false;
     }
@@ -163,10 +164,12 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       y: clamp(y, 0, mapHeight - 1),
     };
     const buildingType = placementMode.current;
+    const additionalBuilderIds = selectedVillagerIds.slice(1);
     const result = world.submitWithResult('building.placeConfirm', {
-      builderId: selectedVillagerId,
+      builderId: primaryId,
       buildingType,
       position: anchor,
+      ...(additionalBuilderIds.length > 0 ? { additionalBuilderIds } : {}),
     });
     if (result.accepted) {
       placementMode.current = null;
