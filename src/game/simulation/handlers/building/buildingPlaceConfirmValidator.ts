@@ -36,6 +36,16 @@ export function makeBuildingPlaceConfirmValidator(
     if (!Number.isInteger(data.builderId)) {
       return { code: 'invalid_builder_id', message: 'Builder id must be an integer.' };
     }
+    if (data.additionalBuilderIds !== undefined) {
+      if (!Array.isArray(data.additionalBuilderIds)) {
+        return { code: 'invalid_builder_id', message: 'additionalBuilderIds must be an array.' };
+      }
+      for (const extraId of data.additionalBuilderIds) {
+        if (!Number.isInteger(extraId)) {
+          return { code: 'invalid_builder_id', message: 'Additional builder id must be an integer.' };
+        }
+      }
+    }
     if (
       !Number.isInteger(data.position?.x)
       || !Number.isInteger(data.position?.y)

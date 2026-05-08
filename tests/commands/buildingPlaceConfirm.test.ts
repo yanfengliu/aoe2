@@ -177,6 +177,52 @@ describe('buildingPlaceConfirmValidator', () => {
     );
     expect(result).toBe(true);
   });
+
+  it('accepts an empty additionalBuilderIds array', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const validator = makeValidator(world);
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 }, additionalBuilderIds: [] },
+      world,
+    );
+    expect(result).toBe(true);
+  });
+
+  it('accepts when all additionalBuilderIds are integers', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const helper1 = makeVillager(world);
+    const helper2 = makeVillager(world);
+    const validator = makeValidator(world);
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 }, additionalBuilderIds: [helper1, helper2] },
+      world,
+    );
+    expect(result).toBe(true);
+  });
+
+  it('rejects when an additional id is non-integer', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const validator = makeValidator(world);
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 }, additionalBuilderIds: [1.5] },
+      world,
+    );
+    expect(result).toEqual({ code: 'invalid_builder_id', message: expect.any(String) });
+  });
+
+  it('does not reject if some additional ids are stale (best-effort filter at handler time)', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const validator = makeValidator(world);
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 }, additionalBuilderIds: [99999] },
+      world,
+    );
+    expect(result).toBe(true);
+  });
 });
 
 describe('buildingPlaceConfirmHandler', () => {
