@@ -45,6 +45,13 @@ export interface HumanInputOpsDeps {
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
+  // Spec §12.7 eager pre-reservation: when N units are commanded together to
+  // a single target, allocate distinct cells via spiral fill so multiple
+  // arrivals don't pile into the same cell and detour through lazy redirect.
+  allocateGroupMoveTargets: (
+    unitIds: ReadonlyArray<number>,
+    targetCenter: Position,
+  ) => Position[];
 }
 
 export interface HumanInputOps {
@@ -76,6 +83,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
+    allocateGroupMoveTargets,
   } = deps;
 
   function issueMoveCommand(x: number, y: number): boolean {
@@ -87,8 +95,31 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
 
     placementMode.current = null;
     let didIssue = false;
-    for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitMoveCommand(unitId, { x, y }) || didIssue;
+    if (selectedUnitIds.length === 1) {
+      // Spec §12.7 single-unit move: issue the move directly. Pathfinding
+      // handles blocked / resource targets ("stop at closest reachable
+      // cell"); the move-arrival handler applies the lazy-redirect rule
+      // when the unit lands in a cell with no free slot.
+      didIssue = issueUnitMoveCommand(selectedUnitIds[0]!, { x, y }) || didIssue;
+    } else if (selectedUnitIds.length > 1) {
+      // Spec §12.7 group pre-reservation: clamp the target into bounds, then
+      // allocate one distinct cell per unit by spiral fill from the target.
+      // Each unit's individual move command targets its allocated cell so
+      // multiple units commanded together don't all pile into the same cell
+      // and detour through lazy redirect. Spiral skips whole-cell-blocked
+      // tiles (buildings, resources, terrain), which intentionally redirects
+      // group members AWAY from a resource / building target — for
+      // gather-on-resource or attack-on-building the HUD's right-click
+      // routes through `issueContextCommand`, not this path.
+      const targetCenter: Position = {
+        x: clamp(x, 0, mapWidth - 1),
+        y: clamp(y, 0, mapHeight - 1),
+      };
+      const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
+      for (let i = 0; i < selectedUnitIds.length; i += 1) {
+        const target = allocations[i] ?? targetCenter;
+        didIssue = issueUnitMoveCommand(selectedUnitIds[i]!, target) || didIssue;
+      }
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, { x, y }) || didIssue;

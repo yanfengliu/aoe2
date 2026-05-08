@@ -400,6 +400,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     transformOps,
     matchEndOps,
     findBuildPlacementNear,
+    allocateGroupMoveTargets: worldOccupancy.allocateGroupMoveTargets.bind(worldOccupancy),
     getTrainOptions,
     getResearchOptions,
     // Phase 1C — AI intention pushers. Mirror `pushUnitAttackIntention` /

@@ -186,3 +186,116 @@ describe('worldOccupancy — findNearestFreeUnitCell (spec §12.7 lazy redirect)
     expect(result).toEqual({ x: 8, y: 8 });
   });
 });
+
+describe('worldOccupancy — allocateGroupMoveTargets (spec §12.7 pre-reservation)', () => {
+  it('returns the target cell for every unit when capacity allows', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    const unitIds = [201, 202, 203, 204, 205];
+    const targets = occupancy.allocateGroupMoveTargets(unitIds, { x: 8, y: 8 });
+
+    expect(targets).toHaveLength(5);
+    for (const t of targets) {
+      expect(t).toEqual({ x: 8, y: 8 });
+    }
+  });
+
+  it('overflows the 17th-onwards units to neighbor cells in spiral order', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    const unitIds: number[] = [];
+    for (let i = 0; i < 20; i += 1) {
+      unitIds.push(300 + i);
+    }
+    const targets = occupancy.allocateGroupMoveTargets(unitIds, { x: 8, y: 8 });
+
+    expect(targets).toHaveLength(20);
+    // First 16 land at the target cell.
+    for (let i = 0; i < 16; i += 1) {
+      expect(targets[i]).toEqual({ x: 8, y: 8 });
+    }
+    // The remaining 4 land at neighbor cells (distance 1).
+    for (let i = 16; i < 20; i += 1) {
+      expect(targets[i]).not.toEqual({ x: 8, y: 8 });
+      expect(Math.abs(targets[i]!.x - 8)).toBeLessThanOrEqual(1);
+      expect(Math.abs(targets[i]!.y - 8)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('skips already-occupied slots when computing remaining capacity', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    // 12 units already at the target cell; 4 slots remaining.
+    for (let i = 0; i < 12; i += 1) {
+      occupancy.syncUnit(100 + i, { x: 8, y: 8 });
+    }
+
+    const incomingIds: number[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      incomingIds.push(400 + i);
+    }
+    const targets = occupancy.allocateGroupMoveTargets(incomingIds, { x: 8, y: 8 });
+
+    expect(targets).toHaveLength(6);
+    // First 4 land at the target cell (filling the remaining 4 slots).
+    for (let i = 0; i < 4; i += 1) {
+      expect(targets[i]).toEqual({ x: 8, y: 8 });
+    }
+    // The remaining 2 spill into neighbor cells.
+    for (let i = 4; i < 6; i += 1) {
+      expect(targets[i]).not.toEqual({ x: 8, y: 8 });
+      expect(Math.abs(targets[i]!.x - 8)).toBeLessThanOrEqual(1);
+      expect(Math.abs(targets[i]!.y - 8)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('skips whole-cell-blocked cells (buildings, terrain) during spiral allocation', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    // Block the (9, 8) neighbor with a building footprint.
+    occupancy.syncBuilding(999, { x: 9, y: 8 }, { width: 1, height: 1 });
+
+    // Fill the target cell so the spiral has to expand.
+    for (let i = 0; i < 16; i += 1) {
+      occupancy.syncUnit(100 + i, { x: 8, y: 8 });
+    }
+
+    const incomingIds = [501, 502, 503];
+    const targets = occupancy.allocateGroupMoveTargets(incomingIds, { x: 8, y: 8 });
+
+    // None of the redirected targets should be (9, 8) — that's the building.
+    for (const t of targets) {
+      expect(t).not.toEqual({ x: 9, y: 8 });
+    }
+  });
+
+  it('returns the targetCenter as fallback when the spiral exhausts within radius', () => {
+    const occupancy = createWorldOccupancy(4, 4);
+
+    // Saturate every cell in this tiny 4x4 world.
+    let unitId = 1000;
+    for (let x = 0; x < 4; x += 1) {
+      for (let y = 0; y < 4; y += 1) {
+        for (let i = 0; i < 16; i += 1) {
+          occupancy.syncUnit(unitId, { x, y });
+          unitId += 1;
+        }
+      }
+    }
+
+    const incomingIds = [9001];
+    const targets = occupancy.allocateGroupMoveTargets(incomingIds, { x: 1, y: 1 });
+
+    expect(targets).toHaveLength(1);
+    // No cell has capacity — fallback to targetCenter.
+    expect(targets[0]).toEqual({ x: 1, y: 1 });
+  });
+
+  it('handles a single-unit group correctly (returns one target)', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    const targets = occupancy.allocateGroupMoveTargets([777], { x: 5, y: 5 });
+
+    expect(targets).toEqual([{ x: 5, y: 5 }]);
+  });
+});

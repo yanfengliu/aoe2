@@ -7,6 +7,7 @@ import {
   type Position,
   type SubcellSlotOffset,
 } from 'civ-engine';
+import { allocateGroupMoveTargets as allocateGroupMoveTargetsImpl } from './worldOccupancyAllocators';
 
 export interface Footprint {
   width: number;
@@ -108,24 +109,19 @@ export interface WorldOccupancy {
   syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void;
   syncResource(entity: EntityId, position: Position): void;
   syncUnit(entity: EntityId, position: Position): SyncUnitResult;
-  // Spec §12.6 fallback path: when a fresh unit is being placed (spawn,
-  // train completion, ungarrison) and the requested cell is fully packed,
-  // the simulation must redirect to the nearest neighbor tile that has a
-  // free slot rather than visually stacking. Caller uses the returned
-  // `placedAt` as the unit's actual world position. This is intentionally
-  // separate from `syncUnit` because in-flight movement can NOT auto-redirect
-  // without oscillating against a sticky move target.
+  // Spec §12.6 fallback for fresh placements (spawn, train, ungarrison):
+  // redirect to the nearest neighbor with a free slot when the cell is full.
   placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult;
-  // Spec §12.7 lazy redirect: returns the closest cell to `requestedPosition`
-  // that has a free unit slot. Used by the move-command arrival handler to
-  // rewrite a unit's target when the requested cell is fully packed. Returns
-  // `requestedPosition` if it already has space (the entity itself is treated
-  // as non-blocking — a unit in overflow at the requested cell can re-claim
-  // the cell once another occupant leaves). Returns `null` when no candidate
-  // is found within the search neighborhood (currently the 8 immediate
-  // neighbors plus the requested cell). Spec allows extending to a wider
-  // BFS radius; the immediate-neighbor implementation is the first iteration.
+  // Spec §12.7 lazy redirect: closest cell with a free slot, or null. The
+  // entity itself is treated as non-blocking. Search window: 8 immediate
+  // neighbors (spec allows up to 16-cell BFS; widen later if needed).
   findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null;
+  // Spec §12.7 eager pre-reservation for group moves. See
+  // `worldOccupancyAllocators.allocateGroupMoveTargets` for the algorithm.
+  allocateGroupMoveTargets(
+    unitIds: ReadonlyArray<EntityId>,
+    targetCenter: Position,
+  ): Position[];
   release(entity: EntityId): void;
   getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null;
   getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus;
@@ -405,6 +401,21 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
         metadata: { kind: 'unit' },
       });
       return neighbors[0]?.position ?? null;
+    },
+
+    allocateGroupMoveTargets(
+      unitIds: ReadonlyArray<EntityId>,
+      targetCenter: Position,
+    ): Position[] {
+      return allocateGroupMoveTargetsImpl(
+        {
+          worldWidth,
+          worldHeight,
+          getCellStatus: this.getCellStatus.bind(this),
+        },
+        unitIds,
+        targetCenter,
+      );
     },
 
     release(entity: EntityId): void {

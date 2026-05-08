@@ -2,6 +2,34 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.19 - 2026-05-08
+
+### Feature: Group-move pre-reservation (§12.7 eager allocation)
+
+Selecting N units and right-clicking a single tile no longer issues N identical move commands all targeting the same cell. The HUD's `issueMoveCommand` now spiral-allocates one cell per unit starting from the clicked tile and walking outward in BFS order; each unit's move command targets its individually allocated cell. This is the second half of spec §12.7's dual-strategy rule (lazy redirect for single units shipped in 0.1.18; eager pre-reservation for groups in 0.1.19).
+
+Behavior:
+
+- **N=1 (single unit):** unchanged — direct `issueUnitMoveCommand` to the clicked cell. Pathfinding handles blocked targets ("walk to closest reachable cell"); the move-arrival lazy redirect handles overflow.
+- **N>1 (group):** `worldOccupancy.allocateGroupMoveTargets(unitIds, targetCenter)` walks outward from the target and allocates one cell per unit. Each cell can absorb up to its remaining sub-cell capacity (default 16 - currently-occupied) before the spiral moves to the next cell. Whole-cell-blocked cells (buildings, resources, terrain, out-of-bounds) are skipped — they cannot host any unit slot. The result is that a 20-villager group commanded to a single tile spreads across the target cell and its neighbors instead of all stacking on one tile and detouring through lazy redirect.
+- **Spiral exhaustion:** if every cell within a 16-cell radius is full or blocked, the unit's target falls back to `targetCenter`. Pathfinding still picks the closest reachable cell; visual stacking is the last-resort behavior.
+- **Determinism:** the spiral uses a fixed neighbor-offset order (E, W, S, N, then diagonals) so save / load and replay produce byte-identical allocations from the same world state and inputs.
+
+Whole-cell-blocked tiles are intentionally redirected away from in the group case (e.g., commanding 5 villagers to a tree spreads them around the tree rather than telling all 5 to stand on the tree). Right-click on a resource still routes through `issueContextCommand` (gather / attack), which is a separate path and unaffected.
+
+### What's still not handled (intentional gaps, carried from 0.1.18)
+
+- **Visual-overlap-from-entity-id collisions.** The renderer still derives a 4-slot offset from `entityId % 4` rather than the engine-allocated 16-slot offset. Two units with the same `entityId % 4` in the same cell can still draw at the same screen pixel. Independent of §12.7; remains a separate task.
+- **Wider BFS radius for `findNearestFreeUnitCell`.** Lazy redirect still checks only the immediate 8-cell window. The group-allocation spiral correctly walks up to 16 cells out, but the lazy-redirect path doesn't yet match.
+- **Reservation lifecycle.** Spec §12.7 calls for soft reservations with a 30s TTL and lifecycle release on death / new command. The current implementation uses simple "allocate at issuance, no per-tick refresh" — if a third party takes a reserved slot before arrival, the displaced unit falls back to lazy redirect on its own arrival (which works correctly).
+
+### Validation
+
+- `npm test` / `npm run typecheck` / `npm run lint` / `npm run build`: all four green. Full suite 898 passed + 1 skipped.
+- 6 new tests in `tests/simulation/worldOccupancyVisualSlots.test.ts` pin the `allocateGroupMoveTargets` contract: target cell with capacity hosts every unit; 17+ overflow to neighbor cells; existing occupancy reduces remaining capacity; whole-cell-blocked neighbors are skipped; spiral exhaustion falls back to `targetCenter`; single-unit groups return a single target.
+- File-size budget split: extracted `allocateGroupMoveTargets` body and `NEIGHBOR_OFFSETS` to a new `src/game/simulation/worldOccupancyAllocators.ts` to keep `worldOccupancy.ts` under the 500-LOC hard limit (498 / 118 LOC).
+- Multi-CLI review pending; will land as iter-1 follow-up if reviewers find issues.
+
 ## 0.1.18 - 2026-05-08
 
 ### Bug fix: Move-arrival redirect for fully-packed cells (§12.7 lazy redirect)

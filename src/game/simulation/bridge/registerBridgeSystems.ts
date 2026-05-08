@@ -73,6 +73,12 @@ export interface RegisterBridgeSystemsDeps {
   matchEndOps: MatchEndOps;
   // Direct values
   findBuildPlacementNear: RegisterAllSystemsArg['findBuildPlacementNear'];
+  // Spec §12.7 group pre-reservation: pass through worldOccupancy's group
+  // allocator so humanInputOps' issueMoveCommand can spiral-fill targets.
+  allocateGroupMoveTargets: (
+    unitIds: ReadonlyArray<number>,
+    targetCenter: Position,
+  ) => Position[];
   pushQueueResearchIntention: RegisterAllSystemsArg['pushQueueResearchIntention'];
   pushQueueTrainIntention: RegisterAllSystemsArg['pushQueueTrainIntention'];
   pushBuildingPlaceConfirmIntention: RegisterAllSystemsArg['pushBuildingPlaceConfirmIntention'];
@@ -155,6 +161,7 @@ export function registerBridgeSystems(
     transformOps,
     matchEndOps,
     findBuildPlacementNear,
+    allocateGroupMoveTargets,
     pushQueueResearchIntention,
     pushQueueTrainIntention,
     pushBuildingPlaceConfirmIntention,
@@ -278,6 +285,7 @@ export function registerBridgeSystems(
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
+    allocateGroupMoveTargets,
   });
 
   const {
