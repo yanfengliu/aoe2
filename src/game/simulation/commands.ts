@@ -55,7 +55,7 @@ export type GameCommands = {
   'queue.research': { buildingId: number; technologyType: ResearchableTechnologyType };
   'market.action': { playerId: number; actionType: MarketActionType };
   // --- Construction + building actions ---
-  'building.placeConfirm': { builderId: number; buildingType: BuildableBuildingType; position: Position };
+  'building.placeConfirm': { builderId: number; buildingType: BuildableBuildingType; position: Position; additionalBuilderIds?: number[] };
   'building.setRallyPoint': { buildingId: number; target: Position };
   'building.action': { buildingId: number; actionType: BuildingActionType };
 };
