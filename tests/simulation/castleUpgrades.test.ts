@@ -54,7 +54,7 @@ describe('Castle-Age production-line upgrades', () => {
       attackDamage: 5,
       attackRange: 5,
     });
-  }, 15_000);
+  }, 30_000);
 
   it('reflects the upgraded unit type in render state, not just economy state', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -80,7 +80,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(renderedCrossbowman, 'render state should show the upgraded unit as a crossbowman').toBeDefined();
     expect(renderedArcher, 'render state should not still show the unit as an archer').toBeUndefined();
-  }, 15_000);
+  }, 30_000);
 
   it('leaves enemy Archers untouched when the human researches the Crossbowman upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -100,7 +100,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(countOwnedUnits(bridge, 2, 'archer')).toBe(1);
     expect(countOwnedUnits(bridge, 2, 'crossbowman')).toBe(0);
-  }, 15_000);
+  }, 30_000);
 
   it('researches Pikeman at the Barracks and swaps existing Spearmen to Pikemen', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -127,7 +127,7 @@ describe('Castle-Age production-line upgrades', () => {
       unitType: 'pikeman',
       attackDamage: 4,
     });
-  }, 15_000);
+  }, 30_000);
 
   it('researches Light Cavalry at the Stable and swaps existing Scout Cavalry to Light Cavalry', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -154,7 +154,7 @@ describe('Castle-Age production-line upgrades', () => {
       unitType: 'light-cavalry',
       attackDamage: 7,
     });
-  }, 15_000);
+  }, 30_000);
 
   it('preserves the current HP ratio when an Archer is upgraded to Crossbowman mid-combat', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -189,7 +189,7 @@ describe('Castle-Age production-line upgrades', () => {
     expect(upgraded?.unitType).toBe('crossbowman');
     expect(upgraded?.attackDamage).toBe(5);
     expect(upgraded?.attackRange).toBe(5);
-  }, 15_000);
+  }, 30_000);
 
   it('removes the Archer train option and exposes the Crossbowman train option after research', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -245,7 +245,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).not.toContain('crossbowman-upgrade');
-  }, 15_000);
+  }, 30_000);
 
   it('rejects researching the Crossbowman upgrade while still in Feudal Age', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');

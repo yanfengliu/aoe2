@@ -3,7 +3,7 @@
 // helpers wire them together so movement systems, scenario seeding, and
 // the destroy/garrison paths share one occupancy-sync definition.
 
-import type { Position, World } from 'civ-engine';
+import type { Position, SubcellSlotOffset, World } from 'civ-engine';
 import type {
   BuildingComponent,
   ResourceComponent,
@@ -28,11 +28,20 @@ import { constructionStatesCodec } from './bridgeStateSerialize';
 
 type CivWorld = World<GameEvents, GameCommands>;
 
+// Spec §12.6 contract surface — the worldOccupancy module returns this and
+// exposes `placeUnitForSpawn` / `getUnitSlotOffset` so future spawn / movement
+// layers can consume the engine-allocated visual slot. Production code paths
+// today still use the entity-id-derived fallback in pureHelpers.
+interface SyncUnitResult {
+  placedAt: Position;
+  slotOffset: SubcellSlotOffset | null;
+}
+
 interface WorldOccupancyLike {
   release(entity: number): void;
   syncBuilding(entity: number, position: Position, footprint: { width: number; height: number }): void;
   syncResource(entity: number, position: Position): void;
-  syncUnit(entity: number, position: Position): void;
+  syncUnit(entity: number, position: Position): SyncUnitResult;
   reset(): void;
   blockTerrain(cells: Position[]): void;
 }
@@ -130,6 +139,14 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     }
 
     if (activeWorld.getComponent<UnitComponent>(entity, 'unit')) {
+      // Spec §12.6: syncUnit allocates a sub-tile slot via the engine's
+      // SubcellOccupancyGrid. The transform is NOT snapped here because
+      // this path runs every tick during movement (cell crossings) and
+      // snapping fineX/fineY mid-flight would teleport the unit. The slot
+      // offset is consumed lazily — `moveUnitOneSubgridStep` reads it via
+      // `getUnitSlotOffset` so the unit aims at the allocated slot in its
+      // target cell, and `placeFreshSpawnUnit` / `syncSpawnedEntityOccupancy`
+      // do snap once at spawn time.
       worldOccupancy.syncUnit(entity, position);
       return;
     }

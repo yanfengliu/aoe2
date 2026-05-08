@@ -90,14 +90,34 @@ function syntheticOutOfBoundsStatus(x: number, y: number): OccupancyCellStatus {
   };
 }
 
+// Spec §12.6 contract: every syncUnit call returns the cell the unit was
+// actually placed in (may differ from the requested position when overflow
+// fallback engages) plus the visual slot offset assigned by the engine's
+// SubcellOccupancyGrid. `slotOffset === null` means no slot was available
+// even after neighbor-tile fallback — the last-resort overflow path was used
+// and the renderer should expect visual stacking for this entity.
+export interface SyncUnitResult {
+  placedAt: Position;
+  slotOffset: SubcellSlotOffset | null;
+}
+
 export interface WorldOccupancy {
   attachWorld(world: OccupancyBindingWorldHooks): void;
   reset(): void;
   blockTerrain(cells: ReadonlyArray<Position>): void;
   syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void;
   syncResource(entity: EntityId, position: Position): void;
-  syncUnit(entity: EntityId, position: Position): void;
+  syncUnit(entity: EntityId, position: Position): SyncUnitResult;
+  // Spec §12.6 fallback path: when a fresh unit is being placed (spawn,
+  // train completion, ungarrison) and the requested cell is fully packed,
+  // the simulation must redirect to the nearest neighbor tile that has a
+  // free slot rather than visually stacking. Caller uses the returned
+  // `placedAt` as the unit's actual world position. This is intentionally
+  // separate from `syncUnit` because in-flight movement can NOT auto-redirect
+  // without oscillating against a sticky move target.
+  placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult;
   release(entity: EntityId): void;
+  getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null;
   getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus;
   isCellBlockedByBuilding(x: number, y: number, ignoredEntityId?: EntityId | null): boolean;
   isCellBlockedByResource(x: number, y: number, ignoredEntityId?: EntityId | null): boolean;
@@ -120,6 +140,12 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   const overflowCrowdedByCell = new Map<string, OccupancyCellClaim[]>();
   const overflowCrowdedByEntity = new Map<EntityId, OverflowCrowdedState>();
 
+  // Spec §12.6: per-unit slot offset assigned by occupySubcell. The renderer
+  // reads this via getUnitSlotOffset(entity) so visual position matches the
+  // logical slot the engine allocated, instead of a unitId-derived hash that
+  // collides for any two units in the same cell with the same id-modulo.
+  const unitSlotOffsets = new Map<EntityId, SubcellSlotOffset>();
+
   const clearOverflowForEntity = (entity: EntityId): void => {
     const blockedState = overflowBlockedByEntity.get(entity);
     if (blockedState) {
@@ -137,6 +163,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   const destroyCallback = (entity: EntityId): void => {
     binding.release(entity);
     clearOverflowForEntity(entity);
+    unitSlotOffsets.delete(entity);
   };
 
   const reattachWorldHooks = (): void => {
@@ -243,6 +270,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       overflowBlockedByEntity.clear();
       overflowCrowdedByCell.clear();
       overflowCrowdedByEntity.clear();
+      unitSlotOffsets.clear();
       reattachWorldHooks();
     },
 
@@ -280,27 +308,76 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       }
     },
 
-    syncUnit(entity: EntityId, position: Position): void {
+    syncUnit(entity: EntityId, position: Position): SyncUnitResult {
       binding.release(entity);
       clearOverflowForEntity(entity);
+      unitSlotOffsets.delete(entity);
 
       const preferredSlot =
         ((entity % UNIT_OCCUPANCY_SLOTS.length) + UNIT_OCCUPANCY_SLOTS.length)
         % UNIT_OCCUPANCY_SLOTS.length;
 
+      // Spec §12.6: the engine's SubcellOccupancyGrid hands back a
+      // placement.offset that the renderer can use directly — no two units
+      // ever get the same offset in the same cell because slots are
+      // pre-allocated and uniquely consumed. This is what makes visual
+      // non-overlap hold for the common case (≤16 units per cell).
       const placement = binding.occupySubcell(entity, position, {
         metadata: { kind: 'unit' },
         preferredSlot,
       });
 
-      if (!placement) {
-        addOverflowCrowdedClaim(entity, position);
+      if (placement) {
+        unitSlotOffsets.set(entity, placement.offset);
+        return { placedAt: placement.position, slotOffset: placement.offset };
       }
+
+      // Overflow: the cell is fully packed (16+ units). Spec §12.6 says
+      // such cases should fall back to a neighbor tile, but doing the
+      // relocation here would oscillate any moving unit whose target tile
+      // stays full (movement re-aims at the original target, syncUnit
+      // redirects again, every cell crossing). The fall-back belongs in
+      // the movement / placement layer where the target itself can be
+      // updated. For now, accept overflow stacking and surface a null
+      // slotOffset so the renderer can flag the violation in dev tools.
+      addOverflowCrowdedClaim(entity, position);
+      return { placedAt: position, slotOffset: null };
+    },
+
+    placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult {
+      const initial = this.syncUnit(entity, requestedPosition);
+      if (initial.slotOffset !== null) {
+        return initial;
+      }
+
+      // Original cell was full — search neighbors via the engine's
+      // closest-first ordering. Spec §12.6 says the simulation must place
+      // the unit at the nearest neighbor with a free slot.
+      const neighbors = binding.neighborsWithSpace(entity, requestedPosition, {
+        metadata: { kind: 'unit' },
+      });
+      for (const neighbor of neighbors) {
+        const result = this.syncUnit(entity, neighbor.position);
+        if (result.slotOffset !== null) {
+          return result;
+        }
+      }
+
+      // Every neighbor in the engine's default 8-cell window is also full.
+      // Re-sync at the original position so the overflow tracking
+      // (`addOverflowCrowdedClaim`) reflects the unit's actual whereabouts.
+      // Visual overlap is accepted as the last-resort behavior.
+      return this.syncUnit(entity, requestedPosition);
     },
 
     release(entity: EntityId): void {
       binding.release(entity);
       clearOverflowForEntity(entity);
+      unitSlotOffsets.delete(entity);
+    },
+
+    getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null {
+      return unitSlotOffsets.get(entity) ?? null;
     },
 
     getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus {

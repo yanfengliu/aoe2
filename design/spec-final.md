@@ -1069,16 +1069,17 @@ Movement values come from unit data, but the rules system must support:
 
 ### 12.6 Unit Spacing and Sub-Tile Occupancy
 
-Multiple units may share a tile, but no two units may occupy the exact same point at the same simulation tick.
+Multiple units may share a tile, but no two unit sprites may visually occupy the same on-screen position at any rendered frame. Visual non-overlap is the contract — players see sprites, not slots, and a stack of unit sprites drawn at the same screen point is a defect regardless of what the simulation believes about cell ownership.
 
 Rules:
 
-- Sub-tile occupancy is supported via deterministic slot packing. The default pattern is a 4x4 grid of 16 slots per tile; an implementation may choose a different pattern provided slots are distinct, stable across ticks, and reproducible from inputs.
-- Any placement, spawn, move, ungarrison, train completion, transport unload, conversion drop, or replay-rehydration must resolve to a free slot. If the target tile is fully packed, fall back to a neighboring tile rather than stacking two units on the same slot.
+- Sub-tile occupancy is supported via deterministic slot packing. The default pattern is a 4x4 grid of 16 slots per tile; an implementation may choose a different pattern provided slots are distinct, stable across ticks, reproducible from inputs, and spaced widely enough that the rendered sprites at adjacent slots do not overlap on screen.
+- Each slot has a fixed visual offset within its tile. The renderer must apply the slot offset (or interpolate between previous and current slot offsets across ticks for smoothness); it must not draw two units at the same screen point even when their integer tile positions match.
+- Any placement, spawn, move, ungarrison, train completion, transport unload, conversion drop, or replay-rehydration must resolve to a free slot. If the target tile is fully packed, the simulation must fall back to a free slot in the nearest available neighbor tile rather than stacking two units at the same visual location.
 - Buildings, resources, impassable terrain, and out-of-bounds claims block whole tiles; units cannot share a whole-cell-blocked tile.
 - Garrisoned, transported, or otherwise-contained units have no independent world position and are exempt from the rule until released.
-- Dying units retain their slot through death cleanup; spawns at the same point must wait or be offset.
-- Renderers may interpolate sub-tile positions for visual smoothness without changing the simulation slot assignment.
+- Dying units retain their slot through death cleanup; spawns at the same point must wait or be offset to a free slot or neighbor tile.
+- Renderers may interpolate between consecutive slot offsets for movement smoothness, but the per-unit visual position at every frame must remain distinct from every other unit's.
 
 ## 13. AI Opponent Behavior
 

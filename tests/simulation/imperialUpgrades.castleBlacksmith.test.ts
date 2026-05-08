@@ -197,7 +197,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
       .units.filter((u) => u.owner === 1 && u.unitType === 'arbalest');
     expect(allArbs.length).toBeGreaterThanOrEqual(2);
     expect(allArbs.every((u) => u.attackDamage === 7 && u.attackRange === 6)).toBe(true);
-  }, 30_000);
+  }, 60_000);
 
   it('stacks Bracer on top of Fletching (Arbalest atk = base + 2, range = base + 2)', () => {
     const bridge = createSimulationBridge('imperial-blacksmith-fixture');

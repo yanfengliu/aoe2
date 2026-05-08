@@ -202,14 +202,20 @@ export function getUnitCellSlotOffset(unitId: number): { x: number; y: number } 
   return UNIT_CELL_SLOT_OFFSETS[normalizedIndex] ?? UNIT_CELL_SLOT_OFFSETS[0]!;
 }
 
+// Spec §12.6: prefer the explicit slotOffset (provided by worldOccupancy's
+// engine-allocated slot) when computing where a unit's sprite should land.
+// Falling back to the unitId-derived offset is only safe for code paths that
+// have no occupancy context (early bootstrap, fixtures); callers with a live
+// world should always pass the allocated slot so visual non-overlap holds.
 export function getUnitTargetTransformForCell(
   unitId: number,
   position: Position,
+  slotOffset?: { x: number; y: number } | null,
 ): UnitTransformComponent {
-  const slotOffset = getUnitCellSlotOffset(unitId);
+  const offset = slotOffset ?? getUnitCellSlotOffset(unitId);
   return {
-    fineX: (position.x + slotOffset.x) * UNIT_SUBGRID_RESOLUTION,
-    fineY: (position.y + slotOffset.y) * UNIT_SUBGRID_RESOLUTION,
+    fineX: (position.x + offset.x) * UNIT_SUBGRID_RESOLUTION,
+    fineY: (position.y + offset.y) * UNIT_SUBGRID_RESOLUTION,
   };
 }
 
@@ -235,8 +241,9 @@ export function isUnitTransformAtTarget(
   transform: UnitTransformComponent,
   unitId: number,
   target: Position,
+  slotOffset?: { x: number; y: number } | null,
 ): boolean {
-  const targetTransform = getUnitTargetTransformForCell(unitId, target);
+  const targetTransform = getUnitTargetTransformForCell(unitId, target, slotOffset);
   return (
     transform.fineX === targetTransform.fineX
     && transform.fineY === targetTransform.fineY
