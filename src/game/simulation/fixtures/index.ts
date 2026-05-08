@@ -179,3 +179,8 @@ export {
 export {
   createScenarioValidationFixture,
 } from './scenarioValidation';
+
+export {
+  createMultiVillagerConstructionFixture,
+  createSingleVillagerConstructionFixture,
+} from './construction';
