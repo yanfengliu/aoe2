@@ -141,12 +141,11 @@ export interface CommandHandlerDeps {
   executeMarketActionDirect: (playerId: number, actionType: MarketActionType) => boolean;
   marketActionValidatorDeps: MarketActionValidatorDeps;
   // Phase 1B (building.placeConfirm): authoritative-resolution helper.
-  // Pre-1B `startConstruction` body — canonical entry for both human-input
-  // (via this handler) and AI (called directly today, Phase 1C will switch
-  // to the intention pattern). Atomic: spend + addBuildingEntity +
-  // unit-command set.
-  startConstructionDirect: (
-    builderId: number,
+  // Generalized for multi-villager construction (0.1.17): list-based so the
+  // handler can fan a single placement out to N builders. Atomic: spend
+  // resources once + addBuildingEntity once + setUnitCommand on each id.
+  startConstructionWithBuildersDirect: (
+    builderIds: readonly number[],
     buildingType: BuildableBuildingType,
     anchor: Position,
   ) => boolean;
@@ -236,7 +235,7 @@ export function registerCommandHandlers(
     makeBuildingPlaceConfirmValidator(deps.buildingPlaceConfirmValidatorDeps),
   );
   world.registerHandler('building.placeConfirm', makeBuildingPlaceConfirmHandler({
-    startConstructionDirect: deps.startConstructionDirect,
+    startConstructionWithBuildersDirect: deps.startConstructionWithBuildersDirect,
   }));
   // Phase 1B — building.setRallyPoint
   world.registerValidator(

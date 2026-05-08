@@ -340,6 +340,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     playerOwnsCompletedMarket,
     ungarrisonBuilding,
     startConstruction,
+    startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   } = trainingMarketOps;
   const { getEntityHealth, getSelectionState } = selectionStateOps;
@@ -534,7 +535,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       marketFeeRate: MARKET_FEE_RATE,
       marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     },
-    startConstructionDirect: startConstruction,
+    startConstructionWithBuildersDirect,
     buildingPlaceConfirmValidatorDeps: {
       accessor,
       getBuildOptions,

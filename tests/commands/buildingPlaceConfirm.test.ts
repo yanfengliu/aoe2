@@ -226,11 +226,11 @@ describe('buildingPlaceConfirmValidator', () => {
 });
 
 describe('buildingPlaceConfirmHandler', () => {
-  it('delegates to startConstructionDirect', () => {
-    const calls: Array<{ builderId: number; buildingType: BuildableBuildingType; position: { x: number; y: number } }> = [];
+  it('delegates to startConstructionWithBuildersDirect with primary id only', () => {
+    const calls: Array<{ builderIds: readonly number[]; buildingType: BuildableBuildingType; position: { x: number; y: number } }> = [];
     const handler = makeBuildingPlaceConfirmHandler({
-      startConstructionDirect: (builderId, buildingType, anchor) => {
-        calls.push({ builderId, buildingType, position: anchor });
+      startConstructionWithBuildersDirect: (builderIds, buildingType, anchor) => {
+        calls.push({ builderIds, buildingType, position: anchor });
         return true;
       },
     });
@@ -239,7 +239,39 @@ describe('buildingPlaceConfirmHandler', () => {
       freshWorld(),
     );
     expect(calls).toEqual([
-      { builderId: 5, buildingType: 'house', position: { x: 3, y: 4 } },
+      { builderIds: [5], buildingType: 'house', position: { x: 3, y: 4 } },
     ]);
+  });
+
+  it('delegates with primary + additional ids', () => {
+    const calls: Array<{ builderIds: readonly number[]; buildingType: BuildableBuildingType; position: { x: number; y: number } }> = [];
+    const handler = makeBuildingPlaceConfirmHandler({
+      startConstructionWithBuildersDirect: (builderIds, buildingType, anchor) => {
+        calls.push({ builderIds, buildingType, position: anchor });
+        return true;
+      },
+    });
+    handler(
+      { builderId: 5, buildingType: 'house', position: { x: 3, y: 4 }, additionalBuilderIds: [7, 9] },
+      freshWorld(),
+    );
+    expect(calls).toEqual([
+      { builderIds: [5, 7, 9], buildingType: 'house', position: { x: 3, y: 4 } },
+    ]);
+  });
+
+  it('treats empty additionalBuilderIds the same as omitted', () => {
+    const calls: Array<{ builderIds: readonly number[] }> = [];
+    const handler = makeBuildingPlaceConfirmHandler({
+      startConstructionWithBuildersDirect: (builderIds) => {
+        calls.push({ builderIds });
+        return true;
+      },
+    });
+    handler(
+      { builderId: 5, buildingType: 'house', position: { x: 3, y: 4 }, additionalBuilderIds: [] },
+      freshWorld(),
+    );
+    expect(calls).toEqual([{ builderIds: [5] }]);
   });
 });
