@@ -116,6 +116,16 @@ export interface WorldOccupancy {
   // separate from `syncUnit` because in-flight movement can NOT auto-redirect
   // without oscillating against a sticky move target.
   placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult;
+  // Spec §12.7 lazy redirect: returns the closest cell to `requestedPosition`
+  // that has a free unit slot. Used by the move-command arrival handler to
+  // rewrite a unit's target when the requested cell is fully packed. Returns
+  // `requestedPosition` if it already has space (the entity itself is treated
+  // as non-blocking — a unit in overflow at the requested cell can re-claim
+  // the cell once another occupant leaves). Returns `null` when no candidate
+  // is found within the search neighborhood (currently the 8 immediate
+  // neighbors plus the requested cell). Spec allows extending to a wider
+  // BFS radius; the immediate-neighbor implementation is the first iteration.
+  findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null;
   release(entity: EntityId): void;
   getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null;
   getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus;
@@ -368,6 +378,33 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       // (`addOverflowCrowdedClaim`) reflects the unit's actual whereabouts.
       // Visual overlap is accepted as the last-resort behavior.
       return this.syncUnit(entity, requestedPosition);
+    },
+
+    findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null {
+      // Out-of-bounds requests are never satisfiable.
+      if (
+        requestedPosition.x < 0
+        || requestedPosition.x >= worldWidth
+        || requestedPosition.y < 0
+        || requestedPosition.y >= worldHeight
+      ) {
+        return null;
+      }
+
+      // Try the requested cell first. canOccupySubcell ignores the entity
+      // itself, so a unit currently in overflow at this cell can still see
+      // the cell as free if another unit just left.
+      if (binding.canOccupySubcell(entity, requestedPosition, { metadata: { kind: 'unit' } })) {
+        return requestedPosition;
+      }
+
+      // Fall back to the engine's closest-first neighbor enumeration over
+      // the default 8-cell window. Future iterations may extend to a wider
+      // BFS per spec §12.7's default radius of 16 cells.
+      const neighbors = binding.neighborsWithSpace(entity, requestedPosition, {
+        metadata: { kind: 'unit' },
+      });
+      return neighbors[0]?.position ?? null;
     },
 
     release(entity: EntityId): void {

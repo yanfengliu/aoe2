@@ -78,6 +78,12 @@ export interface PlayerCommandsSystemDeps {
     target: Position,
     activeWorld: CivWorld,
   ) => boolean;
+  // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
+  // its arrival cell; returns a redirected target Position if the unit landed
+  // in overflow and a free slot exists in a neighbor cell. Caller rewrites
+  // the unit's move-command target to the returned cell so movement does not
+  // re-aim at the original full target (oscillation prevention).
+  resolveArrivalRedirect: (unitId: number, arrivalCell: Position) => Position | null;
   resolveMovePlanFromCache: (
     unitId: number,
     target: Position,
@@ -112,6 +118,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     findBuildingApproachPlan,
     moveUnitOneSubgridStep,
     isUnitAtTarget,
+    resolveArrivalRedirect,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
@@ -346,6 +353,18 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
+            // Spec §12.7 lazy redirect: if the unit arrived in a fully-packed
+            // cell and ended up in overflow, rewrite the move-command target
+            // to the nearest cell with a free slot rather than clearing the
+            // command. The unit then moves toward the redirected cell next
+            // tick. The movement system never re-aims at the original full
+            // target, so no oscillation.
+            const redirectTarget = resolveArrivalRedirect(id, movePlan.destination);
+            if (redirectTarget) {
+              command.target = redirectTarget;
+              accessor.markDirty(unitCommandsCodec);
+              continue;
+            }
             clearUnitCommand(id);
             continue;
           }

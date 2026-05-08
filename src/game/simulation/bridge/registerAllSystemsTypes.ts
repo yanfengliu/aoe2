@@ -189,6 +189,10 @@ export interface RegisterAllSystemsDeps {
     target: Position,
     activeWorld: CivWorld,
   ) => boolean;
+  // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
+  // its arrival cell; returns a redirected target Position if the unit landed
+  // in overflow and a free slot exists in a neighbor cell.
+  resolveArrivalRedirect: (unitId: number, arrivalCell: Position) => Position | null;
   resolveMovePlanFromCache: (
     unitId: number,
     target: Position,

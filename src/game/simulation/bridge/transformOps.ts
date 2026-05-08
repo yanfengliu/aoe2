@@ -42,6 +42,8 @@ interface WorldOccupancyLike {
   syncBuilding(entity: number, position: Position, footprint: { width: number; height: number }): void;
   syncResource(entity: number, position: Position): void;
   syncUnit(entity: number, position: Position): SyncUnitResult;
+  getUnitSlotOffset(entity: number): SubcellSlotOffset | null;
+  findNearestFreeUnitCell(entity: number, requestedPosition: Position): Position | null;
   reset(): void;
   blockTerrain(cells: Position[]): void;
 }
@@ -73,6 +75,11 @@ export interface TransformOps {
     stepUnits?: number,
   ): Position | null;
   isUnitAtTarget(id: number, target: Position, activeWorld?: CivWorld): boolean;
+  // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
+  // its arrival cell; returns a redirected cell when the unit is in overflow
+  // and a free slot exists in a neighbor cell. Caller rewrites the move
+  // command's target so movement does not re-aim at the original full target.
+  resolveArrivalRedirect(unitId: number, arrivalCell: Position): Position | null;
   syncOccupancyForEntity(entity: number, activeWorld?: CivWorld): void;
   setPositionAndSyncOccupancy(
     entity: number,
@@ -232,6 +239,25 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     return isUnitTransformAtTarget(transform, id, target);
   }
 
+  function resolveArrivalRedirect(unitId: number, arrivalCell: Position): Position | null {
+    // No redirect when the unit holds a slot at the arrival cell.
+    if (worldOccupancy.getUnitSlotOffset(unitId) !== null) {
+      return null;
+    }
+    const freeCell = worldOccupancy.findNearestFreeUnitCell(unitId, arrivalCell);
+    if (!freeCell) {
+      return null;
+    }
+    if (freeCell.x === arrivalCell.x && freeCell.y === arrivalCell.y) {
+      // The arrival cell itself reports free for this entity (the entity is
+      // currently in overflow there). Letting movement clear the command and
+      // calling `syncOccupancyForEntity` re-binds the unit to a real slot in
+      // the same cell — no redirect needed.
+      return null;
+    }
+    return freeCell;
+  }
+
   function rebuildWorldOccupancyFromWorld(): void {
     worldOccupancy.reset();
 
@@ -264,6 +290,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     syncUnitTransformToPosition,
     moveUnitOneSubgridStep,
     isUnitAtTarget,
+    resolveArrivalRedirect,
     syncOccupancyForEntity,
     setPositionAndSyncOccupancy,
     clearPositionAndSyncOccupancy,

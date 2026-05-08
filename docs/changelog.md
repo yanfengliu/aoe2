@@ -2,6 +2,26 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.18 - 2026-05-08
+
+### Bug fix: Move-arrival redirect for fully-packed cells (§12.7 lazy redirect)
+
+Spec §12.7 first-pass implementation. When a unit's move command arrives at a target cell that already hosts 16 units (the engine's sub-cell slot capacity), the move handler now redirects the command target to the nearest free neighbor cell instead of leaving the unit overflowing at the destination. The unit then moves to the redirected cell and stops there with a real slot. Previously the 17th unit would land in overflow — its `OccupancyBinding`-allocated slot offset was null and (depending on rendering specifics) it could draw on top of an existing unit at the same cell.
+
+The redirect only fires for the bare `unit.move` command path (the move-arrival site in `playerCommandsSystem`). Group-move pre-reservation (§12.7's b-path) and arrival redirects from other command kinds (build, gather, drop-off) are deferred to follow-up commits.
+
+### What's still not handled (intentional gaps)
+
+- **Group-move oscillation prevention.** Selecting N units and right-clicking a single cell still issues N independent move commands all targeting that cell. Each unit individually follows the lazy-redirect rule on arrival, but the order in which they arrive is non-deterministic with respect to the spiral layout the spec calls for. The next commit on §12.7 adds the eager pre-reservation path that the spec describes.
+- **Visual-overlap-from-entity-id collisions.** The renderer still derives a 4-slot offset from `entityId % 4` rather than the engine-allocated 16-slot offset. Two units with the same `entityId % 4` in the same cell can still draw at the same screen pixel even when neither cell is full. That's a separate problem from §12.7 and remains open.
+- **Wider BFS radius.** `findNearestFreeUnitCell` currently checks only the immediate 8-cell window. Spec allows up to a 16-cell BFS radius; we'll widen if a gameplay scenario surfaces the need.
+
+### Validation
+
+- `npm test` / `npm run typecheck` / `npm run lint` / `npm run build`: all four green. Full suite 892 passed + 1 skipped.
+- 4 new tests in `tests/simulation/worldOccupancyVisualSlots.test.ts` pin the `findNearestFreeUnitCell` contract: requested cell with space returns the cell; requested cell full returns a neighbor; everything full returns null; entity-itself-in-overflow at the requested cell still sees the cell as free for itself.
+- Multi-CLI review pending; will land as iter-1 follow-up if reviewers find issues.
+
 ## 0.1.17 - 2026-05-07
 
 ### Feature: Multi-villager construction with smooth HP-bar

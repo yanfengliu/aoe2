@@ -124,3 +124,65 @@ describe('worldOccupancy — visual slot non-overlap (spec §12.6)', () => {
     expect(reuseCandidate.slotOffset).not.toBeNull();
   });
 });
+
+describe('worldOccupancy — findNearestFreeUnitCell (spec §12.7 lazy redirect)', () => {
+  it('returns the requested cell when it has a free slot', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    const result = occupancy.findNearestFreeUnitCell(999, { x: 5, y: 5 });
+
+    expect(result).toEqual({ x: 5, y: 5 });
+  });
+
+  it('returns a neighboring cell when the requested cell is fully packed', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    for (let i = 0; i < 16; i += 1) {
+      occupancy.syncUnit(100 + i, { x: 8, y: 8 });
+    }
+
+    const result = occupancy.findNearestFreeUnitCell(999, { x: 8, y: 8 });
+
+    expect(result).not.toBeNull();
+    expect(result).not.toEqual({ x: 8, y: 8 });
+    expect(Math.abs(result!.x - 8)).toBeLessThanOrEqual(1);
+    expect(Math.abs(result!.y - 8)).toBeLessThanOrEqual(1);
+  });
+
+  it('returns null when the requested cell and all neighbors are fully packed', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    let nextEntity = 1000;
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let i = 0; i < 16; i += 1) {
+          occupancy.syncUnit(nextEntity, { x: 8 + dx, y: 8 + dy });
+          nextEntity += 1;
+        }
+      }
+    }
+
+    const result = occupancy.findNearestFreeUnitCell(999, { x: 8, y: 8 });
+
+    expect(result).toBeNull();
+  });
+
+  it('treats the entity itself as not blocking when it is the one in overflow at the requested cell', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+
+    for (let i = 0; i < 16; i += 1) {
+      occupancy.syncUnit(100 + i, { x: 8, y: 8 });
+    }
+    // Unit 116 lands in overflow at (8, 8).
+    occupancy.syncUnit(116, { x: 8, y: 8 });
+    expect(occupancy.getUnitSlotOffset(116)).toBeNull();
+
+    // Unit 100 leaves — a slot frees up at (8, 8).
+    occupancy.release(100);
+
+    // findNearestFreeUnitCell for unit 116 should now return (8, 8) — the
+    // cell has space and unit 116 itself doesn't count as a blocker.
+    const result = occupancy.findNearestFreeUnitCell(116, { x: 8, y: 8 });
+    expect(result).toEqual({ x: 8, y: 8 });
+  });
+});
