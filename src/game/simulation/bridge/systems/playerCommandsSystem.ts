@@ -385,6 +385,14 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           );
           accessor.markDirty(buildingHealthStatesCodec);
         }
+        // Side-map mutations (constructionStates / buildingHealthStates)
+        // do not mark the building entity dirty for the renderAdapter.
+        // patchComponent in strict mode marks the entity dirty
+        // unconditionally, so the projector re-runs on the next tick and
+        // the HP bar fills smoothly during construction. Multi-builder
+        // ticks dedupe by entity id at the dirty-set level, so this stays
+        // a single re-projection per construction site per tick.
+        activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
         if (construction.buildProgressTicks >= construction.totalBuildTicks) {
           construction.buildProgressTicks = construction.totalBuildTicks;
           construction.isComplete = true;
