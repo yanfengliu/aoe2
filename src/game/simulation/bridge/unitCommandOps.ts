@@ -104,6 +104,12 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   ): boolean;
   // Phase 1B unit.gather: same direct-mutation helper pattern.
   setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean;
+  // Multi-villager construction (0.1.17): direct-mutation helper that
+  // queues a `build` command at an existing in-progress own-team
+  // building. Used by the in-progress branch of
+  // routeUnitContextAtEntityCommandDirect so additional villagers can
+  // join a half-built site via right-click.
+  setUnitBuildCommandDirect(unitId: number, buildingId: number): boolean;
   // Phase 1B unit.context: routing helper. Reads world state to dispatch
   // to garrison/attack/gather/move via the direct helpers. Used by the
   // unit.context handler so live + replay execute identical routing.
@@ -364,6 +370,29 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
+  // Multi-villager construction (0.1.17). Queues a `build` command for
+  // a villager onto an existing in-progress own-team building. Returns
+  // false on any precondition miss (non-villager, foreign owner, building
+  // missing or already complete) so the caller can fall through.
+  function setUnitBuildCommandDirect(unitId: number, buildingId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!unit || unit.unitType !== 'villager') return false;
+    const buildingPosition = world.getComponent<Position>(buildingId, 'position');
+    const targetBuilding = world.getComponent<BuildingComponent>(buildingId, 'building');
+    if (!buildingPosition || !targetBuilding || targetBuilding.owner !== unit.owner) return false;
+    const construction = accessor.get(constructionStatesCodec).get(buildingId);
+    if (!construction || construction.isComplete) return false;
+    const buildingRef = getEntityRef(buildingId);
+    if (!buildingRef) return false;
+    clearGathererOrder(unitId);
+    setUnitCommand(unitId, {
+      type: 'build',
+      target: { x: buildingPosition.x, y: buildingPosition.y },
+      buildingRef,
+    });
+    return true;
+  }
+
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.
   function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean {
@@ -383,6 +412,14 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       }
 
       const construction = accessor.get(constructionStatesCodec).get(targetEntityId);
+      if (
+        construction
+        && !construction.isComplete
+        && unit.unitType === 'villager'
+      ) {
+        return setUnitBuildCommandDirect(unitId, targetEntityId);
+      }
+
       if (
         canGarrisonAt(targetBuilding.buildingType, unit.unitType)
         && (!construction || construction.isComplete)
@@ -489,6 +526,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
+    setUnitBuildCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
     routeMonkContextAtEntityCommandDirect,
