@@ -53,10 +53,17 @@ export interface BrowserTestSnapshot {
 // Slice 6 (replay-load-and-e2e v0.1.13): replay-related test surface.
 // Lets Playwright assert replay mode + current tick + open the dialog
 // programmatically without poking at internal HUD/dialog markup.
+//
+// Deferred follow-up (v0.1.15): `seedPriorSession()` rolls a save+load
+// round-trip so the live recorder closes its current session and IDB
+// gets a prior session that the dialog's Prior tab can pick up.
+// Fulfils the "prior-session e2e" deferred item from the v0.1.12
+// thread close — without it the spec needs an external IDB seed.
 export interface BrowserTestReplayApi {
   getReplayMode(): 'live' | 'replay';
   getReplayCurrentTick(): number;
   openReplayLoadDialog(): void;
+  seedPriorSession(): Promise<void>;
 }
 
 export interface BrowserTestApi {

@@ -118,6 +118,50 @@ test.describe('replay-load dialog — Phase 3E e2e', () => {
     await expect(dialog).not.toHaveJSProperty('open', true);
   });
 
+  test('Prior tab: seeded prior session enters replay on row click', async ({ page }) => {
+    test.slow();
+    await game.waitForBoot(page);
+
+    // Drive ticks so the live recorder captures real commands. Then
+    // seed a prior session via the v0.1.15 test API surface — internally
+    // a save+load round-trip closes the live session (becoming a prior
+    // in IDB) and starts a fresh one. Prior-session e2e was deferred
+    // from the v0.1.12 thread close because it needs exactly this
+    // seeding mechanism.
+    await page.evaluate(() => {
+      const api = window.__AOE2_TEST__;
+      if (!api) throw new Error('test API not installed');
+      api.advanceTicks(120, 100);
+    });
+
+    await page.evaluate(async () => {
+      const api = window.__AOE2_TEST__;
+      if (!api?.replay) throw new Error('replay test API not installed');
+      await api.replay.seedPriorSession();
+    });
+
+    // Open the dialog and switch to the prior tab. The list should
+    // populate with at least one row (the just-closed session).
+    await page.evaluate(() => window.__AOE2_TEST__!.replay.openReplayLoadDialog());
+    const dialog = page.locator('[data-testid="replay-load-dialog-root"]');
+    await expect(dialog).toHaveJSProperty('open', true);
+    await page.locator('[data-testid="replay-load-tab-prior"]').click();
+
+    const firstRow = page.locator('[data-testid="replay-load-prior-row"]').first();
+    await expect(firstRow).toBeVisible();
+
+    // Click the row → dialog closes, replay mode active.
+    await firstRow.click();
+    await expect(dialog).not.toHaveJSProperty('open', true);
+    const mode = await page.evaluate(() => window.__AOE2_TEST__!.replay.getReplayMode());
+    expect(mode).toBe('replay');
+
+    // Escape exits replay (sanity match with the live-tab spec).
+    await page.keyboard.press('Escape');
+    const liveMode = await page.evaluate(() => window.__AOE2_TEST__!.replay.getReplayMode());
+    expect(liveMode).toBe('live');
+  });
+
   test('Test API: openReplayLoadDialog opens the dialog programmatically', async ({ page }) => {
     test.slow();
     await game.waitForBoot(page);

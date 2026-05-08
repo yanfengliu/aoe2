@@ -1027,6 +1027,17 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   min-width: 420px;
   max-width: 80vw;
   font: inherit;
+  /* Counter `#hud-root { pointer-events: none }` so clicks inside the
+     modal reach the cancel button + tabs + row/file inputs. Native
+     `<dialog>.showModal()` puts the element in the top layer for
+     stacking, but pointer-events still inherits from the DOM parent —
+     without this re-assertion every click falls through to the html
+     element and the dialog appears non-interactive in real browsers
+     (the panel-hide bug above is independent and produces visual
+     stacking; this rule is what restores click handling). Pre-existing
+     v0.1.12 bug surfaced while wiring the prior-session Playwright
+     spec. */
+  pointer-events: auto;
 }
 
 .replay-load-dialog__root::backdrop {
@@ -1072,6 +1083,18 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   flex-direction: column;
   gap: 8px;
   min-height: 60px;
+}
+
+/* The author rule above outranks the user-agent stylesheet's
+   `[hidden] { display: none }` on cascade origin (author > UA), so
+   without an author-origin re-assertion every tab panel renders
+   regardless of `[hidden]`. This compound `.class[hidden]` selector
+   wins on specificity (0,2,0 vs the parent rule's 0,1,0) and pins
+   the hide back. Pre-existing v0.1.12 bug surfaced while wiring the
+   prior-session Playwright spec (capture artifacts at
+   `docs/devlog/artifacts/2026-05-07-replay-load-dialog-{before,after,diff}.png`). */
+.replay-load-dialog__panel[hidden] {
+  display: none;
 }
 
 .replay-load-dialog__hint {

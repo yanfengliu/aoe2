@@ -315,6 +315,16 @@ export async function createApp(): Promise<Phaser.Game> {
       getReplayMode: () => replayController.mode,
       getReplayCurrentTick: () => replayController.currentTick,
       openReplayLoadDialog: () => { void replayLoadDialog.open(); },
+      // Deferred follow-up (v0.1.15): rolls a save+load round-trip so
+      // the live recorder closes its current session (becoming a prior
+      // session in IDB) and starts a fresh one. After this resolves,
+      // the dialog's Prior tab will list at least one row sourced from
+      // the just-closed session — provided the caller drove enough
+      // ticks beforehand for the recorder to have captured commands.
+      seedPriorSession: async () => {
+        const blob = bridge.saveGame();
+        await handleLoadGame(blob);
+      },
     },
   });
 
