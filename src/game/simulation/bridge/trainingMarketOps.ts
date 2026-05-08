@@ -114,6 +114,16 @@ export interface TrainingMarketOps {
     buildingType: BuildableBuildingType,
     anchor: Position,
   ): boolean;
+  // Multi-villager construction: spend resources once, create the building
+  // once, then set a `build` command on each id in the list. Stale or
+  // out-of-faction helper ids are silently skipped (AI tolerance pattern).
+  // The list MUST be non-empty; the first id is treated as the primary
+  // builder for affordability + build-options checks.
+  startConstructionWithBuildersDirect(
+    builderIds: readonly number[],
+    buildingType: BuildableBuildingType,
+    anchor: Position,
+  ): boolean;
   findBuildPlacementNear(origin: Position, buildingType: BuildableBuildingType): Position | null;
 }
 
@@ -371,15 +381,17 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return didUngarrisonUnit;
   }
 
-  function startConstruction(
-    builderId: number,
+  function startConstructionWithBuildersDirect(
+    builderIds: readonly number[],
     buildingType: BuildableBuildingType,
     anchor: Position,
   ): boolean {
-    const unit = world.getComponent<UnitComponent>(builderId, 'unit');
-    if (!unit || unit.unitType !== 'villager') return false;
+    if (builderIds.length === 0) return false;
+    const primaryId = builderIds[0];
+    const primary = world.getComponent<UnitComponent>(primaryId, 'unit');
+    if (!primary || primary.unitType !== 'villager') return false;
 
-    if (!getBuildOptions(unit.owner, unit.unitType).includes(buildingType)) return false;
+    if (!getBuildOptions(primary.owner, primary.unitType).includes(buildingType)) return false;
 
     const clampedAnchor = {
       x: clamp(anchor.x, 0, mapWidth - 1),
@@ -390,7 +402,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       return false;
     }
 
-    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
+    const stockpile = accessor.get(playerResourcesCodec).get(primary.owner);
     if (!stockpile) return false;
 
     const cost = constructionCost(buildingType);
@@ -398,19 +410,33 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     spendResources(stockpile, cost);
     accessor.markDirty(playerResourcesCodec);
-    const buildingId = addBuildingEntity(unit.owner, buildingType, clampedAnchor, false);
+    const buildingId = addBuildingEntity(primary.owner, buildingType, clampedAnchor, false);
     const buildingRef = getEntityRef(buildingId);
     if (!buildingRef) {
       throw new Error(`Expected a current EntityRef for new ${buildingType} construction.`);
     }
-    clearGathererOrder(builderId);
-    setUnitCommand(builderId, {
-      type: 'build',
-      target: clampedAnchor,
-      buildingRef,
-    });
+    for (const id of builderIds) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!unit || unit.unitType !== 'villager' || unit.owner !== primary.owner) {
+        continue;
+      }
+      clearGathererOrder(id);
+      setUnitCommand(id, {
+        type: 'build',
+        target: clampedAnchor,
+        buildingRef,
+      });
+    }
     markOutOfBandRenderChange();
     return true;
+  }
+
+  function startConstruction(
+    builderId: number,
+    buildingType: BuildableBuildingType,
+    anchor: Position,
+  ): boolean {
+    return startConstructionWithBuildersDirect([builderId], buildingType, anchor);
   }
 
   function findBuildPlacementNear(
@@ -457,6 +483,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     garrisonUnit,
     ungarrisonBuilding,
     startConstruction,
+    startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   };
 }
