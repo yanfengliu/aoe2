@@ -198,6 +198,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     moveUnitOneSubgridStep,
     isUnitAtTarget,
     resolveArrivalRedirect,
+    syncUnitTransformToPosition,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,

@@ -149,8 +149,10 @@ describe('worldOccupancy — findNearestFreeUnitCell (spec §12.7 lazy redirect)
     expect(Math.abs(result!.y - 8)).toBeLessThanOrEqual(1);
   });
 
-  it('returns null when the requested cell and all neighbors are fully packed', () => {
-    const occupancy = createWorldOccupancy(16, 16);
+  it('expands beyond the immediate 8-cell window when neighbors are full', () => {
+    // Saturate the 3x3 cluster around (8, 8) only — wider BFS should reach
+    // cells outside that radius and return a candidate.
+    const occupancy = createWorldOccupancy(32, 32);
 
     let nextEntity = 1000;
     for (let dx = -1; dx <= 1; dx += 1) {
@@ -163,6 +165,31 @@ describe('worldOccupancy — findNearestFreeUnitCell (spec §12.7 lazy redirect)
     }
 
     const result = occupancy.findNearestFreeUnitCell(999, { x: 8, y: 8 });
+
+    // Spec §12.7 widens the search to a 16-cell BFS radius; a free cell at
+    // distance 2 from the target should be found.
+    expect(result).not.toBeNull();
+    const dx = Math.abs(result!.x - 8);
+    const dy = Math.abs(result!.y - 8);
+    expect(Math.max(dx, dy)).toBeLessThanOrEqual(16);
+    expect(Math.max(dx, dy)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('returns null when nothing within the BFS radius has space', () => {
+    // World too small for any cell to remain free after we saturate it.
+    const occupancy = createWorldOccupancy(4, 4);
+
+    let nextEntity = 1000;
+    for (let x = 0; x < 4; x += 1) {
+      for (let y = 0; y < 4; y += 1) {
+        for (let i = 0; i < 16; i += 1) {
+          occupancy.syncUnit(nextEntity, { x, y });
+          nextEntity += 1;
+        }
+      }
+    }
+
+    const result = occupancy.findNearestFreeUnitCell(999, { x: 1, y: 1 });
 
     expect(result).toBeNull();
   });

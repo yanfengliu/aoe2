@@ -2,6 +2,30 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.20 - 2026-05-08
+
+### Bug fix: Visual non-overlap snap on move arrival + wider BFS
+
+Two §12.6/§12.7 follow-ups landed together:
+
+**Snap-on-stop renderer fix (§12.6 visual non-overlap).** When a unit's move command arrives at its destination, the move-arrival handler now snaps the unit's `fineX, fineY` transform to the engine-allocated 16-slot offset (via `worldOccupancy.getUnitSlotOffset`). Previously, `transform.fineX/fineY` used a 4-slot fallback derived from `entityId % 4`, so two units with the same `entityId % 4` standing in the same cell would render at the exact same screen pixel even when they had distinct OccupancyBinding-allocated slots. The snap fires once at arrival; in-flight movement still uses the entity-id fallback for target computation so sub-tile motion stays smooth (no per-tick teleport on cell crossings). Maximum visible jump on arrival is 0.75 of a cell.
+
+The snap is intentionally NOT applied at fresh-spawn (scenario seed) — an earlier draft that snapped in `addUnitEntity` after `syncSpawnedEntityOccupancy` broke `fogMemory` and `selectionActivity.other` tests in ways I haven't yet diagnosed (the snap shouldn't affect visibility, which uses integer `position.x/y`, but something downstream appears to depend on the entity-id-derived initial transform). Unit-id-collision visual overlap at the very first rendered frame remains a known gap until that path is investigated.
+
+**Wider BFS for `findNearestFreeUnitCell` (§12.7 lazy redirect).** The lazy-redirect helper now walks up to a 16-cell Chebyshev radius via the same spiral algorithm that `allocateGroupMoveTargets` uses, instead of only checking the 8 immediate neighbors. A unit arriving at a fully-packed cell whose 8 neighbors are also full now finds capacity in cells 2-16 away. Spec §12.7's default radius is 16, so this matches the spec. Both the lazy-redirect helper and the group-allocation spiral now share `generateSpiralCells` and `findNearestFreeUnitCellInSpiral` in `worldOccupancyAllocators.ts` for consistency.
+
+### What's still not handled
+
+- **Snap-on-spawn** for the first rendered frame after seed creation (described above; investigation pending).
+- **Reservation lifecycle registry** (§12.7's TTL guardrail). Today's implicit "reservation = the unit's move command target" handles reserved-cell-taken-before-arrival via lazy redirect on its own arrival, which satisfies the user-visible behavior. An explicit registry would unlock TTL guardrails and richer AI reasoning but is deferred until a real game scenario surfaces a need.
+- **Movement target uses entity-id slot during transit** (snap happens only on stop). Could be extended to use the allocated slot if mid-flight visual fidelity becomes important.
+
+### Validation
+
+- `npm test` / `npm run typecheck` / `npm run lint` / `npm run build`: all four green. Full suite 899 passed + 1 skipped.
+- 1 new test in `tests/simulation/worldOccupancyVisualSlots.test.ts` (wider-BFS coverage) plus an updated saturated-world test that pins the new "BFS exhausted" semantics.
+- Multi-CLI review pending; will land as iter-1 follow-up if reviewers find issues.
+
 ## 0.1.19 - 2026-05-08
 
 ### Feature: Group-move pre-reservation (§12.7 eager allocation)

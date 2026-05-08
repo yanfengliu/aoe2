@@ -117,7 +117,17 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) return;
 
-    const targetTransform = getUnitTargetTransformForCell(id, position);
+    // Spec §12.6 visual non-overlap: snap to the engine-allocated slot
+    // offset when one is available, otherwise fall back to the entity-id-
+    // derived offset (early bootstrap, overflowed units, fixtures without
+    // a worldOccupancy attached). Callers reach this from spawn-time and
+    // move-arrival sites — both are stationary moments where snapping the
+    // transform to the allocated slot produces visual non-overlap. This is
+    // intentionally NOT called from `syncOccupancyForEntity` because that
+    // path fires on every cell crossing during movement and snapping there
+    // would teleport mid-flight sprites.
+    const slotOffset = worldOccupancy.getUnitSlotOffset(id);
+    const targetTransform = getUnitTargetTransformForCell(id, position, slotOffset);
     transform.fineX = targetTransform.fineX;
     transform.fineY = targetTransform.fineY;
   }

@@ -7,7 +7,10 @@ import {
   type Position,
   type SubcellSlotOffset,
 } from 'civ-engine';
-import { allocateGroupMoveTargets as allocateGroupMoveTargetsImpl } from './worldOccupancyAllocators';
+import {
+  allocateGroupMoveTargets as allocateGroupMoveTargetsImpl,
+  findNearestFreeUnitCellInSpiral,
+} from './worldOccupancyAllocators';
 
 export interface Footprint {
   width: number;
@@ -377,30 +380,20 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     },
 
     findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null {
-      // Out-of-bounds requests are never satisfiable.
-      if (
-        requestedPosition.x < 0
-        || requestedPosition.x >= worldWidth
-        || requestedPosition.y < 0
-        || requestedPosition.y >= worldHeight
-      ) {
-        return null;
-      }
-
-      // Try the requested cell first. canOccupySubcell ignores the entity
-      // itself, so a unit currently in overflow at this cell can still see
-      // the cell as free if another unit just left.
-      if (binding.canOccupySubcell(entity, requestedPosition, { metadata: { kind: 'unit' } })) {
-        return requestedPosition;
-      }
-
-      // Fall back to the engine's closest-first neighbor enumeration over
-      // the default 8-cell window. Future iterations may extend to a wider
-      // BFS per spec §12.7's default radius of 16 cells.
-      const neighbors = binding.neighborsWithSpace(entity, requestedPosition, {
-        metadata: { kind: 'unit' },
-      });
-      return neighbors[0]?.position ?? null;
+      // Spec §12.7 lazy redirect: BFS the spiral around `requestedPosition`,
+      // returning the first cell with a free unit slot. Search radius matches
+      // the group allocator's so a single redirect lands consistent with what
+      // a group allocation would have picked.
+      return findNearestFreeUnitCellInSpiral(
+        {
+          worldWidth,
+          worldHeight,
+          getCellStatus: this.getCellStatus.bind(this),
+        },
+        entity,
+        requestedPosition,
+        (e, position) => binding.canOccupySubcell(e, position, { metadata: { kind: 'unit' } }),
+      );
     },
 
     allocateGroupMoveTargets(

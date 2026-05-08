@@ -84,6 +84,14 @@ export interface PlayerCommandsSystemDeps {
   // the unit's move-command target to the returned cell so movement does not
   // re-aim at the original full target (oscillation prevention).
   resolveArrivalRedirect: (unitId: number, arrivalCell: Position) => Position | null;
+  // Spec §12.6 visual non-overlap snap-on-stop: invoked at the move-arrival
+  // site to snap fineX/fineY to the engine-allocated slot offset so two
+  // stationary units in the same cell render at distinct screen points.
+  syncUnitTransformToPosition: (
+    unitId: number,
+    position: Position,
+    activeWorld?: CivWorld,
+  ) => void;
   resolveMovePlanFromCache: (
     unitId: number,
     target: Position,
@@ -119,6 +127,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     moveUnitOneSubgridStep,
     isUnitAtTarget,
     resolveArrivalRedirect,
+    syncUnitTransformToPosition,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
@@ -365,6 +374,12 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               accessor.markDirty(unitCommandsCodec);
               continue;
             }
+            // Spec §12.6 snap-on-stop: the unit has reached its destination
+            // with an engine-allocated slot. Snap fineX/fineY to that slot
+            // so two stationary units in the same cell render at distinct
+            // screen points. The snap fires once at arrival, never during
+            // in-flight cell crossings.
+            syncUnitTransformToPosition(id, movePlan.destination, activeWorld);
             clearUnitCommand(id);
             continue;
           }

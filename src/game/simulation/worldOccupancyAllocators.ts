@@ -38,6 +38,75 @@ function isWholeCellBlocker(status: OccupancyCellStatus): boolean {
   );
 }
 
+// BFS from `targetCenter` over an in-bounds 8-direction graph, capped at
+// `SPIRAL_RADIUS_CAP` Chebyshev radius. Output order is deterministic so the
+// spec's "deterministic spiral-outward" requirement holds across runs.
+export function generateSpiralCells(
+  targetCenter: Position,
+  worldWidth: number,
+  worldHeight: number,
+): Position[] {
+  if (
+    targetCenter.x < 0
+    || targetCenter.x >= worldWidth
+    || targetCenter.y < 0
+    || targetCenter.y >= worldHeight
+  ) {
+    return [];
+  }
+  const cells: Position[] = [];
+  const visited = new Set<string>();
+  const queue: Position[] = [targetCenter];
+  visited.add(positionKey(targetCenter.x, targetCenter.y));
+  for (let head = 0; head < queue.length; head += 1) {
+    const cell = queue[head];
+    if (!cell) continue;
+    cells.push(cell);
+    if (
+      Math.abs(cell.x - targetCenter.x) >= SPIRAL_RADIUS_CAP
+      || Math.abs(cell.y - targetCenter.y) >= SPIRAL_RADIUS_CAP
+    ) {
+      continue;
+    }
+    for (const offset of NEIGHBOR_OFFSETS) {
+      const nx = cell.x + offset.x;
+      const ny = cell.y + offset.y;
+      if (nx < 0 || nx >= worldWidth || ny < 0 || ny >= worldHeight) {
+        continue;
+      }
+      const key = positionKey(nx, ny);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return cells;
+}
+
+// Spec §12.7 lazy-redirect search. Walks the spiral around `requestedPosition`
+// and returns the first cell with a free unit slot (the entity itself is
+// treated as non-blocking). Returns null when no candidate is found within
+// the search radius. Uses the same spiral as the group allocator so a
+// single-unit redirect and the N-th unit of a group settle on consistent
+// closest-first cells.
+export function findNearestFreeUnitCellInSpiral(
+  ctx: GroupMoveAllocatorContext,
+  entity: EntityId,
+  requestedPosition: Position,
+  hasFreeSlot: (entity: EntityId, position: Position) => boolean,
+): Position | null {
+  const { worldWidth, worldHeight, getCellStatus } = ctx;
+  const cells = generateSpiralCells(requestedPosition, worldWidth, worldHeight);
+  for (const cell of cells) {
+    const status = getCellStatus(cell.x, cell.y, entity);
+    if (isWholeCellBlocker(status)) continue;
+    if (hasFreeSlot(entity, cell)) {
+      return cell;
+    }
+  }
+  return null;
+}
+
 export interface GroupMoveAllocatorContext {
   worldWidth: number;
   worldHeight: number;
@@ -63,40 +132,7 @@ export function allocateGroupMoveTargets(
   const { worldWidth, worldHeight, getCellStatus } = ctx;
   const targets: Position[] = [];
   const assignedThisCall = new Map<string, number>();
-  const targetIsInBounds =
-    targetCenter.x >= 0
-    && targetCenter.x < worldWidth
-    && targetCenter.y >= 0
-    && targetCenter.y < worldHeight;
-
-  const spiralCells: Position[] = [];
-  if (targetIsInBounds) {
-    const visited = new Set<string>();
-    const queue: Position[] = [targetCenter];
-    visited.add(positionKey(targetCenter.x, targetCenter.y));
-    for (let head = 0; head < queue.length; head += 1) {
-      const cell = queue[head];
-      if (!cell) continue;
-      spiralCells.push(cell);
-      if (
-        Math.abs(cell.x - targetCenter.x) >= SPIRAL_RADIUS_CAP
-        || Math.abs(cell.y - targetCenter.y) >= SPIRAL_RADIUS_CAP
-      ) {
-        continue;
-      }
-      for (const offset of NEIGHBOR_OFFSETS) {
-        const nx = cell.x + offset.x;
-        const ny = cell.y + offset.y;
-        if (nx < 0 || nx >= worldWidth || ny < 0 || ny >= worldHeight) {
-          continue;
-        }
-        const key = positionKey(nx, ny);
-        if (visited.has(key)) continue;
-        visited.add(key);
-        queue.push({ x: nx, y: ny });
-      }
-    }
-  }
+  const spiralCells = generateSpiralCells(targetCenter, worldWidth, worldHeight);
 
   for (const unitId of unitIds) {
     let assigned: Position | null = null;
