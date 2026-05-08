@@ -10,7 +10,9 @@ import type { RecordingService } from '../../src/game/recording/RecordingService
 
 // jsdom doesn't implement <dialog> showModal/close natively across all
 // versions; polyfill them so the dialog open/close flow can be observed
-// in tests without requiring browser-runtime semantics.
+// in tests without requiring browser-runtime semantics. The polyfill
+// dispatches the native `close` event on close so listeners (e.g. the
+// generation-token guard) fire under test.
 const installDialogPolyfill = (): void => {
   const proto = HTMLDialogElement.prototype;
   if (typeof proto.showModal !== 'function') {
@@ -19,11 +21,15 @@ const installDialogPolyfill = (): void => {
       Object.defineProperty(this, 'open', { value: true, configurable: true });
     };
   }
-  if (typeof proto.close !== 'function') {
-    proto.close = function (this: HTMLDialogElement) {
+  if (typeof proto.close !== 'function' || !(proto.close as { __polyfilled?: true }).__polyfilled) {
+    const fn = function (this: HTMLDialogElement) {
+      if (!this.open) return;
       this.removeAttribute('open');
       Object.defineProperty(this, 'open', { value: false, configurable: true });
+      this.dispatchEvent(new Event('close'));
     };
+    Object.defineProperty(fn, '__polyfilled', { value: true });
+    proto.close = fn as unknown as HTMLDialogElement['close'];
   }
 };
 
@@ -242,6 +248,148 @@ describe('createReplayLoadDialog', () => {
     const rows = host.querySelectorAll<HTMLElement>('[data-testid="replay-load-prior-row"]');
     expect(rows.length).toBe(1);
     expect(rows[0].dataset.sessionId).toBe('newly-persisted');
+    handle.dispose();
+  });
+
+  it('cancel during prior-row await does not enter replay (generation guard)', async () => {
+    // Race: user clicks a prior row → IDB fetch starts → user clicks
+    // Cancel BEFORE the bundle resolves → bundle resolves → without the
+    // generation-token guard, the resumed handler would proceed to
+    // `enterReplay` and the user would land in replay mode despite
+    // having cancelled.
+    let resolveBundle: ((bundle: SessionBundle) => void) | null = null;
+    recording.bundle = vi.fn(() => null);
+    recording.listPriorSessions = vi.fn(() => Promise.resolve([stubPrior('race-row')]));
+    recording.loadPriorSessionBundle = vi.fn(
+      () => new Promise<SessionBundle>((r) => { resolveBundle = r; }),
+    );
+    const handle = createReplayLoadDialog({ host, replayController: makeController(), recording, toast });
+    await handle.open();
+    const row = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-prior-row"]')!;
+    row.click();
+    await new Promise((r) => setTimeout(r, 0));
+    // Cancel mid-await
+    const cancel = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-cancel"]')!;
+    cancel.click();
+    expect(handle.isOpen()).toBe(false);
+    // Now resolve the bundle as if IDB finally returned
+    resolveBundle!(validBundle());
+    await new Promise((r) => setTimeout(r, 5));
+    expect(enterReplay).not.toHaveBeenCalled();
+    handle.dispose();
+  });
+
+  it('cancel during file-read await does not enter replay (generation guard)', async () => {
+    // Race: user picks a file → File.text() starts → user clicks Cancel
+    // BEFORE the read resolves → without the generation-token guard the
+    // resumed handler would call `enterReplay` on the parsed bundle.
+    recording.bundle = vi.fn(() => null);
+    const handle = createReplayLoadDialog({ host, replayController: makeController(), recording, toast });
+    await handle.open();
+    const fileTab = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-tab-file"]')!;
+    fileTab.click();
+    const input = host.querySelector<HTMLInputElement>('[data-testid="replay-load-file-input"]')!;
+    let resolveText: ((s: string) => void) | null = null;
+    const file = new File(['ignored'], 'bundle.json', { type: 'application/json' });
+    Object.defineProperty(file, 'text', {
+      value: () => new Promise<string>((r) => { resolveText = r; }),
+      configurable: true,
+    });
+    Object.defineProperty(input, 'files', {
+      value: { length: 1, item: () => file, 0: file } as unknown as FileList,
+      configurable: true,
+    });
+    input.dispatchEvent(new Event('change'));
+    await new Promise((r) => setTimeout(r, 0));
+    // Cancel mid-await
+    const cancel = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-cancel"]')!;
+    cancel.click();
+    expect(handle.isOpen()).toBe(false);
+    // Now resolve the file read with a structurally valid bundle
+    resolveText!(JSON.stringify(validBundle()));
+    await new Promise((r) => setTimeout(r, 5));
+    expect(enterReplay).not.toHaveBeenCalled();
+    handle.dispose();
+  });
+
+  it('dispose during prior-row await does not enter replay (lifecycle race)', async () => {
+    // Lifecycle race: the dialog is disposed (e.g. app teardown) while
+    // an IDB fetch is in flight. Without a generation bump in dispose
+    // the resumed handler would still call enterReplay on a detached
+    // dialog. dispose() must invalidate in-flight async handlers.
+    let resolveBundle: ((bundle: SessionBundle) => void) | null = null;
+    recording.bundle = vi.fn(() => null);
+    recording.listPriorSessions = vi.fn(() => Promise.resolve([stubPrior('disp-row')]));
+    recording.loadPriorSessionBundle = vi.fn(
+      () => new Promise<SessionBundle>((r) => { resolveBundle = r; }),
+    );
+    const handle = createReplayLoadDialog({ host, replayController: makeController(), recording, toast });
+    await handle.open();
+    const row = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-prior-row"]')!;
+    row.click();
+    await new Promise((r) => setTimeout(r, 0));
+    handle.dispose();
+    resolveBundle!(validBundle());
+    await new Promise((r) => setTimeout(r, 5));
+    expect(enterReplay).not.toHaveBeenCalled();
+  });
+
+  it('handleTabClick: stale listPriorSessions does not repopulate cache after close+reopen', async () => {
+    // Regression test for the handleTabClick stale-write race.
+    //
+    // Iter-2 ordering (correctly distinguishes the iter-2 guard from
+    // pre-fix code, per Codex + Claude iter-2 review):
+    //
+    //   1. Open dialog (live default, so no listPriorSessions yet).
+    //   2. Click prior tab → handleTabClick starts the controlled-
+    //      resolve listPriorSessions. Cache=null. Generation=0.
+    //   3. Close dialog → close event fires → generation=1.
+    //   4. Reopen dialog → second open() runs `priorSessionsCache=null`
+    //      and (because live tab is default) does NOT await
+    //      listPriorSessions itself.
+    //   5. NOW resolve the stale promise from step 2.
+    //
+    // Pre-fix: the resumed handler from step 2 unconditionally writes
+    // priorSessionsCache=[stale]. The next prior-tab click sees
+    // cache !== null → skips refetch → renders [stale].
+    //
+    // Iter-2: the resumed handler sees myGen(0) !== generation(1 —
+    // bumped by step 3's close event; the reopen calls showModal but
+    // does not fire a close event) → bails. Cache stays null. The next
+    // prior-tab click triggers the fresh fetch → renders [fresh].
+    recording.bundle = vi.fn(() => validBundle()); // live tab default
+    let resolveStaleList: ((rows: readonly PriorSessionDescriptor[]) => void) | null = null;
+    let listCallCount = 0;
+    recording.listPriorSessions = vi.fn(() => {
+      listCallCount += 1;
+      if (listCallCount === 1) {
+        return new Promise<readonly PriorSessionDescriptor[]>((r) => {
+          resolveStaleList = r;
+        });
+      }
+      return Promise.resolve([stubPrior('fresh')]);
+    });
+    const handle = createReplayLoadDialog({ host, replayController: makeController(), recording, toast });
+    await handle.open();
+    const priorTab = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-tab-prior"]')!;
+    priorTab.click();
+    await new Promise((r) => setTimeout(r, 0));
+    handle.close();
+    // Reopen BEFORE resolving the stale promise. The reopen's open()
+    // resets cache=null. After this point, the next prior-tab click
+    // depends on whether the resumed-handler-#1 stale-writes the
+    // cache or the iter-2 guard bails.
+    await handle.open();
+    resolveStaleList!([stubPrior('stale')]);
+    await new Promise((r) => setTimeout(r, 5));
+    // Click prior tab now. On pre-fix code: cache=[stale] → skip
+    // fetch → renders [stale]. On iter-2: cache=null → fetch → [fresh].
+    const priorTab2 = host.querySelector<HTMLButtonElement>('[data-testid="replay-load-tab-prior"]')!;
+    priorTab2.click();
+    await new Promise((r) => setTimeout(r, 5));
+    const rows = host.querySelectorAll<HTMLElement>('[data-testid="replay-load-prior-row"]');
+    expect(rows.length).toBe(1);
+    expect(rows[0].dataset.sessionId).toBe('fresh');
     handle.dispose();
   });
 

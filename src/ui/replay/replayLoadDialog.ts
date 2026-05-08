@@ -93,6 +93,14 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
   // dialog throws InvalidStateError. The guard short-circuits the
   // second call and any concurrent calls.
   let opening = false;
+  // Generation token: incremented every time the dialog closes (either
+  // programmatically via `close()` or via Escape / form cancel). Async
+  // handlers capture the generation at entry; if it has changed by the
+  // time their await resolves, the user has dismissed the dialog and
+  // we must NOT proceed with `enterReplay`. Closes the cancel-during-
+  // await race for prior-row click + file-read paths.
+  let generation = 0;
+  dialogEl.addEventListener('close', () => { generation += 1; });
 
   const setActiveSource = (source: ReplayLoadSource): void => {
     for (const tab of tabButtons) {
@@ -153,8 +161,14 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
     if (!row) return;
     const sessionId = row.dataset.sessionId;
     if (!sessionId) return;
+    const myGen = generation;
     try {
-      const result = await loadPriorSessionAsReplay({ replayController, recording }, sessionId);
+      const result = await loadPriorSessionAsReplay(
+        { replayController, recording },
+        sessionId,
+        { isCancelled: () => myGen !== generation },
+      );
+      if (result.status === 'cancelled') return;
       if (result.status === 'no-payloads') {
         toast.showToast('Replay failed: session has no recorded commands; nothing to replay forward');
         return;
@@ -165,6 +179,10 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       }
       api.close();
     } catch (err) {
+      // Bail silently if the user dismissed the dialog mid-await; the
+      // SchemaMismatchError / generic error toasts only make sense for
+      // the still-open dialog.
+      if (myGen !== generation) return;
       if (err instanceof SchemaMismatchError) {
         toast.showToast(`schema mismatch: stored=${err.storedVersion}, current=${err.expectedVersion}`);
       } else {
@@ -177,13 +195,21 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
     const file = fileInput.files?.[0];
     fileInput.value = '';
     if (!file) return;
+    const myGen = generation;
     let text: string;
     try {
       text = await file.text();
     } catch (err) {
+      // Two cancel-checks: this one silences the "Could not read file"
+      // toast when the user already cancelled mid-read; the post-try
+      // check below silences the parse + enterReplay path on a
+      // successful read. Both are needed because the post-await branch
+      // is the dialog's only chance to bail before mutation.
+      if (myGen !== generation) return;
       toast.showToast(`Could not read file: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
+    if (myGen !== generation) return;
     const result = parseSessionBundleFile(text);
     if (!result.ok) {
       toast.showToast(`Invalid bundle file: ${result.reason}`);
@@ -213,12 +239,22 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       refreshLiveAvailability();
     }
     if (source === 'prior' && priorSessionsCache === null) {
+      const myGen = generation;
+      let fetched: readonly PriorSessionDescriptor[];
       try {
-        priorSessionsCache = await recording.listPriorSessions();
+        fetched = await recording.listPriorSessions();
       } catch (err) {
+        if (myGen !== generation) return;
         toast.showToast(`Could not list prior sessions: ${err instanceof Error ? err.message : String(err)}`);
         priorSessionsCache = [];
+        renderPriorList();
+        return;
       }
+      // A close-and-reopen sequence may have invalidated the cache while
+      // we awaited; in that case the fresh fetch in `open()` is
+      // authoritative and we must not stale-write here.
+      if (myGen !== generation) return;
+      priorSessionsCache = fetched;
       renderPriorList();
     }
   };
@@ -236,6 +272,7 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       if (replayController.mode === 'replay') return;
       if (opening || dialogEl.open) return;
       opening = true;
+      const myGen = generation;
       try {
         // Always invalidate the prior-session cache on open so we pick
         // up newly-persisted sessions from the live recorder (e.g.,
@@ -247,8 +284,14 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
         setActiveSource(initial);
         if (initial === 'prior') {
           try {
-            priorSessionsCache = await recording.listPriorSessions();
+            const fetched = await recording.listPriorSessions();
+            // Dialog disposed or reopened while we were awaiting — skip
+            // the show + cache write so the detached dialog stays inert
+            // and the next open()'s fresh fetch wins.
+            if (myGen !== generation) return;
+            priorSessionsCache = fetched;
           } catch (err) {
+            if (myGen !== generation) return;
             toast.showToast(`Could not list prior sessions: ${err instanceof Error ? err.message : String(err)}`);
             priorSessionsCache = [];
           }
@@ -275,6 +318,11 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       return dialogEl.open;
     },
     dispose(): void {
+      // Bump generation so any in-flight async handlers (prior-row IDB
+      // fetch, file-read, tab-click listPriorSessions) see a stale
+      // capture and bail before reaching `enterReplay` or DOM writes
+      // on the now-detached dialog.
+      generation += 1;
       for (const tab of tabButtons) tab.removeEventListener('click', handleTabClick);
       liveConfirmBtn.removeEventListener('click', handleLiveConfirm);
       priorListEl.removeEventListener('click', handlePriorRowClick);

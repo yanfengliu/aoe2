@@ -2,7 +2,7 @@ import type { SessionBundle } from 'civ-engine';
 
 import type { ReplayBundle, ReplayController } from './ReplayController';
 
-export type LoadPriorSessionStatus = 'no-payloads' | 'ok' | 'error';
+export type LoadPriorSessionStatus = 'no-payloads' | 'ok' | 'error' | 'cancelled';
 
 export interface LoadPriorSessionResult {
   readonly status: LoadPriorSessionStatus;
@@ -12,6 +12,16 @@ export interface LoadPriorSessionResult {
 export interface LoadPriorSessionDeps {
   readonly replayController: Pick<ReplayController, 'enterReplay'>;
   readonly recording: { loadPriorSessionBundle(sessionId: string): Promise<SessionBundle> };
+}
+
+// Optional cooperative-cancellation hook. When the caller (e.g. the
+// ReplayLoadDialog) wants to bail mid-flight after the bundle await
+// resolves but before `enterReplay` mutates state, it can pass a signal
+// whose `isCancelled()` returns true. The helper checks once after the
+// IDB fetch and short-circuits with `{ status: 'cancelled' }` so the
+// caller can stay silent (no toast, no replay-mode entry).
+export interface LoadPriorSessionSignal {
+  isCancelled(): boolean;
 }
 
 /**
@@ -29,8 +39,14 @@ export interface LoadPriorSessionDeps {
 export async function loadPriorSessionAsReplay(
   deps: LoadPriorSessionDeps,
   sessionId: string,
+  signal?: LoadPriorSessionSignal,
 ): Promise<LoadPriorSessionResult> {
   const bundle = await deps.recording.loadPriorSessionBundle(sessionId);
+  // Caller may have cancelled (e.g. dialog dismissed) while we awaited
+  // the IDB fetch; bail before `enterReplay` mutates controller state.
+  if (signal?.isCancelled()) {
+    return { status: 'cancelled' };
+  }
   if (bundle.commands.length === 0) {
     return { status: 'no-payloads' };
   }

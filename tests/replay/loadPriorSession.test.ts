@@ -106,4 +106,40 @@ describe('loadPriorSessionAsReplay', () => {
     expect(result.error).toBeInstanceOf(Error);
     expect(result.error?.message).toBe('string error');
   });
+
+  it('returns cancelled and skips enterReplay when signal is tripped after the bundle await', async () => {
+    const enterReplay = vi.fn();
+    const bundle = stubBundle({
+      commands: [{ submissionTick: 1, sequence: 0, type: 'unit.move' }] as SessionBundle['commands'],
+    });
+    const recording = { loadPriorSessionBundle: vi.fn(() => Promise.resolve(bundle)) };
+    let cancelled = false;
+    const result = await loadPriorSessionAsReplay(
+      { replayController: stubController(enterReplay), recording },
+      's1',
+      { isCancelled: () => cancelled },
+    );
+    // Sanity: without cancel the call enters replay.
+    expect(result.status).toBe('ok');
+    expect(enterReplay).toHaveBeenCalledTimes(1);
+
+    // Now repeat with cancel flipped after the bundle resolves.
+    enterReplay.mockClear();
+    let resolveBundle: ((b: SessionBundle) => void) | null = null;
+    const slowRecording = {
+      loadPriorSessionBundle: vi.fn(
+        () => new Promise<SessionBundle>((r) => { resolveBundle = r; }),
+      ),
+    };
+    const promise = loadPriorSessionAsReplay(
+      { replayController: stubController(enterReplay), recording: slowRecording },
+      's1',
+      { isCancelled: () => cancelled },
+    );
+    cancelled = true;
+    resolveBundle!(bundle);
+    const cancelledResult = await promise;
+    expect(cancelledResult).toEqual({ status: 'cancelled' });
+    expect(enterReplay).not.toHaveBeenCalled();
+  });
 });
