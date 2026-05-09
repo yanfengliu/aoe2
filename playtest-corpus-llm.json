@@ -1,0 +1,11 @@
+{
+  "runs": [
+    {
+      "name": "default-seed-llm-smoke",
+      "seed": "aoe2-prototype",
+      "maxTicks": 5000,
+      "decisionInterval": 250,
+      "owners": [2]
+    }
+  ]
+}
