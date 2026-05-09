@@ -296,6 +296,11 @@ async function makePlaywrightHost(page, hostOptions = {}) {
     async drainDispatchLog() {
       return await page.evaluate(() => window.__AOE2_TEST__.agent.drainAgentDispatchLog());
     },
+    async getEntityCountsByOwner() {
+      return await page.evaluate(() =>
+        window.__AOE2_TEST__.agent.getEntityCountsByOwner(),
+      );
+    },
     async exportBundle() {
       // Codex impl-345 M3: passing the bundle text back through
       // page.evaluate() defeats the purpose of the Blob URL. Use

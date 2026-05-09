@@ -120,6 +120,11 @@ export interface BrowserTestAgentApi {
    *  commands with semantic rejections — does NOT compete with the
    *  HUD's `consumeCommandRejection` FIFO. (impl-1 H1.) */
   drainAgentDispatchLog(): AgentDispatchEventLog[];
+  /** Phase-6.D: per-owner unit/building counts at the current tick.
+   *  Used by the winner oracle to score the game outcome. Reads from
+   *  the bridge's existing economy-state surface — no engine-internal
+   *  coupling. */
+  getEntityCountsByOwner(): Record<number, { units: number; buildings: number }>;
 }
 
 export interface BrowserTestApi {
@@ -460,6 +465,26 @@ function makeAgentApi(
       const blob = new Blob([json], { type: 'application/json' });
       const blobUrl = URL.createObjectURL(blob);
       return { blobUrl, size: blob.size };
+    },
+
+    getEntityCountsByOwner: () => {
+      // Phase-6.D: aggregate live unit/building counts from the
+      // bridge's economy-state surface. Pure read; no engine-internal
+      // coupling. The winner oracle in `src/game/playtest/winnerOracle.ts`
+      // consumes this shape.
+      const economy = getBridge().getEconomyState();
+      const counts: Record<number, { units: number; buildings: number }> = {};
+      for (const u of economy.units) {
+        const slot = counts[u.owner] ?? { units: 0, buildings: 0 };
+        slot.units += 1;
+        counts[u.owner] = slot;
+      }
+      for (const b of economy.buildings) {
+        const slot = counts[b.owner] ?? { units: 0, buildings: 0 };
+        slot.buildings += 1;
+        counts[b.owner] = slot;
+      }
+      return counts;
     },
   };
 }

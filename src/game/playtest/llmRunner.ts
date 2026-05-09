@@ -14,6 +14,11 @@ import type {
   StopReason,
 } from './types';
 import type { LlmAgent } from './llmAgent';
+import {
+  extractWinner,
+  type PerOwnerEntityCounts,
+  type WinnerResult,
+} from './winnerOracle';
 
 export interface AgentDispatchEvent {
   commandType: string;
@@ -39,6 +44,9 @@ export interface RunnerHost {
   exportBundle(): Promise<SessionBundle>;
   /** Current world tick (read-only). */
   getCurrentTick(): Promise<number>;
+  /** Phase-6.D: per-owner unit/building counts at the current tick.
+   *  Used by the winner oracle to score the game outcome. */
+  getEntityCountsByOwner(): Promise<PerOwnerEntityCounts>;
 }
 
 export interface LlmRunnerConfig {
@@ -71,6 +79,10 @@ export interface RunnerEnvelope {
   // script wires it (env-gated; advisory only, does NOT affect CI
   // exit codes — engineHalt is still the regression signal).
   observation?: ObservationVerdict;
+  // Phase-6.D: game-outcome scoring at the final tick. Populated
+  // unconditionally (no opt-in flag) — scoring is cheap and useful
+  // for any multi-owner playtest (AI-vs-LLM, future AI-vs-AI).
+  winner?: WinnerResult;
 }
 
 export interface RunLlmPlaytestResult {
@@ -185,6 +197,28 @@ export async function runLlmPlaytest(input: {
     }
   }
 
+  // Phase-6.D: post-loop game-outcome scoring. Only attempted on
+  // clean exits — on engineHalt the page may be destabilized and
+  // counts may be stale or unavailable. The winner field is left
+  // undefined in that case (downstream tooling should treat
+  // engineHalt as "not scored" rather than as a tie).
+  //
+  // Codex impl-1 MED 1a (winner contract): if the count probe throws
+  // on a clean exit, escalate to engineHalt rather than silently
+  // dropping the winner field — the contract is "winner present
+  // unless engineHalt", so probe failure on a clean exit IS engineHalt
+  // (parallels the post-loop screenshot escalation just above).
+  let winner: WinnerResult | undefined;
+  if (stopReason !== 'engineHalt') {
+    try {
+      const counts = await host.getEntityCountsByOwner();
+      winner = extractWinner(counts);
+    } catch (err) {
+      stopReason = 'engineHalt';
+      errorMessage = `winner-oracle count probe failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
   // exportBundle can itself throw (e.g., page navigated away after the
   // engineHalt error already destabilized __AOE2_TEST__). Preserve the
   // envelope's diagnostic message in that case rather than letting the
@@ -205,6 +239,11 @@ export async function runLlmPlaytest(input: {
     // errorMessage tell the operator what happened.
     bundle = makeEmptyBundleStub();
   }
+  // Codex impl-1 MED 1b: re-check stopReason at envelope-build time.
+  // exportBundle may have flipped it to engineHalt AFTER the winner
+  // probe ran successfully — in that case the winner field would
+  // violate the "omitted on engineHalt" contract.
+  const finalWinner = stopReason === 'engineHalt' ? undefined : winner;
   const runCompletedAt = new Date().toISOString();
   const envelope: RunnerEnvelope = {
     stopReason,
@@ -214,6 +253,7 @@ export async function runLlmPlaytest(input: {
     runStartedAt,
     runCompletedAt,
     errorMessage,
+    ...(finalWinner !== undefined && { winner: finalWinner }),
   };
   return { bundle, envelope, trace, finalScreenshotPng: lastScreenshotPng };
 }

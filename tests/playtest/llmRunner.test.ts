@@ -92,6 +92,12 @@ class StubHost implements RunnerHost {
   async exportBundle(): Promise<SessionBundle> {
     return this.bundle;
   }
+  // Phase-6.D: stub for the winner-oracle count probe. Default returns
+  // empty (winner: tie). Tests that exercise winner extraction
+  // override this on the instance.
+  async getEntityCountsByOwner() {
+    return {};
+  }
 }
 
 const MIN_BUNDLE = {
@@ -180,6 +186,130 @@ describe('runLlmPlaytest', () => {
       },
     });
     expect(result.finalScreenshotPng).toBeUndefined();
+  });
+
+  // Phase-6.D: winner-oracle scoring is invoked on clean exit and
+  // surfaces in the envelope. NOT invoked on engineHalt (page may be
+  // destabilized). Don't assert the exact winner kind here — the
+  // scoring function has its own unit tests; just verify the field
+  // shows up.
+  it('attaches winner result to envelope on clean exit', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.getEntityCountsByOwner = async () => ({
+      1: { units: 5, buildings: 2 },
+      2: { units: 0, buildings: 0 },
+    });
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.winner).toEqual({ kind: 'winner', ownerId: 1 });
+  });
+
+  it('omits winner field on engineHalt (page may be destabilized)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.failOn = 'dispatchCommand';
+    let countProbed = false;
+    host.getEntityCountsByOwner = async () => {
+      countProbed = true;
+      return {};
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_ONE_COMMAND },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.winner).toBeUndefined();
+    expect(countProbed).toBe(false);
+  });
+
+  // Phase-6.D (Codex impl-1 MED 1b / Claude impl-1 IMPORTANT):
+  // exportBundle throwing AFTER a successful winner probe must NOT
+  // leak the winner field into the resulting engineHalt envelope.
+  // The runner re-checks stopReason at envelope-build time and drops
+  // winner if it's been escalated to engineHalt.
+  it('drops winner field when exportBundle throws after a successful score', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.getEntityCountsByOwner = async () => ({
+      1: { units: 5, buildings: 2 },
+      2: { units: 0, buildings: 0 },
+    });
+    host.exportBundle = async () => {
+      throw new Error('blob fetch failed');
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.errorMessage).toMatch(/blob fetch failed/);
+    expect(result.envelope.winner).toBeUndefined();
+  });
+
+  // Phase-6.D (Codex impl-1 MED 1a): count probe failure on a clean
+  // exit escalates to engineHalt. Without this, the contract "winner
+  // populated unless engineHalt" would silently break for probe-failure
+  // cases.
+  it('escalates a count-probe failure on clean exit to engineHalt', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.getEntityCountsByOwner = async () => {
+      throw new Error('page disconnected');
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.errorMessage).toMatch(/winner-oracle count probe failed/);
+    expect(result.envelope.winner).toBeUndefined();
   });
 
   // On clean exit (maxTicks/stopWhen), a post-loop screenshot failure
