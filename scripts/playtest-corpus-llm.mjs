@@ -118,8 +118,10 @@ pruneOldRuns(playtestsRoot);
 const rows = [
   `# Playtest LLM corpus — ${date}`,
   '',
-  '| Run | Seed | maxTicks | stopReason | ticksRun | decisions | totalCost |',
-  '|---|---|---|---|---|---|---|',
+  // Visual column format: `{H}H/{V}V/{M}M` — high-severity violations / total
+  // violations / missing baseline ticks. `H>0` is the corpus-gate signal.
+  '| Run | Seed | maxTicks | stopReason | ticksRun | decisions | totalCost | visual |',
+  '|---|---|---|---|---|---|---|---|',
 ];
 let totalCost = 0;
 let anyHigh = false;
@@ -154,7 +156,7 @@ for (const run of corpus.runs) {
     const why = playR.error?.message ?? `exit ${playR.status}`;
     console.error(`[playtest-corpus-llm] run ${run.name} failed: ${why}`);
     rows.push(
-      `| ${run.name} | ${run.seed} | ${run.maxTicks} | spawn-failed | — | — | — |`,
+      `| ${run.name} | ${run.seed} | ${run.maxTicks} | spawn-failed | — | — | — | — |`,
     );
     // Write partial summary before exit so CI can post it.
     writeFileSync(`${corpusDir}/SUMMARY-LLM.md`, rows.join('\n'));
@@ -166,7 +168,7 @@ for (const run of corpus.runs) {
   try {
     env = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));
   } catch {
-    rows.push(`| ${run.name} | ${run.seed} | ${run.maxTicks} | no-envelope | — | — | — |`);
+    rows.push(`| ${run.name} | ${run.seed} | ${run.maxTicks} | no-envelope | — | — | — | — |`);
     anyHigh = true; // missing envelope IS a regression — the runner crashed
     continue;
   }
@@ -177,8 +179,20 @@ for (const run of corpus.runs) {
   // M6). engineHalt OR an unexpected errorMessage IS a regression.
   if (env.stopReason === 'engineHalt') anyHigh = true;
   else if (env.errorMessage && env.errorMessage !== 'cost-budget-exceeded') anyHigh = true;
+  // Phase-6.C.1 (Codex impl-2 HIGH): visualOracle violations gate the
+  // corpus exit code per spec §15.7. Any 'high' severity violation
+  // (≥5% pixel-diff fraction or dimension mismatch) means a real
+  // visual regression that should fail CI. Medium-severity (≥0.5%)
+  // is informational and does NOT gate.
+  const highVisualViolations = (env.visualOracle?.violations ?? []).filter(
+    (v) => v.severity === 'high',
+  );
+  if (highVisualViolations.length > 0) anyHigh = true;
+  const visualSummary = env.visualOracle
+    ? `${highVisualViolations.length}H/${(env.visualOracle.violations ?? []).length}V/${(env.visualOracle.missingTicks ?? []).length}M`
+    : '—';
   rows.push(
-    `| ${run.name} | ${run.seed} | ${run.maxTicks} | ${env.stopReason} | ${env.ticksRun} | ${env.decisionsRun ?? '—'} | $${(env.totalCostUsd ?? 0).toFixed(4)} |`,
+    `| ${run.name} | ${run.seed} | ${run.maxTicks} | ${env.stopReason} | ${env.ticksRun} | ${env.decisionsRun ?? '—'} | $${(env.totalCostUsd ?? 0).toFixed(4)} | ${visualSummary} |`,
   );
 }
 

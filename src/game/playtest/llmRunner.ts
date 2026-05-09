@@ -56,6 +56,14 @@ export interface LlmRunnerConfig {
   screenshotEnabled: boolean;
   // Optional callback invoked once per decision (for trace streaming).
   onDecision?: (entry: TraceEntry) => void;
+  // Phase-6.C.1: tick checkpoints at which to capture an extra
+  // screenshot for visual-regression comparison. Each post-advance
+  // step checks whether any checkpoint falls in the interval
+  // (tickBefore, tickAfter] and captures one screenshot if so.
+  // When undefined OR screenshotEnabled is false, no checkpoint
+  // captures happen. The post-loop final screenshot is independent
+  // of this list.
+  baselineCheckpointTicks?: number[];
 }
 
 export interface TraceEntry {
@@ -75,6 +83,15 @@ export interface RunnerEnvelope {
   runStartedAt: string;
   runCompletedAt: string;
   errorMessage?: string;
+  // Phase-6.C.1 (Claude impl-1 HIGH): the corpus dashboard needs the
+  // run's seed + maxTicks to render baseline thumbnail paths and the
+  // run table. The runner itself doesn't know these (they come from
+  // the runner script's CLI args), so the script stamps them onto
+  // the envelope after `runLlmPlaytest` returns. Optional in the
+  // type so unit tests that build envelopes manually don't have to
+  // populate them.
+  seed?: string;
+  maxTicks?: number;
   // Phase-6.C.2: post-hoc observation-oracle verdict, when the runner
   // script wires it (env-gated; advisory only, does NOT affect CI
   // exit codes — engineHalt is still the regression signal).
@@ -83,6 +100,17 @@ export interface RunnerEnvelope {
   // unconditionally (no opt-in flag) — scoring is cheap and useful
   // for any multi-owner playtest (AI-vs-LLM, future AI-vs-AI).
   winner?: WinnerResult;
+  // Phase-6.C.1: visual-regression oracle result, when the runner
+  // script wired it (script reads baseline PNGs from disk + the
+  // checkpoint screenshots from RunLlmPlaytestResult and feeds them
+  // to runVisualOracle). `deltas` is per-baseline-tick advisory
+  // signal; `violations` are the high-severity diffs that should
+  // gate corpus runs.
+  visualOracle?: {
+    deltas: import('./visualOracle').VisualDelta[];
+    violations: import('./types').OracleViolation[];
+    missingTicks: number[];
+  };
 }
 
 export interface RunLlmPlaytestResult {
@@ -93,6 +121,11 @@ export interface RunLlmPlaytestResult {
   // surfaced for downstream observation-oracle calls. Undefined when
   // screenshotEnabled was false or no decisions ran.
   finalScreenshotPng?: Uint8Array;
+  // Phase-6.C.1: per-checkpoint screenshots captured during the run.
+  // The visual-regression oracle compares these against committed
+  // baseline PNGs. Empty when no `baselineCheckpointTicks` were
+  // configured or `screenshotEnabled` was false.
+  checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }>;
 }
 
 export async function runLlmPlaytest(input: {
@@ -111,6 +144,16 @@ export async function runLlmPlaytest(input: {
   // observation oracle (run by the runner script) has the final-tick
   // visual context to inspect.
   let lastScreenshotPng: Uint8Array | undefined;
+  // Phase-6.C.1: checkpoint captures for the visual-regression oracle.
+  const checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }> = [];
+  // Sort baseline checkpoints ascending so the "crosses checkpoint"
+  // detection is monotonic. Defensive copy so we don't mutate the
+  // caller's array.
+  const baselineCheckpoints = (config.baselineCheckpointTicks ?? [])
+    .filter((t) => t > 0 && Number.isFinite(t))
+    .slice()
+    .sort((a, b) => a - b);
+  let nextCheckpointIdx = 0;
 
   await host.waitForBoot();
 
@@ -139,6 +182,49 @@ export async function runLlmPlaytest(input: {
 
       const dispatchEvents = await host.drainDispatchLog();
       const tickAfter = await host.getCurrentTick();
+
+      // Phase-6.C.1: capture screenshots ONLY when an advance lands
+      // exactly on a baseline checkpoint tick. If the advance
+      // overshoots a checkpoint (decisionInterval doesn't divide the
+      // checkpoint), the checkpoint is SKIPPED (logged warn) — the
+      // visual oracle then surfaces it as `missingTicks` rather than
+      // matching against a wrong-tick screenshot which would
+      // generate false diffs (Codex impl-1 MED 1).
+      //
+      // Operator guidance: align baselineCheckpointTicks to multiples
+      // of decisionIntervalTicks. The capture-baselines script's
+      // default checkpoints are 1000/2000/3000/4000/5000, which
+      // divide cleanly by the default decisionIntervalTicks=250.
+      if (config.screenshotEnabled && baselineCheckpoints.length > 0) {
+        while (
+          nextCheckpointIdx < baselineCheckpoints.length
+          && baselineCheckpoints[nextCheckpointIdx]! <= tickAfter
+        ) {
+          const checkpointTick = baselineCheckpoints[nextCheckpointIdx]!;
+          if (checkpointTick === tickAfter) {
+            try {
+              const png = await host.captureScreenshot();
+              if (png) {
+                checkpointScreenshots.push({ tick: checkpointTick, pngBytes: png });
+              }
+            } catch (err) {
+              console.warn(
+                `[runLlmPlaytest] checkpoint screenshot capture failed at tick ${checkpointTick}: `
+                  + `${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+          } else {
+            // Misaligned: the advance overshot the checkpoint. Skip
+            // the capture; the visual oracle will see it as a
+            // missingTick which is honest signal.
+            console.warn(
+              `[runLlmPlaytest] checkpoint ${checkpointTick} skipped — advance landed at `
+                + `${tickAfter} (decisionIntervalTicks=${config.decisionIntervalTicks} doesn't divide ${checkpointTick}).`,
+            );
+          }
+          nextCheckpointIdx += 1;
+        }
+      }
 
       const entry: TraceEntry = {
         decisionIndex: decisionsRun,
@@ -255,7 +341,13 @@ export async function runLlmPlaytest(input: {
     errorMessage,
     ...(finalWinner !== undefined && { winner: finalWinner }),
   };
-  return { bundle, envelope, trace, finalScreenshotPng: lastScreenshotPng };
+  return {
+    bundle,
+    envelope,
+    trace,
+    finalScreenshotPng: lastScreenshotPng,
+    checkpointScreenshots,
+  };
 }
 
 function makeEmptyBundleStub(): SessionBundle {

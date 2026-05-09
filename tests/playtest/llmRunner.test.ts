@@ -129,6 +129,89 @@ function makeAgent(provider: MockProvider) {
 }
 
 describe('runLlmPlaytest', () => {
+  // Phase-6.C.1: checkpoint screenshots are captured at any baseline
+  // tick the loop's advance crosses. Verify the captures land in
+  // result.checkpointScreenshots in tick-ascending order.
+  it('captures checkpoint screenshots at baselineCheckpointTicks the advance crosses', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    let captureCount = 0;
+    host.captureScreenshot = async () => {
+      captureCount += 1;
+      return new Uint8Array([captureCount]);
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 1000,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: true,
+        baselineCheckpointTicks: [250, 500, 1000],
+      },
+    });
+    expect(result.checkpointScreenshots.map((e) => e.tick)).toEqual([250, 500, 1000]);
+    // Each entry has non-empty bytes (counter-stub returns one byte
+    // per call; we don't assert exact ordering of decision vs
+    // checkpoint captures, only that the field is populated).
+    for (const e of result.checkpointScreenshots) {
+      expect(e.pngBytes.byteLength).toBeGreaterThan(0);
+    }
+  });
+
+  it('omits checkpointScreenshots when baselineCheckpointTicks is empty', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: true,
+        // baselineCheckpointTicks omitted
+      },
+    });
+    expect(result.checkpointScreenshots).toEqual([]);
+  });
+
+  it('skips checkpoint capture when screenshotEnabled is false', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+        baselineCheckpointTicks: [250, 500],
+      },
+    });
+    expect(result.checkpointScreenshots).toEqual([]);
+  });
+
   // Phase-6.C.2 (Codex impl-1 MED 1, impl-2 LOW): finalScreenshotPng
   // must be the post-loop capture, not the last in-loop pre-advance
   // capture. Verify by handing the runner a counter-returning
