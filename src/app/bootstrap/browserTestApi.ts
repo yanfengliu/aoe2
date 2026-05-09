@@ -51,6 +51,9 @@ interface BrowserTestBridge {
   // SimulationBridge; kept here for the structurally-typed
   // BrowserTestBridge facade.
   consumeCommandRejection: () => string | null;
+  setAgentDispatchObserver: (
+    observer: import('../../game/simulation/dispatcher').AgentDispatchObserver | null,
+  ) => void;
 }
 
 export interface BrowserTestSnapshot {
@@ -77,12 +80,23 @@ export interface BrowserTestReplayApi {
   seedPriorSession(): Promise<void>;
 }
 
-// LLM-agent harness surface (Phase 1.B). Five methods used by
+// LLM-agent harness surface (Phase 1.B). Methods used by
 // `scripts/playtest-llm.mjs` Playwright runner. Production app does
 // not call any of them.
+export interface AgentDispatchEventLog {
+  commandType: string;
+  accepted: boolean;
+  rejectionReason?: string;
+  rejectionMessage?: string;
+}
+
 export interface BrowserTestAgentApi {
   /** Bounded state view shaped for prompt-token efficiency.
-   *  See `docs/threads/current/llm-agent-playtest/DESIGN.md` §1. */
+   *  See `docs/threads/current/llm-agent-playtest/DESIGN.md` §1.
+   *  Note (impl-1 H3): `enemies` is global ground-truth, NOT
+   *  visibility-filtered — Phase-6 follow-up will add per-owner fog
+   *  filtering. The current snapshot is intentionally cheat-mode for
+   *  the single-LLM-vs-passive-human smoke baseline. */
   snapshotForAgent(ownerId: number): AgentStateSnapshot;
   /** On-page canvas bounding box in CSS pixels. The runner calls
    *  `page.screenshot({ clip: bbox })` with this. */
@@ -95,6 +109,12 @@ export interface BrowserTestAgentApi {
   /** Serialize bundle to a Blob; return a blob: URL the runner can
    *  fetch as bytes. Avoids the ~1MB JSON-RPC payload limit. */
   exportRecorderBundleToFile(): Promise<{ blobUrl: string; size: number }>;
+  /** Drain accumulated dispatch events (one per command processed
+   *  through `drainPendingCommands` since the last call). The runner
+   *  calls this after each `advanceTicks` to correlate dispatched
+   *  commands with semantic rejections — does NOT compete with the
+   *  HUD's `consumeCommandRejection` FIFO. (impl-1 H1.) */
+  drainAgentDispatchLog(): AgentDispatchEventLog[];
 }
 
 export interface BrowserTestApi {
@@ -313,6 +333,22 @@ function makeAgentApi(
   scene: GameScene,
   getRecording: () => RecordingService,
 ): BrowserTestAgentApi {
+  // Per-runner dispatch log. The agent observer fires once per drained
+  // command between ticks; we accumulate into this array and drain on
+  // demand. The observer is reattached lazily on every dispatch so a
+  // bridge swap (save/load) doesn't strand the subscription.
+  let dispatchLog: AgentDispatchEventLog[] = [];
+  function ensureObserverAttached(): void {
+    getBridge().setAgentDispatchObserver((event) => {
+      dispatchLog.push({
+        commandType: String(event.commandType),
+        accepted: event.accepted,
+        rejectionReason: event.rejectionReason,
+        rejectionMessage: event.rejectionMessage,
+      });
+    });
+  }
+
   return {
     snapshotForAgent: (ownerId: number): AgentStateSnapshot => {
       scene.syncFromBridge(true);
@@ -371,12 +407,19 @@ function makeAgentApi(
         ownerRangeInclusive: { min: 1, max: 8 },
       });
       if (!result.accepted) return result;
+      ensureObserverAttached();
       const bridge = getBridge();
       bridge.pendingCommands.push({
         type: result.commandKind as string,
         data: result.normalized,
       });
       return result;
+    },
+
+    drainAgentDispatchLog: () => {
+      const events = dispatchLog;
+      dispatchLog = [];
+      return events;
     },
 
     getRecorderBundle: () => {

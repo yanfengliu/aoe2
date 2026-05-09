@@ -63,11 +63,15 @@ function checkRequiredFields(
   switch (type) {
     case 'unit.move':
     case 'unit.context':
+      missing = need('unitId', isPositiveInteger) ?? need('target', isPosition);
+      break;
     case 'sheep.move':
+      // sheep.move uses sheepId, not unitId (commands.ts:44).
+      missing = need('sheepId', isPositiveInteger) ?? need('target', isPosition);
+      break;
     case 'building.setRallyPoint':
-      missing = need('unitId', isPositiveInteger)
-        ?? need('target', isPosition)
-        ?? need(type === 'sheep.move' ? 'sheepId' : 'unitId', (v) => isPositiveInteger(v) || data['unitId'] !== undefined || data['sheepId'] !== undefined);
+      // building.setRallyPoint uses buildingId, not unitId (commands.ts:59).
+      missing = need('buildingId', isPositiveInteger) ?? need('target', isPosition);
       break;
     case 'unit.attack':
       missing = need('unitId', isPositiveInteger)

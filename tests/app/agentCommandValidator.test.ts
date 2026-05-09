@@ -129,4 +129,93 @@ describe('validateAgentCommandShape', () => {
     const r = validateAgentCommandShape({ type: 'trebuchet.pack', data: { unitId: 7 } }, OWNERS);
     expect(r.accepted).toBe(true);
   });
+
+  it('accepts canonical sheep.move with sheepId (not unitId)', () => {
+    const r = validateAgentCommandShape(
+      { type: 'sheep.move', data: { sheepId: 99, target: { x: 5, y: 5 } } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+    if (r.accepted) expect(r.commandKind).toBe('sheep.move');
+  });
+
+  it('rejects sheep.move that uses unitId instead of sheepId', () => {
+    const r = validateAgentCommandShape(
+      { type: 'sheep.move', data: { unitId: 99, target: { x: 5, y: 5 } } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(false);
+    if (!r.accepted) expect(r.details).toContain('sheepId');
+  });
+
+  it('accepts canonical building.setRallyPoint with buildingId', () => {
+    const r = validateAgentCommandShape(
+      { type: 'building.setRallyPoint', data: { buildingId: 7, target: { x: 8, y: 9 } } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+    if (r.accepted) expect(r.commandKind).toBe('building.setRallyPoint');
+  });
+
+  it('rejects building.setRallyPoint missing target', () => {
+    const r = validateAgentCommandShape(
+      { type: 'building.setRallyPoint', data: { buildingId: 7 } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(false);
+    if (!r.accepted) expect(r.details).toContain('target');
+  });
+
+  it('accepts canonical building.action with actionType', () => {
+    const r = validateAgentCommandShape(
+      { type: 'building.action', data: { buildingId: 5, actionType: 'ungarrison' } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical queue.research', () => {
+    const r = validateAgentCommandShape(
+      { type: 'queue.research', data: { buildingId: 5, technologyType: 'feudal-age' } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical unit.context (move-like)', () => {
+    const r = validateAgentCommandShape(
+      { type: 'unit.context', data: { unitId: 5, target: { x: 1, y: 2 } } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical unit.contextAtEntity', () => {
+    const r = validateAgentCommandShape(
+      { type: 'unit.contextAtEntity', data: { unitId: 5, targetEntityId: 6 } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical monk.contextAtEntity (with optional fields omitted)', () => {
+    const r = validateAgentCommandShape(
+      { type: 'monk.contextAtEntity', data: { unitId: 5, targetEntityId: 6 } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical trebuchet.unpack', () => {
+    const r = validateAgentCommandShape({ type: 'trebuchet.unpack', data: { unitId: 9 } }, OWNERS);
+    expect(r.accepted).toBe(true);
+  });
+
+  it('accepts canonical unit.gather', () => {
+    const r = validateAgentCommandShape(
+      { type: 'unit.gather', data: { unitId: 1, resourceId: 2 } },
+      OWNERS,
+    );
+    expect(r.accepted).toBe(true);
+  });
 });

@@ -10,16 +10,22 @@ import type {
 } from './types';
 import type { EconomyState, SelectionState } from '../simulation/types';
 
-const MAX_VISIBLE_ENEMIES = 200;
+const MAX_ENEMIES = 200;
 const MAX_SELECTION_ENTRIES = 16;
+const MAX_QUEUED_PRODUCTION_ENTRIES = 64;
+const MAX_QUEUE_LENGTH_PER_BUILDING = 16;
 
-// Visible enemies = units / buildings with `owner !== humanOwnerId` that
-// the snapshot caller has visibility on. The bridge already filters its
-// EconomyState to entities the human player can see (visibility-gated
-// projection); we just need to drop our own units. The agent-side
-// "enemy" framing is per-LLM-owner; if we ever support multiple LLMs,
-// pass each owner its own filter.
-function visibleEnemiesFor(
+// Enemies = units / buildings with `owner !== ownerId`, capped.
+// IMPORTANT: this is global ground-truth, NOT visibility-filtered.
+// `EconomyState` (built by `economyStateOps.ts`) iterates the world
+// directly without a fog-of-war predicate, so the snapshot leaks
+// hidden enemy positions. Acceptable for the single-LLM-vs-passive-
+// human smoke baseline (the LLM is the only active player; "fog" is
+// not meaningful), and the multimodal screenshot the LLM also receives
+// is fog-respecting so the visual signal is correct. Per-owner
+// visibility-gating is a Phase-6 follow-up: see DESIGN.md
+// "Phase-6 follow-ups". impl-1 H3 (Claude).
+function enemiesFor(
   ownerId: number,
   economy: EconomyState,
   cap: number,
@@ -114,10 +120,13 @@ function queuedProductionOf(economy: EconomyState): AgentStateSnapshot['queuedPr
   const out: AgentStateSnapshot['queuedProduction'] = [];
   for (const b of economy.buildings) {
     if (!b.queue || b.queue.length === 0) continue;
+    if (out.length >= MAX_QUEUED_PRODUCTION_ENTRIES) break;
     out.push({
       buildingId: b.id,
       ownerId: b.owner,
-      queue: b.queue.map((entry) => String(entry.unitType ?? entry.technologyType ?? 'unknown')),
+      queue: b.queue
+        .slice(0, MAX_QUEUE_LENGTH_PER_BUILDING)
+        .map((entry) => String(entry.unitType ?? entry.technologyType ?? 'unknown')),
     });
   }
   return out;
@@ -146,7 +155,7 @@ export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnaps
     elapsedMmSs: elapsedMmSs(tick, tps),
     perPlayer: perPlayerStates(economy),
     selection: summarizeSelection(selection, MAX_SELECTION_ENTRIES),
-    visibleEnemies: visibleEnemiesFor(ownerId, economy, MAX_VISIBLE_ENEMIES),
+    enemies: enemiesFor(ownerId, economy, MAX_ENEMIES),
     queuedProduction: queuedProductionOf(economy),
     screenMapping,
   };

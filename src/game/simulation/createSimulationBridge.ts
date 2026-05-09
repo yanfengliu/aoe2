@@ -114,6 +114,16 @@ export interface SimulationBridge {
   // (push to enqueue; drain via dispatcher between ticks); never
   // reassign the array reference.
   readonly pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
+  // LLM-agent harness (Phase 1 impl-1 H1): subscribe to per-command
+  // dispatch results so the agent runner can correlate dispatched
+  // commands with semantic rejections WITHOUT competing with the
+  // HUD's `consumeCommandRejection` FIFO. The observer fires once per
+  // drained command (between ticks), with `accepted: false +
+  // rejectionReason` for rejections. Pass `null` to clear. Only one
+  // observer at a time; the agent harness owns this slot.
+  setAgentDispatchObserver(
+    observer: import('./dispatcher').AgentDispatchObserver | null,
+  ): void;
   // Slice 11: snapshot for the F2 debug overlay. Returns the per-frame
   // data the overlay draws: pathing targets keyed by unit id, AI plan
   // summaries per owner, and tick-level perf metrics. Cheap to call; the
@@ -284,6 +294,8 @@ export function createSimulationBridge(
   // checks. Reusing haltState here would surface manual pause as a tick
   // failure via getHudState().engineHalted.
   const pauseState: { pausedManually: boolean } = { pausedManually: false };
+  // LLM-agent harness observer slot (Phase 1 impl-1 H1).
+  let agentDispatchObserver: import('./dispatcher').AgentDispatchObserver | null = null;
 
   const issueContextCommandAtEntity = (entityId: number): boolean => {
     const didIssue = issueContextCommandAtEntityInternal(entityId);
@@ -321,7 +333,7 @@ export function createSimulationBridge(
         // so they process at the start of this tick. Intentions pushed by this
         // tick stay bridge-owned until the next tick, which lets saveGame()
         // persist the one-tick command-boundary window.
-        drainPendingCommands(world, pendingCommands);
+        drainPendingCommands(world, pendingCommands, agentDispatchObserver ?? undefined);
         if (!tryTick(() => world.step(), haltState)) {
           accumulatorMs = 0;
           break;
@@ -422,5 +434,8 @@ export function createSimulationBridge(
     getDebugSnapshot,
     saveGame,
     pendingCommands,
+    setAgentDispatchObserver(observer) {
+      agentDispatchObserver = observer;
+    },
   };
 }

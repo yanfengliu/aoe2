@@ -99,7 +99,9 @@ export interface AgentStateSnapshot {
   elapsedMmSs: string;
   perPlayer: AgentPlayerState[];
   selection: AgentEntitySummary[];
-  visibleEnemies: AgentEntitySummary[];
+  // NOTE: enemies are NOT visibility-filtered — see agentSnapshot.ts
+  // (impl-1 H3). Per-owner fog filtering is a Phase-6 follow-up.
+  enemies: AgentEntitySummary[];
   queuedProduction: Array<{ buildingId: number; ownerId: number; queue: string[] }>;
   screenMapping: AgentScreenMapping;
 }

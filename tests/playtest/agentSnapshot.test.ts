@@ -123,6 +123,36 @@ describe('buildAgentSnapshot', () => {
     expect(owner2.villagerCountByTask).toEqual({ 'gathering-wood': 2, 'gathering-food': 1 });
   });
 
+  it('caps queuedProduction at 64 buildings and 16 entries per queue', () => {
+    // 100 buildings, each with a 30-entry queue → cap to 64 + truncate to 16.
+    const buildings = Array.from({ length: 100 }, (_, i) => ({
+      id: i + 1,
+      owner: 2,
+      buildingType: 'town-center' as const,
+      x: 0,
+      y: 0,
+      footprintWidth: 4,
+      footprintHeight: 4,
+      isComplete: true,
+      buildProgressTicks: 0,
+      totalBuildTicks: 0,
+      populationProvided: 5,
+      queue: Array.from({ length: 30 }, () => ({ unitType: 'villager' })),
+    }));
+    const snap = buildAgentSnapshot({
+      ownerId: 2,
+      tick: 0,
+      tps: 50,
+      economy: makeEconomy({ buildings } as unknown as Partial<EconomyState>),
+      selection: makeSelection(),
+      screenMapping: SCREEN,
+    });
+    expect(snap.queuedProduction).toHaveLength(64);
+    for (const entry of snap.queuedProduction) {
+      expect(entry.queue.length).toBeLessThanOrEqual(16);
+    }
+  });
+
   it('caps visible enemies at 200', () => {
     const units = Array.from({ length: 250 }, (_, i) => ({
       id: i + 1000,
@@ -144,10 +174,10 @@ describe('buildAgentSnapshot', () => {
       selection: makeSelection(),
       screenMapping: SCREEN,
     });
-    expect(snap.visibleEnemies).toHaveLength(200);
+    expect(snap.enemies).toHaveLength(200);
   });
 
-  it('excludes own units from visibleEnemies', () => {
+  it('excludes own units from enemies', () => {
     const economy = makeEconomy({
       units: [
         { id: 5, owner: 2, unitType: 'archer', x: 1, y: 1, task: 'idle', attackDamage: 4, attackRange: 4, armor: 0 },
@@ -162,7 +192,7 @@ describe('buildAgentSnapshot', () => {
       selection: makeSelection(),
       screenMapping: SCREEN,
     });
-    expect(snap.visibleEnemies.map((e) => e.entityId)).toEqual([6]);
+    expect(snap.enemies.map((e) => e.entityId)).toEqual([6]);
   });
 
   it('caps selection at 16 entries', () => {

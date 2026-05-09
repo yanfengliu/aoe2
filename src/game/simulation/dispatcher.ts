@@ -34,17 +34,47 @@ export function clonePendingCommand(command: PendingCommand): PendingCommand {
   return { type: command.type, data: structuredClone(command.data) } as PendingCommand;
 }
 
+// LLM-agent harness (Phase 1 impl-1 H1): the existing
+// `bridge.consumeCommandRejection()` is a shared FIFO already drained by the
+// HUD render loop, and capped at 8 entries — incompatible with the agent
+// runner that needs to correlate dispatched commands with downstream
+// rejections. The agent's runner pushes a sink callback before each tick;
+// drainPendingCommands forwards each command's CommandSubmissionResult into
+// the sink. Sink is callback-shaped (not a global queue) so it composes
+// cleanly with the per-runner trace logger and survives bridge swaps.
+export type AgentDispatchObserver = (event: AgentDispatchEvent) => void;
+
+export interface AgentDispatchEvent {
+  commandType: keyof GameCommands;
+  accepted: boolean;
+  rejectionReason?: string;
+  rejectionMessage?: string;
+}
+
 /** Drains all pending intentions and submits each to the world. Called before
  *  each `world.step()` in the main game loop. Returns the number of commands
- *  submitted (useful for tests). */
+ *  submitted (useful for tests). The optional `observer` is invoked once per
+ *  drained command with the world's CommandSubmissionResult — used by the
+ *  LLM-agent runner to correlate dispatched commands with semantic
+ *  rejections without competing with the HUD's consumeCommandRejection
+ *  buffer. */
 export function drainPendingCommands(
   world: GameWorld,
   queue: PendingCommandsQueue,
+  observer?: AgentDispatchObserver,
 ): number {
   if (queue.length === 0) return 0;
   let count = 0;
   for (const cmd of queue) {
-    world.submitWithResult(cmd.type, cmd.data);
+    const result = world.submitWithResult(cmd.type, cmd.data);
+    if (observer) {
+      observer({
+        commandType: cmd.type,
+        accepted: result.accepted,
+        rejectionReason: result.accepted ? undefined : result.code,
+        rejectionMessage: result.accepted ? undefined : result.message,
+      });
+    }
     count += 1;
   }
   queue.length = 0;

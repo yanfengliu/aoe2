@@ -211,5 +211,10 @@ export function makeReplayBridge(
     // playback (the replay drain in `aoe2ReplayPendingCommandDrain`
     // clears any hydrated entries before each step).
     pendingCommands: [],
+    // Replay mode has no agent dispatch path; observer setter is a
+    // no-op for type-shape parity.
+    setAgentDispatchObserver() {
+      /* no-op in replay */
+    },
   };
 }
