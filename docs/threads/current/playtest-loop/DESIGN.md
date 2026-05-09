@@ -43,10 +43,10 @@ scripts/playtest.mjs
   ├─► new SessionRecorder({ world: bridge.world, sink: MemorySink({ allowSidecar: true }),
   │                         sourceLabel, sourceKind: 'synthetic' })
   ├─► recorder.connect()
-  ├─► loop:
+  ├─► loop (probe order: error → engineHalt → stopWhen → maxTicks):
   │     bridge.step(100)
-  │     if recorder.lastError → stopReason = 'recorderError' | 'sinkError'
-  │     if bridge.getHudState().engineHalted → stopReason = 'engineHalt'
+  │     if recorder.lastError → stopReason = 'sinkError' | 'recorderError'
+  │     if bridge.getHudState().engineHalted !== null → stopReason = 'engineHalt'
   │     if bridge.getMatchState().outcome !== 'running' → stopReason = 'stopWhen'
   │     if bridge.world.tick - startTick >= maxTicks → stopReason = 'maxTicks'
   ├─► recorder.disconnect()
@@ -103,13 +103,13 @@ Implementation:
    })
    ```
 3. `recorder.connect()`.
-4. Loop until one of the stop conditions fires:
-   - `recorder.lastError` populated → `'recorderError'` (or `'sinkError'` if it is a `SinkWriteError` subclass).
-   - `bridge.getHudState().engineHalted === true` → `'engineHalt'`.
+4. Loop until one of the stop conditions fires. Probe order is `error → engineHalt → stopWhen → maxTicks`; the first matching condition wins on a tick where multiple are true.
+   - `recorder.lastError` populated → `'sinkError'` if `recorder.lastError instanceof SinkWriteError` (imported from `civ-engine/session-errors`), else `'recorderError'`.
+   - `bridge.getHudState().engineHalted !== null` → `'engineHalt'`. The probed value is an `EngineHaltDetails` struct, not a boolean; copy `halt.code`, `halt.message`, `halt.tick`, `halt.phase`, `halt.systemName` into the envelope's `details` so REPORT.md can surface the failed system / phase.
    - `bridge.getMatchState().outcome !== 'running'` → `'stopWhen'`.
    - `bridge.world.tick - startTick >= maxTicks` → `'maxTicks'`.
 5. `recorder.disconnect()`. Emit `recorder.toBundle()` to `<out>.json`.
-6. Write `<out>.envelope.json` with `{ stopReason, ticksRun, seed, scenario, runStartedAt, runCompletedAt }`. For non-`stopWhen` outcomes, additionally include `errorCode`, `errorMessage`, and (where applicable) `details` from the recorder's `lastError` or the halt-state struct.
+6. Write `<out>.envelope.json` with `{ stopReason, ticksRun, seed, scenario, runStartedAt, runCompletedAt }`. For non-`stopWhen` outcomes, additionally include `errorCode`, `errorMessage`, and `details` (the halt-struct fields above for `engineHalt`; `recorder.lastError` shape for sink/recorder errors).
 
 Stop-reason enum:
 
@@ -244,7 +244,7 @@ GitHub Actions workflow that runs `npm run playtest:corpus` on PR + main pushes.
 
 Phase 1 also updates:
 
-- `docs/architecture/ARCHITECTURE.md` — Component Map row for `src/game/playtest/`; Boundaries paragraph noting that the playtest runner does NOT use `RecordingService` (per ADR 3 in `RecordingService.ts`) and that the AI's bridge-internal queue model is why `runAgentPlaytest` is unsuitable for aoe2.
+- `docs/architecture/ARCHITECTURE.md` — add `src/game/playtest/` to the existing `Repository layout` section; add a paragraph to `Runtime layers` noting the bridge-vs-RecordingService boundary (per ADR 3 in `RecordingService.ts`) and the playtest runner's external-recorder approach (the runner attaches its own `SessionRecorder` to `bridge.world`, distinct from the live game's `RecordingService`).
 - `docs/architecture/drift-log.md` — append a row "2026-05-08: added playtest infrastructure (`src/game/playtest/`, `scripts/playtest*.mjs`, CI workflow)".
 - `docs/architecture/decisions.md` — append a Key Architectural Decision: "Playtest runner uses bridge.step() rather than runAgentPlaytest because the AI lives inside the bridge as an ECS system, not as a `decide()` callback."
 - `src/game/recording/RecordingService.ts:13-14` — replace the `runAgentPlaytest` reference with "Headless playtest agents go through `scripts/playtest.mjs`, which runs its own SessionRecorder externally."
@@ -258,7 +258,7 @@ Phase 1 also updates:
 
 ### Integration tests (vitest)
 
-- `tests/playtest/runPlaytest.test.ts` — actually run the bridge loop for `maxTicks: 200` against the default scenario; assert the bundle is well-formed (correct shape, has tick entries, has the recorder snapshot at start) and the oracles run without errors.
+- `tests/playtest/runPlaytest.test.ts` — actually run the bridge loop for `maxTicks: 200` against the default scenario; assert the bundle is well-formed (correct shape, has tick entries, has the recorder snapshot at start), `envelope.stopReason === 'maxTicks'` (200 ticks ≪ economy ramp; pinning this catches a future engine change that ends matches in <200 ticks), and the oracles run without errors.
 - `tests/playtest/endStateEquivalence.test.ts` — run the bridge loop for N ticks, capture `bridge.getEconomyState()`, then construct a `SessionReplayer` from the bundle via `SessionReplayer.fromBundle(...)`. Use `createReplayWorldOnly` + `makeReplayBridge` to reconstruct an `EconomyState` at tick N from the replayer. Diff the two — should match. Catches bundle-incompleteness regressions.
 
 ### Manual
