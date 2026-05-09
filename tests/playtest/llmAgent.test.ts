@@ -178,14 +178,19 @@ describe('LlmAgent.decide — guards', () => {
       historyWindow: 5,
     });
     void expensive; // silence unused
-    await agent.decide(makeSnapshot(0), undefined);
-    // First decide() does strategy + tactical = 2 calls. Now cost is well over budget.
-    expect(provider.receivedCalls).toHaveLength(2);
+    const first = await agent.decide(makeSnapshot(0), undefined);
+    // The within-call cost guard (impl-2 H1 fix) bails out AFTER the
+    // strategy call when its cost alone exceeds the budget — so only
+    // 1 provider call fires (strategy), not 2.
+    expect(provider.receivedCalls).toHaveLength(1);
+    expect(first.stopReason).toBe('cost-budget-exceeded');
+    expect(first.commands).toEqual([]);
+    expect(first.strategyRefresh).toBeDefined(); // the refresh result still surfaced
+
     const next = await agent.decide(makeSnapshot(250), undefined);
+    // Subsequent decide() short-circuits at the entry-time guard.
     expect(next.stopReason).toBe('cost-budget-exceeded');
-    expect(next.commands).toEqual([]);
-    // Provider should NOT have been called again for the second decision
-    expect(provider.receivedCalls).toHaveLength(2);
+    expect(provider.receivedCalls).toHaveLength(1);
   });
 
   it('warns once at 80% budget, not repeatedly', async () => {
@@ -290,6 +295,51 @@ describe('LlmAgent.decide — parsing', () => {
     const decision = await agent.decide(makeSnapshot(0), undefined);
     expect(decision.commands).toEqual([]);
     expect(decision.thought).toBe('Nothing to do.');
+  });
+
+  it('warns on null strategy refresh AND resets cadence to avoid retry-loop budget burn', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const provider = new MockProvider({
+      responses: [
+        // Bogus strategy refresh
+        {
+          content: [
+            {
+              type: 'tool_use',
+              toolName: 'set_strategy',
+              toolInput: { strategy: 'plan', targetAge: 'wonder-age', targetUnitMix: 'mix' },
+            },
+          ],
+        },
+        // Tactical OK
+        { content: TACTICAL_OK },
+        // Tactical OK (this would NOT fire if cadence were reset to refresh-eligible again)
+        { content: TACTICAL_OK },
+      ],
+    });
+    const agent = new LlmAgent({
+      provider,
+      ownerId: 2,
+      strategyModel: 'claude-opus-4-7',
+      tacticalModel: 'claude-sonnet-4-6',
+      strategyEveryNDecisions: 100, // never re-refresh on cadence
+      maxOutputTokensTactical: 1024,
+      maxOutputTokensStrategy: 2048,
+      costBudgetUsd: 5.0,
+      maxImageBytes: 1_048_576,
+      historyWindow: 5,
+    });
+    await agent.decide(makeSnapshot(0), undefined);
+    await agent.decide(makeSnapshot(250), undefined);
+    // After impl-2 fix: invalid strategy refresh logs a warn AND resets
+    // the cadence counter. Second decide() is a tactical-only call.
+    // Total: 1 strategy + 2 tactical = 3 provider calls.
+    expect(provider.receivedCalls).toHaveLength(3);
+    expect(provider.receivedCalls[0]!.model).toBe('claude-opus-4-7'); // strategy
+    expect(provider.receivedCalls[1]!.model).toBe('claude-sonnet-4-6'); // tactical
+    expect(provider.receivedCalls[2]!.model).toBe('claude-sonnet-4-6'); // tactical (no re-strategy)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('strategy refresh returned null'));
+    warn.mockRestore();
   });
 
   it('rejects strategy refresh with bogus targetAge (returns null)', async () => {

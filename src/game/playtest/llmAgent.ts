@@ -104,20 +104,44 @@ export class LlmAgent {
     let strategyRefresh: AgentStrategyRefresh | undefined;
     if (this.decisionsSinceStrategyRefresh >= this.config.strategyEveryNDecisions) {
       const refresh = await this.refreshStrategy(state, screenshot);
+      // Always reset the cadence counter (Codex impl-2 MED3 + Claude
+      // impl-2 M5) — otherwise an invalid `set_strategy` tool call
+      // leaves the agent stuck in "always refresh" mode, retrying an
+      // Opus-priced call every decision and silently burning budget.
+      this.decisionsSinceStrategyRefresh = 0;
       if (refresh) {
         strategyRefresh = refresh;
         this.currentStrategyRefresh = refresh;
         this.currentStrategy = refresh.strategy;
-        this.decisionsSinceStrategyRefresh = 0;
+      } else {
+        console.warn(
+          '[llm-agent] strategy refresh returned null (invalid set_strategy tool call); keeping previous strategy.',
+        );
       }
     }
     this.decisionsSinceStrategyRefresh += 1;
+
+    // Within-call cost guard (Codex impl-2 HIGH + Claude impl-2 M1).
+    // The strategy refresh may have pushed cost over budget; bail out
+    // before paying for the tactical call too.
+    if (this.rollingCostUsd >= this.config.costBudgetUsd) {
+      return {
+        thought: 'cost budget exceeded after strategy refresh',
+        commands: [],
+        strategyRefresh,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+        stopReason: 'cost-budget-exceeded',
+      };
+    }
 
     const tacticalPrompt = buildTacticalPrompt({
       snapshot: state,
       screenshotPng: screenshot,
       currentStrategy: this.currentStrategy,
       recentHistory: this.history.slice(-this.config.historyWindow),
+      ownerId: this.config.ownerId,
     });
 
     const callOptions: LlmCallOptions = {

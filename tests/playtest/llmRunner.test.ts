@@ -237,7 +237,11 @@ describe('runLlmPlaytest', () => {
     expect(result.envelope.stopReason).toBe('stopWhen');
     expect(result.envelope.errorMessage).toBe('cost-budget-exceeded');
     expect(result.envelope.ticksRun).toBeLessThan(1000);
-    expect(result.trace.length).toBeGreaterThanOrEqual(2);
+    // After impl-2 fix: the within-call cost guard bails after the
+    // strategy call alone exceeds budget. The runner sees stopReason=
+    // cost-budget-exceeded on the first decide() and breaks — exactly
+    // one trace entry rather than the previous 2+.
+    expect(result.trace.length).toBe(1);
   });
 
   it('halts on host error with stopReason=engineHalt', async () => {

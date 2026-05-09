@@ -130,6 +130,7 @@ describe('buildTacticalPrompt', () => {
       screenshotPng: png,
       currentStrategy: 'rush feudal',
       recentHistory: [],
+      ownerId: 2,
     });
     expect(out.messages).toHaveLength(1);
     expect(out.messages[0]!.role).toBe('user');
@@ -142,6 +143,7 @@ describe('buildTacticalPrompt', () => {
       snapshot: SNAPSHOT,
       currentStrategy: null,
       recentHistory: [],
+      ownerId: 2,
     });
     expect(out.messages[0]!.content.map((c) => c.type)).toEqual(['text']);
   });
@@ -151,6 +153,7 @@ describe('buildTacticalPrompt', () => {
       snapshot: SNAPSHOT,
       currentStrategy: 'rush castle age, then knights',
       recentHistory: [],
+      ownerId: 2,
     });
     const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
     if (textBlock.type !== 'text') throw new Error('expected text');
@@ -165,6 +168,7 @@ describe('buildTacticalPrompt', () => {
       recentHistory: [
         { tick: 100, thought: longThought, commandsSummary: 'unit.move' },
       ],
+      ownerId: 2,
     });
     const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
     if (textBlock.type !== 'text') throw new Error('expected text');

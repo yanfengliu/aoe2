@@ -30,13 +30,14 @@ export interface BuildTacticalPromptInput {
   screenshotPng?: Uint8Array;
   currentStrategy: string | null;
   recentHistory: Array<{ tick: number; thought: string; commandsSummary: string }>;
+  ownerId: number;
 }
 
 export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
   systemPrompt: string;
   messages: LlmMessage[];
 } {
-  const { snapshot, screenshotPng, currentStrategy, recentHistory } = input;
+  const { snapshot, screenshotPng, currentStrategy, recentHistory, ownerId } = input;
   const content: LlmContentBlock[] = [];
   if (screenshotPng) {
     content.push({
@@ -46,6 +47,7 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
     });
   }
   const lines = [
+    `You are player ${ownerId}. Only emit commands targeting your own units / buildings; commands targeting other owners' entities will be rejected by the dispatcher.`,
     `Tick: ${snapshot.tick} (elapsed ${snapshot.elapsedMmSs})`,
     `Current strategy: ${currentStrategy ?? '(none — start by playing safely)'}`,
     '',
@@ -115,8 +117,12 @@ export function fromToolName(toolName: string): string {
 }
 
 // Tool definitions per GameCommands discriminator. Manually mirrored
-// from `src/game/simulation/commands.ts`; a unit test rounds-trips
-// every kind to catch drift if commands.ts changes.
+// from `src/game/simulation/commands.ts:29-61`. The companion test
+// (`tests/playtest/llmPromptBuilder.test.ts`) only pins per-tool
+// shape — it does NOT import `keyof GameCommands` to assert
+// completeness, so adding a 16th discriminator to `commands.ts` will
+// not flag this file as out of date. Re-grep `commands.ts` whenever
+// you touch the GameCommands surface (Claude impl-2 M2).
 export function buildCommandToolSchemas(): LlmToolSchema[] {
   const positionSchema = {
     type: 'object',

@@ -154,16 +154,55 @@ export class AnthropicProvider implements LlmProvider {
       messages: options.messages.map(toSdkMessage),
       tools: options.tools.map(toSdkTool),
     };
-    const response = await client.messages.create(sdkParams);
-    const content = response.content.map(fromSdkBlock);
+    let response: AnthropicSdkResponse;
+    try {
+      response = await client.messages.create(sdkParams);
+    } catch (err) {
+      // Sanitize SDK errors before rethrow (Codex impl-2 MED4 + Claude
+      // impl-2 M4). The Anthropic SDK's APIError carries the request
+      // URL, headers (including `x-api-key`), and request body (system
+      // prompt + base64 screenshot). Re-throw with only status,
+      // message, and request-id so Phase 3's trace logging can
+      // serialize the error without leaking secrets.
+      throw sanitizeSdkError(err);
+    }
+    const content = response.content
+      .map(fromSdkBlock)
+      .filter((b): b is NonNullable<ReturnType<typeof fromSdkBlock>> => b !== null);
     const tokensIn = response.usage.input_tokens;
     const tokensOut = response.usage.output_tokens;
-    const rates = this.costTable[options.model] ?? { inputUsdPerMTok: 0, outputUsdPerMTok: 0 };
+    const rates = this.costTable[options.model];
+    if (!rates) {
+      // Unknown model = invisible spend (Codex impl-2 MED1). Fail loud
+      // so a typo or new Anthropic model string surfaces immediately
+      // instead of silently bypassing the rolling-cost gate.
+      throw new Error(
+        `AnthropicProvider: model '${options.model}' is not in the cost table; add an entry before calling.`,
+      );
+    }
     const costUsd =
       (tokensIn / 1_000_000) * rates.inputUsdPerMTok
       + (tokensOut / 1_000_000) * rates.outputUsdPerMTok;
     return { content, tokensIn, tokensOut, costUsd };
   }
+}
+
+function sanitizeSdkError(err: unknown): Error {
+  // Best-effort extraction of safe fields. Anthropic's APIError shape
+  // is { status, message, headers, error: { ... } }. We pull only the
+  // status, the human-readable message, and the request-id (if
+  // present) — drop everything else.
+  if (err instanceof Error) {
+    const status = (err as { status?: number }).status;
+    const headers = (err as { headers?: Record<string, string> }).headers;
+    const requestId = headers?.['request-id'] ?? headers?.['x-request-id'];
+    const safe = new Error(
+      `[llm-provider] ${err.name}${status !== undefined ? ` (status=${status})` : ''}: ${err.message}${requestId ? ` (request-id=${requestId})` : ''}`,
+    );
+    safe.name = 'LlmProviderError';
+    return safe;
+  }
+  return new Error(`[llm-provider] non-Error thrown: ${String(err)}`);
 }
 
 function toSdkMessage(m: LlmMessage): { role: 'user' | 'assistant'; content: unknown } {
@@ -210,7 +249,16 @@ function toSdkTool(tool: LlmToolSchema): {
 
 function fromSdkBlock(
   block: AnthropicSdkResponse['content'][number],
-): LlmContentBlock {
+): LlmContentBlock | null {
   if (block.type === 'text') return { type: 'text', text: block.text };
-  return { type: 'tool_use', toolName: block.name, toolInput: block.input };
+  if (block.type === 'tool_use') {
+    return { type: 'tool_use', toolName: block.name, toolInput: block.input };
+  }
+  // Unknown block type (e.g. SDK upgrade adding `thinking`,
+  // `redacted_thinking`, `server_tool_use`, `web_search_tool_result`).
+  // Skip with a warn — Claude impl-2 M3.
+  console.warn(
+    `[llm-provider] dropped unknown SDK content block type: ${(block as { type?: unknown }).type ?? 'undefined'}`,
+  );
+  return null;
 }
