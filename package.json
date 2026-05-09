@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "playtest": "tsx scripts/playtest.mjs",
+    "run-oracles": "tsx scripts/run-oracles.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
