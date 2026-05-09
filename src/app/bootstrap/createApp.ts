@@ -8,6 +8,7 @@ import type { SaveBlob } from '../../game/simulation/saveSchema';
 import { GameScene } from '../../phaser/scenes/GameScene';
 import { createHudController, type HudController } from '../../ui/hud/createHudController';
 import { installBrowserTestApi } from './browserTestApi';
+import { parseDisableAiParam } from './disableAiParam';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -63,11 +64,19 @@ export async function createApp(): Promise<Phaser.Game> {
   }
   const seed = trimmedSeed === '' ? undefined : trimmedSeed;
 
+  // LLM-agent harness: ?disableAi=2,3 disables the in-game AI for those
+  // owners so an external agent can drive them via dispatchAgentCommand.
+  // Owner 1 is the human slot — rejected (passing it would leave nobody
+  // to attack). Comma-separated; unparseable tokens warn and skip.
+  const disableAiForOwners = parseDisableAiParam(window.location.href);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
   // resolve the live bridge after a swap.
-  let bridge: SimulationBridge = createSimulationBridge(seed);
+  let bridge: SimulationBridge = createSimulationBridge(seed, {
+    disableAiForOwners: disableAiForOwners.size > 0 ? disableAiForOwners : undefined,
+  });
   const bridgeRef = (): SimulationBridge => bridge;
 
   // hudController is needed by the annotation stack (toastHandle), so

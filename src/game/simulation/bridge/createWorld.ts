@@ -35,11 +35,16 @@ import type { BuildableBuildingType, MatchState } from '../types';
 export type { CreateWorldResult } from './createWorldResult';
 import type { CreateWorldResult } from './createWorldResult';
 
+export interface CreateWorldOptions {
+  disableAiForOwners?: ReadonlySet<number>;
+}
+
 export function createWorld(
   seed: string,
   visibility: VisibilityMap,
   savedGame: SaveBlob | undefined,
   systemMode: 'live' | 'replay' = 'live',
+  options: CreateWorldOptions = {},
 ): CreateWorldResult {
   // World.deserialize preserves entity ids + generations and restores
   // every component store, so EntityRefs captured by saved side maps
@@ -93,6 +98,17 @@ export function createWorld(
   // path; on save-load it's discarded. Skip the procedural map build to
   // avoid wasted CPU on every load.
   const scenario = savedGame ? null : createPrototypeScenario(seed);
+  // LLM-agent harness: ?disableAi=2,3 plumbs through createSimulationBridge
+  // → here. We toggle the existing PlayerStartSpec.disableAi flag so the
+  // existing aiStates.has(owner) gate (aiSystem + autoAggressionSystem)
+  // skips those owners. Closure-local — never enters world.state.
+  if (scenario && options.disableAiForOwners && options.disableAiForOwners.size > 0) {
+    for (const start of scenario.starts) {
+      if (options.disableAiForOwners.has(start.owner)) {
+        start.disableAi = true;
+      }
+    }
+  }
   // When loading a save, the deserialized world already has every tile
   // entity (deserialize preserves entity ids), so rebuild the lookup
   // grid instead of allocating a fresh set of tile entities.

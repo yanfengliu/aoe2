@@ -67,3 +67,45 @@ export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
   pinnedNetProgressCells: 3,
   pinnedWindowTicks: 50,
 };
+
+// LLM-agent-playtest types. Shape pinned by docs/threads/current/llm-agent-playtest/DESIGN.md.
+
+export interface AgentPlayerState {
+  ownerId: number;
+  age: 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
+  resources: { wood: number; food: number; gold: number; stone: number };
+  villagerCountByTask: Record<string, number>;
+  buildingCountByType: Record<string, number>;
+  militaryCountByType: Record<string, number>;
+  populationCurrent: number;
+  populationCap: number;
+}
+
+export interface AgentEntitySummary {
+  entityId: number;
+  ownerId: number;
+  kind: string;
+  position: { x: number; y: number };
+}
+
+export interface AgentScreenMapping {
+  worldBbox: { minX: number; minY: number; maxX: number; maxY: number };
+  pixelBbox: { x: number; y: number; width: number; height: number };
+  worldToScreen: Array<{ cellX: number; cellY: number; pixelX: number; pixelY: number }>;
+}
+
+export interface AgentStateSnapshot {
+  tick: number;
+  elapsedMmSs: string;
+  perPlayer: AgentPlayerState[];
+  selection: AgentEntitySummary[];
+  visibleEnemies: AgentEntitySummary[];
+  queuedProduction: Array<{ buildingId: number; ownerId: number; queue: string[] }>;
+  screenMapping: AgentScreenMapping;
+}
+
+// Discriminated dispatch result. Generic on K so callers narrow `normalized`
+// by switching on `commandKind` without re-discriminating.
+export type CommandDispatchResult<K extends string = string> =
+  | { accepted: true; commandKind: K; normalized: Record<string, unknown> }
+  | { accepted: false; reason: 'unknown-kind' | 'malformed-payload' | 'wrong-owner-range'; details?: string };

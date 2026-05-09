@@ -156,6 +156,11 @@ export interface CreateSimulationBridgeOptions {
   // `schema` must equal `SAVE_SCHEMA_VERSION` exactly — the loader
   // throws on mismatch.
   savedGame?: SaveBlob;
+  // LLM-agent harness: owners listed here have `disableAi: true`
+  // applied to their PlayerStartSpec at scenario seed time. The
+  // existing aiStates.has(owner) gate then skips them. Closure-local;
+  // never serialized into world.state.
+  disableAiForOwners?: ReadonlySet<number>;
 }
 
 export function createSimulationBridge(
@@ -211,7 +216,9 @@ export function createSimulationBridge(
     getSelectedEntityRefs,
     pendingCommands,
   } =
-    createWorld(effectiveSeed, visibility, savedGame);
+    createWorld(effectiveSeed, visibility, savedGame, 'live', {
+      disableAiForOwners: options.disableAiForOwners,
+    });
   const renderStore = new RenderStore();
   const debuggerView = new WorldDebugger({ world });
   const renderAdapter = new RenderAdapter({

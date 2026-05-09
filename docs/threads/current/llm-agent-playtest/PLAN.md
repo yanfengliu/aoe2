@@ -13,6 +13,11 @@ Companion to `DESIGN.md`. Five phases, each TDD + multi-CLI review per AGENTS.md
 
 **Goal.** Land the new `__AOE2_TEST__` methods + the `?disableAi=` URL param. Existing tests stay green; new methods have unit + integration coverage. No LLM code yet.
 
+**Phase 1 splits into two coherent commits** to keep diff sizes reviewable:
+
+- **1.A — AI gating plumbing.** `?disableAi=` URL parsing → `CreateSimulationBridgeOptions.disableAiForOwners` → `createWorld` mutates scenario `PlayerStartSpec.disableAi`. Existing `aiStates.has(owner)` gate handles the rest. Unit tests for the parser; touch-affected simulation tests stay green.
+- **1.B — Browser test API extensions.** `snapshotForAgent`, `getCanvasBboxForScreenshot`, `dispatchAgentCommand`, `getRecorderBundle`, `exportRecorderBundleToFile` on `__AOE2_TEST__`. Playwright spec drives a `?disableAi=2` session, dispatches a canonical command, advances ticks, asserts the bundle reflects it.
+
 **Files to touch.**
 - `src/app/bootstrap/browserTestApi.ts` — extend `BrowserTestApi` interface + `installBrowserTestApi` with `snapshotForAgent`, `getCanvasBboxForScreenshot`, `dispatchAgentCommand` (returns `Promise<CommandDispatchResult>`), `getRecorderBundle`, `exportRecorderBundleToFile`.
 - `src/app/bootstrap/createApp.ts` — wire `?disableAi=` URL param parsing (comma-separated positive integers; reject 1; ignore unparseable) into `createPrototypeScenario` so matching `PlayerStartSpec.disableAi: true` is set. Disable directive lives only in scenario-seed-time closure; never written to `world.state.aoe2.*` (Claude iter-1 H2).
