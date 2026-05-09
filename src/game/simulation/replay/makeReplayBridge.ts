@@ -205,5 +205,11 @@ export function makeReplayBridge(
     saveGame() {
       return api.saveGame();
     },
+    // LLM-agent harness exposes pendingCommands on SimulationBridge.
+    // Replay mode never accepts new agent commands, so expose an
+    // empty mutable array — pushing into it is a no-op for replay
+    // playback (the replay drain in `aoe2ReplayPendingCommandDrain`
+    // clears any hydrated entries before each step).
+    pendingCommands: [],
   };
 }

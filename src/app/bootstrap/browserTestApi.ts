@@ -18,6 +18,10 @@ import type {
   PlacementPreviewVisualState,
   SelectionBoxState,
 } from '../../phaser/scenes/GameScene';
+import type { RecordingService } from '../../game/recording/RecordingService';
+import type { AgentStateSnapshot, CommandDispatchResult } from '../../game/playtest/types';
+import { buildAgentSnapshot } from '../../game/playtest/agentSnapshot';
+import { validateAgentCommandShape } from './agentCommandValidator';
 
 interface BrowserTestBridge {
   step(deltaMs: number): void;
@@ -40,6 +44,13 @@ interface BrowserTestBridge {
   clearSelection(): void;
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
+  // LLM-agent harness needs the in-place pendingCommands queue so
+  // dispatchAgentCommand can shape-validate + push.
+  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
+  // Drains any pending semantic rejection (string reason) — already on
+  // SimulationBridge; kept here for the structurally-typed
+  // BrowserTestBridge facade.
+  consumeCommandRejection: () => string | null;
 }
 
 export interface BrowserTestSnapshot {
@@ -66,6 +77,26 @@ export interface BrowserTestReplayApi {
   seedPriorSession(): Promise<void>;
 }
 
+// LLM-agent harness surface (Phase 1.B). Five methods used by
+// `scripts/playtest-llm.mjs` Playwright runner. Production app does
+// not call any of them.
+export interface BrowserTestAgentApi {
+  /** Bounded state view shaped for prompt-token efficiency.
+   *  See `docs/threads/current/llm-agent-playtest/DESIGN.md` §1. */
+  snapshotForAgent(ownerId: number): AgentStateSnapshot;
+  /** On-page canvas bounding box in CSS pixels. The runner calls
+   *  `page.screenshot({ clip: bbox })` with this. */
+  getCanvasBboxForScreenshot(): { x: number; y: number; width: number; height: number };
+  /** Push a structured command onto pendingCommands; shape-only validation. */
+  dispatchAgentCommand(command: unknown): Promise<CommandDispatchResult>;
+  /** Live RecordingService.bundle(). Use exportRecorderBundleToFile
+   *  for 30k-tick bundles to avoid the JSON-RPC payload limit. */
+  getRecorderBundle(): import('civ-engine').SessionBundle;
+  /** Serialize bundle to a Blob; return a blob: URL the runner can
+   *  fetch as bytes. Avoids the ~1MB JSON-RPC payload limit. */
+  exportRecorderBundleToFile(): Promise<{ blobUrl: string; size: number }>;
+}
+
 export interface BrowserTestApi {
   isBooted(): boolean;
   getHudState(): HudState;
@@ -73,6 +104,9 @@ export interface BrowserTestApi {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
+  /** Phase 1.B (llm-agent-playtest). Five methods scoped to the
+   *  LLM-agent harness; production app never calls them. */
+  agent: BrowserTestAgentApi;
   /** Slice 6: replay test surface. Required at runtime — `createApp`
    *  always installs it. The field is non-optional in the type so
    *  Playwright specs can read `api.replay.getReplayMode()` without
@@ -142,6 +176,11 @@ export interface BrowserTestApiInstallOptions {
   /** Slice 6: replay surface wired through to replayController. Required
    *  — every install site must provide it. */
   replay: BrowserTestReplayApi;
+  /** Phase 1.B (llm-agent-playtest). Resolves the live recorder so
+   *  `agent.getRecorderBundle()` / `agent.exportRecorderBundleToFile()`
+   *  can call `recording.bundle()`. Required — every install site
+   *  must provide it. */
+  getRecording: () => RecordingService;
 }
 
 export function installBrowserTestApi(
@@ -264,6 +303,108 @@ export function installBrowserTestApi(
       return getSnapshot(liveBridge, scene);
     },
     replay: options.replay,
+    agent: makeAgentApi(getBridge, scene, options.getRecording),
   };
   target.__AOE2_TEST__ = Object.freeze(api);
+}
+
+function makeAgentApi(
+  getBridge: () => BrowserTestBridge,
+  scene: GameScene,
+  getRecording: () => RecordingService,
+): BrowserTestAgentApi {
+  return {
+    snapshotForAgent: (ownerId: number): AgentStateSnapshot => {
+      scene.syncFromBridge(true);
+      const bridge = getBridge();
+      const economy = bridge.getEconomyState();
+      const selection = bridge.getSelectionState();
+      const renderTick = bridge.getRenderState().tick;
+      // Camera bbox in world coords; pixel bbox + worldToScreen sample
+      // table for the visible cells (caps at 64 entries to keep prompt
+      // tokens bounded).
+      const camera = scene.getCameraState();
+      const canvasRect = getCanvasRect();
+      // CameraState.viewX/Y/Width/Height is the world-coords viewport
+      // exposed by GameScene.getCameraState — convert to integer cell
+      // bbox for the snapshot.
+      const worldBbox = camera
+        ? {
+            minX: Math.floor(camera.viewX),
+            minY: Math.floor(camera.viewY),
+            maxX: Math.ceil(camera.viewX + camera.viewWidth),
+            maxY: Math.ceil(camera.viewY + camera.viewHeight),
+          }
+        : { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+      const worldToScreenSamples: Array<{
+        cellX: number;
+        cellY: number;
+        pixelX: number;
+        pixelY: number;
+      }> = [];
+      const STEP = 4;
+      for (let cy = worldBbox.minY; cy <= worldBbox.maxY; cy += STEP) {
+        for (let cx = worldBbox.minX; cx <= worldBbox.maxX; cx += STEP) {
+          if (worldToScreenSamples.length >= 64) break;
+          const pt = scene.getScreenPointForCell(cx, cy);
+          if (pt) worldToScreenSamples.push({ cellX: cx, cellY: cy, pixelX: pt.x, pixelY: pt.y });
+        }
+      }
+      return buildAgentSnapshot({
+        ownerId,
+        tick: renderTick,
+        tps: 50,
+        economy,
+        selection,
+        screenMapping: {
+          worldBbox,
+          pixelBbox: canvasRect,
+          worldToScreen: worldToScreenSamples,
+        },
+      });
+    },
+
+    getCanvasBboxForScreenshot: () => getCanvasRect(),
+
+    dispatchAgentCommand: async (command: unknown): Promise<CommandDispatchResult> => {
+      const result = validateAgentCommandShape(command, {
+        ownerRangeInclusive: { min: 1, max: 8 },
+      });
+      if (!result.accepted) return result;
+      const bridge = getBridge();
+      bridge.pendingCommands.push({
+        type: result.commandKind as string,
+        data: result.normalized,
+      });
+      return result;
+    },
+
+    getRecorderBundle: () => {
+      const recording = getRecording();
+      const bundle = recording.bundle();
+      if (!bundle) {
+        throw new Error('No recorder bundle yet — start() must complete before getRecorderBundle().');
+      }
+      return bundle;
+    },
+
+    exportRecorderBundleToFile: async () => {
+      const recording = getRecording();
+      const bundle = recording.bundle();
+      if (!bundle) {
+        throw new Error('No recorder bundle yet — start() must complete before exportRecorderBundleToFile().');
+      }
+      const json = JSON.stringify(bundle);
+      const blob = new Blob([json], { type: 'application/json' });
+      const blobUrl = URL.createObjectURL(blob);
+      return { blobUrl, size: blob.size };
+    },
+  };
+}
+
+function getCanvasRect(): { x: number; y: number; width: number; height: number } {
+  const canvas = document.querySelector('canvas');
+  if (!canvas) return { x: 0, y: 0, width: 0, height: 0 };
+  const rect = canvas.getBoundingClientRect();
+  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
 }

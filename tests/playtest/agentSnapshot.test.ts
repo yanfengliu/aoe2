@@ -110,7 +110,7 @@ describe('buildAgentSnapshot', () => {
         { owner: 2, task: 'gathering-food', desiredResource: 'food', carriedResource: null, carriedAmount: 0 },
         { owner: 1, task: 'gathering-food', desiredResource: 'food', carriedResource: null, carriedAmount: 0 },
       ],
-    } as Partial<EconomyState>);
+    } as unknown as Partial<EconomyState>);
     const snap = buildAgentSnapshot({
       ownerId: 2,
       tick: 0,

@@ -335,6 +335,9 @@ export async function createApp(): Promise<Phaser.Game> {
         await handleLoadGame(blob);
       },
     },
+    // LLM-agent harness (Phase 1.B): test API resolves the live recording
+    // service for getRecorderBundle / exportRecorderBundleToFile.
+    getRecording: () => stack?.recording ?? (() => { throw new Error('recording not initialized'); })(),
   });
 
   game.events.on('destroy', () => {

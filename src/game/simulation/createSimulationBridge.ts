@@ -107,6 +107,13 @@ export interface SimulationBridge {
   // The HUD polls this every update frame and renders a toast with the
   // returned copy. Returns `null` when no rejection is pending.
   consumeCommandRejection(): string | null;
+  // LLM-agent harness (Phase 1.B): the in-place pendingCommands queue
+  // the in-game AI pushes intentions onto. Exposed publicly so
+  // `__AOE2_TEST__.agent.dispatchAgentCommand` can shape-validate +
+  // push without a parallel surface. Mutate-in-place semantics
+  // (push to enqueue; drain via dispatcher between ticks); never
+  // reassign the array reference.
+  readonly pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
   // Slice 11: snapshot for the F2 debug overlay. Returns the per-frame
   // data the overlay draws: pathing targets keyed by unit id, AI plan
   // summaries per owner, and tick-level perf metrics. Cheap to call; the
@@ -414,5 +421,6 @@ export function createSimulationBridge(
     consumeCommandRejection,
     getDebugSnapshot,
     saveGame,
+    pendingCommands,
   };
 }
