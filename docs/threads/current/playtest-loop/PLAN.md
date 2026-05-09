@@ -8,6 +8,8 @@
 
 **Tech Stack:** TypeScript, vitest, civ-engine `SessionRecorder` + `bundleHotspots` + `SessionReplayer`, Node ESM scripts.
 
+**Node requirement:** Scripts use `node --experimental-strip-types` to import `.ts` modules directly. This requires Node ≥22.6.0. Phase 1 adds an `"engines"` block to `package.json` so `npm install` warns under older Node. The new GitHub Actions workflow (Phase 5) uses `node-version: '22'`; the existing `ci.yml` is not affected because it doesn't run playtest scripts.
+
 ---
 
 ## Phase 1 — Playtest runner
@@ -63,12 +65,20 @@ export interface RunPlaytestResult {
 }
 ```
 
-- [ ] **Step 2: Add `playtest` npm script in `package.json`**
+- [ ] **Step 2: Add `playtest` npm script + Node engines block in `package.json`**
 
 Insert below `"test:watch"` line:
 
 ```json
-    "playtest": "node scripts/playtest.mjs",
+    "playtest": "node --experimental-strip-types scripts/playtest.mjs",
+```
+
+Then add after `"private": true,`:
+
+```json
+  "engines": {
+    "node": ">=22.6.0"
+  },
 ```
 
 - [ ] **Step 3: Add `output/` to `.gitignore`**
@@ -157,7 +167,7 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
   let stopReason: StopReason = 'maxTicks';
   let errorCode: string | undefined;
   let errorMessage: string | undefined;
-  let details: Record<string, unknown> | undefined;
+  let details: OracleEnvelope['details'] | undefined;
 
   try {
     while (bridge.world.tick - startTick < maxTicks) {
@@ -166,7 +176,8 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
       // Probe order: error → engineHalt → stopWhen → maxTicks
       if (recorder.lastError) {
         stopReason = recorder.lastError instanceof SinkWriteError ? 'sinkError' : 'recorderError';
-        errorCode = recorder.lastError.code ?? recorder.lastError.name;
+        const errDetails = recorder.lastError.details as { code?: string } | undefined;
+        errorCode = errDetails?.code ?? recorder.lastError.name;
         errorMessage = recorder.lastError.message;
         break;
       }
@@ -174,8 +185,8 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
       const halt = bridge.getHudState().engineHalted;
       if (halt !== null) {
         stopReason = 'engineHalt';
-        errorCode = halt.code ?? 'engine_halt';
-        errorMessage = halt.message ?? `engine halted at tick ${halt.tick} during ${halt.phase}`;
+        errorCode = halt.code;
+        errorMessage = halt.message;
         details = {
           tick: halt.tick,
           phase: halt.phase,
@@ -205,7 +216,7 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
     runCompletedAt: new Date().toISOString(),
     ...(errorCode !== undefined ? { errorCode } : {}),
     ...(errorMessage !== undefined ? { errorMessage } : {}),
-    ...(details !== undefined ? { details: details as Record<string, never> } : {}),
+    ...(details !== undefined ? { details } : {}),
   };
 
   return {
@@ -466,7 +477,86 @@ See docs/threads/current/playtest-loop/DESIGN.md and PLAN.md."
 
 - [ ] **Step 1: Run Codex + Claude reviews in parallel against the Phase 1 diff**
 
-Reviewer prompts: `tmp/review-runs/playtest-loop/2026-05-08/impl-1/codex-prompt.txt` and `claude-prompt.txt`. Use the AGENTS.md baseline + diff-against-prior-commit pipe. Wait via `until [ -s codex.txt ] && [ -s claude.txt ]; do sleep 8; done`.
+Write the review prompt to `tmp/review-runs/playtest-loop/2026-05-08/impl-1/codex-prompt.txt` (same prompt for `claude-prompt.txt` minus the BEGIN/END markers paragraph). Starter template:
+
+```
+You are a senior code reviewer evaluating a code change on the
+playtest-loop branch. The change is on commit HEAD; diff against the
+parent commit. The repo's AGENTS.md describes project conventions.
+
+Design (already approved through 3 review iterations):
+docs/threads/current/playtest-loop/DESIGN.md.
+
+Scope: Phase 1 of the implementation plan
+docs/threads/current/playtest-loop/PLAN.md (Tasks 1-8). Reviews
+src/game/playtest/{types.ts, runPlaytest.ts}, scripts/playtest.mjs,
+tests/playtest/runPlaytest.test.ts, package.json + .gitignore +
+RecordingService.ts comment + ARCHITECTURE.md/drift-log.md/decisions.md.
+
+Verify each claim against the live codebase — grep for symbols,
+function signatures, file paths it references; do not approve based
+on prompt text alone. Specifically:
+
+- Probe order in runPlaytest matches DESIGN.md: error → engineHalt →
+  stopWhen → maxTicks. If multiple conditions hold the first wins.
+- SessionRecorder API matches civ-engine: config-object constructor
+  with { world, sink, sourceLabel, sourceKind: 'synthetic' };
+  connect() / disconnect() / toBundle() / lastError exist.
+- engineHalted probe uses !== null (the field type is
+  EngineHaltDetails | null, not boolean).
+- bundle envelope captures errorCode, errorMessage, details for
+  non-stopWhen outcomes.
+- recorder.lastError property access is well-typed (no .code; use
+  .details narrowing or .name fallback).
+- All 4 tests in runPlaytest.test.ts pass; envelope.stopReason ===
+  'maxTicks' assertion is present in the smoke test (regression
+  guard for engine changes that end matches in <200 ticks).
+- ARCHITECTURE.md update lands in Repository layout (not Component
+  Map, which doesn't exist) and Runtime layers paragraphs.
+- RecordingService.ts:13-14 comment no longer references
+  runAgentPlaytest as the headless playtest mechanism.
+- output/ added to .gitignore.
+- engines.node ≥22.6.0 added to package.json.
+
+Anti-regression checklist:
+- iter-1/2/3 design review findings (see
+  docs/threads/current/playtest-loop/2026-05-08/design-{1,2,3}/
+  REVIEW.md) all remain addressed in the implementation, not just
+  the doc.
+- Verify docs in the diff match implementation: flag any stale
+  signatures, removed APIs still mentioned, or missing coverage of
+  new APIs in canonical guides.
+
+Flag bugs, design flaws, ambiguity, missing edge cases, and concerns
+about correctness or performance. Only point out an issue if it is
+real and important. If there is no issue, say so instead of
+nit-picking.
+
+[CODEX ONLY: Begin your review with the literal token
+===BEGIN-REVIEW=== on its own line and end with ===END-REVIEW===
+on its own line. Do not emit those markers anywhere else.]
+```
+
+Run both reviewers (background):
+
+```bash
+git diff HEAD~1 | codex exec --model gpt-5.5 -c model_reasoning_effort=xhigh \
+  -c approval_policy=never --sandbox read-only --ephemeral \
+  "$(cat tmp/review-runs/playtest-loop/2026-05-08/impl-1/codex-prompt.txt)" \
+  > tmp/review-runs/playtest-loop/2026-05-08/impl-1/codex.txt 2>&1 &
+
+git diff HEAD~1 | claude -p "$(cat tmp/review-runs/playtest-loop/2026-05-08/impl-1/claude-prompt.txt)" \
+  --model "claude-opus-4-7[1m]" --effort max \
+  --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)" \
+  > tmp/review-runs/playtest-loop/2026-05-08/impl-1/claude.txt 2>&1 &
+```
+
+Wait via:
+
+```bash
+until [ -s tmp/review-runs/playtest-loop/2026-05-08/impl-1/codex.txt ] \
+   && [ -s tmp/review-runs/playtest-loop/2026-05-08/impl-1/claude.txt ]; do sleep 8; done
+```
 
 - [ ] **Step 2: Synthesize `docs/threads/current/playtest-loop/2026-05-08/impl-1/REVIEW.md`**
 
@@ -538,6 +628,8 @@ Expected: PASS.
 
 - [ ] **Step 1: Create `tests/playtest/oracles.test.ts`**
 
+The fixture helper deliberately bypasses strict `SessionBundle` typing — the engine's bundle shape is large (rng state, component options, etc.) and oracle tests only inspect a small subset. The helper centralizes the cast so each test only specifies the fields its oracle actually reads.
+
 ```ts
 import { describe, expect, it } from 'vitest';
 import type { SessionBundle } from 'civ-engine';
@@ -545,29 +637,53 @@ import { runOracles } from '../../src/game/playtest/oracles';
 import { ORACLE_DEFAULTS } from '../../src/game/playtest/types';
 import type { OracleEnvelope } from '../../src/game/playtest/types';
 
-const emptyBundle: SessionBundle = {
-  schemaVersion: 1,
-  metadata: {
-    sessionId: 'test',
-    engineVersion: 'test',
-    startTick: 0,
-    sourceLabel: 'test',
-    sourceKind: 'synthetic',
-    recordedAt: new Date().toISOString(),
-    failedTicks: 0,
-    closedNormally: true,
-    endTick: 0,
-  },
-  initialSnapshot: { tick: 0, entities: {}, components: {}, state: {}, tags: {}, rng: null, componentOptions: {}, metadata: {} },
-  ticks: [],
-  commands: [],
-  executions: [],
-  events: [],
-  failures: [],
-  markers: [],
-  attachments: [],
-  snapshots: [],
-};
+interface BundleOverrides {
+  ticks?: SessionBundle['ticks'];
+  failures?: SessionBundle['failures'];
+  endTick?: number;
+  initialSnapshotComponents?: Record<string, unknown>;
+}
+
+function makeMinimalBundle(overrides: BundleOverrides = {}): SessionBundle {
+  return {
+    schemaVersion: 1,
+    metadata: {
+      sessionId: 'test',
+      engineVersion: 'test',
+      nodeVersion: 'test',
+      startTick: 0,
+      persistedEndTick: overrides.endTick ?? 0,
+      durationTicks: overrides.endTick ?? 0,
+      endTick: overrides.endTick ?? 0,
+      sourceLabel: 'test',
+      sourceKind: 'synthetic',
+      recordedAt: new Date().toISOString(),
+      failedTicks: [],
+    },
+    initialSnapshot: {
+      version: 5,
+      config: { gridWidth: 16, gridHeight: 16, tps: 10 },
+      tick: 0,
+      entities: { generations: [], alive: [], freeList: [] },
+      components: overrides.initialSnapshotComponents ?? {},
+      resources: {},
+      state: {},
+      tags: [],
+      rng: { seed: 0, state: 0 },
+      componentOptions: {},
+      metadata: {},
+    },
+    ticks: overrides.ticks ?? [],
+    commands: [],
+    executions: [],
+    failures: overrides.failures ?? [],
+    markers: [],
+    attachments: [],
+    snapshots: [],
+  } as unknown as SessionBundle;
+}
+
+const emptyBundle = makeMinimalBundle();
 
 const baseEnvelope: OracleEnvelope = {
   stopReason: 'stopWhen',
@@ -679,12 +795,23 @@ describe('no-tick-failures oracle', () => {
   });
 
   it('fires high-severity per failure', () => {
-    const bundle = {
-      ...emptyBundle,
+    const bundle = makeMinimalBundle({
       failures: [
-        { tick: 7, code: 'system_throw', message: 'boom', stack: null, systemName: 's', phase: 'update' },
-      ],
-    } as SessionBundle;
+        {
+          tick: 7,
+          schemaVersion: 1,
+          phase: 'systems',
+          subsystem: 'system',
+          systemName: 's',
+          code: 'system_throw',
+          message: 'boom',
+          commandType: null,
+          submissionSequence: null,
+          details: null,
+          error: { name: 'Error', message: 'boom', stack: null },
+        },
+      ] as unknown as SessionBundle['failures'],
+    });
     const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(v => v.oracle === 'no-tick-failures');
     expect(violations).toHaveLength(1);
     expect(violations[0].severity).toBe('high');
@@ -733,16 +860,24 @@ Expected: 6 PASS.
 ```ts
 describe('no-perf-regression oracle', () => {
   function makeMetricBundle(durations: number[]): SessionBundle {
-    return {
-      ...emptyBundle,
+    return makeMinimalBundle({
       ticks: durations.map((dur, i) => ({
         tick: i + 1,
-        diff: { components: {}, state: {}, tags: {}, entities: { created: [], destroyed: [] }, metadata: {} },
+        diff: {
+          tick: i + 1,
+          components: {},
+          state: { set: [], removed: [] },
+          tags: [],
+          entities: { created: [], destroyed: [] },
+          resources: {},
+          metadata: [],
+        },
         events: [],
-        metrics: { tick: i + 1, durationMs: { total: dur }, simulation: {}, output: {} } as never,
+        metrics: { tick: i + 1, durationMs: { total: dur }, simulation: {}, output: {} },
         debug: null,
-      })),
-    };
+      })) as unknown as SessionBundle['ticks'],
+      endTick: durations.length,
+    });
   }
 
   it('returns no violations when bundle has fewer than 10 ticks (insufficient for z-score)', () => {
@@ -781,12 +916,16 @@ const noPerfRegression: OracleFn = (bundle, _envelope, thresholds) => {
   for (const hot of hotspots) {
     if (hot.kind !== 'duration_outlier') continue;
     if (hot.tick < thresholds.perfP99WarmupTicks) continue;
+    const hotDetails =
+      typeof hot.details === 'object' && hot.details !== null && !Array.isArray(hot.details)
+        ? (hot.details as Record<string, unknown>)
+        : { raw: hot.details };
     violations.push({
       oracle: 'no-perf-regression',
       severity: 'low',
       tick: hot.tick,
       message: `tick ${hot.tick} duration outlier: ${hot.message}`,
-      details: hot.details ?? undefined,
+      details: hotDetails,
     });
   }
   if (thresholds.perfP99BudgetMs !== 'auto') {
@@ -837,10 +976,12 @@ export interface PositionTimeline {
 export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
   const byEntity = new Map<EntityId, Array<{ tick: number; pos: Position }>>();
 
-  // Seed from initial snapshot.
+  // Seed from initial snapshot. WorldSnapshot.components is shaped as
+  // Record<string, Array<[EntityId, T]>> (per civ-engine serializer.d.ts:66),
+  // distinct from TickDiff.components which uses { set, removed }.
   const initialPositions = bundle.initialSnapshot.components?.position;
-  if (initialPositions) {
-    for (const [id, pos] of (initialPositions.set ?? []) as Array<[EntityId, Position]>) {
+  if (Array.isArray(initialPositions)) {
+    for (const [id, pos] of initialPositions as Array<[EntityId, Position]>) {
       byEntity.set(id, [{ tick: bundle.metadata.startTick, pos }]);
     }
   }
@@ -885,18 +1026,41 @@ import { reconstructPositions, netManhattanProgress } from '../../src/game/playt
 
 describe('reconstructPositions', () => {
   it('seeds from initialSnapshot then applies diffs', () => {
-    const bundle: SessionBundle = {
-      ...emptyBundle,
-      metadata: { ...emptyBundle.metadata, startTick: 0 },
-      initialSnapshot: {
-        ...emptyBundle.initialSnapshot,
-        components: { position: { set: [[5, { x: 1, y: 1 }]], removed: [] } as never },
-      },
+    // initialSnapshot.components is an array-shaped snapshot map per civ-engine
+    // serializer.d.ts (Array<[EntityId, T]>), distinct from the {set, removed}
+    // shape used in TickDiff.
+    const bundle = makeMinimalBundle({
+      initialSnapshotComponents: { position: [[5, { x: 1, y: 1 }]] },
       ticks: [
-        { tick: 1, diff: { components: { position: { set: [[5, { x: 2, y: 1 }]], removed: [] } } as never, state: {}, tags: {}, entities: { created: [], destroyed: [] }, metadata: {} }, events: [], metrics: null, debug: null },
-        { tick: 2, diff: { components: { position: { set: [[5, { x: 3, y: 1 }]], removed: [] } } as never, state: {}, tags: {}, entities: { created: [], destroyed: [] }, metadata: {} }, events: [], metrics: null, debug: null },
-      ],
-    };
+        {
+          tick: 1,
+          diff: {
+            tick: 1,
+            components: { position: { set: [[5, { x: 2, y: 1 }]], removed: [] } },
+            state: { set: [], removed: [] },
+            tags: [],
+            entities: { created: [], destroyed: [] },
+            resources: {},
+            metadata: [],
+          },
+          events: [], metrics: null, debug: null,
+        },
+        {
+          tick: 2,
+          diff: {
+            tick: 2,
+            components: { position: { set: [[5, { x: 3, y: 1 }]], removed: [] } },
+            state: { set: [], removed: [] },
+            tags: [],
+            entities: { created: [], destroyed: [] },
+            resources: {},
+            metadata: [],
+          },
+          events: [], metrics: null, debug: null,
+        },
+      ] as unknown as SessionBundle['ticks'],
+      endTick: 2,
+    });
     const timeline = reconstructPositions(bundle);
     expect(timeline.byEntity.get(5)).toEqual([
       { tick: 0, pos: { x: 1, y: 1 } },
@@ -954,14 +1118,35 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
   const violations: OracleViolation[] = [];
   const window = thresholds.pinnedWindowTicks;
   const minProgress = thresholds.pinnedNetProgressCells;
+  const endTick = bundle.metadata.endTick ?? bundle.metadata.startTick;
+
   for (const [entity, events] of timeline.byEntity) {
-    if (events.length < 2) continue;
-    // Slide a window of `window` ticks through the timeline; report a
-    // violation if any window has progress < minProgress.
+    if (events.length === 0) continue;
+
+    // Pinned-with-no-diffs case: the unit was seeded with an initial position
+    // and never emitted a position change. If world ticks have elapsed past
+    // (lastEvent.tick + window) without movement, that's a violation.
+    if (events.length === 1) {
+      const last = events[0]!;
+      if (endTick - last.tick >= window) {
+        violations.push({
+          oracle: 'no-pinned-or-oscillating-units',
+          severity: 'medium',
+          tick: last.tick,
+          message: `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y}) for ${endTick - last.tick} ticks after tick ${last.tick}`,
+          details: { entity, sinceTick: last.tick, durationTicks: endTick - last.tick, position: last.pos },
+        });
+      }
+      continue;
+    }
+
+    // Oscillating / pinned-with-diffs case: slide a window through the
+    // events; report when net Manhattan progress within the window is below
+    // minProgress.
     for (let i = 0; i < events.length; i++) {
       const start = events[i]!.tick;
       const end = start + window;
-      if (events[i]!.tick + window > events[events.length - 1]!.tick) break;
+      if (end > events[events.length - 1]!.tick) break;
       const progress = netManhattanProgress(events, start, end);
       if (progress < minProgress) {
         violations.push({
@@ -997,38 +1182,56 @@ Append to `tests/playtest/oracles.test.ts`:
 
 ```ts
 describe('no-pinned-or-oscillating-units oracle', () => {
+  function emptyDiff(tick: number) {
+    return {
+      tick,
+      components: {},
+      state: { set: [], removed: [] },
+      tags: [],
+      entities: { created: [], destroyed: [] },
+      resources: {},
+      metadata: [],
+    };
+  }
+  function diffWithPosition(tick: number, entity: number, pos: { x: number; y: number }) {
+    return {
+      tick,
+      components: { position: { set: [[entity, pos]], removed: [] } },
+      state: { set: [], removed: [] },
+      tags: [],
+      entities: { created: [], destroyed: [] },
+      resources: {},
+      metadata: [],
+    };
+  }
+
   it('does not fire when units make progress', () => {
-    const bundle: SessionBundle = {
-      ...emptyBundle,
-      initialSnapshot: {
-        ...emptyBundle.initialSnapshot,
-        components: { position: { set: [[1, { x: 0, y: 0 }]], removed: [] } as never },
-      },
+    const bundle = makeMinimalBundle({
+      initialSnapshotComponents: { position: [[1, { x: 0, y: 0 }]] },
       ticks: Array.from({ length: 60 }, (_, i) => ({
         tick: i + 1,
-        diff: { components: { position: { set: [[1, { x: i + 1, y: 0 }]], removed: [] } } as never, state: {}, tags: {}, entities: { created: [], destroyed: [] }, metadata: {} },
+        diff: diffWithPosition(i + 1, 1, { x: i + 1, y: 0 }),
         events: [], metrics: null, debug: null,
-      })),
-    };
+      })) as unknown as SessionBundle['ticks'],
+      endTick: 60,
+    });
     const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(v => v.oracle === 'no-pinned-or-oscillating-units');
     expect(violations).toHaveLength(0);
   });
 
-  it('fires when a unit is pinned for the full window', () => {
-    const bundle: SessionBundle = {
-      ...emptyBundle,
-      initialSnapshot: {
-        ...emptyBundle.initialSnapshot,
-        components: { position: { set: [[1, { x: 5, y: 5 }]], removed: [] } as never },
-      },
+  it('fires when a unit is pinned for the full window (no position diffs)', () => {
+    const bundle = makeMinimalBundle({
+      initialSnapshotComponents: { position: [[1, { x: 5, y: 5 }]] },
       ticks: Array.from({ length: 60 }, (_, i) => ({
         tick: i + 1,
-        diff: { components: {}, state: {}, tags: {}, entities: { created: [], destroyed: [] }, metadata: {} },
+        diff: emptyDiff(i + 1),
         events: [], metrics: null, debug: null,
-      })),
-    };
+      })) as unknown as SessionBundle['ticks'],
+      endTick: 60,
+    });
     const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(v => v.oracle === 'no-pinned-or-oscillating-units');
     expect(violations.length).toBeGreaterThanOrEqual(1);
+    expect(violations[0]!.details).toMatchObject({ entity: 1, position: { x: 5, y: 5 } });
   });
 });
 ```
@@ -1207,18 +1410,18 @@ const SOURCE_FILES_BY_ORACLE: Record<string, string[]> = {
     'src/game/simulation/worldOccupancyAllocators.ts',
   ],
   'no-tick-failures': [
-    'src/game/simulation/bridge/createSimulationBridge.ts',
+    'src/game/simulation/createSimulationBridge.ts',
     'src/game/simulation/bridge/systems/aiSystem.ts',
   ],
   'no-perf-regression': [
-    'src/game/simulation/bridge/createSimulationBridge.ts',
+    'src/game/simulation/createSimulationBridge.ts',
   ],
   'economy-progression': [
     'src/game/simulation/bridge/systems/aiSystem.ts',
     'src/game/simulation/ai.ts',
   ],
   'match-completes': [
-    'src/game/simulation/bridge/createSimulationBridge.ts',
+    'src/game/simulation/createSimulationBridge.ts',
     'src/game/simulation/bridge/systems/aiSystem.ts',
   ],
 };
@@ -1287,7 +1490,7 @@ Expected: 3 PASS.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { dirname } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { buildFixPrompt, sourceFilesForOracle } from '../src/game/playtest/fixBotPrompt.ts';
 
 function parseArgs(argv) {
@@ -1371,28 +1574,29 @@ const prompt = buildFixPrompt({
   sourceFiles,
 });
 
-// Invoke the reviewer CLI.
+// Invoke the reviewer CLI. shell: true is required on Windows where these
+// CLIs install as .cmd shims; harmless on Unix (the shell just unwraps them).
 let modelOutput;
 if (args.reviewer === 'claude') {
   modelOutput = execFileSync(
     'claude',
     ['-p', prompt, '--model', 'claude-opus-4-7[1m]', '--effort', 'max',
      '--allowedTools', 'Read,Glob,Grep'],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, shell: true },
   );
 } else if (args.reviewer === 'codex') {
   modelOutput = execFileSync(
     'codex',
     ['exec', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=xhigh',
      '-c', 'approval_policy=never', '--sandbox', 'read-only', '--ephemeral'],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt, shell: true },
   );
 } else {
   console.error(`fix-bot: unknown reviewer '${args.reviewer}'`);
   process.exit(2);
 }
 
-const proposalDir = `output/fix-proposals/${require('node:path').basename(args.in)}/${target.oracle}`;
+const proposalDir = `output/fix-proposals/${basename(args.in)}/${target.oracle}`;
 mkdirSync(proposalDir, { recursive: true });
 
 const diff = extractDiff(modelOutput);
@@ -1594,14 +1798,16 @@ const rows = [`# Playtest corpus — ${date}`, '', '| Run | Seed | maxTicks | st
 for (const run of corpus.runs) {
   const out = `output/playtests/${date}-${run.name}`;
   const playArgs = ['run', 'playtest', '--', '--seed', run.seed, '--max-ticks', String(run.maxTicks), '--out', out];
-  const playR = spawnSync('npm', playArgs, { encoding: 'utf8' });
+  // shell: true is required for cross-platform npm (Windows resolves `npm` as
+  // `npm.cmd`; Node's child_process refuses .cmd without a shell).
+  const playR = spawnSync('npm', playArgs, { encoding: 'utf8', shell: true });
   if (playR.status !== 0) {
     console.error(`corpus: run ${run.name} failed:\n${playR.stderr}`);
     process.exit(1);
   }
   const oracleArgs = ['run', 'run-oracles', '--', '--in', out];
   if (run.thresholds) oracleArgs.push('--thresholds', JSON.stringify(run.thresholds));
-  spawnSync('npm', oracleArgs, { encoding: 'utf8' });
+  spawnSync('npm', oracleArgs, { encoding: 'utf8', shell: true });
   const env = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));
   const report = readFileSync(`${out}-report/REPORT.md`, 'utf8');
   const high = (report.match(/^\| \S+ \| high \| /gm) ?? []).length;
