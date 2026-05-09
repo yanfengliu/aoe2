@@ -227,4 +227,67 @@ describe('buildAgentSnapshot', () => {
     expect(snap.perPlayer.find((p) => p.ownerId === 1)!.age).toBe('feudal-age');
     expect(snap.perPlayer.find((p) => p.ownerId === 2)!.age).toBe('dark-age');
   });
+
+  // Phase-6.A.2 schema-drift guard.
+  describe('schema drift detection', () => {
+    function tryBuild(economy: Partial<EconomyState>): unknown {
+      try {
+        return buildAgentSnapshot({
+          ownerId: 2,
+          tick: 0,
+          tps: 50,
+          economy: economy as EconomyState,
+          selection: makeSelection(),
+          screenMapping: SCREEN,
+        });
+      } catch (err) {
+        return err;
+      }
+    }
+
+    const cases: Array<{ field: keyof EconomyState; value: unknown }> = [
+      { field: 'units', value: undefined },
+      { field: 'buildings', value: 'not-an-array' },
+      { field: 'villagers', value: undefined },
+      { field: 'ages', value: undefined },
+      { field: 'playerResources', value: null },
+      { field: 'population', value: 42 },
+      // Codex impl-1 MED 3: record-typed fields must reject Map/array
+      // (which would otherwise silently degrade the snapshot reads).
+      { field: 'ages', value: new Map([[1, 'feudal-age']]) },
+      { field: 'playerResources', value: [] },
+      { field: 'population', value: new Set() },
+    ];
+    for (const { field, value } of cases) {
+      it(`throws when EconomyState.${String(field)} is missing or wrong type`, () => {
+        const economy = makeEconomy();
+        (economy as unknown as Record<string, unknown>)[field as string] = value;
+        const result = tryBuild(economy as Partial<EconomyState>);
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toContain('schema drift detected');
+        expect((result as Error).message).toContain(String(field));
+      });
+    }
+
+    it('does not throw on legitimately empty arrays / fresh-game state', () => {
+      // Arrays empty, maps empty — guard is shape, not content. The
+      // dark-age tick-0 case must keep flowing through.
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: makeEconomy({
+          units: [],
+          buildings: [],
+          ages: {},
+          playerResources: {},
+          population: {},
+        }),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+      });
+      expect(snap.tick).toBe(0);
+      expect(snap.enemies).toEqual([]);
+    });
+  });
 });

@@ -46,12 +46,14 @@ if (!apiKeySet && !claudeAvailable) {
   process.exit(0);
 }
 // Retention semantics: keep the most-recent N run-stems where one
-// stem = "${date}-${row.name}". For a corpus of K rows running once
-// per day, RETENTION_KEEP=K*5 retains 5 days. The default is sized
-// for the current 1-row corpus × 25 days; if you grow the corpus,
-// proportionally raise this to keep the same calendar window
-// (Claude impl-345 M7). Operators who need stricter forensic history
-// should bump this number rather than rely on the per-row count.
+// stem = "${date}-${hhmmss}-${row.name}" (Phase-6.A.3 timestamp added
+// to prevent same-day clobber). For a corpus of K rows × M
+// invocations-per-day, RETENTION_KEEP retains roughly N/(K*M)
+// calendar days. The default suits the current 1-row corpus × 1
+// invocation/day × 25 days; if you grow the corpus or run more
+// frequently, proportionally raise this to keep the same calendar
+// window. Operators who need stricter forensic history should bump
+// this number rather than rely on the per-row count.
 const RETENTION_KEEP = 25;
 
 // Retention pruning (Claude design-2 LOW 1; Codex impl-345 M5).
@@ -97,8 +99,16 @@ function pruneOldRuns(rootDir) {
 }
 
 const corpus = parseCorpusLlmFile(readFileSync('playtest-corpus-llm.json', 'utf8'));
-const date = new Date().toISOString().slice(0, 10);
-const corpusDir = `output/corpus-llm/${date}`;
+// Phase-6.A.3: per-invocation timestamped corpus dir. Prior format
+// `output/corpus-llm/<date>/` overwrote prior runs on the same day —
+// running the corpus twice in one day lost the first run's
+// SUMMARY-LLM.md and envelope rollups. The HHmmss suffix gives each
+// invocation its own directory; CI / dashboards glob the parent and
+// pick the newest by mtime when one is needed.
+const now = new Date();
+const date = now.toISOString().slice(0, 10);
+const hhmmss = `${String(now.getUTCHours()).padStart(2, '0')}${String(now.getUTCMinutes()).padStart(2, '0')}${String(now.getUTCSeconds()).padStart(2, '0')}`;
+const corpusDir = `output/corpus-llm/${date}-${hhmmss}`;
 mkdirSync(corpusDir, { recursive: true });
 
 const playtestsRoot = 'output/playtests-llm';
@@ -115,7 +125,10 @@ let totalCost = 0;
 let anyHigh = false;
 
 for (const run of corpus.runs) {
-  const out = `${playtestsRoot}/${date}-${run.name}`;
+  // Phase-6.A.3 (Codex impl-1 MED 4): include the per-invocation
+  // HHMMSS so a same-day re-run doesn't clobber the prior run's
+  // bundle/envelope/trace files.
+  const out = `${playtestsRoot}/${date}-${hhmmss}-${run.name}`;
   const args = [
     'run', 'playtest:llm', '--',
     '--seed', run.seed,

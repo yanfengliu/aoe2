@@ -148,8 +148,55 @@ export interface AgentSnapshotInputs {
   screenMapping: AgentScreenMapping;
 }
 
+// Phase-6.A.2 (impl-2 M2): fail loud when the EconomyState shape that
+// the snapshot embeds in the LLM prompt is missing a load-bearing
+// field. Without this guard, a future schema change that renames or
+// drops one of these fields silently degrades the prompt — the field
+// becomes `undefined`, the LLM keeps running but with weaker context,
+// and there's no test signal because the runtime doesn't crash. This
+// guard catches it on the very first decision instead.
+//
+// The check is intentionally a shape probe (presence + type), not a
+// content check; we don't want to block on legitimately empty arrays
+// during early game ticks.
+// Plain-record predicate: rejects null, arrays, and Map (Codex impl-1
+// MED 3). The snapshot consumes these fields with `Object.keys(...)`
+// and `record[ownerId]` indexing — those would silently degrade if the
+// engine swapped to Map-backed accessors. Forcing plain-object form
+// catches that drift.
+function isPlainRecord(v: unknown): boolean {
+  return (
+    typeof v === 'object'
+    && v !== null
+    && !Array.isArray(v)
+    && !(v instanceof Map)
+    && !(v instanceof Set)
+  );
+}
+
+function assertEconomyShape(economy: EconomyState): void {
+  const required: Array<{ key: keyof EconomyState; isType: (v: unknown) => boolean }> = [
+    { key: 'units', isType: Array.isArray },
+    { key: 'buildings', isType: Array.isArray },
+    { key: 'villagers', isType: Array.isArray },
+    { key: 'ages', isType: isPlainRecord },
+    { key: 'playerResources', isType: isPlainRecord },
+    { key: 'population', isType: isPlainRecord },
+  ];
+  for (const { key, isType } of required) {
+    const value = (economy as unknown as Record<string, unknown>)[key as string];
+    if (!isType(value)) {
+      throw new Error(
+        `[agent-snapshot] schema drift detected: EconomyState.${String(key)} is missing or wrong type. `
+          + `If the engine renamed/removed this field, update buildAgentSnapshot accordingly.`,
+      );
+    }
+  }
+}
+
 export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnapshot {
   const { ownerId, tick, tps, economy, selection, screenMapping } = inputs;
+  assertEconomyShape(economy);
   return {
     tick,
     elapsedMmSs: elapsedMmSs(tick, tps),

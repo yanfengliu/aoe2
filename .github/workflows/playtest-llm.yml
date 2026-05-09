@@ -62,16 +62,20 @@ jobs:
         # via the same paths because we write to the same output dir
         # the corpus runner would.
         run: |
-          mkdir -p output/corpus-llm/$(date -u +%Y-%m-%d)
+          # Phase-6.A.3 timestamped corpus dir: <date>-<HHMMSS> instead
+          # of <date> only, so multiple invocations (or the corpus
+          # runner running alongside) don't overwrite each other.
+          stamp="$(date -u +%Y-%m-%d-%H%M%S)"
+          mkdir -p "output/corpus-llm/$stamp"
           mkdir -p output/playtests-llm
-          npm run playtest:llm -- --seed "$SEED" --max-ticks "$MAX_TICKS" --out "output/playtests-llm/$(date -u +%Y-%m-%d)-manual"
+          npm run playtest:llm -- --seed "$SEED" --max-ticks "$MAX_TICKS" --out "output/playtests-llm/$stamp-manual"
           # Build a minimal SUMMARY-LLM.md for the comment poster.
-          envelope_path="output/playtests-llm/$(date -u +%Y-%m-%d)-manual.envelope.json"
+          envelope_path="output/playtests-llm/$stamp-manual.envelope.json"
           if [ -f "$envelope_path" ]; then
             stop=$(jq -r '.stopReason' "$envelope_path")
             ticks=$(jq -r '.ticksRun' "$envelope_path")
             cost=$(jq -r '.totalCostUsd' "$envelope_path")
-            cat > "output/corpus-llm/$(date -u +%Y-%m-%d)/SUMMARY-LLM.md" <<EOF
+            cat > "output/corpus-llm/$stamp/SUMMARY-LLM.md" <<EOF
           # LLM playtest — manual dispatch (seed=$SEED, maxTicks=$MAX_TICKS)
 
           | stopReason | ticksRun | totalCost |
