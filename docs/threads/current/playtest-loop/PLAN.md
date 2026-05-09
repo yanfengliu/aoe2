@@ -1095,10 +1095,9 @@ Expected: 11 PASS (9 oracle + 2 position-replay).
 
 - [ ] **Step 4: Add `noPinnedOrOscillatingUnits` oracle**
 
-Place these imports at the **top** of `src/game/playtest/oracles.ts` alongside the existing imports:
+Place these imports at the **top** of `src/game/playtest/oracles.ts` alongside the existing imports (`bundleHotspots` was already added in Task 15 Step 2 — do not re-import):
 
 ```ts
-import { bundleHotspots } from 'civ-engine';
 import type { Position, EntityId } from 'civ-engine';
 import { reconstructPositions, netManhattanProgress } from './positionReplay';
 ```
@@ -1326,8 +1325,9 @@ git add src/game/playtest/oracles.ts src/game/playtest/positionReplay.ts \
 git commit -m "feat(playtest): phase 2 — gameplay oracles
 
 match-completes, no-tick-failures, no-perf-regression (via bundleHotspots),
-economy-progression (skeleton), no-pinned-or-oscillating-units (Manhattan-
-progress sliding window). Pure-function oracles + scripts/run-oracles.mjs."
+no-pinned-or-oscillating-units (Manhattan-progress sliding window).
+Economy-progression deferred to Phase 6 (requires SessionReplayer state
+reconstruction). Pure-function oracles + scripts/run-oracles.mjs."
 ```
 
 - [ ] **Step 7: Multi-CLI review iter-1 of Phase 2 diff**
@@ -1993,6 +1993,6 @@ These were identified during design / plan review and explicitly deferred so the
 
 **Spec coverage.** Every section of DESIGN.md maps to at least one task: Phase 1 component design → Tasks 1-9; Phase 2 oracles + thresholds → Tasks 10-17; Phase 3 fix-bot → Tasks 18-19; Phase 4 corpus + schema → Tasks 20-21; Phase 5 CI → Task 22. Architecture surface (ARCHITECTURE.md, drift-log.md, decisions.md) → Task 7. RecordingService comment update → Task 6. `output/` gitignore → Task 1. Test plan (`runPlaytest.test.ts`, oracle tests, corpus schema test) → Tasks 2/4, 11-16, 20.
 
-**Placeholder scan.** No "TBD" / "TODO" / "implement later" / "appropriate error handling" / "similar to Task N" patterns. Every code step shows actual code. The economy-progression oracle in Task 16 is documented as a deliberate skeleton (not a placeholder) with the reason (full state replay deferred to phase-2 iter-2 review-driven extension); this is a real design decision, not a hidden TBD.
+**Placeholder scan.** No "TBD" / "TODO" / "implement later" / "appropriate error handling" / "similar to Task N" patterns. Every code step shows actual code. Economy-progression is filed as a Phase-6 follow-up (not registered in `ORACLES`), with the reason recorded in the Phase-6 section: full state replay via `SessionReplayer.fromBundle(bundle).stateAtTick(T)` is meaningful scope and depends on replay-bridge wiring beyond Phase 2.
 
 **Type consistency.** `OracleViolation`, `OracleEnvelope`, `OracleThresholds`, `StopReason`, `RunPlaytestConfig`, `RunPlaytestResult` defined in Task 1 + Task 10 are used identically across all later tasks. `runOracles` signature is consistent. `parseCorpusFile` returns `PlaytestCorpus` consistently. `buildFixPrompt` parameter shape consistent between Task 18 and Task 19.
