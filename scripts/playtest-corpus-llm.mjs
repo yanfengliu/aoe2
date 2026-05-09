@@ -20,7 +20,14 @@ if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '
 
 const useShell = process.platform === 'win32';
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const RETENTION_KEEP = 5; // most-recent runs to keep
+// Retention semantics: keep the most-recent N run-stems where one
+// stem = "${date}-${row.name}". For a corpus of K rows running once
+// per day, RETENTION_KEEP=K*5 retains 5 days. The default is sized
+// for the current 1-row corpus × 25 days; if you grow the corpus,
+// proportionally raise this to keep the same calendar window
+// (Claude impl-345 M7). Operators who need stricter forensic history
+// should bump this number rather than rely on the per-row count.
+const RETENTION_KEEP = 25;
 
 // Retention pruning (Claude design-2 LOW 1; Codex impl-345 M5).
 // Each LLM playtest emits FLAT files at <rootDir>/<date>-<name>.json,

@@ -16,7 +16,7 @@
 //   --use-dev-server             dev mode (vite); default uses vite preview
 //   --no-screenshot              disable screenshot capture (token-only mode)
 
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
@@ -85,7 +85,14 @@ async function startServer(useDev) {
     ? [npmBin, ['run', 'dev']]
     : [npmBin, ['run', 'preview', '--', '--port', String(PORT)]];
   console.log(`[playtest-llm] starting ${useDev ? 'vite dev' : `vite preview on :${PORT}`}…`);
-  const p = spawn(cmd[0], cmd[1], { stdio: 'pipe', shell: useShell });
+  // detached: true on POSIX so killProcessTree can signal the whole
+  // process group via process.kill(-pid). On Windows we taskkill /T
+  // instead. (Claude impl-345 M2.)
+  const p = spawn(cmd[0], cmd[1], {
+    stdio: 'pipe',
+    shell: useShell,
+    detached: process.platform !== 'win32',
+  });
   let stderr = '';
   let childExited = false;
   let childExitCode = null;
@@ -118,16 +125,28 @@ async function startServer(useDev) {
       /* not ready yet */
     }
   }
-  p.kill();
+  killProcessTree(p);
   throw new Error(`Server never started.\nstderr:\n${stderr}`);
 }
 
 async function makePlaywrightHost(page) {
   return {
     async waitForBoot() {
-      await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, undefined, {
-        timeout: 60_000,
-      });
+      // Assert both isBooted AND the agent sub-surface — defends
+      // against a boot-vs-agent race where __AOE2_TEST__ exists but
+      // the .agent methods aren't attached yet (HMR window with
+      // --use-dev-server, late dynamic-import resolution). Without
+      // this, the next host call hits a bare TypeError that the
+      // operator can't decode from the envelope (Claude impl-345 M6).
+      await page.waitForFunction(
+        () =>
+          window.__AOE2_TEST__?.isBooted() === true
+          && typeof window.__AOE2_TEST__?.agent?.snapshotForAgent === 'function'
+          && typeof window.__AOE2_TEST__?.agent?.dispatchAgentCommand === 'function'
+          && typeof window.__AOE2_TEST__?.agent?.exportRecorderBundleToFile === 'function',
+        undefined,
+        { timeout: 60_000 },
+      );
     },
     async getCurrentTick() {
       return await page.evaluate(() => window.__AOE2_TEST__.getRenderState().tick);
@@ -176,6 +195,32 @@ async function makePlaywrightHost(page) {
   };
 }
 
+// Kill the spawned npm/vite child AND its descendants. Plain p.kill()
+// only signals the immediate child (`npm.cmd`); on Windows the
+// grandchild `node.exe` running vite preview survives, holding
+// port 5174 indefinitely. Use taskkill /T on Windows; on POSIX,
+// SIGTERM to the process group via negative PID. (Claude impl-345 M2.)
+function killProcessTree(child) {
+  if (!child || child.killed) return;
+  if (process.platform === 'win32') {
+    try {
+      execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: 'ignore' });
+    } catch {
+      /* already gone */
+    }
+  } else {
+    try {
+      process.kill(-child.pid, 'SIGTERM');
+    } catch {
+      try {
+        child.kill('SIGTERM');
+      } catch {
+        /* already gone */
+      }
+    }
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   console.log('[playtest-llm] args:', args);
@@ -185,22 +230,32 @@ async function main() {
     process.exit(2);
   }
 
-  if (!args.useDevServer) await buildIfNeeded();
-  const server = await startServer(args.useDevServer);
-
-  let browser;
+  // Hoist server + browser + cleanup BEFORE startServer so a SIGINT
+  // arriving during the 30-second startup poll doesn't leak the
+  // spawned child (Claude impl-345 M2).
+  let server = null;
+  let browser = null;
   let serverKilled = false;
+  let browserClosed = false;
   const cleanup = () => {
-    if (!serverKilled) {
-      server.kill();
+    if (server && !serverKilled) {
+      killProcessTree(server);
       serverKilled = true;
     }
-    if (browser) browser.close().catch(() => {});
+    if (browser && !browserClosed) {
+      browser.close().catch(() => {});
+      browserClosed = true;
+    }
   };
-  process.on('SIGINT', () => {
-    cleanup();
-    process.exit(130);
-  });
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      cleanup();
+      process.exit(sig === 'SIGINT' ? 130 : 143);
+    });
+  }
+
+  if (!args.useDevServer) await buildIfNeeded();
+  server = await startServer(args.useDevServer);
 
   try {
     browser = await chromium.launch({ headless: true });
