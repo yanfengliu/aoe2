@@ -216,5 +216,11 @@ export function makeReplayBridge(
     setAgentDispatchObserver() {
       /* no-op in replay */
     },
+    // Replay does not run the LLM-agent harness; surface a permissive
+    // probe so type-shape parity holds. (No external caller of replay
+    // bridges should hit this in practice.)
+    isCellVisibleForOwner() {
+      return true;
+    },
   };
 }

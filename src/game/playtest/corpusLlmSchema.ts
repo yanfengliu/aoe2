@@ -10,6 +10,11 @@ export interface PlaytestLlmCorpusRun {
   decisionInterval?: number; // default 250
   owners?: number[]; // default [2]
   costBudgetUsd?: number; // default uses agent's --cost-budget
+  // Phase-6.B (impl-2 M7): when true, the agent snapshot is global
+  // ground-truth (cheat mode). Default false — enemies are filtered
+  // by per-owner visibility. Smoke baselines that pre-date Phase-6.B
+  // explicitly set true to preserve their committed semantics.
+  omniscient?: boolean;
 }
 
 export interface PlaytestLlmCorpus {
@@ -93,6 +98,15 @@ export function parseCorpusLlmFile(text: string): PlaytestLlmCorpus {
       }
       costBudgetUsd = row.costBudgetUsd;
     }
+    let omniscient: boolean | undefined;
+    if (row.omniscient !== undefined) {
+      if (typeof row.omniscient !== 'boolean') {
+        throw new CorpusLlmParseError(
+          `runs[${i}].omniscient must be a boolean if provided`,
+        );
+      }
+      omniscient = row.omniscient;
+    }
     runs.push({
       name: row.name,
       seed: row.seed,
@@ -100,6 +114,7 @@ export function parseCorpusLlmFile(text: string): PlaytestLlmCorpus {
       ...(decisionInterval !== undefined && { decisionInterval }),
       ...(owners !== undefined && { owners }),
       ...(costBudgetUsd !== undefined && { costBudgetUsd }),
+      ...(omniscient !== undefined && { omniscient }),
     });
   }
   return { runs };

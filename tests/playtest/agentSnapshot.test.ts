@@ -228,6 +228,157 @@ describe('buildAgentSnapshot', () => {
     expect(snap.perPlayer.find((p) => p.ownerId === 2)!.age).toBe('dark-age');
   });
 
+  // Phase-6.B per-owner visibility-gating.
+  describe('visibility gating', () => {
+    function economyWithEnemyAt(x: number, y: number): EconomyState {
+      return makeEconomy({
+        units: [
+          { id: 100, owner: 1, unitType: 'spearman', x, y },
+        ] as unknown as EconomyState['units'],
+      });
+    }
+
+    it('omits enemies in fog when visibility probe returns false (default mode)', () => {
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: economyWithEnemyAt(5, 5),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: () => false,
+      });
+      expect(snap.enemies).toEqual([]);
+    });
+
+    it('includes enemies the probe says are visible', () => {
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: economyWithEnemyAt(7, 9),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: (_owner, x, y) => x === 7 && y === 9,
+      });
+      expect(snap.enemies).toHaveLength(1);
+      expect(snap.enemies[0]!.entityId).toBe(100);
+    });
+
+    it('omniscient=true bypasses the probe even when probe returns false', () => {
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: economyWithEnemyAt(5, 5),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: () => false,
+        omniscient: true,
+      });
+      expect(snap.enemies).toHaveLength(1);
+    });
+
+    it('default (no probe, omniscient unset) keeps cheat-mode global view', () => {
+      // Backwards-compat: callers that don't supply visibility get the
+      // pre-Phase-6.B behavior unchanged.
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: economyWithEnemyAt(5, 5),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+      });
+      expect(snap.enemies).toHaveLength(1);
+    });
+
+    it('shows buildings visible only at a far footprint corner (any-cell rule)', () => {
+      // Codex Phase-6.B impl-1 MED: a 4x4 castle anchored at (5,5)
+      // with only cell (8,5) visible should still surface — the
+      // renderer + target selection use the same any-cell rule, so
+      // the snapshot must too.
+      const economy = makeEconomy({
+        buildings: [
+          {
+            id: 200,
+            owner: 1,
+            buildingType: 'castle',
+            x: 5,
+            y: 5,
+            footprintWidth: 4,
+            footprintHeight: 4,
+            isComplete: true,
+            buildProgressTicks: 0,
+            totalBuildTicks: 0,
+            populationProvided: 0,
+            queue: [],
+          },
+        ] as unknown as EconomyState['buildings'],
+      });
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy,
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: (_owner, x, y) => x === 8 && y === 5,
+      });
+      expect(snap.enemies).toHaveLength(1);
+      expect(snap.enemies[0]!.entityId).toBe(200);
+    });
+
+    it('omits a fully-fogged building (no footprint cell visible)', () => {
+      const economy = makeEconomy({
+        buildings: [
+          {
+            id: 201,
+            owner: 1,
+            buildingType: 'castle',
+            x: 5,
+            y: 5,
+            footprintWidth: 4,
+            footprintHeight: 4,
+            isComplete: true,
+            buildProgressTicks: 0,
+            totalBuildTicks: 0,
+            populationProvided: 0,
+            queue: [],
+          },
+        ] as unknown as EconomyState['buildings'],
+      });
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy,
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: () => false,
+      });
+      expect(snap.enemies).toEqual([]);
+    });
+
+    it('passes Math.floor(x), Math.floor(y) to the probe (sub-cell unit positions)', () => {
+      const probeCalls: Array<[number, number, number]> = [];
+      const snap = buildAgentSnapshot({
+        ownerId: 2,
+        tick: 0,
+        tps: 50,
+        economy: economyWithEnemyAt(5.7, 9.3),
+        selection: makeSelection(),
+        screenMapping: SCREEN,
+        visibility: (owner, x, y) => {
+          probeCalls.push([owner, x, y]);
+          return false;
+        },
+      });
+      expect(probeCalls).toEqual([[2, 5, 9]]);
+      expect(snap.enemies).toEqual([]);
+    });
+  });
+
   // Phase-6.A.2 schema-drift guard.
   describe('schema drift detection', () => {
     function tryBuild(economy: Partial<EconomyState>): unknown {

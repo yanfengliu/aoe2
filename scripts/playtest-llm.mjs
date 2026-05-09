@@ -44,6 +44,10 @@ function parseArgs(argv) {
     provider: null, // null = auto-detect
     useDevServer: false,
     noScreenshot: false,
+    // Phase-6.B (impl-2 M7): default false → enemies are visibility-
+    // filtered. Pass --omniscient to revert to cheat-mode global view
+    // (the corpus's smoke baseline row sets this).
+    omniscient: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -64,6 +68,7 @@ function parseArgs(argv) {
     }
     else if (a === '--use-dev-server') args.useDevServer = true;
     else if (a === '--no-screenshot') args.noScreenshot = true;
+    else if (a === '--omniscient') args.omniscient = true;
     else if (a.startsWith('--')) {
       console.error(`playtest-llm: unknown argument '${a}'`);
       process.exit(2);
@@ -230,7 +235,8 @@ async function startServer(useDev) {
   throw new Error(`Server never started.\nstderr:\n${stderr}`);
 }
 
-async function makePlaywrightHost(page) {
+async function makePlaywrightHost(page, hostOptions = {}) {
+  const omniscient = !!hostOptions.omniscient;
   return {
     async waitForBoot() {
       // Assert both isBooted AND the agent sub-surface — defends
@@ -253,7 +259,13 @@ async function makePlaywrightHost(page) {
       return await page.evaluate(() => window.__AOE2_TEST__.getRenderState().tick);
     },
     async snapshotForAgent(ownerId) {
-      return await page.evaluate((id) => window.__AOE2_TEST__.agent.snapshotForAgent(id), ownerId);
+      // Phase-6.B (impl-2 M7): forward host-level omniscient flag so
+      // the snapshot honors visibility-gating per the corpus row /
+      // CLI flag.
+      return await page.evaluate(
+        ([id, opts]) => window.__AOE2_TEST__.agent.snapshotForAgent(id, opts),
+        [ownerId, { omniscient }],
+      );
     },
     async captureScreenshot() {
       const bbox = await page.evaluate(() => window.__AOE2_TEST__.agent.getCanvasBboxForScreenshot());
@@ -379,7 +391,7 @@ async function main() {
       historyWindow: 5,
     });
 
-    const host = await makePlaywrightHost(page);
+    const host = await makePlaywrightHost(page, { omniscient: args.omniscient });
 
     // Stream trace as we go so a crash mid-run still leaves partial data.
     const traceFilePath = `${args.out}.llm-trace.jsonl`;

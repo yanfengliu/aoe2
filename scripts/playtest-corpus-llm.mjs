@@ -138,6 +138,9 @@ for (const run of corpus.runs) {
   if (run.decisionInterval) args.push('--decision-interval', String(run.decisionInterval));
   if (run.owners) args.push('--owners', run.owners.join(','));
   if (run.costBudgetUsd) args.push('--cost-budget', String(run.costBudgetUsd));
+  // Phase-6.B (impl-2 M7): forward omniscient (cheat-mode) when set.
+  // Default behavior is visibility-gated; rows must explicitly opt in.
+  if (run.omniscient) args.push('--omniscient');
 
   console.log(`[playtest-corpus-llm] running ${run.name}…`);
   const playR = spawnSync(npmBin, args, {

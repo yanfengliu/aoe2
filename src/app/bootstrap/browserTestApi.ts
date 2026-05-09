@@ -54,6 +54,10 @@ interface BrowserTestBridge {
   setAgentDispatchObserver: (
     observer: import('../../game/simulation/dispatcher').AgentDispatchObserver | null,
   ) => void;
+  // Phase-6.B (impl-2 M7): per-owner visibility probe used by the
+  // agent snapshot's enemy-filtering path. Pure pass-through to the
+  // engine's VisibilityMap.
+  isCellVisibleForOwner: (ownerId: number, x: number, y: number) => boolean;
 }
 
 export interface BrowserTestSnapshot {
@@ -93,11 +97,12 @@ export interface AgentDispatchEventLog {
 export interface BrowserTestAgentApi {
   /** Bounded state view shaped for prompt-token efficiency.
    *  See `docs/threads/current/llm-agent-playtest/DESIGN.md` §1.
-   *  Note (impl-1 H3): `enemies` is global ground-truth, NOT
-   *  visibility-filtered — Phase-6 follow-up will add per-owner fog
-   *  filtering. The current snapshot is intentionally cheat-mode for
-   *  the single-LLM-vs-passive-human smoke baseline. */
-  snapshotForAgent(ownerId: number): AgentStateSnapshot;
+   *  Phase-6.B (impl-2 M7): `enemies` is filtered by per-owner
+   *  visibility (engine `VisibilityMap`) by default. Pass
+   *  `{omniscient: true}` to revert to cheat-mode global ground-truth
+   *  — appropriate for a single-LLM-vs-passive-human smoke baseline
+   *  where fog isn't meaningful. */
+  snapshotForAgent(ownerId: number, options?: { omniscient?: boolean }): AgentStateSnapshot;
   /** On-page canvas bounding box in CSS pixels. The runner calls
    *  `page.screenshot({ clip: bbox })` with this. */
   getCanvasBboxForScreenshot(): { x: number; y: number; width: number; height: number };
@@ -350,7 +355,10 @@ function makeAgentApi(
   }
 
   return {
-    snapshotForAgent: (ownerId: number): AgentStateSnapshot => {
+    snapshotForAgent: (
+      ownerId: number,
+      options?: { omniscient?: boolean },
+    ): AgentStateSnapshot => {
       scene.syncFromBridge(true);
       const bridge = getBridge();
       const economy = bridge.getEconomyState();
@@ -386,6 +394,15 @@ function makeAgentApi(
           if (pt) worldToScreenSamples.push({ cellX: cx, cellY: cy, pixelX: pt.x, pixelY: pt.y });
         }
       }
+      // Phase-6.B (impl-2 M7): per-owner visibility probe via the
+      // bridge's new isCellVisibleForOwner. Pure pass-through to the
+      // engine's VisibilityMap; combined with `omniscient` flag in
+      // buildAgentSnapshot to honor the cheat-mode cap.
+      const visibility = (
+        probeOwnerId: number,
+        x: number,
+        y: number,
+      ): boolean => bridge.isCellVisibleForOwner(probeOwnerId, x, y);
       return buildAgentSnapshot({
         ownerId,
         tick: renderTick,
@@ -397,6 +414,8 @@ function makeAgentApi(
           pixelBbox: canvasRect,
           worldToScreen: worldToScreenSamples,
         },
+        visibility,
+        omniscient: options?.omniscient ?? false,
       });
     },
 

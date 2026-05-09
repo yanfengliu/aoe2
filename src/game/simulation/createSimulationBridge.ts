@@ -107,6 +107,14 @@ export interface SimulationBridge {
   // The HUD polls this every update frame and renders a toast with the
   // returned copy. Returns `null` when no rejection is pending.
   consumeCommandRejection(): string | null;
+  // Phase-6.B: single-cell visibility probe for the LLM-agent harness.
+  // Returns true if cell (x,y) is currently visible to ownerId. Pure
+  // pass-through to the engine's VisibilityMap.isVisible. The agent
+  // snapshot composes this into a footprint walk for buildings (any
+  // cell in the building's footprint visible → building included)
+  // and a single-cell check for units, matching the renderer +
+  // target-selection any-cell convention.
+  isCellVisibleForOwner(ownerId: number, x: number, y: number): boolean;
   // LLM-agent harness (Phase 1.B): the in-place pendingCommands queue
   // the in-game AI pushes intentions onto. Exposed publicly so
   // `__AOE2_TEST__.agent.dispatchAgentCommand` can shape-validate +
@@ -348,6 +356,9 @@ export function createSimulationBridge(
     },
     setPaused(paused: boolean) {
       pauseState.pausedManually = paused;
+    },
+    isCellVisibleForOwner(ownerId: number, x: number, y: number): boolean {
+      return visibility.isVisible(ownerId, x, y);
     },
     getSelectedEntityRefs,
     // Spec 2 AO-2 (impl-1 review fix): return void per DESIGN §7 contract.

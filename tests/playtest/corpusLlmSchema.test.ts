@@ -89,4 +89,40 @@ describe('parseCorpusLlmFile', () => {
       ),
     ).toThrow(/costBudgetUsd/);
   });
+
+  // Phase-6.B (impl-2 M7): omniscient field is optional, must be a boolean.
+  it('preserves omniscient when set true', () => {
+    const out = parseCorpusLlmFile(
+      JSON.stringify({
+        runs: [{ name: 'a', seed: 's', maxTicks: 1, omniscient: true }],
+      }),
+    );
+    expect(out.runs[0]).toMatchObject({ omniscient: true });
+  });
+
+  it('preserves omniscient when set false', () => {
+    const out = parseCorpusLlmFile(
+      JSON.stringify({
+        runs: [{ name: 'a', seed: 's', maxTicks: 1, omniscient: false }],
+      }),
+    );
+    expect(out.runs[0]).toMatchObject({ omniscient: false });
+  });
+
+  it('omits omniscient from the parsed row when absent', () => {
+    const out = parseCorpusLlmFile(
+      JSON.stringify({ runs: [{ name: 'a', seed: 's', maxTicks: 1 }] }),
+    );
+    expect(out.runs[0]).not.toHaveProperty('omniscient');
+  });
+
+  it('rejects non-boolean omniscient', () => {
+    expect(() =>
+      parseCorpusLlmFile(
+        JSON.stringify({
+          runs: [{ name: 'a', seed: 's', maxTicks: 1, omniscient: 'true' }],
+        }),
+      ),
+    ).toThrow(/omniscient/);
+  });
 });

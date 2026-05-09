@@ -15,26 +15,58 @@ const MAX_SELECTION_ENTRIES = 16;
 const MAX_QUEUED_PRODUCTION_ENTRIES = 64;
 const MAX_QUEUE_LENGTH_PER_BUILDING = 16;
 
+// Phase-6.B (impl-2 M7): visibility predicate signature. Returns true
+// if `ownerId` can currently see cell (x,y). When the predicate is
+// undefined OR `omniscient: true` is passed to buildAgentSnapshot, the
+// snapshot reverts to global ground-truth (intentional cheat-mode for
+// the smoke baseline — the LLM is the only active player, fog isn't
+// meaningful). When provided, `enemiesFor` filters out enemies whose
+// footprint sits entirely in fog so the LLM doesn't get a free scout.
+export type VisibilityProbe = (ownerId: number, x: number, y: number) => boolean;
+
+// Multi-cell footprint visibility: true if ANY cell of the
+// (anchorX, anchorY, w, h) rectangle is visible to ownerId. Mirrors
+// the engine's `isFootprintVisible` semantics from
+// `src/game/simulation/bridge/pureHelpers.ts` so a building visible
+// only at a far footprint corner still surfaces in the snapshot —
+// the renderer + target selection use the same any-cell rule, and
+// the LLM context would otherwise be inconsistent with what the
+// screenshot shows (Codex impl-1 MED: building anchor-only check).
+function isFootprintVisible(
+  visibility: VisibilityProbe,
+  ownerId: number,
+  anchorX: number,
+  anchorY: number,
+  width: number,
+  height: number,
+): boolean {
+  const fx = Math.floor(anchorX);
+  const fy = Math.floor(anchorY);
+  for (let dy = 0; dy < height; dy += 1) {
+    for (let dx = 0; dx < width; dx += 1) {
+      if (visibility(ownerId, fx + dx, fy + dy)) return true;
+    }
+  }
+  return false;
+}
+
 // Enemies = units / buildings with `owner !== ownerId`, capped.
-// IMPORTANT: this is global ground-truth, NOT visibility-filtered.
-// `EconomyState` (built by `economyStateOps.ts`) iterates the world
-// directly without a fog-of-war predicate, so the snapshot leaks
-// hidden enemy positions. Acceptable for the single-LLM-vs-passive-
-// human smoke baseline (the LLM is the only active player; "fog" is
-// not meaningful), and the multimodal screenshot the LLM also receives
-// is fog-respecting so the visual signal is correct. Per-owner
-// visibility-gating is a Phase-6 follow-up: see DESIGN.md
-// "Phase-6 follow-ups". impl-1 H3 (Claude).
+// When `visibility` is provided, filtered by per-cell (units) or
+// per-footprint (buildings) visibility; when undefined, the cheat-
+// mode global view is preserved (impl-1 H3 rationale).
 function enemiesFor(
   ownerId: number,
   economy: EconomyState,
   cap: number,
+  visibility?: VisibilityProbe,
 ): AgentEntitySummary[] {
   const seen = new Set<number>();
   const out: AgentEntitySummary[] = [];
   for (const u of economy.units) {
     if (u.owner === ownerId) continue;
     if (seen.has(u.id)) continue;
+    // Units are 1x1 footprints — single-cell probe suffices.
+    if (visibility && !visibility(ownerId, Math.floor(u.x), Math.floor(u.y))) continue;
     seen.add(u.id);
     out.push({ entityId: u.id, ownerId: u.owner, kind: u.unitType, position: { x: u.x, y: u.y } });
     if (out.length >= cap) return out;
@@ -42,6 +74,19 @@ function enemiesFor(
   for (const b of economy.buildings) {
     if (b.owner === ownerId) continue;
     if (seen.has(b.id)) continue;
+    // Buildings span multiple cells — visible if ANY footprint cell
+    // is visible (matches engine renderer + target selection rules).
+    if (
+      visibility
+      && !isFootprintVisible(
+        visibility,
+        ownerId,
+        b.x,
+        b.y,
+        b.footprintWidth,
+        b.footprintHeight,
+      )
+    ) continue;
     seen.add(b.id);
     out.push({ entityId: b.id, ownerId: b.owner, kind: b.buildingType, position: { x: b.x, y: b.y } });
     if (out.length >= cap) return out;
@@ -146,6 +191,14 @@ export interface AgentSnapshotInputs {
   economy: EconomyState;
   selection: SelectionState;
   screenMapping: AgentScreenMapping;
+  // Phase-6.B (impl-2 M7): per-owner visibility probe + opt-in
+  // omniscient (cheat-mode) flag. When `omniscient: true` (default
+  // false) or `visibility` is undefined, `enemies` is global
+  // ground-truth — appropriate for single-LLM-vs-passive-human smoke
+  // baselines. Otherwise enemies are filtered through the probe so
+  // fog-shrouded units/buildings don't leak.
+  visibility?: VisibilityProbe;
+  omniscient?: boolean;
 }
 
 // Phase-6.A.2 (impl-2 M2): fail loud when the EconomyState shape that
@@ -195,14 +248,19 @@ function assertEconomyShape(economy: EconomyState): void {
 }
 
 export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnapshot {
-  const { ownerId, tick, tps, economy, selection, screenMapping } = inputs;
+  const { ownerId, tick, tps, economy, selection, screenMapping, visibility, omniscient } = inputs;
   assertEconomyShape(economy);
+  // omniscient=true short-circuits the visibility filter so the enemy
+  // list reverts to global ground-truth (cheat-mode for the smoke
+  // baseline). When false (default) AND a probe is provided, enemies
+  // get fog-filtered.
+  const enemyVisibility = omniscient ? undefined : visibility;
   return {
     tick,
     elapsedMmSs: elapsedMmSs(tick, tps),
     perPlayer: perPlayerStates(economy),
     selection: summarizeSelection(selection, MAX_SELECTION_ENTRIES),
-    enemies: enemiesFor(ownerId, economy, MAX_ENEMIES),
+    enemies: enemiesFor(ownerId, economy, MAX_ENEMIES, enemyVisibility),
     queuedProduction: queuedProductionOf(economy),
     screenMapping,
   };
