@@ -37,9 +37,20 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
       // Probe order: error -> engineHalt -> stopWhen -> maxTicks
       if (recorder.lastError) {
         stopReason = recorder.lastError instanceof SinkWriteError ? 'sinkError' : 'recorderError';
-        const errDetails = recorder.lastError.details as { code?: string } | undefined;
-        errorCode = errDetails?.code ?? recorder.lastError.name;
+        const rawDetails = recorder.lastError.details;
+        const errDetails =
+          rawDetails !== null
+          && typeof rawDetails === 'object'
+          && !Array.isArray(rawDetails)
+            ? (rawDetails as Record<string, unknown>)
+            : undefined;
+        errorCode = (errDetails?.code as string | undefined) ?? recorder.lastError.name;
         errorMessage = recorder.lastError.message;
+        // Surface the error's structured details to REPORT.md so sink
+        // failures (e.g., FileSink path / errno) carry diagnosis context.
+        if (errDetails) {
+          details = errDetails as OracleEnvelope['details'];
+        }
         break;
       }
 

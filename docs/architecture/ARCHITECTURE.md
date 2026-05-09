@@ -19,10 +19,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
       drives a bridge-driven recording loop (attaches `SessionRecorder`
       to `bridge.world` directly, distinct from the live-game
-      `RecordingService`); `oracles.ts` hosts pure gameplay-correctness
-      oracles consumed by `scripts/run-oracles.mjs`. CLI entry points
-      live under `scripts/playtest*.mjs`. The playtest runner is a third
-      runtime mode alongside live and replay: it constructs a normal
+      `RecordingService`). The CLI entry point is `scripts/playtest.mjs`
+      (run via `npm run playtest`). The playtest runner is a third runtime
+      mode alongside live and replay: it constructs a normal
       `SimulationBridge` via `createSimulationBridge`, then attaches its
       own `SessionRecorder` directly to `bridge.world` — bypassing
       `RecordingService` (which is for live-human sessions only per
@@ -32,8 +31,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       listeners as live mode. This is why `runAgentPlaytest` is unsuitable
       here — it would replace the bridge's command-submission path with a
       `decide()` callback, but aoe2's AI lives inside `world.step` and
-      pushes intentions to a side queue the bridge drains externally.
-      See `docs/threads/done/playtest-loop/DESIGN.md`.
+      pushes intentions to a side queue the bridge drains externally. The
+      thread that owns this surface ships a multi-phase loop (Phase 1:
+      runner + envelope; Phase 2: gameplay oracles; Phase 3: fix-bot;
+      Phase 4: corpus runner; Phase 5: CI workflow); only Phase 1 is
+      currently shipped. See `docs/threads/current/playtest-loop/DESIGN.md`.
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
       replay bridge, coalesces drag scrubs, exposes the current replay bundle

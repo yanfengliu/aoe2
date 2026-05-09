@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Playtest CLI: runs runPlaytest with given args, writes bundle + envelope.
-// Requires Node >=22.6.0 (uses --experimental-strip-types for .ts imports).
+// Run via `tsx scripts/playtest.mjs` (set up by the `npm run playtest` script
+// in package.json). tsx handles TypeScript module resolution at runtime so
+// this .mjs file can import .ts modules directly.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
