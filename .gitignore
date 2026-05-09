@@ -151,3 +151,6 @@ tmp/
 
 # Brainstorming visual companion (skill state, transient mockups)
 .superpowers/
+
+# Playtest loop outputs (bundles, envelopes, oracle reports, fix proposals, corpus summaries)
+output/
