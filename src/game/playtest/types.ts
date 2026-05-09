@@ -111,3 +111,101 @@ export interface AgentStateSnapshot {
 export type CommandDispatchResult<K extends string = string> =
   | { accepted: true; commandKind: K; normalized: Record<string, unknown> }
   | { accepted: false; reason: 'unknown-kind' | 'malformed-payload' | 'wrong-owner-range'; details?: string };
+
+// LLM agent core (Phase 2). LlmProvider abstracts over the actual LLM
+// backend (Anthropic SDK, mock, or future providers). The agent's
+// decide() call goes through this seam so tests can drive without the
+// real API.
+
+export interface LlmTextBlock {
+  type: 'text';
+  text: string;
+}
+export interface LlmImageBlock {
+  type: 'image';
+  // Base64-encoded image (PNG). The provider impl may transform this
+  // into the SDK's preferred shape (Anthropic SDK uses
+  // { type: 'image', source: { type: 'base64', media_type, data } }).
+  base64: string;
+  mediaType: 'image/png' | 'image/jpeg';
+}
+export interface LlmToolUseBlock {
+  type: 'tool_use';
+  toolName: string;
+  toolInput: Record<string, unknown>;
+}
+export type LlmContentBlock = LlmTextBlock | LlmImageBlock | LlmToolUseBlock;
+
+export interface LlmMessage {
+  role: 'user' | 'assistant';
+  content: LlmContentBlock[];
+}
+
+export interface LlmToolSchema {
+  // Tool name (Anthropic restricts to ^[a-zA-Z0-9_-]+$).
+  name: string;
+  description: string;
+  inputSchema: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+export interface LlmCallOptions {
+  model: string;
+  systemPrompt: string;
+  messages: LlmMessage[];
+  tools: LlmToolSchema[];
+  maxOutputTokens: number;
+}
+
+export interface LlmCallResult {
+  content: LlmContentBlock[];
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+}
+
+export interface LlmProvider {
+  call(options: LlmCallOptions): Promise<LlmCallResult>;
+}
+
+export interface LlmCostTable {
+  // Per-model { inputUsdPerMTok, outputUsdPerMTok }. The agent looks
+  // up rates here to compute per-call costUsd. Defaults match published
+  // Anthropic pricing as of 2026-05; bump when prices change.
+  [model: string]: { inputUsdPerMTok: number; outputUsdPerMTok: number };
+}
+
+export const DEFAULT_LLM_COST_TABLE: LlmCostTable = {
+  'claude-sonnet-4-6': { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
+  'claude-opus-4-7': { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
+};
+
+// Agent decision returned per decide() call. The runner drains this
+// into `<out>.llm-trace.json` and dispatches each command via
+// __AOE2_TEST__.agent.dispatchAgentCommand.
+
+export interface AgentStrategyRefresh {
+  strategy: string;
+  targetAge: 'feudal-age' | 'castle-age' | 'imperial-age';
+  targetUnitMix: string;
+}
+
+export interface AgentDecisionCommand {
+  type: string; // keyof GameCommands
+  data: Record<string, unknown>;
+}
+
+export type AgentStopReason = 'normal' | 'cost-budget-exceeded';
+
+export interface AgentDecision {
+  thought: string;
+  commands: AgentDecisionCommand[];
+  strategyRefresh?: AgentStrategyRefresh;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  stopReason: AgentStopReason;
+}
