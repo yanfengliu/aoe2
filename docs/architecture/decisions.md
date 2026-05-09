@@ -251,3 +251,16 @@ Consequences:
 - The fixed timeline panel reserves bottom viewport space through CSS while visible, keeping the playfield and bottom HUD from overlapping the panel across desktop and mobile viewports.
 - Replay hotkeys do not claim browser defaults in live mode, but they do prevent default page scroll/button activation when they are active replay controls.
 - No-command-payload bundles keep forward/play/end controls and unreachable pins inert at the UI layer, matching `ReplayController`'s intentional refusal to advance such bundles beyond the initial tick.
+
+## KAD-0015 - Playtest runner uses bridge.step() rather than runAgentPlaytest
+
+aoe2's AI is registered as an ECS system inside `world.step()` that pushes intentions to a bridge-owned `pendingCommands` queue drained between ticks via `dispatcher.drainPendingCommands(world, queue)`. `runAgentPlaytest`'s `decide(ctx)` callback contract assumes the agent RETURNS commands; it does not drain a side queue. Wrapping the existing AI as an `AgentDriver` would require either a major refactor (extract planner from bridge) or a brittle bridge-internals leak.
+
+The bridge-driven recording loop in `src/game/playtest/runPlaytest.ts` reuses the existing `drainPendingCommands` flow unchanged: it constructs a normal `SimulationBridge` via `createSimulationBridge`, attaches its own `SessionRecorder` directly to `bridge.world`, and calls `bridge.step(100)` each tick. The recorder hooks the same diff/execution/failure listeners as live mode.
+
+Consequences:
+
+- The playtest runner is a third runtime mode alongside live (RecordingService) and replay (ReplayController) — distinct from both at the recording-attachment layer.
+- Single-AI vs passive-human is the smoke baseline because aiSystem hard-codes `humanPlayerId` as the enemy target; true AI-vs-AI requires an opponent-selection refactor that's filed as a Phase-6 follow-up of the playtest-loop thread.
+- The probe order inside the loop (`error → engineHalt → stopWhen → maxTicks`) reflects the bridge's `tickHaltGuard` swallowing system throws into `haltState.halted` without rethrowing; the runner polls `bridge.getHudState().engineHalted` each tick to surface those.
+

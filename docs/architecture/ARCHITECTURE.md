@@ -16,6 +16,24 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     there is no separate dev HTTP server.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
+    - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
+      drives a bridge-driven recording loop (attaches `SessionRecorder`
+      to `bridge.world` directly, distinct from the live-game
+      `RecordingService`); `oracles.ts` hosts pure gameplay-correctness
+      oracles consumed by `scripts/run-oracles.mjs`. CLI entry points
+      live under `scripts/playtest*.mjs`. The playtest runner is a third
+      runtime mode alongside live and replay: it constructs a normal
+      `SimulationBridge` via `createSimulationBridge`, then attaches its
+      own `SessionRecorder` directly to `bridge.world` — bypassing
+      `RecordingService` (which is for live-human sessions only per
+      ADR 3 in `RecordingService.ts`). The loop calls `bridge.step(100)`
+      each tick so the bridge's internal `drainPendingCommands` flow runs
+      unchanged; the recorder hooks the same diff/execution/failure
+      listeners as live mode. This is why `runAgentPlaytest` is unsuitable
+      here — it would replace the bridge's command-submission path with a
+      `decide()` callback, but aoe2's AI lives inside `world.step` and
+      pushes intentions to a side queue the bridge drains externally.
+      See `docs/threads/done/playtest-loop/DESIGN.md`.
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
       replay bridge, coalesces drag scrubs, exposes the current replay bundle

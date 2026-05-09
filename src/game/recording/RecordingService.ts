@@ -11,8 +11,9 @@
 // exportPriorSession(id) for inspection / refresh recovery.
 //
 // Per ADR 3: this service is for the LIVE human-driven world only.
-// Agents driving aoe2 use civ-engine's runAgentPlaytest, which owns
-// its own SessionRecorder.
+// Headless playtest agents go through `scripts/playtest.mjs`, which
+// runs its own SessionRecorder externally against `bridge.world`. See
+// docs/threads/done/playtest-loop/DESIGN.md.
 
 import {
   MemorySink,
