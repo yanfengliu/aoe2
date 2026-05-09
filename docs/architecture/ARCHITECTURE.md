@@ -19,9 +19,18 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
       drives a bridge-driven recording loop (attaches `SessionRecorder`
       to `bridge.world` directly, distinct from the live-game
-      `RecordingService`). The CLI entry point is `scripts/playtest.mjs`
-      (run via `npm run playtest`). The playtest runner is a third runtime
-      mode alongside live and replay: it constructs a normal
+      `RecordingService`); `oracles.ts` hosts pure
+      gameplay-correctness oracles (match-completes, no-tick-failures,
+      no-perf-regression, no-pinned-or-oscillating-units) consumed by
+      `scripts/run-oracles.mjs`; `positionReplay.ts` reconstructs unit
+      positions tick-by-tick from initial snapshot + diffs; `fixBotPrompt.ts`
+      builds the prompt for `scripts/propose-fix.mjs` (Codex / Claude
+      shell-out, propose-only via `git apply --check`); `corpusSchema.ts`
+      validates `playtest-corpus.json` for `scripts/playtest-corpus.mjs`,
+      which loops the runner + oracles per row and emits
+      `output/corpus/<date>/SUMMARY.md`. CI runs the corpus on PR + main
+      via `.github/workflows/playtest.yml`. The playtest runner is a third
+      runtime mode alongside live and replay: it constructs a normal
       `SimulationBridge` via `createSimulationBridge`, then attaches its
       own `SessionRecorder` directly to `bridge.world` — bypassing
       `RecordingService` (which is for live-human sessions only per
@@ -31,11 +40,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       listeners as live mode. This is why `runAgentPlaytest` is unsuitable
       here — it would replace the bridge's command-submission path with a
       `decide()` callback, but aoe2's AI lives inside `world.step` and
-      pushes intentions to a side queue the bridge drains externally. The
-      thread that owns this surface ships a multi-phase loop (Phase 1:
-      runner + envelope; Phase 2: gameplay oracles; Phase 3: fix-bot;
-      Phase 4: corpus runner; Phase 5: CI workflow); only Phase 1 is
-      currently shipped. See `docs/threads/current/playtest-loop/DESIGN.md`.
+      pushes intentions to a side queue the bridge drains externally.
+      Phase-6 follow-ups (per the thread): real `economy-progression`
+      oracle via `SessionReplayer.stateAtTick`; auto-apply patches with
+      green-gates check; counterfactual fix-validation via
+      `SessionReplayer.forkAt`; cross-corpus regression detection; AI-vs-AI
+      via opponent-selection refactor.
+      See `docs/threads/current/playtest-loop/DESIGN.md`.
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
       replay bridge, coalesces drag scrubs, exposes the current replay bundle

@@ -135,6 +135,7 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
     // Oscillating / pinned-with-diffs case: slide a window through the
     // events; report when net Manhattan progress within the window is below
     // minProgress.
+    let firedSliding = false;
     for (let i = 0; i < events.length; i++) {
       const start = events[i]!.tick;
       const end = start + window;
@@ -150,8 +151,33 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
             + ` over ticks ${start}..${end}`,
           details: { entity, windowStart: start, windowEnd: end, progress },
         });
+        firedSliding = true;
         break;
       }
+    }
+    if (firedSliding) continue;
+
+    // Tail-pinned case: the unit had multiple movements but became stuck
+    // after its last position event with no further diffs through endTick.
+    // Catches the "moved once, then got stuck" failure mode that the
+    // sliding-window loop misses (its termination condition stops at the
+    // last event, so a long stationary tail past it is invisible).
+    const last = events[events.length - 1]!;
+    if (endTick - last.tick >= window) {
+      violations.push({
+        oracle: 'no-pinned-or-oscillating-units',
+        severity: 'medium',
+        tick: last.tick,
+        message:
+          `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y})`
+          + ` for ${endTick - last.tick} ticks after tick ${last.tick}`,
+        details: {
+          entity,
+          sinceTick: last.tick,
+          durationTicks: endTick - last.tick,
+          position: last.pos,
+        },
+      });
     }
   }
   return violations;

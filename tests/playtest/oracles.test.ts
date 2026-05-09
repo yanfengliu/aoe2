@@ -318,6 +318,37 @@ describe('no-pinned-or-oscillating-units oracle', () => {
     expect(violations[0]!.details).toMatchObject({ entity: 1, position: { x: 5, y: 5 } });
   });
 
+  it('fires when a unit moved early then stayed put (tail-pinned)', () => {
+    // Unit moves at tick 1 then never again through endTick=200.
+    const bundle = makeMinimalBundle({
+      initialSnapshotComponents: {
+        position: [[1, { x: 0, y: 0 }]],
+        unit: [[1, { unitType: 'villager', owner: 1 }]],
+      },
+      ticks: [
+        {
+          tick: 1,
+          diff: diffWithPosition(1, 1, { x: 1, y: 0 }),
+          events: [],
+          metrics: null,
+          debug: null,
+        },
+        ...Array.from({ length: 199 }, (_, i) => ({
+          tick: i + 2,
+          diff: emptyDiff(i + 2),
+          events: [],
+          metrics: null,
+          debug: null,
+        })),
+      ] as unknown as SessionBundle['ticks'],
+      endTick: 200,
+    });
+    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
+      (v) => v.oracle === 'no-pinned-or-oscillating-units',
+    );
+    expect(violations.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('does not fire on stationary buildings/resources/terrain (no unit component)', () => {
     const bundle = makeMinimalBundle({
       // Only position, no unit — represents terrain/resource/building.

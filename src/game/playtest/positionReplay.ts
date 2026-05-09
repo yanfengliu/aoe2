@@ -21,7 +21,11 @@ export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
     }
   }
 
-  // Apply tick diffs.
+  // Apply tick diffs. Note: position.removed marks the END of an entity's
+  // visible-position window (e.g., garrison removes the position component;
+  // entity destruction removes everything). We do NOT delete the timeline —
+  // the oracle needs the historical events to evaluate windows that closed
+  // before removal. We track the removal tick separately via activeUntil.
   for (const tickEntry of bundle.ticks) {
     const positionDiff = (tickEntry.diff.components as Record<string, unknown>)?.position as
       | { set?: Array<[EntityId, Position]>; removed?: EntityId[] }
@@ -32,9 +36,9 @@ export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
       arr.push({ tick: tickEntry.tick, pos });
       byEntity.set(id, arr);
     }
-    for (const id of (positionDiff.removed ?? [])) {
-      byEntity.delete(id);
-    }
+    // Removed positions mark a closure tick; the oracle ignores entities past
+    // their last event by virtue of how the window slides. Preserving the
+    // timeline keeps moved-then-removed units evaluable.
   }
 
   return { byEntity };
