@@ -2,8 +2,9 @@
 // LLM-corpus runner. Loops `playtest:llm` over playtest-corpus-llm.json
 // rows; aggregates SUMMARY-LLM.md with cost rollup; prunes old runs.
 //
-// Skipped cleanly (exit 0) when ANTHROPIC_API_KEY is absent — design
-// Codex MED4. CI's playtest-llm.yml workflow guards at the job level
+// Skipped cleanly (exit 0) when no LLM provider is reachable — neither
+// the `claude` CLI (subscription auth) nor ANTHROPIC_API_KEY (API auth)
+// is available. CI's playtest-llm.yml workflow guards at the job level
 // too; this is a defense-in-depth runtime check.
 //
 // Run via `tsx scripts/playtest-corpus-llm.mjs` (set up by
@@ -12,14 +13,38 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { parseCorpusLlmFile } from '../src/game/playtest/corpusLlmSchema.ts';
-
-if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '') {
-  console.log('[playtest-corpus-llm] skipped: ANTHROPIC_API_KEY env var is absent.');
-  process.exit(0);
-}
+import { resolveClaudeBinary } from '../src/game/playtest/llmProviders/index.ts';
 
 const useShell = process.platform === 'win32';
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+// Detect whether the claude-code provider can actually spawn claude
+// from this Node process — Codex impl-1 MED 3. resolveClaudeBinary
+// returns null on Windows if only the .cmd shim is on PATH (no .exe).
+function canSpawnClaude() {
+  const resolved = resolveClaudeBinary('claude');
+  if (resolved === null) return false;
+  try {
+    const r = spawnSync(resolved, ['--version'], {
+      stdio: 'pipe',
+      shell: false,
+      timeout: 5000,
+    });
+    return r.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+const apiKeySet = !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '';
+const claudeAvailable = canSpawnClaude();
+if (!apiKeySet && !claudeAvailable) {
+  console.log(
+    '[playtest-corpus-llm] skipped: no LLM provider available '
+      + '(install `claude` CLI or set ANTHROPIC_API_KEY).',
+  );
+  process.exit(0);
+}
 // Retention semantics: keep the most-recent N run-stems where one
 // stem = "${date}-${row.name}". For a corpus of K rows running once
 // per day, RETENTION_KEEP=K*5 retains 5 days. The default is sized

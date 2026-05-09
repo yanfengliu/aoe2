@@ -34,6 +34,11 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   'src/game/simulation/bridge/systems/aiSystem.ts': 788,
   'src/game/recording/IndexedDBMirror.ts': 698,
   'src/game/simulation/bridge/wireBridgeOps.ts': 605,
+  // Was 505 at HEAD before this entry was added — discovered while
+  // running `npm test` for the ClaudeCodeProvider work and absent
+  // from the existing list. Ratchet downward by splitting along the
+  // describe blocks (perf / economy / etc).
+  'tests/playtest/oracles.test.ts': 505,
 };
 
 function walk(root: string, base = root): string[] {

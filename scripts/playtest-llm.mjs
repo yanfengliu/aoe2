@@ -13,15 +13,22 @@
 //   --strategy-every <decisions> default 10
 //   --owners <csv>               default '2'
 //   --cost-budget <usd>          default 5.0
+//   --provider <claude-code|api> default 'claude-code' if `claude` CLI on
+//                                PATH, else 'api' if ANTHROPIC_API_KEY
+//                                set. Explicit value overrides detection.
 //   --use-dev-server             dev mode (vite); default uses vite preview
 //   --no-screenshot              disable screenshot capture (token-only mode)
 
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execSync, spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
 
-import { AnthropicProvider } from '../src/game/playtest/llmProviders.ts';
+import {
+  AnthropicProvider,
+  ClaudeCodeProvider,
+  resolveClaudeBinary,
+} from '../src/game/playtest/llmProviders/index.ts';
 import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
 import { runLlmPlaytest } from '../src/game/playtest/llmRunner.ts';
 
@@ -34,6 +41,7 @@ function parseArgs(argv) {
     strategyEvery: 10,
     owners: [2],
     costBudget: 5.0,
+    provider: null, // null = auto-detect
     useDevServer: false,
     noScreenshot: false,
   };
@@ -46,6 +54,14 @@ function parseArgs(argv) {
     else if (a === '--strategy-every') args.strategyEvery = Number(argv[++i]);
     else if (a === '--owners') args.owners = argv[++i].split(',').map(Number);
     else if (a === '--cost-budget') args.costBudget = Number(argv[++i]);
+    else if (a === '--provider') {
+      const v = argv[++i];
+      if (v !== 'claude-code' && v !== 'api') {
+        console.error(`playtest-llm: --provider must be 'claude-code' or 'api', got '${v}'`);
+        process.exit(2);
+      }
+      args.provider = v;
+    }
     else if (a === '--use-dev-server') args.useDevServer = true;
     else if (a === '--no-screenshot') args.noScreenshot = true;
     else if (a.startsWith('--')) {
@@ -54,6 +70,91 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+// Pick the provider. Explicit --provider wins. Otherwise:
+//   - claude-code if `claude` is on PATH
+//   - api if ANTHROPIC_API_KEY is set
+//   - fail loud otherwise.
+function selectProvider(args) {
+  if (args.provider === 'api') return makeApiProvider();
+  if (args.provider === 'claude-code') return makeClaudeCodeProvider(args);
+
+  const claudeAvailable = canSpawnClaude();
+  const apiKeySet = !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '';
+
+  if (claudeAvailable) return makeClaudeCodeProvider(args);
+  if (apiKeySet) return makeApiProvider();
+
+  console.error(
+    "playtest-llm: no LLM provider available. Install Claude Code (`claude` on PATH) "
+      + "or set ANTHROPIC_API_KEY for the API provider.",
+  );
+  process.exit(2);
+}
+
+function makeClaudeCodeProvider(args) {
+  // Defense-in-depth (Codex impl-2 M3): even on explicit --provider=
+  // claude-code, refuse early if the binary isn't actually spawnable
+  // (e.g., Windows .cmd-only install). Without this, the first real
+  // call falls through resolveClaudeBinary's null path and produces
+  // an opaque spawn error after the multi-minute build + browser boot.
+  if (!canSpawnClaude()) {
+    console.error(
+      'playtest-llm: --provider=claude-code requested, but `claude` is not spawnable from '
+        + 'this Node process. On Windows, the .exe shim must be on PATH (npm-global '
+        + '`.cmd` shims alone are insufficient because Node 22 rejects them via '
+        + 'CVE-2024-27980 mitigation).',
+    );
+    process.exit(2);
+  }
+  console.log('[playtest-llm] provider: claude-code (subscription auth via `claude` CLI)');
+  // Per-call cost shape (Claude impl-1 M1, Codex impl-2 M2):
+  // claude-code sessions carry ~15K-token cache_creation prelude per
+  // spawned process. Sonnet tactical calls: ~$0.10/call. Opus strategy
+  // refreshes (every Kth decision, default K=10): ~$0.30+/call.
+  // Effective per-decision cost ≈ tactical + (strategy / K) ≈ $0.13.
+  const tacticalCost = 0.1; // Sonnet 4.6 with ~15K cache_creation
+  const strategyCost = 0.3; // Opus 4.7 with ~15K cache_creation
+  const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
+  const expectedDecisions = Math.floor(args.costBudget / blendedCost);
+  console.log(
+    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (Sonnet tactical) or `
+      + `~$${strategyCost.toFixed(2)} (Opus strategy refresh, every ${args.strategyEvery}th decision) `
+      + `in notional API equivalent. With --cost-budget=$${args.costBudget.toFixed(2)} expect roughly `
+      + `${expectedDecisions} tactical decisions before the rolling-cost gate trips.`,
+  );
+  return new ClaudeCodeProvider();
+}
+
+function makeApiProvider() {
+  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '') {
+    console.error('playtest-llm: --provider=api requires ANTHROPIC_API_KEY env var.');
+    process.exit(2);
+  }
+  console.log('[playtest-llm] provider: api (Anthropic SDK with API key)');
+  return new AnthropicProvider();
+}
+
+// Detect whether the claude-code provider can actually spawn `claude`
+// from this Node process. Per Codex impl-1 MED 3, the runner cannot
+// rely on `claude --version` succeeding (which works via .cmd shims +
+// shell:true), because the provider spawns the .exe directly with
+// shell:false. We delegate to resolveClaudeBinary which returns null
+// on Windows when no .exe is found.
+function canSpawnClaude() {
+  const resolved = resolveClaudeBinary('claude');
+  if (resolved === null) return false;
+  try {
+    const r = spawnSync(resolved, ['--version'], {
+      stdio: 'pipe',
+      shell: false,
+      timeout: 5000,
+    });
+    return r.status === 0;
+  } catch {
+    return false;
+  }
 }
 
 const useShell = process.platform === 'win32';
@@ -225,10 +326,9 @@ async function main() {
   const args = parseArgs(process.argv);
   console.log('[playtest-llm] args:', args);
 
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '') {
-    console.error('playtest-llm: ANTHROPIC_API_KEY env var is required.');
-    process.exit(2);
-  }
+  // Provider selection runs FIRST so an unconfigured environment fails
+  // loud before we go through the multi-minute build + browser-launch.
+  const provider = selectProvider(args);
 
   // Hoist server + browser + cleanup BEFORE startServer so a SIGINT
   // arriving during the 30-second startup poll doesn't leak the
@@ -266,7 +366,6 @@ async function main() {
       `http://localhost:${PORT}/?seed=${encodeURIComponent(args.seed)}&disableAi=${ownerCsv}`,
     );
 
-    const provider = new AnthropicProvider();
     const agent = new LlmAgent({
       provider,
       ownerId: args.owners[0],
