@@ -1316,6 +1316,16 @@ The content pipeline should fail validation when:
 - a tech references an unknown target
 - duplicate canonical IDs are produced after normalization
 
+### 15.7 LLM-Agent Playtest Harness (Internal Tooling)
+
+The repo ships an LLM-agent playtest harness that drives the simulation through a Claude-based agent and checks for gameplay/visual regressions. The harness is internal tooling — it does not affect game rules — but its operator-visible mechanics are documented here so future autonomous handoffs know the surface.
+
+- **Provider selection.** The playtest runner (`scripts/playtest-llm.mjs`) auto-selects between two LLM providers: `claude-code` (subscription auth via the `claude` CLI; default when `claude` resolves to a `.exe` on PATH) and `api` (Anthropic SDK with `ANTHROPIC_API_KEY`). Explicit override via `--provider claude-code|api`.
+- **Snapshot visibility (Phase-6.B).** The agent's per-decision state snapshot filters enemy units/buildings through per-owner visibility by default. Buildings use the engine's any-cell-visible rule (consistent with the renderer + target selection); units use single-cell. `--omniscient` (or per-row `omniscient: true`) opts into cheat-mode global view — needed for smoke baselines that pre-date Phase-6.B.
+- **Post-hoc observation oracle (Phase-6.C.2).** `--observation` (or per-row `observation: true`) enables a single advisory LLM call after the run completes. The oracle examines the final-tick screenshot + a textual summary (decisions, ticks, cost, stop reason, rejection count, error) and emits `{verdict: 'looked-fun' | 'looked-broken' | 'inconclusive', notes: string}`. The verdict is appended to the run envelope as `observation`. **Advisory only** — does NOT affect CI exit codes; engineHalt remains the regression signal. The oracle's cost is rolled into `envelope.totalCostUsd` for accurate corpus rollups; the `observation.costUsd` field preserves the per-component breakdown. The oracle is skipped when the agent's rolling cost-budget gate already tripped (`stopReason='stopWhen'` + `errorMessage='cost-budget-exceeded'`).
+- **Cost-budget gate.** The agent's rolling cost-budget (`--cost-budget`, default $5) trips when notional API-equivalent cost crosses the cap. With Claude Code subscription, each call carries a ~15K-token cache_creation prelude (~$0.10/Sonnet, ~$0.30/Opus). Default budget allows ~38 decisions; bump for longer runs.
+- **Determinism caveat.** Bundles replay bit-exact, but re-querying the LLM on the same seed is non-deterministic even at temperature 0. Counterfactual fix-validation (Phase-6 deferred) acknowledges this: it samples N=3 runs and rejects a fix if any fails the regression check.
+
 ## 16. Acceptance Criteria, Non-Goals, and Next Steps
 
 ### 16.1 Acceptance Criteria

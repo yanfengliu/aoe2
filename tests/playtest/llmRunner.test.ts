@@ -123,6 +123,97 @@ function makeAgent(provider: MockProvider) {
 }
 
 describe('runLlmPlaytest', () => {
+  // Phase-6.C.2 (Codex impl-1 MED 1, impl-2 LOW): finalScreenshotPng
+  // must be the post-loop capture, not the last in-loop pre-advance
+  // capture. Verify by handing the runner a counter-returning
+  // captureScreenshot stub and asserting the result matches the
+  // LAST call (post-loop) rather than any earlier loop call.
+  it('returns the post-loop screenshot, not the pre-advance one from the last decision', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    let captureCount = 0;
+    host.captureScreenshot = async () => {
+      captureCount += 1;
+      return new Uint8Array([captureCount]);
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: true,
+      },
+    });
+    // 2 in-loop decisions + 1 post-loop = 3 total captures.
+    // result.finalScreenshotPng must reflect the LAST (3rd) call.
+    expect(captureCount).toBe(3);
+    expect(result.finalScreenshotPng).toEqual(new Uint8Array([3]));
+  });
+
+  // The post-loop capture is skipped when screenshots are disabled —
+  // the in-loop fallback is undefined in that case (no screenshot
+  // ever taken).
+  it('finalScreenshotPng is undefined when screenshotEnabled=false', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.finalScreenshotPng).toBeUndefined();
+  });
+
+  // On clean exit (maxTicks/stopWhen), a post-loop screenshot failure
+  // is real harness regression — surface as engineHalt rather than
+  // silently ship the stale in-loop screenshot to the oracle.
+  it('escalates a post-loop screenshot failure on clean exit to engineHalt', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    let callIdx = 0;
+    host.captureScreenshot = async () => {
+      callIdx += 1;
+      if (callIdx <= 2) return new Uint8Array([callIdx]); // in-loop captures
+      throw new Error('playwright disconnected'); // post-loop call
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: true,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.errorMessage).toMatch(/final-screenshot capture failed/);
+  });
+
   it('runs maxTicks worth of decisions and returns a bundle', async () => {
     const host = new StubHost(MIN_BUNDLE);
     const provider = new MockProvider({

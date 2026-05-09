@@ -15,6 +15,11 @@ export interface PlaytestLlmCorpusRun {
   // by per-owner visibility. Smoke baselines that pre-date Phase-6.B
   // explicitly set true to preserve their committed semantics.
   omniscient?: boolean;
+  // Phase-6.C.2: enable the post-hoc observation oracle. Default
+  // false — adds ~$0.10 per run when enabled. Advisory only; does
+  // NOT affect CI exit codes (engineHalt is still the regression
+  // signal).
+  observation?: boolean;
 }
 
 export interface PlaytestLlmCorpus {
@@ -107,6 +112,15 @@ export function parseCorpusLlmFile(text: string): PlaytestLlmCorpus {
       }
       omniscient = row.omniscient;
     }
+    let observation: boolean | undefined;
+    if (row.observation !== undefined) {
+      if (typeof row.observation !== 'boolean') {
+        throw new CorpusLlmParseError(
+          `runs[${i}].observation must be a boolean if provided`,
+        );
+      }
+      observation = row.observation;
+    }
     runs.push({
       name: row.name,
       seed: row.seed,
@@ -115,6 +129,7 @@ export function parseCorpusLlmFile(text: string): PlaytestLlmCorpus {
       ...(owners !== undefined && { owners }),
       ...(costBudgetUsd !== undefined && { costBudgetUsd }),
       ...(omniscient !== undefined && { omniscient }),
+      ...(observation !== undefined && { observation }),
     });
   }
   return { runs };

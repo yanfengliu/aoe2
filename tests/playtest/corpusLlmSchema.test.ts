@@ -125,4 +125,31 @@ describe('parseCorpusLlmFile', () => {
       ),
     ).toThrow(/omniscient/);
   });
+
+  // Phase-6.C.2: observation field is optional + must be boolean.
+  it('preserves observation when set', () => {
+    const out = parseCorpusLlmFile(
+      JSON.stringify({
+        runs: [{ name: 'a', seed: 's', maxTicks: 1, observation: true }],
+      }),
+    );
+    expect(out.runs[0]).toMatchObject({ observation: true });
+  });
+
+  it('omits observation from the parsed row when absent', () => {
+    const out = parseCorpusLlmFile(
+      JSON.stringify({ runs: [{ name: 'a', seed: 's', maxTicks: 1 }] }),
+    );
+    expect(out.runs[0]).not.toHaveProperty('observation');
+  });
+
+  it('rejects non-boolean observation', () => {
+    expect(() =>
+      parseCorpusLlmFile(
+        JSON.stringify({
+          runs: [{ name: 'a', seed: 's', maxTicks: 1, observation: 1 }],
+        }),
+      ),
+    ).toThrow(/observation/);
+  });
 });

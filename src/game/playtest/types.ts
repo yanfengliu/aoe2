@@ -209,3 +209,15 @@ export interface AgentDecision {
   costUsd: number;
   stopReason: AgentStopReason;
 }
+
+// Phase-6.C.2: post-hoc observation oracle verdict. A single advisory
+// LLM call after the playtest run (final screenshot + trace summary)
+// emits a high-level "did this look fun / broken / inconclusive"
+// verdict + free-form notes. Advisory only — does NOT gate CI.
+export interface ObservationVerdict {
+  verdict: 'looked-fun' | 'looked-broken' | 'inconclusive';
+  notes: string;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+}

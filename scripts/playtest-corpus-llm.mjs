@@ -141,6 +141,8 @@ for (const run of corpus.runs) {
   // Phase-6.B (impl-2 M7): forward omniscient (cheat-mode) when set.
   // Default behavior is visibility-gated; rows must explicitly opt in.
   if (run.omniscient) args.push('--omniscient');
+  // Phase-6.C.2: forward observation-oracle opt-in.
+  if (run.observation) args.push('--observation');
 
   console.log(`[playtest-corpus-llm] running ${run.name}…`);
   const playR = spawnSync(npmBin, args, {
