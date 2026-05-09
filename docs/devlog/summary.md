@@ -1,3 +1,6 @@
+## 2026-05-08 (playtest loop phase 1+2+3+4)
+- **Playtest corpus runner (phase 4, internal tooling):** new `src/game/playtest/corpusSchema.ts` + `scripts/playtest-corpus.mjs` + `playtest-corpus.json` (initial corpus: one row, default-seed 30000-tick smoke). Loops `playtest` + `run-oracles` per row; writes `output/corpus/<date>/SUMMARY.md`; exits non-zero on any HIGH oracle violation across the corpus. Schema validation rejects missing `runs`, non-string name/seed, non-positive maxTicks. Per-row thresholds via tempfile (`--thresholds-file`) to avoid shell-quoting JSON braces/commas. 7 schema tests; full playtest test suite 28 tests passing.
+
 ## 2026-05-08 (playtest loop phase 1+2+3)
 - **Playtest fix-bot (phase 3, internal tooling):** new `src/game/playtest/fixBotPrompt.ts` + `scripts/propose-fix.mjs`. Reads REPORT.md, picks first high-severity violation (or `--oracle <name>`), builds a fix-bot prompt (violation + envelope + 5-tick neighborhood + heuristic source files capped at 500 LOC each), shells out to Claude or Codex CLI via stdin (no `shell: true`), validates returned diff with `git apply --check`. Output: `output/fix-proposals/<bundle>/<oracle>/{proposal.diff, WHY.md}`. Propose-only (no auto-apply). 4 new tests. Pre-flight `where`/`which` check; explicit `.cmd` shim resolution per platform.
 

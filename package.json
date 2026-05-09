@@ -8,6 +8,7 @@
     "playtest": "tsx scripts/playtest.mjs",
     "run-oracles": "tsx scripts/run-oracles.mjs",
     "propose-fix": "tsx scripts/propose-fix.mjs",
+    "playtest:corpus": "tsx scripts/playtest-corpus.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
