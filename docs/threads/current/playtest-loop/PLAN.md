@@ -905,11 +905,15 @@ describe('no-perf-regression oracle', () => {
 
 - [ ] **Step 2: Add `noPerfRegression` to `src/game/playtest/oracles.ts`**
 
+Add the `bundleHotspots` import at the **top** of the file alongside the existing imports (do not append):
+
 ```ts
 import { bundleHotspots } from 'civ-engine';
+```
 
-// (existing oracles stay above)
+Then add the oracle function alongside the existing oracles (before the `ORACLES` array):
 
+```ts
 const noPerfRegression: OracleFn = (bundle, _envelope, thresholds) => {
   const hotspots = bundleHotspots(bundle, { durationStdevThreshold: 3, includeMarkers: false });
   const violations: OracleViolation[] = [];
@@ -1019,10 +1023,13 @@ export function netManhattanProgress(
 
 - [ ] **Step 2: Test position replay (focused)**
 
-Append to `tests/playtest/oracles.test.ts`:
+Add the import at the **top** of `tests/playtest/oracles.test.ts` alongside the existing imports (do not append at file end):
 
 ```ts
 import { reconstructPositions, netManhattanProgress } from '../../src/game/playtest/positionReplay';
+```
+
+Then add the new test block at the end:
 
 describe('reconstructPositions', () => {
   it('seeds from initialSnapshot then applies diffs', () => {
@@ -1086,33 +1093,19 @@ describe('reconstructPositions', () => {
 Run: `npm test -- --run tests/playtest/oracles.test.ts`
 Expected: 11 PASS (9 oracle + 2 position-replay).
 
-- [ ] **Step 4: Add `economyProgression` and `noPinnedOrOscillatingUnits` oracles**
+- [ ] **Step 4: Add `noPinnedOrOscillatingUnits` oracle**
 
-Append to `src/game/playtest/oracles.ts`:
+Place these imports at the **top** of `src/game/playtest/oracles.ts` alongside the existing imports:
 
 ```ts
-import { reconstructPositions, netManhattanProgress } from './positionReplay';
+import { bundleHotspots } from 'civ-engine';
 import type { Position, EntityId } from 'civ-engine';
+import { reconstructPositions, netManhattanProgress } from './positionReplay';
+```
 
-const economyProgression: OracleFn = (bundle, _envelope, thresholds) => {
-  // Replay state at thresholds.economyByTick from initialSnapshot + diffs.
-  // For the first iteration: count entities with `unit.unitType === 'villager'`
-  // per owner at tick T, plus age via aoe2.playerAges. If a player has no
-  // aiState by T, skip them (matches the single-AI baseline; only AI players
-  // are evaluated).
-  const checkTick = thresholds.economyByTick;
-  // (Implementation note: this oracle is a stub for the smoke run. The full
-  // state replay path uses SessionReplayer.fromBundle(bundle).stateAtTick(T)
-  // and reads the projected economy state. For phase 2 ship, we deliver the
-  // skeleton + match-completes + no-tick-failures + no-perf-regression
-  // oracles; economy-progression and no-pinned-or-oscillating-units are
-  // marked as best-effort scaffolding here, documented as such, and refined
-  // in phase-2 iter-2 after multi-CLI review.)
-  void checkTick;
-  void bundle;
-  return [];
-};
+Then add the oracle function (alongside the existing oracles, before the `ORACLES` array):
 
+```ts
 const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
   const timeline = reconstructPositions(bundle);
   const violations: OracleViolation[] = [];
@@ -1171,10 +1164,11 @@ const ORACLES: OracleFn[] = [
   matchCompletes,
   noTickFailures,
   noPerfRegression,
-  economyProgression,
   noPinnedOrOscillating,
 ];
 ```
+
+`economy-progression` is intentionally NOT registered. Implementing it requires `SessionReplayer.fromBundle(bundle).stateAtTick(T)` reconstruction + economy-state extraction, which is materially more scope than the other oracles and depends on replay-bridge wiring beyond Phase 2. Filed as a Phase-6 follow-up at the bottom of this plan; corpus rows that set `economyByTick` thresholds today will silently skip that check.
 
 - [ ] **Step 5: Add a smoke test for `noPinnedOrOscillating`**
 
@@ -1250,7 +1244,7 @@ Expected: 13 PASS.
 // Reads a playtest bundle + envelope, runs oracles, writes REPORT.md.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, basename } from 'node:path';
+import { basename } from 'node:path';
 import { runOracles } from '../src/game/playtest/oracles.ts';
 
 function parseArgs(argv) {
@@ -1259,6 +1253,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--in') args.in = argv[++i];
     else if (a === '--thresholds') args.thresholds = JSON.parse(argv[++i]);
+    else if (a === '--thresholds-file') args.thresholds = JSON.parse(readFileSync(argv[++i], 'utf8'));
   }
   return args;
 }
@@ -1490,7 +1485,7 @@ Expected: 3 PASS.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { basename, dirname } from 'node:path';
+import { basename } from 'node:path';
 import { buildFixPrompt, sourceFilesForOracle } from '../src/game/playtest/fixBotPrompt.ts';
 
 function parseArgs(argv) {
@@ -1574,22 +1569,27 @@ const prompt = buildFixPrompt({
   sourceFiles,
 });
 
-// Invoke the reviewer CLI. shell: true is required on Windows where these
-// CLIs install as .cmd shims; harmless on Unix (the shell just unwraps them).
+// Invoke the reviewer CLI. Resolve .cmd shim per platform; pass prompt via
+// stdin so shell metacharacters in the prompt (backticks, $, brackets) don't
+// trip cmd.exe / sh. NEVER use `shell: true` here — the prompt body is large
+// and contains arbitrary source code.
+const claudeBin = process.platform === 'win32' ? 'claude.cmd' : 'claude';
+const codexBin = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+
 let modelOutput;
 if (args.reviewer === 'claude') {
   modelOutput = execFileSync(
-    'claude',
-    ['-p', prompt, '--model', 'claude-opus-4-7[1m]', '--effort', 'max',
+    claudeBin,
+    ['-p', '--model', 'claude-opus-4-7[1m]', '--effort', 'max',
      '--allowedTools', 'Read,Glob,Grep'],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, shell: true },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt },
   );
 } else if (args.reviewer === 'codex') {
   modelOutput = execFileSync(
-    'codex',
+    codexBin,
     ['exec', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=xhigh',
      '-c', 'approval_policy=never', '--sandbox', 'read-only', '--ephemeral'],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt, shell: true },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt },
   );
 } else {
   console.error(`fix-bot: unknown reviewer '${args.reviewer}'`);
@@ -1788,26 +1788,37 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { parseCorpusFile } from '../src/game/playtest/corpusSchema.ts';
 
+// Resolve npm shim explicitly per platform. `shell: true` is unsafe — it
+// re-parses every arg through cmd.exe / sh and mangles JSON or quoted args.
+
 const corpus = parseCorpusFile(readFileSync('playtest-corpus.json', 'utf8'));
 const date = new Date().toISOString().slice(0, 10);
 const corpusDir = `output/corpus/${date}`;
 mkdirSync(corpusDir, { recursive: true });
 
 const rows = [`# Playtest corpus — ${date}`, '', '| Run | Seed | maxTicks | stopReason | ticksRun | High | Medium | Low |', '|---|---|---|---|---|---|---|---|'];
+let totalHigh = 0;
 
 for (const run of corpus.runs) {
   const out = `output/playtests/${date}-${run.name}`;
   const playArgs = ['run', 'playtest', '--', '--seed', run.seed, '--max-ticks', String(run.maxTicks), '--out', out];
-  // shell: true is required for cross-platform npm (Windows resolves `npm` as
-  // `npm.cmd`; Node's child_process refuses .cmd without a shell).
-  const playR = spawnSync('npm', playArgs, { encoding: 'utf8', shell: true });
+  // Resolve npm shim explicitly per platform; `shell: true` would re-parse
+  // every arg through cmd.exe / sh and mangle JSON / quoted args.
+  const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const playR = spawnSync(npmBin, playArgs, { encoding: 'utf8' });
   if (playR.status !== 0) {
     console.error(`corpus: run ${run.name} failed:\n${playR.stderr}`);
     process.exit(1);
   }
   const oracleArgs = ['run', 'run-oracles', '--', '--in', out];
-  if (run.thresholds) oracleArgs.push('--thresholds', JSON.stringify(run.thresholds));
-  spawnSync('npm', oracleArgs, { encoding: 'utf8', shell: true });
+  // Per-row thresholds via tempfile to avoid shell-quoting JSON braces/commas.
+  if (run.thresholds) {
+    const thresholdsPath = `${out}.thresholds.json`;
+    writeFileSync(thresholdsPath, JSON.stringify(run.thresholds));
+    oracleArgs.push('--thresholds-file', thresholdsPath);
+  }
+  const oracleR = spawnSync(npmBin, oracleArgs, { encoding: 'utf8' });
+  totalHigh += oracleR.status ?? 0;
   const env = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));
   const report = readFileSync(`${out}-report/REPORT.md`, 'utf8');
   const high = (report.match(/^\| \S+ \| high \| /gm) ?? []).length;
@@ -1818,6 +1829,9 @@ for (const run of corpus.runs) {
 
 writeFileSync(`${corpusDir}/SUMMARY.md`, rows.join('\n'));
 console.log(`summary: ${corpusDir}/SUMMARY.md`);
+// Non-zero exit on any HIGH oracle violation across the corpus, so CI fails
+// loud rather than silently uploading a SUMMARY.md with red rows.
+process.exit(totalHigh > 0 ? 1 : 0);
 ```
 
 - [ ] **Step 3: Add npm script**
@@ -1898,7 +1912,7 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             const corpusDir = 'output/corpus';
-            const dates = fs.existsSync(corpusDir) ? fs.readdirSync(corpusDir) : [];
+            const dates = (fs.existsSync(corpusDir) ? fs.readdirSync(corpusDir) : []).sort();
             if (dates.length === 0) return;
             const summary = fs.readFileSync(path.join(corpusDir, dates[dates.length - 1], 'SUMMARY.md'), 'utf8');
             await github.rest.issues.createComment({
@@ -1963,6 +1977,17 @@ git push
 Done. The play → detect → propose-fix loop is closed end-to-end.
 
 ---
+
+## Phase-6 follow-ups (out of scope for this plan)
+
+These were identified during design / plan review and explicitly deferred so the smoke loop ships in a manageable size:
+
+- **Real `economy-progression` oracle.** Today's plan registers no oracle for economy-progression because the full implementation requires `SessionReplayer.fromBundle(bundle).stateAtTick(T)` reconstruction + economy-state extraction. Phase 6: implement the oracle for real, register it, write tests against a fixture that hits / misses the threshold, expose `economyByTick`/`economyMinVillagers`/`economyMinAge` thresholds in corpus rows.
+- **Auto-apply patches.** `--auto-apply` flag on `propose-fix.mjs` that runs `git apply` + the four gates (`npm run typecheck && npm run lint && npm test -- --run && npm run build`) and reverts on any failure.
+- **Counterfactual fix-validation.** Use `SessionReplayer.forkAt(targetTick)` to verify the proposed patch actually changes the failing tick's outcome before suggesting it.
+- **Cross-corpus regression detection.** Store a baseline summary; phase-4's corpus runner compares each new run against the baseline and flags regressions.
+- **AI-vs-AI playtest.** Today's smoke baseline is single-AI vs passive-human. Refactoring `aiSystem` to accept a parametric "primary opponent id" rather than hardcoding `humanPlayerId` unlocks symmetric playtests; corpus rows then exercise civ matchups.
+- **Visual / pixel-diff oracles.** The HUD has Playwright e2e but no pixel-baseline oracle. Phase 6 could add `bundleHotspots`-keyed screenshot capture + diff against a stored baseline.
 
 ## Self-Review
 
