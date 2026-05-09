@@ -12,12 +12,27 @@ function parseArgs(argv) {
   const args = { in: 'output/playtests/run', oracle: null, reviewer: 'claude' };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--in') args.in = argv[++i];
+    // --bundle is the documented form in DESIGN.md; --in is kept as an alias
+    // because earlier scripting referenced it. Both point at the bundle base
+    // path (the suffixes `.json`, `.envelope.json`, `-report/REPORT.md`, etc.
+    // are appended downstream).
+    if (a === '--in' || a === '--bundle') args.in = argv[++i];
     else if (a === '--oracle') args.oracle = argv[++i];
     else if (a === '--reviewer') args.reviewer = argv[++i];
+    else if (a.startsWith('--')) {
+      console.error(`fix-bot: unknown argument '${a}'`);
+      process.exit(2);
+    }
   }
   return args;
 }
+
+// On Windows we MUST set shell: true to spawn .cmd shims (CVE-2024-27980
+// mitigation in Node ≥ 22.0.0 returns EINVAL otherwise). cmd.exe does not
+// glob-expand `[1m]`, so the bracketed model name passed below is safe
+// when shelled. The prompt itself is delivered via stdin so cmd.exe never
+// sees its content.
+const useShell = process.platform === 'win32';
 
 function which(bin) {
   const cmd = process.platform === 'win32' ? 'where' : 'which';
@@ -91,7 +106,17 @@ const sourceFiles = sourceFilesForOracle(target.oracle)
   .filter(Boolean);
 
 const tickNeighborhood = pickTickNeighborhood(bundle, target.tick);
-const tickJson = JSON.stringify(tickNeighborhood, null, 2).slice(0, 8192);
+// Truncate at a structural boundary (drop ticks from the tail) rather than
+// byte-slicing — a mid-token slice produces invalid JSON and forces every
+// downstream LLM to ignore the surrounding fenced block.
+const TICK_JSON_BUDGET = 8192;
+let tickJsonCandidate = JSON.stringify(tickNeighborhood, null, 2);
+let tickJsonNeighborhood = tickNeighborhood;
+while (tickJsonCandidate.length > TICK_JSON_BUDGET && tickJsonNeighborhood.length > 1) {
+  tickJsonNeighborhood = tickJsonNeighborhood.slice(0, -1);
+  tickJsonCandidate = JSON.stringify(tickJsonNeighborhood, null, 2);
+}
+const tickJson = tickJsonCandidate;
 
 const prompt = buildFixPrompt({
   violation: target,
@@ -115,7 +140,7 @@ if (args.reviewer === 'claude') {
       '--allowedTools',
       'Read,Glob,Grep',
     ],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt, shell: useShell },
   );
 } else if (args.reviewer === 'codex') {
   modelOutput = execFileSync(
@@ -132,7 +157,7 @@ if (args.reviewer === 'claude') {
       'read-only',
       '--ephemeral',
     ],
-    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt },
+    { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, input: prompt, shell: useShell },
   );
 } else {
   console.error(`fix-bot: unknown reviewer '${args.reviewer}'`);

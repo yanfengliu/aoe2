@@ -5,10 +5,14 @@ type EntityId = number;
 export interface PositionTimeline {
   // Map from entityId -> array of (tick, position) events ordered by tick.
   byEntity: Map<EntityId, Array<{ tick: number; pos: Position }>>;
+  // Tick at which each entity's position component was removed (garrisoned,
+  // destroyed, etc.). Absent = still active through bundle endTick.
+  activeUntil: Map<EntityId, number>;
 }
 
 export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
   const byEntity = new Map<EntityId, Array<{ tick: number; pos: Position }>>();
+  const activeUntil = new Map<EntityId, number>();
 
   // Seed from initial snapshot. WorldSnapshot.components is shaped as
   // Record<string, Array<[EntityId, T]>> (per civ-engine serializer.d.ts:66),
@@ -21,11 +25,12 @@ export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
     }
   }
 
-  // Apply tick diffs. Note: position.removed marks the END of an entity's
-  // visible-position window (e.g., garrison removes the position component;
-  // entity destruction removes everything). We do NOT delete the timeline —
-  // the oracle needs the historical events to evaluate windows that closed
-  // before removal. We track the removal tick separately via activeUntil.
+  // Apply tick diffs. position.removed marks the END of an entity's visible-
+  // position window (e.g., garrison removes the position component; entity
+  // destruction removes everything). We preserve the timeline of past events
+  // so oracles can still evaluate windows that closed before the removal,
+  // but record the removal tick in activeUntil so post-removal stretches are
+  // not treated as "the unit was pinned in the world."
   for (const tickEntry of bundle.ticks) {
     const positionDiff = (tickEntry.diff.components as Record<string, unknown>)?.position as
       | { set?: Array<[EntityId, Position]>; removed?: EntityId[] }
@@ -35,13 +40,15 @@ export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
       const arr = byEntity.get(id) ?? [];
       arr.push({ tick: tickEntry.tick, pos });
       byEntity.set(id, arr);
+      // A re-set after removal reactivates the entity for oracle evaluation.
+      activeUntil.delete(id);
     }
-    // Removed positions mark a closure tick; the oracle ignores entities past
-    // their last event by virtue of how the window slides. Preserving the
-    // timeline keeps moved-then-removed units evaluable.
+    for (const id of (positionDiff.removed ?? [])) {
+      activeUntil.set(id, tickEntry.tick);
+    }
   }
 
-  return { byEntity };
+  return { byEntity, activeUntil };
 }
 
 export function netManhattanProgress(

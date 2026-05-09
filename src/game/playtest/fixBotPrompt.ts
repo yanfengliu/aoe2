@@ -40,7 +40,7 @@ export function buildFixPrompt(input: BuildFixPromptInput): string {
     .map((f) => `## ${f.path}\n\n\`\`\`ts\n${f.content}\n\`\`\``)
     .join('\n\n');
 
-  return [
+  const lines: string[] = [
     'You are a senior engineer producing a focused patch.',
     '',
     `## Oracle violation`,
@@ -48,7 +48,11 @@ export function buildFixPrompt(input: BuildFixPromptInput): string {
     `- Severity: ${violation.severity}`,
     `- Tick: ${violation.tick ?? '(whole-bundle)'}`,
     `- Message: ${violation.message}`,
-    violation.details ? `- Details: ${JSON.stringify(violation.details)}` : '',
+  ];
+  if (violation.details) {
+    lines.push(`- Details: ${JSON.stringify(violation.details)}`);
+  }
+  lines.push(
     '',
     `## Envelope`,
     '```json',
@@ -67,7 +71,6 @@ export function buildFixPrompt(input: BuildFixPromptInput): string {
     `## Output format`,
     '',
     'Produce a unified diff in a fenced ```diff block. Explain the fix in 3-5 sentences in a separate fenced ```why block. Do not include any prose outside those two blocks.',
-  ]
-    .filter(Boolean)
-    .join('\n');
+  );
+  return lines.join('\n');
 }

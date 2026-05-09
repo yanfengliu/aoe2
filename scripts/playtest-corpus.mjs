@@ -7,9 +7,16 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { parseCorpusFile } from '../src/game/playtest/corpusSchema.ts';
 
-// Resolve npm shim explicitly per platform. `shell: true` is unsafe — it
-// re-parses every arg through cmd.exe / sh and mangles JSON or quoted args.
+// Resolve npm shim explicitly per platform. On Windows we MUST set
+// shell: true: CVE-2024-27980's mitigation (Node 18.20.2 / 20.12.2 /
+// 22.0.0+) refuses to spawn .cmd / .bat files without a shell and returns
+// EINVAL. cmd.exe does not glob-expand `[]` so the bracketed model name in
+// propose-fix is safe; per-row thresholds are still passed via tempfile +
+// `--thresholds-file` rather than inline JSON to avoid any cmd.exe quoting
+// quirks. On Linux/macOS we keep shell: false so bash's glob-expansion of
+// `[1m]` cannot bite us.
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const useShell = process.platform === 'win32';
 
 const corpus = parseCorpusFile(readFileSync('playtest-corpus.json', 'utf8'));
 const date = new Date().toISOString().slice(0, 10);
@@ -37,9 +44,14 @@ for (const run of corpus.runs) {
     '--out',
     out,
   ];
-  const playR = spawnSync(npmBin, playArgs, { encoding: 'utf8' });
+  const playR = spawnSync(npmBin, playArgs, { encoding: 'utf8', shell: useShell });
   if (playR.status !== 0) {
-    console.error(`corpus: run ${run.name} failed:\n${playR.stderr}`);
+    const why = playR.error?.message ?? playR.stderr ?? `exit ${playR.status}`;
+    console.error(`corpus: run ${run.name} failed:\n${why}`);
+    rows.push(
+      `| ${run.name} | ${run.seed} | ${run.maxTicks} | spawn-failed | — | — | — | — |`,
+    );
+    writeFileSync(`${corpusDir}/SUMMARY.md`, rows.join('\n'));
     process.exit(1);
   }
   const oracleArgs = ['run', 'run-oracles', '--', '--in', out];
@@ -49,7 +61,7 @@ for (const run of corpus.runs) {
     writeFileSync(thresholdsPath, JSON.stringify(run.thresholds));
     oracleArgs.push('--thresholds-file', thresholdsPath);
   }
-  const oracleR = spawnSync(npmBin, oracleArgs, { encoding: 'utf8' });
+  const oracleR = spawnSync(npmBin, oracleArgs, { encoding: 'utf8', shell: useShell });
   totalHigh += oracleR.status ?? 0;
 
   const env = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));

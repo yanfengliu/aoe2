@@ -87,14 +87,18 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
 
   // Only consider unit entities. The bundle stores positions for terrain
   // tiles, resources, and buildings too — all stationary by design — so
-  // checking position alone produces false positives. Build a set of
-  // entity IDs that hold a `unit` component at any point in the bundle.
-  const unitEntities = new Set<number>();
+  // checking position alone produces false positives. Build a set of any
+  // entity that ever held a `unit` component, plus the tick at which it
+  // stopped being a unit (destruction → unit.removed). Entities that were
+  // garrisoned (position removed but unit kept) are tracked via the
+  // timeline's activeUntil map, returned by reconstructPositions.
+  const wasEverUnit = new Set<number>();
+  const unitRemovedAt = new Map<number, number>();
   const initialUnits = (bundle.initialSnapshot as { components?: Record<string, unknown> })
     .components?.unit;
   if (Array.isArray(initialUnits)) {
     for (const [id] of initialUnits as Array<[number, unknown]>) {
-      unitEntities.add(id);
+      wasEverUnit.add(id);
     }
   }
   for (const tickEntry of bundle.ticks) {
@@ -102,29 +106,41 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
       | { set?: Array<[number, unknown]>; removed?: number[] }
       | undefined;
     if (!unitDiff) continue;
-    for (const [id] of unitDiff.set ?? []) unitEntities.add(id);
-    for (const id of unitDiff.removed ?? []) unitEntities.delete(id);
+    for (const [id] of unitDiff.set ?? []) {
+      wasEverUnit.add(id);
+      unitRemovedAt.delete(id);
+    }
+    for (const id of unitDiff.removed ?? []) {
+      unitRemovedAt.set(id, tickEntry.tick);
+    }
   }
 
   for (const [entity, events] of timeline.byEntity) {
-    if (!unitEntities.has(entity)) continue;
+    if (!wasEverUnit.has(entity)) continue;
     if (events.length === 0) continue;
 
+    // Effective evaluation horizon: the earliest of {position.removed,
+    // unit.removed, bundle endTick}. Past this tick the entity either no
+    // longer existed in-world (destroyed) or was inside a building
+    // (garrisoned), and a "stationary" verdict is meaningless.
+    const positionUntil = timeline.activeUntil.get(entity) ?? endTick;
+    const unitUntil = unitRemovedAt.get(entity) ?? endTick;
+    const effectiveEnd = Math.min(positionUntil, unitUntil, endTick);
+
     // Pinned-with-no-diffs case: the unit was seeded with an initial position
-    // and never emitted a position change. If world ticks have elapsed past
-    // (lastEvent.tick + window) without movement, that's a violation.
+    // and never emitted a position change.
     if (events.length === 1) {
       const last = events[0]!;
-      if (endTick - last.tick >= window) {
+      if (effectiveEnd - last.tick >= window) {
         violations.push({
           oracle: 'no-pinned-or-oscillating-units',
           severity: 'medium',
           tick: last.tick,
-          message: `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y}) for ${endTick - last.tick} ticks after tick ${last.tick}`,
+          message: `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y}) for ${effectiveEnd - last.tick} ticks after tick ${last.tick}`,
           details: {
             entity,
             sinceTick: last.tick,
-            durationTicks: endTick - last.tick,
+            durationTicks: effectiveEnd - last.tick,
             position: last.pos,
           },
         });
@@ -158,23 +174,23 @@ const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
     if (firedSliding) continue;
 
     // Tail-pinned case: the unit had multiple movements but became stuck
-    // after its last position event with no further diffs through endTick.
-    // Catches the "moved once, then got stuck" failure mode that the
-    // sliding-window loop misses (its termination condition stops at the
-    // last event, so a long stationary tail past it is invisible).
+    // after its last position event with no further diffs. Catches the
+    // "moved once, then got stuck" failure mode the sliding-window loop
+    // misses. The effective horizon clamps so garrisoning/destruction
+    // doesn't masquerade as pinning.
     const last = events[events.length - 1]!;
-    if (endTick - last.tick >= window) {
+    if (effectiveEnd - last.tick >= window) {
       violations.push({
         oracle: 'no-pinned-or-oscillating-units',
         severity: 'medium',
         tick: last.tick,
         message:
           `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y})`
-          + ` for ${endTick - last.tick} ticks after tick ${last.tick}`,
+          + ` for ${effectiveEnd - last.tick} ticks after tick ${last.tick}`,
         details: {
           entity,
           sinceTick: last.tick,
-          durationTicks: endTick - last.tick,
+          durationTicks: effectiveEnd - last.tick,
           position: last.pos,
         },
       });
