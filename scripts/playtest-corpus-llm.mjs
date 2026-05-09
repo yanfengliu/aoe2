@@ -9,7 +9,7 @@
 // Run via `tsx scripts/playtest-corpus-llm.mjs` (set up by
 // `npm run playtest:corpus-llm`).
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { parseCorpusLlmFile } from '../src/game/playtest/corpusLlmSchema.ts';
 
@@ -22,23 +22,45 @@ const useShell = process.platform === 'win32';
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const RETENTION_KEEP = 5; // most-recent runs to keep
 
-// Retention pruning (Claude design-2 LOW 1). Sort output/playtests-llm/
-// by mtime descending; remove all but the most recent N runs. Each
-// run is one timestamped subdir.
+// Retention pruning (Claude design-2 LOW 1; Codex impl-345 M5).
+// Each LLM playtest emits FLAT files at <rootDir>/<date>-<name>.json,
+// .envelope.json, .llm-trace.jsonl, plus a sibling -screenshots/
+// directory. Group these by stem (the "<date>-<name>" prefix), sort
+// stems by newest-mtime across the group, keep the most recent N
+// stems and delete every file/dir whose stem is older.
 function pruneOldRuns(rootDir) {
   if (!existsSync(rootDir)) return;
-  const entries = readdirSync(rootDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => ({
-      name: e.name,
-      path: `${rootDir}/${e.name}`,
-      mtime: statSync(`${rootDir}/${e.name}`).mtimeMs,
-    }))
-    .sort((a, b) => b.mtime - a.mtime);
-  if (entries.length <= RETENTION_KEEP) return;
-  for (const old of entries.slice(RETENTION_KEEP)) {
-    console.log(`[playtest-corpus-llm] pruning old run: ${old.path}`);
-    rmSync(old.path, { recursive: true, force: true });
+  const entries = readdirSync(rootDir, { withFileTypes: true });
+  // Map<stem, { paths: string[], maxMtime: number }>
+  const stems = new Map();
+  for (const entry of entries) {
+    const path = `${rootDir}/${entry.name}`;
+    // Stem = filename minus the first dot suffix and minus the
+    // trailing "-screenshots" suffix. E.g. "2026-05-09-default-seed-llm-smoke.envelope.json"
+    // → stem "2026-05-09-default-seed-llm-smoke".
+    let stem = entry.name;
+    if (stem.endsWith('-screenshots')) stem = stem.slice(0, -'-screenshots'.length);
+    const dotIdx = stem.indexOf('.');
+    if (dotIdx !== -1) stem = stem.slice(0, dotIdx);
+    const mtime = statSync(path).mtimeMs;
+    const existing = stems.get(stem) ?? { paths: [], maxMtime: 0 };
+    existing.paths.push(path);
+    existing.maxMtime = Math.max(existing.maxMtime, mtime);
+    stems.set(stem, existing);
+  }
+  const sortedStems = [...stems.entries()].sort((a, b) => b[1].maxMtime - a[1].maxMtime);
+  if (sortedStems.length <= RETENTION_KEEP) return;
+  for (const [stem, group] of sortedStems.slice(RETENTION_KEEP)) {
+    console.log(`[playtest-corpus-llm] pruning old run group: ${stem} (${group.paths.length} files/dirs)`);
+    for (const p of group.paths) {
+      try {
+        const stat = statSync(p);
+        if (stat.isDirectory()) rmSync(p, { recursive: true, force: true });
+        else unlinkSync(p);
+      } catch (err) {
+        console.warn(`[playtest-corpus-llm]   failed to remove ${p}: ${err?.message ?? err}`);
+      }
+    }
   }
 }
 
@@ -95,10 +117,16 @@ for (const run of corpus.runs) {
     env = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));
   } catch {
     rows.push(`| ${run.name} | ${run.seed} | ${run.maxTicks} | no-envelope | — | — | — |`);
+    anyHigh = true; // missing envelope IS a regression — the runner crashed
     continue;
   }
   totalCost += env.totalCostUsd ?? 0;
-  if (env.errorMessage) anyHigh = true;
+  // Distinguish operational stops (cost-budget-exceeded) from real
+  // regressions (engineHalt). Cost budget exhaustion is expected
+  // operator-side cap behavior, not a CI gate signal (Codex impl-345
+  // M6). engineHalt OR an unexpected errorMessage IS a regression.
+  if (env.stopReason === 'engineHalt') anyHigh = true;
+  else if (env.errorMessage && env.errorMessage !== 'cost-budget-exceeded') anyHigh = true;
   rows.push(
     `| ${run.name} | ${run.seed} | ${run.maxTicks} | ${env.stopReason} | ${env.ticksRun} | ${env.decisionsRun ?? '—'} | $${(env.totalCostUsd ?? 0).toFixed(4)} |`,
   );

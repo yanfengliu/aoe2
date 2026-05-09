@@ -142,6 +142,64 @@ describe('runVisualOracle', () => {
     expect(result.deltas.map((d) => d.tick)).toEqual([100, 200, 300]);
   });
 
+  it('overlapping ignoreRects do not double-subtract (impl-345 M4)', () => {
+    const baseline = makePng(SIZE, SIZE);
+    // Modify 9 pixels in a 3×3 block (x:0-2, y:0-2). Two overlapping
+    // ignore rects each cover the whole block — the union covers it
+    // exactly once. Naive impl would subtract 18 (>actual diff), under-
+    // reporting; the union-aware impl subtracts 9 and gets 0 diff.
+    const mods = [];
+    for (let y = 0; y < 3; y++) {
+      for (let x = 0; x < 3; x++) {
+        mods.push({ x, y, rgba: [255, 0, 0, 255] as [number, number, number, number] });
+      }
+    }
+    const run = makePng(SIZE, SIZE, [255, 255, 255, 255], mods);
+    const result = runVisualOracle({
+      baselines: [{ tick: 1, pngBytes: baseline }],
+      runScreenshots: [{ tick: 1, pngBytes: run }],
+      config: {
+        baselineDiffFractionMedium: 0.005,
+        baselineDiffFractionHigh: 0.05,
+        ignoreRects: [
+          { x: 0, y: 0, width: 3, height: 3 },
+          { x: 0, y: 0, width: 3, height: 3 }, // duplicate / overlap
+        ],
+      },
+    });
+    expect(result.violations).toHaveLength(0);
+    expect(result.deltas[0]!.diffPixels).toBe(0); // not negative
+  });
+
+  it('does NOT count unchanged pixels inside ignoreRects (impl-345 M4 diffMask)', () => {
+    // Without diffMask: true, pixelmatch paints unchanged pixels as
+    // grayscale (non-zero RGB). Pre-fix, countDiffInRect would have
+    // counted those as diffs and over-subtracted, masking real
+    // regressions outside the rect.
+    //
+    // Setup: 1 real diff at (10, 0) outside the ignored rect, plus
+    // 16 unchanged pixels inside the ignored rect (0,0,4,4). Pre-fix:
+    // ignoredDiffPixels would over-count the unchanged region and
+    // adjustedDiff could go to 0. Post-fix: only diff-mask alpha>0
+    // pixels count, so the 1-pixel diff outside the rect survives.
+    const baseline = makePng(SIZE, SIZE);
+    const run = makePng(SIZE, SIZE, [255, 255, 255, 255], [
+      { x: 10, y: 0, rgba: [255, 0, 0, 255] }, // 1 real diff outside rect
+    ]);
+    const result = runVisualOracle({
+      baselines: [{ tick: 1, pngBytes: baseline }],
+      runScreenshots: [{ tick: 1, pngBytes: run }],
+      config: {
+        baselineDiffFractionMedium: 0.001, // tight threshold (0.1%)
+        baselineDiffFractionHigh: 0.05,
+        ignoreRects: [{ x: 0, y: 0, width: 4, height: 4 }],
+      },
+    });
+    // 1 diff pixel out of 256 = 0.39% — above 0.1% medium threshold.
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]!.severity).toBe('medium');
+  });
+
   it('respects custom thresholds (per-row config)', () => {
     const baseline = makePng(SIZE, SIZE);
     const run = makePng(SIZE, SIZE, [255, 255, 255, 255], [

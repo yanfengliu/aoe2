@@ -98,20 +98,23 @@ export function runVisualOracle(input: RunVisualOracleInput): RunVisualOracleRes
     }
     const totalPixels = baselinePng.width * baselinePng.height;
     const diff = new PNG({ width: baselinePng.width, height: baselinePng.height });
+    // diffMask: true paints UNCHANGED pixels transparent (alpha=0) and
+    // changed pixels opaque red (255,0,0,255). This is what
+    // countDiffInRect needs — without diffMask, pixelmatch's default
+    // emits unchanged pixels as semi-transparent grayscale, and our
+    // "non-zero RGB" detector would count them as diffs (Codex
+    // impl-345 M4).
     const diffPixels = pixelmatch(
       baselinePng.data,
       runPng.data,
       diff.data,
       baselinePng.width,
       baselinePng.height,
-      { threshold: 0.1, includeAA: false },
+      { threshold: 0.1, includeAA: false, diffMask: true },
     );
-    // Subtract pixels that fall inside any ignoreRect — they aren't
-    // counted as diff.
-    let ignoredDiffPixels = 0;
-    for (const rect of ignoreRects) {
-      ignoredDiffPixels += countDiffInRect(diff, rect);
-    }
+    // Subtract pixels that fall inside any ignoreRect, deduped across
+    // overlapping rects (Codex impl-345 M4 second concern).
+    const ignoredDiffPixels = countDiffInUnion(diff, ignoreRects);
     const adjustedDiff = Math.max(0, diffPixels - ignoredDiffPixels);
     const diffFraction = adjustedDiff / totalPixels;
     deltas.push({ tick: baseline.tick, diffFraction, totalPixels, diffPixels: adjustedDiff });
@@ -147,26 +150,32 @@ export function runVisualOracle(input: RunVisualOracleInput): RunVisualOracleRes
   return { violations, deltas, missingTicks };
 }
 
-function countDiffInRect(
+// Count pixels inside the union of all rects (overlap-deduped) where
+// the pixelmatch diff mask is opaque (alpha > 0 = changed pixel under
+// `diffMask: true`). Visits each (x, y) at most once across rects so
+// overlapping ignoreRects don't double-subtract.
+function countDiffInUnion(
   diff: PNG,
-  rect: { x: number; y: number; width: number; height: number },
+  rects: Array<{ x: number; y: number; width: number; height: number }>,
 ): number {
+  if (rects.length === 0) return 0;
   let count = 0;
-  const xEnd = Math.min(diff.width, rect.x + rect.width);
-  const yEnd = Math.min(diff.height, rect.y + rect.height);
-  const xStart = Math.max(0, rect.x);
-  const yStart = Math.max(0, rect.y);
-  for (let y = yStart; y < yEnd; y++) {
-    for (let x = xStart; x < xEnd; x++) {
-      const idx = (y * diff.width + x) * 4;
-      // pixelmatch sets non-matching pixels to red/green; treat any
-      // non-zero alpha-channel difference as a counted pixel.
-      if (
-        diff.data[idx]! !== 0
-        || diff.data[idx + 1]! !== 0
-        || diff.data[idx + 2]! !== 0
-      ) {
-        count += 1;
+  // Bitmask over the diff dimensions tracks which pixels have been
+  // counted in this pass — cheap when image is small (a 1024×768
+  // canvas fits in a 96 KiB Uint8Array, fine for the harness).
+  const seen = new Uint8Array(diff.width * diff.height);
+  for (const rect of rects) {
+    const xStart = Math.max(0, rect.x);
+    const yStart = Math.max(0, rect.y);
+    const xEnd = Math.min(diff.width, rect.x + rect.width);
+    const yEnd = Math.min(diff.height, rect.y + rect.height);
+    for (let y = yStart; y < yEnd; y++) {
+      for (let x = xStart; x < xEnd; x++) {
+        const seenIdx = y * diff.width + x;
+        if (seen[seenIdx] !== 0) continue;
+        seen[seenIdx] = 1;
+        const pix = seenIdx * 4;
+        if (diff.data[pix + 3]! !== 0) count += 1;
       }
     }
   }

@@ -45,10 +45,40 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Run LLM corpus
+      - name: Run LLM corpus (default — reads playtest-corpus-llm.json)
+        if: github.event_name != 'workflow_dispatch' || (inputs.seed == '' && inputs.max-ticks == '')
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: npm run playtest:corpus-llm
+      - name: Run LLM playtest (manual override — bypasses corpus file)
+        if: github.event_name == 'workflow_dispatch' && (inputs.seed != '' || inputs.max-ticks != '')
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SEED: ${{ inputs.seed || 'aoe2-prototype' }}
+          MAX_TICKS: ${{ inputs.max-ticks || '5000' }}
+        # Single-row override: bypass the corpus aggregator and call the
+        # playtest:llm script directly with the dispatch inputs (Codex
+        # impl-345 M7). The artifact upload + summary post still fire
+        # via the same paths because we write to the same output dir
+        # the corpus runner would.
+        run: |
+          mkdir -p output/corpus-llm/$(date -u +%Y-%m-%d)
+          mkdir -p output/playtests-llm
+          npm run playtest:llm -- --seed "$SEED" --max-ticks "$MAX_TICKS" --out "output/playtests-llm/$(date -u +%Y-%m-%d)-manual"
+          # Build a minimal SUMMARY-LLM.md for the comment poster.
+          envelope_path="output/playtests-llm/$(date -u +%Y-%m-%d)-manual.envelope.json"
+          if [ -f "$envelope_path" ]; then
+            stop=$(jq -r '.stopReason' "$envelope_path")
+            ticks=$(jq -r '.ticksRun' "$envelope_path")
+            cost=$(jq -r '.totalCostUsd' "$envelope_path")
+            cat > "output/corpus-llm/$(date -u +%Y-%m-%d)/SUMMARY-LLM.md" <<EOF
+          # LLM playtest — manual dispatch (seed=$SEED, maxTicks=$MAX_TICKS)
+
+          | stopReason | ticksRun | totalCost |
+          |---|---|---|
+          | $stop | $ticks | \$$cost |
+          EOF
+          fi
       - name: Upload corpus output
         if: always()
         uses: actions/upload-artifact@v4

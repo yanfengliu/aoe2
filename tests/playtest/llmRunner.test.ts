@@ -311,6 +311,57 @@ describe('runLlmPlaytest', () => {
     expect(host.advanceCalls).toEqual([250, 100]); // second call clamped
   });
 
+  it('preserves envelope when both run AND export fail (impl-345 M1)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.failOn = 'snapshotForAgent';
+    host.exportBundle = async () => {
+      throw new Error('export blew up too');
+    };
+    const provider = new MockProvider({ responses: [] });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    // Original error preserved, with export failure appended for diagnostic.
+    expect(result.envelope.errorMessage).toContain('snapshot failed');
+    expect(result.envelope.errorMessage).toContain('export-bundle also failed');
+    // A bundle stub is still returned so downstream serialization works.
+    expect(result.bundle).toBeDefined();
+  });
+
+  it('synthesizes a bundle stub when only export fails (no prior error)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.exportBundle = async () => {
+      throw new Error('only export blew up');
+    };
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.errorMessage).toContain('only export blew up');
+    expect(result.bundle).toBeDefined();
+  });
+
   it('fires onDecision callback per decision (for trace streaming)', async () => {
     const host = new StubHost(MIN_BUNDLE);
     const provider = new MockProvider({

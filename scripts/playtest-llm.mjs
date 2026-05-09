@@ -69,19 +69,44 @@ async function buildIfNeeded() {
 }
 
 async function startServer(useDev) {
+  // Verify the port is free BEFORE spawning the child, so an existing
+  // listener (stale preview from a prior run) doesn't get mistaken for
+  // our spawned child (Codex impl-345 M2).
+  try {
+    const res = await fetch(`http://localhost:${PORT}/`, { signal: AbortSignal.timeout(500) });
+    throw new Error(
+      `port ${PORT} is already in use (got HTTP ${res.status} before spawning new server). Kill the stale listener and retry.`,
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('port ')) throw err;
+    // Otherwise (connection refused / timeout) — port is free.
+  }
   const cmd = useDev
     ? [npmBin, ['run', 'dev']]
     : [npmBin, ['run', 'preview', '--', '--port', String(PORT)]];
   console.log(`[playtest-llm] starting ${useDev ? 'vite dev' : `vite preview on :${PORT}`}…`);
   const p = spawn(cmd[0], cmd[1], { stdio: 'pipe', shell: useShell });
   let stderr = '';
+  let childExited = false;
+  let childExitCode = null;
   p.stderr.on('data', (chunk) => {
     stderr += chunk.toString();
   });
-  // Wait for server to respond on the port.
+  p.on('exit', (code) => {
+    childExited = true;
+    childExitCode = code;
+  });
+  // Wait for server to respond on the port — but if the spawned child
+  // exits early (e.g., EADDRINUSE despite the pre-flight check losing
+  // the race with another process), bail rather than poll forever.
   const url = `http://localhost:${PORT}/`;
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
+    if (childExited) {
+      throw new Error(
+        `server child exited early (code=${childExitCode}) before becoming reachable.\nstderr:\n${stderr}`,
+      );
+    }
     await new Promise((r) => setTimeout(r, 500));
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
@@ -90,7 +115,7 @@ async function startServer(useDev) {
         return p;
       }
     } catch {
-      // not ready yet
+      /* not ready yet */
     }
   }
   p.kill();
@@ -128,16 +153,25 @@ async function makePlaywrightHost(page) {
       return await page.evaluate(() => window.__AOE2_TEST__.agent.drainAgentDispatchLog());
     },
     async exportBundle() {
-      // Round-trip via Blob URL to avoid Playwright's ~1MB JSON-RPC payload limit.
+      // Codex impl-345 M3: passing the bundle text back through
+      // page.evaluate() defeats the purpose of the Blob URL. Use
+      // page.request.fetch (which talks directly to the page's
+      // origin without the JSON-RPC marshalling layer) and revoke the
+      // blob URL after read so the page's heap doesn't keep the bytes
+      // pinned for the lifetime of the browser context.
       const { blobUrl, size } = await page.evaluate(() =>
         window.__AOE2_TEST__.agent.exportRecorderBundleToFile(),
       );
       console.log(`[playtest-llm] bundle blob ready: ${size} bytes`);
-      const json = await page.evaluate(
-        async (url) => fetch(url).then((r) => r.text()),
-        blobUrl,
-      );
-      return JSON.parse(json);
+      try {
+        const response = await page.request.fetch(blobUrl);
+        const text = await response.text();
+        return JSON.parse(text);
+      } finally {
+        await page
+          .evaluate((url) => URL.revokeObjectURL(url), blobUrl)
+          .catch(() => {});
+      }
     },
   };
 }

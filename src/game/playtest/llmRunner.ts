@@ -137,7 +137,26 @@ export async function runLlmPlaytest(input: {
     errorMessage = err instanceof Error ? err.message : String(err);
   }
 
-  const bundle = await host.exportBundle();
+  // exportBundle can itself throw (e.g., page navigated away after the
+  // engineHalt error already destabilized __AOE2_TEST__). Preserve the
+  // envelope's diagnostic message in that case rather than letting the
+  // export failure mask the original cause (Codex impl-345 M1).
+  let bundle;
+  try {
+    bundle = await host.exportBundle();
+  } catch (err) {
+    if (stopReason !== 'engineHalt') {
+      stopReason = 'engineHalt';
+      errorMessage = err instanceof Error ? err.message : String(err);
+    } else {
+      const exportMsg = err instanceof Error ? err.message : String(err);
+      errorMessage = `${errorMessage} (export-bundle also failed: ${exportMsg})`;
+    }
+    // Synthesize an empty bundle so the runner returns a usable shape
+    // for the downstream trace writer. The envelope's stopReason +
+    // errorMessage tell the operator what happened.
+    bundle = makeEmptyBundleStub();
+  }
   const runCompletedAt = new Date().toISOString();
   const envelope: RunnerEnvelope = {
     stopReason,
@@ -149,4 +168,19 @@ export async function runLlmPlaytest(input: {
     errorMessage,
   };
   return { bundle, envelope, trace };
+}
+
+function makeEmptyBundleStub(): SessionBundle {
+  return {
+    schemaVersion: 1,
+    metadata: {},
+    initialSnapshot: {},
+    ticks: [],
+    commands: [],
+    executions: [],
+    failures: [],
+    markers: [],
+    attachments: [],
+    snapshots: [],
+  } as unknown as SessionBundle;
 }
