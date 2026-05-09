@@ -11,6 +11,7 @@
     "playtest:corpus": "tsx scripts/playtest-corpus.mjs",
     "playtest:llm": "tsx scripts/playtest-llm.mjs",
     "playtest:corpus-llm": "tsx scripts/playtest-corpus-llm.mjs",
+    "capture-baselines": "tsx scripts/capture-baselines.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
