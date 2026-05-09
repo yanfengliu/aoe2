@@ -1,3 +1,6 @@
+## 2026-05-08 (playtest loop phase 1+2+3+4+5 — loop closed)
+- **Playtest CI workflow (phase 5, internal tooling):** new `.github/workflows/playtest.yml`. Runs `npm run playtest:corpus` on PR + main pushes (Node 22). Uploads `output/corpus/` as artifact (`if: always()` so failures preserve evidence). Posts SUMMARY.md to PR via `actions/github-script@v7` (`if: always() && pull_request` so failure summaries also post inline). 30-minute timeout. The play → detect → propose-fix loop is now closed end-to-end: AI plays headless → oracles detect regressions → corpus aggregates → CI runs on every PR → fix-bot proposes patches when invoked manually. Auto-apply patches deferred to Phase 6.
+
 ## 2026-05-08 (playtest loop phase 1+2+3+4)
 - **Playtest corpus runner (phase 4, internal tooling):** new `src/game/playtest/corpusSchema.ts` + `scripts/playtest-corpus.mjs` + `playtest-corpus.json` (initial corpus: one row, default-seed 30000-tick smoke). Loops `playtest` + `run-oracles` per row; writes `output/corpus/<date>/SUMMARY.md`; exits non-zero on any HIGH oracle violation across the corpus. Schema validation rejects missing `runs`, non-string name/seed, non-positive maxTicks. Per-row thresholds via tempfile (`--thresholds-file`) to avoid shell-quoting JSON braces/commas. 7 schema tests; full playtest test suite 28 tests passing.
 
