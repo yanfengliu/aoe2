@@ -81,9 +81,9 @@ Operational details for the multi-CLI review rule above.
   - **Do NOT pass `--ignore-user-config`.** That flag bypasses `~/.codex/rules/default.rules`, which is what permits codex on this Windows machine to use Windows-native commands (`findstr`, `type`, `dir`, `ls`) when its bash wrapper hits the PowerShell deny rule. Without those rules, codex's `read-only` sandbox blocks every shell tool and the reviewer silently falls back to "review without reading the code." Verified 2026-05-02.
   - Codex caps reasoning effort at `xhigh` (no `max` value).
 - Claude:
-  - With diff piped via stdin: `git diff [branch] | claude -p --model "claude-opus-4-7[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
-  - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model "claude-opus-4-7[1m]" --effort max --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
-  - The `[1m]` suffix selects the 1 M-token-context variant of Opus 4.7 (the default `opus` alias may resolve to the 200 K variant). Quote the model string so the shell doesn't glob-expand the brackets.
+  - With diff piped via stdin: `git diff [branch] | claude -p --model "claude-fable-5[1m]" --effort max --append-system-prompt <prompt> --allowedTools "Read,Bash(git diff *),Bash(git log *),Bash(git show *)"`
+  - For full-codebase (no diff): pass the prompt as the positional argument: `claude -p "<full prompt>" --model "claude-fable-5[1m]" --effort max --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *),Bash(wc *),Bash(ls *),Bash(find *)"`. `--append-system-prompt` is unnecessary and the long-prompt-as-stdin form is not needed.
+  - The `[1m]` suffix selects the 1 M-token-context variant of Fable 5 (the default `fable` alias may resolve to the 200 K variant). Quote the model string so the shell doesn't glob-expand the brackets.
 - Gemini:
   - `git diff [branch] | gemini --prompt <prompt> --model gemini-3.1-pro-preview --approval-mode plan --output-format text`
   - `--approval-mode plan` is required: without it, gemini-3.x models attempt to call `run_shell_command` / `invoke_agent` and return zero output. Plan mode is read-only.
