@@ -39,6 +39,13 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   // from the existing list. Ratchet downward by splitting along the
   // describe blocks (perf / economy / etc).
   'tests/playtest/oracles.test.ts': 505,
+  // Was 692 at HEAD (860557e) — grew past 500 in f2df6ce (Phase-6.C.1)
+  // without a legacy entry, discovered 2026-06-09 while running full
+  // gates for doc housekeeping. The Phase-6 sessions iterated with
+  // affected-tests-only runs, which never re-fire this architecture
+  // suite. Ratchet downward by splitting along describe blocks
+  // (run-loop / oracle wiring / screenshot capture).
+  'tests/playtest/llmRunner.test.ts': 692,
 };
 
 function walk(root: string, base = root): string[] {

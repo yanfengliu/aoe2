@@ -148,7 +148,10 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
     // AI further.
     expect(ageSeen.has('feudal-age'), diagnosticMessage).toBe(true);
     expect(ageSeen.has('castle-age'), diagnosticMessage).toBe(true);
-  }, 180_000);
+    // 300s: isolated runtime is ~140s but full-suite contention adds
+    // 30%+ (187s observed 2026-06-09, tripping the previous 180s cap).
+    // Sized per the vitest-timeout-headroom precedent (~2x isolated).
+  }, 300_000);
 
   it('builds a Watch Tower toward the sighted enemy', () => {
     const bridge = createSimulationBridge('ai-scouting-response-fixture');

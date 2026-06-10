@@ -16,6 +16,22 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Architecture-wide gates don't fire under affected-tests-only iteration — 2026-06-09
+
+| Field | Value |
+|---|---|
+| Surfaced by | Full-suite run for the 2026-06-09 doc-housekeeping commit (`docs/devlog/detailed/2026-06-09_2026-06-09.md`) — `fileSizeBudget.test.ts` red at HEAD 860557e |
+| Reviewer findings | n/a — process lesson (surfaced by running gates, not a reviewer) |
+| Fix commit | (this commit) — legacy pin `'tests/playtest/llmRunner.test.ts': 692` |
+| Test added | n/a — the detector already existed (`tests/architecture/fileSizeBudget.test.ts`); the gap was process, not coverage |
+| Behavior delta | `npm test` was red at HEAD for a month: f2df6ce (Phase-6.C.1, 2026-05-09) grew `llmRunner.test.ts` to 692 LOC > 500 hard limit with no exemption, and that commit plus 860557e shipped while devlog entries recorded "full gates pass." Post-fix the suite is green with the violation pinned and ratcheting downward. |
+
+Context: Phase-6.C.1 grew `tests/playtest/llmRunner.test.ts` past the 500-LOC hard limit. The session iterated with affected-tests-only runs (per the AGENTS.md iteration rule), and the architecture suite never re-fired — `fileSizeBudget.test.ts` responds to the size of every file under `src/` + `tests/`, so it is "affected" by any commit that adds lines anywhere, a dependency no import- or path-based test-selection heuristic catches.
+
+Lesson: cross-cutting architecture gates (file-size budgets, dependency rules, naming audits) are affected by EVERY change, so an iteration shortcut that runs only behavior-adjacent tests must still include `tests/architecture/`. And a "full gates pass" claim is only valid for the tree state at the moment the suite ran — any edit after that run, including test-only line growth, invalidates the claim. Run the full suite once more after the LAST edit, not just after the last interesting one.
+
+Pointer: [tests/architecture/fileSizeBudget.test.ts](../../tests/architecture/fileSizeBudget.test.ts) legacy-pin comment; devlog [2026-06-09](../devlog/detailed/2026-06-09_2026-06-09.md).
+
 ## Codex review extraction must skip the prompt-echo — 2026-05-02
 
 | Field | Value |

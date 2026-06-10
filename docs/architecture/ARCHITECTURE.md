@@ -46,7 +46,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       green-gates check; counterfactual fix-validation via
       `SessionReplayer.forkAt`; cross-corpus regression detection; AI-vs-AI
       via opponent-selection refactor.
-      See `docs/threads/current/playtest-loop/DESIGN.md`.
+      See `docs/threads/done/playtest-loop/DESIGN.md`.
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
       replay bridge, coalesces drag scrubs, exposes the current replay bundle
