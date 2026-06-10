@@ -96,7 +96,7 @@ export interface AgentDispatchEventLog {
 
 export interface BrowserTestAgentApi {
   /** Bounded state view shaped for prompt-token efficiency.
-   *  See `docs/threads/current/llm-agent-playtest/DESIGN.md` §1.
+   *  See `docs/threads/done/llm-agent-playtest/DESIGN.md` §1.
    *  Phase-6.B (impl-2 M7): `enemies` is filtered by per-owner
    *  visibility (engine `VisibilityMap`) by default. Pass
    *  `{omniscient: true}` to revert to cheat-mode global ground-truth

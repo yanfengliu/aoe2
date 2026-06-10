@@ -68,7 +68,7 @@ export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
   pinnedWindowTicks: 50,
 };
 
-// LLM-agent-playtest types. Shape pinned by docs/threads/current/llm-agent-playtest/DESIGN.md.
+// LLM-agent-playtest types. Shape pinned by docs/threads/done/llm-agent-playtest/DESIGN.md.
 
 export interface AgentPlayerState {
   ownerId: number;

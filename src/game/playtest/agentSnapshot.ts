@@ -1,6 +1,6 @@
 // Bounded agent-state snapshot for the LLM-agent playtest harness.
 // Composed from the bridge's existing read surfaces; capped at limits
-// per docs/threads/current/llm-agent-playtest/DESIGN.md §1.
+// per docs/threads/done/llm-agent-playtest/DESIGN.md §1.
 
 import type {
   AgentEntitySummary,

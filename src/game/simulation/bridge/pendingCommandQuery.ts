@@ -7,7 +7,7 @@
 // command-stream intention that will overwrite that unit's
 // `unitCommand[id]` at the next handler tick. Getting the case set wrong
 // produces the `building.placeConfirm` / `unit.attack` race documented in
-// `docs/threads/current/full/2026-05-01/1/REVIEW.md` R2-M1.
+// `docs/threads/done/full/2026-05-01/1/REVIEW.md` R2-M1.
 
 import type { PendingCommand } from '../dispatcher';
 

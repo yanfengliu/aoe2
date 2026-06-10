@@ -22,7 +22,7 @@ Pointer: devlog entry, file, or test that illustrates it.
 |---|---|
 | Surfaced by | Full-suite run for the 2026-06-09 doc-housekeeping commit (`docs/devlog/detailed/2026-06-09_2026-06-09.md`) — `fileSizeBudget.test.ts` red at HEAD 860557e |
 | Reviewer findings | n/a — process lesson (surfaced by running gates, not a reviewer) |
-| Fix commit | (this commit) — legacy pin `'tests/playtest/llmRunner.test.ts': 692` |
+| Fix commit | `5a14832` — legacy pin `'tests/playtest/llmRunner.test.ts': 692` |
 | Test added | n/a — the detector already existed (`tests/architecture/fileSizeBudget.test.ts`); the gap was process, not coverage |
 | Behavior delta | `npm test` was red at HEAD for a month: f2df6ce (Phase-6.C.1, 2026-05-09) grew `llmRunner.test.ts` to 692 LOC > 500 hard limit with no exemption, and that commit plus 860557e shipped while devlog entries recorded "full gates pass." Post-fix the suite is green with the violation pinned and ratcheting downward. |
 
