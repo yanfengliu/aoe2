@@ -1,5 +1,13 @@
-// Pure-function visual-regression oracle. Compares run-time screenshot
-// PNGs against committed baseline PNGs at the same tick milestones,
+// Pure-function visual-regression oracle. UNWIRED since option C
+// (2026-06-10): the LLM harness no longer does baseline comparison —
+// a non-deterministic player has no "correct" reference image, so the
+// per-run wiring, the committed baseline PNGs, and the corpus gate
+// were removed. The module is retained (with its tests) for a future
+// DETERMINISTIC corpus row, where same-seed scripted-AI runs make
+// pixel diffs a real regression signal.
+//
+// Compares run-time screenshot
+// PNGs against reference PNGs at the same tick milestones,
 // firing a violation per frame whose pixel-diff fraction exceeds a
 // threshold. Built on `pngjs` (decode) + `pixelmatch` (diff with
 // anti-aliasing tolerance).

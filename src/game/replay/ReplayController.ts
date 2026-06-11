@@ -404,7 +404,17 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       // etc.) when the user is already in replay mode. Slice-4 review.
       const replayer = SessionReplayer.fromBundle(
         bundle,
-        { worldFactory: (snapshot) => toEngineWorld(worldFactory(snapshot)) },
+        // skipRegistrationCheck (civ-engine v0.8.18 absorb): aoe2's
+        // replay factory is DELIBERATELY instrumented — replay mode
+        // swaps in replay-safe AI-decision systems and registers
+        // aoe2ReplayPendingCommandDrain (see registerAllSystems), so
+        // its registration manifest intentionally differs from the
+        // live recording world. The engine's escape hatch exists for
+        // exactly this case; selfCheck remains the divergence backstop.
+        {
+          worldFactory: (snapshot) => toEngineWorld(worldFactory(snapshot)),
+          skipRegistrationCheck: true,
+        },
       ) as ReplayReplayer;
       const targetTick = clampTick(bundle, atTick);
       const world = fromEngineWorld(replayer.openAt(targetTick));

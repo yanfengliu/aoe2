@@ -65,14 +65,16 @@ export interface LlmRunnerConfig {
   screenshotEnabled: boolean;
   // Optional callback invoked once per decision (for trace streaming).
   onDecision?: (entry: TraceEntry) => void;
-  // Phase-6.C.1: tick checkpoints at which to capture an extra
-  // screenshot for visual-regression comparison. Each post-advance
-  // step checks whether any checkpoint falls in the interval
-  // (tickBefore, tickAfter] and captures one screenshot if so.
-  // When undefined OR screenshotEnabled is false, no checkpoint
-  // captures happen. The post-loop final screenshot is independent
-  // of this list.
-  baselineCheckpointTicks?: number[];
+  // Checkpoint ticks at which to capture an extra screenshot for the
+  // corpus dashboard (option C, 2026-06-10: no baseline comparison —
+  // LLM runs are non-deterministic, so there is no "correct" reference
+  // image; render regressions are covered by the deterministic
+  // Playwright/browser suites). A capture fires only when an advance
+  // lands EXACTLY on a checkpoint, so align these to multiples of
+  // decisionIntervalTicks. When undefined OR screenshotEnabled is
+  // false, no checkpoint captures happen. The post-loop final
+  // screenshot is independent of this list.
+  screenshotCheckpointTicks?: number[];
 }
 
 export interface TraceEntry {
@@ -92,8 +94,7 @@ export interface RunnerEnvelope {
   runStartedAt: string;
   runCompletedAt: string;
   errorMessage?: string;
-  // Phase-6.C.1 (Claude impl-1 HIGH): the corpus dashboard needs the
-  // run's seed + maxTicks to render baseline thumbnail paths and the
+  // The corpus dashboard needs the run's seed + maxTicks for the
   // run table. The runner itself doesn't know these (they come from
   // the runner script's CLI args), so the script stamps them onto
   // the envelope after `runLlmPlaytest` returns. Optional in the
@@ -109,17 +110,6 @@ export interface RunnerEnvelope {
   // unconditionally (no opt-in flag) — scoring is cheap and useful
   // for any multi-owner playtest (AI-vs-LLM, future AI-vs-AI).
   winner?: WinnerResult;
-  // Phase-6.C.1: visual-regression oracle result, when the runner
-  // script wired it (script reads baseline PNGs from disk + the
-  // checkpoint screenshots from RunLlmPlaytestResult and feeds them
-  // to runVisualOracle). `deltas` is per-baseline-tick advisory
-  // signal; `violations` are the high-severity diffs that should
-  // gate corpus runs.
-  visualOracle?: {
-    deltas: import('./visualOracle').VisualDelta[];
-    violations: import('./types').OracleViolation[];
-    missingTicks: number[];
-  };
 }
 
 export interface RunLlmPlaytestResult {
@@ -130,10 +120,10 @@ export interface RunLlmPlaytestResult {
   // surfaced for downstream observation-oracle calls. Undefined when
   // screenshotEnabled was false or no decisions ran.
   finalScreenshotPng?: Uint8Array;
-  // Phase-6.C.1: per-checkpoint screenshots captured during the run.
-  // The visual-regression oracle compares these against committed
-  // baseline PNGs. Empty when no `baselineCheckpointTicks` were
-  // configured or `screenshotEnabled` was false.
+  // Per-checkpoint screenshots captured during the run, persisted by
+  // the script for the corpus dashboard. Empty when no
+  // `screenshotCheckpointTicks` were configured or `screenshotEnabled`
+  // was false.
   checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }>;
 }
 
@@ -153,12 +143,12 @@ export async function runLlmPlaytest(input: {
   // observation oracle (run by the runner script) has the final-tick
   // visual context to inspect.
   let lastScreenshotPng: Uint8Array | undefined;
-  // Phase-6.C.1: checkpoint captures for the visual-regression oracle.
+  // Checkpoint captures for the corpus dashboard.
   const checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }> = [];
-  // Sort baseline checkpoints ascending so the "crosses checkpoint"
+  // Sort screenshot checkpoints ascending so the "crosses checkpoint"
   // detection is monotonic. Defensive copy so we don't mutate the
   // caller's array.
-  const baselineCheckpoints = (config.baselineCheckpointTicks ?? [])
+  const screenshotCheckpoints = (config.screenshotCheckpointTicks ?? [])
     .filter((t) => t > 0 && Number.isFinite(t))
     .slice()
     .sort((a, b) => a - b);
@@ -168,7 +158,7 @@ export async function runLlmPlaytest(input: {
   // playtest-fixes C: freeze the sim before the first decision. The
   // host's advanceTicks then becomes the sole tick source — tickAfter
   // tracks ticksRun exactly, maxTicks regains exact semantics, and
-  // baseline checkpoints (multiples of decisionIntervalTicks) align.
+  // screenshot checkpoints (multiples of decisionIntervalTicks) align.
   if (host.setPaused) await host.setPaused(true);
 
   try {
@@ -223,24 +213,22 @@ export async function runLlmPlaytest(input: {
       }
       const tickAfter = await host.getCurrentTick();
 
-      // Phase-6.C.1: capture screenshots ONLY when an advance lands
-      // exactly on a baseline checkpoint tick. If the advance
-      // overshoots a checkpoint (decisionInterval doesn't divide the
-      // checkpoint), the checkpoint is SKIPPED (logged warn) — the
-      // visual oracle then surfaces it as `missingTicks` rather than
-      // matching against a wrong-tick screenshot which would
-      // generate false diffs (Codex impl-1 MED 1).
+      // Capture screenshots ONLY when an advance lands exactly on a
+      // checkpoint tick (dashboard thumbnails; no baseline diffing). If
+      // the advance overshoots a checkpoint (decisionInterval doesn't
+      // divide it), the checkpoint is SKIPPED with a warn — better no
+      // thumbnail than a wrong-tick one.
       //
-      // Operator guidance: align baselineCheckpointTicks to multiples
-      // of decisionIntervalTicks. The capture-baselines script's
-      // default checkpoints are 1000/2000/3000/4000/5000, which
-      // divide cleanly by the default decisionIntervalTicks=250.
-      if (config.screenshotEnabled && baselineCheckpoints.length > 0) {
+      // Operator guidance: align screenshotCheckpointTicks to
+      // multiples of decisionIntervalTicks (the script derives them
+      // from --screenshot-every, default 1000, which divides cleanly
+      // by the default decisionIntervalTicks=250).
+      if (config.screenshotEnabled && screenshotCheckpoints.length > 0) {
         while (
-          nextCheckpointIdx < baselineCheckpoints.length
-          && baselineCheckpoints[nextCheckpointIdx]! <= tickAfter
+          nextCheckpointIdx < screenshotCheckpoints.length
+          && screenshotCheckpoints[nextCheckpointIdx]! <= tickAfter
         ) {
-          const checkpointTick = baselineCheckpoints[nextCheckpointIdx]!;
+          const checkpointTick = screenshotCheckpoints[nextCheckpointIdx]!;
           if (checkpointTick === tickAfter) {
             try {
               const png = await host.captureScreenshot();
@@ -254,12 +242,9 @@ export async function runLlmPlaytest(input: {
               );
             }
           } else {
-            // Misaligned: the advance overshot the checkpoint. Skip
-            // the capture; the visual oracle will see it as a
-            // missingTick which is honest signal. (playtest-fixes E:
-            // name the two real causes instead of asserting
-            // non-divisibility — the 2026-06-09 run hit this for every
-            // checkpoint purely from real-time drift.)
+            // Misaligned: the advance overshot the checkpoint —
+            // skip the capture (warn-only; playtest-fixes E named the
+            // two real causes instead of asserting non-divisibility).
             console.warn(
               `[runLlmPlaytest] checkpoint ${checkpointTick} skipped — the advance landed at ${tickAfter}, `
                 + `past the checkpoint. Either the checkpoint is not a multiple of decisionIntervalTicks=`

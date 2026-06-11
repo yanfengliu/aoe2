@@ -3,7 +3,7 @@
 //
 // Wraps `playtest:llm` with an auto-fix loop:
 //   1. Run the playtest.
-//   2. If the run halted (engineHalt OR HIGH-severity visual violation),
+//   2. If the run halted (engineHalt),
 //      prompt the configured LlmProvider for a unified-diff fix using
 //      the bundle/envelope/trace as context.
 //   3. Call `applyAndGate` to validate + apply the diff on a fresh
@@ -171,13 +171,9 @@ function detectRegression(envelope) {
   if (envelope.stopReason === 'engineHalt') {
     return { regressed: true, reason: `engineHalt: ${envelope.errorMessage ?? ''}`.slice(0, 500) };
   }
-  const highViolations = (envelope.visualOracle?.violations ?? []).filter((v) => v.severity === 'high');
-  if (highViolations.length > 0) {
-    return {
-      regressed: true,
-      reason: `${highViolations.length} HIGH-severity visual violation(s)`,
-    };
-  }
+  // Option C (2026-06-10): visual baselines removed — a stochastic
+  // player has no "correct" reference image, so engineHalt (plus the
+  // missing-envelope case above) is the sole regression trigger.
   return { regressed: false, reason: 'clean run' };
 }
 
@@ -244,13 +240,6 @@ function buildRegressionContext(envelope) {
     `Total cost: $${(envelope.totalCostUsd ?? 0).toFixed(4)}`,
   ];
   if (envelope.errorMessage) lines.push(`Error: ${envelope.errorMessage}`);
-  const highViolations = (envelope.visualOracle?.violations ?? []).filter((v) => v.severity === 'high');
-  if (highViolations.length > 0) {
-    lines.push('', 'High-severity visual violations:');
-    for (const v of highViolations.slice(0, 5)) {
-      lines.push(`  - ${v.message ?? JSON.stringify(v)}`);
-    }
-  }
   return lines.join('\n');
 }
 

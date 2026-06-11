@@ -122,7 +122,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 45_000);
+  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
 });
 
 describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)', () => {
@@ -170,7 +170,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 45_000);
+  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
 });
 
 describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Armor)', () => {
@@ -218,7 +218,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 45_000);
+  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
 });
 
 describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Bracer)', () => {
@@ -269,7 +269,7 @@ describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Brace
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 45_000);
+  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
 });
 
 describe('Armor reduces damage per hit', () => {

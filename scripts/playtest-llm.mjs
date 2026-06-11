@@ -18,13 +18,16 @@
 //                                set. Explicit value overrides detection.
 //   --use-dev-server             dev mode (vite); default uses vite preview
 //   --no-screenshot              disable screenshot capture (token-only mode)
+//   --screenshot-every <ticks>   dashboard checkpoint screenshot cadence
+//                                (default 1000; 0 disables; use multiples of
+//                                --decision-interval so captures land)
 //   --omniscient                 cheat-mode snapshot (Phase-6.B)
 //   --observation                run post-hoc observation oracle
 //                                (Phase-6.C.2; adds ~$0.10 per run)
 
 import { spawn, execSync, spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, join, basename } from 'node:path';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import {
@@ -38,7 +41,6 @@ import {
   buildTraceSummary,
   runObservationOracle,
 } from '../src/game/playtest/observationOracle.ts';
-import { runVisualOracle } from '../src/game/playtest/visualOracle.ts';
 
 function parseArgs(argv) {
   const args = {
@@ -52,6 +54,10 @@ function parseArgs(argv) {
     provider: null, // null = auto-detect
     useDevServer: false,
     noScreenshot: false,
+    // Dashboard checkpoint screenshots every N ticks (option C: no
+    // baseline comparison — captures are for human eyeballing via the
+    // corpus dashboard only). 0 disables.
+    screenshotEvery: 1000,
     // Phase-6.B (impl-2 M7): default false → enemies are visibility-
     // filtered. Pass --omniscient to revert to cheat-mode global view.
     omniscient: false,
@@ -79,6 +85,7 @@ function parseArgs(argv) {
     }
     else if (a === '--use-dev-server') args.useDevServer = true;
     else if (a === '--no-screenshot') args.noScreenshot = true;
+    else if (a === '--screenshot-every') args.screenshotEvery = Number(argv[++i]);
     else if (a === '--omniscient') args.omniscient = true;
     else if (a === '--observation') args.observation = true;
     else if (a.startsWith('--')) {
@@ -158,23 +165,6 @@ function makeApiProvider() {
 // shell:true), because the provider spawns the .exe directly with
 // shell:false. We delegate to resolveClaudeBinary which returns null
 // on Windows when no .exe is found.
-// Phase-6.C.1: discover visual-regression baseline checkpoints from
-// the seed's baseline dir. Each `<tick>.png` filename becomes a
-// checkpoint number. Returns [] when the dir is missing or empty
-// (the oracle is then skipped).
-function listBaselineCheckpoints(dir) {
-  if (!existsSync(dir)) return [];
-  try {
-    return readdirSync(dir)
-      .filter((f) => f.endsWith('.png'))
-      .map((f) => Number(basename(f, '.png')))
-      .filter((n) => Number.isFinite(n) && n > 0)
-      .sort((a, b) => a - b);
-  } catch {
-    return [];
-  }
-}
-
 function canSpawnClaude() {
   const resolved = resolveClaudeBinary('claude');
   if (resolved === null) return false;
@@ -467,13 +457,16 @@ async function main() {
     mkdirSync(dirname(traceFilePath), { recursive: true });
     if (existsSync(traceFilePath)) writeFileSync(traceFilePath, ''); // truncate
 
-    // Phase-6.C.1: discover baseline checkpoints for the visual
-    // oracle. The capture-baselines script writes
-    // tests/playtest/baselines/<seed>/<tick>.png; each filename's
-    // numeric stem is a checkpoint tick. When none exist, we skip
-    // the oracle entirely (no false-positive missingTicks).
-    const baselineDir = `tests/playtest/baselines/${args.seed}`;
-    const baselineCheckpointTicks = listBaselineCheckpoints(baselineDir);
+    // Dashboard checkpoint ticks: every --screenshot-every ticks up to
+    // maxTicks (option C — captures feed the corpus dashboard only; no
+    // baseline diffing, because a non-deterministic player has no
+    // "correct" reference image).
+    const screenshotCheckpointTicks = [];
+    if (args.screenshotEvery > 0) {
+      for (let t = args.screenshotEvery; t <= args.maxTicks; t += args.screenshotEvery) {
+        screenshotCheckpointTicks.push(t);
+      }
+    }
 
     const result = await runLlmPlaytest({
       host,
@@ -483,7 +476,7 @@ async function main() {
         maxTicks: args.maxTicks,
         decisionIntervalTicks: args.decisionInterval,
         screenshotEnabled: !args.noScreenshot,
-        baselineCheckpointTicks,
+        screenshotCheckpointTicks,
         onDecision: (entry) => {
           // Drop heavy fields from streamed trace; the runner returns the
           // full structure separately if needed. Keep this row to ~1 KB.
@@ -502,76 +495,23 @@ async function main() {
       },
     });
 
-    // Phase-6.C.1 (Claude impl-1 HIGH): stamp seed + maxTicks on the
-    // envelope so the dashboard can render the baseline-thumbnail
-    // paths (`tests/playtest/baselines/<seed>/<tick>.png`) and the
-    // run table's seed/maxTicks columns. The runner doesn't know
-    // these values; only the script does.
+    // Stamp seed + maxTicks on the envelope for the dashboard's run
+    // table. The runner doesn't know these values; only the script does.
     result.envelope.seed = args.seed;
     result.envelope.maxTicks = args.maxTicks;
 
-    // Phase-6.C.1: persist checkpoint screenshots + run the visual
-    // oracle against the committed baselines. Each capture lands in
-    // ${out}-screenshots/<tick>.png so the dashboard generator can
-    // reference them. Oracle result goes into envelope.visualOracle.
-    //
-    // Codex impl-1 MED 2: oracle is invoked whenever baselines exist,
-    // even when no checkpoints fired (e.g. early stop, all captures
-    // failed). The result's `missingTicks` field then carries the
-    // signal — operators see "all baselines unreachable" rather than
-    // "no visual data".
-    if (baselineCheckpointTicks.length > 0) {
-      if (result.checkpointScreenshots.length > 0) {
-        const screenshotsDir = `${args.out}-screenshots`;
-        mkdirSync(screenshotsDir, { recursive: true });
-        for (const entry of result.checkpointScreenshots) {
-          writeFileSync(`${screenshotsDir}/${entry.tick}.png`, entry.pngBytes);
-        }
+    // Persist checkpoint screenshots for the corpus dashboard
+    // (${out}-screenshots/<tick>.png). Option C (2026-06-10): no
+    // baseline comparison — see design/spec-final.md §15.7.
+    if (result.checkpointScreenshots.length > 0) {
+      const screenshotsDir = `${args.out}-screenshots`;
+      mkdirSync(screenshotsDir, { recursive: true });
+      for (const entry of result.checkpointScreenshots) {
+        writeFileSync(`${screenshotsDir}/${entry.tick}.png`, entry.pngBytes);
       }
-      try {
-        const baselines = baselineCheckpointTicks.map((tick) => ({
-          tick,
-          pngBytes: readFileSync(`${baselineDir}/${tick}.png`),
-        }));
-        const oracleResult = runVisualOracle({
-          baselines,
-          runScreenshots: result.checkpointScreenshots,
-        });
-        result.envelope.visualOracle = {
-          deltas: oracleResult.deltas,
-          violations: oracleResult.violations,
-          missingTicks: oracleResult.missingTicks,
-        };
-        if (oracleResult.violations.length > 0) {
-          console.log(
-            `[playtest-llm] visual oracle: ${oracleResult.violations.length} violation(s)`,
-          );
-        }
-        if (oracleResult.missingTicks.length > 0) {
-          // Claude impl-2 O1: tailor the advice to the actual cause.
-          // When zero captures fired, the cause is likely an early
-          // exit / no-screenshot / capture failure — not misalignment.
-          // Misalignment advice only when SOME checkpoints captured
-          // but others didn't, which is the misalignment fingerprint.
-          if (result.checkpointScreenshots.length === 0) {
-            console.log(
-              `[playtest-llm] visual oracle: ${oracleResult.missingTicks.length} baseline tick(s) missing — `
-                + `no checkpoints captured. Check that screenshots are enabled (--no-screenshot was not passed), `
-                + `the run reached the first baseline tick, and capture didn't error.`,
-            );
-          } else {
-            console.log(
-              `[playtest-llm] visual oracle: ${oracleResult.missingTicks.length} baseline tick(s) missing — `
-                + `align decisionIntervalTicks (${args.decisionInterval}) to baseline ticks `
-                + `(${baselineCheckpointTicks.join(', ')}) to capture them.`,
-            );
-          }
-        }
-      } catch (err) {
-        console.warn(
-          `[playtest-llm] visual oracle failed (advisory): ${err?.message ?? err}`,
-        );
-      }
+      console.log(
+        `[playtest-llm] checkpoint screenshots: ${result.checkpointScreenshots.length} saved to ${screenshotsDir}`,
+      );
     }
 
     // Phase-6.C.2: post-hoc observation oracle (advisory only). Skipped

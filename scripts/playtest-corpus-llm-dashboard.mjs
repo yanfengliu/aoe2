@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-// Phase-6.C.1: HTML dashboard for cross-corpus baseline drift.
+// HTML dashboard for LLM-corpus runs. Option C (2026-06-10): no
+// baseline comparison — thumbnails show the run's checkpoint
+// screenshots only (a stochastic player has no "correct" reference
+// image; render regressions are covered by the deterministic suites).
 //
 // Reads `output/corpus-llm/<dir>/SUMMARY-LLM.md` + sibling
 // `output/playtests-llm/*.envelope.json` files (matched by run name)
@@ -8,7 +11,6 @@
 //
 // - Header: corpus run total cost, # runs, # halts.
 // - Per-run table: name | seed | maxTicks | stopReason | ticks | decisions | cost | winner | observation verdict.
-// - Per-run-per-checkpoint thumbnails: 3-up grid (baseline / run / diff-mask).
 //
 // Pure script — no game-code changes. The dashboard is self-contained
 // HTML+CSS, no JS dependencies; thumbnails are referenced by relative
@@ -103,7 +105,6 @@ function collectRuns(corpusDir) {
 }
 
 function renderDashboard({ corpusName, summaryPath, runs }) {
-  const baselineRoot = (seed) => `tests/playtest/baselines/${seed}`;
   const corpusDirAbs = dirname(summaryPath);
   const totals = runs.reduce(
     (acc, r) => {
@@ -117,7 +118,7 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
     .map((r) => renderRunRow(r))
     .join('\n');
   const thumbnailSections = runs
-    .map((r) => renderThumbnails(r, baselineRoot(r.envelope.seed ?? extractSeedFromName(r.name)), corpusDirAbs))
+    .map((r) => renderThumbnails(r, corpusDirAbs))
     .filter((s) => s.length > 0)
     .join('\n');
   return `<!doctype html>
@@ -139,9 +140,6 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
     .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px; }
     .grid figure { margin: 0; text-align: center; font-size: 0.8em; color: #555; }
     .grid img { width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; image-rendering: pixelated; }
-    .delta { font-family: monospace; font-size: 0.85em; }
-    .delta-medium { color: #b45309; font-weight: 600; }
-    .delta-high { color: #b91c1c; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -155,7 +153,7 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
   <h2>Runs</h2>
   <table>
     <thead><tr>
-      <th>Run</th><th>Seed</th><th>maxTicks</th><th>stopReason</th><th>ticks</th><th>decisions</th><th>cost</th><th>winner</th><th>observation</th><th>visual</th>
+      <th>Run</th><th>Seed</th><th>maxTicks</th><th>stopReason</th><th>ticks</th><th>decisions</th><th>cost</th><th>winner</th><th>observation</th><th>screenshots</th>
     </tr></thead>
     <tbody>
       ${tableRows}
@@ -163,7 +161,7 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
   </table>
 
   <h2>Visual checkpoints</h2>
-  ${thumbnailSections.length === 0 ? '<p><em>No visual-oracle data in any run envelope.</em></p>' : thumbnailSections}
+  ${thumbnailSections.length === 0 ? '<p><em>No checkpoint screenshots in any run.</em></p>' : thumbnailSections}
 </body>
 </html>
 `;
@@ -182,18 +180,14 @@ function renderRunRow(r) {
   const observation = env.observation
     ? escapeHtml(env.observation.verdict)
     : '—';
-  // Claude impl-2 O2: visual column surfaces high-severity violations
-  // and missingTicks counts so operators see the regression-gate
-  // signal (and the "no captures" failure mode) without opening JSON.
-  const visualHighCount = (env.visualOracle?.violations ?? []).filter(
-    (v) => v.severity === 'high',
-  ).length;
-  const visualTotalViolations = (env.visualOracle?.violations ?? []).length;
-  const visualMissingCount = (env.visualOracle?.missingTicks ?? []).length;
-  const visualSummary = env.visualOracle
-    ? `${visualHighCount}H/${visualTotalViolations}V/${visualMissingCount}M`
-    : '—';
-  const visualCellClass = visualHighCount > 0 ? 'halted' : '';
+  // Option C: screenshots column counts the run's persisted
+  // checkpoint PNGs (dashboard-only; no diffing).
+  let screenshotCount = 0;
+  try {
+    screenshotCount = readdirSync(r.screenshotsDir).filter((f) => f.endsWith('.png')).length;
+  } catch {
+    /* no screenshots dir */
+  }
   return `<tr>
     <td>${escapeHtml(r.name)}</td>
     <td>${escapeHtml(env.seed ?? '')}</td>
@@ -204,7 +198,7 @@ function renderRunRow(r) {
     <td>$${(env.totalCostUsd ?? 0).toFixed(4)}</td>
     <td>${winner}</td>
     <td>${observation}</td>
-    <td class="${visualCellClass}">${escapeHtml(visualSummary)}</td>
+    <td>${escapeHtml(screenshotCount)}</td>
   </tr>`;
 }
 
@@ -215,31 +209,28 @@ function formatWinner(w) {
   return JSON.stringify(w);
 }
 
-function renderThumbnails(r, baselineDir, corpusDirAbs) {
-  const env = r.envelope;
-  const deltas = env.visualOracle?.deltas ?? [];
-  if (deltas.length === 0) return '';
-  const rows = deltas
-    .map((d) => {
-      const baselinePath = relPathFromCorpus(corpusDirAbs, join(baselineDir, `${d.tick}.png`));
-      const runPath = relPathFromCorpus(corpusDirAbs, join(r.screenshotsDir, `${d.tick}.png`));
-      // Diff PNGs aren't currently persisted by the runner script —
-      // visualOracle constructs them in-memory only. For now, show
-      // baseline + run side-by-side; placeholder for the diff column
-      // so the grid alignment holds.
-      const cls =
-        d.diffFraction >= 0.05 ? 'delta-high'
-          : d.diffFraction >= 0.005 ? 'delta-medium'
-            : '';
-      return `<h3>tick ${escapeHtml(d.tick)} <span class="delta ${cls}">${(d.diffFraction * 100).toFixed(2)}%</span></h3>
-      <div class="grid">
-        <figure><img src="${escapeHtml(baselinePath)}" alt="baseline"><figcaption>baseline</figcaption></figure>
-        <figure><img src="${escapeHtml(runPath)}" alt="run"><figcaption>run</figcaption></figure>
-        <figure><div style="background:#eee;border-radius:4px;height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.85em;">diff overlay (not persisted)</div><figcaption>diff</figcaption></figure>
-      </div>`;
+function renderThumbnails(r, corpusDirAbs) {
+  let ticks = [];
+  try {
+    ticks = readdirSync(r.screenshotsDir)
+      .filter((f) => f.endsWith('.png'))
+      .map((f) => Number(f.replace(/.png$/, '')))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b);
+  } catch {
+    return '';
+  }
+  if (ticks.length === 0) return '';
+  const figures = ticks
+    .map((tick) => {
+      const runPath = relPathFromCorpus(corpusDirAbs, join(r.screenshotsDir, `${tick}.png`));
+      return `<figure><img src="${escapeHtml(runPath)}" alt="tick ${tick}"><figcaption>tick ${escapeHtml(tick)}</figcaption></figure>`;
     })
     .join('\n');
-  return `<h2 style="margin-top:2em">${escapeHtml(r.name)}</h2>${rows}`;
+  return `<h2 style="margin-top:2em">${escapeHtml(r.name)}</h2>
+      <div class="grid">
+        ${figures}
+      </div>`;
 }
 
 function relPathFromCorpus(corpusDirAbs, target) {
@@ -247,13 +238,6 @@ function relPathFromCorpus(corpusDirAbs, target) {
   // paths must be relative to that. relative(corpusDirAbs, target)
   // gives a `..` walk that resolves against the dashboard's location.
   return relative(corpusDirAbs, target).split('\\').join('/');
-}
-
-function extractSeedFromName(name) {
-  // Best-effort: corpus row names typically encode the seed (e.g.
-  // `default-seed-llm-smoke`). Fall back to undefined when no clear
-  // mapping exists.
-  return undefined;
 }
 
 function escapeHtml(s) {

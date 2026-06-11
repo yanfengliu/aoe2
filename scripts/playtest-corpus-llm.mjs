@@ -118,9 +118,7 @@ pruneOldRuns(playtestsRoot);
 const rows = [
   `# Playtest LLM corpus — ${date}`,
   '',
-  // Visual column format: `{H}H/{V}V/{M}M` — high-severity violations / total
-  // violations / missing baseline ticks. `H>0` is the corpus-gate signal.
-  '| Run | Seed | maxTicks | stopReason | ticksRun | decisions | totalCost | visual |',
+  '| Run | Seed | maxTicks | stopReason | ticksRun | decisions | totalCost | screenshots |',
   '|---|---|---|---|---|---|---|---|',
 ];
 let totalCost = 0;
@@ -179,20 +177,20 @@ for (const run of corpus.runs) {
   // M6). engineHalt OR an unexpected errorMessage IS a regression.
   if (env.stopReason === 'engineHalt') anyHigh = true;
   else if (env.errorMessage && env.errorMessage !== 'cost-budget-exceeded') anyHigh = true;
-  // Phase-6.C.1 (Codex impl-2 HIGH): visualOracle violations gate the
-  // corpus exit code per spec §15.7. Any 'high' severity violation
-  // (≥5% pixel-diff fraction or dimension mismatch) means a real
-  // visual regression that should fail CI. Medium-severity (≥0.5%)
-  // is informational and does NOT gate.
-  const highVisualViolations = (env.visualOracle?.violations ?? []).filter(
-    (v) => v.severity === 'high',
-  );
-  if (highVisualViolations.length > 0) anyHigh = true;
-  const visualSummary = env.visualOracle
-    ? `${highVisualViolations.length}H/${(env.visualOracle.violations ?? []).length}V/${(env.visualOracle.missingTicks ?? []).length}M`
-    : '—';
+  // Option C (2026-06-10): no visual gating for LLM rows — a
+  // non-deterministic player has no "correct" reference image, so
+  // baseline diffs measured expected divergence, not regressions.
+  // engineHalt/errorMessage remain the corpus gate; checkpoint
+  // screenshots are dashboard-only. Render regressions stay covered by
+  // the deterministic Playwright/browser suites.
+  let screenshotCount = 0;
+  try {
+    screenshotCount = readdirSync(`${out}-screenshots`).filter((f) => f.endsWith('.png')).length;
+  } catch {
+    /* no screenshots dir */
+  }
   rows.push(
-    `| ${run.name} | ${run.seed} | ${run.maxTicks} | ${env.stopReason} | ${env.ticksRun} | ${env.decisionsRun ?? '—'} | $${(env.totalCostUsd ?? 0).toFixed(4)} | ${visualSummary} |`,
+    `| ${run.name} | ${run.seed} | ${run.maxTicks} | ${env.stopReason} | ${env.ticksRun} | ${env.decisionsRun ?? '—'} | $${(env.totalCostUsd ?? 0).toFixed(4)} | ${screenshotCount} |`,
   );
 }
 

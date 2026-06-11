@@ -21,7 +21,7 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)), skipRegistrationCheck: true },
     );
     const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 
@@ -40,7 +40,7 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)), skipRegistrationCheck: true },
     );
     const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 
@@ -58,7 +58,7 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)), skipRegistrationCheck: true },
     );
     const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 

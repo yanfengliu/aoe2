@@ -11,10 +11,10 @@ import {
 } from './llmRunnerTestKit';
 
 describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', () => {
-  // Phase-6.C.1: checkpoint screenshots are captured at any baseline
-  // tick the loop's advance crosses. Verify the captures land in
+  // Checkpoint screenshots are captured at any checkpoint tick the
+  // loop's advance crosses (dashboard-only since option C). Verify the captures land in
   // result.checkpointScreenshots in tick-ascending order.
-  it('captures checkpoint screenshots at baselineCheckpointTicks the advance crosses', async () => {
+  it('captures checkpoint screenshots at screenshotCheckpointTicks the advance crosses', async () => {
     const host = new StubHost(MIN_BUNDLE);
     let captureCount = 0;
     host.captureScreenshot = async () => {
@@ -38,7 +38,7 @@ describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', 
         maxTicks: 1000,
         decisionIntervalTicks: 250,
         screenshotEnabled: true,
-        baselineCheckpointTicks: [250, 500, 1000],
+        screenshotCheckpointTicks: [250, 500, 1000],
       },
     });
     expect(result.checkpointScreenshots.map((e) => e.tick)).toEqual([250, 500, 1000]);
@@ -50,7 +50,7 @@ describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', 
     }
   });
 
-  it('omits checkpointScreenshots when baselineCheckpointTicks is empty', async () => {
+  it('omits checkpointScreenshots when screenshotCheckpointTicks is empty', async () => {
     const host = new StubHost(MIN_BUNDLE);
     const provider = new MockProvider({
       responses: [
@@ -66,7 +66,7 @@ describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', 
         maxTicks: 250,
         decisionIntervalTicks: 250,
         screenshotEnabled: true,
-        // baselineCheckpointTicks omitted
+        // screenshotCheckpointTicks omitted
       },
     });
     expect(result.checkpointScreenshots).toEqual([]);
@@ -88,7 +88,7 @@ describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', 
         maxTicks: 500,
         decisionIntervalTicks: 250,
         screenshotEnabled: false,
-        baselineCheckpointTicks: [250, 500],
+        screenshotCheckpointTicks: [250, 500],
       },
     });
     expect(result.checkpointScreenshots).toEqual([]);

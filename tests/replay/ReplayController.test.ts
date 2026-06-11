@@ -201,7 +201,7 @@ describe('Phase 3B - ReplayController', () => {
     controller.enterReplay(bundle, bundle.metadata.startTick);
     controller.play();
     scheduler.flushNext();
-    const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) }).openAt(bundle.metadata.startTick + 1);
+    const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)), skipRegistrationCheck: true }).openAt(bundle.metadata.startTick + 1);
 
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
     expect(currentBridge.world.serialize()).toEqual(expectedWorld.serialize());
@@ -272,7 +272,7 @@ describe('Phase 3B - ReplayController', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
     const scheduler = createFrameScheduler();
-    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) });
+    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)), skipRegistrationCheck: true });
     const openAtSpy = vi.spyOn(replayer, 'openAt');
     const fromBundleSpy = vi
       .spyOn(SessionReplayer, 'fromBundle')
