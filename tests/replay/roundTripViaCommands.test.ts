@@ -3,6 +3,7 @@ import { SessionReplayer } from 'civ-engine';
 
 import { TIER_3_SLOTS } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
+import { fromEngineWorld, toEngineWorld } from '../../src/game/simulation/bridge/pureHelpers';
 import { getReplayWorldContext } from '../../src/game/simulation/replay/replayWorldContext';
 import {
   recordCommandReplayFixture,
@@ -20,11 +21,9 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: createReplayWorldOnly },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
     );
-    const replayWorld = replayer.openAt(bundle.metadata.endTick) as ReturnType<
-      typeof createReplayWorldOnly
-    >;
+    const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 
     expect(getReplayWorldContext(replayWorld)).not.toBeNull();
     expect(replayWorld.serialize()).toEqual(bridge.world.serialize());
@@ -41,11 +40,9 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: createReplayWorldOnly },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
     );
-    const replayWorld = replayer.openAt(bundle.metadata.endTick) as ReturnType<
-      typeof createReplayWorldOnly
-    >;
+    const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 
     expect(replayWorld.serialize()).toEqual(bridge.world.serialize());
   });
@@ -61,11 +58,9 @@ describe('Phase 3A.5 - round-trip replay via recorded commands', () => {
 
     const replayer = SessionReplayer.fromBundle(
       bundle,
-      { worldFactory: createReplayWorldOnly },
+      { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) },
     );
-    const replayWorld = replayer.openAt(bundle.metadata.endTick) as ReturnType<
-      typeof createReplayWorldOnly
-    >;
+    const replayWorld = fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
 
     expect(replayWorld.serialize()).toEqual(bridge.world.serialize());
   });

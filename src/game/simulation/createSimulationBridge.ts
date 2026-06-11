@@ -6,7 +6,7 @@ import {
 } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
-import { clamp } from './bridge/pureHelpers';
+import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
@@ -245,9 +245,9 @@ export function createSimulationBridge(
       disableAiForOwners: options.disableAiForOwners,
     });
   const renderStore = new RenderStore();
-  const debuggerView = new WorldDebugger({ world });
+  const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });
   const renderAdapter = new RenderAdapter({
-    world,
+    world: toEngineWorld(world),
     projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth),
     debug: debuggerView,
     send(message) {

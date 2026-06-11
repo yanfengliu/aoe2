@@ -54,6 +54,20 @@ export type GameComponents = {
 };
 export type GameWorld = World<GameEvents, GameCommands, GameComponents>;
 
+// civ-engine 0.8.15's World layer-chain split made TComponents
+// effectively invariant, so GameWorld no longer interchanges with the
+// default-generic `World<TEvents, TCommands>` that SessionRecorder /
+// SessionReplayer signatures hardcode (no TComponents parameter —
+// engine-feedback item, 2026-06-09). These two helpers are the single
+// sanctioned seam; the runtime object is identical either way.
+export type EngineDefaultWorld = World<GameEvents, GameCommands>;
+export function toEngineWorld(world: GameWorld): EngineDefaultWorld {
+  return world as unknown as EngineDefaultWorld;
+}
+export function fromEngineWorld(world: EngineDefaultWorld): GameWorld {
+  return world as unknown as GameWorld;
+}
+
 export type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
 export const MARKET_BASE_RATE = 100;
@@ -99,13 +113,13 @@ export function toCellIndex(x: number, y: number): number {
 export function isSameEntity(
   ref: EntityRef | null,
   id: number,
-  world: World<GameEvents, GameCommands>,
+  world: GameWorld,
 ): boolean {
   return ref !== null && world.isCurrent(ref) && ref.id === id;
 }
 
 export function currentEntityId(
-  world: World<GameEvents, GameCommands>,
+  world: GameWorld,
   ref: EntityRef | null | undefined,
 ): number | null {
   return ref && world.isCurrent(ref) ? ref.id : null;

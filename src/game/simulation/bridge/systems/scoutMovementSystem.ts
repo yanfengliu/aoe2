@@ -3,7 +3,7 @@
 // command queue. Human-owned scouts skip this loop so manual move orders
 // take precedence.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type {
   UnitComponent,
   UnitTransformComponent,
@@ -14,14 +14,12 @@ import {
   clamp,
   getUnitTargetTransformForCell,
   gridPositionFromUnitTransform,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from '../pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../pureHelpers';
 import { unitCommandsCodec } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 export interface ScoutMovementSystemDeps {
   world: GameWorld;

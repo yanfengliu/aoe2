@@ -14,6 +14,7 @@ import type {
   GameEvents,
   GameWorld,
 } from '../simulation/bridge/pureHelpers';
+import { fromEngineWorld, toEngineWorld } from '../simulation/bridge/pureHelpers';
 import { createReplayWorldOnly } from '../simulation/replay/createReplayWorldOnly';
 import { getReplayWorldContext } from '../simulation/replay/replayWorldContext';
 import {
@@ -201,7 +202,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   function openReplayAt(tick: number): void {
     const current = requireReplayContext();
     const targetTick = clampTick(current.bundle, tick);
-    const world = current.replayer.openAt(targetTick) as GameWorld;
+    const world = fromEngineWorld(current.replayer.openAt(targetTick));
     const selectedRefs = current.bridge
       .getSelectedEntityRefs()
       .filter((ref) => world.isCurrent(ref));
@@ -403,10 +404,10 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       // etc.) when the user is already in replay mode. Slice-4 review.
       const replayer = SessionReplayer.fromBundle(
         bundle,
-        { worldFactory },
+        { worldFactory: (snapshot) => toEngineWorld(worldFactory(snapshot)) },
       ) as ReplayReplayer;
       const targetTick = clampTick(bundle, atTick);
-      const world = replayer.openAt(targetTick) as GameWorld;
+      const world = fromEngineWorld(replayer.openAt(targetTick));
       const bridge = buildReplayBridge(world);
       const nextContext: ReplayContext = {
         bundle,

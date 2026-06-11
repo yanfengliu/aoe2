@@ -12,6 +12,7 @@ import type {
   GameCommands,
   GameEvents,
 } from '../../src/game/simulation/bridge/pureHelpers';
+import { toEngineWorld } from '../../src/game/simulation/bridge/pureHelpers';
 
 type EconomyUnit = ReturnType<SimulationBridge['getEconomyState']>['units'][number];
 
@@ -38,7 +39,7 @@ export function findOwnedUnit(
 export function recordCommandReplayFixture(): RecordedCommandFixture {
   const bridge = createSimulationBridge('ai-rush-fixture');
   const recorder = new SessionRecorder<GameEvents, GameCommands>({
-    world: bridge.world,
+    world: toEngineWorld(bridge.world),
     snapshotInterval: null,
     terminalSnapshot: false,
     sourceKind: 'session',
@@ -68,7 +69,7 @@ export function recordCommandReplayFixture(): RecordedCommandFixture {
 export function recordCommandReplayFixtureAtPendingBoundary(): RecordedCommandFixture {
   const bridge = createSimulationBridge('ai-rush-fixture');
   const recorder = new SessionRecorder<GameEvents, GameCommands>({
-    world: bridge.world,
+    world: toEngineWorld(bridge.world),
     snapshotInterval: null,
     terminalSnapshot: false,
     sourceKind: 'session',
@@ -102,7 +103,7 @@ export function recordCommandReplayFixtureAtPendingBoundary(): RecordedCommandFi
 export function recordCommandReplayFixtureWithPendingSnapshot(): RecordedCommandFixture {
   const bridge = createSimulationBridge('ai-rush-fixture');
   const recorder = new SessionRecorder<GameEvents, GameCommands>({
-    world: bridge.world,
+    world: toEngineWorld(bridge.world),
     snapshotInterval: null,
     terminalSnapshot: false,
     sourceKind: 'session',

@@ -2,7 +2,7 @@
 // terrain tile grid so the rest of the bridge doesn't need to know which
 // subsystem owns the answer. Pure read-only.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type {
   ActionType,
   BuildingComponent,
@@ -12,8 +12,6 @@ import type {
 } from '../types';
 import {
   buildingFootprint,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from './pureHelpers';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
@@ -24,7 +22,7 @@ import {
   garrisonedUnitToBuildingCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 interface WorldOccupancyLike {
   isCellBlockedByBuilding(x: number, y: number): boolean;

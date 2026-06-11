@@ -4,19 +4,17 @@
 // re-solve every tick — invalidates when the original click target opens up
 // or the next step gets blocked.
 
-import { findGridPath, type Position, type World } from 'civ-engine';
+import { findGridPath, type Position } from 'civ-engine';
 import {
   buildingFootprint,
   clonePosition,
   isAtTarget,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from './pureHelpers';
 import type { BuildingComponent } from '../types';
 import type { UnitMovementPlan } from './movementTypes';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 interface ResolvedMovementPath {
   destination: Position;

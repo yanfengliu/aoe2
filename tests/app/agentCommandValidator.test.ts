@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateAgentCommandShape } from '../../src/app/bootstrap/agentCommandValidator';
+import { checkAgentActorOwnership, validateAgentCommandShape } from '../../src/app/bootstrap/agentCommandValidator';
 
 const OWNERS = { ownerRangeInclusive: { min: 1, max: 8 } };
 
@@ -217,5 +217,71 @@ describe('validateAgentCommandShape', () => {
       OWNERS,
     );
     expect(r.accepted).toBe(true);
+  });
+});
+
+// playtest-fixes iter-1 (Codex HIGH): the engine's semantic validators
+// have no actor identity — ownership must be enforced at the agent
+// dispatch boundary or the LLM can command enemy entities using the
+// enemy ids the prompt legitimately shows it.
+describe('checkAgentActorOwnership', () => {
+  const owners: Record<number, number | null> = {
+    10: 2,   // own unit/building
+    11: 2,
+    20: 1,   // enemy entity
+    30: null, // unclaimed (e.g. wild sheep)
+  };
+  const getOwner = (id: number) => (id in owners ? owners[id]! : null);
+
+  it('accepts unit commands whose unitId belongs to the agent', () => {
+    const r = checkAgentActorOwnership('unit.move', { unitId: 10, target: { x: 1, y: 1 } }, 2, getOwner);
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects unit commands targeting an enemy-owned unitId', () => {
+    const r = checkAgentActorOwnership('unit.move', { unitId: 20, target: { x: 1, y: 1 } }, 2, getOwner);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.details).toContain('unitId 20');
+  });
+
+  it('rejects queue.train on an enemy building', () => {
+    const r = checkAgentActorOwnership('queue.train', { buildingId: 20, unitType: 'villager' }, 2, getOwner);
+    expect(r.ok).toBe(false);
+  });
+
+  it('accepts queue.research on an own building', () => {
+    const r = checkAgentActorOwnership('queue.research', { buildingId: 11, technologyType: 'feudal-age' }, 2, getOwner);
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects sheep.move on an unclaimed (owner null) sheep', () => {
+    const r = checkAgentActorOwnership('sheep.move', { sheepId: 30, target: { x: 1, y: 1 } }, 2, getOwner);
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects building.placeConfirm when any additionalBuilderId is enemy-owned', () => {
+    const r = checkAgentActorOwnership(
+      'building.placeConfirm',
+      { builderId: 10, buildingType: 'house', position: { x: 3, y: 3 }, additionalBuilderIds: [11, 20] },
+      2,
+      getOwner,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.details).toContain('additionalBuilderIds');
+  });
+
+  it('rejects market.action for a playerId that is not the agent', () => {
+    const r = checkAgentActorOwnership('market.action', { playerId: 1, actionType: 'sell-wood' }, 2, getOwner);
+    expect(r.ok).toBe(false);
+  });
+
+  it('accepts market.action for the agent playerId', () => {
+    const r = checkAgentActorOwnership('market.action', { playerId: 2, actionType: 'sell-wood' }, 2, getOwner);
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects ids that do not resolve to any owned entity', () => {
+    const r = checkAgentActorOwnership('trebuchet.pack', { unitId: 999 }, 2, getOwner);
+    expect(r.ok).toBe(false);
   });
 });

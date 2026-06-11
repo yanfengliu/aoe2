@@ -10,6 +10,7 @@ import {
 } from '../../src/game/replay/ReplayController';
 import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
+import { toEngineWorld } from '../../src/game/simulation/bridge/pureHelpers';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
 import { makeReplayBridge } from '../../src/game/simulation/replay/makeReplayBridge';
 import {
@@ -200,7 +201,7 @@ describe('Phase 3B - ReplayController', () => {
     controller.enterReplay(bundle, bundle.metadata.startTick);
     controller.play();
     scheduler.flushNext();
-    const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly }).openAt(bundle.metadata.startTick + 1);
+    const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) }).openAt(bundle.metadata.startTick + 1);
 
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
     expect(currentBridge.world.serialize()).toEqual(expectedWorld.serialize());
@@ -271,7 +272,7 @@ describe('Phase 3B - ReplayController', () => {
     const { bridge: liveBridge, bundle } = recordCommandReplayFixture();
     let currentBridge: SimulationBridge = liveBridge;
     const scheduler = createFrameScheduler();
-    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly });
+    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)) });
     const openAtSpy = vi.spyOn(replayer, 'openAt');
     const fromBundleSpy = vi
       .spyOn(SessionReplayer, 'fromBundle')

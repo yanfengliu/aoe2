@@ -4,20 +4,18 @@
 // per-target single-progress guard so multiple Monks in range don't
 // stack progress on the same enemy.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type { UnitComponent } from '../../types';
 import {
   currentEntityId,
   manhattanDistance,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { monkCarriedRelicCodec, monkTasksCodec } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 const MONK_ACTION_RANGE = 4;
 

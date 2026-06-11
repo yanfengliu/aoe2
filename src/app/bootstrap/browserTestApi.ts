@@ -19,12 +19,13 @@ import type {
   SelectionBoxState,
 } from '../../phaser/scenes/GameScene';
 import type { RecordingService } from '../../game/recording/RecordingService';
-import type { AgentStateSnapshot, CommandDispatchResult } from '../../game/playtest/types';
-import { buildAgentSnapshot } from '../../game/playtest/agentSnapshot';
-import { validateAgentCommandShape } from './agentCommandValidator';
+import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
 
-interface BrowserTestBridge {
+export interface BrowserTestBridge {
   step(deltaMs: number): void;
+  // playtest-fixes C: manual-pause flag (already on SimulationBridge);
+  // declared here for the structurally-typed facade.
+  setPaused(paused: boolean): void;
   getHudState(): HudState;
   getRenderState(): RenderState;
   getRenderInterpolationAlpha(): number;
@@ -45,8 +46,14 @@ interface BrowserTestBridge {
   issueContextCommand(x: number, y: number): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   // LLM-agent harness needs the in-place pendingCommands queue so
-  // dispatchAgentCommand can shape-validate + push.
-  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
+  // dispatchAgentCommand can shape-validate + push. `agentIssued` tags
+  // agent submissions so the dispatch observer can scope its log.
+  pendingCommands: Array<{ type: string; data: Record<string, unknown>; agentIssued?: boolean }>;
+  // playtest-fixes iter-1 (Codex HIGH): ownership enforcement reads the
+  // acting entity's owner component before queueing agent commands.
+  readonly world: {
+    getComponent<T>(entityId: number, kind: 'unit' | 'building' | 'resource'): T | undefined | null;
+  };
   // Drains any pending semantic rejection (string reason) — already on
   // SimulationBridge; kept here for the structurally-typed
   // BrowserTestBridge facade.
@@ -84,48 +91,7 @@ export interface BrowserTestReplayApi {
   seedPriorSession(): Promise<void>;
 }
 
-// LLM-agent harness surface (Phase 1.B). Methods used by
-// `scripts/playtest-llm.mjs` Playwright runner. Production app does
-// not call any of them.
-export interface AgentDispatchEventLog {
-  commandType: string;
-  accepted: boolean;
-  rejectionReason?: string;
-  rejectionMessage?: string;
-}
 
-export interface BrowserTestAgentApi {
-  /** Bounded state view shaped for prompt-token efficiency.
-   *  See `docs/threads/done/llm-agent-playtest/DESIGN.md` §1.
-   *  Phase-6.B (impl-2 M7): `enemies` is filtered by per-owner
-   *  visibility (engine `VisibilityMap`) by default. Pass
-   *  `{omniscient: true}` to revert to cheat-mode global ground-truth
-   *  — appropriate for a single-LLM-vs-passive-human smoke baseline
-   *  where fog isn't meaningful. */
-  snapshotForAgent(ownerId: number, options?: { omniscient?: boolean }): AgentStateSnapshot;
-  /** On-page canvas bounding box in CSS pixels. The runner calls
-   *  `page.screenshot({ clip: bbox })` with this. */
-  getCanvasBboxForScreenshot(): { x: number; y: number; width: number; height: number };
-  /** Push a structured command onto pendingCommands; shape-only validation. */
-  dispatchAgentCommand(command: unknown): Promise<CommandDispatchResult>;
-  /** Live RecordingService.bundle(). Use exportRecorderBundleToFile
-   *  for 30k-tick bundles to avoid the JSON-RPC payload limit. */
-  getRecorderBundle(): import('civ-engine').SessionBundle;
-  /** Serialize bundle to a Blob; return a blob: URL the runner can
-   *  fetch as bytes. Avoids the ~1MB JSON-RPC payload limit. */
-  exportRecorderBundleToFile(): Promise<{ blobUrl: string; size: number }>;
-  /** Drain accumulated dispatch events (one per command processed
-   *  through `drainPendingCommands` since the last call). The runner
-   *  calls this after each `advanceTicks` to correlate dispatched
-   *  commands with semantic rejections — does NOT compete with the
-   *  HUD's `consumeCommandRejection` FIFO. (impl-1 H1.) */
-  drainAgentDispatchLog(): AgentDispatchEventLog[];
-  /** Phase-6.D: per-owner unit/building counts at the current tick.
-   *  Used by the winner oracle to score the game outcome. Reads from
-   *  the bridge's existing economy-state surface — no engine-internal
-   *  coupling. */
-  getEntityCountsByOwner(): Record<number, { units: number; buildings: number }>;
-}
 
 export interface BrowserTestApi {
   isBooted(): boolean;
@@ -167,6 +133,12 @@ export interface BrowserTestApi {
   issueMoveCommand(cellX: number, cellY: number): boolean;
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
+  /** playtest-fixes C: manual-pause pass-through (`bridge.setPaused`).
+   *  While paused, `bridge.step` is a no-op, so the scene's frame loop
+   *  cannot advance the sim — `advanceTicks` (which the pausing host
+   *  wraps in an atomic unpause→step→repause task) becomes the only
+   *  tick source during LLM playtests. */
+  setPaused(paused: boolean): void;
 }
 
 declare global {
@@ -207,7 +179,7 @@ export interface BrowserTestApiInstallOptions {
    *  — every install site must provide it. */
   replay: BrowserTestReplayApi;
   /** Phase 1.B (llm-agent-playtest). Resolves the live recorder so
-   *  `agent.getRecorderBundle()` / `agent.exportRecorderBundleToFile()`
+   *  `agent.getRecorderBundle()`
    *  can call `recording.bundle()`. Required — every install site
    *  must provide it. */
   getRecording: () => RecordingService;
@@ -321,6 +293,9 @@ export function installBrowserTestApi(
       return didIssue;
     },
     getSnapshot: () => getSnapshot(getBridge(), scene),
+    setPaused: (paused: boolean) => {
+      getBridge().setPaused(paused);
+    },
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));
       const safeDeltaMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 100;
@@ -336,162 +311,4 @@ export function installBrowserTestApi(
     agent: makeAgentApi(getBridge, scene, options.getRecording),
   };
   target.__AOE2_TEST__ = Object.freeze(api);
-}
-
-function makeAgentApi(
-  getBridge: () => BrowserTestBridge,
-  scene: GameScene,
-  getRecording: () => RecordingService,
-): BrowserTestAgentApi {
-  // Per-runner dispatch log. The agent observer fires once per drained
-  // command between ticks; we accumulate into this array and drain on
-  // demand. The observer is reattached lazily on every dispatch so a
-  // bridge swap (save/load) doesn't strand the subscription.
-  let dispatchLog: AgentDispatchEventLog[] = [];
-  function ensureObserverAttached(): void {
-    getBridge().setAgentDispatchObserver((event) => {
-      dispatchLog.push({
-        commandType: String(event.commandType),
-        accepted: event.accepted,
-        rejectionReason: event.rejectionReason,
-        rejectionMessage: event.rejectionMessage,
-      });
-    });
-  }
-
-  return {
-    snapshotForAgent: (
-      ownerId: number,
-      options?: { omniscient?: boolean },
-    ): AgentStateSnapshot => {
-      scene.syncFromBridge(true);
-      const bridge = getBridge();
-      const economy = bridge.getEconomyState();
-      const selection = bridge.getSelectionState();
-      const renderTick = bridge.getRenderState().tick;
-      // Camera bbox in world coords; pixel bbox + worldToScreen sample
-      // table for the visible cells (caps at 64 entries to keep prompt
-      // tokens bounded).
-      const camera = scene.getCameraState();
-      const canvasRect = getCanvasRect();
-      // CameraState.viewX/Y/Width/Height is the world-coords viewport
-      // exposed by GameScene.getCameraState — convert to integer cell
-      // bbox for the snapshot.
-      const worldBbox = camera
-        ? {
-            minX: Math.floor(camera.viewX),
-            minY: Math.floor(camera.viewY),
-            maxX: Math.ceil(camera.viewX + camera.viewWidth),
-            maxY: Math.ceil(camera.viewY + camera.viewHeight),
-          }
-        : { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-      const worldToScreenSamples: Array<{
-        cellX: number;
-        cellY: number;
-        pixelX: number;
-        pixelY: number;
-      }> = [];
-      const STEP = 4;
-      for (let cy = worldBbox.minY; cy <= worldBbox.maxY; cy += STEP) {
-        for (let cx = worldBbox.minX; cx <= worldBbox.maxX; cx += STEP) {
-          if (worldToScreenSamples.length >= 64) break;
-          const pt = scene.getScreenPointForCell(cx, cy);
-          if (pt) worldToScreenSamples.push({ cellX: cx, cellY: cy, pixelX: pt.x, pixelY: pt.y });
-        }
-      }
-      // Phase-6.B (impl-2 M7): per-owner visibility probe via the
-      // bridge's new isCellVisibleForOwner. Pure pass-through to the
-      // engine's VisibilityMap; combined with `omniscient` flag in
-      // buildAgentSnapshot to honor the cheat-mode cap.
-      const visibility = (
-        probeOwnerId: number,
-        x: number,
-        y: number,
-      ): boolean => bridge.isCellVisibleForOwner(probeOwnerId, x, y);
-      return buildAgentSnapshot({
-        ownerId,
-        tick: renderTick,
-        tps: 50,
-        economy,
-        selection,
-        screenMapping: {
-          worldBbox,
-          pixelBbox: canvasRect,
-          worldToScreen: worldToScreenSamples,
-        },
-        visibility,
-        omniscient: options?.omniscient ?? false,
-      });
-    },
-
-    getCanvasBboxForScreenshot: () => getCanvasRect(),
-
-    dispatchAgentCommand: async (command: unknown): Promise<CommandDispatchResult> => {
-      const result = validateAgentCommandShape(command, {
-        ownerRangeInclusive: { min: 1, max: 8 },
-      });
-      if (!result.accepted) return result;
-      ensureObserverAttached();
-      const bridge = getBridge();
-      bridge.pendingCommands.push({
-        type: result.commandKind as string,
-        data: result.normalized,
-      });
-      return result;
-    },
-
-    drainAgentDispatchLog: () => {
-      const events = dispatchLog;
-      dispatchLog = [];
-      return events;
-    },
-
-    getRecorderBundle: () => {
-      const recording = getRecording();
-      const bundle = recording.bundle();
-      if (!bundle) {
-        throw new Error('No recorder bundle yet — start() must complete before getRecorderBundle().');
-      }
-      return bundle;
-    },
-
-    exportRecorderBundleToFile: async () => {
-      const recording = getRecording();
-      const bundle = recording.bundle();
-      if (!bundle) {
-        throw new Error('No recorder bundle yet — start() must complete before exportRecorderBundleToFile().');
-      }
-      const json = JSON.stringify(bundle);
-      const blob = new Blob([json], { type: 'application/json' });
-      const blobUrl = URL.createObjectURL(blob);
-      return { blobUrl, size: blob.size };
-    },
-
-    getEntityCountsByOwner: () => {
-      // Phase-6.D: aggregate live unit/building counts from the
-      // bridge's economy-state surface. Pure read; no engine-internal
-      // coupling. The winner oracle in `src/game/playtest/winnerOracle.ts`
-      // consumes this shape.
-      const economy = getBridge().getEconomyState();
-      const counts: Record<number, { units: number; buildings: number }> = {};
-      for (const u of economy.units) {
-        const slot = counts[u.owner] ?? { units: 0, buildings: 0 };
-        slot.units += 1;
-        counts[u.owner] = slot;
-      }
-      for (const b of economy.buildings) {
-        const slot = counts[b.owner] ?? { units: 0, buildings: 0 };
-        slot.buildings += 1;
-        counts[b.owner] = slot;
-      }
-      return counts;
-    },
-  };
-}
-
-function getCanvasRect(): { x: number; y: number; width: number; height: number } {
-  const canvas = document.querySelector('canvas');
-  if (!canvas) return { x: 0, y: 0, width: 0, height: 0 };
-  const rect = canvas.getBoundingClientRect();
-  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
 }

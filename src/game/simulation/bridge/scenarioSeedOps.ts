@@ -7,7 +7,7 @@
 // module just bundles the long, sequential mutation lists so
 // createSimulationBridge stays readable.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -27,8 +27,6 @@ import {
   buildingFootprint,
   cloneResources,
   defaultCivilizationName,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from './pureHelpers';
 import { updateSheepOwnership } from './visibility';
@@ -50,7 +48,7 @@ import type {
   PrototypeScenario,
 } from '../prototypeScenario';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 export interface ScenarioSeedDeps {
   world: GameWorld;

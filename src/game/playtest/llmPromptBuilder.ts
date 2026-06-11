@@ -16,7 +16,8 @@ export const SYSTEM_PROMPT_TACTICAL = `You are an AoE2 agent playing a determini
 Your job: act each decision tick by emitting one or more game commands via the provided tools.
 Constraints:
 - You see the game state JSON and a screenshot of the canvas.
-- The screenshot respects fog of war; the state JSON does NOT (intentionally cheat-mode for the smoke baseline). Treat the screenshot as the visual truth.
+- The state JSON lists YOUR units, buildings, and visible resources/enemies with their entityIds. Enemy and resource visibility is fog-filtered (unless this run enables cheat-mode); your own forces are always fully listed.
+- Tool calls must reference entityIds taken from the state JSON. Never invent entity ids — commands targeting ids not in the state JSON are rejected by the dispatcher.
 - Commands are dispatched via tools. Do not emit free text actions.
 - Optimize for short-term tactical effect under your current strategy.
 Each tool call corresponds to one game command. Multiple tool calls per response are allowed; they execute in order.`;
@@ -25,11 +26,23 @@ export const SYSTEM_PROMPT_STRATEGY = `You are an AoE2 strategist setting your h
 Your job: read the current game state + screenshot, then describe your overall strategy in plain text and pick a target age + a target unit mix.
 You will not emit any commands here — only the plan. The tactical sub-agent will execute it.`;
 
+export interface TacticalHistoryEntry {
+  tick: number;
+  thought: string;
+  commandsSummary: string;
+  // playtest-fixes B: engine dispatch verdicts for this decision's
+  // commands, reported by the runner after the post-decision drain.
+  // Optional — entries predate the drain (the just-made decision) or
+  // come from hosts that don't report outcomes.
+  dispatchSummary?: string;
+  rejectedCount?: number;
+}
+
 export interface BuildTacticalPromptInput {
   snapshot: AgentStateSnapshot;
   screenshotPng?: Uint8Array;
   currentStrategy: string | null;
-  recentHistory: Array<{ tick: number; thought: string; commandsSummary: string }>;
+  recentHistory: TacticalHistoryEntry[];
   ownerId: number;
 }
 
@@ -48,11 +61,21 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
   }
   const lines = [
     `You are player ${ownerId}. Only emit commands targeting your own units / buildings; commands targeting other owners' entities will be rejected by the dispatcher.`,
+    'Use entityIds EXACTLY as listed below. Never invent entity ids.',
     `Tick: ${snapshot.tick} (elapsed ${snapshot.elapsedMmSs})`,
     `Current strategy: ${currentStrategy ?? '(none — start by playing safely)'}`,
     '',
     'Per-player state:',
     JSON.stringify(snapshot.perPlayer, null, 2),
+    '',
+    // playtest-fixes A: the agent's own forces with real entityIds —
+    // these are the ONLY valid sources for the tool schemas' id fields.
+    `Your units (${snapshot.ownUnits.length}):`,
+    JSON.stringify(snapshot.ownUnits, null, 1),
+    `Your buildings (${snapshot.ownBuildings.length}):`,
+    JSON.stringify(snapshot.ownBuildings, null, 1),
+    `Nearby resources (${snapshot.nearbyResources.length}, nearest first):`,
+    JSON.stringify(snapshot.nearbyResources, null, 1),
     '',
     `Selection: ${snapshot.selection.length} entities${snapshot.selection.length > 0 ? '\n' + JSON.stringify(snapshot.selection) : ''}`,
     `Enemies (${snapshot.enemies.length}): ${JSON.stringify(snapshot.enemies)}`,
@@ -64,7 +87,19 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
   if (recentHistory.length > 0) {
     lines.push('', 'Recent decisions (oldest first):');
     for (const h of recentHistory) {
-      lines.push(`  - tick ${h.tick}: ${h.thought.slice(0, 200)} → ${h.commandsSummary.slice(0, 200)}`);
+      const outcome = h.dispatchSummary ? ` → outcome: ${h.dispatchSummary.slice(0, 300)}` : '';
+      lines.push(`  - tick ${h.tick}: ${h.thought.slice(0, 200)} → ${h.commandsSummary.slice(0, 200)}${outcome}`);
+    }
+    // playtest-fixes B: surface rejections loudly — the 2026-06-09 run
+    // showed the agent re-issuing identical rejected commands when the
+    // verdicts stayed buried in the trace file.
+    const last = recentHistory[recentHistory.length - 1]!;
+    if ((last.rejectedCount ?? 0) > 0) {
+      lines.push(
+        '',
+        `IMPORTANT: ${last.rejectedCount} of your previous commands were REJECTED by the engine (outcomes above). `
+          + 'Re-read the state JSON and target only entityIds it lists; fix the targeting before retrying.',
+      );
     }
   }
   lines.push('', 'Emit one or more tool calls. Each call is one game command.');

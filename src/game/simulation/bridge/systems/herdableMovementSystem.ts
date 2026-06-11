@@ -3,20 +3,18 @@
 // transform reaches that planner destination the order is cleared so the
 // sheep doesn't re-plan the same dead-end every tick.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type { ResourceComponent, UnitTransformComponent } from '../../types';
 import {
   gridPositionFromUnitTransform,
   isUnitTransformAtTarget,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 const SHEEP_SUBGRID_STEP_PER_TICK = 1;
 

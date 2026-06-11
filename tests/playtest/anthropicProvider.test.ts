@@ -98,6 +98,17 @@ describe('AnthropicProvider', () => {
     expect(result.costUsd).toBeCloseTo(10.5, 4);
   });
 
+  it('prices claude-fable-5 at $10/$50 per MTok (the playtest-standard model)', async () => {
+    const { client } = makeStubClient({
+      content: [{ type: 'text', text: 'x' }],
+      usage: { input_tokens: 1_000_000, output_tokens: 500_000 },
+    });
+    const provider = new AnthropicProvider({ sdkClient: client });
+    const result = await provider.call({ ...BASE_OPTIONS, model: 'claude-fable-5' });
+    // Fable 5: $10/MTok in × 1M = $10 + $50/MTok out × 500k = $25 → $35.00
+    expect(result.costUsd).toBeCloseTo(35.0, 4);
+  });
+
   it('throws for unknown model (silent invisible-spend guard)', async () => {
     const { client } = makeStubClient({
       content: [{ type: 'text', text: 'x' }],

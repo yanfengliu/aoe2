@@ -8,6 +8,7 @@ import type { SimulationBridge } from '../createSimulationBridge';
 import { createProjector } from '../bridge/visibility';
 import { createRenderStateOps } from '../bridge/renderStateOps';
 import type { GameWorld } from '../bridge/pureHelpers';
+import { toEngineWorld } from '../bridge/pureHelpers';
 import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from '../prototypeScenario';
 import { RenderStore } from '../renderStore';
 import type {
@@ -38,9 +39,9 @@ export function makeReplayBridge(
   const api = context.api;
 
   const renderStore = new RenderStore();
-  const debuggerView = new WorldDebugger({ world });
+  const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });
   const renderAdapter = new RenderAdapter({
-    world,
+    world: toEngineWorld(world),
     projector: createProjector(
       context.visibility,
       HUMAN_PLAYER_ID,

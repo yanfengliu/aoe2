@@ -4,16 +4,26 @@
 
 import type {
   AgentEntitySummary,
+  AgentOwnBuildingSummary,
+  AgentOwnUnitSummary,
   AgentPlayerState,
+  AgentResourceSummary,
   AgentScreenMapping,
   AgentStateSnapshot,
 } from './types';
 import type { EconomyState, SelectionState } from '../simulation/types';
+import { resourceKindToEconomyResource } from '../simulation/prototypeEconomyRules';
 
 const MAX_ENEMIES = 200;
 const MAX_SELECTION_ENTRIES = 16;
 const MAX_QUEUED_PRODUCTION_ENTRIES = 64;
 const MAX_QUEUE_LENGTH_PER_BUILDING = 16;
+// playtest-fixes A: own-entity + resource caps. Sized so the rendered
+// JSON stays bounded (~20 tokens/entry) while covering a full mid-game
+// army + base and the local resource cluster.
+const MAX_OWN_UNITS = 150;
+const MAX_OWN_BUILDINGS = 64;
+const MAX_NEARBY_RESOURCES = 64;
 
 // Phase-6.B (impl-2 M7): visibility predicate signature. Returns true
 // if `ownerId` can currently see cell (x,y). When the predicate is
@@ -92,6 +102,84 @@ function enemiesFor(
     if (out.length >= cap) return out;
   }
   return out;
+}
+
+// playtest-fixes A: the agent's own forces, with real entityIds. Never
+// visibility-filtered — you always know your own units. These are what
+// the tactical tool schemas' integer ids must come from; omitting them
+// forced the model to invent ids (42/42 rejections, 2026-06-09 run).
+function ownUnitsFor(ownerId: number, economy: EconomyState, cap: number): AgentOwnUnitSummary[] {
+  const out: AgentOwnUnitSummary[] = [];
+  for (const u of economy.units) {
+    if (u.owner !== ownerId) continue;
+    out.push({
+      entityId: u.id,
+      kind: String(u.unitType),
+      position: { x: u.x, y: u.y },
+      task: String(u.task),
+    });
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+function ownBuildingsFor(
+  ownerId: number,
+  economy: EconomyState,
+  cap: number,
+): AgentOwnBuildingSummary[] {
+  const out: AgentOwnBuildingSummary[] = [];
+  for (const b of economy.buildings) {
+    if (b.owner !== ownerId) continue;
+    out.push({
+      entityId: b.id,
+      kind: String(b.buildingType),
+      position: { x: b.x, y: b.y },
+      isComplete: b.isComplete,
+    });
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+// Gatherable resources, visibility-filtered like enemies (a fog-hidden
+// gold pile must not leak), sorted nearest-first relative to the
+// agent's first own building (the TC for normal starts) so the cap
+// keeps the actionable local cluster rather than far-corner piles.
+function nearbyResourcesFor(
+  ownerId: number,
+  economy: EconomyState,
+  cap: number,
+  visibility?: VisibilityProbe,
+): AgentResourceSummary[] {
+  const anchor = economy.buildings.find((b) => b.owner === ownerId)
+    ?? economy.units.find((u) => u.owner === ownerId);
+  const ax = anchor?.x ?? 0;
+  const ay = anchor?.y ?? 0;
+  const candidates: Array<AgentResourceSummary & { d2: number }> = [];
+  for (const r of economy.resources) {
+    // playtest-fixes iter-2 (Codex MED 2): only list entities a villager
+    // can actually harvest — wolves/relics map to null economy resources
+    // and would otherwise look like valid `unit.gather` targets.
+    if (resourceKindToEconomyResource(r.resourceType) === null) continue;
+    if (visibility && !visibility(ownerId, Math.floor(r.x), Math.floor(r.y))) continue;
+    const dx = r.x - ax;
+    const dy = r.y - ay;
+    candidates.push({
+      entityId: r.id,
+      kind: String(r.resourceType),
+      position: { x: r.x, y: r.y },
+      amount: r.amount,
+      d2: dx * dx + dy * dy,
+    });
+  }
+  candidates.sort((a, b) => a.d2 - b.d2);
+  return candidates.slice(0, cap).map((c) => ({
+    entityId: c.entityId,
+    kind: c.kind,
+    position: c.position,
+    amount: c.amount,
+  }));
 }
 
 function summarizeSelection(selection: SelectionState, cap: number): AgentEntitySummary[] {
@@ -232,6 +320,7 @@ function assertEconomyShape(economy: EconomyState): void {
     { key: 'units', isType: Array.isArray },
     { key: 'buildings', isType: Array.isArray },
     { key: 'villagers', isType: Array.isArray },
+    { key: 'resources', isType: Array.isArray },
     { key: 'ages', isType: isPlainRecord },
     { key: 'playerResources', isType: isPlainRecord },
     { key: 'population', isType: isPlainRecord },
@@ -251,16 +340,20 @@ export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnaps
   const { ownerId, tick, tps, economy, selection, screenMapping, visibility, omniscient } = inputs;
   assertEconomyShape(economy);
   // omniscient=true short-circuits the visibility filter so the enemy
-  // list reverts to global ground-truth (cheat-mode for the smoke
-  // baseline). When false (default) AND a probe is provided, enemies
-  // get fog-filtered.
-  const enemyVisibility = omniscient ? undefined : visibility;
+  // and resource lists revert to global ground-truth (cheat-mode for
+  // the smoke baseline). When false (default) AND a probe is provided,
+  // enemies + resources get fog-filtered. Own entities are NEVER
+  // filtered (playtest-fixes A).
+  const fogVisibility = omniscient ? undefined : visibility;
   return {
     tick,
     elapsedMmSs: elapsedMmSs(tick, tps),
     perPlayer: perPlayerStates(economy),
     selection: summarizeSelection(selection, MAX_SELECTION_ENTRIES),
-    enemies: enemiesFor(ownerId, economy, MAX_ENEMIES, enemyVisibility),
+    ownUnits: ownUnitsFor(ownerId, economy, MAX_OWN_UNITS),
+    ownBuildings: ownBuildingsFor(ownerId, economy, MAX_OWN_BUILDINGS),
+    nearbyResources: nearbyResourcesFor(ownerId, economy, MAX_NEARBY_RESOURCES, fogVisibility),
+    enemies: enemiesFor(ownerId, economy, MAX_ENEMIES, fogVisibility),
     queuedProduction: queuedProductionOf(economy),
     screenMapping,
   };

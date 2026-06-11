@@ -5,9 +5,9 @@
 // `setUnitMoveCommandDirect` as a dep (callback) so the move-fallback branch
 // can stay inside the new file without circular imports.
 
-import type { EntityRef, Position, World } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../types';
-import type { GameCommands, GameEvents } from './pureHelpers';
+import type { GameCommands, GameWorld } from './pureHelpers';
 import type { MonkTask } from './sharedTypes';
 import {
   combatStatesCodec,
@@ -15,7 +15,7 @@ import {
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 export type MonkContextRouteOptions = Pick<
   GameCommands['monk.contextAtEntity'],

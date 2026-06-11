@@ -35,6 +35,16 @@ const SNAPSHOT: AgentStateSnapshot = {
     },
   ],
   selection: [],
+  ownUnits: [
+    { entityId: 12, kind: 'villager', position: { x: 3, y: 4 }, task: 'idle' },
+    { entityId: 13, kind: 'scout', position: { x: 5, y: 5 }, task: 'moving' },
+  ],
+  ownBuildings: [
+    { entityId: 7, kind: 'town-center', position: { x: 2, y: 2 }, isComplete: true },
+  ],
+  nearbyResources: [
+    { entityId: 41, kind: 'berry-bush', position: { x: 6, y: 2 }, amount: 125 },
+  ],
   enemies: [
     { entityId: 5, ownerId: 1, kind: 'archer', position: { x: 1, y: 1 } },
   ],
@@ -158,6 +168,83 @@ describe('buildTacticalPrompt', () => {
     const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
     if (textBlock.type !== 'text') throw new Error('expected text');
     expect(textBlock.text).toContain('rush castle age, then knights');
+  });
+
+  // playtest-fixes A: the prompt must surface the agent's OWN entity
+  // ids — the tool schemas demand integer ids and the 2026-06-09 run
+  // proved the model fabricates them when none are provided.
+  it('renders own units, own buildings, and nearby resources with their entityIds', () => {
+    const out = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    expect(textBlock.text).toContain('Your units');
+    expect(textBlock.text).toContain('"entityId": 12');
+    expect(textBlock.text).toContain('Your buildings');
+    expect(textBlock.text).toContain('"entityId": 7');
+    expect(textBlock.text).toContain('Nearby resources');
+    expect(textBlock.text).toContain('"entityId": 41');
+  });
+
+  it('instructs the model to use only entityIds from the state JSON', () => {
+    const out = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    expect(textBlock.text).toContain('Never invent entity ids');
+  });
+
+  // playtest-fixes B: dispatch outcomes from the previous decision must
+  // reach the next prompt — the verification run showed the agent
+  // blindly re-issuing rejected commands for 4 straight decisions.
+  it('renders per-entry dispatch outcomes and a rejection warning when the last decision had rejections', () => {
+    const out = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [
+        {
+          tick: 100,
+          thought: 'queue feudal',
+          commandsSummary: 'queue.research',
+          dispatchSummary: '0 accepted, 1 rejected — queue.research → not_a_building (Entity is not a building.)',
+          rejectedCount: 1,
+        },
+      ],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    expect(textBlock.text).toContain('not_a_building');
+    expect(textBlock.text).toContain('REJECTED');
+  });
+
+  it('omits the rejection warning when the last decision had no rejections', () => {
+    const out = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [
+        {
+          tick: 100,
+          thought: 'train villager',
+          commandsSummary: 'queue.train',
+          dispatchSummary: '1 accepted, 0 rejected',
+          rejectedCount: 0,
+        },
+      ],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    expect(textBlock.text).not.toContain('REJECTED');
+    expect(textBlock.text).toContain('1 accepted, 0 rejected');
   });
 
   it('truncates each history entry thought + commandsSummary to 200 chars', () => {

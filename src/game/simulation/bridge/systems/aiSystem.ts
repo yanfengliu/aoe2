@@ -1,7 +1,7 @@
 // AI planner driver. Runs once per decision interval for each AI owner:
 // macro plan, production/research intentions, monk tasks, and attack pushes.
 
-import { VisibilityMap, type EntityRef, type Position, type World } from 'civ-engine';
+import { VisibilityMap, type EntityRef, type Position } from 'civ-engine';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -12,7 +12,7 @@ import type {
   UnitComponent,
   UnitType,
 } from '../../types';
-import { type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
+import { type GameWorld } from '../pureHelpers';
 import type { MonkTask } from '../sharedTypes';
 import {
   AI_BASE_VISION_RADIUS,
@@ -46,7 +46,7 @@ import {
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 type PushMonkContextAtEntityIntention = (
   monkId: number,
   targetEntityId: number,

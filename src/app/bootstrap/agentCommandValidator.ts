@@ -121,6 +121,85 @@ export interface ValidateAgentCommandOptions {
   ownerRangeInclusive: { min: number; max: number };
 }
 
+// playtest-fixes iter-1 (Codex HIGH): the engine's semantic validators
+// carry no actor identity — `unit.move` checks "is a unit", not "is
+// YOUR unit" (the HUD enforces ownership via selection; the in-game AI
+// self-restricts). The agent boundary must therefore enforce it, or the
+// LLM can command enemy entities using the enemy ids the snapshot
+// legitimately shows. Pure function over an owner-lookup callback so it
+// unit-tests without a world.
+export type AgentEntityOwnerLookup = (
+  entityId: number,
+  componentKind: 'unit' | 'building' | 'resource',
+) => number | null;
+
+export function checkAgentActorOwnership(
+  commandKind: keyof GameCommands,
+  data: Record<string, unknown>,
+  expectedOwner: number,
+  getOwner: AgentEntityOwnerLookup,
+): { ok: true } | { ok: false; details: string } {
+  const checks: Array<{ id: number; kind: 'unit' | 'building' | 'resource'; field: string }> = [];
+  switch (commandKind) {
+    case 'unit.move':
+    case 'unit.attack':
+    case 'unit.gather':
+    case 'unit.context':
+    case 'unit.contextAtEntity':
+    case 'monk.contextAtEntity':
+    case 'trebuchet.pack':
+    case 'trebuchet.unpack':
+      checks.push({ id: data.unitId as number, kind: 'unit', field: 'unitId' });
+      break;
+    case 'sheep.move':
+      // Sheep are resource entities; only the claiming owner may herd
+      // them (unclaimed sheep have owner null and are rejected, matching
+      // the HUD's selection rules).
+      checks.push({ id: data.sheepId as number, kind: 'resource', field: 'sheepId' });
+      break;
+    case 'queue.train':
+    case 'queue.research':
+    case 'building.setRallyPoint':
+    case 'building.action':
+      checks.push({ id: data.buildingId as number, kind: 'building', field: 'buildingId' });
+      break;
+    case 'building.placeConfirm': {
+      checks.push({ id: data.builderId as number, kind: 'unit', field: 'builderId' });
+      const extra = data.additionalBuilderIds;
+      if (Array.isArray(extra)) {
+        extra.forEach((v, i) => {
+          if (typeof v === 'number') {
+            checks.push({ id: v, kind: 'unit', field: `additionalBuilderIds[${i}]` });
+          }
+        });
+      }
+      break;
+    }
+    case 'market.action': {
+      const pid = data.playerId as number;
+      if (pid !== expectedOwner) {
+        return { ok: false, details: `playerId ${pid} is not the agent owner ${expectedOwner}` };
+      }
+      return { ok: true };
+    }
+    default:
+      // Fail closed (iter-2 Claude NEW-3): a future GameCommands kind
+      // added to KNOWN_KINDS without an ownership rule here must not
+      // silently bypass enforcement.
+      return { ok: false, details: `no ownership rule for command kind ${String(commandKind)}` };
+  }
+  for (const c of checks) {
+    const owner = getOwner(c.id, c.kind);
+    if (owner !== expectedOwner) {
+      return {
+        ok: false,
+        details: `${c.field} ${c.id} is not owned by agent player ${expectedOwner} (owner: ${owner ?? 'none'})`,
+      };
+    }
+  }
+  return { ok: true };
+}
+
 export function validateAgentCommandShape(
   raw: unknown,
   opts: ValidateAgentCommandOptions,

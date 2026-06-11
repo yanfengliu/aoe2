@@ -17,7 +17,7 @@
 // factories; the shape is named (`MonkTaskDeps`) so readers can navigate it
 // in one jump.
 
-import type { EntityRef, Position, World } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 
 import type {
   BuildingComponent,
@@ -26,7 +26,7 @@ import type {
   UnitType,
 } from '../types';
 import type { MonkTask } from './sharedTypes';
-import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
+import type { GameWorld } from './pureHelpers';
 import { createMonkAiSearchHelpers } from './monkAiSearchHelpers';
 import { createMonkTaskAppliers } from './monkTaskAppliers';
 import {
@@ -52,12 +52,12 @@ export interface MonkTaskDeps {
     buildingId: number,
     x: number,
     y: number,
-    activeWorld?: World<GameEvents, GameCommands>,
+    activeWorld?: GameWorld,
   ) => boolean;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   currentEntityId: (
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
     ref: EntityRef | undefined | null,
   ) => number | null;
   unitTint: (unitType: UnitType, owner: number) => number;
@@ -96,14 +96,14 @@ export interface MonkTaskOps {
     monkId: number,
     targetId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void;
   applyMonkPickup(monkId: number, relicId: number): void;
   applyMonkDeposit(
     monkId: number,
     monasteryId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void;
   // Task bookkeeping primitives. Used by apply* and by the context-click
   // routing helpers.

@@ -38,9 +38,18 @@ export interface RunnerHost {
   dispatchCommand(cmd: AgentDecisionCommand): Promise<CommandDispatchResult>;
   /** Advance N world ticks. */
   advanceTicks(count: number): Promise<void>;
+  /** playtest-fixes C (optional): pause/resume the live simulation.
+   *  When present, the runner pauses once after boot so the game does
+   *  NOT self-tick in real time while the agent thinks (~60-100s per
+   *  claude-code call drifted the bridge to tick 5413 on a maxTicks
+   *  2000 run, 2026-06-09). Pausing hosts must make `advanceTicks`
+   *  atomic (unpause → step N → repause in one synchronous page task)
+   *  so `advanceTicks` is the ONLY tick source and checkpoints land
+   *  exactly. Hosts without it keep the legacy free-running behavior. */
+  setPaused?(paused: boolean): Promise<void>;
   /** Drain accumulated agent-dispatch events since the last call. */
   drainDispatchLog(): Promise<AgentDispatchEvent[]>;
-  /** Export the recorder bundle as bytes (uses blob-URL path on Playwright). */
+  /** Export the recorder bundle (Playwright host: chunked page.evaluate pull). */
   exportBundle(): Promise<SessionBundle>;
   /** Current world tick (read-only). */
   getCurrentTick(): Promise<number>;
@@ -156,6 +165,11 @@ export async function runLlmPlaytest(input: {
   let nextCheckpointIdx = 0;
 
   await host.waitForBoot();
+  // playtest-fixes C: freeze the sim before the first decision. The
+  // host's advanceTicks then becomes the sole tick source — tickAfter
+  // tracks ticksRun exactly, maxTicks regains exact semantics, and
+  // baseline checkpoints (multiples of decisionIntervalTicks) align.
+  if (host.setPaused) await host.setPaused(true);
 
   try {
     while (ticksRun < config.maxTicks) {
@@ -166,10 +180,25 @@ export async function runLlmPlaytest(input: {
       const decision = await agent.decide(state, screenshot);
 
       const dispatchResults: CommandDispatchResult[] = [];
+      // playtest-fixes iter-2 (Codex MED 1): host-level rejections
+      // (not-owned / malformed-payload / unknown-kind) never enter the
+      // engine queue, so they would be invisible to the drained events
+      // below — and an all-rejected decision would read as "0 accepted,
+      // 0 rejected" in the next prompt. Synthesize feedback events for
+      // them here and merge before reporting.
+      const preQueueRejections: AgentDispatchEvent[] = [];
       if (decision.stopReason === 'normal') {
         for (const cmd of decision.commands) {
           const result = await host.dispatchCommand(cmd);
           dispatchResults.push(result);
+          if (!result.accepted) {
+            preQueueRejections.push({
+              commandType: cmd.type,
+              accepted: false,
+              rejectionReason: result.reason,
+              rejectionMessage: result.details,
+            });
+          }
         }
       }
 
@@ -181,6 +210,17 @@ export async function runLlmPlaytest(input: {
       ticksRun += ticksToAdvance;
 
       const dispatchEvents = await host.drainDispatchLog();
+      // playtest-fixes B: report the engine's verdicts onto the
+      // just-made decision so the NEXT tactical prompt shows the model
+      // what its commands actually did (rejections were previously
+      // trace-only and the agent retried identical wrong ids blind).
+      // Guard on a normal decision: a cost-budget-exceeded decide()
+      // returns early WITHOUT pushing a history entry, so reporting
+      // would clobber the PREVIOUS decision's outcome with this
+      // round's (empty) drain.
+      if (decision.stopReason === 'normal') {
+        agent.reportDispatchOutcome([...preQueueRejections, ...dispatchEvents]);
+      }
       const tickAfter = await host.getCurrentTick();
 
       // Phase-6.C.1: capture screenshots ONLY when an advance lands
@@ -216,10 +256,14 @@ export async function runLlmPlaytest(input: {
           } else {
             // Misaligned: the advance overshot the checkpoint. Skip
             // the capture; the visual oracle will see it as a
-            // missingTick which is honest signal.
+            // missingTick which is honest signal. (playtest-fixes E:
+            // name the two real causes instead of asserting
+            // non-divisibility — the 2026-06-09 run hit this for every
+            // checkpoint purely from real-time drift.)
             console.warn(
-              `[runLlmPlaytest] checkpoint ${checkpointTick} skipped — advance landed at `
-                + `${tickAfter} (decisionIntervalTicks=${config.decisionIntervalTicks} doesn't divide ${checkpointTick}).`,
+              `[runLlmPlaytest] checkpoint ${checkpointTick} skipped — the advance landed at ${tickAfter}, `
+                + `past the checkpoint. Either the checkpoint is not a multiple of decisionIntervalTicks=`
+                + `${config.decisionIntervalTicks}, or this host lacks setPaused and the sim drifted in real time.`,
             );
           }
           nextCheckpointIdx += 1;

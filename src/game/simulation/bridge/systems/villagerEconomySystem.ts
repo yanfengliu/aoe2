@@ -4,7 +4,7 @@
 // resources at the nearest drop-off building. Drop-off retries are
 // throttled so a stuck villager doesn't re-plan every tick.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
   ResourceComponent,
@@ -12,8 +12,6 @@ import type {
 } from '../../types';
 import {
   manhattanDistance,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from '../pureHelpers';
 import {
@@ -31,7 +29,7 @@ import {
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 const GATHER_DROPOFF_RETRY_INTERVAL = 30;
 

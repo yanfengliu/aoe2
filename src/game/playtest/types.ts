@@ -94,13 +94,43 @@ export interface AgentScreenMapping {
   worldToScreen: Array<{ cellX: number; cellY: number; pixelX: number; pixelY: number }>;
 }
 
+// playtest-fixes A: the agent's OWN forces, with the real entityIds the
+// command tool schemas require. Never visibility-filtered — a player
+// always knows their own units. Without these the model fabricates ids
+// and the dispatcher rejects every command (2026-06-09 verification).
+export interface AgentOwnUnitSummary {
+  entityId: number;
+  kind: string;
+  position: { x: number; y: number };
+  task: string;
+}
+
+export interface AgentOwnBuildingSummary {
+  entityId: number;
+  kind: string;
+  position: { x: number; y: number };
+  isComplete: boolean;
+}
+
+export interface AgentResourceSummary {
+  entityId: number;
+  kind: string;
+  position: { x: number; y: number };
+  amount: number;
+}
+
 export interface AgentStateSnapshot {
   tick: number;
   elapsedMmSs: string;
   perPlayer: AgentPlayerState[];
   selection: AgentEntitySummary[];
-  // NOTE: enemies are NOT visibility-filtered — see agentSnapshot.ts
-  // (impl-1 H3). Per-owner fog filtering is a Phase-6 follow-up.
+  ownUnits: AgentOwnUnitSummary[];
+  ownBuildings: AgentOwnBuildingSummary[];
+  // Gatherable map resources near the agent's base (sorted by distance
+  // to the first own building), visibility-filtered like enemies.
+  nearbyResources: AgentResourceSummary[];
+  // Enemies are visibility-filtered by default since Phase-6.B; pass
+  // omniscient=true to buildAgentSnapshot for cheat-mode ground truth.
   enemies: AgentEntitySummary[];
   queuedProduction: Array<{ buildingId: number; ownerId: number; queue: string[] }>;
   screenMapping: AgentScreenMapping;
@@ -110,7 +140,15 @@ export interface AgentStateSnapshot {
 // by switching on `commandKind` without re-discriminating.
 export type CommandDispatchResult<K extends string = string> =
   | { accepted: true; commandKind: K; normalized: Record<string, unknown> }
-  | { accepted: false; reason: 'unknown-kind' | 'malformed-payload' | 'wrong-owner-range'; details?: string };
+  | {
+    accepted: false;
+    // 'not-owned' (playtest-fixes iter-1, Codex HIGH): the acting
+    // entity does not belong to the agent's owner — enforced at the
+    // dispatch boundary because the engine's semantic validators have
+    // no actor identity.
+    reason: 'unknown-kind' | 'malformed-payload' | 'wrong-owner-range' | 'not-owned';
+    details?: string;
+  };
 
 // LLM agent core (Phase 2). LlmProvider abstracts over the actual LLM
 // backend (Anthropic SDK, mock, or future providers). The agent's
@@ -174,13 +212,19 @@ export interface LlmProvider {
 export interface LlmCostTable {
   // Per-model { inputUsdPerMTok, outputUsdPerMTok }. The agent looks
   // up rates here to compute per-call costUsd. Defaults match published
-  // Anthropic pricing as of 2026-05; bump when prices change.
+  // Anthropic pricing as of 2026-06; bump when prices change.
   [model: string]: { inputUsdPerMTok: number; outputUsdPerMTok: number };
 }
 
 export const DEFAULT_LLM_COST_TABLE: LlmCostTable = {
+  // claude-fable-5 is the playtest-standard model for ALL harness LLM
+  // calls (tactical + strategy + observation + auto-fix) per the
+  // 2026-06-09 user directive — see design/spec-final.md §15.7.
+  'claude-fable-5': { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   'claude-sonnet-4-6': { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
-  'claude-opus-4-7': { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
+  // Corrected 2026-06-09: Opus 4.7 is $5/$25 (the earlier $15/$75 row
+  // predated the 4.7 price drop and over-estimated envelope costs).
+  'claude-opus-4-7': { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
 };
 
 // Agent decision returned per decide() call. The runner drains this

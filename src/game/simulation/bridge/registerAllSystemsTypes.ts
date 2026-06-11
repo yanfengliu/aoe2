@@ -1,7 +1,7 @@
 // Type-only file for registerAllSystems' big deps interface. Lives apart
 // so the runtime module stays under the project's 500-line target.
 
-import type { Position, EntityRef, World } from 'civ-engine';
+import type { Position, EntityRef } from 'civ-engine';
 import { VisibilityMap } from 'civ-engine';
 
 import type {
@@ -17,14 +17,14 @@ import type {
   UnitType,
   VisionSourceComponent,
 } from '../types';
-import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
+import type { GameWorld } from './pureHelpers';
 import type { AiState } from '../ai';
 import type { UnitMovementPlan } from './movementTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
 import type { MonkTask } from './sharedTypes';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;

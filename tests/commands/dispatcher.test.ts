@@ -73,3 +73,28 @@ describe('dispatcher.drainPendingCommands', () => {
     expect(seen).toEqual([10, 20, 30]);
   });
 });
+
+// playtest-fixes iter-1 (Codex MED): the dispatch observer must carry
+// the agentIssued tag so the browser test API can scope the agent's
+// feedback log to commands the agent actually submitted — without it,
+// AI/auto-aggression intentions in the same queue masquerade as "your
+// previous commands" in the next tactical prompt.
+describe('drainPendingCommands — agentIssued tagging', () => {
+  it('forwards agentIssued=true only for tagged commands', () => {
+    const world = freshWorld();
+    world.registerValidator('unit.move', () => true);
+    world.registerHandler('unit.move', () => {});
+    const queue = createPendingCommandsQueue();
+    queue.push({ type: 'unit.move', data: { unitId: 1, target: { x: 0, y: 0 } } });
+    queue.push({
+      type: 'unit.move',
+      data: { unitId: 2, target: { x: 1, y: 1 } },
+      agentIssued: true,
+    } as (typeof queue)[number]);
+    const seen: Array<{ commandType: string; agentIssued?: boolean }> = [];
+    drainPendingCommands(world, queue, (e) => seen.push({ commandType: e.commandType, agentIssued: e.agentIssued }));
+    expect(seen).toHaveLength(2);
+    expect(seen[0]!.agentIssued).toBe(false);
+    expect(seen[1]!.agentIssued).toBe(true);
+  });
+});

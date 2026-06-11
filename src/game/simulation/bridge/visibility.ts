@@ -1,6 +1,5 @@
 import {
   VisibilityMap,
-  World,
   type Position,
   type RenderProjector,
 } from 'civ-engine';
@@ -156,7 +155,7 @@ export interface VisibilitySourceFingerprint {
 }
 
 export function syncVisibilitySources(
-  world: World<GameEvents, GameCommands>,
+  world: GameWorld,
   visibility: VisibilityMap,
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor,
   fingerprints: Map<number, VisibilitySourceFingerprint>,
@@ -244,23 +243,23 @@ export function syncVisibilitySources(
 }
 
 export function resolveSheepClaimOwner(
-  typedWorld: GameWorld,
+  activeWorld: GameWorld,
   sheepPosition: Position,
 ): number | null {
   let claimedOwner: number | null = null;
   let bestDistanceSquared = Number.POSITIVE_INFINITY;
   let bestUnitId = Number.POSITIVE_INFINITY;
 
-  for (const unitId of typedWorld.queryInRadius(
+  for (const unitId of activeWorld.queryInRadius(
     sheepPosition.x,
     sheepPosition.y,
     MAX_HERDABLE_CLAIM_RADIUS,
     'unit',
     'visionSource',
   )) {
-    const unitPosition = typedWorld.getComponent(unitId, 'position');
-    const unit = typedWorld.getComponent(unitId, 'unit');
-    const visionSource = typedWorld.getComponent(unitId, 'visionSource');
+    const unitPosition = activeWorld.getComponent(unitId, 'position');
+    const unit = activeWorld.getComponent(unitId, 'unit');
+    const visionSource = activeWorld.getComponent(unitId, 'visionSource');
     if (!unitPosition || !unit || !visionSource) {
       continue;
     }
@@ -290,21 +289,21 @@ export function resolveSheepClaimOwner(
 }
 
 export function syncSheepVisionSource(
-  typedWorld: GameWorld,
+  activeWorld: GameWorld,
   sheepId: number,
   owner: number | null,
 ): boolean {
-  const sheepVisionSource = typedWorld.getComponent(sheepId, 'visionSource');
+  const sheepVisionSource = activeWorld.getComponent(sheepId, 'visionSource');
   if (owner === null) {
     if (!sheepVisionSource) {
       return false;
     }
-    typedWorld.removeComponent(sheepId, 'visionSource');
+    activeWorld.removeComponent(sheepId, 'visionSource');
     return true;
   }
 
   if (!sheepVisionSource) {
-    typedWorld.addComponent(sheepId, 'visionSource', {
+    activeWorld.addComponent(sheepId, 'visionSource', {
       playerId: owner,
       radius: SHEEP_VISION_RADIUS,
     });
@@ -323,14 +322,13 @@ export function syncSheepVisionSource(
   return true;
 }
 
-export function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands>): boolean {
-  const typedWorld = activeWorld as GameWorld;
+export function updateSheepOwnership(activeWorld: GameWorld): boolean {
   let didChange = false;
 
-  for (const sheepId of typedWorld.query('position', 'resource', 'renderable')) {
-    const sheepPosition = typedWorld.getComponent(sheepId, 'position');
-    const resource = typedWorld.getComponent(sheepId, 'resource');
-    const renderable = typedWorld.getComponent(sheepId, 'renderable');
+  for (const sheepId of activeWorld.query('position', 'resource', 'renderable')) {
+    const sheepPosition = activeWorld.getComponent(sheepId, 'position');
+    const resource = activeWorld.getComponent(sheepId, 'resource');
+    const renderable = activeWorld.getComponent(sheepId, 'renderable');
     if (
       !sheepPosition
       || !resource
@@ -342,7 +340,7 @@ export function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands
     }
 
     if (resource.owner === null) {
-      const claimedOwner = resolveSheepClaimOwner(typedWorld, sheepPosition);
+      const claimedOwner = resolveSheepClaimOwner(activeWorld, sheepPosition);
 
       if (resource.owner !== claimedOwner) {
         resource.owner = claimedOwner;
@@ -351,7 +349,7 @@ export function updateSheepOwnership(activeWorld: World<GameEvents, GameCommands
       }
     }
 
-    if (syncSheepVisionSource(typedWorld, sheepId, resource.owner)) {
+    if (syncSheepVisionSource(activeWorld, sheepId, resource.owner)) {
       didChange = true;
     }
   }

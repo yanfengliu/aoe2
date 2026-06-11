@@ -4,7 +4,7 @@
 // then ticks the construction counter. Trebuchets get pack / unpack
 // transitions woven through the attack and move branches.
 
-import type { EntityRef, Position, World } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
   RenderableComponent,
@@ -12,7 +12,7 @@ import type {
   UnitComponent,
   VisionSourceComponent,
 } from '../../types';
-import { manhattanDistance, type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
+import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import {
   buildingTint,
   buildingVisionRadius,
@@ -35,7 +35,7 @@ import {
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;

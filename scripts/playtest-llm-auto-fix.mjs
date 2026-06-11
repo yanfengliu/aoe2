@@ -194,7 +194,7 @@ const FIX_PROPOSAL_SYSTEM_PROMPT = `You are an automated fix-bot for the AoE2 pr
 async function proposeFix(provider, regressionContext) {
   const userText = `# Regression context\n\n${regressionContext}\n\nCall submit_fix_diff with the unified-diff patch that fixes this regression.`;
   const result = await provider.call({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-fable-5',
     systemPrompt: FIX_PROPOSAL_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }],
     tools: [

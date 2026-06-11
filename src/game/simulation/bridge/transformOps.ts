@@ -3,7 +3,7 @@
 // helpers wire them together so movement systems, scenario seeding, and
 // the destroy/garrison paths share one occupancy-sync definition.
 
-import type { Position, SubcellSlotOffset, World } from 'civ-engine';
+import type { Position, SubcellSlotOffset } from 'civ-engine';
 import type {
   BuildingComponent,
   ResourceComponent,
@@ -19,14 +19,12 @@ import {
   isAtTarget,
   isUnitTransformAtTarget,
   stepUnitTransformToward,
-  type GameCommands,
-  type GameEvents,
   type GameWorld,
 } from './pureHelpers';
 import { UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
 import { constructionStatesCodec } from './bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 // Spec §12.6 contract surface — the worldOccupancy module returns this and
 // exposes `placeUnitForSpawn` / `getUnitSlotOffset` so future spawn / movement

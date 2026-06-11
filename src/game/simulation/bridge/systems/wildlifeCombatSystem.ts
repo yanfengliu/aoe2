@@ -3,13 +3,13 @@
 // cycle. Cooldown ticks down each tick so multiple wildlife sharing a
 // target don't stack hits in the same tick.
 
-import type { EntityRef, Position, World } from 'civ-engine';
-import { manhattanDistance, type GameCommands, type GameEvents, type GameWorld } from '../pureHelpers';
+import type { EntityRef, Position } from 'civ-engine';
+import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { combatStatesCodec, wildlifeStatesCodec } from '../bridgeStateSerialize';
 
-type CivWorld = World<GameEvents, GameCommands>;
+type CivWorld = GameWorld;
 
 export interface WildlifeCombatSystemDeps {
   world: GameWorld;

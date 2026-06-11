@@ -1,432 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import type { SessionBundle } from 'civ-engine';
-import {
-  runLlmPlaytest,
-  type AgentDispatchEvent,
-  type RunnerHost,
-} from '../../src/game/playtest/llmRunner';
+import { runLlmPlaytest } from '../../src/game/playtest/llmRunner';
 import { LlmAgent } from '../../src/game/playtest/llmAgent';
 import { MockProvider } from '../../src/game/playtest/llmProviders';
-import type {
-  AgentDecisionCommand,
-  AgentStateSnapshot,
-  CommandDispatchResult,
-  LlmContentBlock,
-} from '../../src/game/playtest/types';
-
-const STRATEGY_OK: LlmContentBlock[] = [
-  {
-    type: 'tool_use',
-    toolName: 'set_strategy',
-    toolInput: {
-      strategy: 'plan',
-      targetAge: 'feudal-age',
-      targetUnitMix: 'scouts',
-    },
-  },
-];
-
-const TACTICAL_OK_NO_COMMANDS: LlmContentBlock[] = [{ type: 'text', text: 'thinking' }];
-
-const TACTICAL_OK_ONE_COMMAND: LlmContentBlock[] = [
-  { type: 'text', text: 'queueing villager' },
-  {
-    type: 'tool_use',
-    toolName: 'queue_train',
-    toolInput: { buildingId: 7, unitType: 'villager' },
-  },
-];
-
-class StubHost implements RunnerHost {
-  tickCounter = 0;
-  dispatchedCommands: AgentDecisionCommand[] = [];
-  advanceCalls: number[] = [];
-  dispatchEvents: AgentDispatchEvent[][] = []; // one batch per drain call
-  bundle: SessionBundle;
-  bootResolved = false;
-  failOn: keyof RunnerHost | null = null;
-
-  constructor(bundle: SessionBundle) {
-    this.bundle = bundle;
-  }
-
-  async waitForBoot(): Promise<void> {
-    if (this.failOn === 'waitForBoot') throw new Error('boot failed');
-    this.bootResolved = true;
-  }
-  async getCurrentTick(): Promise<number> {
-    return this.tickCounter;
-  }
-  async snapshotForAgent(ownerId: number): Promise<AgentStateSnapshot> {
-    if (this.failOn === 'snapshotForAgent') throw new Error('snapshot failed');
-    void ownerId;
-    return {
-      tick: this.tickCounter,
-      elapsedMmSs: '00:00',
-      perPlayer: [],
-      selection: [],
-      enemies: [],
-      queuedProduction: [],
-      screenMapping: {
-        worldBbox: { minX: 0, minY: 0, maxX: 16, maxY: 16 },
-        pixelBbox: { x: 0, y: 0, width: 800, height: 600 },
-        worldToScreen: [],
-      },
-    };
-  }
-  async captureScreenshot(): Promise<Uint8Array | undefined> {
-    return new Uint8Array([1, 2, 3, 4]);
-  }
-  async dispatchCommand(cmd: AgentDecisionCommand): Promise<CommandDispatchResult> {
-    if (this.failOn === 'dispatchCommand') throw new Error('dispatch failed');
-    this.dispatchedCommands.push(cmd);
-    return { accepted: true, commandKind: cmd.type, normalized: cmd.data };
-  }
-  async advanceTicks(count: number): Promise<void> {
-    this.advanceCalls.push(count);
-    this.tickCounter += count;
-  }
-  async drainDispatchLog(): Promise<AgentDispatchEvent[]> {
-    return this.dispatchEvents.shift() ?? [];
-  }
-  async exportBundle(): Promise<SessionBundle> {
-    return this.bundle;
-  }
-  // Phase-6.D: stub for the winner-oracle count probe. Default returns
-  // empty (winner: tie). Tests that exercise winner extraction
-  // override this on the instance.
-  async getEntityCountsByOwner() {
-    return {};
-  }
-}
-
-const MIN_BUNDLE = {
-  schemaVersion: 1,
-  metadata: {},
-  initialSnapshot: {},
-  ticks: [],
-  commands: [],
-  executions: [],
-  failures: [],
-  markers: [],
-  attachments: [],
-  snapshots: [],
-} as unknown as SessionBundle;
-
-function makeAgent(provider: MockProvider) {
-  return new LlmAgent({
-    provider,
-    ownerId: 2,
-    strategyModel: 'claude-opus-4-7',
-    tacticalModel: 'claude-sonnet-4-6',
-    strategyEveryNDecisions: 100,
-    maxOutputTokensTactical: 1024,
-    maxOutputTokensStrategy: 2048,
-    costBudgetUsd: 5.0,
-    maxImageBytes: 1_048_576,
-    historyWindow: 5,
-  });
-}
+import {
+  MIN_BUNDLE,
+  PausingStubHost,
+  STRATEGY_OK,
+  StubHost,
+  TACTICAL_OK_NO_COMMANDS,
+  TACTICAL_OK_ONE_COMMAND,
+  makeAgent,
+} from './llmRunnerTestKit';
 
 describe('runLlmPlaytest', () => {
-  // Phase-6.C.1: checkpoint screenshots are captured at any baseline
-  // tick the loop's advance crosses. Verify the captures land in
-  // result.checkpointScreenshots in tick-ascending order.
-  it('captures checkpoint screenshots at baselineCheckpointTicks the advance crosses', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    let captureCount = 0;
-    host.captureScreenshot = async () => {
-      captureCount += 1;
-      return new Uint8Array([captureCount]);
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-        { content: TACTICAL_OK_NO_COMMANDS },
-        { content: TACTICAL_OK_NO_COMMANDS },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 1000,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: true,
-        baselineCheckpointTicks: [250, 500, 1000],
-      },
-    });
-    expect(result.checkpointScreenshots.map((e) => e.tick)).toEqual([250, 500, 1000]);
-    // Each entry has non-empty bytes (counter-stub returns one byte
-    // per call; we don't assert exact ordering of decision vs
-    // checkpoint captures, only that the field is populated).
-    for (const e of result.checkpointScreenshots) {
-      expect(e.pngBytes.byteLength).toBeGreaterThan(0);
-    }
-  });
-
-  it('omits checkpointScreenshots when baselineCheckpointTicks is empty', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: true,
-        // baselineCheckpointTicks omitted
-      },
-    });
-    expect(result.checkpointScreenshots).toEqual([]);
-  });
-
-  it('skips checkpoint capture when screenshotEnabled is false', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 500,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-        baselineCheckpointTicks: [250, 500],
-      },
-    });
-    expect(result.checkpointScreenshots).toEqual([]);
-  });
-
-  // Phase-6.C.2 (Codex impl-1 MED 1, impl-2 LOW): finalScreenshotPng
-  // must be the post-loop capture, not the last in-loop pre-advance
-  // capture. Verify by handing the runner a counter-returning
-  // captureScreenshot stub and asserting the result matches the
-  // LAST call (post-loop) rather than any earlier loop call.
-  it('returns the post-loop screenshot, not the pre-advance one from the last decision', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    let captureCount = 0;
-    host.captureScreenshot = async () => {
-      captureCount += 1;
-      return new Uint8Array([captureCount]);
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 500,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: true,
-      },
-    });
-    // 2 in-loop decisions + 1 post-loop = 3 total captures.
-    // result.finalScreenshotPng must reflect the LAST (3rd) call.
-    expect(captureCount).toBe(3);
-    expect(result.finalScreenshotPng).toEqual(new Uint8Array([3]));
-  });
-
-  // The post-loop capture is skipped when screenshots are disabled —
-  // the in-loop fallback is undefined in that case (no screenshot
-  // ever taken).
-  it('finalScreenshotPng is undefined when screenshotEnabled=false', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-      },
-    });
-    expect(result.finalScreenshotPng).toBeUndefined();
-  });
-
-  // Phase-6.D: winner-oracle scoring is invoked on clean exit and
-  // surfaces in the envelope. NOT invoked on engineHalt (page may be
-  // destabilized). Don't assert the exact winner kind here — the
-  // scoring function has its own unit tests; just verify the field
-  // shows up.
-  it('attaches winner result to envelope on clean exit', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    host.getEntityCountsByOwner = async () => ({
-      1: { units: 5, buildings: 2 },
-      2: { units: 0, buildings: 0 },
-    });
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-      },
-    });
-    expect(result.envelope.winner).toEqual({ kind: 'winner', ownerId: 1 });
-  });
-
-  it('omits winner field on engineHalt (page may be destabilized)', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    host.failOn = 'dispatchCommand';
-    let countProbed = false;
-    host.getEntityCountsByOwner = async () => {
-      countProbed = true;
-      return {};
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_ONE_COMMAND },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-      },
-    });
-    expect(result.envelope.stopReason).toBe('engineHalt');
-    expect(result.envelope.winner).toBeUndefined();
-    expect(countProbed).toBe(false);
-  });
-
-  // Phase-6.D (Codex impl-1 MED 1b / Claude impl-1 IMPORTANT):
-  // exportBundle throwing AFTER a successful winner probe must NOT
-  // leak the winner field into the resulting engineHalt envelope.
-  // The runner re-checks stopReason at envelope-build time and drops
-  // winner if it's been escalated to engineHalt.
-  it('drops winner field when exportBundle throws after a successful score', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    host.getEntityCountsByOwner = async () => ({
-      1: { units: 5, buildings: 2 },
-      2: { units: 0, buildings: 0 },
-    });
-    host.exportBundle = async () => {
-      throw new Error('blob fetch failed');
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-      },
-    });
-    expect(result.envelope.stopReason).toBe('engineHalt');
-    expect(result.envelope.errorMessage).toMatch(/blob fetch failed/);
-    expect(result.envelope.winner).toBeUndefined();
-  });
-
-  // Phase-6.D (Codex impl-1 MED 1a): count probe failure on a clean
-  // exit escalates to engineHalt. Without this, the contract "winner
-  // populated unless engineHalt" would silently break for probe-failure
-  // cases.
-  it('escalates a count-probe failure on clean exit to engineHalt', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    host.getEntityCountsByOwner = async () => {
-      throw new Error('page disconnected');
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 250,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: false,
-      },
-    });
-    expect(result.envelope.stopReason).toBe('engineHalt');
-    expect(result.envelope.errorMessage).toMatch(/winner-oracle count probe failed/);
-    expect(result.envelope.winner).toBeUndefined();
-  });
-
-  // On clean exit (maxTicks/stopWhen), a post-loop screenshot failure
-  // is real harness regression — surface as engineHalt rather than
-  // silently ship the stale in-loop screenshot to the oracle.
-  it('escalates a post-loop screenshot failure on clean exit to engineHalt', async () => {
-    const host = new StubHost(MIN_BUNDLE);
-    let callIdx = 0;
-    host.captureScreenshot = async () => {
-      callIdx += 1;
-      if (callIdx <= 2) return new Uint8Array([callIdx]); // in-loop captures
-      throw new Error('playwright disconnected'); // post-loop call
-    };
-    const provider = new MockProvider({
-      responses: [
-        { content: STRATEGY_OK },
-        { content: TACTICAL_OK_NO_COMMANDS },
-        { content: TACTICAL_OK_NO_COMMANDS },
-      ],
-    });
-    const result = await runLlmPlaytest({
-      host,
-      agent: makeAgent(provider),
-      config: {
-        ownerId: 2,
-        maxTicks: 500,
-        decisionIntervalTicks: 250,
-        screenshotEnabled: true,
-      },
-    });
-    expect(result.envelope.stopReason).toBe('engineHalt');
-    expect(result.envelope.errorMessage).toMatch(/final-screenshot capture failed/);
-  });
-
   it('runs maxTicks worth of decisions and returns a bundle', async () => {
     const host = new StubHost(MIN_BUNDLE);
     const provider = new MockProvider({
@@ -688,5 +274,141 @@ describe('runLlmPlaytest', () => {
       },
     });
     expect(captured).toEqual([0, 1]);
+  });
+});
+
+// playtest-fixes C: with a pausing host, the sim is frozen before the
+// first decision and advanceTicks is the only tick source — the
+// 2026-06-09 run drifted to bridge tick 5413 on a maxTicks-2000 run
+// because the page free-ran during ~60-100s claude calls.
+describe('runLlmPlaytest — paused-sim decisions (playtest-fixes C)', () => {
+  it('pauses exactly once after boot, before the first snapshot', async () => {
+    const host = new PausingStubHost(MIN_BUNDLE);
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    const pauseCalls = host.callLog.filter((c) => c === 'setPaused:true');
+    expect(pauseCalls).toHaveLength(1);
+    expect(host.callLog.indexOf('setPaused:true')).toBeGreaterThan(host.callLog.indexOf('waitForBoot'));
+    expect(host.callLog.indexOf('setPaused:true')).toBeLessThan(host.callLog.indexOf('snapshot'));
+    expect(host.paused).toBe(true);
+  });
+
+  it('completes normally on hosts without setPaused (legacy free-run contract)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 250,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    expect(result.envelope.stopReason).toBe('maxTicks');
+    expect(host.callLog).not.toContain('setPaused:true');
+  });
+});
+
+// playtest-fixes B: drained dispatch verdicts must reach the agent so
+// the NEXT tactical prompt shows what the previous commands actually
+// did (rejections were previously trace-only).
+describe('runLlmPlaytest — dispatch outcome reporting (playtest-fixes B)', () => {
+  it('reports drained dispatch events to the agent; the next tactical prompt carries them', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.dispatchEvents = [
+      [
+        {
+          commandType: 'queue.train',
+          accepted: false,
+          rejectionReason: 'not_a_building',
+          rejectionMessage: 'Entity is not a building.',
+        },
+      ],
+      [],
+    ];
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_ONE_COMMAND },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    // Calls: [0] strategy, [1] tactical #1, [2] tactical #2. The
+    // second tactical prompt must carry decision #1's engine verdicts.
+    const lastCall = provider.receivedCalls[provider.receivedCalls.length - 1]!;
+    const textBlock = lastCall.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text block');
+    expect(textBlock.text).toContain('not_a_building');
+    expect(textBlock.text).toContain('REJECTED');
+  });
+});
+
+// playtest-fixes iter-2 (Codex MED 1): host-level pre-queue rejections
+// (not-owned, malformed-payload) must reach the agent's feedback loop —
+// they never enter the engine queue, so the drained events alone would
+// report an all-rejected decision as "0 accepted, 0 rejected".
+describe('runLlmPlaytest — pre-queue rejection feedback (playtest-fixes iter-2)', () => {
+  it('merges host dispatch rejections into the reported outcome', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    host.dispatchCommand = async (cmd) => ({
+      accepted: false,
+      reason: 'not-owned',
+      details: `${cmd.type} actor is enemy-owned`,
+    });
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_ONE_COMMAND },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: {
+        ownerId: 2,
+        maxTicks: 500,
+        decisionIntervalTicks: 250,
+        screenshotEnabled: false,
+      },
+    });
+    const lastCall = provider.receivedCalls[provider.receivedCalls.length - 1]!;
+    const textBlock = lastCall.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text block');
+    expect(textBlock.text).toContain('not-owned');
+    expect(textBlock.text).toContain('REJECTED');
+    expect(textBlock.text).toContain('0 accepted, 1 rejected');
   });
 });

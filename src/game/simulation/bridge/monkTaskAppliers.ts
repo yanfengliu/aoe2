@@ -2,7 +2,7 @@
 // updates side-map state for the Monk and its target; the behavior system
 // invokes the right one once the Monk is within action range.
 
-import type { EntityRef, Position, World } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 
 import type {
   BuildingComponent,
@@ -13,7 +13,7 @@ import type {
   UnitType,
   VisionSourceComponent,
 } from '../types';
-import type { GameCommands, GameEvents, GameWorld } from './pureHelpers';
+import type { GameWorld } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -37,7 +37,7 @@ export interface MonkTaskAppliersDeps {
   destroyResourceEntity: (id: number) => void;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   currentEntityId: (
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
     ref: EntityRef | undefined | null,
   ) => number | null;
   unitTint: (unitType: UnitType, owner: number) => number;
@@ -54,14 +54,14 @@ export interface MonkTaskAppliers {
     monkId: number,
     targetId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void;
   applyMonkPickup(monkId: number, relicId: number): void;
   applyMonkDeposit(
     monkId: number,
     monasteryId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void;
 }
 
@@ -125,7 +125,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkId: number,
     targetId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void {
     const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
     const conversionState = accessor.get(conversionStateCodec);
@@ -176,7 +176,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     targetUnit: UnitComponent,
     monkUnit: UnitComponent,
     monkId: number,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void {
     const previousOwner = targetUnit.owner;
     targetUnit.owner = monkUnit.owner;
@@ -270,7 +270,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     monkId: number,
     monasteryId: number,
     monkUnit: UnitComponent,
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
   ): void {
     const relicId = accessor.get(monkCarriedRelicCodec).get(monkId);
     const building = activeWorld.getComponent<BuildingComponent>(monasteryId, 'building');

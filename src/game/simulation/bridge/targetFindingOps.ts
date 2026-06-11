@@ -9,7 +9,7 @@
 // range, activeWorld) as arguments so the factory deps stay small —
 // world + visibility + the three side maps this module reads.
 
-import type { Position, World } from 'civ-engine';
+import type { Position } from 'civ-engine';
 
 import type {
   BuildingComponent,
@@ -20,8 +20,6 @@ import type {
 } from '../types';
 import { canDropOffAt } from '../prototypeEconomyRules';
 import type {
-  GameCommands,
-  GameEvents,
   GameWorld,
 } from './pureHelpers';
 import {
@@ -73,7 +71,7 @@ export interface TargetFindingOps {
   // `resourceKind`. `activeWorld` parameter lets system-loop callers
   // thread the world reference they already hold.
   findNearestDropOffBuilding(
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
     owner: number,
     resourceKind: EconomyResourceKind,
     origin: Position,
@@ -83,7 +81,7 @@ export interface TargetFindingOps {
   findNearestHostileWildlifeTarget(
     origin: Position,
     aggroRange: number,
-    activeWorld?: World<GameEvents, GameCommands>,
+    activeWorld?: GameWorld,
   ): number | null;
   // Personal-LOS variant of `findPreferredVisibleEnemyUnit`. Auto-
   // aggression (canonical AoE2 Aggressive Stance) uses the unit's own
@@ -341,7 +339,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   }
 
   function findNearestDropOffBuilding(
-    activeWorld: World<GameEvents, GameCommands>,
+    activeWorld: GameWorld,
     owner: number,
     resourceKind: EconomyResourceKind,
     origin: Position,
@@ -378,12 +376,12 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   function findNearestHostileWildlifeTarget(
     origin: Position,
     aggroRange: number,
-    activeWorld: World<GameEvents, GameCommands> = world,
+    activeWorld: GameWorld = world,
   ): number | null {
     let bestUnitId: number | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
 
-    for (const unitId of (activeWorld as GameWorld).queryInRadius(
+    for (const unitId of activeWorld.queryInRadius(
       origin.x,
       origin.y,
       aggroRange,

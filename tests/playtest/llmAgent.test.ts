@@ -9,6 +9,9 @@ function makeSnapshot(tick = 0): AgentStateSnapshot {
     elapsedMmSs: '00:00',
     perPlayer: [],
     selection: [],
+    ownUnits: [],
+    ownBuildings: [],
+    nearbyResources: [],
     enemies: [],
     queuedProduction: [],
     screenMapping: {
@@ -148,10 +151,10 @@ describe('LlmAgent.decide — happy path', () => {
     });
     const agent = makeAgent(provider);
     await agent.decide(makeSnapshot(0), undefined);
-    // Opus: $15/Mtok in × 1k = $0.015 + $75/Mtok out × 500 = $0.0375 → $0.0525
+    // Opus 4.7: $5/Mtok in × 1k = $0.005 + $25/Mtok out × 500 = $0.0125 → $0.0175
     // Sonnet: $3/Mtok in × 1k = $0.003 + $15/Mtok out × 500 = $0.0075 → $0.0105
-    // Total: ~$0.063
-    expect(agent.cumulativeCostUsd).toBeCloseTo(0.063, 4);
+    // Total: ~$0.028 (table corrected 2026-06-09 to published 4.7 pricing)
+    expect(agent.cumulativeCostUsd).toBeCloseTo(0.028, 4);
   });
 });
 
@@ -365,5 +368,67 @@ describe('LlmAgent.decide — parsing', () => {
     const decision = await agent.decide(makeSnapshot(0), undefined);
     expect(decision.strategyRefresh).toBeUndefined();
     expect(agent.strategy).toBeNull();
+  });
+});
+
+describe('LlmAgent.reportDispatchOutcome (playtest-fixes B)', () => {
+  it('feeds engine rejections into the next tactical prompt', async () => {
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK, tokensIn: 100, tokensOut: 50 },
+        { content: TACTICAL_OK, tokensIn: 200, tokensOut: 80 },
+        { content: TACTICAL_OK, tokensIn: 200, tokensOut: 80 },
+      ],
+    });
+    const agent = makeAgent(provider);
+    await agent.decide(makeSnapshot(0), undefined);
+    agent.reportDispatchOutcome([
+      {
+        commandType: 'queue.research',
+        accepted: false,
+        rejectionReason: 'not_a_building',
+        rejectionMessage: 'Entity is not a building.',
+      },
+      { commandType: 'queue.train', accepted: true },
+    ]);
+    await agent.decide(makeSnapshot(250), undefined);
+
+    // Last provider call is the second tactical prompt — it must carry
+    // the engine verdicts from the first decision.
+    const lastCall = provider.receivedCalls[provider.receivedCalls.length - 1]!;
+    const textBlock = lastCall.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text block');
+    expect(textBlock.text).toContain('not_a_building');
+    expect(textBlock.text).toContain('Entity is not a building.');
+    expect(textBlock.text).toContain('REJECTED');
+    expect(textBlock.text).toContain('1 accepted, 1 rejected');
+  });
+
+  it('reports a clean outcome without the rejection warning', async () => {
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK, tokensIn: 100, tokensOut: 50 },
+        { content: TACTICAL_OK, tokensIn: 200, tokensOut: 80 },
+        { content: TACTICAL_OK, tokensIn: 200, tokensOut: 80 },
+      ],
+    });
+    const agent = makeAgent(provider);
+    await agent.decide(makeSnapshot(0), undefined);
+    agent.reportDispatchOutcome([{ commandType: 'queue.train', accepted: true }]);
+    await agent.decide(makeSnapshot(250), undefined);
+
+    const lastCall = provider.receivedCalls[provider.receivedCalls.length - 1]!;
+    const textBlock = lastCall.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text block');
+    expect(textBlock.text).toContain('1 accepted, 0 rejected');
+    expect(textBlock.text).not.toContain('REJECTED');
+  });
+
+  it('is a safe no-op before any decision exists', () => {
+    const provider = new MockProvider({ responses: [] });
+    const agent = makeAgent(provider);
+    expect(() =>
+      agent.reportDispatchOutcome([{ commandType: 'unit.move', accepted: true }]),
+    ).not.toThrow();
   });
 });

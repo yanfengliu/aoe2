@@ -127,20 +127,19 @@ function makeClaudeCodeProvider(args) {
     process.exit(2);
   }
   console.log('[playtest-llm] provider: claude-code (subscription auth via `claude` CLI)');
-  // Per-call cost shape (Claude impl-1 M1, Codex impl-2 M2):
-  // claude-code sessions carry ~15K-token cache_creation prelude per
-  // spawned process. Sonnet tactical calls: ~$0.10/call. Opus strategy
-  // refreshes (every Kth decision, default K=10): ~$0.30+/call.
-  // Effective per-decision cost ≈ tactical + (strategy / K) ≈ $0.13.
-  const tacticalCost = 0.1; // Sonnet 4.6 with ~15K cache_creation
-  const strategyCost = 0.3; // Opus 4.7 with ~15K cache_creation
+  // Per-call cost shape: claude-code sessions carry ~15K-token
+  // cache_creation prelude per spawned process. All playtest calls run
+  // on claude-fable-5 ($10/$50 per MTok) per the 2026-06-09 directive —
+  // ~$0.25/call tactical, similar for the strategy refresh (every Kth
+  // decision, default K=10). Effective per-decision ≈ $0.28.
+  const tacticalCost = 0.25; // claude-fable-5 with ~15K cache_creation
+  const strategyCost = 0.25; // claude-fable-5 (same model, longer output)
   const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
   const expectedDecisions = Math.floor(args.costBudget / blendedCost);
   console.log(
-    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (Sonnet tactical) or `
-      + `~$${strategyCost.toFixed(2)} (Opus strategy refresh, every ${args.strategyEvery}th decision) `
-      + `in notional API equivalent. With --cost-budget=$${args.costBudget.toFixed(2)} expect roughly `
-      + `${expectedDecisions} tactical decisions before the rolling-cost gate trips.`,
+    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (claude-fable-5; strategy refresh every `
+      + `${args.strategyEvery}th decision) in notional API equivalent. With --cost-budget=$${args.costBudget.toFixed(2)} `
+      + `expect roughly ${expectedDecisions} tactical decisions before the rolling-cost gate trips.`,
   );
   return new ClaudeCodeProvider();
 }
@@ -218,7 +217,7 @@ async function startServer(useDev) {
     // Otherwise (connection refused / timeout) — port is free.
   }
   const cmd = useDev
-    ? [npmBin, ['run', 'dev']]
+    ? [npmBin, ['run', 'dev', '--', '--port', String(PORT)]]
     : [npmBin, ['run', 'preview', '--', '--port', String(PORT)]];
   console.log(`[playtest-llm] starting ${useDev ? 'vite dev' : `vite preview on :${PORT}`}…`);
   // detached: true on POSIX so killProcessTree can signal the whole
@@ -267,6 +266,9 @@ async function startServer(useDev) {
 
 async function makePlaywrightHost(page, hostOptions = {}) {
   const omniscient = !!hostOptions.omniscient;
+  // playtest-fixes iter-1 (Codex HIGH): the agent may only command its
+  // own entities; the in-page dispatcher enforces it via expectedOwner.
+  const expectedOwner = hostOptions.ownerId;
   return {
     async waitForBoot() {
       // Assert both isBooted AND the agent sub-surface — defends
@@ -280,10 +282,18 @@ async function makePlaywrightHost(page, hostOptions = {}) {
           window.__AOE2_TEST__?.isBooted() === true
           && typeof window.__AOE2_TEST__?.agent?.snapshotForAgent === 'function'
           && typeof window.__AOE2_TEST__?.agent?.dispatchAgentCommand === 'function'
-          && typeof window.__AOE2_TEST__?.agent?.exportRecorderBundleToFile === 'function',
+          && typeof window.__AOE2_TEST__?.agent?.getRecorderBundle === 'function'
+          && typeof window.__AOE2_TEST__?.setPaused === 'function',
         undefined,
         { timeout: 60_000 },
       );
+    },
+    // playtest-fixes C: freeze/unfreeze the live sim. The runner pauses
+    // once after boot so the game does NOT free-run during the agent's
+    // ~10-100s LLM calls (the 2026-06-09 run drifted to bridge tick
+    // 5413 on a maxTicks-2000 run, voiding checkpoint alignment).
+    async setPaused(paused) {
+      await page.evaluate((p) => window.__AOE2_TEST__.setPaused(p), paused);
     },
     async getCurrentTick() {
       return await page.evaluate(() => window.__AOE2_TEST__.getRenderState().tick);
@@ -304,12 +314,26 @@ async function makePlaywrightHost(page, hostOptions = {}) {
     },
     async dispatchCommand(cmd) {
       return await page.evaluate(
-        (c) => window.__AOE2_TEST__.agent.dispatchAgentCommand(c),
-        cmd,
+        ([c, owner]) => window.__AOE2_TEST__.agent.dispatchAgentCommand(c, { expectedOwner: owner }),
+        [cmd, expectedOwner],
       );
     },
     async advanceTicks(count) {
-      await page.evaluate((n) => window.__AOE2_TEST__.advanceTicks(n), count);
+      // Atomic unpause → step N → repause inside ONE synchronous page
+      // task: requestAnimationFrame can never interleave a synchronous
+      // evaluate, so with the runner-held pause active, advanceTicks is
+      // the ONLY way the bridge tick moves. tickAfter - tickBefore then
+      // equals the requested count exactly and baseline checkpoints
+      // (multiples of decisionIntervalTicks) land precisely.
+      await page.evaluate((n) => {
+        const api = window.__AOE2_TEST__;
+        api.setPaused(false);
+        try {
+          api.advanceTicks(n);
+        } finally {
+          api.setPaused(true);
+        }
+      }, count);
     },
     async drainDispatchLog() {
       return await page.evaluate(() => window.__AOE2_TEST__.agent.drainAgentDispatchLog());
@@ -320,23 +344,34 @@ async function makePlaywrightHost(page, hostOptions = {}) {
       );
     },
     async exportBundle() {
-      // Codex impl-345 M3: passing the bundle text back through
-      // page.evaluate() defeats the purpose of the Blob URL. Use
-      // page.request.fetch (which talks directly to the page's
-      // origin without the JSON-RPC marshalling layer) and revoke the
-      // blob URL after read so the page's heap doesn't keep the bytes
-      // pinned for the lifetime of the browser context.
-      const { blobUrl, size } = await page.evaluate(() =>
-        window.__AOE2_TEST__.agent.exportRecorderBundleToFile(),
-      );
-      console.log(`[playtest-llm] bundle blob ready: ${size} bytes`);
+      // playtest-fixes D: the previous blob-URL path was dead on
+      // arrival — page.request.fetch is an HTTP client and rejects
+      // blob: URLs ("Protocol 'blob:' not supported"), which engineHalt-
+      // ed every real run at export time. Instead: stringify the bundle
+      // into a page global once, pull it out in chunks that stay under
+      // Playwright's JSON-RPC payload limit, and reassemble in Node.
+      const CHUNK_BYTES = 4 * 1024 * 1024;
+      const totalLength = await page.evaluate(() => {
+        const bundle = window.__AOE2_TEST__.agent.getRecorderBundle();
+        window.__AOE2_PLAYTEST_BUNDLE_TEXT__ = JSON.stringify(bundle);
+        return window.__AOE2_PLAYTEST_BUNDLE_TEXT__.length;
+      });
+      console.log(`[playtest-llm] bundle JSON ready: ${totalLength} chars, pulling in ${Math.ceil(totalLength / CHUNK_BYTES)} chunks`);
       try {
-        const response = await page.request.fetch(blobUrl);
-        const text = await response.text();
-        return JSON.parse(text);
+        const parts = [];
+        for (let offset = 0; offset < totalLength; offset += CHUNK_BYTES) {
+          const part = await page.evaluate(
+            ([start, len]) => window.__AOE2_PLAYTEST_BUNDLE_TEXT__.slice(start, start + len),
+            [offset, CHUNK_BYTES],
+          );
+          parts.push(part);
+        }
+        return JSON.parse(parts.join(''));
       } finally {
         await page
-          .evaluate((url) => URL.revokeObjectURL(url), blobUrl)
+          .evaluate(() => {
+            delete window.__AOE2_PLAYTEST_BUNDLE_TEXT__;
+          })
           .catch(() => {});
       }
     },
@@ -416,8 +451,8 @@ async function main() {
     const agent = new LlmAgent({
       provider,
       ownerId: args.owners[0],
-      strategyModel: 'claude-opus-4-7',
-      tacticalModel: 'claude-sonnet-4-6',
+      strategyModel: 'claude-fable-5',
+      tacticalModel: 'claude-fable-5',
       strategyEveryNDecisions: args.strategyEvery,
       maxOutputTokensTactical: 1024,
       maxOutputTokensStrategy: 2048,
@@ -426,7 +461,7 @@ async function main() {
       historyWindow: 5,
     });
 
-    const host = await makePlaywrightHost(page, { omniscient: args.omniscient });
+    const host = await makePlaywrightHost(page, { omniscient: args.omniscient, ownerId: args.owners[0] });
 
     // Stream trace as we go so a crash mid-run still leaves partial data.
     const traceFilePath = `${args.out}.llm-trace.jsonl`;
@@ -564,7 +599,7 @@ async function main() {
         });
         const verdict = await runObservationOracle({
           provider,
-          model: 'claude-sonnet-4-6',
+          model: 'claude-fable-5',
           finalScreenshotPng: result.finalScreenshotPng,
           traceSummary,
         });

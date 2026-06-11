@@ -21,7 +21,12 @@ import type { GameWorld } from './bridge/pureHelpers';
 // Heterogeneous-typed array: each entry carries its own command type +
 // matching payload via the GameCommands key map.
 export type PendingCommand = {
-  [K in keyof GameCommands]: { type: K; data: GameCommands[K] };
+  // `agentIssued` (playtest-fixes iter-1, Codex MED): runtime-only tag
+  // set by `dispatchAgentCommand` so the dispatch observer can scope
+  // the LLM agent's feedback log to its own submissions — AI /
+  // auto-aggression intentions share this queue. Intentionally dropped
+  // by `clonePendingCommand`, so it never reaches snapshots or saves.
+  [K in keyof GameCommands]: { type: K; data: GameCommands[K]; agentIssued?: boolean };
 }[keyof GameCommands];
 
 export type PendingCommandsQueue = PendingCommand[];
@@ -49,6 +54,9 @@ export interface AgentDispatchEvent {
   accepted: boolean;
   rejectionReason?: string;
   rejectionMessage?: string;
+  // True only for commands pushed via dispatchAgentCommand. Consumers
+  // building the agent's feedback loop must filter on this.
+  agentIssued?: boolean;
 }
 
 /** Drains all pending intentions and submits each to the world. Called before
@@ -73,6 +81,7 @@ export function drainPendingCommands(
         accepted: result.accepted,
         rejectionReason: result.accepted ? undefined : result.code,
         rejectionMessage: result.accepted ? undefined : result.message,
+        agentIssued: cmd.agentIssued === true,
       });
     }
     count += 1;

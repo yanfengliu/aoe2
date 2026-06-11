@@ -21,7 +21,17 @@ import {
   buildStrategyToolSchema,
   buildTacticalPrompt,
   fromToolName,
+  type TacticalHistoryEntry,
 } from './llmPromptBuilder';
+
+// playtest-fixes B: structural twin of the runner's AgentDispatchEvent
+// (declared here, not imported, to keep the agent free of runner deps).
+export interface DispatchOutcomeEvent {
+  commandType: string;
+  accepted: boolean;
+  rejectionReason?: string;
+  rejectionMessage?: string;
+}
 
 export interface LlmAgentConfig {
   provider: LlmProvider;
@@ -54,11 +64,7 @@ export const DEFAULT_AGENT_CONFIG = {
   historyWindow: 5,
 };
 
-interface DecisionHistoryEntry {
-  tick: number;
-  thought: string;
-  commandsSummary: string;
-}
+type DecisionHistoryEntry = TacticalHistoryEntry;
 
 export class LlmAgent {
   private readonly config: LlmAgentConfig;
@@ -82,6 +88,31 @@ export class LlmAgent {
   }
   get strategy(): string | null {
     return this.currentStrategy;
+  }
+
+  // playtest-fixes B: the runner reports the engine's dispatch verdicts
+  // for the most recent decision (drained after the post-decision
+  // advance). The summary lands on that decision's history entry so the
+  // NEXT tactical prompt shows the model what actually happened —
+  // without this the 2026-06-09 run re-issued identical rejected
+  // commands for four straight decisions.
+  reportDispatchOutcome(events: DispatchOutcomeEvent[]): void {
+    const last = this.history[this.history.length - 1];
+    if (!last) return;
+    const accepted = events.filter((e) => e.accepted).length;
+    const rejected = events.length - accepted;
+    const rejectedDetails = events
+      .filter((e) => !e.accepted)
+      .map((e) => {
+        const reason = e.rejectionReason ?? 'rejected';
+        const msg = e.rejectionMessage ? ` (${e.rejectionMessage})` : '';
+        return `${e.commandType} → ${reason}${msg}`;
+      })
+      .join('; ');
+    last.dispatchSummary = rejected > 0
+      ? `${accepted} accepted, ${rejected} rejected — ${rejectedDetails}`
+      : `${accepted} accepted, ${rejected} rejected`;
+    last.rejectedCount = rejected;
   }
 
   async decide(
