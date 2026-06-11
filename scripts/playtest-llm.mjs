@@ -53,12 +53,11 @@ function parseArgs(argv) {
     useDevServer: false,
     noScreenshot: false,
     // Phase-6.B (impl-2 M7): default false → enemies are visibility-
-    // filtered. Pass --omniscient to revert to cheat-mode global view
-    // (the corpus's smoke baseline row sets this).
+    // filtered. Pass --omniscient to revert to cheat-mode global view.
     omniscient: false,
     // Phase-6.C.2: post-hoc observation oracle. Single advisory LLM
     // call after the run (final-tick screenshot + trace summary).
-    // Default off — adds ~$0.10 per run when enabled.
+    // Default off — adds ~$0.40-0.60 per run when enabled (fable-5 + prelude).
     observation: false,
   };
   for (let i = 2; i < argv.length; i++) {
@@ -130,10 +129,10 @@ function makeClaudeCodeProvider(args) {
   // Per-call cost shape: claude-code sessions carry ~15K-token
   // cache_creation prelude per spawned process. All playtest calls run
   // on claude-fable-5 ($10/$50 per MTok) per the 2026-06-09 directive —
-  // ~$0.25/call tactical, similar for the strategy refresh (every Kth
-  // decision, default K=10). Effective per-decision ≈ $0.28.
-  const tacticalCost = 0.25; // claude-fable-5 with ~15K cache_creation
-  const strategyCost = 0.25; // claude-fable-5 (same model, longer output)
+  // ~$0.55/call observed (own-entity context), similar for strategy (every Kth
+  // decision, default K=10). Effective per-decision ≈ $0.61.
+  const tacticalCost = 0.55; // claude-fable-5, observed 2026-06-10 (own-entity context grew prompts)
+  const strategyCost = 0.55; // claude-fable-5 (same model, longer output)
   const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
   const expectedDecisions = Math.floor(args.costBudget / blendedCost);
   console.log(
@@ -589,6 +588,22 @@ async function main() {
           (acc, entry) => acc + entry.dispatchEvents.filter((e) => !e.accepted).length,
           0,
         );
+        // Finding G: ground the oracle on the AGENT's economy — the
+        // screenshot HUD belongs to the passive human observer. Pull a
+        // fresh post-run snapshot (page is still alive here) and pass
+        // the agent's per-player row into the summary.
+        let finalAgentState;
+        try {
+          const finalSnapshot = await host.snapshotForAgent(args.owners[0]);
+          finalAgentState = finalSnapshot.perPlayer.find((p) => p.ownerId === args.owners[0]);
+        } catch (snapErr) {
+          // Advisory path — a destabilized page just means no agent
+          // state block; the oracle still sees the run counters. Warn so
+          // a persistent break is operator-visible (iter-1 Claude note).
+          console.warn(
+            `[playtest-llm] final agent snapshot unavailable for observation: ${snapErr?.message ?? snapErr}`,
+          );
+        }
         const traceSummary = buildTraceSummary({
           ticksRun: result.envelope.ticksRun,
           decisionsRun: result.envelope.decisionsRun,
@@ -596,6 +611,8 @@ async function main() {
           stopReason: result.envelope.stopReason,
           errorMessage: result.envelope.errorMessage,
           rejectionsCount,
+          agentOwnerId: args.owners[0],
+          finalAgentState,
         });
         const verdict = await runObservationOracle({
           provider,

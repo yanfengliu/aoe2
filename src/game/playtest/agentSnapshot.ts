@@ -28,9 +28,9 @@ const MAX_NEARBY_RESOURCES = 64;
 // Phase-6.B (impl-2 M7): visibility predicate signature. Returns true
 // if `ownerId` can currently see cell (x,y). When the predicate is
 // undefined OR `omniscient: true` is passed to buildAgentSnapshot, the
-// snapshot reverts to global ground-truth (intentional cheat-mode for
-// the smoke baseline — the LLM is the only active player, fog isn't
-// meaningful). When provided, `enemiesFor` filters out enemies whose
+// snapshot reverts to global ground-truth (intentional cheat-mode —
+// opt-in via --omniscient; since 2026-06-10 the corpus smoke row runs
+// fog-filtered like every default run). When provided, `enemiesFor` filters out enemies whose
 // footprint sits entirely in fog so the LLM doesn't get a free scout.
 export type VisibilityProbe = (ownerId: number, x: number, y: number) => boolean;
 
@@ -282,8 +282,7 @@ export interface AgentSnapshotInputs {
   // Phase-6.B (impl-2 M7): per-owner visibility probe + opt-in
   // omniscient (cheat-mode) flag. When `omniscient: true` (default
   // false) or `visibility` is undefined, `enemies` is global
-  // ground-truth — appropriate for single-LLM-vs-passive-human smoke
-  // baselines. Otherwise enemies are filtered through the probe so
+  // ground-truth (opt-in cheat mode). Otherwise enemies are filtered through the probe so
   // fog-shrouded units/buildings don't leak.
   visibility?: VisibilityProbe;
   omniscient?: boolean;
@@ -340,8 +339,8 @@ export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnaps
   const { ownerId, tick, tps, economy, selection, screenMapping, visibility, omniscient } = inputs;
   assertEconomyShape(economy);
   // omniscient=true short-circuits the visibility filter so the enemy
-  // and resource lists revert to global ground-truth (cheat-mode for
-  // the smoke baseline). When false (default) AND a probe is provided,
+  // and resource lists revert to global ground-truth (opt-in cheat
+  // mode). When false (default) AND a probe is provided,
   // enemies + resources get fog-filtered. Own entities are NEVER
   // filtered (playtest-fixes A).
   const fogVisibility = omniscient ? undefined : visibility;

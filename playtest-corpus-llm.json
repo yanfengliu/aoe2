@@ -5,8 +5,9 @@
       "seed": "aoe2-prototype",
       "maxTicks": 5000,
       "decisionInterval": 250,
-      "owners": [2],
-      "omniscient": true
+      "owners": [
+        2
+      ]
     }
   ]
 }

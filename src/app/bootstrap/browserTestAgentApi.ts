@@ -40,8 +40,8 @@ export interface BrowserTestAgentApi {
    *  Phase-6.B (impl-2 M7): `enemies` is filtered by per-owner
    *  visibility (engine `VisibilityMap`) by default. Pass
    *  `{omniscient: true}` to revert to cheat-mode global ground-truth
-   *  — appropriate for a single-LLM-vs-passive-human smoke baseline
-   *  where fog isn't meaningful. */
+   *  (opt-in via --omniscient; the corpus smoke row runs fog-filtered
+   *  since 2026-06-10). */
   snapshotForAgent(ownerId: number, options?: { omniscient?: boolean }): AgentStateSnapshot;
   /** On-page canvas bounding box in CSS pixels. The runner calls
    *  `page.screenshot({ clip: bbox })` with this. */

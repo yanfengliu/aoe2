@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildTraceSummary,
+  SYSTEM_PROMPT_OBSERVATION,
   runObservationOracle,
 } from '../../src/game/playtest/observationOracle';
 import { MockProvider } from '../../src/game/playtest/llmProviders';
@@ -333,5 +334,53 @@ describe('buildTraceSummary', () => {
       errorMessage: 'WorldTickFailureError: pathfind exception',
     });
     expect(text).toContain('Error: WorldTickFailureError');
+  });
+});
+
+// playtest-fixes follow-up (finding G): the final screenshot's HUD
+// shows the PASSIVE HUMAN player's resources, not the agent's — the
+// 2026-06-10 clean run was graded "looked-broken: resources at exact
+// starting values" while the agent's trace showed food 490 / pop 12/15.
+// The summary must carry the agent's own final state and the system
+// prompt must warn about the HUD ownership split.
+describe('observation oracle — agent-owner grounding (finding G)', () => {
+  it('buildTraceSummary renders the agent final state when provided', () => {
+    const text = buildTraceSummary({
+      ticksRun: 2000,
+      decisionsRun: 8,
+      totalCostUsd: 4.86,
+      stopReason: 'maxTicks',
+      rejectionsCount: 5,
+      agentOwnerId: 2,
+      finalAgentState: {
+        ownerId: 2,
+        age: 'dark-age',
+        resources: { wood: 230, food: 490, gold: 100, stone: 200 },
+        villagerCountByTask: { 'gathering-food': 6, idle: 1 },
+        buildingCountByType: { 'town-center': 1, house: 2 },
+        militaryCountByType: { scout: 2 },
+        populationCurrent: 12,
+        populationCap: 15,
+      },
+    });
+    expect(text).toContain('Final agent state (owner 2)');
+    expect(text).toContain('food: 490');
+    expect(text).toContain('population: 12/15');
+    expect(text).toContain('gathering-food: 6');
+  });
+
+  it('buildTraceSummary omits the agent-state block when not provided (back-compat)', () => {
+    const text = buildTraceSummary({
+      ticksRun: 100,
+      decisionsRun: 1,
+      totalCostUsd: 0.5,
+      stopReason: 'maxTicks',
+    });
+    expect(text).not.toContain('Final agent state');
+  });
+
+  it('system prompt warns that the screenshot HUD shows the human observer, not the agent', () => {
+    expect(SYSTEM_PROMPT_OBSERVATION).toContain('HUD');
+    expect(SYSTEM_PROMPT_OBSERVATION).toContain('not the agent');
   });
 });

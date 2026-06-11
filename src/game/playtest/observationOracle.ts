@@ -13,6 +13,7 @@
 // advisory after the operator's cap.
 
 import type {
+  AgentPlayerState,
   LlmCallOptions,
   LlmContentBlock,
   LlmProvider,
@@ -23,6 +24,7 @@ import type {
 export const SYSTEM_PROMPT_OBSERVATION = `You are a post-game observer for an AoE2 playtest. Your job:
 - Look at the final-tick screenshot of the game.
 - Read the textual run summary (decisions made, ticks elapsed, total cost, stop reason, any error).
+- IMPORTANT: the resource/population HUD in the screenshot belongs to the passive HUMAN observer player, not the agent. Judge the agent's economic progress from the "Final agent state" block in the summary, and use the screenshot only for map/visual context (exploration, buildings, unit positions).
 - Decide whether the run "looked fun" (interesting interactions, the agent made progress), "looked broken" (the agent got stuck, the engine halted, units stalled), or "inconclusive" (not enough signal to say).
 - Write a short notes paragraph (1-3 sentences) explaining what you saw.
 You will not emit any commands; only the verdict + notes via the \`set_observation\` tool.`;
@@ -124,6 +126,14 @@ export function buildTraceSummary(input: {
   stopReason: string;
   errorMessage?: string;
   rejectionsCount?: number;
+  // Finding G (2026-06-10): the screenshot HUD shows the passive human
+  // observer's resources, so without the AGENT's own final state the
+  // oracle grades the wrong player — a competent run was judged
+  // "looked-broken: resources at exact starting values". When provided,
+  // the agent's economy is rendered into the summary so verdicts are
+  // grounded on the right owner.
+  agentOwnerId?: number;
+  finalAgentState?: AgentPlayerState;
 }): string {
   const lines = [
     `Ticks run: ${input.ticksRun}`,
@@ -136,6 +146,19 @@ export function buildTraceSummary(input: {
   }
   if (input.errorMessage) {
     lines.push(`Error: ${input.errorMessage}`);
+  }
+  if (input.finalAgentState) {
+    const s = input.finalAgentState;
+    const owner = input.agentOwnerId ?? s.ownerId;
+    lines.push(
+      `Final agent state (owner ${owner}):`,
+      `  age: ${s.age}`,
+      `  resources — wood: ${s.resources.wood}, food: ${s.resources.food}, gold: ${s.resources.gold}, stone: ${s.resources.stone}`,
+      `  population: ${s.populationCurrent}/${s.populationCap}`,
+      `  villagers by task: ${Object.entries(s.villagerCountByTask).map(([k, v]) => `${k}: ${v}`).join(', ') || '(none)'}`,
+      `  buildings: ${Object.entries(s.buildingCountByType).map(([k, v]) => `${k}: ${v}`).join(', ') || '(none)'}`,
+      `  military: ${Object.entries(s.militaryCountByType).map(([k, v]) => `${k}: ${v}`).join(', ') || '(none)'}`,
+    );
   }
   return lines.join('\n');
 }
