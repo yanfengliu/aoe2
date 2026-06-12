@@ -12,14 +12,18 @@ import type { BridgeState } from './bridgeState';
 import type {
   BuildableBuildingType,
   BuildingType,
+  ResearchableTechnologyType,
   ResourceComponent,
   UnitType,
 } from '../types';
+import { inFlightTechByOwnerCodec } from './bridgeStateSerialize';
 import { unitTint } from '../prototypeUnitRules';
 import {
   AI_MONK_HEAL_HP_FRACTION,
   AI_WATCH_TOWER_FORWARD_STEP,
 } from '../ai';
+import { createBuildingOptionsOps } from './buildingOptionsOps';
+import type { CellPassability } from './cellPassability';
 import { createMonkTaskOps } from './monkTaskOps';
 import { createTechnologyOps } from './technologyOps';
 import { createAiDecisionOps } from './aiDecisionOps';
@@ -90,9 +94,29 @@ export interface WirePostSeedDeps {
   getMarketOptions: Parameters<typeof createSelectionStateOps>[0]['getMarketOptions'];
   getBuildOptions: Parameters<typeof createSelectionStateOps>[0]['getBuildOptions'];
   getVisibleResearchOptions: Parameters<typeof createSelectionStateOps>[0]['getVisibleResearchOptions'];
+  // agent-affordances B/C (campaign-1 backlog #2/#3)
+  researchUnavailableReason: Parameters<
+    typeof createBuildingOptionsOps
+  >[0]['researchUnavailableReason'];
+  findOpenPlacementAnchors: CellPassability['findOpenPlacementAnchors'];
 }
 
 export interface WirePostSeedResult {
+  // agent-affordances B/C: agent-snapshot read surfaces. Spread into the
+  // bridge result by wireBridgeOps.
+  agentOptionsOps: {
+    getAgentBuildingOptions: ReturnType<
+      typeof createBuildingOptionsOps
+    >['getAgentBuildingOptions'];
+    findOpenPlacementAnchorsNear: (
+      ownerId: number,
+      centerX: number,
+      centerY: number,
+      width: number,
+      height: number,
+      max: number,
+    ) => Position[];
+  };
   visibilityQueries: ReturnType<typeof createVisibilityQueries>;
   selectionInputOps: ReturnType<typeof createSelectionInputOps>;
   entityDestroyOps: ReturnType<typeof createEntityDestroyOps>;
@@ -332,7 +356,41 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getEntityRef,
   });
 
+  // agent-affordances B/C: agent-snapshot read surfaces. Pure read-side;
+  // the anchor search fog-gates through the owner's visibility so a
+  // suggestion never reveals unscouted terrain. The in-flight probe is
+  // deliberately NON-creating (iter-1 Claude L2) — the helpers'
+  // inFlightTechSetFor get-or-create would insert an empty set into the
+  // Tier-2 cache on every snapshot of an owner with no research.
+  const NO_IN_FLIGHT: ReadonlySet<ResearchableTechnologyType> = new Set();
+  const { getAgentBuildingOptions } = createBuildingOptionsOps({
+    world,
+    accessor,
+    getResearchOptions,
+    getVisibleResearchOptions,
+    getTrainOptions,
+    getBuildOptions,
+    inFlightTechsFor: (owner) =>
+      accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
+    researchUnavailableReason: deps.researchUnavailableReason,
+  });
+  const agentOptionsOps = {
+    getAgentBuildingOptions,
+    findOpenPlacementAnchorsNear: (
+      ownerId: number,
+      centerX: number,
+      centerY: number,
+      width: number,
+      height: number,
+      max: number,
+    ): Position[] => deps.findOpenPlacementAnchors(centerX, centerY, width, height, {
+      max,
+      isCellVisible: (x, y) => visibility.isVisible(ownerId, x, y),
+    }),
+  };
+
   return {
+    agentOptionsOps,
     visibilityQueries,
     selectionInputOps,
     entityDestroyOps,

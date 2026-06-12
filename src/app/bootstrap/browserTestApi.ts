@@ -65,6 +65,19 @@ export interface BrowserTestBridge {
   // agent snapshot's enemy-filtering path. Pure pass-through to the
   // engine's VisibilityMap.
   isCellVisibleForOwner: (ownerId: number, x: number, y: number) => boolean;
+  // agent-affordances B/C: per-building options (+ locked reasons) and
+  // fog-gated open-anchor search, composed into the agent snapshot.
+  getAgentBuildingOptions: (
+    ownerId: number,
+  ) => import('../../game/simulation/createSimulationBridge').AgentBuildingOptions;
+  findOpenPlacementAnchorsNear: (
+    ownerId: number,
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    max: number,
+  ) => Array<{ x: number; y: number }>;
 }
 
 export interface BrowserTestSnapshot {

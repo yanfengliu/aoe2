@@ -6,12 +6,14 @@ import type {
   AgentEntitySummary,
   AgentOwnBuildingSummary,
   AgentOwnUnitSummary,
+  AgentPlacementHints,
   AgentPlayerState,
   AgentResourceSummary,
   AgentScreenMapping,
   AgentStateSnapshot,
 } from './types';
 import type { EconomyState, SelectionState } from '../simulation/types';
+import type { AgentBuildingOptions } from '../simulation/createSimulationBridge';
 import { resourceKindToEconomyResource } from '../simulation/prototypeEconomyRules';
 
 const MAX_ENEMIES = 200;
@@ -286,6 +288,11 @@ export interface AgentSnapshotInputs {
   // fog-shrouded units/buildings don't leak.
   visibility?: VisibilityProbe;
   omniscient?: boolean;
+  // agent-affordances B/C: computed bridge-side (buildingOptionsOps /
+  // findOpenPlacementAnchorsNear) and passed through verbatim so this
+  // builder stays pure. Both are already fog-honest at the source.
+  buildingOptions?: AgentBuildingOptions;
+  placementHints?: AgentPlacementHints | null;
 }
 
 // Phase-6.A.2 (impl-2 M2): fail loud when the EconomyState shape that
@@ -336,7 +343,18 @@ function assertEconomyShape(economy: EconomyState): void {
 }
 
 export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnapshot {
-  const { ownerId, tick, tps, economy, selection, screenMapping, visibility, omniscient } = inputs;
+  const {
+    ownerId,
+    tick,
+    tps,
+    economy,
+    selection,
+    screenMapping,
+    visibility,
+    omniscient,
+    buildingOptions,
+    placementHints,
+  } = inputs;
   assertEconomyShape(economy);
   // omniscient=true short-circuits the visibility filter so the enemy
   // and resource lists revert to global ground-truth (opt-in cheat
@@ -355,5 +373,9 @@ export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnaps
     enemies: enemiesFor(ownerId, economy, MAX_ENEMIES, fogVisibility),
     queuedProduction: queuedProductionOf(economy),
     screenMapping,
+    // agent-affordances B/C: pass-throughs (undefined stays undefined so
+    // older hosts/fixtures serialize identically).
+    ...(buildingOptions !== undefined ? { buildingOptions } : {}),
+    ...(placementHints !== undefined ? { placementHints } : {}),
   };
 }

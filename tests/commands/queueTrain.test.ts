@@ -133,6 +133,22 @@ describe('queueTrainValidator', () => {
     });
     const result = validator({ buildingId: tcId, unitType: 'villager' }, world);
     expect(result).toEqual({ code: 'cannot_train', message: expect.any(String) });
+    // agent-affordances A1: names the unit + building and what IS trainable.
+    expect((result as { message: string }).message).toContain(
+      'Cannot train villager at this town-center',
+    );
+    expect((result as { message: string }).message).toContain('Nothing is currently trainable');
+  });
+
+  it('lists the currently trainable units in the cannot_train message (A1)', () => {
+    const world = freshWorld();
+    const barracksId = makeBuilding(world, 'barracks');
+    const validator = makeValidator(world, {
+      getTrainOptions: () => ['militia'] as readonly TrainableUnitType[],
+    });
+    const result = validator({ buildingId: barracksId, unitType: 'spearman' }, world);
+    expect(result).toEqual({ code: 'cannot_train', message: expect.any(String) });
+    expect((result as { message: string }).message).toContain('Currently trainable here: militia');
   });
 
   it('rejects when no stockpile exists for the owner', () => {
@@ -151,6 +167,8 @@ describe('queueTrainValidator', () => {
     });
     const result = validator({ buildingId: tcId, unitType: 'villager' }, world);
     expect(result).toEqual({ code: 'insufficient_resources', message: expect.any(String) });
+    // agent-affordances A2: need-vs-have detail (villager costs 50 food).
+    expect((result as { message: string }).message).toContain('need 50 food (have 0)');
   });
 
   it('accepts a fully valid train request', () => {

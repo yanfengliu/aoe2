@@ -21,6 +21,8 @@ import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
+import { buildCommandValidatorDeps } from './commandValidatorDeps';
+import { createResearchAvailability } from './researchAvailability';
 import { registerOutputTail } from './registerOutputTail';
 import { VisibilityCell } from './visibilityCell';
 import { bootstrapFlush } from './bootstrapFlush';
@@ -132,6 +134,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getPlayerAge,
     getPlayerCivilization,
     isAtLeastAge,
+    countCompletedAgePrerequisites,
     canAdvanceToFeudalAge,
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,
@@ -158,6 +161,14 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     hasOwnedWonder,
   });
 
+  // agent-affordances A1: shared reason engine (validator messages + buildingOptionsOps).
+  const { researchUnavailableReason } = createResearchAvailability({
+    getPlayerAge,
+    hasTechnology,
+    countCompletedAgePrerequisites,
+    getResearchOptions,
+  });
+
   const createCombatState = createCombatStateFactory({ hasTechnology });
 
   const entityCreateOps = createEntityCreateOps({
@@ -182,6 +193,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isCellPassableForWildlife,
     isHarvestableResource,
     isPlacementBlocked,
+    describePlacementBlockers,
+    findOpenPlacementAnchors,
     isGarrisonedUnit,
     getActionOptions,
   } = createCellPassability({
@@ -308,8 +321,11 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getMarketOptions,
     getBuildOptions,
     getVisibleResearchOptions,
+    researchUnavailableReason,
+    findOpenPlacementAnchors,
   });
   const {
+    agentOptionsOps,
     visibilityQueries,
     selectionInputOps,
     entityDestroyOps,
@@ -507,6 +523,24 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // Phase 1A scaffold + Phase 1B per-command registrations (DESIGN v17 §6.4).
   // Each Phase 1B commit threads its direct-mutation helper into deps so the
   // handler delegates to the same code path deterministic systems use.
+  const { validatorDeps } = buildCommandValidatorDeps({
+    accessor,
+    researchUnavailableReason,
+    getTrainOptions,
+    getResearchOptions,
+    getMarketOptions,
+    getBuildOptions,
+    inFlightTechSetFor,
+    playerOwnsCompletedMarket,
+    isPlacementBlocked,
+    describePlacementBlockers,
+    findOpenPlacementAnchors,
+    isCellVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
+    marketFeeRate: MARKET_FEE_RATE,
+    marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
+    mapWidth: MAP_WIDTH,
+    mapHeight: MAP_HEIGHT,
+  });
   registerCommandHandlers(world, {
     accessor,
     setUnitMoveCommandDirect,
@@ -517,43 +551,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     routeMonkContextAtEntityCommandDirect,
     setSheepMoveCommandDirect,
     enqueueTrainingDirect: enqueueTraining,
-    queueTrainValidatorDeps: {
-      accessor,
-      getTrainOptions,
-    },
     enqueueResearchDirect: enqueueResearch,
-    queueResearchValidatorDeps: {
-      accessor,
-      getResearchOptions,
-      inFlightTechSetFor,
-    },
     executeMarketActionDirect,
-    marketActionValidatorDeps: {
-      accessor,
-      getMarketOptions,
-      playerOwnsCompletedMarket,
-      marketFeeRate: MARKET_FEE_RATE,
-      marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
-    },
     startConstructionWithBuildersDirect,
-    buildingPlaceConfirmValidatorDeps: {
-      accessor,
-      getBuildOptions,
-      isPlacementBlocked,
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
-    },
-    buildingSetRallyPointValidatorDeps: {
-      accessor,
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
-    },
     ungarrisonBuildingDirect: ungarrisonBuilding,
-    buildingActionValidatorDeps: { accessor },
     beginTrebuchetPackDirect: trebuchetStateOps.beginTrebuchetPack,
-    trebuchetPackValidatorDeps: { accessor },
     beginTrebuchetUnpackDirect: trebuchetStateOps.beginTrebuchetUnpack,
-    trebuchetUnpackValidatorDeps: { accessor },
+    ...validatorDeps,
   });
 
   // Phase 2C/2D — bridge-state migration. Accessor and visibility cell
@@ -578,6 +582,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
 
   return {
     ...finalize,
+    ...agentOptionsOps,
     getPlayerAge,
     getSelectionState,
     getEntityHealth,

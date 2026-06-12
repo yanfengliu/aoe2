@@ -342,6 +342,24 @@ export function resourcesMissing(
   return null;
 }
 
+// agent-affordances A2: need-vs-have detail for insufficient_resources
+// rejections. Returns null when the cost is affordable. Sibling of
+// `resourcesMissing` (which names only the first short resource and is
+// kept for the HUD's terse "Not enough food." toasts).
+export function describeMissingResources(
+  resources: PlayerResources,
+  cost: Partial<PlayerResources>,
+): string | null {
+  const parts: string[] = [];
+  for (const kind of ['food', 'wood', 'gold', 'stone'] as const) {
+    const need = cost[kind] ?? 0;
+    if (resources[kind] < need) {
+      parts.push(`need ${need} ${kind} (have ${resources[kind]})`);
+    }
+  }
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
 export function spendResources(
   resources: PlayerResources,
   cost: Partial<PlayerResources>,

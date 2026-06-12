@@ -2,7 +2,7 @@
 // Best-effort placement + affordability checks. Handler re-checks
 // authoritatively at start of next step's processCommands.
 
-import type { World } from 'civ-engine';
+import type { Position, World } from 'civ-engine';
 
 import type {
   BuildableBuildingType,
@@ -10,16 +10,39 @@ import type {
   UnitType,
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
-import { canAfford, constructionCost } from '../../prototypeEconomyRules';
+import { canAfford, constructionCost, describeMissingResources } from '../../prototypeEconomyRules';
 import { buildingFootprint } from '../../bridge/pureHelpers';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
+import type { PlacementBlockReport } from '../../bridge/cellPassability';
 
 export interface BuildingPlaceConfirmValidatorDeps {
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
   isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
+  // agent-affordances A3: name the blocking cause + cell and suggest the
+  // nearest open anchor the acting owner can see. The suggestion is
+  // fog-gated through isCellVisibleToOwner so a rejection never reveals
+  // unscouted terrain.
+  describePlacementBlockers: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => PlacementBlockReport | null;
+  findOpenPlacementAnchors: (
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    opts: {
+      max: number;
+      maxRadius?: number;
+      isCellVisible: (x: number, y: number) => boolean;
+    },
+  ) => Position[];
+  isCellVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   mapWidth: number;
   mapHeight: number;
 }
@@ -79,14 +102,51 @@ export function makeBuildingPlaceConfirmValidator(
     }
     const footprint = buildingFootprint(data.buildingType);
     if (deps.isPlacementBlocked(data.position.x, data.position.y, footprint.width, footprint.height)) {
-      return { code: 'placement_blocked', message: 'Placement blocked.' };
+      const report = deps.describePlacementBlockers(
+        data.position.x,
+        data.position.y,
+        footprint.width,
+        footprint.height,
+      );
+      const cause = report
+        ? `${report.cause} at (${report.firstBlockedCell.x},${report.firstBlockedCell.y})`
+        : 'an obstacle';
+      const counts = report && report.totalCellCount > 1
+        ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
+        : '';
+      const anchors = deps.findOpenPlacementAnchors(
+        data.position.x,
+        data.position.y,
+        footprint.width,
+        footprint.height,
+        {
+          max: 1,
+          isCellVisible: (x, y) => deps.isCellVisibleToOwner(unit.owner, x, y),
+        },
+      );
+      const suggestion = anchors.length > 0
+        ? ` Nearest open ground you can see: (${anchors[0]!.x},${anchors[0]!.y}).`
+        : '';
+      return {
+        code: 'placement_blocked',
+        message:
+          `Placement blocked for ${data.buildingType} `
+          + `(${footprint.width}x${footprint.height}): blocked by ${cause}${counts}.${suggestion}`,
+      };
     }
     const stockpile = deps.accessor.get(playerResourcesCodec).get(unit.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    if (!canAfford(stockpile, constructionCost(data.buildingType))) {
-      return { code: 'insufficient_resources', message: 'Not enough resources to construct.' };
+    const cost = constructionCost(data.buildingType);
+    if (!canAfford(stockpile, cost)) {
+      const detail = describeMissingResources(stockpile, cost);
+      return {
+        code: 'insufficient_resources',
+        message: detail
+          ? `Not enough resources to build a ${data.buildingType}: ${detail}.`
+          : 'Not enough resources to construct.',
+      };
     }
     return true;
   };

@@ -10,7 +10,7 @@ import type { World } from 'civ-engine';
 import type { BuildingComponent, BuildingType, TrainableUnitType } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canTrainAt } from '../../prototypeBuildingRules';
-import { trainingCost, canAfford } from '../../prototypeEconomyRules';
+import { trainingCost, canAfford, describeMissingResources } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
@@ -50,18 +50,32 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (construction && !construction.isComplete) {
       return { code: 'under_construction', message: 'Building is still under construction.' };
     }
-    if (
-      !canTrainAt(building.buildingType, data.unitType)
-      || !deps.getTrainOptions(building.owner, building.buildingType).includes(data.unitType)
-    ) {
-      return { code: 'cannot_train', message: 'Cannot train that unit here.' };
+    // agent-affordances A1/A2: name the rejected unit + what IS
+    // trainable here, and the need-vs-have resource detail, so the LLM
+    // agent (and HUD toast fallback) can act instead of guessing.
+    const options = deps.getTrainOptions(building.owner, building.buildingType);
+    if (!canTrainAt(building.buildingType, data.unitType) || !options.includes(data.unitType)) {
+      const note = options.length > 0
+        ? `Currently trainable here: ${options.join(', ')}.`
+        : 'Nothing is currently trainable at this building right now (check your age).';
+      return {
+        code: 'cannot_train',
+        message: `Cannot train ${data.unitType} at this ${building.buildingType}. ${note}`,
+      };
     }
     const stockpile = deps.accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    if (!canAfford(stockpile, trainingCost(data.unitType))) {
-      return { code: 'insufficient_resources', message: 'Not enough resources to train.' };
+    const cost = trainingCost(data.unitType);
+    if (!canAfford(stockpile, cost)) {
+      const detail = describeMissingResources(stockpile, cost);
+      return {
+        code: 'insufficient_resources',
+        message: detail
+          ? `Not enough resources to train ${data.unitType}: ${detail}.`
+          : 'Not enough resources to train.',
+      };
     }
     return true;
   };

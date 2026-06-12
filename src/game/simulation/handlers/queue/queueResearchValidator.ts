@@ -12,7 +12,7 @@ import type {
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canResearchAt } from '../../prototypeBuildingRules';
-import { researchCost, canAfford } from '../../prototypeEconomyRules';
+import { researchCost, canAfford, describeMissingResources } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
@@ -28,6 +28,15 @@ export interface QueueResearchValidatorDeps {
     buildingType: BuildingType,
   ) => readonly ResearchableTechnologyType[];
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
+  // agent-affordances A1: actionable cannot_research messages. The
+  // reason engine (bridge/researchAvailability.ts) names the actual
+  // unmet rule; the dispatch feedback loop delivers it to the LLM agent
+  // and the HUD toast falls back to it for the cannot_research code.
+  researchUnavailableReason: (
+    owner: number,
+    buildingType: BuildingType,
+    tech: ResearchableTechnologyType,
+  ) => string;
 }
 
 export type QueueResearchValidator = (
@@ -55,17 +64,34 @@ export function makeQueueResearchValidator(deps: QueueResearchValidatorDeps): Qu
       !canResearchAt(building.buildingType, data.technologyType)
       || !deps.getResearchOptions(building.owner, building.buildingType).includes(data.technologyType)
     ) {
-      return { code: 'cannot_research', message: 'Cannot research that here.' };
+      return {
+        code: 'cannot_research',
+        message: deps.researchUnavailableReason(
+          building.owner,
+          building.buildingType,
+          data.technologyType,
+        ),
+      };
     }
     if (deps.inFlightTechSetFor(building.owner).has(data.technologyType)) {
-      return { code: 'in_flight_tech', message: 'Research is already in progress.' };
+      return {
+        code: 'in_flight_tech',
+        message: `${data.technologyType} is already being researched.`,
+      };
     }
     const stockpile = deps.accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    if (!canAfford(stockpile, researchCost(data.technologyType))) {
-      return { code: 'insufficient_resources', message: 'Not enough resources to research.' };
+    const cost = researchCost(data.technologyType);
+    if (!canAfford(stockpile, cost)) {
+      const detail = describeMissingResources(stockpile, cost);
+      return {
+        code: 'insufficient_resources',
+        message: detail
+          ? `Not enough resources to research ${data.technologyType}: ${detail}.`
+          : 'Not enough resources to research.',
+      };
     }
     return true;
   };

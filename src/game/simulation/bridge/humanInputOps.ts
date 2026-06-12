@@ -288,7 +288,9 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
           : null;
         enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot research that here.');
       } else {
-        enqueueRejection('Cannot research that here.');
+        // agent-affordances A1: pass the validator's actionable reason
+        // (e.g. the age-up prerequisite count) through to the toast.
+        enqueueRejection(result.message ?? 'Cannot research that here.');
       }
       return false;
     }

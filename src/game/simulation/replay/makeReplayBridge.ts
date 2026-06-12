@@ -140,6 +140,21 @@ export function makeReplayBridge(
     getPlacementPreview(x: number, y: number) {
       return api.getPlacementPreview(x, y);
     },
+    // agent-affordances B/C: read-side pass-throughs (replay worlds
+    // carry the same wired ops as live worlds).
+    getAgentBuildingOptions(ownerId: number) {
+      return api.getAgentBuildingOptions(ownerId);
+    },
+    findOpenPlacementAnchorsNear(
+      ownerId: number,
+      centerX: number,
+      centerY: number,
+      width: number,
+      height: number,
+      max: number,
+    ) {
+      return api.findOpenPlacementAnchorsNear(ownerId, centerX, centerY, width, height, max);
+    },
     getEntityHealth(id: number) {
       return api.getEntityHealth(id);
     },

@@ -49,7 +49,7 @@ describe('iter-2 H2-1 — research idempotency across multiple producer building
 
     const finalMilitia = findOwnedMilitia(bridge, 1);
     expect(finalMilitia?.attackDamage).toBe(5);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('does not let a second Blacksmith pay for the same Forging research that another Blacksmith already has in flight', () => {
     // iter-2 verification follow-up: the H2-1 fix made applyTechnology

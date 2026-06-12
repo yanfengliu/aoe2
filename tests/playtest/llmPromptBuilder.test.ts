@@ -277,3 +277,74 @@ describe('buildStrategyPrompt', () => {
     expect(textBlock.text).toContain('set_strategy');
   });
 });
+
+// agent-affordances B/C (campaign-1 backlog #2/#3): building options +
+// placement hints must render when present and stay silent when absent
+// (older fixtures/hosts).
+describe('buildTacticalPrompt — agent affordances', () => {
+  function promptText(snapshot: AgentStateSnapshot): string {
+    const out = buildTacticalPrompt({
+      snapshot,
+      currentStrategy: null,
+      recentHistory: [],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    return textBlock.text;
+  }
+
+  it('omits the affordance blocks when the snapshot lacks them', () => {
+    const text = promptText(SNAPSHOT);
+    expect(text).not.toContain('What your buildings can do now');
+    expect(text).not.toContain('Known-open building anchors');
+  });
+
+  it('renders building options with locked reasons and the villager build menu', () => {
+    const text = promptText({
+      ...SNAPSHOT,
+      buildingOptions: {
+        byBuildingType: [
+          {
+            buildingType: 'town-center',
+            research: [],
+            researchLocked: [
+              {
+                tech: 'feudal-age',
+                reason: 'Advancing to feudal-age requires 2 completed Dark Age buildings (mill, lumber-camp, mining-camp, or barracks) — you have 1.',
+              },
+            ],
+            train: ['villager'],
+          },
+        ],
+        villagerCanBuild: [
+          { buildingType: 'house', footprint: '2x2', cost: { wood: 25 } },
+        ],
+      },
+    });
+    expect(text).toContain('What your buildings can do now');
+    expect(text).toContain('requires 2 completed Dark Age buildings');
+    expect(text).toContain('house (2x2, cost {"wood":25})');
+  });
+
+  it('renders placement hints with the anchor semantics spelled out', () => {
+    const text = promptText({
+      ...SNAPSHOT,
+      placementHints: {
+        center: { x: 20, y: 20 },
+        open2x2: [{ x: 17, y: 18 }, { x: 24, y: 20 }],
+        open3x3: [{ x: 25, y: 24 }],
+      },
+    });
+    expect(text).toContain('Known-open building anchors near your town center at (20,20)');
+    expect(text).toContain('anchor = top-left cell');
+    expect(text).toContain('{"x":17,"y":18}');
+    expect(text).toContain('{"x":25,"y":24}');
+  });
+
+  it('points the placeConfirm tool description at placementHints', () => {
+    const tool = buildCommandToolSchemas().find((t) => t.name === 'building_placeConfirm')!;
+    expect(tool.description).toContain('placementHints');
+    expect(tool.description).toContain('top-left anchor cell');
+  });
+});

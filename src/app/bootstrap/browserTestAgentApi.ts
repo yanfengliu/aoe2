@@ -150,6 +150,25 @@ export function makeAgentApi(
         x: number,
         y: number,
       ): boolean => bridge.isCellVisibleForOwner(probeOwnerId, x, y);
+      // agent-affordances B/C: per-building options + open anchors near
+      // the agent's town center (fallback: first own building). Both
+      // remain fog-honest even under --omniscient — the cheat-mode flag
+      // widens what the agent SEES, not where it may be told to build.
+      const buildingOptions = bridge.getAgentBuildingOptions(ownerId);
+      const anchorBuilding = economy.buildings.find(
+        (b) => b.owner === ownerId && b.buildingType === 'town-center',
+      ) ?? economy.buildings.find((b) => b.owner === ownerId);
+      const placementHints = anchorBuilding
+        ? {
+            center: { x: anchorBuilding.x, y: anchorBuilding.y },
+            open2x2: bridge.findOpenPlacementAnchorsNear(
+              ownerId, anchorBuilding.x, anchorBuilding.y, 2, 2, 6,
+            ),
+            open3x3: bridge.findOpenPlacementAnchorsNear(
+              ownerId, anchorBuilding.x, anchorBuilding.y, 3, 3, 4,
+            ),
+          }
+        : null;
       return buildAgentSnapshot({
         ownerId,
         tick: renderTick,
@@ -163,6 +182,8 @@ export function makeAgentApi(
         },
         visibility,
         omniscient: options?.omniscient ?? false,
+        buildingOptions,
+        placementHints,
       });
     },
 

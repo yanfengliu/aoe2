@@ -2,6 +2,34 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.21 - 2026-06-11
+
+### Actionable command rejections + agent affordances (campaign-1 backlog #1-#3)
+
+Campaign-1 (the first full-length LLM playtest) showed the agent burning ~7 decisions (~$4) reverse-engineering the feudal-age prerequisite rule from bare `cannot_research` rejections, and losing 19/27 placement commands to blind house placements answered with a bare "Placement blocked.". This release makes every relevant rejection state its actual reason and gives the agent the affordances to act correctly the first time.
+
+**Rejection messages now state the unmet rule (all command submitters; the human HUD toast passes the richer message through for `placement_blocked` and for research rejections sharing the `cannot_research` toast slot — e.g. re-clicking an in-flight tech now toasts "feudal-age is already being researched." — while train/build insufficient-resource toasts keep their terse pre-existing strings):**
+
+- `cannot_research` — names WHY: "Advancing to feudal-age requires 2 completed Dark Age buildings (mill, lumber-camp, mining-camp, or barracks) — you have 1.", "fletching is already researched.", wrong-building rejections name where the tech IS researched, and the fallback lists what is currently researchable at that building. The HUD toast passes this message through (was a fixed "Cannot research that here.").
+- `cannot_train` — names the rejected unit + building and lists what is currently trainable there.
+- `insufficient_resources` (research/train/build) — need-vs-have detail per missing resource: "need 500 food (have 320)".
+- `placement_blocked` — names the blocking cause + cell ("blocked by water at (43,18)"), the blocked-cell count, the footprint size, and the nearest open anchor fully visible to the acting owner when one exists within the scan radius. The HUD toast passes this through (was a fixed "Placement blocked.").
+- `in_flight_tech` — names the tech already being researched.
+- Rejection CODES and accept/reject decisions are byte-identical to 0.1.20 — only message text changed.
+
+**New public `SimulationBridge` surfaces (consumed by the LLM-agent snapshot):**
+
+- `getAgentBuildingOptions(ownerId)` — per completed owned building type: research available now (with costs), research visible-but-locked with the actionable reason (shared engine with the validator, so the two surfaces never disagree; in-flight techs marked "already being researched"), trainable units, and the villager build menu with footprints + costs.
+- `findOpenPlacementAnchorsNear(ownerId, x, y, w, h, max)` — deterministic ring scan for open building anchors near a point; every footprint cell must be unblocked AND currently visible to the owner (fog reveals nothing).
+
+**LLM-agent snapshot/prompt:** new `buildingOptions` + `placementHints` blocks (up to 6 open 2x2 + 4 open 3x3 anchors near the town center); the `building.placeConfirm` tool description now explains anchor semantics and points at the hints.
+
+### Validation
+
+- All four gates green: 1198 passed + 2 skipped (36 new tests across the reason engine, placement describer/anchor scan, validators, buildingOptionsOps incl. a live-bridge campaign-1-case integration test, snapshot pass-throughs, and prompt rendering).
+- Multi-CLI review: see `docs/threads/done/agent-affordances/`.
+- Two technology tests' caps bumped 30s→90s (contention-flake class, vitest-timeout-headroom precedent; both pass isolated).
+
 ## 0.1.20 - 2026-05-08
 
 ### Bug fix: Visual non-overlap snap on move arrival + wider BFS

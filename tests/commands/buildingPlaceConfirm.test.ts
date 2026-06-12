@@ -66,6 +66,13 @@ function makeValidator(
     playerResources?: Map<number, PlayerResources>;
     getBuildOptions?: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
     isPlacementBlocked?: (x: number, y: number, w: number, h: number) => boolean;
+    describePlacementBlockers?: Parameters<
+      typeof makeBuildingPlaceConfirmValidator
+    >[0]['describePlacementBlockers'];
+    findOpenPlacementAnchors?: Parameters<
+      typeof makeBuildingPlaceConfirmValidator
+    >[0]['findOpenPlacementAnchors'];
+    isCellVisibleToOwner?: (owner: number, x: number, y: number) => boolean;
   } = {},
 ) {
   return makeBuildingPlaceConfirmValidator({
@@ -73,6 +80,9 @@ function makeValidator(
     getBuildOptions:
       overrides.getBuildOptions ?? (() => ['house'] as readonly BuildableBuildingType[]),
     isPlacementBlocked: overrides.isPlacementBlocked ?? (() => false),
+    describePlacementBlockers: overrides.describePlacementBlockers ?? (() => null),
+    findOpenPlacementAnchors: overrides.findOpenPlacementAnchors ?? (() => []),
+    isCellVisibleToOwner: overrides.isCellVisibleToOwner ?? (() => true),
     mapWidth: 32,
     mapHeight: 32,
   });
@@ -143,6 +153,80 @@ describe('buildingPlaceConfirmValidator', () => {
     expect(result).toEqual({ code: 'placement_blocked', message: expect.any(String) });
   });
 
+  // agent-affordances A3: the placement_blocked message names the
+  // cause + cell + footprint and suggests the nearest visible open
+  // anchor — campaign-1 lost 19 commands to blind house placements
+  // answered with a bare "Placement blocked."
+  it('names the blocker and suggests the nearest open anchor (A3)', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const validator = makeValidator(world, {
+      isPlacementBlocked: () => true,
+      describePlacementBlockers: () => ({
+        firstBlockedCell: { x: 20, y: 18 },
+        cause: 'water',
+        blockedCellCount: 3,
+        totalCellCount: 4,
+      }),
+      findOpenPlacementAnchors: () => [{ x: 19, y: 17 }],
+    });
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 20, y: 18 } },
+      world,
+    );
+    expect(result).toEqual({ code: 'placement_blocked', message: expect.any(String) });
+    const message = (result as { message: string }).message;
+    expect(message).toContain('house (2x2)');
+    expect(message).toContain('water at (20,18)');
+    expect(message).toContain('3 of 4');
+    expect(message).toContain('Nearest open ground you can see: (19,17)');
+  });
+
+  it('omits the anchor suggestion when none is visible (A3)', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const validator = makeValidator(world, {
+      isPlacementBlocked: () => true,
+      describePlacementBlockers: () => ({
+        firstBlockedCell: { x: 0, y: 0 },
+        cause: 'a unit standing there',
+        blockedCellCount: 1,
+        totalCellCount: 4,
+      }),
+      findOpenPlacementAnchors: () => [],
+    });
+    const result = validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },
+      world,
+    );
+    const message = (result as { message: string }).message;
+    expect(message).toContain('a unit standing there at (0,0)');
+    expect(message).not.toContain('Nearest open ground');
+  });
+
+  it('passes the acting owner into the anchor visibility probe (A3)', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world, 3);
+    const probedOwners: number[] = [];
+    const validator = makeValidator(world, {
+      isPlacementBlocked: () => true,
+      findOpenPlacementAnchors: (centerX, centerY, _w, _h, opts) => {
+        opts.isCellVisible(centerX, centerY);
+        return [];
+      },
+      isCellVisibleToOwner: (owner) => {
+        probedOwners.push(owner);
+        return true;
+      },
+      playerResources: new Map([[3, { ...STARTING_RESOURCES }]]),
+    });
+    validator(
+      { builderId: villagerId, buildingType: 'house', position: { x: 5, y: 5 } },
+      world,
+    );
+    expect(probedOwners).toEqual([3]);
+  });
+
   it('rejects when no stockpile exists for the owner', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
@@ -158,13 +242,15 @@ describe('buildingPlaceConfirmValidator', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
     const validator = makeValidator(world, {
-      playerResources: new Map([[1, { food: 0, wood: 0, gold: 0, stone: 0 }]]),
+      playerResources: new Map([[1, { food: 0, wood: 10, gold: 0, stone: 0 }]]),
     });
     const result = validator(
       { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },
       world,
     );
     expect(result).toEqual({ code: 'insufficient_resources', message: expect.any(String) });
+    // agent-affordances A2: need-vs-have detail (house costs 25 wood).
+    expect((result as { message: string }).message).toContain('need 25 wood (have 10)');
   });
 
   it('accepts a fully valid build request', () => {

@@ -2,16 +2,21 @@ import { describe, expect, it } from 'vitest';
 
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import {
+  AGE_ADVANCE_REQUIRED_COUNT,
+  agePrerequisiteBuildingTypes,
   buildingArrowCount,
   buildingBuildTimeTicks,
   buildingPopulationProvided,
+  buildingsThatResearch,
   canGarrisonAt,
   canResearchAt,
   canTrainAt,
+  isAgeUpTechnology,
 } from '../../src/game/simulation/prototypeBuildingRules';
 import {
   canAfford,
   constructionCost,
+  describeMissingResources,
   gatherAmountFor,
   gatherTicksFor,
   isBuyMarketAction,
@@ -87,6 +92,15 @@ describe('prototype economy rules', () => {
     spendResources(resources, cost);
     expect(resources).toEqual({ food: 10, wood: 50, gold: 20, stone: 0 });
   });
+
+  it('describes missing resources with need vs have (agent-affordances A2)', () => {
+    const resources = { food: 320, wood: 10, gold: 0, stone: 0 };
+    expect(describeMissingResources(resources, { food: 500 })).toBe('need 500 food (have 320)');
+    expect(describeMissingResources(resources, { food: 500, wood: 175 })).toBe(
+      'need 500 food (have 320), need 175 wood (have 10)',
+    );
+    expect(describeMissingResources(resources, { food: 100 })).toBeNull();
+  });
 });
 
 describe('prototype building rules', () => {
@@ -97,6 +111,21 @@ describe('prototype building rules', () => {
     expect(canTrainAt('town-center', 'trebuchet')).toBe(false);
     expect(canResearchAt('blacksmith', 'chemistry')).toBe(true);
     expect(canResearchAt('stable', 'chemistry')).toBe(false);
+  });
+
+  it('exposes reverse research lookup + age-up prerequisite tables (agent-affordances A1)', () => {
+    expect(buildingsThatResearch('feudal-age')).toEqual(['town-center']);
+    expect(buildingsThatResearch('chemistry')).toEqual(['blacksmith']);
+    expect(agePrerequisiteBuildingTypes('feudal-age')).toEqual([
+      'mill',
+      'lumber-camp',
+      'mining-camp',
+      'barracks',
+    ]);
+    expect(agePrerequisiteBuildingTypes('castle-age')).toContain('blacksmith');
+    expect(AGE_ADVANCE_REQUIRED_COUNT).toBe(2);
+    expect(isAgeUpTechnology('feudal-age')).toBe(true);
+    expect(isAgeUpTechnology('fletching')).toBe(false);
   });
 
   it('preserves garrison and arrow-count behavior', () => {

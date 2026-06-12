@@ -2,7 +2,7 @@
 // terrain tile grid so the rest of the bridge doesn't need to know which
 // subsystem owns the answer. Pure read-only.
 
-import type { Position } from 'civ-engine';
+import type { OccupancyCellStatus, Position } from 'civ-engine';
 import type {
   ActionType,
   BuildingComponent,
@@ -30,6 +30,18 @@ interface WorldOccupancyLike {
   isCellPassableForSpawn(x: number, y: number): boolean;
   isCellPassableForWildlife(resourceId: number, x: number, y: number): boolean;
   isPlacementBlocked(x: number, y: number, width: number, height: number): boolean;
+  getCellStatus(x: number, y: number, ignoredEntityId?: number | null): OccupancyCellStatus;
+}
+
+// agent-affordances A3: structured "why is this placement blocked"
+// report. The validator composes it into the placement_blocked message;
+// cause strings are agent/HUD-facing ('water', 'a town-center
+// (building)', 'the map edge', ...).
+export interface PlacementBlockReport {
+  firstBlockedCell: Position;
+  cause: string;
+  blockedCellCount: number;
+  totalCellCount: number;
 }
 
 export interface CellPassabilityDeps {
@@ -70,6 +82,29 @@ export interface CellPassability {
   isCellPassableForWildlife(resourceId: number, x: number, y: number): boolean;
   isHarvestableResource(resourceId: number, resource: ResourceComponent): boolean;
   isPlacementBlocked(x: number, y: number, width: number, height: number): boolean;
+  // agent-affordances A3: name what blocks a footprint (null = open).
+  describePlacementBlockers(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): PlacementBlockReport | null;
+  // agent-affordances C: deterministic outward ring scan for open
+  // footprint anchors. Only anchors whose EVERY footprint cell passes
+  // `isCellVisible` are returned, so fog hides nothing (callers curry
+  // the owner into the probe). Used by the placement_blocked rejection
+  // suggestion and the agent snapshot's placementHints.
+  findOpenPlacementAnchors(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    opts: {
+      max: number;
+      maxRadius?: number;
+      isCellVisible: (x: number, y: number) => boolean;
+    },
+  ): Position[];
   isGarrisonedUnit(id: number): boolean;
   getActionOptions(
     owner: number,
@@ -181,6 +216,107 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     return worldOccupancy.isPlacementBlocked(x, y, width, height);
   }
 
+  // Mirrors worldOccupancy.isPlacementBlocked's per-cell predicate:
+  // whole-cell blockers OR unit crowding both veto placement.
+  function isCellBlockedForPlacement(status: OccupancyCellStatus): boolean {
+    return status.blockedBy.length > 0 || status.crowdedBy.some((claim) => claim.kind === 'unit');
+  }
+
+  function blockerCauseAt(status: OccupancyCellStatus, x: number, y: number): string {
+    const byKind = (kind: string) => status.blockedBy.find((claim) => claim.kind === kind);
+    if (byKind('bounds')) return 'the map edge';
+    if (byKind('terrain')) {
+      const tile = tiles[y]?.[x];
+      const terrain = tile === undefined
+        ? null
+        : world.getComponent<TerrainComponent>(tile, 'terrain');
+      if (terrain?.kind === 'water') return 'water';
+      if (terrain?.kind === 'forest') return 'forest';
+      return 'impassable terrain';
+    }
+    const buildingClaim = byKind('building');
+    if (buildingClaim) {
+      const building = buildingClaim.entity === null
+        ? null
+        : world.getComponent<BuildingComponent>(buildingClaim.entity, 'building');
+      return building ? `a ${building.buildingType} (building)` : 'a building';
+    }
+    const resourceClaim = byKind('resource');
+    if (resourceClaim) {
+      const resource = resourceClaim.entity === null
+        ? null
+        : world.getComponent<ResourceComponent>(resourceClaim.entity, 'resource');
+      return resource ? `a ${resource.resourceType} (resource)` : 'a resource';
+    }
+    if (status.blockedBy.length > 0) return 'an obstacle';
+    return 'a unit standing there';
+  }
+
+  function describePlacementBlockers(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): PlacementBlockReport | null {
+    let first: PlacementBlockReport | null = null;
+    let blockedCellCount = 0;
+    for (let cellY = y; cellY < y + height; cellY += 1) {
+      for (let cellX = x; cellX < x + width; cellX += 1) {
+        const status = worldOccupancy.getCellStatus(cellX, cellY);
+        if (!isCellBlockedForPlacement(status)) continue;
+        blockedCellCount += 1;
+        if (!first) {
+          first = {
+            firstBlockedCell: { x: cellX, y: cellY },
+            cause: blockerCauseAt(status, cellX, cellY),
+            blockedCellCount: 0,
+            totalCellCount: width * height,
+          };
+        }
+      }
+    }
+    if (!first) return null;
+    return { ...first, blockedCellCount };
+  }
+
+  function findOpenPlacementAnchors(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    opts: {
+      max: number;
+      maxRadius?: number;
+      isCellVisible: (x: number, y: number) => boolean;
+    },
+  ): Position[] {
+    const out: Position[] = [];
+    const maxRadius = opts.maxRadius ?? 12;
+    const consider = (x: number, y: number): void => {
+      if (out.length >= opts.max) return;
+      if (x < 0 || y < 0 || x + width > mapWidth || y + height > mapHeight) return;
+      for (let cellY = y; cellY < y + height; cellY += 1) {
+        for (let cellX = x; cellX < x + width; cellX += 1) {
+          if (!opts.isCellVisible(cellX, cellY)) return;
+        }
+      }
+      if (worldOccupancy.isPlacementBlocked(x, y, width, height)) return;
+      out.push({ x, y });
+    };
+    // Chebyshev rings outward from the center, row-major within each
+    // ring — pure function of (occupancy, visibility, center), so runs
+    // are deterministic and replay-stable.
+    for (let radius = 0; radius <= maxRadius && out.length < opts.max; radius += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          consider(centerX + dx, centerY + dy);
+        }
+      }
+    }
+    return out;
+  }
+
   function isGarrisonedUnit(id: number): boolean {
     return accessor.get(garrisonedUnitToBuildingCodec).has(id);
   }
@@ -210,6 +346,8 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     isCellPassableForWildlife,
     isHarvestableResource,
     isPlacementBlocked,
+    describePlacementBlockers,
+    findOpenPlacementAnchors,
     isGarrisonedUnit,
     getActionOptions,
   };

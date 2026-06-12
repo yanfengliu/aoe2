@@ -80,6 +80,11 @@ function makeValidator(
     playerResources?: Map<number, PlayerResources>;
     getResearchOptions?: (owner: number, buildingType: BuildingType) => readonly ResearchableTechnologyType[];
     inFlightTechSetFor?: (owner: number) => Set<ResearchableTechnologyType>;
+    researchUnavailableReason?: (
+      owner: number,
+      buildingType: BuildingType,
+      tech: ResearchableTechnologyType,
+    ) => string;
   } = {},
 ) {
   return makeQueueResearchValidator({
@@ -89,6 +94,9 @@ function makeValidator(
       ?? (() => ['feudal-age'] as readonly ResearchableTechnologyType[]),
     inFlightTechSetFor:
       overrides.inFlightTechSetFor ?? (() => new Set<ResearchableTechnologyType>()),
+    researchUnavailableReason:
+      overrides.researchUnavailableReason
+      ?? ((_owner, buildingType, tech) => `stub reason for ${tech} at ${buildingType}`),
   });
 }
 
@@ -137,6 +145,24 @@ describe('queueResearchValidator', () => {
     expect(result).toEqual({ code: 'cannot_research', message: expect.any(String) });
   });
 
+  // agent-affordances A1: the cannot_research message must carry the
+  // actionable reason from the researchUnavailableReason collaborator —
+  // campaign-1 burned ~7 decisions on a bare "Cannot research that here."
+  it('uses the unavailability reason as the cannot_research message', () => {
+    const world = freshWorld();
+    const tcId = makeBuilding(world, 'town-center');
+    const validator = makeValidator(world, {
+      getResearchOptions: () => [] as readonly ResearchableTechnologyType[],
+      researchUnavailableReason: (owner, buildingType, tech) =>
+        `Advancing to ${tech} requires 2 completed Dark Age buildings — you have 1. (owner ${owner}, ${buildingType})`,
+    });
+    const result = validator({ buildingId: tcId, technologyType: 'feudal-age' }, world);
+    expect(result).toEqual({
+      code: 'cannot_research',
+      message: 'Advancing to feudal-age requires 2 completed Dark Age buildings — you have 1. (owner 1, town-center)',
+    });
+  });
+
   it('rejects when the same tech is already in flight', () => {
     const world = freshWorld();
     const tcId = makeBuilding(world, 'town-center');
@@ -145,6 +171,8 @@ describe('queueResearchValidator', () => {
     });
     const result = validator({ buildingId: tcId, technologyType: 'feudal-age' }, world);
     expect(result).toEqual({ code: 'in_flight_tech', message: expect.any(String) });
+    // A1: the in-flight message names the tech.
+    expect((result as { message: string }).message).toContain('feudal-age');
   });
 
   it('rejects when no stockpile exists for the owner', () => {
@@ -159,10 +187,12 @@ describe('queueResearchValidator', () => {
     const world = freshWorld();
     const tcId = makeBuilding(world, 'town-center');
     const validator = makeValidator(world, {
-      playerResources: new Map([[1, { food: 0, wood: 0, gold: 0, stone: 0 }]]),
+      playerResources: new Map([[1, { food: 320, wood: 0, gold: 0, stone: 0 }]]),
     });
     const result = validator({ buildingId: tcId, technologyType: 'feudal-age' }, world);
     expect(result).toEqual({ code: 'insufficient_resources', message: expect.any(String) });
+    // A2: need-vs-have detail (feudal-age costs 500 food).
+    expect((result as { message: string }).message).toContain('need 500 food (have 320)');
   });
 
   it('accepts a fully valid research request', () => {

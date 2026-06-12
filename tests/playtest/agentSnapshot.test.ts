@@ -383,3 +383,54 @@ describe('buildAgentSnapshot', () => {
     });
   });
 });
+
+// agent-affordances B/C: buildingOptions + placementHints are computed
+// bridge-side and passed through verbatim; absent inputs must leave the
+// snapshot shape unchanged (older hosts serialize identically).
+describe('buildAgentSnapshot — affordance pass-throughs', () => {
+  it('passes buildingOptions and placementHints through verbatim', () => {
+    const buildingOptions = {
+      byBuildingType: [
+        {
+          buildingType: 'town-center' as const,
+          research: [],
+          researchLocked: [{ tech: 'feudal-age' as const, reason: 'needs 2 buildings' }],
+          train: ['villager' as const],
+        },
+      ],
+      villagerCanBuild: [
+        { buildingType: 'house' as const, footprint: '2x2', cost: { wood: 25 } },
+      ],
+    };
+    const placementHints = {
+      center: { x: 5, y: 5 },
+      open2x2: [{ x: 3, y: 4 }],
+      open3x3: [],
+    };
+    const snap = buildAgentSnapshot({
+      ownerId: 2,
+      tick: 0,
+      tps: 50,
+      economy: makeEconomy(),
+      selection: makeSelection(),
+      screenMapping: SCREEN,
+      buildingOptions,
+      placementHints,
+    });
+    expect(snap.buildingOptions).toBe(buildingOptions);
+    expect(snap.placementHints).toBe(placementHints);
+  });
+
+  it('leaves the fields absent when not provided', () => {
+    const snap = buildAgentSnapshot({
+      ownerId: 2,
+      tick: 0,
+      tps: 50,
+      economy: makeEconomy(),
+      selection: makeSelection(),
+      screenMapping: SCREEN,
+    });
+    expect('buildingOptions' in snap).toBe(false);
+    expect('placementHints' in snap).toBe(false);
+  });
+});

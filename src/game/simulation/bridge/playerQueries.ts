@@ -15,6 +15,7 @@ import type {
 } from '../types';
 import { defaultCivilizationName, type GameWorld } from './pureHelpers';
 import {
+  AGE_ADVANCE_REQUIRED_COUNT,
   isCastleAgePrerequisiteBuilding,
   isDarkAgePrerequisiteBuilding,
   isFeudalAgePrerequisiteBuilding,
@@ -54,6 +55,10 @@ export interface PlayerQueries {
   getPlayerAge(owner: number): AgeType;
   getPlayerCivilization(owner: number): string;
   isAtLeastAge(owner: number, minAge: AgeType): boolean;
+  countCompletedAgePrerequisites(
+    owner: number,
+    forTech: 'feudal-age' | 'castle-age' | 'imperial-age',
+  ): number;
   canAdvanceToFeudalAge(owner: number): boolean;
   canAdvanceToCastleAge(owner: number): boolean;
   canAdvanceToImperialAge(owner: number): boolean;
@@ -168,25 +173,54 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     return order[getPlayerAge(owner)] >= order[minAge];
   }
 
+  // agent-affordances A1: the raw prerequisite count behind the
+  // canAdvanceTo* booleans, so rejection messages can say "you have 1"
+  // instead of hiding the rule.
+  function countCompletedAgePrerequisites(
+    owner: number,
+    forTech: 'feudal-age' | 'castle-age' | 'imperial-age',
+  ): number {
+    switch (forTech) {
+      case 'feudal-age':
+        return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding);
+      case 'castle-age':
+        return countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding);
+      case 'imperial-age':
+        return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding);
+    }
+  }
+
+  // iter-1 Claude L1: the gates consume AGE_ADVANCE_REQUIRED_COUNT so the
+  // rejection messages (which render the same constant) can never drift
+  // from the actual rule.
   function canAdvanceToFeudalAge(owner: number): boolean {
     if (getPlayerAge(owner) !== 'dark-age') {
       return false;
     }
-    return countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding) >= 2;
+    return (
+      countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding)
+      >= AGE_ADVANCE_REQUIRED_COUNT
+    );
   }
 
   function canAdvanceToCastleAge(owner: number): boolean {
     if (getPlayerAge(owner) !== 'feudal-age') {
       return false;
     }
-    return countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding) >= 2;
+    return (
+      countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding)
+      >= AGE_ADVANCE_REQUIRED_COUNT
+    );
   }
 
   function canAdvanceToImperialAge(owner: number): boolean {
     if (getPlayerAge(owner) !== 'castle-age') {
       return false;
     }
-    return countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding) >= 2;
+    return (
+      countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding)
+      >= AGE_ADVANCE_REQUIRED_COUNT
+    );
   }
 
   function latestResearchedInChain(
@@ -209,6 +243,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     getPlayerAge,
     getPlayerCivilization,
     isAtLeastAge,
+    countCompletedAgePrerequisites,
     canAdvanceToFeudalAge,
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,

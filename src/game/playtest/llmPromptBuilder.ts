@@ -84,6 +84,32 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
     `Camera world bbox: ${JSON.stringify(snapshot.screenMapping.worldBbox)}`,
     `Camera pixel bbox: ${JSON.stringify(snapshot.screenMapping.pixelBbox)}`,
   ];
+  // agent-affordances B (campaign-1 backlog #2): what each building can
+  // research/train right now — locked entries state the unmet rule so
+  // the agent never has to reverse-engineer it from rejections.
+  if (snapshot.buildingOptions) {
+    const { byBuildingType, villagerCanBuild } = snapshot.buildingOptions;
+    lines.push(
+      '',
+      'What your buildings can do now (locked research entries state WHY they are locked):',
+      JSON.stringify(byBuildingType, null, 1),
+      `Villager can build: ${villagerCanBuild
+        .map((b) => `${b.buildingType} (${b.footprint}, cost ${JSON.stringify(b.cost)})`)
+        .join('; ')}`,
+    );
+  }
+  // agent-affordances C (campaign-1 backlog #3): known-open anchors so
+  // house placements stop guessing into unseen water.
+  if (snapshot.placementHints) {
+    const hints = snapshot.placementHints;
+    lines.push(
+      '',
+      `Known-open building anchors near your town center at (${hints.center.x},${hints.center.y}) `
+        + '(anchor = top-left cell; each full footprint is scouted and unblocked):',
+      `  2x2 (house/mill/camps): ${JSON.stringify(hints.open2x2)}`,
+      `  3x3 (barracks and most military buildings): ${JSON.stringify(hints.open3x3)}`,
+    );
+  }
   if (recentHistory.length > 0) {
     lines.push('', 'Recent decisions (oldest first):');
     for (const h of recentHistory) {
@@ -310,7 +336,10 @@ export function buildCommandToolSchemas(): LlmToolSchema[] {
     },
     {
       name: toToolName('building.placeConfirm'),
-      description: 'Place a building (commits placement at the target position).',
+      description:
+        'Place a building (commits placement at the target position). Position is the '
+        + "building's top-left anchor cell; pick open, scouted ground — the state JSON's "
+        + 'placementHints lists known-open anchors near your town center.',
       inputSchema: {
         type: 'object',
         properties: {

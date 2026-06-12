@@ -176,8 +176,11 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       return true;
     }
     // Translate validator codes to the pre-1B rejection toast strings.
+    // agent-affordances A3: placement_blocked passes the validator's
+    // actionable message (cause + cell + nearest-open-anchor) through to
+    // the toast; the terse string stays as the fallback.
     if (result.code === 'placement_blocked') {
-      enqueueRejection('Placement blocked.');
+      enqueueRejection(result.message ?? 'Placement blocked.');
     } else if (result.code === 'insufficient_resources') {
       const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
       const missing = stockpile

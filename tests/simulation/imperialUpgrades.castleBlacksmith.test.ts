@@ -61,7 +61,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
 
     const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === longbowId);
     expect(upgraded?.unitType).toBe('elite-longbowman');
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('exposes Elite Longbowman in the Castle train menu after the upgrade (drops Longbowman)', () => {
     const bridge = createSimulationBridge('imperial-castle-britons-fixture');
@@ -83,7 +83,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('elite-longbowman');
     expect(bridge.getSelectionState().trainOptions).not.toContain('longbowman');
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('applies Fletching +1 attack / +1 range to Elite Longbowman', () => {
     const bridge = createSimulationBridge('imperial-castle-britons-fixture');
@@ -116,7 +116,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
     const upgraded = findFirstOwnedUnit(bridge, 1, 'elite-longbowman');
     expect(upgraded?.attackDamage).toBe(8);
     expect(upgraded?.attackRange).toBe(7);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 });
 
 describe('Imperial-Age Blacksmith upgrades', () => {
@@ -229,7 +229,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('gives Champion +2 attack via Blast Furnace', () => {
     const bridge = createSimulationBridge('imperial-blacksmith-fixture');
@@ -251,7 +251,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('gives Halberdier +1 armor via Plate Mail Armor', () => {
     const bridge = createSimulationBridge('imperial-blacksmith-fixture');
@@ -274,7 +274,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
 
     expect(selectOwnedUnitDirect(bridge, 1, 'halberdier')).toBe(true);
     expect(bridge.getSelectionState().armor).toBe(1);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 
   it('gives Cavalier +1 armor via Plate Barding', () => {
     const bridge = createSimulationBridge('imperial-blacksmith-fixture');
@@ -297,5 +297,5 @@ describe('Imperial-Age Blacksmith upgrades', () => {
 
     expect(selectOwnedUnitDirect(bridge, 1, 'cavalier')).toBe(true);
     expect(bridge.getSelectionState().armor).toBe(1);
-  }, 30_000);
+  }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 });

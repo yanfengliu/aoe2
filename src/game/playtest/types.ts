@@ -119,6 +119,16 @@ export interface AgentResourceSummary {
   amount: number;
 }
 
+// agent-affordances C (campaign-1 backlog #3): known-open building
+// anchors near the agent's town center. Anchor = the building's
+// top-left cell. Every listed anchor's full footprint is currently
+// visible to the owner AND unblocked — fog reveals nothing.
+export interface AgentPlacementHints {
+  center: { x: number; y: number };
+  open2x2: Array<{ x: number; y: number }>;
+  open3x3: Array<{ x: number; y: number }>;
+}
+
 export interface AgentStateSnapshot {
   tick: number;
   elapsedMmSs: string;
@@ -134,6 +144,14 @@ export interface AgentStateSnapshot {
   enemies: AgentEntitySummary[];
   queuedProduction: Array<{ buildingId: number; ownerId: number; queue: string[] }>;
   screenMapping: AgentScreenMapping;
+  // agent-affordances B (campaign-1 backlog #2): per-building-type
+  // research/train options with locked-research reasons, + the villager
+  // build menu (footprints + costs). Optional: absent on hosts that
+  // don't provide the bridge surfaces (older fixtures).
+  buildingOptions?: import('../simulation/createSimulationBridge').AgentBuildingOptions;
+  // agent-affordances C: known-open anchors near the town center.
+  // null when the owner has no buildings yet.
+  placementHints?: AgentPlacementHints | null;
 }
 
 // Discriminated dispatch result. Generic on K so callers narrow `normalized`

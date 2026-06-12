@@ -17,9 +17,11 @@ import type {
   TrainableUnitType,
   UnitType,
 } from '../types';
+import type { Position } from 'civ-engine';
 import type { SaveBlob } from '../saveSchema';
 import type { GameWorld } from './pureHelpers';
 import type { PendingCommandsQueue } from '../dispatcher';
+import type { AgentBuildingOptions } from './buildingOptionsOps';
 
 export interface CreateWorldResult {
   world: GameWorld;
@@ -35,6 +37,18 @@ export interface CreateWorldResult {
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
+  // agent-affordances B/C: agent-snapshot read surfaces (per-building
+  // research/train options with locked reasons; fog-gated open-anchor
+  // search near a point for the given owner).
+  getAgentBuildingOptions: (ownerId: number) => AgentBuildingOptions;
+  findOpenPlacementAnchorsNear: (
+    ownerId: number,
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    max: number,
+  ) => Position[];
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectEntityById: (id: number) => boolean;

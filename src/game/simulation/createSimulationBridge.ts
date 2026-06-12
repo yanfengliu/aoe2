@@ -43,6 +43,18 @@ import type {
 // consumers of this module's types still resolve.
 export type { MemoryEntry } from './bridge/memoryTypes';
 
+// agent-affordances B: payload types for getAgentBuildingOptions,
+// re-exported so SimulationBridge consumers import from the facade.
+export type {
+  AgentBuildingOptions,
+  AgentBuildingTypeOptions,
+  AgentBuildOption,
+  AgentLockedResearch,
+  AgentResearchOption,
+} from './bridge/buildingOptionsOps';
+import type { AgentBuildingOptions } from './bridge/buildingOptionsOps';
+import type { Position } from 'civ-engine';
+
 export interface SimulationBridge {
   step(deltaMs: number): void;
   // Spec 2 (annotation-ui v0.1.5) AO-2: read-only access to the engine
@@ -115,6 +127,23 @@ export interface SimulationBridge {
   // and a single-cell check for units, matching the renderer +
   // target-selection any-cell convention.
   isCellVisibleForOwner(ownerId: number, x: number, y: number): boolean;
+  // agent-affordances B (campaign-1 backlog #2): per-building-type
+  // research/train options for an owner, with locked research carrying
+  // the actionable WHY (shared reason engine with the queue.research
+  // validator). Read-side only; consumed by the agent snapshot.
+  getAgentBuildingOptions(ownerId: number): AgentBuildingOptions;
+  // agent-affordances C (campaign-1 backlog #3): deterministic open
+  // placement anchors near a point, fog-gated by the owner's visibility
+  // (every footprint cell must be currently visible). Consumed by the
+  // agent snapshot's placementHints.
+  findOpenPlacementAnchorsNear(
+    ownerId: number,
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    max: number,
+  ): Position[];
   // LLM-agent harness (Phase 1.B): the in-place pendingCommands queue
   // the in-game AI pushes intentions onto. Exposed publicly so
   // `__AOE2_TEST__.agent.dispatchAgentCommand` can shape-validate +
@@ -214,6 +243,8 @@ export function createSimulationBridge(
     getMatchState,
     getSelectionState,
     getPlacementPreview,
+    getAgentBuildingOptions,
+    findOpenPlacementAnchorsNear,
     getEntityHealth,
     selectEntityAtCell,
     selectEntityById,
@@ -408,6 +439,8 @@ export function createSimulationBridge(
     getSelectionState,
     getMatchState,
     getPlacementPreview,
+    getAgentBuildingOptions,
+    findOpenPlacementAnchorsNear,
     // FU4: re-export `getEntityHealth` so vitest cases can probe AI-
     // owned unit health without going through the human-fog selection
     // path. Useful for AI-driven heal / convert / damage assertions

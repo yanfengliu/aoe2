@@ -347,6 +347,47 @@ export function canResearchAt(
   return RESEARCHES_BY_BUILDING.get(buildingType)?.includes(technologyType) ?? false;
 }
 
+// agent-affordances A1: the three age-up techs gate on completed
+// prerequisite buildings from the era being left behind. Exposed as
+// data (not just predicates) so rejection messages and the agent
+// snapshot can NAME the rule instead of hiding it behind a boolean.
+export type AgeUpTechnologyType = 'feudal-age' | 'castle-age' | 'imperial-age';
+
+export const AGE_ADVANCE_REQUIRED_COUNT = 2;
+
+export function isAgeUpTechnology(
+  technologyType: ResearchableTechnologyType,
+): technologyType is AgeUpTechnologyType {
+  return (
+    technologyType === 'feudal-age'
+    || technologyType === 'castle-age'
+    || technologyType === 'imperial-age'
+  );
+}
+
+export function agePrerequisiteBuildingTypes(
+  forTech: AgeUpTechnologyType,
+): readonly BuildingType[] {
+  switch (forTech) {
+    case 'feudal-age':
+      return [...DARK_AGE_PREREQUISITE_BUILDINGS];
+    case 'castle-age':
+      return [...FEUDAL_AGE_PREREQUISITE_BUILDINGS];
+    case 'imperial-age':
+      return [...CASTLE_AGE_PREREQUISITE_BUILDINGS];
+  }
+}
+
+export function buildingsThatResearch(
+  technologyType: ResearchableTechnologyType,
+): BuildingType[] {
+  const out: BuildingType[] = [];
+  for (const [buildingType, techs] of RESEARCHES_BY_BUILDING) {
+    if (techs.includes(technologyType)) out.push(buildingType);
+  }
+  return out;
+}
+
 export function isDarkAgePrerequisiteBuilding(buildingType: BuildingType): boolean {
   return DARK_AGE_PREREQUISITE_BUILDINGS.has(buildingType);
 }
