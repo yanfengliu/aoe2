@@ -1,3 +1,6 @@
+## 2026-06-12 (README replay instructions)
+- **README gains "Watching replays (incl. LLM playtest campaigns)":** bundle locations (`--out` prefix semantics), HUD Replay… → From file import flow, hotkeys, player-1 fog caveat. Claims verified against live tree; doc-only, no bump. Fog-owner toggle queued next (user-approved).
+
 ## 2026-06-11 (campaign-2 — FEUDAL REACHED, affordances validated)
 - **Campaign-2 (17 decisions, 4250 ticks, $15.72) on v0.1.21: Feudal completed ~tick 3100** (campaign-1 only QUEUED it at 3500). Rejections 27→1 (the 1 was an anticipated wood race confirmed by the new need-vs-have message); blind placements 19→0 (every building on a NAMED placementHints anchor, both footprint sizes); prereq rule known at t250 from buildingOptions (was ~7 burned decisions). Cost/decision +6%. Run ended early at 4250/6500: transient `claude exit 1` misclassified as engineHalt — new backlog: distinct providerError stopReason + retry (HIGH, harness); military units don't auto-attack buildings (gameplay); `--out` is a prefix (operator note).
 
@@ -43,7 +46,6 @@
 - **All 15 gameplay commands commandified** through `GameCommands` + dispatcher drain; AI emits intentions instead of mutating. Tier-1 state migrated to `world.state.aoe2.*` via SlotCodec registry + accessor (35 codecs); schema-2 saves (`seed + worldSnapshot` only, schema-1 still loads); `aoe2.pendingCommands` persists queued AI intentions; visibility fingerprint cache; vitest pool stabilization. /full-review iter-1+2 correctness batch.
 
 ## 2026-04 (foundation)
-- **04-29 (v0.1.5):** in-game annotation UI (Alt+M markers, Alt+L panel, IDB sessions, JSON export); engine 0.8.11.
-- **04-23 to 04-26:** `createSimulationBridge.ts` 9519 → 332 LOC (bridge/ + 18 system factories + ops modules); `prototypeScenario.ts` split into fixtures/; mapGeneration/ extracted; full-review V4 (25 fixes) + V5 (15 fixes).
+- **04-23 to 04-29 (v0.1.5):** `createSimulationBridge.ts` 9519 → 332 LOC (bridge/ + 18 system factories + ops modules); fixtures/ + mapGeneration/ splits; full-review V4+V5 (40 fixes); annotation UI (Alt+M/Alt+L, IDB sessions, JSON export); engine 0.8.11.
 - **04-17 to 04-22:** Slices 1-12 (Castle/Imperial ages, 12 units, 14 techs, Wonder/Relic/Score wins, save/load, Black Forest + Arena, F2 debug) + FU batches 1-8 (blacksmith techs, upgrade lines, AI Castle/Imperial + Monks + Wonder, defensive fire, Britons, Persians, HUD UX, test stability).
 - **04-10 to 04-13:** bootstrap — TS + Vite + Phaser 3 + civ-engine; 18 civs; economy loop; Dark→Feudal→Castle core; deterministic combat.
