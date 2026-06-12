@@ -12,6 +12,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createReplayController } from '../../src/game/replay/ReplayController';
+import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
 import { loadCurrentSessionAsReplay } from '../../src/game/replay/loadCurrentSession';
 import { parseSessionBundleFile } from '../../src/game/replay/parseSessionBundleFile';
 import { createReplayLoadDialog } from '../../src/ui/replay/replayLoadDialog';
@@ -25,6 +26,9 @@ const stubBridge = (world: GameWorld): SimulationBridge => ({
   setPaused: vi.fn(),
   getSelectedEntityRefs: vi.fn(() => []),
   select: vi.fn(),
+  // replay-fog-owner: enterReplay derives fog-owner candidates from
+  // the bridge economy once per session.
+  getEconomyState: vi.fn(() => ({ playerResources: { 1: {}, 2: {} } })),
 } as unknown as SimulationBridge);
 
 const installDialogPolyfill = (): void => {
@@ -169,17 +173,13 @@ describe('Integration: replay flow against real recorded bundle', () => {
       bridgeCell: { current: () => bridge, replace: (next) => { bridge = next; } },
       isLivePaused: () => false,
       makeReplayBridge: stubBridge,
-      worldFactory: (() => {
+      worldFactory: ((snapshot: unknown) => {
         if (failNext) throw new Error('engine rejected bundle');
-        // Returns the fixture's already-stepped world rather than a
-        // fresh hydration. CAVEAT: this is only valid for the
-        // transactional state-preservation assertion in this test
-        // (controller.mode/currentTick after a rejected second call).
-        // It would mis-report `controller.world.tick` because the
-        // returned world is at tick 80 (advanced by the fixture)
-        // while `displayedTick` is set to bundle.metadata.startTick = 0.
-        // Do not reuse this stub for tests that assert on world state.
-        return fixture.bridge.world;
+        // engine-1.0.1 factory contract: the legit path must apply the
+        // construction snapshot (returning the fixture's already-stepped
+        // world now throws factory_snapshot_not_applied), so it
+        // delegates to the real replay-world factory.
+        return createReplayWorldOnly(snapshot as Parameters<typeof createReplayWorldOnly>[0]);
       }) as never,
     });
 

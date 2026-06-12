@@ -48,6 +48,9 @@ function stubBridge(world: GameWorld): SimulationBridge {
     setPaused: vi.fn(),
     getSelectedEntityRefs: vi.fn(() => []),
     select: vi.fn(),
+    // replay-fog-owner: enterReplay derives fog-owner candidates from
+    // the bridge economy once per session.
+    getEconomyState: vi.fn(() => ({ playerResources: { 1: {}, 2: {} } })),
   } as unknown as SimulationBridge;
 }
 

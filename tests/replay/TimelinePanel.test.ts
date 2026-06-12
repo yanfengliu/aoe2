@@ -124,6 +124,20 @@ class FakeReplayController implements ReplayController {
   });
   readonly isPlaying = vi.fn(() => this.playing);
 
+  // replay-fog-owner surface. Mirrors the real controller: cycling
+  // re-emits the (unchanged) tick so panels re-render their label.
+  fogOwner = 1;
+  candidates: number[] = [1, 2];
+  readonly fogOwnerCandidates = vi.fn(() => this.candidates);
+  readonly setFogOwner = vi.fn((owner: number) => {
+    this.fogOwner = owner;
+    this.emitTick();
+  });
+  readonly cycleFogOwner = vi.fn(() => {
+    const index = this.candidates.indexOf(this.fogOwner);
+    this.setFogOwner(this.candidates[(index + 1) % this.candidates.length]!);
+  });
+
   private readonly modeListeners = new Set<ReplayModeListener>();
   private readonly tickListeners = new Set<ReplayTickListener>();
 
@@ -316,5 +330,31 @@ describe('Phase 3C - TimelinePanel', () => {
       persistedEndTick: 100,
       failedTicks: [60, 90],
     }))).toBe(59);
+  });
+});
+
+// replay-fog-owner: the controls row carries a fog-perspective toggle.
+describe('TimelinePanel fog owner toggle', () => {
+  it('renders the current fog owner and cycles on click', () => {
+    const { controller, host } = mountPanel();
+    controller.enterReplay(bundle());
+    const button = host.querySelector<HTMLButtonElement>('[data-testid="timeline-fog-owner"]')!;
+    expect(button.textContent).toBe('Fog: P1');
+    expect(button.disabled).toBe(false);
+
+    button.click();
+
+    expect(controller.cycleFogOwner).toHaveBeenCalledTimes(1);
+    expect(button.textContent).toBe('Fog: P2');
+  });
+
+  it('disables the toggle when the replay has fewer than two players', () => {
+    const controller = new FakeReplayController();
+    controller.candidates = [1];
+    const { host } = mountPanel(controller);
+    controller.enterReplay(bundle());
+    const button = host.querySelector<HTMLButtonElement>('[data-testid="timeline-fog-owner"]')!;
+    expect(button.textContent).toBe('Fog: P1');
+    expect(button.disabled).toBe(true);
   });
 });

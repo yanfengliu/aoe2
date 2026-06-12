@@ -30,6 +30,7 @@ interface MountedElements {
   stepBack: HTMLButtonElement;
   playToggle: HTMLButtonElement;
   stepForward: HTMLButtonElement;
+  fogOwner: HTMLButtonElement;
   exit: HTMLButtonElement;
 }
 
@@ -116,6 +117,10 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
     );
     mounted.stepBack.disabled = currentTick <= startTick;
     mounted.stepForward.disabled = !canAdvance;
+    // replay-fog-owner: label tracks the controller; single-player
+    // bundles have nothing to cycle to.
+    mounted.fogOwner.textContent = `Fog: P${controller.fogOwner}`;
+    mounted.fogOwner.disabled = controller.fogOwnerCandidates().length < 2;
     if (
       renderedPinsFor?.bundle !== bundle
       || renderedPinsFor.startTick !== startTick
@@ -153,6 +158,11 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
     render();
   };
 
+  const handleFogOwnerClick = (): void => {
+    controller.cycleFogOwner();
+    render();
+  };
+
   const buildDom = (): MountedElements => {
     const root = document.createElement('div');
     root.className = 'timeline-panel';
@@ -163,6 +173,7 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
         <button type="button" class="timeline-panel__button" data-testid="timeline-step-back" aria-label="Step replay back one tick">-1</button>
         <button type="button" class="timeline-panel__button timeline-panel__button--primary" data-testid="timeline-play-toggle" aria-label="Play replay playback">Play</button>
         <button type="button" class="timeline-panel__button" data-testid="timeline-step-forward" aria-label="Step replay forward one tick">+1</button>
+        <button type="button" class="timeline-panel__button" data-testid="timeline-fog-owner" data-tooltip="Cycle which player's fog of war is rendered (Alt+F)" aria-label="Cycle the rendered fog-of-war perspective">Fog: P1</button>
         <span class="timeline-panel__tick" data-testid="timeline-tick">0 / 0</span>
         <span class="timeline-panel__source" data-testid="timeline-source"></span>
         <button type="button" class="timeline-panel__button timeline-panel__button--exit" data-testid="timeline-exit" aria-label="Exit replay mode">Exit</button>
@@ -181,6 +192,7 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
       stepBack: mustQuery(root, '[data-testid="timeline-step-back"]', HTMLButtonElement),
       playToggle: mustQuery(root, '[data-testid="timeline-play-toggle"]', HTMLButtonElement),
       stepForward: mustQuery(root, '[data-testid="timeline-step-forward"]', HTMLButtonElement),
+      fogOwner: mustQuery(root, '[data-testid="timeline-fog-owner"]', HTMLButtonElement),
       exit: mustQuery(root, '[data-testid="timeline-exit"]', HTMLButtonElement),
     };
   };
@@ -197,6 +209,7 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
       mounted.stepBack.addEventListener('click', controller.stepBackward);
       mounted.stepForward.addEventListener('click', controller.stepForward);
       mounted.playToggle.addEventListener('click', handlePlayToggle);
+      mounted.fogOwner.addEventListener('click', handleFogOwnerClick);
       mounted.exit.addEventListener('click', controller.exitReplay);
       teardownCallbacks.push(controller.onModeChange((mode) => {
         visible = mode === 'replay';
@@ -237,6 +250,7 @@ export function createTimelinePanel(config: TimelinePanelConfig): TimelinePanel 
         mounted.stepBack.removeEventListener('click', controller.stepBackward);
         mounted.stepForward.removeEventListener('click', controller.stepForward);
         mounted.playToggle.removeEventListener('click', handlePlayToggle);
+        mounted.fogOwner.removeEventListener('click', handleFogOwnerClick);
         mounted.exit.removeEventListener('click', controller.exitReplay);
         mounted.root.remove();
       }

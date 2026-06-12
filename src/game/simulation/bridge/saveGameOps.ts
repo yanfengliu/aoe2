@@ -39,9 +39,15 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
   const { pendingCommands } = state;
 
   function flushBeforeSerialize(): void {
-    accessor.flush();
-    flushTier3State(world, visibilityCell, matchState);
-    flushPendingCommandsState(world, pendingCommands);
+    // civ-engine 1.0 absorb: strict mode is the default and saveGame runs
+    // between ticks, so the pre-serialize state writes must go through
+    // the engine's sanctioned maintenance window. Same flush semantics
+    // as before; the wrapper only marks the phase as writable.
+    world.runMaintenance(() => {
+      accessor.flush();
+      flushTier3State(world, visibilityCell, matchState);
+      flushPendingCommandsState(world, pendingCommands);
+    });
   }
 
   function saveGame(): SaveBlob {

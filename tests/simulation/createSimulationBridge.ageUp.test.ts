@@ -62,7 +62,7 @@ describe('createSimulationBridge age-up progression', () => {
     expect(
       bridge.getEconomyState().units.filter((unit) => unit.owner === 1 && unit.unitType === 'archer'),
     ).toHaveLength(1);
-  }, 90_000);
+  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('does not offer Castle Age research until two qualifying Feudal buildings are complete', () => {
     const bridge = createSimulationBridge('feudal-stable-fixture');
@@ -124,7 +124,7 @@ describe('createSimulationBridge age-up progression', () => {
       attackDamage: 10,
       attackRange: 1,
     });
-  }, 60_000);
+  }, 120_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   // Slice 7A: mirror the Feudal → Castle "missing prereq" case at the
   // Castle → Imperial boundary. With zero Castle-Age-unlocked buildings,
@@ -160,5 +160,5 @@ describe('createSimulationBridge age-up progression', () => {
     }
 
     expect(bridge.getHudState().currentAge).toBe('imperial-age');
-  }, 60_000);
+  }, 120_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });

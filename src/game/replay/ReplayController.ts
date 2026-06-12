@@ -1,12 +1,20 @@
 import {
-  BundleIntegrityError,
   ReplayHandlerMissingError,
   SessionReplayer,
   type Marker,
-  type RecordedCommand,
   type SessionBundle,
   type SessionMetadata,
 } from 'civ-engine';
+
+import {
+  assertReplayPayloadsAvailable,
+  clampTick,
+  createDefaultScheduler,
+  disposeOutgoingReplayBridge,
+  indexCommands,
+  replayUpperBoundFor,
+  type ReplayContext,
+} from './replayControllerHelpers';
 
 import type { SimulationBridge } from '../simulation/createSimulationBridge';
 import type {
@@ -21,7 +29,7 @@ import {
   makeReplayBridge as defaultMakeReplayBridge,
   type ReplayBridgeOptions,
 } from '../simulation/replay/makeReplayBridge';
-import { TPS } from '../simulation/prototypeScenario';
+import { HUMAN_PLAYER_ID, TPS } from '../simulation/prototypeScenario';
 
 export type ReplayMode = 'live' | 'replay';
 export type ReplayBundle = SessionBundle<GameEvents, GameCommands>;
@@ -50,6 +58,11 @@ export interface ReplayController {
   readonly bundleMetadata: SessionMetadata | null;
   readonly bundle: ReplayBundle | null;
   readonly world: GameWorld | null;
+  // replay-fog-owner: rendered fog perspective (default P1, resets each enterReplay).
+  readonly fogOwner: number;
+  fogOwnerCandidates(): number[];
+  setFogOwner(owner: number): void;
+  cycleFogOwner(): void;
   enterReplay(bundle: ReplayBundle, atTick?: number): void;
   exitReplay(): void;
   scrubTo(tick: number, options?: { coalesce?: boolean }): void;
@@ -80,84 +93,7 @@ export interface ReplayControllerConfig {
   scheduler?: ReplayFrameScheduler;
 }
 
-interface ReplayContext {
-  bundle: ReplayBundle;
-  replayer: ReplayReplayer;
-  world: GameWorld;
-  bridge: SimulationBridge;
-  commandsByTick: Map<number, RecordedCommand<GameCommands>[]>;
-}
-
 const REPLAY_TICK_MS = 1000 / TPS;
-
-function createDefaultScheduler(): ReplayFrameScheduler {
-  return {
-    request(callback) {
-      if (typeof globalThis.requestAnimationFrame === 'function') {
-        return globalThis.requestAnimationFrame(callback);
-      }
-      return globalThis.setTimeout(
-        () => callback(globalThis.performance?.now() ?? Date.now()),
-        0,
-      ) as unknown as number;
-    },
-    cancel(handle) {
-      if (typeof globalThis.cancelAnimationFrame === 'function') {
-        globalThis.cancelAnimationFrame(handle);
-        return;
-      }
-      globalThis.clearTimeout(handle);
-    },
-  };
-}
-
-function indexCommands(
-  commands: readonly RecordedCommand<GameCommands>[],
-): Map<number, RecordedCommand<GameCommands>[]> {
-  const byTick = new Map<number, RecordedCommand<GameCommands>[]>();
-  for (const command of commands) {
-    const existing = byTick.get(command.submissionTick);
-    if (existing) {
-      existing.push(command);
-    } else {
-      byTick.set(command.submissionTick, [command]);
-    }
-  }
-  for (const bucket of byTick.values()) {
-    bucket.sort((left, right) => left.sequence - right.sequence);
-  }
-  return byTick;
-}
-
-function upperBoundFor(bundle: ReplayBundle): number {
-  return bundle.metadata.incomplete
-    ? bundle.metadata.persistedEndTick
-    : bundle.metadata.endTick;
-}
-
-function replayUpperBoundFor(bundle: ReplayBundle): number {
-  const upperBound = upperBoundFor(bundle);
-  const firstFailedTick = bundle.metadata.failedTicks
-    ?.filter((tick) => tick <= upperBound)
-    .sort((left, right) => left - right)[0];
-  return firstFailedTick === undefined
-    ? upperBound
-    : Math.min(upperBound, firstFailedTick - 1);
-}
-
-function clampTick(bundle: ReplayBundle, tick: number): number {
-  return Math.max(bundle.metadata.startTick, Math.min(replayUpperBoundFor(bundle), tick));
-}
-
-function assertReplayPayloadsAvailable(bundle: ReplayBundle, targetTick: number): void {
-  if (targetTick <= bundle.metadata.startTick || bundle.commands.length > 0) {
-    return;
-  }
-  throw new BundleIntegrityError(
-    'bundle has no command payloads; replay forward is impossible',
-    { code: 'no_replay_payloads', requested: targetTick },
-  );
-}
 
 export function createReplayController(config: ReplayControllerConfig): ReplayController {
   const worldFactory = config.worldFactory ?? createReplayWorldOnly;
@@ -177,6 +113,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   let playbackAccumulatorMs = 0;
   let lastFrameTimeMs: number | null = null;
   let renderInterpolationAlpha = 0;
+  let fogOwner = HUMAN_PLAYER_ID;
 
   function emitMode(): void {
     for (const listener of modeListeners) listener(mode);
@@ -193,10 +130,51 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     return replayContext;
   }
 
-  function buildReplayBridge(world: GameWorld): SimulationBridge {
+  function buildReplayBridge(world: GameWorld, owner: number = fogOwner): SimulationBridge {
     return makeReplayBridge(world, {
       getRenderInterpolationAlpha: () => renderInterpolationAlpha,
+      fogOwner: owner,
     });
+  }
+
+  function fogOwnerCandidates(): number[] {
+    return replayContext ? [...replayContext.fogOwnerCandidates] : [];
+  }
+
+  function setFogOwner(owner: number): void {
+    const context = requireReplayContext();
+    if (!context.fogOwnerCandidates.includes(owner)) {
+      throw new Error(
+        `Fog owner ${owner} is not a player in this replay (players: ${context.fogOwnerCandidates.join(', ')}).`,
+      );
+    }
+    if (owner === fogOwner) return;
+    // Transactional rebuild over the SAME world (iter-1/iter-2): assign +
+    // dispose-old only after the swap succeeds; a throwing swap disposes
+    // the incoming bridge instead (it already connected to this world).
+    const selectedRefs = context.bridge
+      .getSelectedEntityRefs()
+      .filter((ref) => context.world.isCurrent(ref));
+    const bridge = buildReplayBridge(context.world, owner);
+    try {
+      if (selectedRefs.length > 0) {
+        bridge.select(selectedRefs);
+      }
+      config.bridgeCell.replace(bridge);
+    } catch (err) {
+      disposeOutgoingReplayBridge(bridge);
+      throw err;
+    }
+    disposeOutgoingReplayBridge(context.bridge);
+    fogOwner = owner;
+    replayContext = { ...context, bridge };
+    emitTick();
+  }
+
+  function cycleFogOwner(): void {
+    const candidates = fogOwnerCandidates();
+    if (candidates.length < 2) return;
+    setFogOwner(candidates[(candidates.indexOf(fogOwner) + 1) % candidates.length]!);
   }
 
   function openReplayAt(tick: number): void {
@@ -212,6 +190,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     }
     const nextContext = { ...current, world, bridge };
     config.bridgeCell.replace(bridge);
+    disposeOutgoingReplayBridge(current.bridge);
     replayContext = nextContext;
     pendingScrubTick = null;
     displayedTick = targetTick;
@@ -347,12 +326,17 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     cancelFrame();
     resetPlaybackClock();
     const bridgeToRestore = liveBridge;
+    const outgoingReplayBridge = replayContext?.bridge ?? null;
     if (bridgeToRestore) {
       config.bridgeCell.replace(bridgeToRestore);
       bridgeToRestore.setPaused(liveWasPausedBeforeReplay);
       displayedTick = bridgeToRestore.world.tick;
     } else {
       displayedTick = config.bridgeCell.current().world.tick;
+    }
+    // Past the restore throw-point — the replay session is gone for good.
+    if (outgoingReplayBridge) {
+      disposeOutgoingReplayBridge(outgoingReplayBridge);
     }
     replayContext = null;
     pendingScrubTick = null;
@@ -394,7 +378,16 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     get world() {
       return replayContext?.world ?? null;
     },
+    get fogOwner() {
+      return fogOwner;
+    },
+    fogOwnerCandidates,
+    setFogOwner,
+    cycleFogOwner,
     enterReplay(bundle: ReplayBundle, atTick = bundle.metadata.startTick) {
+      // replay-fog-owner: new sessions default to the human perspective;
+      // the closure var is only assigned after the swap succeeds below.
+      const fogOwnerForNewSession = HUMAN_PLAYER_ID;
       // Build the new replay context BEFORE mutating any state. If the
       // SessionReplayer constructor or replayer.openAt throws, the
       // controller stays in its pre-call state — no exitReplay(), no
@@ -418,13 +411,17 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       ) as ReplayReplayer;
       const targetTick = clampTick(bundle, atTick);
       const world = fromEngineWorld(replayer.openAt(targetTick));
-      const bridge = buildReplayBridge(world);
+      const bridge = buildReplayBridge(world, fogOwnerForNewSession);
       const nextContext: ReplayContext = {
         bundle,
         replayer,
         world,
         bridge,
         commandsByTick: indexCommands(bundle.commands),
+        fogOwnerCandidates: Object.keys(bridge.getEconomyState().playerResources)
+          .map(Number)
+          .filter((owner) => Number.isInteger(owner))
+          .sort((left, right) => left - right),
       };
 
       // Construction succeeded — safe to mutate state from here.
@@ -443,6 +440,9 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       }
       liveBridge = bridgeToRestore;
       liveWasPausedBeforeReplay = priorPaused;
+      // iter-1 Codex HIGH: a throwing exitReplay/replace above leaves the
+      // prior session's fogOwner intact and consistent with its bridge.
+      fogOwner = fogOwnerForNewSession;
       replayContext = nextContext;
       mode = 'replay';
       pendingScrubTick = null;

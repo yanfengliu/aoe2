@@ -8,7 +8,7 @@ import {
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
-const PRODUCTION_TEST_TIMEOUT_MS = 30_000;
+const PRODUCTION_TEST_TIMEOUT_MS = 60_000; // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
 describe('createSimulationBridge production progression', () => {
   it('can build an additional Town Center in Castle Age and use it to train a Villager', () => {

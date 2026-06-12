@@ -26,7 +26,12 @@ describe('Phase 2G — bridge snapshot performance gate', () => {
     }
 
     const start = performance.now();
-    accessor.flush();
+    // civ-engine 1.0: strict mode gates between-tick setState — the raw
+    // flush this perf gate measures now runs inside the maintenance
+    // window, exactly like the production saveGame path it models.
+    bridge.world.runMaintenance(() => {
+      accessor.flush();
+    });
     const durationMs = performance.now() - start;
 
     expect(durationMs).toBeLessThan(ALL_SLOT_FLUSH_BUDGET_MS);

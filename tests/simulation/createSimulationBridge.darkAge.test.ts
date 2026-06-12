@@ -33,7 +33,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       cap: 5,
     });
     expect(bridge.getSelectionState().queue).toHaveLength(0);
-  }, 15_000);
+  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('lets a selected villager place and complete a House that raises population cap', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -67,7 +67,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
     expect(completedHouse?.isComplete).toBe(true);
     expect(bridge.getHudState().population.cap).toBe(10);
-  }, 20_000);
+  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('projects construction and completion building visuals into render state for newly placed buildings', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -110,7 +110,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       footprintHeight: 2,
       visualVariant: 'complete',
     });
-  }, 20_000);
+  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('ramps building HP from low at placement to full at construction completion', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -159,7 +159,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const finishedHouse = findHouse()!;
     const finalHealth = bridge.getEntityHealth(finishedHouse.id);
     expect(finalHealth).toEqual({ currentHp: 75, maxHp: 75 });
-  }, 20_000);
+  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('preserves mid-construction HP across save/load round-trip', () => {
     const original = createSimulationBridge(DEFAULT_SEED);
@@ -200,7 +200,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const restoredHealth = restored.getEntityHealth(restoredHouse.id)!;
     expect(restoredHealth.currentHp).toBe(savedHealth.currentHp);
     expect(restoredHealth.maxHp).toBe(savedHealth.maxHp);
-  }, 20_000);
+  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('redirects a selected villager to gather gold through an explicit context order', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -220,5 +220,5 @@ describe('createSimulationBridge dark age economy progression', () => {
     }
 
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
-  }, 30_000);
+  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });

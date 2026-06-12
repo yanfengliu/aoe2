@@ -51,8 +51,9 @@ Every recorded session — including the bundles exported by `npm run playtest:l
 2. Start the app (`npm run dev`) and click the **Replay…** button in the HUD's save/load cluster.
 3. Pick the **From file** tab and select the bundle `.json`. The dialog also offers the current live session and prior sessions persisted in IndexedDB.
 4. Drive playback with the bottom timeline panel (scrub bar) or hotkeys: `Space` play/pause, `←`/`→` step one tick, `Home`/`End` jump to start/end, `Alt+T` toggle the timeline panel, `Esc` exit replay.
+5. To spectate a specific player, cycle the fog-of-war perspective with the timeline panel's **Fog: P\<n\>** button (or `Alt+F`). LLM-playtest agents play as player 2, so switch to `Fog: P2` to watch the agent's base and army without player 1's fog in the way. The toggle changes only the rendered fog — the HUD's resource panels stay on player 1, and replays default back to player 1's view on entry.
 
-Caveat: the replay renderer projects player 1's fog of war (the human observer). LLM-playtest agents play as player 2, so parts of their base and army activity sit under fog except where player 1's line of sight reaches; there is no spectator/fog-off toggle yet.
+Caveat: bundle replay is same-engine-major tooling (civ-engine policy) — bundles recorded under engine 0.x (e.g. the 2026-06-11 campaign-2 bundle) replay only with 0.x tooling; bundles recorded from engine 1.0 onward replay in the current app.
 
 ## See also
 

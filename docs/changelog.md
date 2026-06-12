@@ -2,6 +2,19 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.22 - 2026-06-12
+
+### Replay fog-owner toggle (spectate any player) + civ-engine 1.0 absorb
+
+**Fog perspective toggle in replay mode.** The timeline panel gains a **Fog: P\<n\>** button (hotkey `Alt+F`) that cycles which player's fog of war the replay renders — the missing piece for spectating LLM playtest campaigns, where the agent plays as player 2 and its base previously sat under player 1's fog. Scope rules: rendered visibility and entity filtering follow the selected owner; simulation state, playback position, selection, and the HUD's resource/age panels stay exactly as before (fog toggle, not a POV switch); "last seen" ghost entities render only for player 1 (the engine records fog memory for the human player alone); the toggle is disabled for single-player bundles, resets to player 1 on every replay entry, and does not exist in live mode (cheat surface).
+
+**civ-engine 1.0.x absorbed** (1.0.0 strict-by-default; 1.0.1 replayer factory contract; 1.0.2 and the additive 1.1.0 landed in the sibling tree during the session — both no-impact for aoe2): `saveGame()`'s pre-serialize state flush now runs inside the engine's `runMaintenance` window (same semantics, sanctioned phase); replay test stubs honor the new `factory_snapshot_not_applied` contract. Zero gameplay behavior change. Operator note: civ-engine 1.0's bundle version policy makes replay same-engine-major tooling — bundles recorded under 0.x (campaign-1/-2) replay only with 0.x checkouts; new recordings replay normally.
+
+### Validation
+
+- All four gates green (1215 tests); 17 new tests (fog rendering + adapter-dispose mechanism at the replay bridge incl. the HUD-stays-P1 pin, controller fog API incl. transactional-enterReplay/setFogOwner pins, dispose wiring, cached candidates, timeline button, Alt+F hotkey).
+- Multi-CLI review: see `docs/threads/done/replay-fog-owner/`.
+
 ## 0.1.21 - 2026-06-11
 
 ### Actionable command rejections + agent affordances (campaign-1 backlog #1-#3)

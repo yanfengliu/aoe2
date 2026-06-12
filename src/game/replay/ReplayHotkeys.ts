@@ -63,6 +63,11 @@ export function registerReplayHotkeys(config: ReplayHotkeysConfig): ReplayHotkey
     activeUnregister.push(hotkeys.register({ key: 't', alt: true }, () => {
       panel.toggleVisibility();
     }));
+    // replay-fog-owner: cycle the rendered fog perspective.
+    activeUnregister.push(hotkeys.register({ key: 'f', alt: true }, () => {
+      controller.cycleFogOwner();
+      panel.refresh();
+    }));
   };
 
   const syncMode = (): void => {

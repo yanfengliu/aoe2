@@ -26,17 +26,37 @@ function replayCommandRejected(): false {
 
 export interface ReplayBridgeOptions {
   getRenderInterpolationAlpha?: () => number;
+  // replay-fog-owner (2026-06-12): which player's fog perspective the
+  // replay renders. Defaults to the human observer (player 1). This is
+  // a FOG toggle, not a POV switch: only visibility projection +
+  // entity filtering follow the owner; HUD panels stay human-bound,
+  // and "last seen" fog-memory ghosts render only for the human owner
+  // because the engine records that memory for the human player alone.
+  fogOwner?: number;
+}
+
+// replay-fog-owner iter-1 (Codex HIGH / Claude MED / Gemini): the replay
+// bridge's RenderAdapter registers a world.onDiff listener at
+// construction. Scrub commits re-materialize the world (old listeners
+// die with it), but fog switches rebuild the bridge over the SAME
+// world — without an explicit teardown every toggle would leak a
+// connected adapter that clones diffs and projects into an abandoned
+// store on each tick. ReplayController calls this on every outgoing
+// replay bridge after a successful swap.
+export interface ReplayBridge extends SimulationBridge {
+  disposeReplayRenderAdapter(): void;
 }
 
 export function makeReplayBridge(
   world: GameWorld,
   options: ReplayBridgeOptions = {},
-): SimulationBridge {
+): ReplayBridge {
   const context = getReplayWorldContext(world);
   if (!context || !context.api) {
     throw new Error('Replay bridge requires a world created by createReplayWorldOnly.');
   }
   const api = context.api;
+  const fogOwner = options.fogOwner ?? HUMAN_PLAYER_ID;
 
   const renderStore = new RenderStore();
   const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });
@@ -44,7 +64,7 @@ export function makeReplayBridge(
     world: toEngineWorld(world),
     projector: createProjector(
       context.visibility,
-      HUMAN_PLAYER_ID,
+      fogOwner,
       context.seed,
       api.isSelected,
       api.getEntityHealth,
@@ -57,7 +77,14 @@ export function makeReplayBridge(
 
   renderAdapter.connect();
 
+  // iter-2 hardening: a disposed bridge must never self-reconnect via
+  // the refresh path (both bridges over one world share the api's
+  // out-of-band flag, so a stale consumer could otherwise re-attach the
+  // dead adapter AND steal the flag from the live bridge).
+  let renderAdapterDisposed = false;
+
   function refreshRenderProjection(): void {
+    if (renderAdapterDisposed) return;
     renderAdapter.disconnect();
     renderAdapter.connect();
   }
@@ -71,12 +98,18 @@ export function makeReplayBridge(
     }
   }
 
+  // `humanPlayerId` here is really "perspective owner": it gates the
+  // building/resource footprint-visibility filter. Fog-memory ghosts
+  // exist only for the human player's recorded memory, so non-human
+  // perspectives get zeroed getters (live visibility, no ghosts).
   const { getRenderState: getRenderStateInternal } = createRenderStateOps({
     visibility: context.visibility,
-    humanPlayerId: HUMAN_PLAYER_ID,
+    humanPlayerId: fogOwner,
     renderStore,
-    getHumanFogMemorySize: api.getHumanFogMemorySize,
-    getFogMemoryEntities: api.getFogMemoryEntities,
+    getHumanFogMemorySize:
+      fogOwner === HUMAN_PLAYER_ID ? api.getHumanFogMemorySize : () => 0,
+    getFogMemoryEntities:
+      fogOwner === HUMAN_PLAYER_ID ? api.getFogMemoryEntities : () => [],
     getRenderStoreVersion: () => renderStoreVersion,
   });
 
@@ -237,6 +270,10 @@ export function makeReplayBridge(
     // bridges should hit this in practice.)
     isCellVisibleForOwner() {
       return true;
+    },
+    disposeReplayRenderAdapter() {
+      renderAdapterDisposed = true;
+      renderAdapter.disconnect();
     },
   };
 }

@@ -73,6 +73,15 @@ class HotkeyController implements ReplayController {
     this.playing = false;
   });
   readonly isPlaying = vi.fn(() => this.playing);
+  // replay-fog-owner surface
+  fogOwner = 1;
+  readonly fogOwnerCandidates = vi.fn(() => [1, 2]);
+  readonly setFogOwner = vi.fn((owner: number) => {
+    this.fogOwner = owner;
+  });
+  readonly cycleFogOwner = vi.fn(() => {
+    this.fogOwner = this.fogOwner === 1 ? 2 : 1;
+  });
   private readonly modeListeners = new Set<ReplayModeListener>();
 
   onModeChange(listener: ReplayModeListener): () => void {
@@ -199,5 +208,33 @@ describe('Phase 3C - ReplayHotkeys', () => {
 
     hotkeys.dispose();
     registry.dispose();
+  });
+});
+
+// replay-fog-owner: Alt+F cycles the fog perspective while replay mode
+// is active; like every replay binding it unregisters in live mode.
+describe('replay fog-owner hotkey', () => {
+  it('Alt+F cycles the fog owner in replay mode and refreshes the panel', () => {
+    const controller = new HotkeyController();
+    controller.enterReplay(bundle(metadata({ startTick: 3, endTick: 50, persistedEndTick: 50 })));
+    const panel = { toggleVisibility: vi.fn(), isVisible: vi.fn(() => true), refresh: vi.fn() };
+    const registry = createHotkeyRegistry();
+    registerReplayHotkeys({ hotkeys: registry, controller, panel });
+
+    dispatch('f', { altKey: true });
+
+    expect(controller.cycleFogOwner).toHaveBeenCalledTimes(1);
+    expect(panel.refresh).toHaveBeenCalled();
+  });
+
+  it('Alt+F does nothing in live mode', () => {
+    const controller = new HotkeyController();
+    const panel = { toggleVisibility: vi.fn(), isVisible: vi.fn(() => true), refresh: vi.fn() };
+    const registry = createHotkeyRegistry();
+    registerReplayHotkeys({ hotkeys: registry, controller, panel });
+
+    dispatch('f', { altKey: true });
+
+    expect(controller.cycleFogOwner).not.toHaveBeenCalled();
   });
 });

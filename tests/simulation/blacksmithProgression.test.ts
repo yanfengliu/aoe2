@@ -74,7 +74,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 60_000);
+  }, 120_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate Mail)', () => {
@@ -122,7 +122,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
+  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)', () => {
@@ -170,7 +170,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
+  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Armor)', () => {
@@ -218,7 +218,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
+  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Bracer)', () => {
@@ -269,7 +269,7 @@ describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Brace
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 90_000); // 90s: 47.5s observed under full-suite contention vs the old 45s cap (2026-06-11); ~2x isolated per the vitest-timeout-headroom precedent
+  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Armor reduces damage per hit', () => {
@@ -328,7 +328,7 @@ describe('Armor reduces damage per hit', () => {
       ? getHealthOfUnitAtCell(armoredBridge, postHitArmored.x, postHitArmored.y)
       : null;
     expect(armoredHp).toBe(48);
-  }, 30_000);
+  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Chemistry gates Bombard Cannon training', () => {
@@ -356,7 +356,7 @@ describe('Chemistry gates Bombard Cannon training', () => {
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 30_000);
+  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
 
 describe('Chemistry grants +1 attack to archer-line units', () => {
@@ -375,5 +375,5 @@ describe('Chemistry grants +1 attack to archer-line units', () => {
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 30_000);
+  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createReplayController } from '../../src/game/replay/ReplayController';
 import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
+import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
 import { recordCommandReplayFixture } from './replayCommandHelpers';
 
 function stubBridge(world: GameWorld): SimulationBridge {
@@ -12,6 +13,9 @@ function stubBridge(world: GameWorld): SimulationBridge {
     setPaused: vi.fn(),
     getSelectedEntityRefs: vi.fn(() => []),
     select: vi.fn(),
+    // replay-fog-owner: enterReplay derives fog-owner candidates from
+    // the bridge economy once per session.
+    getEconomyState: vi.fn(() => ({ playerResources: { 1: {}, 2: {} } })),
   } as unknown as SimulationBridge;
 }
 
@@ -197,12 +201,16 @@ describe('Phase 3B - ReplayController rollback', () => {
       makeReplayBridge: stubBridge,
       // Make replayer construction fail on demand to simulate the
       // engine rejecting a malformed bundle (e.g., missing
-      // metadata.engineVersion).
+      // metadata.engineVersion). The legit path must honor the
+      // engine-1.0.1 factory contract (applySnapshot, no stepping) —
+      // returning a random live world now throws
+      // factory_snapshot_not_applied — so it delegates to the real
+      // replay-world factory.
       worldFactory: ((snapshot: unknown) => {
         if ((snapshot as { __failConstruction?: boolean }).__failConstruction) {
           throw new Error('SessionReplayer rejected bundle');
         }
-        return liveBridge.world;
+        return createReplayWorldOnly(snapshot as Parameters<typeof createReplayWorldOnly>[0]);
       }) as never,
     });
 
