@@ -22,8 +22,9 @@
 //                                (default 1000; 0 disables; use multiples of
 //                                --decision-interval so captures land)
 //   --omniscient                 cheat-mode snapshot (Phase-6.B)
-//   --observation                run post-hoc observation oracle
-//                                (Phase-6.C.2; adds ~$0.10 per run)
+//
+// Conformance capture (objective metrics + AoE2 gap critique) is a
+// separate post-hoc step: `npm run playtest:findings -- <out-prefix>`.
 
 import { spawn, execSync, spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -38,10 +39,6 @@ import {
 } from '../src/game/playtest/llmProviders/index.ts';
 import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
 import { runLlmPlaytest } from '../src/game/playtest/llmRunner.ts';
-import {
-  buildTraceSummary,
-  runObservationOracle,
-} from '../src/game/playtest/observationOracle.ts';
 
 function parseArgs(argv) {
   const args = {
@@ -62,10 +59,6 @@ function parseArgs(argv) {
     // Phase-6.B (impl-2 M7): default false → enemies are visibility-
     // filtered. Pass --omniscient to revert to cheat-mode global view.
     omniscient: false,
-    // Phase-6.C.2: post-hoc observation oracle. Single advisory LLM
-    // call after the run (final-tick screenshot + trace summary).
-    // Default off — adds ~$0.40-0.60 per run when enabled (fable-5 + prelude).
-    observation: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -88,7 +81,6 @@ function parseArgs(argv) {
     else if (a === '--no-screenshot') args.noScreenshot = true;
     else if (a === '--screenshot-every') args.screenshotEvery = Number(argv[++i]);
     else if (a === '--omniscient') args.omniscient = true;
-    else if (a === '--observation') args.observation = true;
     else if (a.startsWith('--')) {
       console.error(`playtest-llm: unknown argument '${a}'`);
       process.exit(2);
@@ -525,67 +517,11 @@ async function main() {
       );
     }
 
-    // Phase-6.C.2: post-hoc observation oracle (advisory only). Skipped
-    // when --observation isn't set, when the agent already hit its
-    // cost budget (don't pay for advisory after operator cap), or
-    // when no screenshot was captured. The verdict is appended to the
-    // envelope for downstream tooling; CI exit codes are unchanged.
-    if (
-      args.observation
-      && result.envelope.errorMessage !== 'cost-budget-exceeded'
-    ) {
-      try {
-        const rejectionsCount = result.trace.reduce(
-          (acc, entry) => acc + entry.dispatchEvents.filter((e) => !e.accepted).length,
-          0,
-        );
-        // Finding G: ground the oracle on the AGENT's economy — the
-        // screenshot HUD belongs to the passive human observer. Pull a
-        // fresh post-run snapshot (page is still alive here) and pass
-        // the agent's per-player row into the summary.
-        let finalAgentState;
-        try {
-          const finalSnapshot = await host.snapshotForAgent(args.owners[0]);
-          finalAgentState = finalSnapshot.perPlayer.find((p) => p.ownerId === args.owners[0]);
-        } catch (snapErr) {
-          // Advisory path — a destabilized page just means no agent
-          // state block; the oracle still sees the run counters. Warn so
-          // a persistent break is operator-visible (iter-1 Claude note).
-          console.warn(
-            `[playtest-llm] final agent snapshot unavailable for observation: ${snapErr?.message ?? snapErr}`,
-          );
-        }
-        const traceSummary = buildTraceSummary({
-          ticksRun: result.envelope.ticksRun,
-          decisionsRun: result.envelope.decisionsRun,
-          totalCostUsd: result.envelope.totalCostUsd,
-          stopReason: result.envelope.stopReason,
-          errorMessage: result.envelope.errorMessage,
-          rejectionsCount,
-          agentOwnerId: args.owners[0],
-          finalAgentState,
-        });
-        const verdict = await runObservationOracle({
-          provider,
-          model: 'claude-opus-4-8',
-          finalScreenshotPng: result.finalScreenshotPng,
-          traceSummary,
-        });
-        result.envelope.observation = verdict;
-        // Codex impl-1 MED 3: roll the advisory oracle's cost into
-        // totalCostUsd so the corpus SUMMARY-LLM.md table doesn't
-        // under-report actual LLM spend. The verdict.costUsd field
-        // remains for transparency (per-component breakdown).
-        result.envelope.totalCostUsd += verdict.costUsd;
-        console.log(
-          `[playtest-llm] observation: ${verdict.verdict} (cost $${verdict.costUsd.toFixed(4)})`,
-        );
-      } catch (err) {
-        console.warn(
-          `[playtest-llm] observation oracle failed (advisory): ${err?.message ?? err}`,
-        );
-      }
-    }
+    // Conformance capture is a decoupled post-hoc pass (2026-06-13):
+    // run `npm run playtest:findings -- ${args.out}` after this to get
+    // objective metrics + an AoE2 conformance critique. It replaces the
+    // removed "looked-fun" observation oracle, works on any saved run,
+    // and can be re-run for free with an improved probe.
 
     writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle));
     writeFileSync(`${args.out}.envelope.json`, JSON.stringify(result.envelope, null, 2));

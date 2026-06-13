@@ -10,7 +10,7 @@
 // `dashboard.html` next to SUMMARY-LLM.md. The dashboard surfaces:
 //
 // - Header: corpus run total cost, # runs, # halts.
-// - Per-run table: name | seed | maxTicks | stopReason | ticks | decisions | cost | winner | observation verdict.
+// - Per-run table: name | seed | maxTicks | stopReason | ticks | decisions | cost | winner | findings count.
 //
 // Pure script — no game-code changes. The dashboard is self-contained
 // HTML+CSS, no JS dependencies; thumbnails are referenced by relative
@@ -156,7 +156,7 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
   <h2>Runs</h2>
   <table>
     <thead><tr>
-      <th>Run</th><th>Seed</th><th>maxTicks</th><th>stopReason</th><th>ticks</th><th>decisions</th><th>cost</th><th>winner</th><th>observation</th><th>screenshots</th>
+      <th>Run</th><th>Seed</th><th>maxTicks</th><th>stopReason</th><th>ticks</th><th>decisions</th><th>cost</th><th>winner</th><th>findings</th><th>screenshots</th>
     </tr></thead>
     <tbody>
       ${tableRows}
@@ -186,8 +186,11 @@ function renderRunRow(r) {
   const winner = env.winner
     ? escapeHtml(formatWinner(env.winner))
     : '—';
-  const observation = env.observation
-    ? escapeHtml(env.observation.verdict)
+  // Conformance findings count, merged into the envelope by
+  // `playtest-findings.mjs` (replaces the removed fun verdict). Shows
+  // how many objective gap/divergence findings the run surfaced.
+  const findings = Array.isArray(env.findings)
+    ? escapeHtml(env.findings.length)
     : '—';
   // Option C: screenshots column counts the run's persisted
   // checkpoint PNGs (dashboard-only; no diffing).
@@ -206,7 +209,7 @@ function renderRunRow(r) {
     <td>${escapeHtml(env.decisionsRun ?? '')}</td>
     <td>$${(env.totalCostUsd ?? 0).toFixed(4)}</td>
     <td>${winner}</td>
-    <td>${observation}</td>
+    <td>${findings}</td>
     <td>${escapeHtml(screenshotCount)}</td>
   </tr>`;
 }

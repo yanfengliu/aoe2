@@ -13,6 +13,7 @@
     "playtest:corpus-llm": "tsx scripts/playtest-corpus-llm.mjs",
     "playtest:corpus-dashboard": "tsx scripts/playtest-corpus-llm-dashboard.mjs",
     "playtest:llm-auto-fix": "tsx scripts/playtest-llm-auto-fix.mjs",
+    "playtest:findings": "tsx scripts/playtest-findings.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

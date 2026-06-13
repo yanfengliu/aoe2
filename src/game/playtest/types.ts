@@ -241,7 +241,7 @@ export interface LlmCostTable {
 
 export const DEFAULT_LLM_COST_TABLE: LlmCostTable = {
   // claude-opus-4-8 is the playtest-standard model for ALL harness LLM
-  // calls (tactical + strategy + observation + auto-fix) while Fable 5 is
+  // calls (tactical + strategy + conformance + auto-fix) while Fable 5 is
   // banned (2026-06-12 user directive — see design/spec-final.md §15.7).
   // Revert to claude-fable-5 when the ban lifts.
   'claude-opus-4-8': { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
@@ -277,16 +277,4 @@ export interface AgentDecision {
   tokensOut: number;
   costUsd: number;
   stopReason: AgentStopReason;
-}
-
-// Phase-6.C.2: post-hoc observation oracle verdict. A single advisory
-// LLM call after the playtest run (final screenshot + trace summary)
-// emits a high-level "did this look fun / broken / inconclusive"
-// verdict + free-form notes. Advisory only — does NOT gate CI.
-export interface ObservationVerdict {
-  verdict: 'looked-fun' | 'looked-broken' | 'inconclusive';
-  notes: string;
-  tokensIn: number;
-  tokensOut: number;
-  costUsd: number;
 }

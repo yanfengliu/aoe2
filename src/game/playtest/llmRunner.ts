@@ -10,7 +10,6 @@ import type {
   AgentDecisionCommand,
   AgentStateSnapshot,
   CommandDispatchResult,
-  ObservationVerdict,
   StopReason,
 } from './types';
 import type { LlmAgent } from './llmAgent';
@@ -103,10 +102,6 @@ export interface RunnerEnvelope {
   // populate them.
   seed?: string;
   maxTicks?: number;
-  // Phase-6.C.2: post-hoc observation-oracle verdict, when the runner
-  // script wires it (env-gated; advisory only, does NOT affect CI
-  // exit codes — engineHalt is still the regression signal).
-  observation?: ObservationVerdict;
   // Phase-6.D: game-outcome scoring at the final tick. Populated
   // unconditionally (no opt-in flag) — scoring is cheap and useful
   // for any multi-owner playtest (AI-vs-LLM, future AI-vs-AI).
@@ -117,8 +112,8 @@ export interface RunLlmPlaytestResult {
   bundle: SessionBundle;
   envelope: RunnerEnvelope;
   trace: TraceEntry[];
-  // Phase-6.C.2: the last screenshot captured during the run loop,
-  // surfaced for downstream observation-oracle calls. Undefined when
+  // The last screenshot captured during the run loop, surfaced for the
+  // decoupled post-hoc conformance probe. Undefined when
   // screenshotEnabled was false or no decisions ran.
   finalScreenshotPng?: Uint8Array;
   // Per-checkpoint screenshots captured during the run, persisted by
@@ -140,9 +135,8 @@ export async function runLlmPlaytest(input: {
   let decisionsRun = 0;
   let stopReason: StopReason = 'maxTicks';
   let errorMessage: string | undefined;
-  // Phase-6.C.2: keep the most-recent screenshot so the post-hoc
-  // observation oracle (run by the runner script) has the final-tick
-  // visual context to inspect.
+  // Keep the most-recent screenshot so the decoupled post-hoc
+  // conformance probe has the final-tick visual context to inspect.
   let lastScreenshotPng: Uint8Array | undefined;
   // Checkpoint captures for the corpus dashboard.
   const checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }> = [];
@@ -221,6 +215,15 @@ export async function runLlmPlaytest(input: {
       ticksRun += ticksToAdvance;
 
       const dispatchEvents = await host.drainDispatchLog();
+      // Merge host-level pre-queue rejections (not-owned / malformed-
+      // payload / unknown-kind) — which never reach the engine drain —
+      // with the drained engine events. BOTH the agent's next prompt AND
+      // the trace entry use this merged list, so the conformance metrics
+      // and digest see host rejections too. `unknown-kind` in particular
+      // is the primary objective signal that a command/feature is
+      // unimplemented; dropping it from the trace hid the capture's most
+      // important signal (Gemini conformance-capture iter-1).
+      const allDispatchEvents = [...preQueueRejections, ...dispatchEvents];
       // playtest-fixes B: report the engine's verdicts onto the
       // just-made decision so the NEXT tactical prompt shows the model
       // what its commands actually did (rejections were previously
@@ -230,7 +233,7 @@ export async function runLlmPlaytest(input: {
       // would clobber the PREVIOUS decision's outcome with this
       // round's (empty) drain.
       if (decision.stopReason === 'normal') {
-        agent.reportDispatchOutcome([...preQueueRejections, ...dispatchEvents]);
+        agent.reportDispatchOutcome(allDispatchEvents);
       }
       const tickAfter = await host.getCurrentTick();
 
@@ -282,7 +285,7 @@ export async function runLlmPlaytest(input: {
         tickAfter,
         decision,
         dispatchResults,
-        dispatchEvents,
+        dispatchEvents: allDispatchEvents,
       };
       trace.push(entry);
       config.onDecision?.(entry);
@@ -299,11 +302,10 @@ export async function runLlmPlaytest(input: {
     errorMessage = err instanceof Error ? err.message : String(err);
   }
 
-  // Phase-6.C.2 (Codex impl-1 MED 1): capture an actual final-tick
-  // screenshot AFTER the loop exits, not the pre-advance shot from
-  // the last decision. The post-hoc observation oracle (advisory)
-  // wants the truly-final visual state, including any engine-halt
-  // failure surface.
+  // Codex impl-1 MED 1: capture an actual final-tick screenshot AFTER
+  // the loop exits, not the pre-advance shot from the last decision.
+  // The post-hoc conformance probe wants the truly-final visual state,
+  // including any engine-halt failure surface.
   //
   // Codex impl-2 MED: the catch is narrow — only suppress when an
   // engineHalt already destabilized the page (in which case
