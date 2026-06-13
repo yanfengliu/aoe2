@@ -1350,22 +1350,31 @@ The implementation satisfies this spec when:
 - the rules framework can represent DE-style multiple unique units and multiple unique-tech slots even if the current dataset does not yet fill every slot
 - AI can complete a match under the same rules as the player
 
-### 16.2 Non-Goals for This Revision
+### 16.2 Goal and Non-Goals
 
-- claiming complete parity with the current live-DE DLC roster
-- hand-copying the full civ roster and every bonus into prose when the CSVs already own that data
-- preserving older AoC-only assumptions from earlier drafts
-- silently filling data gaps with guessed civ content
+**Goal (2026-06-13 user directive):** full Age of Empires II (DE/HD) coverage is the target — *"Feudal age is not the end goal. We should have the whole game."* This SUPERSEDES the earlier "no complete parity" non-goal. Parity is pursued INCREMENTALLY, gap by gap, driven by the coverage roadmap (`design/roadmap.md`) and the LLM-playtest conformance loop (§15.7) — not in a single pass, and content is shipped only when the data + simulation can represent it consistently (missing content is surfaced, never faked).
+
+Still out of scope (not requested):
+
 - multiplayer
 - campaign story mode
-- non-standard game modes
+- non-standard game modes (Regicide, Death Match, Empire Wars, King of the Hill, Wonder Race, Capture the Relic)
 
-### 16.3 Immediate Next Steps
+Process non-goals (how, not what):
 
-1. Normalize `design/stats` into canonical internal data.
-2. Auto-generate producer-to-unit and producer-to-tech mappings from normalized content.
-3. Add validation that reports all current DE-versus-dataset gaps explicitly.
-4. Extend the stats bundle if fuller DE parity is required later.
+- hand-copying the full civ roster and every bonus into prose when the CSVs already own that data
+- silently filling data gaps with guessed civ content — surface missing data as missing
+- preserving older AoC-only assumptions from earlier drafts
+
+### 16.3 Build Process — playtest-driven coverage
+
+The path to the goal is the coverage roadmap (`design/roadmap.md`), worked top-down via the loop in §15.7: pick the highest-leverage gap, record its rule in this spec, implement it (TDD + multi-CLI review), then re-run the LLM playtest. `playtest:findings` then either confirms the gap closed (the unimplemented-command rejection disappears and the agent uses the new capability) or surfaces the next gap. Build the three structural enablers first, because they unlock the most content at once:
+
+1. the stat-multiplier subsystem (powers economy upgrades, civ bonuses, and many techs);
+2. the AoE2-correct population model + farms (a sustained mid/late-game economy and army);
+3. data-driven combat — armor classes + bonus damage, then projectiles.
+
+The earlier groundwork (normalized `design/stats`, producer→unit/tech mappings, and the data-vs-dataset gap validation) is in place; the work now is simulation depth and content breadth per the roadmap.
 
 ## Appendix A: Key Formulas and Constants
 
