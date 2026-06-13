@@ -14,6 +14,7 @@ import type {
   StopReason,
 } from './types';
 import type { LlmAgent } from './llmAgent';
+import { ProviderCallError } from './llmProviders/providerError';
 import {
   extractWinner,
   type PerOwnerEntityCounts,
@@ -167,7 +168,27 @@ export async function runLlmPlaytest(input: {
       const state = await host.snapshotForAgent(config.ownerId);
       const screenshot = config.screenshotEnabled ? await host.captureScreenshot() : undefined;
       if (screenshot) lastScreenshotPng = screenshot;
-      const decision = await agent.decide(state, screenshot);
+
+      // provider-error-retry: agent.decide() makes the LLM calls through a
+      // RetryingProvider, which retries a transient ProviderCallError in
+      // place with backoff. If it still throws here, retries were exhausted
+      // → classify the run as `providerError` and break. Because that is
+      // NOT engineHalt, the game/page is treated as healthy: post-loop
+      // scoring, the final screenshot, and bundle export still run (each
+      // with its own safety net that flips to engineHalt if the page turns
+      // out to be unusable). Any OTHER throw (host calls, a non-provider
+      // agent bug) propagates to the outer catch → engineHalt.
+      let decision: AgentDecision;
+      try {
+        decision = await agent.decide(state, screenshot);
+      } catch (err) {
+        if (err instanceof ProviderCallError) {
+          stopReason = 'providerError';
+          errorMessage = `provider call failed (retries exhausted): ${err.message}`;
+          break;
+        }
+        throw err;
+      }
 
       const dispatchResults: CommandDispatchResult[] = [];
       // playtest-fixes iter-2 (Codex MED 1): host-level rejections

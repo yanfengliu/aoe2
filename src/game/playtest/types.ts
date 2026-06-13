@@ -13,6 +13,11 @@ export type StopReason =
   | 'stopWhen'
   | 'sinkError'
   | 'recorderError'
+  // provider-error-retry (2026-06-13): a transient LLM-call failure that
+  // survived retry-with-backoff. Distinct from engineHalt — the game/page
+  // is healthy (only the model call died), so the winner oracle, final
+  // screenshot, and bundle export still run.
+  | 'providerError'
   | 'engineHalt';
 
 export interface OracleEnvelope {

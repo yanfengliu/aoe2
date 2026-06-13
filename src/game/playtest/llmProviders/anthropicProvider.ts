@@ -17,6 +17,7 @@ import type {
   LlmToolSchema,
 } from '../types';
 import { DEFAULT_LLM_COST_TABLE } from '../types';
+import { ProviderCallError } from './providerError';
 
 export interface AnthropicProviderConfig {
   apiKey?: string; // defaults to process.env.ANTHROPIC_API_KEY
@@ -87,7 +88,16 @@ export class AnthropicProvider implements LlmProvider {
       // prompt + base64 screenshot). Re-throw with only status,
       // message, and request-id so Phase 3's trace logging can
       // serialize the error without leaking secrets.
-      throw sanitizeSdkError(err);
+      // provider-error-retry: a failed SDK call is a transient
+      // (rate-limit / overload / network) — tag it so the runner
+      // retries with backoff instead of treating it as an engineHalt.
+      // iter-2 (Codex HIGH / Claude LOW): attach the SANITIZED error as
+      // `cause`, never the raw SDK error — the raw one carries the
+      // request URL, headers (incl. `x-api-key`), and body, and Node's
+      // default error rendering walks the cause chain (the script's
+      // top-level `console.error('fatal:', err)` would print it).
+      const sanitized = sanitizeSdkError(err);
+      throw new ProviderCallError(sanitized.message, { cause: sanitized });
     }
     const content = response.content
       .map(fromSdkBlock)

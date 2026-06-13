@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { parseCorpusLlmFile } from '../src/game/playtest/corpusLlmSchema.ts';
+import { isLlmCorpusRegression } from '../src/game/playtest/corpusRegression.ts';
 import { resolveClaudeBinary } from '../src/game/playtest/llmProviders/index.ts';
 
 const useShell = process.platform === 'win32';
@@ -171,12 +172,14 @@ for (const run of corpus.runs) {
     continue;
   }
   totalCost += env.totalCostUsd ?? 0;
-  // Distinguish operational stops (cost-budget-exceeded) from real
-  // regressions (engineHalt). Cost budget exhaustion is expected
-  // operator-side cap behavior, not a CI gate signal (Codex impl-345
-  // M6). engineHalt OR an unexpected errorMessage IS a regression.
-  if (env.stopReason === 'engineHalt') anyHigh = true;
-  else if (env.errorMessage && env.errorMessage !== 'cost-budget-exceeded') anyHigh = true;
+  // Distinguish operational/transient stops from real regressions. Two
+  // stops carry an errorMessage yet are NOT engine faults and don't gate
+  // CI: cost-budget-exceeded (an operator-set spend cap, Codex impl-345
+  // M6) and providerError (a transient LLM-call failure that survived
+  // retry — the game stayed healthy + scored; provider-error-retry). The
+  // predicate is extracted + unit-tested in corpusRegression.ts:
+  // engineHalt OR an unexpected errorMessage IS a regression.
+  if (isLlmCorpusRegression(env)) anyHigh = true;
   // Option C (2026-06-10): no visual gating for LLM rows — a
   // non-deterministic player has no "correct" reference image, so
   // baseline diffs measured expected divergence, not regressions.

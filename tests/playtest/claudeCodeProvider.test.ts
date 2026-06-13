@@ -7,6 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   ClaudeCodeProvider,
+  ProviderCallError,
   buildToolsPromptText,
   type ClaudeCodeRunFn,
   type ClaudeCodeRunResult,
@@ -102,7 +103,7 @@ describe('ClaudeCodeProvider', () => {
   });
 
 
-  it('throws on non-zero exit code with truncated stderr', async () => {
+  it('throws a ProviderCallError on non-zero exit code with truncated stderr', async () => {
     const provider = new ClaudeCodeProvider({
       runFn: makeFailingRunFn({
         stdout: '',
@@ -113,6 +114,23 @@ describe('ClaudeCodeProvider', () => {
     await expect(provider.call(BASE_OPTIONS)).rejects.toThrow(
       /claude exit 1.*auth failure/,
     );
+    // provider-error-retry: the class is load-bearing — the runner keys
+    // its retry-with-backoff + `providerError` stopReason on it.
+    await expect(provider.call(BASE_OPTIONS)).rejects.toBeInstanceOf(ProviderCallError);
+  });
+
+  it('wraps a runFn REJECTION (spawn error / timeout) as a ProviderCallError', async () => {
+    // provider-error-retry iter-2 (Codex HIGH / Claude MED): a subprocess
+    // failure that REJECTS (rather than resolving a non-zero exit) — e.g. a
+    // spawn EAGAIN or a 5-minute timeout — must still be retryable, not a
+    // plain Error that the runner mis-classifies as engineHalt.
+    const provider = new ClaudeCodeProvider({
+      runFn: async () => {
+        throw new Error('[claude-code-provider] timed out after 300000ms (pid killed)');
+      },
+    });
+    await expect(provider.call(BASE_OPTIONS)).rejects.toBeInstanceOf(ProviderCallError);
+    await expect(provider.call(BASE_OPTIONS)).rejects.toThrow(/timed out after 300000ms/);
   });
 
   it('throws on is_error envelope', async () => {

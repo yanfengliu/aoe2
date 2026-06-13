@@ -110,9 +110,10 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
     (acc, r) => {
       acc.cost += r.envelope.totalCostUsd ?? 0;
       acc.halts += r.envelope.stopReason === 'engineHalt' ? 1 : 0;
+      acc.providerErrors += r.envelope.stopReason === 'providerError' ? 1 : 0;
       return acc;
     },
-    { cost: 0, halts: 0 },
+    { cost: 0, halts: 0, providerErrors: 0 },
   );
   const tableRows = runs
     .map((r) => renderRunRow(r))
@@ -135,6 +136,7 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
     th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
     th { background: #f7f7f7; font-weight: 600; }
     .halted { color: #b91c1c; font-weight: 600; }
+    .warn { color: #b45309; font-weight: 600; }
     .ok { color: #15803d; }
     .summary { background: #f0f4f8; padding: 12px 16px; border-radius: 6px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px; }
@@ -147,7 +149,8 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
   <div class="summary">
     <strong>${runs.length}</strong> run${runs.length === 1 ? '' : 's'},
     total cost <strong>$${totals.cost.toFixed(4)}</strong>,
-    <strong>${totals.halts}</strong> engineHalt${totals.halts === 1 ? '' : 's'}.
+    <strong>${totals.halts}</strong> engineHalt${totals.halts === 1 ? '' : 's'},
+    <strong>${totals.providerErrors}</strong> providerError${totals.providerErrors === 1 ? '' : 's'}.
   </div>
 
   <h2>Runs</h2>
@@ -169,7 +172,13 @@ function renderDashboard({ corpusName, summaryPath, runs }) {
 
 function renderRunRow(r) {
   const env = r.envelope;
-  const stopClass = env.stopReason === 'engineHalt' ? 'halted' : 'ok';
+  // provider-error-retry: providerError is neither a clean exit (green)
+  // nor an engine fault (red) — colour it amber so a transient LLM-call
+  // stop is honestly distinguished from a fully-clean run. The cell
+  // already renders errorMessage as <small>, so the cause shows inline.
+  let stopClass = 'ok';
+  if (env.stopReason === 'engineHalt') stopClass = 'halted';
+  else if (env.stopReason === 'providerError') stopClass = 'warn';
   // Codex impl-1 MED 3 / Claude impl-1 MED: every dynamic interpolation
   // — including formatWinner's output and integer ticks — flows
   // through escapeHtml. The current envelope shapes are well-typed,

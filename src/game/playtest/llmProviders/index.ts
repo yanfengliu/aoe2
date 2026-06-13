@@ -7,6 +7,9 @@
 // in `../types.ts`; the runner picks the concrete provider based on
 // env / explicit `--provider` flag.
 
+export { ProviderCallError } from './providerError';
+export { RetryingProvider, type RetryConfig } from './retryingProvider';
+
 export {
   MockProvider,
   type MockProviderConfig,

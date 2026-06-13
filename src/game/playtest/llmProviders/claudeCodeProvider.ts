@@ -25,6 +25,7 @@ import type {
   LlmProvider,
   LlmToolSchema,
 } from '../types';
+import { ProviderCallError } from './providerError';
 
 export interface ClaudeCodeRunResult {
   stdout: string;
@@ -187,6 +188,20 @@ export class ClaudeCodeProvider implements LlmProvider {
         stdinPayload,
         { timeoutMs: this.timeoutMs, cwd: tmpDir },
       );
+    } catch (err) {
+      // provider-error-retry iter-2 (Codex HIGH / Claude MED): the runFn
+      // IS the subprocess call, so ANY rejection from it — a spawn error
+      // (transient EAGAIN), a timeout, or the campaign-3 `claude exit 1`
+      // path — is a provider-call failure, not an engine crash. Tag it so
+      // the runner retries + classifies it as `providerError` instead of
+      // `engineHalt`. (Node spawn/timeout errors carry no secrets, so
+      // preserving the cause is safe here — unlike the Anthropic SDK path.)
+      throw err instanceof ProviderCallError
+        ? err
+        : new ProviderCallError(
+            err instanceof Error ? err.message : String(err),
+            { cause: err },
+          );
     } finally {
       try {
         rmSync(tmpDir, { recursive: true, force: true });
@@ -196,7 +211,7 @@ export class ClaudeCodeProvider implements LlmProvider {
     }
 
     if (runResult.exitCode !== 0) {
-      throw new Error(
+      throw new ProviderCallError(
         `[claude-code-provider] claude exit ${runResult.exitCode}: `
           + `${truncate(runResult.stderr, 500)}`,
       );
@@ -204,7 +219,7 @@ export class ClaudeCodeProvider implements LlmProvider {
 
     const envelope = parseEnvelope(runResult.stdout);
     if (envelope.is_error) {
-      throw new Error(
+      throw new ProviderCallError(
         `[claude-code-provider] claude reported is_error: `
           + `${envelope.api_error_status ?? 'unknown'} (subtype=${envelope.subtype})`,
       );
@@ -316,7 +331,7 @@ function toCcInputBlock(block: LlmContentBlock): Record<string, unknown> {
 function parseEnvelope(stdout: string): ClaudeCodeOutputEnvelope {
   const trimmed = stdout.trim();
   if (trimmed.length === 0) {
-    throw new Error('[claude-code-provider] empty stdout from claude');
+    throw new ProviderCallError('[claude-code-provider] empty stdout from claude');
   }
   // stream-json output is one JSON object per line. We want the line
   // where `type === "result"` — that carries the `result`, `usage`,
@@ -343,7 +358,7 @@ function parseEnvelope(stdout: string): ClaudeCodeOutputEnvelope {
     }
   }
   if (!resultEvent) {
-    throw new Error(
+    throw new ProviderCallError(
       `[claude-code-provider] no result event found in stream-json output: ${truncate(trimmed, 300)}`,
     );
   }
@@ -365,13 +380,13 @@ function extractSchemaResult(envelope: ClaudeCodeOutputEnvelope): ClaudeCodeResp
   try {
     parsed = JSON.parse(resultStr);
   } catch (err) {
-    throw new Error(
+    throw new ProviderCallError(
       `[claude-code-provider] schema-constrained result was not JSON: `
         + `${(err as Error).message}\nresult: ${truncate(resultStr, 300)}`,
     );
   }
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error(
+    throw new ProviderCallError(
       `[claude-code-provider] schema-constrained result was not an object: `
         + truncate(resultStr, 300),
     );

@@ -1,6 +1,8 @@
+import { inspect } from 'node:util';
 import { describe, it, expect, vi } from 'vitest';
 import {
   AnthropicProvider,
+  ProviderCallError,
   type AnthropicSdkClient,
   type AnthropicSdkResponse,
 } from '../../src/game/playtest/llmProviders';
@@ -179,6 +181,16 @@ describe('AnthropicProvider', () => {
     expect(stringified).not.toContain('leaked'); // request body
     expect(caught!.message).toContain('status=401');
     expect(caught!.message).toContain('request-id=req_abc123');
+    // provider-error-retry: the SDK failure is now a retryable ProviderCallError.
+    expect(caught).toBeInstanceOf(ProviderCallError);
+    // iter-2 (Codex HIGH / Claude LOW): the attached `cause` must be the
+    // SANITIZED error, never the raw SDK error. Walk the whole object graph
+    // the way Node's `console.error` / a trace serializer would — JSON
+    // (own enumerable props incl. `cause`) AND util.inspect (cause chain).
+    const deep = JSON.stringify(caught) + '\n' + inspect(caught, { depth: null });
+    expect(deep).not.toContain('sk-ant-secret-xyz');
+    expect(deep).not.toContain('x-api-key');
+    expect(deep).not.toContain('leaked');
   });
 
   it('drops unknown SDK content block types with a warn (forward-compat)', async () => {

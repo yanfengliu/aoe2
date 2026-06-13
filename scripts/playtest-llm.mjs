@@ -33,6 +33,7 @@ import { chromium } from '@playwright/test';
 import {
   AnthropicProvider,
   ClaudeCodeProvider,
+  RetryingProvider,
   resolveClaudeBinary,
 } from '../src/game/playtest/llmProviders/index.ts';
 import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
@@ -402,7 +403,14 @@ async function main() {
 
   // Provider selection runs FIRST so an unconfigured environment fails
   // loud before we go through the multi-minute build + browser-launch.
-  const provider = selectProvider(args);
+  // provider-error-retry: wrap in RetryingProvider so a transient
+  // `claude exit 1` / timeout / spawn blip retries with backoff in place
+  // instead of killing the run; only on exhaustion does the runner stop
+  // with stopReason=providerError (the game stays scored).
+  const provider = new RetryingProvider(selectProvider(args), {
+    maxRetries: 2,
+    backoffMs: 3000,
+  });
 
   // Hoist server + browser + cleanup BEFORE startServer so a SIGINT
   // arriving during the 30-second startup poll doesn't leak the
