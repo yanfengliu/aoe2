@@ -135,15 +135,16 @@ function makeClaudeCodeProvider(args) {
   console.log('[playtest-llm] provider: claude-code (subscription auth via `claude` CLI)');
   // Per-call cost shape: claude-code sessions carry ~15K-token
   // cache_creation prelude per spawned process. All playtest calls run
-  // on claude-fable-5 ($10/$50 per MTok) per the 2026-06-09 directive —
-  // ~$0.55/call observed (own-entity context), similar for strategy (every Kth
-  // decision, default K=10). Effective per-decision ≈ $0.61.
-  const tacticalCost = 0.55; // claude-fable-5, observed 2026-06-10 (own-entity context grew prompts)
-  const strategyCost = 0.55; // claude-fable-5 (same model, longer output)
+  // on claude-opus-4-8 ($5/$25 per MTok) while Fable 5 is banned
+  // (2026-06-12 directive). Opus is half Fable's per-token rate, so the
+  // ~$0.55/call Fable estimate scales to ~$0.30/call; strategy (every
+  // Kth decision, default K=10) is similar. Effective per-decision ≈ $0.33.
+  const tacticalCost = 0.30; // claude-opus-4-8 (≈ half claude-fable-5's rate)
+  const strategyCost = 0.30; // claude-opus-4-8 (same model, longer output)
   const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
   const expectedDecisions = Math.floor(args.costBudget / blendedCost);
   console.log(
-    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (claude-fable-5; strategy refresh every `
+    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (claude-opus-4-8; strategy refresh every `
       + `${args.strategyEvery}th decision) in notional API equivalent. With --cost-budget=$${args.costBudget.toFixed(2)} `
       + `expect roughly ${expectedDecisions} tactical decisions before the rolling-cost gate trips.`,
   );
@@ -440,8 +441,8 @@ async function main() {
     const agent = new LlmAgent({
       provider,
       ownerId: args.owners[0],
-      strategyModel: 'claude-fable-5',
-      tacticalModel: 'claude-fable-5',
+      strategyModel: 'claude-opus-4-8',
+      tacticalModel: 'claude-opus-4-8',
       strategyEveryNDecisions: args.strategyEvery,
       maxOutputTokensTactical: 1024,
       maxOutputTokensStrategy: 2048,
@@ -556,7 +557,7 @@ async function main() {
         });
         const verdict = await runObservationOracle({
           provider,
-          model: 'claude-fable-5',
+          model: 'claude-opus-4-8',
           finalScreenshotPng: result.finalScreenshotPng,
           traceSummary,
         });
