@@ -17,7 +17,8 @@ A complete but **shallow** land-only 1v1 vertical slice: Dark → Feudal → Cas
 Tags: `[sim]` simulation logic here · `[data]` CSV/content wiring · `[engine]` may need civ-engine primitives.
 
 ### M1 — Make a sustained match possible
-- **Population model → AoE2-correct.** Pop limit 200; Town Center +5, House +5, Castle +20 pop; effective cap = min(Σ supply, 200). Currently base 5 + houses only, TC/Castle = 0. `[sim]` — *first fix; highest leverage / lowest risk.*
+- **Population supply → AoE2-correct.** ✅ done (v0.1.23): Town Center +5, House +5, Castle +20 (were 0); cap fully building-derived (base 0, the starting Town Center supplies the opening 5). `[sim]`
+- **Population limit of 200 + correct over-housing/destruction.** The 200 ceiling needs RAW building-supply tracking so over-housing past 200 and then losing housing doesn't wrongly drop the cap — clamping the stored cap is lossy (Codex population-model iter-1 HIGH). Currently unbounded by housing (pre-existing behavior; not reachable at current game scale). `[sim]`
 - **Farms + reseed.** A depleting renewable food entity buildable on a Mill anchor, with auto/again reseed and the farm-upgrade techs (Horse Collar / Heavy Plow / Crop Rotation once the multiplier layer exists). Without it a long game starves. `[sim+data]`
 - **Stat-multiplier subsystem + economy upgrades.** Gather-rate / carry / villager-speed multipliers applied from data; lights up Wheelbarrow, Hand Cart, Double-Bit Axe, Bow Saw, Two-Man Saw, mining techs (~12 techs). `[sim]`
 

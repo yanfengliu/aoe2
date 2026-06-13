@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.23 - 2026-06-13
+
+### Town Centers and Castles now provide population (toward AoE2)
+
+**Town Centers and Castles now contribute population headroom.** Spec §6.10 has always called for Houses, Town Centers, and Castles to supply population, but the simulation gave Town Centers and Castles 0 — only Houses raised the cap. Now, at AoE2 values: **Town Center +5, House +5, Castle +20**. The cap is fully building-derived: the player's starting Town Center provides the initial 5 (so the opening cap is unchanged at 5), and additional Town Centers, Houses, and Castles add from there. This is the first fix from the new AoE2 coverage roadmap (`design/roadmap.md`) — population is the single biggest throttle on army size and sustained late-game play, and the Castle is now a real population building, not just defense. (The standard 200 population limit is a tracked follow-up; it needs raw-supply accounting to handle over-housing and destruction correctly, so it is not enforced yet — the pre-existing unbounded-by-housing behavior is retained for now and is not reachable at current game scale.)
+
+### Validation
+
+- TDD: new `tests/simulation/populationModel.test.ts` pins the per-building population values; existing bootstrap/darkAge tests confirm the opening cap stays 5 and a completed House still raises it to 10.
+- Multi-CLI review: see `docs/threads/done/population-model/`.
+
 ## 0.1.22 - 2026-06-12
 
 ### Replay fog-owner toggle (spectate any player) + civ-engine 1.0 absorb

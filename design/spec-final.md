@@ -440,10 +440,11 @@ Relic rules:
 
 Population behavior:
 
-- Houses, Town Centers, and Castles contribute population capacity
+- Houses, Town Centers, and Castles contribute population capacity: House +5, Town Center +5, Castle +20
+- headroom accumulates from those buildings; the cap is fully building-derived, with the player's starting Town Center providing the initial 5. The standard 200 population limit is a planned follow-up — clamping it correctly requires tracking raw building supply (so over-housing past 200 and then losing housing does not wrongly drop the cap) and is not yet enforced
 - military, villagers, trade units, monks, and most ships consume population
 - production must fail when population cap is reached
-- civ-specific population-cap modifiers must be supported
+- civ-specific population-cap modifiers must be supported (none wired yet)
 
 ## 7. Age Progression
 

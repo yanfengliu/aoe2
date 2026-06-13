@@ -21,8 +21,13 @@ interface BuildingTintPalette {
   enemyIncomplete: number;
 }
 
+// Population headroom supplied per completed building (spec §6.10).
+// AoE2 values: Town Center +5, House +5, Castle +20. The cap is fully
+// building-derived (base STANDARD_POPULATION_CAP = 0); the player's
+// starting Town Center contributes the initial +5 through the normal
+// completion path, and houses, extra TCs, and Castles add from there.
 const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
-  'town-center': 0,
+  'town-center': 5,
   house: 5,
   mill: 0,
   'lumber-camp': 0,
@@ -35,7 +40,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   market: 0,
   'siege-workshop': 0,
   monastery: 0,
-  castle: 0,
+  castle: 20,
   wonder: 0,
   'stone-wall': 0,
   'palisade-wall': 0,

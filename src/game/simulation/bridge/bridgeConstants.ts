@@ -12,7 +12,19 @@ export const STANDARD_STARTING_RESOURCES: PlayerResources = {
   stone: 200,
 };
 
-export const STANDARD_POPULATION_CAP = 5;
+// Base population headroom before any building supply. 0 because the cap
+// is fully building-derived (spec §6.10): the player's starting Town
+// Center is created through the normal completion path and contributes
+// its +5 (AoE2 starts each player at 5 pop = 1 TC). Houses (+5), extra
+// TCs (+5), and Castles (+20) add from there. NOTE: the standard 200
+// population limit is a planned follow-up (roadmap M1) — clamping it
+// correctly requires tracking RAW building supply so over-housing past
+// 200 and then losing housing doesn't wrongly drop the cap (Codex
+// population-model iter-1 HIGH). Until then the cap is unbounded by
+// housing, which is the pre-existing behavior and currently unreachable
+// (the game can't yet field 200 pop).
+export const STANDARD_POPULATION_CAP = 0;
+
 export const WONDER_COUNTDOWN_TICKS = 2000;
 // Slice 8: Relic victory requires holding every relic on the map in one
 // player's Monasteries for the full countdown. Mirrors Wonder countdown.
