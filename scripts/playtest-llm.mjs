@@ -136,11 +136,13 @@ function makeClaudeCodeProvider(args) {
   // Per-call cost shape: claude-code sessions carry ~15K-token
   // cache_creation prelude per spawned process. All playtest calls run
   // on claude-opus-4-8 ($5/$25 per MTok) while Fable 5 is banned
-  // (2026-06-12 directive). Opus is half Fable's per-token rate, so the
-  // ~$0.55/call Fable estimate scales to ~$0.30/call; strategy (every
-  // Kth decision, default K=10) is similar. Effective per-decision ≈ $0.33.
-  const tacticalCost = 0.30; // claude-opus-4-8 (≈ half claude-fable-5's rate)
-  const strategyCost = 0.30; // claude-opus-4-8 (same model, longer output)
+  // (2026-06-12 directive). The subscription per-call cost is
+  // prelude-DOMINATED, not per-token-dominated, so it does NOT halve
+  // when the rate halves: campaign-3 observed ~$0.67/decision on Opus,
+  // essentially the same as Fable's ~$0.61. Strategy (every Kth
+  // decision, default K=10) is similar.
+  const tacticalCost = 0.65; // claude-opus-4-8, campaign-3 observed (prelude-dominated)
+  const strategyCost = 0.65; // claude-opus-4-8 (same model, longer output)
   const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
   const expectedDecisions = Math.floor(args.costBudget / blendedCost);
   console.log(
