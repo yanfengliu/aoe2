@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Verify a playtest finding by REPLAYING the actual bundle, not by synthetic repro or trace narration — 2026-06-13
+
+| Field | Value |
+|---|---|
+| Surfaced by | User directive 2026-06-13 ("Are you using the debugging tools the engine provides?"); `docs/engine-feedback/current.md` endTick note; `scripts/replay-inspect.mjs` output on `output/playtests-llm/campaign-4.json` |
+| Reviewer findings | n/a — process lesson. The two WRONG hypotheses were: a conformance-probe finding (`campaign-4.findings.md` HIGH "wood gather is broken") and a debugging subagent's synthetic-repro conclusion ("villager attrition from enemy militia raids") |
+| Fix commit | AGENTS.md Debugging rule + `scripts/replay-inspect.mjs` (this commit) |
+| Test added | n/a — process lesson (the tool is `replay-inspect`, not a unit test) |
+| Behavior delta | Before: the wood-economy "bug" was diagnosed two different ways, both wrong, and a fix to the gather code would have been wasted. After: replaying campaign-4 with `SessionReplayer.openAt` + `getEconomyState()` showed the real state — owner 2 grew to 19 villagers (no attrition), enemy-near-base 0 all game (no raids), opponent fully inert, yet 18/19 woodcutters stuck in task `to-resource` with 0 gathering and full 100/100 trees 8 cells away. The true bug is a villager economy state-machine stall at scale, not gather/credit/drop-off. The same pass exposed the recorder `endTick: 0` bug. |
+
+Context: an LLM playtest finding is a CLAIM about a recorded run; the agent's trace narration reflects what the *agent believed* (it thought gather was broken because resources weren't rising — actually its woodcutters were gridlocked). `civ-engine` provides `SessionReplayer` (replay any bundle to any tick), `WorldDebugger`, and occupancy/path/visibility debug probes. Replaying the exact bundle and reading ground-truth `getEconomyState()` per owner is the fast, authoritative way to find what actually happened. Synthetic `createSimulationBridge` repros are a SECOND step (isolate a confirmed cause) — they can reproduce a *different* scenario than the real run (the subagent's default map had an active AI raider; campaign-4's opponent was inert).
+Lesson: for any recorded-run bug, `npm run replay:inspect -- <bundle>` (or a `SessionReplayer.openAt` + `WorldDebugger` pass) BEFORE writing a repro or a fix. Pointer: `scripts/replay-inspect.mjs`, AGENTS.md "Debugging" first bullet, `docs/engine-feedback/current.md` endTick entry.
+
 ## Architecture-wide gates don't fire under affected-tests-only iteration — 2026-06-09
 
 | Field | Value |
