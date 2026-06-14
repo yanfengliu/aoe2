@@ -54,18 +54,19 @@ export type GameComponents = {
 };
 export type GameWorld = World<GameEvents, GameCommands, GameComponents>;
 
-// civ-engine 0.8.15's World layer-chain split made TComponents
-// effectively invariant, so GameWorld no longer interchanges with the
-// default-generic `World<TEvents, TCommands>` that SessionRecorder /
-// SessionReplayer signatures hardcode (no TComponents parameter —
-// engine-feedback item, 2026-06-09). These two helpers are the single
-// sanctioned seam; the runtime object is identical either way.
+// `WorldDebugger` and `RenderAdapter` still type their `world` config as the
+// default-generic `World<TEventMap, TCommandMap>` (no `TComponents` parameter),
+// and `World`'s `TComponents` is invariant (civ-engine's layer-chain split,
+// intact in 1.2.0), so a component-typed `GameWorld` is not assignable to those
+// slots. This is the lone surviving cast seam, for the debug/render boundary.
+// The recorder/replayer halves of the original seam are gone: engine 1.2.0
+// threaded `TComponents`/`TState` through `SessionRecorder` / `SessionReplayer`,
+// so a `GameWorld` now flows into recording and replay with no cast, and the
+// replay `worldFactory`'s return reasserts the component registry on `openAt`.
+// The runtime object is identical either way.
 export type EngineDefaultWorld = World<GameEvents, GameCommands>;
 export function toEngineWorld(world: GameWorld): EngineDefaultWorld {
   return world as unknown as EngineDefaultWorld;
-}
-export function fromEngineWorld(world: EngineDefaultWorld): GameWorld {
-  return world as unknown as GameWorld;
 }
 
 export type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;

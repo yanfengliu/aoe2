@@ -11,8 +11,6 @@ import { createReplayWorldOnly } from '../../src/game/simulation/replay/createRe
 import { makeReplayBridge } from '../../src/game/simulation/replay/makeReplayBridge';
 import { getReplayWorldContext } from '../../src/game/simulation/replay/replayWorldContext';
 import {
-  fromEngineWorld,
-  toEngineWorld,
   type GameCommands,
   type GameEvents,
 } from '../../src/game/simulation/bridge/pureHelpers';
@@ -20,10 +18,10 @@ import type { SessionBundle } from 'civ-engine';
 
 function openReplayWorld(bundle: SessionBundle<GameEvents, GameCommands>) {
   const replayer = SessionReplayer.fromBundle(bundle, {
-    worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)),
+    worldFactory: (snapshot) => createReplayWorldOnly(snapshot),
     skipRegistrationCheck: true,
   });
-  return fromEngineWorld(replayer.openAt(bundle.metadata.endTick));
+  return replayer.openAt(bundle.metadata.endTick);
 }
 
 describe('makeReplayBridge fogOwner', () => {

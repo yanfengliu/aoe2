@@ -17,7 +17,6 @@ import { readFileSync } from 'node:fs';
 
 import { SessionReplayer } from 'civ-engine';
 import { createReplayWorldOnly } from '../src/game/simulation/replay/createReplayWorldOnly.ts';
-import { fromEngineWorld, toEngineWorld } from '../src/game/simulation/bridge/pureHelpers.ts';
 import { makeReplayBridge } from '../src/game/simulation/replay/makeReplayBridge.ts';
 
 const argv = process.argv.slice(2);
@@ -48,7 +47,7 @@ if (bundle.metadata && (bundle.metadata.endTick ?? 0) <= 0) {
   console.log(`[replay-inspect] repaired bundle endTick 0 -> ${recordedMax} (harness recording bug)\n`);
 }
 const replayer = SessionReplayer.fromBundle(bundle, {
-  worldFactory: (snapshot) => toEngineWorld(createReplayWorldOnly(snapshot)),
+  worldFactory: (snapshot) => createReplayWorldOnly(snapshot),
   skipRegistrationCheck: true,
 });
 
@@ -67,7 +66,7 @@ console.log('------|-----|---------|--------------|----------|-------|-------|--
 for (const tick of ticks) {
   let eco;
   try {
-    const world = fromEngineWorld(replayer.openAt(tick));
+    const world = replayer.openAt(tick);
     eco = makeReplayBridge(world, { fogOwner: 1 }).getEconomyState();
   } catch (err) {
     console.log(`${pad(tick, 5)} | openAt failed: ${err?.message ?? err}`);
@@ -99,7 +98,7 @@ const di = argv.indexOf('--detail');
 if (di >= 0) {
   const detailTick = Number(argv[di + 1]);
   const detailOwner = Number(argv[di + 2] ?? 2);
-  const world = fromEngineWorld(replayer.openAt(detailTick));
+  const world = replayer.openAt(detailTick);
   const eco = makeReplayBridge(world, { fogOwner: 1 }).getEconomyState();
   const vills = eco.villagers.filter((v) => v.owner === detailOwner);
   console.log(`\n=== DETAIL: owner ${detailOwner} at tick ${detailTick} (${vills.length} villagers) ===`);

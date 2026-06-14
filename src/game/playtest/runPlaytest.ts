@@ -1,6 +1,5 @@
 import { MemorySink, SessionRecorder, SinkWriteError } from 'civ-engine';
 import { createSimulationBridge } from '../simulation/createSimulationBridge';
-import { toEngineWorld } from '../simulation/bridge/pureHelpers';
 import type {
   OracleEnvelope,
   RunPlaytestConfig,
@@ -18,7 +17,7 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
   const bridge = createSimulationBridge(seed);
   const sink = new MemorySink({ allowSidecar: true });
   const recorder = new SessionRecorder({
-    world: toEngineWorld(bridge.world),
+    world: bridge.world,
     sink,
     sourceLabel: `aoe2-playtest-${seed}`,
     sourceKind: 'synthetic',

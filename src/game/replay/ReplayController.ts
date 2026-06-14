@@ -17,12 +17,7 @@ import {
 } from './replayControllerHelpers';
 
 import type { SimulationBridge } from '../simulation/createSimulationBridge';
-import type {
-  GameCommands,
-  GameEvents,
-  GameWorld,
-} from '../simulation/bridge/pureHelpers';
-import { fromEngineWorld, toEngineWorld } from '../simulation/bridge/pureHelpers';
+import type { GameCommands, GameComponents, GameEvents, GameWorld } from '../simulation/bridge/pureHelpers';
 import { createReplayWorldOnly } from '../simulation/replay/createReplayWorldOnly';
 import { getReplayWorldContext } from '../simulation/replay/replayWorldContext';
 import {
@@ -33,7 +28,10 @@ import { HUMAN_PLAYER_ID, TPS } from '../simulation/prototypeScenario';
 
 export type ReplayMode = 'live' | 'replay';
 export type ReplayBundle = SessionBundle<GameEvents, GameCommands>;
-export type ReplayReplayer = SessionReplayer<GameEvents, GameCommands>;
+// Pin TComponents = GameComponents so a replayed world is registry-typed (engine 1.2.0).
+// TDebug (engine-internal JsonValue) is not exported, so `infer` it from the bundle type.
+type ReplayBundleDebug = ReplayBundle extends SessionBundle<GameEvents, GameCommands, infer TDebug> ? TDebug : never;
+export type ReplayReplayer = SessionReplayer<GameEvents, GameCommands, ReplayBundleDebug, GameComponents>;
 export type ReplayWorldFactory = (snapshot: ReplayBundle['initialSnapshot']) => GameWorld;
 export type ReplayBridgeFactory = (
   world: GameWorld,
@@ -180,7 +178,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   function openReplayAt(tick: number): void {
     const current = requireReplayContext();
     const targetTick = clampTick(current.bundle, tick);
-    const world = fromEngineWorld(current.replayer.openAt(targetTick));
+    const world = current.replayer.openAt(targetTick);
     const selectedRefs = current.bridge
       .getSelectedEntityRefs()
       .filter((ref) => world.isCurrent(ref));
@@ -405,12 +403,12 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
         // live recording world. The engine's escape hatch exists for
         // exactly this case; selfCheck remains the divergence backstop.
         {
-          worldFactory: (snapshot) => toEngineWorld(worldFactory(snapshot)),
+          worldFactory,
           skipRegistrationCheck: true,
         },
-      ) as ReplayReplayer;
+      );
       const targetTick = clampTick(bundle, atTick);
-      const world = fromEngineWorld(replayer.openAt(targetTick));
+      const world = replayer.openAt(targetTick);
       const bridge = buildReplayBridge(world, fogOwnerForNewSession);
       const nextContext: ReplayContext = {
         bundle,
