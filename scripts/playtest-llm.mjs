@@ -11,7 +11,11 @@
 //   --out <path>                 default output/playtests-llm/run
 //   --decision-interval <ticks>  default 250
 //   --strategy-every <decisions> default 10
-//   --owners <csv>               default '2'
+//   --owners <csv>               default '1' — the LLM plays the HUMAN
+//                                slot (player 1) so the in-game AI on
+//                                player 2 is a real opponent. (disableAi=1
+//                                is rejected by createApp — the human has
+//                                no AI to disable — so P2's AI stays live.)
 //   --cost-budget <usd>          default 5.0
 //   --provider <claude-code|api> default 'claude-code' if `claude` CLI on
 //                                PATH, else 'api' if ANTHROPIC_API_KEY
@@ -47,7 +51,10 @@ function parseArgs(argv) {
     out: 'output/playtests-llm/run',
     decisionInterval: 250,
     strategyEvery: 10,
-    owners: [2],
+    // LLM plays player 1 (the human slot) so player 2's in-game AI is a
+    // real opponent. campaign-1..5 used owners [2], which left the LLM in
+    // the only AI slot and player 1 (human, no AI) inert — no opponent.
+    owners: [1],
     costBudget: 5.0,
     provider: null, // null = auto-detect
     useDevServer: false,

@@ -57,7 +57,10 @@ const pad = (s, n) => String(s).padStart(n);
 const dist = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 console.log(`Replay inspection: ${bundlePath}`);
-console.log('owner 2 = LLM agent (campaign default); owner 1 = AI enemy.\n');
+// Owner roles depend on the run's --owners: campaign-1..5 used owners=[2]
+// (LLM = player 2, player 1 = inert human/no-AI); campaign-6+ uses
+// owners=[1] (LLM = player 1, player 2 = the live AI opponent).
+console.log('owners depend on the run (--owners): LLM vs the in-game AI.\n');
 console.log('tick  | own | age     | vills (wood) | military | bldgs |  wood | food | gold | stone | enemyMilNearBase');
 console.log('------|-----|---------|--------------|----------|-------|-------|------|------|-------|-----------------');
 
