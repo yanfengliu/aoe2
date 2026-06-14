@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.26 - 2026-06-14
+
+### Economy gather-rate technologies now actually speed up gathering
+
+A playtest showed the agent only ever researched the age-up — the economy upgrades existed in the data but did nothing, so there was no reason to research them. The Lumber Camp and Mining Camp gather-rate techs are now live and effective: Double-Bit Axe (Feudal, +20% wood), Bow Saw (Castle, +20% wood), Two-Man Saw (Imperial, +10% wood), Gold Mining and Stone Mining (Feudal, +15%), and Gold/Stone Shaft Mining (Castle, +15%, require their base tech). Effects stack and make villagers fill their carry sooner, raising throughput — meaningful research beyond age-up now exists, which matters most for reaching Castle/Imperial Age before food and wood sources run dry. The in-game AI is unaffected (it still focuses on age-up research), so its tuned economy and timings are unchanged. Farm-food techs (Horse Collar, Heavy Plow) and the carry/movement techs (Wheelbarrow, Hand Cart) are not included yet — they depend on farms and on carry/speed modifiers, which come later.
+
+### Validation
+
+- TDD: `tests/simulation/economyGatherRateTechs.test.ts` (multiplier math + cadence) and `tests/simulation/economyResearchOptions.test.ts` (the techs surface at the right building/age and drop out once researched); full suite green. End-to-end (agent researching and gathering faster in a live match) is validated by the next LLM-playtest re-run.
+- Multi-CLI review: see `docs/threads/done/economy-gather-techs/`.
+
 ## 0.1.25 - 2026-06-14
 
 ### Villagers spread across the forest (no more re-piling on one tree)

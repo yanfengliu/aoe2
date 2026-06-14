@@ -344,6 +344,51 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
+    // Economy gather-rate techs. Lumber Camp (wood) from Feudal; Bow Saw +
+    // Two-Man Saw add in Castle / Imperial. Each is offered once and drops out
+    // of the list once researched.
+    if (buildingType === 'lumber-camp' && isAtLeastAge(owner, 'feudal-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'double-bit-axe')) {
+        options.push('double-bit-axe');
+      }
+      if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'bow-saw')) {
+        options.push('bow-saw');
+      }
+      if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'two-man-saw')) {
+        options.push('two-man-saw');
+      }
+      if (options.length > 0) {
+        return options;
+      }
+    }
+
+    // Mining Camp (gold + stone) from Feudal; the Shaft upgrades add in Castle.
+    // Per the dataset (technologies.csv) these stack but carry no base-tech
+    // prerequisite, so — like the Lumber Camp — age is the only gate. (AoE2's
+    // linear prerequisite chains would need a prereq column in the dataset; a
+    // deferred fidelity refinement, see the thread REVIEW.)
+    if (buildingType === 'mining-camp' && isAtLeastAge(owner, 'feudal-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (!hasTechnology(owner, 'gold-mining')) {
+        options.push('gold-mining');
+      }
+      if (!hasTechnology(owner, 'stone-mining')) {
+        options.push('stone-mining');
+      }
+      if (isAtLeastAge(owner, 'castle-age')) {
+        if (!hasTechnology(owner, 'gold-shaft-mining')) {
+          options.push('gold-shaft-mining');
+        }
+        if (!hasTechnology(owner, 'stone-shaft-mining')) {
+          options.push('stone-shaft-mining');
+        }
+      }
+      if (options.length > 0) {
+        return options;
+      }
+    }
+
     return [];
   }
 

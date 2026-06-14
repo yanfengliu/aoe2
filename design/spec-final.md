@@ -385,6 +385,20 @@ The implementation must support:
 - farm-capacity increases
 - civ-specific free or discounted economy techs
 
+**Gather-rate techs (implemented).** The Lumber Camp (wood) and Mining Camp (gold/stone) "Work Rate ×N" techs apply a gather-rate multiplier to the matching resource. The multiplier is derived from the owner's researched-tech set (no separate stored state — the researched-tech record is the source of truth) and applied as a per-tick rate accumulation: each tick adds the multiplier to a gather-progress accumulator and one unit is gathered whenever it crosses the base per-cycle ticks, carrying the remainder into the next cycle. Carrying the remainder (rather than rounding each cycle to a whole-tick cadence) is required so stacked techs raise throughput faithfully at AoE2's tiny base cadences — per-cycle integer rounding would collapse the second-tier techs (Two-Man Saw, Shaft Mining) to no marginal effect. (Multiplying the per-cycle amount instead would be swallowed by the carry cap.) Net gathering throughput tracks the multiplier — filling a full carry takes about base-ticks × cycles ÷ multiplier ticks of gathering — and is then diluted by villager travel time. Factors stack multiplicatively.
+
+| Tech | Building | Earliest age | Resource | Factor |
+|---|---|---|---|---|
+| Double-Bit Axe | Lumber Camp | Feudal | wood | ×1.2 |
+| Bow Saw | Lumber Camp | Castle | wood | ×1.2 |
+| Two-Man Saw | Lumber Camp | Imperial | wood | ×1.1 |
+| Gold Mining | Mining Camp | Feudal | gold | ×1.15 |
+| Gold Shaft Mining | Mining Camp | Castle | gold | ×1.15 |
+| Stone Mining | Mining Camp | Feudal | stone | ×1.15 |
+| Stone Shaft Mining | Mining Camp | Castle | stone | ×1.15 |
+
+Each tech is offered once at its building from its earliest age and drops out of the research list once researched. The Mill farm-food techs (Horse Collar, Heavy Plow, Crop Rotation) and the villager carry/movement techs (Wheelbarrow, Hand Cart) are not yet implemented — they depend on farms and on carry/speed modifiers respectively.
+
 ### 6.6 Farm Mechanics
 
 Farm rules:

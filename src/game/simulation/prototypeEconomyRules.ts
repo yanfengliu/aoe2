@@ -145,6 +145,14 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'two-handed-swordsman-upgrade': { food: 300, gold: 100 },
   'paladin-upgrade': { food: 1300, gold: 750 },
   'heavy-camel-upgrade': { food: 325, gold: 360 },
+  // Economy gather-rate techs (costs from design/stats/technologies.csv).
+  'double-bit-axe': { wood: 50, food: 100 },
+  'bow-saw': { wood: 100, food: 150 },
+  'two-man-saw': { wood: 200, food: 300 },
+  'gold-mining': { food: 100, wood: 75 },
+  'gold-shaft-mining': { food: 200, wood: 150 },
+  'stone-mining': { food: 100, wood: 75 },
+  'stone-shaft-mining': { food: 200, wood: 150 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -242,6 +250,14 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'two-handed-swordsman-upgrade': 500,
   'paladin-upgrade': 600,
   'heavy-camel-upgrade': 500,
+  // Economy gather-rate techs (CSV research seconds × 10 TPS).
+  'double-bit-axe': 250,
+  'bow-saw': 500,
+  'two-man-saw': 1000,
+  'gold-mining': 300,
+  'gold-shaft-mining': 750,
+  'stone-mining': 300,
+  'stone-shaft-mining': 750,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {
@@ -281,6 +297,86 @@ export function gatherAmountFor(kind: ResourceKind): number {
     throwUnharvestableResourceError(kind);
   }
   return amount;
+}
+
+// AoE2 economy gather-rate techs ("Work Rate ×N"). Effect is DERIVED from the
+// owner's researched-tech set at gather time — no side-map mutation — because
+// `applyTechnology` already records every researched tech in
+// `researchedTechnologiesCodec`. Lumber Camp (wood) + Mining Camp (gold/stone);
+// food is intentionally absent (Horse Collar is a farm-food tech, deferred until
+// farms exist). Factors stack multiplicatively, matching AoE2.
+const GATHER_RATE_TECH_FACTORS: Partial<
+  Record<ResearchableTechnologyType, { resource: EconomyResourceKind; factor: number }>
+> = {
+  'double-bit-axe': { resource: 'wood', factor: 1.2 },
+  'bow-saw': { resource: 'wood', factor: 1.2 },
+  'two-man-saw': { resource: 'wood', factor: 1.1 },
+  'gold-mining': { resource: 'gold', factor: 1.15 },
+  'gold-shaft-mining': { resource: 'gold', factor: 1.15 },
+  'stone-mining': { resource: 'stone', factor: 1.15 },
+  'stone-shaft-mining': { resource: 'stone', factor: 1.15 },
+};
+
+// Product of the factors of every researched gather tech that matches
+// `resource`. 1.0 (no speedup) when none are researched.
+export function gatherRateMultiplier(
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  resource: EconomyResourceKind,
+): number {
+  let multiplier = 1;
+  for (const tech of researchedTechnologies) {
+    const effect = GATHER_RATE_TECH_FACTORS[tech];
+    if (effect && effect.resource === resource) {
+      multiplier *= effect.factor;
+    }
+  }
+  return multiplier;
+}
+
+// The owner's gather-rate multiplier for a concrete resource KIND (1.0 for
+// non-economy kinds, e.g. relics).
+export function gatherRateMultiplierForKind(
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  kind: ResourceKind,
+): number {
+  const resource = resourceKindToEconomyResource(kind);
+  return resource === null ? 1 : gatherRateMultiplier(researchedTechnologies, resource);
+}
+
+// Ticks to gather a full carry, modelling the villager economy's per-tick rate
+// ACCUMULATION: each tick adds the gather-rate multiplier to a progress
+// accumulator, and a unit of `amount` is gathered whenever it crosses the base
+// per-cycle ticks — carrying the remainder. Carrying the remainder (rather than
+// rounding each cycle to an integer cadence) is load-bearing: at AoE2's tiny
+// base cadences (tree 5, gold/stone 6) per-cycle rounding collapses stacked
+// second-tier techs (Two-Man Saw, Shaft Mining) to no marginal effect and
+// overshoots the nominal % on the first tier; rate accumulation over the ~10
+// cycles per carry instead tracks the multiplier faithfully. (Multiplying the
+// per-cycle AMOUNT is swallowed by the carry cap.) This pure helper is the
+// throughput model the gather loop mirrors tick-for-tick.
+export function ticksToGatherCarry(
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  kind: ResourceKind,
+  carryCapacity: number,
+): number {
+  if (carryCapacity <= 0) {
+    return 0;
+  }
+  const baseTicks = gatherTicksFor(kind);
+  const amount = gatherAmountFor(kind);
+  const multiplier = gatherRateMultiplierForKind(researchedTechnologies, kind);
+  let progress = 0;
+  let carried = 0;
+  let ticks = 0;
+  while (carried < carryCapacity) {
+    ticks += 1;
+    progress += multiplier;
+    if (progress >= baseTicks) {
+      progress -= baseTicks;
+      carried += amount;
+    }
+  }
+  return ticks;
 }
 
 export function resourceTint(resourceType: ResourceKind, owner: number | null): number {

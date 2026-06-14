@@ -1,12 +1,14 @@
 // Villager economy state machine. Each idle villager gets routed to its
 // owner's nearest matching resource; once at the resource the gather loop
-// counts ticks toward `gatherTicksFor(resourceType)` and drops carried
+// accumulates the owner's gather-rate multiplier each tick toward the base
+// per-cycle cadence (gather-rate techs speed it) and drops carried
 // resources at the nearest drop-off building. Drop-off retries are
 // throttled so a stuck villager doesn't re-plan every tick.
 
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
+  ResearchableTechnologyType,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
@@ -16,6 +18,7 @@ import {
 } from '../pureHelpers';
 import {
   gatherAmountFor,
+  gatherRateMultiplierForKind,
   gatherTicksFor,
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
@@ -24,6 +27,7 @@ import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
   playerResourcesCodec,
+  researchedTechnologiesCodec,
   sheepMoveOrdersCodec,
   unitCommandsCodec,
 } from '../bridgeStateSerialize';
@@ -51,6 +55,9 @@ const GATHER_APPROACH_TIMEOUT_TICKS = 80;
 // clustering is below this, so its tuned economy is unchanged (a cap of 2
 // here over-spread the AI and broke its age-up; 4 clears normal clustering).
 const IDLE_ASSIGN_SPREAD_CAP = 4;
+// Stable empty-set sentinel for owners with no researched techs, so the
+// per-gather-tick gatherRateMultiplierForKind lookup never allocates.
+const NO_RESEARCHED_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 interface PlayerScoreCountersLike {
   resourcesGathered: number;
@@ -227,6 +234,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       // converged on this finding.
       const unitCommands = accessor.get(unitCommandsCodec);
       const stuckMap = accessor.get(gathererDropOffStuckSinceTickCodec);
+      // Per-owner researched-tech sets drive the gather-rate multiplier
+      // (gatherRateMultiplierForKind). Fetched once per tick like the other maps.
+      const researchedTechnologies = accessor.get(researchedTechnologiesCodec);
       let stuckMapDirty = false;
       function clearStuck(id: number): void {
         if (stuckMap.delete(id)) stuckMapDirty = true;
@@ -358,12 +368,18 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               gatherer.targetResourceId = null;
               gatherer.gatherProgressTicks = 0;
             } else {
-              gatherer.gatherProgressTicks += 1;
-              if (
-                gatherer.gatherProgressTicks
-                >= gatherTicksFor(targetResource.resourceType)
-              ) {
-                gatherer.gatherProgressTicks = 0;
+              // Rate accumulation: add the owner's gather-rate multiplier each
+              // tick and complete a gather cycle when it crosses the base
+              // cadence, carrying the remainder so stacked gather-rate techs
+              // raise throughput faithfully even at tiny base cadences
+              // (mirrors ticksToGatherCarry).
+              gatherer.gatherProgressTicks += gatherRateMultiplierForKind(
+                researchedTechnologies.get(unit.owner) ?? NO_RESEARCHED_TECHS,
+                targetResource.resourceType,
+              );
+              const cycleGatherTicks = gatherTicksFor(targetResource.resourceType);
+              if (gatherer.gatherProgressTicks >= cycleGatherTicks) {
+                gatherer.gatherProgressTicks -= cycleGatherTicks;
                 const carriedResource = resourceKindToEconomyResource(targetResource.resourceType);
                 if (carriedResource === null) {
                   gatherer.task = 'idle';

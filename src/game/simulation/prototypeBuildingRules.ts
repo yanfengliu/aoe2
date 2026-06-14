@@ -248,6 +248,8 @@ const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechno
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade']],
   ['castle', ['elite-longbowman-upgrade']],
   ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade']],
+  ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
+  ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
 ]);
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([

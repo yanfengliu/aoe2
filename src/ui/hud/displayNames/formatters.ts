@@ -86,6 +86,20 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Paladin';
     case 'heavy-camel-upgrade':
       return 'Heavy Camel';
+    case 'double-bit-axe':
+      return 'Double-Bit Axe';
+    case 'bow-saw':
+      return 'Bow Saw';
+    case 'two-man-saw':
+      return 'Two-Man Saw';
+    case 'gold-mining':
+      return 'Gold Mining';
+    case 'gold-shaft-mining':
+      return 'Gold Shaft Mining';
+    case 'stone-mining':
+      return 'Stone Mining';
+    case 'stone-shaft-mining':
+      return 'Stone Shaft Mining';
   }
 }
 

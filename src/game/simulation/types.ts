@@ -118,7 +118,18 @@ export type ResearchableTechnologyType =
   | 'long-swordsman-upgrade'
   | 'two-handed-swordsman-upgrade'
   | 'paladin-upgrade'
-  | 'heavy-camel-upgrade';
+  | 'heavy-camel-upgrade'
+  // Economy gather-rate techs (AoE2 "Work Rate ×N"). Lumber Camp (wood) +
+  // Mining Camp (gold/stone). No side-map mutation: the rate multiplier is
+  // derived from the owner's researched-tech set at gather time
+  // (see gatherRateMultiplier / ticksToGatherCarry in prototypeEconomyRules).
+  | 'double-bit-axe'
+  | 'bow-saw'
+  | 'two-man-saw'
+  | 'gold-mining'
+  | 'gold-shaft-mining'
+  | 'stone-mining'
+  | 'stone-shaft-mining';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'
