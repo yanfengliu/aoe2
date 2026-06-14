@@ -397,7 +397,9 @@ The implementation must support:
 | Stone Mining | Mining Camp | Feudal | stone | ×1.15 |
 | Stone Shaft Mining | Mining Camp | Castle | stone | ×1.15 |
 
-Each tech is offered once at its building from its earliest age and drops out of the research list once researched. The Mill farm-food techs (Horse Collar, Heavy Plow, Crop Rotation) and the villager carry/movement techs (Wheelbarrow, Hand Cart) are not yet implemented — they depend on farms and on carry/speed modifiers respectively.
+Each tech is offered once at its building from its earliest age and drops out of the research list once researched.
+
+**Carry-capacity techs (implemented).** Wheelbarrow (Feudal, Town Center, ×1.25) and Hand Cart (Castle, Town Center, ×1.5) raise a villager's effective carry capacity — effective carry = round(base carry × multiplier), the multiplier derived from the owner's researched-tech set with factors stacking multiplicatively (×1.875 with both). Carry is resource-agnostic, so this speeds gathering of every resource including food: a larger carry means fewer drop-off trips. The AoE2 movement-speed component of both techs (×1.1) is not yet implemented (it belongs to the unit-movement system). The Mill farm-food techs (Horse Collar, Heavy Plow, Crop Rotation) remain unimplemented — they depend on farms.
 
 ### 6.6 Farm Mechanics
 

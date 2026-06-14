@@ -122,14 +122,19 @@ export type ResearchableTechnologyType =
   // Economy gather-rate techs (AoE2 "Work Rate ×N"). Lumber Camp (wood) +
   // Mining Camp (gold/stone). No side-map mutation: the rate multiplier is
   // derived from the owner's researched-tech set at gather time
-  // (see gatherRateMultiplier / ticksToGatherCarry in prototypeEconomyRules).
+  // (see gatherRateMultiplier / ticksToGatherCarry in economyTechEffects).
   | 'double-bit-axe'
   | 'bow-saw'
   | 'two-man-saw'
   | 'gold-mining'
   | 'gold-shaft-mining'
   | 'stone-mining'
-  | 'stone-shaft-mining';
+  | 'stone-shaft-mining'
+  // Economy carry-capacity techs (Town Center). Like the gather-rate techs the
+  // carry multiplier is derived from the researched-tech set at gather time
+  // (see carryCapacityMultiplier / effectiveCarryCapacity in economyTechEffects).
+  | 'wheelbarrow'
+  | 'hand-cart';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

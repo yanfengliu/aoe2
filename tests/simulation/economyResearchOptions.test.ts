@@ -4,6 +4,7 @@ import {
   createOptionsRules,
   type OptionsRulesDeps,
 } from '../../src/game/simulation/bridge/optionsRules';
+import { canResearchAt } from '../../src/game/simulation/prototypeBuildingRules';
 import type {
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -12,7 +13,11 @@ import type {
 type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 const AGE_ORDER: AgeType[] = ['dark-age', 'feudal-age', 'castle-age', 'imperial-age'];
 
-function optionsAt(age: AgeType, researched: ResearchableTechnologyType[] = []) {
+function optionsAt(
+  age: AgeType,
+  researched: ResearchableTechnologyType[] = [],
+  canAdvanceTo?: AgeType,
+) {
   const have = new Set(researched);
   const deps: OptionsRulesDeps = {
     latestResearchedInChain: () => 'villager' as TrainableUnitType,
@@ -20,9 +25,9 @@ function optionsAt(age: AgeType, researched: ResearchableTechnologyType[] = []) 
     getPlayerAge: () => age,
     isAtLeastAge: (_owner, min) => AGE_ORDER.indexOf(age) >= AGE_ORDER.indexOf(min),
     getPlayerCivilization: () => 'Franks',
-    canAdvanceToFeudalAge: () => false,
-    canAdvanceToCastleAge: () => false,
-    canAdvanceToImperialAge: () => false,
+    canAdvanceToFeudalAge: () => canAdvanceTo === 'feudal-age',
+    canAdvanceToCastleAge: () => canAdvanceTo === 'castle-age',
+    canAdvanceToImperialAge: () => canAdvanceTo === 'imperial-age',
     hasCompletedBuilding: () => true,
     hasOwnedWonder: () => false,
   };
@@ -70,5 +75,60 @@ describe('getResearchOptions — economy gather-rate techs', () => {
     expect(
       optionsAt('castle-age', ['gold-mining', 'stone-mining']).getResearchOptions(1, 'mining-camp'),
     ).toEqual(['gold-shaft-mining', 'stone-shaft-mining']);
+  });
+});
+
+describe('getResearchOptions — Town Center carry techs', () => {
+  it('offers no carry tech in the Dark Age', () => {
+    expect(optionsAt('dark-age').getResearchOptions(1, 'town-center')).toEqual([]);
+  });
+
+  it('offers Wheelbarrow (Feudal) then adds Hand Cart (Castle)', () => {
+    expect(optionsAt('feudal-age').getResearchOptions(1, 'town-center')).toEqual(['wheelbarrow']);
+    expect(optionsAt('castle-age').getResearchOptions(1, 'town-center')).toEqual([
+      'wheelbarrow',
+      'hand-cart',
+    ]);
+  });
+
+  it('drops a researched carry tech', () => {
+    expect(
+      optionsAt('castle-age', ['wheelbarrow']).getResearchOptions(1, 'town-center'),
+    ).toEqual(['hand-cart']);
+  });
+
+  it('offers the age-up alongside carry techs (age-up still comes first)', () => {
+    expect(
+      optionsAt('feudal-age', [], 'castle-age').getResearchOptions(1, 'town-center'),
+    ).toEqual(['castle-age', 'wheelbarrow']);
+  });
+
+  it('getVisibleResearchOptions surfaces the next age-up + carry techs', () => {
+    expect(optionsAt('feudal-age').getVisibleResearchOptions(1, 'town-center')).toEqual([
+      'castle-age',
+      'wheelbarrow',
+    ]);
+  });
+});
+
+// Validator-side gating (RESEARCHES_BY_BUILDING via canResearchAt). The
+// queueResearch validator requires this to AGREE with getResearchOptions, so
+// this guards the building→tech map for every economy tech (a regression that
+// dropped a tech from the map while options still exposed it would be caught).
+describe('canResearchAt — economy tech building gating', () => {
+  it('gates each economy tech to its correct building', () => {
+    expect(canResearchAt('town-center', 'wheelbarrow')).toBe(true);
+    expect(canResearchAt('town-center', 'hand-cart')).toBe(true);
+    expect(canResearchAt('lumber-camp', 'double-bit-axe')).toBe(true);
+    expect(canResearchAt('lumber-camp', 'two-man-saw')).toBe(true);
+    expect(canResearchAt('mining-camp', 'gold-mining')).toBe(true);
+    expect(canResearchAt('mining-camp', 'stone-shaft-mining')).toBe(true);
+  });
+
+  it('rejects economy techs at the wrong building', () => {
+    expect(canResearchAt('lumber-camp', 'wheelbarrow')).toBe(false);
+    expect(canResearchAt('town-center', 'double-bit-axe')).toBe(false);
+    expect(canResearchAt('blacksmith', 'gold-mining')).toBe(false);
+    expect(canResearchAt('mining-camp', 'double-bit-axe')).toBe(false);
   });
 });

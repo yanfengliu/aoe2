@@ -18,10 +18,13 @@ import {
 } from '../pureHelpers';
 import {
   gatherAmountFor,
-  gatherRateMultiplierForKind,
   gatherTicksFor,
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
+import {
+  effectiveCarryCapacity,
+  gatherRateMultiplierForKind,
+} from '../../economyTechEffects';
 import { gatherMultiplier } from '../../ai';
 import {
   aiStatesCodec,
@@ -373,8 +376,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               // cadence, carrying the remainder so stacked gather-rate techs
               // raise throughput faithfully even at tiny base cadences
               // (mirrors ticksToGatherCarry).
+              const ownerTechs =
+                researchedTechnologies.get(unit.owner) ?? NO_RESEARCHED_TECHS;
               gatherer.gatherProgressTicks += gatherRateMultiplierForKind(
-                researchedTechnologies.get(unit.owner) ?? NO_RESEARCHED_TECHS,
+                ownerTechs,
                 targetResource.resourceType,
               );
               const cycleGatherTicks = gatherTicksFor(targetResource.resourceType);
@@ -386,10 +391,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   gatherer.targetResourceId = null;
                   continue;
                 }
+                // Carry techs (Wheelbarrow / Hand Cart) raise effective carry,
+                // derived from the owner's researched-tech set.
+                const carryCapacity = effectiveCarryCapacity(ownerTechs, gatherer.carryCapacity);
                 const gatherAmount = Math.min(
                   gatherAmountFor(targetResource.resourceType),
                   targetResource.amount,
-                  gatherer.carryCapacity - gatherer.carriedAmount,
+                  carryCapacity - gatherer.carriedAmount,
                 );
                 targetResource.amount -= gatherAmount;
                 gatherer.carriedResource = carriedResource;
@@ -403,7 +411,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   }
                 }
 
-                if (targetResource.amount <= 0 || gatherer.carriedAmount >= gatherer.carryCapacity) {
+                if (targetResource.amount <= 0 || gatherer.carriedAmount >= carryCapacity) {
                   gatherer.task = 'to-dropoff';
                 }
               }

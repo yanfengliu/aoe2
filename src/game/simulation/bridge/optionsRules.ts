@@ -174,16 +174,29 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     owner: number,
     buildingType: BuildingType,
   ): ResearchableTechnologyType[] {
-    if (buildingType === 'town-center' && canAdvanceToFeudalAge(owner)) {
-      return ['feudal-age'];
-    }
-
-    if (buildingType === 'town-center' && canAdvanceToCastleAge(owner)) {
-      return ['castle-age'];
-    }
-
-    if (buildingType === 'town-center' && canAdvanceToImperialAge(owner)) {
-      return ['imperial-age'];
+    if (buildingType === 'town-center') {
+      const options: ResearchableTechnologyType[] = [];
+      // The canAdvance* predicates are mutually exclusive, so at most one
+      // age-up is offered; carry techs are offered alongside it.
+      if (canAdvanceToFeudalAge(owner)) {
+        options.push('feudal-age');
+      }
+      if (canAdvanceToCastleAge(owner)) {
+        options.push('castle-age');
+      }
+      if (canAdvanceToImperialAge(owner)) {
+        options.push('imperial-age');
+      }
+      // Economy carry-capacity techs (Wheelbarrow Feudal, Hand Cart Castle).
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) {
+        options.push('wheelbarrow');
+      }
+      if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
+        options.push('hand-cart');
+      }
+      if (options.length > 0) {
+        return options;
+      }
     }
 
     if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age') {
@@ -398,16 +411,23 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
   ): ResearchableTechnologyType[] {
     if (buildingType === 'town-center') {
       const age = getPlayerAge(owner);
+      const options: ResearchableTechnologyType[] = [];
       if (age === 'dark-age') {
-        return ['feudal-age'];
+        options.push('feudal-age');
+      } else if (age === 'feudal-age') {
+        options.push('castle-age');
+      } else if (age === 'castle-age') {
+        options.push('imperial-age');
       }
-      if (age === 'feudal-age') {
-        return ['castle-age'];
+      // Carry techs are shown from their age onward (until researched), so the
+      // agent/HUD can see them alongside the next age-up.
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) {
+        options.push('wheelbarrow');
       }
-      if (age === 'castle-age') {
-        return ['imperial-age'];
+      if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
+        options.push('hand-cart');
       }
-      return [];
+      return options;
     }
 
     return getResearchOptions(owner, buildingType);

@@ -70,8 +70,10 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['castle-age'],
-      researchOptions: [],
+      // Wheelbarrow (Feudal, no building prereq) is offered at the TC even
+      // before Castle Age's two-building prerequisite is met.
+      visibleResearchOptions: ['castle-age', 'wheelbarrow'],
+      researchOptions: ['wheelbarrow'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(false);
   });
@@ -82,8 +84,8 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['castle-age'],
-      researchOptions: ['castle-age'],
+      visibleResearchOptions: ['castle-age', 'wheelbarrow'],
+      researchOptions: ['castle-age', 'wheelbarrow'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(true);
     // Phase 1B queue.research: spend lands at start of next step's processCommands.
@@ -135,8 +137,10 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['imperial-age'],
-      researchOptions: [],
+      // In Castle Age both carry techs are offered regardless of the
+      // Imperial-Age building prerequisite.
+      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart'],
+      researchOptions: ['wheelbarrow', 'hand-cart'],
     });
     expect(bridge.queueResearch('imperial-age')).toBe(false);
   });
@@ -150,8 +154,8 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['imperial-age'],
-      researchOptions: ['imperial-age'],
+      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart'],
+      researchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart'],
     });
     expect(bridge.queueResearch('imperial-age')).toBe(true);
 

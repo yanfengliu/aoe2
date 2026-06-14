@@ -100,6 +100,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Stone Mining';
     case 'stone-shaft-mining':
       return 'Stone Shaft Mining';
+    case 'wheelbarrow':
+      return 'Wheelbarrow';
+    case 'hand-cart':
+      return 'Hand Cart';
   }
 }
 

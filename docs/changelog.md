@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.27 - 2026-06-14
+
+### Wheelbarrow and Hand Cart now boost villager carry capacity
+
+Following the gather-rate techs (0.1.26), the Town Center carry techs are now live: Wheelbarrow (Feudal, +25% carry) and Hand Cart (Castle, +50% carry) raise how much a villager hauls per trip (they stack — +87.5% with both, so ~10 → ~19). Because carry is resource-agnostic, this speeds gathering of every resource including food — fewer drop-off trips — which most helps the food economy on the road to Castle/Imperial Age. They appear at the Town Center alongside the age-up research and drop out once researched. Their AoE2 movement-speed bonus (+10%) is not included yet (that's a separate movement-system change). The in-game AI still focuses on age-up research, so its timings are unchanged.
+
+### Validation
+
+- TDD: `tests/simulation/economyCarryTechs.test.ts` (carry multiplier + effective capacity) and `tests/simulation/economyResearchOptions.test.ts` (Town Center offers age-up + carry techs, drop-once-researched); full suite green. End-to-end (a fuller carry / fewer trips in a live match) is validated by the consolidated playtest re-run.
+- Multi-CLI review: see `docs/threads/done/economy-carry-techs/`.
+
 ## 0.1.26 - 2026-06-14
 
 ### Economy gather-rate technologies now actually speed up gathering

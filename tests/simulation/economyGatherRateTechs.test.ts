@@ -4,7 +4,7 @@ import {
   gatherRateMultiplier,
   gatherRateMultiplierForKind,
   ticksToGatherCarry,
-} from '../../src/game/simulation/prototypeEconomyRules';
+} from '../../src/game/simulation/economyTechEffects';
 import type { ResearchableTechnologyType } from '../../src/game/simulation/types';
 
 const techs = (...t: ResearchableTechnologyType[]) =>
