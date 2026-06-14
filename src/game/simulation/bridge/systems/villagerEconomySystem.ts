@@ -44,6 +44,13 @@ const GATHER_DROPOFF_RETRY_INTERVAL = 30;
 // state).
 const MAX_GATHERERS_PER_RESOURCE = 2;
 const GATHER_APPROACH_TIMEOUT_TICKS = 80;
+// Loop 1 follow-up (campaign-5 replay: 15 of 16 woodcutters STILL re-piled
+// on the nearest tree because the give-up path freed them but idle→assign
+// re-picked nearest). idle→assign now also fans out, but at a GENEROUS cap
+// so it only caps extreme piles — the AI's natural 2-3-per-resource
+// clustering is below this, so its tuned economy is unchanged (a cap of 2
+// here over-spread the AI and broke its age-up; 4 clears normal clustering).
+const IDLE_ASSIGN_SPREAD_CAP = 4;
 
 interface PlayerScoreCountersLike {
   resourcesGathered: number;
@@ -118,11 +125,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     // chosen target is reserved (count++) so same-tick assignments stay in
     // sync.
     gatherTargetCounts: Map<number, number>,
-    // When true, fan out: prefer resources NOT already saturated with
-    // gatherers. Used ONLY to redistribute a STUCK villager off an
-    // over-subscribed resource. Normal idle→assign passes false, keeping the
-    // original nearest-first behavior so the AI's tuned economy is unchanged.
+    // When true, fan out: prefer resources with FEWER than `spreadCap`
+    // gatherers. idle→assign uses a generous cap (IDLE_ASSIGN_SPREAD_CAP —
+    // only caps extreme piles; the AI's natural clustering is below it), and
+    // the stuck-villager redistribute uses the tight cap
+    // (MAX_GATHERERS_PER_RESOURCE) to maximally spread a genuine pile-up.
     preferUnsaturated: boolean,
+    spreadCap: number,
   ): void {
     const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
     if (!villagerPosition) return;
@@ -167,9 +176,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         // under-subscribed one; saturated resources stay a last resort.
         if (preferUnsaturated) {
           const leftSaturated =
-            (gatherTargetCounts.get(left.id) ?? 0) >= MAX_GATHERERS_PER_RESOURCE ? 1 : 0;
+            (gatherTargetCounts.get(left.id) ?? 0) >= spreadCap ? 1 : 0;
           const rightSaturated =
-            (gatherTargetCounts.get(right.id) ?? 0) >= MAX_GATHERERS_PER_RESOURCE ? 1 : 0;
+            (gatherTargetCounts.get(right.id) ?? 0) >= spreadCap ? 1 : 0;
           if (leftSaturated !== rightSaturated) {
             return leftSaturated - rightSaturated;
           }
@@ -254,7 +263,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, false);
+          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, IDLE_ASSIGN_SPREAD_CAP);
         }
 
         if (gatherer.task === 'to-resource') {
@@ -313,7 +322,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 );
               }
               gatherer.gatherProgressTicks = 0;
-              assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true);
+              assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, MAX_GATHERERS_PER_RESOURCE);
             } else {
               moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
             }
@@ -439,7 +448,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, false);
+          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, IDLE_ASSIGN_SPREAD_CAP);
         }
       }
 

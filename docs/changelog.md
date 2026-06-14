@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.25 - 2026-06-14
+
+### Villagers spread across the forest (no more re-piling on one tree)
+
+Loop 1 (v0.1.24) stopped villagers jamming permanently, but a replay of the next playtest showed they still re-piled onto the single nearest tree — 15 of 16 woodcutters on one tree — gathering at a fraction of their potential, because once a villager finished a trip it was re-assigned to the nearest tree again. Now idle villagers fan out: assignment prefers resources with fewer than a generous cap of gatherers, so crowds spread across the forest. The cap is deliberately generous so the in-game AI's normal play is unchanged (a tight cap over-spread the AI and stalled its age-up). Result: a stronger food/wood economy, so the player can reach Castle Age.
+
+### Validation
+
+- TDD: `tests/simulation/villagerGatherSpread.test.ts` (villagers fan out) and the AI age-progression test both pass — the latter is the guard that the spread cap doesn't perturb the AI's economy (it fails at a tight cap, passes at the generous one).
+- Multi-CLI review: see `docs/threads/done/gather-idle-spread/`.
+
 ## 0.1.24 - 2026-06-13
 
 ### Villagers no longer gridlock when many gather the same forest
