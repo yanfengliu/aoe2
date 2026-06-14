@@ -32,6 +32,18 @@ import type { UnitMovementPlan } from '../movementTypes';
 type CivWorld = GameWorld;
 
 const GATHER_DROPOFF_RETRY_INTERVAL = 30;
+// Wood/gather gridlock fix (campaign-4): villagers piled onto the single
+// nearest tree (14 of 18 stuck woodcutters targeted ONE tree) and, unlike
+// the to-dropoff state, `to-resource` had no give-up path, so they jammed
+// forever (0 gathering). Fix: a villager stuck walking to an
+// OVER-SUBSCRIBED resource for GATHER_APPROACH_TIMEOUT_TICKS is reassigned
+// to the nearest UNsaturated resource (fan-out). This is surgical —
+// normal idle→assign stays nearest-first, so the AI's tuned economy is
+// untouched and ONLY the piled-up extras redistribute. The approach timer
+// reuses gatherProgressTicks (otherwise 0 during to-resource → no new save
+// state).
+const MAX_GATHERERS_PER_RESOURCE = 2;
+const GATHER_APPROACH_TIMEOUT_TICKS = 80;
 
 interface PlayerScoreCountersLike {
   resourcesGathered: number;
@@ -102,6 +114,15 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     villagerId: number,
     gatherer: GathererComponent,
     owner: number,
+    // Live count of gatherers already targeting each resource this tick. The
+    // chosen target is reserved (count++) so same-tick assignments stay in
+    // sync.
+    gatherTargetCounts: Map<number, number>,
+    // When true, fan out: prefer resources NOT already saturated with
+    // gatherers. Used ONLY to redistribute a STUCK villager off an
+    // over-subscribed resource. Normal idle→assign passes false, keeping the
+    // original nearest-first behavior so the AI's tuned economy is unchanged.
+    preferUnsaturated: boolean,
   ): void {
     const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
     if (!villagerPosition) return;
@@ -126,6 +147,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       matchingResources.push({ id, position, resource });
     }
     matchingResources.sort((left, right) => {
+        // Owner preference FIRST (own > home-base neutral > other), so
+        // fan-out NEVER jumps to an enemy or far-off neutral resource just
+        // because it is unsaturated — it stays within the player's own
+        // forest (Codex gather-stall iter-1 HIGH).
         const leftPreferred =
           left.resource.owner === owner ? 0
           : left.resource.owner === null && left.resource.baseOwner === owner ? 1
@@ -136,6 +161,18 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           : 2;
         if (leftPreferred !== rightPreferred) {
           return leftPreferred - rightPreferred;
+        }
+        // Within the same owner tier, when redistributing a stuck villager,
+        // push already-saturated resources to the back so it picks an
+        // under-subscribed one; saturated resources stay a last resort.
+        if (preferUnsaturated) {
+          const leftSaturated =
+            (gatherTargetCounts.get(left.id) ?? 0) >= MAX_GATHERERS_PER_RESOURCE ? 1 : 0;
+          const rightSaturated =
+            (gatherTargetCounts.get(right.id) ?? 0) >= MAX_GATHERERS_PER_RESOURCE ? 1 : 0;
+          if (leftSaturated !== rightSaturated) {
+            return leftSaturated - rightSaturated;
+          }
         }
         const leftDistance = manhattanDistance(left.position, villagerPosition);
         const rightDistance = manhattanDistance(right.position, villagerPosition);
@@ -149,6 +186,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       return;
     }
 
+    // Reserve the chosen resource so other villagers assigned later THIS
+    // tick already see it one fuller and spread to the next one.
+    gatherTargetCounts.set(target.id, (gatherTargetCounts.get(target.id) ?? 0) + 1);
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = target.id;
     gatherer.dropOffBuildingId = findNearestDropOffBuilding(
@@ -187,6 +227,20 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         stuckMapDirty = true;
       }
 
+      // Count gatherers already committed to each resource this tick so
+      // assignment (below) can spread villagers across the forest instead of
+      // piling them onto the single nearest tree (campaign-4 gridlock).
+      const gatherTargetCounts = new Map<number, number>();
+      for (const id of activeWorld.query('gatherer')) {
+        const g = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+        if (g && g.targetResourceId !== null) {
+          gatherTargetCounts.set(
+            g.targetResourceId,
+            (gatherTargetCounts.get(g.targetResourceId) ?? 0) + 1,
+          );
+        }
+      }
+
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
         if (unitCommands.has(id)) {
           continue;
@@ -200,7 +254,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner);
+          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, false);
         }
 
         if (gatherer.task === 'to-resource') {
@@ -232,7 +286,37 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(tid));
             }
           } else {
-            moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
+            // Approach timer (reuses gatherProgressTicks, which is otherwise
+            // 0 during to-resource). Redistribute ONLY when this target is
+            // over-subscribed (more gatherers than the per-resource cap) AND
+            // we've waited a while — i.e. a genuine pile-up where this
+            // villager is an extra that cannot get an approach cell. It is
+            // then reassigned to the nearest UNsaturated resource (fan-out).
+            // A long walk to an UNcontended resource is NOT abandoned, and
+            // normal idle→assign is untouched — so the AI's tuned economy is
+            // unaffected; only piled-up extras spread out.
+            gatherer.gatherProgressTicks += 1;
+            const overSubscribed =
+              (gatherTargetCounts.get(gatherer.targetResourceId ?? -1) ?? 0)
+              > MAX_GATHERERS_PER_RESOURCE;
+            if (overSubscribed && gatherer.gatherProgressTicks >= GATHER_APPROACH_TIMEOUT_TICKS) {
+              // Reservation MOVE: release this villager's slot on the
+              // over-subscribed target BEFORE reassigning. Once the excess
+              // has left, the target is no longer over-subscribed, so the
+              // remaining (within-cap) gatherers stay put — only the extras
+              // redistribute (Codex gather-stall iter-1 MEDIUM).
+              const previousTarget = gatherer.targetResourceId;
+              if (previousTarget !== null) {
+                gatherTargetCounts.set(
+                  previousTarget,
+                  Math.max(0, (gatherTargetCounts.get(previousTarget) ?? 1) - 1),
+                );
+              }
+              gatherer.gatherProgressTicks = 0;
+              assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true);
+            } else {
+              moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
+            }
           }
         }
 
@@ -355,7 +439,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner);
+          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, false);
         }
       }
 

@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.24 - 2026-06-13
+
+### Villagers no longer gridlock when many gather the same forest
+
+**Wood (and any resource) keeps flowing when villagers crowd one spot.** Found by replaying an LLM-playtest bundle with the engine's `SessionReplayer`: villagers ordered to gather wood piled onto the single nearest tree — 14 of 18 woodcutters targeted ONE tree — and jammed permanently walking toward it (0 gathering), so wood stayed flat the whole game and the player was frozen in Feudal. The simulation always sent a villager to the globally-nearest matching resource and a villager walking toward an over-crowded resource had no way to give up. Now, a villager that spends too long unable to reach an over-subscribed resource is reassigned to the nearest un-crowded one, so crowds fan out across the forest and actually gather. Normal (un-crowded) gathering is unchanged, so AI economies are unaffected.
+
+### Validation
+
+- TDD: new `tests/simulation/villagerGatherSpread.test.ts` piles every villager onto one tree and asserts they fan out to multiple trees and the wood drops (fails without the fix). The AI age-progression test still passes (the fix is surgical — only crowded villagers redistribute).
+- Found and root-caused with the engine's replay debugging (`npm run replay:inspect`), not a synthetic repro — both the LLM's own "gather is broken" finding and a first synthetic-repro hypothesis ("enemy raids killed the villagers") were wrong.
+- Multi-CLI review: see `docs/threads/done/gather-stall/`.
+
 ## 0.1.23 - 2026-06-13
 
 ### Town Centers and Castles now provide population (toward AoE2)

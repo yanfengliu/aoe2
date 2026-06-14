@@ -96,7 +96,8 @@ const di = argv.indexOf('--detail');
 if (di >= 0) {
   const detailTick = Number(argv[di + 1]);
   const detailOwner = Number(argv[di + 2] ?? 2);
-  const eco = makeReplayBridge(fromEngineWorld(replayer.openAt(detailTick)), { fogOwner: 1 }).getEconomyState();
+  const world = fromEngineWorld(replayer.openAt(detailTick));
+  const eco = makeReplayBridge(world, { fogOwner: 1 }).getEconomyState();
   const vills = eco.villagers.filter((v) => v.owner === detailOwner);
   console.log(`\n=== DETAIL: owner ${detailOwner} at tick ${detailTick} (${vills.length} villagers) ===`);
   const byTask = {};
@@ -120,4 +121,26 @@ if (di >= 0) {
   for (const t of nearTrees.slice(0, 12)) {
     console.log(`  ${t.amount}/${t.maxAmount} @ (${t.x},${t.y}) d=${tc ? dist(t, tc) : '?'}`);
   }
+  // Gatherer-level diagnosis: are the stuck (to-resource) woodcutters all
+  // targeting the SAME tree (spread bug), or spread across trees but
+  // blocked (pathing/occupancy gridlock)?
+  const byTarget = {};
+  const samples = [];
+  for (const id of world.query('gatherer', 'position', 'unit')) {
+    const u = world.getComponent(id, 'unit');
+    if (!u || u.owner !== detailOwner || u.unitType !== 'villager') continue;
+    const g = world.getComponent(id, 'gatherer');
+    const p = world.getComponent(id, 'position');
+    if (!g || g.task !== 'to-resource') continue;
+    const t = g.targetResourceId ?? 'none';
+    byTarget[t] = (byTarget[t] ?? 0) + 1;
+    if (samples.length < 10) {
+      const tp = g.targetResourceId != null ? world.getComponent(g.targetResourceId, 'position') : null;
+      samples.push(`u${id}@(${p.x},${p.y})→res${t}${tp ? `@(${tp.x},${tp.y})` : ''}`);
+    }
+  }
+  const distinctTargets = Object.keys(byTarget).length;
+  console.log(`\nto-resource woodcutters: ${Object.values(byTarget).reduce((a, b) => a + b, 0)} across ${distinctTargets} distinct target resource(s)`);
+  console.log('targetResourceId histogram:', JSON.stringify(byTarget));
+  console.log('samples [unit@pos→target@pos]:', samples.join('  '));
 }
