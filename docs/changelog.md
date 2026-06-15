@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.30 - 2026-06-15
+
+### Terrain reads as a textured surface instead of flat blocks
+
+The first graphics item toward the AoE2-HD-clone north star. The map seeds one flat tint per terrain kind, so every grass cell was the identical green, every forest cell the identical dark green, and so on — the map read as a grid of solid color squares. The renderer now applies a subtle, deterministic per-cell brightness jitter (about ±7%, hue preserved so it reads as dappled light/shade, not recoloring) on top of each terrain cell's base tint. Adjacent same-kind cells now differ slightly and the terrain reads as a textured surface. The variation is procedural and original — no copyrighted assets — and is purely presentational: it touches only the Phaser terrain renderer, leaving the simulation, the seeded tints, and the minimap untouched.
+
+### Validation
+
+- TDD: `tests/phaser/terrainTexture.test.ts` pins the helper's contract — deterministic per cell (no frame shimmer), in-gamut, subtle (within ~10% of base), genuinely varied (dozens of distinct shades vs. one for a flat fill), and unbiased on average (the field neither darkens nor brightens overall). Full suite green.
+- Visual: before/after/diff screenshots under `docs/devlog/artifacts/2026-04-23-default-map-m7-terrain-{before,after,diff}.png`; the pixel diff confirms the change is confined to terrain cells (units, buildings, resources, HUD, and fog are untouched).
+- Multi-CLI review: see `docs/threads/done/m7-terrain-texture/`.
+
 ## 0.1.29 - 2026-06-14
 
 ### Town Centers now defend themselves even when empty

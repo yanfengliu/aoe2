@@ -59,7 +59,7 @@ Tags: `[render]` Phaser rendering (`src/phaser/`) · `[ui]` DOM/CSS HUD (`src/ui
 - **Units beyond colored circles.** Directional shapes/sprites with facing + a simple walk/idle animation cycle; readable unit silhouettes per type. `[render]`
 - **Projectile rendering.** Draw arrows/siege shots in flight (combat is currently instant HP subtraction) — pairs with the M2 projectile sim. `[render]`
 - **Building visuals.** Construction→complete animation and a richer procedural form; later, distinct silhouettes per building. `[render]`
-- **Terrain texturing + elevation shading.** Procedural tiled/blended textures and light/shadow by elevation instead of flat color fills. `[render]`
+- **Terrain texturing + elevation shading.** Per-cell procedural brightness variation **DONE (v0.1.30)** — `gameScene/terrainRenderer.ts` applies a deterministic ±7% hue-preserving jitter so same-kind cells no longer read as one flat block. Remaining: blended kind-to-kind transitions (no hard cell edges between grass/forest/water) and light/shadow by elevation. `[render]`
 - **Combat/gather feedback + selection polish.** Impact/death particles, gather sparks, and a selection glow/pulse. `[render]`
 - **HUD chrome.** Procedural wood/stone-textured panels with beveled edges over the existing warm palette; toward AoE2's framed look. `[ui]`
 - **UI icons + minimap/fog polish.** Original SVG/CSS unit/command/build icons (replace text+color dots), a terrain layer on the minimap, and a fog gradient fade. `[ui]`

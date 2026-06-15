@@ -12,9 +12,22 @@ function readPng(path) {
   });
 }
 
-const before = 'docs/devlog/artifacts/2026-04-23-default-map-before.png';
-const after = 'docs/devlog/artifacts/2026-04-23-default-map-after.png';
-const diffPath = 'docs/devlog/artifacts/2026-04-23-default-map-diff.png';
+// LABEL selects a named screenshot set. NOTE the two scripts use LABEL
+// differently: in captureMapScreenshot.mjs LABEL is the FULL suffix
+// (`LABEL=m7-terrain-before` -> one file `...-m7-terrain-before.png`),
+// whereas here LABEL is the STEM and `-before`/`-after`/`-diff` are appended.
+// So capture twice with `LABEL=<stem>-before` and `LABEL=<stem>-after`, then
+// diff with `LABEL=<stem>`. Without a LABEL this falls back to the bare
+// `before`/`after`/`diff` names — but those collide with committed baseline
+// artifacts, so always pass a LABEL for a new change (else it overwrites a
+// tracked baseline).
+const label = process.env.LABEL;
+const stem = label
+  ? `docs/devlog/artifacts/2026-04-23-default-map-${label}`
+  : 'docs/devlog/artifacts/2026-04-23-default-map';
+const before = `${stem}-before.png`;
+const after = `${stem}-after.png`;
+const diffPath = `${stem}-diff.png`;
 
 const [a, b] = await Promise.all([readPng(before), readPng(after)]);
 if (a.width !== b.width || a.height !== b.height) {

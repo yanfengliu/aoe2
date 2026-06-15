@@ -1245,13 +1245,14 @@ The UI should support a technology-tree view that:
 
 ### 14.5 Audio and Visual Direction
 
-Presentation targets:
+The north star is the look and polish of an Age of Empires II HD clone, reached entirely through ORIGINAL/procedural art that evokes that look — no copyrighted Age of Empires assets (sprites, textures, UI art, audio) are reproduced. Presentation targets:
 
 - isometric RTS readability
 - clear faction-color ownership
 - directional unit animation
 - construction, damage, and rubble states for buildings
 - architecture-set variation by civilization region
+- textured terrain surfaces rather than flat per-kind color fills: terrain cells carry subtle, deterministic per-cell variation (and, later, kind-to-kind blending and elevation light/shadow) so the ground reads as a surface, not a grid of solid blocks
 - distinct alert, economy, combat, and age-up audio cues
 
 ## 15. Simulation, Saves, and Content Pipeline

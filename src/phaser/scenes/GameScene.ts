@@ -41,6 +41,7 @@ import {
   type WorldLayersRenderer,
 } from './gameScene/worldLayers';
 import { isUnitType as isUnitTypeExternal } from './gameScene/unitTypeMap';
+import { drawTerrainCell } from './gameScene/terrainRenderer';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
@@ -526,8 +527,7 @@ export class GameScene extends Phaser.Scene {
       const fillAlpha = entity.isMemory ? 0.5 : 1;
 
       if (entity.layer === 'terrain') {
-        this.terrainLayer.fillStyle(entity.tint, 1);
-        this.terrainLayer.fillRect(px, py, CELL_SIZE + 1, CELL_SIZE + 1);
+        drawTerrainCell(this.terrainLayer, entity.tint, entity.x, entity.y, CELL_SIZE);
         continue;
       }
 
