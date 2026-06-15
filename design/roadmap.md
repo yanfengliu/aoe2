@@ -48,7 +48,7 @@ Tags: `[sim]` simulation logic here · `[data]` CSV/content wiring · `[engine]`
 - **Dock + ships + fishing ships + transport + naval trade** (~18 ships + Dock + dock techs are entirely data-only; water tiles exist but nothing floats). Blocks water maps and transport play. `[sim+data]`
 
 ### M6 — Match completeness & control
-- **Score-timer victory.** A timeout where highest score wins, so stalemates end (score is currently display-only). `[sim]`
+- **Score-timer victory.** A timeout where highest score wins, so stalemates end (score is currently display-only). `[sim]` (Until this lands, the playtest-corpus CI smoke sets `matchCompleteRequired: false` — deterministic matches stalemate at the tick cap; re-enable the match-completion oracle when score-victory makes matches actually end.)
 - **Stances / formations / attack-move / patrol.** UnitCommand is move/build/attack only; auto-aggression is hard-coded. `[sim]`
 - **Repair.** Villagers repairing buildings & siege (no handler today). `[sim]`
 - **AI depth.** Siege production (so it can break walls/Castles), team play (trade/tribute/joint defense), and difficulty-differentiated tactics (currently only cadence/gather-rate differ). `[sim]`

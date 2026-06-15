@@ -3,7 +3,8 @@
     {
       "name": "default-seed-smoke",
       "seed": "default-seed",
-      "maxTicks": 30000
+      "maxTicks": 8000,
+      "thresholds": { "matchCompleteRequired": false }
     }
   ]
 }

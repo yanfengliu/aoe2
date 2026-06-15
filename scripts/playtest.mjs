@@ -28,7 +28,12 @@ const result = await runPlaytest({
 });
 
 mkdirSync(dirname(args.out), { recursive: true });
-writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle, null, 2));
+// Compact (no `null, 2`): the bundle is a machine-read artifact (SessionReplayer
+// / replay:inspect parse it), and pretty-printing a long playtest's bundle
+// inflates it ~40% — enough to blow past Node's max string length and throw
+// `RangeError: Invalid string length` on JSON.stringify (the corpus smoke hit
+// this on its full-length run). Compact keeps it serializable and ~half the size.
+writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle));
 writeFileSync(`${args.out}.envelope.json`, JSON.stringify(result.envelope, null, 2));
 
 console.log(`stopReason=${result.envelope.stopReason} ticks=${result.envelope.ticksRun}`);
