@@ -163,3 +163,16 @@ Pointer: [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts) 
 Context: The browser test API exposed `camera.worldView.x/y/width/height` as the visible world rectangle. With `pixelArt: true` (→ `roundPixels: true`), Phaser's `preRender` rounds `scrollX/Y` via `Math.floor` and then recomputes `worldView` using rounded math, so the reported rectangle can disagree with the non-rounded `scrollX + (width - width/zoom)/2` by up to one pixel. That was enough to fail a strict "click here, center there" minimap assertion.
 Lesson: When reporting camera viewport state to code that does math on it (tests, minimap viewport overlay), compute it from the raw `scrollX/Y`, `width/height`, and `zoom` rather than reading `camera.worldView` — the latter is intended for rendering, not for precise world-space queries.
 Pointer: [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts) `getCameraState`.
+
+## A spec-correct one-line change can be a pervasive behavior change — the full suite is the gate, not diff review — 2026-06-14
+
+| Field | Value |
+|---|---|
+| Surfaced by | this session's `tc-base-fire` attempt: `tmp/review-runs/tc-base-fire/2026-06-14/1/fulltest.txt` (27 failures) vs the three diff reviews (all clean). Also the prior `dark-age-palisade` iteration (4 `createSimulationBridge.ageUp` assertions broke the same way). |
+| Reviewer findings | Codex + Claude + Gemini all reviewed the one-line `buildingArrowCount` diff and APPROVED with no correctness findings — the regression was invisible at the diff level. |
+| Fix commit | n/a — the change was reverted; the gap is logged in `design/roadmap.md` (campaign-8) as deferred pending combat-fixture re-isolation. |
+| Test added | n/a — process lesson. |
+| Behavior delta | making an empty Town Center fire its (spec-mandated §10.8) base arrow perturbed 27 combat-isolation tests across 11 files (HP assertions off by multiples of 5, the TC's per-arrow damage), because those fixtures place combatants in the starting TC's range and assume it never fires. |
+
+Lesson: a change can be one line and spec-correct yet still be a *pervasive* behavior change if the existing test suite (and game fixtures) are coupled to the old behavior. Multi-CLI review of the DIFF cannot see this — only the full suite (which runs the real game) does. So: (1) never treat "tiny diff + clean diff-review" as sufficient for a behavior change — run the full suite before committing; (2) when a behavior change touches a widely-present entity (the Town Center is in nearly every fixture), expect blast radius and budget for fixture isolation; (3) combat-measurement fixtures should be isolated from incidental sources of damage (TC/tower fire) by construction, so a later defensive-fire change doesn't contaminate them. This recurred twice in one session — it is the rule, not a fluke.
+Pointer: [src/game/simulation/prototypeBuildingRules.ts](../../src/game/simulation/prototypeBuildingRules.ts) `buildingArrowCount`; [design/roadmap.md](../../design/roadmap.md) campaign-8 entry.
