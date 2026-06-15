@@ -57,7 +57,7 @@ export function createMonkHealFixture(seed: string): PrototypeScenario {
       },
       {
         // Wolf auto-aggros on the nearest player unit within its aggro range;
-        // placed at (17, 8) → range 2 from the Spearman at (15, 8). Wolf
+        // placed at (17, 17) → range 2 from the Spearman at (15, 17). Wolf
         // attack 3 / reload 12, so HP accrues slowly and we can stop combat
         // by killing the wolf once it's done some damage.
         kind: 'wolf',

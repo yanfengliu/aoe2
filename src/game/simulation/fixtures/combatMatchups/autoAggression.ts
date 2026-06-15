@@ -5,6 +5,19 @@ import {
 } from '../../prototypeScenario';
 import { createGrassFixtureTerrain } from '../common';
 
+// Auto-aggression fixtures.
+//
+// Town Center placement note: spec §10.8 gives a completed Town Center a base
+// arrow even when empty (v0.1.29). Each test here turns on the ENEMY spearman's
+// HP — either it drops (the unit engaged) or it stays put (the unit correctly
+// held). A home TC within range 6 of the enemy would fire on it and satisfy the
+// assertion on its own, masking the unit's behavior. So for every fixture whose
+// enemy sits within range of (8,8), the human TC is parked out of range (y=28,
+// or the enemy TC east at x=40 in the move-override case) — the unit auto-aggros
+// off its OWN vision, so engagement is unaffected. Fixtures whose enemy is
+// already >6 from (8,8) — out-of-vision (x20) and archer-pursuit (x18) — keep
+// the TC at (8,8).
+
 // Auto-aggression: idle militia (vision 3) with enemy spearman placed at
 // distance 3. The spearman is inside the militia's vision radius, so the
 // idle militia should engage on its own without a player command.
@@ -15,14 +28,14 @@ export function createAutoAggroIdleMilitiaInVisionFixture(seed: string): Prototy
     height: MAP_HEIGHT,
     terrain: createGrassFixtureTerrain(),
     starts: [
-      { owner: 1, townCenter: { x: 8, y: 8 } },
+      { owner: 1, townCenter: { x: 8, y: 28 } },
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
       {
         kind: 'town-center',
         x: 8,
-        y: 8,
+        y: 28,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 7 },
@@ -156,13 +169,9 @@ export function createAutoAggroArcherPursuitFixture(seed: string): PrototypeScen
 
 // Auto-aggression vs player order: militia given a move command past an
 // enemy spearman. The militia should NOT auto-engage (player order
-// honored) — it walks past the enemy to its destination.
-//
-// TC base-fire isolation: the human Town Center is parked far south (4,28)
-// — well out of range of the enemy spearman at (12,9) — so the empty-TC
-// base arrow (spec §10.8) does not chip the spearman and break the test's
-// "enemy untouched" assertion. The militia walk path (along row 8) and the
-// move target are unchanged.
+// honored) — it walks past the enemy to its destination. The enemy TC is
+// parked far east (40,8) so it can't shoot the militia at its move target
+// (28,8); the human TC is south (4,28) so it can't shoot the spearman (12,9).
 export function createAutoAggroPlayerMoveOverridesFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -171,7 +180,7 @@ export function createAutoAggroPlayerMoveOverridesFixture(seed: string): Prototy
     terrain: createGrassFixtureTerrain(),
     starts: [
       { owner: 1, townCenter: { x: 4, y: 28 } },
-      { owner: 2, townCenter: { x: 32, y: 8 }, disableAi: true },
+      { owner: 2, townCenter: { x: 40, y: 8 }, disableAi: true },
     ],
     spawns: [
       {
@@ -191,10 +200,6 @@ export function createAutoAggroPlayerMoveOverridesFixture(seed: string): Prototy
         vision: { playerId: 1, radius: 3 },
       },
       {
-        // Enemy TC parked far east (40,8) so it can't shoot the human militia
-        // when it reaches its eastward move target (28,8) — the empty-TC base
-        // arrow (spec §10.8) would otherwise kill the militia before the
-        // position assertion, and the militia is the test subject.
         kind: 'town-center',
         x: 40,
         y: 8,
@@ -224,14 +229,14 @@ export function createAutoAggroVillagerAdjacentFixture(seed: string): PrototypeS
     height: MAP_HEIGHT,
     terrain: createGrassFixtureTerrain(),
     starts: [
-      { owner: 1, townCenter: { x: 8, y: 8 } },
+      { owner: 1, townCenter: { x: 8, y: 28 } },
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
       {
         kind: 'town-center',
         x: 8,
-        y: 8,
+        y: 28,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 7 },
@@ -266,12 +271,8 @@ export function createAutoAggroVillagerAdjacentFixture(seed: string): PrototypeS
 
 // Auto-aggression villager non-pursuit: idle villager with enemy
 // spearman 4 tiles away (outside villager's defensive radius of 1).
-// The villager should NOT pursue.
-//
-// TC base-fire isolation: the human Town Center is parked far south (8,28),
-// out of range of the enemy spearman at (16,8), so the empty-TC base arrow
-// (spec §10.8) does not chip it and break the "enemy untouched" assertion.
-// The villager (12,8) and spearman (16,8) keep their 4-tile separation.
+// The villager should NOT pursue. (Villager 12,8 / spearman 16,8 keep their
+// 4-tile gap; the human TC is south at 8,28, out of the spearman's range.)
 export function createAutoAggroVillagerNoPursuitFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -322,14 +323,9 @@ export function createAutoAggroVillagerNoPursuitFixture(seed: string): Prototype
 // Auto-aggression vs gather order: a villager gathering wood with an
 // enemy spearman placed adjacent to the gather cell. The villager has
 // an active `GathererComponent.task` so auto-aggression must NOT yank
-// it off the resource — the gather order is treated as a player
-// order. The villager keeps gathering while taking damage.
-//
-// TC base-fire isolation: the human Town Center is parked far south (8,28),
-// out of range of the enemy spearman at (12,9), so the empty-TC base arrow
-// (spec §10.8) does not chip it and break the "enemy unscathed" assertion.
-// The gather geometry (villager 12,8 + tree 13,8 + adjacent spearman 12,9)
-// is unchanged — the test still finds the tree at (13,8).
+// it off the resource — the gather order is treated as a player order.
+// The villager keeps gathering while taking damage. (Human TC south at
+// 8,28; the test still finds the tree at 13,8.)
 export function createAutoAggroVillagerGatheringFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -374,6 +370,7 @@ export function createAutoAggroVillagerGatheringFixture(seed: string): Prototype
         vision: { playerId: 2, radius: 7 },
       },
       {
+        // radius-1 vision so the enemy AI doesn't walk the spearman away.
         kind: 'spearman',
         x: 12,
         y: 9,
@@ -386,14 +383,10 @@ export function createAutoAggroVillagerGatheringFixture(seed: string): Prototype
 }
 
 // Auto-aggression skips Monks. Monks have their own task pipeline
-// (heal / convert / pickup / deposit relics). An adjacent enemy
-// spearman must not pull the Monk into an attack-command — the Monk's
-// "attack" is conversion, handled separately.
-//
-// TC base-fire isolation: the human Town Center is parked far south (8,28),
-// out of range of the enemy spearman at (13,8), so the empty-TC base arrow
-// (spec §10.8) does not chip it and break the "enemy unscathed" assertion.
-// The Monk (12,8) and adjacent spearman (13,8) are unchanged.
+// (heal / convert / pickup / deposit relics). An adjacent enemy spearman
+// must not pull the Monk into an attack-command — the Monk's "attack" is
+// conversion, handled separately. (Human TC south at 8,28 so it can't be
+// what damages the spearman; the assertion is the spearman stays unscathed.)
 export function createAutoAggroMonkSkipFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -441,9 +434,10 @@ export function createAutoAggroMonkSkipFixture(seed: string): PrototypeScenario 
   };
 }
 
-// Auto-aggression target switch: idle militia between two enemy
-// spearmen. After killing the first, the militia should auto-engage the
-// second on its own (idempotent re-scan).
+// Auto-aggression target switch: idle militia between two enemy spearmen.
+// After killing the first, the militia should auto-engage the second on its
+// own (idempotent re-scan). Human TC south at 8,28 so the kills are the
+// militia's, not the TC's.
 export function createAutoAggroSequentialTargetsFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -451,14 +445,14 @@ export function createAutoAggroSequentialTargetsFixture(seed: string): Prototype
     height: MAP_HEIGHT,
     terrain: createGrassFixtureTerrain(),
     starts: [
-      { owner: 1, townCenter: { x: 8, y: 8 } },
+      { owner: 1, townCenter: { x: 8, y: 28 } },
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
       {
         kind: 'town-center',
         x: 8,
-        y: 8,
+        y: 28,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 7 },

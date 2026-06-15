@@ -214,7 +214,8 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
         vision: { playerId: 1, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
         kind: 'mangonel',
         x: 10,
         y: 20,
@@ -240,7 +241,7 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
       // footprint at (10, 10) which (a) failed the new fixture
       // validator and (b) side-benefit blocked the enemy AI's
       // Spearman from walking to the Mangonel because the TC cells
-      // were impassable. The validator-compliant y=13 positions don't
+      // were impassable. The validator-compliant y=20 positions don't
       // have that blocker, so the standard AI would otherwise send the
       // Spearman to melee the Mangonel and die to a min-range-zone
       // retaliation. Tight radius-1 vision keeps the Spearman unaware
@@ -291,7 +292,8 @@ export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeSce
         vision: { playerId: 1, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
         kind: 'mangonel',
         x: 10,
         y: 20,
@@ -350,7 +352,8 @@ export function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScena
         vision: { playerId: 1, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
         kind: 'onager',
         x: 10,
         y: 20,

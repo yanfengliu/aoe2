@@ -102,10 +102,10 @@ export function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenar
         vision: { playerId: 1, radius: 7 },
       },
       {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint
-        // at 8..11, 8..11). (12, 10) still sits within tower range 7
-        // of both enemy units below so the priority test is
-        // unchanged, but now occupies a free cell.
+        // Slice 12 moved this off (10,10) (inside the TC footprint at
+        // 8..11, 8..11). Now at (12,19): still within tower range 7 of both
+        // enemy units below (priority test unchanged), and clear of the human
+        // TC's range so the empty-TC base arrow (spec §10.8) doesn't confound it.
         kind: 'watch-tower',
         x: 12,
         y: 19,

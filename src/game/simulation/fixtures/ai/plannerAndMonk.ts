@@ -40,9 +40,11 @@ export function createAiPlannerFixture(seed: string): PrototypeScenario {
       { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
       { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
       { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
-      // Lone villager the AI hunts and kills (preserves the browser-test
-      // "AI kills a human villager" expectation). Placed SE near the AI base
-      // so the kill resolves early; afterward the AI has no firing target.
+      // Lone villager as a soft target for the AI's attack group. The age-up /
+      // 5-military assertions do NOT depend on it dying — it just gives the AI
+      // something to chase SE, away from the human base, so its military isn't
+      // thrown at a TC and ground down. (The browser "AI kills a villager" test
+      // uses ai-rush-fixture, not this one.)
       { kind: 'villager', x: 45, y: 30, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
       // Four AI villagers — enough to drive a non-trivial rebalance
       // test (food/wood/gold/stone across multiple resources).
