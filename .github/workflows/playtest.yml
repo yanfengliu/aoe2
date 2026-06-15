@@ -14,9 +14,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      # aoe2's `file:../civ-engine` dep — see ci.yml. Check out + build the
+      # public sibling engine so npm can resolve it.
+      - name: Checkout civ-engine (sibling file: dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: yanfengliu/civ-engine
+          ref: main
+          path: __civ-engine
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build civ-engine into ../civ-engine
+        shell: bash
+        run: |
+          mv __civ-engine ../civ-engine
+          cd ../civ-engine
+          npm ci
+          npm run build
       - run: npm ci
       - run: npm run playtest:corpus
       - name: Upload corpus output

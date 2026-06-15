@@ -22,6 +22,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # aoe2 depends on its sibling engine via `file:../civ-engine`. CI only
+      # checks out aoe2, so without this the `file:` dep resolves to a missing
+      # path — `npm ci` leaves a dangling symlink and Typecheck/Build fail with
+      # "Cannot find module 'civ-engine'". Check the public engine repo out and
+      # build its `dist/` (its package `types`/`main` point at dist and it has
+      # no `prepare` script, so npm won't build it for us).
+      - name: Checkout civ-engine (sibling file: dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: yanfengliu/civ-engine
+          ref: main
+          path: __civ-engine
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -29,6 +42,15 @@ jobs:
           # behavior). Match the local Windows toolchain.
           node-version: '20'
           cache: 'npm'
+
+      - name: Build civ-engine into ../civ-engine
+        # bash on both runners (git-bash on Windows) so mv/cd/npm are portable.
+        shell: bash
+        run: |
+          mv __civ-engine ../civ-engine
+          cd ../civ-engine
+          npm ci
+          npm run build
 
       - name: Install dependencies
         run: npm ci
