@@ -4,6 +4,8 @@
 // target don't stack hits in the same tick.
 
 import type { EntityRef, Position } from 'civ-engine';
+import type { UnitComponent } from '../../types';
+import { effectiveMeleeArmor } from '../../prototypeUnitRules';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
@@ -112,9 +114,14 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
           continue;
         }
 
-        // FU1: wildlife hits respect target armor, floored at 1 so a
-        // heavily-armored unit still takes a scrape per hit.
-        targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetCombat.armor);
+        // FU1: wildlife hits (melee bites) respect the target's melee armor —
+        // base melee armor (e.g. a Knight's 2) plus its armor-tech bonus —
+        // floored at 1 so a heavily-armored unit still takes a scrape per hit.
+        const biteTargetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+        const targetMeleeArmor = biteTargetUnit
+          ? effectiveMeleeArmor(biteTargetUnit.unitType, targetCombat.armor)
+          : targetCombat.armor;
+        targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetMeleeArmor);
         accessor.markDirty(combatStatesCodec);
         wildlife.cooldownTicks = wildlife.reloadTicks;
         wildlifeDirty = true;

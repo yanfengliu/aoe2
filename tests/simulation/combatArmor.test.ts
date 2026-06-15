@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   combatDamageAfterArmor,
+  effectiveMeleeArmor,
   effectivePierceArmor,
   unitAttackType,
   unitAttackDamage,
+  unitMeleeArmor,
   unitPierceArmor,
 } from '../../src/game/simulation/prototypeUnitRules';
 
@@ -49,6 +51,32 @@ describe('unitPierceArmor — from AoE2 data', () => {
     expect(unitPierceArmor('battering-ram')).toBe(180);
     expect(unitPierceArmor('knight')).toBe(2);
     expect(unitPierceArmor('paladin')).toBe(3);
+  });
+});
+
+describe('unitMeleeArmor + effectiveMeleeArmor — base melee armor', () => {
+  it('gives cavalry/champion their base melee armor and most units none', () => {
+    expect(unitMeleeArmor('knight')).toBe(2);
+    expect(unitMeleeArmor('cavalier')).toBe(2);
+    expect(unitMeleeArmor('paladin')).toBe(2);
+    expect(unitMeleeArmor('champion')).toBe(1);
+    expect(unitMeleeArmor('bombard-cannon')).toBe(2);
+    expect(unitMeleeArmor('archer')).toBe(0);
+    expect(unitMeleeArmor('spearman')).toBe(0);
+    expect(unitMeleeArmor('militia')).toBe(0);
+  });
+
+  it('adds the armor-tech bonus on top of base melee armor', () => {
+    expect(effectiveMeleeArmor('knight', 0)).toBe(2); // base only
+    expect(effectiveMeleeArmor('knight', 2)).toBe(4); // base 2 + 2 barding/mail
+    expect(effectiveMeleeArmor('archer', 0)).toBe(0);
+  });
+
+  it('makes a knight take less melee damage than a spearman', () => {
+    const swordAttack = unitAttackDamage('champion');
+    const vsKnight = combatDamageAfterArmor(swordAttack, 'melee', unitMeleeArmor('knight'), 0);
+    const vsSpearman = combatDamageAfterArmor(swordAttack, 'melee', unitMeleeArmor('spearman'), 0);
+    expect(vsKnight).toBeLessThan(vsSpearman);
   });
 });
 

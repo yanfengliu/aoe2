@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.33 - 2026-06-15
+
+### Cavalry and other units gain their base melee armor
+
+Following the melee/pierce split (0.1.32), units now carry their real base melee armor from `design/stats/units.csv` instead of a flat 0. The cavalry line is the standout — knights, cavaliers, and paladins have 2 melee armor, so they shrug off a couple of points from every sword/spear hit and feel appropriately tanky; champions, trebuchets, and heavy cavalry archers have 1, and bombard cannons 2. As with pierce, a unit's effective melee armor is its base value plus its blacksmith armor-tech bonus, and it applies to both unit-vs-unit melee and wildlife bites. Most units — the militia and spearman lines (bar the champion), archers, camels, and siege — keep 0 base melee armor, so only the armored units change. Splitting which armor techs feed melee vs pierce, and the data-driven class-based bonus damage, remain the next slice.
+
+### Validation
+
+- TDD: `tests/simulation/combatArmor.test.ts` pins the base melee values (knight/cavalier/paladin 2, champion 1, archer/spearman 0), the base-plus-tech rule, and that a knight takes less melee damage than a spearman. Four combat scenarios across three test files were re-validated to AoE2-accurate outcomes (a Camel's +9-vs-cavalry hit leaves a Knight at 88 not 86 — its 2 melee armor cuts the 14 raw to 12; pikeman/halberdier/heavy-camel hits on knights/cavaliers each land 2 less, while the anti-cavalry bonuses still apply). Full suite green (1272 passed).
+- Multi-CLI review: see `docs/threads/done/combat-base-melee-armor/`.
+
 ## 0.1.32 - 2026-06-15
 
 ### Combat splits melee vs pierce armor (archers no longer ignore armor)

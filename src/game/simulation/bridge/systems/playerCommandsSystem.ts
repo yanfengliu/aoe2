@@ -22,6 +22,7 @@ import {
   attackBonusAgainstBuilding,
   attackBonusAgainstUnit,
   combatDamageAfterArmor,
+  effectiveMeleeArmor,
   effectivePierceArmor,
   unitAttackType,
   unitMinAttackRange,
@@ -226,7 +227,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             targetCombat.currentHp -= combatDamageAfterArmor(
               rawDamage,
               unitAttackType(unit.unitType),
-              targetCombat.armor,
+              effectiveMeleeArmor(targetUnit.unitType, targetCombat.armor),
               effectivePierceArmor(targetUnit.unitType, targetCombat.armor),
             );
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;

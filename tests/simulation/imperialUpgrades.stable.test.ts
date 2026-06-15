@@ -79,9 +79,11 @@ describe('Halberdier anti-cavalry bonus', () => {
     expect(halbKnightHp).not.toBeNull();
     expect(halbKnightHp!).toBeLessThan(pikemanKnightHp!);
 
-    // Exact values: Pikeman 26 dmg -> 74 HP; Halberdier 34 dmg -> 66 HP.
-    expect(pikemanKnightHp).toBe(74);
-    expect(halbKnightHp).toBe(66);
+    // Exact values: the Knight's 2 base melee armor (units.csv 2/2) reduces
+    // each hit by 2. Pikeman 26 raw - 2 = 24 -> 76 HP; Halberdier 34 - 2 = 32
+    // -> 68 HP. The Halberdier still hits harder, so halb < pikeman holds.
+    expect(pikemanKnightHp).toBe(76);
+    expect(halbKnightHp).toBe(68);
   }, 30_000);
 });
 
@@ -227,7 +229,8 @@ describe('Anti-cavalry bonuses vs Hussar and Cavalier', () => {
   }, 30_000);
 
   it("applies Halberdier's +28 anti-cavalry bonus to a Cavalier", () => {
-    // Cavalier (120 HP). Halberdier base atk 6 + 28 = 34. 120 - 34 = 86.
+    // Cavalier (120 HP). Halberdier base atk 6 + 28 = 34 raw; the Cavalier's
+    // 2 base melee armor reduces it to 32, so 120 - 32 = 88.
     const bridge = createSimulationBridge('halberdier-vs-cavalier-fixture');
 
     const cavalier = findFirstOwnedUnit(bridge, 2, 'cavalier');
@@ -247,7 +250,7 @@ describe('Anti-cavalry bonuses vs Hussar and Cavalier', () => {
     ).toBe(true);
 
     const hp = getHealthOfUnitAtCell(bridge, cavalier!.x, cavalier!.y);
-    expect(hp).toBe(86);
+    expect(hp).toBe(88);
   }, 30_000);
 });
 

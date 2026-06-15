@@ -145,6 +145,48 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   'heavy-camel': 0,
 };
 
+// Base MELEE armor per unit, from design/stats/units.csv (the `melee/pierce`
+// armor column, FIRST value). Data-driven combat Slice 2a: melee attacks are
+// reduced by this base value plus the unit's armor-tech bonus. Mostly 0; the
+// standouts are the cavalry line (knight/cavalier/paladin 2 — meaty vs melee)
+// plus champion / trebuchet / heavy-cavalry-archer 1 and bombard cannon 2.
+export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
+  villager: 0,
+  scout: 0,
+  militia: 0,
+  spearman: 0,
+  archer: 0,
+  skirmisher: 0,
+  knight: 2,
+  crossbowman: 0,
+  pikeman: 0,
+  'light-cavalry': 0,
+  camel: 0,
+  'cavalry-archer': 0,
+  mangonel: 0,
+  scorpion: 0,
+  'battering-ram': 0,
+  monk: 0,
+  longbowman: 0,
+  arbalest: 0,
+  halberdier: 0,
+  hussar: 0,
+  'heavy-cavalry-archer': 1,
+  cavalier: 2,
+  champion: 1,
+  'elite-longbowman': 0,
+  onager: 0,
+  'heavy-scorpion': 0,
+  'siege-ram': 0,
+  'bombard-cannon': 2,
+  trebuchet: 1,
+  'man-at-arms': 0,
+  'long-swordsman': 0,
+  'two-handed-swordsman': 0,
+  paladin: 2,
+  'heavy-camel': 0,
+};
+
 export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   villager: 12,
   scout: 12,

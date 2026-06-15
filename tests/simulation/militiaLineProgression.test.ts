@@ -365,7 +365,8 @@ describe('Heavy Camel upgrade at Stable', () => {
         { maxSteps: 400 },
       ),
     ).toBe(true);
-    // Heavy Camel first-hit damage = 7 + 9 = 16; Knight HP = 100 - 16 = 84.
-    expect(readKnightHp()).toBe(84);
+    // Heavy Camel first hit = 7 + 9 anti-cavalry = 16 raw; the Knight's 2 base
+    // melee armor reduces it to 14, so Knight HP = 100 - 14 = 86.
+    expect(readKnightHp()).toBe(86);
   }, 30_000);
 });

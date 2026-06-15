@@ -125,9 +125,10 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       ),
     ).toBe(true);
 
-    // After the first hit the Knight should be at 100 - 14 = 86 HP.
+    // Camel base 5 + 9 anti-cavalry bonus = 14 raw; the Knight's 2 base melee
+    // armor (units.csv 2/2) reduces it to 12, so 100 - 12 = 88 HP after one hit.
     const knightHpAfter = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
-    expect(knightHpAfter).toBe(86);
+    expect(knightHpAfter).toBe(88);
   }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 
   it('deals +9 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
