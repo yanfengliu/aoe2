@@ -6,6 +6,10 @@ The goal is the complete, publicly-known Age of Empires II (Definitive Edition /
 
 A complete but **shallow** land-only 1v1 vertical slice: Dark → Feudal → Castle → Imperial all work, with a working economy, blacksmith + unit-upgrade tech, abstracted combat, monks, three win conditions, and a competent AI. Breadth coverage vs. the full game: **units 35/104, technologies 37/140, buildings 17/27, civ differentiation ~0/30, naval 0, victory 3/4.** The slice is real and playable — it is depth and breadth that are missing.
 
+## Playtest findings log
+
+- **campaign-7 (2026-06-14, on v0.1.27):** ground-truth replay showed the LLM agent **rushed and wiped out by the AI in the Dark Age** (its villagers fell 5→0, it never reached Feudal, 0 commands rejected) — so the iter-1/2 economy techs (gather-rate, carry) and planned farms are MID-game features the agent never reaches in this matchup. **Reprioritization: early-game survivability before mid-game depth.** First fix shipped: Palisade Walls enabled in the Dark Age (v0.1.28; they were wrongly gated to Feudal+barracks, leaving no Dark-Age defense). Open follow-ups surfaced by this run, to confirm on re-playtest: (a) does the agent actually wall/defend — the affordance places one building per command, with no "build a wall line" helper; (b) is the AI over-efficient in the Dark Age (it kept 6 villagers + 7 buildings while massing 9 military); (c) is Town Center defensive fire strong enough to protect nearby villagers (the agent retreated "under TC arrow cover" and still lost them). Re-playtest after the wall fix to find the next gap.
+
 ## Three structural enablers (build these and the most content lights up)
 
 1. **A stat-multiplier subsystem.** Its absence is why ~12 economy techs, all civ bonuses, and many upgrades are data-only. One layer (apply rate/cost/stat deltas from data to owned + future entities) unblocks the widest swath of content. — `[sim]`

@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.28 - 2026-06-14
+
+### Palisade Walls can be built in the Dark Age
+
+A validation playtest (campaign-7) showed the player getting rushed and overrun by the AI's military in the Dark Age with no way to defend — palisade walls were locked behind the Feudal Age and a Barracks. In Age of Empires II the Palisade Wall is a Dark-Age building with no prerequisite — the standard early defense. It is now buildable from the Dark Age (2 wood, 250 HP), so a player under early pressure can wall off villagers and economy and survive to Feudal. Other buildings are unchanged.
+
+### Validation
+
+- TDD: `tests/simulation/buildOptionsDarkAge.test.ts` (palisade-wall offered in the Dark Age with no barracks; listed once; Feudal-gated buildings still gated); full suite green. The early-defense effect in a live match is validated by the next playtest re-run.
+- Multi-CLI review: see `docs/threads/done/dark-age-palisade/`.
+
 ## 0.1.27 - 2026-06-14
 
 ### Wheelbarrow and Hand Cart now boost villager carry capacity

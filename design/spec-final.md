@@ -659,8 +659,8 @@ Tower line:
 
 Wall and Gate lines:
 
-- Palisade
-- Stone Wall
+- Palisade (Dark Age; no prerequisite)
+- Stone Wall (Castle Age)
 - Fortified Wall
 - gates
 
@@ -677,6 +677,8 @@ The building graph must preserve AoE2 dependency logic:
 - Castle Age buildings unlock Imperial Age
 - University gates certain advanced defensive and projectile techs
 - Castle is not mandatory for every strategy but can satisfy part of the Imperial Age path
+
+Building availability by age (implemented; one source, `getBuildOptions`, which also gates placement validation): Dark Age — House, Mill, Lumber Camp, Mining Camp, Barracks, and Palisade Wall (the Palisade Wall has no prerequisite, matching AoE2: it is the only Dark-Age wall and the early defensive option against a Dark-Age military rush). Feudal Age (with a completed Barracks) adds Stable, Archery Range, Blacksmith, Market, and Watch Tower. Castle/Imperial Age adds Town Center, Siege Workshop, Monastery, Castle, Stone Wall (and the Wonder in Imperial). (Note: Watch Tower currently also requires a Barracks, a minor divergence from AoE2 where it needs only Feudal Age.)
 
 ### 8.6 Exact Lists
 

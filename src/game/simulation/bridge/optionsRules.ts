@@ -459,6 +459,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       'lumber-camp',
       'mining-camp',
       'barracks',
+      // Palisade Wall is a Dark-Age defensive option in AoE2 (no prerequisite):
+      // the only early wall available to a player facing a Dark-Age military
+      // rush. campaign-7 showed the LLM had no Dark-Age defense and was overrun
+      // (villagers 5→0) before reaching Feudal — see docs/devlog + roadmap.
+      'palisade-wall',
     ];
 
     if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
@@ -467,7 +472,6 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       options.push('blacksmith');
       options.push('market');
       options.push('watch-tower');
-      options.push('palisade-wall');
     }
 
     if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
