@@ -132,6 +132,9 @@ describe('prototype building rules', () => {
     expect(canGarrisonAt('castle', 'elite-longbowman')).toBe(true);
     expect(canGarrisonAt('castle', 'crossbowman')).toBe(true);
     expect(canGarrisonAt('watch-tower', 'elite-longbowman')).toBe(false);
+    // Spec §10.8: an empty completed Town Center fires its base arrow (1),
+    // like the Castle; garrisoned units add one each up to 4.
+    expect(buildingArrowCount('town-center', 0, 0)).toBe(1);
     expect(buildingArrowCount('town-center', 3, 0)).toBe(4);
     expect(buildingArrowCount('castle', 8, 3)).toBe(4);
   });

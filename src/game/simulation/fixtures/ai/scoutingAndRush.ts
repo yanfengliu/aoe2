@@ -163,26 +163,32 @@ export function createAiRushFixture(seed: string): PrototypeScenario {
         baseOwner: 1,
         vision: { playerId: 1, radius: 7 },
       },
+      // FU: human villagers relocated to open ground (16,16 cluster), well
+      // clear of the human Town Center at (8,8) (footprint-Manhattan ≥ 10).
+      // The AI's attack group targets a human villager directly, so it still
+      // hunts and kills one here — but now away from the TC's base defensive
+      // fire, which (after the empty-TC-fires-1 rule) would otherwise shield
+      // the villagers and break the "AI kills a villager" assertion.
       {
         kind: 'villager',
-        x: 6,
-        y: 8,
+        x: 16,
+        y: 16,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
       },
       {
         kind: 'villager',
-        x: 6,
-        y: 9,
+        x: 16,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
       },
       {
         kind: 'villager',
-        x: 7,
-        y: 9,
+        x: 17,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },

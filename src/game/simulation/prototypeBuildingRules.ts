@@ -333,7 +333,10 @@ export function buildingArrowCount(
 ): number {
   switch (buildingType) {
     case 'town-center':
-      return garrisonedUnitsTotal > 0 ? 1 + Math.min(garrisonedUnitsTotal, 4) : 0;
+      // Spec §10.8: a completed Town Center provides a base attack even when
+      // empty (1 arrow), plus one per garrisoned unit up to 4 — mirroring the
+      // Castle's empty-fire of 1. Gives a TC passive economy-phase defense.
+      return 1 + Math.min(garrisonedUnitsTotal, 4);
     case 'watch-tower':
       return 1;
     case 'castle':

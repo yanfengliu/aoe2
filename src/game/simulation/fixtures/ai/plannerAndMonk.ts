@@ -21,29 +21,29 @@ export function createAiPlannerFixture(seed: string): PrototypeScenario {
     height: MAP_HEIGHT,
     terrain: createGrassFixtureTerrain(),
     starts: [
-      { owner: 1, townCenter: { x: 8, y: 8 }, startingResources: stockpile },
+      { owner: 1, townCenter: { x: 2, y: 2 }, startingResources: stockpile },
       { owner: 2, townCenter: { x: 30, y: 20 }, startingResources: stockpile, difficulty: 'standard' },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
       { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      // Human placeholder villager so the old rush behavior can still
-      // kill one to match existing browser-test expectations. Position
-      // the human villagers away from the AI base to avoid immediate
-      // combat — the tests assert planner behavior rather than kill
-      // counts.
-      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      // FU4: backup Town Centers in the far corner so the AI rush
-      // cannot end the match via conquest before the AI reaches Castle
-      // Age. 2400 HP each, placed far enough from the primary TC that
-      // the AI's militia lock onto the primary TC first and don't path
-      // back across the map until the primary dies. Two backups give
-      // redundancy against a lucky rush. With the previous single-TC
-      // human setup, conquest presence vanished around tick 2300 under
-      // the new tuning's faster military production, which capped age
-      // progression at Feudal.
-      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'town-center', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      // Human (owner 1) is inert scaffolding for these AI-behavior tests and
+      // deliberately has NO Town Center. Under the empty-TC-fires-1 rule
+      // (spec §10.8) a human TC would shoot the AI's attack group — the AI
+      // targets the human TC (via townCenterRefs) once the lone villager
+      // dies — killing militia faster than they mass and stalling the AI's
+      // age-up research. With no human TC, the AI's `humanTownCenterId` stays
+      // null, so after the villager dies the AI has no target and its
+      // military survives, letting the "ages up to Castle" and "5+ military"
+      // assertions hold. Conquest presence comes from houses parked in the
+      // far NW corner, outside the AI's vision so they are never attacked and
+      // the match cannot end by conquest before the AI reaches Castle Age.
+      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+      // Lone villager the AI hunts and kills (preserves the browser-test
+      // "AI kills a human villager" expectation). Placed SE near the AI base
+      // so the kill resolves early; afterward the AI has no firing target.
+      { kind: 'villager', x: 45, y: 30, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
       // Four AI villagers — enough to drive a non-trivial rebalance
       // test (food/wood/gold/stone across multiple resources).
       { kind: 'villager', x: 28, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },

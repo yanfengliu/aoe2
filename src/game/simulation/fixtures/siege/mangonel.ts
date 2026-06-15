@@ -217,7 +217,7 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
         // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'mangonel',
         x: 10,
-        y: 13,
+        y: 20,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -249,7 +249,7 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
       {
         kind: 'spearman',
         x: 12,
-        y: 13,
+        y: 20,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 1 },
@@ -294,7 +294,7 @@ export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeSce
         // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'mangonel',
         x: 10,
-        y: 13,
+        y: 20,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -310,7 +310,7 @@ export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeSce
       {
         kind: 'spearman',
         x: 15,
-        y: 13,
+        y: 20,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -353,7 +353,7 @@ export function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScena
         // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
         kind: 'onager',
         x: 10,
-        y: 13,
+        y: 20,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 10 },
@@ -373,7 +373,7 @@ export function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScena
       {
         kind: 'spearman',
         x: 12,
-        y: 13,
+        y: 20,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 1 },

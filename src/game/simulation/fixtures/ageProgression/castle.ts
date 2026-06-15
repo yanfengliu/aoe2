@@ -96,7 +96,15 @@ export function createCastleTownCenterFixture(seed: string): PrototypeScenario {
       },
       {
         owner: 2,
-        townCenter: { x: 24, y: 8 },
+        townCenter: { x: 34, y: 8 },
+        // Pure human-production test (build a 2nd TC at (14,8), train a
+        // villager). disableAi stops the enemy training/rushing, AND the
+        // enemy TC is parked far east (34,8) so that — under the empty-TC-
+        // fires-1 rule (spec §10.8) — it cannot shoot the human's villagers
+        // clustered around the new forward TC (which had killed the trained
+        // villager, dropping the count to 1). Together these isolate the
+        // production assertions from any combat.
+        disableAi: true,
       },
     ],
     spawns: [
@@ -118,7 +126,7 @@ export function createCastleTownCenterFixture(seed: string): PrototypeScenario {
       },
       {
         kind: 'town-center',
-        x: 24,
+        x: 34,
         y: 8,
         owner: 2,
         baseOwner: 2,

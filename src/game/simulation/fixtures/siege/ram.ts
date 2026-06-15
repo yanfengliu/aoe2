@@ -96,7 +96,7 @@ export function createRamVsVillagerFixture(seed: string): PrototypeScenario {
       {
         kind: 'battering-ram',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -112,7 +112,7 @@ export function createRamVsVillagerFixture(seed: string): PrototypeScenario {
       {
         kind: 'villager',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
@@ -153,7 +153,7 @@ export function createPikemanVsRamFixture(seed: string): PrototypeScenario {
       {
         kind: 'pikeman',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -169,7 +169,7 @@ export function createPikemanVsRamFixture(seed: string): PrototypeScenario {
       {
         kind: 'battering-ram',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -210,7 +210,7 @@ export function createCamelVsRamFixture(seed: string): PrototypeScenario {
       {
         kind: 'camel',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -226,7 +226,7 @@ export function createCamelVsRamFixture(seed: string): PrototypeScenario {
       {
         kind: 'battering-ram',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },

@@ -42,7 +42,7 @@ export function createMonkHealFixture(seed: string): PrototypeScenario {
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -50,7 +50,7 @@ export function createMonkHealFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -62,7 +62,7 @@ export function createMonkHealFixture(seed: string): PrototypeScenario {
         // by killing the wolf once it's done some damage.
         kind: 'wolf',
         x: 17,
-        y: 8,
+        y: 17,
         owner: null,
         baseOwner: null,
         amount: 0,
@@ -115,7 +115,7 @@ export function createMonkHealthyFriendlyWithEnemyFixture(seed: string): Prototy
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -124,7 +124,7 @@ export function createMonkHealthyFriendlyWithEnemyFixture(seed: string): Prototy
       {
         kind: 'militia',
         x: 16,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -134,7 +134,7 @@ export function createMonkHealthyFriendlyWithEnemyFixture(seed: string): Prototy
       {
         kind: 'militia',
         x: 16,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -185,7 +185,7 @@ export function createMonkHealOverConvertFixture(seed: string): PrototypeScenari
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -193,7 +193,7 @@ export function createMonkHealOverConvertFixture(seed: string): PrototypeScenari
       {
         kind: 'spearman',
         x: 16,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -201,7 +201,7 @@ export function createMonkHealOverConvertFixture(seed: string): PrototypeScenari
       {
         kind: 'militia',
         x: 16,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },

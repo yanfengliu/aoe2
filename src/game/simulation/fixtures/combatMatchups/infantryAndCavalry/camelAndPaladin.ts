@@ -36,7 +36,7 @@ export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
       {
         kind: 'camel',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -52,7 +52,7 @@ export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
       {
         kind: 'knight',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
@@ -60,7 +60,7 @@ export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
       {
         kind: 'scout',
         x: 14,
-        y: 9,
+        y: 18,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
@@ -102,7 +102,7 @@ export function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
       {
         kind: 'spearman',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -118,7 +118,7 @@ export function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
       {
         kind: 'camel',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },

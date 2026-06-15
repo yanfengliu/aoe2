@@ -108,7 +108,7 @@ export function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenar
         // unchanged, but now occupies a free cell.
         kind: 'watch-tower',
         x: 12,
-        y: 10,
+        y: 19,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 8 },
@@ -129,7 +129,7 @@ export function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenar
       {
         kind: 'militia',
         x: 15,
-        y: 10,
+        y: 19,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -137,7 +137,7 @@ export function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenar
       {
         kind: 'mangonel',
         x: 16,
-        y: 10,
+        y: 19,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 9 },

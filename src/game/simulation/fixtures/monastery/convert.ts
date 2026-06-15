@@ -39,7 +39,7 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -47,7 +47,7 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
       {
         kind: 'militia',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -183,7 +183,7 @@ export function createMonkDoubleConvertFixture(seed: string): PrototypeScenario 
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -191,7 +191,7 @@ export function createMonkDoubleConvertFixture(seed: string): PrototypeScenario 
       {
         kind: 'monk',
         x: 14,
-        y: 9,
+        y: 18,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -199,7 +199,7 @@ export function createMonkDoubleConvertFixture(seed: string): PrototypeScenario 
       {
         kind: 'militia',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -250,7 +250,7 @@ export function createMonkConvertCleanupFixture(seed: string): PrototypeScenario
       {
         kind: 'monk',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 9 },
@@ -258,7 +258,7 @@ export function createMonkConvertCleanupFixture(seed: string): PrototypeScenario
       {
         kind: 'pikeman',
         x: 14,
-        y: 9,
+        y: 18,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 3 },
@@ -268,7 +268,7 @@ export function createMonkConvertCleanupFixture(seed: string): PrototypeScenario
         // not kill it before conversion completes (~50 ticks).
         kind: 'militia',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },

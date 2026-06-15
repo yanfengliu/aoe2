@@ -40,7 +40,7 @@ export function createCavalryArcherRangedFixture(seed: string): PrototypeScenari
       {
         kind: 'cavalry-archer',
         x: 12,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -56,7 +56,7 @@ export function createCavalryArcherRangedFixture(seed: string): PrototypeScenari
       {
         kind: 'militia',
         x: 16,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },
@@ -99,7 +99,7 @@ export function createSkirmisherVsCavalryArcherFixture(seed: string): PrototypeS
       {
         kind: 'skirmisher',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 5 },
@@ -115,7 +115,7 @@ export function createSkirmisherVsCavalryArcherFixture(seed: string): PrototypeS
       {
         kind: 'cavalry-archer',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 5 },

@@ -92,7 +92,7 @@ export function createBombardCannonMinRangeBlockedFixture(seed: string): Prototy
       {
         kind: 'bombard-cannon',
         x: 14,
-        y: 10,
+        y: 18,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 13 },
@@ -109,7 +109,7 @@ export function createBombardCannonMinRangeBlockedFixture(seed: string): Prototy
       {
         kind: 'spearman',
         x: 17,
-        y: 10,
+        y: 18,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 3 },

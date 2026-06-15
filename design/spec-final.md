@@ -906,8 +906,8 @@ Where appropriate, siege must support friendly fire.
 
 Town Centers, Towers, and Castles must support:
 
-- base attack
-- additional garrisoned arrows where applicable
+- base attack — fired whenever the building is completed, independent of garrison. A completed but empty Town Center, Tower, or Castle still fires its base arrow (this is the building's passive defense during the economy phase; it is not gated on a garrisoned unit).
+- additional garrisoned arrows where applicable (added on top of the base attack, up to the building's cap)
 - technology modifiers
 - civ-specific modifiers
 

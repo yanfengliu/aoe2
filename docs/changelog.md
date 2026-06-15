@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.29 - 2026-06-14
+
+### Town Centers now defend themselves even when empty
+
+A campaign-8 playtest plus ground-truth code reading found that an empty Town Center fired zero arrows — it only fired if a unit was garrisoned inside. That violated spec §10.8 ("base attack") and was inconsistent with the Castle (which always fires its base arrow), so a Town Center gave the player no passive defense during the economy phase — exactly when a Dark-Age rush hits. A completed Town Center now fires its base arrow (5 damage, range 6, reload 12) whenever it stands, plus one arrow per garrisoned unit up to 4 — matching the Castle and the spec. This gives villagers real cover near the TC against early raids.
+
+### Validation
+
+- TDD: `tests/simulation/prototypeRules.test.ts` asserts an empty Town Center fires 1 (and 4 with 3 garrisoned). Because the now-firing empty TC perturbs combat-isolation tests whose fixtures staged duels within TC range, ~25 fixtures across combat, siege, monastery, auto-aggression, AI, and production suites were restaged so combat happens clear of any Town Center's range (the measurements they assert are unchanged); full suite green (1255 passed).
+- Multi-CLI review: see `docs/threads/done/tc-base-fire/`.
+
 ## 0.1.28 - 2026-06-14
 
 ### Palisade Walls can be built in the Dark Age

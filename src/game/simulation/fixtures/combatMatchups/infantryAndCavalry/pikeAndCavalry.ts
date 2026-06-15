@@ -39,7 +39,7 @@ export function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
       {
         kind: 'pikeman',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -55,7 +55,7 @@ export function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
       {
         kind: 'knight',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
@@ -97,7 +97,7 @@ export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
       {
         kind: 'camel',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -113,7 +113,7 @@ export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
       {
         kind: 'hussar',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 11 },
@@ -155,7 +155,7 @@ export function createHalberdierVsCavalierFixture(seed: string): PrototypeScenar
       {
         kind: 'halberdier',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -171,7 +171,7 @@ export function createHalberdierVsCavalierFixture(seed: string): PrototypeScenar
       {
         kind: 'cavalier',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
@@ -212,7 +212,7 @@ export function createHalberdierVsKnightFixture(seed: string): PrototypeScenario
       {
         kind: 'halberdier',
         x: 14,
-        y: 8,
+        y: 17,
         owner: 1,
         baseOwner: 1,
         vision: { playerId: 1, radius: 4 },
@@ -228,7 +228,7 @@ export function createHalberdierVsKnightFixture(seed: string): PrototypeScenario
       {
         kind: 'knight',
         x: 15,
-        y: 8,
+        y: 17,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 4 },
