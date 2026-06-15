@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.32 - 2026-06-15
+
+### Combat splits melee vs pierce armor (archers no longer ignore armor)
+
+Until now every unit had a single armor value, so an arrow and a sword were resisted identically. Combat now distinguishes melee from pierce damage (the first slice of the data-driven combat model in spec §10.2): an attacker's hit is reduced by the matching armor — melee attackers (infantry, cavalry, rams) by the target's melee armor, pierce attackers (archers, skirmishers, scorpions, mangonels, gunpowder, and tower / Town Center / castle arrows) by its pierce armor. A unit's pierce armor is its base value from `design/stats/units.csv` plus its accumulated blacksmith armor-tech bonus, so armor upgrades keep reducing arrow damage as they did before. The AoE2 counters now emerge: skirmishers (3 pierce armor) shrug off archer fire, battering rams (180) are all but immune to arrows, and cavalry/scout-line/militia carry their real pierce armor. Melee combat is unchanged. Splitting which armor techs feed melee vs pierce (the CSV armor classes) and class-based bonus damage — replacing the current hard-coded counter table — are the next slice.
+
+### Validation
+
+- TDD: `tests/simulation/combatArmor.test.ts` pins the split (pierce reduced by pierce armor, melee by melee armor, the floor-of-1 rule) and the counter contract (a skirmisher takes less archer damage than a spearman). Combat fixtures re-validated to the AoE2-accurate outcomes (e.g. a cavalry-archer now leaves a militia at 35 not 34; a mangonel leaves a knight at 62 not 60; a tower barely dents a mangonel). Full suite green.
+- Multi-CLI review: see `docs/threads/done/data-driven-combat/`.
+
 ## 0.1.31 - 2026-06-15
 
 ### Rally points on a resource make new villagers auto-gather it

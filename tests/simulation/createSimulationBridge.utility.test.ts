@@ -206,7 +206,11 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.issueContextCommand(8, 8)).toBe(true);
 
-    for (let index = 0; index < 80; index += 1) {
+    // The TC fires PIERCE arrows (attack 5) and a Scout carries 2 pierce armor
+    // (units.csv 0/2), so each arrow now deals 3 — the lone Scout still dies,
+    // just slower than when arrows ignored armor. ~2 arrows/reload × 3 over
+    // ~8 reloads (12 ticks each) clears its 45 HP; 120 ticks gives margin.
+    for (let index = 0; index < 120; index += 1) {
       bridge.step(100);
     }
 

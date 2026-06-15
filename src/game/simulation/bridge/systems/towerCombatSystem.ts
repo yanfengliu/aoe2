@@ -7,7 +7,7 @@ import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
-import { isArcherLineUnit } from '../../prototypeUnitRules';
+import { combatDamageAfterArmor, effectivePierceArmor, isArcherLineUnit } from '../../prototypeUnitRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
@@ -100,6 +100,14 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         if (!targetCombat) {
           continue;
         }
+        // Tower / Town Center / castle arrows are PIERCE: reduced by the
+        // target's pierce armor (base + its armor-tech bonus), not melee armor,
+        // so skirmishers/rams shrug off building fire and teched units keep
+        // their arrow mitigation.
+        const targetUnitForArrows = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+        const targetArrowPierceArmor = targetUnitForArrows
+          ? effectivePierceArmor(targetUnitForArrows.unitType, targetCombat.armor)
+          : 0;
 
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
           const activeTargetCombat = accessor.get(combatStatesCodec).get(targetId);
@@ -107,9 +115,11 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
             break;
           }
 
-          activeTargetCombat.currentHp -= Math.max(
-            1,
-            buildingCombat.attackDamage - activeTargetCombat.armor,
+          activeTargetCombat.currentHp -= combatDamageAfterArmor(
+            buildingCombat.attackDamage,
+            'pierce',
+            activeTargetCombat.armor,
+            targetArrowPierceArmor,
           );
           accessor.markDirty(combatStatesCodec);
           markOutOfBandRenderChange();

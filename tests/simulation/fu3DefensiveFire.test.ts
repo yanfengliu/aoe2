@@ -35,8 +35,8 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
   it('Castle with no garrisoned archers fires a single arrow per reload', () => {
     // fu3-castle-no-archers-fixture plants a Castle with the target at
     // closest-edge distance ≤ 8. Over 15 ticks (< 1 reload of 20), the
-    // Castle fires exactly one arrow. Castle attack 11 pierce vs the
-    // target's 0 default armor → 11 HP of damage.
+    // Castle fires exactly one arrow. Castle attack 11 is PIERCE; the Champion
+    // target carries 1 pierce armor (units.csv 1/1) → 10 HP of damage.
     const bridge = createSimulationBridge('fu3-castle-no-archers-fixture');
     const before = findFirstOwnedUnit(bridge, 2, 'champion');
     expect(before).toBeDefined();
@@ -49,7 +49,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     }
 
     const afterHp = getUnitHp(bridge, before!.id);
-    expect(afterHp).toBe(beforeHp! - 11);
+    expect(afterHp).toBe(beforeHp! - 10);
   });
 
   it('Castle with 3 archers garrisoned fires 4 arrows per reload cycle', () => {
@@ -85,8 +85,8 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     }
 
     // 15 ticks < one reload (20 ticks), so exactly one reload fires.
-    // Castle should fire 4 arrows (1 base + 3 archers). Champion has 0
-    // default armor, so each arrow deals 11 damage. 4 arrows = 44 damage.
+    // Castle should fire 4 arrows (1 base + 3 archers). Champion has 1 pierce
+    // armor, so each pierce arrow deals 10 damage. 4 arrows = 40 damage.
     // First step's processCommands drains the garrison commands; same
     // step's combat phase fires the reload with all 3 archers garrisoned
     // (handlers run at processCommands at the START of the step, before
@@ -106,7 +106,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     expect(inventory).toContain('3 / 20 garrisoned');
 
     const afterHp = getUnitHp(bridge, enemy!.id);
-    expect(afterHp).toBe(beforeHp! - 44);
+    expect(afterHp).toBe(beforeHp! - 40);
   });
 
   it('Castle with 5 archers garrisoned caps at 5 arrows per reload cycle', () => {
@@ -133,9 +133,9 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
       expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
     }
 
-    // 15 ticks < one reload (20 ticks). 5 arrows per shot × 11 damage =
-    // 55 damage. HP 70 → 15. If the cap were 1+5=6 the damage would be
-    // 66 and we'd overshoot HP 70 → death.
+    // 15 ticks < one reload (20 ticks). 5 arrows per shot × 10 pierce damage
+    // (11 attack − Champion's 1 pierce armor) = 50 damage. HP 70 → 20. If the
+    // cap were 1+5=6 the damage would be 60 and we'd overshoot toward death.
     for (let i = 0; i < 15; i += 1) {
       bridge.step(100);
     }
@@ -148,7 +148,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     expect(bridge.getSelectionState().inventory ?? '').toContain('5 / 20 garrisoned');
 
     const afterHp = getUnitHp(bridge, enemy!.id);
-    expect(afterHp).toBe(beforeHp! - 55);
+    expect(afterHp).toBe(beforeHp! - 50);
   });
 });
 

@@ -278,7 +278,10 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(militiaAfter).toBeDefined();
     const mangonelHp = getHealthOfUnitAtCell(bridge, mangonelAfter!.x, mangonelAfter!.y);
     const militiaHp = getHealthOfUnitAtCell(bridge, militiaAfter!.x, militiaAfter!.y);
-    expect(mangonelHp).toBe(45); // 50 - 5
+    // Tower arrows are pierce (5) and a Mangonel carries 6 pierce armor, so each
+    // shot is floored to 1 dmg: 50 -> 49. Still proves the tower targeted the
+    // Mangonel (it took damage) while the closer Militia stayed untouched.
+    expect(mangonelHp).toBe(49);
     expect(militiaHp).toBe(40); // 40 - 0, untouched
   }, 10_000);
 
@@ -310,8 +313,9 @@ describe('Slice 4 Siege Workshop + siege units', () => {
 
   it('does NOT apply the anti-infantry bonus when a Mangonel attacks a Knight', () => {
     // Slice 4 review Fix 2: the +10 bonus is narrow — only militia /
-    // spearman / pikeman / villager qualify. Knight (cavalry) must take
-    // base 40 damage, no more. 100 - 40 = 60 HP after one tick.
+    // spearman / pikeman / villager qualify. Knight (cavalry) gets no bonus, so
+    // it takes the Mangonel's base 40 PIERCE reduced by its 2 pierce armor = 38;
+    // 100 - 38 = 62 HP after one tick (had the bonus wrongly applied it'd be 52).
     const bridge = createSimulationBridge('mangonel-vs-knight-fixture');
 
     const knight = findFirstOwnedUnit(bridge, 2, 'knight');
@@ -326,7 +330,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     const knightAfter = bridge.getEconomyState().units.find((u) => u.id === knightIdBefore);
     expect(knightAfter).toBeDefined();
     const knightHp = getHealthOfUnitAtCell(bridge, knightAfter!.x, knightAfter!.y);
-    expect(knightHp).toBe(60); // 100 - 40 base, no bonus
+    expect(knightHp).toBe(62); // 100 - (40 pierce - 2 knight pierce armor), no bonus
   }, 10_000);
 
   it('selects every owned Mangonel in a rect when selectOwnedUnitsByTypeInRect is called with mangonel', () => {

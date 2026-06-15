@@ -33,7 +33,7 @@ Tags: `[sim]` simulation logic here · `[data]` CSV/content wiring · `[engine]`
 - **Stat-multiplier subsystem + economy upgrades.** Gather-rate / carry / villager-speed multipliers applied from data; lights up Wheelbarrow, Hand Cart, Double-Bit Axe, Bow Saw, Two-Man Saw, mining techs (~12 techs). `[sim]`
 
 ### M2 — Real combat & counters
-- **Melee/pierce armor split + data-driven bonus damage.** Parse the CSV `armor`/`attack_bonus`/`armor_bonus` pairs; damage = spec §10.1 class summation; remove the hard-coded type-vs-type table. `[sim]`
+- **Melee/pierce armor split + data-driven bonus damage.** Slice 1 ✅ done (v0.1.32): melee/pierce split — pierce attackers (archers/skirmishers/siege/tower arrows) reduced by the target's pierce armor (`UNIT_PIERCE_ARMOR` from `units.csv`), melee by melee armor; `combatDamageAfterArmor`/`unitAttackType`/`unitPierceArmor` + the 2 unit-target damage sites. Slice 2 (next): parse `attack_bonus`/`armor_bonus` into armor CLASSES + class-based bonus damage (spec §10.1 summation), retiring the hard-coded `attackBonusAgainstUnit` table; also wire base MELEE armor from the CSV (currently 0 + techs). `[sim]`
 - **Projectiles.** Travel time, accuracy rolls, missed shots, and Ballistics/Thumb-Ring; archers/siege/towers fire real projectiles instead of instant HP subtraction. `[sim]`
 - **Elevation + blast/splash damage.** 1.25×/0.75× by elevation; mangonel/onager/scorpion area damage via the unused `blast_radius`. `[sim]`
 

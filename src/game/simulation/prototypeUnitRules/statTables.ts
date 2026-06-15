@@ -101,6 +101,50 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   'heavy-camel': 7,
 };
 
+// Base PIERCE armor per unit, from design/stats/units.csv (the `melee/pierce`
+// armor column, second value). Data-driven combat Slice 1: pierce attacks
+// (archers/skirmishers/siege/towers) are reduced by this instead of the single
+// melee `armor`. The standouts drive AoE2 counter-play: skirmishers (3) shrug
+// off archer fire, rams (180+) are near-immune to arrows, cavalry/scout line
+// carry 2. Melee base armor stays 0 here (unchanged prototype behaviour); the
+// CSV's melee column + armor classes are Slice 2.
+export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
+  villager: 0,
+  scout: 2,
+  militia: 1,
+  spearman: 0,
+  archer: 0,
+  skirmisher: 3,
+  knight: 2,
+  crossbowman: 0,
+  pikeman: 0,
+  'light-cavalry': 2,
+  camel: 0,
+  'cavalry-archer': 0,
+  mangonel: 6,
+  scorpion: 6,
+  'battering-ram': 180,
+  monk: 0,
+  longbowman: 0,
+  arbalest: 0,
+  halberdier: 0,
+  hussar: 2,
+  'heavy-cavalry-archer': 0,
+  cavalier: 2,
+  champion: 1,
+  'elite-longbowman': 1,
+  onager: 7,
+  'heavy-scorpion': 7,
+  'siege-ram': 195,
+  'bombard-cannon': 5,
+  trebuchet: 150,
+  'man-at-arms': 1,
+  'long-swordsman': 1,
+  'two-handed-swordsman': 1,
+  paladin: 3,
+  'heavy-camel': 0,
+};
+
 export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   villager: 12,
   scout: 12,

@@ -191,11 +191,12 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       ),
     ).toBe(true);
 
-    // Cavalry Archer base attack is 6; Militia has 0 pierce armor in our model,
-    // so one hit brings 40 -> 34 HP. The Cavalry Archer should still be at
-    // the original position (it did not need to close in).
+    // Cavalry Archer base attack is 6; a Cavalry Archer deals PIERCE damage and
+    // Militia carries 1 pierce armor (AoE2 value, design/stats/units.csv 0/1),
+    // so one hit deals 5 and brings 40 -> 35 HP. The Cavalry Archer should still
+    // be at the original position (it did not need to close in).
     const enemyHpAfter = getHealthOfUnitAtCell(bridge, enemyMilitia!.x, enemyMilitia!.y);
-    expect(enemyHpAfter).toBe(34);
+    expect(enemyHpAfter).toBe(35);
 
     const caAfter = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
     expect(caAfter?.x).toBe(ca!.x);

@@ -19,6 +19,7 @@ import {
   UNIT_ATTACK_DAMAGE,
   UNIT_ATTACK_RANGE,
   UNIT_MAX_HP,
+  UNIT_PIERCE_ARMOR,
   UNIT_MIN_ATTACK_RANGE,
   UNIT_RELOAD_TICKS,
   UNIT_SIZES,
@@ -36,6 +37,46 @@ export function unitMaxHp(unitType: UnitType): number {
 
 export function unitAttackDamage(unitType: UnitType): number {
   return UNIT_ATTACK_DAMAGE[unitType];
+}
+
+// Data-driven combat Slice 1 — melee/pierce armor split.
+export type AttackType = 'melee' | 'pierce';
+
+export function unitPierceArmor(unitType: UnitType): number {
+  return UNIT_PIERCE_ARMOR[unitType];
+}
+
+// Effective pierce armor = the unit's BASE pierce armor plus its accumulated
+// armor-tech bonus (`CombatState.armor`, which is base 0 + blacksmith
+// upgrades). So padded/leather/ring archer armor, mail armor, and barding keep
+// reducing arrow / tower / siege (pierce) damage exactly as they did before the
+// melee/pierce split — this slice ADDS base pierce armor without dropping the
+// existing tech mitigation. NOTE: until Slice 2 separates melee-tech from
+// pierce-tech armor (the CSV armor classes), the single tech bonus applies to
+// both melee and pierce, matching the pre-split behaviour.
+export function effectivePierceArmor(unitType: UnitType, armorTechBonus: number): number {
+  return unitPierceArmor(unitType) + armorTechBonus;
+}
+
+// A unit's attack deals melee damage if it is a melee unit (infantry, cavalry,
+// rams), otherwise pierce (archers, skirmishers, siege, gunpowder). Towers and
+// other arrow-firing buildings are pierce too, but they are not units — their
+// callers pass 'pierce' directly.
+export function unitAttackType(unitType: UnitType): AttackType {
+  return isMeleeUnit(unitType) ? 'melee' : 'pierce';
+}
+
+// Final damage of one connecting hit: subtract the armor that matches the
+// attack type (pierce attacks vs the target's pierce armor, melee vs melee),
+// with the AoE2 floor of 1 so any hit that lands still chips at least 1 HP.
+export function combatDamageAfterArmor(
+  attackTotal: number,
+  attackType: AttackType,
+  targetMeleeArmor: number,
+  targetPierceArmor: number,
+): number {
+  const armor = attackType === 'pierce' ? targetPierceArmor : targetMeleeArmor;
+  return Math.max(1, attackTotal - armor);
 }
 
 export function unitReloadTicks(unitType: UnitType): number {

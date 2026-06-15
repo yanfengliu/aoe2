@@ -21,6 +21,9 @@ import {
 import {
   attackBonusAgainstBuilding,
   attackBonusAgainstUnit,
+  combatDamageAfterArmor,
+  effectivePierceArmor,
+  unitAttackType,
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
@@ -215,7 +218,17 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
             const rawDamage =
               attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
-            targetCombat.currentHp -= Math.max(1, rawDamage - targetCombat.armor);
+            // Melee/pierce split: a melee attacker is reduced by the target's
+            // melee armor (its armor-tech bonus), a pierce attacker
+            // (archers/skirmishers/siege) by its pierce armor — base pierce
+            // armor PLUS that same tech bonus, so blacksmith armor upgrades keep
+            // mitigating arrows (skirmishers shrug off arrows, rams near-immune).
+            targetCombat.currentHp -= combatDamageAfterArmor(
+              rawDamage,
+              unitAttackType(unit.unitType),
+              targetCombat.armor,
+              effectivePierceArmor(targetUnit.unitType, targetCombat.armor),
+            );
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
             accessor.markDirty(combatStatesCodec);
             markOutOfBandRenderChange();
