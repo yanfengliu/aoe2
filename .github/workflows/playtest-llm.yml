@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       # aoe2's `file:../civ-engine` dep — see ci.yml. Check out + build the
       # public sibling engine so npm can resolve it.
-      - name: Checkout civ-engine (sibling file: dependency)
+      - name: Checkout civ-engine (sibling dependency)
         uses: actions/checkout@v4
         with:
           repository: yanfengliu/civ-engine

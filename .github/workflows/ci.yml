@@ -28,7 +28,7 @@ jobs:
       # "Cannot find module 'civ-engine'". Check the public engine repo out and
       # build its `dist/` (its package `types`/`main` point at dist and it has
       # no `prepare` script, so npm won't build it for us).
-      - name: Checkout civ-engine (sibling file: dependency)
+      - name: Checkout civ-engine (sibling dependency)
         uses: actions/checkout@v4
         with:
           repository: yanfengliu/civ-engine
