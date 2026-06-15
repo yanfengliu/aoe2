@@ -40,24 +40,17 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      # aoe2's `file:../civ-engine` dep — see ci.yml. Check out + build the
-      # public sibling engine so npm can resolve it.
-      - name: Checkout civ-engine (sibling dependency)
-        uses: actions/checkout@v4
-        with:
-          repository: yanfengliu/civ-engine
-          ref: main
-          path: __civ-engine
+      # aoe2 consumes the engine's PREBUILT dist (the engine CI packs it as the
+      # rolling engine-dist release); it does not build the engine. See ci.yml.
+      - name: Fetch the prebuilt civ-engine
+        shell: bash
+        run: |
+          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          mkdir -p ../civ-engine
+          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build civ-engine into ../civ-engine
-        shell: bash
-        run: |
-          mv __civ-engine ../civ-engine
-          cd ../civ-engine
-          npm ci
-          npm run build
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run LLM corpus (default — reads playtest-corpus-llm.json)
