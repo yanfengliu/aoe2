@@ -769,6 +769,8 @@ The input system must support:
 - convert
 - pack and unpack where applicable
 
+Rally points carry AoE2 semantics: a building's rally point set ON a harvestable resource makes newly-trained villagers auto-gather that resource (they acquire the rally resource's kind and are routed to the nearest matching node), rather than merely walking to the rally cell and standing idle. A rally point on empty ground — or on a not-yet-harvestable target such as a live huntable animal, which must be killed before its meat can be gathered — is a plain move target. This is the standard anti-idle mechanism — a freshly-trained villager has no gather order of its own, so without a resource rally it stands idle until the player tasks it.
+
 ### 9.4 Selection and Group Control
 
 Required interaction model:

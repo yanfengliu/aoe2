@@ -235,6 +235,10 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     // per DESIGN v17 §6.4 B1 fix (mid-tick `submitWithResult` would violate
     // civ-engine's determinism contract).
     issueUnitMoveCommand: setUnitMoveCommandDirect,
+    // Rally-on-resource auto-gather: the canonical harvestability predicate
+    // gates which rally targets a new villager auto-gathers (excludes live
+    // wildlife + relics).
+    isHarvestableResource,
     applyTechnology,
   });
 

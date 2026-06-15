@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.31 - 2026-06-15
+
+### Rally points on a resource make new villagers auto-gather it
+
+A campaign-9 replay deep-dive found that newly-trained human villagers stood idle at the Town Center even with abundant food a few tiles away: a fresh villager has no gather order of its own, and human villagers are auto-assigned to work only once they carry an explicit gather order. A Town Center (or any villager-producing building) rally point set ON a harvestable resource now gives each newly-trained villager that resource's gather order, so it walks out and starts working instead of idling — the standard AoE2 anti-idle mechanism. Rally points on empty ground remain plain move targets, and non-villager units are unaffected. The villager is routed to the nearest matching resource node (so several villagers rallied onto one forest fan out), and it keeps re-seeking that resource kind as nodes deplete.
+
+### Validation
+
+- TDD: `tests/simulation/createSimulationBridge.darkAge.test.ts` rallies a Town Center onto a tree, trains a villager, and asserts the new villager takes up wood and actively works it (it would otherwise keep the default food intent and idle). Full suite green.
+- Multi-CLI review: see `docs/threads/done/rally-point-gather/`.
+
 ## 0.1.30 - 2026-06-15
 
 ### Terrain reads as a textured surface instead of flat blocks

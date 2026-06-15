@@ -222,4 +222,49 @@ describe('createSimulationBridge dark age economy progression', () => {
 
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
   }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+
+  it('auto-gathers when a Town Center rally point is set on a resource', () => {
+    const bridge = createSimulationBridge(DEFAULT_SEED);
+
+    // A tree near the Town Center (8,8) to rally onto. The trained villager
+    // (ordinal 6) defaults to a non-wood gather role (food) via
+    // assignVillagerRole, so without the fix training it cannot raise the
+    // wood-gatherer count — making "wood count rose AND one works it" an
+    // unambiguous, delta-robust signal that the rally drove the gather order.
+    const tree = bridge
+      .getEconomyState()
+      .resources.filter((resource) => resource.resourceType === 'tree')
+      .sort(
+        (left, right) =>
+          Math.abs(left.x - 8) + Math.abs(left.y - 8)
+          - (Math.abs(right.x - 8) + Math.abs(right.y - 8)),
+      )[0];
+    expect(tree).toBeDefined();
+
+    const woodGatherers = () =>
+      bridge
+        .getEconomyState()
+        .villagers.filter((villager) => villager.owner === 1 && villager.desiredResource === 'wood');
+    const woodBefore = woodGatherers().length;
+
+    // Select the Town Center and set its rally point onto the tree cell.
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('town-center');
+    expect(bridge.issueContextCommand(tree!.x, tree!.y)).toBe(true);
+
+    // Train a villager; once it spawns it should auto-gather wood (the rally
+    // resource's kind) and actively work it, not idle at the rally cell.
+    expect(bridge.queueTrainUnit('villager')).toBe(true);
+    bridge.step(100);
+
+    const reached = stepBridgeUntil(
+      bridge,
+      () => {
+        const wood = woodGatherers();
+        return wood.length > woodBefore && wood.some((villager) => villager.task !== 'idle');
+      },
+      { maxSteps: 500 },
+    );
+    expect(reached).toBe(true);
+  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
 });
