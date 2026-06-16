@@ -2,6 +2,19 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.39 - 2026-06-16
+
+### Resource chips and build buttons now have original glyph icons (M7)
+
+The top resource bar and the build-command buttons now carry small original glyph icons alongside their text. Each resource chip shows a recognizable icon before its label — a wheat sheaf for Food, a stack of logs for Wood, a coin for Gold, a faceted rock for Stone, and (since they share the bar) a banner for Age, a house for Pop, and a clock for Time. Each "Build X" button in the selection panel shows an icon matching the building — a pitched-roof house for House, a windmill for Mill, a felling axe for Lumber Camp, a pickaxe for Mining Camp, crossed swords over a shield for Barracks, a tower for Watch Tower, an anvil for Blacksmith, an awning stall for Market, a catapult for Siege Workshop, a cross-topped chapel for Monastery, a battlemented keep for Castle, a domed monument for Wonder, a battlemented segment for Stone Wall, sharpened stakes for Palisade Wall, a tilled field for Farm, and so on — Town Center, Stable, and Archery Range are covered too; every one of the game's buildable types has a matching glyph. The text labels are KEPT — the icons augment them for quicker scanning, they do not replace them.
+
+The icons are 100% ORIGINAL artwork: each is a small hand-authored inline SVG (simple paths/rects/circles on a 24×24 grid) that uses the existing warm gold palette, with no image assets, no icon font, and no copyrighted Age of Empires art. This is the first slice of the M7 "UI icons" item; the unit-roster / selection icons (still the short text badges like "V" / "TC"), the non-build command-card icons, and the minimap terrain + fog polish remain unchanged and are tracked as later M7 items.
+
+### Validation
+
+- This is a presentation change, so it follows the visual-change protocol: a before screenshot (text-only chips/buttons), the change, an after screenshot, and a pixel diff confirming the change is confined to the resource bar and the build buttons while the Phaser game canvas is pixel-identical. New `tests/simulation/hudIcons.test.ts` (9 tests) pins that every glyph is self-contained inline SVG with no external asset/font references and uses `currentColor` (so the palette stays in CSS), that every buildable building type has a glyph, and that the build buttons keep their `data-command` hooks and "Build X" text. The HUD/browser tests are unchanged (the resource value elements still hold only the number, e.g. `200`, and the build buttons are still addressed by `data-command`). Full suite green (1323 passed, 2 skipped); typecheck/lint/build all pass.
+- Multi-CLI review: see `docs/threads/done/ui-icons/` (pending — the team lead runs the review before commit).
+
 ## 0.1.38 - 2026-06-16
 
 ### HUD panels now have a framed wood-and-stone look (M7)

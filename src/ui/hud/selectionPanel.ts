@@ -32,9 +32,32 @@ import {
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
+import { buildingGlyph } from './icons/glyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
 export { renderSelectionIcons } from './selectionPanel/render';
+
+// M7 UI-icons slice 1 (v0.1.39): build a build-command button with an
+// original procedural glyph BEFORE its text label (icons augment, do not
+// replace — the "Build <Name>" text + the `data-command="build-<type>"`
+// hook the click handler and the browser tests rely on are preserved).
+// Exported so it is unit-testable in isolation.
+export function renderBuildButtons(buildOptions: BuildableBuildingType[]): string {
+  return buildOptions
+    .map(
+      (buildingType) => `
+          <button
+            class="hud-command-button"
+            data-command="build-${buildingType}"
+            data-tooltip="${formatBuildTooltip(buildingType, formatEntityName(buildingType))}"
+            type="button"
+          >
+            ${buildingGlyph(buildingType)}<span class="hud-command-label">Build ${formatEntityName(buildingType)}</span>
+          </button>
+        `,
+    )
+    .join('');
+}
 
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
@@ -108,20 +131,7 @@ export function createSelectionPanel(
       ? `<div class="hud-selection-meta" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</div>`
       : '';
 
-    const buildButtons = selectionState.buildOptions
-      .map(
-        (buildingType) => `
-          <button
-            class="hud-command-button"
-            data-command="build-${buildingType}"
-            data-tooltip="${formatBuildTooltip(buildingType, formatEntityName(buildingType))}"
-            type="button"
-          >
-            Build ${formatEntityName(buildingType)}
-          </button>
-        `,
-      )
-      .join('');
+    const buildButtons = renderBuildButtons(selectionState.buildOptions);
     const actionButtons = selectionState.actionOptions
       .map(
         (actionType) => `

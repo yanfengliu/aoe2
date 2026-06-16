@@ -1,0 +1,62 @@
+/*
+ * M7 "UI icons" slice 1 (v0.1.39) — sizing + colour for the original
+ * procedural glyph icons on the resource chips and build-command buttons.
+ *
+ * The glyph MARKUP (hand-authored inline SVG paths) lives in
+ * `src/ui/hud/icons/glyphs.ts`; this sheet only sizes, positions, and
+ * tones the glyphs. Every colour is derived from the existing warm
+ * gold-on-dark-teal palette via `currentColor` (the SVGs stroke with
+ * `currentColor`, so setting `color` on the wrapper tints the glyph) — NO
+ * new hues, NO image assets, NO external fonts. Loaded after
+ * `hudChrome.css` in `main.ts`.
+ *
+ * Contract note: the glyphs AUGMENT the text labels (they do not replace
+ * them) and they are siblings of the `[data-hud="<resource>"]` value
+ * element / sit before the "Build <Name>" label text, so the existing
+ * data-hud / data-command / text-content contracts the HUD + browser
+ * tests rely on are untouched.
+ */
+
+/* Resource chips: glyph + label share one row above the value. The chip
+   itself is already a 2px-gap grid; the head row keeps the glyph and the
+   gold uppercase label baseline-aligned. */
+.hud-chip-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hud-chip-glyph {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  /* Match the gold of `.hud-label` so the glyph reads as part of the
+     label, not a louder element. */
+  color: #c4ae7a;
+  /* The value below is the loud element; keep the glyph a touch calmer. */
+  opacity: 0.92;
+}
+
+/* Build-command buttons: glyph sits left of the text label. The button
+   is otherwise unchanged (same gradient, padding, hover, disabled). */
+.hud-command-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hud-command-glyph {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  /* Inherit the button's warm text colour so the glyph tracks the
+     enabled/hover/disabled states for free (the button sets `color`). */
+  color: currentColor;
+  opacity: 0.95;
+}
+
+/* The label keeps wrapping behaviour identical to the prior bare text. */
+.hud-command-label {
+  min-width: 0;
+}

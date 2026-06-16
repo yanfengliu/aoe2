@@ -3,6 +3,7 @@ import '@fontsource/ibm-plex-sans/latin-600.css';
 import '@fontsource/ibm-plex-sans/latin-700.css';
 import './styles.css';
 import './hudChrome.css';
+import './hudIcons.css';
 
 import { createApp } from './app/bootstrap/createApp';
 

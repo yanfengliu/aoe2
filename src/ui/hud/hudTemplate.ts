@@ -4,38 +4,38 @@
 // The template is a pure string constant — no behavior change.
 
 import { HUD_CHIP_TOOLTIPS } from './tooltips';
+import { resourceGlyph } from './icons/glyphs';
+
+// M7 UI-icons slice 1 (v0.1.39): each resource chip gains an original
+// procedural glyph in its label row, BEFORE the `.hud-value` element.
+// The glyph + label sit in a `.hud-chip-head` row; the value element is
+// left pristine (only the number) so the existing browser tests that
+// assert `[data-hud="food"]` `.toHaveText('200')` still pass.
+function chip(
+  key: 'food' | 'wood' | 'gold' | 'stone' | 'age' | 'pop' | 'time',
+  label: string,
+  initialValue: string,
+): string {
+  return `
+        <div class="hud-chip" data-hud-chip="${key}" data-tooltip="${HUD_CHIP_TOOLTIPS[key]}">
+          <div class="hud-chip-head">
+            ${resourceGlyph(key)}
+            <div class="hud-label">${label}</div>
+          </div>
+          <div class="hud-value" data-hud="${key}">${initialValue}</div>
+        </div>`;
+}
 
 export const HUD_TEMPLATE_HTML = `
     <div class="hud-top">
       <div class="hud-bar">
-        <div class="hud-chip" data-hud-chip="food" data-tooltip="${HUD_CHIP_TOOLTIPS.food}">
-          <div class="hud-label">Food</div>
-          <div class="hud-value" data-hud="food">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="wood" data-tooltip="${HUD_CHIP_TOOLTIPS.wood}">
-          <div class="hud-label">Wood</div>
-          <div class="hud-value" data-hud="wood">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="gold" data-tooltip="${HUD_CHIP_TOOLTIPS.gold}">
-          <div class="hud-label">Gold</div>
-          <div class="hud-value" data-hud="gold">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="stone" data-tooltip="${HUD_CHIP_TOOLTIPS.stone}">
-          <div class="hud-label">Stone</div>
-          <div class="hud-value" data-hud="stone">0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="age" data-tooltip="${HUD_CHIP_TOOLTIPS.age}">
-          <div class="hud-label">Age</div>
-          <div class="hud-value" data-hud="age">Dark Age</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="pop" data-tooltip="${HUD_CHIP_TOOLTIPS.pop}">
-          <div class="hud-label">Pop</div>
-          <div class="hud-value" data-hud="pop">0/0</div>
-        </div>
-        <div class="hud-chip" data-hud-chip="time" data-tooltip="${HUD_CHIP_TOOLTIPS.time}">
-          <div class="hud-label">Time</div>
-          <div class="hud-value" data-hud="time">00:00</div>
-        </div>
+        ${chip('food', 'Food', '0')}
+        ${chip('wood', 'Wood', '0')}
+        ${chip('gold', 'Gold', '0')}
+        ${chip('stone', 'Stone', '0')}
+        ${chip('age', 'Age', 'Dark Age')}
+        ${chip('pop', 'Pop', '0/0')}
+        ${chip('time', 'Time', '00:00')}
         <div class="hud-chip" data-hud-chip="countdown" data-hud="countdown-chip" data-tooltip="${HUD_CHIP_TOOLTIPS.countdown}" hidden>
           <div class="hud-label" data-hud="countdown-label">Countdown</div>
           <div class="hud-value" data-hud="countdown-value">00:00</div>
