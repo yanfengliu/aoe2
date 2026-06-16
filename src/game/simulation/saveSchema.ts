@@ -108,7 +108,10 @@ export interface SerializedSideMaps {
   researchedTechnologies: SerializedMap<number, SerializedSet<string>>;
   playerResources: SerializedMap<number, { food: number; wood: number; gold: number; stone: number }>;
   marketExchangeRates: { food: number; wood: number; stone: number };
-  population: SerializedMap<number, { current: number; cap: number }>;
+  // v0.1.37: `rawSupply` (the honest unclamped housing sum) is optional so
+  // pre-v0.1.37 schema-1 blobs (which stored only current/cap) still typecheck
+  // and load — the hydrate path defaults rawSupply = cap and reclamps cap.
+  population: SerializedMap<number, { current: number; cap: number; rawSupply?: number }>;
   townCenterRefs: SerializedEntityRefSideMap;
   villagerOrdinals: SerializedMap<number, number>;
   unitCommands: SerializedEntityKeyedSideMap<SerializedUnitCommand>;

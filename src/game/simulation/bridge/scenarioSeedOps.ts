@@ -152,7 +152,11 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     accessor.mutate(populationCodec, (m) =>
       m.set(start.owner, {
         current: 0,
+        // rawSupply seeds at the base headroom (= 0). Building completion
+        // (incl. the starting Town Center's +5 via the normal path) raises
+        // rawSupply, and cap = deriveCap(rawSupply) follows.
         cap: standardPopulationCap,
+        rawSupply: standardPopulationCap,
       }),
     );
     // Phase 2D — villagerOrdinals routes through the accessor.

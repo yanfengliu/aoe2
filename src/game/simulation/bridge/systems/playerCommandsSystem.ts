@@ -13,6 +13,7 @@ import type {
   VisionSourceComponent,
 } from '../../types';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
+import { deriveCap } from '../bridgeConstants';
 import {
   buildingTint,
   buildingVisionRadius,
@@ -476,8 +477,10 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           const populationState = accessor.get(populationCodec).get(building.owner);
-          if (populationState) {
-            populationState.cap += construction.populationProvided;
+          if (populationState && construction.populationProvided > 0) {
+            // Raise the honest raw supply; cap is the derived 200-clamp of it.
+            populationState.rawSupply += construction.populationProvided;
+            populationState.cap = deriveCap(populationState.rawSupply);
             accessor.markDirty(populationCodec);
           }
 

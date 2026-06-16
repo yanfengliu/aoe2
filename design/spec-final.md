@@ -463,10 +463,11 @@ Relic rules:
 Population behavior:
 
 - Houses, Town Centers, and Castles contribute population capacity: House +5, Town Center +5, Castle +20
-- headroom accumulates from those buildings; the cap is fully building-derived, with the player's starting Town Center providing the initial 5. The standard 200 population limit is a planned follow-up — clamping it correctly requires tracking raw building supply (so over-housing past 200 and then losing housing does not wrongly drop the cap) and is not yet enforced
+- headroom accumulates from those buildings; the cap is fully building-derived, with the player's starting Town Center providing the initial 5. The cap is the honest building supply clamped to the standard 200 limit: effective cap = min(200, raw building-supplied housing). The raw supply is tracked as an honest, unclamped running sum so the clamp is recoverable — over-housing past 200 is allowed but wasteful (it adds raw supply but no extra cap); losing housing while raw supply stays at or above 200 keeps the cap at 200; only when raw supply drops below 200 does the cap follow it down. (Clamping the stored cap directly is lossy — build to 250, lose a house, and a stored-clamped cap would wrongly drop to 195 even though raw supply is still 245.)
+- losing housing can leave a player over the cap (current > cap): existing units are NEVER evicted — the player is simply over cap and cannot train until current falls below the cap again (a unit dies or is lost). The HUD shows the literal current/cap (e.g. 60/55) in this state.
 - military, villagers, trade units, monks, and most ships consume population
-- production must fail when population cap is reached
-- civ-specific population-cap modifiers must be supported (none wired yet)
+- production must fail when population cap is reached (the production queue head is blocked while current >= cap)
+- civ-specific population-cap modifiers must be supported (none wired yet); a configurable cap / "no population limit" lobby option is a planned follow-up (the cap deriver already takes the hard cap as a parameter)
 
 ## 7. Age Progression
 

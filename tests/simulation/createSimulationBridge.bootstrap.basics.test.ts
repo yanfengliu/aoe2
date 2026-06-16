@@ -232,6 +232,7 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
     expect(hudState.population).toEqual({
       current: 4,
       cap: 5,
+      rawSupply: 5,
     });
     expect(hudState.matchState).toEqual({
       outcome: 'running',

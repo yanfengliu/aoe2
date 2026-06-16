@@ -15,8 +15,8 @@ export const MAP_RESOURCES: Record<number, PlayerResources> = {
   2: { wood: 200, food: 200, gold: 100, stone: 200 },
 };
 export const MAP_POP: Record<number, PopulationState> = {
-  1: { current: 3, cap: 5 },
-  2: { current: 3, cap: 5 },
+  1: { current: 3, cap: 5, rawSupply: 5 },
+  2: { current: 3, cap: 5, rawSupply: 5 },
 };
 export const MAP_AGES: Record<number, AgeType> = { 1: 'feudal-age', 2: 'dark-age' };
 

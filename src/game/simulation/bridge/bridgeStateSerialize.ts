@@ -38,6 +38,7 @@ import type {
   UnitCommand,
 } from './sharedTypes';
 import { createInitialMarketRates } from './pureHelpers';
+import { deriveCap } from './bridgeConstants';
 
 // Codec type: pairs serialize/deserialize for one slot. `slot` is the world-state
 // key (`'aoe2.combatStates'` etc.). Both functions are total — `deserialize` of
@@ -95,7 +96,44 @@ function mapOfMapCodec<K, K2, V>(
 export const playerAgesCodec = flatMapCodec<number, AgeType>('aoe2.playerAges');
 export const playerCivilizationsCodec = flatMapCodec<number, string>('aoe2.playerCivilizations');
 export const playerResourcesCodec = flatMapCodec<number, PlayerResources>('aoe2.playerResources');
-export const populationCodec = flatMapCodec<number, PopulationState>('aoe2.population');
+// Population is a bespoke (non-flatMap) codec because PopulationState gained
+// `rawSupply` (the honest unclamped housing sum) in v0.1.37 and the load path
+// must MIGRATE: a pre-v0.1.37 save stores only `{current, cap}`, so on
+// deserialize `rawSupply` defaults to the stored `cap`, GRANDFATHERING the
+// legacy cap (behavior-preserving — `deriveCap(cap) === cap` for a reachable
+// cap <= 200; a legacy cap > 200 pulls to 200). Exact when the old don't-evict
+// floor never fired; for a rare floored save it preserves the old (inflated)
+// cap rather than reconstructing true supply from buildings, which would
+// surprise by dropping a loaded cap (Codex review MEDIUM; deferred). This
+// covers schema-2 loads AND replay-world hydration in one place. The migration
+// is additive JSON (new `rawSupply` key), so no schema-version bump is needed
+// (saveSchema.ts: "absent in older blobs is tolerated").
+interface SerializedPopulationEntry {
+  current: number;
+  cap: number;
+  rawSupply?: number;
+}
+export const populationCodec: SlotCodec<
+  Map<number, PopulationState>,
+  Array<[number, SerializedPopulationEntry]>
+> = {
+  slot: 'aoe2.population',
+  serialize: (m) =>
+    Array.from(m).map(([owner, p]) => [
+      owner,
+      { current: p.current, cap: p.cap, rawSupply: p.rawSupply },
+    ] as [number, SerializedPopulationEntry]),
+  deserialize: (j) =>
+    new Map(
+      (j ?? []).map(([owner, p]) => {
+        const rawSupply = p.rawSupply ?? p.cap;
+        return [owner, { current: p.current, cap: deriveCap(rawSupply), rawSupply }] as [
+          number,
+          PopulationState,
+        ];
+      }),
+    ),
+};
 export const trackedVisibilitySourcesCodec = flatMapCodec<number, number>('aoe2.trackedVisibilitySources');
 export const villagerOrdinalsCodec = flatMapCodec<number, number>('aoe2.villagerOrdinals');
 

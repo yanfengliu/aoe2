@@ -13,6 +13,7 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
     expect(bridge.getHudState().population).toEqual({
       current: 0,
       cap: 5,
+      rawSupply: 5,
     });
 
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
@@ -41,6 +42,7 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
     expect(bridge.getHudState().population).toEqual({
       current: 1,
       cap: 5,
+      rawSupply: 5,
     });
   });
 

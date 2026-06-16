@@ -236,7 +236,7 @@ function perPlayerStates(economy: EconomyState): AgentPlayerState[] {
       militaryCountByType[key] = (militaryCountByType[key] ?? 0) + 1;
     }
     const r = economy.playerResources[ownerId] ?? { wood: 0, food: 0, gold: 0, stone: 0 };
-    const pop = economy.population[ownerId] ?? { current: 0, cap: 0 };
+    const pop = economy.population[ownerId] ?? { current: 0, cap: 0, rawSupply: 0 };
     out.push({
       ownerId,
       age: ageOf(economy, ownerId),

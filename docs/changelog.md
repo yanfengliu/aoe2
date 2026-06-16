@@ -2,6 +2,21 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.37 - 2026-06-16
+
+### Standard 200 population cap (M1)
+
+The standard AoE2 Random Map population limit of 200 is now enforced. Your population cap is the housing your buildings supply (House +5, Town Center +5, Castle +20) clamped to 200: effective cap = min(200, building supply). Over-housing past 200 is allowed but wasteful — extra Houses keep adding to the underlying supply but never raise the cap above 200. The supply is tracked honestly (un-clamped) so the clamp is recoverable: if you build well past 200 and then lose some housing, the cap stays at 200 as long as your remaining supply is still at or above 200; only once your supply drops below 200 does the cap follow it down. This fixes the subtle bug a naive clamp would introduce (build to 250, lose one House, and a clamp-the-stored-cap approach would wrongly drop your cap to 195 even though you still have 245 supply).
+
+Losing housing can now leave you OVER the cap (your current population exceeds your cap). In that case nothing is evicted — your existing units all survive; you simply cannot train new units until your population falls back below the cap (a unit dies or is lost). The population readout shows the literal values in this state, e.g. `60/55`. Previously the cap could never dip below your current population (a House loss would floor the cap at your live pop), which let you re-train back up without rebuilding the housing — that over-permissive behavior is removed in favor of the AoE2-correct over-cap state.
+
+Behavior is unchanged for normal play below 200: a House still raises your cap by 5 on completion, losing it lowers the cap by 5, and you still start at 5 (one Town Center). Save compatibility is preserved — saves written before this version load correctly (their stored cap is treated as the honest supply and re-clamped to 200, which is a no-op for any reachable old save). A configurable cap / "no population limit" lobby option, civ-specific cap modifiers, and an AI tweak to stop building Houses once it is capped at 200 are deferred follow-ups.
+
+### Validation
+
+- TDD: `tests/simulation/populationCap.test.ts` (13 tests) covers the pure 200-clamp deriver; a House raising cap+supply by 5 and losing one lowering them by 5 on the live bridge; over-housing to supply 250 keeping the cap at 200 while supply keeps climbing; THE regression — losing a House at supply 245 keeps the cap at 200 (not 195); supply dropping below 200 making the cap follow down; the over-cap state leaving units in place with no eviction and staying over cap; the production queue staying blocked at the cap; the cap being reachable at exactly 200; and save migration (round-tripping the new raw-supply field, and a legacy save without it loading with raw-supply = cap, re-clamped). Existing population assertions updated for the new field. Full suite green (1314 passed, 2 skipped).
+- Multi-CLI review: see `docs/threads/done/pop-cap-200/`.
+
 ## 0.1.36 - 2026-06-15
 
 ### AI playtest findings now show up as markers when you replay the run

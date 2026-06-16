@@ -31,6 +31,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     expect(bridge.getHudState().population).toEqual({
       current: 5,
       cap: 5,
+      rawSupply: 5,
     });
     expect(bridge.getSelectionState().queue).toHaveLength(0);
   }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)

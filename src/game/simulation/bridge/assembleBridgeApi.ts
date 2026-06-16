@@ -54,7 +54,7 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     ...rest,
     pendingCommands: state.pendingCommands,
     getPopulationState(playerId: number) {
-      return { ...(accessor.get(populationCodec).get(playerId) ?? { current: 0, cap: 0 }) };
+      return { ...(accessor.get(populationCodec).get(playerId) ?? { current: 0, cap: 0, rawSupply: 0 }) };
     },
     getPlayerResources(playerId: number) {
       return cloneResources(

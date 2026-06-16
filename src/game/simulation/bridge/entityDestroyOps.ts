@@ -11,6 +11,7 @@ import type {
   UnitComponent,
 } from '../types';
 import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
+import { deriveCap } from './bridgeConstants';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   constructionStatesCodec,
@@ -160,7 +161,13 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         construction?.populationProvided ?? buildingPopulationProvided(building.buildingType);
       const isComplete = construction?.isComplete ?? true;
       if (populationState && isComplete && populationProvided > 0) {
-        populationState.cap = Math.max(populationState.current, populationState.cap - populationProvided);
+        // Lower the honest raw supply; cap = deriveCap(rawSupply). No
+        // Math.max(current, …) floor: if the raw sum drops below `current`
+        // you are simply over cap (AoE2-correct) — existing units are NOT
+        // evicted (no code path removes units on a cap change), training is
+        // blocked (current >= cap) until pop falls below the cap again.
+        populationState.rawSupply -= populationProvided;
+        populationState.cap = deriveCap(populationState.rawSupply);
         accessor.markDirty(populationCodec);
       }
     }
@@ -297,10 +304,11 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       if (populationProvided > 0 && isComplete) {
         const populationState = accessor.get(populationCodec).get(building.owner);
         if (populationState) {
-          populationState.cap = Math.max(
-            populationState.current,
-            populationState.cap - populationProvided,
-          );
+          // Same raw-supply derivation as destroyBuildingEntity. (Farms
+          // provide 0 pop today so this branch is dormant for the cap, but
+          // it stays consistent with the model for any future hybrid.)
+          populationState.rawSupply -= populationProvided;
+          populationState.cap = deriveCap(populationState.rawSupply);
           accessor.markDirty(populationCodec);
         }
       }

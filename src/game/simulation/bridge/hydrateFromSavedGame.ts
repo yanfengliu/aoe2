@@ -12,6 +12,7 @@ import type { UnitCommand } from './sharedTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { AiPlan } from '../ai';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { deriveCap } from './bridgeConstants';
 import {
   clearLegacyTier1MapSlots,
   rebuildHydratedRuntimeState,
@@ -113,7 +114,11 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(populationCodec, (m) => {
     m.clear();
     for (const [owner, pop] of blob.population) {
-      m.set(owner, { ...pop });
+      // v0.1.37 migration (schema-1 path): default rawSupply to the stored
+      // cap for pre-v0.1.37 saves (the old cap WAS the unclamped sum), then
+      // reclamp cap via deriveCap. Mirrors the schema-2 populationCodec.
+      const rawSupply = pop.rawSupply ?? pop.cap;
+      m.set(owner, { current: pop.current, cap: deriveCap(rawSupply), rawSupply });
     }
   });
   accessor.mutate(townCenterRefsCodec, (m) => {

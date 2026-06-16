@@ -14,6 +14,7 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import { buildingFootprint, getUnitTargetTransformForCell, type GameWorld } from './pureHelpers';
+import { deriveCap } from './bridgeConstants';
 import {
   buildingBuildTimeTicks,
   buildingMaxHp,
@@ -324,7 +325,9 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     const populationState = accessor.get(populationCodec).get(owner);
     const populationProvided = buildingPopulationProvided(buildingType);
     if (isComplete && populationState && populationProvided > 0) {
-      populationState.cap += populationProvided;
+      // Raise the honest raw supply; cap is the derived 200-clamp of it.
+      populationState.rawSupply += populationProvided;
+      populationState.cap = deriveCap(populationState.rawSupply);
       accessor.markDirty(populationCodec);
     }
 

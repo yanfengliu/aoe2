@@ -2,9 +2,9 @@
 // Houses, Town Centers, AND Castles contribute population capacity. The
 // prior implementation gave Town Centers and Castles 0 pop — a spec
 // divergence. These unit tests pin the corrected per-building values.
-// (The standard 200 population LIMIT is a planned follow-up — it needs
-// raw-supply tracking to clamp over-housing/destruction correctly — so it
-// is intentionally not asserted here yet.)
+// (The standard 200 population LIMIT shipped in v0.1.37 via raw-supply
+// tracking; its clamp / over-housing / destruction behavior is covered by
+// populationCap.test.ts. This file pins only the per-building supply values.)
 
 import { describe, it, expect } from 'vitest';
 

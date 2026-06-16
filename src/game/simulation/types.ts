@@ -30,9 +30,7 @@ export type UnitType =
   | 'siege-ram'
   | 'bombard-cannon'
   | 'trebuchet'
-  // FU2: Militia-line intermediate tiers inserted between Militia and
-  // Champion (Man-at-Arms / Long Swordsman / Two-Handed Swordsman) plus
-  // the Cavalier → Paladin and Camel → Heavy Camel Imperial upgrades.
+  // FU2: Militia-line intermediates (Man-at-Arms/Long Swordsman/Two-Handed Swordsman) + Paladin + Heavy Camel.
   | 'man-at-arms'
   | 'long-swordsman'
   | 'two-handed-swordsman'
@@ -270,9 +268,8 @@ export interface ProjectedEntityView {
   selected: boolean;
   currentHp: number | null;
   maxHp: number | null;
-  // Memory entities are last-seen snapshots of static buildings or resources from
-  // cells that are now explored-but-not-visible. They render at reduced opacity and
-  // do not participate in selection or live HUD interactions.
+  // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
+  // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;
 }
 
@@ -301,7 +298,10 @@ export interface PlayerResources {
 
 export interface PopulationState {
   current: number;
+  // cap = deriveCap(rawSupply) (stored; invariant holds). rawSupply is the
+  // honest unclamped housing sum (+=/-= at build/destroy); see bridgeConstants.
   cap: number;
+  rawSupply: number;
 }
 
 export type UnitTaskState = GatherTaskState | 'moving' | 'building' | 'attacking' | 'garrisoned';
