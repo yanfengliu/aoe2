@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  attackBonusAgainstBuilding,
+  attackBonusAgainstUnit,
   combatDamageAfterArmor,
   effectiveMeleeArmor,
   effectivePierceArmor,
@@ -51,6 +53,37 @@ describe('unitPierceArmor — from AoE2 data', () => {
     expect(unitPierceArmor('battering-ram')).toBe(180);
     expect(unitPierceArmor('knight')).toBe(2);
     expect(unitPierceArmor('paladin')).toBe(3);
+  });
+});
+
+// Slice 2b-i: the hard-coded attack-bonus if-ladder was refactored into a
+// declarative data table. These lock the exact bonus values (a parity guard
+// for the behaviour-preserving refactor) and document the counter contract.
+describe('attackBonusAgainstUnit / attackBonusAgainstBuilding — class-based bonuses', () => {
+  it('applies the spear-line / camel / skirmisher / mangonel anti-class bonuses', () => {
+    expect(attackBonusAgainstUnit('spearman', 'scout')).toBe(12); // light cavalry
+    expect(attackBonusAgainstUnit('spearman', 'knight')).toBe(15); // heavy cavalry
+    expect(attackBonusAgainstUnit('pikeman', 'scout')).toBe(19);
+    expect(attackBonusAgainstUnit('pikeman', 'knight')).toBe(22);
+    expect(attackBonusAgainstUnit('halberdier', 'knight')).toBe(28); // any cavalry
+    expect(attackBonusAgainstUnit('skirmisher', 'archer')).toBe(4); // archer line
+    expect(attackBonusAgainstUnit('camel', 'knight')).toBe(9);
+    expect(attackBonusAgainstUnit('heavy-camel', 'knight')).toBe(9);
+    expect(attackBonusAgainstUnit('mangonel', 'militia')).toBe(10); // mangonel-infantry
+  });
+
+  it('gives no bonus for non-matching pairs', () => {
+    expect(attackBonusAgainstUnit('archer', 'militia')).toBe(0);
+    expect(attackBonusAgainstUnit('knight', 'archer')).toBe(0);
+    expect(attackBonusAgainstUnit('spearman', 'archer')).toBe(0); // archer isn't cavalry
+  });
+
+  it('applies the siege/ram anti-building bonuses', () => {
+    expect(attackBonusAgainstBuilding('battering-ram')).toBe(75);
+    expect(attackBonusAgainstBuilding('siege-ram')).toBe(250);
+    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(80);
+    expect(attackBonusAgainstBuilding('trebuchet')).toBe(200);
+    expect(attackBonusAgainstBuilding('knight')).toBe(0);
   });
 });
 

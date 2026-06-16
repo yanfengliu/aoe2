@@ -173,45 +173,49 @@ export function isMeleeUnit(unitType: UnitType): boolean {
   return MELEE_UNITS.has(unitType);
 }
 
+// Slice 2b-i: the anti-class attack bonuses, as DATA instead of an if-ladder.
+// Each attacker maps to an ordered list of (target-class predicate, bonus);
+// the FIRST matching rule wins — mirroring the prior ladder exactly (the
+// light/heavy-cavalry classes are mutually exclusive, so first-match == the
+// intended value). The predicates reuse the existing target sets, so this
+// retires the hard-coded ladder into data without any behaviour change. Slice
+// 2b-ii will adopt the AoE2-accurate CSV values (and revisit first-match vs
+// the AoE2 cross-class summation) on top of this seam.
+const UNIT_ATTACK_BONUS_RULES: Partial<
+  Record<UnitType, ReadonlyArray<{ matches: (target: UnitType) => boolean; bonus: number }>>
+> = {
+  spearman: [
+    { matches: (t) => LIGHT_CAVALRY_TARGETS.has(t), bonus: 12 },
+    { matches: (t) => HEAVY_CAVALRY_TARGETS.has(t), bonus: 15 },
+  ],
+  pikeman: [
+    { matches: (t) => LIGHT_CAVALRY_TARGETS.has(t), bonus: 19 },
+    { matches: (t) => HEAVY_CAVALRY_TARGETS.has(t), bonus: 22 },
+  ],
+  halberdier: [{ matches: isCavalryTarget, bonus: 28 }],
+  skirmisher: [{ matches: isArcherLineUnit, bonus: 4 }],
+  camel: [{ matches: isCavalryTarget, bonus: 9 }],
+  'heavy-camel': [{ matches: isCavalryTarget, bonus: 9 }],
+  mangonel: [{ matches: (t) => MANGONEL_INFANTRY_TARGETS.has(t), bonus: 10 }],
+};
+
 export function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
-  if (attackerType === 'spearman' && LIGHT_CAVALRY_TARGETS.has(targetType)) {
-    return 12;
-  }
-  if (attackerType === 'spearman' && HEAVY_CAVALRY_TARGETS.has(targetType)) {
-    return 15;
-  }
-  if (attackerType === 'pikeman' && LIGHT_CAVALRY_TARGETS.has(targetType)) {
-    return 19;
-  }
-  if (attackerType === 'pikeman' && HEAVY_CAVALRY_TARGETS.has(targetType)) {
-    return 22;
-  }
-  if (attackerType === 'halberdier' && isCavalryTarget(targetType)) {
-    return 28;
-  }
-  if (attackerType === 'skirmisher' && isArcherLineUnit(targetType)) {
-    return 4;
-  }
-  if ((attackerType === 'camel' || attackerType === 'heavy-camel') && isCavalryTarget(targetType)) {
-    return 9;
-  }
-  if (attackerType === 'mangonel' && MANGONEL_INFANTRY_TARGETS.has(targetType)) {
-    return 10;
+  const rules = UNIT_ATTACK_BONUS_RULES[attackerType];
+  if (!rules) return 0;
+  for (const rule of rules) {
+    if (rule.matches(targetType)) return rule.bonus;
   }
   return 0;
 }
 
+// Anti-building bonus by attacker (rams / siege / trebuchet). Data, not a switch.
+const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
+  'battering-ram': 75,
+  'siege-ram': 250,
+  'bombard-cannon': 80,
+  trebuchet: 200,
+};
+
 export function attackBonusAgainstBuilding(attackerType: UnitType): number {
-  switch (attackerType) {
-    case 'battering-ram':
-      return 75;
-    case 'siege-ram':
-      return 250;
-    case 'bombard-cannon':
-      return 80;
-    case 'trebuchet':
-      return 200;
-    default:
-      return 0;
-  }
+  return BUILDING_ATTACK_BONUS[attackerType] ?? 0;
 }
