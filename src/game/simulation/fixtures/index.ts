@@ -208,3 +208,7 @@ export {
 export {
   createTerrainShowcaseFixture,
 } from './terrainShowcase';
+
+export {
+  createFeedbackShowcaseFixture,
+} from './feedbackShowcase';

@@ -19,6 +19,17 @@ import type {
   PlacementPreviewVisualState,
   SelectionBoxState,
 } from '../GameScene';
+import type { SelectionPulse } from './feedbackEffects';
+
+// Static ring style used when no pulse is supplied — the exact pre-v0.1.45
+// look (constant gold stroke at width 2 / alpha 0.9, base radius). The pulse
+// only ever modulates these toward a brighter/slightly-larger breathe; the
+// ring's CENTER and base radius are never changed by the pulse.
+const STATIC_SELECTION_PULSE: SelectionPulse = {
+  alpha: 0.9,
+  radiusOffsetPx: 0,
+  lineWidth: 2,
+};
 
 export interface SelectionLayersDeps {
   selectionLayer: Phaser.GameObjects.Graphics;
@@ -36,8 +47,16 @@ export interface SelectionLayersDeps {
 }
 
 export interface SelectionLayersRenderer {
-  // Paint selection rings / rounded borders for every selected entity.
-  renderSelection(entities: ProjectedEntityView[], selectionState: SelectionState): void;
+  // Paint selection rings / rounded borders for every selected entity. The
+  // optional `pulse` (M7 selection polish) animates the ring's stroke alpha,
+  // width, and a small outward radius offset over time — omit it (or pass the
+  // static default) for the unchanged constant ring. Base geometry (ring
+  // center, base radius, footprint origin) is never altered by the pulse.
+  renderSelection(
+    entities: ProjectedEntityView[],
+    selectionState: SelectionState,
+    pulse?: SelectionPulse,
+  ): void;
   // Paint the drag-selection marquee plus the live preview outlines for the
   // entities that would be selected on mouse-up.
   renderSelectionBox(selectionBoxState: SelectionBoxState | null): void;
@@ -64,12 +83,14 @@ export function createSelectionLayersRenderer(
   function renderSelection(
     entities: ProjectedEntityView[],
     selectionState: SelectionState,
+    pulse: SelectionPulse = STATIC_SELECTION_PULSE,
   ): void {
     if (selectionState.selectedEntityIds.length === 0) {
       return;
     }
 
-    selectionLayer.lineStyle(2, 0xf7e5a5, 0.9);
+    selectionLayer.lineStyle(pulse.lineWidth, 0xf7e5a5, pulse.alpha);
+    const offset = pulse.radiusOffsetPx;
     const selectedIds = new Set(selectionState.selectedEntityIds);
 
     for (const entity of entities) {
@@ -81,13 +102,15 @@ export function createSelectionLayersRenderer(
       const py = entity.y * cellSize;
 
       if (entity.kind === 'building') {
+        // Inflate the rounded rect outward by the pulse offset on each side so
+        // the stroke breathes while the footprint ORIGIN/center is unchanged.
         const widthPx = entity.footprintWidth * cellSize;
         const heightPx = entity.footprintHeight * cellSize;
         selectionLayer.strokeRoundedRect(
-          px,
-          py,
-          widthPx,
-          heightPx,
+          px - offset,
+          py - offset,
+          widthPx + offset * 2,
+          heightPx + offset * 2,
           6,
         );
         continue;
@@ -96,7 +119,7 @@ export function createSelectionLayersRenderer(
       selectionLayer.strokeCircle(
         px + cellSize * 0.5,
         py + cellSize * 0.5,
-        cellSize * Math.max(entity.size, 0.55),
+        cellSize * Math.max(entity.size, 0.55) + offset,
       );
     }
   }

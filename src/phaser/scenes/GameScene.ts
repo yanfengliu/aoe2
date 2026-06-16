@@ -43,6 +43,8 @@ import {
 import { createUnitRenderer, unitFacingRadians, type UnitRenderer } from './gameScene/unitRenderer';
 import { isUnitType as isUnitTypeExternal } from './gameScene/unitTypeMap';
 import { drawTerrainCell } from './gameScene/terrainRenderer';
+import { drawResourceEntity } from './gameScene/resourceRenderer';
+import { createFeedbackEffectsRenderer, type FeedbackEffectsRenderer } from './gameScene/feedbackEffects';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
 
 // Slice 11: debug-overlay modes relevant to world-space drawing. The HUD
@@ -195,6 +197,8 @@ export class GameScene extends Phaser.Scene {
   private lastSelectionKey = '';
   private lastProjectedEntities: ProjectedEntityView[] = [];
   private previousUnitProjectedPositions = new Map<number, { x: number; y: number }>();
+  // M7 feedback: selection pulse + hit-flash (render-only, time-based; owns the hp-delta tracker).
+  private readonly feedbackRenderer: FeedbackEffectsRenderer = createFeedbackEffectsRenderer();
   private displayedEntities: ProjectedEntityView[] = [];
   private dragSelection: DragSelectionState | null = null;
   private middleDragPan: MiddleDragPanState | null = null;
@@ -413,6 +417,7 @@ export class GameScene extends Phaser.Scene {
     this.lastSelectionKey = '';
     this.lastProjectedEntities = [];
     this.previousUnitProjectedPositions = new Map();
+    this.feedbackRenderer.reset();
     this.displayedEntities = [];
     this.dragSelection = null;
     this.middleDragPan = null;
@@ -462,8 +467,11 @@ export class GameScene extends Phaser.Scene {
     const selectionState = this.bridge.getSelectionState();
     const interpolationAlpha = this.bridge.getRenderInterpolationAlpha();
     const selectionKey = this.getSelectionKey(selectionState);
+    // M7 feedback: keep re-rendering every frame while a pulse/flash is live, else the cache freezes it.
+    const isAnimating = this.feedbackRenderer.isAnimating(selectionState.selectedEntityIds.length, this.time.now);
     if (
       !force
+      && !isAnimating
       && state.tick === this.lastRenderedTick
       && selectionKey === this.lastSelectionKey
       && Math.abs(interpolationAlpha - this.lastRenderedInterpolationAlpha) < 0.001
@@ -478,6 +486,7 @@ export class GameScene extends Phaser.Scene {
           .map((entity) => [entity.id, { x: entity.x, y: entity.y }]),
       );
       this.lastProjectedEntities = state.entities.map((entity) => ({ ...entity }));
+      this.feedbackRenderer.recordTick(state.entities, this.time.now); // hp delta → arms hit flashes (units only)
     }
 
     this.lastRenderedTick = state.tick;
@@ -535,25 +544,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (entity.kind === 'resource') {
-        this.entityLayer.fillStyle(entity.tint, fillAlpha);
-        if (
-          entity.entityType === 'gold-mine'
-          || entity.entityType === 'stone-mine'
-          || entity.entityType === 'tree'
-        ) {
-          this.entityLayer.fillRect(
-            px + CELL_SIZE * 0.1,
-            py + CELL_SIZE * 0.1,
-            CELL_SIZE * entity.size,
-            CELL_SIZE * entity.size,
-          );
-        } else {
-          this.entityLayer.fillCircle(
-            px + CELL_SIZE * 0.5,
-            py + CELL_SIZE * 0.5,
-            CELL_SIZE * entity.size * 0.55,
-          );
-        }
+        drawResourceEntity(this.entityLayer, entity, px, py, CELL_SIZE, fillAlpha);
         continue;
       }
 
@@ -571,6 +562,8 @@ export class GameScene extends Phaser.Scene {
       // the heading angle is identical); idle units use a rest orientation.
       const facing = unitFacingRadians(this.previousUnitProjectedPositions.get(entity.id), entity, interpolationAlpha);
       this.unitRenderer?.drawUnit(entity, px, py, facing, fillAlpha);
+      this.feedbackRenderer.drawUnitFlash(this.entityLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
+        py + CELL_SIZE * 0.5, CELL_SIZE * entity.size * 0.5, entity.id, this.time.now);
     }
 
     if (state.frame && this.worldLayersRenderer) {
@@ -583,7 +576,8 @@ export class GameScene extends Phaser.Scene {
       );
     }
     if (this.selectionLayersRenderer) {
-      this.selectionLayersRenderer.renderSelection(this.displayedEntities, selectionState);
+      const pulse = this.feedbackRenderer.pulse(this.time.now);
+      this.selectionLayersRenderer.renderSelection(this.displayedEntities, selectionState, pulse);
       this.lastPlacementPreviewVisualState = this.selectionLayersRenderer.renderPlacementPreview(
         this.getPlacementPreviewState(),
       );

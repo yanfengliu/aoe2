@@ -2,6 +2,26 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.45 - 2026-06-16
+
+### The game has dynamic feedback: a pulsing selection ring and a combat hit flash (M7)
+
+The game's first time-based visual feedback. Until now every cue was static — the selection ring was a flat, constant ring, and combat was silent instant HP subtraction with no impact tell, which was the biggest remaining "not alive" feel. Two effects ship, both original procedural Phaser drawing (no assets):
+
+- Selection pulse: the ring around a selected unit or building now gently breathes — its brightness, stroke width, and a small outward radius swell over a ~1.1-second cycle — so a selection reads as live instead of frozen. The ring's position and base size are unchanged; only the stroke animates, so nothing about the unit's hitbox, health bar, or footprint outline moves.
+- Hit flash: when a unit takes damage, a brief bright impact flash (a white-hot core fading to a warm orange rim) pops on it for about a quarter second, so you can see blows landing during a fight or a raid. The flash is confined to the unit's own circle and fades out on its own.
+
+Both effects are purely visual — they do not affect the simulation, saved games, or replay determinism in any way (a replay of the same match plays out identically; only the on-screen presentation is richer). The selection pulse is driven from the already-known "this entity is selected" flag; the hit flash is driven from the unit's health dropping between frames, tracked entirely in the renderer — no new game data is recorded.
+
+Deferred to later M7 render slices: gather sparks on working villagers (the villager's gather state is not part of the render data today, and adding it would be a save/contract change — out of scope for a render-only slice), death/destruction particles, and projectiles in flight (those pair with the M2 projectile simulation work).
+
+### Validation
+
+- TDD: new `tests/phaser/feedbackEffects.test.ts` (19 tests) covers the pure effect logic — the selection pulse stays in a visible band, oscillates over its period, and bounds its radius/width; `shouldFlashHit` fires only on a strict HP drop between two finite samples (not a heal, no-change, missing, or non-finite value); the hit-flash tracker arms a decaying flash on a drop, never on the first sample, re-arms on a second drop, expires after its duration (staying briefly active past it so the frame clears), tracks only units (a damaged building never arms a flash), forgets entities that leave the view (so it stays bounded), and reports whether any flash is live (used to keep the frame animating); and the flash drawer scales its alpha with intensity and stays inside the unit's circle. New `tests/phaser/selectionLayers.test.ts` (4 tests) verifies the ring is byte-identical without a pulse and applies the pulse alpha/width/outward-offset (center and base radius preserved) with it. A small render extraction (`drawResourceEntity`, pulled out of the scene to keep it lean) is covered by `tests/phaser/resourceRenderer.test.ts` (2 tests).
+- Visual protocol (motion is not capturable in a static image): a dedicated `feedback-showcase-fixture` with a selectable lone villager and an adjacent melee skirmish was captured before/after on otherwise-identical builds at a representative phase (ring lit, a fresh hit flash) with a pixel diff — `tmp/feedback/{before,after,diff}.png`; 0.21% of pixels changed, confined exactly to the selected villager's ring and one combat unit's flash (the HUD, terrain, the other units, health bars, and the minimap are pixel-identical). The diff shows the effect presence, placement, and confinement; the trigger/timing correctness is covered by the unit tests above.
+- Render-only — no simulation, bridge, save-format, or projection/contract change (`ProjectedEntityView` is untouched); the time/clock input and all animation state live in the render layer; no `Math.random`/`Date.now` enters the simulation. The four gates (test/typecheck/lint/build) pass and the full suite is green (1454 passed / 2 skipped).
+- Multi-CLI review: see `docs/threads/current/combat-gather-feedback/` (pending — the team lead runs the review before commit).
+
 ## 0.1.44 - 2026-06-16
 
 ### The selection panel shows a procedural icon for the selected unit or building (M7 UI icons, slice 2)

@@ -54,6 +54,7 @@ import {
   createFarmDepletionFixture,
   createFarmOwnershipFixture,
   createFarmReseedFixture,
+  createFeedbackShowcaseFixture,
   createFeudalAgeFixture,
   createFeudalBlacksmithFixture,
   createFeudalMarketFixture,
@@ -261,6 +262,9 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
   ['terrain-showcase-fixture', createTerrainShowcaseFixture],
+  // M7 combat/gather-feedback: a visual-only showcase with a selectable lone
+  // villager (pulse) + an adjacent melee knot that auto-fights (hit flash).
+  ['feedback-showcase-fixture', createFeedbackShowcaseFixture],
   ['castle-fletching-fixture', createCastleFletchingFixture],
   ['castle-garrison-fixture', createCastleGarrisonFixture],
   ['monk-relic-fixture', createMonkRelicFixture],
