@@ -464,6 +464,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       // rush. campaign-7 showed the LLM had no Dark-Age defense and was overrun
       // (villagers 5→0) before reaching Feudal — see docs/devlog + roadmap.
       'palisade-wall',
+      'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
     ];
 
     if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {

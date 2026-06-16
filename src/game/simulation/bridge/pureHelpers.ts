@@ -168,6 +168,7 @@ export function inventoryResourceName(resourceType: ResourceKind): string {
     case 'fish':
     case 'sheep':
     case 'wolf':
+    case 'farm': // M1 Farms: a farm holds food.
       return 'food';
     // Relics are not harvestable — they carry no inventory amount. This
     // branch should never fire because getSelectionInventory is only called

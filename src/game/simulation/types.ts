@@ -163,7 +163,9 @@ export type BuildableBuildingType =
   // cost 5 stone — replaces the Arena map's stone-mine wall proxy.
   // Palisade Wall is its Feudal-Age cheaper cousin (HP 250, cost 2 wood).
   | 'stone-wall'
-  | 'palisade-wall';
+  | 'palisade-wall'
+  // M1 Farms: a built Farm is a building+resource HYBRID (also in ResourceKind).
+  | 'farm';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'
@@ -174,7 +176,8 @@ export type ResourceKind =
   | 'sheep'
   | 'wolf'
   | 'tree'
-  | 'relic';
+  | 'relic'
+  | 'farm'; // M1 Farms: a built Farm carries a 'farm' food resource.
 export type EconomyResourceKind = 'food' | 'wood' | 'gold' | 'stone';
 export type GatherTaskState =
   | 'idle'

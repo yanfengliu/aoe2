@@ -411,6 +411,10 @@ Farm rules:
 - auto-reseed should be supported
 - Mill farm queues should support AoE2-style batch reseed behavior
 
+**Farm slice 1 (implemented).** A Farm is a building+resource HYBRID. A villager BUILDS it through the normal placement + construction flow as a 1×1 building (cost 60 wood, available in the Dark Age with no prerequisite, 480 HP, build time 15 seconds → 150 ticks). On construction-complete the farm gains a `resource` component (`resourceType: 'farm'`, 175 food — structures.csv "Standard = 175 Food") so the existing villager economy gathers food from it: a food-role villager is routed to the farm, stands on an adjacent cell (1×1 approach footprint, exactly like a berry bush), and harvests food at a berry-bush cadence (4 ticks/unit, 1 unit/cycle ≈ spec §6.3's ~0.32–0.34 food/sec target before carry/travel). The hybrid occupies its cell as a building blocker (occupancy dispatches on the building component first, so the resource component adds gather semantics without a second occupancy claim) and selects as a building. When the stored food reaches 0 the farm is removed from the map entirely — both the resource and the building shell vanish (an un-reseeded farm disappears in AoE2; there is no leftover shell and no refund).
+
+Deferred follow-ups (NOT yet implemented): auto/manual reseed (re-buy the farm's food for wood when depleted; the AoE2 Mill batch-reseed queue), the farm-upgrade techs (Horse Collar / Heavy Plow / Crop Rotation → 250 / 375 / 550 food), requiring a Mill anchor near the farm, a dedicated farm sprite with tiled crop rendering, and the AI building farms (the AI's villager targets are food-keyed and already work, it just does not place farms yet).
+
 ### 6.7 Trade
 
 Support both land and naval trade where the map allows it.
@@ -593,6 +597,7 @@ Mining Camp:
 Farm:
 
 - renewable food source
+- built by a villager (Dark Age, 60 wood, 1×1, 480 HP, 15-second build); becomes a gatherable 175-food resource on completion and is removed when depleted (slice 1 — see §6.6). Reseed and farm-upgrade techs are deferred.
 
 Market:
 

@@ -220,6 +220,11 @@ const BUILDING_KINDS = new Set<string>([
   'wonder',
   'stone-wall',
   'palisade-wall',
+  // M1 Farms: a Farm spawns as a building; when spawned complete it gains its
+  // gatherable food resource via onBuildingConstructionComplete (a
+  // building+resource hybrid). Fixtures can override the seeded food with
+  // `farmFood` (see seedScenarioEntities below).
+  'farm',
 ]);
 
 const UNIT_KINDS = new Set<string>([
@@ -299,6 +304,17 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
         accessor.mutate(relicsInMonasteryCodec, (m) =>
           m.set(buildingId, Math.max(0, spawn.startingRelicsInMonastery!)),
         );
+      }
+      // M1 Farms: a farm seeds complete (above), so it already carries its
+      // 175-food resource via onBuildingConstructionComplete. `farmFood` lets
+      // a fixture override that stored amount (e.g. seed a nearly-depleted
+      // farm to exercise the depletion path quickly).
+      if (typeof spawn.farmFood === 'number' && spawn.kind === 'farm') {
+        const resource = world.getComponent<ResourceComponent>(buildingId, 'resource');
+        if (resource) {
+          resource.amount = Math.max(0, spawn.farmFood);
+          resource.maxAmount = Math.max(resource.maxAmount, Math.max(0, spawn.farmFood));
+        }
       }
       if (spawn.allowOverlappingSpawn) {
         overlapWhitelist.add(buildingId);
@@ -426,6 +442,10 @@ function validateScenarioSpawns(
       );
     }
     if (overlapWhitelist.has(resourceId)) continue;
+    // M1 Farms: a Farm is a building+resource hybrid, so its resource
+    // legitimately shares its cell with its OWN building footprint. Skip the
+    // overlaps-a-building check for an entity that is itself the building.
+    if (world.getComponent<BuildingComponent>(resourceId, 'building')) continue;
     if (isCellBlockedByBuilding(position.x, position.y)) {
       throw new Error(
         `Scenario '${scenario.seed}': ${resource.resourceType} resource at (${position.x},${position.y}) overlaps a building footprint.`,

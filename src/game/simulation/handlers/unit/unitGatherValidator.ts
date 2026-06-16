@@ -3,11 +3,13 @@
 import type { World } from 'civ-engine';
 
 import type {
+  BuildingComponent,
   GathererComponent,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
+import { canGatherResource } from '../../prototypeEconomyRules';
 
 export type UnitGatherValidator = (
   data: GameCommands['unit.gather'],
@@ -35,6 +37,13 @@ export const unitGatherValidator: UnitGatherValidator = (data, world) => {
   const resource = world.getComponent<ResourceComponent>(data.resourceId, 'resource');
   if (!resource) {
     return { code: 'not_a_resource', message: 'Target is not a resource.' };
+  }
+  // M1 Farms: a farm (resource + building hybrid) is an owned structure —
+  // only its owner may gather it. Reject a gather order from another player so
+  // an enemy/AI villager cannot harvest food from an opponent's farm.
+  const building = world.getComponent<BuildingComponent>(data.resourceId, 'building');
+  if (!canGatherResource(unit.owner, building !== undefined, resource.baseOwner)) {
+    return { code: 'not_owned', message: 'Cannot gather another player\'s farm.' };
   }
   return true;
 };

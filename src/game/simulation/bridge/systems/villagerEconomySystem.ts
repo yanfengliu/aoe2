@@ -7,6 +7,7 @@
 
 import type { Position } from 'civ-engine';
 import type {
+  BuildingComponent,
   GathererComponent,
   ResearchableTechnologyType,
   ResourceComponent,
@@ -17,6 +18,7 @@ import {
   type GameWorld,
 } from '../pureHelpers';
 import {
+  canGatherResource,
   gatherAmountFor,
   gatherTicksFor,
   resourceKindToEconomyResource,
@@ -163,6 +165,12 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       if (!position || !resource) continue;
       if (!isHarvestableResource(id, resource)) continue;
       if (resourceKindToEconomyResource(resource.resourceType) !== gatherer.desiredResource) continue;
+      // M1 Farms: a farm (resource+building hybrid) is owner-only — exclude it
+      // from another player's matching set so an enemy/AI villager can't steal
+      // food from it. Neutral resources (no building) are unaffected.
+      const isOwnedStructure =
+        activeWorld.getComponent<BuildingComponent>(id, 'building') !== undefined;
+      if (!canGatherResource(owner, isOwnedStructure, resource.baseOwner)) continue;
       matchingResources.push({ id, position, resource });
     }
     matchingResources.sort((left, right) => {

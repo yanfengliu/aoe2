@@ -187,6 +187,8 @@ export function formatEntityIcon(entityType: SelectionState['selectedEntityType'
       return 'Wl';
     case 'palisade-wall':
       return 'Pl';
+    case 'farm':
+      return 'Fm';
     case 'relic':
       return 'Rl';
     case 'berry-bush':
@@ -246,6 +248,8 @@ export function formatEntityIconAccent(entityType: SelectionState['selectedEntit
       return '#9aa0a8';
     case 'palisade-wall':
       return '#a88555';
+    case 'farm':
+      return '#d9b84a';
     case 'relic':
       return '#f5d680';
     case 'berry-bush':

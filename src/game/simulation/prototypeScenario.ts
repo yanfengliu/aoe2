@@ -94,6 +94,10 @@ export interface ScenarioSpawnSpec {
   // unit so the heal path fires immediately (units, FU4). Ignored when
   // unset or when the value is larger than the entity's default max HP.
   startHp?: number;
+  // Farm-only (M1 Farms). Overrides the stored food a completed Farm carries
+  // (default 175). Lets a fixture seed a nearly-depleted farm to exercise the
+  // depletion/removal path quickly. Ignored unless `kind === 'farm'`.
+  farmFood?: number;
 }
 
 export interface PlayerStartSpec {

@@ -26,6 +26,9 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   wonder: { width: 4, height: 4 },
   'stone-wall': { width: 1, height: 1 },
   'palisade-wall': { width: 1, height: 1 },
+  // M1 Farms: a 1x1 plot. Villagers stand on an adjacent cell to gather it,
+  // exactly like a 1x1 resource node (berry bush / mine).
+  farm: { width: 1, height: 1 },
 };
 
 export function getBuildingFootprint(buildingType: BuildingType): BuildingFootprint {

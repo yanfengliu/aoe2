@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.34 - 2026-06-15
+
+### Farms — a buildable renewable food source (M1 slice 1)
+
+Villagers can now build a Farm. It is available in the Dark Age with no prerequisite, costs 60 wood, is a 1×1 plot with 480 HP, and takes 15 seconds to construct — placed and built through the normal building flow, so it shows up in a villager's build menu alongside House / Mill / Lumber Camp / Mining Camp / Barracks / Palisade Wall. Once construction finishes, the farm becomes a gatherable food source holding 175 food: send a villager to it and they harvest food into your stockpile exactly like a berry bush (they stand on an adjacent tile and gather at a comparable rate). When the farm's stored food runs out it is removed from the map entirely. This is the start of the renewable-food backbone — until now a long game would starve once the starting sheep, boar, and berries were gone. Reseeding a depleted farm, the farm-upgrade techs (Horse Collar / Heavy Plow / Crop Rotation), a dedicated farm sprite, and the AI building farms are deferred to later slices, so for now you sustain food by building fresh farms as the old ones deplete.
+
+### Validation
+
+- TDD: `tests/simulation/createSimulationBridge.farm.test.ts` drives the full flow on the live bridge — a villager places a farm (60 wood charged, 480 HP ramping from low), it completes into a 175-food resource, a villager gathers it (food stockpile rises, stored food draws down), and a near-depleted farm is removed (both the resource and the building shell vanish, no orphaned shell). Full suite green.
+- Multi-CLI review: see `docs/threads/done/farms-m1-slice1/`.
+
 ## 0.1.33 - 2026-06-15
 
 ### Cavalry and other units gain their base melee armor

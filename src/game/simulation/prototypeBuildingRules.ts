@@ -44,6 +44,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   wonder: 0,
   'stone-wall': 0,
   'palisade-wall': 0,
+  farm: 0,
 };
 
 const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
@@ -64,6 +65,8 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   wonder: 1200,
   'stone-wall': 80,
   'palisade-wall': 40,
+  // M1 Farms: structures.csv build_time 15 seconds × 10 TPS = 150 ticks.
+  farm: 150,
 };
 
 const BUILDING_SIZES: Record<BuildingType, number> = {
@@ -84,6 +87,8 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   wonder: 1.6,
   'stone-wall': 1,
   'palisade-wall': 1,
+  // M1 Farms: a 1x1 footprint; size 1 fills its single cell like the walls.
+  farm: 1,
 };
 
 const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
@@ -189,6 +194,14 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     enemyComplete: 0xa17066,
     enemyIncomplete: 0x604540,
   },
+  // M1 Farms: golden wheat tones for a complete farm; muddy tilled-soil
+  // tones while under construction.
+  farm: {
+    humanComplete: 0xd9b84a,
+    humanIncomplete: 0x7a6a3a,
+    enemyComplete: 0xc09a55,
+    enemyIncomplete: 0x6f5a3a,
+  },
 };
 
 const BUILDING_MAX_HP: Record<BuildingType, number> = {
@@ -209,6 +222,8 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   wonder: 4800,
   'stone-wall': 2000,
   'palisade-wall': 250,
+  // M1 Farms: structures.csv hit_points 480.
+  farm: 480,
 };
 
 const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([

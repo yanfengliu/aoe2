@@ -72,7 +72,12 @@ export function createProjector(
         owner = building.owner;
         entityType = building.buildingType;
       }
-      if (resource) {
+      // M1 Farms: a farm is a resource + building hybrid. Keep the BUILDING
+      // owner + buildingType for it (a farm projects as an owned building) so
+      // the owner's own-entity LOS bypass (`owner === playerId`) treats it as
+      // owned and it stays live-rendered out of LOS instead of being fogged.
+      // A pure resource has no building component and is unchanged.
+      if (resource && !building) {
         owner = resource.owner;
         entityType = resource.resourceType;
       }

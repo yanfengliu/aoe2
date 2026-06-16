@@ -136,6 +136,8 @@ export function formatEntityName(entityType: SelectionState['selectedEntityType'
       return 'Stone Wall';
     case 'palisade-wall':
       return 'Palisade Wall';
+    case 'farm':
+      return 'Farm';
     default:
       return entityType;
   }
@@ -267,6 +269,8 @@ export function formatEntityPluralName(entityType: SelectionState['selectedEntit
       return 'Stone Walls';
     case 'palisade-wall':
       return 'Palisade Walls';
+    case 'farm':
+      return 'Farms';
     default:
       return `${entityType}s`;
   }

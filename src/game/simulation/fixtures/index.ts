@@ -184,3 +184,8 @@ export {
   createMultiVillagerConstructionFixture,
   createSingleVillagerConstructionFixture,
 } from './construction';
+
+export {
+  createFarmDepletionFixture,
+  createFarmOwnershipFixture,
+} from './farms';

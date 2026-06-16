@@ -180,6 +180,13 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     for (const id of world.query('position', 'resource')) {
       const position = world.getComponent<Position>(id, 'position');
       const resource = world.getComponent<ResourceComponent>(id, 'resource');
+      // M1 Farms: a farm is a resource + building hybrid and was already pushed
+      // by the building loop above; skip the resource push for it so a lone
+      // farm yields exactly one selectable candidate (no double-count in
+      // tileEntityCount).
+      if (world.getComponent<BuildingComponent>(id, 'building')) {
+        continue;
+      }
       if (
         position?.x === x
         && position.y === y

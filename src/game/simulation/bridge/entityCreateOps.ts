@@ -64,7 +64,16 @@ const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
   wolf: 0.46,
   tree: 0.58,
   relic: 0.5,
+  // M1 Farms: a farm's resource size is unused for rendering while the
+  // building component is present (the building renderable wins), but the
+  // RESOURCE_SIZES map is exhaustive over ResourceKind so a value is required.
+  farm: 0.9,
 };
+
+// M1 Farms (slice 1): a completed Farm holds this much food (structures.csv
+// "Standard = 175 Food"). Reseed (re-buying the food for wood) is a deferred
+// follow-up.
+export const FARM_FOOD_AMOUNT = 175;
 
 export interface EntityCreateOpsDeps {
   world: GameWorld;
@@ -217,6 +226,29 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
           totalTicks,
           lastCompletedTick: null,
         });
+      });
+    }
+    if (buildingType === 'farm') {
+      // M1 Farms: a completed Farm becomes a gatherable FOOD resource. It
+      // gains a `resource` component (in ADDITION to its `building`
+      // component — a building+resource hybrid) so the existing
+      // villagerEconomySystem (`world.query('position','resource')` →
+      // `isHarvestableResource` → `resourceKindToEconomyResource('farm')
+      // === 'food'`) routes a food villager to it and the villager stands
+      // adjacent (1x1 approach) to gather, exactly like a berry bush. The
+      // renderable stays a building renderable (set in addBuildingEntity);
+      // occupancy stays a building blocker (transformOps dispatches on the
+      // `building` component first), so the resource component adds gather
+      // semantics WITHOUT a second occupancy claim. `owner` stays null
+      // (gatherable-resource convention; the gather system claims it), while
+      // `baseOwner` is the builder so the owner-preference gather sort and
+      // the economy snapshot attribute the food to them.
+      world.addComponent(buildingId, 'resource', {
+        resourceType: 'farm',
+        amount: FARM_FOOD_AMOUNT,
+        maxAmount: FARM_FOOD_AMOUNT,
+        owner: null,
+        baseOwner: owner,
       });
     }
   }

@@ -32,6 +32,8 @@ const ECONOMY_RESOURCE_BY_KIND: Record<ResourceKind, EconomyResourceKind | null>
   wolf: null,
   tree: 'wood',
   relic: null,
+  // M1 Farms: a farm yields food, gathered like any other food resource.
+  farm: 'food',
 };
 
 const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
@@ -44,6 +46,9 @@ const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
   wolf: null,
   tree: 5,
   relic: null,
+  // M1 Farms: berry-bush food cadence (spec §6.3 targets ~0.32–0.34 food/sec
+  // for a farm; berry-bush parity is the closest existing food value).
+  farm: 4,
 };
 
 const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {
@@ -56,6 +61,8 @@ const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {
   wolf: null,
   tree: 1,
   relic: null,
+  // M1 Farms: 1 food per gather cycle (berry-bush parity).
+  farm: 1,
 };
 
 const RESOURCE_BASE_TINTS: Record<ResourceKind, number> = {
@@ -68,6 +75,10 @@ const RESOURCE_BASE_TINTS: Record<ResourceKind, number> = {
   wolf: 0x7f8894,
   tree: 0x214d2d,
   relic: 0xf5d680,
+  // M1 Farms: golden wheat. (Used only if a farm is rendered via the resource
+  // tint path; a hybrid farm renders through the building tint while the
+  // building component is present.)
+  farm: 0xd9b84a,
 };
 
 const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
@@ -176,6 +187,8 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   wonder: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
   'stone-wall': { stone: 5 },
   'palisade-wall': { wood: 2 },
+  // M1 Farms: structures.csv cost {Wood: 60}.
+  farm: { wood: 60 },
 };
 
 const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
@@ -276,6 +289,24 @@ export function isBuyMarketAction(actionType: MarketActionType): boolean {
 
 export function resourceKindToEconomyResource(kind: ResourceKind): EconomyResourceKind | null {
   return ECONOMY_RESOURCE_BY_KIND[kind];
+}
+
+// M1 Farms: ownership gate for gathering. A resource that is ALSO a building
+// (a Farm — building+resource hybrid) is an OWNED structure and may only be
+// gathered by its owner, otherwise an enemy/AI villager would harvest food
+// from an opponent's farm and deposit it to ITSELF (food theft). Neutral
+// resources (no building component → `resourceIsOwnedStructure` false) are
+// unaffected and stay gatherable by anyone. The owner's own farm
+// (`resourceBaseOwner === gathererOwner`) stays gatherable.
+export function canGatherResource(
+  gathererOwner: number,
+  resourceIsOwnedStructure: boolean,
+  resourceBaseOwner: number | null,
+): boolean {
+  if (resourceIsOwnedStructure && resourceBaseOwner !== gathererOwner) {
+    return false;
+  }
+  return true;
 }
 
 function throwUnharvestableResourceError(kind: ResourceKind): never {

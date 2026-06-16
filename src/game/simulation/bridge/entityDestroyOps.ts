@@ -277,6 +277,44 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         }
       }
     });
+
+    // M1 Farms: a depleted Farm is a building+resource hybrid, so the
+    // resource-depletion path that destroys it (villagerEconomySystem) must
+    // ALSO clear the building-side bookkeeping, otherwise constructionStates /
+    // buildingHealthStates entries orphan against a freed entity id. A
+    // depleted farm vanishes entirely (an un-reseeded farm disappears in
+    // AoE2 — there is no leftover building shell). This is intentionally
+    // inline rather than delegating to destroyBuildingEntity to avoid a
+    // destroyResource→destroyBuilding cycle; a farm has no garrison, no
+    // production queue contents, and provides 0 population, so only the
+    // construction / health / combat side maps need clearing.
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    if (building) {
+      const construction = accessor.get(constructionStatesCodec).get(id);
+      const populationProvided =
+        construction?.populationProvided ?? buildingPopulationProvided(building.buildingType);
+      const isComplete = construction?.isComplete ?? true;
+      if (populationProvided > 0 && isComplete) {
+        const populationState = accessor.get(populationCodec).get(building.owner);
+        if (populationState) {
+          populationState.cap = Math.max(
+            populationState.current,
+            populationState.cap - populationProvided,
+          );
+          accessor.markDirty(populationCodec);
+        }
+      }
+      accessor.mutate(productionQueuesCodec, (m) => m.delete(id));
+      accessor.mutate(constructionStatesCodec, (m) => m.delete(id));
+      accessor.mutate(buildingHealthStatesCodec, (m) => m.delete(id));
+      accessor.mutate(buildingCombatStatesCodec, (m) => m.delete(id));
+      // A completed farm is a selectable building, so the player may have set
+      // a rally point on it (building.setRallyPoint). Clear it on depletion so
+      // no stale rallyPoints entry orphans against the freed entity id
+      // (mirrors destroyBuildingEntity).
+      accessor.mutate(rallyPointsCodec, (m) => m.delete(id));
+    }
+
     world.destroyEntity(id);
     markOutOfBandRenderChange();
   }

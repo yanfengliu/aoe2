@@ -16,7 +16,7 @@ import type {
 import type { MonkTask } from './sharedTypes';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
-import { resourceKindToEconomyResource } from '../prototypeEconomyRules';
+import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -276,6 +276,18 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
     const economyResource = resourceKindToEconomyResource(resource.resourceType);
     if (economyResource === null || !isHarvestableResource(resourceId, resource)) {
+      return false;
+    }
+    // M1 Farms: a farm (resource + building hybrid) is owner-only. Reject an
+    // explicit gather order on another player's farm so a manual/context
+    // command can't steal food from it. Neutral resources are unaffected.
+    if (
+      !canGatherResource(
+        unit.owner,
+        world.getComponent<BuildingComponent>(resourceId, 'building') !== undefined,
+        resource.baseOwner,
+      )
+    ) {
       return false;
     }
 

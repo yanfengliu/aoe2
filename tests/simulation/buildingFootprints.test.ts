@@ -23,6 +23,7 @@ describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
       wonder: { width: 4, height: 4 },
       'stone-wall': { width: 1, height: 1 },
       'palisade-wall': { width: 1, height: 1 },
+      farm: { width: 1, height: 1 },
     };
 
     expect(AUTHORITATIVE_BUILDING_FOOTPRINTS).toEqual(expected);

@@ -143,6 +143,61 @@ describe('unitGatherValidator', () => {
     );
     expect(result).toEqual({ code: 'resource_not_found', message: expect.any(String) });
   });
+
+  // M1 Farms: a farm is a resource + building hybrid (an OWNED structure).
+  // Helper to build a villager (owner) + a farm (resource + building, owned by
+  // farmOwner) so the ownership gate can be exercised directly.
+  function worldWithVillagerAndFarm(villagerOwner: number, farmOwner: number) {
+    const world = freshWorld();
+    world.registerComponent('unit');
+    world.registerComponent('gatherer');
+    world.registerComponent('resource');
+    world.registerComponent('building');
+    const unitId = world.createEntity();
+    world.addComponent(unitId, 'unit', {
+      unitType: 'villager',
+      owner: villagerOwner,
+      lethalRange: 1,
+      attack: 1,
+      attackCooldownTicks: 0,
+      buildPoints: 0,
+      bountyTickIndex: 0,
+      bountyAge: 'dark',
+      bountyResolved: false,
+      visualVariant: 'idle',
+    });
+    world.addComponent(unitId, 'gatherer', {
+      task: 'idle',
+      desiredResource: null,
+      targetResourceId: null,
+      dropOffBuildingId: null,
+      gatherProgressTicks: 0,
+      carry: { kind: null, amount: 0 },
+      hasExplicitGatherOrder: false,
+    });
+    const farmId = world.createEntity();
+    world.addComponent(farmId, 'resource', {
+      resourceType: 'farm',
+      amount: 175,
+      maxAmount: 175,
+      owner: null,
+      baseOwner: farmOwner,
+    });
+    world.addComponent(farmId, 'building', { owner: farmOwner, buildingType: 'farm' });
+    return { world, unitId, farmId };
+  }
+
+  it("rejects gathering another player's farm (food theft)", () => {
+    const { world, unitId, farmId } = worldWithVillagerAndFarm(2, 1);
+    const result = unitGatherValidator({ unitId, resourceId: farmId }, world);
+    expect(result).toEqual({ code: 'not_owned', message: expect.any(String) });
+  });
+
+  it('accepts gathering your OWN farm', () => {
+    const { world, unitId, farmId } = worldWithVillagerAndFarm(1, 1);
+    const result = unitGatherValidator({ unitId, resourceId: farmId }, world);
+    expect(result).toBe(true);
+  });
 });
 
 describe('unitGatherHandler', () => {
