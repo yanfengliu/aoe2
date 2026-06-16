@@ -16,6 +16,7 @@ import {
   formatTechnologyName,
   isUnitType,
 } from '../displayNames';
+import { selectionGlyph } from '../icons/unitGlyphs';
 import { SELECTION_DETAIL_TOOLTIPS } from '../tooltips';
 
 // Types that can appear as first-class entries in the multi-select icon
@@ -38,6 +39,7 @@ function renderSingleSelectionIcon(
       style="--unit-icon-accent: ${formatEntityIconAccent(entityType)}"
     >
       <div class="hud-selection-unit-chip">
+        ${selectionGlyph(entityType)}
         <div class="hud-selection-unit-badge" data-selection-entity-icon="${entityType}">
           ${formatEntityIcon(entityType)}
         </div>
@@ -146,6 +148,7 @@ export function renderSelectionIcons(
           data-selection-unit-chip="${kind}"
           style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
         >
+          ${selectionGlyph(kind)}
           <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
             ${formatEntityIcon(kind)}
           </div>
@@ -174,6 +177,7 @@ export function renderSelectionIcons(
           data-tooltip="${label}"
           style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
         >
+          ${selectionGlyph(kind)}
           <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
             ${formatEntityIcon(kind)}
           </div>

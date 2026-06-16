@@ -2,6 +2,21 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.44 - 2026-06-16
+
+### The selection panel shows a procedural icon for the selected unit or building (M7 UI icons, slice 2)
+
+When you select a unit or a building, the selection panel used to show only a small two-letter text badge (a "V" for a Villager, "TC" for a Town Center, "H" for a House, "CB" for a Crossbowman, …). That badge now sits beside an original procedural glyph icon: units get an icon for their render role — villager, infantry (foot melee), archer (foot ranged), cavalry (mounted), cavalry-archer (mounted ranged), siege engine, monk — matching the on-map unit silhouettes shipped in v0.1.41, and buildings reuse the same per-type building glyph the "Build X" buttons already use (v0.1.39). The glyph is the dominant visual; the two-letter code stays as a small label beside it, so nothing is lost and the panel is more glanceable. This works for a single selection and for a multi-selection grid (each unit-type chip gets its role glyph; the count badge like "x3" is preserved).
+
+This is the deferred follow-up to the v0.1.39 UI-icons slice (which iconified the top resource chips and the build-command buttons). The icons are 100% original hand-authored inline SVG — no copyrighted Age of Empires icons, sprites, image files, or icon fonts. Still text-only (deferred to later UI-icon work): the non-build command-card buttons (Train / action / market / research), and the resource/wildlife/relic selection badges (sheep, boar, fish, berry bush, tree, mines, relic — these are not player units or buildings, so they keep their text badge this slice). A minimap terrain layer and a fog gradient fade also remain open M7 UI items.
+
+### Validation
+
+- TDD: new `tests/simulation/selectionGlyphs.test.ts` (13 tests) covers that every unit role glyph + the building glyph is self-contained inline SVG with no external asset/font reference and uses `currentColor` (so the existing palette controls the tone); that the unit role map is exhaustive over every unit type AND agrees with the on-map renderer's `unitRole` (a drift guard so the badge glyph and map silhouette never diverge); that the dispatcher routes a unit to its role glyph, a building to the reused building glyph, and a resource/wildlife/relic/none to no glyph; and the augment-don't-replace contract — `renderSelectionIcons` emits the glyph as a sibling while the badge keeps its exact two-letter code and every `data-*` selection hook (single-unit, single-building, and multi-select paths), so the existing Playwright badge-text assertions still pass.
+- Visual protocol: a Villager and the Town Center were selected and captured before/after with a pixel diff — `tmp/ui-icons-2/{villager,tc,multi}-{before,after,diff}.png`; the change (≈4.8% of pixels for the single-selection views, ≈8% for the multi-select grid) is confined entirely to the selection panel; the Phaser game world and the rest of the HUD are pixel-identical.
+- DOM/CSS-only — no `src/phaser/`, simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1429 passed / 2 skipped).
+- Multi-CLI review: see `docs/threads/current/ui-icons-slice2/` (pending — the team lead runs the review before commit).
+
 ## 0.1.43 - 2026-06-16
 
 ### Terrain kinds blend at their edges instead of meeting at hard rectangular seams (M7)

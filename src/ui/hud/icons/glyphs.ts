@@ -254,3 +254,27 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
 export function buildingGlyph(buildingType: BuildableBuildingType): string {
   return svg('hud-command-glyph', BUILDING_GLYPH_BODY[buildingType]);
 }
+
+// Returns the building-glyph markup with a caller-supplied hook class, so
+// the selection panel (slice 2) can reuse the SAME 18-type building art
+// under its own `hud-selection-unit-glyph` CSS hook without duplicating
+// the path data. The build-button path above keeps its own class.
+export function buildingGlyphWithClass(
+  buildingType: BuildableBuildingType,
+  cls: string,
+): string {
+  return svg(cls, BUILDING_GLYPH_BODY[buildingType]);
+}
+
+// Membership test for the buildable building types, keyed off the glyph
+// map itself so it can never drift from the set of types that have a
+// glyph. Used by the selection-glyph dispatcher to route a building
+// entityType to the building glyph. The `unknown`-narrowing keeps it usable
+// against the wider `SelectionState['selectedEntityType']` union. Uses
+// `Object.hasOwn` (not `in`) so prototype keys like 'constructor'/'toString'
+// can never spuriously match and route to non-string garbage markup.
+export function isBuildableBuildingType(
+  value: unknown,
+): value is BuildableBuildingType {
+  return typeof value === 'string' && Object.hasOwn(BUILDING_GLYPH_BODY, value);
+}

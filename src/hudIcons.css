@@ -60,3 +60,37 @@
 .hud-command-label {
   min-width: 0;
 }
+
+/*
+ * M7 UI-icons slice 2 (v0.1.44) — the SELECTION-panel badge glyph. The
+ * glyph MARKUP lives in `src/ui/hud/icons/unitGlyphs.ts` (one inline-SVG
+ * per unit render role; the slice-1 building glyph reused for buildings);
+ * this only sizes + tones it. It is a SIBLING of the `.hud-selection-unit-
+ * badge` (which keeps its two-letter code) so the augment-don't-replace
+ * contract — and the Playwright `toHaveText('V')`/`'TC'` badge assertions
+ * — hold. Colour is `currentColor` tinted by the per-entity accent var the
+ * chip already sets, so the glyph reads as part of the badge family; no new
+ * hues, no assets, no fonts.
+ */
+.hud-selection-unit-glyph {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  /* The accent the chip sets via `--unit-icon-accent`, softened toward the
+     warm parchment so a dark accent still reads on the dark panel. Falls
+     back to the gold label tone when no accent is set. */
+  color: color-mix(
+    in srgb,
+    var(--unit-icon-accent, #c4ae7a) 78%,
+    #f4ead1 22%
+  );
+}
+
+/* Compact multi-select chip: the chip is a centered grid (badge row +
+   count row). The glyph becomes the dominant top row; keep it a touch
+   smaller than the big-chip glyph so several fit the wrapping grid, and
+   let the two-letter badge sit just below as a small code label. */
+.hud-selection-unit-chip--compact .hud-selection-unit-glyph {
+  width: 30px;
+  height: 30px;
+}
