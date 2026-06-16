@@ -28,6 +28,7 @@ import {
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
 import { gatherMultiplier } from '../../ai';
+import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
@@ -411,15 +412,18 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 gatherer.carriedResource = carriedResource;
                 gatherer.carriedAmount += gatherAmount;
 
-                if (targetResource.amount <= 0) {
-                  const depletedResourceId = gatherer.targetResourceId;
+                // Capture depletion BEFORE a reseed refills `amount` (so the
+                // villager still drops off its carry this cycle either way).
+                // M1 Farms (slice 2): a depleted FARM whose owner affords the
+                // 60-wood reseed is refilled in place (same entity, target kept)
+                // so gathering continues; everything else is removed as before.
+                const depleted = targetResource.amount <= 0;
+                const depletedId = gatherer.targetResourceId; // non-null here
+                if (depleted && !tryReseedFarm(activeWorld, accessor, depletedId, targetResource)) {
                   gatherer.targetResourceId = null;
-                  if (depletedResourceId !== null) {
-                    destroyResourceEntity(depletedResourceId);
-                  }
+                  destroyResourceEntity(depletedId);
                 }
-
-                if (targetResource.amount <= 0 || gatherer.carriedAmount >= carryCapacity) {
+                if (depleted || gatherer.carriedAmount >= carryCapacity) {
                   gatherer.task = 'to-dropoff';
                 }
               }

@@ -33,7 +33,10 @@ export function createFarmDepletionFixture(seed: string): PrototypeScenario {
         townCenter: { x: 22, y: 10 },
         startingResources: {
           food: 0,
-          wood: 200,
+          // < 60 wood so the owner CANNOT afford an auto-reseed (slice 2):
+          // the depleting farm therefore takes the slice-1 removal path, which
+          // is exactly what this fixture's depletion-removal test asserts.
+          wood: 0,
           gold: 100,
           stone: 200,
         },
@@ -61,6 +64,96 @@ export function createFarmDepletionFixture(seed: string): PrototypeScenario {
       },
       // A complete farm holding only a little food, next to player 2's
       // villagers + Town Center so they gather + deposit quickly.
+      {
+        kind: 'farm',
+        x: 20,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        farmFood: 6,
+        vision: { playerId: 2, radius: 2 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 11,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
+// M1 Farms (slice 2) auto-reseed fixture. Identical shape to the depletion
+// fixture, but player 2's owner has wood to spare (140) and the farm is seeded
+// with a tiny amount of food. When the villagers draw the farm's food to 0 the
+// auto-reseed fires (owner can afford 60 wood): the SAME farm entity is reset
+// to 175 food, the owner's wood drops by 60, and gathering continues. With 140
+// wood the owner can pay for two reseeds (140 → 80 → 20) before the next
+// depletion finds it broke (20 < 60) and the farm is finally removed. The
+// villagers auto-gather (AI economy, planner disabled for determinism).
+export function createFarmReseedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 6, y: 6 },
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 22, y: 10 },
+        startingResources: {
+          food: 0,
+          // Enough wood for exactly two reseeds (60 each): 140 → 80 → 20, then
+          // the third depletion finds 20 < 60 and removes the farm.
+          wood: 140,
+          gold: 100,
+          stone: 200,
+        },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 6,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 22,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // A complete farm holding only a little food so depletion (and thus the
+      // reseed) is reached quickly.
       {
         kind: 'farm',
         x: 20,

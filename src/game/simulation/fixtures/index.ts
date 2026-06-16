@@ -188,4 +188,5 @@ export {
 export {
   createFarmDepletionFixture,
   createFarmOwnershipFixture,
+  createFarmReseedFixture,
 } from './farms';

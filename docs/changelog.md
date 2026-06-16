@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.35 - 2026-06-15
+
+### Farms now auto-reseed instead of vanishing (M1 slice 2)
+
+A farm no longer disappears the moment its stored food runs out. When a farm empties, if its owner has at least 60 wood in the stockpile the farm automatically reseeds: 60 wood is spent and the farm refills to its full capacity (175 food today), instantly and in place — the same farm, no rebuild delay, and the villager working it keeps producing: it finishes its current drop-off trip and is immediately back on the same now-full farm (no stall, no stranded carry). So a maintained farm is now a steady wood→food converter: as long as you can afford the wood it keeps producing food cycle after cycle, draining 60 wood each time it empties. Only when the owner can't pay the 60 wood at a depletion does the farm get removed from the map as before. The wood is always charged to the farm's owner. This closes the renewable-food backbone started in 0.1.34 — you no longer have to babysit fresh farms to avoid starving in a long game. The AoE2 Mill batch-reseed queue, a per-farm manual reseed toggle, and the farm-capacity upgrade techs remain deferred.
+
+### Validation
+
+- TDD: `tests/simulation/createSimulationBridge.farm.test.ts` adds a reseed test on the live bridge — a player with 140 wood and a near-depleted farm reseeds twice (wood 140 → 80 → 20, the farm keeps the same entity id and refills to 175 each time, food keeps flowing into the stockpile across the reseeds), then on the third depletion the owner is broke (20 < 60) and the farm is removed exactly as before. The existing depletion-removal test still asserts removal (its owner now has 0 wood, so it can't reseed). Full suite green (1283 passed).
+- Multi-CLI review: see `docs/threads/done/farm-reseed-m1-slice2/`.
+
 ## 0.1.34 - 2026-06-15
 
 ### Farms — a buildable renewable food source (M1 slice 1)

@@ -157,6 +157,70 @@ describe('createSimulationBridge farms', () => {
     ).toBe(false);
   }, 60_000);
 
+  it('auto-reseeds a depleted farm while the owner can afford the wood (60/reseed), keeping the same entity and resuming gathering', () => {
+    // Player 2 owns a low-food farm and 140 wood — enough for two reseeds
+    // (140 → 80 → 20). When the villagers draw the farm to 0 the auto-reseed
+    // fires: the SAME farm entity is reset to 175 food and 60 wood is deducted,
+    // and gathering continues without the farm being destroyed.
+    const bridge = createSimulationBridge('farm-reseed-fixture');
+
+    const farmBefore = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'farm' && resource.baseOwner === 2);
+    expect(farmBefore).toBeDefined();
+    expect(farmBefore!.amount).toBeLessThanOrEqual(10);
+    const farmId = farmBefore!.id;
+    expect(bridge.getEconomyState().playerResources[2]?.wood).toBe(140);
+
+    const farmFood = () =>
+      bridge.getEconomyState().resources.find((resource) => resource.id === farmId)?.amount ?? null;
+    const ownerWood = () => bridge.getEconomyState().playerResources[2]?.wood ?? null;
+    const ownerFood = () => bridge.getEconomyState().playerResources[2]?.food ?? 0;
+
+    // First reseed: wait until the owner's wood drops to 80 (one 60-wood
+    // reseed has been charged). The farm must STILL exist (same id) and be
+    // refilled toward its max — proving the entity was reset, not destroyed.
+    // (The food STOCKPILE may still read 0 right at this instant: the villager
+    // has gathered the carry but not yet walked it to the Town Center, so the
+    // food-rising assertions are deferred to after enough cycles below.)
+    const firstReseed = stepBridgeUntil(bridge, () => ownerWood() === 80, { maxSteps: 1200 });
+    expect(firstReseed).toBe(true);
+    expect(farmFood()).not.toBeNull(); // same entity survived the depletion
+    expect(farmFood()).toBeGreaterThan(6); // refilled past the seeded 6
+
+    // The villagers do eventually deposit gathered food into the stockpile
+    // (proving gathering resumed seamlessly across the reseed, no re-path
+    // stutter that would strand the carry).
+    expect(
+      stepBridgeUntil(bridge, () => ownerFood() > 0, { maxSteps: 1200 }),
+    ).toBe(true);
+
+    // Second reseed: wood drops to 20. The farm persists across a SECOND
+    // depletion→reseed cycle, proving reseed is repeatable and drains exactly
+    // 60 wood each time.
+    const foodAfterFirst = ownerFood();
+    const secondReseed = stepBridgeUntil(bridge, () => ownerWood() === 20, { maxSteps: 1200 });
+    expect(secondReseed).toBe(true);
+    expect(farmFood()).not.toBeNull(); // still the same entity
+    // Food keeps rising across the reseed (gathering never stalled).
+    expect(
+      stepBridgeUntil(bridge, () => ownerFood() > foodAfterFirst, { maxSteps: 1200 }),
+    ).toBe(true);
+
+    // Third depletion finds the owner broke (20 < 60): now the farm is removed
+    // exactly as slice 1 — no reseed, the entity disappears (resource AND the
+    // building shell).
+    const farmRemoved = stepBridgeUntil(
+      bridge,
+      () => !bridge.getEconomyState().resources.some((resource) => resource.id === farmId),
+      { maxSteps: 1200 },
+    );
+    expect(farmRemoved).toBe(true);
+    expect(bridge.getEconomyState().buildings.some((building) => building.id === farmId)).toBe(false);
+    // The owner could not pay, so the remaining wood (20) is untouched.
+    expect(ownerWood()).toBe(20);
+  }, 90_000);
+
   it("does not let an enemy/AI villager gather another player's farm (no food theft)", () => {
     // Player 1 (human) owns a farm; player 2 (AI economy, planner off) has a
     // food villager whose only nearby food is player 1's farm.
