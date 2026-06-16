@@ -31,6 +31,7 @@ import {
   createBombardCannonMinRangeBlockedFixture,
   createBombardCannonVsBuildingFixture,
   createBuildingFootprintVisionFixture,
+  createBuildingShowcaseFixture,
   createCamelVsCavalryFixture,
   createCamelVsHussarFixture,
   createCamelVsRamFixture,
@@ -253,6 +254,9 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   // M7 units-beyond-circles: a visual-only showcase placing one P1 unit per
   // render role (capture target for the unit-silhouette change).
   ['unit-showcase-fixture', createUnitShowcaseFixture],
+  // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED
+  // building per render role (capture target for the building-silhouette change).
+  ['building-showcase-fixture', createBuildingShowcaseFixture],
   ['castle-fletching-fixture', createCastleFletchingFixture],
   ['castle-garrison-fixture', createCastleGarrisonFixture],
   ['monk-relic-fixture', createMonkRelicFixture],

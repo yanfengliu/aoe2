@@ -2,6 +2,21 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.42 - 2026-06-16
+
+### Buildings render as distinct per-type shapes instead of one generic shape (M7)
+
+Completed buildings no longer all draw the same generic body-and-roof shape (which made a Town Center, House, Castle, Wonder, Market, and Barracks indistinguishable except by size and color). Each completed building now draws an original procedural silhouette grouped by role, so a glance tells you what a building is: the Town Center (a wide hall with a gabled roof and flanking corner posts), the Castle (a crenellated keep with battlement notches, no roof), the Wonder (a grand domed monument with a spire), Houses (a small home with a pitched roof and door), the Mill (a windmill with a four-blade cross), Farms (a tilled field of furrow rows, no roof), drop-site camps — Lumber Camp / Mining Camp (an open camp with a lean-to roof and a stockpile mound), military production halls — Barracks / Stable / Archery Range / Siege Workshop (a hall with a flat roof band and a banner flag), the Blacksmith (a forge with a chimney and an anvil), the Market (an open stall with a striped awning), the Monastery (a chapel with a cross finial), the Watch Tower (a tall narrow tower with a battlement cap), and Walls — Stone Wall / Palisade Wall (a low battlement segment). The owner color is kept as the body fill so faction ownership reads exactly as before, and every shape stays inside the building's footprint so selection rings, footprint outlines, and health bars are unchanged.
+
+This is the first slice of the M7 "building visuals" item. The construction (scaffold) and last-seen-ghost looks are unchanged — only the completed building look now varies by type. Deferred to later slices: a construction→complete progress animation, a distinct silhouette per individual building type (rather than per role), rubble/damage states, and per-civilization architecture. The art is 100% original procedural Phaser drawing — no sprites and no copyrighted Age of Empires art.
+
+### Validation
+
+- TDD: new `tests/phaser/buildingRenderer.test.ts` (27 tests) covers the building→role mapping for a representative type of every role plus exhaustive coverage of all 18 building types; that every completed building draws at least one fill primitive and uses the entity tint; that distinct roles draw distinct primitive sets (the Mill draws blade lines, the Wonder draws a dome arc, the Wall has no roof triangle while the House does); that every drawn point stays inside the building's footprint rect for every type so the selection/health-bar geometry is preserved; and the unchanged variant contract (a completed building reports the body/roof/completion flags, a building under construction reports the foundation/scaffold flags, a last-seen ghost and a non-building both return no visual record).
+- Visual protocol: a dedicated `building-showcase-fixture` (one completed building of every role in a visible grid) was captured before/after with a pixel diff — `tmp/buildings/{before,after,diff}.png`; 10.72% of pixels changed, confined exactly to the building footprints (the HUD, terrain between buildings, health bars, selection rings, minimap, and fog are pixel-identical; the changed-pixel bounding box stops below the top HUD bar and above the minimap panel).
+- The render path is purely a function of the projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1404 passed / 2 skipped).
+- Multi-CLI review: see `docs/threads/current/building-visuals-slice1/` (pending — the team lead runs the review before commit).
+
 ## 0.1.41 - 2026-06-16
 
 ### Units render as per-type directional shapes instead of colored circles (M7)

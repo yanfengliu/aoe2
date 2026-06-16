@@ -1,19 +1,32 @@
-// Building entity renderer factored out of `GameScene.ts`. The scene
-// previously held five private methods (`renderBuildingEntity`,
-// `renderBuildingFoundation`, `renderConstructionPosts`,
-// `renderCompletedBuildingBody`, `renderCompletedBuildingRoof`) totaling
-// ~160 lines. They depended only on the `entityLayer` Graphics object
-// plus the cell size constant — clean dep-bag for a factory extraction.
+// Building entity renderer factored out of `GameScene.ts`.
 //
-// Output shape: a single `renderBuildingEntity(entity, px, py)` that
-// returns an optional `BuildingVisualState` (null for memory-buildings,
-// which the scene drew without a visual-state record). The scene's
-// existing buffer (`lastBuildingVisualStates`) collects those records
-// for the browser-test assertions.
+// M7 building-visuals slice 1: completed buildings used to draw ONE generic
+// body rect + roof triangle regardless of type. They now draw a READABLE
+// PER-ROLE procedural silhouette (`buildingRole` → `drawBuildingSilhouette`),
+// the building analogue of the v0.1.41 per-role unit silhouettes — so a Town
+// Center, House, Castle, Wonder, Mill, Tower, Wall, Farm, … are distinguishable
+// at a glance. Body fill = owner `tint`; details = a darkened tint. Pure
+// per-frame draw (no random/time); every primitive stays inside the footprint
+// rect so HP-bar / selection / footprint geometry is unchanged.
+//
+// The construction (foundation slab + scaffold posts) and memory (flat ghost)
+// paths are role-AGNOSTIC and unchanged — a building under construction or a
+// last-seen ghost reads the same for every type by design. Deferred (M7):
+// per-building (vs per-role) silhouettes, a construction→complete progress
+// fill, rubble/damage states, per-civ architecture.
+//
+// Output shape: a single `renderBuildingEntity(entity, px, py)` that returns an
+// optional `BuildingVisualState` (null for memory buildings + non-buildings).
+// The scene's existing buffer (`lastBuildingVisualStates`) collects those
+// records for the browser-test assertions; the boolean flags below preserve the
+// pre-slice contract (completed → body/roof/completion; construction →
+// foundation/scaffold/construction).
 
 import Phaser from 'phaser';
 
-import type { ProjectedEntityView } from '../../../game/simulation/types';
+import type { BuildingType, ProjectedEntityView } from '../../../game/simulation/types';
+import { buildingRole } from './buildingRole';
+import { darken, drawBuildingSilhouette } from './buildingSilhouettes';
 
 // Re-exported from GameScene.ts for backward compatibility — moving the
 // type here would force every existing import to update. The shape is
@@ -46,7 +59,7 @@ export interface BuildingRenderer {
   // Paint the building entity at (px, py). Returns a visual-state
   // record for non-memory buildings so the scene can stash it for
   // browser-test assertions; returns null for memory buildings (the
-  // ghost-rendering path).
+  // ghost-rendering path) and non-building entities.
   renderBuildingEntity(
     entity: ProjectedEntityView,
     px: number,
@@ -111,58 +124,6 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
     entityLayer.lineBetween(leftX, topY, rightX, bottomY);
   }
 
-  function renderCompletedBuildingBody(
-    px: number,
-    py: number,
-    widthPx: number,
-    heightPx: number,
-  ): void {
-    const insetX = Math.max(5, widthPx * 0.14);
-    const insetTop = Math.max(8, heightPx * 0.34);
-    const insetBottom = Math.max(4, heightPx * 0.14);
-    const bodyX = px + insetX;
-    const bodyY = py + insetTop;
-    const bodyWidth = Math.max(8, widthPx - insetX * 2);
-    const bodyHeight = Math.max(8, heightPx - insetTop - insetBottom);
-
-    entityLayer.fillStyle(0xf0d39a, 0.92);
-    entityLayer.fillRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 4);
-    entityLayer.lineStyle(2, 0x5b4125, 0.9);
-    entityLayer.strokeRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 4);
-
-    const doorWidth = Math.max(4, bodyWidth * 0.2);
-    const doorHeight = Math.max(6, bodyHeight * 0.45);
-    entityLayer.fillStyle(0x744d2d, 0.9);
-    entityLayer.fillRoundedRect(
-      bodyX + (bodyWidth - doorWidth) * 0.5,
-      bodyY + bodyHeight - doorHeight,
-      doorWidth,
-      doorHeight,
-      2,
-    );
-  }
-
-  function renderCompletedBuildingRoof(
-    px: number,
-    py: number,
-    widthPx: number,
-    heightPx: number,
-  ): void {
-    const roofInset = Math.max(4, widthPx * 0.08);
-    const roofBaseY = py + Math.max(10, heightPx * 0.38);
-    const roofPeakY = py + Math.max(2, heightPx * 0.08);
-    const leftX = px + roofInset;
-    const rightX = px + widthPx - roofInset;
-    const centerX = px + widthPx * 0.5;
-
-    entityLayer.fillStyle(0x8d4f39, 0.96);
-    entityLayer.fillTriangle(leftX, roofBaseY, centerX, roofPeakY, rightX, roofBaseY);
-    entityLayer.lineStyle(2, 0x4c2418, 0.95);
-    entityLayer.strokeTriangle(leftX, roofBaseY, centerX, roofPeakY, rightX, roofBaseY);
-    entityLayer.lineStyle(1, 0xe7b07d, 0.65);
-    entityLayer.lineBetween(centerX, roofPeakY + 1, centerX, roofBaseY - 2);
-  }
-
   function renderBuildingEntity(
     entity: ProjectedEntityView,
     px: number,
@@ -194,9 +155,9 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
     let hasCompletionAccent = false;
 
     if (entity.isMemory) {
-      // Memory buildings render as a flat tinted rectangle only — the detailed body
-      // and roof layers would paint fully-opaque pixels over the ghost, so we skip
-      // them and rely on the base fillAlpha to communicate "stale / last-seen".
+      // Memory buildings render as a flat tinted rectangle only — the detailed
+      // silhouette would paint fully-opaque pixels over the ghost, so we skip it
+      // and rely on the base fillAlpha to communicate "stale / last-seen".
     } else if (isConstruction) {
       renderBuildingFoundation(px, py, widthPx, heightPx);
       renderConstructionPosts(px, py, widthPx, heightPx);
@@ -204,8 +165,21 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
       hasScaffoldPosts = true;
       hasConstructionIndicator = true;
     } else {
-      renderCompletedBuildingBody(px, py, widthPx, heightPx);
-      renderCompletedBuildingRoof(px, py, widthPx, heightPx);
+      // Completed building: a readable per-role silhouette inside the footprint
+      // rect. The flags below stay semantically "drew a completed structure with
+      // a top accent" so the browser-test contract (house/TC) is preserved
+      // across every role.
+      drawBuildingSilhouette(buildingRole(entity.entityType as BuildingType), {
+        g: entityLayer,
+        x: px,
+        y: py,
+        w: widthPx,
+        h: heightPx,
+        tint: entity.tint,
+        outline: darken(entity.tint, 0.55),
+        fillAlpha,
+        outlineAlpha: Math.min(1, fillAlpha),
+      });
       hasStructureBody = true;
       hasRoofAccent = true;
       hasCompletionAccent = true;

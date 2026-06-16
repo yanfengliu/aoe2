@@ -200,3 +200,7 @@ export {
 export {
   createUnitShowcaseFixture,
 } from './unitShowcase';
+
+export {
+  createBuildingShowcaseFixture,
+} from './buildingShowcase';
