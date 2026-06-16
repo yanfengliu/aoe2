@@ -190,3 +190,9 @@ export {
   createFarmOwnershipFixture,
   createFarmReseedFixture,
 } from './farms';
+
+export {
+  createLoomBrokeFixture,
+  createLoomFixture,
+  createLoomResearchedFixture,
+} from './loom';

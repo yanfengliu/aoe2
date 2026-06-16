@@ -78,14 +78,19 @@ describe('getResearchOptions — economy gather-rate techs', () => {
   });
 });
 
+// These cases isolate the CARRY-tech behaviour, so they pre-research Loom
+// (which the TC now also offers in every age — covered by loomTech.test.ts) to
+// keep the asserted lists focused on Wheelbarrow / Hand Cart.
 describe('getResearchOptions — Town Center carry techs', () => {
   it('offers no carry tech in the Dark Age', () => {
-    expect(optionsAt('dark-age').getResearchOptions(1, 'town-center')).toEqual([]);
+    expect(optionsAt('dark-age', ['loom']).getResearchOptions(1, 'town-center')).toEqual([]);
   });
 
   it('offers Wheelbarrow (Feudal) then adds Hand Cart (Castle)', () => {
-    expect(optionsAt('feudal-age').getResearchOptions(1, 'town-center')).toEqual(['wheelbarrow']);
-    expect(optionsAt('castle-age').getResearchOptions(1, 'town-center')).toEqual([
+    expect(optionsAt('feudal-age', ['loom']).getResearchOptions(1, 'town-center')).toEqual([
+      'wheelbarrow',
+    ]);
+    expect(optionsAt('castle-age', ['loom']).getResearchOptions(1, 'town-center')).toEqual([
       'wheelbarrow',
       'hand-cart',
     ]);
@@ -93,21 +98,20 @@ describe('getResearchOptions — Town Center carry techs', () => {
 
   it('drops a researched carry tech', () => {
     expect(
-      optionsAt('castle-age', ['wheelbarrow']).getResearchOptions(1, 'town-center'),
+      optionsAt('castle-age', ['wheelbarrow', 'loom']).getResearchOptions(1, 'town-center'),
     ).toEqual(['hand-cart']);
   });
 
   it('offers the age-up alongside carry techs (age-up still comes first)', () => {
     expect(
-      optionsAt('feudal-age', [], 'castle-age').getResearchOptions(1, 'town-center'),
+      optionsAt('feudal-age', ['loom'], 'castle-age').getResearchOptions(1, 'town-center'),
     ).toEqual(['castle-age', 'wheelbarrow']);
   });
 
   it('getVisibleResearchOptions surfaces the next age-up + carry techs', () => {
-    expect(optionsAt('feudal-age').getVisibleResearchOptions(1, 'town-center')).toEqual([
-      'castle-age',
-      'wheelbarrow',
-    ]);
+    expect(
+      optionsAt('feudal-age', ['loom']).getVisibleResearchOptions(1, 'town-center'),
+    ).toEqual(['castle-age', 'wheelbarrow']);
   });
 });
 

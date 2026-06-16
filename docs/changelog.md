@@ -2,6 +2,19 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.40 - 2026-06-16
+
+### Loom is now a researchable Town Center technology
+
+Loom can now be researched at the Town Center. It is available from the Dark Age with no prerequisite beyond owning a Town Center, costs 50 gold, and takes 25 seconds — so it joins the Town Center research list (alongside the age-up and the Wheelbarrow/Hand Cart carry techs) the moment you have a Town Center, and drops off the list once researched. When it completes it permanently buffs every villager you own — and every villager you train afterward — with +15 maximum HP (25 → 40) and +1 armor. The HP gain is added to a villager's current HP too, so a damaged villager is healed by the same +15 when the research lands. This was the verified data-only Dark-Age tech surfaced by the campaign-10 playtest; it makes the early economy far more survivable against a Dark-Age raid (villagers take more hits and have more buffer), which is exactly the gap the playtest found.
+
+Known divergence from AoE2 (deferred): real AoE2 Loom is +1 melee / +2 PIERCE armor. This release ships +1/+1 because the combat model still uses a single armor value per unit that reduces both melee and pierce damage (every armor upgrade in the game today is symmetric +1/+1). The extra +1 pierce armor is deferred to a later change that splits melee and pierce armor for all armor techs. The dominant part of Loom — the +15 villager HP — ships exactly as in AoE2.
+
+### Validation
+
+- TDD: new `tests/simulation/loomTech.test.ts` (17 tests) covers the Town Center offering Loom in the Dark Age and every later age until researched, dropping it once researched, and offering it alongside (after) the age-up; the 50-gold / 250-tick cost-table values; research charging exactly 50 gold and recording the tech, and being rejected when the owner has under 50 gold; an EXISTING villager going from 25/25 to 40/40 with armor 0 → 1 on completion (flat current+max bump, not a ratio rescale); a non-villager (Militia) being unaffected; a FUTURE villager (trained/seeded after research) starting at 40/40 + armor 1; armor reducing both incoming melee AND pierce damage by 1 at the damage site; no effect before research; and a save round-trip (a researched-Loom villager still reads 40 HP + armor 1 after load, and loom stays in the researched set — the post-load createCombatState re-derive path is covered by the future-villager test above). Existing Town Center research-option assertions were updated to include Loom (the Town Center genuinely offers it now). Full suite green; typecheck/lint/build all pass.
+- Multi-CLI review: see `docs/threads/current/loom-tech/` (pending — the team lead runs the review before commit).
+
 ## 0.1.39 - 2026-06-16
 
 ### Resource chips and build buttons now have original glyph icons (M7)

@@ -117,10 +117,8 @@ export type ResearchableTechnologyType =
   | 'two-handed-swordsman-upgrade'
   | 'paladin-upgrade'
   | 'heavy-camel-upgrade'
-  // Economy gather-rate techs (AoE2 "Work Rate ×N"). Lumber Camp (wood) +
-  // Mining Camp (gold/stone). No side-map mutation: the rate multiplier is
-  // derived from the owner's researched-tech set at gather time
-  // (see gatherRateMultiplier / ticksToGatherCarry in economyTechEffects).
+  // Economy gather-rate techs (Lumber/Mining Camp) — rate multiplier DERIVED
+  // from the researched-tech set at gather time (economyTechEffects), no state.
   | 'double-bit-axe'
   | 'bow-saw'
   | 'two-man-saw'
@@ -128,11 +126,13 @@ export type ResearchableTechnologyType =
   | 'gold-shaft-mining'
   | 'stone-mining'
   | 'stone-shaft-mining'
-  // Economy carry-capacity techs (Town Center). Like the gather-rate techs the
-  // carry multiplier is derived from the researched-tech set at gather time
-  // (see carryCapacityMultiplier / effectiveCarryCapacity in economyTechEffects).
+  // Economy carry-capacity techs (Town Center) — carry multiplier DERIVED the
+  // same way (carryCapacityMultiplier / effectiveCarryCapacity).
   | 'wheelbarrow'
-  | 'hand-cart';
+  | 'hand-cart'
+  // Loom (Town Center, Dark Age, no prereq, 50 gold): +15 villager HP + +1 armor,
+  // applied imperatively to existing + future villagers — see spec §11.8.
+  | 'loom';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

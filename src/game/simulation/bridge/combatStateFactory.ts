@@ -38,6 +38,18 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       armor: 0,
     };
 
+    // Loom: +15 villager max HP + +1 armor. A newly created villager is at full
+    // HP, so current and max both gain 15 (25 → 40). The same flat bump is
+    // applied to existing villagers on research in technologyOps' `loom` case.
+    // AoE2 Loom is +1 melee / +2 pierce; this slice ships +1/+1 via the single
+    // CombatState.armor scalar (the +1 pierce is deferred — see the type union
+    // comment + design/spec-final.md).
+    if (unitType === 'villager' && hasTechnology(owner, 'loom')) {
+      state.maxHp += 15;
+      state.currentHp += 15;
+      state.armor += 1;
+    }
+
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'fletching')) {
       state.attackDamage += 1;
       state.attackRange += 1;

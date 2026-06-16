@@ -176,8 +176,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
   ): ResearchableTechnologyType[] {
     if (buildingType === 'town-center') {
       const options: ResearchableTechnologyType[] = [];
-      // The canAdvance* predicates are mutually exclusive, so at most one
-      // age-up is offered; carry techs are offered alongside it.
+      // canAdvance* are mutually exclusive, so at most one age-up is offered.
       if (canAdvanceToFeudalAge(owner)) {
         options.push('feudal-age');
       }
@@ -193,6 +192,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
       if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
         options.push('hand-cart');
+      }
+      // Loom: Dark Age onward, no prereq; appended last so age-up + carry stay first.
+      if (!hasTechnology(owner, 'loom')) {
+        options.push('loom');
       }
       if (options.length > 0) {
         return options;
@@ -357,9 +360,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    // Economy gather-rate techs. Lumber Camp (wood) from Feudal; Bow Saw +
-    // Two-Man Saw add in Castle / Imperial. Each is offered once and drops out
-    // of the list once researched.
+    // Gather-rate techs: Lumber Camp wood from Feudal (+Bow Saw/Two-Man Saw later).
     if (buildingType === 'lumber-camp' && isAtLeastAge(owner, 'feudal-age')) {
       const options: ResearchableTechnologyType[] = [];
       if (!hasTechnology(owner, 'double-bit-axe')) {
@@ -376,11 +377,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    // Mining Camp (gold + stone) from Feudal; the Shaft upgrades add in Castle.
-    // Per the dataset (technologies.csv) these stack but carry no base-tech
-    // prerequisite, so — like the Lumber Camp — age is the only gate. (AoE2's
-    // linear prerequisite chains would need a prereq column in the dataset; a
-    // deferred fidelity refinement, see the thread REVIEW.)
+    // Mining Camp (gold + stone) from Feudal; Shaft upgrades add in Castle. Per
+    // technologies.csv these stack with no base-tech prereq, so age is the only
+    // gate (AoE2's linear prereq chains are a deferred fidelity refinement).
     if (buildingType === 'mining-camp' && isAtLeastAge(owner, 'feudal-age')) {
       const options: ResearchableTechnologyType[] = [];
       if (!hasTechnology(owner, 'gold-mining')) {
@@ -419,13 +418,16 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       } else if (age === 'castle-age') {
         options.push('imperial-age');
       }
-      // Carry techs are shown from their age onward (until researched), so the
-      // agent/HUD can see them alongside the next age-up.
+      // Carry techs shown from their age onward (until researched).
       if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) {
         options.push('wheelbarrow');
       }
       if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
         options.push('hand-cart');
+      }
+      // Loom is visible from the Dark Age onward (no prereq) until researched.
+      if (!hasTechnology(owner, 'loom')) {
+        options.push('loom');
       }
       return options;
     }
@@ -459,10 +461,8 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       'lumber-camp',
       'mining-camp',
       'barracks',
-      // Palisade Wall is a Dark-Age defensive option in AoE2 (no prerequisite):
-      // the only early wall available to a player facing a Dark-Age military
-      // rush. campaign-7 showed the LLM had no Dark-Age defense and was overrun
-      // (villagers 5→0) before reaching Feudal — see docs/devlog + roadmap.
+      // Palisade Wall: Dark-Age defensive option in AoE2 (no prereq) — the only
+      // early wall vs a Dark-Age rush (campaign-7; see docs/devlog + roadmap).
       'palisade-wall',
       'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
     ];

@@ -104,6 +104,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Wheelbarrow';
     case 'hand-cart':
       return 'Hand Cart';
+    case 'loom':
+      return 'Loom';
   }
 }
 

@@ -167,6 +167,8 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   // Economy carry-capacity techs (Town Center; costs from technologies.csv).
   wheelbarrow: { food: 175, wood: 50 },
   'hand-cart': { food: 305, wood: 200 },
+  // Loom: technologies.csv:86 — 50 gold.
+  loom: { gold: 50 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -277,6 +279,8 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   // Carry-capacity techs (CSV research seconds × 10 TPS).
   wheelbarrow: 750,
   'hand-cart': 550,
+  // Loom: technologies.csv:86 — 25 s × 10 TPS.
+  loom: 250,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {

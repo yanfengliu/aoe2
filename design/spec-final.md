@@ -1037,6 +1037,12 @@ The simulation must allow:
 - shared diplomacy state
 - visibility-sharing technologies such as Cartography-style behavior where modeled
 
+### 11.8 Town Center villager techs (Loom)
+
+**Loom (implemented).** Loom is researched at the Town Center, available from the Dark Age with no prerequisite beyond a standing Town Center, costing 50 gold and taking 25 seconds (250 ticks) — the values in `technologies.csv`. It is a one-time, owner-wide, permanent buff to every villager: +15 maximum HP (villager base 25 → 40) and +1 armor. Unlike the gather-rate and carry-capacity economy techs (whose effect is DERIVED from the researched-tech set at gather time), Loom's effect is applied IMPERATIVELY to the per-villager combat state, exactly like the Blacksmith attack/armor upgrades: existing villagers are bumped the moment research completes, and villagers trained afterward receive the buff at creation. The HP bump is FLAT on both current and max HP — a damaged villager at 10/25 becomes 25/40 (the +15 buffer is added to current HP too, matching AoE2), NOT a ratio-preserving rescale. The owner-wide application is guarded against double-application when two Town Centers race-queue the tech (the research-completion path is idempotent per owner). Loom persists across save/load through the existing researched-tech record and per-unit combat-state serialization, with no save-format change.
+
+Known divergence (deferred): AoE2 Loom grants +1 MELEE / +2 PIERCE armor. This implementation ships +1/+1 because the combat model currently carries a single per-unit armor scalar that feeds both melee and pierce mitigation (every Blacksmith armor tech is symmetric +1/+1, so one scalar sufficed). The extra +1 pierce armor is deferred to a future asymmetric-armor-tech slice — when the per-unit armor scalar splits into separate melee and pierce values for ALL armor techs (the same melee/pierce-tech split tracked in §10 / roadmap M2). The dominant, fully-correct part of Loom — the +15 villager HP that drives early-game survivability — ships exactly per AoE2.
+
 ## 12. Fog of War, Line of Sight, Pathfinding, and Movement
 
 ### 12.1 Visibility States

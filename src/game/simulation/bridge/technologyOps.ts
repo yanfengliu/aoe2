@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
+import { applyLoomToOwnedVillagers } from './loomEffect';
 import {
   combatStatesCodec,
   playerAgesCodec,
@@ -151,13 +152,10 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
   }
 
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
-    // Idempotency guard (iter-2 H2-1): enqueueResearch only dedupes
-    // within the same building's queue, so two producer buildings can
-    // race-queue the same tech and reach this completion path twice.
-    // Many cases below use += increments (forging, iron-casting,
-    // blast-furnace, bracer, every armor tier, ...) so the second call
-    // would silently double the bonus. Skip if the tech is already
-    // applied for this owner.
+    // Idempotency guard (iter-2 H2-1): two producer buildings can race-queue
+    // the same tech and reach this completion path twice. Many cases below use
+    // += increments (forging, the armor tiers, Loom, …), so a second call would
+    // silently double the bonus. Skip if already applied for this owner.
     const ownerSet = accessor.get(researchedTechnologiesCodec).get(owner);
     if (ownerSet?.has(technologyType)) {
       return;
@@ -242,13 +240,9 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         );
         break;
       case 'champion-upgrade':
-        // FU2: the owner may hold any tier of the militia line when
-        // Champion is researched — walk every predecessor tier so a
-        // Militia / Man-at-Arms / Long Swordsman / Two-Handed
-        // Swordsman all mutate to Champion. Backward-compat with the
-        // Slice 7 "Militia → Champion direct upgrade" path: if the
-        // owner skipped the intermediate tiers entirely, the Militia
-        // still upgrades straight to Champion.
+        // FU2: the owner may hold any militia-line tier when Champion is
+        // researched — walk every predecessor (incl. the Slice 7 direct
+        // Militia → Champion path) so all tiers mutate to Champion.
         upgradeOwnedUnits(owner, 'militia', 'champion');
         upgradeOwnedUnits(owner, 'man-at-arms', 'champion');
         upgradeOwnedUnits(owner, 'long-swordsman', 'champion');
@@ -299,12 +293,9 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         upgradeOwnedUnits(owner, 'battering-ram', 'siege-ram');
         rewriteQueuedPredecessorUnits(owner, 'battering-ram', 'siege-ram');
         break;
-      // Slice 7E Blacksmith Imperial tier. Each tech walks every owned unit
-      // and re-applies its bonus so existing armies benefit immediately.
-      // Newly trained units receive the same bonus via createCombatState
-      // (mirrors the Fletching pattern). The bonuses are cumulative: a
-      // Champion can receive Blast Furnace atk + Plate Mail armor on the
-      // same tick if both are researched (in any order).
+      // Slice 7E Blacksmith Imperial tier. Each tech re-applies its bonus to
+      // every owned unit; new units get it via createCombatState (Fletching
+      // pattern). Bonuses are cumulative across techs.
       case 'bracer':
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -480,6 +471,14 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
             combat.attackDamage += 1;
           }
         }
+        break;
+      case 'loom':
+        // Loom: flat +15 HP (current + max) + +1 armor to every owned villager
+        // (new villagers get it via createCombatState). See loomEffect.ts for
+        // why this is flat (not ratio) and how the race guard above keeps it
+        // single-applied.
+        applyLoomToOwnedVillagers(world, accessor, owner);
+        markOutOfBandRenderChange();
         break;
     }
     // Phase 2D: many tech branches mutate combat objects in place
