@@ -1273,6 +1273,7 @@ The north star is the look and polish of an Age of Empires II HD clone, reached 
 - construction, damage, and rubble states for buildings
 - architecture-set variation by civilization region
 - textured terrain surfaces rather than flat per-kind color fills: terrain cells carry subtle, deterministic per-cell variation (and, later, kind-to-kind blending and elevation light/shadow) so the ground reads as a surface, not a grid of solid blocks
+- readable per-type unit silhouettes rather than flat tinted circles: each unit renders as an original procedural shape grouped by RENDER ROLE — villager, infantry (foot melee), archer (foot ranged), cavalry (mounted), cavalry-archer (mounted ranged), siege (machine), monk — so a glance distinguishes the role, while the owner-color tint is kept as the body fill. The shape orients toward the unit's movement FACING (derived render-side from the per-tick projected-position delta; idle units use a consistent resting orientation — no fabricated heading), and every shape stays within the unit's cell-centred bounding circle so the existing health-bar and selection-ring geometry is unchanged. Shipped v0.1.41 (the prior look was one tinted circle per unit). A per-unit (vs per-role) silhouette and a walk/idle ANIMATION cycle are deferred to later M7 slices.
 - distinct alert, economy, combat, and age-up audio cues
 
 ## 15. Simulation, Saves, and Content Pipeline

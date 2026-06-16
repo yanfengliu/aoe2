@@ -196,3 +196,7 @@ export {
   createLoomFixture,
   createLoomResearchedFixture,
 } from './loom';
+
+export {
+  createUnitShowcaseFixture,
+} from './unitShowcase';

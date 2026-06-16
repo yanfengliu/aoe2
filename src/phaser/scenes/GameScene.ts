@@ -40,6 +40,7 @@ import {
   createWorldLayersRenderer,
   type WorldLayersRenderer,
 } from './gameScene/worldLayers';
+import { createUnitRenderer, unitFacingRadians, type UnitRenderer } from './gameScene/unitRenderer';
 import { isUnitType as isUnitTypeExternal } from './gameScene/unitTypeMap';
 import { drawTerrainCell } from './gameScene/terrainRenderer';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
@@ -206,6 +207,7 @@ export class GameScene extends Phaser.Scene {
   private debugOverlayRenderer?: DebugOverlayRenderer;
   private worldLayersRenderer?: WorldLayersRenderer;
   private buildingRenderer?: BuildingRenderer;
+  private unitRenderer?: UnitRenderer;
   private selectionLayersRenderer?: SelectionLayersRenderer;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
     // Phaser's pointer-up handler owns same-type promotion; this listener only
@@ -245,6 +247,7 @@ export class GameScene extends Phaser.Scene {
       entityLayer: this.entityLayer,
       cellSize: CELL_SIZE,
     });
+    this.unitRenderer = createUnitRenderer({ graphics: this.entityLayer, cellSize: CELL_SIZE });
     this.selectionLayersRenderer = createSelectionLayersRenderer({
       selectionLayer: this.selectionLayer,
       placementLayer: this.placementLayer,
@@ -562,12 +565,12 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      this.entityLayer.fillStyle(entity.tint, fillAlpha);
-      this.entityLayer.fillCircle(
-        px + CELL_SIZE * 0.5,
-        py + CELL_SIZE * 0.5,
-        CELL_SIZE * entity.size * 0.5,
-      );
+      // Unit: a readable per-role procedural silhouette oriented toward its
+      // movement facing — derived render-side from the prior-tick projected
+      // position (the interpolated current lies on the prev→current segment, so
+      // the heading angle is identical); idle units use a rest orientation.
+      const facing = unitFacingRadians(this.previousUnitProjectedPositions.get(entity.id), entity, interpolationAlpha);
+      this.unitRenderer?.drawUnit(entity, px, py, facing, fillAlpha);
     }
 
     if (state.frame && this.worldLayersRenderer) {
@@ -896,13 +899,9 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  // Iter-3 follow-up: building entity rendering moved to
-  // `gameScene/buildingRenderer.ts`. Only the call-site on line ~547
-  // remains; the 5 private methods (renderBuildingEntity +
-  // renderBuildingFoundation + renderConstructionPosts +
-  // renderCompletedBuildingBody + renderCompletedBuildingRoof) became
-  // a single factory there. ~160 lines of rendering + visual-state
-  // coupling code shed from this file.
+  // Per-entity rendering lives in dep-bag factories under `gameScene/`
+  // (buildingRenderer / unitRenderer / terrainRenderer / worldLayers); this
+  // scene only holds the per-frame call-sites in `renderState`.
 
   private trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {
     const recentClick = this.recentFriendlyUnitClick;

@@ -2,6 +2,21 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.41 - 2026-06-16
+
+### Units render as per-type directional shapes instead of colored circles (M7)
+
+Units no longer render as flat tinted circles. Each unit now draws as an original procedural silhouette grouped by render role, so a glance tells you what kind of unit it is: a villager (small rounded body), infantry / foot melee (a shield-square body with a forward blade), archers / foot ranged (a slim body with a bow arc), cavalry / mounted (an elongated mount body with a rider), cavalry archers (the mount body with a bow arc), siege / machines (a boxy chassis with a wheel pair and a forward arm/barrel), and monks (a hooded robe with a cross). The owner color is kept as the body fill, so faction ownership reads exactly as before, and the shape turns to face the direction the unit is moving (idle units sit in a consistent resting orientation). The shapes are sized to the same footprint the circles used, so health bars and selection rings are unchanged.
+
+This is the first slice of the M7 "units beyond colored circles" item. Deferred to later slices: a walk/idle animation cycle and a distinct silhouette per individual unit type (rather than per role). The art is 100% original procedural Phaser drawing — no sprites and no copyrighted Age of Empires art.
+
+### Validation
+
+- TDD: new `tests/phaser/unitRenderer.test.ts` (35 tests) covers the unit→role mapping for a representative unit of every role plus exhaustive coverage of all 34 unit types (and the specific `skirmisher → archer` case, since the skirmisher is foot-ranged but not in the simulation's archer line); the facing derivation (eastward movement → ~0 rad, southward → ~π/2, no previous position or sub-threshold movement → idle/null); and that the renderer draws a distinct primitive set per role (siege emits rectangles, the monk emits a cross, cavalry emits an elongated body) while keeping every drawn point inside the unit's bounding circle so the health-bar / selection geometry is preserved.
+- Visual protocol: a dedicated `unit-showcase-fixture` (one human unit of every role in a visible row) was captured before/after with a pixel diff — `tmp/units/{before,after,diff}.png`; 0.29% of pixels changed, confined exactly to the seven unit positions (the HUD, Town Center, terrain, health bars, minimap, and fog are pixel-identical).
+- The render path is purely a function of the projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green.
+- Multi-CLI review: see `docs/threads/current/units-beyond-circles/` (pending — the team lead runs the review before commit).
+
 ## 0.1.40 - 2026-06-16
 
 ### Loom is now a researchable Town Center technology

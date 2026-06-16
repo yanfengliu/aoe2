@@ -143,6 +143,7 @@ import {
   createTownCenterDefenseFixture,
   createTrebuchetPackFixture,
   createTrebuchetVsBuildingFixture,
+  createUnitShowcaseFixture,
   createUnitSharingFixture,
   createVillagerNoWoodDropoffFixture,
   createVillagerSelectionFixture,
@@ -249,6 +250,9 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   ['loom-fixture', createLoomFixture],
   ['loom-broke-fixture', createLoomBrokeFixture],
   ['loom-researched-fixture', createLoomResearchedFixture],
+  // M7 units-beyond-circles: a visual-only showcase placing one P1 unit per
+  // render role (capture target for the unit-silhouette change).
+  ['unit-showcase-fixture', createUnitShowcaseFixture],
   ['castle-fletching-fixture', createCastleFletchingFixture],
   ['castle-garrison-fixture', createCastleGarrisonFixture],
   ['monk-relic-fixture', createMonkRelicFixture],
