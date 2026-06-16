@@ -1,0 +1,144 @@
+/*
+ * M7 "HUD chrome" (v0.1.38) — procedural wood/stone framed-panel surfaces.
+ *
+ * Restyles ONLY the surface of the major HUD container panels (the top
+ * resource bar, the command/selection panel, the minimap frame, and the
+ * match-summary footer) toward AoE2's framed wood-and-stone look, using
+ * 100% PROCEDURAL CSS: layered gradients for plank/grain + stone-fleck
+ * texture, layered box-shadows for a beveled raised edge (light top-left,
+ * dark bottom-right), and an inset shadow so each panel reads as a framed
+ * physical surface. NO image assets, NO external fonts, NO copyrighted
+ * Age of Empires art — the look is evoked, nothing is reproduced.
+ *
+ * This sheet only paints the panel CHASSIS. It deliberately does NOT touch
+ * layout/position/size, the warm-gold-on-dark-teal palette, button/chip/
+ * icon styling, or anything inside `src/phaser/` (the change is DOM/CSS
+ * only). Every colour below is derived from the existing palette
+ * (gold `#c4ae7a` / `rgba(221,196,145,…)` over dark teal
+ * `rgba(17,24,26,…)`); no new hues are introduced. Loaded after
+ * `styles.css` in `main.ts`, so these rules layer on top of the base panel
+ * rules they enrich (same specificity, later source order wins).
+ *
+ * The frame accents (bevel/grain/inner/drop) are tokenized in `:root` below;
+ * the per-panel wood/stone base, fleck, and lit-gradient stops are inline
+ * `rgba()` literals from the same gold/teal family — palette-faithful, but
+ * not all `var()` tokens (a palette move touches the tokens AND those stops).
+ */
+:root {
+  /* Plank/grain accents — the warm gold at very low alpha so the wood
+     striping reads as a tint on the existing dark base, never a recolour. */
+  --hud-grain-light: rgba(221, 196, 145, 0.05);
+  --hud-grain-dark: rgba(8, 12, 13, 0.32);
+  /* Beveled edge: a light top-left highlight + a dark bottom-right shade,
+     both inset, give the raised carved-frame read. */
+  --hud-bevel-light: rgba(244, 234, 209, 0.16);
+  --hud-bevel-dark: rgba(0, 0, 0, 0.42);
+  /* Inner recess so the panel face sits inside its frame. */
+  --hud-inner-shadow: rgba(0, 0, 0, 0.34);
+  /* Outer drop shadow — matches the base panels' existing depth. */
+  --hud-drop-shadow: rgba(0, 0, 0, 0.32);
+}
+
+/*
+ * WOOD-PLANK surface — applied to the wood-framed panels (top resource
+ * bar, command/selection panel, match-summary footer). The background is a
+ * stack (top layer first):
+ *   1. a hairline plank-seam striping (repeating-linear-gradient, vertical)
+ *      that gives a subtle "boards" grain,
+ *   2. a fine diagonal grain fleck for tooth,
+ *   3. a soft top-down highlight→shade so the surface looks domed/lit,
+ *   4. the existing flat dark-teal base (kept opaque-ish for legibility).
+ * The box-shadow stack is the frame: outer drop + inset bevel (light TL /
+ * dark BR) + inner recess.
+ */
+.hud-bar,
+.hud-panel,
+.hud-footer {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      var(--hud-grain-dark) 0,
+      var(--hud-grain-dark) 1px,
+      transparent 1px,
+      transparent 9px,
+      var(--hud-grain-light) 9px,
+      var(--hud-grain-light) 10px,
+      transparent 10px,
+      transparent 18px
+    ),
+    repeating-linear-gradient(
+      24deg,
+      rgba(0, 0, 0, 0.06) 0,
+      rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(244, 234, 209, 0.07) 0%,
+      rgba(17, 24, 26, 0) 22%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    linear-gradient(180deg, rgba(36, 30, 23, 0.9) 0%, rgba(20, 24, 24, 0.92) 100%);
+  border-color: rgba(221, 196, 145, 0.42);
+  box-shadow:
+    0 12px 30px var(--hud-drop-shadow),
+    inset 1px 1px 0 var(--hud-bevel-light),
+    inset -1px -1px 0 var(--hud-bevel-dark),
+    inset 0 0 18px var(--hud-inner-shadow);
+}
+
+/* The selection/command panel scrolls, so its inner recess uses a slightly
+   tighter glow that doesn't smear across the scroll region. The wood face
+   is inherited from the rule above. */
+.hud-panel--selection {
+  box-shadow:
+    0 12px 30px var(--hud-drop-shadow),
+    inset 1px 1px 0 var(--hud-bevel-light),
+    inset -1px -1px 0 var(--hud-bevel-dark),
+    inset 0 0 14px var(--hud-inner-shadow);
+}
+
+/*
+ * STONE surface — the minimap frame reads as a chiselled stone block rather
+ * than wood: a cooler grey fleck (radial speckle + crosshatch) over the
+ * dark base, with the same beveled frame. The minimap CANVAS itself is
+ * untouched (its own `.hud-minimap` rule owns the inset map face).
+ */
+.hud-panel--map {
+  background-image:
+    radial-gradient(circle at 30% 25%, rgba(221, 196, 145, 0.06) 0, transparent 1.2px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.22) 0, transparent 1.4px),
+    radial-gradient(circle at 45% 80%, rgba(244, 234, 209, 0.05) 0, transparent 1px),
+    linear-gradient(
+      180deg,
+      rgba(244, 234, 209, 0.06) 0%,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(0, 0, 0, 0.18) 100%
+    ),
+    linear-gradient(150deg, rgba(33, 38, 40, 0.92) 0%, rgba(20, 26, 27, 0.94) 100%);
+  background-size:
+    7px 7px,
+    9px 9px,
+    11px 11px,
+    100% 100%,
+    100% 100%;
+  border-color: rgba(221, 196, 145, 0.4);
+  box-shadow:
+    0 12px 30px var(--hud-drop-shadow),
+    inset 1px 1px 0 var(--hud-bevel-light),
+    inset -1px -1px 0 var(--hud-bevel-dark),
+    inset 0 0 16px var(--hud-inner-shadow);
+}
+
+/*
+ * The minimap canvas keeps its own dark map face but gains a carved inset
+ * so it reads as set INTO the stone frame (sunken, opposite of the raised
+ * panels). Layout/size unchanged — only the framing shadow + border tone.
+ */
+.hud-minimap {
+  border-color: rgba(221, 196, 145, 0.34);
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.6),
+    inset -1px -1px 0 rgba(244, 234, 209, 0.08);
+}

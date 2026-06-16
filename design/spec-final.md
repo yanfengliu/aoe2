@@ -1223,6 +1223,8 @@ The HUD should include:
 - action and command panel
 - queue and progress display
 
+**HUD chrome (2026-06-16).** The major HUD container panels — the top resource bar, the command/selection panel, and the minimap frame — present as framed wood-and-stone surfaces (a wood-plank grain on the resource bar / command panel / footer, a chiselled-stone fleck on the minimap frame), each with a beveled raised edge (light top-left highlight, dark bottom-right shade) and a soft inner recess, so the panels read as physical carved frames rather than flat rectangles, and the minimap canvas sits sunken inside its stone frame. This look is achieved entirely with ORIGINAL/procedural CSS (layered gradients + box-shadows) over the existing warm gold-on-dark-teal palette — no image assets, no external fonts, and no copyrighted Age of Empires UI art; the palette and panel layout are unchanged.
+
 ### 14.2 Command Panel
 
 The command panel must be context-sensitive:

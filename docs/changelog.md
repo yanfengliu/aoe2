@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.38 - 2026-06-16
+
+### HUD panels now have a framed wood-and-stone look (M7)
+
+The main HUD container panels are reframed toward Age of Empires II's framed wood-and-stone chrome instead of the previous flat panels. The top resource bar, the command/selection panel, and the match-summary footer now carry a procedural wood-plank surface (a subtle vertical grain striping plus a soft top-down highlight-to-shade so the surface looks lit), and the minimap frame carries a procedural chiselled-stone surface (a fine grey-and-gold fleck). Every framed panel gains a beveled raised edge — a light top-left highlight and a dark bottom-right shade — plus a soft inner recess, so each panel reads as a physical carved frame rather than a flat rectangle, and the minimap canvas sits sunken INSIDE its stone frame. The existing warm gold-on-dark-teal palette is unchanged (the game world, the panel layout and positions, the resource chips, the command buttons, and the unit-detail tiles all look exactly as before) — only the panel surfaces are restyled. The look is achieved entirely with procedural CSS (layered gradients and box-shadows); no image assets, no external fonts, and no copyrighted Age of Empires art are used. Per-button/icon restyling and the minimap terrain/fog polish are tracked as separate M7 UI items and remain unchanged here.
+
+### Validation
+
+- This is a CSS-only change with no behavior change, so it follows the visual-change protocol: a before screenshot, the change, an after screenshot, and a pixel diff (the HUD panel regions change; the Phaser game canvas is pixel-identical). The full test suite is unchanged and green (1314 passed, 2 skipped), and typecheck/lint/build all pass.
+- Multi-CLI review: see `docs/threads/done/hud-chrome/`.
+
 ## 0.1.37 - 2026-06-16
 
 ### Standard 200 population cap (M1)
