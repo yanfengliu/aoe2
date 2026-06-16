@@ -144,6 +144,7 @@ import {
   createTownCenterDefenseFixture,
   createTrebuchetPackFixture,
   createTrebuchetVsBuildingFixture,
+  createTerrainShowcaseFixture,
   createUnitShowcaseFixture,
   createUnitSharingFixture,
   createVillagerNoWoodDropoffFixture,
@@ -257,6 +258,9 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED
   // building per render role (capture target for the building-silhouette change).
   ['building-showcase-fixture', createBuildingShowcaseFixture],
+  // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
+  // (capture target for the kind-to-kind transition change).
+  ['terrain-showcase-fixture', createTerrainShowcaseFixture],
   ['castle-fletching-fixture', createCastleFletchingFixture],
   ['castle-garrison-fixture', createCastleGarrisonFixture],
   ['monk-relic-fixture', createMonkRelicFixture],

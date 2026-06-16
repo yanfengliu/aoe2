@@ -204,3 +204,7 @@ export {
 export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
+
+export {
+  createTerrainShowcaseFixture,
+} from './terrainShowcase';

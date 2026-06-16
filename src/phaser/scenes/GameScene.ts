@@ -530,7 +530,7 @@ export class GameScene extends Phaser.Scene {
       const fillAlpha = entity.isMemory ? 0.5 : 1;
 
       if (entity.layer === 'terrain') {
-        drawTerrainCell(this.terrainLayer, entity.tint, entity.x, entity.y, CELL_SIZE);
+        drawTerrainCell(this.terrainLayer, this.displayedEntities, entity, CELL_SIZE);
         continue;
       }
 

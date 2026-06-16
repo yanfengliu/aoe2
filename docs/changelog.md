@@ -2,6 +2,21 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.43 - 2026-06-16
+
+### Terrain kinds blend at their edges instead of meeting at hard rectangular seams (M7)
+
+Adjacent terrain cells of different kinds — grass, forest, water, hill — used to meet at a sharp, perfectly straight rectangular line, which read as the classic tile-grid tell. Each such boundary now feathers: along every cell edge whose neighbor is a different kind, the renderer stipples a band of small specks tinted with the blend (the average) of the two kinds' colors, on the inner side of the edge. The neighbor cell feathers back the same way, so the two stipple bands interlock across the seam and the boundary reads as a soft, dithered transition rather than a hard line — a grass/water shore feathers green into blue, a grass/hill edge feathers green into tan. Same-kind interiors are untouched (the v0.1.30 per-cell brightness texture is preserved), the stipple stays strictly inside each cell's own square so units, buildings, health bars, selection rings, the grid, and fog are unaffected, and the variation is fully deterministic (it derives only from cell coordinates, so the terrain never shimmers between frames).
+
+This is the transition half of the M7 "terrain texturing + elevation shading" item. Elevation-based light/shadow is deferred: the render data does not currently carry per-cell elevation (only the terrain kind is projected), so shading by height would require a simulation/render-contract change and is left for a later slice. Also deferred: diagonal (corner) blends and bespoke per-pair transition textures (e.g. a dedicated beach gradient for grass/water). The art is 100% original procedural Phaser drawing — no sprites, textures, or copyrighted Age of Empires art.
+
+### Validation
+
+- TDD: `tests/phaser/terrainTexture.test.ts` was extended (6 → 18 tests). New coverage: `blendTint` is the per-channel average, is commutative, stays in gamut for the palette, and is derived from the same per-kind tints the simulation seeds; a cell surrounded by same-kind neighbors draws only the base fill with no transition specks; a cell adjacent to a different kind draws transition specks toward that edge (and only the differing edge when one side differs); the transition color is the blend of the two kinds (not a hardcoded unrelated color); the draws are deterministic (same inputs → identical calls); every drawn point stays inside the cell rect; and a missing neighbor (map edge) draws no transition. The pre-existing per-cell jitter tests (determinism, gamut, subtlety, variation, unbiased mean) are retained as regression guards.
+- Visual protocol: a dedicated `terrain-showcase-fixture` (a patchwork of adjacent grass/forest/water/hill in the default camera view) was captured before/after with a pixel diff — `tmp/terrain/{before,after,diff}.png`; 1.89% of pixels changed, confined exactly to the kind-to-kind boundaries (same-kind interiors, the HUD, the minimap, and the selection panel are pixel-identical; the changed-pixel bounding box traces only the patch outlines).
+- The render path is purely a function of the existing projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1416 passed / 2 skipped).
+- Multi-CLI review: see `docs/threads/current/terrain-blending/` (pending — the team lead runs the review before commit).
+
 ## 0.1.42 - 2026-06-16
 
 ### Buildings render as distinct per-type shapes instead of one generic shape (M7)
