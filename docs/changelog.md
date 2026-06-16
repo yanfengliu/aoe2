@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.36 - 2026-06-15
+
+### AI playtest findings now show up as markers when you replay the run
+
+After an LLM playtest, the conformance-findings pass (`npm run playtest:findings -- <run-prefix>`) now writes the AI's findings INTO the run's recording bundle as annotation markers, so they are visible when you replay that bundle. Open the run in replay mode and each finding appears in the marker list (bottom-right) tagged with an `agent` author badge and a severity icon, and as a clickable pin on the replay timeline; clicking either jumps the replay to the moment the finding is anchored. This connects two systems that were previously disconnected — the findings used to live only in a flat `<prefix>.findings.md` report, untethered from where in the game they occurred. Each finding is anchored at the run's last decision tick (findings don't carry a per-finding tick yet, so for now they cluster at that one moment) and carries no map position. The finding's severity maps to the marker icon (high → bug, medium → warning, low → info), the marker text reads `[<finding-category>] <area>: <observed>`, and the full expected/suggestion detail is preserved in the marker for a future detail view. Re-running the findings pass on the same run replaces the previous AI markers rather than piling up duplicates (and a metrics-only `--no-llm` re-run, which produces no findings, therefore clears any previously-injected AI markers — keeping the bundle's markers consistent with the regenerated findings report), and if the run's bundle file is missing the pass still writes the findings report as before. This is the first use of the agent-authored marker path that the annotation system was built for. Rich per-finding tick/position anchoring, per-finding map pins, and AI/perf timeline-pin colors are deferred.
+
+### Validation
+
+- TDD: `tests/playtest/findingsToMarkers.test.ts` (18 tests) covers the pure mapping (shape, `category='ai'` with the gap-type preserved in `data`, severity high→bug/medium→warning/low→info, `isAoeMarkerData(data)` holds, the text format, empty→[], determinism), the idempotent in-place overlay (`injectAgentMarkers` replaces prior agent markers, preserves human markers, no duplication on re-run), and the anchor-tick derivation (last `tickAfter`, fallback to `endTick` on empty trace / missing `tickAfter`, clamp above `endTick`, floor non-integers, clamp below 0). Full suite green.
+- Multi-CLI review: see `docs/threads/done/ai-findings-annotation-bridge/`.
+
 ## 0.1.35 - 2026-06-15
 
 ### Farms now auto-reseed instead of vanishing (M1 slice 2)

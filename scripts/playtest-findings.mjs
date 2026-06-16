@@ -13,7 +13,7 @@
 // Example:
 //   npm run playtest:findings -- output/playtests-llm/campaign-4
 
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 import {
@@ -28,6 +28,11 @@ import {
   formatFindingsMarkdown,
   runConformanceProbe,
 } from '../src/game/playtest/conformanceProbe.ts';
+import {
+  deriveAnchorTick,
+  findingsToMarkers,
+  injectAgentMarkers,
+} from '../src/game/playtest/findingsToMarkers.ts';
 
 function parseArgs(argv) {
   const args = { prefix: null, noLlm: false, model: 'claude-opus-4-8', provider: null };
@@ -181,6 +186,45 @@ async function main() {
   else delete envelope.findingsNote;
   writeFileSync(envelopePath, JSON.stringify(envelope, null, 2));
   console.log(`[playtest-findings] wrote ${findingsPath} + merged metrics/findings into ${envelopePath}`);
+
+  // v0.1.36: overlay the findings onto the run's SessionBundle as
+  // `author: 'agent'` markers so replaying ${prefix}.json surfaces them
+  // in the marker list + timeline pins (anchored at the run's last
+  // decision tick). In-place + idempotent (injectAgentMarkers replaces
+  // any prior agent markers and preserves human ones), so re-running this
+  // pass doesn't duplicate. The bundle is a separate artifact from the
+  // envelope; absence is non-fatal (older runs / a typoed prefix) — warn
+  // and skip rather than failing the findings pass.
+  const bundlePath = `${args.prefix}.json`;
+  if (!existsSync(bundlePath)) {
+    console.warn(
+      `[playtest-findings] bundle not found: ${bundlePath} — skipping agent-marker injection `
+        + '(findings markdown + envelope still written).',
+    );
+  } else {
+    try {
+      const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+      const anchorTick = deriveAnchorTick(rows, bundle);
+      const agentId = model ? `${label} / ${model}` : label;
+      const markers = findingsToMarkers(findings, { anchorTick, agentId, createdAt: new Date().toISOString() });
+      const updated = injectAgentMarkers(bundle, markers);
+      // Atomic write: the bundle is an expensive, non-regenerable artifact
+      // (re-running the LLM playtest is costly + nondeterministic), so write
+      // a temp file then rename to close the crash/disk-full corruption
+      // window (Claude review LOW-2).
+      const tmpPath = `${bundlePath}.tmp`;
+      writeFileSync(tmpPath, JSON.stringify(updated));
+      renameSync(tmpPath, bundlePath);
+      console.log(
+        `[playtest-findings] injected ${markers.length} agent marker(s) @tick ${anchorTick} into ${bundlePath}`,
+      );
+    } catch (err) {
+      console.warn(
+        `[playtest-findings] agent-marker injection failed (${err instanceof Error ? err.message : String(err)}) — `
+          + 'findings markdown + envelope still written.',
+      );
+    }
+  }
 }
 
 main().catch((err) => {
