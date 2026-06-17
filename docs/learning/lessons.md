@@ -16,6 +16,32 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## An LLM conformance-probe (or your memory) GAME-RULE claim is a hypothesis — verify it against the authoritative wiki before "fixing" to match it — 2026-06-17
+
+| Field | Value |
+|---|---|
+| Surfaced by | `docs/threads/done/feudal-prereq-buildings/2026-06-17/1/REVIEW.md`; campaign-11 `playtest:findings` finding (a) |
+| Reviewer findings | Claude opus[1m] max — HIGH [H1] "the core Dark→Feudal rule is factually WRONG per AoE2" (with fetched Liquipedia + Fandom quotes). Codex gpt-5.5 xhigh did NOT challenge the rule (only doc nits). A reviewer divergence resolved by the authoritative wiki, not by vote. |
+| Fix commit | the docs-only "finding (a) = not-a-bug" commit (this) — the attempted code fix was REVERTED, not shipped |
+| Test added | n/a — process lesson |
+| Behavior delta | An attempted fix added house/palisade-wall/farm to `DARK_AGE_PREREQUISITE_BUILDINGS` — a gameplay REGRESSION: AoE2 advances Dark→Feudal on 2 of {Barracks, Dock, Lumber Camp, Mill, Mining Camp} and excludes Houses/Farms/Walls. Had it shipped, players (and the AI) could age up with 2 Houses / 2 Farms / 2 Palisade Walls, diverging from AoE2. The mandatory 3-CLI review + the AoE2 wiki caught it before commit; the existing {mill, lumber-camp, mining-camp, barracks} was already correct (the qualifying five minus Dock, absent in this land-only slice). |
+
+Context: a `playtest:findings` conformance probe is an LLM grading the game against its OWN belief of AoE2 rules — that belief can be WRONG. Finding (a) claimed "Houses count toward Feudal; two Houses suffice" — the OPPOSITE of the real rule. Verifying the CODE confirmed the probe's claim about the Set's contents (house was absent) but said NOTHING about whether the rule is correct, so it gave false confidence. The decisive checks were (1) the mandatory multi-CLI review with a reviewer told to verify AoE2 fidelity against sources, and (2) fetching the authoritative wiki myself (Fandom: "Houses, Farms, and Walls … do not count").
+Lesson: an LLM probe's (or your memory's) GAME-RULE claim is a hypothesis about an external fact, not ground truth. Before building a fix to match it, verify the rule against the authoritative wiki (Fandom/Liquipedia via WebFetch/WebSearch). Code-reading only tells you what the code DOES, not whether the rule is RIGHT — so it cannot validate a rule claim. And keep the review prompt's "verify AoE2 fidelity with sources" directive: it is what surfaced this would-be regression. Pointer: thread feudal-prereq-buildings `REVIEW.md`; `design/roadmap.md` finding (a).
+
+## When reviewers DIVERGE on an empirical runtime fact, settle it with a runtime PROBE, not by re-reading the code — 2026-06-16
+
+| Field | Value |
+|---|---|
+| Surfaced by | `docs/threads/done/gather-unreachable-reroute/2026-06-16/1/REVIEW.md` finding F5 (the farm-tier divergence); reinforced by the feudal-prereq-buildings slice's "you have 0"→"have 1" decision |
+| Reviewer findings | Codex LOW-1 "the fixture's boxed farm is tier-1 (`owner=null`), not tier-0" — CORRECT. Claude's codebase-grounded verification "The farm is owner=2 (tier-0)" — WRONG (it read the build-complete path, but the fixture uses the spawn path). |
+| Fix commit | `01b6c1a` — fixture comments + spec/devlog/changelog/summary/roadmap corrected from "tier-0 owned farm" to "tier-1; reproduces via below-fan-out-cap villager count" |
+| Test added | n/a — process lesson |
+| Behavior delta | Had I trusted Claude's confident "tier-0" verification, ~6 doc surfaces + the fixture comment would have shipped a wrong mechanism claim. A 6-line runtime probe (`createSimulationBridge(seed)` → `getEconomyState().resources`, reading `farm.owner`) read the GROUND TRUTH (`owner=null`) and settled it. The same probe pattern in the feudal slice confirmed owner 2 starts with a forward House, making the "have 0"→"have 1" test update ground-truth-correct rather than a guess. |
+
+Context: AGENTS.md already says "verify reviewer claims against the codebase" (grep/read the code). This SHARPENS it for EMPIRICAL claims about runtime state — entity ownership at spawn, what a player starts with, what value a constant resolves to after wiring, what a fixture actually produces. Code-reading can mislead BOTH the reviewer AND the driver, because the read path differs from the executed path (a spawned farm's resource is `owner=null` even though a villager-BUILT farm's is owner-set; a "shared constant" depends on which call site consumes it). Two reviewers gave opposite factual answers; a runtime probe was the only authority.
+Lesson: when reviewers diverge on a factual/empirical claim about runtime behavior (not a design opinion), write a few-line `createSimulationBridge` + `getEconomyState`/`query` probe and read the actual state — do NOT pick a winner by re-reading code. This is the live-bridge analogue of the replay-the-bundle lesson below. Pointer: gather-reroute `REVIEW.md` F5; the feudal-prereq-buildings devlog "have 0→have 1" note.
+
 ## Verify a playtest finding by REPLAYING the actual bundle, not by synthetic repro or trace narration — 2026-06-13
 
 | Field | Value |
