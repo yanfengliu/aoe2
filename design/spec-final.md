@@ -368,6 +368,10 @@ Drop-off rules:
 
 Carry capacity should follow AoE2-style values and improve with Wheelbarrow and Hand Cart.
 
+Gather-target assignment: a villager with a gather order is routed to the nearest matching, gatherable resource — preferring the player's own resources first, then neutral resources on the player's home base, then others — and villagers piled onto a single over-subscribed resource fan out across nearby alternatives instead of jamming.
+
+Unreachable-target recovery: if a villager's assigned resource cannot be reached (every cell adjacent to it is blocked — for example a resource boxed in by buildings, other resources, or terrain), the villager must re-target the nearest REACHABLE resource of the same kind rather than latching on the unreachable one. If it is carrying resources it deposits them first; if no resource of that kind is reachable at all (a genuinely fully-boxed villager) it does not gather. The reachability search is bounded — it pathfinds against at most a fixed number of the nearest candidates — so even a fully-boxed villager never triggers a per-tick pathfinding storm that scales with the map's resource count. This prevents a permanent deadlock in which a villager (or a pile of villagers) keeps re-selecting an unreachable resource every tick and never gathers — which would otherwise starve the economy and stall age progression. The preference for the player's own resources still applies first, so an unreachable owned resource (a boxed-in sheep) is skipped in favour of a reachable resource rather than re-selected forever.
+
 ### 6.5 Economy Upgrades
 
 Required economy upgrade families:

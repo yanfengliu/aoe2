@@ -23,3 +23,7 @@ export {
   createBoarAggroFixture,
   createWolfAggroFixture,
 } from './economyBasics/visionAndAggro';
+
+export {
+  createGatherUnreachableRerouteFixture,
+} from './economyBasics/gatherReroute';

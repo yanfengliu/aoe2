@@ -7,22 +7,24 @@
 
 import type { Position } from 'civ-engine';
 import type {
-  BuildingComponent,
   GathererComponent,
   ResearchableTechnologyType,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
 import {
-  manhattanDistance,
   type GameWorld,
 } from '../pureHelpers';
 import {
-  canGatherResource,
   gatherAmountFor,
   gatherTicksFor,
   resourceKindToEconomyResource,
 } from '../../prototypeEconomyRules';
+import {
+  assignNearestResource,
+  type AssignNearestResourceOptions,
+  type GatherAssignmentDeps,
+} from '../villagerGatherAssignment';
 import {
   effectiveCarryCapacity,
   gatherRateMultiplierForKind,
@@ -129,103 +131,32 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     ensurePlayerScoreCounters,
   } = deps;
 
-  function assignNearestResource(
+  const assignmentDeps: GatherAssignmentDeps = {
+    isHarvestableResource,
+    findNearestDropOffBuilding,
+    findResourceApproachPlan,
+  };
+  // Thin binding over the extracted assignNearestResource so the call sites
+  // below stay terse. The two hot paths (idle→assign, over-subscription
+  // give-up) pass only preferUnsaturated + spreadCap; the unreachable reroute
+  // additionally passes requireReachable + excludeResourceId.
+  function assignResource(
     activeWorld: CivWorld,
     villagerId: number,
     gatherer: GathererComponent,
     owner: number,
-    // Live count of gatherers already targeting each resource this tick. The
-    // chosen target is reserved (count++) so same-tick assignments stay in
-    // sync.
     gatherTargetCounts: Map<number, number>,
-    // When true, fan out: prefer resources with FEWER than `spreadCap`
-    // gatherers. idle→assign uses a generous cap (IDLE_ASSIGN_SPREAD_CAP —
-    // only caps extreme piles; the AI's natural clustering is below it), and
-    // the stuck-villager redistribute uses the tight cap
-    // (MAX_GATHERERS_PER_RESOURCE) to maximally spread a genuine pile-up.
-    preferUnsaturated: boolean,
-    spreadCap: number,
+    options: AssignNearestResourceOptions,
   ): void {
-    const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
-    if (!villagerPosition) return;
-
-    // V4-9: filter inline before allocating wrappers. The previous chain
-    // mapped every resource on the map to a {id, position, resource}
-    // object before applying any filter, so a 12-villager simultaneous
-    // drop-off allocated ~12 * 120 wrappers per tick. Now wrappers are
-    // only built for the resources that pass the type + harvestability
-    // gates, which is normally the small subset that can match.
-    const matchingResources: Array<{
-      id: number;
-      position: Position;
-      resource: ResourceComponent;
-    }> = [];
-    for (const id of activeWorld.query('position', 'resource')) {
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
-      if (!position || !resource) continue;
-      if (!isHarvestableResource(id, resource)) continue;
-      if (resourceKindToEconomyResource(resource.resourceType) !== gatherer.desiredResource) continue;
-      // M1 Farms: a farm (resource+building hybrid) is owner-only — exclude it
-      // from another player's matching set so an enemy/AI villager can't steal
-      // food from it. Neutral resources (no building) are unaffected.
-      const isOwnedStructure =
-        activeWorld.getComponent<BuildingComponent>(id, 'building') !== undefined;
-      if (!canGatherResource(owner, isOwnedStructure, resource.baseOwner)) continue;
-      matchingResources.push({ id, position, resource });
-    }
-    matchingResources.sort((left, right) => {
-        // Owner preference FIRST (own > home-base neutral > other), so
-        // fan-out NEVER jumps to an enemy or far-off neutral resource just
-        // because it is unsaturated — it stays within the player's own
-        // forest (Codex gather-stall iter-1 HIGH).
-        const leftPreferred =
-          left.resource.owner === owner ? 0
-          : left.resource.owner === null && left.resource.baseOwner === owner ? 1
-          : 2;
-        const rightPreferred =
-          right.resource.owner === owner ? 0
-          : right.resource.owner === null && right.resource.baseOwner === owner ? 1
-          : 2;
-        if (leftPreferred !== rightPreferred) {
-          return leftPreferred - rightPreferred;
-        }
-        // Within the same owner tier, when redistributing a stuck villager,
-        // push already-saturated resources to the back so it picks an
-        // under-subscribed one; saturated resources stay a last resort.
-        if (preferUnsaturated) {
-          const leftSaturated =
-            (gatherTargetCounts.get(left.id) ?? 0) >= spreadCap ? 1 : 0;
-          const rightSaturated =
-            (gatherTargetCounts.get(right.id) ?? 0) >= spreadCap ? 1 : 0;
-          if (leftSaturated !== rightSaturated) {
-            return leftSaturated - rightSaturated;
-          }
-        }
-        const leftDistance = manhattanDistance(left.position, villagerPosition);
-        const rightDistance = manhattanDistance(right.position, villagerPosition);
-        return leftDistance - rightDistance;
-      });
-
-    const target = matchingResources[0];
-    if (!target) {
-      gatherer.task = 'idle';
-      gatherer.targetResourceId = null;
-      return;
-    }
-
-    // Reserve the chosen resource so other villagers assigned later THIS
-    // tick already see it one fuller and spread to the next one.
-    gatherTargetCounts.set(target.id, (gatherTargetCounts.get(target.id) ?? 0) + 1);
-    gatherer.task = 'to-resource';
-    gatherer.targetResourceId = target.id;
-    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
+    assignNearestResource(
+      assignmentDeps,
       activeWorld,
+      villagerId,
+      gatherer,
       owner,
-      gatherer.desiredResource,
-      target.position,
+      gatherTargetCounts,
+      options,
     );
-    gatherer.gatherProgressTicks = 0;
   }
 
   world.registerSystem({
@@ -285,7 +216,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, IDLE_ASSIGN_SPREAD_CAP);
+          assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+            preferUnsaturated: true,
+            spreadCap: IDLE_ASSIGN_SPREAD_CAP,
+          });
         }
 
         if (gatherer.task === 'to-resource') {
@@ -299,10 +233,48 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           if (
             !targetResource
             || !isHarvestableResource(gatherer.targetResourceId ?? -1, targetResource)
-            || !resourceApproachPlan
           ) {
             gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
             gatherer.targetResourceId = null;
+          } else if (!resourceApproachPlan) {
+            // Unreachable target (campaign-11 gridlock): the resource exists and
+            // is harvestable, but every approach cell is blocked (e.g. a sheep
+            // boxed in by berries + buildings), so there is no path to it.
+            // Pre-fix this fell to `idle`, then the bottom-of-loop idle→assign
+            // re-picked the same nearest unreachable resource every tick —
+            // never trying the reachable resources, so food income stayed 0.
+            if (gatherer.carriedAmount > 0) {
+              // Deposit a carry first (mirrors the depleted/gone branch above —
+              // a villager CAN reach `to-resource` carrying, via an explicit
+              // gather order issued mid-carry); the next idle→assign reroutes
+              // from empty.
+              gatherer.task = 'to-dropoff';
+              gatherer.targetResourceId = null;
+            } else {
+              // Re-target the nearest REACHABLE resource, excluding this one, so
+              // the villager falls through to a gatherable resource. Release the
+              // slot first so the count stays honest; the reachability scan is
+              // bounded (MAX_REACHABILITY_PROBES) and also skips any OTHER
+              // unreachable candidate. If no resource of this kind is reachable
+              // at all (a genuinely fully-boxed villager — pathological: it
+              // would need every nearby resource walled off), the assignment
+              // leaves it idle. The bottom idle→assign re-arms this branch next
+              // tick, but the bounded probe count caps the per-tick pathfinding
+              // cost so it never scans the whole map.
+              const unreachableTarget = gatherer.targetResourceId;
+              if (unreachableTarget !== null) {
+                gatherTargetCounts.set(
+                  unreachableTarget,
+                  Math.max(0, (gatherTargetCounts.get(unreachableTarget) ?? 1) - 1),
+                );
+              }
+              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+                preferUnsaturated: true,
+                spreadCap: MAX_GATHERERS_PER_RESOURCE,
+                requireReachable: true,
+                excludeResourceId: unreachableTarget,
+              });
+            }
           } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
             gatherer.task = 'gathering';
             gatherer.gatherProgressTicks = 0;
@@ -344,7 +316,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 );
               }
               gatherer.gatherProgressTicks = 0;
-              assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, MAX_GATHERERS_PER_RESOURCE);
+              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+                preferUnsaturated: true,
+                spreadCap: MAX_GATHERERS_PER_RESOURCE,
+              });
             } else {
               moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
             }
@@ -484,7 +459,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
-          assignNearestResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, true, IDLE_ASSIGN_SPREAD_CAP);
+          assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+            preferUnsaturated: true,
+            spreadCap: IDLE_ASSIGN_SPREAD_CAP,
+          });
         }
       }
 

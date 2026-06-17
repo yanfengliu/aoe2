@@ -26,6 +26,7 @@ export {
   createBuildingFootprintVisionFixture,
   createBoarAggroFixture,
   createWolfAggroFixture,
+  createGatherUnreachableRerouteFixture,
 } from './economyBasics';
 
 export {

@@ -2,6 +2,23 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.47 - 2026-06-16
+
+### Villagers no longer deadlock on an unreachable resource (gather gridlock fix)
+
+A villager (or a pile of villagers) ordered to gather a resource that has no open approach cell — for example a resource boxed in by your own buildings, surrounding bushes, and forest — used to latch onto it forever: it would walk as far as it could, fail to reach the resource, and re-select the same unreachable resource every tick without ever gathering, ignoring perfectly good resources nearby. With several villagers stuck this way the food (or wood/gold/stone) income could stay at zero indefinitely, starving the economy so the game never advanced past the Dark Age.
+
+Now, when a villager's target resource cannot be reached, it re-targets the nearest reachable resource of the same kind instead — so it falls through from the boxed-in resource to a gatherable one and keeps the economy running (depositing any resources it is already carrying first). A villager only stops gathering when no resource of that kind is reachable at all — a rare, genuinely-fully-boxed villager — and even then the reachability search is bounded so it never becomes a per-tick pathfinding cost that scales with the number of resources on the map. Normal gathering, the nearest-resource preference, and the existing fan-out for over-subscribed resources are unchanged; only the stuck-on-an-unreachable-target case is fixed.
+
+This was found by the campaign-11 automated LLM playtest: the agent's six villagers stack-deadlocked next to their Town Center on a boxed-in sheep, food froze at 21 for ~3000 ticks, and the match never left the Dark Age. Ground-truth replay confirmed the cause.
+
+### Validation
+
+- TDD: a new mechanism test (`tests/simulation/villagerGatherAssignment.test.ts`, 4 tests) covers the reachability-aware assignment in isolation (default picks the nearest match even if unreachable; the reachability-aware reroute skips the unreachable/excluded one and picks a reachable resource, or idles when nothing is reachable, and reserves the chosen target), and a new integration regression (`tests/simulation/villagerGatherReroute.test.ts`) drives a fixture that rings a farm with trees so it is unreachable and is the nearest food: three villagers auto-assigned to it must still reach the reachable berries and net positive food (verified to fail before the fix — food stays flat — and pass after).
+- The fix is render/save-neutral: no save-format change (it uses existing pathfinding, no new persisted state) and only the stuck-on-unreachable case changes behaviour.
+- The four gates (test/typecheck/lint/build) pass and the full suite is green (1477 passed / 2 skipped).
+- Multi-CLI review: 3-CLI (Codex + Claude + Gemini) converged — no HIGH bug in the fix; a unanimous per-tick-BFS finding for the pathological fully-boxed case was fixed with a bounded reachability scan, plus dead-code/carry-parity/doc fixes. See `docs/threads/done/gather-unreachable-reroute/2026-06-16/1/REVIEW.md`.
+
 ## 0.1.46 - 2026-06-16
 
 ### Farms can be upgraded: the three Mill farm-food techs (Horse Collar, Heavy Plow, Crop Rotation) (M1)
