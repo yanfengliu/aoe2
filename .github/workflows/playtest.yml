@@ -1,8 +1,13 @@
 name: playtest-corpus
 on:
   pull_request:
+  # Cost control (same as ci.yml): only run the sim-heavy corpus on a push that
+  # changes package.json — a version bump or dependency change. Refactor/doc/CI
+  # pushes skip it. PRs still run it.
   push:
     branches: [main]
+    paths:
+      - 'package.json'
 
 permissions:
   contents: read
