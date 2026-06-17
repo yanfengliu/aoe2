@@ -12,6 +12,7 @@ import type {
   UnitType,
 } from '../types';
 import type { UpgradeChainEntry } from '../upgradeChains';
+import { economyTechResearchOptions } from './economyTechOptions';
 
 export interface OptionsRulesDeps {
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
@@ -360,48 +361,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    // Gather-rate techs: Lumber Camp wood from Feudal (+Bow Saw/Two-Man Saw later).
-    if (buildingType === 'lumber-camp' && isAtLeastAge(owner, 'feudal-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'double-bit-axe')) {
-        options.push('double-bit-axe');
-      }
-      if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'bow-saw')) {
-        options.push('bow-saw');
-      }
-      if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'two-man-saw')) {
-        options.push('two-man-saw');
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    // Mining Camp (gold + stone) from Feudal; Shaft upgrades add in Castle. Per
-    // technologies.csv these stack with no base-tech prereq, so age is the only
-    // gate (AoE2's linear prereq chains are a deferred fidelity refinement).
-    if (buildingType === 'mining-camp' && isAtLeastAge(owner, 'feudal-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'gold-mining')) {
-        options.push('gold-mining');
-      }
-      if (!hasTechnology(owner, 'stone-mining')) {
-        options.push('stone-mining');
-      }
-      if (isAtLeastAge(owner, 'castle-age')) {
-        if (!hasTechnology(owner, 'gold-shaft-mining')) {
-          options.push('gold-shaft-mining');
-        }
-        if (!hasTechnology(owner, 'stone-shaft-mining')) {
-          options.push('stone-shaft-mining');
-        }
-      }
-      if (options.length > 0) {
-        return options;
-      }
-    }
-
-    return [];
+    return economyTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);
   }
 
   function getVisibleResearchOptions(

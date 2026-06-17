@@ -265,6 +265,7 @@ const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechno
   ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
+  ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
 ]);
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([

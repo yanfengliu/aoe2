@@ -54,7 +54,7 @@ Banking, Age of Kings, Castle, Market, {"Food": 200; "Gold": 100}, 50,,Tribute i
 Caravan, Age of Kings, Castle, Market, {"Food": 200; "Gold": 200}, 40, Trade Cart;Trade Cog, Movement rate * 1.5 (50% faster)
 Guilds, Age of Kings, Imperial, Market, {"Food": 300; "Gold": 200}, 50,,Commodity trading fee - 15% (from 30%)
 Horse Collar, Age of Kings, Feudal, Mill, {"Food": 75; "Wood": 75}, 20,Farm, Food amount +75
-Heavy Plow, Age of Kings, Castle, Mill, {"Food": 125; "Wood": 125}, 40,Farm;Farmers, Food amount +75 and Farmers carry +1 food
+Heavy Plow, Age of Kings, Castle, Mill, {"Food": 125; "Wood": 125}, 40,Farm;Farmers, Food amount +125 and Farmers carry +1 food
 Crop Rotation, Age of Kings, Imperial, Mill, {"Food": 250; "Wood": 250}, 70, Farm, Food amount +175
 Gold Mining, Age of Kings, Feudal, Mining Camp, {"Food": 100; "Wood": 75}, 30, Gold Miners, Work rate * 1.15 (15% faster)
 Stone Mining, Age of Kings, Feudal, Mining Camp, {"Food": 100; "Wood": 75}, 30, Stone Miners, Work rate * 1.15 (15% faster)

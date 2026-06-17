@@ -41,6 +41,7 @@ import {
   constructionStatesCodec,
   populationCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
   townCenterRefsCodec,
   trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
@@ -48,6 +49,7 @@ import {
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
+import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -71,10 +73,9 @@ const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
   farm: 0.9,
 };
 
-// M1 Farms (slice 1): a completed Farm holds this much food (structures.csv
-// "Standard = 175 Food"). Reseed (re-buying the food for wood) is a deferred
-// follow-up.
-export const FARM_FOOD_AMOUNT = 175;
+// `FARM_FOOD_AMOUNT` (the 175 base) + `EMPTY_TECH_SET` moved to economyTechEffects
+// (the farm-food module, imported above) to break a bridge↔sim import cycle —
+// economyTechEffects.farmFoodCapacity is the sole consumer of the base.
 
 export interface EntityCreateOpsDeps {
   world: GameWorld;
@@ -244,10 +245,18 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       // (gatherable-resource convention; the gather system claims it), while
       // `baseOwner` is the builder so the owner-preference gather sort and
       // the economy snapshot attribute the food to them.
+      //
+      // Farm-food techs (Horse Collar / Heavy Plow / Crop Rotation) raise the
+      // capacity, DERIVED from the OWNER's persisted researched-tech set — a
+      // farm built by a player who has the techs holds the upgraded food; a
+      // default owner (no farm techs) holds the base FARM_FOOD_AMOUNT (175).
+      const farmCapacity = farmFoodCapacity(
+        accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
+      );
       world.addComponent(buildingId, 'resource', {
         resourceType: 'farm',
-        amount: FARM_FOOD_AMOUNT,
-        maxAmount: FARM_FOOD_AMOUNT,
+        amount: farmCapacity,
+        maxAmount: farmCapacity,
         owner: null,
         baseOwner: owner,
       });

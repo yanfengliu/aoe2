@@ -15,10 +15,20 @@ import {
   gatherTicksFor,
   resourceKindToEconomyResource,
 } from './prototypeEconomyRules';
+// The base food a completed Farm holds (structures.csv "Standard = 175 Food")
+// before any farm-food techs — the floor farmFoodCapacity (below) adds the Mill
+// Horse Collar / Heavy Plow / Crop Rotation bonuses onto. Defined HERE (the
+// farm-food module that uses it) so the bridge create/reseed sites import it
+// one-way, with no bridge↔sim import cycle.
+export const FARM_FOOD_AMOUNT = 175;
+
+// Shared empty researched-tech set for the owner-has-no-techs path, so the
+// capacity derivation never allocates a throwaway Set per farm.
+export const EMPTY_TECH_SET: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 // --- Gather-rate techs ("Work Rate ×N") ---
-// Food is intentionally absent (Horse Collar is a farm-food tech, deferred
-// until farms exist).
+// Food is intentionally absent here — farm food is its own tech group (Horse
+// Collar / Heavy Plow / Crop Rotation), applied via farmFoodCapacity below.
 const GATHER_RATE_TECH_FACTORS: Partial<
   Record<ResearchableTechnologyType, { resource: EconomyResourceKind; factor: number }>
 > = {
@@ -122,4 +132,35 @@ export function effectiveCarryCapacity(
   baseCarryCapacity: number,
 ): number {
   return Math.round(baseCarryCapacity * carryCapacityMultiplier(researchedTechnologies));
+}
+
+// --- Farm-food techs (Mill) ---
+// Horse Collar / Heavy Plow / Crop Rotation raise how much food a Farm holds
+// (and auto-reseeds to). These are ADDITIVE flat food bonuses on top of the
+// base FARM_FOOD_AMOUNT (175), stacking to 250 / 375 / 550 (the AoE2 values the
+// spec §6.5/§6.6 pins). The capacity is DERIVED from the owner's researched
+// set at farm CREATE (entityCreateOps.onBuildingConstructionComplete) and farm
+// RESEED (farmReseed.tryReseedFarm) — no per-farm state. The CSV food bonuses
+// are Horse Collar +75 / Heavy Plow +125 / Crop Rotation +175; the
+// technologies.csv "Heavy Plow +75" was a data error (it duplicated Horse
+// Collar's) and is corrected there too — +125 is the AoE2 value that yields the
+// spec's 375 cumulative capacity.
+const FARM_FOOD_TECH_BONUSES: Partial<Record<ResearchableTechnologyType, number>> = {
+  'horse-collar': 75,
+  'heavy-plow': 125,
+  'crop-rotation': 175,
+};
+
+// A farm's total food capacity for an owner with `researchedTechnologies`:
+// the base 175 plus the additive bonus of every researched farm-food tech.
+// 175 when none are researched, so a farm built/reseeded by a player without
+// the techs is unchanged.
+export function farmFoodCapacity(
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+): number {
+  let capacity = FARM_FOOD_AMOUNT;
+  for (const tech of researchedTechnologies) {
+    capacity += FARM_FOOD_TECH_BONUSES[tech] ?? 0;
+  }
+  return capacity;
 }

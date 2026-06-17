@@ -2,6 +2,28 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.46 - 2026-06-16
+
+### Farms can be upgraded: the three Mill farm-food techs (Horse Collar, Heavy Plow, Crop Rotation) (M1)
+
+The three AoE2 Mill farm-upgrade economy techs are now researchable and raise how much food a Farm holds (and auto-reseeds to). Before this they were entirely missing — a Farm always held 175 food with no way to improve it.
+
+- Horse Collar: Mill, Feudal Age, no prerequisite, costs 75 food + 75 wood, ~20 s; a Farm holds 250 food (+75).
+- Heavy Plow: Mill, Castle Age, requires Horse Collar, costs 125 food + 125 wood, ~40 s; a Farm holds 375 food (+125 more).
+- Crop Rotation: Mill, Imperial Age, requires Heavy Plow, costs 250 food + 250 wood, ~70 s; a Farm holds 550 food (+175 more).
+
+The bonuses stack additively, so a fully-upgraded Farm stores 550 food per planting — far fewer reseeds (and far less wood spent maintaining a long-running food economy) than the base 175. Each tech is offered at the Mill from its earliest age and disappears from the research list once researched; the chain is linear (you must research the previous tech first).
+
+A Farm's capacity is derived from the owner's researched techs at the moment the Farm is built (construction-complete) and each time it reseeds. So a Farm you already own when you finish a tech keeps its current stored food until it next empties and reseeds, at which point it refills to the new, higher capacity — your existing fields grow as they are re-sown, not retroactively. A Farm owned by a player who has not researched any of these techs is unchanged (still 175). The Heavy Plow "farmers carry +1 food" bonus is not part of this slice (it is a carry-capacity effect, deferred).
+
+### Validation
+
+- TDD: new `tests/simulation/farmUpgradeTechs.test.ts` (18 tests) covers the pure capacity helper (base 175; +75/+125/+175 stacking to 550; unrelated techs are no-ops), the Mill research options (Horse Collar from Feudal not Dark Age, Heavy Plow gated on Horse Collar + Castle, Crop Rotation gated on Heavy Plow + Imperial, each dropping once researched, surfaced in the agent/HUD visible-options view), the validator↔options agreement (`canResearchAt('mill', …)` true, other buildings false), the cost/research-time tables, and ground-truth checks on the live simulation: a Farm built by an owner with all three techs holds 550 food, a freshly-built Farm with Horse Collar holds 250, a depleted upgraded Farm reseeds to its upgraded capacity (250) not the base 175, a Farm owned by a player without the techs stays at 175 (no regression), and a save/load round-trip preserves both the researched techs and the upgraded capacity.
+- The three techs are derived stat techs (like the gather-rate and carry-capacity econ techs): no per-Farm state and no save-format change — the researched-tech set is already persisted, and the capacity is recomputed from it at create + reseed.
+- The four gates (test/typecheck/lint/build) pass and the full suite is green (1472 passed / 2 skipped).
+- Data note: `design/stats/technologies.csv` had Heavy Plow's food bonus as "+75" (a duplicate of Horse Collar's); it is corrected to "+125", the real AoE2 value that matches the spec's 250/375/550 cumulative capacities.
+- Multi-CLI review: see `docs/threads/current/farm-upgrade-techs/` (pending — the team lead runs the review before commit).
+
 ## 0.1.45 - 2026-06-16
 
 ### The game has dynamic feedback: a pulsing selection ring and a combat hit flash (M7)

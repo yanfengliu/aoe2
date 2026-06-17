@@ -106,6 +106,12 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Hand Cart';
     case 'loom':
       return 'Loom';
+    case 'horse-collar':
+      return 'Horse Collar';
+    case 'heavy-plow':
+      return 'Heavy Plow';
+    case 'crop-rotation':
+      return 'Crop Rotation';
   }
 }
 

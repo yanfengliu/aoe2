@@ -191,6 +191,211 @@ export function createFarmReseedFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Farm-upgrade techs (v0.1.46) ground-truth fixture. Owner 1 (HUMAN) is in the
+// Imperial Age with ALL THREE farm-food techs researched on boot, so its
+// complete farm boots at the upgraded 550-food capacity (derived at
+// onBuildingConstructionComplete from the researched set). Owner 2 has NO farm
+// techs, so its complete farm stays at the base 175 — the no-regression
+// control. Both players are passive (no AI) so the seeded state is the only
+// thing under test. No `farmFood` override → the capacity is purely derived.
+export function createFarmUpgradeTechsFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'imperial-age',
+        startingResearchedTechnologies: ['horse-collar', 'heavy-plow', 'crop-rotation'],
+        startingResources: { food: 200, wood: 200, gold: 200, stone: 200 },
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 8 },
+        startingResources: { food: 200, wood: 200, gold: 200, stone: 200 },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      // Owner 1's farm: with all three techs researched it boots at 550 food.
+      {
+        kind: 'farm',
+        x: 6,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 2 },
+      },
+      {
+        kind: 'town-center',
+        x: 30,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // Owner 2's farm: no farm techs → stays at the base 175.
+      {
+        kind: 'farm',
+        x: 28,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 2 },
+      },
+    ],
+  };
+}
+
+// Farm-upgrade BUILD fixture. A Feudal-Age human (owner 1) with Horse Collar
+// researched and a villager to BUILD a farm through the normal placement flow.
+// The completed farm must carry the upgraded 250 food (derived at
+// construction-complete), proving the create-site wiring for a freshly-built
+// farm. AI disabled for determinism.
+export function createFarmUpgradeBuildFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'feudal-age',
+        startingResearchedTechnologies: ['horse-collar'],
+        startingResources: { food: 200, wood: 200, gold: 100, stone: 200 },
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 30, y: 8 },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 8,
+        y: 8,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'villager',
+        x: 6,
+        y: 12,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      },
+      {
+        kind: 'town-center',
+        x: 30,
+        y: 8,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
+// Farm-upgrade RESEED fixture. Mirrors the slice-2 reseed fixture but owner 2
+// has Horse Collar researched, so when its nearly-depleted farm is drawn to 0
+// the auto-reseed refills to the UPGRADED 250 (not the base 175) — proving the
+// reseed-site wiring reads farmFoodCapacity. Plenty of wood (200) for several
+// reseeds. AI disabled; the villager-economy auto-gather still runs.
+export function createFarmUpgradeReseedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 6, y: 6 },
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 22, y: 10 },
+        startingResearchedTechnologies: ['horse-collar'],
+        startingResources: { food: 0, wood: 200, gold: 100, stone: 200 },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 6,
+        y: 6,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      {
+        kind: 'town-center',
+        x: 22,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+      // A complete farm seeded nearly-depleted (6 food) but at the upgraded max
+      // (250, since Horse Collar is researched on boot) so depletion → reseed is
+      // reached quickly and the reseed target is observable.
+      {
+        kind: 'farm',
+        x: 20,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        farmFood: 6,
+        vision: { playerId: 2, radius: 2 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 10,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 11,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+      {
+        kind: 'villager',
+        x: 19,
+        y: 9,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 4 },
+      },
+    ],
+  };
+}
+
 // M1 Farms (slice 1) food-theft fixture. Player 1 (HUMAN) owns a farm. Player
 // 2 (AI economy, planner disabled so it doesn't build/expand) has a food-role
 // villager whose ONLY visible food on the map is player 1's farm — there are

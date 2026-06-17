@@ -169,6 +169,11 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'hand-cart': { food: 305, wood: 200 },
   // Loom: technologies.csv:86 — 50 gold.
   loom: { gold: 50 },
+  // Farm-food techs (Mill; costs from technologies.csv — Horse Collar 75/75,
+  // Heavy Plow 125/125, Crop Rotation 250/250).
+  'horse-collar': { food: 75, wood: 75 },
+  'heavy-plow': { food: 125, wood: 125 },
+  'crop-rotation': { food: 250, wood: 250 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -281,6 +286,10 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'hand-cart': 550,
   // Loom: technologies.csv:86 — 25 s × 10 TPS.
   loom: 250,
+  // Farm-food techs (Mill; CSV research seconds × 10 TPS — 20 / 40 / 70 s).
+  'horse-collar': 200,
+  'heavy-plow': 400,
+  'crop-rotation': 700,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {

@@ -15,9 +15,9 @@
 import type { BuildingComponent, ResourceComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { playerResourcesCodec } from './bridgeStateSerialize';
+import { playerResourcesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import { canAfford, constructionCost, spendResources } from '../prototypeEconomyRules';
-import { FARM_FOOD_AMOUNT } from './entityCreateOps';
+import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
 
 // The farm's build cost doubles as its reseed cost (AoE2 farm = a wood→food
 // converter you re-pay to maintain). Read from the same source the build
@@ -51,11 +51,16 @@ export function tryReseedFarm(
 
   spendResources(stockpile, FARM_RESEED_COST);
   accessor.markDirty(playerResourcesCodec);
-  // Reset stored food to the farm's max. maxAmount is widened to FARM_FOOD_AMOUNT
-  // so amount never exceeds max even if a fixture seeded a lower max. When
-  // farm-capacity upgrade techs land they will raise the farm's max and the
-  // reseed will refill to that higher capacity.
-  resource.maxAmount = Math.max(resource.maxAmount, FARM_FOOD_AMOUNT);
+  // Reset stored food to the farm's current capacity, DERIVED from the OWNER's
+  // researched farm-food techs (Horse Collar / Heavy Plow / Crop Rotation):
+  // farmFoodCapacity returns the base 175 plus the additive tech bonuses, so a
+  // maintained farm reseeds to its UPGRADED cap (e.g. 250/375/550) once the
+  // owner has the techs. maxAmount is widened (never lowered) so amount never
+  // exceeds max even if a fixture seeded a higher max.
+  const capacity = farmFoodCapacity(
+    accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
+  );
+  resource.maxAmount = Math.max(resource.maxAmount, capacity);
   resource.amount = resource.maxAmount;
   return true;
 }

@@ -117,8 +117,7 @@ export type ResearchableTechnologyType =
   | 'two-handed-swordsman-upgrade'
   | 'paladin-upgrade'
   | 'heavy-camel-upgrade'
-  // Economy gather-rate techs (Lumber/Mining Camp) — rate multiplier DERIVED
-  // from the researched-tech set at gather time (economyTechEffects), no state.
+  // DERIVED economy techs (recomputed from the researched-tech set at use time — economyTechEffects, no per-entity state): gather-rate (Lumber/Mining Camp), carry-capacity (Town Center), farm-food (Mill — Horse Collar/Heavy Plow/Crop Rotation → 250/375/550, spec §6.5/§6.6).
   | 'double-bit-axe'
   | 'bow-saw'
   | 'two-man-saw'
@@ -126,10 +125,11 @@ export type ResearchableTechnologyType =
   | 'gold-shaft-mining'
   | 'stone-mining'
   | 'stone-shaft-mining'
-  // Economy carry-capacity techs (Town Center) — carry multiplier DERIVED the
-  // same way (carryCapacityMultiplier / effectiveCarryCapacity).
   | 'wheelbarrow'
   | 'hand-cart'
+  | 'horse-collar'
+  | 'heavy-plow'
+  | 'crop-rotation'
   // Loom (Town Center, Dark Age, no prereq, 50 gold): +15 villager HP + +1 armor,
   // applied imperatively to existing + future villagers — see spec §11.8.
   | 'loom';
