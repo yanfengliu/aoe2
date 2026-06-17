@@ -16,6 +16,7 @@ import type {
   ResearchableTechnologyType,
   TrainableUnitType,
 } from './types';
+import { canAfford, researchCost } from './prototypeEconomyRules';
 
 // Difficulty knob. Affects gather-rate multiplier (higher = more
 // resources per drop-off) and decision interval (lower = more frequent
@@ -322,6 +323,41 @@ export function ageUpResourceBuffer(
     case 'imperial-age':
       return {};
   }
+}
+
+// campaign-11 finding (c): the next age-up's research cost, to be RESERVED
+// from discretionary military spending so a freshly-trained unit's cost can't
+// drain the stockpile below the age-up cost and starve the (FIFO-later) age-up
+// research — the AI used to mass Dark-Age Militia on ~500 food and never
+// advance. Empty unless the AI already QUALIFIES for the next age (its
+// `canAdvanceTo*Age` prerequisite check passes), so a not-yet-eligible AI
+// still trains military freely.
+export function ageUpReserveCost(
+  age: AgeType,
+  canAdvanceToNextAge: boolean,
+): Partial<PlayerResources> {
+  const next: ResearchableTechnologyType | null =
+    age === 'dark-age' ? 'feudal-age'
+    : age === 'feudal-age' ? 'castle-age'
+    : age === 'castle-age' ? 'imperial-age'
+    : null;
+  return next && canAdvanceToNextAge ? researchCost(next) : {};
+}
+
+// True when `stockpile` covers `cost` ON TOP OF `reserve` — i.e. the spend
+// draws only from the surplus above the reserved age-up cost. Used to gate AI
+// military training so a unit can't consume resources earmarked for an age-up.
+export function canAffordWithReserve(
+  stockpile: PlayerResources,
+  cost: Partial<PlayerResources>,
+  reserve: Partial<PlayerResources>,
+): boolean {
+  return canAfford(stockpile, {
+    food: (cost.food ?? 0) + (reserve.food ?? 0),
+    wood: (cost.wood ?? 0) + (reserve.wood ?? 0),
+    gold: (cost.gold ?? 0) + (reserve.gold ?? 0),
+    stone: (cost.stone ?? 0) + (reserve.stone ?? 0),
+  });
 }
 
 // Vision radius the AI considers as "near base" for scouting-response

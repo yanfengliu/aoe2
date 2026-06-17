@@ -295,3 +295,62 @@ export function createAiEconomyFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// campaign-11 finding (c) regression fixture. AI owner 2 starts in the Dark
+// Age sitting on 520 food (just over the 500-food Feudal cost) with a
+// COMPLETE Town Center + Barracks + Mill (the two Feudal building
+// prerequisites) and 6 villagers (the Dark-Age villager cap, so the TC stays
+// idle to accept the age-up research). Gold is deep (2000) so Militia (60
+// food + 20 gold) is always affordable, and there is NO food income — so
+// without the age-up-priority fix the AI trains a Militia the moment food
+// crosses 500 (pushed BEFORE the age-up research in the same decision tick
+// and run FIFO-first by the handler), drains food below 500, the feudal-age
+// research silently no-ops, and the AI is permanently stuck in the Dark Age
+// (ground-truth campaign-11: owner 2 sat at 510 food for 3000 ticks). The fix
+// RESERVES the age-up cost so Militia trains only from the surplus above it —
+// here (520 food, no surplus over the 500 reserve) nothing is left for a
+// Militia, so the age-up commits and the AI reaches Feudal. The human (owner
+// 1) is inert scaffolding
+// — no Town Center; corner Houses well outside the AI's vision for conquest
+// presence — so the match neither ends early nor grinds the AI's military.
+export function createAiAgeUpPriorityFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 2, y: 2 } },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingResources: { food: 520, wood: 0, gold: 2000, stone: 0 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      // AI base: complete TC + the two Feudal prerequisites (barracks + mill).
+      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
+      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      // Houses for population headroom (TC 5 + 2x house 10 = 15 cap) so the AI
+      // is never pop-blocked (which would divert it to House builds).
+      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
+      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      // 6 villagers = the Dark-Age villager cap, so the TC trains no more and
+      // stays idle to accept the age-up research.
+      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 24, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 25, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 26, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      // Human (owner 1) conquest presence only — corner Houses far outside the
+      // AI's vision so they are never attacked and the match cannot end by
+      // conquest before the AI ages up.
+      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+    ],
+  };
+}

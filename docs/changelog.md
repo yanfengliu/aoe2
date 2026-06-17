@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.48 - 2026-06-17
+
+### The AI opponent now reliably advances through the ages instead of stalling
+
+The computer player could get stuck in the Dark Age indefinitely: once it had the two buildings and 500 food needed for the Feudal Age, it kept training cheap Militia every time its food crept over 500, and each Militia's food cost — spent the instant before the age-up research — dropped its food back under 500, so the research silently failed and never committed. A whole game could run its full length with the AI sitting on 500+ food and a growing pile of Militia, never leaving the Dark Age (so it also never reached farms, the population cap, or any later-age units and technologies).
+
+The AI now reserves the cost of its next age-up and trains military only from the resources it has ABOVE that reserve, so a freshly-trained unit can no longer eat into the age-up cost. A resource-rich AI still trains an army and ages up at the same time (it has plenty of surplus); a tighter economy prioritizes the age-up. This applies at every age transition, not just Dark → Feudal. No change to save files or to how you play.
+
 ## 0.1.47 - 2026-06-16
 
 ### Villagers no longer deadlock on an unreachable resource (gather gridlock fix)

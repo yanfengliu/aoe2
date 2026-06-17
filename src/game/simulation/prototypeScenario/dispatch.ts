@@ -6,6 +6,7 @@
 // — easier to scan, easier to grep, no special cases at lookup time.
 
 import {
+  createAiAgeUpPriorityFixture,
   createAiDifficultyFixture,
   createAiEconomyFixture,
   createAiMonkFixture,
@@ -313,6 +314,7 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   ['wolf-aggro-fixture', createWolfAggroFixture],
   ['orders-fixture', createOrdersFixture],
   ['ai-economy-fixture', createAiEconomyFixture],
+  ['ai-age-up-priority-fixture', createAiAgeUpPriorityFixture],
   ['villager-selection-fixture', createVillagerSelectionFixture],
   ['double-click-selection-fixture', createDoubleClickSelectionFixture],
   ['mixed-selection-fixture', createMixedSelectionFixture],

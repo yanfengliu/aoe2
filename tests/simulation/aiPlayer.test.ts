@@ -191,20 +191,32 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
   }, 120_000);
 
   it('hard AI accumulates more food than easy AI after a fixed tick budget', () => {
-    // Runs both AIs side-by-side in the same simulation for 1500 ticks
-    // so villagers have time for several drop-off cycles. Measures
-    // food directly because food is what sheep carry. Easy is owner
-    // 2; hard is owner 3. Because the AI trains villagers / spends on
-    // builds the raw delta can be small, but the hard side is always
-    // ahead given identical start conditions.
+    // Runs an easy (owner 2) and a hard (owner 3) AI side-by-side and compares
+    // the food each gathers — a proxy for gather rate (hard gathers 1.3x and
+    // thinks ~4x more often). We track each AI's PEAK Dark-Age food, not its
+    // final stockpile: since v0.1.48 (the age-up-priority fix) the AI reserves
+    // and commits its Feudal age-up the moment it has 2 prerequisites + 500
+    // food, spending 500 food in one step. The faster hard AI reaches that
+    // point FIRST, so its FINAL food dips below the slower easy AI's
+    // still-accumulating stockpile even though it out-gathered it the whole
+    // way (probe: hard peaks ~500 then commits ~tick 1400 → 81; easy is still
+    // climbing at 313). Peak-before-age-up food is the un-masked gather signal.
     const bridge = createSimulationBridge('ai-difficulty-fixture');
+    let easyPeakFood = 0;
+    let hardPeakFood = 0;
     for (let i = 0; i < 1500; i += 1) {
       bridge.step(100);
+      const economy = bridge.getEconomyState();
+      // Only sample while still in the Dark Age — once the age-up research
+      // commits, the 500-food spend would mask the gather-rate comparison.
+      if (economy.ages[2] === 'dark-age') {
+        easyPeakFood = Math.max(easyPeakFood, economy.playerResources[2].food);
+      }
+      if (economy.ages[3] === 'dark-age') {
+        hardPeakFood = Math.max(hardPeakFood, economy.playerResources[3].food);
+      }
     }
-    const economy = bridge.getEconomyState();
-    const easy = economy.playerResources[2];
-    const hard = economy.playerResources[3];
-    expect(hard.food).toBeGreaterThan(easy.food);
+    expect(hardPeakFood).toBeGreaterThan(easyPeakFood);
   }, 120_000);
 
   it('preserves baseline barracks-rush behavior: AI builds a Barracks and trains Militia on ai-rush-fixture', () => {

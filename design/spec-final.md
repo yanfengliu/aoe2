@@ -506,7 +506,7 @@ Use the standard AoE2-style progression model:
 | Feudal -> Castle | 800 Food, 200 Gold | 2 qualifying Feudal Age buildings |
 | Castle -> Imperial | 1000 Food, 800 Gold | 2 qualifying Castle Age buildings or 1 Castle |
 
-Qualifying building logic must follow AoE2 conventions, not count every structure equally.
+Qualifying building logic must follow AoE2 conventions, not count every structure equally. Advancing Dark -> Feudal requires two of {Barracks, Dock, Lumber Camp, Mill, Mining Camp} — Houses, Farms, and Walls do NOT count, and the Town Center never counts. This land-only slice has no Dock, so the implemented qualifying set is {Barracks, Lumber Camp, Mill, Mining Camp} (`DARK_AGE_PREREQUISITE_BUILDINGS`). The Feudal -> Castle and Castle -> Imperial qualifying sets are likewise the non-Town-Center buildings introduced in the prior age.
 
 ### 7.3 Age Unlock Summary
 
@@ -1204,6 +1204,8 @@ Minimum AI economy capabilities:
 - age-up timing
 - Castle Age expansion to extra Town Centers
 - late-game trade when allied
+
+**Age-up priority (implemented).** When the AI both qualifies for the next age (its building prerequisites are met) and can afford the age-up research cost, it reserves that cost so a freshly-trained unit cannot starve the age-up within a single decision cycle. Within a cycle the AI pushes building placements, then military, then (at the Town Center) the age-up research, then villager training. The constrained resource for the Dark -> Feudal stall is FOOD, which only Militia and the age-up research consume — building placements (sequenced before the age-up) spend wood/stone, and villager / building-tech production is sequenced after the age-up — so reserving the age-up's cost from MILITARY training is the targeted fix. Without it the AI massed cheap Dark-Age Militia on roughly the Feudal food cost and never advanced: each cycle a Militia's food cost, spent before the research, dropped the stockpile just under the threshold so the age-up silently failed (campaign-11).
 
 ### 13.3 Military Behavior
 

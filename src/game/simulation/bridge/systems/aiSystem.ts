@@ -17,8 +17,10 @@ import type { MonkTask } from '../sharedTypes';
 import {
   AI_BASE_VISION_RADIUS,
   AI_MONK_COUNT_CAP,
+  ageUpReserveCost,
   ageUpResourceBuffer,
   attackGroupSize,
+  canAffordWithReserve,
   decisionIntervalTicks,
   pickNextAgeResearch,
   pickNextBuildTarget,
@@ -198,13 +200,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       // Build the lookups once per tick (O(N) where N = queue length;
       // typically <30 entries during AI macro).
       const pendingTrainsByBuilding = new Map<number, number>();
-      // Per-building research push count. Production queues mix train and
-      // research entries (`productionQueues[buildingId]` is a single list),
-      // so the queue-length cap that gates new pushes must include
-      // pending research pushes alongside pending trains. Without this,
-      // a TC with one queued villager could accept (a) age-up research
-      // push and (b) another villager push in the same tick, producing
-      // an actual queue of length 3 against the AI's intended cap of 2.
+      // Per-building research push count. The production queue mixes train +
+      // research entries in one list, so the queue-length cap must count both
+      // (else a TC could land at depth 3 against the intended cap of 2).
       const pendingResearchByBuilding = new Map<number, number>();
       const pendingResearchKeys = new Set<string>(); // `${owner}:${tech}`
       const pendingBuildsByOwner = new Map<number, number>();
@@ -312,14 +310,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           populationState && populationState.current >= populationState.cap,
         );
 
-        // V5-8: precompute the owner's buildings grouped by type once
-        // per decision tick. Pre-fix the AI called the closure-form
-        // findIdleProducer 10–14 times per decision tick (one per unit
-        // type in pickUnitMix + one per building type for research +
-        // monastery), each doing a full world.query('building') scan.
-        // This reduces it to one scan per decision tick. The local
-        // findIdleProducerLocal preserves the V3-24 load-balanced
-        // selection (least-loaded, id-tiebreak for save/load determinism).
+        // V5-8: precompute the owner's buildings grouped by type once per
+        // decision tick (was 10–14 full `world.query('building')` scans per
+        // tick via the closure-form findIdleProducer). findIdleProducerLocal
+        // preserves the V3-24 load-balanced, id-tiebroken selection.
         const ownerBuildingsByType = new Map<BuildingType, number[]>();
         for (const id of activeWorld.query('building')) {
           const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -523,14 +517,25 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           return minProgress >= 0.6 && !canAfford(s, cost);
         })();
 
-        // Phase 1C: pickUnitMix BEFORE villager training. Pre-1B accidentally
-        // trained military at the rare tick where tcQueue was full (villager
-        // gate blocked) AND barracks just completed. Post-1C, the +1-tick
-        // handler delay shifts that corner case out of alignment, so a
-        // barracks-rush AI never trains militia. The structural fix is to
-        // make military priority explicit: push military first, then age-up
-        // research, then villager. When food is tight enough that only one
-        // can train, the FIFO-ordered handler picks military.
+        // campaign-11 finding (c): reserve the next age-up's cost so military
+        // (sequenced before the FIFO-later age-up research) trains only from
+        // the surplus above it — else a Militia drains food below the age-up
+        // cost and the research silently no-ops, stranding the AI in Dark Age.
+        // Military is the only pre-age-up spend that consumes the food/gold an
+        // age-up reserves (builds spend wood/stone; the Wonder is Imperial-only;
+        // villager / building-tech / monastery are sequenced after the age-up).
+        const ageUpReserve = ageUpReserveCost(
+          currentAge,
+          nextAgeTech === 'feudal-age' ? canAdvanceToFeudalAge(owner)
+          : nextAgeTech === 'castle-age' ? canAdvanceToCastleAge(owner)
+          : nextAgeTech === 'imperial-age' ? canAdvanceToImperialAge(owner)
+          : false,
+        );
+
+        // Phase 1C: pickUnitMix BEFORE villager training so a barracks-rush AI
+        // still trains militia (the +1-tick handler delay otherwise mis-aligns
+        // the full-tcQueue corner case). Military priority is explicit: push
+        // military, then age-up research, then villager.
         const mix = pickUnitMix(currentAge);
         if (!savingForAgeUp) {
           for (const { unitType, producer } of mix) {
@@ -538,7 +543,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             if (producerId === null) continue;
             if (!stockpile) continue;
             const cost = trainingCost(unitType);
-            if (!canAfford(stockpile, cost)) continue;
+            if (!canAffordWithReserve(stockpile, cost, ageUpReserve)) continue;
             if (!getTrainOptions(owner, producer).includes(unitType)) continue;
             pushQueueTrainIntention(producerId, unitType);
             // Phase 1C — increment so subsequent same-producer pushes (feudal+

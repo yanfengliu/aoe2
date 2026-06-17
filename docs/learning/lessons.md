@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## A backgrounded CLI reviewer (`claude -p` / `gemini`) survives TaskStop and can rewrite your working tree minutes-to-hours later — re-audit git before EVERY commit — 2026-06-17
+
+| Field | Value |
+|---|---|
+| Surfaced by | working-tree audit during the ai-age-up-priority work: `git status` showed `prototypeBuildingRules.ts` + 2 test files re-modified with the *reverted* houses-prereq fix, AFTER the review task was `TaskStop`ped AND after a clean intervening commit (394aa25) |
+| Reviewer findings | n/a — process lesson (the contaminator WAS a reviewer) |
+| Fix commit | the ai-age-up-priority commit (re-reverted the 3 files via `git checkout HEAD --` and re-ran the commit guard before staging) |
+| Test added | n/a — process lesson |
+| Behavior delta | Without the pre-commit re-audit I would have bundled the reverted houses-prereq gameplay REGRESSION (house/palisade-wall/farm wrongly counting toward Feudal — the exact change the 3-CLI review caught and I reverted hours earlier) into the unrelated AI-age-up commit, silently re-shipping it. The contamination re-appeared TWICE this session (once after the first revert, once after a clean commit). |
+
+Context: the feudal-prereq review (`brgsb442u`) launched `codex`, `claude -p`, and `gemini` as backgrounded `&` children inside one Bash task. `TaskStop` killed the bash WRAPPER, not the children. Gemini (which was 429-retrying for a long time, per the prior session) survived as an orphan, eventually got through, and — in plan mode, which still exposes the `replace`/file-edit tool — re-applied the broken diff it was "reviewing" to the working tree long after the task was stopped (`ps` later showed no live gemini, so it wrote once and exited). `claude -p` is likewise not truly read-only even with a Read/Grep-only `--allowedTools` (see `reference_claude_p_reviewer_writes.md` memory).
+Lesson: after stopping a multi-CLI review task, the orphaned reviewer can mutate the tree minutes-to-hours later — a single post-stop `git status` is not enough. Re-audit `git diff HEAD` immediately before EVERY `git add`/commit, and keep a commit guard that aborts on unexpected staged paths. **Audit ALL diff paths, not just `src/`+`tests/`:** in the ai-age-up-priority work my audits checked only `src tests`, but the orphan had also re-applied the broken rule to `design/spec-final.md` — that `design/` write slipped through every audit and was caught only by the mandatory 3-CLI review (Codex, read-only sandbox, genuinely read the live spec and flagged it HIGH). So the multi-CLI review is a load-bearing backstop against contamination your scoped audits miss, AND you must widen the audit to `git diff HEAD` (every path). Prefer Codex's `--sandbox read-only` for reviewers (it cannot write); treat `claude -p` and `gemini` review output as potentially tree-mutating; run each reviewer as its OWN background task (not `&`-children in one task) so TaskStop actually kills it. Pointer: ai-age-up-priority `2026-06-17/1/REVIEW.md` finding 1; `reference_claude_p_reviewer_writes.md`.
+
 ## An LLM conformance-probe (or your memory) GAME-RULE claim is a hypothesis — verify it against the authoritative wiki before "fixing" to match it — 2026-06-17
 
 | Field | Value |
