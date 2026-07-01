@@ -56,33 +56,66 @@ describe('unitPierceArmor — from AoE2 data', () => {
   });
 });
 
-// Slice 2b-i: the hard-coded attack-bonus if-ladder was refactored into a
-// declarative data table. These lock the exact bonus values (a parity guard
-// for the behaviour-preserving refactor) and document the counter contract.
-describe('attackBonusAgainstUnit / attackBonusAgainstBuilding — class-based bonuses', () => {
-  it('applies the spear-line / camel / skirmisher / mangonel anti-class bonuses', () => {
-    expect(attackBonusAgainstUnit('spearman', 'scout')).toBe(12); // light cavalry
-    expect(attackBonusAgainstUnit('spearman', 'knight')).toBe(15); // heavy cavalry
-    expect(attackBonusAgainstUnit('pikeman', 'scout')).toBe(19);
-    expect(attackBonusAgainstUnit('pikeman', 'knight')).toBe(22);
-    expect(attackBonusAgainstUnit('halberdier', 'knight')).toBe(28); // any cavalry
-    expect(attackBonusAgainstUnit('skirmisher', 'archer')).toBe(4); // archer line
-    expect(attackBonusAgainstUnit('camel', 'knight')).toBe(9);
-    expect(attackBonusAgainstUnit('heavy-camel', 'knight')).toBe(9);
-    expect(attackBonusAgainstUnit('mangonel', 'militia')).toBe(10); // mangonel-infantry
+// Slice 2b-ii: AoE2-accurate armor-CLASS bonus damage (spec §10.1/§10.3). The
+// spear line hits ALL cavalry flat (with a separate camel class), values come
+// from design/stats/units.csv, and bonuses SUM across every class the target
+// is in. Mangonel's anti-infantry is BLAST (deferred to M2), not a bonus.
+describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
+  it('spear line hits ALL cavalry flat (CSV values), with a separate camel bonus', () => {
+    // Flat vs every cavalry unit — no light/heavy split.
+    for (const cav of ['scout', 'light-cavalry', 'knight', 'hussar', 'cavalier', 'paladin'] as const) {
+      expect(attackBonusAgainstUnit('spearman', cav)).toBe(15);
+      expect(attackBonusAgainstUnit('pikeman', cav)).toBe(22);
+      expect(attackBonusAgainstUnit('halberdier', cav)).toBe(32);
+    }
+    // Camels are a SEPARATE class (not cavalry): the smaller camel bonus.
+    expect(attackBonusAgainstUnit('spearman', 'camel')).toBe(7);
+    expect(attackBonusAgainstUnit('pikeman', 'heavy-camel')).toBe(11);
+    expect(attackBonusAgainstUnit('halberdier', 'camel')).toBe(16);
+  });
+
+  it('camels counter cavalry (and camels), at the CSV values', () => {
+    expect(attackBonusAgainstUnit('camel', 'knight')).toBe(10);
+    expect(attackBonusAgainstUnit('camel', 'camel')).toBe(5);
+    expect(attackBonusAgainstUnit('heavy-camel', 'paladin')).toBe(18);
+    expect(attackBonusAgainstUnit('heavy-camel', 'heavy-camel')).toBe(9);
+  });
+
+  it('skirmishers +3 vs archers and +3 vs spearmen; archer line +vs spearman', () => {
+    expect(attackBonusAgainstUnit('skirmisher', 'archer')).toBe(3);
+    expect(attackBonusAgainstUnit('skirmisher', 'cavalry-archer')).toBe(3); // archer class
+    expect(attackBonusAgainstUnit('skirmisher', 'spearman')).toBe(3); // spearman class
+    expect(attackBonusAgainstUnit('crossbowman', 'pikeman')).toBe(3);
+    expect(attackBonusAgainstUnit('arbalest', 'spearman')).toBe(3);
+    expect(attackBonusAgainstUnit('cavalry-archer', 'spearman')).toBe(2);
+    expect(attackBonusAgainstUnit('longbowman', 'halberdier')).toBe(2);
+  });
+
+  it('siege units counter siege/rams; mangonel has NO anti-infantry bonus (blast, deferred to M2)', () => {
+    expect(attackBonusAgainstUnit('mangonel', 'battering-ram')).toBe(12); // siege class
+    expect(attackBonusAgainstUnit('onager', 'siege-ram')).toBe(12); // siege class
+    expect(attackBonusAgainstUnit('scorpion', 'siege-ram')).toBe(1); // ram class
+    expect(attackBonusAgainstUnit('mangonel', 'militia')).toBe(0); // blast, not a bonus (M2)
+    expect(attackBonusAgainstUnit('mangonel', 'villager')).toBe(0);
+    // Scout-line anti-monk is deferred this slice.
+    expect(attackBonusAgainstUnit('scout', 'monk')).toBe(0);
   });
 
   it('gives no bonus for non-matching pairs', () => {
     expect(attackBonusAgainstUnit('archer', 'militia')).toBe(0);
     expect(attackBonusAgainstUnit('knight', 'archer')).toBe(0);
     expect(attackBonusAgainstUnit('spearman', 'archer')).toBe(0); // archer isn't cavalry
+    expect(attackBonusAgainstUnit('spearman', 'militia')).toBe(0); // infantry isn't a spear target
   });
 
-  it('applies the siege/ram anti-building bonuses', () => {
-    expect(attackBonusAgainstBuilding('battering-ram')).toBe(75);
-    expect(attackBonusAgainstBuilding('siege-ram')).toBe(250);
-    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(80);
-    expect(attackBonusAgainstBuilding('trebuchet')).toBe(200);
+  it('applies the AoE2-accurate siege anti-building bonuses', () => {
+    expect(attackBonusAgainstBuilding('battering-ram')).toBe(125);
+    expect(attackBonusAgainstBuilding('siege-ram')).toBe(200);
+    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
+    expect(attackBonusAgainstBuilding('trebuchet')).toBe(250);
+    expect(attackBonusAgainstBuilding('mangonel')).toBe(35);
+    expect(attackBonusAgainstBuilding('onager')).toBe(45);
+    expect(attackBonusAgainstBuilding('scorpion')).toBe(2);
     expect(attackBonusAgainstBuilding('knight')).toBe(0);
   });
 });

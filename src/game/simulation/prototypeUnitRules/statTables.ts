@@ -395,15 +395,6 @@ export const STATIC_MEMORABLE_RESOURCE_TYPES = new Set<ResourceKind>([
   'stone-mine',
 ]);
 
-export const CAVALRY_TARGETS = new Set<UnitType>([
-  'scout',
-  'light-cavalry',
-  'knight',
-  'hussar',
-  'cavalier',
-  'paladin',
-]);
-
 export const CAVALRY_UNITS = new Set<UnitType>([
   'scout',
   'light-cavalry',
@@ -426,10 +417,6 @@ export const INFANTRY_UNITS = new Set<UnitType>([
   'two-handed-swordsman',
 ]);
 
-export const LIGHT_CAVALRY_TARGETS = new Set<UnitType>(['scout', 'light-cavalry']);
-
-export const HEAVY_CAVALRY_TARGETS = new Set<UnitType>(['knight']);
-
 export const MELEE_UNITS = new Set<UnitType>([
   'militia',
   'champion',
@@ -450,13 +437,6 @@ export const MELEE_UNITS = new Set<UnitType>([
   'two-handed-swordsman',
   'paladin',
   'heavy-camel',
-]);
-
-export const MANGONEL_INFANTRY_TARGETS = new Set<UnitType>([
-  'militia',
-  'spearman',
-  'pikeman',
-  'villager',
 ]);
 
 export const WILDLIFE_PROFILES = {

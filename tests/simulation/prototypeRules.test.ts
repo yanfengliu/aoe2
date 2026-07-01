@@ -145,8 +145,8 @@ describe('prototype unit rules', () => {
     expect(unitAttackRange('trebuchet')).toBe(16);
     expect(unitMinAttackRange('bombard-cannon')).toBe(5);
     expect(unitVisionRadius('hussar')).toBe(11);
-    expect(attackBonusAgainstUnit('halberdier', 'paladin')).toBe(28);
-    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(80);
+    expect(attackBonusAgainstUnit('halberdier', 'paladin')).toBe(32);
+    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
   });
 
   it('keeps wildlife and static-resource classification behavior stable', () => {

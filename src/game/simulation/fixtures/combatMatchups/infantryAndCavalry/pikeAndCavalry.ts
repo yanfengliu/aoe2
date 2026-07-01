@@ -66,7 +66,7 @@ export function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
 
 // Slice 7C combat fixture: player-1 Camel adjacent to a player-2 Hussar.
 // Verifies that the Camel anti-cavalry bonus fires against the Hussar
-// (Imperial successor of the Light Cavalry line) via isCavalryTarget.
+// (Imperial successor of the Light Cavalry line) via the `cavalry` armor class.
 export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -123,8 +123,8 @@ export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
 }
 
 // Slice 7C combat fixture: player-1 Halberdier adjacent to a player-2
-// Cavalier. Verifies the Halberdier +28 anti-cavalry bonus fires against
-// the Cavalier (Imperial successor of the Knight line) via isCavalryTarget.
+// Cavalier. Verifies the Halberdier +32 anti-cavalry bonus fires against
+// the Cavalier (Imperial successor of the Knight line) via the `cavalry` class.
 export function createHalberdierVsCavalierFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -238,6 +238,6 @@ export function createHalberdierVsKnightFixture(seed: string): PrototypeScenario
 }
 
 // Castle-Age combat fixture: a player-1 Camel stationed next to an enemy
-// (player 2) Knight and Scout, used to assert the Camel's +9 anti-cavalry
+// (player 2) Knight and Scout, used to assert the Camel's +10 anti-cavalry
 // bonus without pursuit / pathing noise. All three units start in Castle
 // Age and adjacent, so the Camel can hit on tick 1.

@@ -199,11 +199,11 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     expect(bridge.getSelectionState().trainOptions).not.toContain('battering-ram');
   }, 30_000);
 
-  it('deals +250 bonus damage when a Siege Ram attacks a building (upgraded from Battering Ram +75)', () => {
-    // Siege Ram base attack 3 + 250 anti-building bonus = 253 per hit.
+  it('deals +200 bonus damage when a Siege Ram attacks a building (upgraded from Battering Ram +125)', () => {
+    // Siege Ram base attack 3 + 200 anti-building bonus = 203 per hit.
     // A Town Center with 200 HP (below its default 2400 max) should drop to
     // 0 after a single hit — confirming the Siege Ram's huge anti-building
-    // bonus scaled up from the Ram's +75.
+    // bonus scaled up from the Ram's +125.
     const bridge = createSimulationBridge('siege-ram-vs-building-fixture');
 
     const tc = bridge.getEconomyState().buildings.find(
@@ -235,9 +235,9 @@ describe('Bombard Cannon', () => {
     expect(bridge.getSelectionState().trainOptions).toContain('bombard-cannon');
   });
 
-  it('deals +80 bonus damage against buildings at long range', () => {
-    // Bombard Cannon base attack 40 + 80 anti-building bonus = 120 per hit.
-    // A Town Center with 200 HP should drop after exactly two hits.
+  it('deals +200 bonus damage against buildings at long range', () => {
+    // Bombard Cannon base attack 40 + 200 anti-building bonus = 240 per hit.
+    // A Town Center with 200 HP drops in a single hit.
     const bridge = createSimulationBridge('bombard-cannon-vs-building-fixture');
 
     const tc = bridge.getEconomyState().buildings.find(

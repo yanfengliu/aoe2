@@ -5,14 +5,11 @@
 
 import { HUMAN_PLAYER_ID } from './prototypeScenario';
 import type { ResourceKind, UnitType } from './types';
+import { armorClassBonus } from './prototypeUnitRules/armorClasses';
 import {
   ARCHER_LINE_UNITS,
-  CAVALRY_TARGETS,
   CAVALRY_UNITS,
-  HEAVY_CAVALRY_TARGETS,
   INFANTRY_UNITS,
-  LIGHT_CAVALRY_TARGETS,
-  MANGONEL_INFANTRY_TARGETS,
   MELEE_ATTACK_RANGE,
   MELEE_UNITS,
   STATIC_MEMORABLE_RESOURCE_TYPES,
@@ -153,10 +150,6 @@ export function unitVisionRadius(unitType: UnitType): number {
   return UNIT_VISION_RADIUS[unitType];
 }
 
-export function isCavalryTarget(targetType: UnitType): boolean {
-  return CAVALRY_TARGETS.has(targetType);
-}
-
 export function isCavalryUnit(unitType: UnitType): boolean {
   return CAVALRY_UNITS.has(unitType);
 }
@@ -173,47 +166,27 @@ export function isMeleeUnit(unitType: UnitType): boolean {
   return MELEE_UNITS.has(unitType);
 }
 
-// Slice 2b-i: the anti-class attack bonuses, as DATA instead of an if-ladder.
-// Each attacker maps to an ordered list of (target-class predicate, bonus);
-// the FIRST matching rule wins — mirroring the prior ladder exactly (the
-// light/heavy-cavalry classes are mutually exclusive, so first-match == the
-// intended value). The predicates reuse the existing target sets, so this
-// retires the hard-coded ladder into data without any behaviour change. Slice
-// 2b-ii will adopt the AoE2-accurate CSV values (and revisit first-match vs
-// the AoE2 cross-class summation) on top of this seam.
-const UNIT_ATTACK_BONUS_RULES: Partial<
-  Record<UnitType, ReadonlyArray<{ matches: (target: UnitType) => boolean; bonus: number }>>
-> = {
-  spearman: [
-    { matches: (t) => LIGHT_CAVALRY_TARGETS.has(t), bonus: 12 },
-    { matches: (t) => HEAVY_CAVALRY_TARGETS.has(t), bonus: 15 },
-  ],
-  pikeman: [
-    { matches: (t) => LIGHT_CAVALRY_TARGETS.has(t), bonus: 19 },
-    { matches: (t) => HEAVY_CAVALRY_TARGETS.has(t), bonus: 22 },
-  ],
-  halberdier: [{ matches: isCavalryTarget, bonus: 28 }],
-  skirmisher: [{ matches: isArcherLineUnit, bonus: 4 }],
-  camel: [{ matches: isCavalryTarget, bonus: 9 }],
-  'heavy-camel': [{ matches: isCavalryTarget, bonus: 9 }],
-  mangonel: [{ matches: (t) => MANGONEL_INFANTRY_TARGETS.has(t), bonus: 10 }],
-};
-
+// Slice 2b-ii: the anti-unit attack bonuses now live in the AoE2-accurate
+// armor-CLASS model (./prototypeUnitRules/armorClasses.ts) — a declarative
+// class taxonomy + cross-class SUMMATION with the CSV bonus VALUES. This stays
+// the stable lookup the damage sites call.
 export function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitType): number {
-  const rules = UNIT_ATTACK_BONUS_RULES[attackerType];
-  if (!rules) return 0;
-  for (const rule of rules) {
-    if (rule.matches(targetType)) return rule.bonus;
-  }
-  return 0;
+  return armorClassBonus(attackerType, targetType);
 }
 
-// Anti-building bonus by attacker (rams / siege / trebuchet). Data, not a switch.
+// Anti-building bonus by attacker (siege family), AoE2-accurate base values
+// from design/stats/units.csv. Data, not a switch. (Non-siege units' tiny +1-3
+// vs-building bonuses — spearman/villager/infantry — are deferred; see the
+// armorClasses.ts header.)
 const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
-  'battering-ram': 75,
-  'siege-ram': 250,
-  'bombard-cannon': 80,
-  trebuchet: 200,
+  'battering-ram': 125,
+  'siege-ram': 200,
+  'bombard-cannon': 200,
+  trebuchet: 250,
+  mangonel: 35,
+  onager: 45,
+  scorpion: 2,
+  'heavy-scorpion': 4,
 };
 
 export function attackBonusAgainstBuilding(attackerType: UnitType): number {

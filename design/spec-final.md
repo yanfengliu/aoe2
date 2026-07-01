@@ -876,6 +876,15 @@ Support armor and bonus classes for at least:
 - stone defenses
 - walls and gates
 
+Implemented model (Slice 2b-ii): a unit BELONGS to a set of armor classes (`UNIT_ARMOR_CLASSES`), and an attacker's class bonuses (`UNIT_ATTACK_BONUSES`, transcribed from `design/stats/units.csv` `attack_bonus`) are SUMMED over every class the target is in (§10.1). Bonus VALUES are AoE2-accurate. Key rules faithful to AoE2:
+
+- The spear line (spearman/pikeman/halberdier) hits ALL cavalry at one flat value (+15/+22/+32) — there is no light/heavy-cavalry split. Camels are a SEPARATE `camel` armor class (NOT `cavalry`), so the spear line's smaller anti-camel bonus (+7/+11/+16) applies to camels instead of the cavalry value.
+- Camels counter cavalry (camel +10 / heavy-camel +18) and each other (`camel` class).
+- Skirmishers are +3 vs the `archer` class and +3 vs the `spearman` class; the archer line (crossbow/arbalest +3, cavalry-archer/HCA/longbow +2) is +vs the `spearman` class.
+- The mangonel line has NO anti-infantry attack bonus — its effectiveness vs massed infantry is BLAST/splash (§10.7), deferred to the projectiles/splash milestone. Mangonels keep +12 vs the `siege` class.
+
+Deferred (documented, not yet wired): the scout line's +vs-monk bonus (and the `monk` armor class); off-roster target classes (eagle, war elephant, ship, unique-unit, stone defense, wall/gate); and the small +1-3 vs-building bonuses of non-siege units (spearman/villager/infantry).
+
 ### 10.4 Accuracy and Projectiles
 
 Projectile combat must support:

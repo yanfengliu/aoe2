@@ -104,8 +104,8 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(mangonelAfter?.y).toBe(mangonel!.y);
   }, 20_000);
 
-  it('deals +75 bonus damage when a Battering Ram attacks a building', () => {
-    // Ram base attack is 2 + 75 anti-building bonus = 77 damage per hit. A
+  it('deals +125 bonus damage when a Battering Ram attacks a building', () => {
+    // Ram base attack is 2 + 125 anti-building bonus = 127 damage per hit. A
     // House has 75 HP, so a single hit destroys it. The v1 combat model has
     // no building-armor reduction (only unit armor for ranged/melee).
     const bridge = createSimulationBridge('ram-vs-building-fixture');
@@ -154,10 +154,9 @@ describe('Slice 4 Siege Workshop + siege units', () => {
   }, 10_000);
 
   it('does NOT apply the Pikeman anti-cavalry bonus to a Battering Ram target', () => {
-    // Pikeman's +19 vs Scout / Light-Cavalry and +22 vs Knight must not
-    // extend to siege weapons — Ram is siege, not cavalry. Exclusion is
-    // enforced inside attackBonusAgainstUnit: its conditions never include
-    // 'battering-ram' as a target, so the fallback 0 is returned.
+    // Pikeman's +22 vs the cavalry class must not extend to siege weapons —
+    // a Ram is in the siege/ram classes, not cavalry. armorClassBonus sums no
+    // matching class for a ram target, so the fallback 0 is returned.
     const bridge = createSimulationBridge('pikeman-vs-ram-fixture');
 
     const ram = findFirstOwnedUnit(bridge, 2, 'battering-ram');
@@ -178,7 +177,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
   }, 10_000);
 
   it('does NOT apply the Camel anti-cavalry bonus to a Battering Ram target', () => {
-    // Camel's +9 vs Scout / Light-Cavalry / Knight must not extend to Ram.
+    // Camel's +10 vs the cavalry class must not extend to a Ram (siege/ram).
     const bridge = createSimulationBridge('camel-vs-ram-fixture');
 
     const ram = findFirstOwnedUnit(bridge, 2, 'battering-ram');
@@ -225,10 +224,11 @@ describe('Slice 4 Siege Workshop + siege units', () => {
   }, 10_000);
 
   it('fires normally once the target is outside the Mangonel minimum range', () => {
-    // Slice 4 review Fix 3 positive control: identical fixture but with
-    // the Spearman at distance 5, outside the min-range 3 dead zone. The
-    // Mangonel must fire on tick 1 and destroy the Spearman (40 base + 10
-    // infantry bonus = 50 damage, Spearman has 45 HP).
+    // Positive control for the min-range dead zone: with the Spearman at
+    // distance 5 (outside the min-range 3), the Mangonel must fire on tick 1.
+    // Mangonel base 40 PIERCE vs the Spearman's 0 pierce armor = 40 dmg, so
+    // one hit brings the 45-HP Spearman to 5 — it does NOT one-shot (mangonel
+    // anti-infantry is blast, deferred to M2). We assert the shot landed.
     const bridge = createSimulationBridge('mangonel-outside-min-range-fixture');
 
     const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
@@ -240,9 +240,10 @@ describe('Slice 4 Siege Workshop + siege units', () => {
 
     bridge.step(100);
 
-    expect(
-      bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore),
-    ).toBeUndefined();
+    const after = bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore);
+    expect(after).toBeDefined();
+    const hpAfter = getHealthOfUnitAtCell(bridge, after!.x, after!.y);
+    expect(hpAfter).toBe(5); // 45 - 40, the Mangonel fired outside min range
   }, 10_000);
 
   it('makes a Watch Tower prefer a Mangonel over a closer Militia in range (siege-first priority)', () => {
@@ -285,13 +286,11 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(militiaHp).toBe(40); // 40 - 0, untouched
   }, 10_000);
 
-  it('applies a +10 anti-infantry bonus when a Mangonel attacks a Spearman', () => {
-    // Slice 4 review Fix 2: Mangonel is modeled as single-target AoE in v1,
-    // so the "splash vs infantry" design is simulated by a flat +10 bonus
-    // when the target is militia / spearman / pikeman / villager. Spearman
-    // at 45 HP takes 40 base + 10 bonus = 50 damage on the first hit, so
-    // one attack tick must be enough to destroy it. Without the bonus the
-    // first hit would leave 5 HP behind.
+  it('deals only base damage (no anti-infantry bonus) when a Mangonel attacks a Spearman', () => {
+    // Slice 2b-ii: AoE2 mangonel anti-infantry is BLAST/splash (spec §10.7,
+    // deferred to M2), NOT an attack bonus. So a Spearman takes only the
+    // Mangonel's base 40 PIERCE (0 pierce armor) = 40: the 45-HP Spearman
+    // survives at 5 after the first hit — it is NOT one-shot.
     const bridge = createSimulationBridge('mangonel-vs-spearman-fixture');
 
     const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
@@ -301,21 +300,20 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(spearmanIdBefore)).toBe(true);
 
-    // A single 100 ms step covers exactly one attack tick with cooldownTicks
-    // starting at 0, so the Mangonel fires its first shot and the Spearman
-    // should be destroyed in one hit.
+    // One 100 ms step = one attack tick (cooldownTicks starts at 0): the
+    // Mangonel fires once for its base damage.
     bridge.step(100);
 
-    expect(
-      bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore),
-    ).toBeUndefined();
+    const after = bridge.getEconomyState().units.find((u) => u.id === spearmanIdBefore);
+    expect(after).toBeDefined();
+    const hpAfter = getHealthOfUnitAtCell(bridge, after!.x, after!.y);
+    expect(hpAfter).toBe(5); // 45 - 40 base, no anti-infantry bonus
   }, 10_000);
 
-  it('does NOT apply the anti-infantry bonus when a Mangonel attacks a Knight', () => {
-    // Slice 4 review Fix 2: the +10 bonus is narrow — only militia /
-    // spearman / pikeman / villager qualify. Knight (cavalry) gets no bonus, so
-    // it takes the Mangonel's base 40 PIERCE reduced by its 2 pierce armor = 38;
-    // 100 - 38 = 62 HP after one tick (had the bonus wrongly applied it'd be 52).
+  it('deals only base damage when a Mangonel attacks a Knight (no anti-infantry bonus)', () => {
+    // Mangonel has NO anti-infantry attack bonus (AoE2 anti-infantry is blast,
+    // deferred to M2), so a Knight takes the Mangonel's base 40 PIERCE reduced
+    // by its 2 pierce armor = 38; 100 - 38 = 62 HP after one tick.
     const bridge = createSimulationBridge('mangonel-vs-knight-fixture');
 
     const knight = findFirstOwnedUnit(bridge, 2, 'knight');

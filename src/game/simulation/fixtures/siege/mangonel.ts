@@ -66,9 +66,9 @@ export function createMangonelRangedFixture(seed: string): PrototypeScenario {
 }
 
 // Slice 4 review fixture: player-1 Mangonel adjacent-by-range to a single
-// enemy Spearman. Used to measure one-shot damage including the +10
-// anti-infantry bonus — Spearman 45 HP vs Mangonel (40 base + 10 infantry
-// bonus) = death after a single attack tick.
+// enemy Spearman. Used to measure base damage — the Mangonel has NO
+// anti-infantry bonus (Slice 2b-ii: AoE2 anti-infantry is blast, deferred to
+// M2), so its 40 base leaves the 45-HP Spearman at 5 after one attack tick.
 export function createMangonelVsSpearmanFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -262,8 +262,8 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
 // Slice 4 review fixture: player-1 Mangonel with a stationary enemy
 // Spearman at distance 5 — OUTSIDE min range 3 and WELL INSIDE max range
 // 7. Positive control for the min-range test: under identical stats the
-// Mangonel must fire and destroy the Spearman with 40 + 10 = 50 damage
-// on one tick.
+// Mangonel must fire; its 40 base damage (no anti-infantry bonus) brings the
+// 45-HP Spearman to 5 on one tick.
 export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeScenario {
   return {
     seed,

@@ -100,7 +100,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     });
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
-  it('deals +9 anti-cavalry bonus damage when a Camel attacks a Knight (base 5 + 9 = 14)', () => {
+  it('deals +10 anti-cavalry bonus damage when a Camel attacks a Knight (base 5 + 10 = 15)', () => {
     const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
 
     const knight = findFirstOwnedUnit(bridge, 2, 'knight');
@@ -125,13 +125,13 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       ),
     ).toBe(true);
 
-    // Camel base 5 + 9 anti-cavalry bonus = 14 raw; the Knight's 2 base melee
-    // armor (units.csv 2/2) reduces it to 12, so 100 - 12 = 88 HP after one hit.
+    // Camel base 5 + 10 anti-cavalry bonus = 15 raw; the Knight's 2 base melee
+    // armor (units.csv 2/2) reduces it to 13, so 100 - 13 = 87 HP after one hit.
     const knightHpAfter = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
-    expect(knightHpAfter).toBe(88);
+    expect(knightHpAfter).toBe(87);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
-  it('deals +9 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
+  it('deals +10 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
     const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
 
     const scout = findFirstOwnedUnit(bridge, 2, 'scout');
@@ -147,18 +147,18 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
         bridge,
         () => {
           const hp = getHealthOfUnitAtCell(bridge, scout!.x, scout!.y);
-          // Scout may die (45 - 14 = 31) or at least take one hit.
+          // Scout may die (45 - 15 = 30) or at least take one hit.
           return hp === null || hp < 45;
         },
         { maxSteps: 60 },
       ),
     ).toBe(true);
 
-    // If still alive, the Scout must be at 31 HP (45 - 14); if dead, the hit
+    // If still alive, the Scout must be at 30 HP (45 - 15); if dead, the hit
     // still applied the anti-cavalry bonus — either way the bonus was active.
     const scoutHpAfter = getHealthOfUnitAtCell(bridge, scout!.x, scout!.y);
     if (scoutHpAfter !== null) {
-      expect(scoutHpAfter).toBe(31);
+      expect(scoutHpAfter).toBe(30);
     }
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
@@ -204,9 +204,9 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     expect(caAfter?.y).toBe(ca!.y);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
-  it('does NOT apply the Spearman anti-cavalry bonus to a Camel target', () => {
-    // Spearman's +12 vs Scout / Light-Cavalry and +15 vs Knight bonuses
-    // must not extend to Camels. Camels are anti-cavalry, not cavalry.
+  it('applies the Spearman anti-CAMEL bonus (not the cavalry value) to a Camel target', () => {
+    // AoE2: camels are a SEPARATE armor class, so the spear line's smaller
+    // anti-camel bonus applies (spearman +7 vs camel), NOT its +15 vs cavalry.
     // Here the human Spearman (player 1) attacks an enemy Camel (player 2).
     const bridge = createSimulationBridge('spearman-vs-camel-fixture');
 
@@ -229,15 +229,16 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       ),
     ).toBe(true);
 
-    // Spearman base attack is 3. One hit leaves the Camel at 97.
-    // If the anti-cavalry bonus applied, the Camel would be at 100-15=85.
+    // Spearman base 3 + 7 anti-camel = 10 raw; Camel has 0 melee armor, so one
+    // hit leaves it at 90 (100-10). If the +15 cavalry value had wrongly
+    // applied, the Camel would be at 100-18=82.
     const camelHpAfter = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
-    expect(camelHpAfter).toBe(97);
+    expect(camelHpAfter).toBe(90);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
-  it('applies the Skirmisher +4 anti-archer bonus to Cavalry Archer targets', () => {
-    // Skirmisher base attack is 2, +4 vs archer-line = 6. Cavalry Archer starts
-    // at 50 HP, so one hit should bring it to 44 (not 48 if the bonus was missing).
+  it('applies the Skirmisher +3 anti-archer bonus to Cavalry Archer targets', () => {
+    // Skirmisher base attack is 2, +3 vs the archer class = 5. Cavalry Archer
+    // starts at 50 HP, so one hit should bring it to 45 (not 48 if missing).
     const bridge = createSimulationBridge('skirmisher-vs-cavalry-archer-fixture');
 
     const cavArcher = findFirstOwnedUnit(bridge, 2, 'cavalry-archer');
@@ -260,7 +261,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     ).toBe(true);
 
     const hpAfter = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
-    expect(hpAfter).toBe(44);
+    expect(hpAfter).toBe(45);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to Cavalry Archers when Fletching is researched BEFORE the unit is trained', () => {

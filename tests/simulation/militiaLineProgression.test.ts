@@ -316,8 +316,8 @@ describe('Heavy Camel upgrade at Stable', () => {
     expect(heavyCamel?.attackRange).toBe(1);
   }, 45_000);
 
-  it('preserves the +9 anti-cavalry bonus when attacking a Knight', () => {
-    // Heavy Camel (base atk 7 + 9 vs cavalry = 16) should deal more
+  it('preserves the +18 anti-cavalry bonus when attacking a Knight', () => {
+    // Heavy Camel (base atk 7 + 18 vs cavalry = 25) should deal more
     // damage to a Knight than its own unbuffed damage. The fixture
     // spawns a pre-upgraded Heavy Camel adjacent to the enemy Knight so
     // the first melee hit lands within a handful of ticks.
@@ -365,8 +365,8 @@ describe('Heavy Camel upgrade at Stable', () => {
         { maxSteps: 400 },
       ),
     ).toBe(true);
-    // Heavy Camel first hit = 7 + 9 anti-cavalry = 16 raw; the Knight's 2 base
-    // melee armor reduces it to 14, so Knight HP = 100 - 14 = 86.
-    expect(readKnightHp()).toBe(86);
+    // Heavy Camel first hit = 7 + 18 anti-cavalry = 25 raw; the Knight's 2 base
+    // melee armor reduces it to 23, so Knight HP = 100 - 23 = 77.
+    expect(readKnightHp()).toBe(77);
   }, 30_000);
 });

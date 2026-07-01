@@ -2,6 +2,24 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.49 - 2026-06-30
+
+### AoE2-accurate combat counters (armor-class bonus damage)
+
+Attack bonuses are now driven by an AoE2-accurate armor-CLASS model with the real values from the unit data, instead of the earlier approximate hard-coded table. This changes several combat matchups so counters behave the way they do in Age of Empires II:
+
+- **Spearmen, Pikemen, and Halberdiers now counter ALL cavalry equally** (+15 / +22 / +32), not just scouts and knights — Cavaliers, Paladins, and Hussars now take the full bonus. Previously the spear line only fully hit knights/scouts.
+- **Camels are their own class.** The spear line deals a smaller, separate bonus to camels (+7 / +11 / +16) rather than its anti-cavalry value, and **camels hit cavalry harder** (Camel +9 → +10, Heavy Camel +9 → +18).
+- **Skirmishers** deal +3 vs archers (was +4) and now also **+3 vs spearmen**; the **archer line** (Crossbowman/Arbalest +3, Cavalry Archer/Heavy Cavalry Archer/Longbowman +2) now gets its **anti-spearman bonus** (previously none).
+- **Siege vs buildings rebalanced to AoE2 values:** Battering Ram +75 → +125, Siege Ram +250 → +200, Bombard Cannon +80 → +200, Trebuchet +200 → +250; Mangonel/Onager/Scorpion now carry their small anti-building bonuses too.
+- **Mangonels no longer have a special anti-infantry bonus.** In AoE2 a mangonel's power against massed infantry comes from its area/blast damage (a separate feature, not yet implemented), not a per-target bonus — so for now mangonels deal only their base damage to individual infantry. Their anti-siege bonus is unchanged.
+
+No save-format change. Deferred (unchanged for now): the scout line's small anti-monk bonus, off-roster target classes (eagles, war elephants, ships), and the tiny +1–3 vs-building bonuses of non-siege units.
+
+### Validation
+
+TDD parity + class-model tests plus re-validation of every affected combat/siege fixture (camel, spear-line, skirmisher, heavy-camel, mangonel, ram/trebuchet matchups); the four gates pass and the full suite is green. Multi-CLI reviewed. See `docs/threads/done/data-driven-combat-2b/`.
+
 ## 0.1.48 - 2026-06-17
 
 ### The AI opponent now reliably advances through the ages instead of stalling
