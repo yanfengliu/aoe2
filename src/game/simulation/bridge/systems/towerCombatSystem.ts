@@ -9,12 +9,15 @@ import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { combatDamageAfterArmor, effectivePierceArmor, isArcherLineUnit } from '../../prototypeUnitRules';
 import { pierceArmorTechBonus } from '../../armorTechBonuses';
+import { towerAttackBonus, towerRangeBonus } from '../../towerTechEffects';
+import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
+  researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
 
 interface PlayerScoreCountersLike {
@@ -86,12 +89,21 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           garrisonIds.length,
           garrisonedArcherCount,
         );
+        // Guard Tower / Keep bonuses are DERIVED from the owner's researched
+        // set at the fire site — no per-building state. Only Watch Towers get
+        // them (Town Center / Castle fire is unchanged). Un-teched owners read
+        // 0/0, so behaviour is identical to before.
+        const towerTechs = building.buildingType === 'watch-tower'
+          ? accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET
+          : EMPTY_TECH_SET;
+        const effectiveRange = buildingCombat.attackRange + towerRangeBonus(towerTechs);
+        const effectiveAttackDamage = buildingCombat.attackDamage + towerAttackBonus(towerTechs);
         const footprint = buildingFootprint(building.buildingType);
         const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
           building.owner,
           position,
           footprint,
-          buildingCombat.attackRange,
+          effectiveRange,
         );
         if (targetId === null || buildingCombat.cooldownTicks > 0 || arrowCount <= 0) {
           continue;
@@ -117,7 +129,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           }
 
           activeTargetCombat.currentHp -= combatDamageAfterArmor(
-            buildingCombat.attackDamage,
+            effectiveAttackDamage,
             'pierce',
             activeTargetCombat.armor,
             targetArrowPierceArmor,

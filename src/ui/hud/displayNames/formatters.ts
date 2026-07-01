@@ -112,6 +112,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Heavy Plow';
     case 'crop-rotation':
       return 'Crop Rotation';
+    case 'guard-tower':
+      return 'Guard Tower';
+    case 'keep':
+      return 'Keep';
   }
 }
 

@@ -108,10 +108,7 @@ export type ResearchableTechnologyType =
   // FU1: Imperial Blacksmith tier additions.
   | 'ring-archer-armor'
   | 'chemistry'
-  // FU2: Militia-line intermediate tiers + Paladin + Heavy Camel
-  // Imperial upgrades. Each mutates the predecessor unit in place
-  // (same upgradeOwnedUnits + rewriteQueuedPredecessorUnits pattern
-  // as the Slice 2 / Slice 7 upgrades).
+  // FU2: Militia-line intermediates + Paladin + Heavy Camel Imperial upgrades (each mutates the predecessor unit in place via upgradeOwnedUnits + rewriteQueuedPredecessorUnits).
   | 'man-at-arms-upgrade'
   | 'long-swordsman-upgrade'
   | 'two-handed-swordsman-upgrade'
@@ -132,7 +129,10 @@ export type ResearchableTechnologyType =
   | 'crop-rotation'
   // Loom (Town Center, Dark Age, no prereq, 50 gold): +15 villager HP + +1 armor,
   // applied imperatively to existing + future villagers — see spec §11.8.
-  | 'loom';
+  | 'loom'
+  // DERIVED defensive tower-upgrade techs (Watch Tower): Guard Tower (Castle, +2 attack) → Keep (Imperial, +2 attack + +1 range). Recomputed from the researched set at the tower fire site (towerTechEffects); no per-building state. HP scaling deferred. Spec §10.8.
+  | 'guard-tower'
+  | 'keep';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

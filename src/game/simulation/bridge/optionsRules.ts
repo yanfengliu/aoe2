@@ -13,6 +13,7 @@ import type {
 } from '../types';
 import type { UpgradeChainEntry } from '../upgradeChains';
 import { economyTechResearchOptions } from './economyTechOptions';
+import { towerTechResearchOptions } from '../towerTechOptions';
 
 export interface OptionsRulesDeps {
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
@@ -359,6 +360,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (options.length > 0) {
         return options;
       }
+    }
+
+    if (buildingType === 'watch-tower') {
+      return towerTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);
     }
 
     return economyTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);

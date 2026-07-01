@@ -266,6 +266,7 @@ const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechno
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
+  ['watch-tower', ['guard-tower', 'keep']],
 ]);
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([

@@ -169,6 +169,9 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'hand-cart': { food: 305, wood: 200 },
   // Loom: technologies.csv:86 — 50 gold.
   loom: { gold: 50 },
+  // Defensive tower-upgrade techs (Watch Tower): Guard Tower / Keep.
+  'guard-tower': { food: 100, gold: 50 },
+  keep: { food: 200, gold: 100 },
   // Farm-food techs (Mill; costs from technologies.csv — Horse Collar 75/75,
   // Heavy Plow 125/125, Crop Rotation 250/250).
   'horse-collar': { food: 75, wood: 75 },
@@ -286,6 +289,9 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'hand-cart': 550,
   // Loom: technologies.csv:86 — 25 s × 10 TPS.
   loom: 250,
+  // Defensive tower-upgrade techs (Watch Tower): Guard Tower / Keep.
+  'guard-tower': 300,
+  keep: 400,
   // Farm-food techs (Mill; CSV research seconds × 10 TPS — 20 / 40 / 70 s).
   'horse-collar': 200,
   'heavy-plow': 400,

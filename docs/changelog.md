@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.57 - 2026-07-01
+
+### Defensive tower upgrades: Guard Tower and Keep
+
+Watch Towers can now be upgraded so they hit harder and, at the top tier, farther — mirroring AoE2's Watch Tower → Guard Tower → Keep ladder. Two new techs are researched at the Watch Tower: **Guard Tower** (Castle Age, 100 food / 50 gold) gives all of that player's Watch Towers **+2 attack**, and **Keep** (Imperial Age, requires Guard Tower first, 200 food / 100 gold) adds **+2 more attack and +1 range** (so towers hit for +4 total and reach one tile farther once Keep is done). Only Watch Towers benefit — Town Center and Castle fire are unchanged. The bonus is derived from your researched techs at the moment a tower fires, so it applies to towers you already own AND any you build later, with no save-format change. Note the divergence from AoE2: these are hosted at the Watch Tower here (there is no University yet), and the AoE2 per-upgrade tower-HP boost is deferred.
+
 ## 0.1.56 - 2026-07-01
 
 ### The AI grows a bigger economy across the ages

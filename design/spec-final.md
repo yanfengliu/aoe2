@@ -956,6 +956,8 @@ Town Centers, Towers, and Castles must support:
 
 The building-arrow system should be an explicit rules subsystem, not hard-coded special cases.
 
+Defensive tower-upgrade techs (Guard Tower → Keep, implemented v0.1.57). The Watch Tower ladder mirrors AoE2's Watch Tower → Guard Tower → Keep progression, but SCOPED to attack + range: Guard Tower (Castle Age, no tech prereq, 100 food / 50 gold, 300 ticks) gives the owner's Watch Towers +2 attack; Keep (Imperial Age, requires Guard Tower first, 200 food / 100 gold, 400 ticks) gives +2 more attack (so 0 / +2 / +4 across none / Guard Tower / Keep) AND +1 range (base 7 → 8). AoE2 DIVERGENCE: these techs are hosted at the Watch Tower here (linear chain like the Mill farm techs), not at the University, which does not exist in this build yet; when a University is added they can move there. The bonus is DERIVED (pure) from the owner's researched-tech set at the tower's fire site (towerTechEffects, no per-building state, no save-format change) — a Watch Tower whose owner has the tech fires harder/farther with no per-entity mutation, exactly like the derived economy techs. The bonus applies ONLY to Watch Towers; Town Center and Castle defensive fire are unchanged. AoE2's per-upgrade +25% tower HP is DEFERRED (it needs building-HP mutation with no prior art in this build).
+
 ### 10.9 Conversion
 
 Monk conversion must support:

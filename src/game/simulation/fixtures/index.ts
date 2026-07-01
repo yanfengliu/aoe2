@@ -213,6 +213,13 @@ export {
 } from './loom';
 
 export {
+  createTowerUpgradeBaselineFixture,
+  createTowerUpgradeGuardFixture,
+  createTowerUpgradeEdgeNoKeepFixture,
+  createTowerUpgradeEdgeKeepFixture,
+} from './towerUpgrades';
+
+export {
   createUnitShowcaseFixture,
 } from './unitShowcase';
 
