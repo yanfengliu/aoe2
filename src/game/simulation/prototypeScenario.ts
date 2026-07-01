@@ -124,6 +124,12 @@ export interface PlayerStartSpec {
   // that exercises one specific behavior (auto-aggression detection,
   // boundary checks) without the standard AI walking units around.
   disableAi?: boolean;
+  // Headless AI-vs-AI: seed an AiState for this owner even if it is the human
+  // slot (`owner === humanPlayerId`), so a deterministic playtest can run a
+  // competitive match instead of AI-vs-inert. Set only by the playtest harness
+  // via `forceAiForOwners`; the real game never sets it, so the human keeps
+  // control. Ignored when `disableAi` is also set (disable wins).
+  forceAi?: boolean;
   // FU1: Fixtures can pre-research technologies on bridge boot so
   // tests skip the research cadence when verifying downstream effects
   // (e.g. Chemistry-gated Bombard Cannon training). Applied after

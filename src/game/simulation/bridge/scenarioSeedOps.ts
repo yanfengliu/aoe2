@@ -169,7 +169,10 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       const ticks = Math.max(1, start.relicCountdownOverrideTicks);
       accessor.mutate(relicCountdownOverridesCodec, (m) => m.set(start.owner, ticks));
     }
-    if (start.owner !== humanPlayerId && !start.disableAi) {
+    // AI is seeded for every non-human owner, and (headless only) for the
+    // human slot too when `forceAi` is set — so a deterministic playtest can
+    // run AI-vs-AI. `disableAi` still wins when both are set.
+    if ((start.owner !== humanPlayerId || start.forceAi) && !start.disableAi) {
       ensureAiState(start.owner, start.difficulty ?? defaultDifficulty);
     }
   }

@@ -41,6 +41,10 @@ export interface RunPlaytestConfig {
   // of stalemating to `maxTicks`. Keep it below `maxTicks` so the timer fires
   // inside the run loop (the cap stays a backstop).
   gameLength?: number;
+  // Headless AI-vs-AI: force an AI onto the human slot too, so a deterministic
+  // run is a competitive match instead of AI(enemy)-vs-inert(human). Off by
+  // default (the human slot stays inert, as in a normal headless run).
+  allAi?: boolean;
 }
 
 export interface RunPlaytestResult {

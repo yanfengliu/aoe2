@@ -14,6 +14,9 @@ export interface PlaytestCorpusRun {
   // Must be positive and strictly below `maxTicks` so the timer fires inside
   // the run loop (the cap stays a backstop).
   gameLength?: number;
+  // Headless AI-vs-AI: when true, force an AI onto the human slot so the run is
+  // a competitive match instead of AI(enemy)-vs-inert(human). Defaults to false.
+  allAi?: boolean;
   thresholds?: OracleThresholds;
 }
 
@@ -40,6 +43,9 @@ export function parseCorpusFile(raw: string): PlaytestCorpus {
           `corpus.runs[${i}]: gameLength (${r.gameLength}) must be below maxTicks (${r.maxTicks}) so the score timer fires inside the run`,
         );
       }
+    }
+    if (r.allAi !== undefined && typeof r.allAi !== 'boolean') {
+      throw new Error(`corpus.runs[${i}]: allAi must be boolean`);
     }
     if (r.thresholds !== undefined && (typeof r.thresholds !== 'object' || r.thresholds === null)) {
       throw new Error(`corpus.runs[${i}]: thresholds must be object`);

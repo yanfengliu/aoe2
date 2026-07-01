@@ -215,6 +215,10 @@ export interface CreateSimulationBridgeOptions {
   // existing aiStates.has(owner) gate then skips them. Closure-local;
   // never serialized into world.state.
   disableAiForOwners?: ReadonlySet<number>;
+  // Headless AI-vs-AI harness: force an AI onto the listed owners even if one is
+  // the human slot, so a deterministic playtest runs a competitive match instead
+  // of AI-vs-inert. Closure-local; the real game never sets it.
+  forceAiForOwners?: ReadonlySet<number>;
   // Playtest-harness override: force the score timer on (spec §4.3) with this
   // game length, even for a scenario that bakes none. Used by the corpus to
   // terminate an otherwise-stalemating deterministic match on score. Ignored
@@ -279,6 +283,7 @@ export function createSimulationBridge(
   } =
     createWorld(effectiveSeed, visibility, savedGame, 'live', {
       disableAiForOwners: options.disableAiForOwners,
+      forceAiForOwners: options.forceAiForOwners,
       gameLength: options.gameLength,
     });
   const renderStore = new RenderStore();

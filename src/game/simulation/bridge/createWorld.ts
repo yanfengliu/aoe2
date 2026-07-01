@@ -37,6 +37,7 @@ import type { CreateWorldResult } from './createWorldResult';
 
 export interface CreateWorldOptions {
   disableAiForOwners?: ReadonlySet<number>;
+  forceAiForOwners?: ReadonlySet<number>;
   // Playtest-harness override: force the score timer on (spec §4.3) by
   // stamping `gameLength` onto the freshly-built scenario, even when the
   // scenario bakes none. Lets the corpus terminate an otherwise-stalemating
@@ -111,6 +112,17 @@ export function createWorld(
     for (const start of scenario.starts) {
       if (options.disableAiForOwners.has(start.owner)) {
         start.disableAi = true;
+      }
+    }
+  }
+  // Headless AI-vs-AI harness: force an AI onto the listed owners (typically the
+  // human slot) so a deterministic playtest runs a competitive match instead of
+  // AI-vs-inert. Closure-local — never enters world.state; the real game never
+  // sets this, so the human keeps control.
+  if (scenario && options.forceAiForOwners && options.forceAiForOwners.size > 0) {
+    for (const start of scenario.starts) {
+      if (options.forceAiForOwners.has(start.owner)) {
+        start.forceAi = true;
       }
     }
   }

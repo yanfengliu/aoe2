@@ -64,4 +64,14 @@ describe('parseCorpusFile', () => {
     const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, gameLength: 100 }] });
     expect(() => parseCorpusFile(json)).toThrow(/gameLength .* below maxTicks/);
   });
+
+  it('accepts an optional allAi boolean', () => {
+    const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, allAi: true }] });
+    expect(parseCorpusFile(json).runs[0]!.allAi).toBe(true);
+  });
+
+  it('rejects a non-boolean allAi', () => {
+    const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, allAi: 'yes' }] });
+    expect(() => parseCorpusFile(json)).toThrow(/allAi/);
+  });
 });

@@ -49,6 +49,10 @@ for (const run of corpus.runs) {
   if (run.gameLength !== undefined) {
     playArgs.push('--game-length', String(run.gameLength));
   }
+  // Headless AI-vs-AI: force an AI onto the human slot so the run is competitive.
+  if (run.allAi) {
+    playArgs.push('--all-ai');
+  }
   const playR = spawnSync(npmBin, playArgs, { encoding: 'utf8', shell: useShell });
   if (playR.status !== 0) {
     const why = playR.error?.message ?? playR.stderr ?? `exit ${playR.status}`;

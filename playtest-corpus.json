@@ -4,7 +4,8 @@
       "name": "default-seed-smoke",
       "seed": "default-seed",
       "maxTicks": 8100,
-      "gameLength": 8000
+      "gameLength": 8000,
+      "allAi": true
     }
   ]
 }

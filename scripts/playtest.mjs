@@ -17,6 +17,7 @@ function parseArgs(argv) {
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--scenario') args.scenario = argv[++i];
     else if (a === '--game-length') args.gameLength = Number(argv[++i]);
+    else if (a === '--all-ai') args.allAi = true;
   }
   return args;
 }
@@ -38,6 +39,7 @@ const result = await runPlaytest({
   maxTicks: args.maxTicks,
   ...(args.scenario ? { scenario: args.scenario } : {}),
   ...(args.gameLength !== undefined ? { gameLength: args.gameLength } : {}),
+  ...(args.allAi ? { allAi: true } : {}),
 });
 
 mkdirSync(dirname(args.out), { recursive: true });

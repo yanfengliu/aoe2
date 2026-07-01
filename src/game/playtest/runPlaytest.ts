@@ -1,5 +1,6 @@
 import { MemorySink, SessionRecorder, SinkWriteError } from 'civ-engine';
 import { createSimulationBridge } from '../simulation/createSimulationBridge';
+import { HUMAN_PLAYER_ID } from '../simulation/prototypeScenario';
 import type {
   OracleEnvelope,
   RunPlaytestConfig,
@@ -14,7 +15,12 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
   const scenario = config.scenario ?? seed;
   const runStartedAt = new Date().toISOString();
 
-  const bridge = createSimulationBridge(seed, { gameLength: config.gameLength });
+  const bridge = createSimulationBridge(seed, {
+    gameLength: config.gameLength,
+    // AI-vs-AI: force an AI onto the human slot (owner 1) so a deterministic
+    // run is a competitive match, not AI-vs-inert.
+    ...(config.allAi ? { forceAiForOwners: new Set([HUMAN_PLAYER_ID]) } : {}),
+  });
   const sink = new MemorySink({ allowSidecar: true });
   const recorder = new SessionRecorder({
     world: bridge.world,
