@@ -74,4 +74,18 @@ describe('parseCorpusFile', () => {
     const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, allAi: 'yes' }] });
     expect(() => parseCorpusFile(json)).toThrow(/allAi/);
   });
+
+  it('accepts a valid requireAgeByEnd', () => {
+    const json = JSON.stringify({
+      runs: [{ name: 'x', seed: 'x', maxTicks: 8100, requireAgeByEnd: 'feudal-age' }],
+    });
+    expect(parseCorpusFile(json).runs[0]!.requireAgeByEnd).toBe('feudal-age');
+  });
+
+  it('rejects an unknown requireAgeByEnd', () => {
+    const json = JSON.stringify({
+      runs: [{ name: 'x', seed: 'x', maxTicks: 100, requireAgeByEnd: 'dark-age' }],
+    });
+    expect(() => parseCorpusFile(json)).toThrow(/requireAgeByEnd/);
+  });
 });

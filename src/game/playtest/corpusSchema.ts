@@ -17,6 +17,11 @@ export interface PlaytestCorpusRun {
   // Headless AI-vs-AI: when true, force an AI onto the human slot so the run is
   // a competitive match instead of AI(enemy)-vs-inert(human). Defaults to false.
   allAi?: boolean;
+  // Economy-progression gate: when set, the run FAILS (a HIGH) unless at least
+  // one LIVING owner reached this age by match end (checked by replaying the
+  // bundle). Guards against the drop-off-freeze class where an economy stalls
+  // and no one leaves the Dark Age. Only meaningful for a long run.
+  requireAgeByEnd?: 'feudal-age' | 'castle-age' | 'imperial-age';
   thresholds?: OracleThresholds;
 }
 
@@ -46,6 +51,14 @@ export function parseCorpusFile(raw: string): PlaytestCorpus {
     }
     if (r.allAi !== undefined && typeof r.allAi !== 'boolean') {
       throw new Error(`corpus.runs[${i}]: allAi must be boolean`);
+    }
+    if (
+      r.requireAgeByEnd !== undefined
+      && !['feudal-age', 'castle-age', 'imperial-age'].includes(r.requireAgeByEnd)
+    ) {
+      throw new Error(
+        `corpus.runs[${i}]: requireAgeByEnd must be one of feudal-age, castle-age, imperial-age`,
+      );
     }
     if (r.thresholds !== undefined && (typeof r.thresholds !== 'object' || r.thresholds === null)) {
       throw new Error(`corpus.runs[${i}]: thresholds must be object`);
