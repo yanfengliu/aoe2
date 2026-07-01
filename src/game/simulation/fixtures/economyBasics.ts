@@ -27,3 +27,7 @@ export {
 export {
   createGatherUnreachableRerouteFixture,
 } from './economyBasics/gatherReroute';
+
+export {
+  createDropOffUnreachableRerouteFixture,
+} from './economyBasics/dropOffReroute';

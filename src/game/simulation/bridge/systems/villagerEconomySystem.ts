@@ -26,6 +26,10 @@ import {
   type GatherAssignmentDeps,
 } from '../villagerGatherAssignment';
 import {
+  findReachableDropOff,
+  type DropOffAssignmentDeps,
+} from '../villagerDropOffAssignment';
+import {
   effectiveCarryCapacity,
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
@@ -106,6 +110,7 @@ export interface VillagerEconomySystemDeps {
     owner: number,
     resource: 'food' | 'wood' | 'gold' | 'stone',
     position: Position,
+    excludeIds?: ReadonlySet<number>,
   ) => number | null;
   findBuildingApproachPlan: (
     unitId: number,
@@ -135,6 +140,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     isHarvestableResource,
     findNearestDropOffBuilding,
     findResourceApproachPlan,
+  };
+  const dropOffDeps: DropOffAssignmentDeps = {
+    findNearestDropOffBuilding,
+    findBuildingApproachPlan,
   };
   // Thin binding over the extracted assignNearestResource so the call sites
   // below stay terse. The two hot paths (idle→assign, over-subscription
@@ -423,16 +432,28 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             continue;
           }
 
-          const dropOffId = findNearestDropOffBuilding(
-            activeWorld,
-            unit.owner,
-            carriedResource,
-            position,
-          );
-          gatherer.dropOffBuildingId = dropOffId;
-          const dropOffPlan = dropOffId === null
-            ? null
-            : findBuildingApproachPlan(id, dropOffId, 1, activeWorld);
+          // Hot path: head for the nearest drop-off by distance (unchanged).
+          const nearestId = findNearestDropOffBuilding(activeWorld, unit.owner, carriedResource, position);
+          let dropOffBuildingId = nearestId;
+          let dropOffPlan = nearestId === null ? null : findBuildingApproachPlan(id, nearestId, 1, activeWorld);
+
+          // Reachability reroute (recovery path only): if the nearest drop-off
+          // is unreachable AND the villager has been stuck a full retry interval
+          // on it (stuckSince set → a retry, not the first block), look past it
+          // for the nearest REACHABLE drop-off so a persistently boxed-in
+          // villager isn't latched forever (AI-vs-AI grounding regression — the
+          // symmetric twin of the v0.1.47 resource reroute). Transient blocking
+          // (< one interval) still just waits → hot path byte-identical.
+          if (!dropOffPlan && stuckSince !== undefined) {
+            const reachable = findReachableDropOff(
+              dropOffDeps, activeWorld, unit.owner, carriedResource, id, position,
+            );
+            if (reachable) {
+              dropOffBuildingId = reachable.buildingId;
+              dropOffPlan = reachable.plan;
+            }
+          }
+          gatherer.dropOffBuildingId = dropOffBuildingId;
 
           if (!dropOffPlan) {
             setStuck(id, activeWorld.tick);

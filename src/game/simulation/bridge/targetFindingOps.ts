@@ -343,11 +343,14 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     owner: number,
     resourceKind: EconomyResourceKind,
     origin: Position,
+    excludeIds?: ReadonlySet<number>,
   ): number | null {
     let nearestBuildingId: number | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
 
     for (const id of activeWorld.query('position', 'building')) {
+      // `excludeIds` lets the drop-off reroute skip ones already found unreachable.
+      if (excludeIds?.has(id)) continue;
       const position = activeWorld.getComponent<Position>(id, 'position');
       const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
       if (!position || !building || building.owner !== owner) {

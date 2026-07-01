@@ -2,9 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.1.54 - 2026-07-01
+## 0.1.55 - 2026-07-01
 
-### Selection panel shows melee and pierce armor separately
+### Villagers reroute to a reachable drop-off instead of freezing the economy
+
+Villagers no longer deadlock when their nearest resource drop-off building is unreachable. Previously, a villager carrying a full load whose nearest drop-off (e.g. a Town Center packed in by its owner's own buildings) had every approach cell blocked would stay in the carrying state forever and never deposit — freezing that player's resources. This most visibly stalled the AI: in an 8000-tick match its food stayed frozen (villagers gathered but never deposited) and it never left the Dark Age. Now a villager whose nearest drop-off is unreachable returns to the next-nearest REACHABLE drop-off (e.g. a farther Mill) instead. With the fix, the same AI's food flows normally and it advances to the Feudal Age. This mirrors the existing unreachable-resource reroute (0.1.47) on the return leg. No save-format change.
 
 The unit info panel now lists **Melee armor** and **Pierce armor** as two rows instead of a single "Armor" number, so the asymmetric armor split (0.1.53) is visible — e.g. a villager with Loom shows Melee armor 1 / Pierce armor 2, and a fully-upgraded infantry line shows its higher pierce value. The numbers are the armor-upgrade bonus (as before, tech bonus rather than base + bonus). Buildings still show 0/0. No gameplay change — this is a display-only addition.
 

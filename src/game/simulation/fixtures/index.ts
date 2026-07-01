@@ -27,6 +27,7 @@ export {
   createBoarAggroFixture,
   createWolfAggroFixture,
   createGatherUnreachableRerouteFixture,
+  createDropOffUnreachableRerouteFixture,
 } from './economyBasics';
 
 export {

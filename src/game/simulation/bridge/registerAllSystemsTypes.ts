@@ -270,6 +270,7 @@ export interface RegisterAllSystemsDeps {
     owner: number,
     resource: 'food' | 'wood' | 'gold' | 'stone',
     position: Position,
+    excludeIds?: ReadonlySet<number>,
   ) => number | null;
   findWildlifeRangePlan: (
     entityId: number,
