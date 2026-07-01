@@ -16,15 +16,28 @@ function parseArgs(argv) {
     else if (a === '--max-ticks') args.maxTicks = Number(argv[++i]);
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--scenario') args.scenario = argv[++i];
+    else if (a === '--game-length') args.gameLength = Number(argv[++i]);
   }
   return args;
 }
 
 const args = parseArgs(process.argv);
+// Reject malformed numeric flags early: `Number('abc')` is NaN, which would
+// otherwise flow through as a bogus tick count (score timer silently off, or a
+// zero-length run). Both must be positive integer tick counts.
+for (const [flag, value] of [
+  ['--max-ticks', args.maxTicks],
+  ['--game-length', args.gameLength],
+]) {
+  if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+    throw new Error(`${flag} must be a positive integer, got ${value}`);
+  }
+}
 const result = await runPlaytest({
   seed: args.seed,
   maxTicks: args.maxTicks,
   ...(args.scenario ? { scenario: args.scenario } : {}),
+  ...(args.gameLength !== undefined ? { gameLength: args.gameLength } : {}),
 });
 
 mkdirSync(dirname(args.out), { recursive: true });

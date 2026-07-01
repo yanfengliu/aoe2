@@ -14,7 +14,7 @@ export async function runPlaytest(config: RunPlaytestConfig): Promise<RunPlaytes
   const scenario = config.scenario ?? seed;
   const runStartedAt = new Date().toISOString();
 
-  const bridge = createSimulationBridge(seed);
+  const bridge = createSimulationBridge(seed, { gameLength: config.gameLength });
   const sink = new MemorySink({ allowSidecar: true });
   const recorder = new SessionRecorder({
     world: bridge.world,

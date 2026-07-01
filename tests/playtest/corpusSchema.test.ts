@@ -42,4 +42,26 @@ describe('parseCorpusFile', () => {
     const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, thresholds: null }] });
     expect(() => parseCorpusFile(json)).toThrow(/thresholds/);
   });
+
+  it('accepts an optional gameLength below maxTicks', () => {
+    const json = JSON.stringify({
+      runs: [{ name: 'x', seed: 'x', maxTicks: 8100, gameLength: 8000 }],
+    });
+    expect(parseCorpusFile(json).runs[0]!.gameLength).toBe(8000);
+  });
+
+  it('rejects a non-positive gameLength', () => {
+    const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, gameLength: 0 }] });
+    expect(() => parseCorpusFile(json)).toThrow(/gameLength/);
+  });
+
+  it('rejects a fractional gameLength (integer tick counts only)', () => {
+    const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, gameLength: 50.5 }] });
+    expect(() => parseCorpusFile(json)).toThrow(/gameLength/);
+  });
+
+  it('rejects a gameLength that is not below maxTicks (timer would never fire)', () => {
+    const json = JSON.stringify({ runs: [{ name: 'x', seed: 'x', maxTicks: 100, gameLength: 100 }] });
+    expect(() => parseCorpusFile(json)).toThrow(/gameLength .* below maxTicks/);
+  });
 });

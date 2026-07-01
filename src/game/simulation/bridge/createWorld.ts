@@ -37,6 +37,11 @@ import type { CreateWorldResult } from './createWorldResult';
 
 export interface CreateWorldOptions {
   disableAiForOwners?: ReadonlySet<number>;
+  // Playtest-harness override: force the score timer on (spec §4.3) by
+  // stamping `gameLength` onto the freshly-built scenario, even when the
+  // scenario bakes none. Lets the corpus terminate an otherwise-stalemating
+  // match on score. Ignored on the save-load path (scenario is null).
+  gameLength?: number;
 }
 
 export function createWorld(
@@ -108,6 +113,12 @@ export function createWorld(
         start.disableAi = true;
       }
     }
+  }
+  // Harness override: stamp a game-length onto the scenario so the score
+  // timer resolves the match. Only when explicitly provided — the real game
+  // leaves the scenario's own (usually absent) gameLength untouched.
+  if (scenario && options.gameLength !== undefined) {
+    scenario.gameLength = options.gameLength;
   }
   // When loading a save, the deserialized world already has every tile
   // entity (deserialize preserves entity ids), so rebuild the lookup

@@ -36,6 +36,11 @@ export interface RunPlaytestConfig {
   seed: string;
   scenario?: string;
   maxTicks: number;
+  // Optional score-timer game length (spec §4.3). When set, the run forces
+  // the score timer on so the match terminates on score at this tick instead
+  // of stalemating to `maxTicks`. Keep it below `maxTicks` so the timer fires
+  // inside the run loop (the cap stays a backstop).
+  gameLength?: number;
 }
 
 export interface RunPlaytestResult {

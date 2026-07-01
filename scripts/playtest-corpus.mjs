@@ -44,6 +44,11 @@ for (const run of corpus.runs) {
     '--out',
     out,
   ];
+  // Score-timer game length (spec §4.3): when set, the match ends on score at
+  // this tick so the match-completion oracle can require a real conclusion.
+  if (run.gameLength !== undefined) {
+    playArgs.push('--game-length', String(run.gameLength));
+  }
   const playR = spawnSync(npmBin, playArgs, { encoding: 'utf8', shell: useShell });
   if (playR.status !== 0) {
     const why = playR.error?.message ?? playR.stderr ?? `exit ${playR.status}`;

@@ -69,3 +69,20 @@ describe('score-timer victory (spec §4.3)', () => {
     expect(matchState.scores![3]).toBe(100);
   });
 });
+
+// The playtest corpus injects a `gameLength` so an otherwise-stalemating match
+// terminates on score (re-enabling the match-completion oracle). This is the
+// override path used by that harness: turn the score timer on for a scenario
+// that bakes no gameLength of its own.
+describe('createSimulationBridge gameLength override', () => {
+  it('turns on the score timer for a scenario that has no gameLength', () => {
+    const bridge = createSimulationBridge('gamelength-override-probe', { gameLength: 20 });
+    expect(bridge.getMatchState().outcome).toBe('running');
+    // A plain default map never conquest/wonder/relic-resolves in 20 ticks, so
+    // the only thing that can end it is the injected score timer.
+    expect(
+      stepBridgeUntil(bridge, () => bridge.getMatchState().outcome !== 'running', { maxSteps: 30 }),
+    ).toBe(true);
+    expect(bridge.getMatchState().winCondition).toBe('score');
+  });
+});

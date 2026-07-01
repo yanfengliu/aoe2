@@ -3,8 +3,8 @@
     {
       "name": "default-seed-smoke",
       "seed": "default-seed",
-      "maxTicks": 8000,
-      "thresholds": { "matchCompleteRequired": false }
+      "maxTicks": 8100,
+      "gameLength": 8000
     }
   ]
 }
