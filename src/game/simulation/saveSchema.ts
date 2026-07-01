@@ -89,6 +89,9 @@ export interface SerializedWildlifeState {
   reloadTicks: number;
   cooldownTicks: number;
   armor: number;
+  // Extra pierce-only armor-tech bonus (armorTechBonuses.ts). Optional: pre-split
+  // saves have no value and read as fully symmetric (`?? 0`) on load.
+  pierceArmorBonus?: number;
   autoAggro: boolean;
   isAlive: boolean;
   corpsePersists: boolean;
@@ -195,6 +198,9 @@ export interface SerializedSideMaps {
     reloadTicks: number;
     cooldownTicks: number;
     armor: number;
+    // Extra pierce-only armor-tech bonus (armorTechBonuses.ts). Optional: pre-split
+    // saves have no value and read as fully symmetric (`?? 0`) on load.
+    pierceArmorBonus?: number;
   }>;
   buildingHealthStates: SerializedEntityKeyedSideMap<{ currentHp: number; maxHp: number }>;
   buildingCombatStates: SerializedEntityKeyedSideMap<{

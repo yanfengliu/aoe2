@@ -10,21 +10,20 @@
 // unit-type-change model) and would scale current HP wrongly for a flat buff.
 // The caller (applyTechnology) guards against a double-bump via its
 // already-researched check, so two Town Centers race-queueing Loom apply it
-// once. AoE2 Loom is +1 melee / +2 pierce; this ships +1/+1 via the single
-// CombatState.armor scalar (the extra +1 pierce is deferred — see the
-// ResearchableTechnologyType union comment + design/spec-final.md §11.8).
+// once. AoE2 Loom is +1 melee / +2 pierce; applyArmorTech routes the asymmetric
+// pierce bonus (spec §11.8).
 
 import type { UnitComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { applyArmorTech } from '../armorTechBonuses';
 import { combatStatesCodec } from './bridgeStateSerialize';
 
 export const LOOM_BONUS_HP = 15;
-export const LOOM_BONUS_ARMOR = 1;
 
-// Apply Loom's flat +15 HP (current + max) and +1 armor to every villager owned
-// by `owner`. Caller marks the combat-state slot dirty and triggers the
-// out-of-band render refresh.
+// Apply Loom's flat +15 HP (current + max) and +1 melee / +2 pierce armor to
+// every villager owned by `owner`. Caller marks the combat-state slot dirty and
+// triggers the out-of-band render refresh.
 export function applyLoomToOwnedVillagers(
   world: GameWorld,
   accessor: BridgeStateAccessor,
@@ -38,6 +37,6 @@ export function applyLoomToOwnedVillagers(
     }
     combat.maxHp += LOOM_BONUS_HP;
     combat.currentHp += LOOM_BONUS_HP;
-    combat.armor += LOOM_BONUS_ARMOR;
+    applyArmorTech(combat, 'loom');
   }
 }

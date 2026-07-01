@@ -310,7 +310,9 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   accessor.mutate(combatStatesCodec, (m) => {
     m.clear();
     for (const [id, combat] of blob.combatStates) {
-      m.set(id, { ...combat });
+      // Pre-split saves have no pierceArmorBonus; default it to 0 so pierce
+      // armor reads as fully symmetric (the `armor` value already carried it).
+      m.set(id, { ...combat, pierceArmorBonus: combat.pierceArmorBonus ?? 0 });
     }
   });
   accessor.mutate(buildingHealthStatesCodec, (m) => {
@@ -353,6 +355,7 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
         reloadTicks: wildState.reloadTicks,
         cooldownTicks: wildState.cooldownTicks,
         armor: wildState.armor,
+        pierceArmorBonus: wildState.pierceArmorBonus ?? 0,
         autoAggro: wildState.autoAggro,
         isAlive: wildState.isAlive,
         corpsePersists: wildState.corpsePersists,

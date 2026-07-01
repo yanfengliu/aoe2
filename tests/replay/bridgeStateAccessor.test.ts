@@ -63,7 +63,7 @@ describe('BridgeStateAccessor', () => {
 
   describe('codec round-trip', () => {
     it('flatMap codec round-trips an empty Map', () => {
-      const original = new Map<number, { currentHp: number; maxHp: number; armor: number; attackDamage: number; attackRange: number; reloadTicks: number; cooldownTicks: number }>();
+      const original = new Map<number, { currentHp: number; maxHp: number; armor: number; attackDamage: number; attackRange: number; reloadTicks: number; cooldownTicks: number; pierceArmorBonus: number }>();
       const json = combatStatesCodec.serialize(original);
       const restored = combatStatesCodec.deserialize(json);
       expect(restored).toEqual(original);
@@ -73,11 +73,11 @@ describe('BridgeStateAccessor', () => {
       const original = new Map([
         [
           1,
-          { currentHp: 50, maxHp: 60, armor: 1, attackDamage: 5, attackRange: 1, reloadTicks: 10, cooldownTicks: 0 },
+          { currentHp: 50, maxHp: 60, armor: 1, attackDamage: 5, attackRange: 1, reloadTicks: 10, cooldownTicks: 0, pierceArmorBonus: 0 },
         ],
         [
           2,
-          { currentHp: 30, maxHp: 60, armor: 0, attackDamage: 3, attackRange: 4, reloadTicks: 12, cooldownTicks: 5 },
+          { currentHp: 30, maxHp: 60, armor: 0, attackDamage: 3, attackRange: 4, reloadTicks: 12, cooldownTicks: 5, pierceArmorBonus: 0 },
         ],
       ]);
       const json = combatStatesCodec.serialize(original);
@@ -176,7 +176,7 @@ describe('BridgeStateAccessor', () => {
       const accessor = new BridgeStateAccessor(() => world);
       expect(accessor.dirtySize).toBe(0);
       accessor.mutate(combatStatesCodec, (m) =>
-        m.set(1, { currentHp: 100, maxHp: 100, armor: 0, attackDamage: 0, attackRange: 0, reloadTicks: 0, cooldownTicks: 0 }),
+        m.set(1, { currentHp: 100, maxHp: 100, armor: 0, attackDamage: 0, attackRange: 0, reloadTicks: 0, cooldownTicks: 0, pierceArmorBonus: 0 }),
       );
       expect(accessor.dirtySize).toBe(1);
     });
@@ -185,7 +185,7 @@ describe('BridgeStateAccessor', () => {
       const world = makeWorld();
       const accessor = new BridgeStateAccessor(() => world);
       accessor.mutate(combatStatesCodec, (m) =>
-        m.set(7, { currentHp: 25, maxHp: 60, armor: 1, attackDamage: 2, attackRange: 1, reloadTicks: 8, cooldownTicks: 0 }),
+        m.set(7, { currentHp: 25, maxHp: 60, armor: 1, attackDamage: 2, attackRange: 1, reloadTicks: 8, cooldownTicks: 0, pierceArmorBonus: 0 }),
       );
       accessor.flush();
       // After flush, dirty set is empty; world.state has the serialized form.
@@ -194,7 +194,7 @@ describe('BridgeStateAccessor', () => {
       expect(serialized).toBeDefined();
       // Hydrate via codec to verify round-trip.
       const restored = combatStatesCodec.deserialize(
-        JSON.parse(JSON.stringify(serialized)) as Array<[number, { currentHp: number; maxHp: number; armor: number; attackDamage: number; attackRange: number; reloadTicks: number; cooldownTicks: number }]>,
+        JSON.parse(JSON.stringify(serialized)) as Array<[number, { currentHp: number; maxHp: number; armor: number; attackDamage: number; attackRange: number; reloadTicks: number; cooldownTicks: number; pierceArmorBonus: number }]>,
       );
       expect(restored.get(7)?.currentHp).toBe(25);
     });
@@ -227,6 +227,7 @@ describe('BridgeStateAccessor', () => {
           attackRange: 1,
           reloadTicks: 10,
           cooldownTicks: 0,
+          pierceArmorBonus: 0,
         }),
       );
       accessor.flush();
@@ -261,6 +262,7 @@ describe('BridgeStateAccessor', () => {
           attackRange: 1,
           reloadTicks: 10,
           cooldownTicks: 0,
+          pierceArmorBonus: 0,
         }),
       );
       accessor.flush();
@@ -308,6 +310,7 @@ describe('BridgeStateAccessor', () => {
           attackRange: 0,
           reloadTicks: 0,
           cooldownTicks: 0,
+          pierceArmorBonus: 0,
         }),
       );
       accessor.markDirty('aoe2.unknownSlot');
@@ -326,7 +329,7 @@ describe('BridgeStateAccessor', () => {
       const world = makeWorld();
       const accessor = new BridgeStateAccessor(() => world);
       accessor.mutate(combatStatesCodec, (m) =>
-        m.set(1, { currentHp: 1, maxHp: 1, armor: 0, attackDamage: 0, attackRange: 0, reloadTicks: 0, cooldownTicks: 0 }),
+        m.set(1, { currentHp: 1, maxHp: 1, armor: 0, attackDamage: 0, attackRange: 0, reloadTicks: 0, cooldownTicks: 0, pierceArmorBonus: 0 }),
       );
       expect(accessor.cacheSize).toBeGreaterThan(0);
       accessor.reset();

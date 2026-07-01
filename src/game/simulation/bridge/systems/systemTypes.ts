@@ -11,7 +11,11 @@ export interface CombatState {
   attackRange: number;
   reloadTicks: number;
   cooldownTicks: number;
+  // Symmetric armor-tech bonus, added to BOTH melee and pierce armor.
   armor: number;
+  // Extra pierce-only armor-tech bonus (the asymmetric +1 that the four
+  // top-tier armor techs + Loom add on top of `armor`). See armorTechBonuses.ts.
+  pierceArmorBonus: number;
 }
 
 export interface BuildingHealthState {

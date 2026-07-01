@@ -15,6 +15,7 @@ import {
   effectiveMeleeArmor,
   effectivePierceArmor,
 } from '../../src/game/simulation/prototypeUnitRules';
+import { applyArmorTech, pierceArmorTechBonus } from '../../src/game/simulation/armorTechBonuses';
 import type {
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -124,23 +125,28 @@ describe('Loom — cost & research-time tables', () => {
   });
 });
 
-describe('Loom — armor derivation feeds both melee and pierce at the damage site', () => {
-  it('adds +1 to the villager melee AND pierce armor (single armor scalar)', () => {
-    // Villager base melee/pierce armor is 0/0; Loom contributes +1 to the
-    // CombatState.armor scalar, which both effective-armor helpers add.
-    expect(effectiveMeleeArmor('villager', 0)).toBe(0);
-    expect(effectivePierceArmor('villager', 0)).toBe(0);
-    expect(effectiveMeleeArmor('villager', 1)).toBe(1);
-    expect(effectivePierceArmor('villager', 1)).toBe(1);
+describe('Loom — asymmetric +1 melee / +2 pierce at the damage site (spec §11.8)', () => {
+  it('gives a villager +1 melee armor and +2 pierce armor', () => {
+    // Villager base melee/pierce armor is 0/0; Loom adds +1 to `armor` (melee)
+    // and +1 extra pierce (via pierceArmorBonus), so effective pierce = 2.
+    const state = { armor: 0, pierceArmorBonus: 0 };
+    applyArmorTech(state, 'loom');
+    expect(effectiveMeleeArmor('villager', state.armor)).toBe(1);
+    expect(effectivePierceArmor('villager', pierceArmorTechBonus(state))).toBe(2);
   });
 
-  it('a Loom villager (armor 1) takes 1 less melee and 1 less pierce damage', () => {
+  it('a Loom villager takes 1 less melee and 2 less pierce damage', () => {
+    const loom = { armor: 0, pierceArmorBonus: 0 };
+    applyArmorTech(loom, 'loom');
     // Melee hit of 6: 6 - 0 = 6 vs base, 6 - 1 = 5 with Loom.
     expect(combatDamageAfterArmor(6, 'melee', effectiveMeleeArmor('villager', 0), 0)).toBe(6);
-    expect(combatDamageAfterArmor(6, 'melee', effectiveMeleeArmor('villager', 1), 0)).toBe(5);
-    // Pierce hit of 4: 4 - 0 = 4 vs base, 4 - 1 = 3 with Loom.
-    expect(combatDamageAfterArmor(4, 'pierce', 0, effectivePierceArmor('villager', 0))).toBe(4);
-    expect(combatDamageAfterArmor(4, 'pierce', 0, effectivePierceArmor('villager', 1))).toBe(3);
+    expect(combatDamageAfterArmor(6, 'melee', effectiveMeleeArmor('villager', loom.armor), 0)).toBe(5);
+    // Pierce hit of 5: 5 - 0 = 5 vs base, 5 - 2 = 3 with Loom (was 4 under the
+    // old symmetric +1/+1 model — this is the asymmetry regression guard).
+    expect(combatDamageAfterArmor(5, 'pierce', 0, effectivePierceArmor('villager', 0))).toBe(5);
+    expect(
+      combatDamageAfterArmor(5, 'pierce', 0, effectivePierceArmor('villager', pierceArmorTechBonus(loom))),
+    ).toBe(3);
   });
 });
 
@@ -252,7 +258,62 @@ describe('Loom — no effect before research', () => {
   });
 });
 
+// Recursively delete every occurrence of `key` (simulates a pre-split save that
+// never wrote the field) / collect every value stored under `key`.
+function deepDelete(node: unknown, key: string): void {
+  if (Array.isArray(node)) {
+    node.forEach((child) => deepDelete(child, key));
+  } else if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) {
+      if (k === key) delete (node as Record<string, unknown>)[k];
+      else deepDelete(v, key);
+    }
+  }
+}
+function deepCollect(node: unknown, key: string, out: unknown[] = []): unknown[] {
+  if (Array.isArray(node)) {
+    node.forEach((child) => deepCollect(child, key, out));
+  } else if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) {
+      if (k === key) out.push(v);
+      deepCollect(v, key, out);
+    }
+  }
+  return out;
+}
+
 describe('Loom — save round-trip', () => {
+  it('a pre-split schema-2 save (no pierceArmorBonus) survives load + Loom research without NaN', () => {
+    // Regression for the melee/pierce armor split: a save written before the
+    // split has no `pierceArmorBonus`. Loading it and then researching Loom (an
+    // asymmetric +1 melee / +2 pierce tech) must not turn the villagers' pierce
+    // armor into NaN (undefined + 1). Both reviewers flagged this on the
+    // schema-2 (current) load path.
+    const bridge1 = createSimulationBridge('loom-fixture');
+    const stripped: SaveBlob = JSON.parse(JSON.stringify(bridge1.saveGame())) as SaveBlob;
+    deepDelete(stripped, 'pierceArmorBonus');
+    expect(deepCollect(stripped, 'pierceArmorBonus')).toHaveLength(0);
+
+    const bridge2 = createSimulationBridge('loom-fixture', { savedGame: stripped });
+    expect(selectOwnedBuildingDirect(bridge2, 1, 'town-center')).toBe(true);
+    expect(bridge2.queueResearch('loom')).toBe(true);
+    expect(
+      stepBridgeUntil(bridge2, () => (villagerHealthViaSelection(bridge2, 1)?.max ?? 0) === 40, {
+        maxSteps: 600,
+      }),
+    ).toBe(true);
+    expect(bridge2.getSelectionState().armor).toBe(1); // melee side intact
+
+    // Re-save and inspect the persisted pierce bonuses: a NaN serializes to
+    // null, so requiring every value to be a finite number catches the bug,
+    // and the Loom'd villager's extra pierce bonus is 1.
+    const after = JSON.parse(JSON.stringify(bridge2.saveGame())) as SaveBlob;
+    const bonuses = deepCollect(after, 'pierceArmorBonus');
+    expect(bonuses.length).toBeGreaterThan(0);
+    expect(bonuses.every((v) => typeof v === 'number' && Number.isFinite(v))).toBe(true);
+    expect(bonuses).toContain(1);
+  });
+
   it('persists the researched tech and the boosted villager stats across save/load', () => {
     const bridge1 = createSimulationBridge('loom-fixture');
     expect(selectOwnedBuildingDirect(bridge1, 1, 'town-center')).toBe(true);

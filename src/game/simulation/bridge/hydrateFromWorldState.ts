@@ -171,6 +171,28 @@ export function validateAndPruneHydratedState(deps: RuntimeHydrationDeps): void 
   pruneEntityKeyedSlot(garrisonedUnitToBuildingCodec);
   pruneEntityKeyedSlot(gathererDropOffStuckSinceTickCodec);
 
+  // Schema-2 migration: pre-split saves restore combat/wildlife states through
+  // World.deserialize (verbatim, no field defaulting), so `pierceArmorBonus` is
+  // absent. Default it to 0 here — matching the schema-1 explicit hydrate — so
+  // the field is a real number before any armor-tech research does `+= 1` on it
+  // (an undefined would become NaN). Reads are already `?? 0`-guarded; this
+  // closes the WRITE path. See armorTechBonuses.ts.
+  const defaultPierceArmorBonus = <TValue extends { pierceArmorBonus?: number }, TJson>(
+    codec: SlotCodec<Map<number, TValue>, TJson>,
+  ): void => {
+    const sideMap = accessor.get(codec);
+    let changed = false;
+    for (const value of sideMap.values()) {
+      if (value.pierceArmorBonus === undefined) {
+        value.pierceArmorBonus = 0;
+        changed = true;
+      }
+    }
+    if (changed) accessor.markDirty(codec);
+  };
+  defaultPierceArmorBonus(combatStatesCodec);
+  defaultPierceArmorBonus(wildlifeStatesCodec);
+
   const garrisonedByBuilding = accessor.get(garrisonedByBuildingCodec);
   let garrisonedByBuildingChanged = false;
   for (const [buildingId, list] of [...garrisonedByBuilding]) {

@@ -8,6 +8,7 @@ import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { combatDamageAfterArmor, effectivePierceArmor, isArcherLineUnit } from '../../prototypeUnitRules';
+import { pierceArmorTechBonus } from '../../armorTechBonuses';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
@@ -106,7 +107,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         // their arrow mitigation.
         const targetUnitForArrows = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
         const targetArrowPierceArmor = targetUnitForArrows
-          ? effectivePierceArmor(targetUnitForArrows.unitType, targetCombat.armor)
+          ? effectivePierceArmor(targetUnitForArrows.unitType, pierceArmorTechBonus(targetCombat))
           : 0;
 
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {

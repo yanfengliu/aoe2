@@ -14,6 +14,7 @@ import {
   unitAttackType,
   unitBlastRadius,
 } from '../prototypeUnitRules';
+import { pierceArmorTechBonus } from '../armorTechBonuses';
 import { distanceSquared, type GameWorld } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 
@@ -21,8 +22,10 @@ export interface BlastCandidate {
   readonly id: number;
   readonly unitType: UnitType;
   readonly position: Position;
-  /** The unit's persisted armor-tech bonus (`CombatState.armor`). */
+  /** The unit's symmetric armor-tech bonus (`CombatState.armor`, melee side). */
   readonly armor: number;
+  /** The unit's extra pierce-only armor-tech bonus (`CombatState.pierceArmorBonus`). */
+  readonly pierceArmorBonus: number;
 }
 
 /**
@@ -55,7 +58,7 @@ export function computeBlastDamage(
       raw,
       attackType,
       effectiveMeleeArmor(candidate.unitType, candidate.armor),
-      effectivePierceArmor(candidate.unitType, candidate.armor),
+      effectivePierceArmor(candidate.unitType, pierceArmorTechBonus(candidate)),
     );
     hits.push({ id: candidate.id, damage });
   }
@@ -94,7 +97,13 @@ export function applyUnitBlast(params: {
     const otherUnit = world.getComponent<UnitComponent>(otherId, 'unit');
     const otherPos = world.getComponent<Position>(otherId, 'position');
     if (!otherCombat || !otherUnit || !otherPos) continue;
-    candidates.push({ id: otherId, unitType: otherUnit.unitType, position: otherPos, armor: otherCombat.armor });
+    candidates.push({
+      id: otherId,
+      unitType: otherUnit.unitType,
+      position: otherPos,
+      armor: otherCombat.armor,
+      pierceArmorBonus: otherCombat.pierceArmorBonus ?? 0,
+    });
   }
   const splashes = computeBlastDamage(
     attacker.unitType,
@@ -139,7 +148,7 @@ export function resolveUnitAttackOnUnit(params: {
     raw,
     unitAttackType(attacker.unitType),
     effectiveMeleeArmor(target.unitType, target.combat.armor),
-    effectivePierceArmor(target.unitType, target.combat.armor),
+    effectivePierceArmor(target.unitType, pierceArmorTechBonus(target.combat)),
   );
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
   params.markDirty();

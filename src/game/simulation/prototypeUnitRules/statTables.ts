@@ -12,6 +12,8 @@ export interface WildlifeProfile {
   reloadTicks: number;
   cooldownTicks: number;
   armor: number;
+  // Mirrors CombatState.pierceArmorBonus (wildlife carry no armor techs → 0).
+  pierceArmorBonus: number;
   autoAggro: boolean;
   isAlive: boolean;
   corpsePersists: boolean;

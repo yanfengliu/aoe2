@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
+import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
 import {
   combatStatesCodec,
@@ -48,6 +49,7 @@ interface CombatStateLike {
   reloadTicks: number;
   cooldownTicks: number;
   armor: number;
+  pierceArmorBonus: number;
 }
 
 export interface TechnologyDeps {
@@ -123,6 +125,24 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     }
     if (didUpgrade) {
       markOutOfBandRenderChange();
+    }
+  }
+
+  // Apply an armor tech's bonus to every owned unit whose class matches. Shared
+  // by all nine blacksmith armor cases so the per-unit iteration lives once;
+  // `applyArmorTech` routes the symmetric vs asymmetric (pierce) split.
+  function applyArmorTechToOwnedUnits(
+    owner: number,
+    tech: ResearchableTechnologyType,
+    matchesClass: (unitType: UnitType) => boolean,
+  ): void {
+    for (const id of world.query('unit')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      const combat = accessor.get(combatStatesCodec).get(id);
+      if (!unit || !combat || unit.owner !== owner || !matchesClass(unit.unitType)) {
+        continue;
+      }
+      applyArmorTech(combat, tech);
     }
   }
 
@@ -320,26 +340,10 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'plate-mail-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'plate-mail-armor', isInfantryUnit);
         break;
       case 'plate-barding':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'plate-barding', isCavalryUnit);
         break;
       // FU1: Feudal Blacksmith tier.
       case 'forging':
@@ -354,37 +358,13 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'scale-mail-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'scale-mail-armor', isInfantryUnit);
         break;
       case 'scale-barding-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'scale-barding-armor', isCavalryUnit);
         break;
       case 'padded-archer-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'padded-archer-armor', isArcherLineUnit);
         break;
       // FU1: Castle Blacksmith tier. Stacks on Feudal tier.
       case 'iron-casting':
@@ -399,37 +379,13 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'chain-mail-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isInfantryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'chain-mail-armor', isInfantryUnit);
         break;
       case 'chain-barding-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isCavalryUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'chain-barding-armor', isCavalryUnit);
         break;
       case 'leather-archer-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'leather-archer-armor', isArcherLineUnit);
         break;
       case 'bodkin-arrow':
         for (const id of world.query('unit')) {
@@ -445,15 +401,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         break;
       // FU1: Imperial Blacksmith tier additions.
       case 'ring-archer-armor':
-        for (const id of world.query('unit')) {
-          const unit = world.getComponent<UnitComponent>(id, 'unit');
-          const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isArcherLineUnit(unit.unitType)) {
-            continue;
-          }
-
-          combat.armor += 1;
-        }
+        applyArmorTechToOwnedUnits(owner, 'ring-archer-armor', isArcherLineUnit);
         break;
       case 'chemistry':
         // Chemistry grants +1 attack to archer-line units AND to

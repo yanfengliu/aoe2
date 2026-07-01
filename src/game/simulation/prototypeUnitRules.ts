@@ -129,6 +129,7 @@ export function createWildlifeState(resourceType: 'boar' | 'wolf'): WildlifeProf
     reloadTicks: profile.reloadTicks,
     cooldownTicks: 0,
     armor: 0,
+    pierceArmorBonus: 0,
     autoAggro: profile.autoAggro,
     isAlive: true,
     corpsePersists: profile.corpsePersists,

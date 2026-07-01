@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.53 - 2026-07-01
+
+### Armor upgrades are now asymmetric — top-tier armor and Loom give +2 pierce
+
+Armor technologies now match Age of Empires II's asymmetric values. Every armor upgrade still gives +1 melee armor, but the four top-tier upgrades give **+2 pierce** armor instead of +1: Plate Mail Armor (infantry), Plate Barding (cavalry), Ring Archer Armor (archers), and **Loom** (villagers). The other armor upgrades stay symmetric (+1 melee / +1 pierce). Previously the game applied a single armor number to both melee and pierce, so these four upgrades were under-valued by 1 pierce armor.
+
+What this changes in play: units with a fully-upgraded armor line are now noticeably tougher against arrows and other pierce damage — a fully-armored infantry line reaches +3 melee / +4 pierce, and Loom villagers shrug off 2 pierce damage per hit instead of 1, making early villager harassment less effective (as in AoE2).
+
+Saves are unaffected: a game saved before this change loads correctly, with its armored units keeping the same (symmetric) mitigation they had.
+
 ## 0.1.52 - 2026-07-01
 
 ### Score-timer victory — matches can end on a timer with the highest score winning

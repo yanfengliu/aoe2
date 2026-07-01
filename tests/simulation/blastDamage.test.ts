@@ -13,11 +13,19 @@ import type { CombatState } from '../../src/game/simulation/bridge/systems/syste
 // impact cell (distance 1) but NOT diagonals (√2 ≈ 1.41). Splash damage uses the
 // same melee/pierce + class-bonus + armor formula as the primary hit.
 
-const c = (id: number, unitType: BlastCandidate['unitType'], x: number, y: number, armor = 0): BlastCandidate => ({
+const c = (
+  id: number,
+  unitType: BlastCandidate['unitType'],
+  x: number,
+  y: number,
+  armor = 0,
+  pierceArmorBonus = 0,
+): BlastCandidate => ({
   id,
   unitType,
   position: { x, y },
   armor,
+  pierceArmorBonus,
 });
 
 describe('computeBlastDamage — mangonel-line splash', () => {
@@ -69,6 +77,7 @@ describe('applyUnitBlast — scoring + friendly fire', () => {
     reloadTicks: 20,
     cooldownTicks: 0,
     armor: 0,
+    pierceArmorBonus: 0,
   });
 
   it('credits an enemy blast-kill but NOT a friendly-fire kill', () => {

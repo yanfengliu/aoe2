@@ -54,6 +54,7 @@ describe('registerOutputTail', () => {
         attackRange: 1,
         reloadTicks: 10,
         cooldownTicks: 0,
+        pierceArmorBonus: 0,
       }),
     );
     expect(accessor.dirtySize).toBe(1);

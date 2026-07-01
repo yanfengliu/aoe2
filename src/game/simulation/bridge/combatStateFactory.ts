@@ -5,6 +5,7 @@
 
 import type { CombatState } from './systems/systemTypes';
 import type { ResearchableTechnologyType, UnitType } from '../types';
+import { applyArmorTech } from '../armorTechBonuses';
 import {
   isArcherLineUnit,
   isCavalryUnit,
@@ -36,18 +37,18 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       reloadTicks: unitReloadTicks(unitType),
       cooldownTicks: 0,
       armor: 0,
+      pierceArmorBonus: 0,
     };
 
-    // Loom: +15 villager max HP + +1 armor. A newly created villager is at full
-    // HP, so current and max both gain 15 (25 → 40). The same flat bump is
-    // applied to existing villagers on research in technologyOps' `loom` case.
-    // AoE2 Loom is +1 melee / +2 pierce; this slice ships +1/+1 via the single
-    // CombatState.armor scalar (the +1 pierce is deferred — see the type union
-    // comment + design/spec-final.md).
+    // Loom: +15 villager max HP + +1 melee / +2 pierce armor (spec §11.8). A
+    // newly created villager is at full HP, so current and max both gain 15
+    // (25 → 40). The same bump is applied to existing villagers on research in
+    // technologyOps' `loom` case (via loomEffect). applyArmorTech routes the
+    // asymmetric pierce bonus.
     if (unitType === 'villager' && hasTechnology(owner, 'loom')) {
       state.maxHp += 15;
       state.currentHp += 15;
-      state.armor += 1;
+      applyArmorTech(state, 'loom');
     }
 
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'fletching')) {
@@ -66,10 +67,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       state.attackDamage += 2;
     }
     if (isInfantryUnit(unitType) && hasTechnology(owner, 'plate-mail-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'plate-mail-armor');
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
-      state.armor += 1;
+      applyArmorTech(state, 'plate-barding');
     }
     if (isMeleeUnit(unitType) && hasTechnology(owner, 'forging')) {
       state.attackDamage += 1;
@@ -78,25 +79,25 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       state.attackDamage += 1;
     }
     if (isInfantryUnit(unitType) && hasTechnology(owner, 'scale-mail-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'scale-mail-armor');
     }
     if (isInfantryUnit(unitType) && hasTechnology(owner, 'chain-mail-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'chain-mail-armor');
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'scale-barding-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'scale-barding-armor');
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'chain-barding-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'chain-barding-armor');
     }
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'padded-archer-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'padded-archer-armor');
     }
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'leather-archer-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'leather-archer-armor');
     }
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'ring-archer-armor')) {
-      state.armor += 1;
+      applyArmorTech(state, 'ring-archer-armor');
     }
     if (
       (isArcherLineUnit(unitType) || isGunpowderUnit(unitType))
