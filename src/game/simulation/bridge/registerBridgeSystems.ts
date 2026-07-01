@@ -71,6 +71,9 @@ export interface RegisterBridgeSystemsDeps {
   monkOps: MonkTaskOps;
   transformOps: TransformOps;
   matchEndOps: MatchEndOps;
+  // Score-timer game length (ticks) from the scenario, or undefined to disable
+  // the score timer (conquest-only default).
+  gameLength: number | undefined;
   // Direct values
   findBuildPlacementNear: RegisterAllSystemsArg['findBuildPlacementNear'];
   // Spec §12.7 group pre-reservation: pass through worldOccupancy's group
@@ -160,6 +163,7 @@ export function registerBridgeSystems(
     monkOps,
     transformOps,
     matchEndOps,
+    gameLength,
     findBuildPlacementNear,
     allocateGroupMoveTargets,
     pushQueueResearchIntention,
@@ -213,6 +217,7 @@ export function registerBridgeSystems(
     world,
     systemMode,
     humanPlayerId: HUMAN_PLAYER_ID,
+    gameLength,
     visibility,
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     accessor,

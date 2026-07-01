@@ -415,14 +415,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     monkOps,
     transformOps,
     matchEndOps,
+    gameLength: scenario?.gameLength,
     findBuildPlacementNear,
     allocateGroupMoveTargets: worldOccupancy.allocateGroupMoveTargets.bind(worldOccupancy),
     getTrainOptions,
     getResearchOptions,
-    // Phase 1C — AI intention pushers. Mirror `pushUnitAttackIntention` /
-    // `pushUnitMoveIntention` shape: write to `state.pendingCommands`;
-    // dispatcher submits between ticks; handler applies at start of next
-    // tick's processCommands.
+    // Phase 1C — AI intention pushers (mirror `pushUnitAttackIntention`): write
+    // to `state.pendingCommands`; dispatcher submits between ticks, handler applies next tick.
     pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => {
       state.pendingCommands.push({
         type: 'queue.train',

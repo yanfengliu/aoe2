@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.52 - 2026-07-01
+
+### Score-timer victory — matches can end on a timer with the highest score winning
+
+A scenario can now set a game-length timer. When the timer expires, the match ends immediately and the player with the highest score wins — so games that would otherwise stalemate forever now have a definite conclusion. From your perspective the result is a **victory** if you are the sole top scorer, a **draw** if you are tied for the lead, and a **defeat** otherwise. The timer is evaluated after conquest/wonder/relic each tick, so if you (or an enemy) win by one of those on the very same tick, that result takes precedence over the score. Score is the same AoE2-style number already shown in the post-game card (units, buildings, resources gathered, kills, relics, wonder), and the card now shows a "Score Victory" label when the timer decides the game.
+
+This first version is opt-in per scenario and is not yet turned on for the standard random-map setup. Known limitation: the game-length timer is not saved — loading a mid-game save resumes with the timer disabled.
+
 ## 0.1.51 - 2026-07-01
 
 ### Villagers can repair damaged buildings

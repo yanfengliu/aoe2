@@ -9,6 +9,7 @@ export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 import { registerAiSystem } from './systems/aiSystem';
 import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
 import { registerConquestOutcomeSystem } from './systems/conquestOutcomeSystem';
+import { registerScoreTimerSystem } from './systems/scoreTimerSystem';
 import { registerFogMemorySystem } from './systems/fogMemorySystem';
 import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
 import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
@@ -122,6 +123,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getOrCreateMemoryMap,
     currentRelicHoldingOwner,
     finalizeMatchEnd,
+    computePlayerScore,
+    gameLength,
   } = deps;
 
   const {
@@ -338,6 +341,16 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     accessor,
     isMatchRunning,
     finalizeMatchEnd,
+  });
+
+  registerScoreTimerSystem({
+    world,
+    humanPlayerId,
+    accessor,
+    isMatchRunning,
+    computePlayerScore,
+    finalizeMatchEnd,
+    gameLength,
   });
 }
 

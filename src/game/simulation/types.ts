@@ -480,7 +480,7 @@ export interface SimulationDebugSnapshot {
   }>;
 }
 
-export type WinCondition = 'conquest' | 'wonder' | 'relic';
+export type WinCondition = 'conquest' | 'wonder' | 'relic' | 'score';
 
 export interface MatchState {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';

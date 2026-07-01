@@ -293,7 +293,12 @@ export interface RegisterAllSystemsDeps {
   currentRelicHoldingOwner: () => number | null;
   finalizeMatchEnd: (
     outcome: 'victory' | 'defeat' | 'draw',
-    winCondition: 'conquest' | 'wonder' | 'relic',
+    winCondition: 'conquest' | 'wonder' | 'relic' | 'score',
     summary: string,
   ) => void;
+  // Score-timer victory (spec §4.3): the per-owner score tally + the game
+  // length (ticks) at which the highest-score player wins. `gameLength`
+  // undefined = the score timer is disabled (conquest-only default).
+  computePlayerScore: (owner: number) => number;
+  gameLength: number | undefined;
 }

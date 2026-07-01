@@ -140,6 +140,9 @@ import {
   createRelicShortCountdownFixture,
   createResourceDepletionFixture,
   createScenarioValidationFixture,
+  createScoreTimerDefeatFixture,
+  createScoreTimerDrawFixture,
+  createScoreTimerVictoryFixture,
   createScorpionRangedFixture,
   createSheepMovementFixture,
   createSheepOwnershipFixture,
@@ -175,6 +178,9 @@ type ScenarioFactory = (seed: string) => PrototypeScenario;
 
 const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string, ScenarioFactory>([
   ['conquest-victory-fixture', createConquestVictoryFixture],
+  ['score-timer-victory-fixture', createScoreTimerVictoryFixture],
+  ['score-timer-draw-fixture', createScoreTimerDrawFixture],
+  ['score-timer-defeat-fixture', createScoreTimerDefeatFixture],
   ['conquest-defeat-fixture', createConquestDefeatFixture],
   ['blocking-rules-fixture', createBlockingRulesFixture],
   ['unit-sharing-fixture', createUnitSharingFixture],

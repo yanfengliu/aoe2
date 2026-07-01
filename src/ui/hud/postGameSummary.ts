@@ -15,6 +15,8 @@ function formatWinConditionLabel(
       return 'Relic Victory';
     case 'conquest':
       return 'Conquest Victory';
+    case 'score':
+      return 'Score Victory';
     case null:
     default:
       return '';

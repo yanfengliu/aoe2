@@ -191,6 +191,12 @@ export {
 } from './construction';
 
 export {
+  createScoreTimerDefeatFixture,
+  createScoreTimerDrawFixture,
+  createScoreTimerVictoryFixture,
+} from './scoreTimer';
+
+export {
   createFarmDepletionFixture,
   createFarmOwnershipFixture,
   createFarmReseedFixture,

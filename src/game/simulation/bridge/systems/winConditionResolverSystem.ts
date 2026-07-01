@@ -19,7 +19,7 @@ export interface WinConditionResolverSystemDeps {
   isMatchRunning: () => boolean;
   finalizeMatchEnd: (
     outcome: 'victory' | 'defeat' | 'draw',
-    winCondition: 'conquest' | 'wonder' | 'relic',
+    winCondition: 'conquest' | 'wonder' | 'relic' | 'score',
     summary: string,
   ) => void;
 }

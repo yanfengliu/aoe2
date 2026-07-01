@@ -162,6 +162,8 @@ Definitions:
 - Relic: a player wins by controlling all relics in Monasteries through the countdown.
 - Score timer: highest score wins when the configured timer expires.
 
+Implemented model (score timer): a scenario opts in by setting `gameLength` (a tick count; the map runs indefinitely on the standard conquest/wonder/relic rules when it is unset). The match resolves on score on the first simulation tick at or after `gameLength` (the system's guard is `world.tick >= gameLength`), evaluated after all other win conditions for that tick — so an earlier conquest/wonder/relic resolution takes precedence. Every player's score is compared: the sole highest scorer wins. From the human's perspective the outcome is a victory when the human is the sole top scorer, a draw when the human ties for the top score, and a defeat otherwise. Known slice-1 limitation: `gameLength` is a live-scenario field only — it is not persisted in saved games, so loading a save always resumes with the timer disabled.
+
 ### 4.4 Score Model
 
 Use an AoE2-style score breakdown:
@@ -172,6 +174,8 @@ Use an AoE2-style score breakdown:
 - Society: major structures such as Castles and Wonders
 
 The exact UI presentation can vary, but the scoring model must remain legible and comparable to AoE2 expectations.
+
+Implemented model (score formula): the current single-number score used by the score timer and match summary is `floor(unitsProduced × 10 + buildingsProduced × 50 + resourcesGathered × 0.02 + relicsHeld × 50 + unitsKilled × 20 + (wonderCompleted ? 500 : 0))`, evaluated per owner from that owner's cumulative counters. This is a legible proxy for the four categories above (military = kills, economy = resources gathered, society = buildings/wonder, relics as their own term); it is intentionally simpler than full AoE2 scoring and will be refined as the category surfaces mature.
 
 ### 4.5 Game Speed
 

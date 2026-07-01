@@ -15,7 +15,7 @@ import { flushPendingCommandsState, flushTier3State } from './tier3SyncSystem';
 interface MatchStateLike {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
   summary: string;
-  winCondition: 'conquest' | 'wonder' | 'relic' | null;
+  winCondition: 'conquest' | 'wonder' | 'relic' | 'score' | null;
   scores: Record<number, number> | null;
   wonderCountdownTicks: number | null;
   relicCountdownTicks: number | null;

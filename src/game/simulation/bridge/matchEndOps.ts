@@ -9,6 +9,7 @@ import type {
   BuildingComponent,
   MatchState,
   ResourceComponent,
+  WinCondition,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import {
@@ -40,7 +41,7 @@ export interface MatchEndOps {
   // scores.
   finalizeMatchEnd(
     outcome: 'victory' | 'defeat' | 'draw',
-    winCondition: 'conquest' | 'wonder' | 'relic',
+    winCondition: WinCondition,
     summary: string,
   ): void;
   // Aggregate who (if anyone) currently holds every relic on the map.
@@ -84,7 +85,7 @@ export function createMatchEndOps(deps: MatchEndDeps): MatchEndOps {
 
   function finalizeMatchEnd(
     outcome: 'victory' | 'defeat' | 'draw',
-    winCondition: 'conquest' | 'wonder' | 'relic',
+    winCondition: WinCondition,
     summary: string,
   ): void {
     matchState.outcome = outcome;

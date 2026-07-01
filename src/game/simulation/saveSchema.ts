@@ -238,7 +238,7 @@ export interface SerializedSideMaps {
 export interface SerializedMatchState {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
   summary: string;
-  winCondition: 'conquest' | 'wonder' | 'relic' | null;
+  winCondition: 'conquest' | 'wonder' | 'relic' | 'score' | null;
   scores: Record<number, number> | null;
   wonderCountdownTicks: number | null;
   relicCountdownTicks: number | null;

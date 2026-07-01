@@ -141,6 +141,10 @@ export interface PrototypeScenario {
   terrain: TerrainCellSpec[][];
   starts: PlayerStartSpec[];
   spawns: ScenarioSpawnSpec[];
+  // Score-timer victory (spec §4.3): if set, the match ends at this tick with
+  // the highest-score player winning — so a match can never stalemate. Opt-in
+  // (unset = conquest/wonder/relic only, the AoE2 default). Ticks at TPS=10.
+  gameLength?: number;
 }
 
 // Scenario factory dispatcher. The seed-to-fixture mapping table lives
