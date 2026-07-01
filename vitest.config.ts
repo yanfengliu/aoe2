@@ -16,6 +16,18 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     pool: 'threads',
+    // Cap worker concurrency at half the cores. The heaviest simulation tests
+    // are CPU-bound (a full sim world per worker); with the default one-worker-
+    // per-core the pool oversubscribes (workers + main thread + GC > cores),
+    // inflating per-test wall-clock 3-5x and intermittently tripping the 30-90s
+    // timeouts on the heaviest files (imperial/castle/blacksmith/siege/militia/
+    // ageUp/aiPlayer) — a false failure that always passed in isolation. Halving
+    // concurrency removes the oversubscription so those tests run near their
+    // isolated speed and the full-suite gate is reliable. '50%' adapts to the
+    // machine (8 cores -> 4 workers; a 2-core CI box -> 1).
+    poolOptions: {
+      threads: { maxThreads: '50%', minThreads: 1 },
+    },
     testTimeout: 30_000,
     hookTimeout: 180_000,
     teardownTimeout: 30_000,
