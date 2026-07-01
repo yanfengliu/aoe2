@@ -76,7 +76,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       unitType: 'camel',
       attackDamage: 5,
     });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('trains a Cavalry Archer when the Archery Range is selected and the train command is issued', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -98,7 +98,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       attackDamage: 6,
       attackRange: 4,
     });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('deals +9 anti-cavalry bonus damage when a Camel attacks a Knight (base 5 + 9 = 14)', () => {
     const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
@@ -129,7 +129,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     // armor (units.csv 2/2) reduces it to 12, so 100 - 12 = 88 HP after one hit.
     const knightHpAfter = getHealthOfUnitAtCell(bridge, knight!.x, knight!.y);
     expect(knightHpAfter).toBe(88);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('deals +9 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
     const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
@@ -160,7 +160,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     if (scoutHpAfter !== null) {
       expect(scoutHpAfter).toBe(31);
     }
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('lets a Cavalry Archer hit a distant target at range 4 without closing to melee', () => {
     const bridge = createSimulationBridge('cavalry-archer-ranged-fixture');
@@ -202,7 +202,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     const caAfter = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
     expect(caAfter?.x).toBe(ca!.x);
     expect(caAfter?.y).toBe(ca!.y);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('does NOT apply the Spearman anti-cavalry bonus to a Camel target', () => {
     // Spearman's +12 vs Scout / Light-Cavalry and +15 vs Knight bonuses
@@ -233,7 +233,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     // If the anti-cavalry bonus applied, the Camel would be at 100-15=85.
     const camelHpAfter = getHealthOfUnitAtCell(bridge, camel!.x, camel!.y);
     expect(camelHpAfter).toBe(97);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies the Skirmisher +4 anti-archer bonus to Cavalry Archer targets', () => {
     // Skirmisher base attack is 2, +4 vs archer-line = 6. Cavalry Archer starts
@@ -261,7 +261,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
 
     const hpAfter = getHealthOfUnitAtCell(bridge, cavArcher!.x, cavArcher!.y);
     expect(hpAfter).toBe(44);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to Cavalry Archers when Fletching is researched BEFORE the unit is trained', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -297,7 +297,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       attackDamage: 7,
       attackRange: 5,
     });
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to existing Cavalry Archers when Fletching is researched AFTER the unit is trained', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -338,7 +338,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
       attackDamage: 7,
       attackRange: 5,
     });
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('selects every owned Camel in a rect when selectOwnedUnitsByTypeInRect is called with camel', () => {
     // Backs the GameScene same-type-double-click flow: the scene dispatches
@@ -366,5 +366,5 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     expect(selectionState.selectedKind).toBe('unit');
     expect(selectionState.selectedEntityType).toBe('camel');
     expect(selectionState.owner).toBe(1);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });

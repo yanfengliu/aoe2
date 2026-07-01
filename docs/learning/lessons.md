@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## A "+50-75% dependency regression" measured under full-suite load is contention until an isolated A/B proves otherwise — 2026-06-30
+
+| Field | Value |
+|---|---|
+| Surfaced by | `docs/debugging/2026-06-30-engine-throughput-regression.md`; the standing `docs/engine-feedback/current.md` claim of a civ-engine 0.8.24→1.0.1 "+50-75% sim-throughput regression" that had doubled 9 fixture files' timeout caps (`x2 2026-06-12`). |
+| Reviewer findings | n/a — process lesson (self-investigation; the false attribution had lived in engine-feedback for ~18 days pointing future sessions at a non-existent engine bisect). |
+| Fix commit | this session (aoe2 caps ratchet + engine `commands` benchmark scenario; no engine code fix — nothing regressed). |
+| Test added | n/a — process lesson. The engine gained a `commands` benchmark-gate scenario so a *real* future per-tick regression in the strict/command/event/many-system profile is caught. |
+| Behavior delta | Without the investigation, the next session would have bisected a non-existent engine regression (a wasted cycle) and the misleading 120-180s test caps + false engine-feedback would have compounded. The measured truth: every per-tick engine hot-path file is byte-identical across 0.8.23→1.0.2; the only per-tick change (v1.0.0 strict-by-default) is within noise on the real ageUp fixture (42.71s strict-on vs 43.24s strict-off, isolated); the +50-75% only appears under the `threads` pool (CPU saturation). |
+
+Lesson: a throughput "regression" whose numbers were all captured **under full-suite parallel load** is a claim about *contention*, not per-tick cost, until you prove otherwise with two cheap ground-truth measurements: (1) a STATIC diff audit of the dependency's per-tick hot-path files across the exact version window (`git log <old>..<new> -- <hot-path files>`) — if they're byte-identical, there is no code regression to find; (2) an ISOLATED, single-thread A/B of the one variable that actually changed (here: strict on vs off on the real fixture). Isolated-vs-contended divergence (ageUp ~43s alone vs the cited 136-209s) is the signature of contention. Corollary: timeout caps are ceilings, not runtime — doubling them can be the right *action* (tests approaching their ceiling under a growing contended suite) for the wrong *reason* (blaming a dependency); size caps to measured *contended* per-test time × ~3, and annotate them truthfully so the next reader isn't sent hunting a phantom bug. When a dependency's own regression gate "stayed green" while a consumer slowed, the gap is usually the gate's *load profile*, not a hidden regression — close it by adding the consumer-shaped scenario.
+Pointer: [docs/debugging/2026-06-30-engine-throughput-regression.md](../debugging/2026-06-30-engine-throughput-regression.md); civ-engine `scripts/rts-benchmark.mjs` `runCommandScenario`; the 9 `tests/simulation/*.test.ts` cap annotations.
+
 ## A backgrounded CLI reviewer (`claude -p` / `gemini`) survives TaskStop and can rewrite your working tree minutes-to-hours later — re-audit git before EVERY commit — 2026-06-17
 
 | Field | Value |

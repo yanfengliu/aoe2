@@ -52,7 +52,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
 
     const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === crossbowmanId);
     expect(upgraded?.unitType).toBe('arbalest');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('trains Arbalest after the Arbalest upgrade (train menu exposes Arbalest, drops archer-line predecessors)', () => {
     const bridge = createSimulationBridge('imperial-arbalest-fixture');
@@ -89,7 +89,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
         { maxSteps: 600 },
       ),
     ).toBe(true);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Heavy Cavalry Archer and swaps existing Cavalry Archers', () => {
     const bridge = createSimulationBridge('imperial-arbalest-fixture');
@@ -113,7 +113,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
 
     const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === caId);
     expect(upgraded?.unitType).toBe('heavy-cavalry-archer');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('swaps the Cavalry Archer train option for Heavy Cavalry Archer after research', () => {
     const bridge = createSimulationBridge('imperial-arbalest-fixture');
@@ -134,7 +134,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('heavy-cavalry-archer');
     expect(bridge.getSelectionState().trainOptions).not.toContain('cavalry-archer');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to Arbalest after the upgrade', () => {
     const bridge = createSimulationBridge('imperial-arbalest-fixture');
@@ -167,7 +167,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
     const upgraded = findFirstOwnedUnit(bridge, 1, 'arbalest');
     expect(upgraded?.attackDamage).toBe(7);
     expect(upgraded?.attackRange).toBe(6);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Imperial-Age Barracks upgrades', () => {
@@ -202,7 +202,7 @@ describe('Imperial-Age Barracks upgrades', () => {
 
     const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === pikemanId);
     expect(upgraded?.unitType).toBe('halberdier');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('exposes Halberdier in the Barracks train menu after the Halberdier upgrade (drops spearman-line predecessors)', () => {
     const bridge = createSimulationBridge('imperial-halberdier-fixture');
@@ -230,7 +230,7 @@ describe('Imperial-Age Barracks upgrades', () => {
     expect(bridge.getSelectionState().trainOptions).toContain('halberdier');
     expect(bridge.getSelectionState().trainOptions).not.toContain('pikeman');
     expect(bridge.getSelectionState().trainOptions).not.toContain('spearman');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Champion and swaps existing Militia to Champion', () => {
     const bridge = createSimulationBridge('imperial-halberdier-fixture');
@@ -254,7 +254,7 @@ describe('Imperial-Age Barracks upgrades', () => {
 
     const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === militiaId);
     expect(upgraded?.unitType).toBe('champion');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('swaps the Militia train option for Champion after research', () => {
     const bridge = createSimulationBridge('imperial-halberdier-fixture');
@@ -275,6 +275,6 @@ describe('Imperial-Age Barracks upgrades', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('champion');
     expect(bridge.getSelectionState().trainOptions).not.toContain('militia');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 

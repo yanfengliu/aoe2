@@ -54,7 +54,7 @@ describe('Castle-Age production-line upgrades', () => {
       attackDamage: 5,
       attackRange: 5,
     });
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('reflects the upgraded unit type in render state, not just economy state', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -80,7 +80,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(renderedCrossbowman, 'render state should show the upgraded unit as a crossbowman').toBeDefined();
     expect(renderedArcher, 'render state should not still show the unit as an archer').toBeUndefined();
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('leaves enemy Archers untouched when the human researches the Crossbowman upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -100,7 +100,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(countOwnedUnits(bridge, 2, 'archer')).toBe(1);
     expect(countOwnedUnits(bridge, 2, 'crossbowman')).toBe(0);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Pikeman at the Barracks and swaps existing Spearmen to Pikemen', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -127,7 +127,7 @@ describe('Castle-Age production-line upgrades', () => {
       unitType: 'pikeman',
       attackDamage: 4,
     });
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Light Cavalry at the Stable and swaps existing Scout Cavalry to Light Cavalry', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -154,7 +154,7 @@ describe('Castle-Age production-line upgrades', () => {
       unitType: 'light-cavalry',
       attackDamage: 7,
     });
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('preserves the current HP ratio when an Archer is upgraded to Crossbowman mid-combat', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -189,7 +189,7 @@ describe('Castle-Age production-line upgrades', () => {
     expect(upgraded?.unitType).toBe('crossbowman');
     expect(upgraded?.attackDamage).toBe(5);
     expect(upgraded?.attackRange).toBe(5);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('removes the Archer train option and exposes the Crossbowman train option after research', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -226,7 +226,7 @@ describe('Castle-Age production-line upgrades', () => {
       .units.filter((unit) => unit.owner === 1 && unit.unitType === 'crossbowman');
     expect(all).toHaveLength(2);
     expect(all.every((unit) => unit.attackDamage === 5 && unit.attackRange === 5)).toBe(true);
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('hides the upgrade option once it has been researched', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -245,7 +245,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).not.toContain('crossbowman-upgrade');
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('rejects researching the Crossbowman upgrade while still in Feudal Age', () => {
     const bridge = createSimulationBridge('feudal-blacksmith-fixture');
@@ -287,7 +287,7 @@ describe('Castle-Age production-line upgrades', () => {
       attackDamage: 6,
       attackRange: 6,
     });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('gives upgraded Light Cavalry a vision radius of 6 (up from Scout 4)', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -308,7 +308,7 @@ describe('Castle-Age production-line upgrades', () => {
     // are at the same position, this purely reveals more cells.
     const afterVisibleCells = bridge.getHudState().visibleCells;
     expect(afterVisibleCells).toBeGreaterThan(beforeVisibleCells);
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('spawns newly trained Light Cavalry with vision radius 6, not the legacy hard-coded 4', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -342,7 +342,7 @@ describe('Castle-Age production-line upgrades', () => {
     // by other sources).
     const visibleAfterSecondLc = bridge.getHudState().visibleCells;
     expect(visibleAfterSecondLc).toBeGreaterThan(visibleAfterUpgrade);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('keeps Crossbowman / Pikeman / Light Cavalry upgrades researchable in Imperial Age', () => {
     const bridge = createSimulationBridge('imperial-upgrades-fixture');
@@ -386,7 +386,7 @@ describe('Castle-Age production-line upgrades', () => {
     // research-completion time, and the starting Archer is upgraded in place.
     expect(countOwnedUnits(bridge, 1, 'crossbowman')).toBe(3);
     expect(countOwnedUnits(bridge, 1, 'archer')).toBe(0);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies the Fletching +1 attack / +1 range to Crossbowmen when Fletching is researched AFTER the upgrade', () => {
     const bridge = createSimulationBridge('castle-upgrades-fixture');
@@ -420,5 +420,5 @@ describe('Castle-Age production-line upgrades', () => {
       attackDamage: 6,
       attackRange: 6,
     });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });

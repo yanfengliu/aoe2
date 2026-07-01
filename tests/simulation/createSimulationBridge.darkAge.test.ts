@@ -34,7 +34,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       rawSupply: 5,
     });
     expect(bridge.getSelectionState().queue).toHaveLength(0);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('lets a selected villager place and complete a House that raises population cap', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -70,7 +70,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       .buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
     expect(completedHouse?.isComplete).toBe(true);
     expect(bridge.getHudState().population.cap).toBe(10);
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('projects construction and completion building visuals into render state for newly placed buildings', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -113,7 +113,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       footprintHeight: 2,
       visualVariant: 'complete',
     });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('ramps building HP from low at placement to full at construction completion', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -162,7 +162,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const finishedHouse = findHouse()!;
     const finalHealth = bridge.getEntityHealth(finishedHouse.id);
     expect(finalHealth).toEqual({ currentHp: 75, maxHp: 75 });
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('preserves mid-construction HP across save/load round-trip', () => {
     const original = createSimulationBridge(DEFAULT_SEED);
@@ -203,7 +203,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const restoredHealth = restored.getEntityHealth(restoredHouse.id)!;
     expect(restoredHealth.currentHp).toBe(savedHealth.currentHp);
     expect(restoredHealth.maxHp).toBe(savedHealth.maxHp);
-  }, 40_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('redirects a selected villager to gather gold through an explicit context order', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -223,7 +223,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     }
 
     expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('auto-gathers when a Town Center rally point is set on a resource', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);
@@ -268,5 +268,5 @@ describe('createSimulationBridge dark age economy progression', () => {
       { maxSteps: 500 },
     );
     expect(reached).toBe(true);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });

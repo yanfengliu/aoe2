@@ -74,7 +74,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 120_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate Mail)', () => {
@@ -122,7 +122,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)', () => {
@@ -170,7 +170,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Armor)', () => {
@@ -218,7 +218,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Bracer)', () => {
@@ -269,7 +269,7 @@ describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Brace
         { maxSteps: 800 },
       ),
     ).toBe(true);
-  }, 180_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Armor reduces damage per hit', () => {
@@ -328,7 +328,7 @@ describe('Armor reduces damage per hit', () => {
       ? getHealthOfUnitAtCell(armoredBridge, postHitArmored.x, postHitArmored.y)
       : null;
     expect(armoredHp).toBe(48);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Chemistry gates Bombard Cannon training', () => {
@@ -356,7 +356,7 @@ describe('Chemistry gates Bombard Cannon training', () => {
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
 
 describe('Chemistry grants +1 attack to archer-line units', () => {
@@ -375,5 +375,5 @@ describe('Chemistry grants +1 attack to archer-line units', () => {
         { maxSteps: 700 },
       ),
     ).toBe(true);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });

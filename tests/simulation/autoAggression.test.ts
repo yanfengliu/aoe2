@@ -28,7 +28,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
         { maxSteps: 240 },
       ),
     ).toBe(true);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('idle militia ignores an enemy spearman that is far outside its vision radius', () => {
     const bridge = createSimulationBridge('auto-aggro-idle-militia-out-of-vision-fixture');
@@ -53,7 +53,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     expect(after!.y).toBe(militiaStartY);
     // And the enemy spearman is unscathed.
     expect(bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0).toBe(enemyStartHp);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('idle archer pursues a target inside vision but outside attack range, then fires', () => {
     const bridge = createSimulationBridge('auto-aggro-archer-pursuit-fixture');
@@ -69,7 +69,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
         { maxSteps: 360 },
       ),
     ).toBe(true);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('honors a player-issued move order: militia walks past an adjacent enemy without engaging', () => {
     const bridge = createSimulationBridge('auto-aggro-player-move-overrides-fixture');
@@ -93,7 +93,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     expect(after!.x).toBeGreaterThan(15);
     // And the enemy spearman is still untouched — no auto-attack happened.
     expect(bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0).toBe(enemyStartHp);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('idle villager swings back at an adjacent enemy spearman (defensive stance)', () => {
     const bridge = createSimulationBridge('auto-aggro-villager-adjacent-fixture');
@@ -109,7 +109,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
         { maxSteps: 240 },
       ),
     ).toBe(true);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('villager does NOT pursue an enemy several tiles away (defensive stance, no chase)', () => {
     const bridge = createSimulationBridge('auto-aggro-villager-no-pursuit-fixture');
@@ -134,7 +134,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     expect(after!.y).toBe(villagerStartY);
     // Enemy is untouched.
     expect(bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0).toBe(enemyStartHp);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('does not yank a gathering villager off its resource when an enemy walks adjacent', () => {
     const bridge = createSimulationBridge('auto-aggro-villager-gathering-fixture');
@@ -165,7 +165,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     const enemyHpAfter = bridge.getEntityHealth(enemyAfter!.id)?.currentHp ?? -1;
     const enemyHpStart = bridge.getEntityHealth(enemyAfter!.id)?.maxHp ?? -1;
     expect(enemyHpAfter).toBe(enemyHpStart);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('does not auto-engage from a Monk: an adjacent enemy spearman never gets attacked', () => {
     const bridge = createSimulationBridge('auto-aggro-monk-skip-fixture');
@@ -184,7 +184,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     const enemyAfter = getOwnedUnit(bridge, 2, 'spearman');
     expect(enemyAfter).toBeDefined();
     expect(bridge.getEntityHealth(enemyAfter!.id)?.currentHp ?? -1).toBe(enemyStartHp);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('after killing one enemy, an idle militia auto-engages the next visible enemy', () => {
     const bridge = createSimulationBridge('auto-aggro-sequential-targets-fixture');
@@ -210,7 +210,7 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
       .getEconomyState()
       .units.filter((unit) => unit.owner === 2 && unit.unitType === 'spearman').length;
     expect(survivingEnemies).toBe(0);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('save/load mid-engagement preserves auto-aggression: rehydrated bridge keeps damaging the target', () => {
     const original = createSimulationBridge('auto-aggro-idle-militia-in-vision-fixture');
@@ -241,5 +241,5 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
         { maxSteps: 240 },
       ),
     ).toBe(true);
-  }, 20_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });

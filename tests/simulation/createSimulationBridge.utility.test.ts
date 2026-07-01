@@ -45,7 +45,7 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 2 && unit.unitType === 'scout',
       ),
     ).toBe(false);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can train a Skirmisher in Feudal Age and use its anti-archer bonus to kill a visible Archer quickly', () => {
     const bridge = createSimulationBridge('feudal-skirmisher-fixture');
@@ -83,7 +83,7 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 2 && unit.unitType === 'archer',
       ),
     ).toBe(false);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can build a Watch Tower in Feudal Age and let it automatically kill a nearby visible Scout', () => {
     const bridge = createSimulationBridge('feudal-watch-tower-fixture');
@@ -115,7 +115,7 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 2 && unit.unitType === 'scout',
       ),
     ).toBe(false);
-  }, 60_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can garrison and ungarrison a villager through the Town Center', () => {
     const bridge = createSimulationBridge('aoe2-prototype');
@@ -198,7 +198,7 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ),
     ).toHaveLength(1);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('lets a garrisoned Town Center automatically kill a nearby enemy scout', () => {
     const bridge = createSimulationBridge('town-center-defense-fixture');
@@ -281,7 +281,7 @@ describe('createSimulationBridge utility progression', () => {
     expect(resourcesAfterFirstBuy.gold - resourcesAfterSecondBuy.gold).toBeGreaterThan(
       resourcesAfterSecondSale.gold - resourcesAfterFirstBuy.gold,
     );
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can set a rally point on a selected Archery Range so newly trained units move to it automatically', () => {
     const bridge = createSimulationBridge('feudal-skirmisher-fixture');
@@ -312,5 +312,5 @@ describe('createSimulationBridge utility progression', () => {
           && Math.abs(unit.x - 15) + Math.abs(unit.y - 10) <= 1,
       ),
     ).toBe(true);
-  }, 30_000); // x2 2026-06-12: engine-1.0.x sim-throughput regression (+50-75% observed; see docs/engine-feedback/current.md)
+  }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 });
