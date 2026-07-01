@@ -193,6 +193,7 @@ describe('Loom — existing villagers gain +15 HP (flat) and +1 armor', () => {
     const before = villagerHealthViaSelection(bridge, 1);
     expect(before).toEqual({ current: 25, max: 25 });
     expect(bridge.getSelectionState().armor).toBe(0);
+    expect(bridge.getSelectionState().pierceArmor).toBe(0);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'town-center')).toBe(true);
     expect(bridge.queueResearch('loom')).toBe(true);
@@ -208,7 +209,9 @@ describe('Loom — existing villagers gain +15 HP (flat) and +1 armor', () => {
     const after = villagerHealthViaSelection(bridge, 1);
     // Flat +15 to BOTH current and max (a full-HP villager → 40/40).
     expect(after).toEqual({ current: 40, max: 40 });
+    // Loom is +1 melee / +2 pierce — the panel shows the asymmetric split.
     expect(bridge.getSelectionState().armor).toBe(1);
+    expect(bridge.getSelectionState().pierceArmor).toBe(2);
   });
 
   it('does NOT affect a non-villager (Militia) when Loom completes', () => {

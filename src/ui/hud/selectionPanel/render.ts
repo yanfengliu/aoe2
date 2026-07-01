@@ -191,7 +191,7 @@ export function renderSelectionIcons(
 }
 
 function renderSelectionDetail(
-  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  key: 'health' | 'attack' | 'armor' | 'pierce-armor' | 'faction' | 'civ' | 'inventory',
   label: string,
   value: string,
 ): string {
@@ -266,7 +266,12 @@ export function renderSelectionDetails(selectionState: SelectionState): string {
   }
 
   if (selectionState.armor !== null) {
-    details.push(renderSelectionDetail('armor', 'Armor', String(selectionState.armor)));
+    details.push(renderSelectionDetail('armor', 'Melee armor', String(selectionState.armor)));
+  }
+  if (selectionState.pierceArmor !== null) {
+    details.push(
+      renderSelectionDetail('pierce-armor', 'Pierce armor', String(selectionState.pierceArmor)),
+    );
   }
 
   if (selectionState.faction) {

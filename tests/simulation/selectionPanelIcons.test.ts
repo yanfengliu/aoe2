@@ -34,6 +34,7 @@ function baseSelectionState(overrides: Partial<SelectionState>): SelectionState 
     health: null,
     attack: null,
     armor: null,
+    pierceArmor: null,
     faction: null,
     civ: null,
     inventory: null,

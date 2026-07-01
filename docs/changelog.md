@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.54 - 2026-07-01
+
+### Selection panel shows melee and pierce armor separately
+
+The unit info panel now lists **Melee armor** and **Pierce armor** as two rows instead of a single "Armor" number, so the asymmetric armor split (0.1.53) is visible — e.g. a villager with Loom shows Melee armor 1 / Pierce armor 2, and a fully-upgraded infantry line shows its higher pierce value. The numbers are the armor-upgrade bonus (as before, tech bonus rather than base + bonus). Buildings still show 0/0. No gameplay change — this is a display-only addition.
+
 ## 0.1.53 - 2026-07-01
 
 ### Armor upgrades are now asymmetric — top-tier armor and Loom give +2 pierce

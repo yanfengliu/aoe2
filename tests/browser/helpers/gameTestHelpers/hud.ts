@@ -11,7 +11,7 @@ import type {
 
 export async function expectSelectionDetail(
   page: Page,
-  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  key: 'health' | 'attack' | 'armor' | 'pierce-armor' | 'faction' | 'civ' | 'inventory',
   value: string,
 ): Promise<void> {
   await expect(page.locator(`[data-selection-detail-value="${key}"]`)).toHaveText(value);
@@ -19,7 +19,7 @@ export async function expectSelectionDetail(
 
 export async function expectSelectionDetailAbsent(
   page: Page,
-  key: 'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  key: 'health' | 'attack' | 'armor' | 'pierce-armor' | 'faction' | 'civ' | 'inventory',
 ): Promise<void> {
   await expect(page.locator(`[data-selection-detail-value="${key}"]`)).toHaveCount(0);
 }

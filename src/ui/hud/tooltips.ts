@@ -21,15 +21,16 @@ export const HUD_CHIP_TOOLTIPS: Record<string, string> = {
 };
 
 // Slice 11: per-selection-detail hover copy. The detail row keys are the
-// six render slots in the selection panel (health / attack / armor /
-// faction / civ / inventory).
+// render slots in the selection panel (health / attack / melee armor /
+// pierce armor / faction / civ / inventory).
 export const SELECTION_DETAIL_TOOLTIPS: Record<
-  'health' | 'attack' | 'armor' | 'faction' | 'civ' | 'inventory',
+  'health' | 'attack' | 'armor' | 'pierce-armor' | 'faction' | 'civ' | 'inventory',
   string
 > = {
   health: 'Current hit points and maximum hit points.',
   attack: 'Attack damage per strike before bonuses and armor.',
-  armor: 'Damage reduction from incoming attacks.',
+  armor: 'Melee damage reduction (armor-upgrade bonus).',
+  'pierce-armor': 'Pierce damage reduction (armor-upgrade bonus). Top-tier armor and Loom add +2.',
   faction: 'Group the entity belongs to (player, enemy, neutral).',
   civ: 'Civilization bonuses and unique units that apply.',
   inventory: 'Resources currently carried by the unit.',

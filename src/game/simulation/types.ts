@@ -377,7 +377,8 @@ export interface SelectionState {
     max: number;
   } | null;
   attack: number | null;
-  armor: number | null;
+  armor: number | null; // melee armor-tech bonus
+  pierceArmor: number | null; // pierce armor-tech bonus (incl. asymmetric +); spec §11.8
   faction: string | null;
   civ: string | null;
   inventory: string | null;
@@ -445,9 +446,8 @@ export interface HudState {
   engineHalted: EngineHaltDetails | null;
 }
 
-// Slice 11: debug-overlay snapshot. Each field populated so the HUD can
-// safely downsample modes that it hasn't activated. All coordinates are
-// in cell space (x, y in [0, MAP_WIDTH/HEIGHT)).
+// Slice 11: debug-overlay snapshot. Each field populated so the HUD can safely
+// downsample modes it hasn't activated. Coordinates in cell space (x, y in [0, MAP_WIDTH/HEIGHT)).
 export interface SimulationDebugSnapshot {
   tick: number;
   tickDurationMs: number;

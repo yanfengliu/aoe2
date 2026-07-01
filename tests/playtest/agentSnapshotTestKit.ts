@@ -50,6 +50,7 @@ export function makeSelection(overrides: Partial<SelectionState> = {}): Selectio
     health: null,
     attack: null,
     armor: null,
+    pierceArmor: null,
     faction: null,
     civ: null,
     inventory: null,

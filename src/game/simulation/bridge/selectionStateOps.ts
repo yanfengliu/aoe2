@@ -29,6 +29,7 @@ import {
   buildingGarrisonCapacity,
 } from '../prototypeBuildingRules';
 import { unitAttackDamage } from '../prototypeUnitRules';
+import { pierceArmorTechBonus } from '../armorTechBonuses';
 import {
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
@@ -177,6 +178,29 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     return null;
   }
 
+  // Pierce armor-tech bonus (= melee `armor` + the asymmetric pierce-only
+  // bonus). Mirrors getSelectionArmor so the panel can show the melee/pierce
+  // split (spec §11.8) — same value semantics as the melee side (tech bonus,
+  // not base+bonus effective armor).
+  function getSelectionPierceArmor(
+    unit: UnitComponent | undefined,
+    building: BuildingComponent | undefined,
+    resource: ResourceComponent | undefined,
+    id: number,
+  ): number | null {
+    if (unit) {
+      const combat = accessor.get(combatStatesCodec).get(id);
+      return combat ? pierceArmorTechBonus(combat) : 0;
+    }
+    if (building) {
+      return 0;
+    }
+    if (resource) {
+      return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;
+    }
+    return null;
+  }
+
   function getSelectionCiv(
     owner: number | null,
     kind: SelectionState['selectedKind'],
@@ -239,6 +263,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         health: null,
         attack: null,
         armor: null,
+        pierceArmor: null,
         faction: null,
         civ: null,
         inventory: null,
@@ -364,6 +389,10 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       health: selectedEntityIds.length === 1 ? getSelectionHealth(selectedEntityId) : null,
       attack: selectedEntityIds.length === 1 ? getSelectionAttack(selectedEntityId, unit, building, resource) : null,
       armor: selectedEntityIds.length === 1 ? getSelectionArmor(unit, building, resource, selectedEntityId) : null,
+      pierceArmor:
+        selectedEntityIds.length === 1
+          ? getSelectionPierceArmor(unit, building, resource, selectedEntityId)
+          : null,
       faction: selectedEntityIds.length === 1 ? factionName(owner) : null,
       civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
       inventory:
