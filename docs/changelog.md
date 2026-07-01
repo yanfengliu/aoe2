@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.50 - 2026-06-30
+
+### Mangonels get blast/splash damage — anti-infantry restored
+
+The mangonel line (Mangonel, Onager) now deals AREA damage, restoring its role as the counter to massed infantry. When a mangonel hits its target, every OTHER unit within its blast radius of the impact also takes damage — computed the same way as the direct hit (so a spearman cluster each takes the mangonel's base pierce damage). This replaces the placeholder single-target anti-infantry behavior removed in 0.1.49 (that was never how AoE2 works).
+
+**Friendly fire:** mangonel blast damages your OWN units in the radius too, so keep your infantry out from under your mangonels' targets. Blast-killing your own units does not count toward your score.
+
+The blast radius is small (roughly one cell around the impact in this grid), matching the units' AoE2 `blast_radius`. Other blast sources — demolition ships, Petards, the scorpion's line attack, the onager's wider area at higher grid resolution, and bombard cannon's sub-cell splash — are not yet modeled. No save-format change.
+
 ## 0.1.49 - 2026-06-30
 
 ### AoE2-accurate combat counters (armor-class bonus damage)

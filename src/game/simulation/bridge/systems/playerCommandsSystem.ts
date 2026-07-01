@@ -21,13 +21,9 @@ import {
 } from '../../prototypeBuildingRules';
 import {
   attackBonusAgainstBuilding,
-  attackBonusAgainstUnit,
-  combatDamageAfterArmor,
-  effectiveMeleeArmor,
-  effectivePierceArmor,
-  unitAttackType,
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
+import { applyUnitBlast, resolveUnitAttackOnUnit } from '../blastDamage';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
@@ -218,28 +214,24 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               continue;
             }
 
-            const rawDamage =
-              attackerCombat.attackDamage + attackBonusAgainstUnit(unit.unitType, targetUnit.unitType);
-            // Melee/pierce split: a melee attacker is reduced by the target's
-            // melee armor (its armor-tech bonus), a pierce attacker
-            // (archers/skirmishers/siege) by its pierce armor — base pierce
-            // armor PLUS that same tech bonus, so blacksmith armor upgrades keep
-            // mitigating arrows (skirmishers shrug off arrows, rams near-immune).
-            targetCombat.currentHp -= combatDamageAfterArmor(
-              rawDamage,
-              unitAttackType(unit.unitType),
-              effectiveMeleeArmor(targetUnit.unitType, targetCombat.armor),
-              effectivePierceArmor(targetUnit.unitType, targetCombat.armor),
-            );
-            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-            accessor.markDirty(combatStatesCodec);
-            markOutOfBandRenderChange();
-
-            if (targetCombat.currentHp <= 0) {
-              ensurePlayerScoreCounters(unit.owner).unitsKilled += 1;
-              destroyUnitEntity(targetId);
-              clearUnitCommand(id);
-            }
+            // Primary melee/pierce hit + mangonel-line blast/splash (spec
+            // §10.2/§10.7). Splash hits enemy AND friendly units in the radius.
+            const primaryDied = resolveUnitAttackOnUnit({
+              world: activeWorld,
+              combatStates: accessor.get(combatStatesCodec),
+              attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
+              target: {
+                id: targetId,
+                unitType: targetUnit.unitType,
+                position: targetPosition,
+                combat: targetCombat,
+              },
+              destroyUnit: destroyUnitEntity,
+              addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
+              markDirty: () => accessor.markDirty(combatStatesCodec),
+              markRender: markOutOfBandRenderChange,
+            });
+            if (primaryDied) clearUnitCommand(id);
             continue;
           }
 
@@ -347,6 +339,19 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
           accessor.markDirty(combatStatesCodec);
           markOutOfBandRenderChange();
+
+          // Blast/splash (spec §10.7): a mangonel-line shot at a building also
+          // splashes units clustered around the impact (enemy AND friendly).
+          applyUnitBlast({
+            world: activeWorld,
+            combatStates: accessor.get(combatStatesCodec),
+            attacker: { id, unitType: unit.unitType, owner: unit.owner, baseDamage: attackerCombat.attackDamage },
+            impact: targetPosition,
+            primaryTargetId: targetId,
+            destroyUnit: destroyUnitEntity,
+            addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
+            markDirty: () => accessor.markDirty(combatStatesCodec),
+          });
 
           if (targetHealth.currentHp <= 0) {
             destroyBuildingEntity(targetId);

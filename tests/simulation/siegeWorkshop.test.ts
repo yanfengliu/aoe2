@@ -392,3 +392,58 @@ function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | n
   }
   return bridge.getSelectionState().health?.current ?? null;
 }
+
+describe('Mangonel blast/splash (spec §10.7)', () => {
+  it('splashes units around the impact (enemy + friendly fire), sparing those outside the radius', () => {
+    const bridge = createSimulationBridge('mangonel-vs-clustered-infantry-fixture');
+    const units = bridge.getEconomyState().units;
+    const primary = units.find((u) => u.owner === 2 && u.unitType === 'spearman' && u.x === 18 && u.y === 8);
+    const splashSpear = units.find((u) => u.owner === 2 && u.unitType === 'spearman' && u.x === 18 && u.y === 9);
+    const splashMilitia = units.find((u) => u.owner === 2 && u.unitType === 'militia');
+    const friendly = units.find((u) => u.owner === 1 && u.unitType === 'villager');
+    const far = units.find((u) => u.owner === 2 && u.unitType === 'spearman' && u.y === 11);
+    expect(primary && splashSpear && splashMilitia && friendly && far).toBeTruthy();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommand(primary!.x, primary!.y)).toBe(true);
+
+    // One attack tick: the Mangonel fires and the blast lands on the spawn-cell
+    // cluster simultaneously (cooldownTicks starts at 0).
+    bridge.step(100);
+
+    const byId = (id: number) => bridge.getEconomyState().units.find((u) => u.id === id);
+    const hp = (id: number) => {
+      const u = byId(id);
+      return u ? getHealthOfUnitAtCell(bridge, u.x, u.y) : null;
+    };
+    // Primary took the full base pierce hit (Spearman 45 - 40 = 5).
+    expect(hp(primary!.id)).toBe(5);
+    // Orthogonal neighbours splashed: Spearman 45 - 40 = 5; Militia 40 - (40 - 1
+    // pierce armor) = 1.
+    expect(hp(splashSpear!.id)).toBe(5);
+    expect(hp(splashMilitia!.id)).toBe(1);
+    // Friendly fire: the owner-1 Villager (25 HP) is destroyed by its own
+    // Mangonel's blast (40 > 25).
+    expect(byId(friendly!.id)).toBeUndefined();
+    // The far Spearman (distance 3, outside blast radius 1) is untouched.
+    expect(hp(far!.id)).toBe(45);
+  }, 10_000);
+
+  it('splashes a unit adjacent to a building the Mangonel is shelling', () => {
+    const bridge = createSimulationBridge('mangonel-vs-building-splash-fixture');
+    const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
+    const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
+    expect(spearman && house).toBeTruthy();
+    expect(getHealthOfUnitAtCell(bridge, spearman!.x, spearman!.y)).toBe(45);
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
+    // One shot at the House; the blast (centered on the building's impact cell)
+    // splashes the orthogonally-adjacent Spearman: 45 - 40 base = 5.
+    bridge.step(100);
+
+    const after = bridge.getEconomyState().units.find((u) => u.id === spearman!.id);
+    expect(after).toBeDefined();
+    expect(getHealthOfUnitAtCell(bridge, after!.x, after!.y)).toBe(5);
+  }, 10_000);
+});

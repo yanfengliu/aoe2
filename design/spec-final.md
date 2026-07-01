@@ -935,6 +935,8 @@ Support splash or blast damage for:
 
 Where appropriate, siege must support friendly fire.
 
+Implemented model (mangonel line): a blast unit's attack lands full damage on its primary target, then deals area damage to EVERY OTHER unit (enemy AND friendly — friendly fire) within the unit's `blast_radius` (design/stats/units.csv) of the impact cell. Each splashed unit's damage is computed the same way as the primary — attack type (melee/pierce) + class bonus, reduced by that unit's own armor, floored at 1 — so a splashed spearman takes the mangonel's base pierce damage (the mangonel line has no per-target anti-infantry bonus; its power against massed infantry IS this area effect, restoring the AoE2 counter). The attacker itself is never splashed. Blast is DERIVED from the attacker's unit type at the damage site (no persisted state, no save-format change) and applies in a deterministic order (by entity id). The mangonel-line `blast_radius` is small (roughly one cell in this grid model); the wider onager area and distance-attenuated blast for non-siege attacks are refinements deferred with elevation (§10.5).
+
 ### 10.8 Garrison Arrows and Defensive Fire
 
 Town Centers, Towers, and Castles must support:

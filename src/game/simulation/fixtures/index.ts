@@ -89,6 +89,8 @@ export {
   createSiegeWorkshopFixture,
   createMangonelRangedFixture,
   createMangonelVsSpearmanFixture,
+  createMangonelVsClusteredInfantryFixture,
+  createMangonelVsBuildingSplashFixture,
   createMangonelVsKnightFixture,
   createMangonelMinRangeBlockedFixture,
   createMangonelOutsideMinRangeFixture,

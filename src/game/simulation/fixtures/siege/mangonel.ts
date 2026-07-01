@@ -124,6 +124,65 @@ export function createMangonelVsSpearmanFixture(seed: string): PrototypeScenario
   };
 }
 
+// Blast/splash fixture (spec §10.7): a player-1 Mangonel targets a primary
+// enemy Spearman with three units at the impact's ORTHOGONAL neighbours
+// (Euclidean distance 1, inside the radius-1 blast) — an enemy Spearman +
+// Militia (splashed) and a FRIENDLY Villager (friendly fire) — plus a far
+// enemy Spearman (distance 3, outside the blast, unaffected). NOTE the metric
+// is Euclidean: a DIAGONAL neighbour (distance √2 ≈ 1.41) would NOT be splashed.
+export function createMangonelVsClusteredInfantryFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 }, startingAge: 'castle-age' },
+      { owner: 2, townCenter: { x: 24, y: 8 }, startingAge: 'castle-age' },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'mangonel', x: 12, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+      // Friendly villager adjacent to the impact — hit by friendly fire.
+      { kind: 'villager', x: 18, y: 7, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 3 } },
+      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      // Primary target + two splashed orthogonal neighbours (Euclidean dist 1).
+      { kind: 'spearman', x: 18, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      { kind: 'spearman', x: 18, y: 9, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      { kind: 'militia', x: 19, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      // Far enemy Spearman — distance 3 from the impact, outside the blast.
+      { kind: 'spearman', x: 18, y: 11, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+    ],
+  };
+}
+
+// Blast/splash on the unit-vs-BUILDING path (spec §10.7): a player-1 Mangonel
+// shells an enemy House (2×2, anchored at 22,20); an enemy Spearman one cell
+// west of the anchor (21,20, outside the footprint) is splashed even though the
+// primary target is a building. The whole scene sits far from BOTH Town Centers
+// so no base-fire arrow confounds the splashed Spearman's HP.
+export function createMangonelVsBuildingSplashFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 }, startingAge: 'castle-age' },
+      { owner: 2, townCenter: { x: 4, y: 30 }, startingAge: 'castle-age' },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 4, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'mangonel', x: 16, y: 20, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+      { kind: 'town-center', x: 4, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      // Enemy House (the primary target) + a Spearman orthogonally adjacent to
+      // the anchor cell (21,20), outside the 2×2 footprint.
+      { kind: 'house', x: 22, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      { kind: 'spearman', x: 21, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+    ],
+  };
+}
+
 // Slice 4 review fixture: player-1 Mangonel inside max range of a single
 // enemy Knight. Used to confirm the +10 anti-infantry bonus does NOT apply
 // to cavalry — Knight 100 HP should take exactly 40 damage on one tick.

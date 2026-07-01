@@ -192,3 +192,20 @@ const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
 export function attackBonusAgainstBuilding(attackerType: UnitType): number {
   return BUILDING_ATTACK_BONUS[attackerType] ?? 0;
 }
+
+// Blast/splash radius (spec §10.7), from design/stats/units.csv `blast_radius`.
+// Only the roster's mangonel line has an effective radial blast at this grid
+// resolution (measured with Euclidean distance): mangonel 1 and onager 1.25
+// both reach the four orthogonal neighbours of the impact cell (a diagonal is
+// √2≈1.41 away, so onager's wider AoE only manifests at siege-onager's 1.5 —
+// off-roster). Bombard's CSV 0.5 is sub-cell (no other cell within it), and
+// scorpion blast is a LINE attack (empty CSV radius) — both deferred. Absent
+// attackers have no blast.
+const UNIT_BLAST_RADIUS: Partial<Record<UnitType, number>> = {
+  mangonel: 1,
+  onager: 1.25,
+};
+
+export function unitBlastRadius(unitType: UnitType): number {
+  return UNIT_BLAST_RADIUS[unitType] ?? 0;
+}
