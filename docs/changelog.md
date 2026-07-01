@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.56 - 2026-07-01
+
+### The AI grows a bigger economy across the ages
+
+The AI's villager count was hard-capped at tiny numbers — 6 in the Dark Age, 14 through Feudal and Castle, 50 in Imperial — so it plateaued with a starved economy that could not fund a real army or age up efficiently. The cap now scales toward AoE2-realistic counts (10 / 22 / 40 / 60 by age), so the AI keeps training villagers into a growing economy and reaches Feudal noticeably faster with more villagers. (Its natural food supply still bounds this until a follow-up teaches the AI to build farms.) No change to the human player.
+
 ## 0.1.55 - 2026-07-01
 
 ### Villagers reroute to a reachable drop-off instead of freezing the economy

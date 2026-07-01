@@ -29,6 +29,7 @@ import {
   shouldPursueWonder,
   villagerTargetsEqual,
   villagerTargetsForAge,
+  villagerCapForAge,
   type AiState,
 } from '../../ai';
 import {
@@ -614,10 +615,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             // gate below sees the freshly-pushed age-up entry.
             const tcEffectiveQueueLength =
               tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
-            const villagerCap =
-              currentAge === 'dark-age' ? 6
-              : currentAge === 'imperial-age' ? 50
-              : 14;
+            const villagerCap = villagerCapForAge(currentAge);
             const currentVillagers =
               countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager') + tcPendingTrains;
             const villagerCost = trainingCost('villager');

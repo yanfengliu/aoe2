@@ -114,6 +114,30 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
   }
 }
 
+// Total villager count the AI grows its economy to in each age (the HARD cap on
+// TC villager production; the per-resource `villagerTargetsForAge` distribution
+// then spreads them proportionally). The previous inline caps (Dark 6 / Feudal
+// + Castle 14 / Imperial 50) starved the AI's economy: with ~14 villagers
+// through Castle Age it could not fund a real army or age up efficiently and
+// plateaued (found by AI-vs-AI grounding). These scale toward AoE2-realistic
+// counts — still conservative (military trains BEFORE villagers each decision
+// tick and from a reserve above the age-up cost, so a higher cap grows the
+// economy without starving military or age-up). Monotonic increasing across
+// ages. Food supply from natural resources bounds this in very long games until
+// the AI builds farms (a separate follow-up).
+export function villagerCapForAge(age: AgeType): number {
+  switch (age) {
+    case 'dark-age':
+      return 10;
+    case 'feudal-age':
+      return 22;
+    case 'castle-age':
+      return 40;
+    case 'imperial-age':
+      return 60;
+  }
+}
+
 // Deterministic unit-mix for each age. The AI walks through the list in
 // order; whichever unit it cannot afford is skipped that decision tick.
 // Kept intentionally simple — mixes ignore civ-uniques and pick only
