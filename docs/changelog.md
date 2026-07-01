@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.51 - 2026-07-01
+
+### Villagers can repair damaged buildings
+
+Right-click a friendly, damaged building with a villager and it will walk over and repair it, restoring the building's hit points over time. Repairing costs resources — a fraction of what the building cost to make, scaled by how much health is missing (fully repairing a building from near-death costs about half its build cost). If you can't afford the repair, the villager won't start it.
+
+Repair is a distinct order (it will not be confused with construction), and it reuses the walk-and-work flow, so multiple villagers repair faster and the building's HP bar fills as it's fixed. Right-clicking a *damaged* garrisonable building (Town Center, Castle, Tower) repairs it rather than garrisoning — matching Age of Empires II. Notes/simplifications in this first version: the cost is charged up front when you issue the repair (before the villager even arrives), rather than continuously as it's fixed — so each villager you assign is billed separately, re-issuing re-charges, and an interrupted or unreachable repair is not refunded; repair currently applies to buildings only (siege-unit repair is not yet wired). Save extension: a save taken mid-repair now records the repair order (additive and backward-compatible — older saves are unaffected).
+
 ## 0.1.50 - 2026-06-30
 
 ### Mangonels get blast/splash damage — anti-infantry restored

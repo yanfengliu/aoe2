@@ -110,3 +110,35 @@ export function createSingleVillagerConstructionFixture(seed: string): Prototype
     ],
   };
 }
+
+// Repair (spec §8.1): a player-1 Villager and a DAMAGED player-1 House (2×2,
+// maxHp 75, spawned at 30 HP via `startHp`). The owner has full coffers so it
+// can pay the repair cost. Placed away from the enemy so nothing else touches
+// the House while it is repaired.
+export function createRepairFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 6, y: 6 },
+        startingResources: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
+        disableAi: true,
+      },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 30 },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 6, y: 6, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
+      { kind: 'house', x: 14, y: 14, owner: 1, baseOwner: 1, startHp: 30, vision: { playerId: 1, radius: 3 } },
+      { kind: 'villager', x: 14, y: 17, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
+      { kind: 'town-center', x: 40, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+    ],
+  };
+}

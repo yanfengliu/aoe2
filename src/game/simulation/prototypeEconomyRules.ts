@@ -452,6 +452,30 @@ export function constructionCost(
   return CONSTRUCTION_COSTS[buildingType];
 }
 
+// Repair cost (spec §8.1): repairing a building costs a fraction of its build
+// cost, proportional to the HP restored — fully repairing from 0 costs half the
+// build cost (an AoE2-ish rate). Each resource is rounded UP so repair is never
+// free. Charged up front at the repair-command issue (slice 1).
+export const REPAIR_COST_FRACTION = 0.5;
+
+export function repairCost(
+  buildingType: BuildableBuildingType,
+  missingHp: number,
+  maxHp: number,
+): Partial<PlayerResources> {
+  const build = CONSTRUCTION_COSTS[buildingType];
+  const fraction = maxHp > 0 ? REPAIR_COST_FRACTION * (Math.max(0, missingHp) / maxHp) : 0;
+  const cost: Partial<PlayerResources> = {};
+  for (const key of ['food', 'wood', 'gold', 'stone'] as const) {
+    const amount = build[key];
+    if (amount) {
+      const charged = Math.ceil(amount * fraction);
+      if (charged > 0) cost[key] = charged;
+    }
+  }
+  return cost;
+}
+
 export function trainingTimeTicks(unitType: TrainableUnitType): number {
   return TRAINING_TIME_TICKS[unitType];
 }

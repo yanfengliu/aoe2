@@ -8,7 +8,10 @@
 import type { EntityRef, Position } from 'civ-engine';
 
 export interface UnitCommand {
-  type: 'move' | 'build' | 'attack';
+  // 'build' constructs an in-progress building; 'repair' restores a COMPLETE
+  // damaged one (spec §8.1). They are distinct so a stale builder command left
+  // over after a building completes clears instead of becoming a free repair.
+  type: 'move' | 'build' | 'attack' | 'repair';
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;

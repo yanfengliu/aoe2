@@ -575,6 +575,8 @@ Repair rules:
 - repair consumes resources
 - repair restores hit points without recreating the entity
 
+Implemented model (buildings): right-clicking a friendly, COMPLETE, damaged building with a villager repairs it. The villager walks adjacent (like construction) and restores HP over time at the building's build rate (`maxHp / buildTimeTicks` per tick) until full. The cost is a fraction of the build cost proportional to the missing HP — `ceil(0.5 × buildCost × missingHp / maxHp)` per resource — so a full repair from ~0 costs about half the build cost. It is charged UP FRONT when the repair is issued (slice-1 simplification; AoE2 charges continuously), so each assigned villager is billed separately and an interrupted repair is not refunded. A repair the owner cannot afford is not started. Siege-unit repair, continuous (per-tick) charging, and repair-speed modifiers are deferred.
+
 Destruction rules:
 
 - buildings are removed at 0 HP

@@ -10,28 +10,21 @@ import type {
   RenderableComponent,
   ResourceComponent,
   UnitComponent,
-  VisionSourceComponent,
 } from '../../types';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
-import { deriveCap } from '../bridgeConstants';
-import {
-  buildingTint,
-  buildingVisionRadius,
-  createBuildingCombatState,
-} from '../../prototypeBuildingRules';
+import { buildingBuildTimeTicks } from '../../prototypeBuildingRules';
 import {
   attackBonusAgainstBuilding,
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
 import { applyUnitBlast, resolveUnitAttackOnUnit } from '../blastDamage';
+import { finalizeBuildingConstruction } from '../finalizeBuildingConstruction';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
-  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
-  populationCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
@@ -417,11 +410,49 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
         const construction = accessor.get(constructionStatesCodec).get(buildingId);
         const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
-        if (!building || !construction || construction.isComplete || !buildingApproachPlan) {
+        if (!building || !buildingApproachPlan) {
           clearUnitCommand(id);
           continue;
         }
 
+        // REPAIR (spec §8.1): only a COMPLETE building (not under construction);
+        // resources were charged up front at command issue. Walk adjacent and
+        // restore HP over time at the build rate; finish at full HP. A stale
+        // BUILD command on a now-complete building instead clears below, so it
+        // never becomes a free repair.
+        if (command.type === 'repair') {
+          if (construction && !construction.isComplete) {
+            clearUnitCommand(id);
+            continue;
+          }
+          const health = accessor.get(buildingHealthStatesCodec).get(buildingId);
+          if (!health || health.currentHp >= health.maxHp) {
+            clearUnitCommand(id);
+            continue;
+          }
+          if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
+            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
+            continue;
+          }
+          const buildTicks = buildingBuildTimeTicks(building.buildingType);
+          const repairPerTick = buildTicks > 0 ? health.maxHp / buildTicks : health.maxHp;
+          health.currentHp = Math.min(health.maxHp, health.currentHp + repairPerTick);
+          accessor.markDirty(buildingHealthStatesCodec);
+          activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
+          if (health.currentHp >= health.maxHp) {
+            health.currentHp = health.maxHp;
+            clearUnitCommand(id);
+          }
+          continue;
+        }
+
+        // CONSTRUCTION (command.type === 'build'): a complete or absent
+        // construction state clears (an over-assigned builder after completion
+        // does NOT continue as a free repair).
+        if (!construction || construction.isComplete) {
+          clearUnitCommand(id);
+          continue;
+        }
         if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
           moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
           continue;
@@ -439,58 +470,18 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           );
           accessor.markDirty(buildingHealthStatesCodec);
         }
-        // Side-map mutations (constructionStates / buildingHealthStates)
-        // do not mark the building entity dirty for the renderAdapter.
-        // patchComponent in strict mode marks the entity dirty
-        // unconditionally, so the projector re-runs on the next tick and
-        // the HP bar fills smoothly during construction. Multi-builder
-        // ticks dedupe by entity id at the dirty-set level, so this stays
-        // a single re-projection per construction site per tick.
+        // Side-map mutations don't mark the entity dirty; patchComponent in
+        // strict mode does, so the projector re-runs and the HP bar fills.
         activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
         if (construction.buildProgressTicks >= construction.totalBuildTicks) {
-          construction.buildProgressTicks = construction.totalBuildTicks;
-          construction.isComplete = true;
-          if (buildingHealth) {
-            buildingHealth.currentHp = Math.min(
-              buildingHealth.maxHp,
-              Math.round(buildingHealth.currentHp),
-            );
-            accessor.markDirty(buildingHealthStatesCodec);
-          }
-
-          const renderable = activeWorld.getComponent<RenderableComponent>(buildingId, 'renderable');
-          if (renderable) {
-            renderable.tint = buildingTint(building.buildingType, building.owner, true);
-            renderable.visualVariant = 'complete';
-            markOutOfBandRenderChange();
-          }
-
-          const defaultVisionRadius = buildingVisionRadius(building.buildingType);
-          if (
-            defaultVisionRadius !== null
-            && !activeWorld.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
-          ) {
-            activeWorld.addComponent(buildingId, 'visionSource', {
-              playerId: building.owner,
-              radius: defaultVisionRadius,
-            });
-          }
-
-          const buildingCombatState = createBuildingCombatState(building.buildingType);
-          if (buildingCombatState) {
-            accessor.mutate(buildingCombatStatesCodec, (m) => m.set(buildingId, buildingCombatState));
-          }
-
-          const populationState = accessor.get(populationCodec).get(building.owner);
-          if (populationState && construction.populationProvided > 0) {
-            // Raise the honest raw supply; cap is the derived 200-clamp of it.
-            populationState.rawSupply += construction.populationProvided;
-            populationState.cap = deriveCap(populationState.rawSupply);
-            accessor.markDirty(populationCodec);
-          }
-
-          onBuildingConstructionComplete(buildingId, building.owner, building.buildingType);
-
+          finalizeBuildingConstruction({
+            world: activeWorld,
+            accessor,
+            buildingId,
+            building,
+            onComplete: onBuildingConstructionComplete,
+            markRender: markOutOfBandRenderChange,
+          });
           clearUnitCommand(id);
         }
       }

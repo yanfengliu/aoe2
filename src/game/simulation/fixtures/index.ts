@@ -186,6 +186,7 @@ export {
 
 export {
   createMultiVillagerConstructionFixture,
+  createRepairFixture,
   createSingleVillagerConstructionFixture,
 } from './construction';
 

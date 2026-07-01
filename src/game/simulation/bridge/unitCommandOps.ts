@@ -17,6 +17,7 @@ import type { MonkTask } from './sharedTypes';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
+import { createBuildRepairCommandOps } from './buildRepairCommandOps';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -386,24 +387,13 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // a villager onto an existing in-progress own-team building. Returns
   // false on any precondition miss (non-villager, foreign owner, building
   // missing or already complete) so the caller can fall through.
-  function setUnitBuildCommandDirect(unitId: number, buildingId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!unit || unit.unitType !== 'villager') return false;
-    const buildingPosition = world.getComponent<Position>(buildingId, 'position');
-    const targetBuilding = world.getComponent<BuildingComponent>(buildingId, 'building');
-    if (!buildingPosition || !targetBuilding || targetBuilding.owner !== unit.owner) return false;
-    const construction = accessor.get(constructionStatesCodec).get(buildingId);
-    if (!construction || construction.isComplete) return false;
-    const buildingRef = getEntityRef(buildingId);
-    if (!buildingRef) return false;
-    clearGathererOrder(unitId);
-    setUnitCommand(unitId, {
-      type: 'build',
-      target: { x: buildingPosition.x, y: buildingPosition.y },
-      buildingRef,
-    });
-    return true;
-  }
+  const buildRepairOps = createBuildRepairCommandOps({
+    world,
+    accessor,
+    getEntityRef,
+    clearGathererOrder,
+    setUnitCommand,
+  });
 
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.
@@ -428,8 +418,15 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
         construction
         && !construction.isComplete
         && unit.unitType === 'villager'
-        && setUnitBuildCommandDirect(unitId, targetEntityId)
+        && buildRepairOps.setUnitBuildCommandDirect(unitId, targetEntityId)
       ) {
+        return true;
+      }
+
+      // Repair a friendly, complete, damaged building (spec §8.1) — charges up
+      // front + queues the repair. Precedes garrison so right-clicking a damaged
+      // garrisonable building repairs it (AoE2-faithful).
+      if (buildRepairOps.tryRepairCharge(unitId, targetEntityId, targetBuilding)) {
         return true;
       }
 
@@ -486,7 +483,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
-    setUnitBuildCommandDirect,
+    setUnitBuildCommandDirect: buildRepairOps.setUnitBuildCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
     routeMonkContextAtEntityCommandDirect,

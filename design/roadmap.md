@@ -54,7 +54,7 @@ Tags: `[sim]` simulation logic here · `[data]` CSV/content wiring · `[engine]`
 ### M6 — Match completeness & control
 - **Score-timer victory.** A timeout where highest score wins, so stalemates end (score is currently display-only). `[sim]` (Until this lands, the playtest-corpus CI smoke sets `matchCompleteRequired: false` — deterministic matches stalemate at the tick cap; re-enable the match-completion oracle when score-victory makes matches actually end.)
 - **Stances / formations / attack-move / patrol.** UnitCommand is move/build/attack only; auto-aggression is hard-coded. `[sim]`
-- **Repair.** Villagers repairing buildings & siege (no handler today). `[sim]`
+- **Repair.** Buildings ✅ done (v0.1.51, thread villager-repair): right-clicking a friendly COMPLETE damaged building with a villager repairs it — walk-adjacent (reusing the construction/`build`-command flow) + restore HP over time at the build rate, for `ceil(0.5 × buildCost × missingHp/maxHp)` per resource, charged up front (`repairCost` in prototypeEconomyRules; `setUnitRepairCommandDirect`). The build-command loop branches on complete-vs-under-construction; the construction-complete block was extracted to `finalizeBuildingConstruction.ts` to keep playerCommandsSystem <500 LOC. Deferred: SIEGE-unit repair, continuous (per-tick) charging (currently up front, so multi-villager bills per villager + interrupts don't refund), and repair-speed modifiers. `[sim]`
 - **AI depth.** Siege production (so it can break walls/Castles), team play (trade/tribute/joint defense), and difficulty-differentiated tactics (currently only cadence/gather-rate differ). `[sim]`
 
 ### M7 — Graphics & UI (AoE2 HD look)
