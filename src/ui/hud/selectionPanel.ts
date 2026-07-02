@@ -32,7 +32,7 @@ import {
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
-import { buildingGlyph } from './icons/glyphs';
+import { buildingGlyph, researchGlyph } from './icons/glyphs';
 import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
@@ -66,6 +66,35 @@ export function renderBuildButtons(buildOptions: BuildableBuildingType[]): strin
 // `data-command="train-<type>"` hook and the "Train <Name>" text are preserved
 // (the text sits in a `hud-command-label` span so textContent is unchanged).
 // Exported so it is unit-testable in isolation.
+// M7 UI-icons (v0.1.74): the command-card "Research <Name>" buttons get the
+// generic procedural RESEARCH glyph before the label. Augment-not-replace:
+// the `data-command="research-<tech>"` hook, the "Research <Name>" text, and
+// the visible-but-locked disabled state (a tech shown greyed until its
+// prerequisites are met) are all preserved. `visibleResearchOptions` is the
+// full set of buttons to draw; `availableResearchOptions` is the subset that
+// is researchable right now (the rest render locked).
+export function renderResearchButtons(
+  visibleResearchOptions: ResearchableTechnologyType[],
+  availableResearchOptions: ResearchableTechnologyType[],
+): string {
+  return visibleResearchOptions
+    .map((technologyType) => {
+      const isAvailable = availableResearchOptions.includes(technologyType);
+      return `
+          <button
+            class="hud-command-button"
+            data-command="research-${technologyType}"
+            data-tooltip="${formatResearchTooltip(technologyType, formatTechnologyName(technologyType))}"
+            type="button"
+            ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
+          >
+            ${researchGlyph()}<span class="hud-command-label">Research ${formatTechnologyName(technologyType)}</span>
+          </button>
+        `;
+    })
+    .join('');
+}
+
 export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
   return trainOptions
     .map(
@@ -185,22 +214,10 @@ export function createSelectionPanel(
         `,
       )
       .join('');
-    const researchButtons = selectionState.visibleResearchOptions
-      .map((technologyType) => {
-        const isAvailable = selectionState.researchOptions.includes(technologyType);
-        return `
-          <button
-            class="hud-command-button"
-            data-command="research-${technologyType}"
-            data-tooltip="${formatResearchTooltip(technologyType, formatTechnologyName(technologyType))}"
-            type="button"
-            ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
-          >
-            Research ${formatTechnologyName(technologyType)}
-          </button>
-        `;
-      })
-      .join('');
+    const researchButtons = renderResearchButtons(
+      selectionState.visibleResearchOptions,
+      selectionState.researchOptions,
+    );
 
     el.innerHTML = `
       <div class="hud-label">Selection</div>

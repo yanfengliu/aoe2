@@ -278,3 +278,21 @@ export function isBuildableBuildingType(
 ): value is BuildableBuildingType {
   return typeof value === 'string' && Object.hasOwn(BUILDING_GLYPH_BODY, value);
 }
+
+// ---- Command glyphs (non-build/train command buttons) ----------------
+
+// A single generic RESEARCH glyph for the "Research <Name>" command buttons:
+// an open book (center spine + two feathered pages) with a small upgrade
+// chevron above it — the universal "study / advance" read. One glyph for
+// every tech (the button label carries the specific tech name); per-tech or
+// per-category research art is a later slice. Defaults to the 17px command
+// class so it matches the neighbouring Build/Train glyphs.
+const RESEARCH_GLYPH_BODY =
+  '<path d="M12 8.4v9.4"/>' +
+  '<path d="M12 8.4C9.7 7 6.3 6.8 4 7.6v9.4c2.3-0.8 5.7-0.6 8 0.8"/>' +
+  '<path d="M12 8.4c2.3-1.4 5.7-1.6 8-0.8v9.4c-2.3-0.8-5.7-0.6-8 0.8"/>' +
+  '<path d="M9.6 5.4 12 3.4l2.4 2"/>';
+
+export function researchGlyph(cls: string = 'hud-command-glyph'): string {
+  return svg(cls, RESEARCH_GLYPH_BODY);
+}

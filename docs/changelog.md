@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.74 - 2026-07-02
+
+### UI: Research buttons now show an icon
+
+The command-card **Research** buttons (e.g. "Research Fletching", "Research Loom") now show a small original procedural **research icon** (an open book with an upgrade chevron) before the label, matching the Build and Train buttons — so the command card reads consistently instead of mixing iconned and text-only buttons. The icon appears on both available and locked (greyed) research buttons. One generic icon is used for every technology for now; the button label still names the specific tech. Visual polish only — the buttons behave exactly as before. (The action and market command buttons remain text-only for now.)
+
 ## 0.1.73 - 2026-07-02
 
 ### UI fix: Train-button icons now match the Build-button icon size
