@@ -41,6 +41,10 @@ export type ResearchableTechnologyType =
   // (moveCarryHundredths — additive save field, engaged only at percent ≠ 100).
   // Spec §12.5.
   | 'husbandry'
+  // Squires (Barracks, Castle): +10% movement speed for INFANTRY. Same DERIVED
+  // movement-speed seam as Husbandry (movementSpeedPercent + the carry). Spec
+  // §12.5.
+  | 'squires'
   | 'bracer'
   | 'blast-furnace'
   | 'plate-mail-armor'

@@ -1098,6 +1098,10 @@ The simulation must allow:
 
 **Asymmetric armor techs (implemented).** AoE2 armor techs add +1 MELEE armor each, but four add +2 PIERCE (the rest are symmetric +1/+1): the three top-tier Blacksmith armor techs — Plate Mail Armor (infantry), Plate Barding (cavalry), Ring Archer Armor (archers) — and Loom. The per-unit combat state carries two armor-tech accumulators: `armor` (the symmetric bonus, added to both melee and pierce) and `pierceArmorBonus` (the extra pierce-only bonus). A single shared helper applies each tech's bonus in BOTH the new-unit factory and the on-research existing-unit path, so the two can't drift, and effective pierce armor at the damage site = base pierce (units.csv) + `armor` + `pierceArmorBonus`, while effective melee armor = base melee + `armor`. So Loom is now +1 melee / +2 pierce, and a fully-upgraded infantry armor line reaches +3 melee / +4 pierce. Save compatibility: `pierceArmorBonus` is an additive optional field — pre-split saves have no value and load as fully symmetric (`?? 0`), so the symmetric `armor` they stored still yields the same mitigation; no save-format-version bump. The selection panel surfaces the split as two rows, **Melee armor** and **Pierce armor** (the armor-upgrade bonus, matching the melee row's value semantics), so the asymmetry is visible to the player.
 
+### 11.10 Barracks infantry techs (Squires)
+
+**Squires (implemented v0.1.68).** Squires is researched at the Barracks, available from the Castle Age with no prerequisite beyond a standing Barracks, costing 200 food and taking 40 seconds (400 ticks) — the values in `technologies.csv:12`. It is a one-time, owner-wide, permanent +10% movement-speed multiplier for every INFANTRY unit (the Militia line — Militia, Man-at-Arms, Long Swordsman, Two-Handed Swordsman, Champion — and the Spear line — Spearman, Pikeman, Halberdier; `isInfantryUnit`). It rides the same DERIVED movement-speed seam as Husbandry (§12.5): `movementSpeedPercent` recomputes the unit's speed percent from the persisted researched-tech set every tick, and the per-unit fractional carry delivers the +10% under the per-cell waypoint clamp. Husbandry (mounted) and Squires (infantry) target disjoint unit classes, so at most one applies to any unit and there is no stacking. No bespoke application path and no save-format change beyond the shared carry field.
+
 ## 12. Fog of War, Line of Sight, Pathfinding, and Movement
 
 ### 12.1 Visibility States
@@ -1157,8 +1161,9 @@ Every commanded mover advances on the fine subgrid through the single step execu
 - The carry persists with the entity across save/load (additive optional field; absent reads as 0 — no schema bump) and reproduces identically in replay.
 - Research takes effect from the next tick, including for units already mid-walk; a converted unit follows its NEW owner's researched set from the next tick.
 - Husbandry (§11.9): mounted units (cavalry lines + cavalry archers) move at 110%.
+- Squires (§11.10): infantry (militia line + spear line) move at 110%. Husbandry and Squires target disjoint unit classes, so no unit stacks both.
 
-Still unimplemented and expected by the full game: infantry speed bonuses (Squires), villager speed bonuses (the Wheelbarrow/Hand Cart ×1.1 movement halves), per-unit-TYPE base rates from the `units.csv` `movement_rate` column (Knight 1.35 vs Villager 0.8 vs Battering Ram 0.5 — today all units share the uniform base), formation drag or cohesion effects, and stance-driven chase limits.
+Still unimplemented and expected by the full game: villager speed bonuses (the Wheelbarrow/Hand Cart ×1.1 movement halves), per-unit-TYPE base rates from the `units.csv` `movement_rate` column (Knight 1.35 vs Villager 0.8 vs Battering Ram 0.5 — today all units share the uniform base), formation drag or cohesion effects, and stance-driven chase limits.
 
 ### 12.6 Unit Spacing and Sub-Tile Occupancy
 

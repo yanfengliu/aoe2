@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HUSBANDRY_SPEED_PERCENT,
   MOVE_CARRY_CAP_HUNDREDTHS,
+  SQUIRES_SPEED_PERCENT,
   movementEntitlement,
   movementSpeedPercent,
   settleMovementCarry,
@@ -70,6 +71,55 @@ describe('movementSpeedPercent — Husbandry scope (technologies.csv:79 Cavalry;
       expect(movementSpeedPercent(NO_TECHS, unitType)).toBe(100);
       expect(movementSpeedPercent(UNRELATED_TECH, unitType)).toBe(100);
     }
+  });
+});
+
+const SQUIRES_ONLY: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'squires',
+] as ResearchableTechnologyType[]);
+const BOTH_SPEED_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'husbandry',
+  'squires',
+] as ResearchableTechnologyType[]);
+
+const INFANTRY_TYPES: UnitType[] = [
+  'militia',
+  'man-at-arms',
+  'long-swordsman',
+  'two-handed-swordsman',
+  'champion',
+  'spearman',
+  'pikeman',
+  'halberdier',
+];
+
+describe('movementSpeedPercent — Squires scope (technologies.csv:12 Infantry) + independence from Husbandry', () => {
+  it('grants 110% to every infantry unit when squires is researched', () => {
+    for (const unitType of INFANTRY_TYPES) {
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(SQUIRES_SPEED_PERCENT);
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(110);
+    }
+  });
+
+  it('leaves non-infantry (mounted / villager / archer / monk / siege) at 100% with squires', () => {
+    for (const unitType of [...MOUNTED_TYPES, 'villager', 'archer', 'monk', 'mangonel'] as UnitType[]) {
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(100);
+    }
+  });
+
+  it('does not cross the wires: Husbandry never speeds infantry, Squires never speeds mounted', () => {
+    for (const unitType of INFANTRY_TYPES) {
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(100);
+    }
+    for (const unitType of MOUNTED_TYPES) {
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(100);
+    }
+  });
+
+  it('with BOTH techs researched, each unit gets its own +10% (no double-count)', () => {
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight')).toBe(110);
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia')).toBe(110);
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'villager')).toBe(100);
   });
 });
 

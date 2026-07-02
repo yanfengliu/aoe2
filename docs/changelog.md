@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.68 - 2026-07-02
+
+### Barracks tech: Squires (+10% infantry speed)
+
+The Barracks can now research **Squires** (Castle Age, 200 food). It makes every one of that player's **infantry units** — the Militia line (Militia, Man-at-Arms, Long Swordsman, Two-Handed Swordsman, Champion) and the Spear line (Spearman, Pikeman, Halberdier) — **move 10% faster**, taking effect immediately for units already moving as well as everything trained later. It is the infantry counterpart to Husbandry (mounted units) and rides the same movement-speed system, so the +10% is real rather than lost to rounding. Non-infantry units are unaffected, and the two techs never stack (no unit is both infantry and mounted). No save-format change.
+
 ## 0.1.67 - 2026-07-02
 
 ### Bloodlines fixed to match AoE2: Feudal Age + cavalry archers included

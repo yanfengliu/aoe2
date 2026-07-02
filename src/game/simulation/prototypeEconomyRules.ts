@@ -172,7 +172,8 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   keep: { food: 200, gold: 100 },
   bloodlines: { food: 150, gold: 100 }, // Stable, Feudal: +20 mounted HP.
   husbandry: { food: 250 }, // Stable, Castle: +10% mounted speed (technologies.csv:79).
-  // Farm-food techs (Mill; costs from technologies.csv — Horse Collar 75/75, Heavy Plow 125/125, Crop Rotation 250/250).
+  squires: { food: 200 }, // Barracks, Castle: +10% infantry speed (technologies.csv:12).
+  // Farm-food techs (Mill; technologies.csv — Horse Collar 75/75, Heavy Plow 125/125, Crop Rotation 250/250).
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
   'crop-rotation': { food: 250, wood: 250 },
@@ -296,12 +297,11 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   keep: 400,
   bloodlines: 500, // Stable, Feudal: 50 s × 10 TPS.
   husbandry: 500, // Stable, Castle: 50 s × 10 TPS.
-  // Farm-food techs (Mill; CSV seconds × 10 TPS — 20/40/70 s).
-  'horse-collar': 200,
+  squires: 400, // Barracks, Castle: 40 s × 10 TPS.
+  'horse-collar': 200, // Mill farm-food techs (CSV seconds × 10 TPS — 20/40/70 s).
   'heavy-plow': 400,
   'crop-rotation': 700,
-  // Monastery monk-upgrade techs (Block Printing 55 s, Sanctity 60 s, Faith 60 s × 10 TPS).
-  'block-printing': 550,
+  'block-printing': 550, // Monastery monk techs (Block Printing 55 s, Sanctity/Faith 60 s).
   sanctity: 600,
   faith: 600,
 };

@@ -243,6 +243,11 @@ export {
 } from './husbandry';
 
 export {
+  createSquiresBaselineFixture,
+  createSquiresResearchedFixture,
+} from './squires';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

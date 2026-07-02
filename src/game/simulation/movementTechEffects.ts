@@ -16,10 +16,13 @@
 // movement stays byte-identical and never materializes the field.
 
 import type { ResearchableTechnologyType, UnitType } from './types';
-import { isMountedUnit } from './prototypeUnitRules';
+import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 
 // AoE2 Husbandry (technologies.csv:79): mounted units move 10% faster.
 export const HUSBANDRY_SPEED_PERCENT = 110;
+
+// AoE2 Squires (technologies.csv:12): infantry move 10% faster.
+export const SQUIRES_SPEED_PERCENT = 110;
 
 // Bound on the banked entitlement so a long-clamped unit cannot burst-move
 // later: grant ≤ floor((cap + 220)/100) = 5 fine units, and consumption is
@@ -27,15 +30,22 @@ export const HUSBANDRY_SPEED_PERCENT = 110;
 // motion the carry stays < 200.
 export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
 
-// Whole-percent speed multiplier for a unit: 110 for a mounted unit whose
-// owner researched Husbandry, else 100. Future speed techs (Squires,
-// Wheelbarrow/Hand Cart speed halves) compose here.
+// Whole-percent speed multiplier for a unit derived from the owner's researched
+// set: Husbandry → mounted units, Squires → infantry. The two techs target
+// disjoint unit classes (no unit is both mounted and infantry), so at most one
+// applies and there is no stacking. Future speed techs that share a class
+// (e.g. the Wheelbarrow/Hand Cart villager ×1.1 halves) will need to multiply
+// their percents here instead of the flat return. 100 = no modifier (the
+// executor's byte-identical fast path).
 export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
 ): number {
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
     return HUSBANDRY_SPEED_PERCENT;
+  }
+  if (researchedTechnologies.has('squires') && isInfantryUnit(unitType)) {
+    return SQUIRES_SPEED_PERCENT;
   }
   return 100;
 }

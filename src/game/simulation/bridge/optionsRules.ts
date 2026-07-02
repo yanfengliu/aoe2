@@ -299,6 +299,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'long-swordsman-upgrade')) {
           options.push('long-swordsman-upgrade');
         }
+        // Squires: +10% infantry movement speed. Castle-Age Barracks tech;
+        // drops once researched.
+        if (!hasTechnology(owner, 'squires')) {
+          options.push('squires');
+        }
       }
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'halberdier-upgrade')) {
