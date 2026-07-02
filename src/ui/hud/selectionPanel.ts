@@ -32,7 +32,12 @@ import {
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
-import { buildingGlyph, marketActionGlyph, researchGlyph } from './icons/glyphs';
+import {
+  actionGlyph,
+  buildingGlyph,
+  marketActionGlyph,
+  researchGlyph,
+} from './icons/glyphs';
 import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
@@ -92,6 +97,26 @@ export function renderResearchButtons(
           </button>
         `;
     })
+    .join('');
+}
+
+// M7 UI-icons (v0.1.76): the command-card "action" buttons (the Ungarrison
+// order) get a per-action glyph before the label. Augment-not-replace: the
+// `data-command="action-<type>"` hook + the action-name text are preserved.
+export function renderActionButtons(actionOptions: ActionType[]): string {
+  return actionOptions
+    .map(
+      (actionType) => `
+          <button
+            class="hud-command-button"
+            data-command="action-${actionType}"
+            data-tooltip="${formatActionTooltip(actionType)}"
+            type="button"
+          >
+            ${actionGlyph(actionType)}<span class="hud-command-label">${formatActionName(actionType)}</span>
+          </button>
+        `,
+    )
     .join('');
 }
 
@@ -206,20 +231,7 @@ export function createSelectionPanel(
       : '';
 
     const buildButtons = renderBuildButtons(selectionState.buildOptions);
-    const actionButtons = selectionState.actionOptions
-      .map(
-        (actionType) => `
-          <button
-            class="hud-command-button"
-            data-command="action-${actionType}"
-            data-tooltip="${formatActionTooltip(actionType)}"
-            type="button"
-          >
-            ${formatActionName(actionType)}
-          </button>
-        `,
-      )
-      .join('');
+    const actionButtons = renderActionButtons(selectionState.actionOptions);
     const trainButtons = renderTrainButtons(selectionState.trainOptions);
     const marketButtons = renderMarketButtons(selectionState.marketOptions);
     const researchButtons = renderResearchButtons(

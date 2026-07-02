@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.76 - 2026-07-02
+
+### UI: Action buttons now show an icon — the command card is fully iconned
+
+The **Ungarrison** command button (the "action" group) now shows an icon — an arrow rising out of a container, for units leaving a building — before its label. With this, **every command-card button is now iconned**: Build, Train, Research, Market, and Action all show a small original procedural icon beside the label, so the whole card reads consistently instead of mixing icons and bare text. Visual polish only — the Ungarrison order behaves exactly as before.
+
 ## 0.1.75 - 2026-07-02
 
 ### UI: Market buy/sell buttons now show a commodity icon

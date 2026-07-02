@@ -14,6 +14,7 @@
 // the meaning, so every <svg> is `aria-hidden="true"` and `focusable="false"`.
 
 import type {
+  ActionType,
   BuildableBuildingType,
   MarketActionType,
 } from '../../../game/simulation/types';
@@ -322,4 +323,22 @@ export function marketActionGlyph(
   cls: string = 'hud-command-glyph',
 ): string {
   return resourceGlyph(MARKET_ACTION_RESOURCE[actionType], cls);
+}
+
+// Per-action glyphs for the "action" command buttons. Ungarrison = units
+// leaving a building, drawn as an arrow rising out of an open-topped
+// container. Exhaustive over `ActionType` so a newly-added action forces a
+// glyph here. Defaults to the 17px command class.
+const ACTION_GLYPH_BODY: Record<ActionType, string> = {
+  ungarrison:
+    '<path d="M5 13v6h14v-6"/>' +
+    '<path d="M12 16.5V5"/>' +
+    '<path d="M8.5 8.5 12 5l3.5 3.5"/>',
+};
+
+export function actionGlyph(
+  actionType: ActionType,
+  cls: string = 'hud-command-glyph',
+): string {
+  return svg(cls, ACTION_GLYPH_BODY[actionType]);
 }
