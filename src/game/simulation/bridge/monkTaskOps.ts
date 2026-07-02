@@ -48,6 +48,7 @@ export interface MonkTaskDeps {
   markOutOfBandRenderChange: () => void;
   getEntityRef: (id: number) => EntityRef | null;
   destroyResourceEntity: (id: number) => void;
+  destroyUnitEntity: (id: number) => void; // Heresy: destroy a converted unit instead of flipping it.
   buildingOccupiesCell: (
     buildingId: number,
     x: number,
@@ -128,6 +129,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     markOutOfBandRenderChange,
     getEntityRef,
     destroyResourceEntity,
+    destroyUnitEntity,
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner,
@@ -240,6 +242,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     clearGathererOrder,
     markOutOfBandRenderChange,
     destroyResourceEntity,
+    destroyUnitEntity,
     isVisibleToOwner,
     currentEntityId,
     unitTint,

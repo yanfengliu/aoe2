@@ -54,3 +54,14 @@ export function garrisonHealRateMultiplier(
 ): number {
   return ownerResearched.has('herbal-medicine') ? HERBAL_MEDICINE_HEAL_MULTIPLIER : 1;
 }
+
+// Heresy (AoE2 Monastery, Castle Age — technologies.csv:66 "Converted units
+// die"): a unit whose OWNER has Heresy DIES rather than switching sides when an
+// enemy monk's conversion completes. Keyed on the TARGET's owner, read at the
+// conversion flip site (applyMonkConvert) — the same target-owner researched
+// set that Faith uses.
+export function convertedUnitDies(
+  targetOwnerResearched: ReadonlySet<ResearchableTechnologyType>,
+): boolean {
+  return targetOwnerResearched.has('heresy');
+}

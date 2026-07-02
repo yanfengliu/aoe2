@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.71 - 2026-07-02
+
+### Monastery tech: Heresy (converted units die)
+
+The Monastery can now research **Heresy** (Castle Age, 1000 gold). While researched, any of that player's units that an enemy monk would convert **dies instead of switching sides** — denying the unit to the converter. It's the classic AoE2 counter to enemy monk play: your converted units are lost rather than turned against you. Heresy doesn't stop or slow conversion (that's Faith) — it only changes the outcome. It affects only that player's units and only while researched; without it, conversions flip ownership exactly as before. No save-format change.
+
 ## 0.1.70 - 2026-07-02
 
 ### Monastery tech: Herbal Medicine (garrisoned units heal 4× faster)

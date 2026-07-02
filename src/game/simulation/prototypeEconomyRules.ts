@@ -46,9 +46,7 @@ const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
   wolf: null,
   tree: 5,
   relic: null,
-  // M1 Farms: berry-bush food cadence (spec §6.3 targets ~0.32–0.34 food/sec
-  // for a farm; berry-bush parity is the closest existing food value).
-  farm: 4,
+  farm: 4, // M1 Farms: berry-bush food cadence (spec §6.3 ~0.32–0.34 food/sec; berry-bush parity).
 };
 
 const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {
@@ -180,6 +178,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   sanctity: { gold: 120 },
   faith: { food: 750, gold: 1000 },
   'herbal-medicine': { gold: 350 },
+  heresy: { gold: 1000 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -304,6 +303,7 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   sanctity: 600,
   faith: 600,
   'herbal-medicine': 350,
+  heresy: 600,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {

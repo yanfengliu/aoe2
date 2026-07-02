@@ -26,7 +26,7 @@ import {
   researchedTechnologiesCodec,
   unitCommandsCodec,
 } from './bridgeStateSerialize';
-import { monkConvertProgressMultiplier } from '../monasteryTechEffects';
+import { convertedUnitDies, monkConvertProgressMultiplier } from '../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface MonkTaskAppliersDeps {
@@ -38,6 +38,9 @@ export interface MonkTaskAppliersDeps {
   clearGathererOrder: (id: number) => void;
   markOutOfBandRenderChange: () => void;
   destroyResourceEntity: (id: number) => void;
+  // Heresy: destroy the target unit (full cleanup — population, combat/monk
+  // state, occupancy) instead of flipping its owner when conversion completes.
+  destroyUnitEntity: (id: number) => void;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   currentEntityId: (
     activeWorld: GameWorld,
@@ -77,6 +80,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     clearGathererOrder,
     markOutOfBandRenderChange,
     destroyResourceEntity,
+    destroyUnitEntity,
     isVisibleToOwner,
     currentEntityId,
     unitTint,
@@ -165,13 +169,21 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       convState.progress = 0;
     }
     monkConvertProcessedThisTick.set(targetId, activeWorld.tick);
-    // Faith (target owner's tech): halves incoming conversion progress, so a
-    // protected unit takes twice as long to convert. Un-teched → ×1.
-    const resistance = monkConvertProgressMultiplier(
-      accessor.get(researchedTechnologiesCodec).get(targetUnit.owner) ?? EMPTY_TECH_SET,
-    );
+    // The target owner's researched set drives two conversion techs: Faith
+    // (halves incoming progress) and Heresy (the unit dies at the flip instead
+    // of switching sides). Un-teched → resistance ×1, no Heresy.
+    const targetOwnerResearched =
+      accessor.get(researchedTechnologiesCodec).get(targetUnit.owner) ?? EMPTY_TECH_SET;
+    const resistance = monkConvertProgressMultiplier(targetOwnerResearched);
     convState.progress += monkConvertProgressPerTick * resistance;
     if (convState.progress >= monkConvertFlipThreshold) {
+      if (convertedUnitDies(targetOwnerResearched)) {
+        // Heresy: deny the unit to the converter — it dies rather than flips.
+        // destroyUnitEntity clears conversionState + population + all side maps.
+        destroyUnitEntity(targetId);
+        markOutOfBandRenderChange();
+        return;
+      }
       flipConvertedUnit(targetId, targetUnit, monkUnit, monkId, activeWorld);
       return;
     }

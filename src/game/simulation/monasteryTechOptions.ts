@@ -35,6 +35,10 @@ export function monasteryTechResearchOptions(
   if (!hasTechnology(owner, 'herbal-medicine')) {
     options.push('herbal-medicine');
   }
+  // Heresy (Castle): your units die instead of being converted.
+  if (!hasTechnology(owner, 'heresy')) {
+    options.push('heresy');
+  }
   // Faith is an Imperial-Age tech (conversion resistance).
   if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {
     options.push('faith');

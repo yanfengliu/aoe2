@@ -307,6 +307,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     markOutOfBandRenderChange,
     getEntityRef,
     destroyResourceEntity: (id) => entityDestroyOps.destroyResourceEntity(id),
+    destroyUnitEntity: (id) => entityDestroyOps.destroyUnitEntity(id),
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),

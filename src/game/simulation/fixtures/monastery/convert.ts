@@ -64,6 +64,21 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Heresy (v0.1.71) fixture: same as the convert fixture, but the TARGET owner
+// (player 2) has researched Heresy, so instead of flipping to player 1 the
+// Militia DIES when the conversion completes.
+export function createMonkConvertHeresyFixture(seed: string): PrototypeScenario {
+  const base = createMonkConvertFixture(seed);
+  return {
+    ...base,
+    starts: base.starts.map((start) =>
+      start.owner === 2
+        ? { ...start, startingResearchedTechnologies: ['heresy'], disableAi: true }
+        : { ...start, disableAi: true },
+    ),
+  };
+}
+
 // Regression fixture for the Monk-conversion flip-flop bug (review C-1).
 // Two enemy Monks (owners 1 and 2) sit within MONK_ACTION_RANGE of a
 // neutral player-3 Militia. The test pre-seeds both Monk tasks via a

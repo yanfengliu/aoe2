@@ -113,6 +113,7 @@ export {
   createMonasteryFixture,
   createMonkHealFixture,
   createMonkConvertFixture,
+  createMonkConvertHeresyFixture,
   createMonkDoubleConvertFixture,
   createMonkFlipFlopFixture,
   createMonkConvertCleanupFixture,

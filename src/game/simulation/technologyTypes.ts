@@ -90,4 +90,6 @@ export type ResearchableTechnologyType =
   | 'sanctity'
   | 'faith'
   // Herbal Medicine (Monastery, Castle): garrisoned units of the owner heal 4× faster. DERIVED multiplier on the garrison-heal rate (monasteryTechEffects) at the garrisonHealSystem site; no per-unit state. Spec §10.9.
-  | 'herbal-medicine';
+  | 'herbal-medicine'
+  // Heresy (Monastery, Castle): a unit whose owner has Heresy DIES instead of converting. DERIVED at the conversion flip site (applyMonkConvert) — destroyUnitEntity instead of flipConvertedUnit. Spec §10.9.
+  | 'heresy';
