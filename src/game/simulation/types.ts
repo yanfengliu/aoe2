@@ -94,18 +94,16 @@ export type ResearchableTechnologyType =
   | 'blast-furnace'
   | 'plate-mail-armor'
   | 'plate-barding'
-  // FU1: Feudal Blacksmith tier.
+  // FU1: Blacksmith tiers — Feudal (forging/scale/padded), Castle (iron-casting/chain/leather/bodkin), Imperial (ring/chemistry).
   | 'forging'
   | 'scale-mail-armor'
   | 'scale-barding-armor'
   | 'padded-archer-armor'
-  // FU1: Castle Blacksmith tier.
   | 'iron-casting'
   | 'chain-mail-armor'
   | 'chain-barding-armor'
   | 'leather-archer-armor'
   | 'bodkin-arrow'
-  // FU1: Imperial Blacksmith tier additions.
   | 'ring-archer-armor'
   | 'chemistry'
   // FU2: Militia-line intermediates + Paladin + Heavy Camel Imperial upgrades (each mutates the predecessor unit in place via upgradeOwnedUnits + rewriteQueuedPredecessorUnits).
@@ -132,7 +130,9 @@ export type ResearchableTechnologyType =
   // DERIVED defensive tower-upgrade techs (Watch Tower): Guard Tower (Castle, +2 attack) → Keep (Imperial, +2 attack + +1 range). Recomputed from the researched set at the tower fire site (towerTechEffects); no per-building state. HP scaling deferred. Spec §10.8.
   | 'guard-tower'
   | 'keep'
-  | 'block-printing'; // DERIVED Monastery tech (Castle): +2 monk conversion range (monasteryTechEffects). Spec §12.
+  // Monastery monk techs (Castle): Block Printing +2 convert range (DERIVED, monasteryTechEffects); Sanctity +15 monk HP (imperative, like Loom). Spec §10.9.
+  | 'block-printing'
+  | 'sanctity';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

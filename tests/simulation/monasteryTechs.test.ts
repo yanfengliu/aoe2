@@ -63,9 +63,10 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
     expect(optionsFor('feudal-age')).toEqual([]);
     expect(optionsFor('dark-age')).toEqual([]);
   });
-  it('offers Block Printing in Castle Age, and drops it once researched', () => {
-    expect(optionsFor('castle-age')).toEqual(['block-printing']);
-    expect(optionsFor('imperial-age', ['block-printing'])).toEqual([]);
+  it('offers both techs in Castle Age, dropping each once researched', () => {
+    expect(optionsFor('castle-age')).toEqual(['block-printing', 'sanctity']);
+    expect(optionsFor('castle-age', ['block-printing'])).toEqual(['sanctity']);
+    expect(optionsFor('imperial-age', ['block-printing', 'sanctity'])).toEqual([]);
   });
   it('offers nothing for a non-Monastery building', () => {
     const have = new Set<ResearchableTechnologyType>();
@@ -73,12 +74,29 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
   });
 });
 
-describe('Block Printing — cost / time / hosting', () => {
-  it('costs 100 food / 130 gold and takes 550 ticks, hosted at the Monastery', () => {
+describe('Monastery techs — cost / time / hosting', () => {
+  it('Block Printing costs 100f/130g / 550 ticks; Sanctity 120g / 600 ticks; both at the Monastery', () => {
     expect(researchCost('block-printing')).toEqual({ food: 100, gold: 130 });
     expect(researchTimeTicks('block-printing')).toBe(550);
+    expect(researchCost('sanctity')).toEqual({ gold: 120 });
+    expect(researchTimeTicks('sanctity')).toBe(600);
     expect(canResearchAt('monastery', 'block-printing')).toBe(true);
-    expect(canResearchAt('town-center', 'block-printing')).toBe(false);
+    expect(canResearchAt('monastery', 'sanctity')).toBe(true);
+    expect(canResearchAt('town-center', 'sanctity')).toBe(false);
+  });
+});
+
+describe('Sanctity — +15 monk HP (create path)', () => {
+  it('a monk built with Sanctity researched has 15 more max HP than the baseline monk', () => {
+    const base = createSimulationBridge('monk-sanctity-baseline-fixture');
+    const holy = createSimulationBridge('monk-sanctity-fixture');
+    const baseMonk = findUnit(base, 1, 'monk')!;
+    const holyMonk = findUnit(holy, 1, 'monk')!;
+    const baseHp = base.getEntityHealth(baseMonk.id)!;
+    const holyHp = holy.getEntityHealth(holyMonk.id)!;
+    expect(holyHp.maxHp).toBe(baseHp.maxHp + 15);
+    // A freshly-built monk is at full HP, so current also gains the bump.
+    expect(holyHp.currentHp).toBe(baseHp.currentHp + 15);
   });
 });
 

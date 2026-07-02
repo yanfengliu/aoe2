@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.59 - 2026-07-01
+
+### Monastery tech: Sanctity (tougher monks)
+
+The Monastery can now research **Sanctity** (Castle Age, 120 gold) — the second monk upgrade. It gives every one of that player's monks **+15 max HP** (applied to monks you already have and any trained afterward), making monks meaningfully harder to kill while they convert or heal. No save-format change.
+
 ## 0.1.58 - 2026-07-01
 
 ### Monastery tech: Block Printing (monks convert from farther)

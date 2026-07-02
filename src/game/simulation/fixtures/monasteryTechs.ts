@@ -75,3 +75,35 @@ export function createMonkBlockPrintingBaselineFixture(seed: string): PrototypeS
 export function createMonkBlockPrintingFixture(seed: string): PrototypeScenario {
   return createBlockPrintingScenario(seed, true);
 }
+
+// Sanctity (+15 monk HP): a lone player-1 monk. `researched` pre-seeds Sanctity
+// so the spawned monk is built through createCombatState WITH the tech (the
+// create path), letting the test compare its max HP to the un-teched baseline.
+function createSanctityScenario(seed: string, researched: boolean): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        ...(researched ? { startingResearchedTechnologies: ['sanctity' as const] } : {}),
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 12 } },
+      { kind: 'monk', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+    ],
+  };
+}
+
+export function createMonkSanctityBaselineFixture(seed: string): PrototypeScenario {
+  return createSanctityScenario(seed, false);
+}
+
+export function createMonkSanctityFixture(seed: string): PrototypeScenario {
+  return createSanctityScenario(seed, true);
+}

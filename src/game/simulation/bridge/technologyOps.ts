@@ -22,6 +22,7 @@ import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
+import { applySanctityToOwnedMonks } from './sanctityEffect';
 import {
   combatStatesCodec,
   playerAgesCodec,
@@ -426,6 +427,12 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // why this is flat (not ratio) and how the race guard above keeps it
         // single-applied.
         applyLoomToOwnedVillagers(world, accessor, owner);
+        markOutOfBandRenderChange();
+        break;
+      case 'sanctity':
+        // Sanctity: flat +15 HP (current + max) to every owned monk (new monks
+        // get it via createCombatState). Mirrors Loom for villagers.
+        applySanctityToOwnedMonks(world, accessor, owner);
         markOutOfBandRenderChange();
         break;
     }

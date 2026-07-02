@@ -222,6 +222,8 @@ export {
 export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
+  createMonkSanctityBaselineFixture,
+  createMonkSanctityFixture,
 } from './monasteryTechs';
 
 export {

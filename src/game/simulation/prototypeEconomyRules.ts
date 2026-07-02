@@ -177,8 +177,9 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
   'crop-rotation': { food: 250, wood: 250 },
-  // Monastery monk-upgrade tech (Block Printing — technologies.csv 100f/130g).
+  // Monastery monk-upgrade techs (Block Printing 100f/130g; Sanctity 120g).
   'block-printing': { food: 100, gold: 130 },
+  sanctity: { gold: 120 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -298,8 +299,9 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'horse-collar': 200,
   'heavy-plow': 400,
   'crop-rotation': 700,
-  // Monastery monk-upgrade tech (Block Printing — 55 s × 10 TPS).
+  // Monastery monk-upgrade techs (Block Printing 55 s, Sanctity 60 s × 10 TPS).
   'block-printing': 550,
+  sanctity: 600,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {

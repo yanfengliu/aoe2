@@ -3,9 +3,9 @@
 // economyTechOptions.ts / towerTechOptions.ts. Pure: the age and tech
 // predicates are passed in (the bridge owns the underlying side maps).
 //
-// Block Printing (Castle Age, no tech prereq) — +2 monk conversion range. Drops
-// from the options list once researched. Returns [] for any non-Monastery
-// building.
+// Block Printing (+2 monk conversion range) and Sanctity (+15 monk HP), both
+// Castle Age with no tech prereq. Each drops from the options list once
+// researched. Returns [] for any non-Monastery building.
 
 import type { BuildingType, ResearchableTechnologyType } from './types';
 
@@ -27,6 +27,9 @@ export function monasteryTechResearchOptions(
   const options: ResearchableTechnologyType[] = [];
   if (!hasTechnology(owner, 'block-printing')) {
     options.push('block-printing');
+  }
+  if (!hasTechnology(owner, 'sanctity')) {
+    options.push('sanctity');
   }
   return options;
 }
