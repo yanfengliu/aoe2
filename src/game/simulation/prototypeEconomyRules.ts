@@ -136,6 +136,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'onager-upgrade': { food: 800, wood: 500 },
   'heavy-scorpion-upgrade': { food: 1000, wood: 1100 },
   'siege-ram-upgrade': { food: 1000, wood: 800 },
+  'siege-engineers': { food: 500, wood: 600 }, // Siege Workshop, Imperial: +1 siege range.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -177,8 +178,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
   'crop-rotation': { food: 250, wood: 250 },
-  // Monastery monk-upgrade techs (Block Printing 100f/130g; Sanctity 120g;
-  // Faith 750f/1000g — the AoE2 conversion-resistance tech).
+  // Monastery monk-upgrade techs (Block Printing 100f/130g; Sanctity 120g; Faith 750f/1000g).
   'block-printing': { food: 100, gold: 130 },
   sanctity: { gold: 120 },
   faith: { food: 750, gold: 1000 },
@@ -261,6 +261,7 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'onager-upgrade': 600,
   'heavy-scorpion-upgrade': 550,
   'siege-ram-upgrade': 600,
+  'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,
@@ -292,12 +293,11 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   // Carry-capacity techs (CSV research seconds × 10 TPS).
   wheelbarrow: 750,
   'hand-cart': 550,
-  // Loom: technologies.csv:86 — 25 s × 10 TPS.
-  loom: 250,
+  loom: 250, // technologies.csv:86 — 25 s × 10 TPS.
   // Defensive tower-upgrade techs (Watch Tower): Guard Tower / Keep.
   'guard-tower': 300,
   keep: 400,
-  // Farm-food techs (Mill; CSV research seconds × 10 TPS — 20 / 40 / 70 s).
+  // Farm-food techs (Mill; CSV seconds × 10 TPS — 20/40/70 s).
   'horse-collar': 200,
   'heavy-plow': 400,
   'crop-rotation': 700,

@@ -12,6 +12,7 @@ import {
   isGunpowderUnit,
   isInfantryUnit,
   isMeleeUnit,
+  isSiegeUnit,
   unitAttackDamage,
   unitAttackRange,
   unitMaxHp,
@@ -112,6 +113,14 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       && hasTechnology(owner, 'chemistry')
     ) {
       state.attackDamage += 1;
+    }
+
+    // Siege Engineers: +1 attack range to every siege unit. The same +1 is
+    // applied to existing siege units on research in technologyOps'
+    // `siege-engineers` case; the already-researched guard keeps it single-
+    // applied (no double stacking).
+    if (isSiegeUnit(unitType) && hasTechnology(owner, 'siege-engineers')) {
+      state.attackRange += 1;
     }
 
     return state;

@@ -5,7 +5,7 @@
 
 import { HUMAN_PLAYER_ID } from './prototypeScenario';
 import type { ResourceKind, UnitType } from './types';
-import { armorClassBonus } from './prototypeUnitRules/armorClasses';
+import { armorClassBonus, UNIT_ARMOR_CLASSES } from './prototypeUnitRules/armorClasses';
 import {
   ARCHER_LINE_UNITS,
   CAVALRY_UNITS,
@@ -161,6 +161,14 @@ export function isInfantryUnit(unitType: UnitType): boolean {
 
 export function isGunpowderUnit(unitType: UnitType): boolean {
   return unitType === 'bombard-cannon';
+}
+
+// A SIEGE unit is any unit in the `siege` armor class (mangonel / scorpion /
+// ram lines + bombard cannon + trebuchet). Backed by UNIT_ARMOR_CLASSES so the
+// classification stays single-sourced. Used by the Siege Engineers tech (+1
+// attack range to every siege unit).
+export function isSiegeUnit(unitType: UnitType): boolean {
+  return UNIT_ARMOR_CLASSES[unitType].has('siege');
 }
 
 export function isMeleeUnit(unitType: UnitType): boolean {

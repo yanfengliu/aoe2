@@ -35,6 +35,7 @@ import {
   isGunpowderUnit,
   isInfantryUnit,
   isMeleeUnit,
+  isSiegeUnit,
   unitAttackDamage,
   unitAttackRange,
   unitSize,
@@ -313,6 +314,21 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'siege-ram-upgrade':
         upgradeOwnedUnits(owner, 'battering-ram', 'siege-ram');
         rewriteQueuedPredecessorUnits(owner, 'battering-ram', 'siege-ram');
+        break;
+      // Siege Engineers: +1 attack range to every owned SIEGE unit. New siege
+      // units get it via createCombatState (Fletching pattern). The already-
+      // researched guard at the top of applyTechnology keeps this single-
+      // applied so the += 1 never double-stacks.
+      case 'siege-engineers':
+        for (const id of world.query('unit')) {
+          const unit = world.getComponent<UnitComponent>(id, 'unit');
+          const combat = accessor.get(combatStatesCodec).get(id);
+          if (!unit || !combat || unit.owner !== owner || !isSiegeUnit(unit.unitType)) {
+            continue;
+          }
+
+          combat.attackRange += 1;
+        }
         break;
       // Slice 7E Blacksmith Imperial tier. Each tech re-applies its bonus to
       // every owned unit; new units get it via createCombatState (Fletching

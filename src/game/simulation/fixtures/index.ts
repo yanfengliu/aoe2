@@ -221,6 +221,11 @@ export {
 } from './towerUpgrades';
 
 export {
+  createSiegeEngineersBaselineFixture,
+  createSiegeEngineersResearchedFixture,
+} from './siegeEngineers';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

@@ -358,6 +358,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'siege-ram-upgrade')) {
         options.push('siege-ram-upgrade');
       }
+      // Siege Engineers: +1 attack range to every siege unit. Imperial-gated
+      // like the siege-line upgrades; drops from the list once researched.
+      if (!hasTechnology(owner, 'siege-engineers')) {
+        options.push('siege-engineers');
+      }
       if (options.length > 0) {
         return options;
       }

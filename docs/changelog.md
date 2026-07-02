@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.62 - 2026-07-01
+
+### Siege Workshop tech: Siege Engineers (+1 siege range)
+
+The Siege Workshop can now research **Siege Engineers** (Imperial Age, 500 food / 600 wood). It gives every one of that player's **siege units** — Mangonel/Onager, Scorpion/Heavy Scorpion, Battering Ram/Siege Ram, Bombard Cannon, and Trebuchet — **+1 attack range**, applied to siege units you already own the moment the research completes and to any built afterward. Non-siege units (archers, cavalry, infantry, monks) are unaffected. AoE2 hosts this tech at the University, which does not exist in this build yet, so it lives at the Siege Workshop for now (same divergence as the Guard Tower / Keep tower techs). No save-format change.
+
 ## 0.1.61 - 2026-07-01
 
 ### Monastery tech: Faith (conversion resistance)
