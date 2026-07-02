@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.72 - 2026-07-02
+
+### UI: Train buttons now show a unit icon
+
+The command-card **Train** buttons (e.g. "Train Villager", "Train Knight") now show a small original procedural **unit icon** before the label, matching the icons already on the Build buttons and the selection panel. It's a visual polish only — the buttons behave exactly as before. (Research, market, and other action buttons remain text-only for now.)
+
 ## 0.1.71 - 2026-07-02
 
 ### Monastery tech: Heresy (converted units die)

@@ -33,6 +33,7 @@ import {
   renderSelectionIcons,
 } from './selectionPanel/render';
 import { buildingGlyph } from './icons/glyphs';
+import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
 export { renderSelectionIcons } from './selectionPanel/render';
@@ -53,6 +54,29 @@ export function renderBuildButtons(buildOptions: BuildableBuildingType[]): strin
             type="button"
           >
             ${buildingGlyph(buildingType)}<span class="hud-command-label">Build ${formatEntityName(buildingType)}</span>
+          </button>
+        `,
+    )
+    .join('');
+}
+
+// M7 UI-icons (v0.1.72): the command-card "Train <Name>" buttons get a per-role
+// procedural UNIT glyph before the label (reusing the v0.1.44 selection-panel
+// art), mirroring renderBuildButtons. Augment-not-replace: the
+// `data-command="train-<type>"` hook and the "Train <Name>" text are preserved
+// (the text sits in a `hud-command-label` span so textContent is unchanged).
+// Exported so it is unit-testable in isolation.
+export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
+  return trainOptions
+    .map(
+      (unitType) => `
+          <button
+            class="hud-command-button"
+            data-command="train-${unitType}"
+            data-tooltip="${formatTrainTooltip(unitType, formatEntityName(unitType))}"
+            type="button"
+          >
+            ${unitRoleGlyph(unitGlyphRole(unitType))}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
           </button>
         `,
     )
@@ -146,20 +170,7 @@ export function createSelectionPanel(
         `,
       )
       .join('');
-    const trainButtons = selectionState.trainOptions
-      .map(
-        (unitType) => `
-          <button
-            class="hud-command-button"
-            data-command="train-${unitType}"
-            data-tooltip="${formatTrainTooltip(unitType, formatEntityName(unitType))}"
-            type="button"
-          >
-            Train ${formatEntityName(unitType)}
-          </button>
-        `,
-      )
-      .join('');
+    const trainButtons = renderTrainButtons(selectionState.trainOptions);
     const marketButtons = selectionState.marketOptions
       .map(
         (actionType) => `
