@@ -107,3 +107,42 @@ export function createMonkSanctityBaselineFixture(seed: string): PrototypeScenar
 export function createMonkSanctityFixture(seed: string): PrototypeScenario {
   return createSanctityScenario(seed, true);
 }
+
+// Faith (conversion RESISTANCE): a player-1 Monk adjacent to a player-2 enemy
+// villager (Manhattan distance 1, well inside the base action range 4, so the
+// Monk converts in place with no movement). `defenderHasFaith` pre-seeds Faith
+// on PLAYER 2 (the TARGET's owner) — with Faith, the villager accrues
+// conversion progress at half rate, so it does NOT flip within the window a
+// baseline villager does. The test seeds the convert task (initialMonkTasks).
+function createFaithScenario(seed: string, defenderHasFaith: boolean): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 6, y: 6 }, startingAge: 'imperial-age', disableAi: true },
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 30 },
+        startingAge: 'imperial-age',
+        disableAi: true,
+        ...(defenderHasFaith ? { startingResearchedTechnologies: ['faith' as const] } : {}),
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 6, y: 6, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 20 } },
+      { kind: 'monk', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 10 } },
+      { kind: 'villager', x: 15, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      { kind: 'town-center', x: 40, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+    ],
+  };
+}
+
+export function createMonkFaithBaselineFixture(seed: string): PrototypeScenario {
+  return createFaithScenario(seed, false);
+}
+
+export function createMonkFaithDefendedFixture(seed: string): PrototypeScenario {
+  return createFaithScenario(seed, true);
+}

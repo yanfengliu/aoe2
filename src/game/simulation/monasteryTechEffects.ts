@@ -27,3 +27,17 @@ export function monkConvertRangeBonus(
   }
   return bonus;
 }
+
+// Faith (AoE2 Monastery, Imperial Age): CONVERSION RESISTANCE. A unit whose
+// OWNER has Faith accumulates enemy-monk conversion progress at HALF rate, so it
+// takes twice as long to convert. Deterministic (a fixed 0.5 multiplier — no
+// probability). Keyed on the TARGET's owner, read at the convert-progress site.
+export const FAITH_CONVERT_PROGRESS_MULTIPLIER = 0.5;
+
+// Multiplier applied to incoming conversion progress for a unit whose owner has
+// the given researched set: 0.5 with Faith, 1 otherwise. See spec §10.9.
+export function monkConvertProgressMultiplier(
+  targetOwnerResearched: ReadonlySet<ResearchableTechnologyType>,
+): number {
+  return targetOwnerResearched.has('faith') ? FAITH_CONVERT_PROGRESS_MULTIPLIER : 1;
+}

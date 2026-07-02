@@ -37,7 +37,7 @@ function optionsFor(age: AgeType, researched: ResearchableTechnologyType[] = [])
 // Boots a fixture, injects a convert task (monk → the enemy villager) via the
 // save/mutate/reload path, runs the loop, and reports whether the villager was
 // converted to player 1.
-function convertsEnemy(seed: string): boolean {
+function convertsEnemyIn(seed: string, steps: number): boolean {
   const boot = createSimulationBridge(seed);
   const monk = findUnit(boot, 1, 'monk')!;
   const villager = findUnit(boot, 2, 'villager')!;
@@ -46,9 +46,13 @@ function convertsEnemy(seed: string): boolean {
     [monk.id, { kind: 'convert', targetEntityRef: { id: villager.id, generation: 0 } }],
   ];
   const bridge = createSimulationBridge(seed, { savedGame: blob });
-  // 120 ticks comfortably covers the 50-progress-per-tick conversion threshold.
-  for (let i = 0; i < 120; i += 1) bridge.step(100);
+  for (let i = 0; i < steps; i += 1) bridge.step(100);
   return bridge.getEconomyState().units.find((u) => u.id === villager.id)?.owner === 1;
+}
+
+function convertsEnemy(seed: string): boolean {
+  // 120 ticks comfortably covers the 50-progress-per-tick conversion threshold.
+  return convertsEnemyIn(seed, 120);
 }
 
 describe('monasteryTechEffects — derived monk conversion range bonus (pure)', () => {
@@ -63,10 +67,12 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
     expect(optionsFor('feudal-age')).toEqual([]);
     expect(optionsFor('dark-age')).toEqual([]);
   });
-  it('offers both techs in Castle Age, dropping each once researched', () => {
+  it('offers the Castle techs in Castle Age and Faith only in Imperial, dropping each once researched', () => {
     expect(optionsFor('castle-age')).toEqual(['block-printing', 'sanctity']);
     expect(optionsFor('castle-age', ['block-printing'])).toEqual(['sanctity']);
-    expect(optionsFor('imperial-age', ['block-printing', 'sanctity'])).toEqual([]);
+    // Faith is Imperial-gated.
+    expect(optionsFor('imperial-age', ['block-printing', 'sanctity'])).toEqual(['faith']);
+    expect(optionsFor('imperial-age', ['block-printing', 'sanctity', 'faith'])).toEqual([]);
   });
   it('offers nothing for a non-Monastery building', () => {
     const have = new Set<ResearchableTechnologyType>();
@@ -80,10 +86,26 @@ describe('Monastery techs — cost / time / hosting', () => {
     expect(researchTimeTicks('block-printing')).toBe(550);
     expect(researchCost('sanctity')).toEqual({ gold: 120 });
     expect(researchTimeTicks('sanctity')).toBe(600);
+    expect(researchCost('faith')).toEqual({ food: 750, gold: 1000 });
     expect(canResearchAt('monastery', 'block-printing')).toBe(true);
     expect(canResearchAt('monastery', 'sanctity')).toBe(true);
+    expect(canResearchAt('monastery', 'faith')).toBe(true);
     expect(canResearchAt('town-center', 'sanctity')).toBe(false);
   });
+});
+
+describe('Faith — conversion resistance (halves incoming convert progress)', () => {
+  it('a baseline enemy converts within a 70-tick window but a Faith-defended one does NOT', () => {
+    // Base convert progress is 1/tick (flips at 50), so a baseline villager
+    // flips before tick 70; Faith halves it to 0.5/tick (needs ~100 ticks), so
+    // the defended villager is NOT yet converted at tick 70.
+    expect(convertsEnemyIn('monk-faith-baseline-fixture', 70)).toBe(true);
+    expect(convertsEnemyIn('monk-faith-defended-fixture', 70)).toBe(false);
+  }, 30_000);
+
+  it('Faith SLOWS but does not prevent conversion — the defended enemy still flips given enough time', () => {
+    expect(convertsEnemyIn('monk-faith-defended-fixture', 150)).toBe(true);
+  }, 30_000);
 });
 
 describe('Sanctity — +15 monk HP (create path)', () => {

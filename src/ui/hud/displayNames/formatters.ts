@@ -120,6 +120,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Block Printing';
     case 'sanctity':
       return 'Sanctity';
+    case 'faith':
+      return 'Faith';
   }
 }
 

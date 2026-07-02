@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.61 - 2026-07-01
+
+### Monastery tech: Faith (conversion resistance)
+
+Your units are now harder for enemy monks to convert once you research **Faith** (Imperial Age, Monastery, 750 food / 1000 gold — the third monk upgrade). A unit whose owner has Faith accumulates enemy conversion progress at **half rate**, so it takes about twice as long to be converted (Faith slows conversion, it does not make units immune). Deterministic — no random rolls. No save-format change.
+
 ## 0.1.60 - 2026-07-01
 
 ### Blacksmith arrow upgrades now strengthen your buildings' fire

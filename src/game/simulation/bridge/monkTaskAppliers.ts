@@ -23,8 +23,11 @@ import {
   monkHealCountersCodec,
   populationCodec,
   relicsInMonasteryCodec,
+  researchedTechnologiesCodec,
   unitCommandsCodec,
 } from './bridgeStateSerialize';
+import { monkConvertProgressMultiplier } from '../monasteryTechEffects';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface MonkTaskAppliersDeps {
   world: GameWorld;
@@ -162,7 +165,12 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       convState.progress = 0;
     }
     monkConvertProcessedThisTick.set(targetId, activeWorld.tick);
-    convState.progress += monkConvertProgressPerTick;
+    // Faith (target owner's tech): halves incoming conversion progress, so a
+    // protected unit takes twice as long to convert. Un-teched → ×1.
+    const resistance = monkConvertProgressMultiplier(
+      accessor.get(researchedTechnologiesCodec).get(targetUnit.owner) ?? EMPTY_TECH_SET,
+    );
+    convState.progress += monkConvertProgressPerTick * resistance;
     if (convState.progress >= monkConvertFlipThreshold) {
       flipConvertedUnit(targetId, targetUnit, monkUnit, monkId, activeWorld);
       return;

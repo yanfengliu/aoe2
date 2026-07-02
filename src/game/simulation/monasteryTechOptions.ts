@@ -31,5 +31,9 @@ export function monasteryTechResearchOptions(
   if (!hasTechnology(owner, 'sanctity')) {
     options.push('sanctity');
   }
+  // Faith is an Imperial-Age tech (conversion resistance).
+  if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {
+    options.push('faith');
+  }
   return options;
 }
