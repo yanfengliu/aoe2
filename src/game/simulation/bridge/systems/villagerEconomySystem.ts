@@ -86,7 +86,7 @@ export interface VillagerEconomySystemDeps {
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
-  shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
+  shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent, isAiControlled: boolean) => boolean;
   findResourceApproachPlan: (
     villagerId: number,
     resourceId: number,
@@ -212,6 +212,8 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
       }
 
+      const aiStates = accessor.get(aiStatesCodec); // auto-gather gate's AI-control clause
+
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
         if (unitCommands.has(id)) {
           continue;
@@ -224,7 +226,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           continue;
         }
 
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
+        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
           assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
             preferUnsaturated: true,
             spreadCap: IDLE_ASSIGN_SPREAD_CAP,
@@ -459,7 +461,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             setStuck(id, activeWorld.tick);
           } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
             const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
-            const aiState = accessor.get(aiStatesCodec).get(unit.owner);
+            const aiState = aiStates.get(unit.owner);
             const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
             const deposited = Math.round(gatherer.carriedAmount * multiplier);
             if (stockpile) {
@@ -479,7 +481,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           }
         }
 
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer)) {
+        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
           assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
             preferUnsaturated: true,
             spreadCap: IDLE_ASSIGN_SPREAD_CAP,

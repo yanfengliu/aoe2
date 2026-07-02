@@ -310,11 +310,11 @@ export function assignVillagerRole(owner: number, ordinal: number): EconomyResou
   return owner === HUMAN_PLAYER_ID ? 'food' : 'wood';
 }
 
+// Auto-(re)assign an idle villager to gather? Non-human owners always do; the human slot only if tasked (AoE2 idle-until-tasked). `isAiControlled` (`aiStates.has(owner)`) is an ADDITIVE clause covering a forced-AI human slot (the AI-vs-AI corpus forces an AI onto owner 1; without it that side idled forever) — non-human owners stay byte-identical (see docs/threads/done/forced-ai-gather-gate/).
 export function shouldMaintainGatheringOrder(
-  owner: number,
-  gatherer: GathererComponent,
+  owner: number, gatherer: GathererComponent, isAiControlled: boolean,
 ): boolean {
-  return owner !== HUMAN_PLAYER_ID || gatherer.hasExplicitGatherOrder;
+  return owner !== HUMAN_PLAYER_ID || isAiControlled || gatherer.hasExplicitGatherOrder;
 }
 
 export function isResourceCandidate(

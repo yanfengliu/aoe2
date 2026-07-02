@@ -259,7 +259,7 @@ export interface RegisterAllSystemsDeps {
     activeWorld?: CivWorld,
   ) => boolean;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
-  shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent) => boolean;
+  shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent, isAiControlled: boolean) => boolean;
   findResourceApproachPlan: (
     villagerId: number,
     resourceId: number,

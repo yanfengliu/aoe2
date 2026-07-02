@@ -68,11 +68,16 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
     expect(optionsFor('dark-age')).toEqual([]);
   });
   it('offers the Castle techs in Castle Age and Faith only in Imperial, dropping each once researched', () => {
-    expect(optionsFor('castle-age')).toEqual(['block-printing', 'sanctity']);
-    expect(optionsFor('castle-age', ['block-printing'])).toEqual(['sanctity']);
-    // Faith is Imperial-gated.
-    expect(optionsFor('imperial-age', ['block-printing', 'sanctity'])).toEqual(['faith']);
-    expect(optionsFor('imperial-age', ['block-printing', 'sanctity', 'faith'])).toEqual([]);
+    expect(optionsFor('castle-age')).toEqual(['block-printing', 'sanctity', 'herbal-medicine']);
+    expect(optionsFor('castle-age', ['block-printing'])).toEqual(['sanctity', 'herbal-medicine']);
+    // Faith is Imperial-gated; Herbal Medicine (v0.1.70) is a Castle tech that
+    // stays offered through Imperial until researched.
+    expect(optionsFor('imperial-age', ['block-printing', 'sanctity', 'herbal-medicine'])).toEqual([
+      'faith',
+    ]);
+    expect(
+      optionsFor('imperial-age', ['block-printing', 'sanctity', 'herbal-medicine', 'faith']),
+    ).toEqual([]);
   });
   it('offers nothing for a non-Monastery building', () => {
     const have = new Set<ResearchableTechnologyType>();
