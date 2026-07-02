@@ -7,6 +7,7 @@ export {
   createLongbowmanRangedFixture,
   createCastleFletchingFixture,
   createCastleGarrisonFixture,
+  createGarrisonHealFixture,
 } from './castleDefense/fletching';
 
 export {

@@ -11,6 +11,7 @@ import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
 import { registerConquestOutcomeSystem } from './systems/conquestOutcomeSystem';
 import { registerScoreTimerSystem } from './systems/scoreTimerSystem';
 import { registerFogMemorySystem } from './systems/fogMemorySystem';
+import { registerGarrisonHealSystem } from './systems/garrisonHealSystem';
 import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
 import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
 import { registerMonkBehaviorSystem } from './systems/monkBehaviorSystem';
@@ -228,6 +229,10 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   });
 
   registerRelicGoldSystem({ world, accessor });
+
+  // Passive garrison heal: regenerates garrisoned units' HP each tick.
+  // Update-phase, accessor-only (mirrors relicGoldSystem).
+  registerGarrisonHealSystem({ world, accessor });
 
   registerProductionQueueSystem({
     world,

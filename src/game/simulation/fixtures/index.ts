@@ -133,6 +133,7 @@ export {
   createLongbowmanRangedFixture,
   createCastleFletchingFixture,
   createCastleGarrisonFixture,
+  createGarrisonHealFixture,
   createFu3CastleNoArchersFixture,
   createFu3CastleThreeArchersFixture,
   createFu3CastleFiveArchersFixture,

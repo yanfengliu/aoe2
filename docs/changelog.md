@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.63 - 2026-07-01
+
+### Garrisoned units heal over time
+
+Any unit garrisoned inside a building now **passively regenerates HP**, at a fixed **4 HP per second** (0.4 HP per tick), capped at the unit's maximum HP. This rewards pulling a wounded villager or soldier into a Town Center or tower to recover — the heal never overheals, never revives a unit at 0 HP, costs no resources, and needs no research (it is separate from Monastery monk-healing, which heals units on the field). The rate is deterministic, so replays reproduce exactly. No save-format change.
+
 ## 0.1.62 - 2026-07-01
 
 ### Siege Workshop tech: Siege Engineers (+1 siege range)
