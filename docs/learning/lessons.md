@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## "Reuse existing verified art" is NOT a trivial UI change when it crosses a styling context — the CSS hook class travels with the markup and silently applies the wrong sizing — 2026-07-02
+
+| Field | Value |
+|---|---|
+| Surfaced by | Self-audit at the start of the next UI slice, before writing new code; the v0.1.72 `tests/browser`-free DOM test had *locked in* the bug by asserting the selection-classed glyph was present. Devlog: [2026-06-30_2026-07-02.md](../devlog/detailed/2026-06-30_2026-07-02.md) v0.1.73 entry. |
+| Reviewer findings | n/a — process lesson (self-caught; no reviewer ran on the v0.1.72 slice because I mis-classified it as trivial and skipped the visual protocol). |
+| Fix commit | v0.1.73 (`unitRoleGlyph(role, cls?)` optional class param; `renderTrainButtons` passes `hud-command-glyph`). |
+| Test added | `tests/ui/trainButtonIcons.test.ts > renderTrainButtons — command-card unit icons > prepends the unit role glyph and preserves the data-command hook + label text` (now asserts `class="hud-command-glyph"` present AND `hud-selection-unit-glyph` absent). |
+| Behavior delta | Before: the command-card "Train X" unit icons rendered at 34px (the selection-panel size) + a `color-mix` accent tint, i.e. **2x** the 17px Build-button icons beside them and a different colour — the buttons visibly taller and inconsistent (measured `beforeTrain=34` vs `beforeBuild=17` via Playwright `boundingBox`). After: `afterTrain=17`, matching the build reference exactly. Affected surface: HUD selection panel command card for any production building (Town Center/Barracks/Stable/Archery/Monastery/Siege/Dock train buttons). |
+
+Lesson: an inline SVG glyph carries its sizing/colour **hook class** in its markup, and the same art rendered in a different container gets that container's CSS only if the class matches. Reusing a glyph across styling contexts (selection panel `hud-selection-unit-glyph` = 34px accent vs command button `hud-command-glyph` = 17px currentColor) is therefore a *behaviour-visible* change, not a trivial move — so it needs the AGENTS.md visual protocol (before/after screenshot + a measured pixel/bbox check), not a "reuse = known-good, screenshot would only re-confirm" rationalization. The tell that I was rationalizing: the DESIGN.md asserted "the sizing CSS already targets `.hud-command-button` glyphs" without ever reading which *class* the reused helper emitted. Two cheap guards that would have caught it pre-merge: (1) a Playwright `boundingBox().width` assertion that the reused glyph equals the reference glyph's size in the same container; (2) grep the helper's `svg()` wrapper for the hardcoded class before assuming it inherits the destination's styling. When a "reuse" change gives a helper a new home, parameterize the hook class (default = old context) rather than assuming CSS will sort it out.
+Pointer: v0.1.73 devlog entry; `src/ui/hud/icons/unitGlyphs.ts` `unitRoleGlyph(role, cls?)`; `src/ui/hud/selectionPanel.ts` `renderTrainButtons`; `src/hudIcons.css` `.hud-command-glyph` (17px) vs `.hud-selection-unit-glyph` (34px).
+
 ## A "+50-75% dependency regression" measured under full-suite load is contention until an isolated A/B proves otherwise — 2026-06-30
 
 | Field | Value |

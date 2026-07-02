@@ -22,9 +22,15 @@ describe('renderTrainButtons — command-card unit icons', () => {
     expect(html).toContain('Train Knight');
     expect(html).toContain('class="hud-command-label"');
 
-    // The unit glyph for each role is present (villager and cavalry differ).
-    expect(html).toContain(unitRoleGlyph(unitGlyphRole('villager')));
-    expect(html).toContain(unitRoleGlyph(unitGlyphRole('knight')));
+    // The unit glyph for each role is present, carrying the COMMAND-button
+    // glyph class so it renders at the same 17px size + currentColor as the
+    // Build-button glyphs in the same command card. Regression guard for the
+    // v0.1.72 defect, which emitted the 34px accent-coloured *selection* glyph
+    // (`hud-selection-unit-glyph`) into the command button — a 2x-oversize icon.
+    expect(html).toContain(unitRoleGlyph(unitGlyphRole('villager'), 'hud-command-glyph'));
+    expect(html).toContain(unitRoleGlyph(unitGlyphRole('knight'), 'hud-command-glyph'));
+    expect(html).toContain('class="hud-command-glyph"');
+    expect(html).not.toContain('hud-selection-unit-glyph');
 
     // The glyph precedes the label (augment-before pattern, like build buttons).
     const knightButton = html.slice(html.indexOf('data-command="train-knight"'));

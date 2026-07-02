@@ -1,5 +1,7 @@
 # Command-card Train-button icons (M7 UI) — DESIGN + REVIEW
 
+> **CORRECTION (v0.1.73, 2026-07-02):** the "Why low-risk" reasoning below was WRONG on one load-bearing point — it claimed "The sizing CSS already targets `.hud-command-button` glyphs" and that a screenshot "would only re-confirm this." It does not: `unitRoleGlyph` emits the 34px accent class `hud-selection-unit-glyph`, while command buttons size glyphs via `hud-command-glyph` (17px, currentColor). So v0.1.72 shipped the Train icon at 2× the Build icon's size. Skipping the before/after-screenshot visual protocol let this through. Fixed in v0.1.73 (`unitRoleGlyph(role, cls?)` + train site passes `hud-command-glyph`; Playwright bbox 34→17px). See the v0.1.73 devlog entry and `docs/learning/lessons.md`. The self-review-instead-of-visual-protocol call below was the mistake — kept here as an honest audit trail.
+
 **Objective (v0.1.72):** the M7 roadmap item "non-build command-card icons (train … buttons still text-only)" — give the "Train X" command-card buttons a unit icon, matching the Build buttons (v0.1.39) and selection panel (v0.1.44).
 
 ## Design

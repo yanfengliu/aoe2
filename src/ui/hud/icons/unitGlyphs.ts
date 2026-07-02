@@ -46,9 +46,9 @@ const SELECTION_GLYPH_CLASS = 'hud-selection-unit-glyph';
 // Shared wrapper — same chunky, readable stroke as slice 1's `svg()`. No
 // width/height attribute: the CSS sizes the element so the glyph scales
 // with the badge.
-function svg(body: string): string {
+function svg(body: string, cls: string = SELECTION_GLYPH_CLASS): string {
   return (
-    `<svg class="${SELECTION_GLYPH_CLASS}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" ` +
+    `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" ` +
     `fill="none" stroke="currentColor" stroke-width="1.6" ` +
     `stroke-linejoin="round" stroke-linecap="round">${body}</svg>`
   );
@@ -175,9 +175,12 @@ export function unitGlyphRole(unitType: UnitType): UnitGlyphRole {
   return UNIT_GLYPH_ROLES[unitType];
 }
 
-// Returns the inline-SVG markup for a unit role glyph.
-export function unitRoleGlyph(role: UnitGlyphRole): string {
-  return svg(UNIT_ROLE_GLYPH_BODY[role]);
+// Returns the inline-SVG markup for a unit role glyph. `cls` overrides the
+// sizing/colour hook class: the selection panel uses the default (34px accent
+// `hud-selection-unit-glyph`); command-card Train buttons pass
+// `hud-command-glyph` so the glyph matches the 17px currentColor Build glyphs.
+export function unitRoleGlyph(role: UnitGlyphRole, cls?: string): string {
+  return svg(UNIT_ROLE_GLYPH_BODY[role], cls);
 }
 
 // Dispatcher the selection panel calls with the badge `kind`. Units map to

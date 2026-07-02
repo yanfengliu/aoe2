@@ -76,7 +76,7 @@ export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
             data-tooltip="${formatTrainTooltip(unitType, formatEntityName(unitType))}"
             type="button"
           >
-            ${unitRoleGlyph(unitGlyphRole(unitType))}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
+            ${unitRoleGlyph(unitGlyphRole(unitType), 'hud-command-glyph')}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
           </button>
         `,
     )

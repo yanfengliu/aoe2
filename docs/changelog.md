@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.73 - 2026-07-02
+
+### UI fix: Train-button icons now match the Build-button icon size
+
+Fixes a regression from 0.1.72: the new **Train**-button unit icons rendered at roughly **twice** the size of the neighbouring **Build**-button icons (and in a slightly different tint), because they reused the larger selection-panel glyph styling instead of the command-button styling. The Train icons now render at the same 17px size and warm gold tone as every other command-card icon, so the command card looks uniform. Behaviour is unchanged — icons remain decorative and the buttons work exactly as before.
+
 ## 0.1.72 - 2026-07-02
 
 ### UI: Train buttons now show a unit icon
