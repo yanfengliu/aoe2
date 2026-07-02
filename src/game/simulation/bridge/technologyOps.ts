@@ -23,6 +23,7 @@ import type { GameWorld } from './pureHelpers';
 import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
 import { applySanctityToOwnedMonks } from './sanctityEffect';
+import { applyBloodlinesToOwnedCavalry } from './bloodlinesEffect';
 import {
   combatStatesCodec,
   playerAgesCodec,
@@ -449,6 +450,12 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // Sanctity: flat +15 HP (current + max) to every owned monk (new monks
         // get it via createCombatState). Mirrors Loom for villagers.
         applySanctityToOwnedMonks(world, accessor, owner);
+        markOutOfBandRenderChange();
+        break;
+      case 'bloodlines':
+        // Bloodlines: flat +20 HP (current + max) to every owned cavalry unit
+        // (new cavalry get it via createCombatState). Mirrors Loom/Sanctity.
+        applyBloodlinesToOwnedCavalry(world, accessor, owner);
         markOutOfBandRenderChange();
         break;
     }

@@ -321,6 +321,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
         options.push('light-cavalry-upgrade');
       }
+      // Bloodlines: +20 HP to every cavalry unit. Castle-Age Stable tech
+      // (hosted where AoE2 puts it); drops once researched.
+      if (!hasTechnology(owner, 'bloodlines')) {
+        options.push('bloodlines');
+      }
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'hussar-upgrade')) {
           options.push('hussar-upgrade');

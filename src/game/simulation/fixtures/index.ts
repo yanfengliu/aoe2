@@ -232,6 +232,12 @@ export {
 } from './sappers';
 
 export {
+  createBloodlinesBaselineFixture,
+  createBloodlinesResearchedFixture,
+  createBloodlinesFeudalStableFixture,
+} from './bloodlines';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

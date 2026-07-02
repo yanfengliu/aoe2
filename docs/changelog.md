@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.65 - 2026-07-02
+
+### Stable tech: Bloodlines (+20 cavalry HP)
+
+The Stable can now research **Bloodlines** (Castle Age, 150 food / 100 gold). It gives every one of that player's **cavalry units** — Scout, Light Cavalry, Hussar, Camel, Heavy Camel, Knight, Cavalier, and Paladin — **+20 max HP**, applied to cavalry you already own the moment the research completes and to any trained afterward. Non-cavalry units are unaffected. This is the same imperative HP-bump mechanic as Loom (villagers) and Sanctity (monks). Unlike the tower / Siege Engineers / Sappers techs, Bloodlines is hosted at the Stable exactly as in AoE2 — no building divergence. No save-format change.
+
 ## 0.1.64 - 2026-07-02
 
 ### Blacksmith tech: Sappers (+15 infantry attack vs buildings)
