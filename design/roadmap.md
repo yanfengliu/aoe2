@@ -48,7 +48,7 @@ Tags: `[sim]` simulation logic here · `[data]` CSV/content wiring · `[engine]`
 ### M4 — Content breadth
 - **Unique units beyond Longbowman** (~17 UU + elites; Castle-gated by civ, several with special mechanics). `[data+sim]`
 - **University + its techs** (Ballistics, Masonry, Murder Holes, Treadmill Crane, Architecture, Bombard Tower) — needs a building-mutation system (HP/armor/LoS/range). `[sim+data]`
-- **Monastery techs** (Redemption, Sanctity, Faith, Block Printing, Herbal Medicine, Theocracy, …) + faith/probability conversion instead of the fixed ramp. `[data+sim]`
+- **Monastery techs** — Block Printing (✅ v0.1.58), Sanctity (✅ v0.1.59), Faith (✅ v0.1.61), Herbal Medicine (✅ v0.1.70 — garrisoned units heal 4× faster, a DERIVED multiplier on the v0.1.63 garrison-heal rate). Still open: Redemption (convert siege + buildings — needs conversion-target expansion), Atonement (convert enemy monks), Heresy (converted units die), Illumination (faster faith regen), Fervor (relic-carry speed), Theocracy (group-conversion faith); + faith/probability conversion instead of the fixed ramp. `[data+sim]`
 - **Tower line / gates / wall upgrades** (Guard Tower, Keep, Bombard Tower; gates; Fortified Wall) so defensive play can develop. `[data+sim]`
 
 ### M5 — Naval layer (large)

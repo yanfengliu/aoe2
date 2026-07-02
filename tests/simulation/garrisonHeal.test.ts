@@ -13,6 +13,16 @@ import {
   GARRISON_HEAL_HP_PER_TICK,
   garrisonHealStep,
 } from '../../src/game/simulation/bridge/systems/garrisonHealSystem';
+import {
+  HERBAL_MEDICINE_HEAL_MULTIPLIER,
+  garrisonHealRateMultiplier,
+} from '../../src/game/simulation/monasteryTechEffects';
+import {
+  researchCost,
+  researchTimeTicks,
+} from '../../src/game/simulation/prototypeEconomyRules';
+import { canResearchAt } from '../../src/game/simulation/prototypeBuildingRules';
+import type { ResearchableTechnologyType } from '../../src/game/simulation/types';
 import { codecSlotValue } from './saveBlobTestUtils';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -146,5 +156,59 @@ describe('garrison healing', () => {
     // The rate is a small deterministic fixed fraction, not zero/integer-only.
     expect(GARRISON_HEAL_HP_PER_TICK).toBeGreaterThan(0);
     expect(GARRISON_HEAL_HP_PER_TICK).toBeLessThan(1);
+  });
+});
+
+// Herbal Medicine (v0.1.70): a Castle-Age Monastery tech (technologies.csv:65,
+// 350 gold) that makes an owner's GARRISONED units heal 4× faster — a DERIVED
+// multiplier on the v0.1.63 garrison-heal rate, read from the researched set at
+// the garrison-heal site (monasteryTechEffects), no per-unit state, no save
+// change.
+const NO_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
+const HERBAL_ONLY: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'herbal-medicine',
+] as ResearchableTechnologyType[]);
+
+describe('Herbal Medicine — 4× garrison heal rate', () => {
+  it('the rate multiplier is 4 with the tech and 1 without', () => {
+    expect(HERBAL_MEDICINE_HEAL_MULTIPLIER).toBe(4);
+    expect(garrisonHealRateMultiplier(NO_TECHS)).toBe(1);
+    expect(garrisonHealRateMultiplier(HERBAL_ONLY)).toBe(4);
+  });
+
+  it('costs 350 gold and takes 350 ticks, researchable only at the Monastery (Castle)', () => {
+    expect(researchCost('herbal-medicine')).toEqual({ gold: 350 });
+    expect(researchTimeTicks('herbal-medicine')).toBe(350);
+    expect(canResearchAt('monastery', 'herbal-medicine')).toBe(true);
+    expect(canResearchAt('town-center', 'herbal-medicine')).toBe(false);
+    expect(canResearchAt('barracks', 'herbal-medicine')).toBe(false);
+  });
+
+  it('a garrisoned unit with Herbal Medicine gains 4× the HP of a baseline over the same pre-cap window', () => {
+    const HEAL_TICKS = 10; // from 5 HP: +4 (baseline) vs +16 (herbal); both < villager maxHp 25.
+
+    function garrisonedGainOverTicks(fixture: string): number {
+      const bridge = createSimulationBridge(fixture);
+      const tc = bridge
+        .getEconomyState()
+        .buildings.find((b) => b.owner === 1 && b.buildingType === 'town-center');
+      expect(tc).toBeDefined();
+      const wounded = bridge
+        .getEconomyState()
+        .units.find((u) => u.owner === 1 && u.unitType === 'villager' && u.x === 12 && u.y === 10);
+      expect(wounded).toBeDefined();
+      const id = wounded!.id;
+      const start = combatHpOf(bridge, id)!;
+      garrison(bridge, 12, 10, tc!.id);
+      bridge.step(100 * HEAL_TICKS);
+      const after = combatHpOf(bridge, id)!;
+      expect(after).toBeLessThan(combatMaxHpOf(bridge, id)!); // stay below the cap so the ratio is clean
+      return after - start;
+    }
+
+    const baselineGain = garrisonedGainOverTicks('garrison-heal-fixture');
+    const herbalGain = garrisonedGainOverTicks('garrison-heal-herbal-fixture');
+    expect(baselineGain).toBeGreaterThan(0);
+    expect(herbalGain).toBeCloseTo(baselineGain * HERBAL_MEDICINE_HEAL_MULTIPLIER, 4);
   });
 });

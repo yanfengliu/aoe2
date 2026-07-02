@@ -31,6 +31,10 @@ export function monasteryTechResearchOptions(
   if (!hasTechnology(owner, 'sanctity')) {
     options.push('sanctity');
   }
+  // Herbal Medicine (Castle): garrisoned units heal 4× faster.
+  if (!hasTechnology(owner, 'herbal-medicine')) {
+    options.push('herbal-medicine');
+  }
   // Faith is an Imperial-Age tech (conversion resistance).
   if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {
     options.push('faith');

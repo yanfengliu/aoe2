@@ -56,6 +56,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Husbandry';
     case 'squires':
       return 'Squires';
+    case 'herbal-medicine':
+      return 'Herbal Medicine';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

@@ -8,6 +8,7 @@ export {
   createCastleFletchingFixture,
   createCastleGarrisonFixture,
   createGarrisonHealFixture,
+  createGarrisonHealHerbalFixture,
 } from './castleDefense/fletching';
 
 export {

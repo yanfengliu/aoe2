@@ -12,10 +12,15 @@
 
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import type { UnitComponent, ResearchableTechnologyType } from '../../types';
 import {
   combatStatesCodec,
   garrisonedByBuildingCodec,
+  researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
+import { garrisonHealRateMultiplier } from '../../monasteryTechEffects';
+
+const NO_RESEARCHED_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 // 0.4 HP/tick at 10 TPS = 4 HP/sec. A base-25-HP villager heals from near
 // death in ~6s; a 40-HP (post-Loom) villager in ~10s — a gentle, meaningful
@@ -56,6 +61,11 @@ export function registerGarrisonHealSystem(deps: GarrisonHealSystemDeps): void {
         return;
       }
       const combatStates = accessor.get(combatStatesCodec);
+      const researchedTechnologies = accessor.get(researchedTechnologiesCodec);
+      // Herbal Medicine multiplies an owner's garrison-heal rate ×4 (DERIVED).
+      // Cache the rate per owner so a full garrison isn't re-derived per unit;
+      // owners without the tech keep the base rate (byte-identical).
+      const rateByOwner = new Map<number, number>();
       let healedAny = false;
       for (const unitIds of garrisonedByBuilding.values()) {
         for (const unitId of unitIds) {
@@ -63,7 +73,14 @@ export function registerGarrisonHealSystem(deps: GarrisonHealSystemDeps): void {
           if (!combat) {
             continue;
           }
-          const next = garrisonHealStep(combat.currentHp, combat.maxHp);
+          const owner = world.getComponent<UnitComponent>(unitId, 'unit')?.owner;
+          let rate = owner === undefined ? GARRISON_HEAL_HP_PER_TICK : rateByOwner.get(owner);
+          if (rate === undefined && owner !== undefined) {
+            rate = GARRISON_HEAL_HP_PER_TICK
+              * garrisonHealRateMultiplier(researchedTechnologies.get(owner) ?? NO_RESEARCHED_TECHS);
+            rateByOwner.set(owner, rate);
+          }
+          const next = garrisonHealStep(combat.currentHp, combat.maxHp, rate);
           if (next !== combat.currentHp) {
             combat.currentHp = next;
             healedAny = true;

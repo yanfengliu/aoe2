@@ -88,4 +88,6 @@ export type ResearchableTechnologyType =
   // Monastery monk techs — Block Printing (Castle, +2 convert range, DERIVED), Sanctity (Castle, +15 monk HP, imperative like Loom), Faith (Imperial, halves incoming conversion progress on the owner's units, DERIVED at the convert site). Spec §10.9.
   | 'block-printing'
   | 'sanctity'
-  | 'faith';
+  | 'faith'
+  // Herbal Medicine (Monastery, Castle): garrisoned units of the owner heal 4× faster. DERIVED multiplier on the garrison-heal rate (monasteryTechEffects) at the garrisonHealSystem site; no per-unit state. Spec §10.9.
+  | 'herbal-medicine';

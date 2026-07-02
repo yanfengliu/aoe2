@@ -247,3 +247,19 @@ export function createGarrisonHealFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// Herbal Medicine variant (v0.1.70): the same garrison-heal scenario with
+// player 1 having researched Herbal Medicine on boot, so its garrisoned units
+// heal 4× faster. A test races the garrisoned-heal gain against the baseline
+// fixture over a shared pre-cap window.
+export function createGarrisonHealHerbalFixture(seed: string): PrototypeScenario {
+  const base = createGarrisonHealFixture(seed);
+  return {
+    ...base,
+    starts: base.starts.map((start) =>
+      start.owner === 1
+        ? { ...start, startingResearchedTechnologies: ['herbal-medicine'] }
+        : start,
+    ),
+  };
+}

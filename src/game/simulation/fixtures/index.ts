@@ -134,6 +134,7 @@ export {
   createCastleFletchingFixture,
   createCastleGarrisonFixture,
   createGarrisonHealFixture,
+  createGarrisonHealHerbalFixture,
   createFu3CastleNoArchersFixture,
   createFu3CastleThreeArchersFixture,
   createFu3CastleFiveArchersFixture,

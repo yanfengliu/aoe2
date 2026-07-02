@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.70 - 2026-07-02
+
+### Monastery tech: Herbal Medicine (garrisoned units heal 4× faster)
+
+The Monastery can now research **Herbal Medicine** (Castle Age, 350 gold). While researched, every unit **garrisoned inside one of that player's buildings heals 4× faster** (the passive garrison-heal introduced earlier). Pull a wounded villager or soldier into a Town Center or tower and it recovers in a quarter of the time — a meaningful defensive/economic option. It affects only that player's garrisoned units and only while the tech is researched; without it, garrison healing is unchanged. No save-format change.
+
 ## 0.1.69 - 2026-07-02
 
 ### Wheelbarrow & Hand Cart now also make villagers move faster

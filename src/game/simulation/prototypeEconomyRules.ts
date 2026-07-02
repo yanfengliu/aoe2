@@ -156,8 +156,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'two-handed-swordsman-upgrade': { food: 300, gold: 100 },
   'paladin-upgrade': { food: 1300, gold: 750 },
   'heavy-camel-upgrade': { food: 325, gold: 360 },
-  // Economy gather-rate techs (costs from design/stats/technologies.csv).
-  'double-bit-axe': { wood: 50, food: 100 },
+  'double-bit-axe': { wood: 50, food: 100 }, // Gather-rate techs (costs from technologies.csv).
   'bow-saw': { wood: 100, food: 150 },
   'two-man-saw': { wood: 200, food: 300 },
   'gold-mining': { food: 100, wood: 75 },
@@ -177,10 +176,10 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
   'crop-rotation': { food: 250, wood: 250 },
-  // Monastery monk-upgrade techs (Block Printing 100f/130g; Sanctity 120g; Faith 750f/1000g).
-  'block-printing': { food: 100, gold: 130 },
+  'block-printing': { food: 100, gold: 130 }, // Monastery techs (BP 100f/130g, Sanctity 120g, Faith 750f/1000g, Herbal 350g).
   sanctity: { gold: 120 },
   faith: { food: 750, gold: 1000 },
+  'herbal-medicine': { gold: 350 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -301,9 +300,10 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'horse-collar': 200, // Mill farm-food techs (CSV seconds × 10 TPS — 20/40/70 s).
   'heavy-plow': 400,
   'crop-rotation': 700,
-  'block-printing': 550, // Monastery monk techs (Block Printing 55 s, Sanctity/Faith 60 s).
+  'block-printing': 550, // Monastery techs (BP 55 s, Sanctity/Faith 60 s, Herbal 35 s × 10 TPS).
   sanctity: 600,
   faith: 600,
+  'herbal-medicine': 350,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {

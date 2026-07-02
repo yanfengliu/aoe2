@@ -41,3 +41,16 @@ export function monkConvertProgressMultiplier(
 ): number {
   return targetOwnerResearched.has('faith') ? FAITH_CONVERT_PROGRESS_MULTIPLIER : 1;
 }
+
+// Herbal Medicine (AoE2 Monastery, Castle Age — technologies.csv:65
+// "Garrisoned Units 4x healing speed"): a unit whose OWNER has the tech heals
+// 4× as fast while garrisoned. DERIVED — a flat multiplier on the passive
+// garrison-heal rate (garrisonHealSystem), keyed on the garrisoned unit's
+// owner, no per-unit state. 1× (byte-identical) without the tech.
+export const HERBAL_MEDICINE_HEAL_MULTIPLIER = 4;
+
+export function garrisonHealRateMultiplier(
+  ownerResearched: ReadonlySet<ResearchableTechnologyType>,
+): number {
+  return ownerResearched.has('herbal-medicine') ? HERBAL_MEDICINE_HEAL_MULTIPLIER : 1;
+}
