@@ -32,7 +32,7 @@ import {
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
-import { buildingGlyph, researchGlyph } from './icons/glyphs';
+import { buildingGlyph, marketActionGlyph, researchGlyph } from './icons/glyphs';
 import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
@@ -92,6 +92,27 @@ export function renderResearchButtons(
           </button>
         `;
     })
+    .join('');
+}
+
+// M7 UI-icons (v0.1.75): the command-card Buy/Sell "market" buttons get the
+// traded COMMODITY glyph (food/wood/stone) before the label, reusing the
+// top-bar `resourceGlyph` art at the command size. Augment-not-replace: the
+// `data-command="market-<action>"` hook + "Buy/Sell <Name>" text are preserved.
+export function renderMarketButtons(marketOptions: MarketActionType[]): string {
+  return marketOptions
+    .map(
+      (actionType) => `
+          <button
+            class="hud-command-button"
+            data-command="market-${actionType}"
+            data-tooltip="${formatMarketActionTooltip(actionType)}"
+            type="button"
+          >
+            ${marketActionGlyph(actionType)}<span class="hud-command-label">${formatMarketActionName(actionType)}</span>
+          </button>
+        `,
+    )
     .join('');
 }
 
@@ -200,20 +221,7 @@ export function createSelectionPanel(
       )
       .join('');
     const trainButtons = renderTrainButtons(selectionState.trainOptions);
-    const marketButtons = selectionState.marketOptions
-      .map(
-        (actionType) => `
-          <button
-            class="hud-command-button"
-            data-command="market-${actionType}"
-            data-tooltip="${formatMarketActionTooltip(actionType)}"
-            type="button"
-          >
-            ${formatMarketActionName(actionType)}
-          </button>
-        `,
-      )
-      .join('');
+    const marketButtons = renderMarketButtons(selectionState.marketOptions);
     const researchButtons = renderResearchButtons(
       selectionState.visibleResearchOptions,
       selectionState.researchOptions,

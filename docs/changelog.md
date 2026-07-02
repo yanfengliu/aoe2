@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.75 - 2026-07-02
+
+### UI: Market buy/sell buttons now show a commodity icon
+
+The command-card **market** buttons ("Buy Food", "Sell Wood", "Buy Stone", etc.) now show the traded **commodity icon** (the same wheat / wood / stone icons as the top-bar resource counters) before the label, matching the Build, Train, and Research buttons. With this the whole command card is iconned — no more mix of iconned and text-only buttons. Buy and sell of the same resource share the commodity icon; the label still says which direction. Visual polish only — trading behaves exactly as before.
+
 ## 0.1.74 - 2026-07-02
 
 ### UI: Research buttons now show an icon

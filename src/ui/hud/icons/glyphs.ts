@@ -13,7 +13,10 @@
 // Glyphs are decorative: the text label beside/under each glyph carries
 // the meaning, so every <svg> is `aria-hidden="true"` and `focusable="false"`.
 
-import type { BuildableBuildingType } from '../../../game/simulation/types';
+import type {
+  BuildableBuildingType,
+  MarketActionType,
+} from '../../../game/simulation/types';
 
 // Resource-chip glyph keys. The four economy resources are the priority;
 // pop / age / time get a natural glyph too since they share the top bar.
@@ -103,8 +106,11 @@ const RESOURCE_GLYPH_BODY: Record<ResourceGlyphKind, string> = {
 // `hud-chip-glyph` class is the CSS hook; the glyph is a sibling of the
 // `.hud-value` element so the value text stays "200" (the browser tests
 // assert exact value text).
-export function resourceGlyph(kind: ResourceGlyphKind): string {
-  return svg('hud-chip-glyph', RESOURCE_GLYPH_BODY[kind]);
+export function resourceGlyph(
+  kind: ResourceGlyphKind,
+  cls: string = 'hud-chip-glyph',
+): string {
+  return svg(cls, RESOURCE_GLYPH_BODY[kind]);
 }
 
 // ---- Building glyphs -------------------------------------------------
@@ -295,4 +301,25 @@ const RESEARCH_GLYPH_BODY =
 
 export function researchGlyph(cls: string = 'hud-command-glyph'): string {
   return svg(cls, RESEARCH_GLYPH_BODY);
+}
+
+// Market Buy/Sell command buttons reuse the top-bar COMMODITY glyphs (the
+// resource being traded). Keyed on the commodity only — buy-food and sell-food
+// share the food glyph; the button label carries the buy-vs-sell direction. A
+// directional (buy/sell arrow) overlay is a later polish slice. Defaults to the
+// 17px command class so it matches the neighbouring Build/Train/Research glyphs.
+const MARKET_ACTION_RESOURCE: Record<MarketActionType, ResourceGlyphKind> = {
+  'buy-food': 'food',
+  'sell-food': 'food',
+  'buy-wood': 'wood',
+  'sell-wood': 'wood',
+  'buy-stone': 'stone',
+  'sell-stone': 'stone',
+};
+
+export function marketActionGlyph(
+  actionType: MarketActionType,
+  cls: string = 'hud-command-glyph',
+): string {
+  return resourceGlyph(MARKET_ACTION_RESOURCE[actionType], cls);
 }
