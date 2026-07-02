@@ -127,12 +127,12 @@ export type ResearchableTechnologyType =
   | 'horse-collar'
   | 'heavy-plow'
   | 'crop-rotation'
-  // Loom (Town Center, Dark Age, no prereq, 50 gold): +15 villager HP + +1 armor,
-  // applied imperatively to existing + future villagers — see spec §11.8.
+  // Loom (Town Center, Dark, 50 gold): +15 villager HP + +1 armor, imperative to existing + future villagers — spec §11.8.
   | 'loom'
   // DERIVED defensive tower-upgrade techs (Watch Tower): Guard Tower (Castle, +2 attack) → Keep (Imperial, +2 attack + +1 range). Recomputed from the researched set at the tower fire site (towerTechEffects); no per-building state. HP scaling deferred. Spec §10.8.
   | 'guard-tower'
-  | 'keep';
+  | 'keep'
+  | 'block-printing'; // DERIVED Monastery tech (Castle): +2 monk conversion range (monasteryTechEffects). Spec §12.
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'

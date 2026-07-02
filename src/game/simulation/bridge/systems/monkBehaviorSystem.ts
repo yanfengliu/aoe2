@@ -13,7 +13,9 @@ import {
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { monkCarriedRelicCodec, monkTasksCodec } from '../bridgeStateSerialize';
+import { monkCarriedRelicCodec, monkTasksCodec, researchedTechnologiesCodec } from '../bridgeStateSerialize';
+import { monkConvertRangeBonus } from '../../monasteryTechEffects';
+import { EMPTY_TECH_SET } from '../../economyTechEffects';
 
 type CivWorld = GameWorld;
 
@@ -128,11 +130,22 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
             ? distanceToBuilding(targetId, monkPosition)
             : manhattanDistance(monkPosition, targetPosition);
 
-        if (distance > MONK_ACTION_RANGE) {
+        // Block Printing (Monastery, derived): +monk CONVERSION range for the
+        // monk's owner. Applies only to convert tasks; heal/pickup/deposit keep
+        // the base range. Un-teched owners read +0 → behaviour-identical.
+        const actionRange =
+          task.kind === 'convert'
+            ? MONK_ACTION_RANGE
+              + monkConvertRangeBonus(
+                accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET,
+              )
+            : MONK_ACTION_RANGE;
+
+        if (distance > actionRange) {
           const plan =
             task.kind === 'deposit'
-              ? findBuildingApproachPlan(monkId, targetId, MONK_ACTION_RANGE, activeWorld)
-              : findUnitRangePlan(monkId, targetPosition, MONK_ACTION_RANGE, activeWorld);
+              ? findBuildingApproachPlan(monkId, targetId, actionRange, activeWorld)
+              : findUnitRangePlan(monkId, targetPosition, actionRange, activeWorld);
           if (!plan) {
             deleteMonkTask(monkId);
             continue;

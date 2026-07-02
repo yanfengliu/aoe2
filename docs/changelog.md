@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.58 - 2026-07-01
+
+### Monastery tech: Block Printing (monks convert from farther)
+
+The Monastery can now research **Block Printing** (Castle Age, 100 food / 130 gold) — the first monk upgrade in the game. It gives all of that player's monks **+2 conversion range**, so they can start converting an enemy unit from two tiles farther away (base range 4 → 6). The bonus is derived from your researched techs at the moment a monk acts, so it applies to monks you already have and any you train later, with no save-format change. The effect is fully deterministic (a flat range bonus — no probability change), keeping replays reproducible.
+
 ## 0.1.57 - 2026-07-01
 
 ### Defensive tower upgrades: Guard Tower and Keep

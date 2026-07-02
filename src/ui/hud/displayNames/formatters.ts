@@ -116,6 +116,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Guard Tower';
     case 'keep':
       return 'Keep';
+    case 'block-printing':
+      return 'Block Printing';
   }
 }
 

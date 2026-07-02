@@ -14,6 +14,7 @@ import type {
 import type { UpgradeChainEntry } from '../upgradeChains';
 import { economyTechResearchOptions } from './economyTechOptions';
 import { towerTechResearchOptions } from '../towerTechOptions';
+import { monasteryTechResearchOptions } from '../monasteryTechOptions';
 
 export interface OptionsRulesDeps {
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
@@ -364,6 +365,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
 
     if (buildingType === 'watch-tower') {
       return towerTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);
+    }
+
+    if (buildingType === 'monastery') {
+      return monasteryTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);
     }
 
     return economyTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);

@@ -974,6 +974,8 @@ Representative timing expectations:
 - units convert faster than buildings
 - conversion is probabilistic within a bounded window, not fixed-time
 
+**Block Printing (implemented v0.1.58).** The first Monastery monk-upgrade tech: researched at the Monastery (Castle Age, no prerequisite, 100 food / 130 gold, 550 ticks). It grants the owner's monks +2 conversion range (base monk action range 4 → 6), so a monk can begin converting an enemy unit from two tiles farther. The bonus is DERIVED (pure) from the owner's researched-tech set at the monk's action site (`monasteryTechEffects.monkConvertRangeBonus`, read in `monkBehaviorSystem`) — no per-monk state, no save-format change, and it applies to existing and future monks alike. It affects only convert tasks (heal/pickup/deposit keep the base range). Implementation note on determinism: this build models conversion as a DETERMINISTIC progress ramp (fixed progress-per-tick to a flip threshold), NOT the probabilistic window above, because the simulation must be replay-deterministic — so Block Printing is modeled as a flat integer range bonus, never a probability change. Other Monastery techs (Sanctity, Faith, Redemption, Illumination, etc.) remain deferred.
+
 ### 10.10 Healing
 
 Monks must support:

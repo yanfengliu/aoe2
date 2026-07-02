@@ -220,6 +220,11 @@ export {
 } from './towerUpgrades';
 
 export {
+  createMonkBlockPrintingBaselineFixture,
+  createMonkBlockPrintingFixture,
+} from './monasteryTechs';
+
+export {
   createUnitShowcaseFixture,
 } from './unitShowcase';
 
