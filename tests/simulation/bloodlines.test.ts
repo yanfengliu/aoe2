@@ -12,12 +12,13 @@ import {
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
-// Bloodlines (v0.1.65): a researchable Stable tech granting the owner's CAVALRY
-// units +20 HP, mirroring the Loom (villager HP) and Sanctity (monk HP)
-// imperative pattern. Applied in TWO places — createCombatState (new units,
-// DERIVED from the researched set) and applyTechnology's `bloodlines` case
-// (existing units, via bloodlinesEffect). Hosted at the Stable (where AoE2 puts
-// it — no University divergence needed). Castle-Age, drops once researched. No
+// Bloodlines (v0.1.65; gate + scope conformance-fixed v0.1.67): a researchable
+// Stable tech granting the owner's MOUNTED units (cavalry + cavalry archers,
+// technologies.csv:78) +20 HP, mirroring the Loom (villager HP) and Sanctity
+// (monk HP) imperative pattern. Applied in TWO places — createCombatState (new
+// units, DERIVED from the researched set) and applyTechnology's `bloodlines`
+// case (existing units, via bloodlinesEffect) — both sharing isMountedUnit.
+// Hosted at the Stable, FEUDAL Age (as in AoE2), drops once researched. No
 // save-format change.
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -65,14 +66,18 @@ describe('Bloodlines — gating at the Stable', () => {
     expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('bloodlines');
   }, 30_000);
 
-  it('is NOT offered before Castle Age (Feudal-Age Stable)', () => {
+  it('IS offered at a FEUDAL-Age Stable (technologies.csv:78 — v0.1.67 conformance fix)', () => {
     const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture');
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
-    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('bloodlines');
+    const options = bridge.getSelectionState().researchOptions ?? [];
+    expect(options).toContain('bloodlines');
+    // The Castle-gated stable techs must NOT leak down to Feudal with the
+    // restructured branch (husbandry's negative guard lives in husbandry.test).
+    expect(options).not.toContain('light-cavalry-upgrade');
   });
 });
 
-describe('Bloodlines — derived +20 cavalry HP at unit creation (createCombatState)', () => {
+describe('Bloodlines — derived +20 mounted HP at unit creation (createCombatState)', () => {
   it('a cavalry unit built WITH Bloodlines has maxHp = base + 20', () => {
     const baseline = createSimulationBridge('bloodlines-baseline-fixture');
     const researched = createSimulationBridge('bloodlines-researched-fixture');
@@ -84,6 +89,21 @@ describe('Bloodlines — derived +20 cavalry HP at unit creation (createCombatSt
 
     const baseHp = baseline.getEntityHealth(baseKnight!.id)!;
     const techHp = researched.getEntityHealth(techKnight!.id)!;
+    expect(techHp.maxHp).toBe(baseHp.maxHp + BLOODLINES_BONUS_HP);
+    expect(techHp.currentHp).toBe(baseHp.currentHp + BLOODLINES_BONUS_HP);
+  });
+
+  it('a mounted ARCHER (Cavalry Archer) built WITH Bloodlines has maxHp = base + 20 (csv:78 applies-to)', () => {
+    const baseline = createSimulationBridge('bloodlines-baseline-fixture');
+    const researched = createSimulationBridge('bloodlines-researched-fixture');
+
+    const baseArcher = getOwnedUnit(baseline, 1, 'cavalry-archer');
+    const techArcher = getOwnedUnit(researched, 1, 'cavalry-archer');
+    expect(baseArcher).toBeDefined();
+    expect(techArcher).toBeDefined();
+
+    const baseHp = baseline.getEntityHealth(baseArcher!.id)!;
+    const techHp = researched.getEntityHealth(techArcher!.id)!;
     expect(techHp.maxHp).toBe(baseHp.maxHp + BLOODLINES_BONUS_HP);
     expect(techHp.currentHp).toBe(baseHp.currentHp + BLOODLINES_BONUS_HP);
   });
@@ -125,5 +145,27 @@ describe('Bloodlines — existing-unit +20 HP on research (applyTechnology)', ()
     ).toBe(true);
 
     expect(bridge.getEntityHealth(knightId)!.maxHp).toBe(maxHpBefore + BLOODLINES_BONUS_HP);
+  }, 30_000);
+
+  it('researching Bloodlines at a FEUDAL stable raises an EXISTING cavalry archer maxHp by 20', () => {
+    const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture');
+
+    const archerBefore = getOwnedUnit(bridge, 1, 'cavalry-archer');
+    expect(archerBefore).toBeDefined();
+    const archerId = archerBefore!.id;
+    const maxHpBefore = bridge.getEntityHealth(archerId)!.maxHp;
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
+    expect(bridge.queueResearch('bloodlines')).toBe(true);
+
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => (bridge.getEntityHealth(archerId)?.maxHp ?? 0) === maxHpBefore + BLOODLINES_BONUS_HP,
+        { maxSteps: 1500 },
+      ),
+    ).toBe(true);
+
+    expect(bridge.getEntityHealth(archerId)!.maxHp).toBe(maxHpBefore + BLOODLINES_BONUS_HP);
   }, 30_000);
 });

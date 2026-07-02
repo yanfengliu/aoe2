@@ -12,6 +12,7 @@ import {
   isGunpowderUnit,
   isInfantryUnit,
   isMeleeUnit,
+  isMountedUnit,
   isSiegeUnit,
   unitAttackDamage,
   unitAttackRange,
@@ -60,10 +61,11 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       state.currentHp += 15;
     }
 
-    // Bloodlines: +20 cavalry HP (Stable). A newly created cavalry unit is at
-    // full HP, so current and max both gain 20. Existing cavalry get it on
-    // research in technologyOps' `bloodlines` case (via bloodlinesEffect).
-    if (isCavalryUnit(unitType) && hasTechnology(owner, 'bloodlines')) {
+    // Bloodlines: +20 MOUNTED HP (Feudal Stable — cavalry + cavalry archers,
+    // technologies.csv:78). A newly created mounted unit is at full HP, so
+    // current and max both gain 20. Existing mounted units get it on research
+    // in technologyOps' `bloodlines` case (via bloodlinesEffect).
+    if (isMountedUnit(unitType) && hasTechnology(owner, 'bloodlines')) {
       state.maxHp += 20;
       state.currentHp += 20;
     }

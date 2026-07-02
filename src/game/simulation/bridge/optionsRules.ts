@@ -316,20 +316,23 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    if (buildingType === 'stable' && isAtLeastAge(owner, 'castle-age')) {
+    if (buildingType === 'stable' && isAtLeastAge(owner, 'feudal-age')) {
       const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
-        options.push('light-cavalry-upgrade');
-      }
-      // Bloodlines: +20 HP to every cavalry unit. Castle-Age Stable tech
-      // (hosted where AoE2 puts it); drops once researched.
+      // Bloodlines: +20 HP to every MOUNTED unit (cavalry + cavalry archers).
+      // FEUDAL-Age Stable tech per technologies.csv:78 (v0.1.67 conformance
+      // fix — v0.1.65 shipped it Castle-gated); drops once researched.
       if (!hasTechnology(owner, 'bloodlines')) {
         options.push('bloodlines');
       }
-      // Husbandry: +10% movement speed for mounted units (cavalry + cavalry
-      // archers). Castle-Age Stable tech; drops once researched.
-      if (!hasTechnology(owner, 'husbandry')) {
-        options.push('husbandry');
+      if (isAtLeastAge(owner, 'castle-age')) {
+        if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
+          options.push('light-cavalry-upgrade');
+        }
+        // Husbandry: +10% movement speed for mounted units (cavalry + cavalry
+        // archers). Castle-Age Stable tech; drops once researched.
+        if (!hasTechnology(owner, 'husbandry')) {
+          options.push('husbandry');
+        }
       }
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'hussar-upgrade')) {

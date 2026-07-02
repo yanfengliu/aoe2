@@ -453,8 +453,9 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         markOutOfBandRenderChange();
         break;
       case 'bloodlines':
-        // Bloodlines: flat +20 HP (current + max) to every owned cavalry unit
-        // (new cavalry get it via createCombatState). Mirrors Loom/Sanctity.
+        // Bloodlines: flat +20 HP (current + max) to every owned MOUNTED unit
+        // (cavalry + cavalry archers, csv:78; new ones get it via
+        // createCombatState). Mirrors Loom/Sanctity.
         applyBloodlinesToOwnedCavalry(world, accessor, owner);
         markOutOfBandRenderChange();
         break;

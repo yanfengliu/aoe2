@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.67 - 2026-07-02
+
+### Bloodlines fixed to match AoE2: Feudal Age + cavalry archers included
+
+Two conformance fixes to the Bloodlines tech shipped in 0.1.65, per the game data (`technologies.csv:78`) and AoE2 canon: (1) it is now researchable from the **Feudal Age** (it was wrongly Castle-gated — in AoE2 Bloodlines is the classic Feudal Stable research), and (2) its +20 max-HP buff now also applies to **Cavalry Archers and Heavy Cavalry Archers** (it previously covered only the Scout/Knight/Camel cavalry lines; the CSV lists "Cavalry; Cavalry Archer"). Existing saves are unaffected structurally — an owner who already researched Bloodlines before this fix keeps cavalry-only bonuses already applied; mounted archers trained after loading under that researched flag now receive +20. The barding armor techs intentionally remain cavalry-only (mounted archers use the archer armor line, as in AoE2). No save-format change.
+
 ## 0.1.66 - 2026-07-02
 
 ### Stable tech: Husbandry (+10% mounted speed) — the game's first movement-speed tech

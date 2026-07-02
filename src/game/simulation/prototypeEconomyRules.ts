@@ -170,7 +170,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   loom: { gold: 50 }, // technologies.csv:86.
   'guard-tower': { food: 100, gold: 50 }, // Watch Tower upgrades: Guard Tower / Keep.
   keep: { food: 200, gold: 100 },
-  bloodlines: { food: 150, gold: 100 }, // Stable, Castle: +20 cavalry HP.
+  bloodlines: { food: 150, gold: 100 }, // Stable, Feudal: +20 mounted HP.
   husbandry: { food: 250 }, // Stable, Castle: +10% mounted speed (technologies.csv:79).
   // Farm-food techs (Mill; costs from technologies.csv — Horse Collar 75/75, Heavy Plow 125/125, Crop Rotation 250/250).
   'horse-collar': { food: 75, wood: 75 },
@@ -294,7 +294,7 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   loom: 250, // technologies.csv:86 — 25 s × 10 TPS.
   'guard-tower': 300,
   keep: 400,
-  bloodlines: 500, // Stable, Castle: 50 s × 10 TPS.
+  bloodlines: 500, // Stable, Feudal: 50 s × 10 TPS.
   husbandry: 500, // Stable, Castle: 50 s × 10 TPS.
   // Farm-food techs (Mill; CSV seconds × 10 TPS — 20/40/70 s).
   'horse-collar': 200,
