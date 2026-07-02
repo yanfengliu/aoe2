@@ -24,6 +24,14 @@ export const HUSBANDRY_SPEED_PERCENT = 110;
 // AoE2 Squires (technologies.csv:12): infantry move 10% faster.
 export const SQUIRES_SPEED_PERCENT = 110;
 
+// AoE2 Wheelbarrow / Hand Cart (technologies.csv:89/90 — "Movement rate * 1.1
+// and carrying capacity * 1.25/1.5"): each raises villager movement speed by
+// 10% (the movement HALF of the carry-capacity techs, whose carry half already
+// shipped). Unlike Husbandry/Squires these two apply to the SAME class
+// (villagers) and STACK, so they multiply: 100 → 110 (Wheelbarrow) → 121 (both).
+export const WHEELBARROW_SPEED_PERCENT = 110;
+export const HAND_CART_SPEED_PERCENT = 110;
+
 // Bound on the banked entitlement so a long-clamped unit cannot burst-move
 // later: grant ≤ floor((cap + 220)/100) = 5 fine units, and consumption is
 // further clamped to the current waypoint leg anyway. In normal unobstructed
@@ -31,12 +39,12 @@ export const SQUIRES_SPEED_PERCENT = 110;
 export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
 
 // Whole-percent speed multiplier for a unit derived from the owner's researched
-// set: Husbandry → mounted units, Squires → infantry. The two techs target
-// disjoint unit classes (no unit is both mounted and infantry), so at most one
-// applies and there is no stacking. Future speed techs that share a class
-// (e.g. the Wheelbarrow/Hand Cart villager ×1.1 halves) will need to multiply
-// their percents here instead of the flat return. 100 = no modifier (the
-// executor's byte-identical fast path).
+// set: Husbandry → mounted units, Squires → infantry, Wheelbarrow/Hand Cart →
+// villagers. The three unit classes are disjoint, so a unit matches at most one
+// branch. Within a class the modifiers STACK multiplicatively (the villager
+// branch below — Wheelbarrow × Hand Cart = 121); across the single-tech classes
+// a flat return is correct because each has one applicable tech. 100 = no
+// modifier (the executor's byte-identical fast path).
 export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
@@ -46,6 +54,16 @@ export function movementSpeedPercent(
   }
   if (researchedTechnologies.has('squires') && isInfantryUnit(unitType)) {
     return SQUIRES_SPEED_PERCENT;
+  }
+  if (unitType === 'villager') {
+    let percent = 100;
+    if (researchedTechnologies.has('wheelbarrow')) {
+      percent = Math.round((percent * WHEELBARROW_SPEED_PERCENT) / 100);
+    }
+    if (researchedTechnologies.has('hand-cart')) {
+      percent = Math.round((percent * HAND_CART_SPEED_PERCENT) / 100);
+    }
+    return percent;
   }
   return 100;
 }

@@ -409,7 +409,7 @@ The implementation must support:
 
 Each tech is offered once at its building from its earliest age and drops out of the research list once researched.
 
-**Carry-capacity techs (implemented).** Wheelbarrow (Feudal, Town Center, ×1.25) and Hand Cart (Castle, Town Center, ×1.5) raise a villager's effective carry capacity — effective carry = round(base carry × multiplier), the multiplier derived from the owner's researched-tech set with factors stacking multiplicatively (×1.875 with both). Carry is resource-agnostic, so this speeds gathering of every resource including food: a larger carry means fewer drop-off trips. The AoE2 movement-speed component of both techs (×1.1) is not yet implemented — the movement-speed seam it needs now exists (§12.5, shipped with Husbandry v0.1.66), so the villager ×1.1 halves are a drop-in follow-up percent case.
+**Carry-capacity techs (implemented).** Wheelbarrow (Feudal, Town Center, ×1.25) and Hand Cart (Castle, Town Center, ×1.5) raise a villager's effective carry capacity — effective carry = round(base carry × multiplier), the multiplier derived from the owner's researched-tech set with factors stacking multiplicatively (×1.875 with both). Carry is resource-agnostic, so this speeds gathering of every resource including food: a larger carry means fewer drop-off trips. The AoE2 movement-speed component of both techs (×1.1 each, implemented v0.1.69) rides the movement-speed seam (§12.5): a villager whose owner researched Wheelbarrow moves at 110%, and with both it moves at 121% (the two halves stack multiplicatively, matching the carry halves), derived at the executor with no bespoke path.
 
 **Farm-food techs (implemented).** The Mill farm-upgrade techs raise how much food a Farm holds (and auto-reseeds to). Like the gather-rate and carry-capacity techs they are DERIVED from the owner's researched-tech set (no separate stored state, no per-farm field): a farm's food capacity = base 175 plus the additive bonus of each researched farm-food tech, applied at farm CREATE (construction-complete) and farm RESEED. The bonuses STACK additively to the AoE2 capacities 250 / 375 / 550. They form a linear prereq chain at the Mill: each is offered from its earliest age, requires the previous tech, and drops out of the research list once researched.
 
@@ -1162,8 +1162,9 @@ Every commanded mover advances on the fine subgrid through the single step execu
 - Research takes effect from the next tick, including for units already mid-walk; a converted unit follows its NEW owner's researched set from the next tick.
 - Husbandry (§11.9): mounted units (cavalry lines + cavalry archers) move at 110%.
 - Squires (§11.10): infantry (militia line + spear line) move at 110%. Husbandry and Squires target disjoint unit classes, so no unit stacks both.
+- Wheelbarrow / Hand Cart (§6.5): villagers move at 110% / 121% (the two halves STACK multiplicatively, the one same-class stacking case — `movementSpeedPercent` multiplies rather than flat-returns for villagers).
 
-Still unimplemented and expected by the full game: villager speed bonuses (the Wheelbarrow/Hand Cart ×1.1 movement halves), per-unit-TYPE base rates from the `units.csv` `movement_rate` column (Knight 1.35 vs Villager 0.8 vs Battering Ram 0.5 — today all units share the uniform base), formation drag or cohesion effects, and stance-driven chase limits.
+Still unimplemented and expected by the full game: per-unit-TYPE base rates from the `units.csv` `movement_rate` column (Knight 1.35 vs Villager 0.8 vs Battering Ram 0.5 — today all units share the uniform base), formation drag or cohesion effects, and stance-driven chase limits.
 
 ### 12.6 Unit Spacing and Sub-Tile Occupancy
 

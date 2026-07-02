@@ -248,6 +248,12 @@ export {
 } from './squires';
 
 export {
+  createVillagerSpeedBaselineFixture,
+  createVillagerSpeedWheelbarrowFixture,
+  createVillagerSpeedBothFixture,
+} from './villagerSpeed';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

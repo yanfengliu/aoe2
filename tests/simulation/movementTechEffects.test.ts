@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  HAND_CART_SPEED_PERCENT,
   HUSBANDRY_SPEED_PERCENT,
   MOVE_CARRY_CAP_HUNDREDTHS,
   SQUIRES_SPEED_PERCENT,
+  WHEELBARROW_SPEED_PERCENT,
   movementEntitlement,
   movementSpeedPercent,
   settleMovementCarry,
@@ -119,7 +121,56 @@ describe('movementSpeedPercent — Squires scope (technologies.csv:12 Infantry) 
   it('with BOTH techs researched, each unit gets its own +10% (no double-count)', () => {
     expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight')).toBe(110);
     expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia')).toBe(110);
+    // A villager gets neither Husbandry nor Squires — only the carry techs
+    // (below) touch it.
     expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'villager')).toBe(100);
+  });
+});
+
+const WHEELBARROW_ONLY: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'wheelbarrow',
+] as ResearchableTechnologyType[]);
+const HAND_CART_ONLY: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'hand-cart',
+] as ResearchableTechnologyType[]);
+const BOTH_CARRY_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'wheelbarrow',
+  'hand-cart',
+] as ResearchableTechnologyType[]);
+
+describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKING, technologies.csv:89/90)', () => {
+  it('each carry tech gives villagers +10%, and the two STACK multiplicatively to 121%', () => {
+    expect(WHEELBARROW_SPEED_PERCENT).toBe(110);
+    expect(HAND_CART_SPEED_PERCENT).toBe(110);
+    expect(movementSpeedPercent(NO_TECHS, 'villager')).toBe(100);
+    expect(movementSpeedPercent(WHEELBARROW_ONLY, 'villager')).toBe(110);
+    expect(movementSpeedPercent(HAND_CART_ONLY, 'villager')).toBe(110);
+    expect(movementSpeedPercent(BOTH_CARRY_TECHS, 'villager')).toBe(121); // 110 × 1.1
+  });
+
+  it('the carry techs speed ONLY villagers — mounted / infantry / archer / monk / siege unaffected', () => {
+    for (const unitType of [
+      ...MOUNTED_TYPES,
+      ...INFANTRY_TYPES,
+      'archer',
+      'monk',
+      'mangonel',
+    ] as UnitType[]) {
+      expect(movementSpeedPercent(BOTH_CARRY_TECHS, unitType)).toBe(100);
+    }
+  });
+
+  it('composes across classes: with every speed tech, each class gets its own multiplier', () => {
+    const allSpeed: ReadonlySet<ResearchableTechnologyType> = new Set([
+      'husbandry',
+      'squires',
+      'wheelbarrow',
+      'hand-cart',
+    ] as ResearchableTechnologyType[]);
+    expect(movementSpeedPercent(allSpeed, 'knight')).toBe(110); // Husbandry
+    expect(movementSpeedPercent(allSpeed, 'militia')).toBe(110); // Squires
+    expect(movementSpeedPercent(allSpeed, 'villager')).toBe(121); // Wheelbarrow × Hand Cart
+    expect(movementSpeedPercent(allSpeed, 'archer')).toBe(100); // none
   });
 });
 

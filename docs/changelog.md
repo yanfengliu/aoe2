@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.69 - 2026-07-02
+
+### Wheelbarrow & Hand Cart now also make villagers move faster
+
+The economy techs **Wheelbarrow** (Feudal) and **Hand Cart** (Castle) — which until now only raised villager carry capacity — now also grant their AoE2 **+10% villager movement speed**. The two stack: with Wheelbarrow your villagers move 10% faster, and with both they move ~21% faster, so they walk to and from resources and drop-off points more quickly on top of carrying more per trip. This completes those two techs (both effects, matching the game). It applies only to villagers and is derived from the techs you have researched, so there is no save-format change and no effect on players who haven't researched them.
+
 ## 0.1.68 - 2026-07-02
 
 ### Barracks tech: Squires (+10% infantry speed)
