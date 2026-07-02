@@ -34,6 +34,12 @@ export type ResearchableTechnologyType =
   // per-unit state, no applyTechnology loop (buildingArrowTechEffects pattern).
   // Spec §10.7.2.
   | 'sappers'
+  // Husbandry (Stable, Castle): +10% movement speed for MOUNTED units (cavalry
+  // + cavalry archers). DERIVED (pure movementTechEffects) inside the single
+  // step executor moveUnitOneSubgridStep via the per-unit carry accumulator
+  // (moveCarryHundredths — additive save field, engaged only at percent ≠ 100).
+  // Spec §12.5.
+  | 'husbandry'
   | 'bracer'
   | 'blast-furnace'
   | 'plate-mail-armor'

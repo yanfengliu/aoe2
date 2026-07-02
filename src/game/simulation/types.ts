@@ -182,6 +182,11 @@ export interface VelocityComponent {
 export interface UnitTransformComponent {
   fineX: number;
   fineY: number;
+  // Banked fractional movement entitlement in hundredths of a fine unit (the
+  // movementTechEffects carry accumulator). Written only while a unit moves at
+  // a speed percent ≠ 100 (e.g. Husbandry); pre-speed-model saves and un-teched
+  // units read `?? 0` — additive like pierceArmorBonus, no schema bump.
+  moveCarryHundredths?: number;
 }
 
 export interface VisionSourceComponent {

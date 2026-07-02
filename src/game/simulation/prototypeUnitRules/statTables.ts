@@ -408,6 +408,18 @@ export const CAVALRY_UNITS = new Set<UnitType>([
   'heavy-camel',
 ]);
 
+// Mounted units = cavalry + the mounted-archer line — HUSBANDRY's scope per
+// technologies.csv:79 applies-to "Cavalry;Cavalry Archer;Conquistador"
+// (conquistador is not in the roster). NOTE: shipped Bloodlines uses the
+// narrower CAVALRY_UNITS even though its CSV row lists Cavalry Archer too — a
+// pre-existing spec-sanctioned (§11.9) divergence, follow-up queued. Spread
+// from CAVALRY_UNITS so the sets cannot drift.
+export const MOUNTED_UNITS = new Set<UnitType>([
+  ...CAVALRY_UNITS,
+  'cavalry-archer',
+  'heavy-cavalry-archer',
+]);
+
 export const INFANTRY_UNITS = new Set<UnitType>([
   'militia',
   'champion',

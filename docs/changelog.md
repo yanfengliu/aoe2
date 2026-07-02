@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.66 - 2026-07-02
+
+### Stable tech: Husbandry (+10% mounted speed) — the game's first movement-speed tech
+
+The Stable can now research **Husbandry** (Castle Age, 250 food). It makes every one of that player's **mounted units** — the Scout line, Knight line, Camel line, **and** Cavalry Archer line — **move 10% faster**, taking effect immediately for units already on the move as well as everything trained later. Non-mounted units (villagers, infantry, archers, siege, monks) and herded sheep are unaffected, and an opponent without the tech keeps the normal cadence. Under the hood this ships the movement-speed subsystem the roadmap deferred: units bank fractional movement per tick (a knight now takes an extra sub-grid step roughly every 5th tick) so the +10% is real rather than lost to rounding. Save-format note: units moving at boosted speed persist a small `moveCarryHundredths` counter on their transform — **additive and backward-compatible** (older saves load fine; no schema bump).
+
 ## 0.1.65 - 2026-07-02
 
 ### Stable tech: Bloodlines (+20 cavalry HP)

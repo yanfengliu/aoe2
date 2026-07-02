@@ -1,0 +1,24 @@
+# Husbandry + movement-speed seam — adversarial review, iteration 1 (2026-07-02)
+
+**Reviewer:** in-process Workflow (AGENTS.md default): 5 dimension finders (correctness/determinism, seam wiring, AoE2 conformance, test quality, docs discipline) + 1 refuting verifier per deduped finding, every agent grounding claims in the live uncommitted tree (git diff + direct reads; verifiers ran targeted vitest and mutation experiments). 15 agents, ~1.21M tokens. Multi-CLI review not run — per AGENTS.md it is reserved for high-risk changes (persistence/migrations, security, agent-loop/concurrency, money); this change is an additive optional component field + a derived tech effect, and the in-process pass is the mandated default.
+
+**Verdict: ZERO code defects. 8 confirmed findings — all documentation-consistency and test-guard items (2 MEDIUM, 6 LOW); 1 finding refuted.** The seam-wiring finder returned empty (union/cost/time/options/building-map/formatters all consistent; no other exhaustive switch mishandles 'husbandry'). This meets the convergence bar (reviewers finding doc nits, not real bugs).
+
+## Confirmed findings and dispositions (all fixed same-iteration)
+
+1. **[MEDIUM] test-guard — the "never materializes moveCarryHundredths" invariant was unprotected.** Verifier proved by live mutation that unconditionally writing the field would ship with zero test failures, silently growing every unit's serialized transform and breaking the changelog's "only boosted units persist the counter" promise. **Fixed:** new hygiene test (husbandry.test.ts "never materializes moveCarryHundredths at 100% …") asserts the un-teched world has no transform with the field after walking, and on the researched twin the boosted knight banks it while the moving militia stays clean.
+2. **[MEDIUM] docs — PLAN.md still specified the disproven tick-derived design end-to-end** (including a "no save-format change" constraint the shipped field contradicts). **Fixed:** PLAN.md rewritten as-built with an explicit mid-task-revision note; the discovery narrative stays in DESIGN.md + lessons.md.
+3. **[MEDIUM→addressed] test-quality — the promised mid-walk research test had been weakened to research-then-command; in-flight acceleration was unpinned.** **Fixed:** new test queues the 500-tick research at t0, commands a 30-cell walk at t460 so completion lands mid-walk, and asserts arrival strictly earlier than a control walking the same lane from the same tick.
+4. **[LOW] correctness scope — the AI scout-WANDER path (scoutMovementSystem writes fineX/fineY directly at the hard-coded base step) bypasses the speed model.** Verifier importantly REFUTED the DESIGN.md justification: "the AI only researches age-ups" is FALSE — aiSystem.ts:644-676 queues any affordable Stable option (now incl. Husbandry), so the AI does research it; its commanded mounted units get the +10% and only its never-commanded wandering scout (isAiMilitaryUnit excludes scouts) stays at base. **Fixed as documentation:** DESIGN.md scope note corrected, devlog/summary claims corrected, roadmap M1 lists the wander gap (fold into the base-speed slice). Wiring the velocity-bounce path is deliberately deferred — different mechanism, LOW impact, no determinism/carry risk (paths are mutually exclusive via the unitCommands guard).
+5. **[LOW] stale headers — husbandry.test.ts header + describe label and fixtures/husbandry.ts header described the rejected stateless design** ("tick-derived step schedule — no per-unit state, no save-format change"). **Fixed:** all three rewritten to the carry model.
+6. **[LOW] comment — the new MOUNTED_UNITS comment misstated Bloodlines' implemented scope** (Bloodlines is cavalry-only; its CSV row lists Cavalry Archer — a pre-existing, spec-sanctioned divergence). **Fixed:** comment now names Husbandry only and flags the Bloodlines divergence + queued follow-up.
+7. **[LOW] DESIGN.md H1 still said "tick-derived".** **Fixed:** retitled to the carry accumulator.
+8. **[LOW] describe label named the disproven mechanism.** **Fixed** (with #5).
+
+## Refuted
+
+- **[LOW] "No test pins sheep cadence — the explicit-stepUnits bypass has no behavioral guard."** REFUTED by mutation test: pre-existing `tests/simulation/sheepMovement.test.ts` "moves an owned sheep at half villager speed" fails immediately ("expected 16 to be greater than 16") when the sheep call site's 4th argument is dropped — the 2:1 cadence is genuinely pinned.
+
+## Post-fix state
+
+husbandry.test.ts 9/9 + movementTechEffects.test.ts 8/8 green; full four-gate run re-executed before commit (see devlog). No production-code changes were required by the review (one comment reworded in statTables.ts); the fixes are tests + docs. No re-review iteration needed per the convergence criterion — this iteration already produced zero code defects, and each fix was 1:1 against a verifier-validated finding (the guard-test remedy was itself mutation-validated by the verifier).

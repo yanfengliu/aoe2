@@ -12,6 +12,7 @@ import {
   INFANTRY_UNITS,
   MELEE_ATTACK_RANGE,
   MELEE_UNITS,
+  MOUNTED_UNITS,
   STATIC_MEMORABLE_RESOURCE_TYPES,
   UNIT_ATTACK_DAMAGE,
   UNIT_ATTACK_RANGE,
@@ -153,6 +154,12 @@ export function unitVisionRadius(unitType: UnitType): number {
 
 export function isCavalryUnit(unitType: UnitType): boolean {
   return CAVALRY_UNITS.has(unitType);
+}
+
+// Cavalry + the mounted-archer line — the applies-to scope of the Stable
+// rider techs (Husbandry; see technologies.csv "Cavalry;Cavalry Archer").
+export function isMountedUnit(unitType: UnitType): boolean {
+  return MOUNTED_UNITS.has(unitType);
 }
 
 export function isInfantryUnit(unitType: UnitType): boolean {

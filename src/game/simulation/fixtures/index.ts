@@ -238,6 +238,11 @@ export {
 } from './bloodlines';
 
 export {
+  createHusbandryBaselineFixture,
+  createHusbandryResearchedFixture,
+} from './husbandry';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

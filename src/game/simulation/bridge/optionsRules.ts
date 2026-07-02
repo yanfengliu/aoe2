@@ -326,6 +326,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'bloodlines')) {
         options.push('bloodlines');
       }
+      // Husbandry: +10% movement speed for mounted units (cavalry + cavalry
+      // archers). Castle-Age Stable tech; drops once researched.
+      if (!hasTechnology(owner, 'husbandry')) {
+        options.push('husbandry');
+      }
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'hussar-upgrade')) {
           options.push('hussar-upgrade');

@@ -22,7 +22,12 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
-import { constructionStatesCodec } from './bridgeStateSerialize';
+import { constructionStatesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import {
+  movementEntitlement,
+  movementSpeedPercent,
+  settleMovementCarry,
+} from '../movementTechEffects';
 
 type CivWorld = GameWorld;
 
@@ -208,15 +213,53 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     id: number,
     target: Position,
     activeWorld: CivWorld = world,
-    stepUnits: number = UNIT_SUBGRID_STEP_PER_TICK,
+    stepUnits?: number,
   ): Position | null {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) return null;
 
+    // Movement-speed model (spec §12.5): an explicitly-passed stepUnits (the
+    // sheep site) bypasses the model; every other mover derives its per-tick
+    // step grant from its owner's researched techs via the per-unit carry
+    // accumulator (movementTechEffects — the gatherProgressTicks pattern). The
+    // carry banks whatever a waypoint/map clamp doesn't let through, because
+    // movement is issued as per-CELL waypoint legs and a stateless surge
+    // schedule loses its extra step to the leg clamp (every 4-fine-unit leg
+    // costs 2 ticks whether granted 2+2 or 3-clamped-to-2 + 2). The un-teched
+    // path (speed percent 100) never reads or writes the carry — byte-identical
+    // to the pre-speed-model behavior.
+    let resolvedStepUnits = stepUnits ?? UNIT_SUBGRID_STEP_PER_TICK;
+    let entitledHundredths: number | null = null;
+    if (stepUnits === undefined) {
+      const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+      const researched = unit
+        ? accessor.get(researchedTechnologiesCodec).get(unit.owner)
+        : undefined;
+      const speedPercent = unit && researched
+        ? movementSpeedPercent(researched, unit.unitType)
+        : 100;
+      if (speedPercent !== 100) {
+        const entitlement = movementEntitlement(
+          transform.moveCarryHundredths ?? 0,
+          UNIT_SUBGRID_STEP_PER_TICK,
+          speedPercent,
+        );
+        resolvedStepUnits = entitlement.grantedSteps;
+        entitledHundredths = entitlement.entitledHundredths;
+      }
+    }
+
     const targetTransform = getUnitTargetTransformForCell(id, target);
     const nextTransform = clampUnitTransformToMap(
-      stepUnitTransformToward(transform, targetTransform, stepUnits),
+      stepUnitTransformToward(transform, targetTransform, resolvedStepUnits),
     );
+    if (entitledHundredths !== null) {
+      // Settle on ACTUAL movement (pre-assignment deltas) so a clamped step
+      // banks its shortfall instead of losing it.
+      const movedSteps = Math.abs(nextTransform.fineX - transform.fineX)
+        + Math.abs(nextTransform.fineY - transform.fineY);
+      transform.moveCarryHundredths = settleMovementCarry(entitledHundredths, movedSteps);
+    }
     transform.fineX = nextTransform.fineX;
     transform.fineY = nextTransform.fineY;
 

@@ -52,6 +52,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Sappers';
     case 'bloodlines':
       return 'Bloodlines';
+    case 'husbandry':
+      return 'Husbandry';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

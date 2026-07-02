@@ -167,12 +167,11 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   // Economy carry-capacity techs (Town Center; costs from technologies.csv).
   wheelbarrow: { food: 175, wood: 50 },
   'hand-cart': { food: 305, wood: 200 },
-  // Loom: technologies.csv:86 — 50 gold.
-  loom: { gold: 50 },
-  // Defensive tower-upgrade techs (Watch Tower): Guard Tower / Keep.
-  'guard-tower': { food: 100, gold: 50 },
+  loom: { gold: 50 }, // technologies.csv:86.
+  'guard-tower': { food: 100, gold: 50 }, // Watch Tower upgrades: Guard Tower / Keep.
   keep: { food: 200, gold: 100 },
   bloodlines: { food: 150, gold: 100 }, // Stable, Castle: +20 cavalry HP.
+  husbandry: { food: 250 }, // Stable, Castle: +10% mounted speed (technologies.csv:79).
   // Farm-food techs (Mill; costs from technologies.csv — Horse Collar 75/75, Heavy Plow 125/125, Crop Rotation 250/250).
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
@@ -290,13 +289,13 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'gold-shaft-mining': 750,
   'stone-mining': 300,
   'stone-shaft-mining': 750,
-  // Carry-capacity techs (CSV research seconds × 10 TPS).
-  wheelbarrow: 750,
+  wheelbarrow: 750, // Carry techs: CSV research seconds × 10 TPS.
   'hand-cart': 550,
   loom: 250, // technologies.csv:86 — 25 s × 10 TPS.
   'guard-tower': 300,
   keep: 400,
   bloodlines: 500, // Stable, Castle: 50 s × 10 TPS.
+  husbandry: 500, // Stable, Castle: 50 s × 10 TPS.
   // Farm-food techs (Mill; CSV seconds × 10 TPS — 20/40/70 s).
   'horse-collar': 200,
   'heavy-plow': 400,
