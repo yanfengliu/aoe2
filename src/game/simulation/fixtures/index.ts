@@ -217,6 +217,7 @@ export {
   createTowerUpgradeGuardFixture,
   createTowerUpgradeEdgeNoKeepFixture,
   createTowerUpgradeEdgeKeepFixture,
+  createTowerFletchingFixture,
 } from './towerUpgrades';
 
 export {

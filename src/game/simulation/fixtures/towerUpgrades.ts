@@ -3,6 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
+import type { ResearchableTechnologyType } from '../types';
 import { createGrassFixtureTerrain } from './common';
 
 // Tower-upgrade (Guard Tower → Keep, v0.1.57) fixtures. Player 1 (human, AI
@@ -20,8 +21,9 @@ import { createGrassFixtureTerrain } from './common';
 interface TowerUpgradeOptions {
   // Spearman position; distance from the tower anchor (14, 6) sets in/out of range.
   spearman: { x: number; y: number };
-  // Player-1 tower-upgrade techs pre-applied on boot (drives the derived bonus).
-  researched?: Array<'guard-tower' | 'keep'>;
+  // Player-1 techs pre-applied on boot (drives the derived fire-site bonus —
+  // tower-upgrade techs and/or Blacksmith arrow techs like Fletching).
+  researched?: ResearchableTechnologyType[];
 }
 
 function createTowerUpgradeScenario(
@@ -120,5 +122,16 @@ export function createTowerUpgradeEdgeKeepFixture(seed: string): PrototypeScenar
   return createTowerUpgradeScenario(seed, {
     spearman: { x: 20, y: 8 },
     researched: ['guard-tower', 'keep'],
+  });
+}
+
+// Blacksmith arrow tech (Fletching) researched: same Spearman position as the
+// baseline (18, 8), so the only difference is +1 building arrow attack — the
+// test asserts strictly more HP lost than the un-teched baseline. Verifies
+// Fletching/Bodkin/Bracer boost building fire (a Watch Tower here).
+export function createTowerFletchingFixture(seed: string): PrototypeScenario {
+  return createTowerUpgradeScenario(seed, {
+    spearman: { x: 18, y: 8 },
+    researched: ['fletching'],
   });
 }

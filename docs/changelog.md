@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.60 - 2026-07-01
+
+### Blacksmith arrow upgrades now strengthen your buildings' fire
+
+Fletching, Bodkin Arrow, and Bracer — the Blacksmith archer upgrades — now also boost the arrows fired by your **Town Centers, Watch Tower line, and Castles** (each adds +1 attack and +1 range, up to +3/+3 with all three), matching AoE2 where these techs improve building fire as well as archers. This stacks with the Guard Tower / Keep tower upgrades. Un-upgraded buildings are unchanged, and the bonus applies to buildings you already own the moment the tech completes (no save-format change).
+
 ## 0.1.59 - 2026-07-01
 
 ### Monastery tech: Sanctity (tougher monks)

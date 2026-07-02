@@ -10,6 +10,7 @@ import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { combatDamageAfterArmor, effectivePierceArmor, isArcherLineUnit } from '../../prototypeUnitRules';
 import { pierceArmorTechBonus } from '../../armorTechBonuses';
 import { towerAttackBonus, towerRangeBonus } from '../../towerTechEffects';
+import { buildingArrowAttackBonus, buildingArrowRangeBonus } from '../../buildingArrowTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
@@ -89,15 +90,18 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           garrisonIds.length,
           garrisonedArcherCount,
         );
-        // Guard Tower / Keep bonuses are DERIVED from the owner's researched
-        // set at the fire site — no per-building state. Only Watch Towers get
-        // them (Town Center / Castle fire is unchanged). Un-teched owners read
-        // 0/0, so behaviour is identical to before.
-        const towerTechs = building.buildingType === 'watch-tower'
-          ? accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET
-          : EMPTY_TECH_SET;
-        const effectiveRange = buildingCombat.attackRange + towerRangeBonus(towerTechs);
-        const effectiveAttackDamage = buildingCombat.attackDamage + towerAttackBonus(towerTechs);
+        // Building fire bonuses are DERIVED from the owner's researched set at
+        // the fire site — no per-building state; un-teched owners read 0 so
+        // behaviour is identical to before. Blacksmith arrow techs (Fletching /
+        // Bodkin / Bracer, +1 atk +1 range each) boost EVERY arrow building
+        // (Tower / TC / Castle), matching AoE2; Guard Tower / Keep additionally
+        // boost Watch Towers only.
+        const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
+        const towerTechs = building.buildingType === 'watch-tower' ? ownerTechs : EMPTY_TECH_SET;
+        const effectiveRange =
+          buildingCombat.attackRange + buildingArrowRangeBonus(ownerTechs) + towerRangeBonus(towerTechs);
+        const effectiveAttackDamage =
+          buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs) + towerAttackBonus(towerTechs);
         const footprint = buildingFootprint(building.buildingType);
         const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
           building.owner,
