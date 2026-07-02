@@ -258,6 +258,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'chemistry')) {
           options.push('chemistry');
         }
+        // Sappers: +15 infantry attack vs buildings. AoE2 University tech,
+        // hosted at the Blacksmith here; Imperial-gated, drops once researched.
+        if (!hasTechnology(owner, 'sappers')) {
+          options.push('sappers');
+        }
       }
       if (options.length > 0) {
         return options;

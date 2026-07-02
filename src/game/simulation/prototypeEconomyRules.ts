@@ -75,9 +75,7 @@ const RESOURCE_BASE_TINTS: Record<ResourceKind, number> = {
   wolf: 0x7f8894,
   tree: 0x214d2d,
   relic: 0xf5d680,
-  // M1 Farms: golden wheat. (Used only if a farm is rendered via the resource
-  // tint path; a hybrid farm renders through the building tint while the
-  // building component is present.)
+  // M1 Farms: golden wheat tint (resource-tint path only; a hybrid farm renders via the building tint while its building component is present).
   farm: 0xd9b84a,
 };
 
@@ -137,6 +135,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'heavy-scorpion-upgrade': { food: 1000, wood: 1100 },
   'siege-ram-upgrade': { food: 1000, wood: 800 },
   'siege-engineers': { food: 500, wood: 600 }, // Siege Workshop, Imperial: +1 siege range.
+  sappers: { food: 400, gold: 200 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -262,6 +261,7 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'heavy-scorpion-upgrade': 550,
   'siege-ram-upgrade': 600,
   'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
+  sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.64 - 2026-07-02
+
+### Blacksmith tech: Sappers (+15 infantry attack vs buildings)
+
+The Blacksmith can now research **Sappers** (Imperial Age, 400 food / 200 gold). It gives every one of that player's **infantry units** — the Militia line (Militia, Man-at-Arms, Long Swordsman, Two-Handed Swordsman, Champion) and the Spear line (Spearman, Pikeman, Halberdier) — **+15 attack against buildings**, so infantry can meaningfully help raze structures (previously only siege units had an anti-building bonus). Non-infantry (archers, cavalry, villagers, siege, monks) are unaffected. AoE2 hosts Sappers at the University, which does not exist in this build yet, so it lives at the Blacksmith for now — the same divergence as the Guard Tower / Keep and Siege Engineers techs. No save-format change.
+
 ## 0.1.63 - 2026-07-01
 
 ### Garrisoned units heal over time

@@ -25,6 +25,11 @@ export type ResearchableTechnologyType =
   // unit. DERIVED at createCombatState for new units + imperative per-unit loop
   // in applyTechnology for existing ones (Fletching pattern). Spec §10.7.1.
   | 'siege-engineers'
+  // Sappers (Blacksmith / AoE2 University, Imperial): +15 attack vs BUILDINGS to
+  // every INFANTRY unit. DERIVED (pure) at the unit->building damage site — no
+  // per-unit state, no applyTechnology loop (buildingArrowTechEffects pattern).
+  // Spec §10.7.2.
+  | 'sappers'
   | 'bracer'
   | 'blast-furnace'
   | 'plate-mail-armor'

@@ -227,6 +227,11 @@ export {
 } from './siegeEngineers';
 
 export {
+  createSappersBaselineFixture,
+  createSappersResearchedFixture,
+} from './sappers';
+
+export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
   createMonkSanctityBaselineFixture,

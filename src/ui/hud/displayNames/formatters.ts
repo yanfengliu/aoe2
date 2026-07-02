@@ -48,6 +48,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Siege Ram';
     case 'siege-engineers':
       return 'Siege Engineers';
+    case 'sappers':
+      return 'Sappers';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

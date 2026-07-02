@@ -17,6 +17,8 @@ import {
   attackBonusAgainstBuilding,
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
+import { sappersBuildingAttackBonus } from '../../sappersTechEffects';
+import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { applyUnitBlast, resolveUnitAttackOnUnit } from '../blastDamage';
 import { finalizeBuildingConstruction } from '../finalizeBuildingConstruction';
 import type { UnitMovementPlan } from '../movementTypes';
@@ -25,6 +27,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  researchedTechnologiesCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
@@ -324,9 +327,15 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             continue;
           }
 
+          // Sappers (Blacksmith, Imperial) adds +15 for infantry attackers,
+          // DERIVED from the owner's researched-tech set (no per-unit state).
+          const attackerTechs =
+            accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
           targetHealth.currentHp -= Math.max(
             0,
-            attackerCombat.attackDamage + attackBonusAgainstBuilding(unit.unitType),
+            attackerCombat.attackDamage
+              + attackBonusAgainstBuilding(unit.unitType)
+              + sappersBuildingAttackBonus(attackerTechs, unit.unitType),
           );
           accessor.markDirty(buildingHealthStatesCodec);
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
