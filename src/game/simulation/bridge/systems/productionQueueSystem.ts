@@ -119,6 +119,32 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
           if (populationState.current >= populationState.cap) {
             entry.isBlocked = true;
             dirty = true;
+            // A population-blocked unit at the FRONT must not stall a
+            // pop-NEUTRAL research queued behind it. Otherwise a player that
+            // queued a unit it cannot yet house (a rich AI filling its pop with
+            // military, or a capped human) permanently blocks its own age-up /
+            // upgrade research — the AI never advances an age despite ample
+            // resources (grounded: ai-planner-fixture Feudal stall after the
+            // wood-locality fix enriched the economy, 2026-07-02). Advance the
+            // first queued research in place; complete + remove it when done.
+            const researchIndex = queue.findIndex(
+              (e) => e.kind === 'technology' && e.technologyType,
+            );
+            if (researchIndex > 0) {
+              const research = queue[researchIndex];
+              research.isBlocked = false;
+              if (research.remainingTicks > 0) {
+                research.remainingTicks -= 1;
+              }
+              if (research.remainingTicks <= 0 && research.technologyType) {
+                applyTechnology(building.owner, research.technologyType);
+                accessor
+                  .get(inFlightTechByOwnerCodec)
+                  .get(building.owner)
+                  ?.delete(research.technologyType);
+                queue.splice(researchIndex, 1);
+              }
+            }
             continue;
           }
         }

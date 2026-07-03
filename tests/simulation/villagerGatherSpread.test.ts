@@ -36,23 +36,35 @@ describe('villager wood-gather spread (to-resource gridlock fix)', () => {
       bridge.issueContextCommandAtEntity(targetTree.id);
     }
 
-    // Short run, on purpose: stop BEFORE the piled-on tree depletes (~tick
-    // 167 at this gather rate). After depletion even the buggy code
-    // reassigns villagers to a second tree, which would mask the fix. In
-    // this window the discriminator is clean — pre-fix all villagers stay
-    // piled on the one tree; the fix (MAX_GATHERERS_PER_RESOURCE = 2 +
-    // to-resource timeout-abandon) fans the excess out to other trees.
-    for (let i = 0; i < 130; i += 1) bridge.step(100);
+    // Window sizing (measured via a tick-by-tick diagnostic, 2026-07-02): the
+    // forest's open approach cells force a ~30-cell detour AROUND the forest,
+    // so the piled villagers only reach the tree ~t80, fill their first
+    // carries ~t130, and complete the first deposit round-trip ~t180-200. The
+    // excess villager redistributes off the over-subscribed tree at the
+    // approach timeout (~t80+) and — under the v0.1.79 drop-off-locality sort —
+    // walks to a drop-off-proximate tree rather than the one adjacent to it,
+    // reaching and chopping it by ~t200. 260 ticks covers all of that while
+    // staying WELL before the piled tree depletes (cap-2 gatherers × 1 wood /
+    // 5 ticks from ~t80 → depletion ~t330+): after depletion even the buggy
+    // pre-campaign-4 code reassigns villagers, which would mask the fix.
+    for (let i = 0; i < 260; i += 1) bridge.step(100);
 
     const eco1 = bridge.getEconomyState();
+
+    // SPREAD (the campaign-4 regression guard): the excess villager must fan
+    // OUT of the over-subscribed pile (MAX_GATHERERS_PER_RESOURCE=2 + the
+    // to-resource approach timeout), so MORE THAN ONE tree ends up chopped —
+    // pre-fix, all villagers latched onto the single piled tree forever.
     const choppedTrees = ownTrees(eco1).filter((r) => r.amount < r.maxAmount).length;
-    // SPREAD: more than two villagers on one tree must fan out, so more than
-    // one tree is being chopped (pre-fix: only the single piled-on tree).
     expect(choppedTrees).toBeGreaterThanOrEqual(2);
 
-    // And they actually gather (the tree's wood is dropping).
+    // ANTI-JAM: the piled tree itself is actively harvested (no to-resource
+    // deadlock at the pile)...
     const targetNow = eco1.resources.find((r) => r.id === targetTree.id);
     expect(targetNow && targetNow.amount).toBeLessThan(targetTree.amount);
-    void woodBefore;
-  }, 60_000);
+
+    // ...and the full gather → deposit cycle completes: wood ACCUMULATES.
+    const woodAfter = bridge.getHudState().playerResources.wood;
+    expect(woodAfter).toBeGreaterThan(woodBefore);
+  }, 90_000);
 });

@@ -314,6 +314,41 @@ describe('population cap — over-cap is tolerated (no eviction, training blocke
     expect(villagersAfter).toBe(villagersBefore);
     expect(bridge.getSelectionState().queue[0]?.isBlocked).toBe(true);
   }, 40_000);
+
+  it('a pop-blocked unit at the queue head does NOT stall a research behind it (v0.1.79)', () => {
+    // spec §6.10: research consumes no population, so the first queued
+    // technology behind a pop-blocked unit keeps progressing and completes
+    // while the unit waits for housing. Pre-fix, the FIFO processor's
+    // `continue` on the blocked head stalled EVERYTHING behind it — a player
+    // (or the AI) that queued a unit it couldn't house permanently blocked its
+    // own age-up/upgrade research (the grounded AI Feudal stall, v0.1.79).
+    const seed = createSimulationBridge(DEFAULT_SEED);
+    seed.step(100);
+    const blob = asSchema2Blob(seed.saveGame());
+    setPopulationEntry(blob, 1, { current: 5, cap: 5, rawSupply: 5 });
+
+    const bridge = createSimulationBridge(DEFAULT_SEED, { savedGame: blob });
+    expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('town-center');
+    // Head: a villager that can never spawn (at cap). Behind it: Loom
+    // (TC-hosted, Dark Age, 50 gold, 250-tick research).
+    expect(bridge.queueTrainUnit('villager')).toBe(true);
+    expect(bridge.queueResearch('loom')).toBe(true);
+    bridge.step(100);
+    expect(bridge.getSelectionState().queue.length).toBe(2);
+
+    // Step past Loom's research time. The research behind the blocked head
+    // must complete + splice out; the blocked villager must remain.
+    for (let i = 0; i < 300; i += 1) bridge.step(100);
+
+    const queue = bridge.getSelectionState().queue;
+    expect(queue.length).toBe(1);
+    expect(queue[0]).toMatchObject({ kind: 'unit', unitType: 'villager', isBlocked: true });
+    // Loom actually applied: re-queueing it is rejected (already researched).
+    expect(bridge.queueResearch('loom')).toBe(false);
+    // And no villager spawned while blocked.
+    expect(bridge.getPopulationState(1).current).toBe(5);
+  }, 40_000);
 });
 
 describe('population cap — 200 is actually reachable', () => {

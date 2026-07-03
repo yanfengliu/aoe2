@@ -595,15 +595,16 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             const tcEffectiveQueueLengthBeforeAgeUp =
               tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
 
-            // Phase 1C: skip if a queue.research for the same age tech is
-            // already pending (handler hasn't yet flipped inFlightTechByOwner).
-            // Also gate on tcEffectiveQueueLength so we don't push age-up
-            // research onto a full queue.
+            // Skip if already pending. The age-up may push onto a FULL (2-deep)
+            // villager queue (depth 3): a rich AI keeps the TC queue full, so
+            // gating at < 2 starved the age-up and the AI never advanced despite
+            // ample resources (grounded 2026-07-02). The production handler now
+            // advances a queued research past a pop-blocked unit so it completes.
             if (
               nextAge
               && hasBuffer
               && !pendingResearchKeys.has(`${owner}:${nextAge}`)
-              && tcEffectiveQueueLengthBeforeAgeUp < 2
+              && tcEffectiveQueueLengthBeforeAgeUp < 3
             ) {
               pushQueueResearchIntention(ownerTownCenterId, nextAge);
               tcPendingResearch += 1;

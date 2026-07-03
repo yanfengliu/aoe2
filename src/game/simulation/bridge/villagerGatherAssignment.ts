@@ -107,7 +107,56 @@ export function assignNearestResource(
     if (!canGatherResource(owner, isOwnedStructure, resource.baseOwner)) continue;
     matchingResources.push({ id, position, resource });
   }
-  matchingResources.sort((left, right) => {
+
+  // No matching resource of the desired kind at all → idle, before paying the
+  // reference-drop-off lookup below (a maintain-order villager whose kind is
+  // fully depleted re-runs assignment twice per tick indefinitely; review
+  // 2026-07-02 low finding).
+  if (matchingResources.length === 0) {
+    gatherer.task = 'idle';
+    gatherer.targetResourceId = null;
+    return;
+  }
+
+  // Steady-state gather throughput is dominated by the resource↔drop-off
+  // ROUND-TRIP (the villager shuttles between them repeatedly), not by the
+  // one-time first walk from the villager's current cell. So prefer resources
+  // near a drop-off: a villager that goes idle deep in a far forest (its tree
+  // depleted, or it fanned out during a momentary near-saturation) then picks a
+  // BASE-proximate resource and cycles near the base — instead of spiraling
+  // outward and doing a huge round-trip every cycle (the grounded AI
+  // wood-starvation: full trees 8 cells from the lumber-camp sat unused while
+  // villagers walked 20+ cells, 2026-07-02). Reference point = the drop-off
+  // nearest the VILLAGER — a stable one-lookup ranking anchor for the base's
+  // drop-off neighbourhood (the ACTUAL deposit building is re-resolved from the
+  // villager's live position when it enters `to-dropoff`, and may differ with
+  // multiple camps — an accepted one-lookup approximation). Undefined when the
+  // owner has no drop-off with a known position → the sort falls back to
+  // villager distance (legacy behaviour byte-identical).
+  const referenceDropOffId = deps.findNearestDropOffBuilding(
+    activeWorld,
+    owner,
+    gatherer.desiredResource,
+    villagerPosition,
+  );
+  const referenceDropOff = referenceDropOffId === null
+    ? undefined
+    : activeWorld.getComponent<Position>(referenceDropOffId, 'position');
+
+  // Shared comparator. `useDropOffLocality` picks the primary distance key:
+  // the STEADY-STATE assignment ranks by proximity to the reference drop-off
+  // (round-trip cost); the requireReachable RECOVERY probe ranks by villager
+  // proximity — its job is to find SOMETHING reachable within the bounded
+  // probe budget, and probing drop-off-first would let a walled-off pocket of
+  // >= MAX_REACHABILITY_PROBES unreachable trees near the base exhaust the cap
+  // and starve a villager standing beside a reachable tree (review 2026-07-02
+  // medium finding, refuting repro included). Owner preference and the
+  // unsaturated fan-out dominate both orders.
+  const compareCandidates = (
+    left: { id: number; position: Position; resource: ResourceComponent },
+    right: { id: number; position: Position; resource: ResourceComponent },
+    useDropOffLocality: boolean,
+  ): number => {
     // Owner preference FIRST (own > home-base neutral > other), so fan-out
     // NEVER jumps to an enemy or far-off neutral resource just because it is
     // unsaturated — it stays within the player's own forest (Codex
@@ -135,23 +184,44 @@ export function assignNearestResource(
         return leftSaturated - rightSaturated;
       }
     }
+    if (useDropOffLocality) {
+      // Primary distance: proximity to the reference drop-off (round-trip
+      // cost). Both Infinity (no drop-off) compares equal → falls through to
+      // villager distance, preserving legacy behaviour.
+      const leftDropOff = referenceDropOff
+        ? manhattanDistance(left.position, referenceDropOff)
+        : Number.POSITIVE_INFINITY;
+      const rightDropOff = referenceDropOff
+        ? manhattanDistance(right.position, referenceDropOff)
+        : Number.POSITIVE_INFINITY;
+      if (leftDropOff !== rightDropOff) {
+        return leftDropOff - rightDropOff;
+      }
+    }
+    // Villager first-trip distance, then id for a stable deterministic order.
     const leftDistance = manhattanDistance(left.position, villagerPosition);
     const rightDistance = manhattanDistance(right.position, villagerPosition);
-    return leftDistance - rightDistance;
-  });
+    if (leftDistance !== rightDistance) {
+      return leftDistance - rightDistance;
+    }
+    return left.id - right.id;
+  };
 
-  // Pick the target. Default: the sorted first (legacy behaviour, byte-identical
-  // to the pre-extraction inline function). With `requireReachable`: probe
-  // candidates in sorted order, skipping the excluded id, and pick the first
-  // that is actually reachable (non-null approach plan) — so an unreachable
-  // resource is skipped in favour of a reachable one. The probe count is capped
+  matchingResources.sort((l, r) => compareCandidates(l, r, true));
+
+  // Pick the target. Default: the sorted first. With `requireReachable`: probe
+  // candidates in VILLAGER-proximity order (the pre-locality legacy order — see
+  // the comparator memo), skipping the excluded id, and pick the first that is
+  // actually reachable (non-null approach plan) — so an unreachable resource is
+  // skipped in favour of a reachable one. The probe count is capped
   // (MAX_REACHABILITY_PROBES) so a fully-boxed villager does a BOUNDED amount of
-  // pathfinding per tick. Pathfinding runs ONLY on this requireReachable path,
-  // never on the hot default path.
+  // pathfinding per tick. Pathfinding (and the extra re-sort) runs ONLY on this
+  // requireReachable recovery path, never on the hot default path.
   let target: { id: number; position: Position; resource: ResourceComponent } | undefined;
   if (options.requireReachable) {
+    const probeOrder = [...matchingResources].sort((l, r) => compareCandidates(l, r, false));
     let probes = 0;
-    for (const candidate of matchingResources) {
+    for (const candidate of probeOrder) {
       if (candidate.id === excludeId) continue;
       if (probes >= MAX_REACHABILITY_PROBES) break;
       probes += 1;

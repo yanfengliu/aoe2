@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.79 - 2026-07-02
+
+### AI economy: better wood gathering + the AI no longer stalls an age it can afford
+
+Two grounded fixes to the built-in AI's economy, from a fresh all-AI playtest replayed for ground truth:
+
+- **Wood gathering is much less wasteful.** The AI (and any auto-gathering villagers) now pick trees near their drop-off (lumber camp / Town Center) instead of whichever tree is nearest the villager's current spot. Previously a villager that finished a far tree would wander to another far tree, doing huge round-trips while full trees near the base sat unused; wood income was throttled to a trickle. Wood income in AI-vs-AI runs is now roughly 3-15× higher.
+- **The AI advances to the next age when it can afford it.** Previously a resource-rich AI could get stuck a whole age despite ample resources: its Town Center production queue stayed full of villagers, and worse, a queued villager it couldn't yet house would sit blocked at the front of the queue and stall the age-up research behind it forever. The age-up research can now claim a queue slot even when the queue is full, and — a general fix that also helps the human player — **a population-blocked unit no longer stalls a research queued behind it** (research doesn't cost population, so it proceeds). On a rich fixture the AI now reaches Castle Age (was: stuck in Feudal) while still building its Feudal army.
+
+No save-format change. These are AI/gather-assignment and production-queue behavior changes.
+
 ## 0.1.78 - 2026-07-02
 
 ### UI: Wildlife and relics now show an icon — the selection panel is fully iconned
