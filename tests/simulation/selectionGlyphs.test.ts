@@ -6,7 +6,11 @@ import {
   unitRoleGlyph,
   type UnitGlyphRole,
 } from '../../src/ui/hud/icons/unitGlyphs';
-import { buildingGlyph, buildingGlyphWithClass } from '../../src/ui/hud/icons/glyphs';
+import {
+  buildingGlyph,
+  buildingGlyphWithClass,
+  resourceGlyph,
+} from '../../src/ui/hud/icons/glyphs';
 import { unitRole } from '../../src/phaser/scenes/gameScene/unitRenderer';
 import { ALL_UNIT_TYPES } from '../../src/phaser/scenes/gameScene/unitTypeMap';
 import { renderSelectionIcons } from '../../src/ui/hud/selectionPanel';
@@ -140,18 +144,15 @@ describe('selectionGlyph — dispatcher (unit role / building / else)', () => {
     }
   });
 
-  it('returns empty for resources / wildlife / relic (out of this slice) and for null', () => {
-    for (const kind of [
-      'sheep',
-      'boar',
-      'fish',
-      'berry-bush',
-      'tree',
-      'gold-mine',
-      'stone-mine',
-      'wolf',
-      'relic',
-    ] as const) {
+  it('maps gatherable resource nodes to their commodity glyph (v0.1.77)', () => {
+    expect(selectionGlyph('tree')).toBe(resourceGlyph('wood', 'hud-selection-unit-glyph'));
+    expect(selectionGlyph('gold-mine')).toBe(resourceGlyph('gold', 'hud-selection-unit-glyph'));
+    expect(selectionGlyph('stone-mine')).toBe(resourceGlyph('stone', 'hud-selection-unit-glyph'));
+    expect(selectionGlyph('berry-bush')).toBe(resourceGlyph('food', 'hud-selection-unit-glyph'));
+  });
+
+  it('returns empty for wildlife / relic (out of this slice) and for null', () => {
+    for (const kind of ['sheep', 'boar', 'fish', 'wolf', 'relic'] as const) {
       expect(selectionGlyph(kind)).toBe('');
     }
     expect(selectionGlyph(null)).toBe('');

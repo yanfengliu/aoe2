@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.77 - 2026-07-02
+
+### UI: Selecting a resource node now shows its resource icon
+
+When you select a **tree, gold mine, stone mine, or berry bush**, the selection panel now shows the matching resource icon (wood / gold / stone / food — the same icons as the top-bar counters and the market buttons) beside the entity label, instead of just a two-letter code. This matches how selected units and buildings already show an icon. Wildlife (sheep, boar, wolf, fish) and relics keep their text badge for now; a selected Farm still shows its building icon. Visual polish only.
+
 ## 0.1.76 - 2026-07-02
 
 ### UI: Action buttons now show an icon — the command card is fully iconned

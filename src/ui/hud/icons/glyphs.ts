@@ -17,6 +17,7 @@ import type {
   ActionType,
   BuildableBuildingType,
   MarketActionType,
+  ResourceKind,
 } from '../../../game/simulation/types';
 
 // Resource-chip glyph keys. The four economy resources are the priority;
@@ -112,6 +113,28 @@ export function resourceGlyph(
   cls: string = 'hud-chip-glyph',
 ): string {
   return svg(cls, RESOURCE_GLYPH_BODY[kind]);
+}
+
+// A gatherable resource NODE → the commodity glyph it yields, for the
+// selection-panel badge. Only the four gatherable node kinds map; a Farm is a
+// building (it gets its own building glyph), and wildlife (boar/sheep/wolf/
+// fish) + relic have no commodity glyph → '' (a later slice gives them art).
+const RESOURCE_NODE_GLYPH_KIND: Partial<Record<ResourceKind, ResourceGlyphKind>> = {
+  tree: 'wood',
+  'gold-mine': 'gold',
+  'stone-mine': 'stone',
+  'berry-bush': 'food',
+};
+
+// Accepts any entity-type string (mirroring `isBuildableBuildingType`) so the
+// selection dispatcher can pass a value that TS still widens to include
+// non-resource kinds like 'town-center'; a non-gatherable kind returns ''.
+export function resourceNodeGlyph(
+  kind: string,
+  cls: string = 'hud-chip-glyph',
+): string {
+  const glyphKind = RESOURCE_NODE_GLYPH_KIND[kind as ResourceKind];
+  return glyphKind ? resourceGlyph(glyphKind, cls) : '';
 }
 
 // ---- Building glyphs -------------------------------------------------
