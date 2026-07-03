@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.78 - 2026-07-02
+
+### UI: Wildlife and relics now show an icon — the selection panel is fully iconned
+
+Selecting **wildlife** (sheep, boar, wolf, fish) or a **relic** now shows an icon instead of a two-letter code: land animals share a paw-print icon (the label still names the species), fish gets a fish icon, and a relic gets a radiant-reliquary icon. Together with the resource-node icons (0.1.77), **every selectable entity — units, buildings, resource nodes, wildlife, relics — now shows an icon in the selection panel.** Visual polish only.
+
 ## 0.1.77 - 2026-07-02
 
 ### UI: Selecting a resource node now shows its resource icon

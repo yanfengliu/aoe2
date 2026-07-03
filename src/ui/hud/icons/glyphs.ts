@@ -137,6 +137,44 @@ export function resourceNodeGlyph(
   return glyphKind ? resourceGlyph(glyphKind, cls) : '';
 }
 
+// Wildlife + relic selection badges (v0.1.78): the remaining non-gatherable
+// ResourceKinds. Land animals (sheep/boar/wolf) share a generic PAW glyph (main
+// pad + four toe beans) — the badge label carries the species, mirroring the
+// single generic research scroll; per-species animal art is a later slice. Fish
+// and relic get their own silhouette (a fish body+tail+eye; a radiant
+// monstrance disc on a stand).
+const PAW_GLYPH_BODY =
+  '<path d="M12 13.4c-2.1 0-3.8 1.4-3.8 3 0 1.2 1 1.9 2.1 1.6.55-.14 1.1-.28 1.7-.28s1.15.14 1.7.28c1.1.3 2.1-.4 2.1-1.6 0-1.6-1.7-3-3.8-3z"/>' +
+  '<circle cx="7.7" cy="11.6" r="1.3"/>' +
+  '<circle cx="10.4" cy="9.5" r="1.3"/>' +
+  '<circle cx="13.6" cy="9.5" r="1.3"/>' +
+  '<circle cx="16.3" cy="11.6" r="1.3"/>';
+const FISH_GLYPH_BODY =
+  '<path d="M4 12c0-2.6 2.7-4.4 6-4.4s6 1.8 6 4.4-2.7 4.4-6 4.4S4 14.6 4 12z"/>' +
+  '<path d="M16 12l4-3v6z"/>' +
+  '<circle cx="7" cy="10.8" r=".9"/>';
+const RELIC_GLYPH_BODY =
+  '<circle cx="12" cy="8.5" r="3"/>' +
+  '<path d="M12 3.2v1.6M5.7 8.5h1.6M16.7 8.5h1.6M7.3 3.8l1.1 1.1M16.7 3.8l-1.1 1.1"/>' +
+  '<path d="M12 11.5v3.5M10.3 15h3.4l-.5 3.3h-2.4z"/>' +
+  '<path d="M8.5 20h7"/>';
+
+const SELECTION_FAUNA_GLYPH_BODY: Partial<Record<ResourceKind, string>> = {
+  sheep: PAW_GLYPH_BODY,
+  boar: PAW_GLYPH_BODY,
+  wolf: PAW_GLYPH_BODY,
+  fish: FISH_GLYPH_BODY,
+  relic: RELIC_GLYPH_BODY,
+};
+
+export function selectionExtraGlyph(
+  kind: string,
+  cls: string = 'hud-chip-glyph',
+): string {
+  const body = SELECTION_FAUNA_GLYPH_BODY[kind as ResourceKind];
+  return body ? svg(cls, body) : '';
+}
+
 // ---- Building glyphs -------------------------------------------------
 
 // A pitched-roof house outline.

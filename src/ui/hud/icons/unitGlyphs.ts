@@ -28,6 +28,7 @@ import {
   buildingGlyphWithClass,
   isBuildableBuildingType,
   resourceNodeGlyph,
+  selectionExtraGlyph,
 } from './glyphs';
 
 // The 7 render roles, identical to `unitRenderer.UnitRole`. Kept as a
@@ -190,8 +191,9 @@ export function unitRoleGlyph(role: UnitGlyphRole, cls?: string): string {
 // Dispatcher the selection panel calls with the badge `kind`. Units map to
 // their role glyph; buildings reuse the slice-1 building glyph; a gatherable
 // resource node (tree/gold-mine/stone-mine/berry-bush) reuses the top-bar
-// commodity glyph (v0.1.77); wildlife (boar/sheep/wolf/fish) + relic + null
-// still return '' — those keep their text-only badge until a later slice.
+// commodity glyph (v0.1.77); wildlife (sheep/boar/wolf/fish) + relic get a
+// fauna/relic glyph (v0.1.78). Only `null` (and a bare 'town-center', which has
+// no glyph yet) falls through to '' (text-only badge).
 export function selectionGlyph(
   entityType: SelectionState['selectedEntityType'] | 'sheep',
 ): string {
@@ -204,5 +206,8 @@ export function selectionGlyph(
   if (isBuildableBuildingType(entityType)) {
     return buildingGlyphWithClass(entityType, SELECTION_GLYPH_CLASS);
   }
-  return resourceNodeGlyph(entityType, SELECTION_GLYPH_CLASS);
+  return (
+    resourceNodeGlyph(entityType, SELECTION_GLYPH_CLASS) ||
+    selectionExtraGlyph(entityType, SELECTION_GLYPH_CLASS)
+  );
 }

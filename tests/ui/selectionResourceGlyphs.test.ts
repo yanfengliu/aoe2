@@ -24,10 +24,7 @@ describe('selectionGlyph / resourceNodeGlyph — resource-node badges', () => {
     expect(selectionGlyph('tree')).not.toContain('hud-chip-glyph');
   });
 
-  it('leaves wildlife + relic text-only (next slice) and returns empty for null', () => {
-    for (const kind of ['boar', 'sheep', 'wolf', 'fish', 'relic'] as const) {
-      expect(selectionGlyph(kind)).toBe('');
-    }
+  it('returns empty for null (wildlife + relic get their own glyph in v0.1.78)', () => {
     expect(selectionGlyph(null)).toBe('');
   });
 

@@ -151,9 +151,10 @@ describe('selectionGlyph — dispatcher (unit role / building / else)', () => {
     expect(selectionGlyph('berry-bush')).toBe(resourceGlyph('food', 'hud-selection-unit-glyph'));
   });
 
-  it('returns empty for wildlife / relic (out of this slice) and for null', () => {
+  it('gives wildlife + relic a badge glyph (v0.1.78); only null is empty', () => {
     for (const kind of ['sheep', 'boar', 'fish', 'wolf', 'relic'] as const) {
-      expect(selectionGlyph(kind)).toBe('');
+      expect(selectionGlyph(kind)).not.toBe('');
+      expect(selectionGlyph(kind)).toContain('class="hud-selection-unit-glyph"');
     }
     expect(selectionGlyph(null)).toBe('');
   });
@@ -281,7 +282,7 @@ describe('renderSelectionIcons — glyph augments the badge (slice 2)', () => {
     expect(html).toContain('TC');
   });
 
-  it('multi villager + sheep: every UNIT chip gets a glyph, counts + hooks preserved, sheep chip stays glyph-free', () => {
+  it('multi villager + sheep: every chip gets a glyph (v0.1.78 sheep=fauna), counts + hooks preserved', () => {
     const villagerIds = [1, 2];
     const sheepIds = [100, 101, 102];
     const html = renderSelectionIcons(
@@ -302,13 +303,13 @@ describe('renderSelectionIcons — glyph augments the badge (slice 2)', () => {
     expect(html).toContain('data-selection-unit-count="sheep"');
     expect(html).toContain('x2');
     expect(html).toContain('x3');
-    // The villager chip carries a glyph; sheep is out of scope so the
-    // selection panel shows exactly ONE glyph (the villager role).
+    // Both the villager chip (role glyph) and the sheep chip (fauna glyph,
+    // v0.1.78) now carry a glyph → exactly TWO glyphs.
     const glyphCount = html.match(/hud-selection-unit-glyph/g)?.length ?? 0;
-    expect(glyphCount).toBe(1);
+    expect(glyphCount).toBe(2);
   });
 
-  it('single sheep stays on the entity-icon path with NO glyph (resources out of scope)', () => {
+  it('single sheep gets a fauna glyph on the entity-icon path (v0.1.78)', () => {
     const html = renderSelectionIcons(
       baseSelectionState({
         selectedEntityIds: [100],
@@ -320,8 +321,10 @@ describe('renderSelectionIcons — glyph augments the badge (slice 2)', () => {
       economyStateWith([], [sheepResource(100)]),
     );
 
+    // The badge two-letter code + entity-icon hook are preserved; a fauna
+    // glyph is now rendered beside them.
     expect(html).toContain('data-selection-entity-icon="sheep"');
     expect(html).toContain('SH');
-    expect(html).not.toContain('hud-selection-unit-glyph');
+    expect(html).toContain('hud-selection-unit-glyph');
   });
 });
