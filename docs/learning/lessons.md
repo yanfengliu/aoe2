@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Manual `until … do sleep` pollers for harness-tracked background tasks hang forever — don't write them — 2026-07-04
+
+| Field | Value |
+|---|---|
+| Surfaced by | User noticed "tasks running for 6 hours." Diagnosis (`wmic process … commandline`): ~8 orphaned bash processes stuck in `until grep -qE "PLAYTEST EXIT" tmp_validate_playtest.log; do sleep 10/15/20; done` loops, launched hours earlier while waiting on 12000-tick validation playtests. |
+| Reviewer findings | n/a — process lesson, found in production (the running machine), not a code review. |
+| Fix commit | none (runtime cleanup): `for p in $(wmic process where "name like '%bash%' and not commandline like '%taskkill%' and commandline like '%do sleep%'" get processid \| grep -oE "^[0-9]+"); do taskkill //F //PID $p; done`. |
+| Test added | n/a — process lesson. |
+| Behavior delta | Two independent bugs made the poll condition PERMANENTLY unsatisfiable, so each loop ran forever: (1) the `PLAYTEST EXIT` marker was echoed to the harness TASK-OUTPUT file, NOT to `tmp_validate_playtest.log` (the file the poller grepped) — so it could never match; (2) later cleanup `rm`'d `tmp_validate_playtest.log`, so `grep … 2>/dev/null` returned nothing on a missing file → condition false forever. The harness auto-backgrounds a foreground command that exceeds its timeout, so these `until` waits became detached and survived across many turns, accumulating CPU/handle pressure. |
+
+Lesson: do NOT write `until <cond>; do sleep N; done` pollers to wait on a background task the harness already tracks — when that task completes, the harness re-invokes you with a `<task-notification>` automatically, so the poller is redundant AND a hang risk. Two specific traps if you ever must poll: (a) grep the SAME file the marker is actually written to (a `cmd > log; echo MARKER` writes MARKER to the *task-output* channel, not into `log`), and (b) never `rm` a file another still-running poller greps — a missing file makes `grep -q … 2>/dev/null` false forever, not done. Prefer: launch the real work with `run_in_background`, do other work, and let the completion notification wake you. To wait on non-harness/external state, bound the wait (`for i in $(seq 1 N); do … done` with a hard cap), never an unbounded `until`. When a session ends or you kill a task, audit for detached descendants (`wmic process … commandline like '%do sleep%'`, orphaned dev servers) and taskkill them.
+Pointer: this session's validation-playtest waits; `project_campaign_run_ops` memory (orphan-cleanup note).
+
 ## Don't tune a chaotic emergent quantity against a single-run validator — the noise exceeds the signal — 2026-07-04
 
 | Field | Value |
