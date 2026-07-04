@@ -1130,6 +1130,14 @@ The rules framework must support:
 - civ-specific line-of-sight bonuses
 - age-scaling line of sight where content requires it
 
+Vision is a per-entity radius (Euclidean: a cell is revealed when dx² + dy² ≤ radius²). Line-of-sight technologies adjust that radius. The implemented set:
+
+- **Town Watch** — Town Center research, Feudal Age, 75 food. Grants +4 line of sight to every building the owner controls.
+- **Town Patrol** — Town Center research, Castle Age, 300 food + 200 gold, requires Town Watch. Grants a further +4 building line of sight (stacks with Town Watch for +8 total).
+- **Tracking** — Barracks research, Feudal Age, 75 food. Grants +2 line of sight to every infantry unit the owner controls.
+
+Each tech applies its bonus imperatively to the owner's existing entities the instant it completes (the vision radius is bumped in place and the fog re-reveals on the next tick) and is derived at creation for entities produced afterward, so a building finished or a unit trained after the research sees the same distance. The built-in AI researches Tracking from an idle Barracks when it is not saving for an age-up; the Town Center building-LoS techs are player-driven (mirroring the AI's hands-off stance on the other Town Center economy techs, which keeps its age-up timing protected).
+
 ### 12.3 Pathfinding
 
 Use tile-based pathfinding with continuous movement.

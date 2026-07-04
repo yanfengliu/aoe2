@@ -60,6 +60,12 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Herbal Medicine';
     case 'heresy':
       return 'Heresy';
+    case 'town-watch':
+      return 'Town Watch';
+    case 'town-patrol':
+      return 'Town Patrol';
+    case 'tracking':
+      return 'Tracking';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

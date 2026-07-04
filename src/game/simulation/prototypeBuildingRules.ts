@@ -256,10 +256,10 @@ const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnit
 ]);
 
 const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
-  ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom']],
+  ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom', 'town-watch', 'town-patrol']],
   ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry', 'sappers']],
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade']],
-  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires']],
+  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
   ['castle', ['elite-longbowman-upgrade']],
   ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade', 'siege-engineers']],

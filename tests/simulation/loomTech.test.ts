@@ -97,17 +97,18 @@ describe('Loom — researchable at the Town Center (options surface)', () => {
 
   it('offers Loom alongside the age-up and carry techs (age-up still first)', () => {
     // Feudal, able to advance to Castle, nothing else researched: the age-up
-    // comes first, then carry (wheelbarrow), then Loom.
+    // comes first, then carry (wheelbarrow), then the Feudal LoS tech (Town
+    // Watch), then Loom.
     expect(
       optionsAt('feudal-age', [], 'castle-age').getResearchOptions(1, 'town-center'),
-    ).toEqual(['castle-age', 'wheelbarrow', 'loom']);
+    ).toEqual(['castle-age', 'wheelbarrow', 'town-watch', 'loom']);
   });
 
   it('surfaces Loom in getVisibleResearchOptions for the agent/HUD', () => {
     expect(optionsAt('dark-age').getVisibleResearchOptions(1, 'town-center')).toContain('loom');
     expect(
       optionsAt('feudal-age').getVisibleResearchOptions(1, 'town-center'),
-    ).toEqual(['castle-age', 'wheelbarrow', 'loom']);
+    ).toEqual(['castle-age', 'wheelbarrow', 'town-watch', 'loom']);
   });
 
   it('gates Loom to the Town Center (validator↔options agreement)', () => {

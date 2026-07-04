@@ -2,6 +2,20 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.80 - 2026-07-03
+
+### Line-of-sight technologies: Town Watch, Town Patrol, Tracking
+
+Three AoE2 line-of-sight upgrades now exist and take effect immediately when researched:
+
+- **Town Watch** (Town Center, Feudal Age, 75 food) — +4 line of sight to all your buildings.
+- **Town Patrol** (Town Center, Castle Age, 300 food + 200 gold, needs Town Watch first) — another +4 building line of sight, stacking with Town Watch (+8 total).
+- **Tracking** (Barracks, Feudal Age, 75 food) — +2 line of sight to all your infantry.
+
+The bonus is applied the moment the research completes — your existing buildings and infantry reveal more of the map on the next tick — and buildings finished or units trained afterward already have it. Town Patrol only becomes available once Town Watch is done. The built-in AI researches Tracking when it has a spare Barracks and isn't saving to advance an age; the Town Center building-LoS techs are player-driven for now.
+
+No save-format change. This is additive gameplay content.
+
 ## 0.1.79 - 2026-07-02
 
 ### AI economy: better wood gathering + the AI no longer stalls an age it can afford

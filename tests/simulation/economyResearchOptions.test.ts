@@ -87,31 +87,35 @@ describe('getResearchOptions — Town Center carry techs', () => {
   });
 
   it('offers Wheelbarrow (Feudal) then adds Hand Cart (Castle)', () => {
+    // Town Watch (Feudal+) rides alongside the carry techs; Town Patrol needs
+    // Town Watch researched, which this `have` set lacks.
     expect(optionsAt('feudal-age', ['loom']).getResearchOptions(1, 'town-center')).toEqual([
       'wheelbarrow',
+      'town-watch',
     ]);
     expect(optionsAt('castle-age', ['loom']).getResearchOptions(1, 'town-center')).toEqual([
       'wheelbarrow',
       'hand-cart',
+      'town-watch',
     ]);
   });
 
   it('drops a researched carry tech', () => {
     expect(
       optionsAt('castle-age', ['wheelbarrow', 'loom']).getResearchOptions(1, 'town-center'),
-    ).toEqual(['hand-cart']);
+    ).toEqual(['hand-cart', 'town-watch']);
   });
 
   it('offers the age-up alongside carry techs (age-up still comes first)', () => {
     expect(
       optionsAt('feudal-age', ['loom'], 'castle-age').getResearchOptions(1, 'town-center'),
-    ).toEqual(['castle-age', 'wheelbarrow']);
+    ).toEqual(['castle-age', 'wheelbarrow', 'town-watch']);
   });
 
   it('getVisibleResearchOptions surfaces the next age-up + carry techs', () => {
     expect(
       optionsAt('feudal-age', ['loom']).getVisibleResearchOptions(1, 'town-center'),
-    ).toEqual(['castle-age', 'wheelbarrow']);
+    ).toEqual(['castle-age', 'wheelbarrow', 'town-watch']);
   });
 });
 

@@ -24,6 +24,12 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
 import { applySanctityToOwnedMonks } from './sanctityEffect';
 import { applyBloodlinesToOwnedCavalry } from './bloodlinesEffect';
+import { applyBuildingVisionDelta, applyInfantryVisionDelta } from './losTechEffect';
+import {
+  TOWN_WATCH_BUILDING_VISION_BONUS,
+  TOWN_PATROL_BUILDING_VISION_BONUS,
+  TRACKING_INFANTRY_VISION_BONUS,
+} from '../visionTechEffects';
 import {
   combatStatesCodec,
   playerAgesCodec,
@@ -457,6 +463,22 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // (cavalry + cavalry archers, csv:78; new ones get it via
         // createCombatState). Mirrors Loom/Sanctity.
         applyBloodlinesToOwnedCavalry(world, accessor, owner);
+        markOutOfBandRenderChange();
+        break;
+      case 'town-watch':
+        // Town Watch / Town Patrol: +4 LoS to every owned building; new ones
+        // derive it at finalizeBuildingConstruction. Fog re-stamps next tick.
+        applyBuildingVisionDelta(world, owner, TOWN_WATCH_BUILDING_VISION_BONUS);
+        markOutOfBandRenderChange();
+        break;
+      case 'town-patrol':
+        applyBuildingVisionDelta(world, owner, TOWN_PATROL_BUILDING_VISION_BONUS);
+        markOutOfBandRenderChange();
+        break;
+      case 'tracking':
+        // Tracking: +2 LoS to every owned infantry unit; new ones derive it at
+        // productionQueueSystem's train site.
+        applyInfantryVisionDelta(world, owner, TRACKING_INFANTRY_VISION_BONUS);
         markOutOfBandRenderChange();
         break;
     }

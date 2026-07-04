@@ -179,6 +179,9 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   faith: { food: 750, gold: 1000 },
   'herbal-medicine': { gold: 350 },
   heresy: { gold: 1000 },
+  'town-watch': { food: 75 }, // LoS techs (technologies.csv rows 88/92/9).
+  'town-patrol': { food: 300, gold: 200 },
+  tracking: { food: 75 },
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -304,6 +307,9 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   faith: 600,
   'herbal-medicine': 350,
   heresy: 600,
+  'town-watch': 250, // LoS techs — 25/40/35 s × 10 TPS (technologies.csv 88/92/9).
+  'town-patrol': 400,
+  tracking: 350,
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {
@@ -318,13 +324,7 @@ export function resourceKindToEconomyResource(kind: ResourceKind): EconomyResour
   return ECONOMY_RESOURCE_BY_KIND[kind];
 }
 
-// M1 Farms: ownership gate for gathering. A resource that is ALSO a building
-// (a Farm — building+resource hybrid) is an OWNED structure and may only be
-// gathered by its owner, otherwise an enemy/AI villager would harvest food
-// from an opponent's farm and deposit it to ITSELF (food theft). Neutral
-// resources (no building component → `resourceIsOwnedStructure` false) are
-// unaffected and stay gatherable by anyone. The owner's own farm
-// (`resourceBaseOwner === gathererOwner`) stays gatherable.
+// M1 Farms ownership gate: a building+resource HYBRID (Farm) is an OWNED structure gatherable only by its owner (else enemy villagers steal its food); neutral resources (no building component) stay gatherable by anyone.
 export function canGatherResource(
   gathererOwner: number,
   resourceIsOwnedStructure: boolean,
@@ -422,10 +422,7 @@ export function resourcesMissing(
   return null;
 }
 
-// agent-affordances A2: need-vs-have detail for insufficient_resources
-// rejections. Returns null when the cost is affordable. Sibling of
-// `resourcesMissing` (which names only the first short resource and is
-// kept for the HUD's terse "Not enough food." toasts).
+// agent-affordances A2: need-vs-have detail for insufficient_resources rejections; null when affordable. Sibling of `resourcesMissing` (terse HUD toast).
 export function describeMissingResources(
   resources: PlayerResources,
   cost: Partial<PlayerResources>,
@@ -466,10 +463,7 @@ export function constructionCost(
   return CONSTRUCTION_COSTS[buildingType];
 }
 
-// Repair cost (spec §8.1): repairing a building costs a fraction of its build
-// cost, proportional to the HP restored — fully repairing from 0 costs half the
-// build cost (an AoE2-ish rate). Each resource is rounded UP so repair is never
-// free. Charged up front at the repair-command issue (slice 1).
+// Repair cost (spec §8.1): a fraction of build cost proportional to HP restored (full repair from 0 = half build cost); each resource rounded UP so repair is never free; charged up front at issue.
 export const REPAIR_COST_FRACTION = 0.5;
 
 export function repairCost(

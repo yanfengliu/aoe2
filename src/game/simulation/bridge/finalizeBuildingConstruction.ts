@@ -16,7 +16,10 @@ import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
   populationCodec,
+  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
+import { buildingVisionBonus } from '../visionTechEffects';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { GameWorld } from './pureHelpers';
 
@@ -54,9 +57,14 @@ export function finalizeBuildingConstruction(params: {
     defaultVisionRadius !== null
     && !world.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
   ) {
+    // Add the owner's DERIVED LoS bonus (Town Watch/Town Patrol) so a building
+    // finished after the tech is researched sees as far as ones bumped live.
+    const losBonus = buildingVisionBonus(
+      accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET,
+    );
     world.addComponent(buildingId, 'visionSource', {
       playerId: building.owner,
-      radius: defaultVisionRadius,
+      radius: defaultVisionRadius + losBonus,
     });
   }
 

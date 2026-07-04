@@ -73,11 +73,11 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      // Wheelbarrow (Feudal, no building prereq) and Loom (no prereq) are
-      // offered at the TC even before Castle Age's two-building prerequisite
-      // is met.
-      visibleResearchOptions: ['castle-age', 'wheelbarrow', 'loom'],
-      researchOptions: ['wheelbarrow', 'loom'],
+      // Wheelbarrow (Feudal, no building prereq), Town Watch (Feudal LoS, no
+      // prereq) and Loom (no prereq) are offered at the TC even before Castle
+      // Age's two-building prerequisite is met.
+      visibleResearchOptions: ['castle-age', 'wheelbarrow', 'town-watch', 'loom'],
+      researchOptions: ['wheelbarrow', 'town-watch', 'loom'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(false);
   });
@@ -88,8 +88,8 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['castle-age', 'wheelbarrow', 'loom'],
-      researchOptions: ['castle-age', 'wheelbarrow', 'loom'],
+      visibleResearchOptions: ['castle-age', 'wheelbarrow', 'town-watch', 'loom'],
+      researchOptions: ['castle-age', 'wheelbarrow', 'town-watch', 'loom'],
     });
     expect(bridge.queueResearch('castle-age')).toBe(true);
     // Phase 1B queue.research: spend lands at start of next step's processCommands.
@@ -143,8 +143,10 @@ describe('createSimulationBridge age-up progression', () => {
       selectedEntityType: 'town-center',
       // In Castle Age both carry techs (and Loom, no prereq) are offered
       // regardless of the Imperial-Age building prerequisite.
-      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'loom'],
-      researchOptions: ['wheelbarrow', 'hand-cart', 'loom'],
+      // Visible shows both building-LoS techs (Town Watch + Town Patrol);
+      // research offers only Town Watch — Town Patrol unlocks once it is done.
+      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'town-watch', 'town-patrol', 'loom'],
+      researchOptions: ['wheelbarrow', 'hand-cart', 'town-watch', 'loom'],
     });
     expect(bridge.queueResearch('imperial-age')).toBe(false);
   });
@@ -158,8 +160,8 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'loom'],
-      researchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'loom'],
+      visibleResearchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'town-watch', 'town-patrol', 'loom'],
+      researchOptions: ['imperial-age', 'wheelbarrow', 'hand-cart', 'town-watch', 'loom'],
     });
     expect(bridge.queueResearch('imperial-age')).toBe(true);
 

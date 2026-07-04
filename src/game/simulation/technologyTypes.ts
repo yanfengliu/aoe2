@@ -92,4 +92,8 @@ export type ResearchableTechnologyType =
   // Herbal Medicine (Monastery, Castle): garrisoned units of the owner heal 4× faster. DERIVED multiplier on the garrison-heal rate (monasteryTechEffects) at the garrisonHealSystem site; no per-unit state. Spec §10.9.
   | 'herbal-medicine'
   // Heresy (Monastery, Castle): a unit whose owner has Heresy DIES instead of converting. DERIVED at the conversion flip site (applyMonkConvert) — destroyUnitEntity instead of flipConvertedUnit. Spec §10.9.
-  | 'heresy';
+  | 'heresy'
+  // LoS techs (visionTechEffects): Town Watch (TC, Feudal, +4 building LoS), Town Patrol (TC, Castle, req Town Watch, +4 more), Tracking (Barracks, Feudal, +2 infantry LoS). Imperative visionSource.radius bump to existing entities + derived at creation for future ones.
+  | 'town-watch'
+  | 'town-patrol'
+  | 'tracking';

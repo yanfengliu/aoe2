@@ -249,6 +249,8 @@ export {
   createSquiresResearchedFixture,
 } from './squires';
 
+export { createLosTechsFixture } from './losTechs';
+
 export {
   createVillagerSpeedBaselineFixture,
   createVillagerSpeedWheelbarrowFixture,

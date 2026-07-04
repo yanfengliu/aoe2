@@ -1,7 +1,5 @@
-// Building option lookups: train / research / market / build menus that the
-// HUD and the AI both read. These are pure functions over the player's age,
-// civ, and researched-tech set — the bridge owns those side maps and passes
-// them in as collaborator predicates.
+// Building option lookups: train / research / market / build menus read by the HUD and the AI.
+// Pure over the player's age/civ/researched set — the bridge passes predicates in.
 
 import type {
   BuildableBuildingType,
@@ -15,6 +13,11 @@ import type { UpgradeChainEntry } from '../upgradeChains';
 import { economyTechResearchOptions } from './economyTechOptions';
 import { towerTechResearchOptions } from '../towerTechOptions';
 import { monasteryTechResearchOptions } from '../monasteryTechOptions';
+import {
+  barracksLosResearchOptions,
+  townCenterLosResearchOptions,
+  townCenterLosVisibleOptions,
+} from './losTechOptions';
 
 export interface OptionsRulesDeps {
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
@@ -189,13 +192,13 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (canAdvanceToImperialAge(owner)) {
         options.push('imperial-age');
       }
-      // Economy carry-capacity techs (Wheelbarrow Feudal, Hand Cart Castle).
-      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) {
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) { // Carry techs: Wheelbarrow Feudal, Hand Cart Castle.
         options.push('wheelbarrow');
       }
       if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
         options.push('hand-cart');
       }
+      options.push(...townCenterLosResearchOptions(owner, isAtLeastAge, hasTechnology));
       // Loom: Dark Age onward, no prereq; appended last so age-up + carry stay first.
       if (!hasTechnology(owner, 'loom')) {
         options.push('loom');
@@ -299,12 +302,13 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'long-swordsman-upgrade')) {
           options.push('long-swordsman-upgrade');
         }
-        // Squires: +10% infantry movement speed. Castle-Age Barracks tech;
-        // drops once researched.
+        // Squires: +10% infantry speed. Castle Barracks tech; drops once researched.
         if (!hasTechnology(owner, 'squires')) {
           options.push('squires');
         }
       }
+      // Tracking (+2 infantry LoS): Feudal onward (this branch is non-Dark).
+      options.push(...barracksLosResearchOptions(owner, hasTechnology));
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'halberdier-upgrade')) {
           options.push('halberdier-upgrade');
@@ -323,9 +327,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
 
     if (buildingType === 'stable' && isAtLeastAge(owner, 'feudal-age')) {
       const options: ResearchableTechnologyType[] = [];
-      // Bloodlines: +20 HP to every MOUNTED unit (cavalry + cavalry archers).
-      // FEUDAL-Age Stable tech per technologies.csv:78 (v0.1.67 conformance
-      // fix — v0.1.65 shipped it Castle-gated); drops once researched.
+      // Bloodlines: +20 HP to MOUNTED units. FEUDAL Stable tech per technologies.csv:78 (v0.1.67 conformance fix); drops once researched.
       if (!hasTechnology(owner, 'bloodlines')) {
         options.push('bloodlines');
       }
@@ -416,13 +418,13 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       } else if (age === 'castle-age') {
         options.push('imperial-age');
       }
-      // Carry techs shown from their age onward (until researched).
-      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) {
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'wheelbarrow')) { // Carry techs shown from their age onward.
         options.push('wheelbarrow');
       }
       if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'hand-cart')) {
         options.push('hand-cart');
       }
+      options.push(...townCenterLosVisibleOptions(owner, isAtLeastAge, hasTechnology));
       // Loom is visible from the Dark Age onward (no prereq) until researched.
       if (!hasTechnology(owner, 'loom')) {
         options.push('loom');
