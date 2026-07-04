@@ -106,7 +106,15 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
     case 'dark-age':
       return { food: 4, wood: 3, gold: 0, stone: 0 };
     case 'feudal-age':
-      return { food: 5, wood: 4, gold: 2, stone: 0 };
+      // Food-dominant: the Castle age-up costs 800 food : 200 gold (4:1).
+      // Grounded 2026-07-04 by replaying the default-seed corpus — the old
+      // {food:5,gold:2} split mined gold the AI never spent (hoarded to ~1551)
+      // while food stayed pinned at ~20-76 and it never banked the 800 food to
+      // leave Feudal. Weighting food 7 : gold 1 makes food income outpace spend
+      // so the age-up reserve can accumulate; gold 1 still supplies the Feudal
+      // gold sink (only archers cost gold, 45 each) + the Castle's 200-gold half
+      // comfortably — the old weight-2 split over-mined gold ~8x over.
+      return { food: 7, wood: 4, gold: 1, stone: 0 };
     case 'castle-age':
       return { food: 4, wood: 4, gold: 3, stone: 1 };
     case 'imperial-age':

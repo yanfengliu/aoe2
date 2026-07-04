@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.89 - 2026-07-04
+
+### AI gathers food-first in Feudal Age (no longer hoards unused gold)
+
+The computer opponent now weights its Feudal-Age villagers heavily toward food (a 7:4:1 food:wood:gold split, up from 5:4:2) instead of over-mining gold it barely spends. Grounded by replaying an AI-vs-AI match: the AI was stalling in Feudal Age with its food pinned near zero while it hoarded ~1500 gold — because too many villagers sat on gold deposits, it never gathered the food it needs to advance (a Castle age-up costs 800 food but only 200 gold). After the change the same match shows the AI's gold hoard cut by more than half and its food finally accumulating once its economy fills out.
+
+This is the food-gathering half of getting the AI to reliably reach Castle Age; a follow-up (0.1.90) stops it from spending that banked food on extra villagers so the age-up actually completes. No save-format change.
+
 ## 0.1.88 - 2026-07-04
 
 ### Command-button tooltips now show the actual cost
