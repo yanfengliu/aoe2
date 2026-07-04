@@ -252,6 +252,11 @@ export {
 export { createLosTechsFixture } from './losTechs';
 
 export {
+  createCivShepherdBritonsFixture,
+  createCivShepherdControlFixture,
+} from './civShepherd';
+
+export {
   createVillagerSpeedBaselineFixture,
   createVillagerSpeedWheelbarrowFixture,
   createVillagerSpeedBothFixture,

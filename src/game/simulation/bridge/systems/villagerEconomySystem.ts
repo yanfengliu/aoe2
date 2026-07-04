@@ -33,11 +33,13 @@ import {
   effectiveCarryCapacity,
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
+import { civGatherRateMultiplier } from '../../civBonusEffects';
 import { gatherMultiplier } from '../../ai';
 import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
   researchedTechnologiesCodec,
   sheepMoveOrdersCodec,
@@ -48,16 +50,12 @@ import type { UnitMovementPlan } from '../movementTypes';
 type CivWorld = GameWorld;
 
 const GATHER_DROPOFF_RETRY_INTERVAL = 30;
-// Wood/gather gridlock fix (campaign-4): villagers piled onto the single
-// nearest tree (14 of 18 stuck woodcutters targeted ONE tree) and, unlike
-// the to-dropoff state, `to-resource` had no give-up path, so they jammed
-// forever (0 gathering). Fix: a villager stuck walking to an
-// OVER-SUBSCRIBED resource for GATHER_APPROACH_TIMEOUT_TICKS is reassigned
-// to the nearest UNsaturated resource (fan-out). This is surgical —
-// normal idle→assign stays nearest-first, so the AI's tuned economy is
-// untouched and ONLY the piled-up extras redistribute. The approach timer
-// reuses gatherProgressTicks (otherwise 0 during to-resource → no new save
-// state).
+// Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
+// (14/18 stuck) and to-resource had no give-up path, jamming forever. Fix: a
+// villager stuck walking to an OVER-SUBSCRIBED resource for
+// GATHER_APPROACH_TIMEOUT_TICKS reassigns to the nearest UNsaturated resource
+// (fan-out). Surgical — normal idle→assign stays nearest-first (AI economy
+// untouched); the approach timer reuses gatherProgressTicks (no new save state).
 const MAX_GATHERERS_PER_RESOURCE = 2;
 const GATHER_APPROACH_TIMEOUT_TICKS = 80;
 // Loop 1 follow-up (campaign-5 replay: 15 of 16 woodcutters STILL re-piled
@@ -173,22 +171,18 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     phase: 'update',
     after: ['prototypePlayerCommands'],
     execute(activeWorld) {
-      // Phase 2D — get the cached Map once at the start; mutate directly
-      // in the gather loop; mark dirty once at the end. This avoids
-      // accessor.mutate's Set.add per gather step (~20 villagers @ 10 TPS
-      // = 200 mutations/sec; the set-once pattern collapses to 1).
-      //
-      // The helpers ALSO short-circuit on no-op deletes (Map.delete returns
-      // false when the key wasn't present). Without this gate, every
-      // villager's regular drop-off step would mark the slot dirty even
-      // though the map content didn't change, forcing unnecessary
-      // flush+setState every tick. Both reviewers (Gemini + Claude impl-21)
-      // converged on this finding.
+      // Phase 2D — cache the Map once, mutate directly in the gather loop, mark
+      // dirty once at the end (avoids accessor.mutate's Set.add per gather step).
+      // The helpers short-circuit no-op deletes (Map.delete false when absent),
+      // so a regular drop-off step doesn't needlessly mark the slot dirty and
+      // force a flush+setState every tick (Gemini + Claude impl-21 finding).
       const unitCommands = accessor.get(unitCommandsCodec);
       const stuckMap = accessor.get(gathererDropOffStuckSinceTickCodec);
       // Per-owner researched-tech sets drive the gather-rate multiplier
       // (gatherRateMultiplierForKind). Fetched once per tick like the other maps.
       const researchedTechnologies = accessor.get(researchedTechnologiesCodec);
+      // Per-owner civilization drives the civ gather bonus (Britons shepherds).
+      const playerCivilizations = accessor.get(playerCivilizationsCodec);
       let stuckMapDirty = false;
       function clearStuck(id: number): void {
         if (stuckMap.delete(id)) stuckMapDirty = true;
@@ -373,8 +367,14 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               // (mirrors ticksToGatherCarry).
               const ownerTechs =
                 researchedTechnologies.get(unit.owner) ?? NO_RESEARCHED_TECHS;
+              // Tech gather-rate × civ gather bonus (Britons shepherds +25% on
+              // sheep). Both DERIVED from persisted per-owner state; a non-bonus
+              // civ multiplies by 1 so every other owner is byte-identical.
               gatherer.gatherProgressTicks += gatherRateMultiplierForKind(
                 ownerTechs,
+                targetResource.resourceType,
+              ) * civGatherRateMultiplier(
+                playerCivilizations.get(unit.owner),
                 targetResource.resourceType,
               );
               const cycleGatherTicks = gatherTicksFor(targetResource.resourceType);

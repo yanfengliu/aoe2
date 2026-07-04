@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.81 - 2026-07-03
+
+### Civilizations start to matter: Britons shepherds gather sheep 25% faster
+
+The first passive civilization bonus is now live. A Britons player's villagers gather from **sheep** 25% faster ("Shepherds work 25% faster") — active from the start of the game, no research needed. It is sheep-specific: berries, farms, boar, and wood are unaffected. Because the default human player is Britons, this is felt immediately in a standard game; the AI benefits too when it plays Britons.
+
+This ships on a new civilization-bonus layer that future per-civ bonuses will extend (the counterpart to the existing technology-effect system). Non-Britons civilizations are completely unchanged, and there is no save-format change.
+
 ## 0.1.80 - 2026-07-03
 
 ### Line-of-sight technologies: Town Watch, Town Patrol, Tracking
