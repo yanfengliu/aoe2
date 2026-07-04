@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Adversarial reviewer subagents can spawn nested grandchildren that orphan as stale "running" chips — tell them not to — 2026-07-04
+
+| Field | Value |
+|---|---|
+| Surfaced by | User asked "why is the 'verify no hidden food sinks' agent still running." It was a grandchild the v0.1.90 test-validity reviewer spawned on its own to exhaustively confirm a test fixture had no hidden food income; the reviewer's returned result said the check COMPLETED, but the grandchild's `/tasks` chip lingered as "running" for ~6h. |
+| Reviewer findings | n/a — process lesson (surfaced in the running session, not a code review). |
+| Fix commit | none (runtime): confirmed 0 live `claude`/agent processes back the chip (not consuming CPU), and `TaskStop <grandchild-id>` returns "no task found" (a grandchild owned by an exited parent is not a task the driver can target). |
+| Test added | n/a — process lesson. |
+| Behavior delta | A dispatched `general-purpose` reviewer has full tool access, including the Agent tool, so it may spawn its OWN verification subagents. When the parent reviewer returns, the harness cleans up the parent but can leave the grandchild as an orphaned "running" chip in `/tasks` — visually alarming (the user notices), un-stoppable from the driver side, though (unlike an orphaned `sleep`-loop) it does not consume CPU once idle. |
+
+Lesson: when you dispatch an adversarial reviewer (or any `general-purpose`/`Explore` agent) that could recursively spawn its own agents, add "do NOT spawn sub-agents; do the verification yourself inline" to the prompt — otherwise a nested grandchild can orphan as a stale, driver-un-stoppable "running" chip that alarms the user (it reports to its parent, but the harness may not tear down its task entry). If one appears: verify it's idle (`wmic process where "name='node.exe'"` → 0 `claude`/subagent procs backing it) so you know it's a stale chip, not a live drain; it's then harmless and the user can clear it from their `/tasks` panel. Distinct from the `sleep`-loop poller trap below (those DO burn CPU); this one is a cleanup/UI-tracking gap, not a resource leak.
+Pointer: this session's v0.1.90 test-validity review; `project_campaign_run_ops` memory (orphan-cleanup note).
+
 ## Manual `until … do sleep` pollers for harness-tracked background tasks hang forever — don't write them — 2026-07-04
 
 | Field | Value |

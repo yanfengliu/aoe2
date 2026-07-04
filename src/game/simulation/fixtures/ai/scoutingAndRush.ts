@@ -411,3 +411,51 @@ export function createAiVillagerReserveFixture(seed: string): PrototypeScenario 
     ],
   };
 }
+
+// v0.1.91 market-for-age-up regression: the AI covers an age-up RESOURCE
+// IMBALANCE via the Market. Markets can only trade from the Feudal Age up, so
+// this exercises the real stall — Feudal → Castle. Owner 2 starts in the Dark
+// Age with 520 food (enough to age to Feudal on its own) plus the buildings for
+// BOTH age-ups pre-placed (barracks + mill = Dark→Feudal prereqs; blacksmith +
+// Market = Feudal→Castle prereqs) and a big gold pile. There is NO food resource
+// on the map, so once it reaches Feudal it can never GATHER the 800 food a Castle
+// costs. WITHOUT the market-trade fix it is stranded in Feudal forever (the
+// v0.1.90 reserve even blocks it from spending its food); WITH the fix it buys
+// food with its spare gold each decision tick until it can afford Castle, then
+// advances. The Market doubles as the Feudal→Castle prerequisite AND the venue.
+export function createAiMarketAgeUpFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 2, y: 2 } },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingResources: { food: 520, wood: 0, gold: 3000, stone: 0 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
+      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      // Feudal→Castle prerequisites: blacksmith + the Market (also the trade venue).
+      { kind: 'blacksmith', x: 18, y: 11, owner: 2, baseOwner: 2 },
+      { kind: 'market', x: 30, y: 12, owner: 2, baseOwner: 2 },
+      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
+      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      // A few villagers — idle (no food resource exists) so food only moves via
+      // the market trade, isolating the fix.
+      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      // Human (owner 1) conquest presence only, far outside the AI's vision.
+      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+    ],
+  };
+}

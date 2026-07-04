@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.91 - 2026-07-04
+
+### AI trades at the Market to cover an age-up shortfall
+
+The computer opponent can now use a Market to cover an age-up shortfall. When it qualifies for the next Age but is short on one resource while sitting on a surplus of another, it sells the surplus for gold — or buys the shortfall with spare gold — one trade at a time until it can advance. This is the recurring problem behind 0.1.89–0.1.90 (the AI banks one resource but stalls one age-up short on the other): rather than pre-tuning how the AI gathers, which turned out too chaotic to get right, a Market trade self-corrects whichever resource its economy over- or under-gathered. An AI that banks 1000 food but only 75 gold, if it owns a Market, now sells food for the gold it needs and advances.
+
+The AI only trades once it is genuinely eligible to advance and cannot otherwise afford it, and only from a comfortable surplus, so its normal economy is unchanged (and Markets trade from Feudal Age onward, matching the ages this applies to). Note: this only helps once the AI has actually built a Market — in the current default matchup the AI is often wood-constrained and doesn't build one, so it does not yet always advance; getting the AI to build a Market when that is the missing age-up piece is the next step. No save-format change.
+
 ## 0.1.90 - 2026-07-04
 
 ### AI banks food for its age-up instead of spending it on more villagers

@@ -17,4 +17,5 @@ export {
   createAiEconomyFixture,
   createAiAgeUpPriorityFixture,
   createAiVillagerReserveFixture,
+  createAiMarketAgeUpFixture,
 } from './ai/scoutingAndRush';

@@ -6,6 +6,7 @@ import type {
   BuildableBuildingType,
   BuildingComponent,
   BuildingType,
+  MarketActionType,
   ResearchableTechnologyType,
   ResourceComponent,
   TrainableUnitType,
@@ -48,6 +49,8 @@ import {
   unitCommandsCodec,
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
+import { MARKET_TRANSACTION_AMOUNT } from '../bridgeConstants';
+import { marketActionForAgeUpShortfall } from '../../aiMarketPlanning';
 
 type CivWorld = GameWorld;
 type PushMonkContextAtEntityIntention = (
@@ -60,14 +63,9 @@ export interface AiSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
-  // Phase 2D: townCenterRefs migrated to world.state.aoe2.* via accessor.
-  // Per-tick reads happen via accessor.get(townCenterRefsCodec).
+  // Phase 2D: townCenterRefs/aiStates/population/playerResources/unitCommands/
+  // wildlifeStates migrated to world.state.aoe2.* — per-tick reads via accessor.
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
-  // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
-  // Phase 2D: population migrated to world.state.aoe2.* via accessor.
-  // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
-  // Phase 2D: unitCommands migrated to world.state.aoe2.* via accessor.
-  // Phase 2D: wildlifeStates migrated to world.state.aoe2.* via accessor.
   monksByOwner: Map<number, Set<number>>;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   getPlayerAge: (owner: number) => import('../../types').AgeType;
@@ -106,6 +104,7 @@ export interface AiSystemDeps {
     technologyType: ResearchableTechnologyType,
   ) => void;
   pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
+  pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
   // Phase 1C — read-only handle to the dispatcher's pending intention
   // queue. aiSystem inspects it each decision tick to compute "effective"
   // queue / in-flight counts: an intention pushed this tick won't appear in
@@ -166,6 +165,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     canAdvanceToImperialAge,
     pushQueueResearchIntention,
     pushQueueTrainIntention,
+    pushMarketActionIntention,
     pendingCommands,
     getTrainOptions,
     getResearchOptions,
@@ -272,14 +272,11 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         }
         villagerRebalance(owner, state.villagerTargets);
 
-        // Phase 1C: gates use the raw stockpile directly. DESIGN v17 §6.4
-        // B1/B2 specify validators are best-effort and handlers do the
-        // authoritative spend with silent-no-op fallback on stale state, so
-        // over-acceptance within a single decision tick is intentional —
-        // the handler picks the affordable subset. The pending-queue-length
-        // / pendingResearchKeys / pendingBuildsByOwner gates above already
-        // prevent legit duplicate spam (re-pushing the same intention while
-        // an earlier copy is still in `pendingCommands`).
+        // Phase 1C: gates use the raw stockpile directly. DESIGN v17 §6.4 B1/B2
+        // make validators best-effort + handlers do the authoritative spend with
+        // silent-no-op fallback, so over-acceptance within one decision tick is
+        // intentional (the handler picks the affordable subset); the queue-length
+        // / pendingResearchKeys / pendingBuildsByOwner gates prevent duplicate spam.
         const stockpile = accessor.get(playerResourcesCodec).get(owner);
 
         if (ownerTownCenterPosition) {
@@ -328,15 +325,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         }
 
         // Per-tick claimed-villagers tracker. Post-1C, building.placeConfirm
-        // intentions don't immediately update unitCommands — the handler
-        // runs at the start of next tick. So a single AI decision tick
-        // that pushes both watch-tower AND wonder/nextBuild intentions can
-        // see the same villager as "available" in all three
-        // findAvailableVillagerForBuild calls, dispatching the same unit
-        // to two foundations. Handler 1 builds at site A; Handler 2
-        // overwrites the unitCommand and builds at site B; the foundation
-        // at A is stranded with no builder. Track claimed villagers
-        // locally and exclude them.
+        // intentions update unitCommands only next tick, so one decision tick
+        // pushing watch-tower AND wonder/nextBuild could dispatch the SAME
+        // villager to two foundations (the second overwrites the first, leaving
+        // foundation A builderless). Track claimed villagers locally + exclude.
         const claimedVillagers = new Set<number>();
         const findAvailableVillagerForBuild = (
           ownerId: number,
@@ -518,24 +510,20 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           return minProgress >= 0.6 && !canAfford(s, cost);
         })();
 
-        // campaign-11 finding (c): reserve the next age-up's cost so military
-        // (sequenced before the FIFO-later age-up research) trains only from
-        // the surplus above it — else a Militia drains food below the age-up
-        // cost and the research silently no-ops, stranding the AI in Dark Age.
-        // Military is the only pre-age-up spend that consumes the food/gold an
-        // age-up reserves (builds spend wood/stone; the Wonder is Imperial-only;
-        // villager / building-tech / monastery are sequenced after the age-up).
-        const ageUpReserve = ageUpReserveCost(
-          currentAge,
+        // campaign-11 (c): reserve the next age-up's cost so military (sequenced
+        // before the FIFO-later age-up research) trains only from the surplus
+        // above it — else a Militia drains food below the cost and the research
+        // silently no-ops. Military is the only pre-age-up food/gold spend
+        // (builds spend wood/stone; villager/tech/monastery follow the age-up).
+        const qualifiesForNextAge =
           nextAgeTech === 'feudal-age' ? canAdvanceToFeudalAge(owner)
           : nextAgeTech === 'castle-age' ? canAdvanceToCastleAge(owner)
           : nextAgeTech === 'imperial-age' ? canAdvanceToImperialAge(owner)
-          : false,
-        );
+          : false;
+        const ageUpReserve = ageUpReserveCost(currentAge, qualifiesForNextAge);
 
-        // Phase 1C: pickUnitMix BEFORE villager training so a barracks-rush AI
-        // still trains militia (the +1-tick handler delay otherwise mis-aligns
-        // the full-tcQueue corner case). Military priority is explicit: push
+        // Phase 1C: pickUnitMix BEFORE villager training (the +1-tick handler
+        // delay otherwise mis-aligns the full-tcQueue corner case). Priority:
         // military, then age-up research, then villager.
         const mix = pickUnitMix(currentAge);
         if (!savingForAgeUp) {
@@ -543,8 +531,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             const producerId = findIdleProducerLocal(producer);
             if (producerId === null) continue;
             if (!stockpile) continue;
-            // Advisory base cost (only gates intention emission; the validator +
-            // charge apply the Goths discount, and the AI is never Goths yet).
+            // Advisory base cost (gates intention only; validator+charge apply
+            // the Goths discount, and the AI is never Goths yet).
             const cost = trainingCost(unitType);
             if (!canAffordWithReserve(stockpile, cost, ageUpReserve)) continue;
             if (!getTrainOptions(owner, producer).includes(unitType)) continue;
@@ -579,29 +567,22 @@ export function registerAiSystem(deps: AiSystemDeps): void {
                 return stockpile ? canAfford(stockpile, researchCost(tech)) : false;
               },
             );
-            // Compute the TC's effective queue length BEFORE the age-up
-            // research gate. productionQueues mixes train and research
-            // entries in a single list; without this gate, a TC already
-            // at the cap of 2 would still accept age-up research and
-            // land at length 3 (handler has no queue-cap recheck).
+            // Effective TC queue length BEFORE the age-up gate (productionQueues
+            // mixes train + research; without it a full 2-deep TC lands age-up
+            // research at depth 3, which the handler has no recheck for).
             const tcPersistedQueueLength = accessor.get(productionQueuesCodec).get(ownerTownCenterId)?.length ?? 0;
-            // The AI only ever pushes villagers to TC, so every pending TC
-            // queue.train counts as a pending villager. If a future change
-            // adds a non-villager TC train (e.g., a king or a fishing-boat),
-            // this currentVillagers calculation would over-count and the
-            // villagerCap gate would block real villager training prematurely
-            // — narrow this lookup to villager-typed pending trains then.
+            // The AI only pushes villagers to the TC, so every pending TC
+            // queue.train counts as a pending villager (narrow this if a future
+            // non-villager TC train — king / fishing-boat — is added).
             const tcPendingTrains = pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0;
             let tcPendingResearch = pendingResearchByBuilding.get(ownerTownCenterId) ?? 0;
-            // Mixed-queue cap: trains + research share the productionQueue.
             const tcEffectiveQueueLengthBeforeAgeUp =
               tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
 
-            // Skip if already pending. The age-up may push onto a FULL (2-deep)
-            // villager queue (depth 3): a rich AI keeps the TC queue full, so
-            // gating at < 2 starved the age-up and the AI never advanced despite
-            // ample resources (grounded 2026-07-02). The production handler now
-            // advances a queued research past a pop-blocked unit so it completes.
+            // The age-up may push onto a FULL (2-deep) villager queue (depth 3):
+            // a rich AI keeps the TC queue full, so gating at < 2 starved the
+            // age-up (grounded 2026-07-02); the handler advances queued research
+            // past a pop-blocked unit so it completes.
             if (
               nextAge
               && hasBuffer
@@ -612,6 +593,23 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               tcPendingResearch += 1;
               pendingResearchByBuilding.set(ownerTownCenterId, tcPendingResearch);
               pendingResearchKeys.add(`${owner}:${nextAge}`);
+            }
+
+            // v0.1.91: qualifies for the next age but can't afford it → trade at
+            // the Market to cover the shortfall (one batch/tick). The market.action
+            // validator gates ownership + affordability, so an owner with no Market
+            // just no-ops like any rejected AI intention. Robust successor to
+            // gather-weight tuning (v0.1.91 FIND): self-corrects whichever age-up
+            // resource the chaotic AI-vs-AI economy left short.
+            if (
+              nextAgeTech
+              && qualifiesForNextAge
+              && stockpile
+              && !canAfford(stockpile, researchCost(nextAgeTech))
+            ) {
+              const trade = marketActionForAgeUpShortfall(
+                stockpile, researchCost(nextAgeTech), MARKET_TRANSACTION_AMOUNT);
+              if (trade !== null) pushMarketActionIntention(owner, trade);
             }
 
             // Recompute the queue length post-age-up push so the villager

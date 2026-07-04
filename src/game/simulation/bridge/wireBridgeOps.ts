@@ -2,7 +2,7 @@ import type { Position } from 'civ-engine';
 
 import { buildingFootprint, currentEntityId } from './pureHelpers';
 import { hasPendingUnitCommand } from './pendingCommandQuery';
-import type { BuildableBuildingType, ResearchableTechnologyType, TrainableUnitType, UnitTaskState } from '../types';
+import type { BuildableBuildingType, MarketActionType, ResearchableTechnologyType, TrainableUnitType, UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
@@ -420,13 +420,16 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     allocateGroupMoveTargets: worldOccupancy.allocateGroupMoveTargets.bind(worldOccupancy),
     getTrainOptions,
     getResearchOptions,
-    // Phase 1C — AI intention pushers (mirror `pushUnitAttackIntention`): write
-    // to `state.pendingCommands`; dispatcher submits between ticks, handler applies next tick.
+    // Phase 1C — AI intention pushers: write to `state.pendingCommands` (dispatcher submits between ticks).
     pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => {
       state.pendingCommands.push({
         type: 'queue.train',
         data: { buildingId, unitType },
       });
+    },
+    // v0.1.91: AI market trade for an age-up shortfall (validator gates ownership + afford).
+    pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => {
+      state.pendingCommands.push({ type: 'market.action', data: { playerId, actionType } });
     },
     pushQueueResearchIntention: (
       buildingId: number,
@@ -460,17 +463,14 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
         data: { unitId: monkId, targetEntityId, ...options },
       });
     },
-    // Pass the queue by reference. aiSystem captures this once at register
-    // time and reads it every tick to fold pending intentions into its
-    // gates. The dispatcher must mutate `state.pendingCommands` IN PLACE
-    // (push + length=0 to drain) — never reassign `state.pendingCommands = []`,
-    // or aiSystem's captured reference goes stale and the gates silently
-    // break.
+    // Pass the queue by reference (aiSystem captures it once + reads it every
+    // tick to fold pending intentions into its gates). The dispatcher must
+    // mutate `state.pendingCommands` IN PLACE (push + length=0) — never reassign
+    // it, or aiSystem's captured reference goes stale and the gates break.
     pendingCommands: state.pendingCommands,
     issueUnitAttackCommand,
-    // Phase 1B unit.attack (DESIGN v17 §6.5): AI-decision systems push to
-    // `pendingCommands`. Returns `true` so callers can preserve `if (issued)`
-    // flow.
+    // Phase 1B unit.attack (DESIGN v17 §6.5): AI systems push to
+    // `pendingCommands`. Returns `true` so callers can keep `if (issued)` flow.
     pushUnitAttackIntention: (
       attackerId: number,
       targetId: number,

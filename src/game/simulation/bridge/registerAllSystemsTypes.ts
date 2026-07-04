@@ -9,6 +9,7 @@ import type {
   BuildableBuildingType,
   BuildingComponent,
   GathererComponent,
+  MarketActionType,
   ResearchableTechnologyType,
   ResourceComponent,
   TrainableUnitType,
@@ -85,6 +86,9 @@ export interface RegisterAllSystemsDeps {
     technologyType: ResearchableTechnologyType,
   ) => void;
   pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
+  // v0.1.91: AI emits a market.action to cover an age-up shortfall (playerId
+  // carried explicitly, like the human path); the validator gates ownership.
+  pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
   pushBuildingPlaceConfirmIntention: (
     builderId: number,
     buildingType: BuildableBuildingType,

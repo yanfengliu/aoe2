@@ -84,6 +84,7 @@ export interface RegisterBridgeSystemsDeps {
   ) => Position[];
   pushQueueResearchIntention: RegisterAllSystemsArg['pushQueueResearchIntention'];
   pushQueueTrainIntention: RegisterAllSystemsArg['pushQueueTrainIntention'];
+  pushMarketActionIntention: RegisterAllSystemsArg['pushMarketActionIntention'];
   pushBuildingPlaceConfirmIntention: RegisterAllSystemsArg['pushBuildingPlaceConfirmIntention'];
   pushMonkContextAtEntityIntention: RegisterAllSystemsArg['pushMonkContextAtEntityIntention'];
   pendingCommands: RegisterAllSystemsArg['pendingCommands'];
@@ -168,6 +169,7 @@ export function registerBridgeSystems(
     allocateGroupMoveTargets,
     pushQueueResearchIntention,
     pushQueueTrainIntention,
+    pushMarketActionIntention,
     pushBuildingPlaceConfirmIntention,
     pushMonkContextAtEntityIntention,
     pendingCommands,
@@ -228,6 +230,7 @@ export function registerBridgeSystems(
     findBuildPlacementNear,
     pushQueueResearchIntention,
     pushQueueTrainIntention,
+    pushMarketActionIntention,
     pushBuildingPlaceConfirmIntention,
     pushMonkContextAtEntityIntention,
     pendingCommands,

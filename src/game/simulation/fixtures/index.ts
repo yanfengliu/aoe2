@@ -158,6 +158,7 @@ export {
   createAiEconomyFixture,
   createAiAgeUpPriorityFixture,
   createAiVillagerReserveFixture,
+  createAiMarketAgeUpFixture,
 } from './ai';
 
 export {
