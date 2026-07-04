@@ -354,3 +354,60 @@ export function createAiAgeUpPriorityFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// v0.1.90 villager-reserve regression: isolates the demand-side age-up hole.
+// The AI (owner 2) sits in the Dark Age with the two Feudal prerequisites
+// (barracks + mill) so `canAdvanceToFeudalAge` is true and the age-up reserve
+// is {food:500}. Its food (250) is chosen deliberately: it is above the
+// villager cost (50) so a villager is trainable, but only 50% of the 500-food
+// Feudal cost — below the 60% `savingForAgeUp` hard-latch — so that latch does
+// NOT already suppress training; the ONLY thing that can hold the food is the
+// villager gate respecting the reserve. There is NO food resource on the map,
+// so villagers cannot gather (zero income) and any food change is purely
+// villager-training. With the pre-fix gate (plain `canAfford`), the AI trains a
+// villager every time food >= 50, draining the 250 reserved food toward zero;
+// with the fix (`canAffordWithReserve(..., ageUpReserve)`) villager training is
+// suppressed exactly like military, so the 250 food is HELD intact. Militia
+// (60 food) is already reserve-gated so it never drains here; only the villager
+// gate is under test. 3 villagers start below the Dark cap (10) so the AI still
+// wants more — the drain is real without the fix.
+export function createAiVillagerReserveFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 2, y: 2 } },
+      {
+        owner: 2,
+        townCenter: { x: 24, y: 8 },
+        startingResources: { food: 250, wood: 0, gold: 2000, stone: 0 },
+        difficulty: 'standard',
+      },
+    ],
+    spawns: [
+      // AI base: complete TC + the two Feudal prerequisites (barracks + mill).
+      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
+      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      // Houses for population headroom (TC 5 + 2x house 10 = 15 cap) so the AI
+      // is never pop-blocked and trains villagers freely (the behavior we gate).
+      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
+      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      // 3 villagers — below the Dark-Age villager cap (10) so the AI keeps
+      // trying to train more (which the reserve fix must suppress). No food
+      // resource exists on the grass map, so these villagers gather nothing:
+      // food income is zero and any food change is purely villager-training.
+      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      // Human (owner 1) conquest presence only — corner Houses far outside the
+      // AI's vision so they are never attacked and the match cannot end by
+      // conquest before the test window closes.
+      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
+      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+    ],
+  };
+}

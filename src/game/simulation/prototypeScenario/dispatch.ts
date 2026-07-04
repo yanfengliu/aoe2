@@ -7,6 +7,7 @@
 
 import {
   createAiAgeUpPriorityFixture,
+  createAiVillagerReserveFixture,
   createAiDifficultyFixture,
   createAiEconomyFixture,
   createAiMonkFixture,
@@ -408,6 +409,7 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   ['orders-fixture', createOrdersFixture],
   ['ai-economy-fixture', createAiEconomyFixture],
   ['ai-age-up-priority-fixture', createAiAgeUpPriorityFixture],
+  ['ai-villager-reserve-fixture', createAiVillagerReserveFixture],
   ['villager-selection-fixture', createVillagerSelectionFixture],
   ['double-click-selection-fixture', createDoubleClickSelectionFixture],
   ['mixed-selection-fixture', createMixedSelectionFixture],

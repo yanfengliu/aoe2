@@ -157,6 +157,7 @@ export {
   createAiRushFixture,
   createAiEconomyFixture,
   createAiAgeUpPriorityFixture,
+  createAiVillagerReserveFixture,
 } from './ai';
 
 export {

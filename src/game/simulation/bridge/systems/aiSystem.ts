@@ -628,14 +628,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && currentVillagers < villagerCap
               && tcEffectiveQueueLength < 2
               && stockpile
-              && canAfford(stockpile, villagerCost)
+              // v0.1.90: villager training respects the age-up reserve
+              // (symmetric with military ~549) so a food-banking AI stops re-
+              // spending reserved next-age food on villagers (empty until eligible).
+              && canAffordWithReserve(stockpile, villagerCost, ageUpReserve)
             ) {
               pushQueueTrainIntention(ownerTownCenterId, 'villager');
-              // Iter-1 Gemini MINOR: mirror the military / research push
-              // pattern at line 555-558. Today the TC is evaluated exactly
-              // once per decision tick so the increment doesn't matter,
-              // but a future multi-TC or multi-pass change would re-enter
-              // here and over-commit without this. Keep the invariant.
+              // Iter-1 Gemini MINOR: increment so a future multi-TC / multi-pass
+              // re-entry can't over-commit (mirrors the military push ~555).
               pendingTrainsByBuilding.set(
                 ownerTownCenterId,
                 (pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0) + 1,

@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.90 - 2026-07-04
+
+### AI banks food for its age-up instead of spending it on more villagers
+
+Once the AI qualifies for the next age, its villager training now respects the food it has reserved for that age-up — exactly as its military training already did. Before, even after the AI gathered food-first (0.1.89), it spent every spare 50 food on another villager, so its food stayed pinned near zero and never climbed toward the 800 a Castle costs. Now that food accumulates: in an AI-vs-AI replay the leading AI's food banked past 1000 instead of hovering near 70. The hold only kicks in once the AI is actually eligible to advance, so early-game economy build-up is unchanged.
+
+This fixes the food half of the AI's age-up. The same replay showed the remaining blocker is now gold — with food no longer over-gathered at gold's expense, the AI runs short of the Castle's 200 gold — so a follow-up rebalances its gold gathering to complete the advance. No save-format change.
+
 ## 0.1.89 - 2026-07-04
 
 ### AI gathers food-first in Feudal Age (no longer hoards unused gold)
