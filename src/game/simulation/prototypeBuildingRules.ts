@@ -261,7 +261,7 @@ const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechno
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade']],
   ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
-  ['castle', ['elite-longbowman-upgrade']],
+  ['castle', ['elite-longbowman-upgrade', 'conscription']],
   ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],

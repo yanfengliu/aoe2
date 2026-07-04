@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.85 - 2026-07-04
+
+### Conscription — train military units faster
+
+New technology: **Conscription** (researched at the Castle in the Imperial Age, 150 food + 150 gold). While researched, units trained at the **Barracks, Archery Range, Stable, and Castle** are created 25% faster. It stacks with the Aztecs creation-speed bonus. Any civilization can research it.
+
+Also fixed a rare crash: completing a research while you had no units on the field (e.g. all your villagers had just died) could throw a tick error. Researching any technology from a unit-less state is now safe.
+
+No save-format change.
+
 ## 0.1.84 - 2026-07-04
 
 ### Aztecs create military units 15% faster

@@ -1115,6 +1115,12 @@ Beyond the researched-tech effects above, a civilization grants passive bonuses 
 
 **Aztecs — Military units are created 15% faster (implemented v0.1.84).** An Aztecs player trains every MILITARY unit (all non-villager trainables — the infantry/archer/cavalry/siege lines and Monks) in 15% less time; villagers are unaffected. `civTrainTimeMultiplier(civilization, unitType)` returns 0.85 only for `civilization === 'Aztecs'` and `unitType !== 'villager'`, applied to the unit's total train ticks at the single production enqueue site (`trainingMarketOps`): `totalTicks = max(1, round(baseTicks × multiplier))`. Because both the human command path and the AI's `queue.train` intention flow through this one enqueue, both benefit consistently. The discounted tick count is stored in the already-persisted production queue, so a save/load or replay reproduces it deterministically with no save-format change. A non-Aztecs civilization multiplies by 1.
 
+### 11.12 Production technology: Conscription
+
+**Conscription (implemented v0.1.85).** Conscription is researched at the Castle, available from the Imperial Age, costing 150 food + 150 gold and taking 60 seconds (600 ticks). While researched, units trained at the Barracks, Archery Range, Stable, or Castle are created 25% faster (×0.75 train time); units from other buildings (Siege Workshop, Monastery, Town Center, Dock) are unaffected. Any civilization may research it. It rides the same production-enqueue train-time seam as the Aztecs creation-speed bonus (§11.11): a pure DERIVED multiplier — `conscriptionTrainTimeMultiplier(researchedSet, buildingType)` — read once at the single enqueue site (`trainingMarketOps`) and multiplied with the civ multiplier, so the two stack. Conscription has no imperative application step: the train-time is computed fresh at each enqueue from the owner's persisted researched-tech set, so no per-unit state and no save-format change. The built-in AI reaches Conscription through its generic research loop at an idle Castle.
+
+Note: because the training-time seam applies its multipliers at the moment a unit is enqueued, a technology or civilization bonus affects only units queued after it is in effect — a unit already training keeps the tick count it was enqueued with.
+
 ## 12. Fog of War, Line of Sight, Pathfinding, and Movement
 
 ### 12.1 Visibility States

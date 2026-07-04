@@ -96,4 +96,6 @@ export type ResearchableTechnologyType =
   // LoS techs (visionTechEffects): Town Watch (TC, Feudal, +4 building LoS), Town Patrol (TC, Castle, req Town Watch, +4 more), Tracking (Barracks, Feudal, +2 infantry LoS). Imperative visionSource.radius bump to existing entities + derived at creation for future ones.
   | 'town-watch'
   | 'town-patrol'
-  | 'tracking';
+  | 'tracking'
+  // Conscription (Castle, Imperial): units trained at Barracks/Archery Range/Stable/Castle are created 25% faster. DERIVED train-time multiplier (productionTechEffects) at the trainingMarketOps enqueue.
+  | 'conscription';

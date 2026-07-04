@@ -1,5 +1,4 @@
-// Building option lookups: train / research / market / build menus read by the HUD and the AI.
-// Pure over the player's age/civ/researched set — the bridge passes predicates in.
+// Building option lookups (train/research/market/build menus, read by HUD + AI). Pure over the player's age/civ/researched set; the bridge passes predicates in.
 
 import type {
   BuildableBuildingType,
@@ -261,8 +260,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'chemistry')) {
           options.push('chemistry');
         }
-        // Sappers: +15 infantry attack vs buildings. AoE2 University tech,
-        // hosted at the Blacksmith here; Imperial-gated, drops once researched.
+        // Sappers: +15 infantry attack vs buildings (AoE2 University; hosted at the Blacksmith here); Imperial, drops once researched.
         if (!hasTechnology(owner, 'sappers')) {
           options.push('sappers');
         }
@@ -335,8 +333,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'light-cavalry-upgrade')) {
           options.push('light-cavalry-upgrade');
         }
-        // Husbandry: +10% movement speed for mounted units (cavalry + cavalry
-        // archers). Castle-Age Stable tech; drops once researched.
+        // Husbandry: +10% mounted speed (cavalry + cav archers). Castle Stable tech; drops once researched.
         if (!hasTechnology(owner, 'husbandry')) {
           options.push('husbandry');
         }
@@ -363,13 +360,18 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    if (
-      buildingType === 'castle'
-      && isAtLeastAge(owner, 'imperial-age')
-      && getPlayerCivilization(owner) === 'Britons'
-      && !hasTechnology(owner, 'elite-longbowman-upgrade')
-    ) {
-      return ['elite-longbowman-upgrade'];
+    if (buildingType === 'castle' && isAtLeastAge(owner, 'imperial-age')) {
+      const options: ResearchableTechnologyType[] = [];
+      if (
+        getPlayerCivilization(owner) === 'Britons'
+        && !hasTechnology(owner, 'elite-longbowman-upgrade')
+      ) {
+        options.push('elite-longbowman-upgrade');
+      }
+      if (!hasTechnology(owner, 'conscription')) { // Conscription: military +25% train speed (any civ, Imperial Castle).
+        options.push('conscription');
+      }
+      return options;
     }
 
     if (buildingType === 'siege-workshop' && isAtLeastAge(owner, 'imperial-age')) {
@@ -383,8 +385,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'siege-ram-upgrade')) {
         options.push('siege-ram-upgrade');
       }
-      // Siege Engineers: +1 attack range to every siege unit. Imperial-gated
-      // like the siege-line upgrades; drops from the list once researched.
+      // Siege Engineers: +1 range to every siege unit. Imperial, drops once researched.
       if (!hasTechnology(owner, 'siege-engineers')) {
         options.push('siege-engineers');
       }
@@ -461,8 +462,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       'lumber-camp',
       'mining-camp',
       'barracks',
-      // Palisade Wall: Dark-Age defensive option in AoE2 (no prereq) — the only
-      // early wall vs a Dark-Age rush (campaign-7; see docs/devlog + roadmap).
+      // Palisade Wall: Dark-Age defensive option (no prereq) — the early wall vs a Dark-Age rush (campaign-7).
       'palisade-wall',
       'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
     ];

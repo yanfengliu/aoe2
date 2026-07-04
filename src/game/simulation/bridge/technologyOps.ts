@@ -482,13 +482,13 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         markOutOfBandRenderChange();
         break;
     }
-    // Phase 2D: many tech branches mutate combat objects in place
-    // (combat.attackDamage += 1, combat.armor += 1, etc.). The accessor's
-    // dirty bit needs to fire so the bridgeSnapshotSystem captures the
-    // changes at end of tick. Conservatively mark dirty once at end of
-    // every applyTechnology call — the few tech branches that don't touch
-    // combat (e.g. unlock-only techs) are still correct, just one
-    // unnecessary serialize per such tech.
+    // Phase 2D: tech branches mutate combat in place, so mark the slot dirty
+    // once so bridgeSnapshot captures them (unlock-only techs pay one extra
+    // serialize). The `get` populates the cache first, so markDirty is valid
+    // even when neither the tech nor the rest of this tick touched combat — a
+    // unit-less owner researching a non-combat tech would otherwise crash the
+    // flush ("marked dirty but no native value is cached").
+    accessor.get(combatStatesCodec);
     accessor.markDirty(combatStatesCodec);
   }
 

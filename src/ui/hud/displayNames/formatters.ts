@@ -66,6 +66,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Town Patrol';
     case 'tracking':
       return 'Tracking';
+    case 'conscription':
+      return 'Conscription';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

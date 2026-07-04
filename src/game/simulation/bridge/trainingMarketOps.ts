@@ -47,8 +47,11 @@ import {
   playerCivilizationsCodec,
   playerResourcesCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import { civTrainTimeMultiplier } from '../civBonusEffects';
+import { conscriptionTrainTimeMultiplier } from '../productionTechEffects';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface TrainingMarketOpsDeps {
   world: GameWorld;
@@ -177,12 +180,18 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     spendResources(stockpile, cost);
     accessor.markDirty(playerResourcesCodec);
-    // Aztecs train military (every non-villager) 15% faster — DERIVED from the
-    // owner's civ, applied once here at the single enqueue site (min 1 tick).
+    // Train time, discounted by DERIVED effects (Aztecs military ×0.85 civ
+    // bonus × Conscription ×0.75 at military buildings), read from the owner's
+    // persisted civ + tech state, applied once here at the single enqueue site.
     const ownerCiv = accessor.get(playerCivilizationsCodec).get(building.owner);
+    const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
     const totalTicks = Math.max(
       1,
-      Math.round(trainingTimeTicks(unitType) * civTrainTimeMultiplier(ownerCiv, unitType)),
+      Math.round(
+        trainingTimeTicks(unitType)
+          * civTrainTimeMultiplier(ownerCiv, unitType)
+          * conscriptionTrainTimeMultiplier(ownerTechs, building.buildingType),
+      ),
     );
     accessor.mutate(productionQueuesCodec, (m) => {
       const queue = m.get(buildingId) ?? [];

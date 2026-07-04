@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## An isolated fixture (few/zero units) exposes latent accessor-cache crashes a busy game never hits — `markDirty` without a prior `get`/`mutate` throws at flush — 2026-07-04
+
+| Field | Value |
+|---|---|
+| Surfaced by | The v0.1.85 Conscription live test, whose fixture gives owner 1 only buildings (no units). Researching Conscription there crashed the tick: `BridgeStateAccessor.flush: slot 'aoe2.combatStates' was marked dirty but no native value is cached`. Devlog: [2026-07-03_2026-07-03.md](../devlog/detailed/2026-07-03_2026-07-03.md) v0.1.85 entry. |
+| Reviewer findings | n/a — found by TDD (the new live test), not a reviewer; the subsequent in-process review confirmed the fix (0 findings). |
+| Fix commit | v0.1.85 — `accessor.get(combatStatesCodec)` before the `accessor.markDirty(combatStatesCodec)` in `applyTechnology`'s tail. |
+| Test added | `tests/simulation/conscription.test.ts > Conscription — live train-speed effect > a Barracks trains a Militia in fewer ticks after Conscription is researched` (drives a real research→train cycle from a unit-less state). |
+| Behavior delta | Before: `applyTechnology`'s tail unconditionally `accessor.markDirty(combatStatesCodec)`; in a tick where neither the completing tech nor anything else did a `get`/`mutate` on `combatStates` (a unit-less owner completing a non-combat tech), the accessor's native cache is empty and the end-of-tick flush THROWS, poisoning the world (all later steps fail). Reachable in production if an owner loses every unit while a tech is mid-research. After: the `get` populates the cache so the `markDirty` is valid regardless of what the tick touched; combat techs are byte-identical (they already `get`/`mutate` the slot). |
+
+Lesson: `accessor.markDirty(codec)` is only valid if that codec was `get`/`mutate`'d earlier in the SAME tick (so a native value is cached to flush). A "conservative, always mark dirty" tail is a latent crash for any tick that didn't otherwise touch the slot — and the only reason it survives is that real games almost always DO touch it (e.g. villagers have combat state, get/mutated every tick). This is a general trap for the pattern "unconditionally markDirty at the end of a shared handler." Two defenses: (1) `get` before `markDirty` when you can't guarantee a prior access (cheap, behavior-preserving); (2) TEST subsystems from minimal/degenerate states — a fixture with zero units, zero resources, or a single entity surfaces cache/empty-collection crashes that a full scenario masks. When adding a fixture for a new mechanic, prefer the smallest world that exercises it, precisely because it strips away the incidental state that hides bugs.
+Pointer: v0.1.85 devlog entry; `src/game/simulation/bridge/technologyOps.ts` (the `applyTechnology` tail); `src/game/simulation/fixtures/conscription.ts` (the unit-less fixture that exposed it).
+
 ## A single-tick "total gathered" snapshot ALIASES on the deposit-trip phase — a gather-RATE twin-fixture must measure over a window that outgrows one carry-load — 2026-07-03
 
 | Field | Value |

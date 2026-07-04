@@ -182,6 +182,7 @@ const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources
   'town-watch': { food: 75 }, // LoS techs (technologies.csv rows 88/92/9).
   'town-patrol': { food: 300, gold: 200 },
   tracking: { food: 75 },
+  conscription: { food: 150, gold: 150 }, // Castle, Imperial: military trains 25% faster.
 };
 
 const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>> = {
@@ -310,6 +311,7 @@ const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'town-watch': 250, // LoS techs — 25/40/35 s × 10 TPS (technologies.csv 88/92/9).
   'town-patrol': 400,
   tracking: 350,
+  conscription: 600, // Castle, Imperial: 60 s × 10 TPS.
 };
 
 export function marketCommodityForAction(actionType: MarketActionType): MarketCommodity {
