@@ -32,7 +32,6 @@ import {
   researchCost,
   researchTimeTicks,
   spendResources,
-  trainingCost,
   trainingTimeTicks,
 } from '../prototypeEconomyRules';
 
@@ -44,12 +43,13 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
   marketExchangeRatesCodec,
+  playerAgesCodec,
   playerCivilizationsCodec,
   playerResourcesCodec,
   productionQueuesCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import { civTrainTimeMultiplier } from '../civBonusEffects';
+import { civTrainTimeMultiplier, effectiveTrainingCost } from '../civBonusEffects';
 import { conscriptionTrainTimeMultiplier } from '../productionTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
@@ -175,15 +175,18 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const stockpile = accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) return false;
 
-    const cost = trainingCost(unitType);
+    // Cost + train time both read the owner's persisted civ (+ age/tech) state.
+    // Goths infantry cost 35% less from Feudal (effectiveTrainingCost); Aztecs
+    // ×0.85 train + Conscription ×0.75 at military buildings. The SAME effective
+    // cost gates and charges here — the affordability checks elsewhere (AI /
+    // human / validator) use effectiveTrainingCost too, so they agree.
+    const ownerCiv = accessor.get(playerCivilizationsCodec).get(building.owner);
+    const ownerAge = accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
+    const cost = effectiveTrainingCost(ownerCiv, ownerAge, unitType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
     accessor.markDirty(playerResourcesCodec);
-    // Train time, discounted by DERIVED effects (Aztecs military ×0.85 civ
-    // bonus × Conscription ×0.75 at military buildings), read from the owner's
-    // persisted civ + tech state, applied once here at the single enqueue site.
-    const ownerCiv = accessor.get(playerCivilizationsCodec).get(building.owner);
     const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
     const totalTicks = Math.max(
       1,

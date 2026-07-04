@@ -543,6 +543,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
             const producerId = findIdleProducerLocal(producer);
             if (producerId === null) continue;
             if (!stockpile) continue;
+            // Advisory base cost (only gates intention emission; the validator +
+            // charge apply the Goths discount, and the AI is never Goths yet).
             const cost = trainingCost(unitType);
             if (!canAffordWithReserve(stockpile, cost, ageUpReserve)) continue;
             if (!getTrainOptions(owner, producer).includes(unitType)) continue;

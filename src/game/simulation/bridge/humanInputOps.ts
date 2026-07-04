@@ -250,6 +250,10 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         enqueueRejection('Building is still under construction.');
       } else if (result.code === 'insufficient_resources') {
         const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
+        // Base cost is fine here — this only names WHICH resource is short for
+        // the toast (the authoritative gate already rejected using the effective
+        // cost). Byte-identical for a non-Goths human; a Goths human still sees
+        // the right resource named, just computed from the pre-discount amount.
         const missing = stockpile
           ? resourcesMissing(stockpile, trainingCost(unitType))
           : null;

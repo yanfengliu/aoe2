@@ -12,8 +12,15 @@
 // site (villagerEconomySystem). An unknown/undefined civilization is a no-op
 // (multiplier 1), so non-Britons owners and un-seeded owners are byte-identical.
 
-import type { ResourceKind, UnitType } from './types';
+import type {
+  AgeType,
+  PlayerResources,
+  ResourceKind,
+  TrainableUnitType,
+  UnitType,
+} from './types';
 import { isInfantryUnit } from './prototypeUnitRules';
+import { trainingCost } from './prototypeEconomyRules';
 
 // Britons shepherds gather sheep 25% faster.
 export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
@@ -26,6 +33,9 @@ export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
 
 // Aztecs military units train 15% faster (×0.85 train time).
 export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
+
+// Goths infantry cost 35% less (×0.65) from the Feudal Age.
+export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
 
 // The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
 // Scout line, Camels, and Cavalry Archers (which are also mounted).
@@ -81,4 +91,25 @@ export function civTrainTimeMultiplier(
     return AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER;
   }
   return 1;
+}
+
+// The owner's effective training cost for a unit, after civ cost bonuses.
+// Goths infantry cost 35% less from the Feudal Age; otherwise the base cost.
+// Returns a NEW object when discounted (the base table is never mutated), and
+// the shared base reference otherwise. This MUST be used at every training-cost
+// site — the charge AND every affordability/validation check — so they agree.
+export function effectiveTrainingCost(
+  civilization: string | undefined,
+  age: AgeType,
+  unitType: TrainableUnitType,
+): Partial<PlayerResources> {
+  const base = trainingCost(unitType);
+  if (civilization === 'Goths' && age !== 'dark-age' && isInfantryUnit(unitType)) {
+    const scaled: Partial<PlayerResources> = {};
+    for (const key of Object.keys(base) as (keyof PlayerResources)[]) {
+      scaled[key] = Math.round((base[key] ?? 0) * GOTHS_INFANTRY_COST_MULTIPLIER);
+    }
+    return scaled;
+  }
+  return base;
 }

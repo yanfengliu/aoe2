@@ -274,6 +274,11 @@ export {
 } from './civAztecsTrain';
 
 export {
+  createCivGothsCostFixture,
+  createCivGothsCostControlFixture,
+} from './civGothsCost';
+
+export {
   createVillagerSpeedBaselineFixture,
   createVillagerSpeedWheelbarrowFixture,
   createVillagerSpeedBothFixture,

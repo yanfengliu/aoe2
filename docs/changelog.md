@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.86 - 2026-07-04
+
+### Goths infantry cost 35% less
+
+A **Goths** player now trains infantry (the Militia and Spearman lines) for 35% less, from the Feudal Age onward — so a Goths Militia costs 39 food / 13 gold instead of 60 / 20. Dark-Age costs are unchanged, and only infantry are discounted. This is the iconic Goths infantry-flood bonus.
+
+This completes the fourth kind of civilization bonus effect — a cost discount — after gather rate, unit stats, and creation speed. Every other civilization is unchanged, and there is no save-format change.
+
 ## 0.1.85 - 2026-07-04
 
 ### Conscription — train military units faster

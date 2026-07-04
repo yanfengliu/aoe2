@@ -12,11 +12,14 @@ import {
   BRITONS_SHEEP_GATHER_MULTIPLIER,
   FRANKS_KNIGHT_HP_MULTIPLIER,
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
+  GOTHS_INFANTRY_COST_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
   civUnitHpMultiplier,
+  effectiveTrainingCost,
 } from '../../src/game/simulation/civBonusEffects';
+import { trainingCost } from '../../src/game/simulation/prototypeEconomyRules';
 
 // Total sheep-food owner 1 has harvested = deposited-since-start + currently
 // carried. Monotonic across deposit trips, so it cleanly reflects gather rate.
@@ -134,6 +137,31 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
   });
 });
 
+describe('effectiveTrainingCost — Goths infantry −35% cost (Feudal+)', () => {
+  it('discounts Goths infantry by 35% from the Feudal Age (each resource rounded)', () => {
+    // Militia base 60 food / 20 gold → ×0.65 = 39 / 13.
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia')).toEqual({ food: 39, gold: 13 });
+    // Spearman base 35 food / 25 wood → ×0.65 = 23 / 16.
+    expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman')).toEqual({ food: 23, wood: 16 });
+    expect(GOTHS_INFANTRY_COST_MULTIPLIER).toBe(0.65);
+  });
+
+  it('does NOT discount in the Dark Age (bonus starts in Feudal)', () => {
+    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia')).toEqual(trainingCost('militia'));
+  });
+
+  it('does NOT discount Goths non-infantry (archers, cavalry, siege, villagers)', () => {
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'archer')).toEqual(trainingCost('archer'));
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'knight')).toEqual(trainingCost('knight'));
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'villager')).toEqual(trainingCost('villager'));
+  });
+
+  it('returns the base cost for any other civilization or an unknown civ', () => {
+    expect(effectiveTrainingCost('Franks', 'feudal-age', 'militia')).toEqual(trainingCost('militia'));
+    expect(effectiveTrainingCost(undefined, 'castle-age', 'spearman')).toEqual(trainingCost('spearman'));
+  });
+});
+
 describe('civTrainTimeMultiplier — Aztecs military creation speed', () => {
   it('trains Aztecs military units 15% faster (×0.85)', () => {
     expect(civTrainTimeMultiplier('Aztecs', 'militia')).toBe(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER);
@@ -180,6 +208,37 @@ describe('Aztecs creation-speed bonus — live twin-fixture train race', () => {
     expect(control).toBeGreaterThan(0);
     expect(aztecs).toBeLessThan(control);
   }, 30_000);
+});
+
+describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)', () => {
+  it('a Goths Barracks trains a Militia the control cannot afford, charging the discount', () => {
+    const goths = createSimulationBridge('civ-goths-cost-fixture');
+    const control = createSimulationBridge('civ-goths-cost-control-fixture');
+
+    // Both start with 50 food / 15 gold — enough for the Goths-discounted
+    // Militia (39/13) but not the base Militia (60/20).
+    for (const bridge of [goths, control]) {
+      expect(bridge.selectEntityAtCell(4, 10)).toBe(true); // Barracks
+      expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
+    }
+
+    // Goths: the affordability GATE accepts (validator uses the discount); a
+    // step processes the queued command and the CHARGE spends the discounted
+    // 39/13 (both gate and charge use effectiveTrainingCost), leaving 11/2.
+    expect(goths.queueTrainUnit('militia')).toBe(true);
+    goths.step(100);
+    const gothsRes = goths.getEconomyState().playerResources[1];
+    expect(gothsRes.food).toBe(11);
+    expect(gothsRes.gold).toBe(2);
+
+    // Control (non-Goths): can't afford the base Militia (60/20), so the gate
+    // rejects synchronously and nothing is charged.
+    expect(control.queueTrainUnit('militia')).toBe(false);
+    control.step(100);
+    const controlRes = control.getEconomyState().playerResources[1];
+    expect(controlRes.food).toBe(50);
+    expect(controlRes.gold).toBe(15);
+  });
 });
 
 describe('Goths infantry-vs-buildings bonus — live twin-fixture raze race', () => {

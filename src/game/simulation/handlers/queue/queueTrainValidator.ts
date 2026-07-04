@@ -10,10 +10,13 @@ import type { World } from 'civ-engine';
 import type { BuildingComponent, BuildingType, TrainableUnitType } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canTrainAt } from '../../prototypeBuildingRules';
-import { trainingCost, canAfford, describeMissingResources } from '../../prototypeEconomyRules';
+import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
+import { effectiveTrainingCost } from '../../civBonusEffects';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
 } from '../../bridge/bridgeStateSerialize';
 
@@ -67,7 +70,11 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    const cost = trainingCost(data.unitType);
+    // Effective cost (Goths infantry −35% from Feudal) MUST match the charge
+    // in trainingMarketOps, so this gate and that charge stay consistent.
+    const civ = deps.accessor.get(playerCivilizationsCodec).get(building.owner);
+    const age = deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
+    const cost = effectiveTrainingCost(civ, age, data.unitType);
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {
