@@ -2,9 +2,27 @@ import type {
   ActionType,
   BuildableBuildingType,
   MarketActionType,
+  PlayerResources,
   ResearchableTechnologyType,
   TrainableUnitType,
 } from '../../game/simulation/types';
+import {
+  constructionCost,
+  researchCost,
+  researchTimeTicks,
+  trainingCost,
+} from '../../game/simulation/prototypeEconomyRules';
+
+// A short, human-readable cost like "60 food, 20 gold" from a partial resource
+// cost, listing only the non-zero resources in a stable food/wood/gold/stone
+// order. "nothing" for an empty cost (defensive — no shippable content is free).
+export function formatResourceCost(cost: Partial<PlayerResources>): string {
+  const order: (keyof PlayerResources)[] = ['food', 'wood', 'gold', 'stone'];
+  const parts = order
+    .filter((key) => (cost[key] ?? 0) > 0)
+    .map((key) => `${cost[key]} ${key}`);
+  return parts.length > 0 ? parts.join(', ') : 'nothing';
+}
 
 // Slice 11: tooltip copy lives next to the chip definition so the HUD renders
 // a single source of truth. The data-tooltip attribute is read on hover and
@@ -68,21 +86,22 @@ export function formatTrainTooltip(
   unitType: TrainableUnitType,
   unitDisplayName: string,
 ): string {
-  return `Queue a ${unitDisplayName} at this building. Requires the unit's cost and an open production queue slot.`;
+  return `Queue a ${unitDisplayName} at this building. Cost: ${formatResourceCost(trainingCost(unitType))}. Needs an open production queue slot.`;
 }
 
 export function formatResearchTooltip(
   technologyType: ResearchableTechnologyType,
   techDisplayName: string,
 ): string {
-  return `Research ${techDisplayName}. Consumes its resource cost while the research ticks down.`;
+  const seconds = Math.round(researchTimeTicks(technologyType) / 10);
+  return `Research ${techDisplayName}. Cost: ${formatResourceCost(researchCost(technologyType))}; takes ${seconds}s.`;
 }
 
 export function formatBuildTooltip(
   buildingType: BuildableBuildingType,
   buildingDisplayName: string,
 ): string {
-  return `Place a ${buildingDisplayName} foundation. The selected villager walks to the site and begins construction.`;
+  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(constructionCost(buildingType))}). The selected villager walks to the site and builds it.`;
 }
 
 export interface TooltipHandle {

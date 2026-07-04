@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.88 - 2026-07-04
+
+### Command-button tooltips now show the actual cost
+
+Hovering a Train, Research, or Build button now tells you exactly what it costs — e.g. "Queue a Militia at this building. Cost: 60 food, 20 gold." Research tooltips also show the research time. Previously the tooltip only said "requires the unit's cost" without any numbers, so you had to click and hope you could afford it.
+
+(The tooltip shows the base cost; a civilization discount such as Goths' −35% infantry cost is applied when you actually train, and reflecting that live in the tooltip is a follow-up.)
+
 ## 0.1.87 - 2026-07-04
 
 ### Choose your civilization with ?civ=
