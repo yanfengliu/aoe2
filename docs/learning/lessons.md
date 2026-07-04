@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Don't tune a chaotic emergent quantity against a single-run validator — the noise exceeds the signal — 2026-07-04
+
+| Field | Value |
+|---|---|
+| Surfaced by | The v0.1.91 Feudal gold-rebalance experiment. Chasing "AI reaches Castle," I tweaked `villagerTargetsForAge('feudal-age')` across three increments; each single-run corpus replay showed the age-up blocker relocating (food→gold→economic-collapse) instead of resolving. FIND devlog: [2026-07-03_2026-07-04.md](../devlog/detailed/2026-07-03_2026-07-04.md) "FIND (v0.1.91 experiment — TRIED then REVERTED)". |
+| Reviewer findings | The v0.1.91 in-process reviewer said the change was SAFE and "likely to hit the goal" — a same-model code-level analysis that could NOT see the emergent chaos; only the replay (and reading `getEconomyState`) exposed it. So: a green review is not validation of an emergent-behavior claim. |
+| Fix commit | none — the experiment was REVERTED (`git checkout` to v0.1.90's `{food:7,gold:1}`); no version bump, nothing user-visible shipped. |
+| Test added | n/a — process lesson (the unit tests all passed; the failure was only visible in the AI-vs-AI replay). |
+| Behavior delta | A 1-unit Feudal gather-weight shift (`{food:7,gold:1}`→`{food:6,gold:2}`) flipped the default-seed AI-vs-AI game from "owner-1 banks food to 1084, stalls on gold 75" to "owner-1 economy collapses — villagers die 17→9, food 17, gold hoarded 1704" — a totally different trajectory, neither reaching Castle. The replayed metric (owner-1 Castle-age progression + villager count) moved chaotically, not monotonically, with the weight. |
+
+Lesson: some quantities are emergent + chaotic — e.g. an AI-vs-AI age-up outcome as a function of the gather-allocation weights. A single deterministic corpus run is one sample of a butterfly-sensitive system, so tuning against it is fitting noise: each "fix" just relocates the failure to a different resource/mechanism. Before attributing a stall to the lever you happened to change, VERIFY THE MECHANISM with the engine tools (`getEconomyState`: is it villager attrition? a missing prerequisite building? military over-spend?) — the real blocker is usually not the knob you were turning. Genuine mechanism bugs (v0.1.89's gold-hoard mis-allocation, v0.1.90's villager-reserve hole) are unit-testable and survive their own validation; a tuning guess against emergent noise will not, and should be reverted rather than shipped on a green review + one lucky/unlucky replay. If you must influence an emergent outcome, prefer a robustness mechanism that self-corrects regardless of trajectory (e.g. market-sell excess-resource-for-shortfall to fund an age-up) over pre-tuning an open-loop parameter.
+Pointer: v0.1.91 FIND devlog entry; `src/game/simulation/ai.ts` `villagerTargetsForAge` (the reverted knob); `scripts/replay-inspect.mjs` + `getEconomyState` (the mechanism-verification tools that exposed the villager attrition).
+
 ## An isolated fixture (few/zero units) exposes latent accessor-cache crashes a busy game never hits — `markDirty` without a prior `get`/`mutate` throws at flush — 2026-07-04
 
 | Field | Value |
