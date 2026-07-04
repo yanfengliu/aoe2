@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## A single-tick "total gathered" snapshot ALIASES on the deposit-trip phase — a gather-RATE twin-fixture must measure over a window that outgrows one carry-load — 2026-07-03
+
+| Field | Value |
+|---|---|
+| Surfaced by | Building the v0.1.81 Britons-shepherd (+25% sheep gather) live twin-fixture test — the assertion `britons > control + margin` failed with BOTH sides reading exactly 50 at t300, then 50/110/170/230 vs 50/100/150/200 at t300/600/900/1200. Devlog: [2026-07-03_2026-07-03.md](../devlog/detailed/2026-07-03_2026-07-03.md) v0.1.81 entry. |
+| Reviewer findings | n/a — process/test-design lesson (caught during TDD red-green by instrumenting the gather site: a temporary log showed `civMult=1.25` vs `1.0` were BOTH applied correctly, proving the wiring was right and the *measurement* was wrong). |
+| Fix commit | v0.1.81 (`349fa01`) — lengthened the race window so the compounding lead exceeded one carry-load of phase noise; moved the fixture villager/sheep east of the Town Center footprint. |
+| Test added | `tests/simulation/civBonusEffects.test.ts > Britons shepherd bonus — live twin-fixture sheep race > a Britons villager harvests sheep faster than a non-Britons villager` |
+| Behavior delta | Before the window fix the test was a false-negative: a genuinely-working +25% gather bonus (confirmed by the gather-site log) read as "no difference" because at t300 the faster villager happened to be mid-walk-back (carried 0, deposited 50) while the control carried a full 10 (deposited 40) — both totalling 50. The bonus itself shipped correct; the risk was concluding "the feature doesn't work" and thrashing the *implementation* instead of the *test*. |
+
+Lesson: a villager's gather output is delivered in quantized deposit trips (gather to carry-cap → walk → deposit → walk back), so `depositedFood + carriedAmount` sampled at ONE tick is noisy by ±(one carry-load) depending on where each unit sits in its trip cycle — two units at different RATES can read equal, or even inverted, at a single instant. To test a per-tick rate multiplier via a twin-fixture race: (a) run long enough that the cumulative lead >> one carry-load (the lead grows ~linearly; here ~10 food per 300 ticks, so t600+ gave a clean margin); (b) put the resource adjacent to the drop-off so walk time doesn't dilute the gather-rate signal into invisibility; (c) if the bonus looks like it "does nothing," instrument the effect SITE (log the multiplier + inputs for the owner) before touching the implementation — a correct effect with a phase-aliased measurement is the likelier bug. Separately: fixture units must spawn OUTSIDE building footprints — a 4×4 Town Center at (4,4) occupies (4,4)–(7,7), and a villager placed inside errors with "spawns inside a building footprint."
+Pointer: v0.1.81 devlog entry; `src/game/simulation/fixtures/civShepherd.ts` (short-walk geometry, sheep east of the TC); `tests/simulation/civBonusEffects.test.ts` (600-tick window, `ownerOneHarvested` = deposited-delta + carried).
+
 ## "Reuse existing verified art" is NOT a trivial UI change when it crosses a styling context — the CSS hook class travels with the markup and silently applies the wrong sizing — 2026-07-02
 
 | Field | Value |
