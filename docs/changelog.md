@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.92 - 2026-07-04
+
+### AI paces its military so it can build its way toward Castle Age
+
+The computer opponent used to over-produce military in Feudal Age until it hit its population cap, then build Houses on a treadmill that drained the wood it needed for a second Feudal-Age building (Stable / Archery Range / Market). Because Castle Age requires two Feudal-Age buildings, this left the AI stuck one prerequisite short — unable to advance no matter how long the game ran. Now, once the AI has a full attack group (5+ units) and still can't advance, it pauses military growth until it builds that prerequisite. That frees the population room (fewer emergency Houses) for wood to accumulate. The AI stays defended — it keeps its 5+ army — and resumes training the instant it becomes able to advance.
+
+In the default AI-vs-AI matchup this takes the AI from **permanently stuck at 1 of the 2 required prerequisites** to reaching **both**, after which it begins banking food toward Castle Age (it holds ~510 food and climbing by the score-timer, up from being pinned near ~90 before). It doesn't quite complete the jump within the standard match length yet — banking the full 800 food takes a bit longer — but the structural wall that kept it in Feudal forever is gone. No save-format change.
+
 ## 0.1.91 - 2026-07-04
 
 ### AI trades at the Market to cover an age-up shortfall

@@ -333,6 +333,32 @@ export function attackGroupSize(age: AgeType): number {
   }
 }
 
+// Pause AI military GROWTH when it is stuck short of the next age, so pop room
+// (and therefore wood) frees up for the prerequisite building it otherwise can't
+// afford. Grounded 2026-07-04 by replaying the default-seed corpus (LABELED
+// dump + gather-state --detail): the Feudal AI over-produced military (~21
+// units) to its ~40 pop cap, forcing a House-build treadmill that drained the
+// wood needed for a 2nd Feudal-prerequisite building (stable/archery-range/
+// market) — leaving it at 1/2 Castle prereqs, unable to advance. Wood GATHERING
+// is healthy (not gridlocked); the blocker is the pop-cap treadmill. Fires ONLY
+// in Feudal, ONLY when the AI cannot yet advance, and ONLY at/above
+// attackGroupSize — so the FU4 "5+ military" guard (it stays defended) holds,
+// and it resumes the moment the 2nd prereq lands (qualifiesForNextAge → true).
+// This SUPERSEDES the v0.1.79 "no military suppression" note for the narrow
+// building-prerequisite stall (that note guarded a food age-up, a different
+// case); the guard it protected is preserved here. KNOWN LIMIT (future PvP
+// tuning, per v0.1.92 review): vs a human who denies the 2nd-prereq building
+// (raids the builder), a paused AI holds at the floor and won't grow to break
+// the pressure — benign in AI-vs-AI (no denial) and the existing push guard
+// still commits the standing group, but revisit when tuning against humans.
+export function militaryGrowthPausedForAgeUp(
+  age: AgeType,
+  qualifiesForNextAge: boolean,
+  militaryCount: number,
+): boolean {
+  return age === 'feudal-age' && !qualifiesForNextAge && militaryCount >= attackGroupSize(age);
+}
+
 // Resources-on-hand threshold for age-up "safety buffer". The AI
 // prefers to age up only when it has enough extra resources to keep
 // producing after the research commits — otherwise the production

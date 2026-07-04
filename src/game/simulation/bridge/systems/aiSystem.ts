@@ -23,6 +23,7 @@ import {
   attackGroupSize,
   canAffordWithReserve,
   decisionIntervalTicks,
+  militaryGrowthPausedForAgeUp,
   pickNextAgeResearch,
   pickNextBuildTarget,
   pickUnitMix,
@@ -526,7 +527,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // delay otherwise mis-aligns the full-tcQueue corner case). Priority:
         // military, then age-up research, then villager.
         const mix = pickUnitMix(currentAge);
-        if (!savingForAgeUp) {
+        // v0.1.92: pause military growth when stuck short of the next age → frees pop/wood for the 2nd Feudal-prereq building (see helper).
+        if (!savingForAgeUp && !militaryGrowthPausedForAgeUp(currentAge, qualifiesForNextAge, ownedMilitaryUnitIds(owner).size)) {
           for (const { unitType, producer } of mix) {
             const producerId = findIdleProducerLocal(producer);
             if (producerId === null) continue;
