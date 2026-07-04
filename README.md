@@ -43,6 +43,8 @@ Camera:
 
 The dev server accepts a `?seed=<name>` URL parameter to load deterministic test scenarios. See the devlog under `docs/devlog/` for the current list of seeds.
 
+Add `?civ=<name>` to choose your (the human player's) civilization — e.g. `?civ=Goths` for cheaper infantry, `?civ=Britons` for faster shepherds. The name is case-insensitive and matched against the 30 AoE2 civilizations; an unknown name falls back to the default (Britons).
+
 ## Watching replays (including LLM playtest campaigns)
 
 Every recorded session — including the bundles exported by `npm run playtest:llm` campaign runs — can be replayed bit-exact in the app:

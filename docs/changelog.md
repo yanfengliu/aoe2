@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.87 - 2026-07-04
+
+### Choose your civilization with ?civ=
+
+You can now pick the civilization you play as with a `?civ=<name>` URL parameter — for example `?civ=Goths` (cheaper infantry), `?civ=Franks` (tougher knights), `?civ=Aztecs` (faster military), or `?civ=Britons` (faster shepherds). The name is case-insensitive and validated against the 30 AoE2 civilizations; an unknown or missing value falls back to the default (Britons).
+
+This makes the civilization bonuses shipped in 0.1.81–0.1.86 actually reachable in a normal game, instead of only appearing in the default matchup. A full in-game civilization picker is planned; this URL parameter is the first step. Saved games keep the civilization they were started with. No save-format change.
+
 ## 0.1.86 - 2026-07-04
 
 ### Goths infantry cost 35% less

@@ -224,6 +224,9 @@ export interface CreateSimulationBridgeOptions {
   // terminate an otherwise-stalemating deterministic match on score. Ignored
   // on the save-load path (no fresh scenario is built).
   gameLength?: number;
+  // Civ selection (?civ=): override the freshly-built scenario start's civ for
+  // the listed owners (closure-local; seeds playerCivilizations; ignored on load).
+  civilizationsByOwner?: ReadonlyMap<number, string>;
 }
 
 export function createSimulationBridge(
@@ -285,6 +288,7 @@ export function createSimulationBridge(
       disableAiForOwners: options.disableAiForOwners,
       forceAiForOwners: options.forceAiForOwners,
       gameLength: options.gameLength,
+      civilizationsByOwner: options.civilizationsByOwner,
     });
   const renderStore = new RenderStore();
   const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });

@@ -43,6 +43,10 @@ export interface CreateWorldOptions {
   // scenario bakes none. Lets the corpus terminate an otherwise-stalemating
   // match on score. Ignored on the save-load path (scenario is null).
   gameLength?: number;
+  // Civ selection (?civ=): override the freshly-built scenario start's
+  // civilization for the listed owners. Closure-local; the value flows into the
+  // persisted playerCivilizations map via the normal seed path.
+  civilizationsByOwner?: ReadonlyMap<number, string>;
 }
 
 export function createWorld(
@@ -123,6 +127,18 @@ export function createWorld(
     for (const start of scenario.starts) {
       if (options.forceAiForOwners.has(start.owner)) {
         start.forceAi = true;
+      }
+    }
+  }
+  // Civ selection: ?civ=<name> → createSimulationBridge → here. Override the
+  // start's civilization so the chosen civ's bonuses apply. The value already
+  // enters the persisted playerCivilizations map via seedFreshScenario; this
+  // just changes what that map is seeded with (closure-local, not a save field).
+  if (scenario && options.civilizationsByOwner && options.civilizationsByOwner.size > 0) {
+    for (const start of scenario.starts) {
+      const civ = options.civilizationsByOwner.get(start.owner);
+      if (civ !== undefined) {
+        start.civilization = civ;
       }
     }
   }

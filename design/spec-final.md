@@ -1123,6 +1123,10 @@ Beyond the researched-tech effects above, a civilization grants passive bonuses 
 
 Note: because the training-time seam applies its multipliers at the moment a unit is enqueued, a technology or civilization bonus affects only units queued after it is in effect — a unit already training keeps the tick count it was enqueued with.
 
+### 11.13 Civilization selection
+
+The player must be able to choose which civilization they play as, so the passive bonuses (§11.11) actually take effect in a game. The first implementation (v0.1.87) is a `?civ=<name>` URL parameter that sets the human player's (owner 1) civilization; the name is validated case-insensitively against the canonical 30-civilization list (`civilizationNames.CIVILIZATION_NAMES`), and an unknown or absent value falls back to the default (Britons). The choice overrides the scenario start's civilization at world-build time (closure-local, not a separate save field) and therefore enters the persisted `playerCivilizations` map through the normal seed path — so a game saved after choosing a civilization reloads with that civilization, and a load is never overridden by the parameter. A full in-game civilization-picker UI (at match setup) is the intended follow-up; the URL parameter is the minimal reachable mechanism.
+
 ## 12. Fog of War, Line of Sight, Pathfinding, and Movement
 
 ### 12.1 Visibility States

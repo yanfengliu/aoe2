@@ -9,6 +9,7 @@ import { GameScene } from '../../phaser/scenes/GameScene';
 import { createHudController, type HudController } from '../../ui/hud/createHudController';
 import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
+import { parseCivParam } from './civParam';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -70,12 +71,18 @@ export async function createApp(): Promise<Phaser.Game> {
   // to attack). Comma-separated; unparseable tokens warn and skip.
   const disableAiForOwners = parseDisableAiParam(window.location.href);
 
+  // Civ selection: ?civ=<name> sets the human player's civilization so its
+  // bonuses (Britons sheep, Franks knights, Goths infantry, Aztecs speed, …)
+  // are felt in a real game. Unknown/absent → the default (Britons).
+  const civilizationsByOwner = parseCivParam(window.location.href);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
   // resolve the live bridge after a swap.
   let bridge: SimulationBridge = createSimulationBridge(seed, {
     disableAiForOwners: disableAiForOwners.size > 0 ? disableAiForOwners : undefined,
+    civilizationsByOwner: civilizationsByOwner.size > 0 ? civilizationsByOwner : undefined,
   });
   const bridgeRef = (): SimulationBridge => bridge;
 
