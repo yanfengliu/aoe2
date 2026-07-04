@@ -262,6 +262,11 @@ export {
 } from './civFranksKnight';
 
 export {
+  createCivGothsInfantryFixture,
+  createCivGothsInfantryControlFixture,
+} from './civGothsInfantry';
+
+export {
   createVillagerSpeedBaselineFixture,
   createVillagerSpeedWheelbarrowFixture,
   createVillagerSpeedBothFixture,

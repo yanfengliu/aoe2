@@ -13,12 +13,16 @@
 // (multiplier 1), so non-Britons owners and un-seeded owners are byte-identical.
 
 import type { ResourceKind, UnitType } from './types';
+import { isInfantryUnit } from './prototypeUnitRules';
 
 // Britons shepherds gather sheep 25% faster.
 export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
 
 // Franks Knight line (Knight → Cavalier → Paladin) has +20% HP.
 export const FRANKS_KNIGHT_HP_MULTIPLIER = 1.2;
+
+// Goths infantry deal +1 attack against buildings (from game start).
+export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
 
 // The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
 // Scout line, Camels, and Cavalry Archers (which are also mounted).
@@ -47,4 +51,17 @@ export function civUnitHpMultiplier(
     return FRANKS_KNIGHT_HP_MULTIPLIER;
   }
   return 1;
+}
+
+// The owner's civilization ADDITIVE attack bonus against buildings for an
+// attacker unit. 0 unless a civ bonus matches. Read at the unit→building damage
+// site alongside the Sappers tech bonus (which uses the same shape).
+export function civBuildingAttackBonus(
+  civilization: string | undefined,
+  attackerType: UnitType,
+): number {
+  if (civilization === 'Goths' && isInfantryUnit(attackerType)) {
+    return GOTHS_INFANTRY_BUILDING_ATTACK_BONUS;
+  }
+  return 0;
 }

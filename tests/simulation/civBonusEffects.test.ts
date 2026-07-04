@@ -10,6 +10,8 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import {
   BRITONS_SHEEP_GATHER_MULTIPLIER,
   FRANKS_KNIGHT_HP_MULTIPLIER,
+  GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
+  civBuildingAttackBonus,
   civGatherRateMultiplier,
   civUnitHpMultiplier,
 } from '../../src/game/simulation/civBonusEffects';
@@ -80,6 +82,30 @@ describe('civUnitHpMultiplier — Franks knight bonus', () => {
   });
 });
 
+describe('civBuildingAttackBonus — Goths infantry-vs-buildings bonus', () => {
+  it('gives Goths infantry +1 attack vs buildings', () => {
+    expect(civBuildingAttackBonus('Goths', 'militia')).toBe(GOTHS_INFANTRY_BUILDING_ATTACK_BONUS);
+    expect(civBuildingAttackBonus('Goths', 'spearman')).toBe(1);
+    expect(civBuildingAttackBonus('Goths', 'champion')).toBe(1);
+    expect(civBuildingAttackBonus('Goths', 'halberdier')).toBe(1);
+    expect(GOTHS_INFANTRY_BUILDING_ATTACK_BONUS).toBe(1);
+  });
+
+  it('does not touch Goths non-infantry attackers', () => {
+    expect(civBuildingAttackBonus('Goths', 'archer')).toBe(0);
+    expect(civBuildingAttackBonus('Goths', 'knight')).toBe(0);
+    expect(civBuildingAttackBonus('Goths', 'battering-ram')).toBe(0);
+    expect(civBuildingAttackBonus('Goths', 'villager')).toBe(0);
+  });
+
+  it('gives no bonus to any other civilization or an unknown civ', () => {
+    expect(civBuildingAttackBonus('Franks', 'militia')).toBe(0);
+    expect(civBuildingAttackBonus('Britons', 'champion')).toBe(0);
+    expect(civBuildingAttackBonus(undefined, 'militia')).toBe(0);
+    expect(civBuildingAttackBonus('', 'militia')).toBe(0);
+  });
+});
+
 describe('Franks knight bonus — live twin-fixture HP', () => {
   it('a Franks knight has round(base × 1.2) maxHp; a control knight has the base', () => {
     const franks = createSimulationBridge('civ-franks-knight-fixture');
@@ -104,6 +130,44 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
     expect(franksHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
     expect(franksHp.currentHp).toBe(franksHp.maxHp);
   });
+});
+
+describe('Goths infantry-vs-buildings bonus — live twin-fixture raze race', () => {
+  it('a Goths militia razes a building faster than a non-Goths militia', () => {
+    const goths = createSimulationBridge('civ-goths-infantry-fixture');
+    const control = createSimulationBridge('civ-goths-infantry-control-fixture');
+
+    const houseId = (bridge: ReturnType<typeof createSimulationBridge>) =>
+      bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house')?.id;
+    const gHouse = houseId(goths);
+    const cHouse = houseId(control);
+    expect(gHouse).toBeDefined();
+    expect(cHouse).toBeDefined();
+
+    // Command each owner-1 militia (identical geometry) onto the enemy house.
+    for (const [bridge, id] of [[goths, gHouse], [control, cHouse]] as const) {
+      expect(bridge.selectEntityAtCell(13, 8)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(id!)).toBe(true);
+    }
+
+    // Step a fixed window: the militia lands the same number of hits in each
+    // run, and the Goths militia deals +1 vs the building per hit.
+    for (let i = 0; i < 120; i += 1) {
+      goths.step(100);
+      control.step(100);
+    }
+
+    // Destroyed → 0 remaining HP.
+    const remaining = (bridge: ReturnType<typeof createSimulationBridge>, id: number) =>
+      bridge.getEntityHealth(id)?.currentHp ?? 0;
+    const gHp = remaining(goths, gHouse!);
+    const cHp = remaining(control, cHouse!);
+
+    // The control militia actually damaged the house (guards a no-op fixture).
+    expect(cHp).toBeGreaterThan(0);
+    // Goths' +1/hit leaves the house strictly lower after the same window.
+    expect(gHp).toBeLessThan(cHp);
+  }, 30_000);
 });
 
 describe('Britons shepherd bonus — live twin-fixture sheep race', () => {

@@ -18,6 +18,7 @@ import {
   unitMinAttackRange,
 } from '../../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../../sappersTechEffects';
+import { civBuildingAttackBonus } from '../../civBonusEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { applyUnitBlast, resolveUnitAttackOnUnit } from '../blastDamage';
 import { finalizeBuildingConstruction } from '../finalizeBuildingConstruction';
@@ -27,6 +28,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  playerCivilizationsCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
@@ -75,11 +77,9 @@ export interface PlayerCommandsSystemDeps {
     target: Position,
     activeWorld: CivWorld,
   ) => boolean;
-  // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
-  // its arrival cell; returns a redirected target Position if the unit landed
-  // in overflow and a free slot exists in a neighbor cell. Caller rewrites
-  // the unit's move-command target to the returned cell so movement does not
-  // re-aim at the original full target (oscillation prevention).
+  // Spec §12.7 lazy redirect: null if the unit found a free slot at its arrival
+  // cell; a redirected target Position if it overflowed and a neighbor has a
+  // free slot (caller rewrites the move target there, preventing oscillation).
   resolveArrivalRedirect: (unitId: number, arrivalCell: Position) => Position | null;
   // Spec §12.6 visual non-overlap snap-on-stop: invoked at the move-arrival
   // site to snap fineX/fineY to the engine-allocated slot offset so two
@@ -327,15 +327,17 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             continue;
           }
 
-          // Sappers (Blacksmith, Imperial) adds +15 for infantry attackers,
-          // DERIVED from the owner's researched-tech set (no per-unit state).
+          // DERIVED vs-building bonuses (no per-unit state): Sappers tech (+15
+          // infantry) + Goths civ (+1 infantry), read fresh from owner state.
           const attackerTechs =
             accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
+          const attackerCiv = accessor.get(playerCivilizationsCodec).get(unit.owner);
           targetHealth.currentHp -= Math.max(
             0,
             attackerCombat.attackDamage
               + attackBonusAgainstBuilding(unit.unitType)
-              + sappersBuildingAttackBonus(attackerTechs, unit.unitType),
+              + sappersBuildingAttackBonus(attackerTechs, unit.unitType)
+              + civBuildingAttackBonus(attackerCiv, unit.unitType),
           );
           accessor.markDirty(buildingHealthStatesCodec);
           attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
@@ -384,12 +386,10 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
-            // Spec §12.7 lazy redirect: if the unit arrived in a fully-packed
-            // cell and ended up in overflow, rewrite the move-command target
-            // to the nearest cell with a free slot rather than clearing the
-            // command. The unit then moves toward the redirected cell next
-            // tick. The movement system never re-aims at the original full
-            // target, so no oscillation.
+            // Spec §12.7 lazy redirect: a unit that arrived in a fully-packed
+            // cell and overflowed rewrites its move-command target to the
+            // nearest free-slot cell (not clearing it) and moves there next
+            // tick; the movement system never re-aims at the full target.
             const redirectTarget = resolveArrivalRedirect(id, movePlan.destination);
             if (redirectTarget) {
               command.target = redirectTarget;

@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.83 - 2026-07-04
+
+### Goths infantry deal +1 damage against buildings
+
+The third civilization bonus: a **Goths** player's infantry (Militia and Spearman lines) deal +1 extra damage when attacking buildings, from the start of the game with no research. It stacks with the Sappers technology (+15). Only infantry get it — Goths archers, cavalry, rams, and villagers are unaffected — and only Goths.
+
+This extends the civilization-bonus layer (0.1.81/0.1.82) to a third kind of effect (attack-vs-buildings), after economy gather rate and unit HP. Every other civilization is unchanged, and there is no save-format change. Goths' larger identity (cheaper infantry, population bonus) is planned for later updates.
+
 ## 0.1.82 - 2026-07-03
 
 ### Franks Knights have +20% HP
