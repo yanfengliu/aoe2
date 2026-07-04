@@ -6,6 +6,7 @@
 import type { CombatState } from './systems/systemTypes';
 import type { ResearchableTechnologyType, UnitType } from '../types';
 import { applyArmorTech } from '../armorTechBonuses';
+import { civUnitHpMultiplier } from '../civBonusEffects';
 import {
   isArcherLineUnit,
   isCavalryUnit,
@@ -22,18 +23,23 @@ import {
 
 export interface CombatStateFactoryDeps {
   hasTechnology: (owner: number, technologyType: ResearchableTechnologyType) => boolean;
+  getCivilization: (owner: number) => string;
 }
 
 export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
   owner: number,
   unitType: UnitType,
 ) => CombatState {
-  const { hasTechnology } = deps;
+  const { hasTechnology, getCivilization } = deps;
 
   return function createCombatState(owner: number, unitType: UnitType): CombatState {
+    // Civ HP bonus (Franks Knights +20%) applies to the BASE HP before flat
+    // tech bonuses (Bloodlines, Loom) add — AoE2: knight 100 → Franks 120 →
+    // +20 Bloodlines = 140. A non-bonus civ multiplies by 1 (byte-identical).
+    const baseHp = Math.round(unitMaxHp(unitType) * civUnitHpMultiplier(getCivilization(owner), unitType));
     const state: CombatState = {
-      currentHp: unitMaxHp(unitType),
-      maxHp: unitMaxHp(unitType),
+      currentHp: baseHp,
+      maxHp: baseHp,
       attackDamage: unitAttackDamage(unitType),
       attackRange: unitAttackRange(unitType),
       reloadTicks: unitReloadTicks(unitType),

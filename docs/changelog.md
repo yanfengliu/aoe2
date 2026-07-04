@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.82 - 2026-07-03
+
+### Franks Knights have +20% HP
+
+The second civilization bonus: a **Franks** player's Knight line (Knight → Cavalier → Paladin) has +20% maximum HP, from the start of the game with no research. It stacks with Bloodlines (base 100 → 120 as Franks → 140 with Bloodlines). The bonus is knight-line-only — Scouts, Camels, and Cavalry Archers are unaffected. Because the default AI opponent is Franks, its knights are now noticeably tougher in a standard game.
+
+Every other civilization is unchanged, and there is no save-format change. This extends the civilization-bonus layer (added in 0.1.81) from economy rates to combat stats.
+
 ## 0.1.81 - 2026-07-03
 
 ### Civilizations start to matter: Britons shepherds gather sheep 25% faster

@@ -169,7 +169,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getResearchOptions,
   });
 
-  const createCombatState = createCombatStateFactory({ hasTechnology });
+  const createCombatState = createCombatStateFactory({ hasTechnology, getCivilization: getPlayerCivilization });
 
   const entityCreateOps = createEntityCreateOps({
     world,

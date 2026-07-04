@@ -26,6 +26,9 @@ export function createMangonelRangedFixture(seed: string): PrototypeScenario {
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'castle-age',
+        // Bonus-free civ so siege DAMAGE tests measure raw HP deltas, not the
+        // Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -85,6 +88,9 @@ export function createMangonelVsSpearmanFixture(seed: string): PrototypeScenario
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'castle-age',
+        // Bonus-free civ so siege DAMAGE tests measure raw HP deltas, not the
+        // Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -202,6 +208,9 @@ export function createMangonelVsKnightFixture(seed: string): PrototypeScenario {
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'castle-age',
+        // Bonus-free civ so siege DAMAGE tests measure raw HP deltas, not the
+        // Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -261,6 +270,9 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'castle-age',
+        // Bonus-free civ so siege DAMAGE tests measure raw HP deltas, not the
+        // Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -339,6 +351,9 @@ export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeSce
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'castle-age',
+        // Bonus-free civ so siege DAMAGE tests measure raw HP deltas, not the
+        // Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [

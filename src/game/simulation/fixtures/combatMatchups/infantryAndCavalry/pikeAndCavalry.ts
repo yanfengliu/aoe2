@@ -25,6 +25,9 @@ export function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'imperial-age',
+        // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
+        // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -83,6 +86,9 @@ export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'imperial-age',
+        // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
+        // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -141,6 +147,9 @@ export function createHalberdierVsCavalierFixture(seed: string): PrototypeScenar
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'imperial-age',
+        // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
+        // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [
@@ -198,6 +207,9 @@ export function createHalberdierVsKnightFixture(seed: string): PrototypeScenario
         owner: 2,
         townCenter: { x: 24, y: 8 },
         startingAge: 'imperial-age',
+        // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
+        // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
+        civilization: 'Byzantines',
       },
     ],
     spawns: [

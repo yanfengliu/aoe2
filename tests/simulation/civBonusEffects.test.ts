@@ -9,7 +9,9 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   BRITONS_SHEEP_GATHER_MULTIPLIER,
+  FRANKS_KNIGHT_HP_MULTIPLIER,
   civGatherRateMultiplier,
+  civUnitHpMultiplier,
 } from '../../src/game/simulation/civBonusEffects';
 
 // Total sheep-food owner 1 has harvested = deposited-since-start + currently
@@ -47,6 +49,60 @@ describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
     expect(civGatherRateMultiplier(undefined, 'sheep')).toBe(1);
     expect(civGatherRateMultiplier('', 'sheep')).toBe(1);
     expect(civGatherRateMultiplier('Player 3', 'sheep')).toBe(1);
+  });
+});
+
+describe('civUnitHpMultiplier — Franks knight bonus', () => {
+  it('gives Franks +20% HP to the knight line only', () => {
+    expect(civUnitHpMultiplier('Franks', 'knight')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
+    expect(civUnitHpMultiplier('Franks', 'cavalier')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
+    expect(civUnitHpMultiplier('Franks', 'paladin')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
+    expect(FRANKS_KNIGHT_HP_MULTIPLIER).toBe(1.2);
+  });
+
+  it('does not touch Franks non-knight cavalry, camels, scouts, or other units', () => {
+    // The bonus is the Knight line (knight/cavalier/paladin) only — NOT the
+    // scout line, camels, or cavalry archers.
+    expect(civUnitHpMultiplier('Franks', 'scout')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'light-cavalry')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'hussar')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'camel')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'cavalry-archer')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'militia')).toBe(1);
+    expect(civUnitHpMultiplier('Franks', 'villager')).toBe(1);
+  });
+
+  it('gives no HP bonus to any other civilization or an unknown civ', () => {
+    expect(civUnitHpMultiplier('Britons', 'knight')).toBe(1);
+    expect(civUnitHpMultiplier('Goths', 'paladin')).toBe(1);
+    expect(civUnitHpMultiplier(undefined, 'knight')).toBe(1);
+    expect(civUnitHpMultiplier('', 'knight')).toBe(1);
+  });
+});
+
+describe('Franks knight bonus — live twin-fixture HP', () => {
+  it('a Franks knight has round(base × 1.2) maxHp; a control knight has the base', () => {
+    const franks = createSimulationBridge('civ-franks-knight-fixture');
+    const control = createSimulationBridge('civ-franks-knight-control-fixture');
+    // One step so combat state is projected; HP is set at creation (no research).
+    franks.step(100);
+    control.step(100);
+
+    const knightId = (bridge: ReturnType<typeof createSimulationBridge>) =>
+      bridge.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === 'knight')?.id;
+    const franksId = knightId(franks);
+    const controlId = knightId(control);
+    expect(franksId).toBeDefined();
+    expect(controlId).toBeDefined();
+
+    const franksHp = franks.getEntityHealth(franksId!)!;
+    const controlHp = control.getEntityHealth(controlId!)!;
+
+    // Control is the raw base; Franks is +20% (rounded), applied to both current
+    // and max since a freshly-created knight is at full HP.
+    expect(controlHp.maxHp).toBeGreaterThan(0);
+    expect(franksHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
+    expect(franksHp.currentHp).toBe(franksHp.maxHp);
   });
 });
 

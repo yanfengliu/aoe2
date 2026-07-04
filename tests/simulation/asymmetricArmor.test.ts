@@ -9,7 +9,11 @@ import type { ResearchableTechnologyType, UnitType } from '../../src/game/simula
 // side) so the base CSV armor doesn't matter — isolates the split's behavior.
 function techBonus(unitType: UnitType, ...techs: ResearchableTechnologyType[]) {
   const set = new Set(techs);
-  const factory = createCombatStateFactory({ hasTechnology: (_owner, tech) => set.has(tech) });
+  const factory = createCombatStateFactory({
+    hasTechnology: (_owner, tech) => set.has(tech),
+    // Armor test — a non-Franks civ keeps HP (and thus every assertion) unchanged.
+    getCivilization: () => 'Byzantines',
+  });
   const state = factory(1, unitType);
   return { melee: state.armor, pierce: pierceArmorTechBonus(state) };
 }
