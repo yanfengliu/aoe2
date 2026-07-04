@@ -8,11 +8,13 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
+  AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER,
   BRITONS_SHEEP_GATHER_MULTIPLIER,
   FRANKS_KNIGHT_HP_MULTIPLIER,
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
+  civTrainTimeMultiplier,
   civUnitHpMultiplier,
 } from '../../src/game/simulation/civBonusEffects';
 
@@ -130,6 +132,54 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
     expect(franksHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
     expect(franksHp.currentHp).toBe(franksHp.maxHp);
   });
+});
+
+describe('civTrainTimeMultiplier — Aztecs military creation speed', () => {
+  it('trains Aztecs military units 15% faster (×0.85)', () => {
+    expect(civTrainTimeMultiplier('Aztecs', 'militia')).toBe(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER);
+    expect(civTrainTimeMultiplier('Aztecs', 'archer')).toBe(0.85);
+    expect(civTrainTimeMultiplier('Aztecs', 'knight')).toBe(0.85);
+    expect(civTrainTimeMultiplier('Aztecs', 'monk')).toBe(0.85);
+    expect(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER).toBe(0.85);
+  });
+
+  it('does NOT speed up Aztecs villager training (military only)', () => {
+    expect(civTrainTimeMultiplier('Aztecs', 'villager')).toBe(1);
+  });
+
+  it('gives no bonus to any other civilization or an unknown civ', () => {
+    expect(civTrainTimeMultiplier('Franks', 'militia')).toBe(1);
+    expect(civTrainTimeMultiplier('Goths', 'knight')).toBe(1);
+    expect(civTrainTimeMultiplier(undefined, 'militia')).toBe(1);
+    expect(civTrainTimeMultiplier('', 'militia')).toBe(1);
+  });
+});
+
+describe('Aztecs creation-speed bonus — live twin-fixture train race', () => {
+  it('an Aztecs Barracks trains a Militia in fewer ticks than a control', () => {
+    const ticksToMilitia = (fixtureName: string): number => {
+      const bridge = createSimulationBridge(fixtureName);
+      expect(bridge.selectEntityAtCell(4, 10)).toBe(true); // the Barracks
+      expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
+      expect(bridge.queueTrainUnit('militia')).toBe(true);
+      const militiaCount = () =>
+        bridge.getEconomyState().units.filter((u) => u.owner === 1 && u.unitType === 'militia').length;
+      let ticks = 0;
+      while (militiaCount() < 1 && ticks < 600) {
+        bridge.step(100);
+        ticks += 1;
+      }
+      expect(militiaCount()).toBe(1);
+      return ticks;
+    };
+
+    const aztecs = ticksToMilitia('civ-aztecs-train-fixture');
+    const control = ticksToMilitia('civ-aztecs-train-control-fixture');
+    // Aztecs train military 15% faster → the Militia appears in strictly fewer
+    // ticks (both trained the same unit from the same base time).
+    expect(control).toBeGreaterThan(0);
+    expect(aztecs).toBeLessThan(control);
+  }, 30_000);
 });
 
 describe('Goths infantry-vs-buildings bonus — live twin-fixture raze race', () => {

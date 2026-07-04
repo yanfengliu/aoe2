@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.84 - 2026-07-04
+
+### Aztecs create military units 15% faster
+
+The fourth civilization bonus: an **Aztecs** player trains every military unit (all non-villager units — infantry, archers, cavalry, siege, and monks) in 15% less time. Villagers are unaffected. Both your own production and the AI's benefit consistently.
+
+This extends the civilization-bonus layer (0.1.81–0.1.83) to a fourth kind of effect (unit creation speed), after economy gather rate, unit HP, and attack-vs-buildings. Every other civilization is unchanged, and there is no save-format change.
+
 ## 0.1.83 - 2026-07-04
 
 ### Goths infantry deal +1 damage against buildings

@@ -24,6 +24,9 @@ export const FRANKS_KNIGHT_HP_MULTIPLIER = 1.2;
 // Goths infantry deal +1 attack against buildings (from game start).
 export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
 
+// Aztecs military units train 15% faster (×0.85 train time).
+export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
+
 // The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
 // Scout line, Camels, and Cavalry Archers (which are also mounted).
 const KNIGHT_LINE_UNITS = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
@@ -64,4 +67,18 @@ export function civBuildingAttackBonus(
     return GOTHS_INFANTRY_BUILDING_ATTACK_BONUS;
   }
   return 0;
+}
+
+// The owner's civilization train-TIME multiplier for a unit type. 1.0 (no
+// change) unless a civ bonus matches. Aztecs train MILITARY (every non-villager
+// trainable) 15% faster; villagers are unaffected. Applied to the unit's total
+// train ticks at the single enqueue site (trainingMarketOps).
+export function civTrainTimeMultiplier(
+  civilization: string | undefined,
+  unitType: UnitType,
+): number {
+  if (civilization === 'Aztecs' && unitType !== 'villager') {
+    return AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER;
+  }
+  return 1;
 }
