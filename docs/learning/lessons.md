@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Read engine-tool output by LABEL, never by column position — a transposed food/gold column misdirected 3 increments — 2026-07-04
+
+| Field | Value |
+|---|---|
+| Surfaced by | The v0.1.92 wood investigation. An explicit-label dump (`FOOD=94 WOOD=1 GOLD=1084`) contradicted my v0.1.90–91 reading of the SAME replayed state as "food 1084, gold 75." Corpus corrections in the v0.1.90–92 devlog CORRECTION entry: [2026-07-03_2026-07-04.md](../devlog/detailed/2026-07-03_2026-07-04.md). |
+| Reviewer findings | n/a — self-caught by re-dumping with labels; the in-process reviewers didn't catch it because they reviewed the CODE/E2E (correct) not my prose reading of the corpus table. |
+| Fix commit | none yet — the mis-grounded v0.1.92 reorder was reverted unshipped; v0.1.89–91 stay (their code is correct + unit-tested, just inert in the corpus). |
+| Test added | n/a — process lesson. |
+| Behavior delta | `scripts/replay-inspect.mjs` prints `… | wood | food | gold | stone | …`. I read the `gold` value (1084) as `food` and a lower column as `gold`, concluding "the AI banks 800+ food and is gold-blocked at 75." Truth: it banks GOLD (~1084, over-gathered/unspent) and STARVES food (~94, all spent) — the opposite. Every v0.1.90 (reserve) and v0.1.91 (market-trade) design rested on that inverted read; both turned out INERT in the corpus anyway (the AI has only 1/2 Castle prereqs so it never even qualifies for the age-up those fixes target — a second positional/lookup error, counting `barracks` as a Feudal prereq when the set is {stable, archery-range, blacksmith, market}). |
+
+Lesson: when a number from `getEconomyState`/`replay-inspect` is going to drive a decision or a doc claim, read it by EXPLICIT LABEL — dump `FOOD=… WOOD=… GOLD=…` (or read the printf field order in the script) — never eyeball a positional table and never trust a set-membership probe you hand-rolled (verify the real predicate, e.g. `FEUDAL_AGE_PREREQUISITE_BUILDINGS`, don't guess its members). A transposed column or a wrong prereq set is invisible (the numbers "look plausible") yet silently inverts the whole diagnosis, so every downstream fix targets the wrong constraint. This is the concrete, expensive instance of "verify the MECHANISM before attributing a stall to the lever you changed": I verified a number but mis-parsed it, which is worse than not checking — it manufactured false confidence across three increments.
+Pointer: the v0.1.90–92 devlog CORRECTION entry; `scripts/replay-inspect.mjs:63,88` (header vs printf field order); `src/game/simulation/prototypeBuildingRules.ts:280` (the real Feudal-prereq set).
+
 ## Adversarial reviewer subagents can spawn nested grandchildren that orphan as stale "running" chips — tell them not to — 2026-07-04
 
 | Field | Value |
