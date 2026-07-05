@@ -1380,7 +1380,7 @@ The UI should support a technology-tree view that:
 
 The north star is the look and polish of an Age of Empires II HD clone, reached entirely through ORIGINAL/procedural art that evokes that look — no copyrighted Age of Empires assets (sprites, textures, UI art, audio) are reproduced. Presentation targets:
 
-- isometric RTS readability
+- isometric RTS readability — ACTIVELY IN PROGRESS (user direction 2026-07-05: the top-down primitive look reads too simplistic vs AoE2; the chosen fix is a full isometric 2.5D + detailed-procedural-art overhaul, executed increment-by-increment). The render pipeline moves from top-down (`cell·cellSize`) to a 2:1 diamond-tile isometric projection via a pure seam — `worldToIso(cellX, cellY, elevation)` / `isoToWorld` (`src/phaser/scenes/gameScene/isoProjection.ts`, shipped as the isometric-overhaul foundation) — that every renderer places entities through and the pointer→cell hit-test inverts. The camera stays a normal Phaser 2D camera; only per-cell placement changes. Then terrain becomes diamond tiles, entities are depth-sorted (painter's order by `cellX+cellY`), and buildings/units are redrawn as detailed 3/4-view procedural shapes with consistent lighting. Full plan + increment sequence: `docs/threads/current/isometric-overhaul/DESIGN.md`. Original/procedural art only (evokes AoE2, not identical)
 - clear faction-color ownership
 - directional unit animation
 - construction, damage, and rubble states for buildings
