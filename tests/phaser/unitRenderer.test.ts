@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView, UnitType } from '../../src/game/simulation/types';
 import {
+  UNIT_SHADOW_ALPHA,
+  UNIT_SHADOW_COLOR,
   createUnitRenderer,
   unitFacingRadians,
   unitRole,
+  unitShadowEllipse,
   type UnitRole,
 } from '../../src/phaser/scenes/gameScene/unitRenderer';
 import { ALL_UNIT_TYPES } from '../../src/phaser/scenes/gameScene/unitTypeMap';
@@ -164,6 +167,36 @@ describe('unitFacingRadians', () => {
   });
 });
 
+describe('unitShadowEllipse', () => {
+  it('is a flattened ellipse nudged below centre, within the bounding radius', () => {
+    const r = 10;
+    const s = unitShadowEllipse(100, 200, r);
+    expect(s.x).toBe(100); // horizontally centred under the unit
+    expect(s.y).toBeGreaterThan(200); // nudged below centre → reads as ground
+    expect(s.width).toBeGreaterThan(s.height); // flattened
+    // Every bounding-box corner stays within the unit's bounding radius so the
+    // health-bar / selection-ring geometry is unchanged.
+    for (const [ex, ey] of [
+      [s.x - s.width / 2, s.y - s.height / 2],
+      [s.x + s.width / 2, s.y + s.height / 2],
+    ] as Array<[number, number]>) {
+      expect(Math.hypot(ex - 100, ey - 200)).toBeLessThanOrEqual(r);
+    }
+  });
+
+  it('scales with the bounding radius', () => {
+    const small = unitShadowEllipse(0, 0, 5);
+    const big = unitShadowEllipse(0, 0, 10);
+    expect(big.width).toBeCloseTo(small.width * 2);
+    expect(big.height).toBeCloseTo(small.height * 2);
+  });
+
+  it('UNIT_SHADOW_ALPHA is a subtle translucency', () => {
+    expect(UNIT_SHADOW_ALPHA).toBeGreaterThan(0);
+    expect(UNIT_SHADOW_ALPHA).toBeLessThan(0.5);
+  });
+});
+
 describe('createUnitRenderer.drawUnit', () => {
   function drawRole(unitType: UnitType, size: number) {
     const spy = createGraphicsSpy();
@@ -180,6 +213,24 @@ describe('createUnitRenderer.drawUnit', () => {
       const { spy } = drawRole(unitType, 0.55);
       const fillOps = spy.calls.filter((c) => c.op.startsWith('fill') && c.op !== 'fillStyle');
       expect(fillOps.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('draws a translucent ground shadow ellipse FIRST (before the body) for every role', () => {
+    for (const unitType of Object.keys(ALL_UNIT_TYPES) as UnitType[]) {
+      const { spy } = drawRole(unitType, 0.55);
+      // The first geometry fill is the shadow ellipse (so the body draws on top).
+      const firstFill = spy.calls.find(
+        (c) => c.op.startsWith('fill') && c.op !== 'fillStyle',
+      );
+      expect(firstFill?.op, unitType).toBe('fillEllipse');
+      // …styled as a translucent dark: a fillStyle(SHADOW_COLOR, SHADOW_ALPHA)
+      // precedes it.
+      const shadowStyle = spy.calls.find(
+        (c) => c.op === 'fillStyle' && c.args[0] === UNIT_SHADOW_COLOR,
+      );
+      expect(shadowStyle, unitType).toBeDefined();
+      expect(shadowStyle!.args[1]).toBeCloseTo(UNIT_SHADOW_ALPHA);
     }
   });
 
@@ -222,7 +273,11 @@ describe('createUnitRenderer.drawUnit', () => {
     expect(siege.calls.some((c) => c.op === 'fillRect' || c.op === 'fillRoundedRect')).toBe(true);
     // monk: a cross -> at least two line segments
     expect(monk.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(2);
-    // cavalry: an elongated mount body -> an ellipse
-    expect(cavalry.calls.some((c) => c.op === 'fillEllipse')).toBe(true);
+    // cavalry: an elongated mount body -> a SECOND ellipse beyond the ground
+    // shadow every unit now draws (so >= 2 ellipses; infantry draws only the 1
+    // shadow ellipse).
+    expect(cavalry.calls.filter((c) => c.op === 'fillEllipse').length).toBeGreaterThanOrEqual(2);
+    const infantry = drawRole('militia', 0.5).spy;
+    expect(infantry.calls.filter((c) => c.op === 'fillEllipse').length).toBe(1);
   });
 });

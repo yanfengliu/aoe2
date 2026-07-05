@@ -148,6 +148,30 @@ function darken(tint: number, factor: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
+// v0.1.102 (M7 graphics): a subtle ground shadow under every unit. Black,
+// translucent — reads as the unit standing ON the terrain instead of a flat
+// silhouette painted over it.
+export const UNIT_SHADOW_COLOR = 0x000000;
+export const UNIT_SHADOW_ALPHA = 0.2;
+
+// The ground-shadow ellipse for a unit centred at (cx, cy) with the given
+// bounding radius: a flattened ellipse nudged just below centre. Every
+// bounding-box corner stays within the bounding radius so the health-bar /
+// selection-ring geometry (which assumes that circle) is unchanged. Pure.
+export function unitShadowEllipse(
+  cx: number,
+  cy: number,
+  boundingRadius: number,
+): { x: number; y: number; width: number; height: number } {
+  const width = boundingRadius * 1.5; // 0.75 × the bounding diameter
+  return {
+    x: cx,
+    y: cy + boundingRadius * 0.15, // nudged below centre → reads as ground
+    width,
+    height: width * 0.34, // flattened
+  };
+}
+
 export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
   const { graphics, cellSize } = deps;
 
@@ -170,6 +194,11 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     const tint = entity.tint;
     const outline = darken(tint, 0.55);
     const outlineAlpha = Math.min(1, fillAlpha);
+
+    // Ground shadow FIRST so the body silhouette draws on top of it.
+    const shadow = unitShadowEllipse(cx, cy, r);
+    graphics.fillStyle(UNIT_SHADOW_COLOR, UNIT_SHADOW_ALPHA * fillAlpha);
+    graphics.fillEllipse(shadow.x, shadow.y, shadow.width, shadow.height);
 
     const role = unitRole(entity.entityType as UnitType);
     switch (role) {

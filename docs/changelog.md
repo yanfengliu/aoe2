@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.102 - 2026-07-05
+
+### Units cast a ground shadow
+
+Every unit now draws a subtle translucent ground shadow beneath it, so units read as standing *on* the terrain instead of as flat silhouettes painted over it. First step of a graphics-polish pass. Purely visual — no effect on gameplay, selection, or health bars.
+
 ## 0.1.101 - 2026-07-05
 
 ### Civilization roster capped to five
