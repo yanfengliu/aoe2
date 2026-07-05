@@ -81,4 +81,34 @@ describe('createGameMenu', () => {
     expect(menu.isOpen()).toBe(false);
     expect(() => menu.toggle()).not.toThrow();
   });
+
+  // v0.1.97: auto-pause the sim while the menu is up (players expect Esc to
+  // pause), restoring the PRIOR pause state on close so it never resumes a game
+  // the player had paused independently.
+  it('pauses the sim on open', () => {
+    const root = mount();
+    const setPaused = vi.fn();
+    const menu = createGameMenu(root, { setPaused, isPaused: () => false });
+    menu.open();
+    expect(setPaused).toHaveBeenCalledWith(true);
+  });
+
+  it('resumes the sim on close when it was running before the menu opened', () => {
+    const root = mount();
+    const setPaused = vi.fn();
+    const menu = createGameMenu(root, { setPaused, isPaused: () => false });
+    menu.open();
+    menu.close();
+    expect(setPaused).toHaveBeenLastCalledWith(false);
+  });
+
+  it('leaves the sim paused on close if the player had already paused it', () => {
+    const root = mount();
+    const setPaused = vi.fn();
+    // isPaused() is true at open time → the menu must NOT auto-resume on close.
+    const menu = createGameMenu(root, { setPaused, isPaused: () => true });
+    menu.open();
+    menu.close();
+    expect(setPaused).not.toHaveBeenCalledWith(false);
+  });
 });

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.97 - 2026-07-05
+
+### The game menu (Esc / ☰) now pauses the game
+
+Opening the game menu with **Esc** or the **☰** button now pauses the simulation, and closing it (Resume, the backdrop, or Esc again) resumes — so you can step away or think without the match running on. If you had already paused the game yourself before opening the menu, closing it leaves the game paused rather than resuming it. This completes the menu shipped in 0.1.95, where auto-pause was deferred.
+
 ## 0.1.96 - 2026-07-04
 
 ### AI no longer freezes one age short when it qualifies while villager-poor

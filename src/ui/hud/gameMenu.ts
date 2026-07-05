@@ -51,16 +51,21 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
 
   const isOpen = (): boolean => !menu.hidden;
 
+  // v0.1.97: whether the sim was ALREADY paused when the menu opened, so close()
+  // restores that state rather than blindly resuming — the menu must never
+  // un-pause a game the player had paused independently.
+  let wasPausedBeforeOpen = false;
+
   const open = (): void => {
     if (isOpen()) {
       return;
     }
     menu.hidden = false;
     menuButton?.setAttribute('aria-expanded', 'true');
-    // NOTE: auto-pausing the sim while the menu is open is deferred — the tick
-    // test-harness (`advanceTicks`) respects the manual pause, so pausing here
-    // would need `advanceTicks` to unpause→step→repause first. The `setPaused` /
-    // `isPaused` deps are kept wired so that follow-up is a small local change.
+    // Auto-pause the sim while the menu is up (players expect Esc to pause),
+    // remembering the prior pause state for close().
+    wasPausedBeforeOpen = deps.isPaused?.() ?? false;
+    deps.setPaused?.(true);
     resumeButton?.focus();
   };
 
@@ -70,6 +75,10 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
     }
     menu.hidden = true;
     menuButton?.setAttribute('aria-expanded', 'false');
+    // Only resume if the player had NOT already paused before opening the menu.
+    if (!wasPausedBeforeOpen) {
+      deps.setPaused?.(false);
+    }
     menuButton?.focus();
   };
 
