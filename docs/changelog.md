@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.100 - 2026-07-05
+
+### Slavs civilization bonus: farmers work 15% faster
+
+Added the Slavs civilization — its villagers gather from **farms 15% faster**, matching Age of Empires II. It joins the roster of civilizations with an active bonus (Britons, Franks, Goths, Aztecs, Mongols). Pick Slavs with `?civ=Slavs`. Every other civilization is unchanged.
+
 ## 0.1.99 - 2026-07-05
 
 ### Mongols civilization bonus: Light Cavalry and Hussars have +30% HP
