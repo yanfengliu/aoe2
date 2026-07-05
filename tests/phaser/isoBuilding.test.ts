@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { isoBuildingPolys } from '../../src/phaser/scenes/gameScene/isoBuilding';
+import { drawIsoBuilding, isoBuildingPolys } from '../../src/phaser/scenes/gameScene/isoBuilding';
 import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
+
+interface DrawCall {
+  op: string;
+  pointCount?: number;
+}
+function createIsoBuildingSpy() {
+  const calls: DrawCall[] = [];
+  const graphics = {
+    fillStyle: () => {},
+    lineStyle: () => {},
+    fillPoints: (pts: Array<{ x: number; y: number }>) => calls.push({ op: 'fillPoints', pointCount: pts.length }),
+    strokePoints: (pts: Array<{ x: number; y: number }>) => calls.push({ op: 'strokePoints', pointCount: pts.length }),
+  } as unknown as Phaser.GameObjects.Graphics;
+  return { graphics, calls };
+}
+const STYLE = { tint: 0x88aa44, outline: 0x223311, fillAlpha: 1, outlineAlpha: 1 };
 
 // A 2x2 building footprint anchored at cell (10,10). Ground diamond corners are
 // the iso projection of the footprint's four cell corners.
@@ -57,5 +73,23 @@ describe('isoBuildingPolys — 3/4-view iso building volume geometry', () => {
         expect(point.y).toBeLessThanOrEqual(groundMaxY + 0.001);
       }
     }
+  });
+});
+
+describe('drawIsoBuilding — front-wall facade door', () => {
+  const corners = footprint2x2();
+
+  it('draws a doorway (an extra filled polygon) on a tall-enough building', () => {
+    const spy = createIsoBuildingSpy();
+    drawIsoBuilding(spy.graphics, corners, 60, STYLE);
+    // ground + left wall + right wall + DOOR + roof = 5 filled polygons
+    expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(5);
+  });
+
+  it('omits the doorway on a short (flat / low) building', () => {
+    const spy = createIsoBuildingSpy();
+    drawIsoBuilding(spy.graphics, corners, 10, STYLE);
+    // ground + left + right + roof = 4 (no door)
+    expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(4);
   });
 });

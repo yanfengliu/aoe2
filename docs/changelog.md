@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.109 - 2026-07-05
+
+### Buildings get a doorway
+
+Buildings tall enough to have a wall (everything but flat plots like farms and low walls) now show a dark doorway on their front-lit wall face, so they read as real structures with an entrance rather than plain coloured boxes. Purely visual.
+
 ## 0.1.108 - 2026-07-05
 
 ### Units bob to life (idle sway + walk bounce)

@@ -94,6 +94,25 @@ export function drawIsoBuilding(
   g.fillStyle(darken(tint, 0.4), fillAlpha);
   g.fillPoints(polys.rightFace, true);
 
+  // Facade: a dark doorway on the front-lit wall for tall-enough buildings, so
+  // they read as structures with an entrance (skipped for flat/low footprints
+  // like farms and walls). The door is a parallelogram on the left face — its
+  // base a slice of the ground `left→bottom` edge, extruded up.
+  if (heightPx > 22) {
+    const lerp = (a: IsoPoint, b: IsoPoint, t: number): IsoPoint => ({
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+    });
+    const baseA = lerp(corners.left, corners.bottom, 0.4);
+    const baseB = lerp(corners.left, corners.bottom, 0.6);
+    const doorH = heightPx * 0.55;
+    g.fillStyle(darken(tint, 0.62), fillAlpha);
+    g.fillPoints(
+      [baseA, baseB, { x: baseB.x, y: baseB.y - doorH }, { x: baseA.x, y: baseA.y - doorH }],
+      true,
+    );
+  }
+
   // Roof cap — the raw owner tint (the brightest, most colour-legible surface,
   // catching the light) unless the role overrides it.
   g.fillStyle(style.roofTint ?? tint, fillAlpha);
