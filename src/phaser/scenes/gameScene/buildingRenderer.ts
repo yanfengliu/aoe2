@@ -1,32 +1,51 @@
 // Building entity renderer factored out of `GameScene.ts`.
 //
-// M7 building-visuals slice 1: completed buildings used to draw ONE generic
-// body rect + roof triangle regardless of type. They now draw a READABLE
-// PER-ROLE procedural silhouette (`buildingRole` → `drawBuildingSilhouette`),
-// the building analogue of the v0.1.41 per-role unit silhouettes — so a Town
-// Center, House, Castle, Wonder, Mill, Tower, Wall, Farm, … are distinguishable
-// at a glance. Body fill = owner `tint`; details = a darkened tint. Pure
-// per-frame draw (no random/time); every primitive stays inside the footprint
-// rect so HP-bar / selection / footprint geometry is unchanged.
-//
-// The construction (foundation slab + scaffold posts) and memory (flat ghost)
-// paths are role-AGNOSTIC and unchanged — a building under construction or a
-// last-seen ghost reads the same for every type by design. Deferred (M7):
-// per-building (vs per-role) silhouettes, a construction→complete progress
-// fill, rubble/damage states, per-civ architecture.
+// M7 isometric overhaul increment 6: a completed building draws as a 3/4-view
+// ISO VOLUME — its footprint diamond (the four cell corners projected via
+// worldToIso) extruded up by a per-role height into a solid box with a lit + a
+// shadowed wall face and an owner-tinted roof (`isoBuilding.drawIsoBuilding`),
+// then the role's roof accent (`buildingRoofAccents` — a Wonder dome, Monastery
+// cross, Castle/Tower/Wall merlons, Barracks banner, Mill blades, Town Center
+// turret) so every type still reads distinctly. Construction draws a low stub of
+// the volume; a last-seen memory ghost is the flat footprint diamond at half
+// alpha. Pure per-frame draw (no random/time). Deferred: per-building facades,
+// a construction→complete progress fill, rubble/damage, per-civ architecture.
 //
 // Output shape: a single `renderBuildingEntity(entity, px, py)` that returns an
 // optional `BuildingVisualState` (null for memory buildings + non-buildings).
-// The scene's existing buffer (`lastBuildingVisualStates`) collects those
-// records for the browser-test assertions; the boolean flags below preserve the
-// pre-slice contract (completed → body/roof/completion; construction →
-// foundation/scaffold/construction).
+// The scene's `lastBuildingVisualStates` buffer collects those records for the
+// browser-test assertions; the boolean flags preserve the pre-iso contract
+// (completed → body/roof/completion; construction → foundation/scaffold/
+// construction). The render loop's px/py anchor is unused here — the iso volume
+// is positioned from the cell coords directly.
 
 import Phaser from 'phaser';
 
 import type { BuildingType, ProjectedEntityView } from '../../../game/simulation/types';
-import { buildingRole } from './buildingRole';
-import { darken, drawBuildingSilhouette } from './buildingSilhouettes';
+import { buildingRole, type BuildingRole } from './buildingRole';
+import { drawBuildingRoofAccent } from './buildingRoofAccents';
+import { darken, drawIsoBuilding, type FootprintDiamond } from './isoBuilding';
+import { ISO_TILE_HEIGHT, worldToIso } from './isoProjection';
+
+// Wall height per role, in iso-tile-height units (× ISO_TILE_HEIGHT px). Bigger,
+// grander structures rise taller; flat plots (farm) stay near the ground. This
+// is what differentiates the extruded iso volumes by role at a glance, before
+// the per-role roof accent is layered on top.
+const ISO_HEIGHT_CELLS_BY_ROLE: Record<BuildingRole, number> = {
+  'town-center': 1.7,
+  fortress: 2.4,
+  wonder: 2.8,
+  house: 1.05,
+  mill: 1.2,
+  farm: 0.06,
+  'drop-site': 0.85,
+  military: 1.35,
+  blacksmith: 1.2,
+  market: 0.85,
+  monastery: 1.7,
+  tower: 2.1,
+  wall: 0.5,
+};
 
 // Re-exported from GameScene.ts for backward compatibility — moving the
 // type here would force every existing import to update. The shape is
@@ -70,58 +89,17 @@ export interface BuildingRenderer {
 export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRenderer {
   const { entityLayer, cellSize } = deps;
 
-  function renderBuildingFoundation(
-    px: number,
-    py: number,
-    widthPx: number,
-    heightPx: number,
-  ): void {
-    const inset = 4;
-    const slabX = px + inset;
-    const slabY = py + inset;
-    const slabWidth = Math.max(8, widthPx - inset * 2);
-    const slabHeight = Math.max(8, heightPx - inset * 2);
-
-    entityLayer.fillStyle(0xc8bea8, 0.92);
-    entityLayer.fillRoundedRect(slabX, slabY, slabWidth, slabHeight, 3);
-    entityLayer.lineStyle(2, 0x6a6257, 0.95);
-    entityLayer.strokeRoundedRect(slabX, slabY, slabWidth, slabHeight, 3);
-
-    entityLayer.lineStyle(1, 0xece4d2, 0.7);
-    entityLayer.lineBetween(
-      slabX + slabWidth * 0.5,
-      slabY + 2,
-      slabX + slabWidth * 0.5,
-      slabY + slabHeight - 2,
-    );
-    entityLayer.lineBetween(
-      slabX + 2,
-      slabY + slabHeight * 0.5,
-      slabX + slabWidth - 2,
-      slabY + slabHeight * 0.5,
-    );
-  }
-
-  function renderConstructionPosts(
-    px: number,
-    py: number,
-    widthPx: number,
-    heightPx: number,
-  ): void {
-    const postInset = 5;
-    const postHeight = Math.max(8, Math.min(16, heightPx * 0.45));
-    const topY = py + postInset;
-    const bottomY = topY + postHeight;
-    const leftX = px + postInset;
-    const rightX = px + widthPx - postInset;
-
-    entityLayer.lineStyle(2, 0x8d6c49, 0.95);
-    entityLayer.lineBetween(leftX, topY, leftX, bottomY);
-    entityLayer.lineBetween(rightX, topY, rightX, bottomY);
-    entityLayer.lineBetween(leftX, topY, rightX, topY);
-    entityLayer.lineStyle(2, 0xf5e9cf, 0.8);
-    entityLayer.lineBetween(leftX, bottomY, rightX, topY);
-    entityLayer.lineBetween(leftX, topY, rightX, bottomY);
+  // Footprint diamond in camera-world (iso-pixel) space — the building's four
+  // cell corners projected. The entity layer draws in this space, so we compute
+  // it straight from the cell coords; the render loop's px/py (a unit-style
+  // anchor) is unused for the extruded iso volume.
+  function footprintDiamond(entity: ProjectedEntityView): FootprintDiamond {
+    return {
+      top: worldToIso(entity.x, entity.y),
+      right: worldToIso(entity.x + entity.footprintWidth, entity.y),
+      bottom: worldToIso(entity.x + entity.footprintWidth, entity.y + entity.footprintHeight),
+      left: worldToIso(entity.x, entity.y + entity.footprintHeight),
+    };
   }
 
   function renderBuildingEntity(
@@ -129,6 +107,8 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
     px: number,
     py: number,
   ): BuildingRendererVisualState | null {
+    void px;
+    void py;
     if (entity.kind !== 'building') {
       return null;
     }
@@ -136,16 +116,14 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
     const widthPx = entity.footprintWidth * cellSize;
     const heightPx = entity.footprintHeight * cellSize;
     const isConstruction = entity.visualVariant === 'construction';
-    // Memory buildings are last-seen snapshots drawn at half opacity to cue the
-    // player that the information may be stale.
-    const baseFillAlpha = isConstruction ? 0.62 : 1;
+    const baseFillAlpha = isConstruction ? 0.72 : 1;
     const fillAlpha = entity.isMemory ? baseFillAlpha * 0.5 : baseFillAlpha;
-    const strokeAlpha = entity.isMemory ? 0.5 : 0.98;
+    const outlineAlpha = entity.isMemory ? 0.5 : 0.98;
 
-    entityLayer.lineStyle(3, isConstruction ? 0xf7e6c3 : 0x2b2117, strokeAlpha);
-    entityLayer.fillStyle(entity.tint, fillAlpha);
-    entityLayer.fillRoundedRect(px, py, widthPx, heightPx, 6);
-    entityLayer.strokeRoundedRect(px, py, widthPx, heightPx, 6);
+    const corners = footprintDiamond(entity);
+    const groundDiamond = [corners.top, corners.right, corners.bottom, corners.left];
+    const role = buildingRole(entity.entityType as BuildingType);
+    const outline = darken(entity.tint, 0.55);
 
     let hasFoundationSlab = false;
     let hasScaffoldPosts = false;
@@ -155,40 +133,48 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
     let hasCompletionAccent = false;
 
     if (entity.isMemory) {
-      // Memory buildings render as a flat tinted rectangle only — the detailed
-      // silhouette would paint fully-opaque pixels over the ghost, so we skip it
-      // and rely on the base fillAlpha to communicate "stale / last-seen".
-    } else if (isConstruction) {
-      renderBuildingFoundation(px, py, widthPx, heightPx);
-      renderConstructionPosts(px, py, widthPx, heightPx);
+      // Last-seen ghost: the flat footprint diamond at half alpha (no volume —
+      // an extruded box would paint opaque pixels over the "stale" cue).
+      entityLayer.fillStyle(entity.tint, fillAlpha);
+      entityLayer.fillPoints(groundDiamond, true);
+      entityLayer.lineStyle(1.5, outline, outlineAlpha);
+      entityLayer.strokePoints(groundDiamond, true, true);
+      return null; // memory buildings do not contribute a visual-state record
+    }
+
+    const fullHeightPx = ISO_HEIGHT_CELLS_BY_ROLE[role] * ISO_TILE_HEIGHT;
+
+    if (isConstruction) {
+      // Under construction: a low stub of the eventual volume, iso-consistent
+      // with the ground, at construction alpha so it reads as "rising".
+      drawIsoBuilding(entityLayer, corners, fullHeightPx * 0.4, {
+        tint: entity.tint,
+        outline: 0xf7e6c3,
+        fillAlpha,
+        outlineAlpha,
+      });
       hasFoundationSlab = true;
       hasScaffoldPosts = true;
       hasConstructionIndicator = true;
     } else {
-      // Completed building: a readable per-role silhouette inside the footprint
-      // rect. The flags below stay semantically "drew a completed structure with
-      // a top accent" so the browser-test contract (house/TC) is preserved
-      // across every role.
-      drawBuildingSilhouette(buildingRole(entity.entityType as BuildingType), {
-        g: entityLayer,
-        x: px,
-        y: py,
-        w: widthPx,
-        h: heightPx,
+      // Completed: the full extruded iso volume + the role's roof accent so a
+      // Wonder / Castle / Monastery / Barracks / Mill / Town Center still reads
+      // distinctly (the iso analogue of the old flat per-role silhouettes).
+      const roof = drawIsoBuilding(entityLayer, corners, fullHeightPx, {
         tint: entity.tint,
-        outline: darken(entity.tint, 0.55),
+        outline,
         fillAlpha,
-        outlineAlpha: Math.min(1, fillAlpha),
+        outlineAlpha,
+      });
+      drawBuildingRoofAccent(entityLayer, role, roof, {
+        tint: entity.tint,
+        outline,
+        fillAlpha,
+        outlineAlpha,
       });
       hasStructureBody = true;
       hasRoofAccent = true;
       hasCompletionAccent = true;
-    }
-
-    if (entity.isMemory) {
-      // Memory buildings do not contribute to visual-state test assertions — they
-      // are ghosts of buildings the player has not confirmed still exist.
-      return null;
     }
 
     return {

@@ -7,6 +7,7 @@ import {
   type BuildingRole,
 } from '../../src/phaser/scenes/gameScene/buildingRole';
 import { createBuildingRenderer } from '../../src/phaser/scenes/gameScene/buildingRenderer';
+import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 
 const CELL_SIZE = 24;
 
@@ -77,6 +78,12 @@ function createGraphicsSpy() {
     },
     strokeRoundedRect: (x: number, y: number, w: number, h: number) => {
       record('strokeRoundedRect', [[x, y], [x + w, y + h]]);
+    },
+    fillPoints: (pts: Array<{ x: number; y: number }>) => {
+      record('fillPoints', pts.map((p) => [p.x, p.y] as [number, number]));
+    },
+    strokePoints: (pts: Array<{ x: number; y: number }>) => {
+      record('strokePoints', pts.map((p) => [p.x, p.y] as [number, number]));
     },
     fillTriangle: (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) => {
       record('fillTriangle', [[x1, y1], [x2, y2], [x3, y3]]);
@@ -173,49 +180,51 @@ describe('createBuildingRenderer.renderBuildingEntity', () => {
     expect(usedTint).toBe(true);
   });
 
-  it('keeps every drawn point within the building footprint rect for every type', () => {
-    // Selection ring, footprint outline, and HP-bar geometry assume the building
-    // occupies exactly its footprint rect. A small tolerance covers outline
-    // stroke widths. (Crossing the rect would break those overlays.)
+  it('anchors the iso volume on the footprint diamond and stays horizontally within it', () => {
+    // The extruded volume rises ABOVE the footprint (roof lifted), but its
+    // horizontal span must stay within the footprint's iso diamond (its four
+    // cell corners projected) so it reads as sitting on those cells. Vertically
+    // it may rise (roof + accents) but never sink below the ground diamond.
     const tol = 3;
     for (const buildingType of ALL_BUILDING_TYPES) {
       const fp = AUTHORITATIVE_BUILDING_FOOTPRINTS[buildingType];
-      const { spy, px, py } = render({
+      const entity = createBuilding({
         entityType: buildingType,
         footprintWidth: fp.width,
         footprintHeight: fp.height,
         visualVariant: 'complete',
       });
-      const minX = px - tol;
-      const minY = py - tol;
-      const maxX = px + fp.width * CELL_SIZE + tol;
-      const maxY = py + fp.height * CELL_SIZE + tol;
+      const spy = createGraphicsSpy();
+      const renderer = createBuildingRenderer({ entityLayer: spy.graphics as never, cellSize: CELL_SIZE });
+      renderer.renderBuildingEntity(entity, 0, 0);
+
+      const left = worldToIso(entity.x, entity.y + fp.height).x;
+      const right = worldToIso(entity.x + fp.width, entity.y).x;
+      const groundBottom = worldToIso(entity.x + fp.width, entity.y + fp.height).y;
       for (const point of spy.points) {
-        expect(point.x).toBeGreaterThanOrEqual(minX);
-        expect(point.x).toBeLessThanOrEqual(maxX);
-        expect(point.y).toBeGreaterThanOrEqual(minY);
-        expect(point.y).toBeLessThanOrEqual(maxY);
+        expect(point.x).toBeGreaterThanOrEqual(left - tol);
+        expect(point.x).toBeLessThanOrEqual(right + tol);
+        expect(point.y).toBeLessThanOrEqual(groundBottom + tol); // never below the ground
       }
     }
   });
 
-  it('draws distinct primitive sets across roles (mill blades, wonder dome arc, wall merlons)', () => {
+  it('draws distinct roof accents across roles (mill blades, wonder dome arc, wall merlons; plain house)', () => {
     const mill = render({ entityType: 'mill', footprintWidth: 2, footprintHeight: 2 }).spy;
     const wonder = render({ entityType: 'wonder', footprintWidth: 4, footprintHeight: 4 }).spy;
-    const wall = render({
-      entityType: 'stone-wall',
-      footprintWidth: 1,
-      footprintHeight: 1,
-    }).spy;
+    const wall = render({ entityType: 'stone-wall', footprintWidth: 1, footprintHeight: 1 }).spy;
     const house = render({ entityType: 'house', footprintWidth: 2, footprintHeight: 2 }).spy;
 
-    // mill: four-blade cross -> multiple line segments through a hub
+    // mill: four-blade cross -> line segments; wonder: dome -> an arc; wall:
+    // crenellations -> merlon fillRects.
     expect(mill.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(2);
-    // wonder: a dome -> an arc primitive
     expect(wonder.calls.some((c) => c.op === 'arc')).toBe(true);
-    // wall has no roof triangle; house DOES draw a pitched roof triangle.
-    expect(house.calls.some((c) => c.op === 'fillTriangle')).toBe(true);
-    expect(wall.calls.some((c) => c.op === 'fillTriangle')).toBe(false);
+    expect(wall.calls.some((c) => c.op === 'fillRect')).toBe(true);
+    // A plain house has no roof accent — just the extruded volume (fillPoints),
+    // so it has no dome arc and no merlon fillRects.
+    expect(house.calls.some((c) => c.op === 'arc')).toBe(false);
+    expect(house.calls.some((c) => c.op === 'fillRect')).toBe(false);
+    expect(house.calls.some((c) => c.op === 'fillPoints')).toBe(true);
   });
 
   it('reports the completed-structure flags for a completed building (contract)', () => {
@@ -259,8 +268,8 @@ describe('createBuildingRenderer.renderBuildingEntity', () => {
       isMemory: true,
     });
     expect(visual).toBeNull();
-    // ghost still paints the flat tinted base rect (no detailed silhouette).
-    expect(spy.calls.some((c) => c.op === 'fillRoundedRect')).toBe(true);
+    // ghost still paints the flat tinted footprint diamond (no extruded volume).
+    expect(spy.calls.some((c) => c.op === 'fillPoints')).toBe(true);
   });
 
   it('returns null for a non-building entity', () => {

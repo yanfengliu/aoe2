@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.104 - 2026-07-05
+
+### Buildings render as 3D isometric structures
+
+Completed buildings now draw as proper 3/4-view isometric volumes instead of flat shapes: each building's footprint projects to a ground diamond that is extruded upward by a per-role height into a solid box with a lit wall face, a shadowed wall face, and an owner-tinted roof — so it reads as sitting *on* the terrain with real depth. A per-role roof accent keeps every type distinct at a glance: a dome on the Wonder, a cross on the Monastery, crenellations on the Castle / Watch Tower / walls, a banner on military buildings, sail-blades on the Mill, and a central turret on the Town Center. Buildings under construction show a low stub of the eventual volume; a last-seen (fogged) building shows its flat footprint diamond. Purely visual — footprints, selection, and gameplay are unchanged. Detailed per-building facades and animation follow in later increments.
+
 ## 0.1.103 - 2026-07-05
 
 ### Isometric 2.5D world
