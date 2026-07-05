@@ -13,6 +13,7 @@ import {
   FRANKS_KNIGHT_HP_MULTIPLIER,
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
   GOTHS_INFANTRY_COST_MULTIPLIER,
+  MONGOLS_BOAR_GATHER_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
@@ -56,6 +57,35 @@ describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
     expect(civGatherRateMultiplier(undefined, 'sheep')).toBe(1);
     expect(civGatherRateMultiplier('', 'sheep')).toBe(1);
     expect(civGatherRateMultiplier('Player 3', 'sheep')).toBe(1);
+  });
+});
+
+// v0.1.98: Mongols "Hunters work 50% faster" (civilizations.csv). Mirrors the
+// Britons shepherd bonus on the SAME gather-tick site — a gather-rate multiplier
+// keyed on (civ, kind), here Mongols + boar (the sim's huntable food; sheep is
+// a herdable owned by Britons, fish is fished). The site is kind-agnostic, so
+// the integration path is the one the Britons sheep live-race already validates.
+describe('civGatherRateMultiplier — Mongols hunter bonus', () => {
+  it('gives Mongols +50% ONLY on boar', () => {
+    expect(civGatherRateMultiplier('Mongols', 'boar')).toBe(MONGOLS_BOAR_GATHER_MULTIPLIER);
+    expect(MONGOLS_BOAR_GATHER_MULTIPLIER).toBe(1.5);
+  });
+
+  it('does not touch Mongols gathering herded sheep, berries, farms, or non-food kinds', () => {
+    // "Hunters" is boar-specific — sheep (herded, Britons' bonus), berries,
+    // farms, wood, and gold are unaffected.
+    expect(civGatherRateMultiplier('Mongols', 'sheep')).toBe(1);
+    expect(civGatherRateMultiplier('Mongols', 'berry-bush')).toBe(1);
+    expect(civGatherRateMultiplier('Mongols', 'farm')).toBe(1);
+    expect(civGatherRateMultiplier('Mongols', 'tree')).toBe(1);
+    expect(civGatherRateMultiplier('Mongols', 'gold-mine')).toBe(1);
+  });
+
+  it('gives no boar bonus to any other civilization or an unknown civ', () => {
+    expect(civGatherRateMultiplier('Britons', 'boar')).toBe(1);
+    expect(civGatherRateMultiplier('Franks', 'boar')).toBe(1);
+    expect(civGatherRateMultiplier('Goths', 'boar')).toBe(1);
+    expect(civGatherRateMultiplier(undefined, 'boar')).toBe(1);
   });
 });
 
@@ -309,3 +339,13 @@ describe('Britons shepherd bonus — live twin-fixture sheep race', () => {
     expect(britonsHarvest).toBeGreaterThan(controlHarvest + 5);
   }, 60_000);
 });
+
+// NOTE: unlike the Britons SHEEP live-race, there is no Mongols BOAR live-race.
+// A boar is huntable wildlife that fights back (wildlifeCombatSystem), so a lone
+// villager commanded onto a live boar is killed before it harvests any meat —
+// a faithful AoE2 behavior (you cannot solo a boar). The pure cases above fully
+// cover the multiplier, and its single use-site — the kind-agnostic
+// `civGatherRateMultiplier(civ, kind)` call in villagerEconomySystem — is the
+// exact integration path proven by the Britons sheep race, so a boar-specific
+// live race would only re-exercise already-validated code through an infeasible
+// scenario.

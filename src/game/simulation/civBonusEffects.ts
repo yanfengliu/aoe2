@@ -37,6 +37,9 @@ export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
 // Goths infantry cost 35% less (×0.65) from the Feudal Age.
 export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
 
+// Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
+export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.5;
+
 // The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
 // Scout line, Camels, and Cavalry Archers (which are also mounted).
 const KNIGHT_LINE_UNITS = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
@@ -49,6 +52,9 @@ export function civGatherRateMultiplier(
 ): number {
   if (civilization === 'Britons' && kind === 'sheep') {
     return BRITONS_SHEEP_GATHER_MULTIPLIER;
+  }
+  if (civilization === 'Mongols' && kind === 'boar') {
+    return MONGOLS_BOAR_GATHER_MULTIPLIER;
   }
   return 1;
 }

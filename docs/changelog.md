@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.98 - 2026-07-05
+
+### Mongols civilization bonus: hunters work 50% faster
+
+Added the Mongols civilization bonus — villagers gathering **boar** (the game's huntable) do so **50% faster**, matching Age of Empires II. It joins the existing per-civ bonuses (Britons shepherds, Franks knights, Goths infantry, Aztecs military). Pick Mongols with `?civ=Mongols`. Every other civilization is unchanged.
+
 ## 0.1.97 - 2026-07-05
 
 ### The game menu (Esc / ☰) now pauses the game
