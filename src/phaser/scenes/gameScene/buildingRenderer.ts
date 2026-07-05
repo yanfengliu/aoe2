@@ -22,30 +22,10 @@
 import Phaser from 'phaser';
 
 import type { BuildingType, ProjectedEntityView } from '../../../game/simulation/types';
-import { buildingRole, type BuildingRole } from './buildingRole';
+import { buildingRole } from './buildingRole';
 import { drawBuildingRoofAccent } from './buildingRoofAccents';
-import { darken, drawIsoBuilding, type FootprintDiamond } from './isoBuilding';
-import { ISO_TILE_HEIGHT, worldToIso } from './isoProjection';
-
-// Wall height per role, in iso-tile-height units (× ISO_TILE_HEIGHT px). Bigger,
-// grander structures rise taller; flat plots (farm) stay near the ground. This
-// is what differentiates the extruded iso volumes by role at a glance, before
-// the per-role roof accent is layered on top.
-const ISO_HEIGHT_CELLS_BY_ROLE: Record<BuildingRole, number> = {
-  'town-center': 1.7,
-  fortress: 2.4,
-  wonder: 2.8,
-  house: 1.05,
-  mill: 1.2,
-  farm: 0.06,
-  'drop-site': 0.85,
-  military: 1.35,
-  blacksmith: 1.2,
-  market: 0.85,
-  monastery: 1.7,
-  tower: 2.1,
-  wall: 0.5,
-};
+import { darken, drawIsoBuilding, isoBuildingHeightPx, type FootprintDiamond } from './isoBuilding';
+import { worldToIso } from './isoProjection';
 
 // Re-exported from GameScene.ts for backward compatibility — moving the
 // type here would force every existing import to update. The shape is
@@ -142,7 +122,7 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
       return null; // memory buildings do not contribute a visual-state record
     }
 
-    const fullHeightPx = ISO_HEIGHT_CELLS_BY_ROLE[role] * ISO_TILE_HEIGHT;
+    const fullHeightPx = isoBuildingHeightPx(role);
 
     if (isConstruction) {
       // Under construction: a low stub of the eventual volume, iso-consistent

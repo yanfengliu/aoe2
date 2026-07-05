@@ -1,5 +1,33 @@
 import type Phaser from 'phaser';
 
+import type { BuildingRole } from './buildingRole';
+import { ISO_TILE_HEIGHT } from './isoProjection';
+
+// Wall height per role, in iso-tile-height units (× ISO_TILE_HEIGHT px). Bigger,
+// grander structures rise taller; flat plots (farm) stay near the ground. Shared
+// by buildingRenderer (to extrude the volume) and worldLayers (to sit the HP bar
+// above the volume rather than at the flat footprint top).
+export const ISO_HEIGHT_CELLS_BY_ROLE: Record<BuildingRole, number> = {
+  'town-center': 1.7,
+  fortress: 2.4,
+  wonder: 2.8,
+  house: 1.05,
+  mill: 1.2,
+  farm: 0.06,
+  'drop-site': 0.85,
+  military: 1.35,
+  blacksmith: 1.2,
+  market: 0.85,
+  monastery: 1.7,
+  tower: 2.1,
+  wall: 0.5,
+};
+
+// Extruded wall height in px for a building role.
+export function isoBuildingHeightPx(role: BuildingRole): number {
+  return ISO_HEIGHT_CELLS_BY_ROLE[role] * ISO_TILE_HEIGHT;
+}
+
 // Darken a packed-rgb tint toward black by `factor` (0 = unchanged, 1 = black).
 // Shared building-render colour util (was in the now-removed buildingSilhouettes
 // module). Pure channel math, mirrors unitRenderer.darken.

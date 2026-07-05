@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.110 - 2026-07-05
+
+### Building health bars sit above the 3D volume
+
+Health bars over buildings now float just above the top of the isometric building volume, centred on it, instead of appearing buried partway down the taller 3D structure (a leftover from the flat top-down layout). Unit health bars are unchanged. Purely visual.
+
 ## 0.1.109 - 2026-07-05
 
 ### Buildings get a doorway

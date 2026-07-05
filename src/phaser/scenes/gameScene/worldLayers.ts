@@ -8,9 +8,20 @@
 import Phaser from 'phaser';
 
 import type {
+  BuildingType,
   ProjectedEntityView,
   ProjectedFrameView,
 } from '../../../game/simulation/types';
+import { buildingRole } from './buildingRole';
+import { isoBuildingHeightPx } from './isoBuilding';
+import { worldToIso } from './isoProjection';
+
+// Plain clamp (avoids a runtime `Phaser.Math.Clamp`, which would force the Phaser
+// runtime — and `window` — to load, breaking node-env unit tests of the pure
+// layout math). Phaser stays type-only in this module.
+function clamp(value: number, lo: number, hi: number): number {
+  return Math.min(Math.max(value, lo), hi);
+}
 
 // Health-bar layout for a single entity. Returned separately so the scene
 // (and tests) can recompute it without re-running the paint logic.
@@ -64,19 +75,30 @@ export function computeHealthBarLayout(
   py: number,
   cellSize: number,
 ): HealthBarLayout {
-  const entityWidthPx =
-    entity.kind === 'building'
-      ? entity.footprintWidth * cellSize
-      : cellSize * Math.max(entity.size, 0.55);
-  const entityCenterX =
-    entity.kind === 'building'
-      ? px + (entity.footprintWidth * cellSize) * 0.5
-      : px + cellSize * 0.5;
-  const entityTopPx =
-    entity.kind === 'building'
-      ? py
-      : py + cellSize * 0.5 - (cellSize * entity.size * 0.5);
-  const barWidthPx = Phaser.Math.Clamp(
+  let entityWidthPx: number;
+  let entityCenterX: number;
+  let entityTopPx: number;
+  if (entity.kind === 'building') {
+    // Iso: the building renders as an extruded diamond volume (worldToIso of its
+    // footprint corners, lifted by the role height), NOT at the top-down px/py.
+    // Sit the bar above the roof, centred on the footprint's iso centre.
+    const centre = worldToIso(entity.x + entity.footprintWidth / 2, entity.y + entity.footprintHeight / 2);
+    entityWidthPx =
+      worldToIso(entity.x + entity.footprintWidth, entity.y).x
+      - worldToIso(entity.x, entity.y + entity.footprintHeight).x;
+    entityCenterX = centre.x;
+    // The roof's back corner (worldToIso(x,y) lifted by the wall height) is the
+    // volume's visual top; a small margin clears the roof accent.
+    entityTopPx =
+      worldToIso(entity.x, entity.y).y
+      - isoBuildingHeightPx(buildingRole(entity.entityType as BuildingType))
+      - cellSize * 0.4;
+  } else {
+    entityWidthPx = cellSize * Math.max(entity.size, 0.55);
+    entityCenterX = px + cellSize * 0.5;
+    entityTopPx = py + cellSize * 0.5 - (cellSize * entity.size * 0.5);
+  }
+  const barWidthPx = clamp(
     entityWidthPx * (entity.kind === 'building' ? 0.78 : 1.35),
     18,
     72,
@@ -116,7 +138,7 @@ export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRen
       const px = entity.x * cellSize;
       const py = entity.y * cellSize;
       const layout = computeHealthBarLayout(entity, px, py, cellSize);
-      const fillRatio = Phaser.Math.Clamp(entity.currentHp / entity.maxHp, 0, 1);
+      const fillRatio = clamp(entity.currentHp / entity.maxHp, 0, 1);
       const fillColor =
         fillRatio > 0.6 ? 0x77d26a
         : fillRatio > 0.3 ? 0xdab85a
