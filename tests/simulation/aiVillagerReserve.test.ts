@@ -2,31 +2,38 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 
-// v0.1.90: the demand-side half of getting the AI to Castle (the supply-side
-// half was the v0.1.89 food-priority allocation). Grounded by replaying the
-// default-seed corpus: even after the AI gathers food-first, its food stays
-// pinned low through Feudal because VILLAGER training drained the food reserved
-// for the age-up — the military-training gate respects the age-up reserve
-// (`canAffordWithReserve`) but the villager gate used a plain `canAfford`. This
-// makes villager training respect the same reserve, so the banked age-up food
-// is not immediately re-spent on more villagers.
+// v0.1.96: villager training is no longer coupled to the age-up reserve. v0.1.90
+// had made the villager gate respect the full next-age reserve (symmetric with
+// military), but replaying the default-seed corpus showed that DEADLOCKED the
+// economy: once the AI qualified for the next age while still villager-poor, the
+// reserve (e.g. {food:800} for Castle) blocked EVERY villager train, so the
+// gathering engine could never grow to gather the food it was reserving — the AI
+// froze at 7 Feudal villagers with food pinned at 339. Villagers are the engine
+// that gathers the reserved resource, so gating them on it is self-defeating.
 //
-// The `ai-villager-reserve-fixture` isolates exactly this: owner 2 sits in the
-// Dark Age with barracks + mill (2 Feudal prerequisites, so the age-up reserve
-// {food:500} is active), 250 food (trainable but only 50% of the 500 age-up
-// cost, below the 60% `savingForAgeUp` latch so that latch does NOT already
-// suppress training), 3 villagers below the Dark cap, and NO food resource on
-// the map (zero gather income). Any food change is therefore purely villager
-// training. Without the fix the AI trains villagers until the 250 food is gone;
-// with it the reserve holds the food intact.
+// The banking that v0.1.90 was reaching for is already provided by the
+// `savingForAgeUp` latch: once the stockpile crosses 60% of the age-up cost, the
+// AI suppresses ALL production (military AND villagers) and banks the last
+// stretch. This fixture isolates that latch — the mechanism that now holds the
+// age-up food — with the villager gate deliberately un-gated.
+//
+// `ai-villager-reserve-fixture`: owner 2 sits in the Dark Age with barracks +
+// mill (the two Feudal prerequisites, so it qualifies to age up) and 320 food —
+// 64% of the 500-food Feudal cost, i.e. above the 60% latch. There is NO food
+// resource on the map (zero gather income), so any food change is purely
+// production spend. With the latch engaged, nothing is trained and the 320 food
+// is HELD toward the age-up. (After the v0.1.96 change, removing the latch — i.e.
+// seeding below 60% — would instead let the AI train villagers, which is correct:
+// below 60% the AI should still be growing its economy.)
 
-describe('AI villager-reserve — banks age-up food instead of draining it on villagers (v0.1.90)', () => {
-  it('holds the reserved food intact instead of training it away', () => {
+describe('AI age-up banking — the savingForAgeUp latch holds food near the age-up (v0.1.96)', () => {
+  it('holds the food intact once past the 60% latch instead of spending it on production', () => {
     const bridge = createSimulationBridge('ai-villager-reserve-fixture');
     const startFood = bridge.getEconomyState().playerResources[2]?.food ?? 0;
-    // Sanity: the fixture puts food where the reserve — not the savingForAgeUp
-    // latch — is the only thing that can hold it (250 = 50% of the 500 cost).
-    expect(startFood).toBe(250);
+    // Sanity: the fixture seeds food ABOVE the 60% savingForAgeUp latch
+    // (320 = 64% of the 500-food Feudal cost) so the latch — not any reserve
+    // gate — is what holds it.
+    expect(startFood).toBe(320);
 
     for (let i = 0; i < 700; i += 1) {
       bridge.step(100);
@@ -39,10 +46,10 @@ describe('AI villager-reserve — banks age-up food instead of draining it on vi
     ).length;
     const diagnostic = `startFood=${startFood} endFood=${endFood} villagers=${villagers}`;
 
-    // The reserved food is HELD — no income exists, and villager training must
-    // respect the {food:500} age-up reserve, so nothing spends the 250 food.
+    // The latch suppresses ALL production above 60%, and there is no income, so
+    // the 320 food is HELD intact — the AI banks toward the age-up.
     expect(endFood, diagnostic).toBe(startFood);
-    // And no extra villagers were trained past the 3 the fixture seeded.
+    // And no villagers were trained (production is latched off).
     expect(villagers, diagnostic).toBe(3);
   }, 90_000);
 });

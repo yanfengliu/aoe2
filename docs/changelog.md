@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.96 - 2026-07-04
+
+### AI no longer freezes one age short when it qualifies while villager-poor
+
+Fixed an AI economy deadlock. When the AI qualified for the next age (its prerequisite buildings were done) but still had few villagers, it could freeze — a replay showed it stuck at 7 Feudal villagers with food pinned at 339 while it "reserved" 800 food for a Castle it could never gather. The cause: the AI was withholding food from *villager* production to bank it for the age-up, which starved the very villagers that gather that food. Villager training is no longer throttled by the age-up reserve (only military is, since military is discretionary). The AI now grows its economy to its per-age villager cap and banks the age-up cost from the surplus — a replay after the fix showed it reach 22 Feudal villagers and bank 817 food, past the 800 a Castle costs. Age-up timing is still protected by the existing 60%-of-cost "saving" latch, which pauses all production near the top to bank the final stretch.
+
 ## 0.1.95 - 2026-07-04
 
 ### Game menu (Esc / ☰), and a top bar that never shifts

@@ -628,10 +628,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
               && currentVillagers < villagerCap
               && tcEffectiveQueueLength < 2
               && stockpile
-              // v0.1.90: villager training respects the age-up reserve
-              // (symmetric with military ~549) so a food-banking AI stops re-
-              // spending reserved next-age food on villagers (empty until eligible).
-              && canAffordWithReserve(stockpile, villagerCost, ageUpReserve)
+              // v0.1.96: villager training is NOT age-up-reserve-gated (unlike military ~549) —
+              // gating the engine that GATHERS the reserve deadlocked the economy when the AI qualified
+              // villager-poor (corpus: 7 Feudal vil frozen at 339/800). Cap gate + savingForAgeUp (~628) bank food.
+              && canAfford(stockpile, villagerCost)
             ) {
               pushQueueTrainIntention(ownerTownCenterId, 'villager');
               // Iter-1 Gemini MINOR: increment so a future multi-TC / multi-pass

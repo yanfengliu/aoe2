@@ -355,22 +355,18 @@ export function createAiAgeUpPriorityFixture(seed: string): PrototypeScenario {
   };
 }
 
-// v0.1.90 villager-reserve regression: isolates the demand-side age-up hole.
-// The AI (owner 2) sits in the Dark Age with the two Feudal prerequisites
-// (barracks + mill) so `canAdvanceToFeudalAge` is true and the age-up reserve
-// is {food:500}. Its food (250) is chosen deliberately: it is above the
-// villager cost (50) so a villager is trainable, but only 50% of the 500-food
-// Feudal cost — below the 60% `savingForAgeUp` hard-latch — so that latch does
-// NOT already suppress training; the ONLY thing that can hold the food is the
-// villager gate respecting the reserve. There is NO food resource on the map,
-// so villagers cannot gather (zero income) and any food change is purely
-// villager-training. With the pre-fix gate (plain `canAfford`), the AI trains a
-// villager every time food >= 50, draining the 250 reserved food toward zero;
-// with the fix (`canAffordWithReserve(..., ageUpReserve)`) villager training is
-// suppressed exactly like military, so the 250 food is HELD intact. Militia
-// (60 food) is already reserve-gated so it never drains here; only the villager
-// gate is under test. 3 villagers start below the Dark cap (10) so the AI still
-// wants more — the drain is real without the fix.
+// savingForAgeUp latch fixture (v0.1.96): isolates the age-up food-banking
+// mechanism. The AI (owner 2) sits in the Dark Age with the two Feudal
+// prerequisites (barracks + mill) so `canAdvanceToFeudalAge` is true and the
+// next-age cost is {food:500}. Its food (320) is chosen deliberately: 64% of the
+// 500-food Feudal cost, i.e. AT/ABOVE the 60% `savingForAgeUp` hard-latch, so the
+// latch suppresses ALL production (military AND villagers, ~628) and the food is
+// HELD toward the age-up. There is NO food resource on the map, so villagers
+// cannot gather (zero income) and any food change is purely production spend.
+// This is the mechanism that banks the age-up food now that villager training is
+// no longer reserve-gated (v0.1.96 removed that coupling — it deadlocked the
+// economic engine when the AI qualified while villager-poor). 3 villagers start
+// below the Dark cap (10) so the AI would train more if the latch were not held.
 export function createAiVillagerReserveFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -382,7 +378,7 @@ export function createAiVillagerReserveFixture(seed: string): PrototypeScenario 
       {
         owner: 2,
         townCenter: { x: 24, y: 8 },
-        startingResources: { food: 250, wood: 0, gold: 2000, stone: 0 },
+        startingResources: { food: 320, wood: 0, gold: 2000, stone: 0 },
         difficulty: 'standard',
       },
     ],
