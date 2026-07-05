@@ -40,9 +40,16 @@ export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
 // Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
 export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.5;
 
+// Mongols Light Cavalry and Hussars have +30% HP.
+export const MONGOLS_SCOUT_HP_MULTIPLIER = 1.3;
+
 // The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
 // Scout line, Camels, and Cavalry Archers (which are also mounted).
 const KNIGHT_LINE_UNITS = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
+
+// The upgraded Scout line — the applies-to scope of the Mongols HP bonus. Per
+// the CSV ("Light Cavalry and Hussars") the base Scout Cavalry is excluded.
+const MONGOLS_SCOUT_HP_UNITS = new Set<UnitType>(['light-cavalry', 'hussar']);
 
 // The owner's civilization gather-rate multiplier for a concrete resource KIND.
 // 1.0 (no bonus) unless a civ bonus matches both the civ and the kind.
@@ -68,6 +75,9 @@ export function civUnitHpMultiplier(
 ): number {
   if (civilization === 'Franks' && KNIGHT_LINE_UNITS.has(unitType)) {
     return FRANKS_KNIGHT_HP_MULTIPLIER;
+  }
+  if (civilization === 'Mongols' && MONGOLS_SCOUT_HP_UNITS.has(unitType)) {
+    return MONGOLS_SCOUT_HP_MULTIPLIER;
   }
   return 1;
 }

@@ -266,6 +266,11 @@ export {
 } from './civFranksKnight';
 
 export {
+  createCivMongolsScoutFixture,
+  createCivMongolsScoutControlFixture,
+} from './civMongolsScout';
+
+export {
   createCivGothsInfantryFixture,
   createCivGothsInfantryControlFixture,
 } from './civGothsInfantry';

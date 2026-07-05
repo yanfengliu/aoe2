@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.99 - 2026-07-05
+
+### Mongols civilization bonus: Light Cavalry and Hussars have +30% HP
+
+Added a second Mongols bonus — **Light Cavalry and Hussars have +30% HP** (the base Scout Cavalry is unaffected), matching Age of Empires II. Combined with the hunting bonus (0.1.98), Mongols now field a tougher, faster-fed scouting cavalry. Every other civilization is unchanged.
+
 ## 0.1.98 - 2026-07-05
 
 ### Mongols civilization bonus: hunters work 50% faster

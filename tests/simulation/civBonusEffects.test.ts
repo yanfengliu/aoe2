@@ -14,6 +14,7 @@ import {
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
   GOTHS_INFANTRY_COST_MULTIPLIER,
   MONGOLS_BOAR_GATHER_MULTIPLIER,
+  MONGOLS_SCOUT_HP_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
@@ -164,6 +165,59 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
     expect(controlHp.maxHp).toBeGreaterThan(0);
     expect(franksHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
     expect(franksHp.currentHp).toBe(franksHp.maxHp);
+  });
+});
+
+// v0.1.99: Mongols "Light Cavalry and Hussars have +30% HP" (civilizations.csv),
+// the same civUnitHpMultiplier seam as the Franks knight bonus. Scoped to the
+// UPGRADED scout line (light-cavalry, hussar); the base Scout Cavalry is excluded
+// per the CSV (it carries the +2 LoS instead).
+describe('civUnitHpMultiplier — Mongols scout-line HP bonus', () => {
+  it('gives Mongols +30% HP to light cavalry and hussars only', () => {
+    expect(civUnitHpMultiplier('Mongols', 'light-cavalry')).toBe(MONGOLS_SCOUT_HP_MULTIPLIER);
+    expect(civUnitHpMultiplier('Mongols', 'hussar')).toBe(MONGOLS_SCOUT_HP_MULTIPLIER);
+    expect(MONGOLS_SCOUT_HP_MULTIPLIER).toBe(1.3);
+  });
+
+  it('does not touch the base Scout Cavalry or other Mongols units', () => {
+    // The CSV bonus is "Light Cavalry and Hussars" — the base scout is excluded.
+    expect(civUnitHpMultiplier('Mongols', 'scout')).toBe(1);
+    expect(civUnitHpMultiplier('Mongols', 'knight')).toBe(1);
+    expect(civUnitHpMultiplier('Mongols', 'villager')).toBe(1);
+  });
+
+  it('gives no scout-line HP bonus to any other civilization or an unknown civ', () => {
+    expect(civUnitHpMultiplier('Franks', 'light-cavalry')).toBe(1);
+    expect(civUnitHpMultiplier('Byzantines', 'hussar')).toBe(1);
+    expect(civUnitHpMultiplier(undefined, 'light-cavalry')).toBe(1);
+  });
+});
+
+describe('Mongols scout-line bonus — live twin-fixture HP', () => {
+  it('a Mongols light cavalry has round(base × 1.3) maxHp; a control has the base', () => {
+    const mongols = createSimulationBridge('civ-mongols-scout-fixture');
+    const control = createSimulationBridge('civ-mongols-scout-control-fixture');
+    // One step so combat state is projected; HP is set at creation (no research).
+    mongols.step(100);
+    control.step(100);
+
+    const lightCavId = (bridge: ReturnType<typeof createSimulationBridge>) =>
+      bridge.getEconomyState().units.find(
+        (u) => u.owner === 1 && u.unitType === 'light-cavalry',
+      )?.id;
+    const mongolsId = lightCavId(mongols);
+    const controlId = lightCavId(control);
+    expect(mongolsId).toBeDefined();
+    expect(controlId).toBeDefined();
+
+    const mongolsHp = mongols.getEntityHealth(mongolsId!)!;
+    const controlHp = control.getEntityHealth(controlId!)!;
+
+    // Control is the raw base; Mongols is +30% (rounded), on both current and
+    // max since a freshly-created unit is at full HP.
+    expect(controlHp.maxHp).toBeGreaterThan(0);
+    expect(mongolsHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.3));
+    expect(mongolsHp.currentHp).toBe(mongolsHp.maxHp);
   });
 });
 
