@@ -124,6 +124,13 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
   }) => {
     await game.waitForBootWithSeed(page, 'boar-aggro-fixture');
 
+    // The iso camera frames the human base; the boar sits outside that view, so
+    // centre the camera on its cell via the minimap before the canvas click
+    // (matches the owned-sheep / fish tests' approach to off-screen targets).
+    const boarMinimap = await game.getMinimapPoint(page, 13 / 60, 8 / 36);
+    await page.mouse.click(boarMinimap.x, boarMinimap.y);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+
     await game.clickCell(page, 13, 8);
     await expect(page.locator('[data-selection-name]')).toHaveText('Boar');
     await game.expectSelectionDetail(page, 'health', '75 / 75');

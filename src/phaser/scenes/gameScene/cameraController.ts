@@ -15,6 +15,8 @@
 
 import Phaser from 'phaser';
 
+import { isoToWorld, worldToIso } from './isoProjection';
+
 const EDGE_PAN_THRESHOLD_PX = 20;
 const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
 const EDGE_PAN_HOVER_DELAY_MS = 500;
@@ -37,10 +39,18 @@ export interface CameraStateSnapshot {
   zoom: number;
   width: number;
   height: number;
+  // Visible region in ISO-PIXEL space (the camera's native coordinate space).
   viewX: number;
   viewY: number;
   viewWidth: number;
   viewHeight: number;
+  // Visible region projected back to CELL space (the AABB of the on-screen
+  // diamond). The minimap is a top-down cell grid and consumes these; the
+  // iso-pixel view* fields are meaningless on it.
+  viewCellMinX: number;
+  viewCellMinY: number;
+  viewCellMaxX: number;
+  viewCellMaxY: number;
 }
 
 export interface CameraControllerDeps {
@@ -49,7 +59,8 @@ export interface CameraControllerDeps {
   // simulation or selection state.
   scene: Phaser.Scene;
   camera: Phaser.Cameras.Scene2D.Camera;
-  cellSize: number;
+  // Map size in CELLS. The iso world extent is derived from these via
+  // worldToIso; pixel size comes from the ISO_TILE_* constants, not a cellSize.
   mapWidth: number;
   mapHeight: number;
   // Scene-owned predicates so the controller can skip edge-pan while the
@@ -95,7 +106,6 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
   const {
     scene,
     camera,
-    cellSize,
     mapWidth,
     mapHeight,
     isDragSelecting,
@@ -104,19 +114,28 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
 
   let edgePanState: EdgePanState | null = null;
 
-  function worldWidthPx(): number {
-    return mapWidth * cellSize;
-  }
-
-  function worldHeightPx(): number {
-    return mapHeight * cellSize;
+  // Isometric world extent (iso-pixel bounding box of the whole map region).
+  // The map's four cell-space corners project to a diamond, so the left half
+  // spans NEGATIVE x — the world no longer starts at the origin. cellSize is
+  // unused here: the iso projection is fixed by ISO_TILE_* constants.
+  function worldExtent(): { minX: number; minY: number; width: number; height: number } {
+    const a = worldToIso(0, 0);
+    const b = worldToIso(mapWidth, 0);
+    const c = worldToIso(0, mapHeight);
+    const d = worldToIso(mapWidth, mapHeight);
+    const minX = Math.min(a.x, b.x, c.x, d.x);
+    const maxX = Math.max(a.x, b.x, c.x, d.x);
+    const minY = Math.min(a.y, b.y, c.y, d.y);
+    const maxY = Math.max(a.y, b.y, c.y, d.y);
+    return { minX, minY, width: maxX - minX, height: maxY - minY };
   }
 
   function getMinimumCameraZoom(): number {
+    const extent = worldExtent();
     return Math.max(
       MIN_CAMERA_ZOOM,
-      camera.width / worldWidthPx(),
-      camera.height / worldHeightPx(),
+      camera.width / extent.width,
+      camera.height / extent.height,
     );
   }
 
@@ -126,12 +145,15 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
     minScrollY: number;
     maxScrollY: number;
   } {
+    const extent = worldExtent();
     const viewWidth = camera.width / camera.zoom;
     const viewHeight = camera.height / camera.zoom;
-    const minScrollX = (viewWidth - camera.width) * 0.5;
-    const maxScrollX = worldWidthPx() - (camera.width + viewWidth) * 0.5;
-    const minScrollY = (viewHeight - camera.height) * 0.5;
-    const maxScrollY = worldHeightPx() - (camera.height + viewHeight) * 0.5;
+    // Same Phaser scroll convention as the top-down camera, offset by the world
+    // origin (extent.minX / minY) since the iso world no longer starts at 0.
+    const minScrollX = extent.minX + (viewWidth - camera.width) * 0.5;
+    const maxScrollX = extent.minX + extent.width - (camera.width + viewWidth) * 0.5;
+    const minScrollY = extent.minY + (viewHeight - camera.height) * 0.5;
+    const maxScrollY = extent.minY + extent.height - (camera.height + viewHeight) * 0.5;
 
     return {
       minScrollX,
@@ -306,6 +328,17 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
     const viewX = camera.scrollX + (camera.width - viewWidth) * 0.5;
     const viewY = camera.scrollY + (camera.height - viewHeight) * 0.5;
 
+    // Cell-space AABB of the visible iso-pixel rectangle (its 4 corners project
+    // to a diamond of cells; take their bounding box for the top-down minimap).
+    const cornerCells = [
+      isoToWorld(viewX, viewY),
+      isoToWorld(viewX + viewWidth, viewY),
+      isoToWorld(viewX, viewY + viewHeight),
+      isoToWorld(viewX + viewWidth, viewY + viewHeight),
+    ];
+    const cellXs = cornerCells.map((cell) => cell.cellX);
+    const cellYs = cornerCells.map((cell) => cell.cellY);
+
     return {
       scrollX: camera.scrollX,
       scrollY: camera.scrollY,
@@ -316,15 +349,22 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
       viewY,
       viewWidth,
       viewHeight,
+      viewCellMinX: Math.min(...cellXs),
+      viewCellMinY: Math.min(...cellYs),
+      viewCellMaxX: Math.max(...cellXs),
+      viewCellMaxY: Math.max(...cellYs),
     };
   }
 
-  function centerOnWorldPosition(worldX: number, worldY: number): void {
+  // Centre the camera on a CELL-space position (e.g. an entity's cell). The
+  // camera lives in iso-pixel space, so project through worldToIso first.
+  function centerOnWorldPosition(cellX: number, cellY: number): void {
     if (!scene.sys.isActive()) {
       return;
     }
 
-    camera.centerOn(worldX, worldY);
+    const iso = worldToIso(cellX, cellY);
+    camera.centerOn(iso.x, iso.y);
     clampToWorld();
   }
 
@@ -336,8 +376,13 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
       return null;
     }
 
-    const worldX = cellX * cellSize + cellSize * 0.5;
-    const worldY = cellY * cellSize + cellSize * 0.5;
+    // Iso-pixel centre of the cell's diamond — the same projection the render
+    // loop uses to place an entity (worldToIso(x + 0.5, y + 0.5)). The camera's
+    // worldView is in this iso-pixel space, so a unit at (cellX, cellY) has its
+    // visual centre exactly here; the browser test API clicks this point.
+    const isoCentre = worldToIso(cellX + 0.5, cellY + 0.5);
+    const worldX = isoCentre.x;
+    const worldY = isoCentre.y;
     const bounds = scene.game.canvas.getBoundingClientRect();
     const worldView = camera.worldView;
     const scaleX = bounds.width / worldView.width;

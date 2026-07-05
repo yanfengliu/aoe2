@@ -81,6 +81,13 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     );
     expect(fish).not.toBeNull();
 
+    // The iso camera frames the human base; the fish is on distant water, so
+    // centre the camera on it via the minimap before the canvas click (matches
+    // the owned-sheep test's approach to off-screen targets).
+    const fishMinimap = await game.getMinimapPoint(page, (fish?.x ?? 0) / 60, (fish?.y ?? 0) / 36);
+    await page.mouse.click(fishMinimap.x, fishMinimap.y);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+
     await game.clickCell(page, fish?.x ?? 0, fish?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Fish');
     await expect(page.locator('[data-selection-entity-icon="fish"]')).toHaveText('F');

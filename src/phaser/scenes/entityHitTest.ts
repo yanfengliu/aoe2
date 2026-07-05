@@ -1,5 +1,6 @@
 import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { ProjectedEntityView, RenderState, ResourceKind } from '../../game/simulation/types';
+import { worldToIso } from './gameScene/isoProjection';
 
 const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
   tile: 0,
@@ -224,6 +225,56 @@ export function doesWorldRectIntersectEntity(
   }
 
   return false;
+}
+
+// Isometric marquee test. The drag rectangle is axis-aligned in the camera's
+// iso-pixel space (the camera transform is pure translate+scale, no rotation),
+// and each entity's body is centred at its iso cell-centre — worldToIso(x + 0.5,
+// y + 0.5) — rather than its top-down pixel centre. Drag-selectable entities
+// (units, non-farm resources like sheep) render as circles, so the circle case
+// is exact; buildings / farms are never drag-selectable and fall back to an
+// iso-centre point test for completeness.
+export function doesIsoWorldRectIntersectEntity(
+  entity: ProjectedEntityView,
+  startWorldX: number,
+  startWorldY: number,
+  endWorldX: number,
+  endWorldY: number,
+  cellSize: number,
+): boolean {
+  const minWorldX = Math.min(startWorldX, endWorldX);
+  const minWorldY = Math.min(startWorldY, endWorldY);
+  const maxWorldX = Math.max(startWorldX, endWorldX);
+  const maxWorldY = Math.max(startWorldY, endWorldY);
+  const centre = worldToIso(entity.x + 0.5, entity.y + 0.5);
+
+  if (entity.kind === 'unit') {
+    return intersectsCircle(
+      centre.x,
+      centre.y,
+      cellSize * entity.size * 0.5,
+      minWorldX,
+      minWorldY,
+      maxWorldX,
+      maxWorldY,
+    );
+  }
+
+  if (entity.kind === 'resource' && !isRectangleResource(entity.entityType)) {
+    return intersectsCircle(
+      centre.x,
+      centre.y,
+      cellSize * entity.size * 0.55,
+      minWorldX,
+      minWorldY,
+      maxWorldX,
+      maxWorldY,
+    );
+  }
+
+  return (
+    centre.x >= minWorldX && centre.x <= maxWorldX && centre.y >= minWorldY && centre.y <= maxWorldY
+  );
 }
 
 export function findEntityAtWorldPoint(

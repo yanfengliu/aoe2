@@ -184,19 +184,22 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     expect(movedCamera).not.toBeNull();
     expect(frame).not.toBeNull();
 
-    const visibleWorldWidth = movedCamera?.viewWidth ?? 0;
-    const visibleWorldHeight = movedCamera?.viewHeight ?? 0;
-    const centerX = (movedCamera?.viewX ?? 0) + visibleWorldWidth * 0.5;
-    const centerY = (movedCamera?.viewY ?? 0) + visibleWorldHeight * 0.5;
-    const worldWidth = (frame?.mapWidth ?? 0) * 24;
-    const worldHeight = (frame?.mapHeight ?? 0) * 24;
-
-    const expectedCenterX = Math.min(0.84 * worldWidth, worldWidth - visibleWorldWidth * 0.5);
-    const expectedCenterY = Math.min(0.76 * worldHeight, worldHeight - visibleWorldHeight * 0.5);
-    expect(Math.abs(centerX - expectedCenterX)).toBeLessThan(10);
-    expect(Math.abs(centerY - expectedCenterY)).toBeLessThan(10);
-    expect(centerX).toBeLessThanOrEqual(worldWidth - visibleWorldWidth * 0.5 + 0.5);
-    expect(centerY).toBeLessThanOrEqual(worldHeight - visibleWorldHeight * 0.5 + 0.5);
+    // Iso camera: the minimap is a top-down cell grid, so assert in CELL space.
+    // Clicking normalized (0.84, 0.76) centres the camera on cell
+    // (0.84*mapWidth, 0.76*mapHeight), clamped so the visible cell AABB stays on
+    // the map.
+    const mapWidth = frame?.mapWidth ?? 0;
+    const mapHeight = frame?.mapHeight ?? 0;
+    const halfCellW = ((movedCamera?.viewCellMaxX ?? 0) - (movedCamera?.viewCellMinX ?? 0)) / 2;
+    const halfCellH = ((movedCamera?.viewCellMaxY ?? 0) - (movedCamera?.viewCellMinY ?? 0)) / 2;
+    const cellCenterX = ((movedCamera?.viewCellMinX ?? 0) + (movedCamera?.viewCellMaxX ?? 0)) / 2;
+    const cellCenterY = ((movedCamera?.viewCellMinY ?? 0) + (movedCamera?.viewCellMaxY ?? 0)) / 2;
+    const expectedCellX = Math.min(0.84 * mapWidth, mapWidth - halfCellW);
+    const expectedCellY = Math.min(0.76 * mapHeight, mapHeight - halfCellH);
+    expect(Math.abs(cellCenterX - expectedCellX)).toBeLessThan(4);
+    expect(Math.abs(cellCenterY - expectedCellY)).toBeLessThan(4);
+    expect(cellCenterX).toBeLessThanOrEqual(mapWidth + 0.5);
+    expect(cellCenterY).toBeLessThanOrEqual(mapHeight + 0.5);
   });
 
   test('clicking the minimap centers the camera exactly on the clicked world position', async ({
@@ -215,6 +218,9 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
 
     await game.clickMinimapAt(page, 0.5, 0.5);
 
+    // Iso camera: clicking the minimap centre (0.5, 0.5) centres the camera on
+    // the map's middle CELL. Assert the visible cell-AABB centre equals the map
+    // middle (no clamp at the centre), within a 1-cell rounding tolerance.
     await expect.poll(async () => {
       const snapshot = await game.getSnapshot(page);
       const camera = snapshot.cameraState;
@@ -222,17 +228,15 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
       if (!camera || !frame) {
         return null;
       }
+      const cellCenterX = (camera.viewCellMinX + camera.viewCellMaxX) / 2;
+      const cellCenterY = (camera.viewCellMinY + camera.viewCellMaxY) / 2;
       return {
-        centerX: Math.round(camera.viewX + camera.viewWidth / 2),
-        centerY: Math.round(camera.viewY + camera.viewHeight / 2),
-        worldCenterX: Math.round((frame.mapWidth * 24) / 2),
-        worldCenterY: Math.round((frame.mapHeight * 24) / 2),
+        offCentreX: Math.abs(cellCenterX - frame.mapWidth / 2) <= 1,
+        offCentreY: Math.abs(cellCenterY - frame.mapHeight / 2) <= 1,
       };
     }).toMatchObject({
-      centerX: 720,
-      centerY: 432,
-      worldCenterX: 720,
-      worldCenterY: 432,
+      offCentreX: true,
+      offCentreY: true,
     });
   });
 
@@ -253,17 +257,17 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     expect(movedCamera).not.toBeNull();
     expect(frame).not.toBeNull();
 
-    const visibleWorldWidth = movedCamera?.viewWidth ?? 0;
-    const visibleWorldHeight = movedCamera?.viewHeight ?? 0;
-    const centerX = (movedCamera?.viewX ?? 0) + visibleWorldWidth * 0.5;
-    const centerY = (movedCamera?.viewY ?? 0) + visibleWorldHeight * 0.5;
-    const worldWidth = (frame?.mapWidth ?? 0) * 24;
-    const worldHeight = (frame?.mapHeight ?? 0) * 24;
-
-    const expectedCenterX = Math.min(0.82 * worldWidth, worldWidth - visibleWorldWidth * 0.5);
-    const expectedCenterY = Math.min(0.78 * worldHeight, worldHeight - visibleWorldHeight * 0.5);
-    expect(Math.abs(centerX - expectedCenterX)).toBeLessThan(10);
-    expect(Math.abs(centerY - expectedCenterY)).toBeLessThan(10);
+    // Iso camera: assert in CELL space (the minimap is a top-down cell grid).
+    const mapWidth = frame?.mapWidth ?? 0;
+    const mapHeight = frame?.mapHeight ?? 0;
+    const halfCellW = ((movedCamera?.viewCellMaxX ?? 0) - (movedCamera?.viewCellMinX ?? 0)) / 2;
+    const halfCellH = ((movedCamera?.viewCellMaxY ?? 0) - (movedCamera?.viewCellMinY ?? 0)) / 2;
+    const cellCenterX = ((movedCamera?.viewCellMinX ?? 0) + (movedCamera?.viewCellMaxX ?? 0)) / 2;
+    const cellCenterY = ((movedCamera?.viewCellMinY ?? 0) + (movedCamera?.viewCellMaxY ?? 0)) / 2;
+    const expectedCellX = Math.min(0.82 * mapWidth, mapWidth - halfCellW);
+    const expectedCellY = Math.min(0.78 * mapHeight, mapHeight - halfCellH);
+    expect(Math.abs(cellCenterX - expectedCellX)).toBeLessThan(4);
+    expect(Math.abs(cellCenterY - expectedCellY)).toBeLessThan(4);
   });
 
   test('the minimap exposes a viewport rectangle that tracks the current camera coverage', async ({
@@ -299,8 +303,8 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
         return false;
       }
 
-      const worldWidth = frame.mapWidth * 24;
-      const worldHeight = frame.mapHeight * 24;
+      // Iso camera: the minimap viewport rect is the visible CELL AABB mapped
+      // onto the minimap's cell grid (mirrors getMinimapViewportState).
       const scale = Math.min(
         minimap.width / frame.mapWidth,
         minimap.height / frame.mapHeight,
@@ -309,12 +313,14 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
       const drawHeight = frame.mapHeight * scale;
       const offsetX = (minimap.width - drawWidth) * 0.5;
       const offsetY = (minimap.height - drawHeight) * 0.5;
+      const cellToDrawX = (cellX: number) => offsetX + (cellX / frame.mapWidth) * drawWidth;
+      const cellToDrawY = (cellY: number) => offsetY + (cellY / frame.mapHeight) * drawHeight;
       const expectedViewport = {
         active: true,
-        x: Number((offsetX + (camera.viewX / worldWidth) * drawWidth).toFixed(2)),
-        y: Number((offsetY + (camera.viewY / worldHeight) * drawHeight).toFixed(2)),
-        width: Number(((camera.viewWidth / worldWidth) * drawWidth).toFixed(2)),
-        height: Number(((camera.viewHeight / worldHeight) * drawHeight).toFixed(2)),
+        x: Number(cellToDrawX(camera.viewCellMinX).toFixed(2)),
+        y: Number(cellToDrawY(camera.viewCellMinY).toFixed(2)),
+        width: Number((cellToDrawX(camera.viewCellMaxX) - cellToDrawX(camera.viewCellMinX)).toFixed(2)),
+        height: Number((cellToDrawY(camera.viewCellMaxY) - cellToDrawY(camera.viewCellMinY)).toFixed(2)),
       };
 
       return JSON.stringify(viewport) === JSON.stringify(expectedViewport);
@@ -388,22 +394,27 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     expect(camera).not.toBeNull();
     expect(frame).not.toBeNull();
 
-    const worldWidth = (frame?.mapWidth ?? 0) * 24;
-    const worldHeight = (frame?.mapHeight ?? 0) * 24;
+    // Iso world extent: the map's cell rectangle projects to a diamond whose
+    // bounding box has a NEGATIVE min-x (left half). Constants mirror
+    // isoProjection (ISO_TILE_WIDTH/2 = 32, ISO_TILE_HEIGHT/2 = 16).
+    const mapWidth = frame?.mapWidth ?? 0;
+    const mapHeight = frame?.mapHeight ?? 0;
+    const worldMinX = -mapHeight * 32;
+    const worldMaxX = mapWidth * 32;
+    const worldMinY = 0;
+    const worldMaxY = (mapWidth + mapHeight) * 16;
     const visibleWorldWidth = (camera?.width ?? 0) / (camera?.zoom ?? 1);
     const visibleWorldHeight = (camera?.height ?? 0) / (camera?.zoom ?? 1);
-    const minZoomToFitWorld = Math.max(
-      (camera?.width ?? 0) / worldWidth,
-      (camera?.height ?? 0) / worldHeight,
-    );
 
-    expect(camera?.zoom ?? 0).toBeGreaterThanOrEqual(minZoomToFitWorld - 0.001);
-    expect(visibleWorldWidth).toBeLessThanOrEqual(worldWidth + 0.5);
-    expect(visibleWorldHeight).toBeLessThanOrEqual(worldHeight + 0.5);
-    expect(camera?.viewX ?? 0).toBeGreaterThanOrEqual(-0.5);
-    expect(camera?.viewY ?? 0).toBeGreaterThanOrEqual(-0.5);
-    expect((camera?.viewX ?? 0) + (camera?.viewWidth ?? 0)).toBeLessThanOrEqual(worldWidth + 0.5);
-    expect((camera?.viewY ?? 0) + (camera?.viewHeight ?? 0)).toBeLessThanOrEqual(worldHeight + 0.5);
+    // Zoom cannot collapse (a lower floor keeps tiles legible); the visible
+    // region must never exceed the playable iso world in either axis.
+    expect(camera?.zoom ?? 0).toBeGreaterThan(0.1);
+    expect(visibleWorldWidth).toBeLessThanOrEqual(worldMaxX - worldMinX + 0.5);
+    expect(visibleWorldHeight).toBeLessThanOrEqual(worldMaxY - worldMinY + 0.5);
+    expect(camera?.viewX ?? 0).toBeGreaterThanOrEqual(worldMinX - 0.5);
+    expect(camera?.viewY ?? 0).toBeGreaterThanOrEqual(worldMinY - 0.5);
+    expect((camera?.viewX ?? 0) + (camera?.viewWidth ?? 0)).toBeLessThanOrEqual(worldMaxX + 0.5);
+    expect((camera?.viewY ?? 0) + (camera?.viewHeight ?? 0)).toBeLessThanOrEqual(worldMaxY + 0.5);
   });
 
 });

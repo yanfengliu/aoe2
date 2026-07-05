@@ -25,7 +25,7 @@ import {
   formatCountdownTicks,
   formatMatchTime,
 } from './displayNames';
-import { MINIMAP_CELL_SIZE, drawMinimap, getMinimapLayout } from './minimap';
+import { drawMinimap, getMinimapLayout } from './minimap';
 import { createSelectionPanel } from './selectionPanel';
 import { createGameMenu } from './gameMenu';
 
@@ -39,6 +39,10 @@ interface HudCameraState {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
+  viewCellMinX: number;
+  viewCellMinY: number;
+  viewCellMaxX: number;
+  viewCellMaxY: number;
 }
 
 interface HudBridge {
@@ -293,9 +297,11 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
 
       const normalizedX = (localX - layout.offsetX) / layout.drawWidth;
       const normalizedY = (localY - layout.offsetY) / layout.drawHeight;
+      // centerCameraOnWorldPosition takes CELL coordinates (it projects to iso
+      // internally), so map the normalized minimap position to a cell directly.
       bridge.centerCameraOnWorldPosition(
-        normalizedX * frame.mapWidth * MINIMAP_CELL_SIZE,
-        normalizedY * frame.mapHeight * MINIMAP_CELL_SIZE,
+        normalizedX * frame.mapWidth,
+        normalizedY * frame.mapHeight,
       );
     };
 

@@ -7,11 +7,12 @@ import {
   drawTerrainCell,
   terrainCellTint,
 } from '../../src/phaser/scenes/gameScene/terrainRenderer';
+import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 
 // Base terrain tints, mirroring scenarioSeedOps.seedTerrain. The renderer
 // applies a deterministic per-cell jitter on top so adjacent same-kind cells
-// stop reading as one flat block, AND (v0.1.43) feathers the seam between
-// adjacent cells of DIFFERENT kinds (M7 graphics — original/procedural art only).
+// stop reading as one flat block, and (v0.1.103) projects each cell as an
+// isometric diamond (M7 graphics — original/procedural art only).
 const GRASS = 0x587f4e;
 const WATER = 0x295a75;
 
@@ -147,7 +148,7 @@ describe('blendTint — two-kind transition colour', () => {
   });
 });
 
-// ---- drawTerrainCell: neighbour-aware blended transitions ----
+// ---- drawTerrainCell: isometric diamond tile ----
 
 const CELL_SIZE = 24;
 
@@ -156,13 +157,13 @@ interface DrawCall {
   args: number[];
 }
 
-// A Phaser.GameObjects.Graphics stand-in that records every primitive draw call
-// + every (x, y) point, mirroring the spy in buildingRenderer.test.ts. Only the
-// primitives drawTerrainCell uses (fillStyle + fillRect) need real handlers; the
-// rest are present so an accidental new primitive does not throw.
+// A Phaser.GameObjects.Graphics stand-in that records every primitive draw call.
+// drawTerrainCell now emits fillStyle + fillPoints (a filled diamond); fillRect
+// is still recorded so a regression that re-introduces the old square fill is
+// caught rather than silently ignored.
 function createGraphicsSpy() {
   const calls: DrawCall[] = [];
-  const points: Array<{ x: number; y: number }> = [];
+  const pointBatches: Array<Array<{ x: number; y: number }>> = [];
   const graphics = {
     fillStyle: (color: number, alpha?: number) => {
       calls.push({ op: 'fillStyle', args: [color, alpha ?? 1] });
@@ -170,12 +171,15 @@ function createGraphicsSpy() {
     lineStyle: (width: number, color: number, alpha?: number) => {
       calls.push({ op: 'lineStyle', args: [width, color, alpha ?? 1] });
     },
+    fillPoints: (points: Array<{ x: number; y: number }>, closePath?: boolean) => {
+      calls.push({ op: 'fillPoints', args: [points.length, closePath ? 1 : 0] });
+      pointBatches.push(points.map((p) => ({ x: p.x, y: p.y })));
+    },
     fillRect: (x: number, y: number, w: number, h: number) => {
       calls.push({ op: 'fillRect', args: [x, y, w, h] });
-      points.push({ x, y }, { x: x + w, y: y + h });
     },
   };
-  return { graphics, calls, points };
+  return { graphics, calls, pointBatches };
 }
 
 // Build a terrain ProjectedEntityView for a cell of the given kind.
@@ -201,8 +205,8 @@ function terrainCell(x: number, y: number, kind: TerrainKind): ProjectedEntityVi
 }
 
 // A 3x3 patch of terrain entities centred at (1,1); `center` is the centre
-// cell's kind, `ring` fills the eight surrounding cells (so a uniform patch is
-// `ring === center`).
+// cell's kind, `ring` fills the eight surrounding cells. Used to prove the iso
+// tile ignores neighbour kinds (the square-edge feather was dropped).
 function patch(center: TerrainKind, ring: TerrainKind): {
   entities: ProjectedEntityView[];
   centerCell: ProjectedEntityView;
@@ -218,146 +222,78 @@ function patch(center: TerrainKind, ring: TerrainKind): {
   return { entities, centerCell };
 }
 
-function fillRects(calls: DrawCall[]): DrawCall[] {
-  return calls.filter((c) => c.op === 'fillRect');
-}
-
-describe('drawTerrainCell — kind-to-kind blended transitions', () => {
-  it('draws ONLY the base fill for a cell surrounded by same-kind neighbours', () => {
-    const { entities, centerCell } = patch('grass', 'grass');
+describe('drawTerrainCell — isometric diamond tile', () => {
+  it('draws exactly one filled diamond (4 corner points, closed path)', () => {
+    const cell = terrainCell(3, 5, 'grass');
     const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    // Exactly one fillRect (the base cell), no transition specks.
-    expect(fillRects(spy.calls).length).toBe(1);
-    const base = fillRects(spy.calls)[0];
-    expect(base.args[0]).toBe(centerCell.x * CELL_SIZE);
-    expect(base.args[1]).toBe(centerCell.y * CELL_SIZE);
+    drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
+    const fills = spy.calls.filter((c) => c.op === 'fillPoints');
+    expect(fills.length).toBe(1);
+    expect(fills[0].args[0]).toBe(4); // four corners
+    expect(fills[0].args[1]).toBe(1); // closed path
+    // No leftover square-fill / square-feather fillRect from the pre-iso renderer.
+    expect(spy.calls.some((c) => c.op === 'fillRect')).toBe(false);
   });
 
-  it('still applies the v0.1.30 jitter + 1px overdraw to the base fill', () => {
-    const { entities, centerCell } = patch('grass', 'grass');
+  it('projects the four cell corners with worldToIso (top, right, bottom, left)', () => {
+    const cellX = 4;
+    const cellY = 2;
+    const cell = terrainCell(cellX, cellY, 'grass');
     const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    // The base fillStyle colour is the jittered tint (regression guard: the
-    // base fill must keep using terrainCellTint, not the raw entity.tint).
-    const firstFillStyle = spy.calls.find((c) => c.op === 'fillStyle');
-    expect(firstFillStyle?.args[0]).toBe(
-      terrainCellTint(centerCell.tint, centerCell.x, centerCell.y),
-    );
-    const base = fillRects(spy.calls)[0];
-    // +1px overdraw on width + height (unchanged from v0.1.30).
-    expect(base.args[2]).toBe(CELL_SIZE + 1);
-    expect(base.args[3]).toBe(CELL_SIZE + 1);
+    drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
+    const pts = spy.pointBatches[0];
+    expect(pts[0]).toEqual(worldToIso(cellX, cellY)); // top
+    expect(pts[1]).toEqual(worldToIso(cellX + 1, cellY)); // right
+    expect(pts[2]).toEqual(worldToIso(cellX + 1, cellY + 1)); // bottom
+    expect(pts[3]).toEqual(worldToIso(cellX, cellY + 1)); // left
   });
 
-  it('draws transition specks when a neighbour is a different kind', () => {
-    const { entities, centerCell } = patch('grass', 'water');
+  it('forms a 2:1 rhombus (opposite corners aligned, width:height = 2:1)', () => {
+    // The iso projection of a unit cell is a 64x32 diamond: top & bottom share
+    // the same screen x (its vertical axis), left & right share the same screen
+    // y (its horizontal axis), and the diagonal spans are 2:1.
+    const cell = terrainCell(7, 3, 'water');
     const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    // Base fill + at least one transition speck per differing edge.
-    expect(fillRects(spy.calls).length).toBeGreaterThan(1);
+    drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
+    const [top, right, bottom, left] = spy.pointBatches[0];
+    expect(top.x).toBe(bottom.x);
+    expect(left.y).toBe(right.y);
+    expect(right.x - left.x).toBe(2 * (bottom.y - top.y));
   });
 
-  it('only feathers the edge whose neighbour differs (single differing side)', () => {
-    // Centre grass; only the EAST neighbour (2,1) is water, the rest grass.
-    const entities: ProjectedEntityView[] = [];
-    for (let y = 0; y < 3; y++) {
-      for (let x = 0; x < 3; x++) {
-        const kind: TerrainKind = x === 2 && y === 1 ? 'water' : 'grass';
-        entities.push(terrainCell(x, y, kind));
-      }
-    }
-    const centerCell = entities.find((e) => e.x === 1 && e.y === 1)!;
+  it('fills with the jittered per-cell tint (not the raw entity.tint), opaque', () => {
+    const cell = terrainCell(9, 1, 'grass');
     const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-
-    const px = centerCell.x * CELL_SIZE;
-    const py = centerCell.y * CELL_SIZE;
-    const speckRects = fillRects(spy.calls).slice(1); // drop the base fill
-    expect(speckRects.length).toBeGreaterThan(0);
-    // Every speck must sit on the EAST half of the cell (x past the midline),
-    // since only the east neighbour differs.
-    const midX = px + CELL_SIZE * 0.5;
-    for (const rect of speckRects) {
-      const rectRight = rect.args[0] + rect.args[2];
-      expect(rectRight).toBeGreaterThan(midX);
-      // and entirely within the vertical extent of this cell.
-      expect(rect.args[1]).toBeGreaterThanOrEqual(py - 0.001);
-      expect(rect.args[1] + rect.args[3]).toBeLessThanOrEqual(py + CELL_SIZE + 0.001);
-    }
-  });
-
-  it('uses the blend of the two kinds as the transition speck colour', () => {
-    const { entities, centerCell } = patch('grass', 'water');
-    const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    const expectedBlend = blendTint(TERRAIN_BASE_TINT.grass, TERRAIN_BASE_TINT.water);
-    // The transition fillStyle must be the grass/water blend, derived from the
-    // two kinds — NOT a hardcoded unrelated colour.
-    const usedBlend = spy.calls.some(
-      (c) => c.op === 'fillStyle' && c.args[0] === expectedBlend && (c.args[1] as number) < 1,
-    );
-    expect(usedBlend).toBe(true);
+    drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
+    const fillStyle = spy.calls.find((c) => c.op === 'fillStyle');
+    expect(fillStyle?.args[0]).toBe(terrainCellTint(cell.tint, cell.x, cell.y));
+    expect(fillStyle?.args[1]).toBe(1); // terrain is opaque
   });
 
   it('is deterministic — identical inputs produce identical draw calls', () => {
-    const a = patch('forest', 'grass');
-    const b = patch('forest', 'grass');
+    const cellA = terrainCell(6, 6, 'forest');
+    const cellB = terrainCell(6, 6, 'forest');
     const spyA = createGraphicsSpy();
     const spyB = createGraphicsSpy();
-    drawTerrainCell(spyA.graphics as never, a.entities, a.centerCell, CELL_SIZE);
-    drawTerrainCell(spyB.graphics as never, b.entities, b.centerCell, CELL_SIZE);
+    drawTerrainCell(spyA.graphics as never, [cellA], cellA, CELL_SIZE);
+    drawTerrainCell(spyB.graphics as never, [cellB], cellB, CELL_SIZE);
     expect(spyA.calls).toEqual(spyB.calls);
+    expect(spyA.pointBatches).toEqual(spyB.pointBatches);
   });
 
-  it('keeps every drawn point within the cell rect (+1px overdraw tolerance)', () => {
-    // Selection / fog / grid overlays sit on top and assume terrain occupies
-    // exactly its cell rect. The transition must not bleed past it.
-    const { entities, centerCell } = patch('grass', 'water'); // all 4 edges differ
-    const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    const px = centerCell.x * CELL_SIZE;
-    const py = centerCell.y * CELL_SIZE;
-    const tol = 1.001; // matches the base fill's +1px overdraw
-    for (const point of spy.points) {
-      expect(point.x).toBeGreaterThanOrEqual(px - tol);
-      expect(point.x).toBeLessThanOrEqual(px + CELL_SIZE + tol);
-      expect(point.y).toBeGreaterThanOrEqual(py - tol);
-      expect(point.y).toBeLessThanOrEqual(py + CELL_SIZE + tol);
-    }
-  });
-
-  it('draws no transition toward a map edge (missing neighbour = no blend)', () => {
-    // A single isolated cell at the origin with no neighbours present: the
-    // lookup returns null for all four sides → no transition specks, just base.
-    const cell = terrainCell(0, 0, 'grass');
-    const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
-    expect(fillRects(spy.calls).length).toBe(1);
-  });
-
-  it('treats a missing neighbour as no-transition even amid differing ones', () => {
-    // Centre water at (0,1) on the WEST map edge: west neighbour missing (no
-    // blend), east neighbour (1,1) grass (blend). Only the east edge feathers.
-    const entities: ProjectedEntityView[] = [
-      terrainCell(0, 0, 'water'),
-      terrainCell(1, 0, 'water'),
-      terrainCell(0, 1, 'water'),
-      terrainCell(1, 1, 'grass'),
-      terrainCell(0, 2, 'water'),
-      terrainCell(1, 2, 'water'),
-    ];
-    const centerCell = entities.find((e) => e.x === 0 && e.y === 1)!;
-    const spy = createGraphicsSpy();
-    drawTerrainCell(spy.graphics as never, entities, centerCell, CELL_SIZE);
-    const px = centerCell.x * CELL_SIZE;
-    const speckRects = fillRects(spy.calls).slice(1);
-    expect(speckRects.length).toBeGreaterThan(0);
-    // All specks on the east half (toward the grass neighbour); none toward the
-    // (missing) west edge.
-    const midX = px + CELL_SIZE * 0.5;
-    for (const rect of speckRects) {
-      expect(rect.args[0] + rect.args[2]).toBeGreaterThan(midX);
-    }
+  it('ignores neighbour kinds (the square-edge feather was dropped at v0.1.103)', () => {
+    // Regression guard for the iso switch: the centre cell draws the SAME single
+    // diamond whether its ring is its own kind or a different one — no per-edge
+    // feather primitives remain, so draw calls depend only on the centre cell.
+    const uniform = patch('grass', 'grass');
+    const mixed = patch('grass', 'water');
+    const spyU = createGraphicsSpy();
+    const spyM = createGraphicsSpy();
+    drawTerrainCell(spyU.graphics as never, uniform.entities, uniform.centerCell, CELL_SIZE);
+    drawTerrainCell(spyM.graphics as never, mixed.entities, mixed.centerCell, CELL_SIZE);
+    const countFills = (calls: DrawCall[]) => calls.filter((c) => c.op === 'fillPoints').length;
+    expect(countFills(spyU.calls)).toBe(1);
+    expect(countFills(spyM.calls)).toBe(1);
+    expect(spyU.calls).toEqual(spyM.calls);
   });
 });

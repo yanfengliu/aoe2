@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  doesIsoWorldRectIntersectEntity,
   doesWorldRectIntersectEntity,
   findCommandTargetEntityAtWorldPointInEntities,
   findEntitiesAtWorldPointInEntities,
   findEntityAtWorldPoint,
   isWorldPointInsideEntity,
 } from '../../src/phaser/scenes/entityHitTest';
+import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 import type { RenderState } from '../../src/game/simulation/types';
 
 const CELL_SIZE = 24;
@@ -321,5 +323,51 @@ describe('entityHitTest', () => {
         CELL_SIZE,
       ),
     ).toBe(true);
+  });
+});
+
+describe('doesIsoWorldRectIntersectEntity — marquee in iso-pixel space', () => {
+  const villager = createAdjacentUnitsRenderState().entities[0]; // (15,8), size 0.55
+  // Iso centre of a unit is worldToIso(x + 0.5, y + 0.5); its body radius in
+  // iso-pixel space is CELL_SIZE * size * 0.5 (the renderer draws the circle at
+  // the iso centre with that radius). villager (15,8) → (224, 384), r = 6.6.
+  const centre = worldToIso(15.5, 8.5);
+  const radius = CELL_SIZE * 0.55 * 0.5;
+
+  it('selects a unit when the iso-pixel rect overlaps its body', () => {
+    expect(
+      doesIsoWorldRectIntersectEntity(
+        villager,
+        centre.x - 4,
+        centre.y - 4,
+        centre.x + 4,
+        centre.y + 4,
+        CELL_SIZE,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not select a unit when the rect sits just past its body edge', () => {
+    // A rect whose nearest edge is radius+2 px to the right of the centre.
+    const left = centre.x + radius + 2;
+    expect(
+      doesIsoWorldRectIntersectEntity(villager, left, centre.y - 4, left + 8, centre.y + 4, CELL_SIZE),
+    ).toBe(false);
+  });
+
+  it('selects neither of two adjacent units when the rect is in the gap between their bodies', () => {
+    const left = createAdjacentUnitsRenderState().entities[0]; // (15,8)
+    const right = createAdjacentUnitsRenderState().entities[1]; // (16,8)
+    const leftCentre = worldToIso(15.5, 8.5); // (224, 384)
+    const rightCentre = worldToIso(16.5, 8.5); // (256, 400)
+    const midX = (leftCentre.x + rightCentre.x) / 2;
+    const midY = (leftCentre.y + rightCentre.y) / 2;
+    // A tiny rect at the gap midpoint — far outside both r=6.6 bodies.
+    expect(
+      doesIsoWorldRectIntersectEntity(left, midX - 1, midY - 1, midX + 1, midY + 1, CELL_SIZE),
+    ).toBe(false);
+    expect(
+      doesIsoWorldRectIntersectEntity(right, midX - 1, midY - 1, midX + 1, midY + 1, CELL_SIZE),
+    ).toBe(false);
   });
 });

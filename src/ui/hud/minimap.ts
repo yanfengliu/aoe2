@@ -1,9 +1,5 @@
 import type { ProjectedFrameView, RenderState } from '../../game/simulation/types';
 
-// World-cell pixel size — must match GameScene's CELL_SIZE so minimap
-// coordinates translate back to world coordinates exactly.
-export const MINIMAP_CELL_SIZE = 24;
-
 interface MinimapLayout {
   scale: number;
   drawWidth: number;
@@ -22,6 +18,12 @@ export interface MinimapCameraState {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
+  // Visible region in CELL space (AABB of the on-screen iso diamond). The
+  // minimap is a top-down cell grid, so it uses these, not the iso-pixel view*.
+  viewCellMinX: number;
+  viewCellMinY: number;
+  viewCellMaxX: number;
+  viewCellMaxY: number;
 }
 
 interface MinimapViewportState {
@@ -70,16 +72,19 @@ function getMinimapViewportState(
     return null;
   }
 
-  const worldWidth = frame.mapWidth * MINIMAP_CELL_SIZE;
-  const worldHeight = frame.mapHeight * MINIMAP_CELL_SIZE;
-  const minimapScaleX = layout.drawWidth / worldWidth;
-  const minimapScaleY = layout.drawHeight / worldHeight;
+  // Map the camera's visible CELL AABB onto the minimap's cell grid. (The old
+  // top-down code multiplied iso-pixel view* by cellSize; under iso the camera
+  // reports cell-space bounds directly.)
+  const cellToDrawX = (cellX: number): number =>
+    layout.offsetX + (cellX / frame.mapWidth) * layout.drawWidth;
+  const cellToDrawY = (cellY: number): number =>
+    layout.offsetY + (cellY / frame.mapHeight) * layout.drawHeight;
 
   return {
-    x: layout.offsetX + cameraState.viewX * minimapScaleX,
-    y: layout.offsetY + cameraState.viewY * minimapScaleY,
-    width: cameraState.viewWidth * minimapScaleX,
-    height: cameraState.viewHeight * minimapScaleY,
+    x: cellToDrawX(cameraState.viewCellMinX),
+    y: cellToDrawY(cameraState.viewCellMinY),
+    width: cellToDrawX(cameraState.viewCellMaxX) - cellToDrawX(cameraState.viewCellMinX),
+    height: cellToDrawY(cameraState.viewCellMaxY) - cellToDrawY(cameraState.viewCellMinY),
   };
 }
 

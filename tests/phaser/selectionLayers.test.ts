@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSelectionLayersRenderer } from '../../src/phaser/scenes/gameScene/selectionLayers';
+import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 import type { ProjectedEntityView, SelectionState } from '../../src/game/simulation/types';
 import type { SelectionPulse } from '../../src/phaser/scenes/gameScene/feedbackEffects';
 
@@ -31,10 +32,12 @@ function createUnit(overrides: Partial<ProjectedEntityView>): ProjectedEntityVie
 interface DrawCall {
   op: string;
   args: number[];
+  points?: Array<{ x: number; y: number }>;
 }
 
-// A Graphics spy capturing the calls the selection renderer makes. Only the
-// methods renderSelection touches are stubbed.
+// A Graphics spy capturing the calls the selection renderer makes. The iso
+// renderer draws unit rings as circles at the projected cell centre and building
+// rings as a strokePoints diamond, so both primitives are recorded.
 function createGraphicsSpy() {
   const calls: DrawCall[] = [];
   return {
@@ -45,6 +48,10 @@ function createGraphicsSpy() {
       strokeCircle: (x: number, y: number, r: number) => calls.push({ op: 'strokeCircle', args: [x, y, r] }),
       strokeRoundedRect: (x: number, y: number, w: number, h: number, radius: number) =>
         calls.push({ op: 'strokeRoundedRect', args: [x, y, w, h, radius] }),
+      strokePoints: (points: Array<{ x: number; y: number }>) =>
+        calls.push({ op: 'strokePoints', args: [points.length], points: points.map((p) => ({ x: p.x, y: p.y })) }),
+      fillPoints: (points: Array<{ x: number; y: number }>) =>
+        calls.push({ op: 'fillPoints', args: [points.length], points: points.map((p) => ({ x: p.x, y: p.y })) }),
       // unused by these tests but needed to satisfy the factory's layer shape
       fillStyle: () => {},
       fillRect: () => {},
@@ -109,9 +116,12 @@ describe('renderSelection — pulse modulation (M7 selection polish)', () => {
     const lineStyle = spy.calls.find((c) => c.op === 'lineStyle');
     expect(lineStyle?.args).toEqual([2, 0xf7e5a5, 0.9]);
     const circle = spy.calls.find((c) => c.op === 'strokeCircle');
-    // base radius = cellSize * max(size, 0.55) = 24 * 0.55 = 13.2, centered.
+    // base radius = cellSize * max(size, 0.55) = 24 * 0.55 = 13.2, centred on the
+    // unit's iso cell centre worldToIso(x + 0.5, y + 0.5).
+    const centre = worldToIso(6.5, 5.5);
     expect(circle?.args[2]).toBeCloseTo(CELL_SIZE * 0.55, 5);
-    expect(circle?.args[0]).toBeCloseTo(6 * CELL_SIZE + CELL_SIZE * 0.5, 5);
+    expect(circle?.args[0]).toBeCloseTo(centre.x, 5);
+    expect(circle?.args[1]).toBeCloseTo(centre.y, 5);
   });
 
   it('with a pulse, applies the pulse alpha + width and adds the radius offset (center + base preserved)', () => {
@@ -123,13 +133,15 @@ describe('renderSelection — pulse modulation (M7 selection polish)', () => {
     const lineStyle = spy.calls.find((c) => c.op === 'lineStyle');
     expect(lineStyle?.args).toEqual([3, 0xf7e5a5, 1]);
     const circle = spy.calls.find((c) => c.op === 'strokeCircle');
-    // radius = base + offset; center is unchanged.
+    // radius = base + offset; centre is the unit's iso cell centre, unchanged by
+    // the pulse.
+    const centre = worldToIso(6.5, 5.5);
     expect(circle?.args[2]).toBeCloseTo(CELL_SIZE * 0.55 + 2, 5);
-    expect(circle?.args[0]).toBeCloseTo(6 * CELL_SIZE + CELL_SIZE * 0.5, 5);
-    expect(circle?.args[1]).toBeCloseTo(5 * CELL_SIZE + CELL_SIZE * 0.5, 5);
+    expect(circle?.args[0]).toBeCloseTo(centre.x, 5);
+    expect(circle?.args[1]).toBeCloseTo(centre.y, 5);
   });
 
-  it('with a pulse, inflates the building ring outward but keeps the footprint origin centered', () => {
+  it('draws the building ring as an iso footprint diamond, inflated but centre-stable', () => {
     const spy = createGraphicsSpy();
     const renderer = makeRenderer(spy.graphics);
     const building = createUnit({
@@ -145,12 +157,20 @@ describe('renderSelection — pulse modulation (M7 selection polish)', () => {
     const pulse: SelectionPulse = { alpha: 1, radiusOffsetPx: 2, lineWidth: 3 };
     renderer.renderSelection([building], selection, pulse);
 
-    const rect = spy.calls.find((c) => c.op === 'strokeRoundedRect');
-    // inflated by the offset on each side: x-2, y-2, w+4, h+4 — footprint center unchanged.
-    expect(rect?.args[0]).toBeCloseTo(10 * CELL_SIZE - 2, 5);
-    expect(rect?.args[1]).toBeCloseTo(10 * CELL_SIZE - 2, 5);
-    expect(rect?.args[2]).toBeCloseTo(4 * CELL_SIZE + 4, 5);
-    expect(rect?.args[3]).toBeCloseTo(4 * CELL_SIZE + 4, 5);
+    // Iso building ring is a 4-corner diamond (strokePoints), not a rounded rect.
+    const diamond = spy.calls.find((c) => c.op === 'strokePoints');
+    expect(diamond?.points).toHaveLength(4);
+    const points = diamond!.points!;
+    // Centroid stays on the footprint's iso centre worldToIso(12, 12) = (0, 384).
+    const centroidX = points.reduce((sum, p) => sum + p.x, 0) / 4;
+    const centroidY = points.reduce((sum, p) => sum + p.y, 0) / 4;
+    const footprintCentre = worldToIso(12, 12);
+    expect(centroidX).toBeCloseTo(footprintCentre.x, 5);
+    expect(centroidY).toBeCloseTo(footprintCentre.y, 5);
+    // Inflated outward by the pulse offset: the top corner sits above the raw
+    // footprint corner worldToIso(10, 10).y = 320.
+    const minY = Math.min(...points.map((p) => p.y));
+    expect(minY).toBeLessThan(worldToIso(10, 10).y);
   });
 
   it('does not draw a ring for a memory entity even when in the selection set', () => {

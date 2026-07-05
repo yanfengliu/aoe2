@@ -34,4 +34,4 @@ Standard 2:1 iso: `isoX = (cellX - cellY)·W/2`, `isoY = (cellX + cellY)·H/2 - 
 
 ## Status
 
-Increment 1 (projection foundation) shipped. NEXT = increment 2 (terrain in iso) — the first visible step; best opened with fresh context as it begins the renderer rewrite.
+Increment 1 (projection foundation) shipped. Increments 2–5 shipped together as v0.1.103 (the coordinate switch): terrain diamonds, entity iso-placement + depth-sorted draw copy, pointer/marquee/selection/placement-preview hit-testing in iso, and the camera + minimap moved into iso-pixel space (frames the TC on the first frame; minimap consumes the new `viewCell*` cell-AABB seam). The v0.1.43 square edge-feather was dropped (returns as a diamond feather later); the v0.1.102 unit shadow carried over. Pure view/camera math extracted to `gameScene/isoViewHelpers.ts` to keep GameScene under its 1018-line cap. NEXT = increment 6 (detailed procedural buildings — the biggest art payoff: 3/4-view walls + roofs inside the diamond footprint), then 7 (units), 8 (animation), 9 (elevation, still blocked on the render contract).

@@ -16,7 +16,6 @@ import type {
   UnitType,
 } from '../../game/simulation/types';
 import {
-  doesWorldRectIntersectEntity,
   findCommandTargetEntityAtWorldPointInEntities,
   findEntitiesAtWorldPointInEntities,
 } from './entityHitTest';
@@ -43,6 +42,15 @@ import {
 import { createUnitRenderer, unitFacingRadians, type UnitRenderer } from './gameScene/unitRenderer';
 import { isUnitType as isUnitTypeExternal } from './gameScene/unitTypeMap';
 import { drawTerrainCell } from './gameScene/terrainRenderer';
+import { isoToWorld, worldToIso } from './gameScene/isoProjection';
+import {
+  computeBaseFocusCell,
+  isDragSelectableEntity,
+  isoDragPixelBounds,
+  isoViewportCellBounds,
+  isoWorldPixelBounds,
+  marqueePreviewEntities,
+} from './gameScene/isoViewHelpers';
 import { drawResourceEntity } from './gameScene/resourceRenderer';
 import { createFeedbackEffectsRenderer, type FeedbackEffectsRenderer } from './gameScene/feedbackEffects';
 import { interpolateProjectedEntities } from './interpolateProjectedEntities';
@@ -76,6 +84,10 @@ export interface CameraState {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
+  viewCellMinX: number;
+  viewCellMinY: number;
+  viewCellMaxX: number;
+  viewCellMaxY: number;
 }
 
 export interface SelectionBoxState {
@@ -200,6 +212,10 @@ export class GameScene extends Phaser.Scene {
   // M7 feedback: selection pulse + hit-flash (render-only, time-based; owns the hp-delta tracker).
   private readonly feedbackRenderer: FeedbackEffectsRenderer = createFeedbackEffectsRenderer();
   private displayedEntities: ProjectedEntityView[] = [];
+  // Iso overhaul: the camera recentres on the player's base once, on the first
+  // render frame that has one (the map is a large iso diamond, so a good initial
+  // frame matters for both play and click/drag targeting in tests).
+  private hasCenteredOnBase = false;
   private dragSelection: DragSelectionState | null = null;
   private middleDragPan: MiddleDragPanState | null = null;
   private cameraController?: CameraController;
@@ -265,17 +281,23 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.cameras.main.setBackgroundColor('#132224');
-    this.cameras.main.setBounds(0, 0, MAP_WIDTH * CELL_SIZE, MAP_HEIGHT * CELL_SIZE);
+    // Isometric world extent: the diamond bounding box of all cells (its left
+    // half spans negative X), with a one-tile margin so edge diamonds aren't
+    // clipped. Replaces the top-down square extent.
+    const isoBounds = isoWorldPixelBounds(MAP_WIDTH, MAP_HEIGHT, CELL_SIZE);
+    this.cameras.main.setBounds(isoBounds.x, isoBounds.y, isoBounds.width, isoBounds.height);
     this.cameraController = createCameraController({
       scene: this,
       camera: this.cameras.main,
-      cellSize: CELL_SIZE,
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,
       isDragSelecting: () => this.dragSelection !== null,
       isMiddleDragging: () => this.middleDragPan !== null,
     });
     this.cameraController.setZoom(this.cameraController.initialZoom);
+    // The camera recentres on the human player's base (Town Center, else the
+    // centroid of owned entities) on the first render frame that has one — see
+    // centerOnPlayerBaseOnce(). Until then it sits at the clamped default.
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasd = this.input.keyboard?.addKeys(
@@ -298,10 +320,8 @@ export class GameScene extends Phaser.Scene {
       if (pointer.rightButtonDown()) {
         this.clearRecentSelectionClicks();
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-        this.issueContextCommandAtWorldPosition(
-          worldPoint.x / CELL_SIZE,
-          worldPoint.y / CELL_SIZE,
-        );
+        const cell = isoToWorld(worldPoint.x, worldPoint.y);
+        this.issueContextCommandAtWorldPosition(cell.cellX, cell.cellY);
         return;
       }
 
@@ -365,8 +385,9 @@ export class GameScene extends Phaser.Scene {
       }
 
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
-      const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
+      const cell = isoToWorld(worldPoint.x, worldPoint.y);
+      const cellX = Phaser.Math.Clamp(Math.floor(cell.cellX), 0, MAP_WIDTH - 1);
+      const cellY = Phaser.Math.Clamp(Math.floor(cell.cellY), 0, MAP_HEIGHT - 1);
 
       if (this.bridge.getSelectionState().placementMode) {
         this.clearRecentSelectionClicks();
@@ -392,7 +413,7 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      this.selectEntityAtWorldPosition(worldPoint.x / CELL_SIZE, worldPoint.y / CELL_SIZE);
+      this.selectEntityAtWorldPosition(cell.cellX, cell.cellY);
     });
   }
 
@@ -533,9 +554,21 @@ export class GameScene extends Phaser.Scene {
       interpolationAlpha,
     );
 
-    for (const entity of this.displayedEntities) {
-      const px = entity.x * CELL_SIZE;
-      const py = entity.y * CELL_SIZE;
+    this.centerOnPlayerBaseOnce();
+
+    // Isometric depth order: draw back-to-front (increasing cellX+cellY) so a
+    // nearer entity occludes a farther one. Sort a COPY — `displayedEntities`
+    // keeps its sim order, which hit-testing / selection / the browser test API
+    // depend on for stable overlap tie-breaking.
+    const drawOrder = [...this.displayedEntities].sort((a, b) => a.x + a.y - (b.x + b.y));
+
+    for (const entity of drawOrder) {
+      // Isometric placement: the entity's iso screen CENTRE (the diamond centre
+      // of its cell) minus the half-cell the renderers re-add, so the existing
+      // renderer geometry (cx = px + cellSize/2) lands on the diamond centre.
+      const isoCentre = worldToIso(entity.x + 0.5, entity.y + 0.5);
+      const px = isoCentre.x - CELL_SIZE * 0.5;
+      const py = isoCentre.y - CELL_SIZE * 0.5;
       const fillAlpha = entity.isMemory ? 0.5 : 1;
 
       if (entity.layer === 'terrain') {
@@ -640,6 +673,22 @@ export class GameScene extends Phaser.Scene {
 
   getCameraState(): CameraState | null {
     return this.cameraController?.getState() ?? null;
+  }
+
+  // Iso overhaul: on the first frame that has the human player's base, frame the
+  // camera on it (Town Center centre, else the centroid of owned entities). The
+  // map is a large iso diamond, so an un-framed default can leave the base jammed
+  // against a screen edge — bad for play and for click/drag targeting.
+  private centerOnPlayerBaseOnce(): void {
+    if (this.hasCenteredOnBase || !this.cameraController) {
+      return;
+    }
+    const focus = computeBaseFocusCell(this.displayedEntities, HUMAN_PLAYER_ID);
+    if (!focus) {
+      return; // nothing to frame yet — retry next frame
+    }
+    this.cameraController.centerOnWorldPosition(focus.cellX, focus.cellY);
+    this.hasCenteredOnBase = true;
   }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
@@ -781,8 +830,9 @@ export class GameScene extends Phaser.Scene {
 
     const pointer = this.input.activePointer;
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const cellX = Phaser.Math.Clamp(Math.floor(worldPoint.x / CELL_SIZE), 0, MAP_WIDTH - 1);
-    const cellY = Phaser.Math.Clamp(Math.floor(worldPoint.y / CELL_SIZE), 0, MAP_HEIGHT - 1);
+    const cell = isoToWorld(worldPoint.x, worldPoint.y);
+    const cellX = Phaser.Math.Clamp(Math.floor(cell.cellX), 0, MAP_WIDTH - 1);
+    const cellY = Phaser.Math.Clamp(Math.floor(cell.cellY), 0, MAP_HEIGHT - 1);
     const previewState = this.bridge.getPlacementPreview(cellX, cellY);
     if (!previewState) {
       return null;
@@ -823,74 +873,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getSelectionPreviewEntities(dragSelection: DragSelectionState): ProjectedEntityView[] {
-    const selectionBounds = this.getDragSelectionWorldBounds(dragSelection);
-    if (!selectionBounds) {
+    if (!this.isDragSelectionActive(dragSelection)) {
       return [];
     }
-
-    return this.displayedEntities
-      .filter((entity) => this.isDragSelectableEntity(entity))
-      .filter((entity) =>
-        doesWorldRectIntersectEntity(
-          entity,
-          selectionBounds.minWorldX,
-          selectionBounds.minWorldY,
-          selectionBounds.maxWorldX,
-          selectionBounds.maxWorldY,
-          CELL_SIZE,
-        ))
-      .sort((left, right) => {
-        const yDelta = left.y - right.y;
-        if (Math.abs(yDelta) > 0.001) {
-          return yDelta;
-        }
-
-        const xDelta = left.x - right.x;
-        if (Math.abs(xDelta) > 0.001) {
-          return xDelta;
-        }
-
-        return left.id - right.id;
-      });
-  }
-
-  private isDragSelectableEntity(entity: ProjectedEntityView): boolean {
-    if (entity.isMemory) {
-      return false;
-    }
-
-    if (entity.kind === 'unit') {
-      return entity.owner === HUMAN_PLAYER_ID;
-    }
-
-    return entity.kind === 'resource'
-      && entity.entityType === 'sheep'
-      && entity.owner === HUMAN_PLAYER_ID;
-  }
-
-  private getDragSelectionWorldBounds(dragSelection: DragSelectionState): {
-    minWorldX: number;
-    minWorldY: number;
-    maxWorldX: number;
-    maxWorldY: number;
-  } | null {
-    if (!this.isDragSelectionActive(dragSelection)) {
-      return null;
-    }
-
-    const minX = Math.min(dragSelection.startScreenX, dragSelection.currentScreenX);
-    const minY = Math.min(dragSelection.startScreenY, dragSelection.currentScreenY);
-    const maxX = Math.max(dragSelection.startScreenX, dragSelection.currentScreenX);
-    const maxY = Math.max(dragSelection.startScreenY, dragSelection.currentScreenY);
-    const worldStart = this.cameras.main.getWorldPoint(minX, minY);
-    const worldEnd = this.cameras.main.getWorldPoint(maxX, maxY);
-
-    return {
-      minWorldX: Math.min(worldStart.x, worldEnd.x),
-      minWorldY: Math.min(worldStart.y, worldEnd.y),
-      maxWorldX: Math.max(worldStart.x, worldEnd.x),
-      maxWorldY: Math.max(worldStart.y, worldEnd.y),
-    };
+    // Iso-pixel drag bounds; the marquee hit-test projects each unit's body to
+    // its iso centre in this SAME space (see isoDragPixelBounds).
+    const bounds = isoDragPixelBounds(
+      dragSelection.startScreenX,
+      dragSelection.startScreenY,
+      dragSelection.currentScreenX,
+      dragSelection.currentScreenY,
+      (screenX, screenY) => this.cameras.main.getWorldPoint(screenX, screenY),
+    );
+    return marqueePreviewEntities(
+      this.displayedEntities,
+      bounds,
+      (entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID),
+      CELL_SIZE,
+    );
   }
 
   // Per-entity rendering lives in dep-bag factories under `gameScene/`
@@ -950,13 +950,14 @@ export class GameScene extends Phaser.Scene {
     maxX: number;
     maxY: number;
   } {
-    const worldView = this.cameras.main.worldView;
-
+    // The camera worldView (iso-pixel) covers a diamond of cells; take its cell
+    // AABB (a conservative superset — fine for "select all of type on screen").
+    const bounds = isoViewportCellBounds(this.cameras.main.worldView);
     return {
-      minX: Phaser.Math.Clamp(Math.floor(worldView.x / CELL_SIZE), 0, MAP_WIDTH - 1),
-      minY: Phaser.Math.Clamp(Math.floor(worldView.y / CELL_SIZE), 0, MAP_HEIGHT - 1),
-      maxX: Phaser.Math.Clamp(Math.floor((worldView.right - 1) / CELL_SIZE), 0, MAP_WIDTH - 1),
-      maxY: Phaser.Math.Clamp(Math.floor((worldView.bottom - 1) / CELL_SIZE), 0, MAP_HEIGHT - 1),
+      minX: Phaser.Math.Clamp(Math.floor(bounds.minX), 0, MAP_WIDTH - 1),
+      minY: Phaser.Math.Clamp(Math.floor(bounds.minY), 0, MAP_HEIGHT - 1),
+      maxX: Phaser.Math.Clamp(Math.floor(bounds.maxX), 0, MAP_WIDTH - 1),
+      maxY: Phaser.Math.Clamp(Math.floor(bounds.maxY), 0, MAP_HEIGHT - 1),
     };
   }
 

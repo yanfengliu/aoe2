@@ -20,6 +20,7 @@ import type {
   SelectionBoxState,
 } from '../GameScene';
 import type { SelectionPulse } from './feedbackEffects';
+import { worldToIso } from './isoProjection';
 
 // Static ring style used when no pulse is supplied — the exact pre-v0.1.45
 // look (constant gold stroke at width 2 / alpha 0.9, base radius). The pulse
@@ -80,6 +81,22 @@ export function createSelectionLayersRenderer(
     getDisplayedEntities,
   } = deps;
 
+  // The four iso-pixel corners of a w×h footprint anchored at (cellX, cellY),
+  // in [top, right, bottom, left] order — a closed diamond in screen space.
+  function footprintDiamond(
+    cellX: number,
+    cellY: number,
+    w: number,
+    h: number,
+  ): Array<{ x: number; y: number }> {
+    return [
+      worldToIso(cellX, cellY),
+      worldToIso(cellX + w, cellY),
+      worldToIso(cellX + w, cellY + h),
+      worldToIso(cellX, cellY + h),
+    ];
+  }
+
   function renderSelection(
     entities: ProjectedEntityView[],
     selectionState: SelectionState,
@@ -98,27 +115,32 @@ export function createSelectionLayersRenderer(
         continue;
       }
 
-      const px = entity.x * cellSize;
-      const py = entity.y * cellSize;
-
       if (entity.kind === 'building') {
-        // Inflate the rounded rect outward by the pulse offset on each side so
-        // the stroke breathes while the footprint ORIGIN/center is unchanged.
-        const widthPx = entity.footprintWidth * cellSize;
-        const heightPx = entity.footprintHeight * cellSize;
-        selectionLayer.strokeRoundedRect(
-          px - offset,
-          py - offset,
-          widthPx + offset * 2,
-          heightPx + offset * 2,
-          6,
+        // Iso footprint outline: the 4 projected corners of the footprint form a
+        // diamond. Inflate it outward from its centre by the pulse offset so the
+        // stroke breathes while the footprint centre is unchanged.
+        const corners = footprintDiamond(
+          entity.x,
+          entity.y,
+          entity.footprintWidth,
+          entity.footprintHeight,
         );
+        const cx = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4;
+        const cy = (corners[0].y + corners[1].y + corners[2].y + corners[3].y) / 4;
+        const inflated = corners.map((corner) => {
+          const dx = corner.x - cx;
+          const dy = corner.y - cy;
+          const length = Math.hypot(dx, dy) || 1;
+          return { x: corner.x + (dx / length) * offset, y: corner.y + (dy / length) * offset };
+        });
+        selectionLayer.strokePoints(inflated, true, true);
         continue;
       }
 
+      const centre = worldToIso(entity.x + 0.5, entity.y + 0.5);
       selectionLayer.strokeCircle(
-        px + cellSize * 0.5,
-        py + cellSize * 0.5,
+        centre.x,
+        centre.y,
         cellSize * Math.max(entity.size, 0.55) + offset,
       );
     }
@@ -155,20 +177,19 @@ export function createSelectionLayersRenderer(
         continue;
       }
 
-      const px = entity.x * cellSize;
-      const py = entity.y * cellSize;
+      const centre = worldToIso(entity.x + 0.5, entity.y + 0.5);
 
       if (entity.kind === 'unit') {
         const radius = cellSize * entity.size * 0.5;
-        selectionBoxLayer.fillCircle(px + cellSize * 0.5, py + cellSize * 0.5, radius);
-        selectionBoxLayer.strokeCircle(px + cellSize * 0.5, py + cellSize * 0.5, radius);
+        selectionBoxLayer.fillCircle(centre.x, centre.y, radius);
+        selectionBoxLayer.strokeCircle(centre.x, centre.y, radius);
         continue;
       }
 
       if (entity.kind === 'resource' && entity.entityType === 'sheep') {
         const radius = cellSize * entity.size * 0.55;
-        selectionBoxLayer.fillCircle(px + cellSize * 0.5, py + cellSize * 0.5, radius);
-        selectionBoxLayer.strokeCircle(px + cellSize * 0.5, py + cellSize * 0.5, radius);
+        selectionBoxLayer.fillCircle(centre.x, centre.y, radius);
+        selectionBoxLayer.strokeCircle(centre.x, centre.y, radius);
       }
     }
   }
@@ -187,31 +208,30 @@ export function createSelectionLayersRenderer(
     let blockedMarkerCount = 0;
     placementLayer.lineStyle(strokeWidth, tint, 0.98);
     placementLayer.fillStyle(tint, fillAlpha);
-    placementLayer.fillRect(
-      previewState.cellX * cellSize,
-      previewState.cellY * cellSize,
-      previewState.width * cellSize,
-      previewState.height * cellSize,
+    // Iso footprint: the whole w×h footprint as one filled diamond, outlined.
+    const footprint = footprintDiamond(
+      previewState.cellX,
+      previewState.cellY,
+      previewState.width,
+      previewState.height,
     );
-    placementLayer.strokeRect(
-      previewState.cellX * cellSize,
-      previewState.cellY * cellSize,
-      previewState.width * cellSize,
-      previewState.height * cellSize,
-    );
+    placementLayer.fillPoints(footprint, true);
+    placementLayer.strokePoints(footprint, true, true);
 
     placementLayer.lineStyle(1, previewState.isValid ? 0xf6ffe9 : 0xfff0f0, 0.95);
     for (let offsetY = 0; offsetY < previewState.height; offsetY += 1) {
       for (let offsetX = 0; offsetX < previewState.width; offsetX += 1) {
-        const x = (previewState.cellX + offsetX) * cellSize;
-        const y = (previewState.cellY + offsetY) * cellSize;
-        placementLayer.strokeRect(x, y, cellSize, cellSize);
+        const cellX = previewState.cellX + offsetX;
+        const cellY = previewState.cellY + offsetY;
+        placementLayer.strokePoints(footprintDiamond(cellX, cellY, 1, 1), true, true);
         cellOutlineCount += 1;
 
         if (!previewState.isValid) {
+          // A small screen-space X centred on the cell's iso diamond.
+          const centre = worldToIso(cellX + 0.5, cellY + 0.5);
           placementLayer.lineStyle(2, 0xfff6f6, 0.98);
-          placementLayer.lineBetween(x + 3, y + 3, x + cellSize - 3, y + cellSize - 3);
-          placementLayer.lineBetween(x + cellSize - 3, y + 3, x + 3, y + cellSize - 3);
+          placementLayer.lineBetween(centre.x - 6, centre.y - 3, centre.x + 6, centre.y + 3);
+          placementLayer.lineBetween(centre.x + 6, centre.y - 3, centre.x - 6, centre.y + 3);
           blockedMarkerCount += 1;
           placementLayer.lineStyle(1, 0xfff0f0, 0.95);
         }

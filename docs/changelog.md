@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.103 - 2026-07-05
+
+### Isometric 2.5D world
+
+The game world now renders in an isometric (2.5D diamond) projection instead of the flat top-down grid — the first structural step of the isometric overhaul toward an AoE2-HD-quality look (original/procedural art only). Terrain tiles are drawn as 2:1 diamonds, and every entity (units, buildings, resources) is placed on the iso plane and depth-sorted back-to-front so nearer objects correctly occlude farther ones. The camera now lives in iso-pixel space: it frames the player's Town Center on the first frame, pans/zooms/edge-scrolls within the diamond world bounds, and the minimap (still a top-down cell grid) maps clicks and its viewport rectangle through the projection. Selection rings, the drag-select marquee, the placement preview, and all click / right-click targeting were converted to the iso projection so they land exactly on-screen. No gameplay, economy, or combat rules changed — this is purely how the world is drawn and interacted with. Detailed per-tile art, unit sprites, and elevation/cliffs follow in later increments.
+
 ## 0.1.102 - 2026-07-05
 
 ### Units cast a ground shadow

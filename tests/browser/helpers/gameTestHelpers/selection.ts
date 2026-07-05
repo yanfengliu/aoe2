@@ -13,6 +13,25 @@ export async function doubleClickWorldPosition(
   await page.mouse.click(point.x, point.y, { button: 'left' });
 }
 
+// Drag a marquee whose screen rectangle bounds all four supplied corners.
+// Under the isometric projection a cell-space rectangle maps to a rotated
+// diamond on screen, so its two diagonal corners no longer bound it — we must
+// project all four corners and drag their screen AABB. Leaves the mouse button
+// DOWN (callers assert the live preview, then release with page.mouse.up).
+async function dragScreenAabbOfCorners(
+  page: Page,
+  corners: Array<{ x: number; y: number }>,
+): Promise<void> {
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
+
+  await page.mouse.move(minX, minY);
+  await page.mouse.down({ button: 'left' });
+  await page.mouse.move(maxX, maxY, { steps: 6 });
+}
+
 export async function dragSelectCells(
   page: Page,
   startCellX: number,
@@ -20,12 +39,13 @@ export async function dragSelectCells(
   endCellX: number,
   endCellY: number,
 ): Promise<void> {
-  const startPoint = await getScreenPointForCell(page, startCellX, startCellY);
-  const endPoint = await getScreenPointForCell(page, endCellX, endCellY);
-
-  await page.mouse.move(startPoint.x, startPoint.y);
-  await page.mouse.down({ button: 'left' });
-  await page.mouse.move(endPoint.x, endPoint.y, { steps: 6 });
+  const corners = await Promise.all([
+    getScreenPointForCell(page, startCellX, startCellY),
+    getScreenPointForCell(page, endCellX, startCellY),
+    getScreenPointForCell(page, startCellX, endCellY),
+    getScreenPointForCell(page, endCellX, endCellY),
+  ]);
+  await dragScreenAabbOfCorners(page, corners);
 }
 
 export async function dragSelectWorldRect(
@@ -35,12 +55,13 @@ export async function dragSelectWorldRect(
   endWorldX: number,
   endWorldY: number,
 ): Promise<void> {
-  const startPoint = await getScreenPointForWorldPosition(page, startWorldX, startWorldY);
-  const endPoint = await getScreenPointForWorldPosition(page, endWorldX, endWorldY);
-
-  await page.mouse.move(startPoint.x, startPoint.y);
-  await page.mouse.down({ button: 'left' });
-  await page.mouse.move(endPoint.x, endPoint.y, { steps: 6 });
+  const corners = await Promise.all([
+    getScreenPointForWorldPosition(page, startWorldX, startWorldY),
+    getScreenPointForWorldPosition(page, endWorldX, startWorldY),
+    getScreenPointForWorldPosition(page, startWorldX, endWorldY),
+    getScreenPointForWorldPosition(page, endWorldX, endWorldY),
+  ]);
+  await dragScreenAabbOfCorners(page, corners);
 }
 
 export async function selectOwnedUnitDirect(
