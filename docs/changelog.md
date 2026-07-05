@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.106 - 2026-07-05
+
+### Trees and mines render in 3D isometric
+
+Forests and mines used to draw as flat top-down squares scattered over the isometric terrain. Trees now render as a brown trunk under a raised leafy canopy sitting on a ground shadow, so a forest reads as real 3D woodland; gold and stone mines render as a small mound of tinted rock lumps on a shadow. Berry bushes, sheep, boar, wolves, fish, relics, and farms are unchanged. Purely visual — resource amounts, gathering, and selection are unchanged.
+
 ## 0.1.105 - 2026-07-05
 
 ### Foot units read as upright figures

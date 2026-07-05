@@ -39,6 +39,7 @@ function createGraphicsSpy() {
       fillStyle: (color: number, alpha?: number) => calls.push({ op: 'fillStyle', args: [color, alpha ?? 1] }),
       fillRect: (x: number, y: number, w: number, h: number) => calls.push({ op: 'fillRect', args: [x, y, w, h] }),
       fillCircle: (x: number, y: number, r: number) => calls.push({ op: 'fillCircle', args: [x, y, r] }),
+      fillEllipse: (x: number, y: number, w: number, h: number) => calls.push({ op: 'fillEllipse', args: [x, y, w, h] }),
     } as unknown as Phaser.GameObjects.Graphics,
   };
 }
@@ -47,19 +48,32 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
   const px = 4 * CELL_SIZE;
   const py = 3 * CELL_SIZE;
 
-  it('draws square-footprint resources (mine/tree) as an inset filled rect using the tint + alpha', () => {
-    for (const kind of ['gold-mine', 'stone-mine', 'tree'] as ResourceKind[]) {
+  it('draws a tree as a raised canopy + trunk + ground shadow (iso), tinted canopy', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('tree'), px, py, CELL_SIZE, 1);
+    const cy = py + CELL_SIZE * 0.5;
+    // ground shadow ellipse BELOW the cell centre
+    const shadow = spy.calls.find((c) => c.op === 'fillEllipse');
+    expect(shadow).toBeDefined();
+    expect(shadow!.args[1]).toBeGreaterThan(cy);
+    // a trunk rect
+    expect(spy.calls.some((c) => c.op === 'fillRect')).toBe(true);
+    // a canopy circle ABOVE the cell centre
+    const canopy = spy.calls.find((c) => c.op === 'fillCircle');
+    expect(canopy).toBeDefined();
+    expect(canopy!.args[1]).toBeLessThan(cy);
+    // the tree tint is used as a fill colour (the canopy)
+    expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x88aa44)).toBe(true);
+  });
+
+  it('draws a gold/stone mine as an iso mound of rock lumps + a ground shadow, tinted', () => {
+    for (const kind of ['gold-mine', 'stone-mine'] as ResourceKind[]) {
       const spy = createGraphicsSpy();
-      drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 0.5);
-      expect(spy.calls[0]).toEqual({ op: 'fillStyle', args: [0x88aa44, 0.5] });
-      const rect = spy.calls.find((c) => c.op === 'fillRect');
-      expect(rect?.args).toEqual([
-        px + CELL_SIZE * 0.1,
-        py + CELL_SIZE * 0.1,
-        CELL_SIZE * 1,
-        CELL_SIZE * 1,
-      ]);
-      expect(spy.calls.find((c) => c.op === 'fillCircle')).toBeUndefined();
+      drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
+      expect(spy.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThanOrEqual(2);
+      expect(spy.calls.some((c) => c.op === 'fillEllipse')).toBe(true);
+      expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x88aa44)).toBe(true);
+      expect(spy.calls.some((c) => c.op === 'fillRect')).toBe(false);
     }
   });
 
