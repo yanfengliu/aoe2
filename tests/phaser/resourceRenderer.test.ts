@@ -77,8 +77,8 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
     }
   });
 
-  it('draws other resources (berry bush, sheep, fish, farm, relic) as a centred circle', () => {
-    for (const kind of ['berry-bush', 'sheep', 'fish', 'farm', 'relic'] as ResourceKind[]) {
+  it('draws other resources (berry bush, fish, farm, relic) as a centred circle', () => {
+    for (const kind of ['berry-bush', 'fish', 'farm', 'relic'] as ResourceKind[]) {
       const spy = createGraphicsSpy();
       drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
       const circle = spy.calls.find((c) => c.op === 'fillCircle');
@@ -88,6 +88,19 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
         CELL_SIZE * 1 * 0.55,
       ]);
       expect(spy.calls.find((c) => c.op === 'fillRect')).toBeUndefined();
+    }
+  });
+
+  it('draws wildlife (sheep/boar/wolf) as a small animal figure: body + head over a shadow', () => {
+    for (const kind of ['sheep', 'boar', 'wolf'] as ResourceKind[]) {
+      const spy = createGraphicsSpy();
+      drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
+      // a body ellipse + a ground shadow ellipse (2 ellipses)
+      expect(spy.calls.filter((c) => c.op === 'fillEllipse').length).toBeGreaterThanOrEqual(2);
+      // a head circle
+      expect(spy.calls.some((c) => c.op === 'fillCircle')).toBe(true);
+      // the tint is used for the body/head
+      expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x88aa44)).toBe(true);
     }
   });
 });

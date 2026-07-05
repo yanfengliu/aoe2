@@ -43,6 +43,22 @@ export function drawResourceEntity(
     return;
   }
 
+  if (
+    entity.entityType === 'sheep'
+    || entity.entityType === 'boar'
+    || entity.entityType === 'wolf'
+  ) {
+    // A small standing animal: an oval body + a head bump over a ground shadow,
+    // so wildlife reads as a creature on the iso ground rather than a flat dot.
+    const s = cellSize * entity.size;
+    graphics.fillStyle(0x000000, 0.16 * fillAlpha);
+    graphics.fillEllipse(cx, cy + s * 0.28, s * 0.7, s * 0.24);
+    graphics.fillStyle(entity.tint, fillAlpha);
+    graphics.fillEllipse(cx, cy, s * 0.9, s * 0.55);
+    graphics.fillCircle(cx + s * 0.42, cy - s * 0.06, s * 0.24);
+    return;
+  }
+
   graphics.fillStyle(entity.tint, fillAlpha);
   graphics.fillCircle(cx, cy, cellSize * entity.size * 0.55);
 }

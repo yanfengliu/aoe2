@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.107 - 2026-07-05
+
+### Wildlife reads as animals
+
+Sheep, boar, and wolves now draw as a small standing animal — an oval body with a head, over a ground shadow — instead of a flat coloured dot, so they read as creatures on the isometric ground. Fish, berry bushes, relics, and farms are unchanged. Purely visual.
+
 ## 0.1.106 - 2026-07-05
 
 ### Trees and mines render in 3D isometric
