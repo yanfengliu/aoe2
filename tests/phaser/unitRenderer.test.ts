@@ -5,6 +5,7 @@ import {
   UNIT_SHADOW_ALPHA,
   UNIT_SHADOW_COLOR,
   createUnitRenderer,
+  unitBobOffset,
   unitFacingRadians,
   unitRole,
   unitShadowEllipse,
@@ -127,6 +128,31 @@ describe('unitRole', () => {
     for (const unitType of Object.keys(ALL_UNIT_TYPES) as UnitType[]) {
       expect(typeof unitRole(unitType)).toBe('string');
     }
+  });
+});
+
+describe('unitBobOffset', () => {
+  const r = 10;
+  it('idle sway is a small ± oscillation within ~6% of the radius', () => {
+    for (let t = 0; t < 4000; t += 137) {
+      expect(Math.abs(unitBobOffset(t, 3, false, r))).toBeLessThanOrEqual(r * 0.06 + 1e-9);
+    }
+  });
+
+  it('walking bounce is a larger non-negative hop within ~14% of the radius', () => {
+    let maxBob = 0;
+    for (let t = 0; t < 4000; t += 37) {
+      const bob = unitBobOffset(t, 3, true, r);
+      expect(bob).toBeGreaterThanOrEqual(0); // a hop up, never sinks below rest
+      expect(bob).toBeLessThanOrEqual(r * 0.14 + 1e-9);
+      maxBob = Math.max(maxBob, bob);
+    }
+    expect(maxBob).toBeGreaterThan(r * 0.1); // actually reaches a meaningful hop
+  });
+
+  it('is deterministic in time (no Date.now / random) and phased by unit id', () => {
+    expect(unitBobOffset(500, 3, true, r)).toBe(unitBobOffset(500, 3, true, r));
+    expect(unitBobOffset(500, 3, false, r)).not.toBe(unitBobOffset(500, 4, false, r));
   });
 });
 

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.108 - 2026-07-05
+
+### Units bob to life (idle sway + walk bounce)
+
+Units now gently sway in place when idle and bounce with a walking gait when moving, instead of standing perfectly still — a small vertical bob of the figure above its ground shadow, offset per unit so a crowd doesn't move in lockstep. Purely visual and deterministic (no effect on simulation, timing, or replays).
+
 ## 0.1.107 - 2026-07-05
 
 ### Wildlife reads as animals

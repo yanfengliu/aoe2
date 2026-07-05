@@ -594,7 +594,7 @@ export class GameScene extends Phaser.Scene {
       // position (the interpolated current lies on the prev→current segment, so
       // the heading angle is identical); idle units use a rest orientation.
       const facing = unitFacingRadians(this.previousUnitProjectedPositions.get(entity.id), entity, interpolationAlpha);
-      this.unitRenderer?.drawUnit(entity, px, py, facing, fillAlpha);
+      this.unitRenderer?.drawUnit(entity, px, py, facing, fillAlpha, this.time.now);
       this.feedbackRenderer.drawUnitFlash(this.entityLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
         py + CELL_SIZE * 0.5, CELL_SIZE * entity.size * 0.5, entity.id, this.time.now);
     }

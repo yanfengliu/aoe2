@@ -136,6 +136,7 @@ export interface UnitRenderer {
     py: number,
     facingRadians: number | null,
     fillAlpha: number,
+    timeMs?: number,
   ): void;
 }
 
@@ -172,6 +173,20 @@ export function unitShadowEllipse(
   };
 }
 
+// A small vertical bob for the unit figure (the shadow stays on the ground), so
+// units feel alive: a gentle idle SWAY (±) or a faster walk BOUNCE (hop) when
+// moving. Deterministic in the passed `timeMs` (no Date.now/random — replay- and
+// test-safe) and phased by the unit id so a crowd doesn't move in lockstep. Kept
+// small relative to the bounding radius r so the figure never leaves the circle
+// the health-bar / selection geometry assumes.
+export function unitBobOffset(timeMs: number, id: number, isMoving: boolean, r: number): number {
+  const phase = (id % 16) * 0.4;
+  if (isMoving) {
+    return r * 0.14 * Math.abs(Math.sin(timeMs / 90 + phase));
+  }
+  return r * 0.06 * Math.sin(timeMs / 420 + phase);
+}
+
 export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
   const { graphics, cellSize } = deps;
 
@@ -181,6 +196,7 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     py: number,
     facingRadians: number | null,
     fillAlpha: number,
+    timeMs = 0,
   ): void {
     const cx = px + cellSize * 0.5;
     const cy = py + cellSize * 0.5;
@@ -195,33 +211,36 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     const outline = darken(tint, 0.55);
     const outlineAlpha = Math.min(1, fillAlpha);
 
-    // Ground shadow FIRST so the body silhouette draws on top of it.
+    // Ground shadow FIRST (at the true cell centre) so the body draws on top of
+    // it; the FIGURE bobs vertically above the shadow (idle sway / walk bounce).
     const shadow = unitShadowEllipse(cx, cy, r);
     graphics.fillStyle(UNIT_SHADOW_COLOR, UNIT_SHADOW_ALPHA * fillAlpha);
     graphics.fillEllipse(shadow.x, shadow.y, shadow.width, shadow.height);
 
+    const fy0 = cy - unitBobOffset(timeMs, entity.id, facingRadians !== null, r);
+
     const role = unitRole(entity.entityType as UnitType);
     switch (role) {
       case 'villager':
-        drawVillager(cx, cy, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawVillager(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
         break;
       case 'infantry':
-        drawInfantry(cx, cy, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawInfantry(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
         break;
       case 'archer':
-        drawArcher(cx, cy, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawArcher(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
         break;
       case 'cavalry':
-        drawCavalry(cx, cy, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, false);
+        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, false);
         break;
       case 'cavalry-archer':
-        drawCavalry(cx, cy, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, true);
+        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, true);
         break;
       case 'siege':
-        drawSiege(cx, cy, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawSiege(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
         break;
       case 'monk':
-        drawMonk(cx, cy, r, tint, outline, fillAlpha, outlineAlpha);
+        drawMonk(cx, fy0, r, tint, outline, fillAlpha, outlineAlpha);
         break;
     }
   }
