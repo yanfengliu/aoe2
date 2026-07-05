@@ -27,10 +27,12 @@ export async function expectSelectionDetailAbsent(
 export async function getHudChipKeys(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLElement>('[data-hud-chip]'))
-      // Slice 8: hidden chips (e.g. the Wonder/Relic countdown that only
-      // surfaces during an active countdown) must not count toward chip
-      // ordering — the running-match baseline still renders 7 chips.
-      .filter((chip) => !chip.hidden)
+      // Slice 8 / v0.1.95: chips that only surface during an active countdown
+      // (Wonder/Relic) must not count toward chip ordering — the running-match
+      // baseline still renders 7 chips. The countdown chip's SLOT is now always
+      // present (reserved so it can't reflow the bar) with its content faded via
+      // `data-hud-countdown-active="false"`, so exclude that inactive state too.
+      .filter((chip) => !chip.hidden && chip.dataset.hudCountdownActive !== 'false')
       .map((chip) => chip.dataset.hudChip ?? '')
       .filter((value) => value.length > 0),
   );

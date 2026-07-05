@@ -18,6 +18,7 @@ test.describe('replay-load dialog — Phase 3E e2e', () => {
     await expect(dialog).not.toHaveJSProperty('open', true);
 
     // Click the unified "Replay…" button.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="replay-load-button"]').click();
     await expect(dialog).toHaveJSProperty('open', true);
 
@@ -44,6 +45,7 @@ test.describe('replay-load dialog — Phase 3E e2e', () => {
     });
 
     // Open the dialog and confirm the live tab.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="replay-load-button"]').click();
     const dialog = page.locator('[data-testid="replay-load-dialog-root"]');
     await expect(dialog).toHaveJSProperty('open', true);
@@ -80,6 +82,7 @@ test.describe('replay-load dialog — Phase 3E e2e', () => {
 
     // Open the dialog, navigate to the file tab, and feed it the live
     // bundle's JSON via Playwright's setInputFiles helper.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="replay-load-button"]').click();
     const dialog = page.locator('[data-testid="replay-load-dialog-root"]');
     await expect(dialog).toHaveJSProperty('open', true);

@@ -272,6 +272,13 @@ export async function createApp(): Promise<Phaser.Game> {
     // it. (Same TDZ-safe pattern documented for slice 4's file-import
     // closure — moved here.)
     openReplayLoadDialog: () => { void replayLoadDialog.open(); },
+    // v0.1.95: game-menu wiring. Pause the sim while the menu overlays it; Restart
+    // reloads the same scenario, Quit drops the URL params back to a fresh start
+    // (there is no separate title screen yet, so both are page reloads).
+    setPaused: (paused: boolean) => { if (paused) { pauseControl.pause(); } else { pauseControl.resume(); } },
+    isPaused: () => pauseControl.isPaused(),
+    onRestart: () => { window.location.reload(); },
+    onQuit: () => { window.location.href = window.location.origin + window.location.pathname; },
   });
   const timelinePanel = createTimelinePanel({ controller: replayController });
   timelinePanel.mount(hudRoot);
@@ -303,6 +310,22 @@ export async function createApp(): Promise<Phaser.Game> {
     gateAnnotationHotkeyOnReplayMode(replayController, () => stack?.annotationController.onHotkey()),
   );
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack?.markerListPanel.toggleVisibility());
+  // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
+  // HotkeyRegistry already suppresses keys while a text input is focused. Esc
+  // has prior claimants: in replay mode it EXITS replay, and while a modal
+  // <dialog> (e.g. the replay-load dialog) is open it belongs to that dialog —
+  // yield in both cases so we don't hijack them (the registry is first-match, so
+  // this single registration must arbitrate rather than stack a second handler).
+  hotkeyRegistry.register({ key: 'Escape' }, () => {
+    if (replayController.mode === 'replay') {
+      replayController.exitReplay();
+      return;
+    }
+    if (document.querySelector('dialog[open]')) {
+      return;
+    }
+    hudController.toggleGameMenu();
+  });
   const replayHotkeys = registerReplayHotkeys({
     hotkeys: hotkeyRegistry,
     controller: replayController,

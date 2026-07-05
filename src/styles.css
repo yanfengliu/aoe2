@@ -64,6 +64,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-bar {
   display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   gap: 10px;
   max-width: 100%;
   padding: 10px 14px;
@@ -71,10 +72,58 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   border-radius: 10px;
   background: rgba(17, 24, 26, 0.86);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+}
+
+/* v0.1.95: the resource chips live in their own scroll region so they can
+   overflow/scroll independently WITHOUT ever moving the ☰ menu button (which
+   sits outside this region, pinned to the right of the bar). This is what keeps
+   the top-panel button position fixed under any width / value / countdown. */
+.hud-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+}
+
+/* v0.1.95: the single top-bar button — opens the game menu. Fixed size, pinned
+   to the right of the bar, never part of the scrolling chips region. */
+.hud-menu-button {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  color: #f4ead1;
+  background: rgba(37, 48, 51, 0.9);
+  border: 1px solid rgba(221, 196, 145, 0.45);
+  border-radius: 8px;
+  cursor: pointer;
   pointer-events: auto;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.hud-menu-button:hover {
+  background: rgba(58, 74, 78, 0.95);
+  border-color: rgba(221, 196, 145, 0.75);
+}
+
+/* v0.1.95: reserve the countdown chip's slot so it never reflows the bar — the
+   box is always present; only its content fades in when a countdown is active. */
+.hud-chip--countdown {
+  transition: opacity 140ms ease;
+}
+
+.hud-chip--countdown[data-hud-countdown-active="false"] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .hud-chip {
@@ -1164,4 +1213,111 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   border-radius: 4px;
   cursor: pointer;
   font: inherit;
+}
+
+/* v0.1.95: in-game menu overlay, opened by Esc or the ☰ top-bar button. */
+.hud-game-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.hud-game-menu[hidden] {
+  display: none;
+}
+
+.hud-game-menu__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 14, 16, 0.6);
+}
+
+.hud-game-menu__panel {
+  position: relative;
+  min-width: 280px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 22px 24px;
+  border: 1px solid rgba(221, 196, 145, 0.4);
+  border-radius: 12px;
+  background: rgba(20, 28, 30, 0.97);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  color: #f4ead1;
+}
+
+.hud-game-menu__title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ddc491;
+  text-align: center;
+}
+
+.hud-game-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hud-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: #f4ead1;
+  background: rgba(37, 48, 51, 0.9);
+  border: 1px solid rgba(221, 196, 145, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.hud-menu-item:hover {
+  background: rgba(58, 74, 78, 0.95);
+  border-color: rgba(221, 196, 145, 0.7);
+}
+
+.hud-menu-item--primary {
+  justify-content: center;
+  font-weight: 700;
+  background: rgba(70, 96, 74, 0.9);
+}
+
+.hud-menu-item--primary:hover {
+  background: rgba(88, 120, 92, 0.95);
+}
+
+.hud-menu-item--danger:hover {
+  background: rgba(120, 58, 58, 0.95);
+  border-color: rgba(221, 145, 145, 0.7);
+}
+
+.hud-game-menu__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(221, 196, 145, 0.2);
+}
+
+.hud-game-menu__section-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c4ae7a;
+}
+
+.hud-menu-item__state {
+  font-variant-numeric: tabular-nums;
+  color: #ddc491;
 }

@@ -190,8 +190,12 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
       window.__AOE2_TEST__!.advanceTicks(25, 100);
     });
 
+    // v0.1.95: Save/Load live in the game menu (☰ / Esc) now. Opening it pauses
+    // the sim, so we Resume before the drift advanceTicks below, then re-open.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="save-button"]').click();
     await expect(page.locator('[data-hud="toast-container"]')).toContainText(/saved/i);
+    await page.locator('[data-hud="menu-resume"]').click();
 
     // Parse the stored blob — that's the authoritative snapshot of the
     // moment the Save click fired. The natural Phaser RAF loop keeps
@@ -219,7 +223,8 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
     const driftedSnapshot = await game.getSnapshot(page);
     expect(driftedSnapshot.hudState.tick).toBeGreaterThan(savedTick);
 
-    // Open Load panel, confirm localStorage restore.
+    // Open Load panel (re-open the game menu first), confirm localStorage restore.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="load-button"]').click();
     await expect(page.locator('[data-hud="load-panel"]')).toBeVisible();
     await page.locator('[data-hud="load-source-localstorage"]').check();
@@ -284,6 +289,8 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
       };
     });
 
+    // v0.1.95: Save is in the game menu (☰ / Esc) now — open it first.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="save-button"]').click();
 
     // Toast text confirms the fix's branch: storage unavailable but

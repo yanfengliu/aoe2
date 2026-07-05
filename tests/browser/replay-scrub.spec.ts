@@ -56,6 +56,7 @@ test.describe('replay-scrub timeline — Phase 3C+ e2e', () => {
       await window.__AOE2_TEST__!.replay.seedPriorSession();
     });
 
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="replay-load-button"]').click();
     await page.locator('[data-testid="replay-load-tab-prior"]').click();
     await page.locator('[data-testid="replay-load-prior-row"]').first().click();

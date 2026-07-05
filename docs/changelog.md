@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.95 - 2026-07-04
+
+### Game menu (Esc / ☰), and a top bar that never shifts
+
+Press **Esc** or click the new **☰** button (top-right of the resource bar) to open a game menu: **Resume, Save game, Load game, Watch a replay…, Restart match, Quit to title**, and a **Settings** section (a debug-overlay toggle). Save / Load / Replay moved here off the top bar.
+
+The top bar is now rock-solid. Its resource chips sit in their own scrolling region and the ☰ button is pinned to the right, so **nothing on the bar ever changes position** — not when resource numbers grow more digits, not when the Age label gets longer, and not when a victory countdown appears (its slot is now permanently reserved). Previously the Save/Load/Replay buttons could slide around as the bar's contents changed width.
+
+The menu overlays the game; auto-pausing the match while it's open is a planned follow-up. No save-format change.
+
 ## 0.1.94 - 2026-07-04
 
 ### AI can place large buildings (Market, Castle, Wonder) in a built-up base

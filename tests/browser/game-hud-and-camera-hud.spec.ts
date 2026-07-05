@@ -57,6 +57,8 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     );
     expect(debugOverlayFontFamily).toContain('"Courier New"');
 
+    // v0.1.95: Save/Load/Replay moved into the game menu (☰ / Esc). Open it first.
+    await page.locator('[data-hud="menu-button"]').click();
     await page.locator('[data-hud="load-button"]').click();
     await expect(page.locator('[data-hud="load-panel"]')).toBeVisible();
     const loadPanelTextareaFontFamily = await page.locator('[data-hud="load-paste-textarea"]').evaluate((element) =>

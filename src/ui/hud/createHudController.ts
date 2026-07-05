@@ -27,6 +27,7 @@ import {
 } from './displayNames';
 import { MINIMAP_CELL_SIZE, drawMinimap, getMinimapLayout } from './minimap';
 import { createSelectionPanel } from './selectionPanel';
+import { createGameMenu } from './gameMenu';
 
 interface HudCameraState {
   scrollX: number;
@@ -81,6 +82,13 @@ interface HudBridge {
   // can omit the subscription surface.
   isReplayMode?(): boolean;
   subscribeReplayModeChange?(listener: () => void): () => void;
+  // v0.1.95: game-menu wiring. Pause/resume the sim while the menu overlays it;
+  // restart the scenario or quit to a fresh start. All optional so tests and the
+  // headless HUD can omit them (the menu still opens/closes, just without pause).
+  setPaused?(paused: boolean): void;
+  isPaused?(): boolean;
+  onRestart?(): void;
+  onQuit?(): void;
 }
 
 // Slice 11: debug-overlay mode type is re-exported so GameScene +
@@ -93,6 +101,9 @@ export interface HudController {
   // itself renders the text overlay for ai-state / perf.
   getDebugOverlayMode(): DebugOverlayMode;
   cycleDebugOverlayMode(): DebugOverlayMode;
+  // v0.1.95: open/close the in-game menu. createApp binds the Esc key to this
+  // through the HotkeyRegistry; the ☰ button is wired inside the controller.
+  toggleGameMenu(): void;
   // Spec 2 (annotation-ui v0.1.5) AO-5: expose the toast handle so
   // RecordingService.onPersistenceError can surface IDB failures (quota
   // exceeded, transaction abort) and MarkerListPanel can toast on
@@ -204,13 +215,30 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   );
   teardownCallbacks.push(() => saveLoadPanel.destroy());
 
+  // v0.1.95: the in-game menu (Esc / ☰). Save/Load/Replay live inside its markup
+  // but are wired above via saveLoadPanel + the replay button; this only owns
+  // open/close, pause-while-open, and Resume/Restart/Quit/Settings.
+  const gameMenu = createGameMenu(root, {
+    setPaused: bridge.setPaused ? (paused: boolean) => bridge.setPaused!(paused) : undefined,
+    isPaused: bridge.isPaused ? () => bridge.isPaused!() : undefined,
+    onRestart: bridge.onRestart ? () => bridge.onRestart!() : undefined,
+    onQuit: bridge.onQuit ? () => bridge.onQuit!() : undefined,
+    cycleDebugOverlay: () => debugOverlayController.cycleMode(),
+  });
+  teardownCallbacks.push(() => gameMenu.destroy());
+
   if (replayLoadButtonEl) {
     // The unified "Replay…" button. Disabled while replay mode is
     // already active (re-entry guard). Subscribes to replayController
     // mode-change events so the disabled state flips immediately on
     // enter/exit; falls back to the click-time refresh if no
     // subscription is wired.
-    const handler = (): void => bridge.openReplayLoadDialog?.();
+    // v0.1.95: the Replay flow is its own modal, so close the game menu (whose
+    // full-screen backdrop would otherwise sit over the replay dialog + timeline).
+    const handler = (): void => {
+      gameMenu.close();
+      bridge.openReplayLoadDialog?.();
+    };
     const refreshDisabled = (): void => {
       replayLoadButtonEl.disabled = bridge.isReplayMode?.() ?? false;
     };
@@ -344,9 +372,12 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
             ? 'relic'
             : null;
       if (activeKind === null) {
-        countdownChip.hidden = true;
+        // v0.1.95: reserve the slot (keep its box) so the countdown appearing
+        // never reflows the bar — toggle content visibility via the attribute,
+        // not `hidden` (display:none, which would remove the box).
+        countdownChip.dataset.hudCountdownActive = 'false';
       } else {
-        countdownChip.hidden = false;
+        countdownChip.dataset.hudCountdownActive = 'true';
         const ticks = activeKind === 'wonder' ? wonderTicks! : relicTicks!;
         countdownLabel.textContent = activeKind === 'wonder' ? 'Wonder' : 'Relic';
         countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
@@ -393,6 +424,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   return {
     getDebugOverlayMode: debugOverlayController.getMode,
     cycleDebugOverlayMode: debugOverlayController.cycleMode,
+    toggleGameMenu: gameMenu.toggle,
     toastHandle: { showToast },
     destroy() {
       if (isDestroyed) {
