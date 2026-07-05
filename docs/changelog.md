@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.101 - 2026-07-05
+
+### Civilization roster capped to five
+
+Scope decision: the game supports a curated roster of five civilizations with distinct bonuses — **Britons, Franks, Goths, Aztecs, Mongols**. Every other civilization is still selectable (`?civ=`) but plays with default stats. To honor this cap, the Slavs "Farmers work 15% faster" bonus added in 0.1.100 was removed. This keeps civ variety focused so effort goes toward an otherwise complete, polished game.
+
 ## 0.1.100 - 2026-07-05
 
 ### Slavs civilization bonus: farmers work 15% faster

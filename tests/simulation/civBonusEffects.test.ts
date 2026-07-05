@@ -15,7 +15,6 @@ import {
   GOTHS_INFANTRY_COST_MULTIPLIER,
   MONGOLS_BOAR_GATHER_MULTIPLIER,
   MONGOLS_SCOUT_HP_MULTIPLIER,
-  SLAVS_FARM_GATHER_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
@@ -166,31 +165,6 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
     expect(controlHp.maxHp).toBeGreaterThan(0);
     expect(franksHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
     expect(franksHp.currentHp).toBe(franksHp.maxHp);
-  });
-});
-
-// v0.1.100: Slavs "Farmers work 15% faster" (civilizations.csv). Same gather-tick
-// seam as Britons/Mongols, keyed on Slavs + farm. Farm is a passive food resource
-// (built, then harvested), so the multiplier rides the same kind-agnostic
-// `civGatherRateMultiplier(civ, kind)` call the Britons sheep live-race validates.
-describe('civGatherRateMultiplier — Slavs farmer bonus', () => {
-  it('gives Slavs +15% ONLY on farms', () => {
-    expect(civGatherRateMultiplier('Slavs', 'farm')).toBe(SLAVS_FARM_GATHER_MULTIPLIER);
-    expect(SLAVS_FARM_GATHER_MULTIPLIER).toBe(1.15);
-  });
-
-  it('does not touch Slavs gathering sheep, boar, berries, or non-food kinds', () => {
-    expect(civGatherRateMultiplier('Slavs', 'sheep')).toBe(1);
-    expect(civGatherRateMultiplier('Slavs', 'boar')).toBe(1);
-    expect(civGatherRateMultiplier('Slavs', 'berry-bush')).toBe(1);
-    expect(civGatherRateMultiplier('Slavs', 'tree')).toBe(1);
-    expect(civGatherRateMultiplier('Slavs', 'gold-mine')).toBe(1);
-  });
-
-  it('gives no farm bonus to any other civilization or an unknown civ', () => {
-    expect(civGatherRateMultiplier('Britons', 'farm')).toBe(1);
-    expect(civGatherRateMultiplier('Mongols', 'farm')).toBe(1);
-    expect(civGatherRateMultiplier(undefined, 'farm')).toBe(1);
   });
 });
 

@@ -40,9 +40,6 @@ export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
 // Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
 export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.5;
 
-// Slavs farmers gather from farms 15% faster ("Farmers work 15% faster").
-export const SLAVS_FARM_GATHER_MULTIPLIER = 1.15;
-
 // Mongols Light Cavalry and Hussars have +30% HP.
 export const MONGOLS_SCOUT_HP_MULTIPLIER = 1.3;
 
@@ -65,9 +62,6 @@ export function civGatherRateMultiplier(
   }
   if (civilization === 'Mongols' && kind === 'boar') {
     return MONGOLS_BOAR_GATHER_MULTIPLIER;
-  }
-  if (civilization === 'Slavs' && kind === 'farm') {
-    return SLAVS_FARM_GATHER_MULTIPLIER;
   }
   return 1;
 }
