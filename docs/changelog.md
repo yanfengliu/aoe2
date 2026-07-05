@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.105 - 2026-07-05
+
+### Foot units read as upright figures
+
+Villagers, infantry, and archers now draw with a small head above the body, so they read as little standing figures on the isometric ground instead of flat top-down blobs. Monks already stand (their robe silhouette) and mounted units keep their rider, so no change there. Purely visual — unit size, facing, selection rings, and health bars are unchanged.
+
 ## 0.1.104 - 2026-07-05
 
 ### Buildings render as 3D isometric structures

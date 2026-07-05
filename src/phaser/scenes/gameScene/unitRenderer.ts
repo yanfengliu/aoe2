@@ -226,6 +226,21 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     }
   }
 
+  // A small head circle above the body centre, so a humanoid unit reads as an
+  // upright head+body figure on the iso ground rather than a top-down blob.
+  // Kept within the bounding radius r (health-bar / selection geometry holds).
+  function drawHead(
+    cx: number, cy: number, r: number,
+    tint: number, outline: number, fillAlpha: number, outlineAlpha: number,
+  ): void {
+    const hr = r * 0.32;
+    const hy = cy - r * 0.5;
+    graphics.fillStyle(tint, fillAlpha);
+    graphics.fillCircle(cx, hy, hr);
+    graphics.lineStyle(1.5, outline, outlineAlpha);
+    graphics.strokeCircle(cx, hy, hr);
+  }
+
   // ---- per-role shape helpers. Each keeps every point within radius r of
   // (cx, cy). Body = tint; details = darkened outline. ----
 
@@ -245,6 +260,7 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
       cx + fx * body * 0.5, cy + fy * body * 0.5,
       cx + fx * r * 0.92, cy + fy * r * 0.92,
     );
+    drawHead(cx, cy, r, tint, outline, fillAlpha, outlineAlpha);
   }
 
   function drawInfantry(
@@ -260,6 +276,7 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     // blade: a line from center forward to the rim.
     graphics.lineStyle(2.5, outline, outlineAlpha);
     graphics.lineBetween(cx, cy, cx + fx * r * 0.96, cy + fy * r * 0.96);
+    drawHead(cx, cy, r, tint, outline, fillAlpha, outlineAlpha);
   }
 
   function drawArcher(
@@ -280,6 +297,7 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     graphics.beginPath();
     graphics.arc(bowCx, bowCy, r * 0.45, base - Math.PI / 2, base + Math.PI / 2);
     graphics.strokePath();
+    drawHead(cx, cy, r, tint, outline, fillAlpha, outlineAlpha);
   }
 
   function drawCavalry(

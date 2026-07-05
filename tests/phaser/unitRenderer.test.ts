@@ -264,6 +264,29 @@ describe('createUnitRenderer.drawUnit', () => {
     }
   });
 
+  it('gives humanoid units a head above the body so they read as upright figures', () => {
+    // Iso increment 7: villager / infantry / archer draw a small head circle
+    // clearly above the body centre (a head+body figure, not a top-down blob),
+    // still inside the bounding radius so health-bar / selection geometry holds.
+    for (const [unitType, size] of [
+      ['villager', 0.55],
+      ['militia', 0.55],
+      ['archer', 0.55],
+    ] as Array<[UnitType, number]>) {
+      const { spy, px, py } = drawRole(unitType, size);
+      const cx = px + CELL_SIZE * 0.5;
+      const cy = py + CELL_SIZE * 0.5;
+      const r = CELL_SIZE * size * 0.5;
+      const head = spy.calls.find(
+        (c) => c.op === 'fillCircle' && c.args[1] <= cy - r * 0.3 && c.args[2] <= r * 0.5,
+      );
+      expect(head, unitType).toBeDefined();
+      // still within the bounding circle (radius + outline tolerance).
+      const dist = Math.hypot(head!.args[0] - cx, head!.args[1] - cy) + head!.args[2];
+      expect(dist, unitType).toBeLessThanOrEqual(r + 3);
+    }
+  });
+
   it('draws distinct primitive sets per role (siege has rects, monk has a cross, cavalry has an elongated body)', () => {
     const siege = drawRole('mangonel', 0.68).spy;
     const monk = drawRole('monk', 0.48).spy;
