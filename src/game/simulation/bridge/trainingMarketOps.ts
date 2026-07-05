@@ -18,6 +18,7 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import { buildingFootprint, clamp, type GameWorld } from './pureHelpers';
+import { findPlacementAnchorNear } from './placementSearch';
 import {
   buildingGarrisonCapacity,
   canGarrisonAt,
@@ -450,36 +451,16 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     origin: Position,
     buildingType: BuildableBuildingType,
   ): Position | null {
-    const footprint = buildingFootprint(buildingType);
-
-    for (let radius = 2; radius <= 6; radius += 1) {
-      for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
-        for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
-          if (Math.abs(offsetX) !== radius && Math.abs(offsetY) !== radius) {
-            continue;
-          }
-
-          const candidate = {
-            x: origin.x + offsetX,
-            y: origin.y + offsetY,
-          };
-          if (
-            candidate.x < 0
-            || candidate.y < 0
-            || candidate.x + footprint.width > mapWidth
-            || candidate.y + footprint.height > mapHeight
-          ) {
-            continue;
-          }
-
-          if (!isPlacementBlocked(candidate.x, candidate.y, footprint.width, footprint.height)) {
-            return candidate;
-          }
-        }
-      }
-    }
-
-    return null;
+    // Ring-search out to radius 12 (default) so a 4x4 building (market / castle /
+    // wonder) can find a gap past a base's packed inner rings — a radius-6 cap
+    // left the AI unable to ever place one (v0.1.93 FIND). See placementSearch.
+    return findPlacementAnchorNear(
+      origin,
+      buildingFootprint(buildingType),
+      mapWidth,
+      mapHeight,
+      isPlacementBlocked,
+    );
   }
 
   return {

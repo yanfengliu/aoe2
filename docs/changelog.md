@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.94 - 2026-07-04
+
+### AI can place large buildings (Market, Castle, Wonder) in a built-up base
+
+The AI's building-placement search only looked a short distance out from its Town Center, and a large 4×4 building (Market, Castle, Wonder) needs a bigger clear gap than the 3×3 military buildings (Barracks, Blacksmith, Stable, Archery Range). So in an established base with a packed core, the AI could never find a spot for one and would silently stall trying to build it. The search now reaches far enough out to place them. This is what lets the AI build a Market (to trade for age-up shortfalls) and — once it advances — a Castle and a Wonder in a real match.
+
+In the short AI-vs-AI smoke test the AI stays in Feudal Age and is wood-limited before it reaches the Market in its build order, so the effect isn't visible there yet — but the placement bug made those buildings impossible for the AI in any built-up base, so this is necessary for its mid- and late-game. No save-format change. (0.1.93 was an experiment that was reverted before release.)
+
 ## 0.1.92 - 2026-07-04
 
 ### AI paces its military so it can build its way toward Castle Age
