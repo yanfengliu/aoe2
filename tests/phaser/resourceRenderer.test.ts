@@ -66,6 +66,31 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
     expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x88aa44)).toBe(true);
   });
 
+  it('draws a tree with a layered canopy: shaded base clumps + crown + a sun-lit highlight', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('tree'), px, py, CELL_SIZE, 1);
+    // A fuller crown = at least 3 filled circles (≥2 base clumps + crown + highlight),
+    // not the single flat circle of the old tree.
+    expect(spy.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThanOrEqual(3);
+    const fills = spy.calls.filter((c) => c.op === 'fillStyle').map((c) => c.args[0]);
+    expect(fills).toContain(0x88aa44); // crown = the raw tree tint
+    // a darker shaded clump (excluding the brown trunk + black shadow) AND a
+    // lighter sun-lit highlight, so the crown reads as a lit 3-D mass.
+    const darker = fills.filter((g) => g < 0x88aa44 && g !== 0x5b3b1e && g !== 0x000000);
+    const lighter = fills.filter((g) => g > 0x88aa44);
+    expect(darker.length).toBeGreaterThan(0);
+    expect(lighter.length).toBeGreaterThan(0);
+  });
+
+  it('varies tree canopy geometry per cell so a forest is not uniformly stamped', () => {
+    const a = createGraphicsSpy();
+    const b = createGraphicsSpy();
+    drawResourceEntity(a.graphics, createResource('tree', { x: 4, y: 3 }), px, py, CELL_SIZE, 1);
+    drawResourceEntity(b.graphics, createResource('tree', { x: 5, y: 9 }), px, py, CELL_SIZE, 1);
+    const radii = (calls: DrawCall[]) => calls.filter((c) => c.op === 'fillCircle').map((c) => c.args[2]);
+    expect(radii(a.calls)).not.toEqual(radii(b.calls));
+  });
+
   it('draws a gold/stone mine as an iso mound of rock lumps + a ground shadow, tinted', () => {
     for (const kind of ['gold-mine', 'stone-mine'] as ResourceKind[]) {
       const spy = createGraphicsSpy();

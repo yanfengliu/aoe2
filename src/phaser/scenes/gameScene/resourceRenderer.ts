@@ -2,6 +2,32 @@ import Phaser from 'phaser';
 
 import type { ProjectedEntityView } from '../../../game/simulation/types';
 
+// Darken / lighten a packed-rgb tint toward black / white by `factor` (pure
+// channel math), for the shaded base + sun-lit highlight of a tree crown.
+function darken(tint: number, factor: number): number {
+  const r = Math.round(((tint >> 16) & 0xff) * (1 - factor));
+  const g = Math.round(((tint >> 8) & 0xff) * (1 - factor));
+  const b = Math.round((tint & 0xff) * (1 - factor));
+  return (r << 16) | (g << 8) | b;
+}
+function lighten(tint: number, factor: number): number {
+  const r = Math.round(((tint >> 16) & 0xff) + (255 - ((tint >> 16) & 0xff)) * factor);
+  const g = Math.round(((tint >> 8) & 0xff) + (255 - ((tint >> 8) & 0xff)) * factor);
+  const b = Math.round((tint & 0xff) + (255 - (tint & 0xff)) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
+// Deterministic per-cell canopy size multiplier in [0.85, 1.15) — a forest of
+// same-tint trees gets natural size variation without a stored noise map or any
+// Math.random/time (replay- and test-safe), so it doesn't read as one stamp
+// repeated. Same hash family as terrainRenderer.cellNoise.
+function treeCanopyJitter(cellX: number, cellY: number): number {
+  let h = (cellX * 374761393 + cellY * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = (h ^ (h >>> 16)) >>> 0;
+  return 0.85 + (h / 4294967296) * 0.3;
+}
+
 // Resource-entity draw (mirrors terrainRenderer / unitRenderer / buildingRenderer).
 // M7 isometric overhaul increment 8: resources sit on the iso ground with depth
 // instead of as flat top-down shapes — a TREE is a brown trunk + a raised tinted
@@ -22,13 +48,28 @@ export function drawResourceEntity(
   const cy = py + cellSize * 0.5;
 
   if (entity.entityType === 'tree') {
+    // Ground shadow + trunk, then a LAYERED crown (shaded base clumps → tint
+    // crown → sun-lit highlight) with a deterministic per-cell size jitter, so a
+    // forest reads as lush rounded woodland instead of one flat circle stamped
+    // repeatedly. Light comes from the upper-left, matching the buildings.
     graphics.fillStyle(0x000000, 0.18 * fillAlpha);
     graphics.fillEllipse(cx, cy + cellSize * 0.28, cellSize * 0.5, cellSize * 0.2);
     const trunkW = Math.max(2, cellSize * 0.12);
     graphics.fillStyle(0x5b3b1e, fillAlpha);
     graphics.fillRect(cx - trunkW * 0.5, cy - cellSize * 0.05, trunkW, cellSize * 0.4);
+
+    const r = cellSize * 0.42 * treeCanopyJitter(entity.x, entity.y);
+    const canopyCy = cy - cellSize * 0.24;
+    // Shaded lower clumps (two side blobs) give the crown a rounded, bushy base.
+    graphics.fillStyle(darken(entity.tint, 0.3), fillAlpha);
+    graphics.fillCircle(cx - r * 0.5, canopyCy + r * 0.32, r * 0.62);
+    graphics.fillCircle(cx + r * 0.5, canopyCy + r * 0.3, r * 0.58);
+    // Main crown at the raw tint.
     graphics.fillStyle(entity.tint, fillAlpha);
-    graphics.fillCircle(cx, cy - cellSize * 0.24, cellSize * 0.42);
+    graphics.fillCircle(cx, canopyCy, r);
+    // Sun-lit highlight, upper-left, lighter.
+    graphics.fillStyle(lighten(entity.tint, 0.24), fillAlpha);
+    graphics.fillCircle(cx - r * 0.34, canopyCy - r * 0.34, r * 0.42);
     return;
   }
 

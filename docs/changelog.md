@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.114 - 2026-07-05
+
+### Lusher trees
+
+Trees now render with a layered, rounded canopy — a shaded base, the main crown, and a sun-lit highlight — plus a subtle per-tree size variation, so forests read as lush woodland instead of a single flat circle repeated. Purely visual; no gameplay effect.
+
 ## 0.1.113 - 2026-07-05
 
 ### Fix broken isometric rendering in a real match (fog + health bars + giant roof accents)
