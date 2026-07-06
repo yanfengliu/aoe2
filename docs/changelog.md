@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.111 - 2026-07-05
+
+### Terrain kind boundaries are softened again
+
+Where two different terrain kinds meet (grass↔water, grass↔forest, hill↔water, …) the hard diamond-tile seam is now feathered with a subtle dithered band of blend-coloured specks — the same softening the top-down map had before the isometric switch, rebuilt for the diamond tiles. Purely visual; no gameplay effect.
+
 ## 0.1.110 - 2026-07-05
 
 ### Building health bars sit above the 3D volume

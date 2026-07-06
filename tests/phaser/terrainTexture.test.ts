@@ -178,6 +178,9 @@ function createGraphicsSpy() {
     fillRect: (x: number, y: number, w: number, h: number) => {
       calls.push({ op: 'fillRect', args: [x, y, w, h] });
     },
+    fillCircle: (x: number, y: number, r: number) => {
+      calls.push({ op: 'fillCircle', args: [x, y, r] });
+    },
   };
   return { graphics, calls, pointBatches };
 }
@@ -205,8 +208,9 @@ function terrainCell(x: number, y: number, kind: TerrainKind): ProjectedEntityVi
 }
 
 // A 3x3 patch of terrain entities centred at (1,1); `center` is the centre
-// cell's kind, `ring` fills the eight surrounding cells. Used to prove the iso
-// tile ignores neighbour kinds (the square-edge feather was dropped).
+// cell's kind, `ring` fills the eight surrounding cells. Used to exercise the
+// diamond-edge feather: a same-kind ring draws no specks, a different-kind ring
+// stipples a blend-tinted band inside each differing edge.
 function patch(center: TerrainKind, ring: TerrainKind): {
   entities: ProjectedEntityView[];
   centerCell: ProjectedEntityView;
@@ -281,19 +285,36 @@ describe('drawTerrainCell — isometric diamond tile', () => {
     expect(spyA.pointBatches).toEqual(spyB.pointBatches);
   });
 
-  it('ignores neighbour kinds (the square-edge feather was dropped at v0.1.103)', () => {
-    // Regression guard for the iso switch: the centre cell draws the SAME single
-    // diamond whether its ring is its own kind or a different one — no per-edge
-    // feather primitives remain, so draw calls depend only on the centre cell.
+  it('feathers a boundary with a DIFFERENT-kind neighbour (blend specks), not a same-kind one', () => {
     const uniform = patch('grass', 'grass');
     const mixed = patch('grass', 'water');
     const spyU = createGraphicsSpy();
     const spyM = createGraphicsSpy();
     drawTerrainCell(spyU.graphics as never, uniform.entities, uniform.centerCell, CELL_SIZE);
     drawTerrainCell(spyM.graphics as never, mixed.entities, mixed.centerCell, CELL_SIZE);
-    const countFills = (calls: DrawCall[]) => calls.filter((c) => c.op === 'fillPoints').length;
-    expect(countFills(spyU.calls)).toBe(1);
-    expect(countFills(spyM.calls)).toBe(1);
-    expect(spyU.calls).toEqual(spyM.calls);
+    // Both still draw the single base diamond.
+    expect(spyU.calls.filter((c) => c.op === 'fillPoints').length).toBe(1);
+    expect(spyM.calls.filter((c) => c.op === 'fillPoints').length).toBe(1);
+    // A same-kind ring draws NO feather specks; a different-kind ring DOES.
+    expect(spyU.calls.some((c) => c.op === 'fillCircle')).toBe(false);
+    expect(spyM.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThan(0);
+    // The specks use the grass/water blend colour, translucent.
+    const blend = blendTint(TERRAIN_BASE_TINT.grass, TERRAIN_BASE_TINT.water);
+    expect(
+      spyM.calls.some((c) => c.op === 'fillStyle' && c.args[0] === blend && (c.args[1] as number) < 1),
+    ).toBe(true);
+  });
+
+  it('keeps feather specks inside the tile diamond (nudged inward, never crossing the edge)', () => {
+    const mixed = patch('grass', 'water');
+    const spy = createGraphicsSpy();
+    drawTerrainCell(spy.graphics as never, mixed.entities, mixed.centerCell, CELL_SIZE);
+    const centre = worldToIso(mixed.centerCell.x + 0.5, mixed.centerCell.y + 0.5);
+    for (const speck of spy.calls.filter((c) => c.op === 'fillCircle')) {
+      // Diamond membership: |dx|/32 + |dy|/16 <= 1 (+ tolerance for the speck radius).
+      const dx = Math.abs(speck.args[0] - centre.x);
+      const dy = Math.abs(speck.args[1] - centre.y);
+      expect(dx / 32 + dy / 16).toBeLessThanOrEqual(1.1);
+    }
   });
 });
