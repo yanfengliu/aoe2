@@ -70,6 +70,16 @@ function lift(point: IsoPoint, heightPx: number): IsoPoint {
   return { x: point.x, y: point.y - heightPx };
 }
 
+// Linear interpolation between two iso points (used to place facade openings
+// along a wall's base edge).
+function lerp(a: IsoPoint, b: IsoPoint, t: number): IsoPoint {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+function clamp(value: number, lo: number, hi: number): number {
+  return Math.min(Math.max(value, lo), hi);
+}
+
 // The four polygons of an extruded building box. `ground` is the footprint
 // diamond; `roof` is it lifted by heightPx; the two visible wall faces are the
 // lower-left (left->bottom) and lower-right (bottom->right) edges extruded up.
@@ -85,6 +95,38 @@ export function isoBuildingPolys(corners: FootprintDiamond, heightPx: number): I
     leftFace: [corners.left, corners.bottom, bottomRoof, leftRoof],
     rightFace: [corners.bottom, corners.right, rightRoof, bottomRoof],
   };
+}
+
+// Facade windows: a row of small dark openings in a high band of a wall face,
+// painted for tall-enough buildings so walls read as inhabited structures rather
+// than blank slabs. Pure geometry — returns `count` window quads (parallelograms
+// that follow the wall plane), the count scaling with the wall-edge length so a
+// wide Castle wall gets more windows than a narrow House. Windows sit in the
+// [SILL, HEAD] height band, which is ABOVE the door band (0..0.55H), so door and
+// windows never overlap. `baseA`→`baseB` is the face's ground edge.
+const WINDOW_SILL = 0.55; // window bottom, as a fraction of the wall height
+const WINDOW_HEAD = 0.72; // window top, as a fraction of the wall height
+const WINDOW_HALF_WIDTH = 0.06; // half-width, as a fraction of the base edge
+const WINDOW_SPACING_PX = 40; // roughly one window per this many px of wall edge
+
+export function wallWindowPolys(baseA: IsoPoint, baseB: IsoPoint, heightPx: number): IsoPoint[][] {
+  const edgeLen = Math.hypot(baseB.x - baseA.x, baseB.y - baseA.y);
+  const count = clamp(Math.round(edgeLen / WINDOW_SPACING_PX), 2, 5);
+  const sill = heightPx * WINDOW_SILL;
+  const head = heightPx * WINDOW_HEAD;
+  const quads: IsoPoint[][] = [];
+  for (let i = 0; i < count; i += 1) {
+    const centre = (i + 0.5) / count;
+    const a0 = lerp(baseA, baseB, centre - WINDOW_HALF_WIDTH);
+    const a1 = lerp(baseA, baseB, centre + WINDOW_HALF_WIDTH);
+    quads.push([
+      { x: a0.x, y: a0.y - sill },
+      { x: a1.x, y: a1.y - sill },
+      { x: a1.x, y: a1.y - head },
+      { x: a0.x, y: a0.y - head },
+    ]);
+  }
+  return quads;
 }
 
 export interface IsoBuildingStyle {
@@ -122,23 +164,36 @@ export function drawIsoBuilding(
   g.fillStyle(darken(tint, 0.4), fillAlpha);
   g.fillPoints(polys.rightFace, true);
 
-  // Facade: a dark doorway on the front-lit wall for tall-enough buildings, so
-  // they read as structures with an entrance (skipped for flat/low footprints
-  // like farms and walls). The door is a parallelogram on the left face — its
-  // base a slice of the ground `left→bottom` edge, extruded up.
+  // Facade: for tall-enough buildings (skipped for flat/low footprints like
+  // farms and walls) a dark doorway on the front-lit wall plus a row of dark
+  // windows on BOTH visible wall faces, so they read as inhabited structures
+  // rather than blank slabs. The door is a parallelogram on the left face (a
+  // slice of the ground `left→bottom` edge extruded up); windows sit in a higher
+  // band (see wallWindowPolys) so they never overlap the door.
   if (heightPx > 22) {
-    const lerp = (a: IsoPoint, b: IsoPoint, t: number): IsoPoint => ({
-      x: a.x + (b.x - a.x) * t,
-      y: a.y + (b.y - a.y) * t,
-    });
-    const baseA = lerp(corners.left, corners.bottom, 0.4);
-    const baseB = lerp(corners.left, corners.bottom, 0.6);
+    const doorBaseA = lerp(corners.left, corners.bottom, 0.4);
+    const doorBaseB = lerp(corners.left, corners.bottom, 0.6);
     const doorH = heightPx * 0.55;
     g.fillStyle(darken(tint, 0.62), fillAlpha);
     g.fillPoints(
-      [baseA, baseB, { x: baseB.x, y: baseB.y - doorH }, { x: baseA.x, y: baseA.y - doorH }],
+      [
+        doorBaseA,
+        doorBaseB,
+        { x: doorBaseB.x, y: doorBaseB.y - doorH },
+        { x: doorBaseA.x, y: doorBaseA.y - doorH },
+      ],
       true,
     );
+
+    g.fillStyle(darken(tint, 0.68), fillAlpha);
+    for (const [faceA, faceB] of [
+      [corners.left, corners.bottom],
+      [corners.bottom, corners.right],
+    ] as const) {
+      for (const quad of wallWindowPolys(faceA, faceB, heightPx)) {
+        g.fillPoints(quad, true);
+      }
+    }
   }
 
   // Roof cap — the raw owner tint (the brightest, most colour-legible surface,

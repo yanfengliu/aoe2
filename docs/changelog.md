@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.112 - 2026-07-05
+
+### Buildings get windows
+
+Isometric buildings now show a row of dark windows across both visible wall faces (in addition to the doorway added in 0.1.111's predecessor), so a Castle or Town Center reads as an inhabited structure instead of a blank slab. The number of windows scales with the building's size — a wide Castle wall gets more than a narrow House. Flat/low structures (farms, walls) stay plain. Purely visual; no gameplay effect.
+
 ## 0.1.111 - 2026-07-05
 
 ### Terrain kind boundaries are softened again
