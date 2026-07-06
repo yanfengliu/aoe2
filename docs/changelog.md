@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.113 - 2026-07-05
+
+### Fix broken isometric rendering in a real match (fog + health bars + giant roof accents)
+
+Three isometric-rendering defects that were only visible in an actual match (the showcase fixtures hid them behind full vision and isolated buildings) are fixed:
+
+- **Fog of war** was still drawn as axis-aligned squares over the diamond terrain, producing a large misaligned black blob across the map. It now masks each cell as an iso diamond, so the shroud lines up with the terrain.
+- **Unit health bars** were positioned at the old top-down cell location instead of over the unit; they now sit on the unit.
+- **Roof accents ballooned on large buildings** — a Town Center's central tower rose as a ~100px flat column and a Barracks banner as a giant flagpole, because accents scaled with the full roof width. Accent size is now capped, and the Town Center tower is a small 3-D block instead of a flat billboard.
+
+Purely visual; no gameplay effect.
+
 ## 0.1.112 - 2026-07-05
 
 ### Buildings get windows

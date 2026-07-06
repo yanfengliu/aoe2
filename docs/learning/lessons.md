@@ -16,6 +16,19 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## Verify graphics on the REAL default view (with fog + a real base), not a full-vision showcase fixture — 2026-07-05
+
+| Field | Value |
+|---|---|
+| Surfaced by | User: "Can you actually visually check your work always? The screen looks weird." A full default-view capture (`aoe2-prototype`) then exposed three iso bugs. Devlog: [2026-07-05_2026-07-05.md](../devlog/detailed/2026-07-05_2026-07-05.md) (v0.1.113). |
+| Reviewer findings | n/a — user-surfaced; my per-increment zoomed showcase captures (v0.1.104–112) all "passed" while shipping the bugs. |
+| Fix commit | v0.1.113 (fog iso diamonds + unit-bar iso anchor + `ACCENT_MAX_SCALE` cap + iso-box turret). |
+| Test added | `tests/phaser/worldLayers.test.ts` (renderFog paints iso diamonds not `fillRect`; a masked cell → `worldToIso` corners; unit bar centres on the iso centre) + `tests/phaser/buildingRoofAccents.test.ts` (turret is `fillPoints` not a billboard; centre accents rise ≤68px on a 4×4; 4×4 accent ≈ 3×3, cap not linear). |
+| Behavior delta | In a real match the fog rendered as top-down `fillRect(x*cellSize)` squares over the iso diamond world → a large misaligned black blob; unit HP-bars sat at `x*cellSize` (off their units); a Town Center roof turret rose as a ~102px flat billboard column and a Barracks banner as a ~154px flagpole (accents scaled by full roof width, 256px for a 4×4). The showcase fixtures I'd been capturing boot with FULL vision (no fog) and one isolated building each, so none of the three ever appeared. After the fix the shroud follows the diamonds, bars sit on units, and accents are capped small. |
+
+Lesson: a "visual verification" done on a showcase/isolated fixture is not verification of the real game. Showcase fixtures deliberately strip context (full vision → no fog, one building → no depth interplay, `disableAi` → nothing moves), which is exactly the context where integration bugs live. For any render change, FIRST capture the real default view (`waitForBoot` = `aoe2-prototype`, WITH fog and a real base) at default zoom and look at the whole frame; only THEN zoom into the specific feature. Anything drawn per-cell or per-entity in world space (fog, bars, overlays, selection, placement) must be re-derived through the SAME projection (`worldToIso`) as the terrain/entities — a leftover `x*cellSize` is invisible on a fixture but glaring in a match. Pair this with ground-truth (`getEntityHealthBarStates()` / `getBuildingVisualStates()`) instead of eyeballing pixel gaps on a compressed screenshot — the "floating HP bar" I almost chased was actually correct (18px above the roof's top corner) and the dump proved it.
+Pointer: [2026-07-05_2026-07-05.md](../devlog/detailed/2026-07-05_2026-07-05.md) v0.1.113; `src/phaser/scenes/gameScene/worldLayers.ts` (renderFog / renderEntityHealthBars); `src/phaser/scenes/gameScene/buildingRoofAccents.ts` (`ACCENT_MAX_SCALE`).
+
 ## Read engine-tool output by LABEL, never by column position — a transposed food/gold column misdirected 3 increments — 2026-07-04
 
 | Field | Value |

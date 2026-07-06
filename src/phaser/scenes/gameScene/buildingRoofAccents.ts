@@ -17,11 +17,18 @@ export interface RoofAccentStyle {
   outlineAlpha: number;
 }
 
-// Centre + rough width of a roof diamond ([top, right, bottom, left]).
+// Accent size reference is CAPPED at this many px. Accents scale by the roof
+// diamond's pixel width, which grows linearly with footprint (a 4x4 roof spans
+// 256px), so without a cap a Town Center turret / Barracks banner / Monastery
+// cross ballooned to 100-150px — taller than the whole building. The cap keeps a
+// decorative feature a decorative feature regardless of footprint size.
+const ACCENT_MAX_SCALE = 100;
+
+// Centre + capped size reference of a roof diamond ([top, right, bottom, left]).
 function roofMetrics(roof: IsoPoint[]): { cx: number; cy: number; width: number } {
   const cx = (roof[0].x + roof[1].x + roof[2].x + roof[3].x) / 4;
   const cy = (roof[0].y + roof[1].y + roof[2].y + roof[3].y) / 4;
-  return { cx, cy, width: roof[1].x - roof[3].x };
+  return { cx, cy, width: Math.min(roof[1].x - roof[3].x, ACCENT_MAX_SCALE) };
 }
 
 function drawDome(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
@@ -58,7 +65,7 @@ function drawMerlons(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAc
     [roof[0], roof[1]],
   ];
   const count = 3;
-  const blockH = Math.max(3, (roof[1].x - roof[3].x) * 0.12);
+  const blockH = Math.max(3, roofMetrics(roof).width * 0.12);
   for (const [a, b] of backEdges) {
     for (let i = 0; i < count; i += 1) {
       const t = (i + 0.5) / count;
@@ -93,14 +100,39 @@ function drawMillBlades(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: Roo
 }
 
 function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
-  // Town Center: a small raised block at the roof centre (a central hall/tower).
+  // Town Center: a small central tower — a modest iso block (lit + shadowed wall
+  // faces + a top diamond) rising from the roof centre, NOT a full-height flat
+  // billboard rectangle (which read as a giant column in iso).
   const { cx, cy, width } = roofMetrics(roof);
-  const w = width * 0.3;
-  const h = width * 0.4;
-  g.fillStyle(darken(s.tint, 0.18), s.fillAlpha);
-  g.fillRect(cx - w * 0.5, cy - h, w, h);
+  const bw = width * 0.16; // tower base half-width
+  const bh = bw * 0.5; // iso 2:1 half-depth
+  const h = width * 0.28; // tower height
+  const leftFace = [
+    { x: cx - bw, y: cy },
+    { x: cx, y: cy + bh },
+    { x: cx, y: cy + bh - h },
+    { x: cx - bw, y: cy - h },
+  ];
+  const rightFace = [
+    { x: cx, y: cy + bh },
+    { x: cx + bw, y: cy },
+    { x: cx + bw, y: cy - h },
+    { x: cx, y: cy + bh - h },
+  ];
+  const top = [
+    { x: cx, y: cy - bh - h },
+    { x: cx + bw, y: cy - h },
+    { x: cx, y: cy + bh - h },
+    { x: cx - bw, y: cy - h },
+  ];
+  g.fillStyle(darken(s.tint, 0.16), s.fillAlpha);
+  g.fillPoints(leftFace, true);
+  g.fillStyle(darken(s.tint, 0.4), s.fillAlpha);
+  g.fillPoints(rightFace, true);
+  g.fillStyle(darken(s.tint, 0.04), s.fillAlpha);
+  g.fillPoints(top, true);
   g.lineStyle(1.5, s.outline, s.outlineAlpha);
-  g.strokeRect(cx - w * 0.5, cy - h, w, h);
+  g.strokePoints(top, true, true);
 }
 
 const ACCENT_BY_ROLE: Partial<

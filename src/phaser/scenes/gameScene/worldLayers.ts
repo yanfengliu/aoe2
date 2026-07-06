@@ -135,8 +135,13 @@ export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRen
         continue;
       }
 
-      const px = entity.x * cellSize;
-      const py = entity.y * cellSize;
+      // Iso anchor: match how the render loop places entities — the cell's iso
+      // screen centre minus the half-cell the layout re-adds — so unit bars sit
+      // over the unit, not at the pre-iso top-down `x*cellSize` position.
+      // (Buildings ignore px/py; computeHealthBarLayout projects their volume.)
+      const isoCentre = worldToIso(entity.x + 0.5, entity.y + 0.5);
+      const px = isoCentre.x - cellSize * 0.5;
+      const py = isoCentre.y - cellSize * 0.5;
       const layout = computeHealthBarLayout(entity, px, py, cellSize);
       const fillRatio = clamp(entity.currentHp / entity.maxHp, 0, 1);
       const fillColor =
@@ -206,16 +211,25 @@ export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRen
     for (let y = 0; y < frame.mapHeight; y += 1) {
       for (let x = 0; x < frame.mapWidth; x += 1) {
         const index = y * frame.mapWidth + x;
-        if (!explored.has(index)) {
-          fogLayer.fillStyle(0x081012, 0.94);
-          fogLayer.fillRect(x * cellSize, y * cellSize, cellSize + 1, cellSize + 1);
+        const isExplored = explored.has(index);
+        if (isExplored && visible.has(index)) {
           continue;
         }
-
-        if (!visible.has(index)) {
-          fogLayer.fillStyle(0x0b1215, 0.58);
-          fogLayer.fillRect(x * cellSize, y * cellSize, cellSize + 1, cellSize + 1);
-        }
+        // Iso mask: the cell's four corners projected into iso-pixel space — the
+        // SAME diamond the terrain draws — not an axis-aligned `x*cellSize`
+        // square. The fog layer shares the camera's iso transform, so a top-down
+        // square lands in the wrong place (the pre-v0.1.103 leak). Unexplored =
+        // near-opaque black; explored-but-not-visible = a lighter shroud.
+        fogLayer.fillStyle(isExplored ? 0x0b1215 : 0x081012, isExplored ? 0.58 : 0.94);
+        fogLayer.fillPoints(
+          [
+            worldToIso(x, y),
+            worldToIso(x + 1, y),
+            worldToIso(x + 1, y + 1),
+            worldToIso(x, y + 1),
+          ],
+          true,
+        );
       }
     }
   }

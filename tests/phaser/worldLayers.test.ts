@@ -1,9 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ProjectedEntityView } from '../../src/game/simulation/types';
-import { computeHealthBarLayout } from '../../src/phaser/scenes/gameScene/worldLayers';
+import type { ProjectedEntityView, ProjectedFrameView } from '../../src/game/simulation/types';
+import {
+  computeHealthBarLayout,
+  createWorldLayersRenderer,
+} from '../../src/phaser/scenes/gameScene/worldLayers';
 import { isoBuildingHeightPx } from '../../src/phaser/scenes/gameScene/isoBuilding';
 import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
+
+// Records the draw primitives each world layer emits so we can assert the fog
+// mask and health bars are placed in ISO space (fillPoints diamonds / iso
+// centres), not the pre-iso top-down square grid (fillRect at x*cellSize).
+function createLayerSpy() {
+  const calls: Array<{ op: string; args: number[]; pts?: Array<{ x: number; y: number }> }> = [];
+  const layer = {
+    clear: () => {},
+    fillStyle: () => {},
+    lineStyle: () => {},
+    fillRect: (x: number, y: number, w: number, h: number) =>
+      calls.push({ op: 'fillRect', args: [x, y, w, h] }),
+    fillPoints: (pts: Array<{ x: number; y: number }>) =>
+      calls.push({ op: 'fillPoints', args: [], pts: pts.map((p) => ({ x: p.x, y: p.y })) }),
+    fillRoundedRect: (x: number, y: number, w: number, h: number) =>
+      calls.push({ op: 'fillRoundedRect', args: [x, y, w, h] }),
+  } as unknown as Phaser.GameObjects.Graphics;
+  return { layer, calls };
+}
+
+function frame(overrides: Partial<ProjectedFrameView>): ProjectedFrameView {
+  return {
+    tick: 1,
+    playerId: 1,
+    seed: 's',
+    mapWidth: 3,
+    mapHeight: 3,
+    visibleCells: [],
+    exploredCells: [],
+    ...overrides,
+  };
+}
 
 const CELL_SIZE = 24;
 
@@ -63,5 +98,63 @@ describe('computeHealthBarLayout — iso positioning', () => {
     const cy = py + CELL_SIZE * 0.5;
     expect(layout.entityTopPx).toBeCloseTo(cy - CELL_SIZE * 0.5 * 0.5, 5); // cy - r
     expect(layout.barX + layout.barWidthPx / 2).toBeCloseTo(px + CELL_SIZE * 0.5, 5);
+  });
+});
+
+describe('renderFog — iso fog mask (not the pre-iso square grid)', () => {
+  it('paints fog cells as iso diamonds (fillPoints), never axis-aligned squares', () => {
+    const fog = createLayerSpy();
+    const hb = createLayerSpy();
+    const renderer = createWorldLayersRenderer({
+      healthBarLayer: hb.layer,
+      fogLayer: fog.layer,
+      cellSize: CELL_SIZE,
+    });
+    // 2x2 map, only cell 0 (0,0) explored+visible → the other three are masked.
+    renderer.renderFog(frame({ mapWidth: 2, mapHeight: 2, visibleCells: [0], exploredCells: [0] }));
+    expect(fog.calls.some((c) => c.op === 'fillRect')).toBe(false);
+    const diamonds = fog.calls.filter((c) => c.op === 'fillPoints');
+    expect(diamonds.length).toBeGreaterThan(0);
+    for (const d of diamonds) expect(d.pts).toHaveLength(4);
+  });
+
+  it('projects a masked cell to its worldToIso diamond corners', () => {
+    const fog = createLayerSpy();
+    const hb = createLayerSpy();
+    const renderer = createWorldLayersRenderer({
+      healthBarLayer: hb.layer,
+      fogLayer: fog.layer,
+      cellSize: CELL_SIZE,
+    });
+    // 2x2 map: cells 0,1,2 explored+visible → only index 3 = (1,1) is masked.
+    renderer.renderFog(
+      frame({ mapWidth: 2, mapHeight: 2, visibleCells: [0, 1, 2], exploredCells: [0, 1, 2] }),
+    );
+    const diamonds = fog.calls.filter((c) => c.op === 'fillPoints');
+    expect(diamonds).toHaveLength(1);
+    expect(diamonds[0].pts).toEqual([
+      worldToIso(1, 1),
+      worldToIso(2, 1),
+      worldToIso(2, 2),
+      worldToIso(1, 2),
+    ]);
+  });
+});
+
+describe('renderEntityHealthBars — iso anchoring (not the pre-iso square grid)', () => {
+  it('centres a unit health bar on the unit ISO centre, not the top-down cell position', () => {
+    const hb = createLayerSpy();
+    const fog = createLayerSpy();
+    const renderer = createWorldLayersRenderer({
+      healthBarLayer: hb.layer,
+      fogLayer: fog.layer,
+      cellSize: CELL_SIZE,
+    });
+    const villager = entity({ kind: 'unit', x: 20, y: 20, size: 0.5, currentHp: 10, maxHp: 10 });
+    const [state] = renderer.renderEntityHealthBars([villager]);
+    const isoCentreX = worldToIso(20.5, 20.5).x;
+    expect(state.barX + state.barWidthPx / 2).toBeCloseTo(isoCentreX, 3);
+    // and NOT the old top-down centre (20*cellSize + cellSize/2).
+    expect(state.barX + state.barWidthPx / 2).not.toBeCloseTo(20 * CELL_SIZE + CELL_SIZE / 2, 0);
   });
 });
