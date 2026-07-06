@@ -100,6 +100,25 @@ export function drawResourceEntity(
     return;
   }
 
+  if (entity.entityType === 'berry-bush') {
+    // A forage bush: a green foliage mound (three overlapping blobs) over a
+    // ground shadow, studded with berry dots in the resource tint — so it reads
+    // as a berry bush, not a flat coloured circle.
+    const s = cellSize * entity.size;
+    graphics.fillStyle(0x000000, 0.16 * fillAlpha);
+    graphics.fillEllipse(cx, cy + s * 0.28, s * 0.72, s * 0.22);
+    graphics.fillStyle(0x3f6b32, fillAlpha); // bush foliage green
+    graphics.fillCircle(cx - s * 0.24, cy + s * 0.06, s * 0.3);
+    graphics.fillCircle(cx + s * 0.24, cy + s * 0.06, s * 0.28);
+    graphics.fillCircle(cx, cy - s * 0.12, s * 0.34);
+    graphics.fillStyle(entity.tint, fillAlpha); // berries
+    graphics.fillCircle(cx - s * 0.16, cy - s * 0.02, s * 0.1);
+    graphics.fillCircle(cx + s * 0.17, cy - s * 0.06, s * 0.09);
+    graphics.fillCircle(cx + s * 0.02, cy + s * 0.12, s * 0.1);
+    graphics.fillCircle(cx + s * 0.06, cy - s * 0.18, s * 0.08);
+    return;
+  }
+
   graphics.fillStyle(entity.tint, fillAlpha);
   graphics.fillCircle(cx, cy, cellSize * entity.size * 0.55);
 }

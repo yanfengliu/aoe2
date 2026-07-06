@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.115 - 2026-07-05
+
+### Berry bushes look like bushes
+
+Forage berry bushes now render as a small green foliage mound studded with berry dots (over a ground shadow), instead of a flat coloured circle. Purely visual; no gameplay effect.
+
 ## 0.1.114 - 2026-07-05
 
 ### Lusher trees

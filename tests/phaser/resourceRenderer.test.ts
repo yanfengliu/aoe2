@@ -102,8 +102,22 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
     }
   });
 
-  it('draws other resources (berry bush, fish, farm, relic) as a centred circle', () => {
-    for (const kind of ['berry-bush', 'fish', 'farm', 'relic'] as ResourceKind[]) {
+  it('draws a berry bush as a green foliage mound studded with berry dots (not a flat circle)', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('berry-bush'), px, py, CELL_SIZE, 1);
+    // foliage blobs + berry dots = several circles, not one flat circle.
+    expect(spy.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThanOrEqual(4);
+    // a ground shadow ellipse grounds it on the iso terrain.
+    expect(spy.calls.some((c) => c.op === 'fillEllipse')).toBe(true);
+    // the berry tint (the createResource default 0x88aa44) is used for the berries,
+    // AND a distinct green foliage colour (not the tint, not black) for the mound.
+    const fills = spy.calls.filter((c) => c.op === 'fillStyle').map((c) => c.args[0]);
+    expect(fills).toContain(0x88aa44);
+    expect(fills.some((g) => g !== 0x88aa44 && g !== 0x000000)).toBe(true);
+  });
+
+  it('draws other resources (fish, farm, relic) as a centred circle', () => {
+    for (const kind of ['fish', 'farm', 'relic'] as ResourceKind[]) {
       const spy = createGraphicsSpy();
       drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
       const circle = spy.calls.find((c) => c.op === 'fillCircle');
