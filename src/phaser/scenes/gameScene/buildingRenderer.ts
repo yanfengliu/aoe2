@@ -132,6 +132,7 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
         outline: 0xf7e6c3,
         fillAlpha,
         outlineAlpha,
+        materialDetail: false,
       });
       hasFoundationSlab = true;
       hasScaffoldPosts = true;

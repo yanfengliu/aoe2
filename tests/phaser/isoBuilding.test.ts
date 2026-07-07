@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { drawIsoBuilding, isoBuildingPolys, wallWindowPolys } from '../../src/phaser/scenes/gameScene/isoBuilding';
+import {
+  drawIsoBuilding,
+  isoBuildingPolys,
+  roofTileSegments,
+  wallCourseSegments,
+  wallWindowPolys,
+} from '../../src/phaser/scenes/gameScene/isoBuilding';
 import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 
 interface DrawCall {
@@ -14,6 +20,7 @@ function createIsoBuildingSpy() {
     lineStyle: () => {},
     fillPoints: (pts: Array<{ x: number; y: number }>) => calls.push({ op: 'fillPoints', pointCount: pts.length }),
     strokePoints: (pts: Array<{ x: number; y: number }>) => calls.push({ op: 'strokePoints', pointCount: pts.length }),
+    lineBetween: () => calls.push({ op: 'lineBetween' }),
   } as unknown as Phaser.GameObjects.Graphics;
   return { graphics, calls };
 }
@@ -137,6 +144,8 @@ describe('drawIsoBuilding — front-wall facade door + windows', () => {
     // ground + left wall + right wall + DOOR + 2 left windows + 2 right windows
     // + roof = 9 filled polygons (the 2x2 footprint yields 2 windows per face).
     expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(9);
+    // 3 course lines per visible wall face + 5 roof tile seams.
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBe(11);
   });
 
   it('omits the door and windows on a short (flat / low) building', () => {
@@ -144,5 +153,73 @@ describe('drawIsoBuilding — front-wall facade door + windows', () => {
     drawIsoBuilding(spy.graphics, corners, 10, STYLE);
     // ground + left + right + roof = 4 (no door, no windows)
     expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(4);
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBe(0);
+  });
+});
+
+describe('wallCourseSegments - masonry banding', () => {
+  const corners = footprint2x2();
+  const H = 60;
+  const leftBaseA = corners.left;
+  const leftBaseB = corners.bottom;
+
+  const liftOf = (
+    p: { x: number; y: number },
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ): number => {
+    const t = (p.x - a.x) / (b.x - a.x);
+    return a.y + (b.y - a.y) * t - p.y;
+  };
+
+  it('returns three base-parallel masonry course lines on a tall wall', () => {
+    const courses = wallCourseSegments(leftBaseA, leftBaseB, H);
+    expect(courses).toHaveLength(3);
+    for (const [a, b] of courses) {
+      expect(a.x).toBe(leftBaseA.x);
+      expect(b.x).toBe(leftBaseB.x);
+      expect(liftOf(a, leftBaseA, leftBaseB)).toBeCloseTo(liftOf(b, leftBaseA, leftBaseB), 5);
+    }
+  });
+
+  it('keeps masonry courses below the window band so openings stay readable', () => {
+    const courses = wallCourseSegments(leftBaseA, leftBaseB, H);
+    for (const [a, b] of courses) {
+      expect(liftOf(a, leftBaseA, leftBaseB)).toBeGreaterThan(0.12 * H);
+      expect(liftOf(b, leftBaseA, leftBaseB)).toBeLessThan(0.52 * H);
+    }
+  });
+});
+
+describe('roofTileSegments - roof material breakup', () => {
+  const roof = isoBuildingPolys(footprint2x2(), 40).roof;
+
+  it('returns two diagonal families of tile seams inside the roof diamond', () => {
+    const segments = roofTileSegments(roof);
+    expect(segments).toHaveLength(5);
+    const hasTopLeftToBottomRightFamily = segments.some(
+      ([a, b]) => a.x < b.x && a.y < b.y,
+    );
+    const hasTopRightToBottomLeftFamily = segments.some(
+      ([a, b]) => a.x > b.x && a.y < b.y,
+    );
+    expect(hasTopLeftToBottomRightFamily).toBe(true);
+    expect(hasTopRightToBottomLeftFamily).toBe(true);
+  });
+
+  it('keeps every tile seam endpoint within the roof diamond bounds', () => {
+    const segments = roofTileSegments(roof);
+    const minX = Math.min(...roof.map((p) => p.x));
+    const maxX = Math.max(...roof.map((p) => p.x));
+    const minY = Math.min(...roof.map((p) => p.y));
+    const maxY = Math.max(...roof.map((p) => p.y));
+    for (const [a, b] of segments) {
+      for (const p of [a, b]) {
+        expect(p.x).toBeGreaterThanOrEqual(minX);
+        expect(p.x).toBeLessThanOrEqual(maxX);
+        expect(p.y).toBeGreaterThanOrEqual(minY);
+        expect(p.y).toBeLessThanOrEqual(maxY);
+      }
+    }
   });
 });

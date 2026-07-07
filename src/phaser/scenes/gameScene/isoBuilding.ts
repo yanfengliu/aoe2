@@ -129,6 +129,34 @@ export function wallWindowPolys(baseA: IsoPoint, baseB: IsoPoint, heightPx: numb
   return quads;
 }
 
+const WALL_COURSE_LIFTS = [0.18, 0.32, 0.46] as const;
+
+export function wallCourseSegments(
+  baseA: IsoPoint,
+  baseB: IsoPoint,
+  heightPx: number,
+): Array<[IsoPoint, IsoPoint]> {
+  return WALL_COURSE_LIFTS.map((liftFraction) => {
+    const liftPx = heightPx * liftFraction;
+    return [
+      { x: baseA.x, y: baseA.y - liftPx },
+      { x: baseB.x, y: baseB.y - liftPx },
+    ];
+  });
+}
+
+export function roofTileSegments(roof: readonly IsoPoint[]): Array<[IsoPoint, IsoPoint]> {
+  const [top, right, bottom, left] = roof;
+  if (!top || !right || !bottom || !left) return [];
+  return [
+    [lerp(top, left, 0.25), lerp(right, bottom, 0.25)],
+    [lerp(top, left, 0.5), lerp(right, bottom, 0.5)],
+    [lerp(top, left, 0.75), lerp(right, bottom, 0.75)],
+    [lerp(top, right, 0.33), lerp(left, bottom, 0.33)],
+    [lerp(top, right, 0.66), lerp(left, bottom, 0.66)],
+  ];
+}
+
 export interface IsoBuildingStyle {
   tint: number;
   outline: number;
@@ -137,6 +165,7 @@ export interface IsoBuildingStyle {
   // Optional roof colour override (else a lightened tint). Lets a role paint a
   // tiled/coloured roof while the walls stay the owner tint.
   roofTint?: number;
+  materialDetail?: boolean;
 }
 
 // Paint the extruded box back-to-front: ground shadow, the two wall faces (the
@@ -151,6 +180,7 @@ export function drawIsoBuilding(
 ): IsoPoint[] {
   const polys = isoBuildingPolys(corners, heightPx);
   const { tint, outline, fillAlpha, outlineAlpha } = style;
+  const materialDetail = style.materialDetail ?? true;
 
   // Ground contact shadow (a touch darker than the walls) so the box sits on the
   // terrain rather than floating.
@@ -170,7 +200,17 @@ export function drawIsoBuilding(
   // rather than blank slabs. The door is a parallelogram on the left face (a
   // slice of the ground `left→bottom` edge extruded up); windows sit in a higher
   // band (see wallWindowPolys) so they never overlap the door.
-  if (heightPx > 22) {
+  if (heightPx > 22 && materialDetail) {
+    for (const [faceA, faceB, shade] of [
+      [corners.left, corners.bottom, 0.28],
+      [corners.bottom, corners.right, 0.52],
+    ] as const) {
+      g.lineStyle(1, darken(tint, shade), fillAlpha * 0.5);
+      for (const [a, b] of wallCourseSegments(faceA, faceB, heightPx)) {
+        g.lineBetween(a.x, a.y, b.x, b.y);
+      }
+    }
+
     const doorBaseA = lerp(corners.left, corners.bottom, 0.4);
     const doorBaseB = lerp(corners.left, corners.bottom, 0.6);
     const doorH = heightPx * 0.55;
@@ -198,8 +238,15 @@ export function drawIsoBuilding(
 
   // Roof cap — the raw owner tint (the brightest, most colour-legible surface,
   // catching the light) unless the role overrides it.
-  g.fillStyle(style.roofTint ?? tint, fillAlpha);
+  const roofTint = style.roofTint ?? tint;
+  g.fillStyle(roofTint, fillAlpha);
   g.fillPoints(polys.roof, true);
+  if (heightPx > 22 && materialDetail) {
+    g.lineStyle(1, darken(roofTint, 0.18), fillAlpha * 0.45);
+    for (const [a, b] of roofTileSegments(polys.roof)) {
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+  }
 
   // Outline the visible silhouette edges for a crisp read.
   g.lineStyle(1.5, outline, outlineAlpha);

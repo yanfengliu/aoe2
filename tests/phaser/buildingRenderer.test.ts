@@ -259,6 +259,16 @@ describe('createBuildingRenderer.renderBuildingEntity', () => {
     expect(visual?.hasCompletionAccent).toBe(false);
   });
 
+  it('keeps construction stubs plain, without completed-building material seams', () => {
+    const { spy } = render({
+      entityType: 'castle',
+      footprintWidth: 4,
+      footprintHeight: 4,
+      visualVariant: 'construction',
+    });
+    expect(spy.calls.filter((c) => c.op === 'lineBetween')).toHaveLength(0);
+  });
+
   it('returns null for a memory (last-seen ghost) building', () => {
     const { visual, spy } = render({
       entityType: 'castle',

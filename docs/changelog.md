@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.116 - 2026-07-07
+
+### Buildings get masonry bands and roof tile seams
+
+Isometric buildings now get subtle wall-course lines and sparse roof tile seams on tall structures, breaking up the large flat wall and roof planes that dominated the default Town Center view. This is purely visual: footprints, hit testing, health bars, selection, construction, fog memory, and gameplay are unchanged.
+
 ## 0.1.115 - 2026-07-05
 
 ### Berry bushes look like bushes
