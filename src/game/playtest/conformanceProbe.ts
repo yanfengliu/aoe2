@@ -67,6 +67,7 @@ export interface RunMetrics {
   totalCostUsd: number;
   stopReason: string;
   errorMessage?: string;
+  maxTicks?: number;
   commandsAttempted: number;
   commandsAccepted: number;
   commandsRejected: number;
@@ -117,6 +118,9 @@ Your job: identify concrete, checkable ways the implementation is MISSING, BROKE
 - suggestion: a concrete implementation action.
 
 Rules:
+- Always call record_findings exactly once; if there are no findings, call it with findings: [] instead of replying only in prose.
+- Do not infer a feature is missing just because a short or early-game run did not use it. In Age of Empires II, age-up, technology, and combat often do not appear in the first few minutes of a normal opening. Treat absence as evidence only when the digest shows an attempted command rejected as unknown/unavailable, the player's notes explicitly say no affordance exists, or the run lasted long enough to reach the normal prerequisites and timing.
+- The command-type tally is usage evidence from this run, not a complete list of every command the game implements.
 - Be OBJECTIVE and grounded. Every finding must be checkable against how real AoE2 works or against the digest. Do NOT judge whether the game "looks fun" — that is not your job.
 - Favour findings that explain why the run could not progress into a full AoE2 match (missing ages, untrainable units, dead techs, absent mechanics).
 - Prefer fewer, higher-quality, distinct findings over many overlapping ones. If the game is fully conformant in some area, do not invent a finding for it.`;
@@ -173,6 +177,7 @@ export function computeRunMetrics(
     totalCostUsd: envelope.totalCostUsd,
     stopReason: envelope.stopReason,
     errorMessage: envelope.errorMessage,
+    maxTicks: envelope.maxTicks,
     commandsAttempted,
     commandsAccepted,
     commandsRejected,
@@ -193,28 +198,42 @@ function winnerLabel(w?: WinnerResult): string {
 
 // ---- Layer 1.5: LLM-facing digest ------------------------------------
 
+function isShortOpeningSample(metrics: RunMetrics): boolean {
+  return metrics.stopReason === 'maxTicks'
+    && metrics.maxTicks !== undefined
+    && metrics.ticksRun >= metrics.maxTicks
+    && metrics.ticksRun <= 1500;
+}
+
 export function buildConformanceDigest(
   metrics: RunMetrics,
   rows: ConformanceTraceRow[],
 ): string {
   const lines: string[] = [];
   lines.push('## Run metrics (objective, computed from the trace)');
+  const maxTicksPart = metrics.maxTicks === undefined ? '' : `; maxTicks ${metrics.maxTicks}`;
   lines.push(
     `- ticks ${metrics.ticksRun} · decisions ${metrics.decisionsRun} · cost $${metrics.totalCostUsd.toFixed(2)} · stopReason ${metrics.stopReason}`,
   );
   if (metrics.errorMessage) lines.push(`- errorMessage: ${metrics.errorMessage}`);
+  if (maxTicksPart) lines.push(`- run limit${maxTicksPart}`);
   lines.push(`- outcome: ${winnerLabel(metrics.winner)}`);
   lines.push(
     `- commands: ${metrics.commandsAttempted} attempted, ${metrics.commandsAccepted} accepted, ${metrics.commandsRejected} rejected`,
   );
   lines.push(`- stall decisions (issued no commands): ${metrics.stallDecisions}`);
   lines.push(
-    `- distinct command types the player could use: ${metrics.distinctCommandTypes.join(', ') || '(none)'}`,
+    `- distinct command types used in this run: ${metrics.distinctCommandTypes.join(', ') || '(none)'}`,
   );
   const rej = Object.entries(metrics.rejectionReasonCounts);
   lines.push(
     `- rejection reasons: ${rej.length ? rej.map(([r, n]) => `${r}×${n}`).join(', ') : '(none)'}`,
   );
+  if (isShortOpeningSample(metrics)) {
+    lines.push(
+      '- evidence caution: this was a short opening sample that stopped at maxTicks; absence of age-up, research, or combat commands is not by itself evidence that age progression, technology, or combat are missing. Prefer no finding unless the trace shows an unknown/unavailable rejection, an explicit player note that the affordance does not exist, or a run long enough to reach normal AoE2 prerequisites.',
+    );
+  }
   lines.push('');
   lines.push('## Per-command-type tally');
   for (const t of metrics.distinctCommandTypes) {

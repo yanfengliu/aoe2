@@ -129,6 +129,29 @@ describe('buildConformanceDigest', () => {
     expect(d).toMatch(/stall|no commands/i);
     expect(d).toContain('in-progress');
   });
+
+  it('labels command types as used-in-run evidence and warns on short max-tick openings', () => {
+    const m = computeRunMetrics({ ...envelope, maxTicks: 750, stopReason: 'maxTicks' }, rows);
+    const d = buildConformanceDigest(m, rows);
+    expect(d).toContain('distinct command types used in this run');
+    expect(d).not.toContain('distinct command types the player could use');
+    expect(d).toContain('short opening sample');
+    expect(d).toContain('absence of age-up, research, or combat commands');
+  });
+});
+
+describe('SYSTEM_PROMPT_CONFORMANCE', () => {
+  it('forbids treating absence in a short run as proof that a feature is missing', () => {
+    expect(SYSTEM_PROMPT_CONFORMANCE).toContain(
+      'Do not infer a feature is missing just because a short or early-game run did not use it',
+    );
+  });
+
+  it('requires an empty record_findings call when there are no findings', () => {
+    expect(SYSTEM_PROMPT_CONFORMANCE).toContain(
+      'Always call record_findings exactly once; if there are no findings, call it with findings: []',
+    );
+  });
 });
 
 describe('runConformanceProbe', () => {
