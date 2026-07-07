@@ -75,12 +75,26 @@ export function drawResourceEntity(
 
   if (entity.entityType === 'gold-mine' || entity.entityType === 'stone-mine') {
     const s = cellSize * entity.size;
+    const shade = darken(entity.tint, entity.entityType === 'gold-mine' ? 0.34 : 0.28);
+    const glint = lighten(entity.tint, entity.entityType === 'gold-mine' ? 0.34 : 0.22);
     graphics.fillStyle(0x000000, 0.18 * fillAlpha);
     graphics.fillEllipse(cx, cy + cellSize * 0.22, cellSize * 0.62, cellSize * 0.22);
     graphics.fillStyle(entity.tint, fillAlpha);
     graphics.fillCircle(cx - s * 0.22, cy + s * 0.04, s * 0.26);
     graphics.fillCircle(cx + s * 0.22, cy + s * 0.06, s * 0.24);
     graphics.fillCircle(cx, cy - s * 0.12, s * 0.28);
+    // Facet planes + edge strokes turn the mound from soft blobs into a small
+    // readable mineral pile, borrowing AoE2's rock/gold vein language without
+    // importing sprites. Highlights sit upper-left; shade sits lower-right.
+    graphics.fillStyle(glint, 0.9 * fillAlpha);
+    graphics.fillTriangle(cx - s * 0.14, cy - s * 0.3, cx + s * 0.04, cy - s * 0.23, cx - s * 0.08, cy - s * 0.05);
+    graphics.fillTriangle(cx - s * 0.42, cy - s * 0.06, cx - s * 0.2, cy - s * 0.12, cx - s * 0.28, cy + s * 0.1);
+    graphics.fillStyle(shade, 0.75 * fillAlpha);
+    graphics.fillTriangle(cx + s * 0.08, cy + s * 0.02, cx + s * 0.42, cy, cx + s * 0.26, cy + s * 0.22);
+    graphics.lineStyle(1.2, shade, 0.72 * fillAlpha);
+    graphics.lineBetween(cx - s * 0.42, cy + s * 0.12, cx - s * 0.16, cy + s * 0.25);
+    graphics.lineBetween(cx - s * 0.1, cy - s * 0.32, cx + s * 0.18, cy - s * 0.08);
+    graphics.lineBetween(cx + s * 0.08, cy + s * 0.14, cx + s * 0.4, cy + s * 0.18);
     return;
   }
 

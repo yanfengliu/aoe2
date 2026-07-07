@@ -1,3 +1,6 @@
+## 2026-07-07 (faceted mines v0.1.121)
+- **Faceted mine resources:** continued the screenshot-backed graphics loop and shipped v0.1.121: gold and stone deposits now keep their existing mound/shadow shape but add small light/dark facet planes plus edge strokes, so visible mineral piles read as structured deposits instead of soft blobs. Pure render change in `resourceRenderer.ts`; focused renderer tests cover gold/stone facets, and the default canvas diff changed 825 / 983,040 pixels (0.084%), localized to mine deposits.
+
 ## 2026-07-07 (minimap marker readability v0.1.120)
 - **Minimap marker readability:** used the screenshot-enabled `playtest:llm` harness on the current v0.1.119 build (2 decisions / 500 ticks, accepted opening economy/scout commands, stopped on cost budget with both owners alive), then shipped v0.1.120: the minimap renderer now draws terrain in an explicit first pass, dark-backed live entity markers in a second pass, and fog/viewport overlays last. Minimap-only screenshot diff changed 875 / 35,200 pixels (2.486%), localized to the explored minimap blob; camera click/drag math and simulation state are unchanged.
 

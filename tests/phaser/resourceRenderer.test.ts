@@ -111,6 +111,20 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
     }
   });
 
+  it('adds faceted light/dark planes and edge strokes to gold/stone mines', () => {
+    for (const kind of ['gold-mine', 'stone-mine'] as ResourceKind[]) {
+      const spy = createGraphicsSpy();
+      drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
+      const fills = spy.calls.filter((c) => c.op === 'fillStyle').map((c) => c.args[0]);
+      const nonShadowFills = fills.filter((color) => color !== 0x000000 && color !== 0x88aa44);
+
+      expect(spy.calls.filter((c) => c.op === 'fillTriangle').length).toBeGreaterThanOrEqual(2);
+      expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(3);
+      expect(nonShadowFills.some((color) => color > 0x88aa44)).toBe(true);
+      expect(nonShadowFills.some((color) => color < 0x88aa44)).toBe(true);
+    }
+  });
+
   it('draws a berry bush as a green foliage mound studded with berry dots (not a flat circle)', () => {
     const spy = createGraphicsSpy();
     drawResourceEntity(spy.graphics, createResource('berry-bush'), px, py, CELL_SIZE, 1);

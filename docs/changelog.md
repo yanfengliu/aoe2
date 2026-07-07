@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.121 - 2026-07-07
+
+### Gold and stone mines look faceted
+
+Gold and stone deposits now keep their existing ground shadow and mound silhouette but add small light/dark facet planes plus edge strokes. Mineral piles read more like structured rock/gold deposits at default zoom, closer to Age of Empires II's resource readability. This is visual only: resource amounts, gathering, hit testing, selection, fog memory, saves, and replays are unchanged.
+
 ## 0.1.120 - 2026-07-07
 
 ### Minimap markers are easier to read
