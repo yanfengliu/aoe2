@@ -13,6 +13,7 @@ function createAccentSpy() {
   const ys: number[] = [];
   let rects = 0;
   let polys = 0;
+  let lines = 0;
   const push = (...vals: number[]) => ys.push(...vals);
   const g = {
     fillStyle: () => {},
@@ -30,7 +31,10 @@ function createAccentSpy() {
       push(...pts.map((p) => p.y));
     },
     strokePoints: (pts: IsoPoint[]) => push(...pts.map((p) => p.y)),
-    lineBetween: (_x1: number, y1: number, _x2: number, y2: number) => push(y1, y2),
+    lineBetween: (_x1: number, y1: number, _x2: number, y2: number) => {
+      lines += 1;
+      push(y1, y2);
+    },
     arc: (_x: number, y: number, r: number) => push(y - r, y + r),
     fillCircle: (_x: number, y: number, r: number) => push(y - r, y + r),
     fillTriangle: (_x1: number, y1: number, _x2: number, y2: number, _x3: number, y3: number) =>
@@ -46,6 +50,9 @@ function createAccentSpy() {
     },
     get polys() {
       return polys;
+    },
+    get lines() {
+      return lines;
     },
   };
 }
@@ -73,6 +80,12 @@ describe('drawBuildingRoofAccent — proportionate accents on large footprints',
     drawBuildingRoofAccent(spy.g, 'town-center', roofDiamond(4), STYLE);
     expect(spy.rects).toBe(0); // no axis-aligned billboard rectangle
     expect(spy.polys).toBeGreaterThanOrEqual(2); // wall faces + top diamond
+  });
+
+  it('adds flanking post strokes to the Town Center roof silhouette', () => {
+    const spy = createAccentSpy();
+    drawBuildingRoofAccent(spy.g, 'town-center', roofDiamond(4), STYLE);
+    expect(spy.lines).toBeGreaterThanOrEqual(4);
   });
 
   it('caps how high a centre-anchored accent rises on a 4x4 footprint (no ballooning)', () => {

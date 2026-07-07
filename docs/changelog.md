@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.125 - 2026-07-07
+
+### Town Center roofs gain flanking post detail
+
+Town Center roof accents now add four short flanking post strokes around the central roof block. The starting Town Center reads less like a flat cap and more like a supported 3/4-view hall at default zoom. This is visual only: footprints, hit testing, health bars, selection, construction state, fog memory, simulation, saves, and replays are unchanged.
+
 ## 0.1.124 - 2026-07-07
 
 ### Water edges read more like shorelines

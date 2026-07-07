@@ -125,6 +125,15 @@ function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAcc
     { x: cx, y: cy + bh - h },
     { x: cx - bw, y: cy - h },
   ];
+  const postH = width * 0.18;
+  const lateral = width * 0.34;
+  const depth = width * 0.12;
+  const posts = [
+    { x: cx - lateral, y: cy - depth },
+    { x: cx + lateral, y: cy - depth },
+    { x: cx - lateral * 0.62, y: cy + depth },
+    { x: cx + lateral * 0.62, y: cy + depth },
+  ];
   g.fillStyle(darken(s.tint, 0.16), s.fillAlpha);
   g.fillPoints(leftFace, true);
   g.fillStyle(darken(s.tint, 0.4), s.fillAlpha);
@@ -133,6 +142,10 @@ function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAcc
   g.fillPoints(top, true);
   g.lineStyle(1.5, s.outline, s.outlineAlpha);
   g.strokePoints(top, true, true);
+  g.lineStyle(2, darken(s.tint, 0.52), s.outlineAlpha * 0.82);
+  for (const post of posts) {
+    g.lineBetween(post.x, post.y, post.x, post.y - postH);
+  }
 }
 
 const ACCENT_BY_ROLE: Partial<
