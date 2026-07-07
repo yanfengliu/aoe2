@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.120 - 2026-07-07
+
+### Minimap markers are easier to read
+
+The minimap now draws terrain first, then dark-backed unit/building/resource markers, then fog and the camera viewport. Player and enemy markers stand out more clearly on the top-down tactical map, closer to Age of Empires II's readable minimap language. The change is visual only: camera click/drag math, world simulation, fog state, saves, and replays are unchanged.
+
 ## 0.1.119 - 2026-07-07
 
 ### Terrain gets subtle surface detail

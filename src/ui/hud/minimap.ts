@@ -33,6 +33,8 @@ interface MinimapViewportState {
   height: number;
 }
 
+const MARKER_BACKING_STYLE = 'rgba(4, 8, 9, 0.72)';
+
 function tintToCss(tint: number): string {
   return `#${tint.toString(16).padStart(6, '0')}`;
 }
@@ -133,24 +135,47 @@ export function drawMinimap(
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   for (const entity of renderState.entities) {
+    if (entity.layer !== 'terrain') {
+      continue;
+    }
+
+    const x = offsetX + entity.x * scale;
+    const y = offsetY + entity.y * scale;
+
+    context.fillStyle = tintToCss(entity.tint);
+    context.fillRect(x, y, Math.ceil(scale), Math.ceil(scale));
+  }
+
+  for (const entity of renderState.entities) {
+    if (entity.layer === 'terrain') {
+      continue;
+    }
+
     const x = offsetX + entity.x * scale;
     const y = offsetY + entity.y * scale;
 
     context.fillStyle = tintToCss(entity.tint);
 
-    if (entity.layer === 'terrain') {
-      context.fillRect(x, y, Math.ceil(scale), Math.ceil(scale));
-      continue;
-    }
-
     const markerSize =
       entity.kind === 'building'
         ? Math.max(scale * 1.4, 2)
         : Math.max(scale * 0.8, 1.5);
+    const markerX = x + (scale - markerSize) * 0.5;
+    const markerY = y + (scale - markerSize) * 0.5;
+    const backingPad = Math.max(1, Math.min(2, scale * 0.1));
 
+    context.fillStyle = MARKER_BACKING_STYLE;
     context.fillRect(
-      x + (scale - markerSize) * 0.5,
-      y + (scale - markerSize) * 0.5,
+      markerX - backingPad,
+      markerY - backingPad,
+      markerSize + backingPad * 2,
+      markerSize + backingPad * 2,
+    );
+
+    context.fillStyle = tintToCss(entity.tint);
+    context.fillRect(
+      markerX,
+      markerY,
       markerSize,
       markerSize,
     );
