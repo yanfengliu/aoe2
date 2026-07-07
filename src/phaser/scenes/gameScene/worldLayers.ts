@@ -119,6 +119,18 @@ export function computeHealthBarLayout(
 export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRenderer {
   const { healthBarLayer, fogLayer, cellSize } = deps;
 
+  function drawFogDiamond(x: number, y: number): void {
+    fogLayer.fillPoints(
+      [
+        worldToIso(x, y),
+        worldToIso(x + 1, y),
+        worldToIso(x + 1, y + 1),
+        worldToIso(x, y + 1),
+      ],
+      true,
+    );
+  }
+
   function renderEntityHealthBars(
     entities: ProjectedEntityView[],
   ): EntityHealthBarVisualState[] {
@@ -221,15 +233,36 @@ export function createWorldLayersRenderer(deps: WorldLayersDeps): WorldLayersRen
         // square lands in the wrong place (the pre-v0.1.103 leak). Unexplored =
         // near-opaque black; explored-but-not-visible = a lighter shroud.
         fogLayer.fillStyle(isExplored ? 0x0b1215 : 0x081012, isExplored ? 0.58 : 0.94);
-        fogLayer.fillPoints(
-          [
-            worldToIso(x, y),
-            worldToIso(x + 1, y),
-            worldToIso(x + 1, y + 1),
-            worldToIso(x, y + 1),
-          ],
-          true,
-        );
+        drawFogDiamond(x, y);
+      }
+    }
+
+    // Soft inner rim: visible cells that touch fog get a low-alpha shroud pass.
+    // This keeps the explored frontier from reading as a hard sawtooth edge
+    // while preserving the actual visibility/exploration data.
+    fogLayer.fillStyle(0x081012, 0.16);
+    for (const index of visible) {
+      const x = index % frame.mapWidth;
+      const y = Math.floor(index / frame.mapWidth);
+      let bordersFog = false;
+      for (const [dx, dy] of [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ] as const) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= frame.mapWidth || ny >= frame.mapHeight) {
+          continue;
+        }
+        if (!visible.has(ny * frame.mapWidth + nx)) {
+          bordersFog = true;
+          break;
+        }
+      }
+      if (bordersFog) {
+        drawFogDiamond(x, y);
       }
     }
   }

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.122 - 2026-07-07
+
+### Fog edge is softer
+
+Visible cells that border fog now receive a low-alpha isometric shroud pass, softening the hard sawtooth frontier around explored terrain while keeping the map readable. This is visual only: visibility, exploration, fog memory, pathing, selection, saves, and replays are unchanged.
+
 ## 0.1.121 - 2026-07-07
 
 ### Gold and stone mines look faceted

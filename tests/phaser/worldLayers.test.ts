@@ -131,13 +131,40 @@ describe('renderFog — iso fog mask (not the pre-iso square grid)', () => {
       frame({ mapWidth: 2, mapHeight: 2, visibleCells: [0, 1, 2], exploredCells: [0, 1, 2] }),
     );
     const diamonds = fog.calls.filter((c) => c.op === 'fillPoints');
-    expect(diamonds).toHaveLength(1);
+    expect(diamonds).toHaveLength(3);
     expect(diamonds[0].pts).toEqual([
       worldToIso(1, 1),
       worldToIso(2, 1),
       worldToIso(2, 2),
       worldToIso(1, 2),
     ]);
+  });
+
+  it('adds a soft edge fade on visible cells that border fog', () => {
+    const fog = createLayerSpy();
+    const hb = createLayerSpy();
+    const renderer = createWorldLayersRenderer({
+      healthBarLayer: hb.layer,
+      fogLayer: fog.layer,
+      cellSize: CELL_SIZE,
+    });
+    renderer.renderFog(frame({ mapWidth: 3, mapHeight: 3, visibleCells: [4], exploredCells: [4] }));
+    // Eight non-visible cells are masked, plus the visible centre cell gets a
+    // light shroud pass because it borders fog on every side.
+    expect(fog.calls.filter((c) => c.op === 'fillPoints')).toHaveLength(9);
+  });
+
+  it('keeps fully visible areas clear of fog edge fade', () => {
+    const fog = createLayerSpy();
+    const hb = createLayerSpy();
+    const renderer = createWorldLayersRenderer({
+      healthBarLayer: hb.layer,
+      fogLayer: fog.layer,
+      cellSize: CELL_SIZE,
+    });
+    const all = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    renderer.renderFog(frame({ mapWidth: 3, mapHeight: 3, visibleCells: all, exploredCells: all }));
+    expect(fog.calls.filter((c) => c.op === 'fillPoints')).toHaveLength(0);
   });
 });
 
