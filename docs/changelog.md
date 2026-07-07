@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.118 - 2026-07-07
+
+### Foot units get planted limb detail
+
+Villagers, infantry, and archers now draw small planted legs plus visible foot marks below the torso, helping default-zoom foot units read as upright people instead of head-and-body tokens. This is purely visual: movement, hit testing, selection, health bars, simulation state, saves, and replays are unchanged.
+
 ## 0.1.117 - 2026-07-07
 
 ### Sheep, boar, and wolves get distinct silhouettes

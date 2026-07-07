@@ -313,6 +313,71 @@ describe('createUnitRenderer.drawUnit', () => {
     }
   });
 
+  it('gives foot humanoids two planted legs below the body for a fuller upright silhouette', () => {
+    for (const [unitType, size] of [
+      ['villager', 0.55],
+      ['militia', 0.55],
+      ['archer', 0.55],
+    ] as Array<[UnitType, number]>) {
+      const { spy, py } = drawRole(unitType, size);
+      const cy = py + CELL_SIZE * 0.5;
+      const r = CELL_SIZE * size * 0.5;
+      const plantedLegs = spy.calls.filter((c) => (
+        c.op === 'lineBetween'
+        && Math.min(c.args[1], c.args[3]) >= cy + r * 0.12
+        && Math.max(c.args[1], c.args[3]) >= cy + r * 0.38
+      ));
+      expect(plantedLegs.length, unitType).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('draws two small foot marks below foot humanoids so the limb detail survives default zoom', () => {
+    for (const [unitType, size] of [
+      ['villager', 0.55],
+      ['militia', 0.55],
+      ['archer', 0.55],
+    ] as Array<[UnitType, number]>) {
+      const { spy, py } = drawRole(unitType, size);
+      const cy = py + CELL_SIZE * 0.5;
+      const r = CELL_SIZE * size * 0.5;
+      const feet = spy.calls.filter((c) => (
+        c.op === 'fillCircle'
+        && c.args[1] >= cy + r * 0.38
+        && c.args[2] <= r * 0.18
+      ));
+      expect(feet.length, unitType).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('draws foot marks after the torso so default-zoom limbs are not hidden', () => {
+    for (const [unitType, size] of [
+      ['villager', 0.55],
+      ['militia', 0.55],
+      ['archer', 0.55],
+    ] as Array<[UnitType, number]>) {
+      const { spy, px, py } = drawRole(unitType, size);
+      const cx = px + CELL_SIZE * 0.5;
+      const cy = py + CELL_SIZE * 0.5;
+      const r = CELL_SIZE * size * 0.5;
+      const torsoIndex = spy.calls.findIndex((c) => (
+        (c.op === 'fillCircle'
+          && c.args[2] >= r * 0.5)
+        || (c.op === 'fillRoundedRect'
+          && c.args[0] <= cx
+          && c.args[1] <= cy
+          && c.args[2] >= cx
+          && c.args[3] >= cy)
+      ));
+      expect(torsoIndex, unitType).toBeGreaterThanOrEqual(0);
+      const visibleFeet = spy.calls.slice(torsoIndex + 1).filter((c) => (
+        c.op === 'fillCircle'
+        && c.args[1] >= cy + r * 0.38
+        && c.args[2] <= r * 0.18
+      ));
+      expect(visibleFeet.length, unitType).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('draws distinct primitive sets per role (siege has rects, monk has a cross, cavalry has an elongated body)', () => {
     const siege = drawRole('mangonel', 0.68).spy;
     const monk = drawRole('monk', 0.48).spy;

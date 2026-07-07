@@ -260,6 +260,18 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     graphics.strokeCircle(cx, hy, hr);
   }
 
+  function drawFootLegs(cx: number, cy: number, r: number, outline: number, outlineAlpha: number): void {
+    graphics.lineStyle(1.5, outline, outlineAlpha);
+    graphics.lineBetween(cx - r * 0.24, cy + r * 0.18, cx - r * 0.34, cy + r * 0.55);
+    graphics.lineBetween(cx + r * 0.18, cy + r * 0.18, cx + r * 0.3, cy + r * 0.55);
+  }
+
+  function drawFootMarks(cx: number, cy: number, r: number, outline: number, outlineAlpha: number): void {
+    graphics.fillStyle(outline, Math.min(1, outlineAlpha));
+    graphics.fillCircle(cx - r * 0.34, cy + r * 0.55, r * 0.11);
+    graphics.fillCircle(cx + r * 0.3, cy + r * 0.55, r * 0.11);
+  }
+
   // ---- per-role shape helpers. Each keeps every point within radius r of
   // (cx, cy). Body = tint; details = darkened outline. ----
 
@@ -269,10 +281,12 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
   ): void {
     // Small rounded body + a short tool tick on the facing side (civilian).
     const body = r * 0.62;
+    drawFootLegs(cx, cy, r, outline, outlineAlpha);
     graphics.fillStyle(tint, fillAlpha);
     graphics.fillCircle(cx, cy, body);
     graphics.lineStyle(1.5, outline, outlineAlpha);
     graphics.strokeCircle(cx, cy, body);
+    drawFootMarks(cx, cy, r, outline, outlineAlpha);
     // tool: a stub line from the body edge outward (not a weapon — short).
     graphics.lineStyle(2, outline, outlineAlpha);
     graphics.lineBetween(
@@ -288,10 +302,12 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
   ): void {
     // A shield-ish rounded square body + a blade line pointing forward.
     const half = r * 0.6;
+    drawFootLegs(cx, cy, r, outline, outlineAlpha);
     graphics.fillStyle(tint, fillAlpha);
     graphics.fillRoundedRect(cx - half, cy - half, half * 2, half * 2, half * 0.5);
     graphics.lineStyle(1.5, outline, outlineAlpha);
     graphics.strokeCircle(cx, cy, r * 0.05); // tiny center pip for the shield boss read
+    drawFootMarks(cx, cy, r, outline, outlineAlpha);
     // blade: a line from center forward to the rim.
     graphics.lineStyle(2.5, outline, outlineAlpha);
     graphics.lineBetween(cx, cy, cx + fx * r * 0.96, cy + fy * r * 0.96);
@@ -304,10 +320,12 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
   ): void {
     // A slim body + a bow ARC on the facing side (foot ranged).
     const body = r * 0.55;
+    drawFootLegs(cx, cy, r, outline, outlineAlpha);
     graphics.fillStyle(tint, fillAlpha);
     graphics.fillCircle(cx, cy, body);
     graphics.lineStyle(1.5, outline, outlineAlpha);
     graphics.strokeCircle(cx, cy, body);
+    drawFootMarks(cx, cy, r, outline, outlineAlpha);
     // bow: an arc centred on the facing side, drawn as a stroked partial circle.
     const bowCx = cx + fx * r * 0.5;
     const bowCy = cy + fy * r * 0.5;
