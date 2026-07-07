@@ -25,7 +25,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       `scripts/run-oracles.mjs`; `positionReplay.ts` reconstructs unit
       positions tick-by-tick from initial snapshot + diffs; `fixBotPrompt.ts`
       builds the prompt for `scripts/propose-fix.mjs` (Codex / Claude
-      shell-out, propose-only via `git apply --check`); `corpusSchema.ts`
+      shell-out, propose-only via `git apply --check`);
+      `visualPlaytestAdapter.ts` is the civ-engine v1.3 visual-playtest
+      adapter seam: it turns the aoe2 LLM snapshot/tool surface into
+      engine `VisualPlaytestObservation`/control/state vocabulary for
+      prompts and embeds engine `visualPlaytest` finding payloads into
+      existing aoe2 agent markers without replacing the custom command-tool
+      runner; `corpusSchema.ts`
       validates `playtest-corpus.json` for `scripts/playtest-corpus.mjs`,
       which loops the runner + oracles per row and emits
       `output/corpus/<date>/SUMMARY.md`. CI runs the corpus on PR + main

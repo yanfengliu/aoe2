@@ -264,3 +264,18 @@ Consequences:
 - Single-AI vs passive-human is the smoke baseline because aiSystem hard-codes `humanPlayerId` as the enemy target; true AI-vs-AI requires an opponent-selection refactor that's filed as a Phase-6 follow-up of the playtest-loop thread.
 - The probe order inside the loop (`error → engineHalt → stopWhen → maxTicks`) reflects the bridge's `tickHaltGuard` swallowing system throws into `haltState.halted` without rethrowing; the runner polls `bridge.getHudState().engineHalted` each tick to surface those.
 
+
+## KAD-0016 - Civ-engine visual playtest contracts are adapter vocabulary
+
+Date: 2026-07-06.
+Status: Active.
+
+Context: civ-engine v1.3.0 exports a zero-dependency visual-playtest vocabulary (`VisualPlaytestObservation`, controls/state channels, prompt building, finding-to-marker helpers, and loop contracts). aoe2 already has a richer custom LLM playtest stack: provider wiring, screenshots, cost tracking, strategy/tactical prompt split, command-tool schemas, dispatch feedback, and post-hoc conformance findings.
+
+Decision: aoe2 adopts the shared engine vocabulary through `src/game/playtest/visualPlaytestAdapter.ts`, not by replacing the existing runner. Tactical prompts prepend `buildVisualPlaytestPrompt` output built from player-surface screenshot metadata, visible-text summary, and command-tool controls, then keep the existing detailed JSON snapshot and tool schemas as the source of command truth. Conformance finding markers keep the existing aoe2 `author:'agent'`, `category:'ai'`, deterministic id, severity mapping, text, and anchor tick while embedding the engine `visualPlaytestFindingToMarker` payload under `data.visualPlaytest`.
+
+Consequences:
+- Engine/aoe2 tooling can recognize a shared `data.visualPlaytest.schemaVersion/type/finding` payload without changing the replay marker UI.
+- The LLM still uses aoe2 command tools and dispatch feedback; no hidden `runVisualPlaytestLoop` command path competes with `llmRunner`.
+- Prompt additions stay concise and player-surface scoped, so they boost visual context without replacing the full state JSON that prevents fabricated entity ids.
+- Future engine visual-playtest helpers can be absorbed in one adapter module instead of spreading contract glue across prompt and marker code.

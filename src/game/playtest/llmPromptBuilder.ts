@@ -11,6 +11,7 @@ import type {
   LlmMessage,
   LlmToolSchema,
 } from './types';
+import { buildTacticalVisualPlaytestHeader } from './visualPlaytestAdapter';
 
 export const SYSTEM_PROMPT_TACTICAL = `You are an AoE2 agent playing a deterministic playtest.
 Your job: act each decision tick by emitting one or more game commands via the provided tools.
@@ -60,6 +61,12 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
     });
   }
   const lines = [
+    buildTacticalVisualPlaytestHeader({
+      snapshot,
+      ownerId,
+      hasScreenshot: screenshotPng !== undefined,
+      tools: buildCommandToolSchemas(),
+    }),
     `You are player ${ownerId}. Only emit commands targeting your own units / buildings; commands targeting other owners' entities will be rejected by the dispatcher.`,
     'Use entityIds EXACTLY as listed below. Never invent entity ids.',
     `Tick: ${snapshot.tick} (elapsed ${snapshot.elapsedMmSs})`,

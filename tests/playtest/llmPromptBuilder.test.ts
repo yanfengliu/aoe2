@@ -170,6 +170,26 @@ describe('buildTacticalPrompt', () => {
     expect(textBlock.text).toContain('rush castle age, then knights');
   });
 
+  it('prepends the shared visual-playtest context with screenshot metadata and command controls', () => {
+    const out = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      screenshotPng: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      currentStrategy: 'rush feudal',
+      recentHistory: [],
+      ownerId: 2,
+    });
+    const textBlock = out.messages[0]!.content.find((c) => c.type === 'text')!;
+    if (textBlock.type !== 'text') throw new Error('expected text');
+    expect(textBlock.text).toContain('You are playtesting a browser game through player-surface evidence.');
+    expect(textBlock.text).toContain('Screenshot: [attached image block] 800x600 image/png');
+    expect(textBlock.text).toContain('Visible text:');
+    expect(textBlock.text).toContain('Player 2 tick 1500');
+    expect(textBlock.text).toContain('Available controls:');
+    expect(textBlock.text).toContain('unit_move: Tool: unit_move');
+    expect(textBlock.text).toContain('queue_train: Tool: queue_train');
+    expect(textBlock.text).toContain('AoE2 tactical state JSON:');
+  });
+
   // playtest-fixes A: the prompt must surface the agent's OWN entity
   // ids — the tool schemas demand integer ids and the 2026-06-09 run
   // proved the model fabricates them when none are provided.

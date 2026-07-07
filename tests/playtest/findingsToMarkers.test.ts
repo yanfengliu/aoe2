@@ -106,6 +106,33 @@ describe('findingsToMarkers', () => {
     }
   });
 
+  it('embeds the shared visual-playtest finding payload without breaking AoeMarkerData', () => {
+    const [m] = findingsToMarkers([finding({ category: 'ux-gap', area: 'command-card', severity: 'medium' })], CTX);
+    expect(m.id).toBe('agent-finding-0');
+    expect(m.tick).toBe(250);
+    expect(m.text).toBe('[ux-gap] command-card: no command to advance past Feudal');
+    expect(isAoeMarkerData(m.data)).toBe(true);
+    const data = m.data as Record<string, unknown>;
+    expect(data.author).toBe('agent');
+    expect(data.category).toBe('ai');
+    expect(data.severity).toBe('warning');
+    expect(data.visualPlaytest).toMatchObject({
+      schemaVersion: 1,
+      type: 'finding',
+      finding: {
+        title: 'ux-gap - command-card',
+        severity: 'medium',
+        category: 'usability',
+        area: 'command-card',
+        observed: 'no command to advance past Feudal',
+        expected: 'researching Castle Age at the Town Center',
+        suggestion: 'implement the age-up command',
+        evidence: { tick: 250 },
+        data: { aoe2FindingCategory: 'ux-gap' },
+      },
+    });
+  });
+
   it('builds text "[<findingCategory>] <area>: <observed>" and carries detail in data', () => {
     const [m] = findingsToMarkers(
       [finding({ category: 'spec-divergence', area: 'monk', observed: 'heals instantly' })],

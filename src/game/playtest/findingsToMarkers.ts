@@ -23,6 +23,7 @@ import type { Marker, SessionBundle } from 'civ-engine';
 
 import type { AoeSeverity } from '../annotations/markerSchema';
 import type { ConformanceFinding, ConformanceTraceRow } from './conformanceProbe';
+import { visualPlaytestPayloadForConformanceFinding } from './visualPlaytestAdapter';
 
 /** Context for building markers from findings. `createdAt` is injected
  *  (not read from a clock) so the mapping stays pure/deterministic. */
@@ -74,6 +75,9 @@ export function findingsToMarkers(
 ): Marker[] {
   return findings.map((finding, index) => {
     const severity = SEVERITY_MAP[finding.severity];
+    const visualPlaytest = visualPlaytestPayloadForConformanceFinding(finding, {
+      anchorTick: ctx.anchorTick,
+    });
     const marker: Marker = {
       id: `agent-finding-${index}`,
       tick: ctx.anchorTick,
@@ -93,6 +97,7 @@ export function findingsToMarkers(
         observed: finding.observed,
         expected: finding.expected,
         suggestion: finding.suggestion,
+        ...(visualPlaytest !== undefined ? { visualPlaytest } : {}),
       },
       ...(ctx.createdAt !== undefined ? { createdAt: ctx.createdAt } : {}),
     };
