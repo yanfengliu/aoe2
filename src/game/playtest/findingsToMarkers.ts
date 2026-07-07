@@ -127,9 +127,9 @@ export function injectAgentMarkers(
 
 /**
  * Derive the coarse anchor tick for a run's findings: the LAST decision's
- * `tickAfter`, falling back to `metadata.endTick` when the trace is empty
- * or the last row has no usable tickAfter. The result is floored to an
- * integer (Marker.tick must be an integer) and clamped to [0, endTick]
+ * `tickAfter`, falling back to the bundle's effective end tick when the
+ * trace is empty or the last row has no usable tickAfter. The result is
+ * floored to an integer (Marker.tick must be an integer) and clamped to [0, endTick]
  * (markers past endTick are unreachable on the timeline). Findings carry
  * no per-finding tick, so all of a run's findings share this anchor;
  * rich per-finding anchoring is a deferred follow-up.
@@ -138,10 +138,18 @@ export function deriveAnchorTick(
   rows: readonly ConformanceTraceRow[],
   bundle: SessionBundle,
 ): number {
-  const endTick = bundle.metadata.endTick;
+  const endTick = effectiveBundleEndTick(bundle);
   const lastTickAfter = rows.length > 0 ? rows[rows.length - 1]!.tickAfter : undefined;
   const raw =
     typeof lastTickAfter === 'number' && Number.isFinite(lastTickAfter) ? lastTickAfter : endTick;
   const floored = Math.floor(raw);
   return Math.max(0, Math.min(floored, endTick));
+}
+
+function effectiveBundleEndTick(bundle: SessionBundle): number {
+  const metadata = bundle.metadata as SessionBundle['metadata'] & { persistedEndTick?: unknown };
+  const candidates = [metadata.endTick, metadata.persistedEndTick].filter(
+    (tick): tick is number => typeof tick === 'number' && Number.isFinite(tick),
+  );
+  return Math.max(0, ...candidates);
 }

@@ -8,10 +8,11 @@
 // free with an improved probe — including runs captured WITHOUT an
 // in-run oracle (e.g. campaign-4).
 //
-//   tsx scripts/playtest-findings.mjs <prefix> [--no-llm] [--model <m>] [--provider claude-code|api]
+//   tsx scripts/playtest-findings.mjs <prefix> [--no-llm|--reuse-findings] [--model <m>] [--provider claude-code|api]
 //
 // Example:
 //   npm run playtest:findings -- output/playtests-llm/campaign-4
+//   npm run playtest:findings -- output/playtests-llm/campaign-4 --reuse-findings
 
 import { readFileSync, writeFileSync, renameSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -35,10 +36,11 @@ import {
 } from '../src/game/playtest/findingsToMarkers.ts';
 
 function parseArgs(argv) {
-  const args = { prefix: null, noLlm: false, model: 'claude-opus-4-8', provider: null };
+  const args = { prefix: null, noLlm: false, reuseFindings: false, model: 'claude-opus-4-8', provider: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--no-llm') args.noLlm = true;
+    else if (a === '--reuse-findings') args.reuseFindings = true;
     else if (a === '--model') args.model = argv[++i];
     else if (a === '--provider') {
       const v = argv[++i];
@@ -58,8 +60,12 @@ function parseArgs(argv) {
   }
   if (!args.prefix) {
     console.error(
-      'usage: playtest-findings <run-prefix> [--no-llm] [--model <m>] [--provider claude-code|api]',
+      'usage: playtest-findings <run-prefix> [--no-llm|--reuse-findings] [--model <m>] [--provider claude-code|api]',
     );
+    process.exit(2);
+  }
+  if (args.noLlm && args.reuseFindings) {
+    console.error('playtest-findings: --no-llm and --reuse-findings are mutually exclusive.');
     process.exit(2);
   }
   return args;
@@ -111,7 +117,8 @@ function selectProvider(args) {
   if (!canSpawnClaude()) {
     console.error(
       'playtest-findings: no LLM provider available. Install Claude Code (`claude` on PATH), '
-        + 'set ANTHROPIC_API_KEY, or pass --no-llm for metrics only.',
+        + 'set ANTHROPIC_API_KEY, pass --reuse-findings to refresh markers from envelope.findings, '
+        + 'or pass --no-llm for metrics only.',
     );
     process.exit(2);
   }
@@ -150,7 +157,15 @@ async function main() {
   let findings = [];
   let model;
   let note;
-  if (!args.noLlm) {
+  if (args.reuseFindings) {
+    if (!Array.isArray(envelope.findings)) {
+      console.error('playtest-findings: --reuse-findings requires an existing envelope.findings array.');
+      process.exit(2);
+    }
+    findings = envelope.findings;
+    if (typeof envelope.findingsNote === 'string') note = envelope.findingsNote;
+    console.log(`[playtest-findings] reusing ${findings.length} existing envelope finding(s)`);
+  } else if (!args.noLlm) {
     const provider = new RetryingProvider(selectProvider(args), { maxRetries: 2, backoffMs: 3000 });
     const digest = buildConformanceDigest(metrics, rows);
     const screenshot = findLastScreenshot(args.prefix);

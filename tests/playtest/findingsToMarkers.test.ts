@@ -279,6 +279,12 @@ describe('deriveAnchorTick', () => {
     expect(deriveAnchorTick([], bundle([], 1234))).toBe(1234);
   });
 
+  it('uses persistedEndTick when a historical bundle has endTick stuck at zero', () => {
+    const repaired = bundle([], 0) as SessionBundle & { metadata: { persistedEndTick: number } };
+    repaired.metadata.persistedEndTick = 9000;
+    expect(deriveAnchorTick([row(9000, 35)], repaired)).toBe(9000);
+  });
+
   it('falls back to metadata.endTick when the last row has no usable tickAfter', () => {
     const bad = { ...row(0), tickAfter: undefined as unknown as number };
     expect(deriveAnchorTick([bad], bundle([], 999))).toBe(999);

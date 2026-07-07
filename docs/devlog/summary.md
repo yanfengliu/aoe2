@@ -1,3 +1,6 @@
+## 2026-07-07 (recursive-loop dogfood)
+- **Loop verification:** dogfooded the shared `ImprovementFinding` path on a disposable copy of `output/playtests-llm/campaign-4`. The engine recovered 3 improvement findings and 3 visual findings from injected markers. The pass exposed two harness frictions and fixed both: historical bundles with `metadata.endTick: 0` now anchor findings using `persistedEndTick`, and `playtest:findings --reuse-findings` can refresh marker/improvement payloads from existing `envelope.findings` without rerunning the LLM or clearing findings. No gameplay/user-visible version bump.
+
 ## 2026-07-07 (shared improvement payload migration)
 - **Internal harness payloads:** migrated conformance finding markers onto `civ-engine` v1.4.0's shared `ImprovementFinding` marker payload while preserving the existing AoE marker fields and `data.visualPlaytest` report payload. Agent-authored findings now carry `data.improvementLoop` with verification status, next action, and tick evidence for recursive-loop ledgers. No gameplay/user-visible version bump.
 
