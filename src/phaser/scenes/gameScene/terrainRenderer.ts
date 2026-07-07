@@ -108,15 +108,17 @@ export function drawTerrainCell(
   graphics.fillStyle(terrainCellTint(entity.tint, cellX, cellY), 1);
   graphics.fillPoints([top, right, bottom, left], true);
 
+  const kind = entity.entityType as TerrainKind;
+  const corners = [top, right, bottom, left];
+  const centre = worldToIso(cellX + 0.5, cellY + 0.5);
+  drawSurfaceDetails(graphics, kind, corners, centre, cellX, cellY);
+
   // Diamond-edge feather: for each of the 4 diamond edges whose neighbour cell is
   // a DIFFERENT kind, stipple a dithered band of small blend-tinted specks just
   // inside the edge, so the hard kind-to-kind boundary reads as a soft dithered
   // transition (the iso analogue of the v0.1.43 square feather). Neighbour cell
   // feathers back symmetrically, so the two bands interlock across the boundary.
   const grid = terrainKindGrid(entities);
-  const kind = entity.entityType as TerrainKind;
-  const corners = [top, right, bottom, left];
-  const centre = worldToIso(cellX + 0.5, cellY + 0.5);
   for (const edge of DIAMOND_EDGES) {
     const neighbourKind = grid.get(packXY(cellX + edge.dx, cellY + edge.dy));
     if (!neighbourKind || neighbourKind === kind) continue;
@@ -162,6 +164,77 @@ const FEATHER_SLOTS = 4;
 const FEATHER_BAND = 0.26; // fraction of the way from the edge toward the centre
 const FEATHER_ALPHA = 0.5;
 const FEATHER_THRESHOLD = 0.42; // a slot emits a speck only above this (dithered)
+
+const DETAIL_MARKS = [
+  { ox: -0.34, oy: -0.08, salt: 17 },
+  { ox: 0.28, oy: 0.1, salt: 41 },
+] as const;
+
+const DETAIL_TINT: Record<TerrainKind, number> = {
+  grass: 0x7ba36a,
+  forest: 0x1f4528,
+  water: 0x7fb3c7,
+  hill: 0x6e6046,
+};
+
+const DETAIL_ALPHA: Record<TerrainKind, number> = {
+  grass: 0.18,
+  forest: 0.24,
+  water: 0.34,
+  hill: 0.22,
+};
+
+function drawSurfaceDetails(
+  graphics: Phaser.GameObjects.Graphics,
+  kind: TerrainKind,
+  corners: readonly { x: number; y: number }[],
+  centre: { x: number; y: number },
+  cellX: number,
+  cellY: number,
+): void {
+  const top = corners[0];
+  const right = corners[1];
+  const bottom = corners[2];
+  const left = corners[3];
+  if (!top || !right || !bottom || !left) return;
+  const halfW = Math.abs(right.x - left.x) / 2;
+  const halfH = Math.abs(bottom.y - top.y) / 2;
+  const tint = DETAIL_TINT[kind];
+  const alpha = DETAIL_ALPHA[kind];
+  if (kind === 'water') {
+    graphics.lineStyle(1, tint, alpha);
+    for (const mark of DETAIL_MARKS) {
+      const p = detailPoint(centre, halfW, halfH, cellX, cellY, mark.ox, mark.oy, mark.salt);
+      const len = halfW * 0.13;
+      graphics.lineBetween(p.x - len, p.y, p.x + len, p.y);
+    }
+    return;
+  }
+
+  graphics.fillStyle(tint, alpha);
+  for (const mark of DETAIL_MARKS) {
+    const p = detailPoint(centre, halfW, halfH, cellX, cellY, mark.ox, mark.oy, mark.salt);
+    graphics.fillCircle(p.x, p.y, 1.15);
+  }
+}
+
+function detailPoint(
+  centre: { x: number; y: number },
+  halfW: number,
+  halfH: number,
+  cellX: number,
+  cellY: number,
+  ox: number,
+  oy: number,
+  salt: number,
+): { x: number; y: number } {
+  const jitterX = (cellNoise3(cellX, cellY, salt) - 0.5) * 0.12;
+  const jitterY = (cellNoise3(cellX, cellY, salt + 1) - 0.5) * 0.12;
+  return {
+    x: centre.x + (ox + jitterX) * halfW,
+    y: centre.y + (oy + jitterY) * halfH,
+  };
+}
 
 // Stipple the feather specks along one differing edge (A→B), each nudged inward
 // toward the diamond centre so they stay inside the tile. Deterministic per

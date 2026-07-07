@@ -181,6 +181,9 @@ function createGraphicsSpy() {
     fillCircle: (x: number, y: number, r: number) => {
       calls.push({ op: 'fillCircle', args: [x, y, r] });
     },
+    lineBetween: (x1: number, y1: number, x2: number, y2: number) => {
+      calls.push({ op: 'lineBetween', args: [x1, y1, x2, y2] });
+    },
   };
   return { graphics, calls, pointBatches };
 }
@@ -209,8 +212,8 @@ function terrainCell(x: number, y: number, kind: TerrainKind): ProjectedEntityVi
 
 // A 3x3 patch of terrain entities centred at (1,1); `center` is the centre
 // cell's kind, `ring` fills the eight surrounding cells. Used to exercise the
-// diamond-edge feather: a same-kind ring draws no specks, a different-kind ring
-// stipples a blend-tinted band inside each differing edge.
+// diamond-edge feather: a same-kind ring draws no blend specks, while a
+// different-kind ring stipples a blend-tinted band inside each differing edge.
 function patch(center: TerrainKind, ring: TerrainKind): {
   entities: ProjectedEntityView[];
   centerCell: ProjectedEntityView;
@@ -285,6 +288,24 @@ describe('drawTerrainCell — isometric diamond tile', () => {
     expect(spyA.pointBatches).toEqual(spyB.pointBatches);
   });
 
+  it('adds kind-specific interior surface details on otherwise flat same-kind terrain', () => {
+    for (const kind of ['grass', 'forest', 'hill'] as TerrainKind[]) {
+      const cell = terrainCell(5, 5, kind);
+      const spy = createGraphicsSpy();
+      drawTerrainCell(spy.graphics as never, [cell], cell, CELL_SIZE);
+      expect(spy.calls.filter((c) => c.op === 'fillCircle').length, kind).toBeGreaterThan(0);
+      expect(
+        spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] !== terrainCellTint(cell.tint, cell.x, cell.y) && c.args[1] < 1),
+        kind,
+      ).toBe(true);
+    }
+
+    const water = terrainCell(5, 5, 'water');
+    const spy = createGraphicsSpy();
+    drawTerrainCell(spy.graphics as never, [water], water, CELL_SIZE);
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThan(0);
+  });
+
   it('feathers a boundary with a DIFFERENT-kind neighbour (blend specks), not a same-kind one', () => {
     const uniform = patch('grass', 'grass');
     const mixed = patch('grass', 'water');
@@ -295,11 +316,9 @@ describe('drawTerrainCell — isometric diamond tile', () => {
     // Both still draw the single base diamond.
     expect(spyU.calls.filter((c) => c.op === 'fillPoints').length).toBe(1);
     expect(spyM.calls.filter((c) => c.op === 'fillPoints').length).toBe(1);
-    // A same-kind ring draws NO feather specks; a different-kind ring DOES.
-    expect(spyU.calls.some((c) => c.op === 'fillCircle')).toBe(false);
-    expect(spyM.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThan(0);
-    // The specks use the grass/water blend colour, translucent.
+    // A same-kind ring draws no BLEND-colour feather specks; a different-kind ring does.
     const blend = blendTint(TERRAIN_BASE_TINT.grass, TERRAIN_BASE_TINT.water);
+    expect(spyU.calls.some((c) => c.op === 'fillStyle' && c.args[0] === blend)).toBe(false);
     expect(
       spyM.calls.some((c) => c.op === 'fillStyle' && c.args[0] === blend && (c.args[1] as number) < 1),
     ).toBe(true);

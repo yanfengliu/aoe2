@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.119 - 2026-07-07
+
+### Terrain gets subtle surface detail
+
+Terrain diamonds now draw kind-specific procedural surface marks: grass/forest/hill tiles get faint speckles and water gets short wave strokes. This gives the default map more Age of Empires II-style texture while staying purely visual and deterministic; simulation, pathing, fog, selection, saves, and replays are unchanged.
+
 ## 0.1.118 - 2026-07-07
 
 ### Foot units get planted limb detail
