@@ -89,14 +89,56 @@ export function drawResourceEntity(
     || entity.entityType === 'boar'
     || entity.entityType === 'wolf'
   ) {
-    // A small standing animal: an oval body + a head bump over a ground shadow,
-    // so wildlife reads as a creature on the iso ground rather than a flat dot.
+    // Small species-specific animals over a ground shadow. AoE2's sheep, boar,
+    // and wolves are recognisable silhouettes at default zoom; keep the same
+    // procedural idea here without changing resource ownership/tint semantics.
     const s = cellSize * entity.size;
+    const detail = darken(entity.tint, 0.55);
     graphics.fillStyle(0x000000, 0.16 * fillAlpha);
     graphics.fillEllipse(cx, cy + s * 0.28, s * 0.7, s * 0.24);
+
+    if (entity.entityType === 'sheep') {
+      graphics.lineStyle(1.4, detail, 0.7 * fillAlpha);
+      graphics.lineBetween(cx - s * 0.22, cy + s * 0.2, cx - s * 0.22, cy + s * 0.42);
+      graphics.lineBetween(cx + s * 0.18, cy + s * 0.2, cx + s * 0.18, cy + s * 0.42);
+      graphics.fillStyle(entity.tint, fillAlpha);
+      graphics.fillEllipse(cx, cy, s * 0.9, s * 0.55);
+      graphics.fillStyle(lighten(entity.tint, 0.24), fillAlpha);
+      graphics.fillCircle(cx - s * 0.28, cy - s * 0.02, s * 0.22);
+      graphics.fillCircle(cx, cy - s * 0.08, s * 0.26);
+      graphics.fillCircle(cx + s * 0.22, cy, s * 0.22);
+      graphics.fillStyle(darken(entity.tint, 0.22), fillAlpha);
+      graphics.fillCircle(cx + s * 0.42, cy - s * 0.06, s * 0.2);
+      return;
+    }
+
+    if (entity.entityType === 'boar') {
+      graphics.lineStyle(1.6, detail, 0.8 * fillAlpha);
+      graphics.lineBetween(cx - s * 0.22, cy + s * 0.2, cx - s * 0.28, cy + s * 0.43);
+      graphics.lineBetween(cx + s * 0.16, cy + s * 0.2, cx + s * 0.22, cy + s * 0.43);
+      graphics.fillStyle(entity.tint, fillAlpha);
+      graphics.fillEllipse(cx - s * 0.06, cy + s * 0.02, s * 0.95, s * 0.55);
+      graphics.fillStyle(darken(entity.tint, 0.18), fillAlpha);
+      graphics.fillCircle(cx - s * 0.22, cy - s * 0.1, s * 0.24);
+      graphics.fillCircle(cx + s * 0.43, cy - s * 0.02, s * 0.23);
+      graphics.fillStyle(0xf2e7cf, fillAlpha);
+      graphics.fillTriangle(cx + s * 0.54, cy, cx + s * 0.74, cy - s * 0.09, cx + s * 0.6, cy + s * 0.1);
+      graphics.fillTriangle(cx + s * 0.5, cy + s * 0.08, cx + s * 0.68, cy + s * 0.18, cx + s * 0.56, cy - s * 0.02);
+      return;
+    }
+
+    graphics.lineStyle(1.4, detail, 0.75 * fillAlpha);
+    graphics.lineBetween(cx - s * 0.26, cy + s * 0.18, cx - s * 0.34, cy + s * 0.42);
+    graphics.lineBetween(cx - s * 0.06, cy + s * 0.2, cx - s * 0.08, cy + s * 0.43);
+    graphics.lineBetween(cx + s * 0.16, cy + s * 0.2, cx + s * 0.18, cy + s * 0.43);
+    graphics.lineBetween(cx + s * 0.34, cy + s * 0.18, cx + s * 0.42, cy + s * 0.4);
     graphics.fillStyle(entity.tint, fillAlpha);
-    graphics.fillEllipse(cx, cy, s * 0.9, s * 0.55);
-    graphics.fillCircle(cx + s * 0.42, cy - s * 0.06, s * 0.24);
+    graphics.fillEllipse(cx - s * 0.04, cy, s * 0.95, s * 0.42);
+    graphics.fillCircle(cx + s * 0.42, cy - s * 0.08, s * 0.23);
+    graphics.fillStyle(darken(entity.tint, 0.28), fillAlpha);
+    graphics.fillTriangle(cx - s * 0.46, cy - s * 0.04, cx - s * 0.78, cy - s * 0.22, cx - s * 0.52, cy + s * 0.12);
+    graphics.fillTriangle(cx + s * 0.32, cy - s * 0.22, cx + s * 0.4, cy - s * 0.48, cx + s * 0.5, cy - s * 0.18);
+    graphics.fillTriangle(cx + s * 0.5, cy - s * 0.2, cx + s * 0.62, cy - s * 0.43, cx + s * 0.6, cy - s * 0.12);
     return;
   }
 

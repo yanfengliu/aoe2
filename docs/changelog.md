@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.117 - 2026-07-07
+
+### Sheep, boar, and wolves get distinct silhouettes
+
+Wildlife no longer shares one generic animal blob. Sheep now have wool clumps and small legs, boar get tusks, and wolves get pointed ears plus a tail, improving default-zoom readability while keeping the change purely visual.
+
 ## 0.1.116 - 2026-07-07
 
 ### Buildings get masonry bands and roof tile seams

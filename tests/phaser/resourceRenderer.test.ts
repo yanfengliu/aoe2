@@ -40,6 +40,15 @@ function createGraphicsSpy() {
       fillRect: (x: number, y: number, w: number, h: number) => calls.push({ op: 'fillRect', args: [x, y, w, h] }),
       fillCircle: (x: number, y: number, r: number) => calls.push({ op: 'fillCircle', args: [x, y, r] }),
       fillEllipse: (x: number, y: number, w: number, h: number) => calls.push({ op: 'fillEllipse', args: [x, y, w, h] }),
+      fillTriangle: (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) => {
+        calls.push({ op: 'fillTriangle', args: [x1, y1, x2, y2, x3, y3] });
+      },
+      lineStyle: (width: number, color: number, alpha?: number) => {
+        calls.push({ op: 'lineStyle', args: [width, color, alpha ?? 1] });
+      },
+      lineBetween: (x1: number, y1: number, x2: number, y2: number) => {
+        calls.push({ op: 'lineBetween', args: [x1, y1, x2, y2] });
+      },
     } as unknown as Phaser.GameObjects.Graphics,
   };
 }
@@ -141,5 +150,39 @@ describe('drawResourceEntity (extracted from GameScene)', () => {
       // the tint is used for the body/head
       expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x88aa44)).toBe(true);
     }
+  });
+
+  it('draws sheep with wool clumps and small legs, not the generic wildlife silhouette', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('sheep'), px, py, CELL_SIZE, 1);
+    expect(spy.calls.filter((c) => c.op === 'fillCircle').length).toBeGreaterThanOrEqual(4);
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(2);
+    expect(spy.calls.some((c) => c.op === 'fillTriangle')).toBe(false);
+  });
+
+  it('draws boar with tusks so huntable wildlife reads as dangerous at default zoom', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('boar'), px, py, CELL_SIZE, 1);
+    expect(spy.calls.filter((c) => c.op === 'fillTriangle').length).toBeGreaterThanOrEqual(2);
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('draws wolves with pointed ears and a tail so they differ from boar and sheep', () => {
+    const spy = createGraphicsSpy();
+    drawResourceEntity(spy.graphics, createResource('wolf'), px, py, CELL_SIZE, 1);
+    expect(spy.calls.filter((c) => c.op === 'fillTriangle').length).toBeGreaterThanOrEqual(3);
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('uses distinct primitive signatures for sheep, boar, and wolf', () => {
+    const signatures = (['sheep', 'boar', 'wolf'] as ResourceKind[]).map((kind) => {
+      const spy = createGraphicsSpy();
+      drawResourceEntity(spy.graphics, createResource(kind), px, py, CELL_SIZE, 1);
+      return spy.calls
+        .filter((c) => c.op !== 'fillStyle' && c.op !== 'lineStyle')
+        .map((c) => c.op)
+        .join(',');
+    });
+    expect(new Set(signatures).size).toBe(3);
   });
 });
