@@ -38,6 +38,16 @@ export function darken(tint: number, factor: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
+function lighten(tint: number, factor: number): number {
+  const r0 = (tint >> 16) & 0xff;
+  const g0 = (tint >> 8) & 0xff;
+  const b0 = tint & 0xff;
+  const r = Math.round(r0 + (0xff - r0) * factor);
+  const g = Math.round(g0 + (0xff - g0) * factor);
+  const b = Math.round(b0 + (0xff - b0) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
 // Isometric 3/4-view building volume (M7 overhaul increment 6). A building's
 // footprint projects to a ground DIAMOND (its four cell corners run through
 // worldToIso); extruding that diamond straight up by a wall height gives a solid
@@ -157,6 +167,31 @@ export function roofTileSegments(roof: readonly IsoPoint[]): Array<[IsoPoint, Is
   ];
 }
 
+export interface RoofBevelSegments {
+  highlight: Array<[IsoPoint, IsoPoint]>;
+  shadow: Array<[IsoPoint, IsoPoint]>;
+}
+
+export function roofBevelSegments(roof: readonly IsoPoint[]): RoofBevelSegments {
+  const [top, right, bottom, left] = roof;
+  if (!top || !right || !bottom || !left) return { highlight: [], shadow: [] };
+  const centre = {
+    x: (top.x + right.x + bottom.x + left.x) / 4,
+    y: (top.y + right.y + bottom.y + left.y) / 4,
+  };
+  const inset = (point: IsoPoint): IsoPoint => lerp(point, centre, 0.07);
+  return {
+    highlight: [
+      [inset(top), inset(right)],
+      [inset(top), inset(left)],
+    ],
+    shadow: [
+      [inset(left), inset(bottom)],
+      [inset(right), inset(bottom)],
+    ],
+  };
+}
+
 export interface IsoBuildingStyle {
   tint: number;
   outline: number;
@@ -244,6 +279,15 @@ export function drawIsoBuilding(
   if (heightPx > 22 && materialDetail) {
     g.lineStyle(1, darken(roofTint, 0.18), fillAlpha * 0.45);
     for (const [a, b] of roofTileSegments(polys.roof)) {
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+    const roofBevel = roofBevelSegments(polys.roof);
+    g.lineStyle(2, lighten(roofTint, 0.24), fillAlpha * 0.42);
+    for (const [a, b] of roofBevel.highlight) {
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+    g.lineStyle(2, darken(roofTint, 0.34), fillAlpha * 0.5);
+    for (const [a, b] of roofBevel.shadow) {
       g.lineBetween(a.x, a.y, b.x, b.y);
     }
   }

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.123 - 2026-07-07
+
+### Building roofs have more depth
+
+Tall isometric buildings now draw subtle inset roof highlights plus darker lower eave shadows over the existing roof tile seams. Large structures like the Town Center read less like flat slabs and more like lit 3/4-view buildings. This is visual only: footprints, hit testing, health bars, selection, construction state, fog memory, saves, and replays are unchanged.
+
 ## 0.1.122 - 2026-07-07
 
 ### Fog edge is softer

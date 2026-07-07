@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   drawIsoBuilding,
   isoBuildingPolys,
+  roofBevelSegments,
   roofTileSegments,
   wallCourseSegments,
   wallWindowPolys,
@@ -144,8 +145,8 @@ describe('drawIsoBuilding — front-wall facade door + windows', () => {
     // ground + left wall + right wall + DOOR + 2 left windows + 2 right windows
     // + roof = 9 filled polygons (the 2x2 footprint yields 2 windows per face).
     expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(9);
-    // 3 course lines per visible wall face + 5 roof tile seams.
-    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBe(11);
+    // 3 course lines per visible wall face + 5 roof tile seams + 4 bevel/eave cues.
+    expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBe(15);
   });
 
   it('omits the door and windows on a short (flat / low) building', () => {
@@ -219,6 +220,31 @@ describe('roofTileSegments - roof material breakup', () => {
         expect(p.x).toBeLessThanOrEqual(maxX);
         expect(p.y).toBeGreaterThanOrEqual(minY);
         expect(p.y).toBeLessThanOrEqual(maxY);
+      }
+    }
+  });
+});
+
+describe('roofBevelSegments - roof depth cues', () => {
+  const roof = isoBuildingPolys(footprint2x2(), 40).roof;
+
+  it('returns highlight and shadow/eave segments inside the roof diamond', () => {
+    const bevel = roofBevelSegments(roof);
+    expect(bevel.highlight).toHaveLength(2);
+    expect(bevel.shadow).toHaveLength(2);
+
+    const minX = Math.min(...roof.map((p) => p.x));
+    const maxX = Math.max(...roof.map((p) => p.x));
+    const minY = Math.min(...roof.map((p) => p.y));
+    const maxY = Math.max(...roof.map((p) => p.y));
+    for (const segments of [bevel.highlight, bevel.shadow]) {
+      for (const [a, b] of segments) {
+        for (const p of [a, b]) {
+          expect(p.x).toBeGreaterThanOrEqual(minX);
+          expect(p.x).toBeLessThanOrEqual(maxX);
+          expect(p.y).toBeGreaterThanOrEqual(minY);
+          expect(p.y).toBeLessThanOrEqual(maxY);
+        }
       }
     }
   });
