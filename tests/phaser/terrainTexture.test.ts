@@ -324,6 +324,21 @@ describe('drawTerrainCell — isometric diamond tile', () => {
     ).toBe(true);
   });
 
+  it('adds shoreline strokes on water edges that border land', () => {
+    const openWater = patch('water', 'water');
+    const shore = patch('water', 'grass');
+    const spyOpen = createGraphicsSpy();
+    const spyShore = createGraphicsSpy();
+    drawTerrainCell(spyOpen.graphics as never, openWater.entities, openWater.centerCell, CELL_SIZE);
+    drawTerrainCell(spyShore.graphics as never, shore.entities, shore.centerCell, CELL_SIZE);
+
+    const openLines = spyOpen.calls.filter((c) => c.op === 'lineBetween').length;
+    const shoreLines = spyShore.calls.filter((c) => c.op === 'lineBetween').length;
+    // Two interior wave strokes are always present on water; a land ring adds
+    // four inset shoreline strokes, one per diamond edge.
+    expect(shoreLines).toBe(openLines + 4);
+  });
+
   it('keeps feather specks inside the tile diamond (nudged inward, never crossing the edge)', () => {
     const mixed = patch('grass', 'water');
     const spy = createGraphicsSpy();

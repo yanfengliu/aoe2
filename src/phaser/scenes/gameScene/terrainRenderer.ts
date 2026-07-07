@@ -124,6 +124,9 @@ export function drawTerrainCell(
     if (!neighbourKind || neighbourKind === kind) continue;
     const blend = blendTint(TERRAIN_BASE_TINT[kind], TERRAIN_BASE_TINT[neighbourKind]);
     drawEdgeFeather(graphics, corners[edge.a], corners[edge.b], centre, blend, cellX, cellY, edge.i);
+    if (kind === 'water' && neighbourKind !== 'water') {
+      drawWaterShoreline(graphics, corners[edge.a], corners[edge.b], centre);
+    }
   }
 }
 
@@ -164,6 +167,9 @@ const FEATHER_SLOTS = 4;
 const FEATHER_BAND = 0.26; // fraction of the way from the edge toward the centre
 const FEATHER_ALPHA = 0.5;
 const FEATHER_THRESHOLD = 0.42; // a slot emits a speck only above this (dithered)
+const SHORELINE_TINT = 0x9fc2b6;
+const SHORELINE_ALPHA = 0.26;
+const SHORELINE_INSET = 0.18;
 
 const DETAIL_MARKS = [
   { ox: -0.34, oy: -0.08, salt: 17 },
@@ -257,4 +263,25 @@ function drawEdgeFeather(
     const ey = a.y + (b.y - a.y) * t;
     graphics.fillCircle(ex + (centre.x - ex) * FEATHER_BAND, ey + (centre.y - ey) * FEATHER_BAND, 1.6);
   }
+}
+
+function drawWaterShoreline(
+  graphics: Phaser.GameObjects.Graphics,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  centre: { x: number; y: number },
+): void {
+  const start = 0.16;
+  const end = 0.84;
+  const ax = a.x + (b.x - a.x) * start;
+  const ay = a.y + (b.y - a.y) * start;
+  const bx = a.x + (b.x - a.x) * end;
+  const by = a.y + (b.y - a.y) * end;
+  graphics.lineStyle(1, SHORELINE_TINT, SHORELINE_ALPHA);
+  graphics.lineBetween(
+    ax + (centre.x - ax) * SHORELINE_INSET,
+    ay + (centre.y - ay) * SHORELINE_INSET,
+    bx + (centre.x - bx) * SHORELINE_INSET,
+    by + (centre.y - by) * SHORELINE_INSET,
+  );
 }
