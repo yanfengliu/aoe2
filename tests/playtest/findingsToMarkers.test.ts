@@ -57,9 +57,25 @@ describe('findingsToMarkers', () => {
     const markers = findingsToMarkers([finding(), finding(), finding()], CTX);
     const ids = markers.map((m) => m.id);
     expect(new Set(ids).size).toBe(3);
+    const improvementIds = markers.map((m) => {
+      const payload = (m.data as Record<string, unknown>).improvementLoop as { finding?: { id?: unknown } };
+      return payload.finding?.id;
+    });
+    expect(improvementIds).toEqual([
+      'aoe2-conformance-missing-feature-castle-age-250-0',
+      'aoe2-conformance-missing-feature-castle-age-250-1',
+      'aoe2-conformance-missing-feature-castle-age-250-2',
+    ]);
+    expect(new Set(improvementIds).size).toBe(3);
     // Deterministic: same inputs → identical ids (no Math.random/Date.now).
     const again = findingsToMarkers([finding(), finding(), finding()], CTX);
     expect(again.map((m) => m.id)).toEqual(ids);
+    expect(
+      again.map((m) => {
+        const payload = (m.data as Record<string, unknown>).improvementLoop as { finding?: { id?: unknown } };
+        return payload.finding?.id;
+      }),
+    ).toEqual(improvementIds);
   });
 
   it('is fully deterministic (re-run yields structurally identical markers)', () => {
@@ -128,6 +144,25 @@ describe('findingsToMarkers', () => {
         expected: 'researching Castle Age at the Town Center',
         suggestion: 'implement the age-up command',
         evidence: { tick: 250 },
+        data: { aoe2FindingCategory: 'ux-gap' },
+      },
+    });
+    expect(data.improvementLoop).toMatchObject({
+      schemaVersion: 1,
+      type: 'finding',
+      finding: {
+        schemaVersion: 1,
+        id: 'aoe2-conformance-ux-gap-command-card-250-0',
+        title: 'ux-gap - command-card',
+        severity: 'medium',
+        category: 'usability',
+        area: 'command-card',
+        observed: 'no command to advance past Feudal',
+        expected: 'researching Castle Age at the Town Center',
+        suggestion: 'implement the age-up command',
+        evidence: [{ kind: 'tick', tick: 250 }],
+        verificationStatus: 'unverified',
+        nextAction: 'proposalOnly',
         data: { aoe2FindingCategory: 'ux-gap' },
       },
     });

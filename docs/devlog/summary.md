@@ -1,3 +1,6 @@
+## 2026-07-07 (shared improvement payload migration)
+- **Internal harness payloads:** migrated conformance finding markers onto `civ-engine` v1.4.0's shared `ImprovementFinding` marker payload while preserving the existing AoE marker fields and `data.visualPlaytest` report payload. Agent-authored findings now carry `data.improvementLoop` with verification status, next action, and tick evidence for recursive-loop ledgers. No gameplay/user-visible version bump.
+
 ## 2026-07-07 (vision harness conformance guard)
 - **Post-hoc findings guard:** hardened `conformanceProbe` after the v0.1.121 vision run produced false high-severity "missing age/tech/combat" findings from a 750-tick Dark Age opening. The digest now labels command types as "used in this run" rather than "could use", carries a short-run caution for max-tick openings, and the prompt requires `record_findings` exactly once even when findings are empty. Regression tests cover the wording. Live rerun on `tmp/vision/llm-v0121-probe` now returns 0 findings with no probe note.
 

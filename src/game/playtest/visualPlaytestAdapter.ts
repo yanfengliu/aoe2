@@ -1,6 +1,9 @@
 import {
   buildVisualPlaytestPrompt,
+  IMPROVEMENT_FINDING_SCHEMA_VERSION,
+  improvementFindingToMarker,
   visualPlaytestFindingToMarker,
+  type ImprovementFinding,
   type VisualPlaytestControl,
   type VisualPlaytestFinding,
   type VisualPlaytestFindingCategory,
@@ -83,6 +86,7 @@ export function buildTacticalVisualPlaytestObservation(
 
 export interface ConformanceVisualPlaytestContext {
   anchorTick: number;
+  findingIndex?: number;
 }
 
 const FINDING_CATEGORY_MAP: Record<ConformanceFinding['category'], VisualPlaytestFindingCategory> = {
@@ -110,16 +114,63 @@ export function conformanceFindingToVisualPlaytestFinding(
   };
 }
 
+export function conformanceFindingToImprovementFinding(
+  finding: ConformanceFinding,
+  ctx: ConformanceVisualPlaytestContext,
+): ImprovementFinding {
+  return {
+    schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
+    id: [
+      'aoe2-conformance',
+      slugIdPart(finding.category),
+      slugIdPart(finding.area),
+      String(ctx.anchorTick),
+      ...(ctx.findingIndex !== undefined ? [String(ctx.findingIndex)] : []),
+    ].join('-'),
+    title: `${finding.category} - ${finding.area}`,
+    severity: finding.severity,
+    category: FINDING_CATEGORY_MAP[finding.category],
+    area: finding.area,
+    observed: finding.observed,
+    expected: finding.expected,
+    suggestion: finding.suggestion,
+    evidence: [{ kind: 'tick', tick: ctx.anchorTick }],
+    verificationStatus: 'unverified',
+    nextAction: 'proposalOnly',
+    data: { aoe2FindingCategory: finding.category },
+  };
+}
+
+export interface ConformanceFindingSharedPayloads {
+  visualPlaytest?: AoeJsonValue;
+  improvementLoop?: AoeJsonValue;
+}
+
+export function sharedPayloadsForConformanceFinding(
+  finding: ConformanceFinding,
+  ctx: ConformanceVisualPlaytestContext,
+): ConformanceFindingSharedPayloads {
+  const visualMarker = visualPlaytestFindingToMarker(
+    conformanceFindingToVisualPlaytestFinding(finding, ctx),
+  );
+  const improvementMarker = improvementFindingToMarker(
+    conformanceFindingToImprovementFinding(finding, ctx),
+  );
+  return {
+    ...(payloadField(visualMarker.data, 'visualPlaytest') !== undefined
+      ? { visualPlaytest: payloadField(visualMarker.data, 'visualPlaytest') }
+      : {}),
+    ...(payloadField(improvementMarker.data, 'improvementLoop') !== undefined
+      ? { improvementLoop: payloadField(improvementMarker.data, 'improvementLoop') }
+      : {}),
+  };
+}
+
 export function visualPlaytestPayloadForConformanceFinding(
   finding: ConformanceFinding,
   ctx: ConformanceVisualPlaytestContext,
 ): AoeJsonValue | undefined {
-  const marker = visualPlaytestFindingToMarker(
-    conformanceFindingToVisualPlaytestFinding(finding, ctx),
-  );
-  if (!isRecord(marker.data)) return undefined;
-  const payload = marker.data.visualPlaytest;
-  return isAoeJsonValue(payload) ? payload : undefined;
+  return sharedPayloadsForConformanceFinding(finding, ctx).visualPlaytest;
 }
 
 function toolToVisualPlaytestControl(tool: LlmToolSchema): VisualPlaytestControl {
@@ -138,6 +189,16 @@ function formatResources(resources: { wood: number; food: number; gold: number; 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function payloadField(value: unknown, key: string): AoeJsonValue | undefined {
+  if (!isRecord(value)) return undefined;
+  const payload = value[key];
+  return isAoeJsonValue(payload) ? payload : undefined;
+}
+
+function slugIdPart(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unknown';
 }
 
 function isAoeJsonValue(value: unknown): value is AoeJsonValue {
