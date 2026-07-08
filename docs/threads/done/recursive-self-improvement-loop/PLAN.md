@@ -37,7 +37,7 @@
 ### Task 3: Dogfood Evidence
 
 **Files:**
-- Modify: `docs/threads/current/recursive-self-improvement-loop/2026-07-08/1/REVIEW.md` or add a concise evidence section before moving the thread to done.
+- Modify: `docs/threads/done/recursive-self-improvement-loop/2026-07-08/1/REVIEW.md` or add a concise evidence section before moving the thread to done.
 - Modify: `docs/devlog/summary.md`
 - Modify: latest `docs/devlog/detailed/*.md`
 - Modify: `docs/architecture/ARCHITECTURE.md` and `docs/architecture/drift-log.md` only if the final command is treated as a structural harness boundary.
