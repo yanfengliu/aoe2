@@ -231,6 +231,10 @@ describe('buildSelfImprovementLedger', () => {
     const baseline = runArtifacts({
       id: 'baseline',
       prefix: 'output/playtests-llm/baseline',
+      markers: [
+        improvementMarker(improvementFinding('resolved', 'manualFix')),
+        improvementMarker(improvementFinding('persisted', 'manualFix')),
+      ],
       traceRows: [
         traceRow({
           tickAfter: 500,
@@ -243,6 +247,7 @@ describe('buildSelfImprovementLedger', () => {
       id: 'current',
       prefix: 'output/playtests-llm/current',
       markers: [
+        improvementMarker(improvementFinding('persisted', 'manualFix')),
         improvementMarker(improvementFinding('proposal', 'proposalOnly')),
         improvementMarker(improvementFinding('auto', 'autoFix')),
         improvementMarker(improvementFinding('observe', 'observeMore')),
@@ -275,6 +280,7 @@ describe('buildSelfImprovementLedger', () => {
     expect(ledger.current.findingSource).toBe('markers');
     expect(ledger.verification.current).toMatchObject({ kind: 'replay-self-check', ok: true });
     expect(ledger.findings.map((f) => [f.id, f.classification.kind, f.disposition])).toEqual([
+      ['persisted', 'fix', 'candidate'],
       ['proposal', 'proposal', 'candidate'],
       ['auto', 'fix', 'candidate'],
       ['observe', 'observe', 'candidate'],
@@ -291,6 +297,13 @@ describe('buildSelfImprovementLedger', () => {
       baseline: 1,
       current: 2,
       delta: 1,
+    });
+    expect(ledger.comparison?.findings).toEqual({
+      baselineCount: 2,
+      currentCount: 5,
+      resolved: ['resolved'],
+      persisted: ['persisted'],
+      introduced: ['proposal', 'auto', 'observe', 'none'],
     });
   });
 
@@ -311,6 +324,37 @@ describe('buildSelfImprovementLedger', () => {
     expect(markdown).toContain('# Self-improvement ledger - current');
     expect(markdown).toContain('Replay self-check: ok');
     expect(markdown).toContain('| proposal | high | bug | proposal | candidate |');
+  });
+
+  it('formats rerun finding deltas in the Markdown summary', () => {
+    const baseline = runArtifacts({
+      id: 'baseline',
+      markers: [
+        improvementMarker(improvementFinding('resolved', 'manualFix')),
+        improvementMarker(improvementFinding('persisted', 'manualFix')),
+      ],
+    });
+    const current = runArtifacts({
+      id: 'current',
+      markers: [
+        improvementMarker(improvementFinding('persisted', 'manualFix')),
+        improvementMarker(improvementFinding('introduced', 'manualFix')),
+      ],
+    });
+
+    const ledger = buildSelfImprovementLedger({
+      generatedAt: FIXED_NOW,
+      baseline,
+      current,
+      verification: {
+        baseline: { kind: 'replay-self-check', ok: true, checkedSegments: 1, skippedSegments: 0 },
+        current: { kind: 'replay-self-check', ok: true, checkedSegments: 1, skippedSegments: 0 },
+      },
+    });
+
+    expect(formatSelfImprovementLedgerMarkdown(ledger)).toContain(
+      'Finding delta: 1 introduced, 1 persisted, 1 resolved',
+    );
   });
 
   it('treats skipped or vacuous self-check results as blocking evidence', () => {

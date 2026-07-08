@@ -35,7 +35,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       it recovers engine `ImprovementFinding` payloads from recorded runs,
       records replay self-check evidence, classifies proposal/fix/observe
       routing, and compares before/after metrics via
-      `compareMetricsResults`; `oracleImprovementFindings.ts` converts
+      `compareMetricsResults`; `selfImprovementFindingComparison.ts`
+      compares standardized finding identities across reruns, including
+      oracle/tick/message evidence for deterministic oracle findings whose
+      generated ids carry order-dependent suffixes;
+      `oracleImprovementFindings.ts` converts
       deterministic oracle violations into the same shared finding
       contract; `fixProposalInput.ts` selects classified ledger fix
       findings for the `propose-fix --ledger` prompt path; `corpusSchema.ts`

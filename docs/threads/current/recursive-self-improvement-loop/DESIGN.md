@@ -22,6 +22,7 @@ The gap is orchestration and evidence shape: there is no single command that rea
 Add a small self-improvement ledger layer:
 
 - `src/game/playtest/selfImprovementLoop.ts` is the pure contract layer. It reads run artifact objects, extracts shared `ImprovementFinding`s from markers or from saved envelope findings, computes conformance metrics from the trace, classifies findings, compares baseline/current metrics with `civ-engine.compareMetricsResults`, and formats JSON/Markdown ledger output.
+- `src/game/playtest/selfImprovementFindingComparison.ts` compares baseline/current standardized finding identities and reports which findings were resolved, persisted, or introduced by the rerun. Generic findings use their ids; deterministic oracle findings use oracle/tick/message as the stable evidence identity because their generated ids include an order-dependent suffix.
 - `scripts/playtest-self-improve.mjs` is the command-line glue. It reads `<prefix>.json`, `<prefix>.envelope.json`, and optional `<prefix>.llm-trace.jsonl`, repairs historical `metadata.endTick: 0` bundles in memory, optionally runs deterministic oracles with `--oracles`, runs `SessionReplayer.selfCheck({ stopOnFirstDivergence: true })` through `createReplayWorldOnly`, and writes the ledger.
 - `package.json` exposes the command as `npm run playtest:self-improve -- --current <prefix> [--baseline <prefix>] [--out <path>] [--oracles]`.
 - `src/game/playtest/fixProposalInput.ts` is the proposal-intake adapter. It selects eligible `classification.kind: "fix"` ledger findings, converts their shared `ImprovementFinding` payload back into the existing fix-prompt violation shape, and keeps the bundle prefix attached.
@@ -74,6 +75,14 @@ When both `--baseline` and `--current` are supplied, the ledger compares objecti
 The comparison uses `civ-engine.compareMetricsResults` so aoe2 does not fork a custom delta contract.
 
 For deterministic runs without an LLM trace, decision/command/stall metrics are recorded as zero and the comparison still includes `ticksRun`, `stopReason`, and `findingsCount`. This avoids NaN placeholders while preserving the fact that no LLM decision loop ran.
+
+The comparison also includes standardized finding deltas:
+
+- `resolved`: finding identities present in the baseline run and absent from the current run, reported by baseline finding id.
+- `persisted`: finding identities present in both runs, reported by current finding id.
+- `introduced`: finding identities absent from the baseline and present in the current run, reported by current finding id.
+
+This makes rerun evidence explicit enough to tell whether a proposed fix closed its target, carried it forward, or introduced new loop work.
 
 ## Non-Goals
 

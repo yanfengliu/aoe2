@@ -18,6 +18,10 @@ import {
   type ConformanceTraceRow,
 } from './conformanceProbe';
 import { deriveAnchorTick, findingsToMarkers } from './findingsToMarkers';
+import {
+  compareSelfImprovementFindings,
+  type SelfImprovementFindingComparison,
+} from './selfImprovementFindingComparison';
 import { oracleViolationsToImprovementFindings } from './oracleImprovementFindings';
 import type { OracleViolation } from './types';
 
@@ -129,6 +133,7 @@ export interface SelfImprovementComparison {
   currentRunId: string;
   comparator: 'civ-engine.compareMetricsResults';
   metrics: MetricsComparison;
+  findings: SelfImprovementFindingComparison;
 }
 
 export interface SelfImprovementLedger {
@@ -216,6 +221,10 @@ export function buildSelfImprovementLedger(
             currentRunId: input.current.id,
             comparator: 'civ-engine.compareMetricsResults',
             metrics: compareMetricsResults(baselineMetrics, currentMetrics),
+            findings: compareSelfImprovementFindings(
+              baselineFindings!.findings,
+              currentFindings.findings,
+            ),
           },
         }
       : {}),
@@ -246,6 +255,11 @@ export function formatSelfImprovementLedgerMarkdown(
   );
   if (ledger.comparison) {
     lines.push(`Comparison: ${ledger.comparison.baselineRunId} -> ${ledger.comparison.currentRunId}`);
+    lines.push(
+      `Finding delta: ${ledger.comparison.findings.introduced.length} introduced, `
+        + `${ledger.comparison.findings.persisted.length} persisted, `
+        + `${ledger.comparison.findings.resolved.length} resolved`,
+    );
   }
   lines.push('');
   lines.push('| ID | Severity | Category | Classification | Disposition |');

@@ -80,3 +80,18 @@
 - [x] Run adversarial review and address real findings.
 - [x] Run full gates.
 - [x] Commit on `main` and push.
+
+### Task 6: Rerun Finding Delta Evidence
+
+**Files:**
+- Create: `src/game/playtest/selfImprovementFindingComparison.ts`
+- Modify: `src/game/playtest/selfImprovementLoop.ts`
+- Modify: `tests/playtest/selfImprovementLoop.test.ts`
+
+- [x] Add failing tests that require baseline/current ledgers to report resolved, persisted, and introduced finding identities.
+- [x] Add the finding-delta helper and wire it into `SelfImprovementComparison`, including stable oracle/tick/message identities for generated oracle findings.
+- [x] Format the finding delta in Markdown summaries.
+- [x] Dogfood the fresh `self-improve-smoke` baseline/current ledger and confirm finding-delta evidence is written.
+- [x] Run adversarial review and address real findings.
+- [x] Run full gates.
+- [x] Commit on `main` and push.
