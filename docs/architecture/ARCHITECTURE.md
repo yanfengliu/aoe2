@@ -35,7 +35,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       it recovers engine `ImprovementFinding` payloads from recorded runs,
       records replay self-check evidence, classifies proposal/fix/observe
       routing, and compares before/after metrics via
-      `compareMetricsResults`; `corpusSchema.ts`
+      `compareMetricsResults`; `oracleImprovementFindings.ts` converts
+      deterministic oracle violations into the same shared finding
+      contract; `corpusSchema.ts`
       validates `playtest-corpus.json` for `scripts/playtest-corpus.mjs`,
       which loops the runner + oracles per row and emits
       `output/corpus/<date>/SUMMARY.md`. CI runs the corpus on PR + main

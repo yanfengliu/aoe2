@@ -95,4 +95,98 @@ describe('playtest-self-improve script', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('can build a ledger from deterministic playtest artifacts and oracle violations without an LLM trace', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aoe2-self-improve-oracles-'));
+    try {
+      const prefix = join(dir, 'run');
+      const out = join(dir, 'ledger.json');
+      writeFileSync(
+        `${prefix}.envelope.json`,
+        JSON.stringify({
+          stopReason: 'maxTicks',
+          ticksRun: 500,
+          seed: 'self-improve-smoke',
+          scenario: 'self-improve-smoke',
+          runStartedAt: '2026-07-08T00:00:00.000Z',
+          runCompletedAt: '2026-07-08T00:01:00.000Z',
+        }),
+      );
+      writeFileSync(
+        `${prefix}.json`,
+        JSON.stringify({
+          schemaVersion: 1,
+          metadata: {
+            sessionId: 'self-improve-oracle-test',
+            startTick: 0,
+            endTick: 0,
+            durationTicks: 0,
+            engineVersion: '1.4.0',
+            nodeVersion: process.version,
+            failedTicks: [],
+          },
+          initialSnapshot: {
+            version: 5,
+            config: { gridWidth: 16, gridHeight: 16, tps: 10 },
+            tick: 0,
+            entities: { generations: [], alive: [], freeList: [] },
+            components: {},
+            resources: {},
+            state: {},
+            tags: [],
+            rng: { state: 0 },
+            componentOptions: {},
+            metadata: {},
+          },
+          ticks: [],
+          commands: [],
+          executions: [],
+          failures: [],
+          snapshots: [],
+          markers: [],
+          attachments: [],
+        }),
+      );
+
+      const npmCli = process.env.npm_execpath;
+      if (!npmCli) throw new Error('npm_execpath was not set by the test runner');
+      const result = spawnSync(
+        process.execPath,
+        [
+          npmCli,
+          'run',
+          'playtest:self-improve',
+          '--',
+          '--current',
+          prefix,
+          '--out',
+          out,
+          '--oracles',
+          '--thresholds',
+          '{"matchCompleteRequired":true}',
+        ],
+        { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000 },
+      );
+
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      const ledger = JSON.parse(readFileSync(out, 'utf8'));
+      expect(ledger.current).toMatchObject({
+        id: 'run',
+        findingSource: 'oracle-violations',
+        standardizedFindingCount: 1,
+        decisionsRun: 0,
+      });
+      expect(ledger.findings[0]).toMatchObject({
+        id: 'aoe2-oracle-match-completes-run-0',
+        classification: { kind: 'fix', autoFixEligible: false },
+        verificationStatus: 'verified',
+        nextAction: 'manualFix',
+      });
+      expect(readFileSync(out.replace(/\.json$/, '.md'), 'utf8')).toContain(
+        'Standardized improvement findings: 1 (source: oracle-violations)',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

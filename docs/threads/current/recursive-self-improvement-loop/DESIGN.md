@@ -21,8 +21,8 @@ The gap is orchestration and evidence shape: there is no single command that rea
 Add a small self-improvement ledger layer:
 
 - `src/game/playtest/selfImprovementLoop.ts` is the pure contract layer. It reads run artifact objects, extracts shared `ImprovementFinding`s from markers or from saved envelope findings, computes conformance metrics from the trace, classifies findings, compares baseline/current metrics with `civ-engine.compareMetricsResults`, and formats JSON/Markdown ledger output.
-- `scripts/playtest-self-improve.mjs` is the command-line glue. It reads `<prefix>.json`, `<prefix>.envelope.json`, and `<prefix>.llm-trace.jsonl`, repairs historical `metadata.endTick: 0` bundles in memory, runs `SessionReplayer.selfCheck({ stopOnFirstDivergence: true })` through `createReplayWorldOnly`, and writes the ledger.
-- `package.json` exposes the command as `npm run playtest:self-improve -- --current <prefix> [--baseline <prefix>] [--out <path>]`.
+- `scripts/playtest-self-improve.mjs` is the command-line glue. It reads `<prefix>.json`, `<prefix>.envelope.json`, and optional `<prefix>.llm-trace.jsonl`, repairs historical `metadata.endTick: 0` bundles in memory, optionally runs deterministic oracles with `--oracles`, runs `SessionReplayer.selfCheck({ stopOnFirstDivergence: true })` through `createReplayWorldOnly`, and writes the ledger.
+- `package.json` exposes the command as `npm run playtest:self-improve -- --current <prefix> [--baseline <prefix>] [--out <path>] [--oracles]`.
 
 ## Classification
 
@@ -34,6 +34,14 @@ The ledger preserves the engine finding exactly and records a derived classifica
 - `none`: `nextAction: "none"`.
 
 The ledger also carries `disposition`, defaulting to `candidate` when the finding has none. This keeps proposal/fix state explicit without pretending an unreviewed conformance finding is already a committed fix.
+
+Deterministic oracle violations map into shared improvement findings too:
+
+- `match-completes` -> `category: "regression"`, `nextAction: "manualFix"` for high/medium severities.
+- `no-tick-failures` and `no-pinned-or-oscillating-units` -> `category: "bug"`.
+- `no-perf-regression` -> `category: "performance"`, with low-severity entries routed to `observeMore`.
+
+`scripts/run-oracles.mjs` remains useful as a gate/report command, but recursive-loop evidence should flow through `playtest:self-improve --oracles` so violations are preserved as standardized `ImprovementFinding`s.
 
 ## Verification
 
@@ -59,6 +67,8 @@ When both `--baseline` and `--current` are supplied, the ledger compares objecti
 - `stopReason`
 
 The comparison uses `civ-engine.compareMetricsResults` so aoe2 does not fork a custom delta contract.
+
+For deterministic runs without an LLM trace, decision/command/stall metrics are recorded as zero and the comparison still includes `ticksRun`, `stopReason`, and `findingsCount`. This avoids NaN placeholders while preserving the fact that no LLM decision loop ran.
 
 ## Non-Goals
 

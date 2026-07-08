@@ -18,19 +18,35 @@ import {
   type ConformanceTraceRow,
 } from './conformanceProbe';
 import { deriveAnchorTick, findingsToMarkers } from './findingsToMarkers';
+import { oracleViolationsToImprovementFindings } from './oracleImprovementFindings';
+import type { OracleViolation } from './types';
+
+export interface SelfImprovementRunEnvelope {
+  stopReason: string;
+  ticksRun: number;
+  decisionsRun?: number;
+  totalCostUsd?: number;
+  errorMessage?: string;
+  winner?: ConformanceEnvelopeLike['winner'];
+  seed?: string;
+  maxTicks?: number;
+  findings?: unknown;
+}
 
 export interface SelfImprovementRunArtifacts {
   id: string;
   prefix: string;
   bundle: SessionBundle;
-  envelope: ConformanceEnvelopeLike & {
-    seed?: string;
-    findings?: unknown;
-  };
+  envelope: SelfImprovementRunEnvelope;
   traceRows: readonly ConformanceTraceRow[];
+  oracleViolations?: readonly OracleViolation[];
 }
 
-export type ImprovementFindingSource = 'markers' | 'envelope-findings' | 'none';
+export type ImprovementFindingSource =
+  | 'markers'
+  | 'envelope-findings'
+  | 'oracle-violations'
+  | 'none';
 
 export interface ExtractedImprovementFindings {
   source: ImprovementFindingSource;
@@ -147,19 +163,24 @@ export function extractImprovementFindingsFromRun(
   }
 
   const envelopeFindings = readConformanceFindings(run.envelope.findings);
-  if (envelopeFindings.length === 0) {
-    return { source: 'none', findings: [] };
+  if (envelopeFindings.length > 0) {
+    const anchorTick = deriveAnchorTick(run.traceRows, run.bundle);
+    const markers = findingsToMarkers(envelopeFindings, {
+      anchorTick,
+      agentId: run.id,
+    });
+    return {
+      source: 'envelope-findings',
+      findings: improvementFindingsFromMarkers(markers),
+    };
   }
 
-  const anchorTick = deriveAnchorTick(run.traceRows, run.bundle);
-  const markers = findingsToMarkers(envelopeFindings, {
-    anchorTick,
-    agentId: run.id,
-  });
-  return {
-    source: 'envelope-findings',
-    findings: improvementFindingsFromMarkers(markers),
-  };
+  const oracleFindings = oracleViolationsToImprovementFindings(run);
+  if (oracleFindings.length > 0) {
+    return { source: 'oracle-violations', findings: oracleFindings };
+  }
+
+  return { source: 'none', findings: [] };
 }
 
 export function buildSelfImprovementLedger(
@@ -306,7 +327,9 @@ function summarizeRun(
 }
 
 function metricsForRun(run: SelfImprovementRunArtifacts): MetricsResult {
-  const metrics = computeRunMetrics(run.envelope, [...run.traceRows]);
+  const metrics = hasTraceMetrics(run)
+    ? computeRunMetrics(normalizedConformanceEnvelope(run), [...run.traceRows])
+    : deterministicMetrics(run);
   const findings = extractImprovementFindingsFromRun(run);
   return {
     stopReason: metrics.stopReason,
@@ -318,6 +341,43 @@ function metricsForRun(run: SelfImprovementRunArtifacts): MetricsResult {
     stallDecisions: metrics.stallDecisions,
     findingsCount: findings.findings.length,
   };
+}
+
+function hasTraceMetrics(run: SelfImprovementRunArtifacts): boolean {
+  return run.traceRows.length > 0
+    || typeof run.envelope.decisionsRun === 'number'
+    || typeof run.envelope.totalCostUsd === 'number';
+}
+
+function normalizedConformanceEnvelope(
+  run: SelfImprovementRunArtifacts,
+): ConformanceEnvelopeLike {
+  return {
+    ticksRun: finiteNumber(run.envelope.ticksRun, 0),
+    decisionsRun: finiteNumber(run.envelope.decisionsRun, run.traceRows.length),
+    totalCostUsd: finiteNumber(run.envelope.totalCostUsd, 0),
+    stopReason: run.envelope.stopReason,
+    ...(run.envelope.errorMessage !== undefined ? { errorMessage: run.envelope.errorMessage } : {}),
+    ...(run.envelope.winner !== undefined ? { winner: run.envelope.winner } : {}),
+    ...(run.envelope.seed !== undefined ? { seed: run.envelope.seed } : {}),
+    ...(run.envelope.maxTicks !== undefined ? { maxTicks: run.envelope.maxTicks } : {}),
+  };
+}
+
+function deterministicMetrics(run: SelfImprovementRunArtifacts): MetricsResult {
+  return {
+    stopReason: run.envelope.stopReason,
+    ticksRun: finiteNumber(run.envelope.ticksRun, 0),
+    decisionsRun: 0,
+    commandsAttempted: 0,
+    commandsAccepted: 0,
+    commandsRejected: 0,
+    stallDecisions: 0,
+  };
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 function checkedSuffix(evidence: ReplaySelfCheckEvidence): string {

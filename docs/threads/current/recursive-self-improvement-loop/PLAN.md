@@ -47,3 +47,20 @@
 - [x] Run adversarial review and address real findings.
 - [x] Run `npm test`, `npm run typecheck`, `npm run lint`, and `npm run build`.
 - [x] Commit on `main` and push.
+
+### Task 4: Deterministic Oracle Bootstrap
+
+**Files:**
+- Modify: `src/game/playtest/selfImprovementLoop.ts`
+- Create: `src/game/playtest/oracleImprovementFindings.ts`
+- Modify: `scripts/playtest-self-improve.mjs`
+- Modify: `tests/playtest/selfImprovementLoop.test.ts`
+- Modify: `tests/playtest/playtestSelfImproveScript.test.ts`
+
+- [x] Add tests that convert `OracleViolation`s into shared `ImprovementFinding`s.
+- [x] Add tests that deterministic runs without `.llm-trace.jsonl` compare without NaN metrics.
+- [x] Add `playtest:self-improve --oracles` to run the existing oracle suite and include standardized oracle findings.
+- [x] Dogfood fresh current-code deterministic baseline/current runs with strong replay self-check evidence.
+- [x] Run adversarial review and address real findings.
+- [x] Run full gates.
+- [x] Commit on `main` and push.

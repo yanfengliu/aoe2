@@ -15,6 +15,7 @@ import {
   replaySelfCheckEvidenceFromResult,
   type SelfImprovementRunArtifacts,
 } from '../../src/game/playtest/selfImprovementLoop';
+import type { OracleViolation } from '../../src/game/playtest/types';
 
 const FIXED_NOW = '2026-07-08T12:00:00.000Z';
 
@@ -71,6 +72,7 @@ function runArtifacts(
     markers?: Marker[];
     findings?: ConformanceFinding[];
     traceRows?: ConformanceTraceRow[];
+    oracleViolations?: OracleViolation[];
   } = {},
 ): SelfImprovementRunArtifacts {
   const traceRows = overrides.traceRows ?? [traceRow()];
@@ -87,6 +89,7 @@ function runArtifacts(
       ...(overrides.findings ? { findings: overrides.findings } : {}),
     },
     traceRows,
+    ...(overrides.oracleViolations ? { oracleViolations: overrides.oracleViolations } : {}),
   };
 }
 
@@ -167,6 +170,58 @@ describe('extractImprovementFindingsFromRun', () => {
       area: 'pathing',
       verificationStatus: 'unverified',
       nextAction: 'proposalOnly',
+    });
+  });
+
+  it('converts deterministic oracle violations into shared ImprovementFindings', () => {
+    const violation: OracleViolation = {
+      oracle: 'match-completes',
+      severity: 'high',
+      tick: null,
+      message: 'match did not complete: stopReason=maxTicks',
+      details: { stopReason: 'maxTicks', ticksRun: 500 },
+    };
+
+    const result = extractImprovementFindingsFromRun(runArtifacts({
+      id: 'fresh-smoke',
+      traceRows: [],
+      envelope: {
+        stopReason: 'maxTicks',
+        ticksRun: 500,
+        seed: 'self-improve-smoke',
+      },
+      oracleViolations: [violation],
+    }));
+
+    expect(result.source).toBe('oracle-violations');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({
+      id: 'aoe2-oracle-match-completes-run-0',
+      title: 'match-completes',
+      severity: 'high',
+      category: 'regression',
+      area: 'match-completes',
+      observed: 'match did not complete: stopReason=maxTicks',
+      verificationStatus: 'verified',
+      nextAction: 'manualFix',
+      disposition: 'candidate',
+      evidence: [
+        { kind: 'bundle', bundleId: 'session-1', sessionId: 'session-1' },
+        { kind: 'metric', label: 'match-completes' },
+      ],
+      sourceRun: {
+        schemaVersion: 1,
+        id: 'fresh-smoke',
+        sessionId: 'session-1',
+        tags: ['aoe2', 'oracle'],
+      },
+    });
+    expect(result.findings[0]?.data).toMatchObject({
+      aoe2OracleViolation: {
+        oracle: 'match-completes',
+        severity: 'high',
+        message: 'match did not complete: stopReason=maxTicks',
+      },
     });
   });
 });
@@ -289,5 +344,58 @@ describe('buildSelfImprovementLedger', () => {
       autoFixEligible: false,
     });
     expect(formatSelfImprovementLedgerMarkdown(ledger)).toContain('Replay self-check: failed');
+  });
+
+  it('compares deterministic runs that have no LLM trace without NaN metrics', () => {
+    const baseline = runArtifacts({
+      id: 'baseline',
+      traceRows: [],
+      envelope: {
+        stopReason: 'maxTicks',
+        ticksRun: 250,
+        seed: 'self-improve-smoke',
+      },
+    });
+    const current = runArtifacts({
+      id: 'current',
+      traceRows: [],
+      envelope: {
+        stopReason: 'maxTicks',
+        ticksRun: 500,
+        seed: 'self-improve-smoke',
+      },
+      oracleViolations: [{
+        oracle: 'match-completes',
+        severity: 'high',
+        tick: null,
+        message: 'match did not complete: stopReason=maxTicks',
+      }],
+    });
+
+    const ledger = buildSelfImprovementLedger({
+      generatedAt: FIXED_NOW,
+      baseline,
+      current,
+      verification: {
+        baseline: { kind: 'replay-self-check', ok: true, checkedSegments: 1, skippedSegments: 0 },
+        current: { kind: 'replay-self-check', ok: true, checkedSegments: 1, skippedSegments: 0 },
+      },
+    });
+
+    expect(ledger.current).toMatchObject({
+      decisionsRun: 0,
+      commandsAttempted: 0,
+      commandsAccepted: 0,
+      commandsRejected: 0,
+      stallDecisions: 0,
+      findingSource: 'oracle-violations',
+      standardizedFindingCount: 1,
+    });
+    expect(ledger.comparison?.metrics.ticksRun).toMatchObject({
+      baseline: 250,
+      current: 500,
+      delta: 250,
+    });
+    expect(JSON.stringify(ledger)).not.toContain('NaN');
   });
 });
