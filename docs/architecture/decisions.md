@@ -279,3 +279,18 @@ Consequences:
 - The LLM still uses aoe2 command tools and dispatch feedback; no hidden `runVisualPlaytestLoop` command path competes with `llmRunner`.
 - Prompt additions stay concise and player-surface scoped, so they boost visual context without replacing the full state JSON that prevents fabricated entity ids.
 - Future engine visual-playtest helpers can be absorbed in one adapter module instead of spreading contract glue across prompt and marker code.
+
+## KAD-0017 - Recursive self-improvement is a ledger over saved artifacts
+
+Date: 2026-07-08.
+Status: Active.
+
+Context: aoe2 already has separate loop pieces: LLM playtest capture, post-hoc findings, shared engine improvement marker payloads, replay inspection, and auto-fix gates. Replacing the runner would duplicate provider, browser, command-dispatch, recorder, and gate behavior. The missing boundary was an auditable artifact that proves a recorded run was inspected, verified, classified, and compared against a rerun.
+
+Decision: `src/game/playtest/selfImprovementLoop.ts` is a pure ledger contract over saved artifacts. It reads run objects, recovers `civ-engine` `ImprovementFinding` payloads from markers or legacy envelope findings, computes conformance metrics, classifies `nextAction` into proposal/fix/observe/none routing, preserves disposition, and compares baseline/current metrics with `compareMetricsResults`. `scripts/playtest-self-improve.mjs` is only filesystem and replay glue: it loads `<prefix>.json`, `<prefix>.envelope.json`, and `<prefix>.llm-trace.jsonl`, repairs historical `metadata.endTick` values in memory, runs `SessionReplayer.selfCheck` through `createReplayWorldOnly`, and writes JSON/Markdown ledgers under ignored output paths.
+
+Consequences:
+- Existing runner/finding/replay/auto-fix systems stay authoritative; the ledger composes them instead of introducing a competing harness.
+- Replay self-check failures and partial/no-op self-checks are written as first-class evidence rather than hidden, so old or incomplete bundles can still teach the loop while blocking overclaiming.
+- Proposal-only findings remain candidates until a later patch plus rerun proves closure; the ledger does not mark unreviewed conformance findings as fixed.
+- The before/after comparison contract is shared with `civ-engine`, reducing aoe2-specific delta vocabulary as the loop matures.
