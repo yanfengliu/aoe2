@@ -53,6 +53,9 @@ export interface LlmAgentConfig {
   // History trail — tail of past decisions to include in the tactical
   // prompt for context. Caller-provided so the runner controls memory.
   historyWindow: number;
+  // Episodic memory: open findings from a previous run's ledger, rendered
+  // into both prompts so the agent verifies instead of rediscovering.
+  knownIssues?: readonly string[];
 }
 
 export const DEFAULT_AGENT_CONFIG = {
@@ -173,6 +176,7 @@ export class LlmAgent {
       currentStrategy: this.currentStrategy,
       recentHistory: this.history.slice(-this.config.historyWindow),
       ownerId: this.config.ownerId,
+      ...(this.config.knownIssues !== undefined ? { knownIssues: this.config.knownIssues } : {}),
     });
 
     const callOptions: LlmCallOptions = {
@@ -211,7 +215,11 @@ export class LlmAgent {
     state: AgentStateSnapshot,
     screenshotPng: Uint8Array | undefined,
   ): Promise<AgentStrategyRefresh | null> {
-    const prompt = buildStrategyPrompt({ snapshot: state, screenshotPng });
+    const prompt = buildStrategyPrompt({
+      snapshot: state,
+      screenshotPng,
+      ...(this.config.knownIssues !== undefined ? { knownIssues: this.config.knownIssues } : {}),
+    });
     const callOptions: LlmCallOptions = {
       model: this.config.strategyModel,
       systemPrompt: prompt.systemPrompt,

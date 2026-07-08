@@ -1,5 +1,5 @@
 import {
-  IMPROVEMENT_FINDING_SCHEMA_VERSION,
+  minimalImprovementFindingSchemaVersion,
   type ImprovementFinding,
   type SessionBundle,
 } from 'civ-engine';
@@ -30,8 +30,9 @@ export function oracleViolationsToImprovementFindings(
         ...(details !== undefined ? { data: details } : {}),
       },
     ];
+    const nextAction = violation.severity === 'low' ? 'observeMore' : 'manualFix';
     return {
-      schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
+      schemaVersion: minimalImprovementFindingSchemaVersion(nextAction),
       id: ['aoe2-oracle', slugIdPart(violation.oracle), tickPart, String(index)].join('-'),
       title: violation.oracle,
       severity: violation.severity,
@@ -42,7 +43,7 @@ export function oracleViolationsToImprovementFindings(
       suggestion: `Inspect the recorded bundle and address the ${violation.oracle} violation.`,
       evidence,
       verificationStatus: 'verified',
-      nextAction: violation.severity === 'low' ? 'observeMore' : 'manualFix',
+      nextAction,
       disposition: 'candidate',
       sourceRun: {
         schemaVersion: 1,
@@ -78,7 +79,10 @@ function oracleCategory(oracle: string): ImprovementFinding['category'] {
   }
 }
 
-function slugIdPart(value: string): string {
+// Exported: also the shared path-safe segment for proposal directories, so
+// propose-fix and playtest-recursive derive identical on-disk layouts even
+// for free-text (marker-derived) oracle names.
+export function slugIdPart(value: string): string {
   return value
     .trim()
     .toLowerCase()

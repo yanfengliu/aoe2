@@ -179,7 +179,9 @@ describe('playtest-self-improve script', () => {
       expect(ledger.findings[0]).toMatchObject({
         id: 'aoe2-oracle-match-completes-run-0',
         classification: { kind: 'fix', autoFixEligible: false },
-        verificationStatus: 'verified',
+        // The fixture bundle has no commands, so replay self-check evidence is
+        // weak and the oracle finding's authored 'verified' status is downgraded.
+        verificationStatus: 'unverified',
         nextAction: 'manualFix',
       });
       expect(readFileSync(out.replace(/\.json$/, '.md'), 'utf8')).toContain(

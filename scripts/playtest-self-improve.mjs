@@ -10,6 +10,7 @@ import { basename, dirname } from 'node:path';
 
 import { SessionReplayer } from 'civ-engine';
 
+import { repairBundleEndTick } from '../src/game/playtest/bundleEndTick.ts';
 import { runOracles } from '../src/game/playtest/oracles.ts';
 import {
   buildSelfImprovementLedger,
@@ -88,16 +89,7 @@ function readRun(prefix, id = basename(prefix), options = { oracles: false, thre
   };
 }
 
-function repairBundleEndTick(bundle) {
-  const metadata = bundle.metadata;
-  if (!metadata || (metadata.endTick ?? 0) > 0) return;
-  const recordedMax = Math.max(
-    metadata.persistedEndTick ?? 0,
-    ...((bundle.ticks ?? []).map((tickEntry) => tickEntry.tick ?? 0)),
-  );
-  metadata.endTick = recordedMax;
-  metadata.durationTicks = recordedMax - (metadata.startTick ?? 0);
-}
+
 
 function verifyBundleWithReplaySelfCheck(bundle) {
   const md = bundle.metadata ?? {};

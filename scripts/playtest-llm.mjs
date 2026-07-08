@@ -31,7 +31,7 @@
 // separate post-hoc step: `npm run playtest:findings -- <out-prefix>`.
 
 import { spawn, execSync, spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
 
@@ -43,6 +43,7 @@ import {
 } from '../src/game/playtest/llmProviders/index.ts';
 import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
 import { runLlmPlaytest } from '../src/game/playtest/llmRunner.ts';
+import { selectKnownIssues } from '../src/game/playtest/knownIssues.ts';
 
 function parseArgs(argv) {
   const args = {
@@ -66,6 +67,9 @@ function parseArgs(argv) {
     // Phase-6.B (impl-2 M7): default false → enemies are visibility-
     // filtered. Pass --omniscient to revert to cheat-mode global view.
     omniscient: false,
+    // Episodic memory: path to a prior self-improvement ledger JSON whose
+    // open findings are rendered into the agent prompts as known issues.
+    knownFindings: null,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -88,6 +92,7 @@ function parseArgs(argv) {
     else if (a === '--no-screenshot') args.noScreenshot = true;
     else if (a === '--screenshot-every') args.screenshotEvery = Number(argv[++i]);
     else if (a === '--omniscient') args.omniscient = true;
+    else if (a === '--known-findings') args.knownFindings = argv[++i];
     else if (a.startsWith('--')) {
       console.error(`playtest-llm: unknown argument '${a}'`);
       process.exit(2);
@@ -398,6 +403,20 @@ function killProcessTree(child) {
 
 async function main() {
   const args = parseArgs(process.argv);
+
+  // Validate episodic-memory input BEFORE any server/browser startup so a
+  // bad ledger path cannot leak a Vite preview or Chromium process.
+  let knownIssues;
+  if (args.knownFindings) {
+    try {
+      const ledger = JSON.parse(readFileSync(args.knownFindings, 'utf8'));
+      knownIssues = selectKnownIssues(ledger);
+      console.log(`[playtest-llm] known issues from ${args.knownFindings}: ${knownIssues.length}`);
+    } catch (error) {
+      console.error(`playtest-llm: failed to read --known-findings ledger: ${error?.message ?? error}`);
+      process.exit(2);
+    }
+  }
   console.log('[playtest-llm] args:', args);
 
   // Provider selection runs FIRST so an unconfigured environment fails
@@ -458,6 +477,7 @@ async function main() {
       costBudgetUsd: args.costBudget,
       maxImageBytes: 1_048_576,
       historyWindow: 5,
+      ...(knownIssues && knownIssues.length > 0 ? { knownIssues } : {}),
     });
 
     const host = await makePlaywrightHost(page, { omniscient: args.omniscient, ownerId: args.owners[0] });

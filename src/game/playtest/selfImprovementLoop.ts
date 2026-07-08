@@ -1,4 +1,5 @@
 import {
+  assertImprovementFinding,
   compareMetricsResults,
   improvementFindingsFromMarkers,
   type ImprovementDisposition,
@@ -281,20 +282,52 @@ function ledgerFinding(
   finding: ImprovementFinding,
   verification: ReplaySelfCheckEvidence,
 ): SelfImprovementLedgerFinding {
-  const disposition = finding.disposition ?? 'candidate';
+  const aligned = alignOracleVerification(finding, verification);
+  const disposition = aligned.disposition ?? 'candidate';
   return {
-    id: finding.id,
-    title: finding.title,
-    severity: finding.severity,
-    category: finding.category,
-    ...(finding.area !== undefined ? { area: finding.area } : {}),
-    verificationStatus: finding.verificationStatus,
-    nextAction: finding.nextAction,
+    id: aligned.id,
+    title: aligned.title,
+    severity: aligned.severity,
+    category: aligned.category,
+    ...(aligned.area !== undefined ? { area: aligned.area } : {}),
+    verificationStatus: aligned.verificationStatus,
+    nextAction: aligned.nextAction,
     disposition,
-    classification: classifyFinding(finding, verification),
-    evidence: finding.evidence,
-    finding,
+    classification: classifyFinding(aligned, verification),
+    evidence: aligned.evidence,
+    finding: aligned,
   };
+}
+
+function alignOracleVerification(
+  finding: ImprovementFinding,
+  verification: ReplaySelfCheckEvidence,
+): ImprovementFinding {
+  const isOracleSourced =
+    typeof finding.data === 'object' &&
+    finding.data !== null &&
+    !Array.isArray(finding.data) &&
+    'aoe2OracleViolation' in finding.data;
+  if (!isOracleSourced || finding.verificationStatus !== 'verified') return finding;
+  if (verification.ok) {
+    const upgraded: ImprovementFinding = {
+      ...finding,
+      verificationMethod: finding.verificationMethod ?? 'metric',
+    };
+    try {
+      assertImprovementFinding(upgraded, { requireVerificationEvidence: true });
+      return upgraded;
+    } catch {
+      return downgradeToUnverified(finding);
+    }
+  }
+  return downgradeToUnverified(finding);
+}
+
+function downgradeToUnverified(finding: ImprovementFinding): ImprovementFinding {
+  const downgraded: ImprovementFinding = { ...finding, verificationStatus: 'unverified' };
+  delete downgraded.verificationMethod;
+  return downgraded;
 }
 
 function classifyFinding(
@@ -311,6 +344,10 @@ function classifyFinding(
     case 'none':
       return { kind: 'none', autoFixEligible: false };
     case 'proposalOnly':
+    case 'improveHarness':
+    case 'fileEngineFeedback':
+    case 'addRegression':
+    case 'updateDesign':
       return { kind: 'proposal', autoFixEligible: false };
     default: {
       const exhaustive: never = finding.nextAction;

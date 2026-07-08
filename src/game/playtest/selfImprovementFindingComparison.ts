@@ -49,6 +49,13 @@ function uniqueFindingIdentities(findings: readonly ImprovementFinding[]): Findi
   return out;
 }
 
+// Stable identity key for cross-run finding comparison — oracle findings key
+// on the violation tuple so positional id-suffix churn does not defeat the
+// resolved/persisted/introduced deltas or the recursive pass's prove-fixed check.
+export function findingIdentityKey(finding: ImprovementFinding): string {
+  return findingIdentity(finding).key;
+}
+
 function findingIdentity(finding: ImprovementFinding): FindingIdentity {
   const oracle = oracleFindingPayload(finding.data);
   if (oracle) {

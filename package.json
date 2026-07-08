@@ -15,6 +15,7 @@
     "playtest:llm-auto-fix": "tsx scripts/playtest-llm-auto-fix.mjs",
     "playtest:findings": "tsx scripts/playtest-findings.mjs",
     "playtest:self-improve": "tsx scripts/playtest-self-improve.mjs",
+    "playtest:recursive": "tsx scripts/playtest-recursive.mjs",
     "replay:inspect": "tsx scripts/replay-inspect.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",

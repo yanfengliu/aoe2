@@ -106,6 +106,7 @@ function severityValue(
 }
 
 function normalizedSeverity(value: unknown): OracleViolation['severity'] {
+  if (value === 'critical') return 'high';
   return value === 'high' || value === 'medium' || value === 'low'
     ? value
     : 'low';

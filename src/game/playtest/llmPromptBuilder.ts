@@ -45,13 +45,16 @@ export interface BuildTacticalPromptInput {
   currentStrategy: string | null;
   recentHistory: TacticalHistoryEntry[];
   ownerId: number;
+  // Episodic memory: open findings from a previous run's self-improvement
+  // ledger, so the agent verifies known issues instead of rediscovering them.
+  knownIssues?: readonly string[];
 }
 
 export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
   systemPrompt: string;
   messages: LlmMessage[];
 } {
-  const { snapshot, screenshotPng, currentStrategy, recentHistory, ownerId } = input;
+  const { snapshot, screenshotPng, currentStrategy, recentHistory, ownerId, knownIssues } = input;
   const content: LlmContentBlock[] = [];
   if (screenshotPng) {
     content.push({
@@ -71,6 +74,7 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
     'Use entityIds EXACTLY as listed below. Never invent entity ids.',
     `Tick: ${snapshot.tick} (elapsed ${snapshot.elapsedMmSs})`,
     `Current strategy: ${currentStrategy ?? '(none — start by playing safely)'}`,
+    ...knownIssuesLines(knownIssues),
     '',
     'Per-player state:',
     JSON.stringify(snapshot.perPlayer, null, 2),
@@ -146,13 +150,14 @@ export function buildTacticalPrompt(input: BuildTacticalPromptInput): {
 export interface BuildStrategyPromptInput {
   snapshot: AgentStateSnapshot;
   screenshotPng?: Uint8Array;
+  knownIssues?: readonly string[];
 }
 
 export function buildStrategyPrompt(input: BuildStrategyPromptInput): {
   systemPrompt: string;
   messages: LlmMessage[];
 } {
-  const { snapshot, screenshotPng } = input;
+  const { snapshot, screenshotPng, knownIssues } = input;
   const content: LlmContentBlock[] = [];
   if (screenshotPng) {
     content.push({ type: 'image', base64: encodeBase64(screenshotPng), mediaType: 'image/png' });
@@ -161,6 +166,7 @@ export function buildStrategyPrompt(input: BuildStrategyPromptInput): {
     `Tick: ${snapshot.tick} (elapsed ${snapshot.elapsedMmSs})`,
     'Current per-player state:',
     JSON.stringify(snapshot.perPlayer, null, 2),
+    ...knownIssuesLines(knownIssues),
     '',
     'Describe your overall strategy in 2-3 sentences. Then pick:',
     '- targetAge: one of "feudal-age", "castle-age", "imperial-age".',
@@ -172,6 +178,15 @@ export function buildStrategyPrompt(input: BuildStrategyPromptInput): {
     systemPrompt: SYSTEM_PROMPT_STRATEGY,
     messages: [{ role: 'user', content }],
   };
+}
+
+function knownIssuesLines(knownIssues: readonly string[] | undefined): string[] {
+  if (!knownIssues?.length) return [];
+  return [
+    '',
+    'Known open issues from prior runs (verify whether still present; do not rediscover them):',
+    ...knownIssues.map((issue) => `  - ${issue}`),
+  ];
 }
 
 // Tool name uses underscore — Anthropic's tool regex is

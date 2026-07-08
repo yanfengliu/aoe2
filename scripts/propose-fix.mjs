@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 
 import { buildFixPrompt, sourceFilesForOracle } from '../src/game/playtest/fixBotPrompt.ts';
+import { slugIdPart } from '../src/game/playtest/oracleImprovementFindings.ts';
 import { selectLedgerFixCandidate } from '../src/game/playtest/fixProposalInput.ts';
 
 function parseArgs(argv) {
@@ -164,7 +165,7 @@ const prompt = buildFixPrompt({
   sourceFiles,
 });
 
-const proposalDir = `${args.proposalRoot}/${basename(selected.prefix)}/${selected.target.oracle}`;
+const proposalDir = `${args.proposalRoot}/${basename(selected.prefix)}/${slugIdPart(selected.target.oracle)}`;
 mkdirSync(proposalDir, { recursive: true });
 writeFileSync(
   `${proposalDir}/TARGET.json`,

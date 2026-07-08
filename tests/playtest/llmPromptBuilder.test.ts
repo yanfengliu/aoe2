@@ -368,3 +368,39 @@ describe('buildTacticalPrompt — agent affordances', () => {
     expect(tool.description).toContain('top-left anchor cell');
   });
 });
+
+describe('known open issues section', () => {
+  const textOf = (messages: { content: Array<{ type: string; text?: string }> }[]): string =>
+    messages[0]!.content.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('\n');
+
+  it('renders known issues in the tactical prompt when provided', () => {
+    const { messages } = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [],
+      ownerId: 1,
+      knownIssues: ['[high/regression] match-completes: Match did not complete. (nextAction: manualFix)'],
+    });
+    const text = textOf(messages);
+    expect(text).toContain('Known open issues from prior runs');
+    expect(text).toContain('match-completes: Match did not complete.');
+  });
+
+  it('omits the section when no known issues are provided', () => {
+    const { messages } = buildTacticalPrompt({
+      snapshot: SNAPSHOT,
+      currentStrategy: null,
+      recentHistory: [],
+      ownerId: 1,
+    });
+    expect(textOf(messages)).not.toContain('Known open issues from prior runs');
+  });
+
+  it('renders known issues in the strategy prompt when provided', () => {
+    const { messages } = buildStrategyPrompt({
+      snapshot: SNAPSHOT,
+      knownIssues: ['[medium/usability] command-card: No age-up affordance. (nextAction: proposalOnly)'],
+    });
+    expect(textOf(messages)).toContain('Known open issues from prior runs');
+  });
+});

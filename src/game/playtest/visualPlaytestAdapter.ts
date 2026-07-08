@@ -1,6 +1,6 @@
 import {
   buildVisualPlaytestPrompt,
-  IMPROVEMENT_FINDING_SCHEMA_VERSION,
+  minimalImprovementFindingSchemaVersion,
   improvementFindingToMarker,
   visualPlaytestFindingToMarker,
   type ImprovementFinding,
@@ -119,7 +119,7 @@ export function conformanceFindingToImprovementFinding(
   ctx: ConformanceVisualPlaytestContext,
 ): ImprovementFinding {
   return {
-    schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
+    schemaVersion: minimalImprovementFindingSchemaVersion('proposalOnly'),
     id: [
       'aoe2-conformance',
       slugIdPart(finding.category),

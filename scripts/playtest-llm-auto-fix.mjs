@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 // Phase-6.E (auto-apply + counterfactual fix-validation).
 //
+// LEGACY crash fast-path: this script triggers only on engineHalt
+// regressions. Ledger-classified findings are the primary fix input and
+// flow through `playtest:recursive` (scripts/playtest-recursive.mjs),
+// which chains run -> ledger -> propose -> apply+gate -> rerun ->
+// prove-fixed with a pass manifest.
+//
 // Wraps `playtest:llm` with an auto-fix loop:
 //   1. Run the playtest.
 //   2. If the run halted (engineHalt),

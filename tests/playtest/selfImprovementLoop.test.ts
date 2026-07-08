@@ -147,7 +147,7 @@ describe('extractImprovementFindingsFromRun', () => {
     expect(result.source).toBe('markers');
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
-      schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
+      schemaVersion: 1,
       id: 'aoe2-conformance-ux-gap-command-card-500-0',
       verificationStatus: 'unverified',
       nextAction: 'proposalOnly',
