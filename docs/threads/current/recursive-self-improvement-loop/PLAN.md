@@ -64,3 +64,19 @@
 - [x] Run adversarial review and address real findings.
 - [x] Run full gates.
 - [x] Commit on `main` and push.
+
+### Task 5: Ledger-Driven Fix Proposal Intake
+
+**Files:**
+- Create: `src/game/playtest/fixProposalInput.ts`
+- Create: `tests/playtest/fixProposalInput.test.ts`
+- Create: `tests/playtest/proposeFixScript.test.ts`
+- Modify: `scripts/propose-fix.mjs`
+
+- [x] Add tests that select eligible fix findings directly from a self-improvement ledger.
+- [x] Add tests that convert ledger `ImprovementFinding` payloads into the existing fix-prompt violation shape without reading `REPORT.md`.
+- [x] Add a `propose-fix --ledger <ledger.json>` path with a dry-run prompt artifact for dogfooding without an external reviewer call.
+- [x] Dogfood the fresh `self-improve-smoke` ledger through the proposal intake path.
+- [x] Run adversarial review and address real findings.
+- [x] Run full gates.
+- [x] Commit on `main` and push.

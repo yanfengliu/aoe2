@@ -37,7 +37,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       routing, and compares before/after metrics via
       `compareMetricsResults`; `oracleImprovementFindings.ts` converts
       deterministic oracle violations into the same shared finding
-      contract; `corpusSchema.ts`
+      contract; `fixProposalInput.ts` selects classified ledger fix
+      findings for the `propose-fix --ledger` prompt path; `corpusSchema.ts`
       validates `playtest-corpus.json` for `scripts/playtest-corpus.mjs`,
       which loops the runner + oracles per row and emits
       `output/corpus/<date>/SUMMARY.md`. CI runs the corpus on PR + main

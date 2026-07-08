@@ -13,6 +13,7 @@ The repo already has the pieces of the loop:
 - `src/game/playtest/visualPlaytestAdapter.ts` maps conformance findings to `civ-engine` `ImprovementFinding` marker payloads.
 - `scripts/replay-inspect.mjs` uses `SessionReplayer` plus the aoe2 replay bridge to inspect real recorded state.
 - `scripts/playtest-llm-auto-fix.mjs` and `applyAndGate.ts` can apply a proposed patch and rerun gates, but they are focused on engine halt regressions.
+- `scripts/propose-fix.mjs` can generate focused fix prompts. It now accepts a self-improvement ledger directly before falling back to the legacy oracle `REPORT.md` table.
 
 The gap is orchestration and evidence shape: there is no single command that reads the run artifacts, extracts standardized improvement findings, records replay/self-check evidence, classifies the findings, and compares before/after reruns.
 
@@ -23,6 +24,8 @@ Add a small self-improvement ledger layer:
 - `src/game/playtest/selfImprovementLoop.ts` is the pure contract layer. It reads run artifact objects, extracts shared `ImprovementFinding`s from markers or from saved envelope findings, computes conformance metrics from the trace, classifies findings, compares baseline/current metrics with `civ-engine.compareMetricsResults`, and formats JSON/Markdown ledger output.
 - `scripts/playtest-self-improve.mjs` is the command-line glue. It reads `<prefix>.json`, `<prefix>.envelope.json`, and optional `<prefix>.llm-trace.jsonl`, repairs historical `metadata.endTick: 0` bundles in memory, optionally runs deterministic oracles with `--oracles`, runs `SessionReplayer.selfCheck({ stopOnFirstDivergence: true })` through `createReplayWorldOnly`, and writes the ledger.
 - `package.json` exposes the command as `npm run playtest:self-improve -- --current <prefix> [--baseline <prefix>] [--out <path>] [--oracles]`.
+- `src/game/playtest/fixProposalInput.ts` is the proposal-intake adapter. It selects eligible `classification.kind: "fix"` ledger findings, converts their shared `ImprovementFinding` payload back into the existing fix-prompt violation shape, and keeps the bundle prefix attached.
+- `scripts/propose-fix.mjs --ledger <ledger.json> [--finding-id <id>] [--dry-run]` is the standard proposal entrypoint for recursive-loop findings. Dry run writes `TARGET.json` and `PROMPT.md` without invoking Codex or Claude, which makes the intake path dogfoodable even when reviewer CLIs are unavailable.
 
 ## Classification
 
@@ -42,6 +45,8 @@ Deterministic oracle violations map into shared improvement findings too:
 - `no-perf-regression` -> `category: "performance"`, with low-severity entries routed to `observeMore`.
 
 `scripts/run-oracles.mjs` remains useful as a gate/report command, but recursive-loop evidence should flow through `playtest:self-improve --oracles` so violations are preserved as standardized `ImprovementFinding`s.
+
+`scripts/propose-fix.mjs` may still read `REPORT.md` for older artifacts, but ledger input is preferred for recursive-loop work because it uses the classified shared finding contract instead of reparsing the legacy markdown table.
 
 ## Verification
 
