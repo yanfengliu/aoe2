@@ -24,6 +24,10 @@ This does not lower the verification bar: tests still pass, diffs still get revi
 - The exception is a genuinely non-obvious decision that requires user judgment (e.g., which of two unequal interpretations of a spec is intended). For routine choices, make the call and proceed.
 - This rule was established 2026-05-01 after the user objected sharply to mid-stream stoppage during the investing-tool implementation. The same rule lives in every other repo's AGENTS.md.
 
+## Recursive loop (fleet)
+
+Before running or driving a `playtest:recursive` pass, read `../loop-ops/docs/skills/recursive-playtest.md`; before building loop machinery, read `../loop-ops/docs/skills/building-recursive-loop.md`. Those files are the fleet-wide source of truth for the loop contract (pass outcomes, honesty invariants, and the definition of a complete pass — a pass is not done at `proposal-only`). aoe2 specifics: the pass runs the FULL loop by default (`--propose-only` opts out) and never auto-merges.
+
 ## Core rules
 
 - Use test-driven development for behavior changes: write or update tests first, then make them pass. Test the contract, not the code: tests should focus primarily on app experience and mechanisms.
