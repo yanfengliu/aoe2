@@ -5,26 +5,30 @@
 //     -> [--apply] applyAndGate on a branch -> rerun -> rerun ledger
 //     -> prove-fixed (candidate identity resolved?) -> pass manifest
 //
-// Defaults are proposal-only (bounded autonomy): without --apply the pass
-// stops after writing the proposal and records outcome 'proposal-only'.
-// That outcome is a handoff, not an end state — the loop's intended behavior
-// is discover AND fix, so the driving agent then fixes (or reruns with
-// --apply), reruns the pass, and proves the bug class resolved before the
-// pass counts as complete.
-// With --apply, a proven fix leaves a gated branch push-ready (never merged
-// automatically) with HEAD left ON that branch for inspection/push; an
-// unproven fix reverts the branch and returns to main.
+// The FULL loop is the default (2.0 mandatory behavior): propose -> apply +
+// gate on a branch -> rerun -> prove. A proven fix leaves a gated branch
+// push-ready (never merged automatically) with HEAD left ON that branch for
+// inspection/push; an unproven fix reverts the branch and returns to main.
+// If the worktree is dirty or off main, the default degrades to proposal-only
+// with a warning; explicit --apply hard-fails instead. --propose-only stops
+// after the proposal — that outcome is a handoff, not an end state: the
+// driving agent then fixes, reruns, and proves the bug class resolved before
+// the pass counts as complete.
+// Episodic memory: --known-findings defaults to the newest prior ledger.json
+// under --out-root when present.
 //
 // Usage:
 //   npm run playtest:recursive -- [--seed s] [--max-ticks n] [--cost-budget usd]
-//     [--baseline <run-prefix>] [--known-findings <ledger.json>] [--apply]
+//     [--baseline <run-prefix>] [--known-findings <ledger.json>]
+//     [--apply | --propose-only]
 //     [--out-root output/self-improvement/recursive] [--reviewer claude|codex]
 //
 // Outcomes (also the manifest stopReason): no-fix-candidate | proposal-only |
 // proposal-failed | apply-failed | gate-failed | fixed-proven | fix-unproven.
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { applyAndGate } from '../src/game/playtest/applyAndGate.ts';
 import { selectLedgerFixCandidate } from '../src/game/playtest/fixProposalInput.ts';
@@ -39,14 +43,17 @@ import {
 const useShell = process.platform === 'win32';
 const npmBin = useShell ? 'npm.cmd' : 'npm';
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     seed: 'aoe2-prototype',
     maxTicks: 3000,
     costBudget: 5.0,
     baseline: null,
     knownFindings: null,
-    apply: false,
+    // 'auto' = full loop unless the worktree can't take it (degrade to
+    // proposal-only with a warning); true = strict --apply (hard-fail);
+    // false = --propose-only.
+    apply: 'auto',
     outRoot: 'output/self-improvement/recursive',
     reviewer: 'claude',
   };
@@ -58,6 +65,7 @@ function parseArgs(argv) {
     else if (a === '--baseline') args.baseline = argv[++i];
     else if (a === '--known-findings') args.knownFindings = argv[++i];
     else if (a === '--apply') args.apply = true;
+    else if (a === '--propose-only') args.apply = false;
     else if (a === '--out-root') args.outRoot = argv[++i];
     else if (a === '--reviewer') args.reviewer = argv[++i];
     else if (a === '--help' || a === '-h') {
@@ -73,6 +81,38 @@ function parseArgs(argv) {
     process.exit(2);
   }
   return args;
+}
+
+// Episodic memory default: the newest prior pass's ledger under outRoot.
+// Stamp dirs sort lexicographically (YYYYMMDDHHMMSS-pid); pick the newest
+// one that actually produced a ledger.json.
+export function defaultKnownFindings(outRoot) {
+  let entries;
+  try {
+    entries = readdirSync(outRoot, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const stamps = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+  for (const stamp of stamps) {
+    const ledgerPath = join(outRoot, stamp, 'ledger.json');
+    if (existsSync(ledgerPath)) return ledgerPath;
+  }
+  return null;
+}
+
+// The prove rerun spends only what the run left unspent — a pass never
+// exceeds --cost-budget. Below the viability floor the rerun is refused:
+// an underfunded rerun produces a near-empty bundle with no findings, which
+// would false-prove any candidate.
+const RERUN_VIABILITY_FLOOR_USD = 0.5;
+export function planRerunBudget(costBudgetUsd, runSpendUsd) {
+  const remaining = costBudgetUsd - runSpendUsd;
+  return remaining >= RERUN_VIABILITY_FLOOR_USD ? remaining : null;
 }
 
 function runCommand(cmd, args, options = {}) {
@@ -234,10 +274,17 @@ async function main() {
     process.exit(exitCode);
   };
 
-  // 1. Current run (with episodic memory when a prior ledger is supplied).
-  // The pass budget covers run + rerun: the run gets half up front, the rerun
-  // gets whatever the run left unspent.
-  const runBudget = args.apply ? args.costBudget / 2 : args.costBudget;
+  // 1. Current run (with episodic memory: explicit --known-findings, else the
+  // newest prior ledger under outRoot). The pass budget covers run + rerun:
+  // the run gets half up front, the rerun gets whatever the run left unspent.
+  if (!args.knownFindings) {
+    const priorLedger = defaultKnownFindings(args.outRoot);
+    if (priorLedger) {
+      args.knownFindings = priorLedger;
+      console.log(`[recursive] episodic memory: ${priorLedger}`);
+    }
+  }
+  const runBudget = args.apply !== false ? args.costBudget / 2 : args.costBudget;
   const knownFlags = args.knownFindings ? ['--known-findings', args.knownFindings] : [];
   if (!(await runPlaytest(args, runBase, runBudget, knownFlags))) {
     console.error('[recursive] playtest run failed or produced no envelope');
@@ -279,15 +326,21 @@ async function main() {
   const patch = readFileSync(proposalDiffPath, 'utf8');
   if (patch.trim().length < 10) await finish('proposal-failed', 1);
 
-  if (!args.apply) {
-    console.log('[recursive] proposal-only pass complete (pass --apply to gate and prove the fix)');
+  if (args.apply === false) {
+    console.log('[recursive] proposal-only pass complete — this is a handoff: fix (or rerun without --propose-only), rerun, and prove before calling it done');
     return finish('proposal-only', 0);
   }
 
   // 5. Apply + gate on a branch (clean main worktree required, like auto-fix).
+  // Under the full-loop default ('auto'), an unusable worktree degrades to
+  // proposal-only with a warning; explicit --apply hard-fails instead.
   const dirty = await gitStdout(['status', '--porcelain']);
   const baseBranch = await gitStdout(['rev-parse', '--abbrev-ref', 'HEAD']);
   if (dirty !== '' || baseBranch !== 'main') {
+    if (args.apply === 'auto') {
+      console.warn('[recursive] worktree dirty or off main — degrading to proposal-only (pass --apply to hard-fail instead)');
+      return finish('proposal-only', 0);
+    }
     console.error('[recursive] --apply requires a clean worktree on main');
     return finish('apply-failed', 1);
   }
@@ -319,7 +372,12 @@ async function main() {
   console.log(`[recursive] fix applied and gated on ${branchName} (${gateResult.sha.slice(0, 8)})`);
 
   // 6. Rerun the same scenario on the fixed branch and prove the fix.
-  const rerunBudget = Math.max(0.5, args.costBudget - envelopeCost(runBase));
+  const rerunBudget = planRerunBudget(args.costBudget, envelopeCost(runBase));
+  if (rerunBudget === null) {
+    console.error('[recursive] cost budget exhausted before the prove rerun — treating the fix as unproven');
+    await cleanupBranch(branchName, baseBranch || 'main');
+    return finish('fix-unproven', 1);
+  }
   if (!(await runPlaytest(args, rerunBase, rerunBudget))) {
     console.error('[recursive] rerun failed — treating the fix as unproven');
     await cleanupBranch(branchName, baseBranch || 'main');
@@ -363,7 +421,11 @@ async function main() {
   return finish('fix-unproven', 1);
 }
 
-main().catch((err) => {
-  console.error(`[recursive] fatal: ${err?.stack ?? err}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  main().catch((err) => {
+    console.error(`[recursive] fatal: ${err?.stack ?? err}`);
+    process.exit(1);
+  });
+}

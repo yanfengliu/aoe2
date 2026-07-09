@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.126 - 2026-07-08
+
+### The recursive pass runs the full loop by default
+
+`npm run playtest:recursive` with no flags now proposes a fix, applies and gates it on a branch, reruns the playtest, and proves the fix (never auto-merging) — previously this required `--apply`. Pass `--propose-only` to stop after the proposal. On a dirty or off-main worktree the default degrades to proposal-only with a warning; explicit `--apply` hard-fails there instead. Episodic memory is on by default: the pass feeds the newest prior `ledger.json` under `--out-root` to the run (`--known-findings` overrides). The prove rerun spends only the unspent remainder of `--cost-budget` and is refused below a $0.50 viability floor, because an underfunded rerun produces a near-empty bundle that would false-prove any candidate.
+
 ## 0.1.125 - 2026-07-07
 
 ### Town Center roofs gain flanking post detail

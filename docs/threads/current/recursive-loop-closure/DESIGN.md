@@ -2,7 +2,7 @@
 
 ## Decision
 
-Close the recursive self-improvement loop that `docs/threads/done/recursive-self-improvement-loop/` deliberately deferred: one bounded `playtest:recursive` pass that chains run -> ledger -> select -> propose -> (opt-in) apply+gate -> rerun -> prove-fixed -> pass manifest, plus episodic memory so the next run starts from the previous ledger instead of rediscovering known findings. This is the reference vertical slice for the cross-game loop contract in civ-engine's `docs/threads/current/agent-recursive-improvement-loop/DESIGN.md`.
+Close the recursive self-improvement loop that `docs/threads/done/recursive-self-improvement-loop/` deliberately deferred: one bounded `playtest:recursive` pass that chains run -> ledger -> select -> propose -> apply+gate -> rerun -> prove-fixed -> pass manifest, plus episodic memory so the next run starts from the previous ledger instead of rediscovering known findings. (2026-07-08 update, per the owner's mandatory-proper-loop directive: the full loop is the DEFAULT — `--propose-only` opts out; a dirty/off-main worktree degrades the default to proposal-only with a warning while explicit `--apply` hard-fails; episodic memory auto-chains the newest prior ledger under `--out-root`.) This is the reference vertical slice for the cross-game loop contract in civ-engine's `docs/threads/current/agent-recursive-improvement-loop/DESIGN.md`.
 
 ## Context
 
@@ -21,7 +21,7 @@ civ-engine v1.5.0/v1.6.0 shipped the hardened contracts this slice consumes — 
 
 ## Non-Goals
 
-- No merge-to-main automation: `--apply` produces a gated, counterproven branch; pushing/merging stays human.
+- No merge-to-main automation: the full-loop default (and explicit `--apply`) produce a gated, counterproven branch; pushing/merging stays human.
 - No replacement of `playtest:llm-auto-fix`; it stays as the engineHalt crash path.
 - No committed `output/` artifacts; the command + tests + thread/devlog evidence summary are the durable record.
 - No multi-fix batching in one pass: exactly one fix attempt per pass (hard-coded); the loop converges over passes, not within one.
@@ -43,14 +43,14 @@ The script is a thin spawner; the decisions live in a pure, unit-tested module:
 1. run current playtest (`playtest:llm`, forwarding seed/max-ticks/cost-budget/known-findings) -> current prefix
 2. build ledger (`playtest:self-improve --oracles --current ... [--baseline ...]`) -> ledger path
 3. select candidate (`selectLedgerFixCandidate`) -> none? finish pass as `no-fix-candidate`
-4. propose (`propose-fix --ledger ...`) -> proposal.diff; `--apply` absent? finish as `proposal-only` with the proposal path in the manifest
+4. propose (`propose-fix --ledger ...`) -> proposal.diff; `--propose-only`? finish as `proposal-only` with the proposal path in the manifest (the full-loop default also degrades here, with a warning, when the worktree is dirty or off main — explicit `--apply` hard-fails instead)
 5. apply+gate (`applyAndGate` on branch `recursive/<seed>-<stamp>`; gates: typecheck, lint, build, test) -> failure? finish as `apply-failed`/`gate-failed` (worktree reverted by the primitive)
 6. rerun (`playtest:llm` same seed) + rerun ledger (baseline = current run) + a fresh oracle sweep over the rerun bundle (endTick-repaired) -> `proveFixOutcome` at oracle granularity over the union -> PROVEN: finish as `fixed-proven`, branch left push-ready (HEAD stays on it); not proven? revert branch, finish as `fix-unproven`
 7. write pass manifest (`createImprovementRunManifest`): id, seed, git commit, engine version, model/provider, cost, duration, stop reason = pass outcome, artifacts (bundle/envelope/trace/ledger/proposal/rerun-ledger paths), gates.
 
 ### Episodic memory
 
-`playtest-llm.mjs --known-findings <ledger.json>` loads the ledger (validated before any server/browser startup), selects open findings (top N=8 by severity, skipping `rejected`/`wontFix` dispositions, whitespace-collapsed), and threads one formatted section into the agent context via a new `LlmAgentConfig.knownIssues` -> `buildTacticalPrompt`/`buildStrategyPrompt` section: "Known open issues from prior runs (verify whether still present; do not rediscover them): ...". The recursive pass forwards `--known-findings` explicitly; chaining the previous pass ledger automatically is a follow-up once multi-pass operation is routine.
+`playtest-llm.mjs --known-findings <ledger.json>` loads the ledger (validated before any server/browser startup), selects open findings (top N=8 by severity, skipping `rejected`/`wontFix` dispositions, whitespace-collapsed), and threads one formatted section into the agent context via a new `LlmAgentConfig.knownIssues` -> `buildTacticalPrompt`/`buildStrategyPrompt` section: "Known open issues from prior runs (verify whether still present; do not rediscover them): ...". The recursive pass auto-chains the newest prior `ledger.json` under `--out-root` (explicit `--known-findings` overrides; shipped 2026-07-08 with the full-loop default).
 
 ## Risks
 
