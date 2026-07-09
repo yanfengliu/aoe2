@@ -7,6 +7,10 @@
 //
 // Defaults are proposal-only (bounded autonomy): without --apply the pass
 // stops after writing the proposal and records outcome 'proposal-only'.
+// That outcome is a handoff, not an end state — the loop's intended behavior
+// is discover AND fix, so the driving agent then fixes (or reruns with
+// --apply), reruns the pass, and proves the bug class resolved before the
+// pass counts as complete.
 // With --apply, a proven fix leaves a gated branch push-ready (never merged
 // automatically) with HEAD left ON that branch for inspection/push; an
 // unproven fix reverts the branch and returns to main.
