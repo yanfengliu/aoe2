@@ -19,6 +19,11 @@ describe('canaryOutcome', () => {
 
   it('is invalid when the oracle already fires on the unpatched build (always-red cannot measure sensitivity)', () => {
     expect(canaryOutcome({ applied: true, baselineFired: true, patchedFired: true })).toBe('canary-invalid');
+    // The live path: a dirty baseline SKIPS the patched run entirely, so
+    // patchedFired is null - that is still canary-invalid, not run-failed.
+    // (First live drill mislabeled exactly this: 16 real pinned-unit
+    // violations saturated the baseline.)
+    expect(canaryOutcome({ applied: true, baselineFired: true, patchedFired: null })).toBe('canary-invalid');
   });
 
   it('is ok when the seeded bug is detected and blind when it is not', () => {

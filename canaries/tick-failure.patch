@@ -1,0 +1,12 @@
+diff --git a/src/game/simulation/bridge/systems/conquestOutcomeSystem.ts b/src/game/simulation/bridge/systems/conquestOutcomeSystem.ts
+index 5e7afce..af8957f 100644
+--- a/src/game/simulation/bridge/systems/conquestOutcomeSystem.ts
++++ b/src/game/simulation/bridge/systems/conquestOutcomeSystem.ts
+@@ -37,6 +37,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps):
+     phase: 'postUpdate',
+     after: ['prototypeWinConditionResolver'],
+     execute(activeWorld) {
++      if (activeWorld.tick === 1500) throw new Error('canary: seeded tick failure');
+       if (!isMatchRunning()) {
+         return;
+       }

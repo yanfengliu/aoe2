@@ -48,8 +48,13 @@ export function canaryOutcome(input: {
   patchedFired: boolean | null;
 }): CanaryOutcome {
   if (!input.applied) return 'canary-stale';
-  if (input.baselineFired === null || input.patchedFired === null) return 'run-failed';
+  if (input.baselineFired === null) return 'run-failed';
+  // Order matters: a dirty baseline legitimately skips the patched run, so
+  // canary-invalid must be decided before the patched-null check. Invalid
+  // means "this oracle is saturated by REAL open violations - fix those
+  // first"; the drill starts measuring sensitivity again once they are gone.
   if (input.baselineFired) return 'canary-invalid';
+  if (input.patchedFired === null) return 'run-failed';
   return input.patchedFired ? 'canary-ok' : 'canary-blind';
 }
 
