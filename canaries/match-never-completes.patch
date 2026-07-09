@@ -1,0 +1,13 @@
+diff --git a/src/game/simulation/bridge/systems/scoreTimerSystem.ts b/src/game/simulation/bridge/systems/scoreTimerSystem.ts
+index 044c149..2e9195a 100644
+--- a/src/game/simulation/bridge/systems/scoreTimerSystem.ts
++++ b/src/game/simulation/bridge/systems/scoreTimerSystem.ts
+@@ -42,7 +42,7 @@ export function registerScoreTimerSystem(deps: ScoreTimerSystemDeps): void {
+     phase: 'postUpdate',
+     after: ['prototypeConquestOutcome'],
+     execute(activeWorld) {
+-      if (!isMatchRunning() || activeWorld.tick < gameLength) {
++      if (!isMatchRunning() || activeWorld.tick < gameLength * 1000) {
+         return;
+       }
+ 

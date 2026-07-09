@@ -1,0 +1,16 @@
+[
+  {
+    "id": "pinned-units",
+    "patch": "canaries/pinned-units.patch",
+    "expectedOracle": "no-pinned-or-oscillating-units",
+    "playtestArgs": ["--max-ticks", "3000"],
+    "note": "UNIT_SUBGRID_STEP_PER_TICK 2 -> 0: every commanded unit freezes at spawn, so net progress stays under the pinned threshold within the first oracle window."
+  },
+  {
+    "id": "match-never-completes",
+    "patch": "canaries/match-never-completes.patch",
+    "expectedOracle": "match-completes",
+    "playtestArgs": ["--game-length", "500", "--max-ticks", "3000"],
+    "note": "Score timer threshold multiplied by 1000: the timer never fires, the inert human keeps its Town Center so conquest never fires, and the run ends at maxTicks instead of stopWhen. --game-length 500 makes the unpatched baseline complete (green) so the canary measures a real green->red flip."
+  }
+]

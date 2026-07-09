@@ -1,0 +1,13 @@
+diff --git a/src/game/simulation/bridge/pureHelpers.ts b/src/game/simulation/bridge/pureHelpers.ts
+index 941c3db..7d660bd 100644
+--- a/src/game/simulation/bridge/pureHelpers.ts
++++ b/src/game/simulation/bridge/pureHelpers.ts
+@@ -73,7 +73,7 @@ export type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
+ 
+ export const MARKET_BASE_RATE = 100;
+ export const UNIT_SUBGRID_RESOLUTION = 4;
+-export const UNIT_SUBGRID_STEP_PER_TICK = 2;
++export const UNIT_SUBGRID_STEP_PER_TICK = 0;
+ export const UNIT_CELL_SLOT_OFFSETS: ReadonlyArray<{ x: number; y: number }> = [
+   { x: 0, y: 0 },
+   { x: 0.5, y: 0 },

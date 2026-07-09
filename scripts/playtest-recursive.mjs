@@ -26,7 +26,7 @@
 // Outcomes (also the manifest stopReason): no-fix-candidate | proposal-only |
 // proposal-failed | apply-failed | gate-failed | fixed-proven | fix-unproven.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -270,6 +270,10 @@ async function main() {
     });
     const manifestPath = join(passDir, 'pass-manifest.json');
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    // Fleet convention: one compact row per pass appends to <outRoot>/passes.jsonl
+    // (same object as the per-pass manifest) so cross-repo tooling and the
+    // loop-ops shift runner read aoe2 like every other repo.
+    appendFileSync(join(args.outRoot, 'passes.jsonl'), `${JSON.stringify(manifest)}\n`);
     console.log(`[recursive] outcome=${outcome} manifest=${manifestPath}`);
     process.exit(exitCode);
   };

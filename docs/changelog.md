@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.127 - 2026-07-09
+
+### Oracle canary drill
+
+New `npm run playtest:canary` proves the oracles still see: for each seeded-bug patch in `canaries/` (one-line bugs with a declared expected oracle), it runs an unpatched LLM-free baseline (the oracle must stay quiet - an always-red oracle cannot measure sensitivity), applies the patch on a throwaway branch, reruns, and asserts the oracle fires. Outcomes `canary-ok | canary-blind | canary-stale | canary-invalid | run-failed` append to `output/self-improvement/recursive/passes.jsonl`; any non-ok exits 1 because a blind or stale canary means the loop's senses degraded and fixing that is the candidate. Ships two canaries: `pinned-units` (movement grant zeroed -> `no-pinned-or-oscillating-units`) and `match-never-completes` (score timer never fires -> `match-completes`). The recursive pass also now appends its manifest to `passes.jsonl` (fleet convention), so cross-repo tooling reads aoe2 like every other repo.
+
 ## 0.1.126 - 2026-07-08
 
 ### The recursive pass runs the full loop by default
