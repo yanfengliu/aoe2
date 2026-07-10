@@ -23,103 +23,31 @@ import type {
 import { SESSION_BUNDLE_SCHEMA_VERSION } from 'civ-engine';
 
 import {
-  IncompleteSessionError,
-  SchemaMismatchError,
-  SessionNotFoundError,
-} from './IndexedDBMirrorErrors';
+  listSessions as listSessionsFromDb,
+  readAttachmentBytes as readAttachmentBytesFromDb,
+  reconstructBundle as reconstructBundleFromDb,
+} from './IndexedDBMirrorReads';
+import {
+  DB_NAME_DEFAULT,
+  DB_VERSION,
+  STORE_NAMES,
+  emptyPending,
+  isEmpty,
+  type IndexedDBMirrorConfig,
+  type PendingWrites,
+  type PriorSessionDescriptor,
+} from './IndexedDBMirrorSchema';
+import {
+  applyPendingWrites,
+  discard as discardFromDb,
+  markClosed as markClosedInDb,
+  updateMeta as updateMetaInDb,
+} from './IndexedDBMirrorWrites';
 
-const DB_NAME_DEFAULT = 'aoe2-sessions';
-const DB_VERSION = 1;
-
-// 8 object stores per DESIGN §5. Per-stream stores (vs single-record)
-// avoid write amplification: each tick appends one small row instead of
-// rewriting the whole bundle.
-export const STORE_NAMES = {
-  meta: 'session_meta',
-  ticks: 'session_ticks',
-  commands: 'session_commands',
-  executions: 'session_executions',
-  failures: 'session_failures',
-  snapshots: 'session_snapshots',
-  markers: 'session_markers',
-  attachments: 'session_attachments',
-} as const;
-
-interface SessionMetaRow {
-  readonly sessionId: string;
-  readonly schemaVersion: number;
-  readonly metadata: SessionMetadata;
-  readonly initialSnapshot: WorldSnapshot;
-  readonly createdAt: string;
-  closed: boolean;
-}
-
-interface AttachmentRow {
-  readonly sessionId: string;
-  readonly attachmentId: string;
-  readonly descriptor: AttachmentDescriptor;
-  readonly bytes: Uint8Array | null;
-}
-
-export interface IndexedDBMirrorConfig {
-  /** Defaults to 'aoe2-sessions'. Tests pass per-test names for isolation. */
-  readonly databaseName?: string;
-  /** Subscribed to all IDB write failures (quota exceeded, transaction
-   *  abort, schema-version conflicts on open). The HUD wires its toast
-   *  here via createApp's RecordingService.onPersistenceError. */
-  readonly onPersistenceError?: (err: Error) => void;
-  /** Defaults to 100ms. Test code passes 0 + uses fake timers for
-   *  deterministic flush testing. */
-  readonly flushDebounceMs?: number;
-}
-
-export interface PriorSessionDescriptor {
-  readonly sessionId: string;
-  readonly recordedAt: string;
-  readonly startTick: number;
-  readonly endTick: number;
-  readonly markerCount: number;
-  readonly schemaVersion: number;
-  readonly closedNormally: boolean;
-}
-
-// Pending writes buffered between flushes. Collapsed per-store to keep
-// the flush transaction count minimal (one transaction per store with
-// pending writes per flush window).
-interface PendingWrites {
-  metaUpdates: Map<string, SessionMetaRow>;
-  ticks: Array<{ sessionId: string; entry: SessionTickEntry }>;
-  commands: Array<{ sessionId: string; cmd: RecordedCommand }>;
-  executions: Array<{ sessionId: string; exec: CommandExecutionResult; sequence: number }>;
-  failures: Array<{ sessionId: string; failure: TickFailure }>;
-  snapshots: Array<{ sessionId: string; snapshot: SessionSnapshotEntry }>;
-  markers: Array<{ sessionId: string; marker: Marker }>;
-  attachments: Array<{ sessionId: string; descriptor: AttachmentDescriptor; bytes: Uint8Array | null }>;
-}
-
-const emptyPending = (): PendingWrites => ({
-  metaUpdates: new Map(),
-  ticks: [],
-  commands: [],
-  executions: [],
-  failures: [],
-  snapshots: [],
-  markers: [],
-  attachments: [],
-});
-
-function isEmpty(p: PendingWrites): boolean {
-  return (
-    p.metaUpdates.size === 0
-    && p.ticks.length === 0
-    && p.commands.length === 0
-    && p.executions.length === 0
-    && p.failures.length === 0
-    && p.snapshots.length === 0
-    && p.markers.length === 0
-    && p.attachments.length === 0
-  );
-}
+// Public re-exports: these symbols historically resolve from this module
+// path and importers (RecordingService, annotation UI, tests) depend on it.
+export { STORE_NAMES };
+export type { IndexedDBMirrorConfig, PriorSessionDescriptor };
 
 export class IndexedDBMirror {
   private readonly _databaseName: string;
@@ -277,28 +205,7 @@ export class IndexedDBMirror {
   async updateMeta(sessionId: string, metadata: SessionMetadata): Promise<void> {
     if (this._disabled) return;
     const db = await this._ensureOpen();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.meta, 'readwrite');
-      const store = tx.objectStore(STORE_NAMES.meta);
-      const getReq = store.get(sessionId);
-      getReq.onsuccess = () => {
-        const row = getReq.result as SessionMetaRow | undefined;
-        if (!row) {
-          reject(new SessionNotFoundError(sessionId));
-          return;
-        }
-        const updated: SessionMetaRow = { ...row, metadata };
-        const putReq = store.put(updated);
-        putReq.onerror = () => reject(putReq.error ?? new Error('updateMeta put failed'));
-        putReq.onsuccess = () => resolve();
-      };
-      getReq.onerror = () => reject(getReq.error ?? new Error('updateMeta get failed'));
-      tx.onerror = () => {
-        const err = tx.error ?? new Error('updateMeta tx failed');
-        this._emitError(err);
-        reject(err);
-      };
-    });
+    return updateMetaInDb(db, sessionId, metadata, (err) => this._emitError(err));
   }
 
   /** AO-7b: per-stream tick / command / execution / failure / snapshot /
@@ -369,30 +276,7 @@ export class IndexedDBMirror {
    *  meta row immediately and awaits the transaction. */
   async markClosed(sessionId: string): Promise<void> {
     const db = await this._ensureOpen();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.meta, 'readwrite');
-      const store = tx.objectStore(STORE_NAMES.meta);
-      const getReq = store.get(sessionId);
-      getReq.onsuccess = () => {
-        const row = getReq.result as SessionMetaRow | undefined;
-        if (!row) {
-          // No meta yet (e.g., session was never opened) — treat as
-          // SessionNotFound so the caller knows.
-          reject(new SessionNotFoundError(sessionId));
-          return;
-        }
-        const updated: SessionMetaRow = { ...row, closed: true };
-        const putReq = store.put(updated);
-        putReq.onerror = () => reject(putReq.error ?? new Error('markClosed put failed'));
-        putReq.onsuccess = () => resolve();
-      };
-      getReq.onerror = () => reject(getReq.error ?? new Error('markClosed get failed'));
-      tx.onerror = () => {
-        const err = tx.error ?? new Error('markClosed tx failed');
-        this._emitError(err);
-        reject(err);
-      };
-    });
+    return markClosedInDb(db, sessionId, (err) => this._emitError(err));
   }
 
   /** AO-7c: list all sessions in IDB with descriptor metadata. Returns
@@ -400,139 +284,20 @@ export class IndexedDBMirror {
   async listSessions(): Promise<readonly PriorSessionDescriptor[]> {
     if (this._disabled) return [];
     const db = await this._ensureOpen();
-    const metaRows = await this._readAll<SessionMetaRow>(db, STORE_NAMES.meta);
-    const result: PriorSessionDescriptor[] = [];
-    for (const row of metaRows) {
-      // impl-1 review fix (Codex MAJOR): use the persisted metadata's
-      // endTick directly. RecordingService.stop() finalizes the metadata
-      // (writes the final endTick / durationTicks) via updateMeta before
-      // markClosed, so by the time a session shows up in listSessions
-      // for a SECOND launch, metadata.endTick is correct. For the
-      // currently-running session (read mid-flight), endTick reflects
-      // whatever the recorder last wrote — caller may see a stale value
-      // until stop() finalizes; that's acceptable because mid-flight
-      // sessions aren't in the prior-sessions panel anyway (RecordingService
-      // filters them out via listPriorSessions).
-      const markerCount = await this._countByPrefix(db, STORE_NAMES.markers, row.sessionId);
-      result.push({
-        sessionId: row.sessionId,
-        recordedAt: row.createdAt,
-        startTick: row.metadata.startTick,
-        endTick: row.metadata.endTick,
-        markerCount,
-        schemaVersion: row.schemaVersion,
-        closedNormally: row.closed,
-      });
-    }
-    // Sort recordedAt desc so most recent surfaces first.
-    result.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
-    return result;
+    return listSessionsFromDb(db);
   }
 
   /** AO-7c: reconstruct a SessionBundle from the per-stream stores.
    *  Throws SessionNotFoundError / SchemaMismatchError / IncompleteSessionError. */
   async reconstructBundle(sessionId: string): Promise<SessionBundle> {
     const db = await this._ensureOpen();
-    const metaRow = await this._read<SessionMetaRow>(db, STORE_NAMES.meta, sessionId);
-    if (!metaRow) throw new SessionNotFoundError(sessionId);
-    if (metaRow.schemaVersion !== SESSION_BUNDLE_SCHEMA_VERSION) {
-      throw new SchemaMismatchError(
-        sessionId,
-        metaRow.schemaVersion,
-        SESSION_BUNDLE_SCHEMA_VERSION,
-      );
-    }
-    if (!metaRow.initialSnapshot) {
-      throw new IncompleteSessionError(sessionId, 'initial_snapshot_missing');
-    }
-
-    // Per DESIGN §5: ticks tick-asc, commands sequence-asc, executions
-    // sequence-asc, failures tick-asc, snapshots tick-asc, markers
-    // tick-asc-then-markerId-asc.
-    const ticks = (await this._readAllByPrefix<{ sessionId: string; tick: number; entry: SessionTickEntry }>(db, STORE_NAMES.ticks, sessionId))
-      .sort((a, b) => a.tick - b.tick)
-      .map((r) => r.entry);
-
-    const commands = (await this._readAllByPrefix<{ sessionId: string; sequence: number; cmd: RecordedCommand }>(db, STORE_NAMES.commands, sessionId))
-      .sort((a, b) => a.sequence - b.sequence)
-      .map((r) => r.cmd);
-
-    const executions = (await this._readAllByPrefix<{ sessionId: string; sequence: number; exec: CommandExecutionResult }>(db, STORE_NAMES.executions, sessionId))
-      .sort((a, b) => a.sequence - b.sequence)
-      .map((r) => r.exec);
-
-    const failures = (await this._readAllByPrefix<{ sessionId: string; tick: number; failure: TickFailure }>(db, STORE_NAMES.failures, sessionId))
-      .sort((a, b) => a.tick - b.tick)
-      .map((r) => r.failure);
-
-    const snapshots = (await this._readAllByPrefix<{ sessionId: string; tick: number; snapshot: SessionSnapshotEntry }>(db, STORE_NAMES.snapshots, sessionId))
-      .sort((a, b) => a.tick - b.tick)
-      .map((r) => r.snapshot);
-
-    const markers = (await this._readAllByPrefix<{ sessionId: string; markerId: string; marker: Marker }>(db, STORE_NAMES.markers, sessionId))
-      .sort((a, b) => {
-        if (a.marker.tick !== b.marker.tick) return a.marker.tick - b.marker.tick;
-        return a.markerId.localeCompare(b.markerId);
-      })
-      .map((r) => r.marker);
-
-    const attachmentRows = await this._readAllByPrefix<AttachmentRow>(
-      db,
-      STORE_NAMES.attachments,
-      sessionId,
-    );
-    const attachments = attachmentRows.map((r) => r.descriptor);
-
-    // Per-stream readers carry generic <Record<string, unknown>> for
-    // commands/executions which is wider than SessionBundle's default
-    // <Record<string, never>>. Cast through unknown — the bundle is
-    // structurally compatible (we wrote it with a narrower type and
-    // are reading it back into the wider one).
-    const bundle: SessionBundle = {
-      schemaVersion: SESSION_BUNDLE_SCHEMA_VERSION,
-      metadata: metaRow.metadata,
-      initialSnapshot: metaRow.initialSnapshot,
-      ticks: ticks as unknown as SessionBundle['ticks'],
-      commands: commands as unknown as SessionBundle['commands'],
-      executions: executions as unknown as SessionBundle['executions'],
-      failures,
-      snapshots,
-      markers,
-      attachments,
-    };
-    return bundle;
+    return reconstructBundleFromDb(db, sessionId);
   }
 
   /** AO-7d: delete a session's rows from all 8 stores. */
   async discard(sessionId: string): Promise<void> {
     const db = await this._ensureOpen();
-    const metaRow = await this._read<SessionMetaRow>(db, STORE_NAMES.meta, sessionId);
-    if (!metaRow) throw new SessionNotFoundError(sessionId);
-    const stores = Object.values(STORE_NAMES);
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(stores, 'readwrite');
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => {
-        const err = tx.error ?? new Error('discard tx failed');
-        this._emitError(err);
-        reject(err);
-      };
-      // session_meta — delete by primary key.
-      tx.objectStore(STORE_NAMES.meta).delete(sessionId);
-      // Per-stream — open a cursor on the [sessionId, *] range and delete each row.
-      for (const storeName of stores.filter((s) => s !== STORE_NAMES.meta)) {
-        const store = tx.objectStore(storeName);
-        const range = IDBKeyRange.bound([sessionId], [sessionId, '￿']);
-        const cursorReq = store.openKeyCursor(range);
-        cursorReq.onsuccess = () => {
-          const cursor = cursorReq.result;
-          if (cursor) {
-            store.delete(cursor.primaryKey);
-            cursor.continue();
-          }
-        };
-      }
-    });
+    return discardFromDb(db, sessionId, (err) => this._emitError(err));
   }
 
   /** AO-7d: read sidecar attachment bytes by id. */
@@ -541,29 +306,7 @@ export class IndexedDBMirror {
     attachmentId: string,
   ): Promise<Uint8Array | null> {
     const db = await this._ensureOpen();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAMES.attachments, 'readonly');
-      const store = tx.objectStore(STORE_NAMES.attachments);
-      const req = store.get([sessionId, attachmentId]);
-      req.onsuccess = () => {
-        const row = req.result as AttachmentRow | undefined;
-        if (!row) {
-          // Distinguish "session unknown" from "attachment unknown" —
-          // caller can choose to handle. We throw on session unknown
-          // (consistent with discard / reconstruct) but null on
-          // attachment-unknown-within-known-session.
-          this._read<SessionMetaRow>(db, STORE_NAMES.meta, sessionId)
-            .then((meta) => {
-              if (!meta) reject(new SessionNotFoundError(sessionId));
-              else resolve(null);
-            })
-            .catch(reject);
-          return;
-        }
-        resolve(row.bytes);
-      };
-      req.onerror = () => reject(req.error ?? new Error('readAttachmentBytes failed'));
-    });
+    return readAttachmentBytesFromDb(db, sessionId, attachmentId);
   }
 
   // ---------------- internal helpers ----------------
@@ -595,37 +338,7 @@ export class IndexedDBMirror {
         this._emitError(err);
         reject(err);
       };
-      // Apply pending writes.
-      for (const row of pending.metaUpdates.values()) {
-        tx.objectStore(STORE_NAMES.meta).put(row);
-      }
-      for (const { sessionId, entry } of pending.ticks) {
-        tx.objectStore(STORE_NAMES.ticks).put({ sessionId, tick: entry.tick, entry });
-      }
-      for (const { sessionId, cmd } of pending.commands) {
-        tx.objectStore(STORE_NAMES.commands).put({ sessionId, sequence: cmd.sequence, cmd });
-      }
-      for (const { sessionId, exec, sequence } of pending.executions) {
-        tx.objectStore(STORE_NAMES.executions).put({ sessionId, sequence, exec });
-      }
-      for (const { sessionId, failure } of pending.failures) {
-        tx.objectStore(STORE_NAMES.failures).put({ sessionId, tick: failure.tick, failure });
-      }
-      for (const { sessionId, snapshot } of pending.snapshots) {
-        tx.objectStore(STORE_NAMES.snapshots).put({ sessionId, tick: snapshot.tick, snapshot });
-      }
-      for (const { sessionId, marker } of pending.markers) {
-        tx.objectStore(STORE_NAMES.markers).put({ sessionId, markerId: marker.id, marker });
-      }
-      for (const { sessionId, descriptor, bytes } of pending.attachments) {
-        const row: AttachmentRow = {
-          sessionId,
-          attachmentId: descriptor.id,
-          descriptor,
-          bytes,
-        };
-        tx.objectStore(STORE_NAMES.attachments).put(row);
-      }
+      applyPendingWrites(tx, pending);
     });
   }
 
@@ -636,54 +349,6 @@ export class IndexedDBMirror {
       throw new Error('IndexedDBMirror.open did not establish a connection');
     }
     return this._db;
-  }
-
-  private _read<T>(db: IDBDatabase, storeName: string, key: IDBValidKey): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const req = tx.objectStore(storeName).get(key);
-      req.onsuccess = () => resolve(req.result as T | undefined);
-      req.onerror = () => reject(req.error ?? new Error('read failed'));
-    });
-  }
-
-  private _readAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const req = tx.objectStore(storeName).getAll();
-      req.onsuccess = () => resolve((req.result ?? []) as T[]);
-      req.onerror = () => reject(req.error ?? new Error('readAll failed'));
-    });
-  }
-
-  private _readAllByPrefix<T>(
-    db: IDBDatabase,
-    storeName: string,
-    sessionId: string,
-  ): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const range = IDBKeyRange.bound([sessionId], [sessionId, '￿']);
-      const req = store.getAll(range);
-      req.onsuccess = () => resolve((req.result ?? []) as T[]);
-      req.onerror = () => reject(req.error ?? new Error('readAllByPrefix failed'));
-    });
-  }
-
-  private _countByPrefix(
-    db: IDBDatabase,
-    storeName: string,
-    sessionId: string,
-  ): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const range = IDBKeyRange.bound([sessionId], [sessionId, '￿']);
-      const req = store.count(range);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error ?? new Error('countByPrefix failed'));
-    });
   }
 
   private _emitError(err: Error): void {
