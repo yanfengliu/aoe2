@@ -237,7 +237,7 @@ Context: when synchronous AI helpers (`enqueueTraining` / `enqueueResearch` / `s
 
 Lesson: when over-acceptance is intentional (B1/B2 contract: validator best-effort, handler authoritative re-check), priority must be encoded in the **push order** because the FIFO-ordered handler resolves contention in submission order. Don't try to recover synchronous semantics with reserved-resource gating — that fights the contract and creates new failure modes (the second push fails canAfford against the local reserve while the validator would have approved it). Instead, decide push priority once at design time: high-priority intentions (military for a barracks-rush AI) push first; subsequent intentions over-spend on paper but the handler picks the affordable subset and the surplus silently no-ops. If a second AI strategy ever exists (e.g., booming), condition the push order on plan kind rather than reverting to reservations.
 
-Pointer: [src/game/simulation/bridge/systems/aiSystem.ts](../../src/game/simulation/bridge/systems/aiSystem.ts) — `pickUnitMix` block ordered before villager training; KAD-0005 in [docs/architecture/decisions.md](../architecture/decisions.md).
+Pointer: [src/game/simulation/bridge/systems/aiSystemProductionPhase.ts](../../src/game/simulation/bridge/systems/aiSystemProductionPhase.ts) — `pickUnitMix` block ordered before villager training; KAD-0005 in [docs/architecture/decisions.md](../architecture/decisions.md).
 
 ## Test-timeout margin under full-suite parallelism — 2026-05-01
 
@@ -278,7 +278,7 @@ Pointer: [tests/browser/game-hud-and-camera.spec.ts](../../tests/browser/game-hu
 ## Windowed edge-pan tests need explicit monitor metrics - 2026-04-23
 Context: changing hover-at-edge panning to require fullscreen exposed a browser-test trap on Playwright's default headless Chromium setup.
 Lesson: do not assume a browser test viewport is "windowed." In this repo's headless Playwright environment, `window.outerWidth/outerHeight` and `screen.width/height` default to the same values, so fullscreen-window heuristics will look true unless the test overrides monitor metrics before boot. If a camera/input contract depends on fullscreen-vs-windowed state, lock it with explicit monitor emulation plus a real fullscreen transition.
-Pointer: [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts), [tests/browser/helpers/gameTestHelpers.ts](../../tests/browser/helpers/gameTestHelpers.ts), [tests/browser/game-hud-and-camera.spec.ts](../../tests/browser/game-hud-and-camera.spec.ts).
+Pointer: [src/phaser/scenes/gameScene/cameraController.ts](../../src/phaser/scenes/gameScene/cameraController.ts), [tests/browser/helpers/gameTestHelpers.ts](../../tests/browser/helpers/gameTestHelpers.ts), [tests/browser/game-hud-and-camera.spec.ts](../../tests/browser/game-hud-and-camera.spec.ts).
 
 ## Topmost hit tests must follow draw order - 2026-04-23
 Context: precise unit-click geometry still felt wrong on close overlaps because the final same-layer tiebreak was using array index in the wrong direction.
@@ -288,12 +288,12 @@ Pointer: [src/phaser/scenes/entityHitTest.ts](../../src/phaser/scenes/entityHitT
 ## Exact-click stack cycling needs its own click-cell memory - 2026-04-22
 Context: fixing precise unit selection uncovered a subtle overlap bug where the first exact click on a stacked unit could jump to the next target just because that unit was already selected from a different gesture.
 Lesson: if left-click selection can cycle overlapping hits, remember the last exact click cell separately from the current selection. Key the cycle off a repeated click in the same click cell, and let that cycle win over same-cell double-click promotion, or stacked selections become inconsistent after drag-boxes, tile clicks, or prior exact clicks elsewhere on the same unit.
-Pointer: [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts), [tests/browser/game-selection.spec.ts](../../tests/browser/game-selection.spec.ts).
+Pointer: [src/phaser/scenes/gameScene/selectionController.ts](../../src/phaser/scenes/gameScene/selectionController.ts), [tests/browser/game-selection.spec.ts](../../tests/browser/game-selection.spec.ts).
 
 ## Selection geometry must stay shared end-to-end - 2026-04-22
 Context: tightening unit click precision exposed two opposite failure modes at once: padded hit circles made close units impossible to click cleanly, while splitting click and marquee logic across different geometry/filter rules made preview highlights disagree with the final selection.
 Lesson: keep one exact rendered-body contract for left-click hit tests, marquee intersection, and live marquee preview, then run the final preview ids back through the same bridge-side selectability filter used on mouse-up. If selection needs an extra tie-breaker like "human-owned first," keep that policy scoped to selection only so generic context-command targeting does not inherit it.
-Pointer: [src/phaser/scenes/entityHitTest.ts](../../src/phaser/scenes/entityHitTest.ts), [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts), [tests/phaser/entityHitTest.test.ts](../../tests/phaser/entityHitTest.test.ts), [tests/browser/game-selection.spec.ts](../../tests/browser/game-selection.spec.ts).
+Pointer: [src/phaser/scenes/entityHitTest.ts](../../src/phaser/scenes/entityHitTest.ts), [src/phaser/scenes/gameScene/selectionController.ts](../../src/phaser/scenes/gameScene/selectionController.ts), [src/phaser/scenes/gameScene/pointerInputController.ts](../../src/phaser/scenes/gameScene/pointerInputController.ts), [tests/phaser/entityHitTest.test.ts](../../tests/phaser/entityHitTest.test.ts), [tests/browser/game-selection.spec.ts](../../tests/browser/game-selection.spec.ts).
 
 ## Keep rule-table extractions behavior-preserving - 2026-04-22
 Context: splitting the simulation bridge's inline economy/building/unit rule tables into dedicated modules made it tempting to also "fix" a few AoE2-stat inconsistencies while the data was in one place.
@@ -313,7 +313,7 @@ Pointer: [src/game/simulation/createSimulationBridge.ts](../../src/game/simulati
 ## Phaser `activePointer` stays at (0,0) when the HUD captures events — 2026-04-17
 Context: Edge-pan was silently scrolling the camera NW in browser tests. Playwright drove the mouse only over the HUD minimap (which has `pointer-events: auto`), so Phaser's game-canvas input plugin never saw a `mousemove`. `activePointer.x/y` stayed at their default `(0, 0)`, which is inside the 20 px top-left edge zone — after the 500 ms hover delay, edge-pan kicked in and drifted the camera by ~16 px between the user action and the snapshot.
 Lesson: Any input handler that reads `this.input.activePointer.x/y` as if it were a real cursor position must guard against the pointer never having been updated. Use `pointer.moveTime === 0` as the "no real events yet" signal — `(0, 0)` is a valid coordinate and cannot distinguish "at top-left" from "unset". Also remember: `pointer-events: auto` on any HUD element over the game canvas will hide mouse events from Phaser.
-Pointer: [src/phaser/scenes/GameScene.ts](../../src/phaser/scenes/GameScene.ts) `getEdgePanDelta`; devlog entry 2026-04-17 on canvas aspect fix.
+Pointer: [src/phaser/scenes/gameScene/cameraController.ts](../../src/phaser/scenes/gameScene/cameraController.ts) `getEdgePanDelta`; devlog entry 2026-04-17 on canvas aspect fix.
 
 ## Phaser `camera.worldView` is integer-rounded each frame — 2026-04-17
 Context: The browser test API exposed `camera.worldView.x/y/width/height` as the visible world rectangle. With `pixelArt: true` (→ `roundPixels: true`), Phaser's `preRender` rounds `scrollX/Y` via `Math.floor` and then recomputes `worldView` using rounded math, so the reported rectangle can disagree with the non-rounded `scrollX + (width - width/zoom)/2` by up to one pixel. That was enough to fail a strict "click here, center there" minimap assertion.

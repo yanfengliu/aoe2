@@ -1,3 +1,6 @@
+## 2026-07-09 (file-size budget: legacy splits)
+- **500-LOC ratchet:** split all four remaining `src/` legacy violators — GameScene 1012→254, aiSystem 788→166, IndexedDBMirror 698→363, wireBridgeOps 604→412 — into 13 role modules (all ≤450) as adversarially-reviewed pure refactors; `LEGACY_VIOLATIONS` now holds only `tests/playtest/oracles.test.ts` (concurrent session's split). Fix-bot oracle sources follow the aiSystem split. Browser-suite delta vs clean baseline: zero (the two extra failures proved load-flakes — 4/4 isolated pass on both trees). No behavior change; no version bump.
+
 ## 2026-07-09 (propose-fix codex pin sync)
 - **Internal tooling:** synced the secondary review-pin site `scripts/propose-fix.mjs` — Codex reviewer pin gpt-5.5/xhigh -> `gpt-5.6-sol`/ultra per the `.claude/skills/multi-cli-review/SKILL.md` pins table; smoke-verified live on codex-cli 0.144.1; Claude pin untouched (spec §15.7). Closes the AGENTS.md-restructure follow-up chip. No version bump.
 
