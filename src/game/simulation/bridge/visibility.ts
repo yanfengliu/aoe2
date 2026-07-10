@@ -19,6 +19,7 @@ import type {
   BuildingComponent,
   ProjectedEntityView,
   ProjectedFrameView,
+  ProjectedUnitDeathView,
   RenderableComponent,
   ResourceComponent,
   TerrainComponent,
@@ -31,12 +32,37 @@ import { trackedVisibilitySourcesCodec } from './bridgeStateSerialize';
 export const SHEEP_VISION_RADIUS = 4;
 export const MAX_HERDABLE_CLAIM_RADIUS = 6;
 
+// How many ticks a unit death stays on the projected frame's death feed
+// (v0.1.129 death feedback). Long enough that the render layer cannot miss it
+// across a snapshot rebuild, short enough that a loaded/scrubbed world does
+// not replay stale corpses.
+export const DEATH_FEED_TICKS = 10;
+
+// Pure fog/age filter for the death feed: a death is surfaced to a player
+// only while it is fresh (within DEATH_FEED_TICKS of the current tick) AND
+// that player WITNESSED it — i.e. could see the cell at the moment of death,
+// captured in `witnessedBy` when the death was recorded. Gating on at-death
+// visibility (not current visibility) is what makes the cue fog-correct in
+// both directions: a kill in your fog never leaks when you later uncover the
+// cell, and your own lone unit's death still shows even though losing it
+// re-fogs the cell that same tick.
+export function visibleUnitDeaths(
+  deaths: readonly ProjectedUnitDeathView[],
+  currentTick: number,
+  playerId: number,
+): ProjectedUnitDeathView[] {
+  return deaths.filter((death) =>
+    currentTick - death.tick <= DEATH_FEED_TICKS
+    && death.witnessedBy.includes(playerId));
+}
+
 export function createProjector(
   visibility: VisibilityMap,
   playerId: number,
   seed: string,
   isSelected: (id: number) => boolean,
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null,
+  getRecentUnitDeaths: () => readonly ProjectedUnitDeathView[],
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -133,6 +159,11 @@ export function createProjector(
         exploredCells: visibility
           .getExploredCells(playerId)
           .map((cell) => toCellIndex(cell.x, cell.y)),
+        recentUnitDeaths: visibleUnitDeaths(
+          getRecentUnitDeaths(),
+          world.tick,
+          playerId,
+        ),
       };
     },
   };

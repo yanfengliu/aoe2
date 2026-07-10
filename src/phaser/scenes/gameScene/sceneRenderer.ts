@@ -23,6 +23,10 @@ import { createBuildingRenderer } from './buildingRenderer';
 import type { CameraController } from './cameraController';
 import { createDebugOverlayRenderer } from './debugOverlay';
 import {
+  createDeathEffectsRenderer,
+  type DeathEffectsRenderer,
+} from './deathEffects';
+import {
   createFeedbackEffectsRenderer,
   type FeedbackEffectsRenderer,
 } from './feedbackEffects';
@@ -92,6 +96,8 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   let previousUnitProjectedPositions = new Map<number, { x: number; y: number }>();
   // M7 feedback: selection pulse + hit-flash (render-only, time-based; owns the hp-delta tracker).
   const feedbackRenderer: FeedbackEffectsRenderer = createFeedbackEffectsRenderer();
+  // v0.1.129: unit death collapse/dust, fed by the frame's fog-filtered death feed.
+  const deathEffectsRenderer: DeathEffectsRenderer = createDeathEffectsRenderer();
   let displayedEntities: ProjectedEntityView[] = [];
   // Iso overhaul: the camera recentres on the player's base once, on the first
   // render frame that has one (the map is a large iso diamond, so a good initial
@@ -156,6 +162,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     lastProjectedEntities = [];
     previousUnitProjectedPositions = new Map();
     feedbackRenderer.reset();
+    deathEffectsRenderer.reset();
     displayedEntities = [];
     lastPlacementPreviewVisualState = null;
     lastBuildingVisualStates = [];
@@ -176,8 +183,9 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     const selectionState = getBridge().getSelectionState();
     const interpolationAlpha = getBridge().getRenderInterpolationAlpha();
     const selectionKey = getSelectionKey(selectionState);
-    // M7 feedback: keep re-rendering every frame while a pulse/flash is live, else the cache freezes it.
-    const isAnimating = feedbackRenderer.isAnimating(selectionState.selectedEntityIds.length, scene.time.now);
+    // M7 feedback: keep re-rendering every frame while a pulse/flash/death is live, else the cache freezes it.
+    const isAnimating = feedbackRenderer.isAnimating(selectionState.selectedEntityIds.length, scene.time.now)
+      || deathEffectsRenderer.isAnimating(scene.time.now);
     if (
       !force
       && !isAnimating
@@ -196,6 +204,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       );
       lastProjectedEntities = state.entities.map((entity) => ({ ...entity }));
       feedbackRenderer.recordTick(state.entities, scene.time.now); // hp delta → arms hit flashes (units only)
+      deathEffectsRenderer.ingestFrame(state.frame, scene.time.now); // fog-filtered death feed → collapse/dust
     }
 
     lastRenderedTick = state.tick;
@@ -233,6 +242,10 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     );
 
     centerOnPlayerBaseOnce();
+
+    // v0.1.129: death effects draw FIRST on the entity layer so corpses lie
+    // under every living unit and building (they are ground decals).
+    deathEffectsRenderer.drawAll(entityLayer, scene.time.now, CELL_SIZE);
 
     // Isometric depth order: draw back-to-front (increasing cellX+cellY) so a
     // nearer entity occludes a farther one. Sort a COPY — `displayedEntities`

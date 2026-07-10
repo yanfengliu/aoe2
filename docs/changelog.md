@@ -2,7 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.1.128 - 2026-07-09
+## 0.1.129 - 2026-07-10
+
+### Dying units collapse instead of blinking out
+
+When a unit dies you now see it: a short (~0.7s) tell plays where it stood — the body tips over and wilts to the ground while fading, under a pair of expanding dust rings. Combat no longer reads as silhouettes vanishing between frames. The effect is purely visual and fog-respecting: you see a death only if you WITNESSED it — had vision of the cell at the moment it happened. A kill that occurred in your fog never surfaces, even if you later scout the cell (no off-screen-combat leak), while your own lone unit's death still shows even though losing it re-fogs its cell. A garrisoned unit dying inside a building shows nothing (the building's own destruction is the visible event). It touches no gameplay — saves, replays, hit-testing, and simulation determinism are unchanged (a load drops any in-flight death animations; replays re-play deaths naturally). Under the hood this adds a transient, never-persisted death feed to the render frame (`ProjectedFrameView.recentUnitDeaths`).
 
 ### AI scouts patrol reliably; pinned-unit detection stops crying wolf
 

@@ -106,6 +106,7 @@ function visibleFrame(width = 10, height = 10): RenderState['frame'] {
     mapHeight: height,
     visibleCells: cells,
     exploredCells: cells,
+    recentUnitDeaths: [],
   };
 }
 

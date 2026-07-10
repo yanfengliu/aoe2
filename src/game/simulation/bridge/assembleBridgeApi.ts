@@ -22,6 +22,7 @@ export interface AssembleBridgeApiDeps
     | 'consumeOutOfBandRenderChange'
     | 'getSelectedEntityRefs'
     | 'selectByRefs'
+    | 'getRecentUnitDeaths'
   > {
   world: GameWorld;
   state: BridgeState;
@@ -82,6 +83,10 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     // through to the public bridge API.
     getSelectedEntityRefs,
     selectByRefs,
+    // v0.1.129 death feedback: raw death feed for the projector's fog filter.
+    getRecentUnitDeaths() {
+      return state.recentUnitDeaths;
+    },
   };
 }
 

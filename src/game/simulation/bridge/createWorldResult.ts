@@ -50,6 +50,9 @@ export interface CreateWorldResult {
     max: number,
   ) => Position[];
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
+  // v0.1.129 death feedback: raw (un-fog-filtered) death feed for the render
+  // projector, which applies the per-player fog filter in projectFrame.
+  getRecentUnitDeaths: () => readonly import('../types').ProjectedUnitDeathView[];
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectEntityById: (id: number) => boolean;
   selectOwnedUnitsByTypeInRect: (

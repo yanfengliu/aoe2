@@ -6,11 +6,19 @@
 import type { Position } from 'civ-engine';
 import type {
   BuildingComponent,
+  RenderableComponent,
   ResourceComponent,
   ResourceKind,
   UnitComponent,
+  UnitTransformComponent,
 } from '../types';
-import { buildingFootprint, isSameEntity, type GameWorld } from './pureHelpers';
+import {
+  buildingFootprint,
+  isSameEntity,
+  projectUnitTransformCoordinate,
+  type GameWorld,
+} from './pureHelpers';
+import { DEATH_FEED_TICKS } from './visibility';
 import { deriveCap } from './bridgeConstants';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
@@ -46,6 +54,10 @@ export interface EntityDestroyOpsDeps {
   state: import('./bridgeState').BridgeState;
   // Phase 2D — gathererDropOffStuckSinceTick flows through accessor.
   accessor: BridgeStateAccessor;
+  // v0.1.129 death feedback: read-only visibility probe to snapshot which
+  // players could see a dying unit's cell at death time (the death cue's
+  // fog gate). Queried pre-recompute so it reflects the moment of death.
+  visibility: { isVisible: (playerId: number, x: number, y: number) => boolean };
   removeSelectedEntity: (id: number) => void;
   clearUnitCommand: (id: number) => void;
   getApproachCellsForFootprint: (
@@ -80,6 +92,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     mapHeight,
     state,
     accessor,
+    visibility,
     removeSelectedEntity,
     clearUnitCommand,
     getApproachCellsForFootprint,
@@ -91,7 +104,74 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   } = deps;
   const { monksByOwner } = state;
 
+  // v0.1.129 death feedback: every unit destruction is a death in current
+  // call paths (combat kill, Heresy conversion, garrisoned units in a razed
+  // building), so this chokepoint feeds the render layer's death animations.
+  // Captured BEFORE world.destroyEntity while the components still exist AND
+  // before this tick's visibility recompute (prototypeVisibility runs later
+  // in the update phase), so the witness set reflects who could see the cell
+  // when the unit died. Fine (sub-cell) coordinates so the effect plays where
+  // the unit visually stood. The feed is transient render info (see
+  // BridgeState) and pruned here so it stays bounded without a per-tick sweep.
+  function recordUnitDeath(id: number): void {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    const position = world.getComponent<Position>(id, 'position');
+    if (!unit || !position) {
+      // A garrisoned unit (no position) dies invisibly inside its building —
+      // the building's own destruction is the visible event.
+      return;
+    }
+    const renderable = world.getComponent<RenderableComponent>(id, 'renderable');
+    const transform = world.getComponent<UnitTransformComponent>(id, 'unitTransform');
+    const x = transform ? projectUnitTransformCoordinate(transform.fineX) : position.x;
+    const y = transform ? projectUnitTransformCoordinate(transform.fineY) : position.y;
+    // Witnesses = every real player (population is keyed by owner) who can
+    // currently see the death cell, plus the dead unit's own owner (it
+    // witnessed its own unit's death; population always carries the owner, but
+    // include it defensively). Enumerating population avoids a VisibilityMap
+    // getState() serialization per death.
+    const deathCellX = Math.floor(x);
+    const deathCellY = Math.floor(y);
+    const witnessedBy: number[] = [];
+    for (const owner of accessor.get(populationCodec).keys()) {
+      if (owner === unit.owner || visibility.isVisible(owner, deathCellX, deathCellY)) {
+        witnessedBy.push(owner);
+      }
+    }
+    if (!witnessedBy.includes(unit.owner)) {
+      witnessedBy.push(unit.owner);
+    }
+    const deaths = state.recentUnitDeaths;
+    deaths.push({
+      id,
+      tick: world.tick,
+      x,
+      y,
+      owner: unit.owner,
+      unitType: unit.unitType,
+      tint: renderable?.tint ?? 0xffffff,
+      size: renderable?.size ?? 0.5,
+      witnessedBy,
+    });
+    // Prune in place: drop aged-out records (and never let the list grow past
+    // a hard cap even under a mass-death tick).
+    const MAX_DEATH_FEED_ENTRIES = 64;
+    const minTick = world.tick - DEATH_FEED_TICKS;
+    let write = 0;
+    for (let read = 0; read < deaths.length; read += 1) {
+      if (deaths[read]!.tick >= minTick) {
+        deaths[write] = deaths[read]!;
+        write += 1;
+      }
+    }
+    deaths.length = write;
+    if (deaths.length > MAX_DEATH_FEED_ENTRIES) {
+      deaths.splice(0, deaths.length - MAX_DEATH_FEED_ENTRIES);
+    }
+  }
+
   function destroyUnitEntity(id: number): void {
+    recordUnitDeath(id);
     const garrisonBuildingId = accessor.get(garrisonedUnitToBuildingCodec).get(id) ?? null;
     if (garrisonBuildingId !== null) {
       accessor.mutate(garrisonedByBuildingCodec, (m) => {

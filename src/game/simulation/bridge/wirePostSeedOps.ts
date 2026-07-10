@@ -212,6 +212,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     mapHeight: MAP_HEIGHT,
     state,
     accessor,
+    visibility,
     removeSelectedEntity,
     clearUnitCommand,
     getApproachCellsForFootprint,

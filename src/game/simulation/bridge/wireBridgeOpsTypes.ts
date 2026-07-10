@@ -65,6 +65,8 @@ export type WireBridgeOpsResult = Omit<
   | 'isSelected'
   | 'consumeOutOfBandRenderChange'
   | 'consumeCommandRejection'
+  // v0.1.129: implemented by assembleBridgeApi directly off BridgeState.
+  | 'getRecentUnitDeaths'
 > & {
   getHumanWonderCountdownTicks: () => number | null;
   getHumanRelicCountdownTicks: () => number | null;

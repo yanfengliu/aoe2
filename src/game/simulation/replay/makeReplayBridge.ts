@@ -68,6 +68,7 @@ export function makeReplayBridge(
       context.seed,
       api.isSelected,
       api.getEntityHealth,
+      api.getRecentUnitDeaths,
     ),
     debug: debuggerView,
     send(message) {

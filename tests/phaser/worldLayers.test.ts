@@ -36,6 +36,7 @@ function frame(overrides: Partial<ProjectedFrameView>): ProjectedFrameView {
     mapHeight: 3,
     visibleCells: [],
     exploredCells: [],
+    recentUnitDeaths: [],
     ...overrides,
   };
 }

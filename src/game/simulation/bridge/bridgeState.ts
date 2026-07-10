@@ -3,6 +3,7 @@
 // instantiates one of these and threads it into factories + systems.
 
 import type { Position } from 'civ-engine';
+import type { ProjectedUnitDeathView } from '../types';
 import {
   createPendingCommandsQueue,
   type PendingCommandsQueue,
@@ -83,6 +84,13 @@ export interface BridgeState {
   // by the dispatcher after submission; persisted across saves so a save taken
   // between AI decision and the next tick does not drop queued intentions.
   pendingCommands: PendingCommandsQueue;
+  // v0.1.129 death feedback: unit deaths from the last few ticks, pushed by
+  // entityDestroyOps.destroyUnitEntity and surfaced fog-filtered on the
+  // projected frame. TRANSIENT render feed — intentionally NOT persisted
+  // (no codec): a save/load simply drops in-flight death animations, and
+  // replays re-emit deaths because destroyUnitEntity re-runs during
+  // re-simulation. Bounded by DEATH_FEED_TICKS pruning at the push site.
+  recentUnitDeaths: ProjectedUnitDeathView[];
 }
 
 export function createBridgeState(): BridgeState {
@@ -91,5 +99,6 @@ export function createBridgeState(): BridgeState {
     monksByOwner: new Map(),
     monkConvertProcessedThisTick: new Map(),
     pendingCommands: createPendingCommandsQueue(),
+    recentUnitDeaths: [],
   };
 }
