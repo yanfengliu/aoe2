@@ -1,3 +1,6 @@
+## 2026-07-10 (fable everywhere — playtest ban lifted)
+- **Model policy:** owner directive "everything uses the most advanced model available" — the §15.7 Fable ban is lifted. All five playtest call sites swapped claude-opus-4-8 → `claude-fable-5` (playtest-llm ×2 + cost notes, playtest-findings, playtest-llm-auto-fix, propose-fix Claude → `claude-fable-5[1m]`), types.ts cost-table comment + spec §15.7 updated to most-advanced-with-latest-Opus-fallback. Both ids smoke-verified; cost-neutral on the claude-code provider (prelude-dominated, ~$0.61 Fable vs ~$0.67 Opus per decision). Review pin went fable-first in the fleet runbook the same morning. Internal tooling — no version bump.
+
 ## 2026-07-10 (fleet-canonical review runbook)
 - **Process docs:** the multi-CLI review runbook is now fleet-canonical at `loop-ops/docs/skills/multi-cli-review.md` — the single pin-bump site for ALL sibling repos, with civ-engine's `-o` codex output extraction promoted to primary and the Windows full-review gotchas included. aoe2's `.claude/skills/multi-cli-review/SKILL.md` shrank to a thin stub naming local pin sites (`scripts/propose-fix.mjs`) and the §15.7 playtest-pin boundary; AGENTS.md + lessons pointers updated. Docs only — no version bump.
 

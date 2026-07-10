@@ -266,10 +266,11 @@ export interface LlmCostTable {
 }
 
 export const DEFAULT_LLM_COST_TABLE: LlmCostTable = {
-  // claude-opus-4-8 is the playtest-standard model for ALL harness LLM
-  // calls (tactical + strategy + conformance + auto-fix) while Fable 5 is
-  // banned (2026-06-12 user directive — see design/spec-final.md §15.7).
-  // Revert to claude-fable-5 when the ban lifts.
+  // claude-fable-5 is the playtest-standard model for ALL harness LLM
+  // calls (tactical + strategy + conformance + auto-fix) — the 2026-06-12
+  // ban lifted 2026-07-10 (owner directive: always the most advanced
+  // model; latest Opus is the unavailability fallback — see
+  // design/spec-final.md §15.7).
   'claude-opus-4-8': { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   'claude-fable-5': { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   'claude-sonnet-4-6': { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },

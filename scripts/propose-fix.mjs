@@ -198,7 +198,7 @@ if (args.reviewer === 'claude') {
     [
       '-p',
       '--model',
-      'claude-opus-4-8[1m]',
+      'claude-fable-5[1m]',
       '--effort',
       'max',
       '--allowedTools',

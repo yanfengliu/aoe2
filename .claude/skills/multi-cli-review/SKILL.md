@@ -9,6 +9,6 @@ description: Use when running the multi-CLI (Codex + Claude) adversarial code re
 
 aoe2-specific notes:
 
-- Reviewer pin sites in scripts: `scripts/propose-fix.mjs` hard-codes both reviewer pins (Claude `claude-opus-4-8[1m]` per `design/spec-final.md` §15.7 while the Fable-5 ban stands; Codex synced to the fleet pin `gpt-5.6-sol`/ultra on 2026-07-09). Sync it on every fleet pin bump.
-- The playtest LLM pin (ONE model for every harness call) is app-facing and governed by `design/spec-final.md` §15.7 — never bump it from review tooling.
+- Reviewer pin sites in scripts: `scripts/propose-fix.mjs` hard-codes both reviewer pins (Claude `claude-fable-5[1m]` per `design/spec-final.md` §15.7 since the 2026-07-10 ban lift; Codex `gpt-5.6-sol`/ultra since 2026-07-09). Sync it on every fleet pin bump.
+- The playtest LLM pin (ONE model for every harness call; currently `claude-fable-5`, latest-Opus fallback on unavailability) is app-facing and governed by `design/spec-final.md` §15.7 — never bump it from review tooling.
 - Capture and artifact conventions (`tmp/review-runs/<objective>/<date>/<iteration_number>/`, thread `REVIEW.md` under `docs/threads/`) are defined in AGENTS.md (Core rules / Team of subagents).

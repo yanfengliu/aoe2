@@ -36,7 +36,7 @@ import {
 } from '../src/game/playtest/findingsToMarkers.ts';
 
 function parseArgs(argv) {
-  const args = { prefix: null, noLlm: false, reuseFindings: false, model: 'claude-opus-4-8', provider: null };
+  const args = { prefix: null, noLlm: false, reuseFindings: false, model: 'claude-fable-5', provider: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--no-llm') args.noLlm = true;

@@ -140,18 +140,19 @@ function makeClaudeCodeProvider(args) {
   console.log('[playtest-llm] provider: claude-code (subscription auth via `claude` CLI)');
   // Per-call cost shape: claude-code sessions carry ~15K-token
   // cache_creation prelude per spawned process. All playtest calls run
-  // on claude-opus-4-8 ($5/$25 per MTok) while Fable 5 is banned
-  // (2026-06-12 directive). The subscription per-call cost is
-  // prelude-DOMINATED, not per-token-dominated, so it does NOT halve
-  // when the rate halves: campaign-3 observed ~$0.67/decision on Opus,
-  // essentially the same as Fable's ~$0.61. Strategy (every Kth
-  // decision, default K=10) is similar.
-  const tacticalCost = 0.65; // claude-opus-4-8, campaign-3 observed (prelude-dominated)
-  const strategyCost = 0.65; // claude-opus-4-8 (same model, longer output)
+  // on claude-fable-5 again (2026-06-12 ban lifted 2026-07-10 — owner
+  // directive: always the most advanced model; fall back to the latest
+  // Opus only while Fable is unavailable, per spec §15.7). The
+  // subscription per-call cost is prelude-DOMINATED, not
+  // per-token-dominated, so the Fable/Opus rate gap is immaterial:
+  // campaign-3 observed ~$0.61/decision on Fable vs ~$0.67 on Opus.
+  // Strategy (every Kth decision, default K=10) is similar.
+  const tacticalCost = 0.65; // claude-fable-5, campaign-3 observed (prelude-dominated)
+  const strategyCost = 0.65; // claude-fable-5 (same model, longer output)
   const blendedCost = tacticalCost + strategyCost / args.strategyEvery;
   const expectedDecisions = Math.floor(args.costBudget / blendedCost);
   console.log(
-    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (claude-opus-4-8; strategy refresh every `
+    `[playtest-llm] cost note: each claude-code call adds ~$${tacticalCost.toFixed(2)} (claude-fable-5; strategy refresh every `
       + `${args.strategyEvery}th decision) in notional API equivalent. With --cost-budget=$${args.costBudget.toFixed(2)} `
       + `expect roughly ${expectedDecisions} tactical decisions before the rolling-cost gate trips.`,
   );
@@ -469,8 +470,8 @@ async function main() {
     const agent = new LlmAgent({
       provider,
       ownerId: args.owners[0],
-      strategyModel: 'claude-opus-4-8',
-      tacticalModel: 'claude-opus-4-8',
+      strategyModel: 'claude-fable-5',
+      tacticalModel: 'claude-fable-5',
       strategyEveryNDecisions: args.strategyEvery,
       maxOutputTokensTactical: 1024,
       maxOutputTokensStrategy: 2048,
