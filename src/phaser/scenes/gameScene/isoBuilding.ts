@@ -28,6 +28,22 @@ export function isoBuildingHeightPx(role: BuildingRole): number {
   return ISO_HEIGHT_CELLS_BY_ROLE[role] * ISO_TILE_HEIGHT;
 }
 
+// Roles that keep a FLAT roof: fortress/tower/wall wear a crenellated
+// battlement (merlon accent), the wonder wears a dome, and the farm is a flat
+// plot. Every other role gets a pitched (ridged hip) roof so it reads as a
+// building rather than a flat-topped box.
+const FLAT_ROOF_ROLES: ReadonlySet<BuildingRole> = new Set<BuildingRole>([
+  'fortress',
+  'tower',
+  'wall',
+  'wonder',
+  'farm',
+]);
+
+export function roleHasPitchedRoof(role: BuildingRole): boolean {
+  return !FLAT_ROOF_ROLES.has(role);
+}
+
 // Darken a packed-rgb tint toward black by `factor` (0 = unchanged, 1 = black).
 // Shared building-render colour util (was in the now-removed buildingSilhouettes
 // module). Pure channel math, mirrors unitRenderer.darken.
@@ -167,6 +183,85 @@ export function roofTileSegments(roof: readonly IsoPoint[]): Array<[IsoPoint, Is
   ];
 }
 
+// Ridge height of a pitched roof, in px, from the roof's diamond width. A
+// pitched roof turns the flat "box top" into a recognizable building: two
+// sloped planes meeting at a ridge. Scaled so a small House gets a modest
+// pitch and a big Town Center a taller one, capped so it stays a roof (not a
+// spire) on large footprints.
+export function pitchedApexPx(roofWidthPx: number): number {
+  return clamp(roofWidthPx * 0.16, 11, 38);
+}
+
+export interface HipRoofFaces {
+  // Ridge line endpoints (back = toward the top/away corner, front = toward the
+  // bottom/camera corner), both lifted to the apex height.
+  ridgeBack: IsoPoint;
+  ridgeFront: IsoPoint;
+  // The two big camera-relevant roof planes (pentagons: an eave corner + its two
+  // eave edges rising to the ridge). leftPlane contains the west (left) eave and
+  // is the lit side; rightPlane contains the east (right) eave and is shadowed.
+  leftPlane: IsoPoint[];
+  rightPlane: IsoPoint[];
+}
+
+// Ridged hip roof over a footprint diamond ([top, right, bottom, left]). The
+// ridge runs along the top↔bottom screen axis, lifted `apexPx` above the flat
+// roof; the two side planes slope down to the left/right eaves, and the top /
+// bottom corners are hipped (the ridge ends inset from them by `ridgeFraction`).
+export function hipRoofFaces(
+  roof: readonly IsoPoint[],
+  apexPx: number,
+  ridgeFraction = 0.42,
+): HipRoofFaces {
+  const [top, right, bottom, left] = roof;
+  if (!top || !right || !bottom || !left) {
+    const zero = { x: 0, y: 0 };
+    return { ridgeBack: zero, ridgeFront: zero, leftPlane: [], rightPlane: [] };
+  }
+  const cx = (top.x + right.x + bottom.x + left.x) / 4;
+  const cy = (top.y + right.y + bottom.y + left.y) / 4;
+  const ridgeBack = {
+    x: cx + (top.x - cx) * ridgeFraction,
+    y: cy + (top.y - cy) * ridgeFraction - apexPx,
+  };
+  const ridgeFront = {
+    x: cx + (bottom.x - cx) * ridgeFraction,
+    y: cy + (bottom.y - cy) * ridgeFraction - apexPx,
+  };
+  return {
+    ridgeBack,
+    ridgeFront,
+    leftPlane: [bottom, left, top, ridgeBack, ridgeFront],
+    rightPlane: [top, right, bottom, ridgeFront, ridgeBack],
+  };
+}
+
+// Structure lines on a pitched roof, all lying ON the roof planes (never on the
+// wall faces below). `roof` is the ROOF-LEVEL eave diamond (polys.roof), NOT
+// the ground footprint — the eaves sit `heightPx` above the ground corners, so
+// drawing to the ground corners would streak these lines down the walls.
+//   - hips: the two sloped ridges from the ridge ends down to the back (top)
+//     and front (bottom) eave corners.
+//   - courses: a couple of ridge-parallel tile lines descending the lit (west)
+//     plane toward the left eave.
+export function pitchedRoofDetailSegments(
+  roof: readonly IsoPoint[],
+  faces: HipRoofFaces,
+): { hips: Array<[IsoPoint, IsoPoint]>; courses: Array<[IsoPoint, IsoPoint]> } {
+  const [top, , bottom, left] = roof;
+  if (!top || !bottom || !left) return { hips: [], courses: [] };
+  return {
+    hips: [
+      [faces.ridgeBack, top],
+      [faces.ridgeFront, bottom],
+    ],
+    courses: [0.35, 0.65].map((t) => [
+      lerp(faces.ridgeBack, left, t),
+      lerp(faces.ridgeFront, left, t),
+    ]),
+  };
+}
+
 export interface RoofBevelSegments {
   highlight: Array<[IsoPoint, IsoPoint]>;
   shadow: Array<[IsoPoint, IsoPoint]>;
@@ -201,6 +296,11 @@ export interface IsoBuildingStyle {
   // tiled/coloured roof while the walls stay the owner tint.
   roofTint?: number;
   materialDetail?: boolean;
+  // When true, cap the box with a pitched (ridged hip) roof instead of a flat
+  // diamond — the change that makes a building read as a building, not a box.
+  // Roles with a flat battlement / dome (fortress, tower, wall, wonder, farm)
+  // leave this off.
+  pitched?: boolean;
 }
 
 // Paint the extruded box back-to-front: ground shadow, the two wall faces (the
@@ -271,9 +371,44 @@ export function drawIsoBuilding(
     }
   }
 
-  // Roof cap — the raw owner tint (the brightest, most colour-legible surface,
-  // catching the light) unless the role overrides it.
+  // Roof cap — the owner tint (brightest, most colour-legible surface) unless
+  // the role overrides it. A PITCHED roof (two sloped planes meeting at a ridge)
+  // reads as a building; a FLAT diamond is kept for battlement/dome roles.
   const roofTint = style.roofTint ?? tint;
+  if (style.pitched) {
+    const roofWidth = corners.right.x - corners.left.x;
+    const faces = hipRoofFaces(polys.roof, pitchedApexPx(roofWidth));
+    // Shadowed (east) plane first, then the lit (west) plane on top.
+    g.fillStyle(darken(roofTint, 0.28), fillAlpha);
+    g.fillPoints(faces.rightPlane, true);
+    g.fillStyle(lighten(roofTint, 0.1), fillAlpha);
+    g.fillPoints(faces.leftPlane, true);
+    if (materialDetail) {
+      // Ridge line (bright) plus hip/course lines that stay ON the roof planes
+      // (endpoints on the roof eaves, never the ground corners a wall-height
+      // below — see pitchedRoofDetailSegments).
+      g.lineStyle(2, lighten(roofTint, 0.34), outlineAlpha * 0.9);
+      g.lineBetween(faces.ridgeBack.x, faces.ridgeBack.y, faces.ridgeFront.x, faces.ridgeFront.y);
+      const detail = pitchedRoofDetailSegments(polys.roof, faces);
+      g.lineStyle(1.5, darken(roofTint, 0.42), outlineAlpha * 0.85);
+      for (const [a, b] of detail.hips) {
+        g.lineBetween(a.x, a.y, b.x, b.y);
+      }
+      g.lineStyle(1, darken(roofTint, 0.2), fillAlpha * 0.4);
+      for (const [a, b] of detail.courses) {
+        g.lineBetween(a.x, a.y, b.x, b.y);
+      }
+    }
+    // Outline: walls + the two roof planes (their union is the pitched
+    // silhouette).
+    g.lineStyle(1.5, outline, outlineAlpha);
+    g.strokePoints(polys.leftFace, true, true);
+    g.strokePoints(polys.rightFace, true, true);
+    g.strokePoints(faces.leftPlane, true, true);
+    g.strokePoints(faces.rightPlane, true, true);
+    return polys.roof;
+  }
+
   g.fillStyle(roofTint, fillAlpha);
   g.fillPoints(polys.roof, true);
   if (heightPx > 22 && materialDetail) {

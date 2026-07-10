@@ -24,7 +24,14 @@ import Phaser from 'phaser';
 import type { BuildingType, ProjectedEntityView } from '../../../game/simulation/types';
 import { buildingRole } from './buildingRole';
 import { drawBuildingRoofAccent } from './buildingRoofAccents';
-import { darken, drawIsoBuilding, isoBuildingHeightPx, type FootprintDiamond } from './isoBuilding';
+import {
+  darken,
+  drawIsoBuilding,
+  isoBuildingHeightPx,
+  pitchedApexPx,
+  roleHasPitchedRoof,
+  type FootprintDiamond,
+} from './isoBuilding';
 import { worldToIso } from './isoProjection';
 
 // Re-exported from GameScene.ts for backward compatibility — moving the
@@ -141,18 +148,34 @@ export function createBuildingRenderer(deps: BuildingRendererDeps): BuildingRend
       // Completed: the full extruded iso volume + the role's roof accent so a
       // Wonder / Castle / Monastery / Barracks / Mill / Town Center still reads
       // distinctly (the iso analogue of the old flat per-role silhouettes).
+      // House-like roles get a pitched (ridged hip) roof; battlement/dome roles
+      // (fortress/tower/wall/wonder/farm) keep a flat roof for their merlons /
+      // dome.
+      const pitched = roleHasPitchedRoof(role);
       const roof = drawIsoBuilding(entityLayer, corners, fullHeightPx, {
         tint: entity.tint,
         outline,
         fillAlpha,
         outlineAlpha,
+        pitched,
       });
-      drawBuildingRoofAccent(entityLayer, role, roof, {
-        tint: entity.tint,
-        outline,
-        fillAlpha,
-        outlineAlpha,
-      });
+      // Anchor the accent on the ridge for pitched roofs so a cupola / cross /
+      // banner sits on the peak rather than mid-slope.
+      const ridgeLiftPx = pitched
+        ? pitchedApexPx(roof[1]!.x - roof[3]!.x)
+        : 0;
+      drawBuildingRoofAccent(
+        entityLayer,
+        role,
+        roof,
+        {
+          tint: entity.tint,
+          outline,
+          fillAlpha,
+          outlineAlpha,
+        },
+        ridgeLiftPx,
+      );
       hasStructureBody = true;
       hasRoofAccent = true;
       hasCompletionAccent = true;

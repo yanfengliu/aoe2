@@ -25,14 +25,19 @@ export interface RoofAccentStyle {
 const ACCENT_MAX_SCALE = 100;
 
 // Centre + capped size reference of a roof diamond ([top, right, bottom, left]).
-function roofMetrics(roof: IsoPoint[]): { cx: number; cy: number; width: number } {
+// `anchorLiftPx` raises the centre to a pitched roof's ridge so cupola / cross /
+// banner accents sit on the peak instead of half-buried in the slope.
+function roofMetrics(
+  roof: IsoPoint[],
+  anchorLiftPx = 0,
+): { cx: number; cy: number; width: number } {
   const cx = (roof[0].x + roof[1].x + roof[2].x + roof[3].x) / 4;
-  const cy = (roof[0].y + roof[1].y + roof[2].y + roof[3].y) / 4;
+  const cy = (roof[0].y + roof[1].y + roof[2].y + roof[3].y) / 4 - anchorLiftPx;
   return { cx, cy, width: Math.min(roof[1].x - roof[3].x, ACCENT_MAX_SCALE) };
 }
 
-function drawDome(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
-  const { cx, cy, width } = roofMetrics(roof);
+function drawDome(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
+  const { cx, cy, width } = roofMetrics(roof, lift);
   const r = width * 0.32;
   g.fillStyle(darken(s.tint, 0.1), s.fillAlpha);
   g.beginPath();
@@ -46,8 +51,8 @@ function drawDome(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccen
   g.fillCircle(cx, cy - r * 1.2, Math.max(1.5, r * 0.2)); // spire pip
 }
 
-function drawCross(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
-  const { cx, cy, width } = roofMetrics(roof);
+function drawCross(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
+  const { cx, cy, width } = roofMetrics(roof, lift);
   const h = width * 0.5;
   const arm = width * 0.16;
   g.lineStyle(2, s.outline, s.outlineAlpha);
@@ -55,7 +60,7 @@ function drawCross(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAcce
   g.lineBetween(cx - arm, cy - h * 0.72, cx + arm, cy - h * 0.72);
 }
 
-function drawMerlons(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
+function drawMerlons(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
   // Crenellation blocks marching along the two BACK roof edges (top->left,
   // top->right) so they rise above the roof silhouette.
   const merlon = darken(s.tint, 0.28);
@@ -65,7 +70,7 @@ function drawMerlons(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAc
     [roof[0], roof[1]],
   ];
   const count = 3;
-  const blockH = Math.max(3, roofMetrics(roof).width * 0.12);
+  const blockH = Math.max(3, roofMetrics(roof, lift).width * 0.12);
   for (const [a, b] of backEdges) {
     for (let i = 0; i < count; i += 1) {
       const t = (i + 0.5) / count;
@@ -76,8 +81,8 @@ function drawMerlons(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAc
   }
 }
 
-function drawBanner(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
-  const { cx, cy, width } = roofMetrics(roof);
+function drawBanner(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
+  const { cx, cy, width } = roofMetrics(roof, lift);
   const poleTop = cy - width * 0.6;
   g.lineStyle(2, s.outline, s.outlineAlpha);
   g.lineBetween(cx, poleTop, cx, cy);
@@ -89,8 +94,8 @@ function drawBanner(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAcc
   g.strokeTriangle(cx, poleTop, cx + flagW, poleTop + flagH * 0.5, cx, poleTop + flagH);
 }
 
-function drawMillBlades(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
-  const { cx, cy, width } = roofMetrics(roof);
+function drawMillBlades(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
+  const { cx, cy, width } = roofMetrics(roof, lift);
   const arm = width * 0.42;
   g.lineStyle(2.5, darken(s.tint, 0.3), s.outlineAlpha);
   g.lineBetween(cx - arm * 0.7, cy - arm * 0.7, cx + arm * 0.7, cy + arm * 0.7);
@@ -99,11 +104,11 @@ function drawMillBlades(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: Roo
   g.fillCircle(cx, cy, Math.max(1.5, arm * 0.16));
 }
 
-function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle): void {
+function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number): void {
   // Town Center: a small central tower — a modest iso block (lit + shadowed wall
   // faces + a top diamond) rising from the roof centre, NOT a full-height flat
   // billboard rectangle (which read as a giant column in iso).
-  const { cx, cy, width } = roofMetrics(roof);
+  const { cx, cy, width } = roofMetrics(roof, lift);
   const bw = width * 0.16; // tower base half-width
   const bh = bw * 0.5; // iso 2:1 half-depth
   const h = width * 0.28; // tower height
@@ -149,7 +154,10 @@ function drawTurret(g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAcc
 }
 
 const ACCENT_BY_ROLE: Partial<
-  Record<BuildingRole, (g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle) => void>
+  Record<
+    BuildingRole,
+    (g: Phaser.GameObjects.Graphics, roof: IsoPoint[], s: RoofAccentStyle, lift: number) => void
+  >
 > = {
   wonder: drawDome,
   monastery: drawCross,
@@ -163,11 +171,14 @@ const ACCENT_BY_ROLE: Partial<
 
 // Draw the role's roof accent onto the iso roof diamond, if it has one (house /
 // drop-site / market / blacksmith / farm read from the volume + height alone).
+// `ridgeLiftPx` raises the anchor onto a pitched roof's ridge (0 for the flat
+// battlement/dome roles) so a cupola / cross / banner sits on the peak.
 export function drawBuildingRoofAccent(
   g: Phaser.GameObjects.Graphics,
   role: BuildingRole,
   roof: IsoPoint[],
   style: RoofAccentStyle,
+  ridgeLiftPx = 0,
 ): void {
-  ACCENT_BY_ROLE[role]?.(g, roof, style);
+  ACCENT_BY_ROLE[role]?.(g, roof, style, ridgeLiftPx);
 }

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   drawIsoBuilding,
+  hipRoofFaces,
   isoBuildingPolys,
+  pitchedApexPx,
+  pitchedRoofDetailSegments,
+  roleHasPitchedRoof,
   roofBevelSegments,
   roofTileSegments,
   wallCourseSegments,
@@ -155,6 +159,85 @@ describe('drawIsoBuilding — front-wall facade door + windows', () => {
     // ground + left + right + roof = 4 (no door, no windows)
     expect(spy.calls.filter((c) => c.op === 'fillPoints').length).toBe(4);
     expect(spy.calls.filter((c) => c.op === 'lineBetween').length).toBe(0);
+  });
+});
+
+describe('pitched (ridged hip) roof — the "reads as a building" cap', () => {
+  const roof = isoBuildingPolys(footprint2x2(), 40).roof; // [top,right,bottom,left]
+
+  it('pitchedApexPx scales with roof width and clamps to a roof (not a spire)', () => {
+    expect(pitchedApexPx(120)).toBeCloseTo(120 * 0.16, 5);
+    expect(pitchedApexPx(20)).toBe(11); // clamped up (min)
+    expect(pitchedApexPx(1000)).toBe(38); // clamped down (max)
+  });
+
+  it('lifts a ridge above the flat roof centre with two 5-point side planes', () => {
+    const apex = 30;
+    const faces = hipRoofFaces(roof, apex);
+    const flatCentreY = (roof[0].y + roof[1].y + roof[2].y + roof[3].y) / 4;
+    // The ridge MIDPOINT sits exactly `apex` above the flat roof plane (each
+    // endpoint is additionally shifted toward its top/bottom eave).
+    expect(faces.ridgeBack.y).toBeLessThan(flatCentreY);
+    expect(faces.ridgeFront.y).toBeLessThan(flatCentreY);
+    const ridgeMidY = (faces.ridgeBack.y + faces.ridgeFront.y) / 2;
+    expect(flatCentreY - ridgeMidY).toBeCloseTo(apex, 5);
+    // …and the ridge runs along the top↔bottom (screen-vertical) axis.
+    expect(faces.ridgeBack.y).toBeLessThan(faces.ridgeFront.y); // back (near top) higher on screen
+    // Two pentagon side planes (an eave corner + its two eaves + two ridge ends).
+    expect(faces.leftPlane).toHaveLength(5);
+    expect(faces.rightPlane).toHaveLength(5);
+    // Each plane contains its eave corner and both ridge ends.
+    expect(faces.leftPlane).toContainEqual(roof[3]); // left eave
+    expect(faces.rightPlane).toContainEqual(roof[1]); // right eave
+    expect(faces.leftPlane).toContainEqual(faces.ridgeBack);
+    expect(faces.rightPlane).toContainEqual(faces.ridgeFront);
+  });
+
+  it('roleHasPitchedRoof: house-like roles pitched, battlement/dome roles flat', () => {
+    for (const role of ['town-center', 'house', 'mill', 'military', 'monastery', 'market', 'blacksmith', 'drop-site'] as const) {
+      expect(roleHasPitchedRoof(role), `${role} should be pitched`).toBe(true);
+    }
+    for (const role of ['fortress', 'tower', 'wall', 'wonder', 'farm'] as const) {
+      expect(roleHasPitchedRoof(role), `${role} should be flat`).toBe(false);
+    }
+  });
+
+  it('keeps every hip/course detail line ON the roof, never streaking down the walls', () => {
+    // Regression (review 2026-07-10): the detail lines previously ran to the
+    // GROUND footprint corners, which sit a full wall-height BELOW the roof
+    // eaves, so they streaked across the wall faces. They must terminate on
+    // the roof eaves — i.e. no endpoint drops below the lowest roof point.
+    const heightPx = 34;
+    const polys = isoBuildingPolys(footprint2x2(), heightPx);
+    const faces = hipRoofFaces(polys.roof, pitchedApexPx(polys.roof[1].x - polys.roof[3].x));
+    const maxRoofY = Math.max(...polys.roof.map((p) => p.y)); // the bottom eave
+    const minRoofX = Math.min(...polys.roof.map((p) => p.x));
+    const maxRoofX = Math.max(...polys.roof.map((p) => p.x));
+    const detail = pitchedRoofDetailSegments(polys.roof, faces);
+    expect(detail.hips).toHaveLength(2);
+    expect(detail.courses).toHaveLength(2);
+    for (const [a, b] of [...detail.hips, ...detail.courses]) {
+      for (const p of [a, b]) {
+        // At or above the eave line (roof), never down on the walls (below).
+        expect(p.y).toBeLessThanOrEqual(maxRoofY + 0.001);
+        expect(p.x).toBeGreaterThanOrEqual(minRoofX - 0.001);
+        expect(p.x).toBeLessThanOrEqual(maxRoofX + 0.001);
+      }
+    }
+  });
+
+  it('drawIsoBuilding pitched draws two roof-plane pentagons; flat draws one roof diamond', () => {
+    const corners = footprint2x2();
+    const pitchedSpy = createIsoBuildingSpy();
+    drawIsoBuilding(pitchedSpy.graphics, corners, 60, { ...STYLE, pitched: true });
+    const pitchedRoofPolys = pitchedSpy.calls.filter((c) => c.op === 'fillPoints' && c.pointCount === 5);
+    expect(pitchedRoofPolys).toHaveLength(2); // the two hip planes
+
+    const flatSpy = createIsoBuildingSpy();
+    drawIsoBuilding(flatSpy.graphics, corners, 60, STYLE);
+    expect(flatSpy.calls.filter((c) => c.op === 'fillPoints' && c.pointCount === 5)).toHaveLength(0);
+    // The flat roof is a 4-point diamond; pitched replaces it with the pentagons.
+    expect(pitchedSpy.calls.some((c) => c.op === 'lineBetween')).toBe(true); // ridge + hips
   });
 });
 

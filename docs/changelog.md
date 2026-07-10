@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.132 - 2026-07-10
+
+### Buildings have pitched roofs — less of a flat box, more of a building
+
+House-like buildings (Town Center, houses, barracks, mill, market, blacksmith, monastery, drop-off buildings) now wear a pitched ridged-hip roof — two sloped planes meeting at a ridge, lit on the left and shadowed on the right — instead of a flat diamond top. This is the main thing that made structures read as abstract boxes. Roof accents (the Town Center cupola, the Monastery cross, a barracks banner, the mill's blades) now sit up on the ridge. Buildings that should read as flat-topped keep their flat roofs: fortress/tower/wall wear their crenellated battlement, the Wonder its dome, and the farm its plot. Purely visual — footprints, hit-testing, health bars, selection, construction states, fog memory, and the simulation are unchanged.
+
 ## 0.1.131 - 2026-07-10
 
 ### Faster rendering — the terrain no longer redraws every frame

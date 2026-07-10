@@ -180,6 +180,34 @@ describe('createBuildingRenderer.renderBuildingEntity', () => {
     expect(usedTint).toBe(true);
   });
 
+  it('wires per-role roofs: house-like roles get a pitched roof, battlement/dome roles stay flat', () => {
+    // The pitched roof caps the volume with two 5-point pentagon planes; a flat
+    // roof caps it with a single 4-point diamond. A pentagon fillPoints call
+    // therefore only appears for pitched roles (end-to-end through the wiring
+    // `pitched = roleHasPitchedRoof(role)` in buildingRenderer).
+    const pentagonFills = (spy: ReturnType<typeof createGraphicsSpy>) =>
+      spy.calls.filter((c) => c.op === 'fillPoints' && c.args.length === 10).length;
+
+    for (const [type, fp] of [
+      ['house', { width: 2, height: 2 }],
+      ['barracks', { width: 3, height: 3 }],
+      ['monastery', { width: 3, height: 3 }],
+      ['town-center', { width: 4, height: 4 }],
+    ] as const) {
+      const { spy } = render({ entityType: type, footprintWidth: fp.width, footprintHeight: fp.height });
+      expect(pentagonFills(spy), `${type} should have a pitched (pentagon) roof`).toBe(2);
+    }
+    for (const [type, fp] of [
+      ['castle', { width: 4, height: 4 }],
+      ['watch-tower', { width: 1, height: 1 }],
+      ['wonder', { width: 4, height: 4 }],
+      ['farm', { width: 3, height: 3 }],
+    ] as const) {
+      const { spy } = render({ entityType: type, footprintWidth: fp.width, footprintHeight: fp.height });
+      expect(pentagonFills(spy), `${type} should have a flat roof`).toBe(0);
+    }
+  });
+
   it('anchors the iso volume on the footprint diamond and stays horizontally within it', () => {
     // The extruded volume rises ABOVE the footprint (roof lifted), but its
     // horizontal span must stay within the footprint's iso diamond (its four
