@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.131 - 2026-07-10
+
+### Faster rendering — the terrain no longer redraws every frame
+
+The map terrain (~2160 isometric tiles) was being cleared and redrawn on every single frame even though it never changes, which dominated the per-frame render cost. Terrain is now drawn once and only repainted when it actually changes (game load), while the camera still pans and zooms it smoothly. Measured on the default map, this cut the per-frame render cost about 6× (a forced full re-render dropped from ~3.6ms to ~0.6ms), leaving far more frame budget for smooth play — especially on lower-end machines. Purely a performance change: the map looks identical, and fog-of-war, unit movement, selection, and hit-testing are unaffected.
+
 ## 0.1.130 - 2026-07-10
 
 ### The minimap is now an isometric diamond

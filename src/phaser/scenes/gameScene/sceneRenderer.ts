@@ -35,6 +35,7 @@ import { computeBaseFocusCell } from './isoViewHelpers';
 import { drawResourceEntity } from './resourceRenderer';
 import { createSelectionLayersRenderer } from './selectionLayers';
 import { drawTerrainCell } from './terrainRenderer';
+import { createTerrainCache } from './terrainCache';
 import { createUnitRenderer, unitFacingRadians } from './unitRenderer';
 import { createWorldLayersRenderer } from './worldLayers';
 import {
@@ -106,6 +107,10 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   let lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   let lastBuildingVisualStates: BuildingVisualState[] = [];
   let lastEntityHealthBarStates: EntityHealthBarState[] = [];
+  // Perf: the terrain layer is drawn once and repainted only when the terrain
+  // set changes (see renderTerrainIfChanged). The cache holds the last-drawn
+  // signature; resetForBridgeSwap forces a repaint against a swapped-in world.
+  const terrainCache = createTerrainCache();
 
   const terrainLayer = scene.add.graphics();
   const entityLayer = scene.add.graphics();
@@ -167,6 +172,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     lastPlacementPreviewVisualState = null;
     lastBuildingVisualStates = [];
     lastEntityHealthBarStates = [];
+    terrainCache.reset(); // force a terrain redraw against the rehydrated world
     debugOverlayRenderer = makeDebugOverlayRenderer();
     worldLayersRenderer = makeWorldLayersRenderer();
     selectionLayersRenderer = makeSelectionLayersRenderer();
@@ -213,6 +219,22 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     renderState(state, selectionState, interpolationAlpha);
   }
 
+  // Perf (v0.1.131): (re)draw the terrain layer only when the terrain set
+  // changes (computeTerrainSignature). Terrain is immutable for a bridge's
+  // life and the camera transform pans/zooms the layer for free, so the ~2160
+  // iso-diamond fills happen once instead of every frame. drawTerrainCell's
+  // kind-to-kind edge feathering scans its neighbour argument, so it receives
+  // the full entity list (terrain neighbours only) exactly as the old inline
+  // loop did.
+  function renderTerrainIfChanged(entities: ProjectedEntityView[]): void {
+    terrainCache.renderIfChanged(entities, (terrainCells) => {
+      terrainLayer.clear();
+      for (const cell of terrainCells) {
+        drawTerrainCell(terrainLayer, entities, cell, CELL_SIZE);
+      }
+    });
+  }
+
   // Per-entity rendering lives in dep-bag factories under `gameScene/`
   // (buildingRenderer / unitRenderer / terrainRenderer / worldLayers); this
   // module only holds the per-frame call-sites in `renderState`.
@@ -221,7 +243,13 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     selectionState: SelectionState,
     interpolationAlpha: number,
   ): void {
-    terrainLayer.clear();
+    // Perf (v0.1.131): the terrain layer is NOT cleared/redrawn per frame.
+    // Terrain is a deterministic pure function of cell kind + coordinates
+    // (terrainRenderer) and is immutable for a bridge's lifetime, while the
+    // camera transform pans/zooms the already-drawn layer for free — so
+    // redrawing ~2160 iso-diamond fills every frame was pure waste (the
+    // dominant per-frame render cost). It is (re)drawn only when the terrain
+    // set changes (first frame, or a bridge swap via resetForBridgeSwap).
     entityLayer.clear();
     // Iter-3 V3-18: do NOT clear fogLayer here. `renderFog` below now
     // memoizes on the projected frame reference; clearing
@@ -242,6 +270,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     );
 
     centerOnPlayerBaseOnce();
+    renderTerrainIfChanged(displayedEntities);
 
     // v0.1.129: death effects draw FIRST on the entity layer so corpses lie
     // under every living unit and building (they are ground decals).
@@ -250,8 +279,11 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     // Isometric depth order: draw back-to-front (increasing cellX+cellY) so a
     // nearer entity occludes a farther one. Sort a COPY — `displayedEntities`
     // keeps its sim order, which hit-testing / selection / the browser test API
-    // depend on for stable overlap tie-breaking.
-    const drawOrder = [...displayedEntities].sort((a, b) => a.x + a.y - (b.x + b.y));
+    // depend on for stable overlap tie-breaking. Terrain is on its own cached
+    // layer, so only the non-terrain entities take part in the per-frame sort.
+    const drawOrder = displayedEntities
+      .filter((entity) => entity.layer !== 'terrain')
+      .sort((a, b) => a.x + a.y - (b.x + b.y));
 
     for (const entity of drawOrder) {
       // Isometric placement: the entity's iso screen CENTRE (the diamond centre
@@ -261,11 +293,6 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       const px = isoCentre.x - CELL_SIZE * 0.5;
       const py = isoCentre.y - CELL_SIZE * 0.5;
       const fillAlpha = entity.isMemory ? 0.5 : 1;
-
-      if (entity.layer === 'terrain') {
-        drawTerrainCell(terrainLayer, displayedEntities, entity, CELL_SIZE);
-        continue;
-      }
 
       if (entity.kind === 'resource') {
         drawResourceEntity(entityLayer, entity, px, py, CELL_SIZE, fillAlpha);
