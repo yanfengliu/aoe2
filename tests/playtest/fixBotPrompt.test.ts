@@ -15,6 +15,18 @@ describe('fixBotPrompt', () => {
     expect(files).toContain('src/game/simulation/bridge/systems/aiSystem.ts');
   });
 
+  it('keeps the split aiSystem decision modules visible to the fix bot', () => {
+    for (const oracle of ['no-tick-failures', 'economy-progression', 'match-completes']) {
+      const files = sourceFilesForOracle(oracle);
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystem.ts');
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystemGating.ts');
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystemBuildingPhase.ts');
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystemProductionPhase.ts');
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystemAttackPhase.ts');
+      expect(files).toContain('src/game/simulation/bridge/systems/aiSystemTypes.ts');
+    }
+  });
+
   it('returns an empty list for unknown oracles', () => {
     expect(sourceFilesForOracle('unknown-oracle')).toEqual([]);
   });

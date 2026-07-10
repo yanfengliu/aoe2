@@ -9,17 +9,32 @@ const SOURCE_FILES_BY_ORACLE: Record<string, string[]> = {
   'no-tick-failures': [
     'src/game/simulation/createSimulationBridge.ts',
     'src/game/simulation/bridge/systems/aiSystem.ts',
+    'src/game/simulation/bridge/systems/aiSystemGating.ts',
+    'src/game/simulation/bridge/systems/aiSystemBuildingPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemProductionPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemAttackPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemTypes.ts',
   ],
   'no-perf-regression': [
     'src/game/simulation/createSimulationBridge.ts',
   ],
   'economy-progression': [
     'src/game/simulation/bridge/systems/aiSystem.ts',
+    'src/game/simulation/bridge/systems/aiSystemGating.ts',
+    'src/game/simulation/bridge/systems/aiSystemBuildingPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemProductionPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemAttackPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemTypes.ts',
     'src/game/simulation/ai.ts',
   ],
   'match-completes': [
     'src/game/simulation/createSimulationBridge.ts',
     'src/game/simulation/bridge/systems/aiSystem.ts',
+    'src/game/simulation/bridge/systems/aiSystemGating.ts',
+    'src/game/simulation/bridge/systems/aiSystemBuildingPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemProductionPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemAttackPhase.ts',
+    'src/game/simulation/bridge/systems/aiSystemTypes.ts',
   ],
 };
 
