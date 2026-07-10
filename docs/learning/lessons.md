@@ -221,7 +221,7 @@ sed -n '/^codex$/,$p' codex.txt | awk '/===BEGIN-REVIEW===/{p=1; next} /===END-R
 
 A successful smoke test (e.g. `codex exec` returning `ok`) does NOT validate the extraction logic — it only validates the tool. Always sanity-check by counting reviewer findings against expectations: if Gemini found 4 issues and Claude found 6, "Codex no findings" three commits in a row should raise a flag, not be assumed to mean Codex is unreachable. Convergence is signal; persistent divergence between reviewers is also signal.
 
-Pointer: [.claude/skills/multi-cli-review/SKILL.md](../../.claude/skills/multi-cli-review/SKILL.md) — "Reading Codex output" extraction snippet (moved out of AGENTS.md's Code review section 2026-07-09); affected reviews under `docs/threads/done/replay-scrubber/2026-05-01/impl-{16..24}/REVIEW.md` (post-mortem note added).
+Pointer: [loop-ops/docs/skills/multi-cli-review.md](../../../loop-ops/docs/skills/multi-cli-review.md) — "Reading Codex output" (moved out of AGENTS.md 2026-07-09, promoted to the fleet-canonical runbook 2026-07-10 with `-o` extraction as primary); affected reviews under `docs/threads/done/replay-scrubber/2026-05-01/impl-{16..24}/REVIEW.md` (post-mortem note added).
 
 ## Reorder AI decisions when handler-FIFO order matters — 2026-05-01
 

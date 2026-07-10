@@ -1,3 +1,6 @@
+## 2026-07-10 (fleet-canonical review runbook)
+- **Process docs:** the multi-CLI review runbook is now fleet-canonical at `loop-ops/docs/skills/multi-cli-review.md` — the single pin-bump site for ALL sibling repos, with civ-engine's `-o` codex output extraction promoted to primary and the Windows full-review gotchas included. aoe2's `.claude/skills/multi-cli-review/SKILL.md` shrank to a thin stub naming local pin sites (`scripts/propose-fix.mjs`) and the §15.7 playtest-pin boundary; AGENTS.md + lessons pointers updated. Docs only — no version bump.
+
 ## 2026-07-09 (file-size budget: legacy splits)
 - **500-LOC ratchet:** split all four remaining `src/` legacy violators — GameScene 1012→254, aiSystem 788→166, IndexedDBMirror 698→363, wireBridgeOps 604→412 — into 13 role modules (all ≤450) as adversarially-reviewed pure refactors; `LEGACY_VIOLATIONS` now holds only `tests/playtest/oracles.test.ts` (concurrent session's split). Fix-bot oracle sources follow the aiSystem split. Browser-suite delta vs clean baseline: zero (the two extra failures proved load-flakes — 4/4 isolated pass on both trees). No behavior change; no version bump.
 
