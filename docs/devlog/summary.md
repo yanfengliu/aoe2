@@ -1,3 +1,6 @@
+## 2026-07-09 (AGENTS.md restructure)
+- **Process docs:** multi-CLI review mechanics moved from AGENTS.md into `.claude/skills/multi-cli-review/SKILL.md` (single review-pin bump site + codex extraction recipe); AGENTS.md now opens with Session start reads, scopes plan-writing to non-trivial changes, states the real file-size gate (hard 500 + shrink-only legacy ratchet in fileSizeBudget.test.ts), and routes the playtest model policy to spec §15.7. Adversarial review fixed 1 HIGH (LOC wording contradicted the gate) + 2 MEDIUM pre-commit; propose-fix.mjs codex-pin drift (gpt-5.5/xhigh) chipped as follow-up. Docs only — no version bump.
+
 ## 2026-07-09 (oracle canary drill)
 - **Canaries:** `playtest:canary` seeds known one-line bugs (canaries/*.patch + manifest) on throwaway branches and asserts the declared oracle fires after a quiet baseline - canary-ok/blind/stale/invalid rows append to passes.jsonl, non-ok exits 1 (a blind oracle IS the candidate). LLM-free (npm run playtest + oracle sweep). Recursive pass now appends manifests to passes.jsonl (fleet convention). v0.1.127.
 
