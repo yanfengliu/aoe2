@@ -1,32 +1,17 @@
-import type { Position } from 'civ-engine';
-
-import { buildingFootprint, currentEntityId } from './pureHelpers';
-import { hasPendingUnitCommand } from './pendingCommandQuery';
-import type { BuildableBuildingType, MarketActionType, ResearchableTechnologyType, TrainableUnitType, UnitTaskState } from '../types';
+import { currentEntityId } from './pureHelpers';
+import type { UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
-import { createTrebuchetStateOps } from './trebuchetState';
-import { createFogMemoryOps } from './fogMemoryOps';
-import { createMatchEndOps } from './matchEndOps';
-import { createCombatStateFactory } from './combatStateFactory';
-import { createEntityCreateOps } from './entityCreateOps';
-import { createCellPassability } from './cellPassability';
 import { hydrateFromSavedGame, seedFreshScenario } from './scenarioSeedOps';
 import { hydrateRuntimeFromWorldState } from './hydrateFromWorldState';
 import { isSaveBlobV1 } from '../saveSchema';
-import { createDebugSnapshotOps } from './debugSnapshotOps';
-import { createTransformOps } from './transformOps';
-import { createMovementPlanOps } from './movementPlanOps';
-import { createOptionsRules } from './optionsRules';
-import { createPlayerQueries } from './playerQueries';
-import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
 import { buildCommandValidatorDeps } from './commandValidatorDeps';
-import { createResearchAvailability } from './researchAvailability';
 import { registerOutputTail } from './registerOutputTail';
-import { VisibilityCell } from './visibilityCell';
 import { bootstrapFlush } from './bootstrapFlush';
+import { wirePreSeedOps } from './wirePreSeedOps';
 import { wirePostSeedOps } from './wirePostSeedOps';
+import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
 import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import {
@@ -34,7 +19,6 @@ import {
   MARKET_TRANSACTION_AMOUNT,
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
-  WONDER_COUNTDOWN_TICKS,
 } from './bridgeConstants';
 
 export type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
@@ -67,128 +51,39 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     markOutOfBandRenderChange,
     getSeed,
   } = deps;
-  const { movePathCache } = state;
-
-  // Phase 2D — accessor is constructed in `createWorld.ts` (so
-  // bridgeHelpers can also consume it) and threaded in via deps.
-  // visibility cell still constructed here since it's bridge-internal.
-  const visibilityCell = new VisibilityCell(visibility);
-  // Phase 2E: closure-scoped fingerprint cache shared between the
-  // bootstrap syncVisibilitySources call (in registerBridgeSystems) and
-  // the per-tick visibilitySystem. The per-tick system uses these to
-  // detect "no source moved this tick" and skip the visibility cell's
-  // markDirty path; without sharing the bootstrap-populated cache, tick 1
-  // would redundantly re-setSource every entity. Save/load doesn't
-  // round-trip these — every bridge construction (fresh world or post-
-  // load) starts with an empty Map and the bootstrap call (which runs
-  // after world hydration, before tick 1) repopulates it from world.query.
-  const visibilityFingerprints = new Map<
-    number,
-    import('./visibility').VisibilitySourceFingerprint
-  >();
-
-  const trebuchetStateOps = createTrebuchetStateOps(accessor);
-
   const {
+    visibilityCell,
+    visibilityFingerprints,
+    trebuchetStateOps,
     getOrCreateMemoryMap,
     getFogMemoryEntities,
     getHumanFogMemorySize,
-  } = createFogMemoryOps({
-    accessor,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    visibility,
-  });
-
-  const { getDebugSnapshot } = createDebugSnapshotOps({ world, accessor });
-
-  const matchEndOps = createMatchEndOps({
-    world,
-    matchState,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    state,
-    accessor,
-  });
-  const { getHumanWonderCountdownTicks, getHumanRelicCountdownTicks } = matchEndOps;
-
-  const transformOps = createTransformOps({
-    world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    worldOccupancy,
-    tiles,
-    accessor,
-    isBootstrappingScenario: () => isBootstrappingScenarioRef.current,
-  });
-  const {
+    getDebugSnapshot,
+    matchEndOps,
+    getHumanWonderCountdownTicks,
+    getHumanRelicCountdownTicks,
+    transformOps,
     syncUnitTransformToPosition,
     setPositionAndSyncOccupancy,
     clearPositionAndSyncOccupancy,
-    syncSpawnedEntityOccupancy,
     rebuildWorldOccupancyFromWorld,
-  } = transformOps;
-
-  const playerQueries = createPlayerQueries({ world, state, accessor });
-  const {
-    hasTechnology,
-    hasCompletedBuilding,
+    playerQueries,
     getPlayerAge,
-    getPlayerCivilization,
-    isAtLeastAge,
-    countCompletedAgePrerequisites,
-    canAdvanceToFeudalAge,
-    canAdvanceToCastleAge,
-    canAdvanceToImperialAge,
-    latestResearchedInChain,
-    hasOwnedWonder,
-  } = playerQueries;
-
-  const {
     getTrainOptions,
     getResearchOptions,
     getVisibleResearchOptions,
     getMarketOptions,
     getBuildOptions,
-  } = createOptionsRules({
-    latestResearchedInChain,
-    hasTechnology,
-    getPlayerAge,
-    isAtLeastAge,
-    getPlayerCivilization,
-    canAdvanceToFeudalAge,
-    canAdvanceToCastleAge,
-    canAdvanceToImperialAge,
-    hasCompletedBuilding,
-    hasOwnedWonder,
-  });
-
-  // agent-affordances A1: shared reason engine (validator messages + buildingOptionsOps).
-  const { researchUnavailableReason } = createResearchAvailability({
-    getPlayerAge,
-    hasTechnology,
-    countCompletedAgePrerequisites,
-    getResearchOptions,
-  });
-
-  const createCombatState = createCombatStateFactory({ hasTechnology, getCivilization: getPlayerCivilization });
-
-  const entityCreateOps = createEntityCreateOps({
-    world,
-    wonderCountdownTicks: WONDER_COUNTDOWN_TICKS,
-    state,
-    accessor,
-    ensurePlayerScoreCounters,
+    researchUnavailableReason,
     createCombatState,
-    syncSpawnedEntityOccupancy,
-    getEntityRef,
-  });
-  const { addUnitEntity, addBuildingEntity, addResourceEntity } = entityCreateOps;
-
-  const {
+    entityCreateOps,
+    addUnitEntity,
+    addBuildingEntity,
+    addResourceEntity,
     buildingOccupiesCell,
     isTerrainPassableForUnit,
     isCellBlockedByBuilding,
     isCellBlockedByResource,
-    isCellPassableForSpawn,
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
@@ -197,38 +92,23 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     findOpenPlacementAnchors,
     isGarrisonedUnit,
     getActionOptions,
-  } = createCellPassability({
+    movementPlanOps,
+    getApproachCellsForFootprint,
+    findScenarioSpawnPosition,
+    findBuildingSpawnPosition,
+    clearGathererOrder,
+  } = wirePreSeedOps({
     world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    state,
+    accessor,
+    visibility,
+    matchState,
     worldOccupancy,
     tiles,
-    accessor,
+    isBootstrappingScenarioRef,
+    ensurePlayerScoreCounters,
+    getEntityRef,
   });
-
-  const movementPlanOps = createMovementPlanOps({
-    world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
-    movePathCache,
-    isCellPassableForUnit,
-    isCellPassableForWildlife,
-  });
-  const {
-    uniquePositions,
-    getApproachCellsForFootprint,
-    getNearestMoveCandidates,
-  } = movementPlanOps;
-
-  const { findScenarioSpawnPosition, findBuildingSpawnPosition } = createSpawnFinders({
-    uniquePositions,
-    getApproachCellsForFootprint,
-    getNearestMoveCandidates,
-    isCellPassableForSpawn,
-    buildingFootprint,
-  });
-  const { clearGathererOrder } = createGathererOrderOps({ world, state, accessor });
 
   if (!savedGame && scenario) {
     seedFreshScenario({
@@ -420,85 +300,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     allocateGroupMoveTargets: worldOccupancy.allocateGroupMoveTargets.bind(worldOccupancy),
     getTrainOptions,
     getResearchOptions,
-    // Phase 1C — AI intention pushers: write to `state.pendingCommands` (dispatcher submits between ticks).
-    pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => {
-      state.pendingCommands.push({
-        type: 'queue.train',
-        data: { buildingId, unitType },
-      });
-    },
-    // v0.1.91: AI market trade for an age-up shortfall (validator gates ownership + afford).
-    pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => {
-      state.pendingCommands.push({ type: 'market.action', data: { playerId, actionType } });
-    },
-    pushQueueResearchIntention: (
-      buildingId: number,
-      technologyType: ResearchableTechnologyType,
-    ) => {
-      state.pendingCommands.push({
-        type: 'queue.research',
-        data: { buildingId, technologyType },
-      });
-    },
-    pushBuildingPlaceConfirmIntention: (
-      builderId: number,
-      buildingType: BuildableBuildingType,
-      anchor: Position,
-    ) => {
-      state.pendingCommands.push({
-        type: 'building.placeConfirm',
-        data: { builderId, buildingType, position: anchor },
-      });
-    },
-    pushMonkContextAtEntityIntention: (
-      monkId: number,
-      targetEntityId: number,
-      options: {
-        expectedOwner: number;
-        intendedTaskKind: import('./sharedTypes').MonkTask['kind'];
-      },
-    ) => {
-      state.pendingCommands.push({
-        type: 'monk.contextAtEntity',
-        data: { unitId: monkId, targetEntityId, ...options },
-      });
-    },
-    // Pass the queue by reference (aiSystem captures it once + reads it every
-    // tick to fold pending intentions into its gates). The dispatcher must
-    // mutate `state.pendingCommands` IN PLACE (push + length=0) — never reassign
-    // it, or aiSystem's captured reference goes stale and the gates break.
-    pendingCommands: state.pendingCommands,
+    // Phase 1B/1C — AI intention pushers + the pending-command queue by
+    // reference. Spread in from aiIntentionPushers (order-independent —
+    // registerBridgeSystems destructures its deps by name).
+    ...createAiIntentionPushers({ state }),
     issueUnitAttackCommand,
-    // Phase 1B unit.attack (DESIGN v17 §6.5): AI systems push to
-    // `pendingCommands`. Returns `true` so callers can keep `if (issued)` flow.
-    pushUnitAttackIntention: (
-      attackerId: number,
-      targetId: number,
-      targetKind: 'unit' | 'building' | 'resource',
-    ) => {
-      state.pendingCommands.push({
-        type: 'unit.attack',
-        data: { unitId: attackerId, targetEntityId: targetId, targetEntityKind: targetKind },
-      });
-      return true;
-    },
-    // Phase 1B unit.attack (post review-impl-3): preserves the pre-1B
-    // priority where aiSystem's strategic target wins over autoAggression's
-    // local target when both want the same unit on the same tick. Linear
-    // scan over the queue (typically <10 entries per tick during AI macro);
-    // returns true if any unit.move/unit.attack intention is queued for the
-    // given unit.
-    hasPendingUnitCommand: (unitId: number) => hasPendingUnitCommand(state.pendingCommands, unitId),
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
-    // Phase 1B unit.move (DESIGN v17 §6.5): AI-decision systems push to
-    // `pendingCommands` during `execute`; the dispatcher submits between
-    // ticks. Returns `true` so callers can preserve their existing
-    // `if (issued)` flow even though the actual handler runs at next step.
-    pushUnitMoveIntention: (unitId: number, target: Position) => {
-      state.pendingCommands.push({ type: 'unit.move', data: { unitId, target } });
-      return true;
-    },
     distanceToBuilding,
     findBuildingSpawnPosition,
     applyTechnology,
