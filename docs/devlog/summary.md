@@ -1,3 +1,6 @@
+## 2026-07-09 (propose-fix codex pin sync)
+- **Internal tooling:** synced the secondary review-pin site `scripts/propose-fix.mjs` — Codex reviewer pin gpt-5.5/xhigh -> `gpt-5.6-sol`/ultra per the `.claude/skills/multi-cli-review/SKILL.md` pins table; smoke-verified live on codex-cli 0.144.1; Claude pin untouched (spec §15.7). Closes the AGENTS.md-restructure follow-up chip. No version bump.
+
 ## 2026-07-09 (AGENTS.md restructure)
 - **Process docs:** multi-CLI review mechanics moved from AGENTS.md into `.claude/skills/multi-cli-review/SKILL.md` (single review-pin bump site + codex extraction recipe); AGENTS.md now opens with Session start reads, scopes plan-writing to non-trivial changes, states the real file-size gate (hard 500 + shrink-only legacy ratchet in fileSizeBudget.test.ts), and routes the playtest model policy to spec §15.7. Adversarial review fixed 1 HIGH (LOC wording contradicted the gate) + 2 MEDIUM pre-commit; propose-fix.mjs codex-pin drift (gpt-5.5/xhigh) chipped as follow-up. Docs only — no version bump.
 

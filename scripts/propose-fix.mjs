@@ -212,9 +212,9 @@ if (args.reviewer === 'claude') {
     [
       'exec',
       '--model',
-      'gpt-5.5',
+      'gpt-5.6-sol',
       '-c',
-      'model_reasoning_effort=xhigh',
+      'model_reasoning_effort=ultra',
       '-c',
       'approval_policy=never',
       '--sandbox',
