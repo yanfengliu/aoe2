@@ -30,7 +30,6 @@ const FILE_EXTS = ['.ts', '.tsx'];
 // file exceeds this. To shrink: split the file, drop the entry. To
 // regress: the test fails (do not raise the entry).
 const LEGACY_VIOLATIONS: Record<string, number> = {
-  'src/phaser/scenes/GameScene.ts': 1018,
   // Was 505 at HEAD before this entry was added — discovered while
   // running `npm test` for the ClaudeCodeProvider work and absent
   // from the existing list. Ratchet downward by splitting along the
