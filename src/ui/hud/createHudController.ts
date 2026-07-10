@@ -25,7 +25,7 @@ import {
   formatCountdownTicks,
   formatMatchTime,
 } from './displayNames';
-import { drawMinimap, getMinimapLayout } from './minimap';
+import { drawMinimap, getMinimapLayout, minimapToCell } from './minimap';
 import { createSelectionPanel } from './selectionPanel';
 import { createGameMenu } from './gameMenu';
 
@@ -286,23 +286,15 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       const canvasScaleY = minimap.height / bounds.height;
       const localX = (clientX - bounds.left) * canvasScaleX;
       const localY = (clientY - bounds.top) * canvasScaleY;
-      if (
-        localX < layout.offsetX
-        || localX > layout.offsetX + layout.drawWidth
-        || localY < layout.offsetY
-        || localY > layout.offsetY + layout.drawHeight
-      ) {
+      // Invert the diamond projection to a cell, then reject clicks that land
+      // outside the map diamond (the canvas corners are off-map).
+      const { cellX, cellY } = minimapToCell(localX, localY, layout);
+      if (cellX < 0 || cellX > frame.mapWidth || cellY < 0 || cellY > frame.mapHeight) {
         return;
       }
-
-      const normalizedX = (localX - layout.offsetX) / layout.drawWidth;
-      const normalizedY = (localY - layout.offsetY) / layout.drawHeight;
       // centerCameraOnWorldPosition takes CELL coordinates (it projects to iso
-      // internally), so map the normalized minimap position to a cell directly.
-      bridge.centerCameraOnWorldPosition(
-        normalizedX * frame.mapWidth,
-        normalizedY * frame.mapHeight,
-      );
+      // internally).
+      bridge.centerCameraOnWorldPosition(cellX, cellY);
     };
 
     const handleTrackedMinimapMouseMove = (event: MouseEvent): void => {

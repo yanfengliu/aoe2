@@ -141,6 +141,9 @@ export async function getGameCanvasMetrics(page: Page): Promise<{
   });
 }
 
+// The minimap is an iso DIAMOND (matches src/ui/hud/minimap.ts). Callers pass
+// normalized map fractions (cellX/mapWidth, cellY/mapHeight); this projects the
+// corresponding cell through the same diamond transform to a screen point.
 export async function getMinimapPoint(
   page: Page,
   normalizedX: number,
@@ -154,17 +157,27 @@ export async function getMinimapPoint(
       }
 
       const bounds = canvas.getBoundingClientRect();
-      const scale = Math.min(canvas.width / frame.mapWidth, canvas.height / frame.mapHeight);
-      const drawWidth = frame.mapWidth * scale;
-      const drawHeight = frame.mapHeight * scale;
-      const offsetX = (canvas.width - drawWidth) * 0.5;
-      const offsetY = (canvas.height - drawHeight) * 0.5;
+      // Mirror getMinimapLayout + cellToMinimap in src/ui/hud/minimap.ts. This
+      // math is duplicated because the helper runs in page-eval context and
+      // cannot import the module — KEEP IN SYNC with minimap.ts (span, the
+      // 0.96 margin, hw/hh, originX/originY) if the projection changes.
+      const span = frame.mapWidth + frame.mapHeight;
+      const margin = 0.96;
+      const hw = Math.min(canvas.width / span, (2 * canvas.height) / span) * margin;
+      const hh = hw / 2;
+      const originX = canvas.width / 2 - ((frame.mapWidth - frame.mapHeight) / 2) * hw;
+      const originY = canvas.height / 2 - ((frame.mapWidth + frame.mapHeight) / 2) * hh;
+
+      const cellX = point.x * frame.mapWidth;
+      const cellY = point.y * frame.mapHeight;
+      const px = originX + (cellX - cellY) * hw;
+      const py = originY + (cellX + cellY) * hh;
+
       const cssScaleX = bounds.width / canvas.width;
       const cssScaleY = bounds.height / canvas.height;
-
       return {
-        x: bounds.left + (offsetX + drawWidth * point.x) * cssScaleX,
-        y: bounds.top + (offsetY + drawHeight * point.y) * cssScaleY,
+        x: bounds.left + px * cssScaleX,
+        y: bounds.top + py * cssScaleY,
       };
     },
     { x: normalizedX, y: normalizedY },

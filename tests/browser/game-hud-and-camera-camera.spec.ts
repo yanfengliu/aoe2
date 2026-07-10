@@ -303,27 +303,49 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
         return false;
       }
 
-      // Iso camera: the minimap viewport rect is the visible CELL AABB mapped
-      // onto the minimap's cell grid (mirrors getMinimapViewportState).
-      const scale = Math.min(
-        minimap.width / frame.mapWidth,
-        minimap.height / frame.mapHeight,
-      );
-      const drawWidth = frame.mapWidth * scale;
-      const drawHeight = frame.mapHeight * scale;
-      const offsetX = (minimap.width - drawWidth) * 0.5;
-      const offsetY = (minimap.height - drawHeight) * 0.5;
-      const cellToDrawX = (cellX: number) => offsetX + (cellX / frame.mapWidth) * drawWidth;
-      const cellToDrawY = (cellY: number) => offsetY + (cellY / frame.mapHeight) * drawHeight;
+      // Iso DIAMOND minimap (v0.1.130): the viewport dataset is the bounding
+      // box of the visible CELL AABB projected through the diamond transform
+      // (mirrors getMinimapLayout + cellToMinimap in src/ui/hud/minimap.ts).
+      const span = frame.mapWidth + frame.mapHeight;
+      const hw = Math.min(minimap.width / span, (2 * minimap.height) / span) * 0.96;
+      const hh = hw / 2;
+      const originX = minimap.width / 2 - ((frame.mapWidth - frame.mapHeight) / 2) * hw;
+      const originY = minimap.height / 2 - ((frame.mapWidth + frame.mapHeight) / 2) * hh;
+      const project = (cellX: number, cellY: number) => ({
+        x: originX + (cellX - cellY) * hw,
+        y: originY + (cellX + cellY) * hh,
+      });
+      const corners = [
+        project(camera.viewCellMinX, camera.viewCellMinY),
+        project(camera.viewCellMaxX, camera.viewCellMinY),
+        project(camera.viewCellMaxX, camera.viewCellMaxY),
+        project(camera.viewCellMinX, camera.viewCellMaxY),
+      ];
+      const xs = corners.map((c) => c.x);
+      const ys = corners.map((c) => c.y);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
       const expectedViewport = {
         active: true,
-        x: Number(cellToDrawX(camera.viewCellMinX).toFixed(2)),
-        y: Number(cellToDrawY(camera.viewCellMinY).toFixed(2)),
-        width: Number((cellToDrawX(camera.viewCellMaxX) - cellToDrawX(camera.viewCellMinX)).toFixed(2)),
-        height: Number((cellToDrawY(camera.viewCellMaxY) - cellToDrawY(camera.viewCellMinY)).toFixed(2)),
+        x: Number(minX.toFixed(2)),
+        y: Number(minY.toFixed(2)),
+        width: Number((Math.max(...xs) - minX).toFixed(2)),
+        height: Number((Math.max(...ys) - minY).toFixed(2)),
       };
 
-      return JSON.stringify(viewport) === JSON.stringify(expectedViewport);
+      // Tolerance compare (not exact toFixed): the dataset is written one RAF
+      // behind the camera snapshot read here, and the diamond bbox folds BOTH
+      // cell axes into every coordinate, so a sub-pixel camera drift shifts all
+      // four fields. 1.5px tolerance confirms the viewport tracks the AABB
+      // without demanding the two frame-lagged reads be bit-identical.
+      const near = (a: number, b: number) => Math.abs(a - b) <= 1.5;
+      return (
+        viewport.active === expectedViewport.active
+        && near(viewport.x, expectedViewport.x)
+        && near(viewport.y, expectedViewport.y)
+        && near(viewport.width, expectedViewport.width)
+        && near(viewport.height, expectedViewport.height)
+      );
     }).toBe(true);
   });
 

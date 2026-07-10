@@ -1361,7 +1361,7 @@ The command panel must be context-sensitive:
 
 Required behavior:
 
-- minimap with terrain, visibility, viewport, and high-contrast entity marker representation
+- minimap with terrain, visibility, viewport, and high-contrast entity marker representation. The minimap is projected as an ISOMETRIC DIAMOND matching the world camera angle (the same 2:1 `cellX-cellY` / `cellX+cellY` transform the game view uses, scaled to fit and centred in the minimap canvas) rather than a top-down rectangle: terrain and fog tile the diamond, entity markers are fixed-size dark-backed dots at their projected cell centres, and the camera viewport draws as a projected quad. Click/drag-to-pan inverts the diamond projection to a cell and ignores clicks that fall outside the map diamond (the canvas corners are off-map). Shipped v0.1.130.
 - attack alerts
 - research-complete notifications
 - age-up notifications

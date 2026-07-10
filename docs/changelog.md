@@ -2,7 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.1.129 - 2026-07-10
+## 0.1.130 - 2026-07-10
+
+### The minimap is now an isometric diamond
+
+The minimap matches the game's camera angle: the map projects as a rotated 2:1 diamond (the same isometric transform the world view uses) instead of a top-down rectangle. Terrain and fog tile the diamond, entity markers sit at their projected positions, and the camera viewport draws as a diamond-aligned quad. Click- and drag-to-pan still work — a click is projected back to the map cell under it, and clicks that land on the off-map corners of the minimap panel are ignored.
 
 ### Dying units collapse instead of blinking out
 
