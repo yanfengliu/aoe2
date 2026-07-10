@@ -1,7 +1,7 @@
 import { bundleHotspots, type SessionBundle } from 'civ-engine';
 import type { OracleEnvelope, OracleThresholds, OracleViolation } from './types';
 import { ORACLE_DEFAULTS } from './types';
-import { netManhattanProgress, reconstructPositions } from './positionReplay';
+import { noPinnedOrOscillatingUnits } from './pinnedUnitsOracle';
 
 type OracleFn = (
   bundle: SessionBundle,
@@ -78,132 +78,11 @@ const noPerfRegression: OracleFn = (bundle, _envelope, thresholds) => {
   return violations;
 };
 
-const noPinnedOrOscillating: OracleFn = (bundle, _envelope, thresholds) => {
-  const timeline = reconstructPositions(bundle);
-  const violations: OracleViolation[] = [];
-  const window = thresholds.pinnedWindowTicks;
-  const minProgress = thresholds.pinnedNetProgressCells;
-  const endTick = bundle.metadata.endTick ?? bundle.metadata.startTick;
-
-  // Only consider unit entities. The bundle stores positions for terrain
-  // tiles, resources, and buildings too — all stationary by design — so
-  // checking position alone produces false positives. Build a set of any
-  // entity that ever held a `unit` component, plus the tick at which it
-  // stopped being a unit (destruction → unit.removed). Entities that were
-  // garrisoned (position removed but unit kept) are tracked via the
-  // timeline's activeUntil map, returned by reconstructPositions.
-  const wasEverUnit = new Set<number>();
-  const unitRemovedAt = new Map<number, number>();
-  const initialUnits = (bundle.initialSnapshot as { components?: Record<string, unknown> })
-    .components?.unit;
-  if (Array.isArray(initialUnits)) {
-    for (const [id] of initialUnits as Array<[number, unknown]>) {
-      wasEverUnit.add(id);
-    }
-  }
-  for (const tickEntry of bundle.ticks) {
-    const unitDiff = (tickEntry.diff.components as Record<string, unknown>)?.unit as
-      | { set?: Array<[number, unknown]>; removed?: number[] }
-      | undefined;
-    if (!unitDiff) continue;
-    for (const [id] of unitDiff.set ?? []) {
-      wasEverUnit.add(id);
-      unitRemovedAt.delete(id);
-    }
-    for (const id of unitDiff.removed ?? []) {
-      unitRemovedAt.set(id, tickEntry.tick);
-    }
-  }
-
-  for (const [entity, events] of timeline.byEntity) {
-    if (!wasEverUnit.has(entity)) continue;
-    if (events.length === 0) continue;
-
-    // Effective evaluation horizon: the earliest of {position.removed,
-    // unit.removed, bundle endTick}. Past this tick the entity either no
-    // longer existed in-world (destroyed) or was inside a building
-    // (garrisoned), and a "stationary" verdict is meaningless.
-    const positionUntil = timeline.activeUntil.get(entity) ?? endTick;
-    const unitUntil = unitRemovedAt.get(entity) ?? endTick;
-    const effectiveEnd = Math.min(positionUntil, unitUntil, endTick);
-
-    // Pinned-with-no-diffs case: the unit was seeded with an initial position
-    // and never emitted a position change.
-    if (events.length === 1) {
-      const last = events[0]!;
-      if (effectiveEnd - last.tick >= window) {
-        violations.push({
-          oracle: 'no-pinned-or-oscillating-units',
-          severity: 'medium',
-          tick: last.tick,
-          message: `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y}) for ${effectiveEnd - last.tick} ticks after tick ${last.tick}`,
-          details: {
-            entity,
-            sinceTick: last.tick,
-            durationTicks: effectiveEnd - last.tick,
-            position: last.pos,
-          },
-        });
-      }
-      continue;
-    }
-
-    // Oscillating / pinned-with-diffs case: slide a window through the
-    // events; report when net Manhattan progress within the window is below
-    // minProgress.
-    let firedSliding = false;
-    for (let i = 0; i < events.length; i++) {
-      const start = events[i]!.tick;
-      const end = start + window;
-      if (end > events[events.length - 1]!.tick) break;
-      const progress = netManhattanProgress(events, start, end);
-      if (progress < minProgress) {
-        violations.push({
-          oracle: 'no-pinned-or-oscillating-units',
-          severity: 'medium',
-          tick: start,
-          message:
-            `unit ${entity} stayed within ${progress} cells of its starting position`
-            + ` over ticks ${start}..${end}`,
-          details: { entity, windowStart: start, windowEnd: end, progress },
-        });
-        firedSliding = true;
-        break;
-      }
-    }
-    if (firedSliding) continue;
-
-    // Tail-pinned case: the unit had multiple movements but became stuck
-    // after its last position event with no further diffs. Catches the
-    // "moved once, then got stuck" failure mode the sliding-window loop
-    // misses. The effective horizon clamps so garrisoning/destruction
-    // doesn't masquerade as pinning.
-    const last = events[events.length - 1]!;
-    if (effectiveEnd - last.tick >= window) {
-      violations.push({
-        oracle: 'no-pinned-or-oscillating-units',
-        severity: 'medium',
-        tick: last.tick,
-        message:
-          `unit ${entity} stayed at (${last.pos.x}, ${last.pos.y})`
-          + ` for ${effectiveEnd - last.tick} ticks after tick ${last.tick}`,
-        details: {
-          entity,
-          sinceTick: last.tick,
-          durationTicks: effectiveEnd - last.tick,
-          position: last.pos,
-        },
-      });
-    }
-  }
-  return violations;
-};
-
 const ORACLES: OracleFn[] = [
   matchCompletes,
   noTickFailures,
   noPerfRegression,
-  noPinnedOrOscillating,
+  noPinnedOrOscillatingUnits,
 ];
 
 // economy-progression is intentionally NOT registered. Implementing it

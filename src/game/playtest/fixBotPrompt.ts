@@ -3,6 +3,9 @@ import type { OracleViolation } from './types';
 const SOURCE_FILES_BY_ORACLE: Record<string, string[]> = {
   'no-pinned-or-oscillating-units': [
     'src/game/simulation/bridge/systems/playerCommandsSystem.ts',
+    // Scout wander owns the class's real bugs so far (wedge, reflection-
+    // cancelled rotation, pocket orbit — v0.1.128 pass).
+    'src/game/simulation/bridge/systems/scoutMovementSystem.ts',
     'src/game/simulation/worldOccupancy.ts',
     'src/game/simulation/worldOccupancyAllocators.ts',
   ],

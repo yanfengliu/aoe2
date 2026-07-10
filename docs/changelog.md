@@ -2,7 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.1.127 - 2026-07-09
+## 0.1.128 - 2026-07-09
+
+### AI scouts patrol reliably; pinned-unit detection stops crying wolf
+
+Both AI scouts now actually patrol for the whole match. Previously the base scout wedged against its own Town Center footprint within a few ticks (the wander step reset its sub-cell transform on an impassable next cell but never changed heading), and the forward enemy scout never moved at all (spawned without wander state). Scouts also no longer freeze at wander-box edges: when the next cell is blocked, the scout re-picks its heading by emulating each candidate's stepped path — box reflection included — instead of blindly rotating 90°, which the edge reflection could cancel into a permanent two-state freeze (observed live: a scout frozen 2502 ticks beside its own forward house). A deterministic patrol kick (heading rotation every 400 ticks, staggered per unit, angle cycling) keeps the otherwise-deterministic bounce dynamics from settling into a closed orbit inside a pocket of water/forest/resources — the prove rerun caught the forward scout circling a 5-cell pocket for 2963 ticks with an open exit to the south — and a scout stranded outside its box by a chase now walks home stepwise instead of teleporting to the box edge. Replays and saves stay deterministic.
+
+The `no-pinned-or-oscillating-units` playtest oracle was rebuilt to evaluate per unit-lifetime interval (entity-id reuse no longer conflates a berry bush with the villager that inherited its id — including same-tick kill-and-reuse, which the engine nets into a single component set), skip owners nothing drives (an inert human's idle units are correct, not pinned; drivenness resolves through an explicit per-command actor whitelist), exclude garrison stays from confinement (a garrison round-trip is not a pin), and detect two confinement shapes: PINNED (inside a 3-cell box ≥ 1200 ticks) and OSCILLATING (still moving, but trapped inside a 6-cell box ≥ 1200 ticks — the shuttle livelock the tight box alone cannot see). Confined spans are exempt only while the latest snapshot 'gathering' sample is fresh (a zero-walk gold miner adjacent to both mine and Town Center is optimal, not stuck; a stale sample no longer excuses a later freeze). A frozen `to-resource` villager still fires. Validation: the 16 baseline violations at the canary seed went to 0 on rerun with a strong replay self-check; unit tests pin the exact recorded trap geometry, id reuse (both shapes), the undriven-owner gate, the gathering-suffix exemption, garrison round-trips, wide-box oscillation, and a per-600-tick-block distinct-cell bound over 2000 live ticks.
 
 ### Oracle canary drill
 

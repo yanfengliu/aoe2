@@ -12,7 +12,9 @@ import {
   DEFAULT_RELIC_POSITIONS,
   FORWARD_ENEMY_HOUSE_POSITION,
   FORWARD_ENEMY_SCOUT_POSITION,
+  scoutWanderBoundsAround,
 } from './startingOffsets';
+import { orientationFor } from './sharedTerrainHelpers';
 
 export function createDefaultMap(seed: string): PrototypeScenario {
   const terrain = createBaseTerrain(seed);
@@ -54,12 +56,20 @@ export function createDefaultMap(seed: string): PrototypeScenario {
     owner: 2,
     baseOwner: 2,
   });
+  // The forward scout patrols mid-map instead of standing on its anchor
+  // forever (it spawned without wander state until the 2026-07-09
+  // pinned-units fix, so it never moved for entire matches).
   spawns.addUnitSpawn({
     kind: 'scout',
     x: FORWARD_ENEMY_SCOUT_POSITION.x,
     y: FORWARD_ENEMY_SCOUT_POSITION.y,
     owner: 2,
     baseOwner: 2,
+    velocity: {
+      dx: orientationFor(FORWARD_ENEMY_SCOUT_POSITION).x,
+      dy: orientationFor(FORWARD_ENEMY_SCOUT_POSITION).y,
+    },
+    wanderBounds: scoutWanderBoundsAround(FORWARD_ENEMY_SCOUT_POSITION),
     vision: { playerId: 2, radius: 6 },
   });
 

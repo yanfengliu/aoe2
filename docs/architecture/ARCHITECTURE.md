@@ -21,9 +21,12 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       to `bridge.world` directly, distinct from the live-game
       `RecordingService`); `oracles.ts` hosts pure
       gameplay-correctness oracles (match-completes, no-tick-failures,
-      no-perf-regression, no-pinned-or-oscillating-units) consumed by
-      `scripts/run-oracles.mjs`; `positionReplay.ts` reconstructs unit
-      positions tick-by-tick from initial snapshot + diffs; `fixBotPrompt.ts`
+      no-perf-regression) consumed by `scripts/run-oracles.mjs` and
+      delegates no-pinned-or-oscillating-units to `pinnedUnitsOracle.ts`
+      (unit-lifetime intervals, drivenness gate, tight/wide confinement
+      boxes, gathering-suffix exemption); `positionReplay.ts` reconstructs
+      unit positions tick-by-tick from initial snapshot + diffs, including
+      garrison position gaps; `fixBotPrompt.ts`
       builds the prompt for `scripts/propose-fix.mjs` (Codex / Claude
       shell-out, propose-only via `git apply --check`);
       `visualPlaytestAdapter.ts` is the civ-engine v1.3 visual-playtest

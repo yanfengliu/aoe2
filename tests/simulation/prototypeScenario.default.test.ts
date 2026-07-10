@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_SEED,
+  FORWARD_ENEMY_SCOUT_POSITION,
   MAP_HEIGHT,
   MAP_WIDTH,
   createPrototypeScenario,
@@ -24,11 +25,18 @@ describe('createPrototypeScenario — default + conquest', () => {
       scenario.spawns.filter(
         (spawn) => spawn.kind === kind && (baseOwner === undefined || spawn.baseOwner === baseOwner),
       ).length;
+    // Every scout (both starting scouts + the forward enemy scout) carries
+    // wander state since the 2026-07-09 pinned-units fix; the movement
+    // system only activates it for AI-driven owners.
     const startingScouts = scenario.spawns.filter(
       (spawn) => spawn.kind === 'scout' && spawn.wanderBounds !== undefined,
     );
     const forwardEnemyScout = scenario.spawns.find(
-      (spawn) => spawn.kind === 'scout' && spawn.owner === 2 && spawn.wanderBounds === undefined,
+      (spawn) =>
+        spawn.kind === 'scout'
+        && spawn.owner === 2
+        && spawn.x === FORWARD_ENEMY_SCOUT_POSITION.x
+        && spawn.y === FORWARD_ENEMY_SCOUT_POSITION.y,
     );
     const forwardEnemyHouse = scenario.spawns.find(
       (spawn) => spawn.kind === 'house' && spawn.owner === 2,
@@ -42,8 +50,10 @@ describe('createPrototypeScenario — default + conquest', () => {
     expect(countBy('villager')).toBe(6);
     expect(countBy('scout')).toBe(3);
     expect(countBy('house')).toBe(1);
-    expect(startingScouts).toHaveLength(1);
+    expect(startingScouts).toHaveLength(3);
     expect(forwardEnemyScout).toBeDefined();
+    expect(forwardEnemyScout?.velocity).toBeDefined();
+    expect(forwardEnemyScout?.wanderBounds).toBeDefined();
     expect(forwardEnemyHouse).toBeDefined();
     expect(humanStart).toBeDefined();
     expect(enemyStart).toBeDefined();
@@ -68,7 +78,10 @@ describe('createPrototypeScenario — default + conquest', () => {
     }
   });
 
-  it('spawns human starting units without autonomous roam state', () => {
+  it('spawns every scout with wander state (runtime gate keeps human slots manual)', () => {
+    // The spawn spec is uniform so the same map serves human, inert, and
+    // all-AI runs; scoutMovementSystem skips the human slot unless it has a
+    // forced AI state (behavior pinned by scoutWander.test.ts).
     const scenario = createPrototypeScenario(DEFAULT_SEED);
     const humanScout = scenario.spawns.find(
       (spawn) => spawn.kind === 'scout' && spawn.owner === 1,
@@ -78,12 +91,14 @@ describe('createPrototypeScenario — default + conquest', () => {
     );
 
     expect(humanScout).toBeDefined();
-    expect(humanScout?.velocity).toBeUndefined();
-    expect(humanScout?.wanderBounds).toBeUndefined();
+    expect(humanScout?.velocity).toBeDefined();
+    expect(humanScout?.wanderBounds).toBeDefined();
 
     expect(enemyScout).toBeDefined();
     expect(enemyScout?.velocity).toBeDefined();
     expect(enemyScout?.wanderBounds).toBeDefined();
+    // 2-D wander: a zero dy ping-pongs one row and covers no area.
+    expect(enemyScout?.velocity?.dy).not.toBe(0);
   });
 
   it('keeps the town-center area open and buildable', () => {

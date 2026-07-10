@@ -30,11 +30,11 @@ const FILE_EXTS = ['.ts', '.tsx'];
 // file exceeds this. To shrink: split the file, drop the entry. To
 // regress: the test fails (do not raise the entry).
 const LEGACY_VIOLATIONS: Record<string, number> = {
-  // Was 505 at HEAD before this entry was added — discovered while
-  // running `npm test` for the ClaudeCodeProvider work and absent
-  // from the existing list. Ratchet downward by splitting along the
-  // describe blocks (perf / economy / etc).
-  'tests/playtest/oracles.test.ts': 505,
+  // 2026-07-10: the map is EMPTY — the four src/ violators split in the
+  // file-size-budget arc (GameScene, aiSystem, IndexedDBMirror,
+  // wireBridgeOps) and tests/playtest/oracles.test.ts split with the
+  // pinned-units oracle rework (suites moved to pinnedUnitsOracle*.test.ts,
+  // remainder ~250 lines). One-way ratchet: do not re-add entries.
 };
 
 function walk(root: string, base = root): string[] {

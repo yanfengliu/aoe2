@@ -8,11 +8,18 @@ export interface PositionTimeline {
   // Tick at which each entity's position component was removed (garrisoned,
   // destroyed, etc.). Absent = still active through bundle endTick.
   activeUntil: Map<EntityId, number>;
+  // Closed position gaps per entity: [removed tick, next re-set tick). A
+  // garrison round-trip leaves one gap; oracles must not treat the gap as
+  // time the unit spent standing in the world (2026-07-10 review probe: a
+  // 1400-tick garrison stay read as a 1650-tick pin). The final, still-open
+  // gap (if any) is in activeUntil, not here.
+  gaps: Map<EntityId, Array<{ from: number; to: number }>>;
 }
 
 export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
   const byEntity = new Map<EntityId, Array<{ tick: number; pos: Position }>>();
   const activeUntil = new Map<EntityId, number>();
+  const gaps = new Map<EntityId, Array<{ from: number; to: number }>>();
 
   // Seed from initial snapshot. WorldSnapshot.components is shaped as
   // Record<string, Array<[EntityId, T]>> (per civ-engine serializer.d.ts:66),
@@ -40,25 +47,20 @@ export function reconstructPositions(bundle: SessionBundle): PositionTimeline {
       const arr = byEntity.get(id) ?? [];
       arr.push({ tick: tickEntry.tick, pos });
       byEntity.set(id, arr);
-      // A re-set after removal reactivates the entity for oracle evaluation.
-      activeUntil.delete(id);
+      // A re-set after removal reactivates the entity for oracle evaluation
+      // and closes the open gap.
+      const openGapStart = activeUntil.get(id);
+      if (openGapStart !== undefined) {
+        const list = gaps.get(id) ?? [];
+        list.push({ from: openGapStart, to: tickEntry.tick });
+        gaps.set(id, list);
+        activeUntil.delete(id);
+      }
     }
     for (const id of (positionDiff.removed ?? [])) {
       activeUntil.set(id, tickEntry.tick);
     }
   }
 
-  return { byEntity, activeUntil };
-}
-
-export function netManhattanProgress(
-  events: Array<{ tick: number; pos: Position }>,
-  windowStart: number,
-  windowEnd: number,
-): number {
-  const inWindow = events.filter((e) => e.tick >= windowStart && e.tick <= windowEnd);
-  if (inWindow.length < 2) return 0;
-  const first = inWindow[0]!.pos;
-  const last = inWindow[inWindow.length - 1]!.pos;
-  return Math.abs(last.x - first.x) + Math.abs(last.y - first.y);
+  return { byEntity, activeUntil, gaps };
 }

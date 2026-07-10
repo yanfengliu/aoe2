@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SessionBundle } from 'civ-engine';
 import { runOracles } from '../../src/game/playtest/oracles';
 import { ORACLE_DEFAULTS, type OracleEnvelope } from '../../src/game/playtest/types';
-import { netManhattanProgress, reconstructPositions } from '../../src/game/playtest/positionReplay';
+import { reconstructPositions } from '../../src/game/playtest/positionReplay';
 
 interface BundleOverrides {
   ticks?: SessionBundle['ticks'];
@@ -240,266 +240,32 @@ describe('reconstructPositions', () => {
     ]);
   });
 
-  it('netManhattanProgress sums absolute deltas in the window', () => {
-    const events = [
-      { tick: 0, pos: { x: 0, y: 0 } },
-      { tick: 5, pos: { x: 3, y: 0 } },
-      { tick: 10, pos: { x: 0, y: 0 } },
-    ];
-    expect(netManhattanProgress(events, 0, 10)).toBe(0);
-    expect(netManhattanProgress(events, 0, 5)).toBe(3);
-  });
-});
-
-describe('no-pinned-or-oscillating-units oracle', () => {
-  function emptyDiff(tick: number) {
-    return {
+  it('records garrison round-trips as position gaps', () => {
+    const gapDiff = (tick: number, position: Record<string, unknown>) => ({
       tick,
-      components: {},
-      state: { set: [], removed: [] },
-      tags: [],
-      entities: { created: [], destroyed: [] },
-      resources: {},
-      metadata: [],
-    };
-  }
-  function diffWithPosition(tick: number, entity: number, pos: { x: number; y: number }) {
-    return {
-      tick,
-      components: { position: { set: [[entity, pos]], removed: [] } },
-      state: { set: [], removed: [] },
-      tags: [],
-      entities: { created: [], destroyed: [] },
-      resources: {},
-      metadata: [],
-    };
-  }
-
-  it('does not fire when units make progress', () => {
-    const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 0, y: 0 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
+      diff: {
+        tick,
+        components: { position },
+        state: { set: [], removed: [] },
+        tags: [],
+        entities: { created: [], destroyed: [] },
+        resources: {},
+        metadata: [],
       },
-      ticks: Array.from({ length: 60 }, (_, i) => ({
-        tick: i + 1,
-        diff: diffWithPosition(i + 1, 1, { x: i + 1, y: 0 }),
-        events: [],
-        metrics: null,
-        debug: null,
-      })) as unknown as SessionBundle['ticks'],
-      endTick: 60,
+      events: [],
+      metrics: null,
+      debug: null,
     });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations).toHaveLength(0);
-  });
-
-  it('fires when a unit is pinned for the full window (no position diffs)', () => {
     const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 5, y: 5 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
-      },
-      ticks: Array.from({ length: 60 }, (_, i) => ({
-        tick: i + 1,
-        diff: emptyDiff(i + 1),
-        events: [],
-        metrics: null,
-        debug: null,
-      })) as unknown as SessionBundle['ticks'],
-      endTick: 60,
-    });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations.length).toBeGreaterThanOrEqual(1);
-    expect(violations[0]!.details).toMatchObject({ entity: 1, position: { x: 5, y: 5 } });
-  });
-
-  it('fires when a unit moved early then stayed put (tail-pinned)', () => {
-    // Unit moves at tick 1 then never again through endTick=200.
-    const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 0, y: 0 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
-      },
+      initialSnapshotComponents: { position: [[5, { x: 1, y: 1 }]] },
       ticks: [
-        {
-          tick: 1,
-          diff: diffWithPosition(1, 1, { x: 1, y: 0 }),
-          events: [],
-          metrics: null,
-          debug: null,
-        },
-        ...Array.from({ length: 199 }, (_, i) => ({
-          tick: i + 2,
-          diff: emptyDiff(i + 2),
-          events: [],
-          metrics: null,
-          debug: null,
-        })),
+        gapDiff(200, { set: [], removed: [5] }),
+        gapDiff(900, { set: [[5, { x: 1, y: 1 }]], removed: [] }),
       ] as unknown as SessionBundle['ticks'],
-      endTick: 200,
+      endTick: 1000,
     });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('does not fire on stationary buildings/resources/terrain (no unit component)', () => {
-    const bundle = makeMinimalBundle({
-      // Only position, no unit — represents terrain/resource/building.
-      initialSnapshotComponents: { position: [[42, { x: 0, y: 0 }]] },
-      ticks: Array.from({ length: 60 }, (_, i) => ({
-        tick: i + 1,
-        diff: emptyDiff(i + 1),
-        events: [],
-        metrics: null,
-        debug: null,
-      })) as unknown as SessionBundle['ticks'],
-      endTick: 60,
-    });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations).toHaveLength(0);
-  });
-
-  it('does not fire when a unit is garrisoned (position removed before window elapses)', () => {
-    // Unit seeded at tick 0; garrisoned (position removed) at tick 5; bundle
-    // runs to tick 200. Pre-fix this would fire a tail-pinned violation
-    // because the timeline preserved the tick-0 event and endTick - 0 ≥ 50.
-    // With the activeUntil fix, effectiveEnd=5, so 5 - 0 < 50 — no violation.
-    const removeAt = 5;
-    const ticks = [
-      {
-        tick: removeAt,
-        diff: {
-          tick: removeAt,
-          components: { position: { set: [], removed: [1] } },
-          state: { set: [], removed: [] },
-          tags: [],
-          entities: { created: [], destroyed: [] },
-          resources: {},
-          metadata: [],
-        },
-        events: [],
-        metrics: null,
-        debug: null,
-      },
-      ...Array.from({ length: 195 }, (_, i) => ({
-        tick: removeAt + i + 1,
-        diff: emptyDiff(removeAt + i + 1),
-        events: [],
-        metrics: null,
-        debug: null,
-      })),
-    ] as unknown as SessionBundle['ticks'];
-    const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 0, y: 0 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
-      },
-      ticks,
-      endTick: 200,
-    });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations).toHaveLength(0);
-  });
-
-  it('does not fire when a unit is destroyed before the window elapses', () => {
-    // Unit seeded at tick 0; destroyed (unit + position removed) at tick 5;
-    // bundle runs to tick 200. effectiveEnd=5 → no violation.
-    const removeAt = 5;
-    const ticks = [
-      {
-        tick: removeAt,
-        diff: {
-          tick: removeAt,
-          components: {
-            position: { set: [], removed: [1] },
-            unit: { set: [], removed: [1] },
-          },
-          state: { set: [], removed: [] },
-          tags: [],
-          entities: { created: [], destroyed: [1] },
-          resources: {},
-          metadata: [],
-        },
-        events: [],
-        metrics: null,
-        debug: null,
-      },
-      ...Array.from({ length: 195 }, (_, i) => ({
-        tick: removeAt + i + 1,
-        diff: emptyDiff(removeAt + i + 1),
-        events: [],
-        metrics: null,
-        debug: null,
-      })),
-    ] as unknown as SessionBundle['ticks'];
-    const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 0, y: 0 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
-      },
-      ticks,
-      endTick: 200,
-    });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations).toHaveLength(0);
-  });
-
-  it('still fires when a unit was destroyed but had pinned for a full window prior', () => {
-    // Unit seeded at 0; destroyed at tick 60. effectiveEnd=60, lastEvent=0,
-    // 60 - 0 ≥ 50 → fires (the unit really was pinned in-world for 60 ticks).
-    const destroyAt = 60;
-    const ticks = [
-      ...Array.from({ length: destroyAt - 1 }, (_, i) => ({
-        tick: i + 1,
-        diff: emptyDiff(i + 1),
-        events: [],
-        metrics: null,
-        debug: null,
-      })),
-      {
-        tick: destroyAt,
-        diff: {
-          tick: destroyAt,
-          components: {
-            position: { set: [], removed: [1] },
-            unit: { set: [], removed: [1] },
-          },
-          state: { set: [], removed: [] },
-          tags: [],
-          entities: { created: [], destroyed: [1] },
-          resources: {},
-          metadata: [],
-        },
-        events: [],
-        metrics: null,
-        debug: null,
-      },
-    ] as unknown as SessionBundle['ticks'];
-    const bundle = makeMinimalBundle({
-      initialSnapshotComponents: {
-        position: [[1, { x: 0, y: 0 }]],
-        unit: [[1, { unitType: 'villager', owner: 1 }]],
-      },
-      ticks,
-      endTick: 200,
-    });
-    const violations = runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS).filter(
-      (v) => v.oracle === 'no-pinned-or-oscillating-units',
-    );
-    expect(violations.length).toBeGreaterThanOrEqual(1);
-    expect(violations[0]!.details).toMatchObject({ entity: 1 });
+    const timeline = reconstructPositions(bundle);
+    expect(timeline.gaps.get(5)).toEqual([{ from: 200, to: 900 }]);
+    expect(timeline.activeUntil.has(5)).toBe(false);
   });
 });

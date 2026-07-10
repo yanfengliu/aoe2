@@ -1,6 +1,9 @@
 ## 2026-07-09 (file-size budget: legacy splits)
 - **500-LOC ratchet:** split all four remaining `src/` legacy violators — GameScene 1012→254, aiSystem 788→166, IndexedDBMirror 698→363, wireBridgeOps 604→412 — into 13 role modules (all ≤450) as adversarially-reviewed pure refactors; `LEGACY_VIOLATIONS` now holds only `tests/playtest/oracles.test.ts` (concurrent session's split). Fix-bot oracle sources follow the aiSystem split. Browser-suite delta vs clean baseline: zero (the two extra failures proved load-flakes — 4/4 isolated pass on both trees). No behavior change; no version bump.
 
+## 2026-07-09/10 (pinned-units candidate fixed-proven, v0.1.128)
+- **DIRECTIVES priority 1 closed:** the 16 `no-pinned-or-oscillating-units` canary-baseline violations went 16 -> 0, proven by rerunning the same deterministic seed under a strong replay self-check. 14 were oracle misfires — rebuilt as `pinnedUnitsOracle.ts`; 2 real (scout wedged into own TC; forward scout spawned without wander state). Prove rerun exposed round 2: a reflection-cancels-rotation livelock (scout frozen 2502 ticks at its box edge) — fixed by emulating candidate headings (`pickEscapeHeading`). Adversarial review (23 agents, refuters reproduced claims with probe bundles) then forced round 3 pre-commit: gathering-SUFFIX exemption (stale sample no longer excuses a later freeze), wide-box oscillation verdict, same-tick kill+reuse lifetime split, garrison-gap segmentation, chase-strand walk-home (no clamp teleport), per-command actor whitelist, per-tick livelock test. Round 4: the hardened wide-box verdict immediately caught a pocket-orbit livelock (forward scout circling 5 cells for 2963 ticks, exit open) the old oracle could not see — fixed with a deterministic 400-tick patrol kick (`applyWanderKick`, replay-safe). Full TDD all rounds; spec §13.3 updated.
+
 ## 2026-07-09 (propose-fix codex pin sync)
 - **Internal tooling:** synced the secondary review-pin site `scripts/propose-fix.mjs` — Codex reviewer pin gpt-5.5/xhigh -> `gpt-5.6-sol`/ultra per the `.claude/skills/multi-cli-review/SKILL.md` pins table; smoke-verified live on codex-cli 0.144.1; Claude pin untouched (spec §15.7). Closes the AGENTS.md-restructure follow-up chip. No version bump.
 
@@ -33,17 +36,9 @@
 - **Latest visual evidence:** v0.1.125 adds four tested Town Center roof post strokes around the central roof block. The bounded v0.1.121 vision probe ran 3 decisions / 750 ticks with 14 accepted commands, 0 rejected, 0 stalls, and both owners alive.
 - **Current graphics plan:** continue `docs/threads/current/isometric-overhaul/DESIGN.md`; next high-value visual work remains per-civilization/architecture-set facade variation, attack/death feedback, richer weapon animation, per-unit/per-civilization visual variety, and elevation/cliffs once the render contract exposes per-cell elevation.
 
-## 2026-07-06 (civ-engine v1.3.0 visual-playtest adapter)
-- **Internal harness adapter:** aoe2 adopted civ-engine v1.3.0 visual-playtest vocabulary as an adapter, not a runner replacement. `visualPlaytestAdapter.ts` feeds screenshot metadata, visible-text summary, and command-tool controls into tactical prompts while preserving the richer JSON snapshot/tool schemas; `findingsToMarkers` keeps deterministic `author:'agent'` marker injection. No gameplay/user-visible version bump.
-
-## 2026-07-04/05 (AI economy close, scope cut, isometric overhaul)
-- **AI-economy age-up arc closed (v0.1.88-v0.1.97):** Feudal food priority, villager reserve deadlock removal, military pacing, wider 4x4 placement, and market sell-for-age-up made the AI reach Castle in real matches; the corpus gate was recognized as too short rather than a mechanics failure. Menu/fixed-panel/auto-pause shipped in the same arc.
-- **Roster scope cut:** supported civilizations are Britons, Franks, Goths, Aztecs, and Mongols. Mongols hunt-boar +50% and Light Cavalry/Hussars +30% HP shipped; out-of-roster Slavs farm bonus was reverted.
-- **Graphics north star:** v0.1.102-v0.1.124 moved the first screen from flat top-down primitives toward original procedural isometric 2.5D terrain, structures, resources, units, HUD/minimap readability, terrain/shore texture, roof depth cues, and softer fog edges. Real default `aoe2-prototype` capture with fog is the baseline visual protocol.
-
-## 2026-06-30/07-03 (core gameplay and tech seams)
-- **Major gameplay systems:** shipped armor selection panel, reachable drop-off reroute, AI villager-cap tuning, tower upgrades, Monastery techs, garrison healing plus Herbal Medicine/Heresy, Sappers, movement-speed banking with Husbandry/Squires/Wheelbarrow/Hand Cart, Bloodlines plus conformance fix, and broad command-card/selection icon coverage.
-- **Economy breakthrough:** v0.1.79's wood-locality fix ranked gather targets by drop-off proximity, raising measured wood income by 3-15x and exposing/fixing the age-up queue and pop-blocked research stalls behind the earlier AI plateau.
+## 2026-06-30 – 2026-07-06 (compacted)
+- **Gameplay/tech seams (v0.1.60s-70s):** armor panel, drop-off reroute, tower/Monastery/speed-bank techs, Bloodlines, command-card coverage; wood-locality fix (v0.1.79) raised wood income 3-15x and unblocked the age-up stalls.
+- **AI economy closed (v0.1.88-97), roster capped to five civs** (Britons, Franks, Goths, Aztecs, Mongols). **Isometric/graphics arc (v0.1.102-125)** per `docs/threads/current/isometric-overhaul/DESIGN.md`; real default `aoe2-prototype` capture with fog is the baseline visual protocol. civ-engine visual-playtest vocabulary adopted as an adapter (v1.3.0).
 
 ## Current Practice
 - Use the vision harness for real play evidence, but verify its findings against the live code before acting. Short max-tick openings are not proof that age-up, tech, or combat are absent.

@@ -7,6 +7,10 @@ describe('fixBotPrompt', () => {
     expect(files).toContain('src/game/simulation/bridge/systems/playerCommandsSystem.ts');
     expect(files).toContain('src/game/simulation/worldOccupancy.ts');
     expect(files).toContain('src/game/simulation/worldOccupancyAllocators.ts');
+    // Both real pinning bugs of the v0.1.128 pass lived in the scout wander
+    // system (wedge, reflection-cancelled rotation, pocket orbit) — the fix
+    // bot must read it when this oracle fires.
+    expect(files).toContain('src/game/simulation/bridge/systems/scoutMovementSystem.ts');
   });
 
   it('returns the documented heuristic source files for no-tick-failures', () => {

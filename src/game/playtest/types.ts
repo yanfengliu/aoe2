@@ -67,8 +67,24 @@ export interface OracleThresholds {
   economyByTick?: number;
   economyMinVillagers?: number;
   economyMinAge?: 'feudal' | 'castle' | 'imperial';
+  // Confinement box radius: a unit is "confined" while every position stays
+  // within (strictly under) this Manhattan distance of the span's anchor.
+  // Leaving the box re-anchors the span.
   pinnedNetProgressCells?: number;
-  pinnedWindowTicks?: number;
+  // Minimum confined duration before a driven unit counts as pinned. Gather
+  // cycles legitimately hold a villager near one spot for a full fill
+  // (capacity x cadence) and short-haul circuits net almost no progress, so
+  // this sits far above one gather cycle AND above the recorder's periodic
+  // snapshot cadence (1000 ticks) so a qualifying span always contains at
+  // least one interior snapshot for the 'gathering'-activity exemption.
+  pinnedStuckTicks?: number;
+  // Wider confinement box for the oscillation verdict: a unit that keeps
+  // MOVING but stays inside this radius for >= pinnedStuckTicks is livelocked
+  // (escape-heading ping-pong, re-target flapping) unless snapshots show it
+  // gathering. Must be comfortably larger than pinnedNetProgressCells —
+  // amplitude-3..5 shuttles re-anchor the tight box every leg and were
+  // invisible to the pinned verdict alone.
+  pinnedOscillationBoxCells?: number;
 }
 
 export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
@@ -79,7 +95,8 @@ export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
   economyMinVillagers: 8,
   economyMinAge: 'feudal',
   pinnedNetProgressCells: 3,
-  pinnedWindowTicks: 50,
+  pinnedStuckTicks: 1200,
+  pinnedOscillationBoxCells: 6,
 };
 
 // LLM-agent-playtest types. Shape pinned by docs/threads/done/llm-agent-playtest/DESIGN.md.
