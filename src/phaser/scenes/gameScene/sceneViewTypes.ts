@@ -105,6 +105,16 @@ export interface EntityHealthBarState {
   entityTopPx: number;
 }
 
+// v0.1.133: one record per unit drawn as a white "behind a building"
+// silhouette this frame — lets browser tests assert the occlusion cue fired
+// without reading the canvas.
+export interface OccludedUnitState {
+  id: number;
+  x: number;
+  y: number;
+  entityType: ProjectedEntityView['entityType'];
+}
+
 export interface DisplayedEntityState {
   id: number;
   kind: ProjectedEntityView['kind'];

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.133 - 2026-07-10
+
+### Units behind buildings show a white outline
+
+A unit standing behind a building used to be completely hidden by it. Now a white silhouette of the unit — in its real role shape, edged in its owner colour — is drawn on top of the building so you can see where it is and whose it is, matching the classic Age of Empires behaviour. The cue appears only for units you can already see (in vision) that a building happens to paint over; it tracks them as they move. Purely visual: the simulation, hit-testing, selection, fog of war, saves, and replays are unchanged.
+
 ## 0.1.132 - 2026-07-10
 
 ### Buildings have pitched roofs — less of a flat box, more of a building

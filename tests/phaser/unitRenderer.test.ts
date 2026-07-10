@@ -242,6 +242,28 @@ describe('createUnitRenderer.drawUnit', () => {
     }
   });
 
+  it('silhouette mode: suppresses the ground shadow and fills the body in the cue colour', () => {
+    // The "unit behind a building" white ghost (v0.1.133): reuse the role shape,
+    // but no ground shadow (it is an overlay, not a figure on the terrain) and
+    // the body painted in the silhouette fill, never the unit's own tint.
+    const spy = createGraphicsSpy();
+    const renderer = createUnitRenderer({ graphics: spy.graphics as never, cellSize: CELL_SIZE });
+    const entity = createUnit({ entityType: 'militia', size: 0.55, tint: 0x3fa7ff });
+    renderer.drawUnit(entity, 0, 0, 0, 1, 0, { fill: 0xffffff, outline: 0x123456, alpha: 0.85 });
+    // Militia's only ellipse is the shadow — silhouette mode omits it.
+    expect(spy.calls.filter((c) => c.op === 'fillEllipse')).toHaveLength(0);
+    // The body fills use the silhouette white…
+    expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0xffffff)).toBe(true);
+    // …and never the unit's own owner tint.
+    expect(spy.calls.some((c) => c.op === 'fillStyle' && c.args[0] === 0x3fa7ff)).toBe(false);
+
+    // Control: normal (non-silhouette) mode DOES draw the shadow ellipse.
+    const normal = createGraphicsSpy();
+    createUnitRenderer({ graphics: normal.graphics as never, cellSize: CELL_SIZE })
+      .drawUnit(entity, 0, 0, 0, 1);
+    expect(normal.calls.filter((c) => c.op === 'fillEllipse')).toHaveLength(1);
+  });
+
   it('draws a translucent ground shadow ellipse FIRST (before the body) for every role', () => {
     for (const unitType of Object.keys(ALL_UNIT_TYPES) as UnitType[]) {
       const { spy } = drawRole(unitType, 0.55);

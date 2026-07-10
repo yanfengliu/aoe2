@@ -37,6 +37,7 @@ import { createSelectionLayersRenderer } from './selectionLayers';
 import { drawTerrainCell } from './terrainRenderer';
 import { createTerrainCache } from './terrainCache';
 import { createUnitRenderer, unitFacingRadians } from './unitRenderer';
+import { computeOccludedUnits, depthKey } from './occlusionSilhouettes';
 import { createWorldLayersRenderer } from './worldLayers';
 import {
   CELL_SIZE,
@@ -44,6 +45,7 @@ import {
   type DebugOverlayMode,
   type DisplayedEntityState,
   type EntityHealthBarState,
+  type OccludedUnitState,
   type PlacementPreviewViewState,
   type PlacementPreviewVisualState,
   type SelectionBoxState,
@@ -76,6 +78,7 @@ export interface GameSceneRenderer {
   getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
   getBuildingVisualStates(): BuildingVisualState[];
   getEntityHealthBarStates(): EntityHealthBarState[];
+  getOccludedUnitStates(): OccludedUnitState[];
   getDisplayedEntities(): DisplayedEntityState[];
 }
 
@@ -107,6 +110,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   let lastPlacementPreviewVisualState: PlacementPreviewVisualState | null = null;
   let lastBuildingVisualStates: BuildingVisualState[] = [];
   let lastEntityHealthBarStates: EntityHealthBarState[] = [];
+  let lastOccludedUnitStates: OccludedUnitState[] = [];
   // Perf: the terrain layer is drawn once and repainted only when the terrain
   // set changes (see renderTerrainIfChanged). The cache holds the last-drawn
   // signature; resetForBridgeSwap forces a repaint against a swapped-in world.
@@ -115,6 +119,12 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   const terrainLayer = scene.add.graphics();
   const entityLayer = scene.add.graphics();
   const fogLayer = scene.add.graphics();
+  // v0.1.133: white silhouettes of units hidden behind buildings. Created here
+  // (above fog, below the health-bar layer) so — z-order being Phaser
+  // display-list insertion order, no setDepth anywhere — the outlines paint
+  // ON TOP of every building and fog, grouped with the other above-building
+  // unit indicators (health bars). Cleared every frame like healthBarLayer.
+  const occlusionOutlineLayer = scene.add.graphics();
   const healthBarLayer = scene.add.graphics();
   const selectionLayer = scene.add.graphics();
   const placementLayer = scene.add.graphics();
@@ -158,6 +168,12 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     cellSize: CELL_SIZE,
   });
   const unitRenderer = createUnitRenderer({ graphics: entityLayer, cellSize: CELL_SIZE });
+  // A second unit renderer bound to the occlusion layer, used only to stamp the
+  // white silhouette of an occluded unit (drawUnit's silhouette mode).
+  const occlusionUnitRenderer = createUnitRenderer({
+    graphics: occlusionOutlineLayer,
+    cellSize: CELL_SIZE,
+  });
   let selectionLayersRenderer = makeSelectionLayersRenderer();
 
   function resetForBridgeSwap(): void {
@@ -251,6 +267,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     // dominant per-frame render cost). It is (re)drawn only when the terrain
     // set changes (first frame, or a bridge swap via resetForBridgeSwap).
     entityLayer.clear();
+    occlusionOutlineLayer.clear();
     // Iter-3 V3-18: do NOT clear fogLayer here. `renderFog` below now
     // memoizes on the projected frame reference; clearing
     // unconditionally + re-rendering every RAF tick was the prior
@@ -283,7 +300,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     // layer, so only the non-terrain entities take part in the per-frame sort.
     const drawOrder = displayedEntities
       .filter((entity) => entity.layer !== 'terrain')
-      .sort((a, b) => a.x + a.y - (b.x + b.y));
+      .sort((a, b) => depthKey(a) - depthKey(b));
 
     for (const entity of drawOrder) {
       // Isometric placement: the entity's iso screen CENTRE (the diamond centre
@@ -315,6 +332,27 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       unitRenderer.drawUnit(entity, px, py, facing, fillAlpha, scene.time.now);
       feedbackRenderer.drawUnitFlash(entityLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
         py + CELL_SIZE * 0.5, CELL_SIZE * entity.size * 0.5, entity.id, scene.time.now);
+    }
+
+    // v0.1.133: every unit painted over by a building it stands behind gets a
+    // white silhouette stamped on the occlusion layer (above the buildings), so
+    // a hidden unit reads as a ghost of its own role shape rather than
+    // vanishing. Pure detection (occlusionSilhouettes) over the same
+    // fog-filtered displayedEntities; the depth key is shared with the draw
+    // sort above so the cue can never disagree with what actually painted over.
+    lastOccludedUnitStates = [];
+    for (const unit of computeOccludedUnits(displayedEntities)) {
+      const isoCentre = worldToIso(unit.x + 0.5, unit.y + 0.5);
+      occlusionUnitRenderer.drawUnit(
+        unit,
+        isoCentre.x - CELL_SIZE * 0.5,
+        isoCentre.y - CELL_SIZE * 0.5,
+        null,
+        1,
+        scene.time.now,
+        { fill: 0xffffff, outline: unit.tint, alpha: 0.85 },
+      );
+      lastOccludedUnitStates.push({ id: unit.id, x: unit.x, y: unit.y, entityType: unit.entityType });
     }
 
     if (state.frame) {
@@ -405,6 +443,10 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     return lastEntityHealthBarStates.map((state) => ({ ...state }));
   }
 
+  function getOccludedUnitStates(): OccludedUnitState[] {
+    return lastOccludedUnitStates.map((state) => ({ ...state }));
+  }
+
   function getDisplayedEntities(): DisplayedEntityState[] {
     return displayedEntities.map((entity) => ({
       id: entity.id,
@@ -423,6 +465,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     getPlacementPreviewVisualState,
     getBuildingVisualStates,
     getEntityHealthBarStates,
+    getOccludedUnitStates,
     getDisplayedEntities,
   };
 }

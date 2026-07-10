@@ -137,7 +137,18 @@ export interface UnitRenderer {
     facingRadians: number | null,
     fillAlpha: number,
     timeMs?: number,
+    silhouette?: UnitSilhouetteStyle,
   ): void;
+}
+
+// Occlusion cue (v0.1.133): when set, drawUnit paints the unit's role shape as
+// a flat SILHOUETTE — `fill` over `outline` at `alpha`, with NO ground shadow —
+// instead of the owner-tinted figure. Used to show a unit hidden behind a
+// building as a white ghost on a layer above the buildings.
+export interface UnitSilhouetteStyle {
+  fill: number;
+  outline: number;
+  alpha: number;
 }
 
 // Darken a tint toward black by `factor` (0 = unchanged, 1 = black) for the
@@ -197,6 +208,7 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     facingRadians: number | null,
     fillAlpha: number,
     timeMs = 0,
+    silhouette?: UnitSilhouetteStyle,
   ): void {
     const cx = px + cellSize * 0.5;
     const cy = py + cellSize * 0.5;
@@ -207,40 +219,46 @@ export function createUnitRenderer(deps: UnitRendererDeps): UnitRenderer {
     // Forward (facing) + perpendicular unit vectors in screen space.
     const fx = Math.cos(angle);
     const fy = Math.sin(angle);
-    const tint = entity.tint;
-    const outline = darken(tint, 0.55);
-    const outlineAlpha = Math.min(1, fillAlpha);
+    // Silhouette mode overrides the fill/outline with a flat cue colour and
+    // suppresses the ground shadow (the ghost is an overlay, not a figure on
+    // the terrain).
+    const tint = silhouette ? silhouette.fill : entity.tint;
+    const outline = silhouette ? silhouette.outline : darken(entity.tint, 0.55);
+    const bodyAlpha = silhouette ? silhouette.alpha : fillAlpha;
+    const outlineAlpha = Math.min(1, silhouette ? silhouette.alpha : fillAlpha);
 
-    // Ground shadow FIRST (at the true cell centre) so the body draws on top of
-    // it; the FIGURE bobs vertically above the shadow (idle sway / walk bounce).
-    const shadow = unitShadowEllipse(cx, cy, r);
-    graphics.fillStyle(UNIT_SHADOW_COLOR, UNIT_SHADOW_ALPHA * fillAlpha);
-    graphics.fillEllipse(shadow.x, shadow.y, shadow.width, shadow.height);
+    if (!silhouette) {
+      // Ground shadow FIRST (at the true cell centre) so the body draws on top
+      // of it; the FIGURE bobs vertically above (idle sway / walk bounce).
+      const shadow = unitShadowEllipse(cx, cy, r);
+      graphics.fillStyle(UNIT_SHADOW_COLOR, UNIT_SHADOW_ALPHA * fillAlpha);
+      graphics.fillEllipse(shadow.x, shadow.y, shadow.width, shadow.height);
+    }
 
     const fy0 = cy - unitBobOffset(timeMs, entity.id, facingRadians !== null, r);
 
     const role = unitRole(entity.entityType as UnitType);
     switch (role) {
       case 'villager':
-        drawVillager(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawVillager(cx, fy0, r, fx, fy, tint, outline, bodyAlpha, outlineAlpha);
         break;
       case 'infantry':
-        drawInfantry(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawInfantry(cx, fy0, r, fx, fy, tint, outline, bodyAlpha, outlineAlpha);
         break;
       case 'archer':
-        drawArcher(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawArcher(cx, fy0, r, fx, fy, tint, outline, bodyAlpha, outlineAlpha);
         break;
       case 'cavalry':
-        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, false);
+        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, bodyAlpha, outlineAlpha, false);
         break;
       case 'cavalry-archer':
-        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, fillAlpha, outlineAlpha, true);
+        drawCavalry(cx, fy0, r, fx, fy, angle, tint, outline, bodyAlpha, outlineAlpha, true);
         break;
       case 'siege':
-        drawSiege(cx, fy0, r, fx, fy, tint, outline, fillAlpha, outlineAlpha);
+        drawSiege(cx, fy0, r, fx, fy, tint, outline, bodyAlpha, outlineAlpha);
         break;
       case 'monk':
-        drawMonk(cx, fy0, r, tint, outline, fillAlpha, outlineAlpha);
+        drawMonk(cx, fy0, r, tint, outline, bodyAlpha, outlineAlpha);
         break;
     }
   }

@@ -31,6 +31,7 @@ import {
   type DisplayedEntityState,
   type EntityHealthBarState,
   type GameSceneOptions,
+  type OccludedUnitState,
   type PlacementPreviewViewState,
   type PlacementPreviewVisualState,
   type SelectionBoxState,
@@ -45,6 +46,7 @@ export type {
   DebugOverlayMode,
   DisplayedEntityState,
   EntityHealthBarState,
+  OccludedUnitState,
   PlacementPreviewViewState,
   PlacementPreviewVisualState,
   SelectionBoxState,
@@ -242,6 +244,10 @@ export class GameScene extends Phaser.Scene {
 
   getEntityHealthBarStates(): EntityHealthBarState[] {
     return this.sceneRenderer?.getEntityHealthBarStates() ?? [];
+  }
+
+  getOccludedUnitStates(): OccludedUnitState[] {
+    return this.sceneRenderer?.getOccludedUnitStates() ?? [];
   }
 
   getDisplayedEntities(): DisplayedEntityState[] {

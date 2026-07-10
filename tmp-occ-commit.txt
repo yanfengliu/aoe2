@@ -1,0 +1,38 @@
+feat(render): white outline for units behind buildings (v0.1.133)
+
+"Units behind buildings should show a white outline instead of being fully
+visible or fully invisible." A unit painted over by a building in the
+back-to-front (cellX+cellY) isometric draw pass used to vanish; now it gets
+a white silhouette of its own role shape (owner-tint edge, no ground
+shadow) stamped on a layer above the buildings — the classic AoE2 cue.
+
+- occlusionSilhouettes.ts (NEW, pure): depthKey(e)=e.x+e.y SHARED with the
+  render sort (a test asserts they agree, so the cue can't desync from what
+  paints over); buildingSilhouettePolygon (the 6-pt hexagon a building
+  actually paints — footprint diamond + wall height + pitched-roof ridge,
+  construction 0.4x, memory ghosts excluded); pointInPolygon; and
+  computeOccludedUnits (a unit is occluded iff some building with a greater
+  depth key covers the unit's screen centre; AABB pre-reject, O(units x
+  buildings), sub-ms at RTS scale).
+- sceneRenderer.ts: a new occlusionOutlineLayer between fog and health bars
+  (z = creation order, no setDepth), cleared each frame; after the entity
+  loop the occluded units are stamped via a new silhouette mode on
+  unitRenderer.drawUnit; the draw sort now shares depthKey.
+- getOccludedUnitStates() exposed through GameScene + browserTestApi.
+
+Design was scoped by an ultracode 3-agent fan-out (render layers /
+detection geometry / outline + edges). Ultracode adversarial review then
+caught a MEDIUM pre-commit: the pitched-roof silhouette used a full-height
+apex over the back corner, but drawIsoBuilding paints a HIP roof whose ridge
+is inset toward centre — a ~37px over-claim band that stamped false ghosts
+on units poking above their own roofline. Fixed by deriving the top point
+from hipRoofFaces (the same geometry drawIsoBuilding paints), with a
+regression test. Verified on the real default view: two villagers behind
+the Town Center render as white ghosts on its roof. Tests:
+occlusionSilhouettes (12), a unitRenderer silhouette test, a browser test.
+Render-only:
+simulation, hit-testing, health bars, selection, fog, saves, replays
+unchanged. Four gates + browser suite green. Spec 14.5, changelog,
+drift-log, devlog. 0.1.132 -> 0.1.133.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>

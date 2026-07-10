@@ -12,6 +12,7 @@ import type {
   BuildingVisualState,
   DisplayedEntityState,
   EntityHealthBarState,
+  OccludedUnitState,
   CameraState,
   GameScene,
   PlacementPreviewViewState,
@@ -127,6 +128,7 @@ export interface BrowserTestApi {
   getPlacementPreviewAt(cellX: number, cellY: number): PlacementPreviewState | null;
   getBuildingVisualStates(): BuildingVisualState[];
   getEntityHealthBarStates(): EntityHealthBarState[];
+  getOccludedUnitStates(): OccludedUnitState[];
   getDisplayedEntities(): DisplayedEntityState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
@@ -248,6 +250,10 @@ export function installBrowserTestApi(
     getEntityHealthBarStates: () => {
       scene.syncFromBridge(true);
       return scene.getEntityHealthBarStates();
+    },
+    getOccludedUnitStates: () => {
+      scene.syncFromBridge(true);
+      return scene.getOccludedUnitStates();
     },
     getDisplayedEntities: () => {
       scene.syncFromBridge(true);
