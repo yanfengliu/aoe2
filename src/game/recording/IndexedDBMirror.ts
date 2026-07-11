@@ -325,22 +325,36 @@ export class IndexedDBMirror {
     const pending = this._pending;
     this._pending = emptyPending();
     return new Promise((resolve, reject) => {
-      const stores = Object.values(STORE_NAMES);
-      const tx = db.transaction(stores, 'readwrite');
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => {
-        const err = tx.error ?? new Error('flush tx failed');
+      // Full-review iter-2 (Codex H3): a SINGLE idempotent settle path. An
+      // unhandled IDB request error fires `tx.onerror` AND then, as the tx
+      // aborts, `tx.onabort` — so the old code requeued the batch TWICE
+      // (unbounded growth under a persistent quota failure). And a synchronous
+      // throw from `db.transaction()` / `applyPendingWrites()` fired neither
+      // handler, silently dropping the already-detached batch. The `settled`
+      // guard + try/catch cover both: requeue + reject exactly once, on the
+      // first failure of any kind.
+      let settled = false;
+      const fail = (err: Error): void => {
+        if (settled) return;
+        settled = true;
         this._requeuePending(pending);
         this._emitError(err);
         reject(err);
       };
-      tx.onabort = () => {
-        const err = tx.error ?? new Error('flush tx aborted');
-        this._requeuePending(pending);
-        this._emitError(err);
-        reject(err);
-      };
-      applyPendingWrites(tx, pending);
+      try {
+        const stores = Object.values(STORE_NAMES);
+        const tx = db.transaction(stores, 'readwrite');
+        tx.oncomplete = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        tx.onerror = () => fail(tx.error ?? new Error('flush tx failed'));
+        tx.onabort = () => fail(tx.error ?? new Error('flush tx aborted'));
+        applyPendingWrites(tx, pending);
+      } catch (err) {
+        fail(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 

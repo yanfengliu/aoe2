@@ -50,11 +50,28 @@ export async function listSessions(
     // sessions aren't in the prior-sessions panel anyway (RecordingService
     // filters them out via listPriorSessions).
     const markerCount = await _countByPrefix(db, STORE_NAMES.markers, row.sessionId);
+    // Full-review iter-2 (Codex H4): a crash-recovered (`!closed`) session's
+    // `session_meta` is frozen at `endTick == startTick`, so the marker panel's
+    // Replay gate (`!closedNormally && endTick === startTick`) would stay
+    // disabled even though the session recorded ticks and is replayable. Repair
+    // the descriptor's `endTick` from the persisted ticks (the same recompute
+    // `reconstructBundle` applies), so the gate reflects reality. Closed
+    // sessions keep their finalized metadata; only the rare crash session pays
+    // the extra read.
+    let endTick = row.metadata.endTick;
+    if (!row.closed) {
+      const tickRows = await _readAllByPrefix<{ tick: number }>(
+        db,
+        STORE_NAMES.ticks,
+        row.sessionId,
+      );
+      endTick = tickRows.reduce((max, r) => Math.max(max, r.tick), row.metadata.startTick);
+    }
     result.push({
       sessionId: row.sessionId,
       recordedAt: row.createdAt,
       startTick: row.metadata.startTick,
-      endTick: row.metadata.endTick,
+      endTick,
       markerCount,
       schemaVersion: row.schemaVersion,
       closedNormally: row.closed,
