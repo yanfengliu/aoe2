@@ -13,7 +13,7 @@ import type {
   ProjectedFrameView,
 } from '../../../game/simulation/types';
 import { buildingRole } from './buildingRole';
-import { isoBuildingHeightPx } from './isoBuilding';
+import { isoBuildingHeightPx, pitchedApexPx, roleHasPitchedRoof } from './isoBuilding';
 import { worldToIso } from './isoProjection';
 
 // Plain clamp (avoids a runtime `Phaser.Math.Clamp`, which would force the Phaser
@@ -88,11 +88,20 @@ export function computeHealthBarLayout(
       - worldToIso(entity.x, entity.y + entity.footprintHeight).x;
     entityCenterX = centre.x;
     // The roof's back corner (worldToIso(x,y) lifted by the wall height) is the
-    // volume's visual top; a small margin clears the roof accent.
-    entityTopPx =
-      worldToIso(entity.x, entity.y).y
-      - isoBuildingHeightPx(buildingRole(entity.entityType as BuildingType))
-      - cellSize * 0.4;
+    // eave. Full-review F16: a COMPLETED pitched-roof building also draws a
+    // ridge-anchored accent (cross / banner / blades / cupola) that rises
+    // `pitchedApexPx + ~0.6·min(roofWidth,100)` above the eave — far past the old
+    // flat `cellSize*0.4` margin, so the bar cut straight through the accent.
+    // Clear the true painted top (accents match buildingRoofAccents' 100-px
+    // ACCENT_MAX_SCALE and 0.6 pole factor); flat-roof roles keep the small margin.
+    const role = buildingRole(entity.entityType as BuildingType);
+    const eavePx = worldToIso(entity.x, entity.y).y - isoBuildingHeightPx(role);
+    if (roleHasPitchedRoof(role) && entity.visualVariant !== 'construction') {
+      const accentRisePx = Math.min(entityWidthPx, 100) * 0.6;
+      entityTopPx = eavePx - pitchedApexPx(entityWidthPx) - accentRisePx - cellSize * 0.2;
+    } else {
+      entityTopPx = eavePx - cellSize * 0.4;
+    }
   } else {
     entityWidthPx = cellSize * Math.max(entity.size, 0.55);
     entityCenterX = px + cellSize * 0.5;

@@ -1,5 +1,6 @@
-## 2026-07-11 (full-review deferred backlog batch 1, v0.1.140)
+## 2026-07-11 (full-review deferred backlog batch 1, v0.1.140–141)
 - **L5 (v0.1.140)** same-tick Wonder tie now prefers the human (was a strict `<` that handed the human a defeat when the enemy Wonder was inserted first); **M12** reselect a surviving TC on destroy (was left reference-less → AI production/targeting broke); **L1** garrison hydrate validator rejects duplicate unit ids (corrupt-save double-count guard, both paths); **L4** removed dead `assignAiMonkTasks` (KAD-0008 re-wire trap) + corrected the `buildPendingIntentionMaps` empty-queue comment. New fixtures `two-wonder-tie-fixture` / `town-center-reselect-fixture` (in `fixtures/fullReview.ts`).
+- **F16 (v0.1.141, render)** building health bars no longer slice through a pitched roof's ridge accent (banner/cross/turret/blades). `computeHealthBarLayout` now clears `pitchedApexPx(w) + 0.6·min(w,100)` above the eave for completed pitched-roof roles (derived from the accent painter's own constants); flat-roof roles + construction scaffolds keep the old margin. Clearance proven conservative vs `drawBuildingRoofAccent`.
 
 ## 2026-07-10 (full-codebase review iter-1 — fixes shipping)
 - Synthesis + full finding list: `docs/threads/current/full/2026-07-10/1/REVIEW.md` (5 CLI reviewers — Codex `gpt-5.6-sol` ×2 + Claude `opus[1m]` ×3, Fable quota exhausted → Opus fallback — + 4 adversarial verifiers; Codex-1 over-rated ~half its findings, one refuted).

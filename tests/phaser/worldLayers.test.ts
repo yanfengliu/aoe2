@@ -5,7 +5,12 @@ import {
   computeHealthBarLayout,
   createWorldLayersRenderer,
 } from '../../src/phaser/scenes/gameScene/worldLayers';
-import { isoBuildingHeightPx } from '../../src/phaser/scenes/gameScene/isoBuilding';
+import {
+  isoBuildingHeightPx,
+  pitchedApexPx,
+  roleHasPitchedRoof,
+} from '../../src/phaser/scenes/gameScene/isoBuilding';
+import { buildingRole } from '../../src/phaser/scenes/gameScene/buildingRole';
 import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 
 // Records the draw primitives each world layer emits so we can assert the fog
@@ -80,15 +85,52 @@ describe('computeHealthBarLayout — iso positioning', () => {
 
     const footCentre = worldToIso(12, 12);
     expect(layout.barX + layout.barWidthPx / 2).toBeCloseTo(footCentre.x, 5);
-    // Top = the roof back corner (worldToIso(x,y) lifted by the wall height) minus
-    // a small accent margin; the bar sits above that.
-    const expectedTop = worldToIso(10, 10).y - isoBuildingHeightPx('town-center') - CELL_SIZE * 0.4;
+    // Full-review F16: the Town Center is a pitched-roof building with a cupola
+    // accent, so the top clears the eave by the pitched apex + the accent rise
+    // (not just the flat margin).
+    const entityWidthPx = worldToIso(14, 10).x - worldToIso(10, 14).x;
+    const eave = worldToIso(10, 10).y - isoBuildingHeightPx('town-center');
+    const expectedTop = eave - pitchedApexPx(entityWidthPx) - Math.min(entityWidthPx, 100) * 0.6 - CELL_SIZE * 0.2;
     expect(layout.entityTopPx).toBeCloseTo(expectedTop, 5);
+    // And it is HIGHER than the old flat-margin baseline (the overlap fix).
+    expect(layout.entityTopPx).toBeLessThan(eave - CELL_SIZE * 0.4);
     expect(layout.barY).toBeLessThan(layout.entityTopPx);
     // Above the roof's back corner (worldToIso(x,y).y), and NOT the old top-down
     // anchor (the passed py = 999, which the iso fix must ignore).
     expect(layout.entityTopPx).toBeLessThan(worldToIso(10, 10).y);
     expect(layout.entityTopPx).not.toBeCloseTo(999, 0);
+  });
+
+  it('keeps the small flat margin for construction and for flat-roof roles (full-review F16)', () => {
+    // A pitched-roof building UNDER CONSTRUCTION draws no ridge accent (it is a
+    // scaffold), so the bar keeps the old small margin — no accent to clear.
+    const tcUnderConstruction = entity({
+      kind: 'building',
+      entityType: 'town-center',
+      footprintWidth: 4,
+      footprintHeight: 4,
+      x: 10,
+      y: 10,
+      visualVariant: 'construction',
+    });
+    const cLayout = computeHealthBarLayout(tcUnderConstruction, 0, 0, CELL_SIZE);
+    const tcEave = worldToIso(10, 10).y - isoBuildingHeightPx(buildingRole('town-center'));
+    expect(cLayout.entityTopPx).toBeCloseTo(tcEave - CELL_SIZE * 0.4, 5);
+
+    // A COMPLETED flat-roof role (castle → fortress, no ridge/accent) also keeps
+    // the small margin — the raise only applies where a pitched accent is drawn.
+    const castle = entity({
+      kind: 'building',
+      entityType: 'castle',
+      footprintWidth: 4,
+      footprintHeight: 4,
+      x: 10,
+      y: 10,
+    });
+    expect(roleHasPitchedRoof(buildingRole('castle'))).toBe(false);
+    const castleLayout = computeHealthBarLayout(castle, 0, 0, CELL_SIZE);
+    const castleEave = worldToIso(10, 10).y - isoBuildingHeightPx(buildingRole('castle'));
+    expect(castleLayout.entityTopPx).toBeCloseTo(castleEave - CELL_SIZE * 0.4, 5);
   });
 
   it('keeps a unit bar at the unit iso top (px/py based), unchanged by the iso building fix', () => {

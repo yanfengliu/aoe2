@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.141 - 2026-07-11
+
+### Building health bars no longer cut through pitched roofs
+
+A completed building with a pitched roof draws a peak ornament on its ridge — a Barracks banner, a Monastery cross, a Town Center turret, a Mill's blades. The floating health bar was placed just above the flat roof line, so on these buildings it sliced straight through the ornament. Health bars now clear the full painted height (ridge peak plus ornament) on pitched-roof buildings, while flat-roof buildings (Castle, Tower, Wall, Wonder, Farm) and buildings still under construction keep the same close margin as before. Found by the full-codebase review.
+
 ## 0.1.140 - 2026-07-11
 
 ### A simultaneous Wonder victory now goes to you, not the enemy
