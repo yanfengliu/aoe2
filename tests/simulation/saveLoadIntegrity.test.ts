@@ -29,6 +29,26 @@ describe('Save-load garrison side-map cross-reference (review H-3)', () => {
     );
   });
 
+  it('throws when a garrison list contains the same unit twice (full-review L1)', () => {
+    // The reciprocal checks pass (9002 -> 9001, and 9001's list includes 9002),
+    // but the duplicate would double-count per-occupant effects, so uniqueness
+    // must be enforced too.
+    const bridge = createSimulationBridge();
+    const blob = legacySchema1FromBridge(bridge);
+    const corrupt: SaveBlob = {
+      ...blob,
+      sideMaps: {
+        ...blob.sideMaps,
+        garrisonedByBuilding: [[9001, [9002, 9002]]],
+        garrisonedUnitToBuilding: [[9002, 9001]],
+      },
+    };
+
+    expect(() => createSimulationBridge('aoe2-prototype', { savedGame: corrupt })).toThrow(
+      /more than once/i,
+    );
+  });
+
   it('throws when garrisonedUnitToBuilding points to a building whose list lacks the unit', () => {
     const bridge = createSimulationBridge();
     const blob = legacySchema1FromBridge(bridge);

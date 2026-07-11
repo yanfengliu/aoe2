@@ -72,12 +72,12 @@ export interface MonkTaskDeps {
 }
 
 export interface MonkTaskOps {
-  // AI-side per-decision-tick task assignment. Walks every owned Monk and
-  // routes it to the highest-priority idle task (deposit > pickup > heal).
-  assignAiMonkTasks(owner: number): void;
-  // AI-decision system counterpart to assignAiMonkTasks. Pushes a
-  // `monk.contextAtEntity` intention so the command handler applies the
-  // same task-routing rules at the start of the next tick.
+  // AI-side per-decision-tick monk task routing: walks every owned Monk and
+  // pushes a `monk.contextAtEntity` intention so the command handler applies the
+  // highest-priority idle task (deposit > pickup > heal) at the start of the
+  // next tick. (Full-review L4: the legacy direct-mutation `assignAiMonkTasks`
+  // entry point was removed — this intention path is the ONLY AI monk-task
+  // route, keeping the direct-mutation-vs-intention race of KAD-0008 closed.)
   pushAiMonkTaskIntentions(
     owner: number,
     pushMonkContextAtEntityIntention: (
@@ -86,7 +86,7 @@ export interface MonkTaskOps {
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
   ): void;
-  // Search helpers used by `assignAiMonkTasks` and save/load tests.
+  // Search helpers used by the AI monk task routing and save/load tests.
   findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
   findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
@@ -127,7 +127,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     clearUnitCommand,
     clearGathererOrder,
     markOutOfBandRenderChange,
-    getEntityRef,
     destroyResourceEntity,
     destroyUnitEntity,
     buildingOccupiesCell,
@@ -188,15 +187,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
         accept({ monkId, kind: 'heal', targetEntityId: woundedId });
       }
     }
-  }
-
-  function assignAiMonkTasks(owner: number): void {
-    visitAiMonkTaskCandidates(owner, ({ monkId, kind, targetEntityId }) => {
-      const targetEntityRef = getEntityRef(targetEntityId);
-      if (targetEntityRef) {
-        setMonkTask(monkId, kind, targetEntityRef);
-      }
-    });
   }
 
   function pushAiMonkTaskIntentions(
@@ -367,7 +357,6 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   }
 
   return {
-    assignAiMonkTasks,
     pushAiMonkTaskIntentions,
     findNearestOwnedMonasteryToDeposit,
     findNearestVisibleNeutralRelic,

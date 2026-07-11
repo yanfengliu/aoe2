@@ -23,13 +23,16 @@ export interface OwnerProducerHelpers {
   findIdleProducerLocal: (buildingType: BuildingType) => number | null;
 }
 
-// Phase 1C — fold pending intentions into the gates aiSystem uses
-// to decide whether to push more. Without this, an intention pushed
-// last decision tick (handler hasn't run yet) is invisible to
-// `productionQueues.length` / `inFlightTechByOwner.has(...)` /
-// `unitCommands.entries()` and the AI re-pushes every tick.
-// Build the lookups once per tick (O(N) where N = queue length;
-// typically <30 entries during AI macro).
+// Build the pending-intention lookups aiSystem's gates consult (so it does not
+// re-push an intention that is already queued). Full-review L4 correction: in
+// EVERY real runtime path `pendingCommands` is EMPTY here — the bridge drains it
+// via `drainPendingCommands` immediately before `world.step()`, and no pusher
+// runs before `prototypeAi` (replay clears it `before: ['prototypeAi']`), so
+// this returns empty maps and the actual within-tick dedup is carried by the
+// incremental `.set()` calls the phases make as they push. The scan is retained
+// only so the gates stay correct under a hypothetical non-draining stepper; do
+// NOT rely on it folding a prior-decision-tick intention (the decision interval
+// ≥15 ticks far exceeds the 1-2 tick handler delay, so that never happens).
 export function buildPendingIntentionMaps(
   activeWorld: CivWorld,
   pendingCommands: Array<{ type: string; data: Record<string, unknown> }>,

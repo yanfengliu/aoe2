@@ -114,7 +114,19 @@ export function validateAndPruneHydratedState(deps: RuntimeHydrationDeps): void 
   const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
 
   for (const [buildingId, list] of garrisonedByBuildingForCheck) {
+    // Full-review L1: reject a garrison list with duplicate unit ids. Gameplay
+    // cannot create one (garrisonUnit rejects re-garrison), but a tampered/
+    // corrupt save that passed only the reciprocal-membership checks below would
+    // otherwise be accepted, and downstream per-occupant effects double-count
+    // (garrisonHealSystem heals twice/tick; tower arrow count inflates).
+    const seenUnits = new Set<number>();
     for (const unitId of list) {
+      if (seenUnits.has(unitId)) {
+        throw new Error(
+          `Save invariant violated: garrisonedByBuilding[${buildingId}] lists unit ${unitId} more than once.`,
+        );
+      }
+      seenUnits.add(unitId);
       const reverse = garrisonedUnitToBuildingForCheck.get(unitId);
       if (reverse !== buildingId) {
         throw new Error(

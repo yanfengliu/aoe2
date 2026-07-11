@@ -398,7 +398,17 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
   const garrisonedByBuildingForCheck = accessor.get(garrisonedByBuildingCodec);
   const garrisonedUnitToBuildingForCheck = accessor.get(garrisonedUnitToBuildingCodec);
   for (const [buildingId, list] of garrisonedByBuildingForCheck) {
+    // Full-review L1: reject a garrison list with duplicate unit ids (gameplay
+    // can't create one, but a corrupt save that satisfied only the reciprocal
+    // checks below would double-count per-occupant effects).
+    const seenUnits = new Set<number>();
     for (const unitId of list) {
+      if (seenUnits.has(unitId)) {
+        throw new Error(
+          `Save invariant violated: garrisonedByBuilding[${buildingId}] lists unit ${unitId} more than once.`,
+        );
+      }
+      seenUnits.add(unitId);
       const reverse = garrisonedUnitToBuildingForCheck.get(unitId);
       if (reverse !== buildingId) {
         throw new Error(
