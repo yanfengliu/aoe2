@@ -5,6 +5,8 @@ import {
   cellToMinimap,
   drawMinimap,
   getMinimapLayout,
+  minimapCameraSignature,
+  minimapContentSignature,
   minimapToCell,
   type MinimapCameraState,
 } from '../../src/ui/hud/minimap';
@@ -285,5 +287,52 @@ describe('drawMinimap (iso diamond)', () => {
     const { canvas } = createCanvasSpy();
     drawMinimap(canvas, { tick: 0, frame: visibleFrame(), entities: [] }, null);
     expect(canvas.dataset.viewportActive).toBe('false');
+  });
+});
+
+describe('minimap redraw signatures (full-review M9)', () => {
+  const frameForOwner = (owner: number): RenderState['frame'] => ({
+    ...visibleFrame()!,
+    playerId: owner,
+  });
+
+  it('changes the content signature when the fog owner swaps at the same tick', () => {
+    // A replay fog-owner swap keeps the tick fixed but changes frame.playerId;
+    // the content signature MUST differ so the redraw gate fires (else the
+    // minimap keeps showing the prior owner's visibility).
+    const asHuman: RenderState = { tick: 500, frame: frameForOwner(1), entities: [] };
+    const asEnemy: RenderState = { tick: 500, frame: frameForOwner(2), entities: [] };
+    expect(minimapContentSignature(asHuman)).not.toEqual(minimapContentSignature(asEnemy));
+    // Same owner + same tick → identical (no needless repaint).
+    expect(minimapContentSignature(asHuman)).toEqual(
+      minimapContentSignature({ tick: 500, frame: frameForOwner(1), entities: [] }),
+    );
+  });
+
+  it('changes the content signature when the tick advances for the same owner', () => {
+    expect(minimapContentSignature({ tick: 500, frame: frameForOwner(1), entities: [] })).not.toEqual(
+      minimapContentSignature({ tick: 501, frame: frameForOwner(1), entities: [] }),
+    );
+  });
+
+  it('handles a null frame without throwing and keys camera signature on scroll/zoom', () => {
+    expect(minimapContentSignature({ tick: 7, frame: null, entities: [] })).toBe('7:-1');
+    const camera: MinimapCameraState = {
+      scrollX: 10,
+      scrollY: 20,
+      zoom: 1.5,
+      width: 800,
+      height: 600,
+      viewX: 0,
+      viewY: 0,
+      viewWidth: 10,
+      viewHeight: 10,
+      viewCorners: [],
+    };
+    expect(minimapCameraSignature(null)).toBe('none');
+    expect(minimapCameraSignature(camera)).not.toBe('none');
+    expect(minimapCameraSignature({ ...camera, scrollX: 11 })).not.toEqual(
+      minimapCameraSignature(camera),
+    );
   });
 });

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.142 - 2026-07-11
+
+### Replay minimap updates when you switch whose fog you're viewing
+
+While watching a replay, switching the fog-of-war perspective to a different player did not refresh the minimap if the replay was paused — the minimap kept showing the previous player's explored/visible area until you moved the camera or stepped the tick. The minimap now repaints as soon as you change perspective, so it always reflects whose vision you're currently viewing. Found by the full-codebase review.
+
 ## 0.1.141 - 2026-07-11
 
 ### Building health bars no longer cut through pitched roofs

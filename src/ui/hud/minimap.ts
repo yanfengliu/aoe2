@@ -32,6 +32,21 @@ export interface MinimapCameraState {
   viewCorners: readonly { cellX: number; cellY: number }[];
 }
 
+// M9: the minimap only repaints when its CONTENT or the camera viewport
+// changes. Content = tick + fog OWNER: a replay can swap the bridge to a
+// different player's fog perspective at the SAME paused tick (frame.playerId
+// changes, tick does not), so keying the repaint on tick alone would keep the
+// minimap showing the prior owner's visibility until a tick/camera change.
+export function minimapContentSignature(renderState: RenderState): string {
+  return `${renderState.tick}:${renderState.frame?.playerId ?? -1}`;
+}
+
+export function minimapCameraSignature(cameraState: MinimapCameraState | null): string {
+  return cameraState
+    ? `${cameraState.scrollX.toFixed(2)},${cameraState.scrollY.toFixed(2)},${cameraState.zoom.toFixed(3)}`
+    : 'none';
+}
+
 const MARKER_BACKING_STYLE = 'rgba(4, 8, 9, 0.72)';
 
 function tintToCss(tint: number): string {

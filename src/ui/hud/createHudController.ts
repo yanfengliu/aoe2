@@ -25,7 +25,13 @@ import {
   formatCountdownTicks,
   formatMatchTime,
 } from './displayNames';
-import { drawMinimap, getMinimapLayout, minimapToCell } from './minimap';
+import {
+  drawMinimap,
+  getMinimapLayout,
+  minimapCameraSignature,
+  minimapContentSignature,
+  minimapToCell,
+} from './minimap';
 import { createSelectionPanel } from './selectionPanel';
 import { createGameMenu } from './gameMenu';
 
@@ -176,7 +182,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   const debugOverlayController = createDebugOverlayController(debugOverlay);
   teardownCallbacks.push(() => debugOverlayController.destroy());
 
-  let lastRenderedTick = -1;
+  let lastMinimapContentSignature = '';
   let lastMinimapCameraSignature = '';
   let latestRenderState: RenderState | null = null;
   let isMinimapDragActive = false;
@@ -404,16 +410,21 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       rejection = bridge.consumeCommandRejection();
     }
 
-    const minimapCameraSignature = cameraState
-      ? `${cameraState.scrollX.toFixed(2)},${cameraState.scrollY.toFixed(2)},${cameraState.zoom.toFixed(3)}`
-      : 'none';
+    // M9: key the redraw on the fog OWNER too (via minimapContentSignature),
+    // not just the tick. In replay, `ReplayController` can swap the bridge to a
+    // different player's fog perspective at the SAME paused tick; without the
+    // owner in the signature the minimap kept showing the prior owner's
+    // visibility until a tick/camera change forced a redraw.
+    const contentSignature = minimapContentSignature(renderState);
+    const cameraSignature = minimapCameraSignature(cameraState);
     if (
       minimap
-      && (renderState.tick !== lastRenderedTick || minimapCameraSignature !== lastMinimapCameraSignature)
+      && (contentSignature !== lastMinimapContentSignature
+        || cameraSignature !== lastMinimapCameraSignature)
     ) {
       drawMinimap(minimap, renderState, cameraState);
-      lastRenderedTick = renderState.tick;
-      lastMinimapCameraSignature = minimapCameraSignature;
+      lastMinimapContentSignature = contentSignature;
+      lastMinimapCameraSignature = cameraSignature;
     }
 
     debugOverlayController.render(
