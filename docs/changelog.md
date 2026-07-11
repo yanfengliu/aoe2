@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.144 - 2026-07-11
+
+### Your units obey a move order near enemies instead of charging in
+
+When you ordered a unit to move while an enemy was within its vision, the unit could ignore your order for a moment and auto-attack the enemy instead — the classic "my unit won't retreat" frustration. An explicit order you give (move, attack, gather, or a right-click command) now always takes precedence over the unit's automatic aggression for that same moment, so a unit you tell to retreat actually retreats. Found by the full-codebase review.
+
 ## 0.1.143 - 2026-07-11
 
 ### Destroyed buildings no longer haunt your map forever

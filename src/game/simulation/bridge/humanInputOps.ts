@@ -20,6 +20,7 @@ import {
   trainingCost,
 } from '../prototypeEconomyRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { removePendingUnitCommands } from './pendingCommandQuery';
 import {
   constructionStatesCodec,
   playerResourcesCodec,
@@ -70,6 +71,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     humanPlayerId,
     mapWidth,
     mapHeight,
+    state,
     accessor,
     placementMode,
     isMatchRunning,
@@ -86,6 +88,16 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     allocateGroupMoveTargets,
   } = deps;
 
+  // M3: an ACCEPTED explicit human command for a unit evicts any stale
+  // auto-aggression intention queued for it, so the FIFO drain can't run the
+  // command then clobber it with the pending attack in the same step ("unit
+  // won't retreat"). Only drained ENGINE commands are recorded and replay
+  // clears pendingCommands each tick, so this is determinism/replay-safe.
+  function supersedeAutoAggression(unitId: number, accepted: boolean): boolean {
+    if (accepted) removePendingUnitCommands(state.pendingCommands, unitId);
+    return accepted;
+  }
+
   function issueMoveCommand(x: number, y: number): boolean {
     if (!isMatchRunning()) return false;
 
@@ -100,7 +112,8 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       // handles blocked / resource targets ("stop at closest reachable
       // cell"); the move-arrival handler applies the lazy-redirect rule
       // when the unit lands in a cell with no free slot.
-      didIssue = issueUnitMoveCommand(selectedUnitIds[0]!, { x, y }) || didIssue;
+      const id = selectedUnitIds[0]!;
+      didIssue = supersedeAutoAggression(id, issueUnitMoveCommand(id, { x, y })) || didIssue;
     } else if (selectedUnitIds.length > 1) {
       // Spec §12.7 group pre-reservation: clamp the target into bounds, then
       // allocate one distinct cell per unit by spiral fill from the target.
@@ -118,7 +131,8 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
       for (let i = 0; i < selectedUnitIds.length; i += 1) {
         const target = allocations[i] ?? targetCenter;
-        didIssue = issueUnitMoveCommand(selectedUnitIds[i]!, target) || didIssue;
+        const id = selectedUnitIds[i]!;
+        didIssue = supersedeAutoAggression(id, issueUnitMoveCommand(id, target)) || didIssue;
       }
     }
     for (const sheepId of ownedSheepIds) {
@@ -166,7 +180,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitContextCommand(unitId, target) || didIssue;
+      didIssue = supersedeAutoAggression(unitId, issueUnitContextCommand(unitId, target)) || didIssue;
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, target) || didIssue;
@@ -216,7 +230,8 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
-      didIssue = issueUnitContextCommandAtEntity(unitId, entityId) || didIssue;
+      didIssue =
+        supersedeAutoAggression(unitId, issueUnitContextCommandAtEntity(unitId, entityId)) || didIssue;
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, targetPosition) || didIssue;

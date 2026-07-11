@@ -30,6 +30,37 @@ describe('auto-aggression: idle military pursues; idle villagers defend', () => 
     ).toBe(true);
   }, 30_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
+  it('does not clobber a between-tick human move with a stale auto-aggression attack (full-review M3)', () => {
+    const bridge = createSimulationBridge('auto-aggro-idle-militia-in-vision-fixture');
+    const enemy = getOwnedUnit(bridge, 2, 'spearman');
+    expect(enemy).toBeDefined();
+    const enemyStartHp = bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0;
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
+    const before = getOwnedUnit(bridge, 1, 'militia');
+    expect(before).toBeDefined();
+
+    // Tick ONCE so auto-aggression queues an attack intention for the idle
+    // militia into pendingCommands (submitted to the engine FIFO on the NEXT
+    // step's drain, not yet applied).
+    bridge.step(100);
+
+    // In that one-tick window, issue an explicit human move AWAY (south). The
+    // stale pending attack must be superseded, not run-then-clobber the move.
+    expect(bridge.issueMoveCommand(before!.x, 20)).toBe(true);
+
+    for (let index = 0; index < 80; index += 1) {
+      bridge.step(100);
+    }
+
+    const after = getOwnedUnit(bridge, 1, 'militia');
+    expect(after).toBeDefined();
+    // Retreated south (y grows) instead of charging the enemy at (15, 8)...
+    expect(after!.y).toBeGreaterThan(before!.y);
+    // ...and never auto-attacked the spearman.
+    expect(bridge.getEntityHealth(enemy!.id)?.currentHp ?? 0).toBe(enemyStartHp);
+  }, 30_000); // contention headroom (full-suite thread pool)
+
   it('idle militia ignores an enemy spearman that is far outside its vision radius', () => {
     const bridge = createSimulationBridge('auto-aggro-idle-militia-out-of-vision-fixture');
 

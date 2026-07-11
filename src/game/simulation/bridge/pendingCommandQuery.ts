@@ -17,45 +17,62 @@ function assertNever(cmd: never): never {
   );
 }
 
+// Does this pending command carry `unitId` in the field that overwrites
+// `unitCommand[unitId]` at the next handler tick? Exhaustive switch (no
+// `default`) — adding a new GameCommands variant without a case here is a
+// TypeScript compile error at `assertNever`. R2-M1's original 2-case predicate
+// failed silently for 5 missed variants; this guard prevents a repeat.
+function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
+  switch (cmd.type) {
+    case 'unit.move':
+    case 'unit.attack':
+    case 'unit.gather':
+    case 'unit.context':
+    case 'unit.contextAtEntity':
+    case 'monk.contextAtEntity':
+    case 'trebuchet.pack':
+    case 'trebuchet.unpack':
+      return cmd.data.unitId === unitId;
+    case 'sheep.move':
+      return cmd.data.sheepId === unitId;
+    case 'building.placeConfirm':
+      return cmd.data.builderId === unitId
+        || (cmd.data.additionalBuilderIds?.includes(unitId) ?? false);
+    // The following commands don't take a unit-id field that overwrites
+    // unitCommand[id], so they don't conflict — but they're enumerated
+    // explicitly so the exhaustiveness guard fires on a new variant.
+    case 'queue.train':
+    case 'queue.research':
+    case 'market.action':
+    case 'building.action':
+    case 'building.setRallyPoint':
+      return false;
+    default:
+      return assertNever(cmd);
+  }
+}
+
 export function hasPendingUnitCommand(
   pendingCommands: ReadonlyArray<PendingCommand>,
   unitId: number,
 ): boolean {
-  for (const cmd of pendingCommands) {
-    // Exhaustive switch (no `default`) — adding a new GameCommands variant
-    // without a case here is a TypeScript compile error at `assertNever`.
-    // R2-M1's original 2-case predicate failed silently for 5 missed
-    // variants; this guard prevents a repeat.
-    switch (cmd.type) {
-      case 'unit.move':
-      case 'unit.attack':
-      case 'unit.gather':
-      case 'unit.context':
-      case 'unit.contextAtEntity':
-      case 'monk.contextAtEntity':
-      case 'trebuchet.pack':
-      case 'trebuchet.unpack':
-        if (cmd.data.unitId === unitId) return true;
-        break;
-      case 'sheep.move':
-        if (cmd.data.sheepId === unitId) return true;
-        break;
-      case 'building.placeConfirm':
-        if (cmd.data.builderId === unitId) return true;
-        if (cmd.data.additionalBuilderIds?.includes(unitId)) return true;
-        break;
-      // The following commands don't take a unit-id field that overwrites
-      // unitCommand[id], so they don't conflict — but they're enumerated
-      // explicitly so the exhaustiveness guard fires on a new variant.
-      case 'queue.train':
-      case 'queue.research':
-      case 'market.action':
-      case 'building.action':
-      case 'building.setRallyPoint':
-        break;
-      default:
-        return assertNever(cmd);
+  return pendingCommands.some((cmd) => commandTargetsUnit(cmd, unitId));
+}
+
+// Evict (in place) every pending intention targeting `unitId`. Full-review M3:
+// an explicit HUMAN command for a unit supersedes any stale auto-aggression
+// intention already queued for it — without eviction the FIFO drain runs the
+// human command, then the stale attack handler clobbers it (a one-tick loss of
+// control; "unit won't retreat near enemies"). A human-owned unit can only ever
+// have an auto-aggression intention pending (aiSystem strategic intentions
+// target AI-owned units), so this removes exactly the stale attack, nothing else.
+export function removePendingUnitCommands(
+  pendingCommands: PendingCommand[],
+  unitId: number,
+): void {
+  for (let i = pendingCommands.length - 1; i >= 0; i -= 1) {
+    if (commandTargetsUnit(pendingCommands[i]!, unitId)) {
+      pendingCommands.splice(i, 1);
     }
   }
-  return false;
 }
