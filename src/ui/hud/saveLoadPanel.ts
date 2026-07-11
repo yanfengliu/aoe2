@@ -32,6 +32,10 @@ export interface SaveLoadDeps {
   // promise and toasts success on resolve / failure on reject.
   loadGame(blob: SaveBlob): Promise<void>;
   showToast(text: string): void;
+  // Full-review H2: saving resolves the CURRENT bridge, which in replay is
+  // the historical replay bridge — persisting it would clobber the player's
+  // single live save. When this returns true the save is refused.
+  isReplayMode?(): boolean;
 }
 
 export interface SaveLoadHandle {
@@ -57,6 +61,7 @@ export function createSaveLoadPanel(
     loadCancelButton,
   } = elements;
   const { saveGame, loadGame, showToast } = deps;
+  const isReplayMode = (): boolean => deps.isReplayMode?.() ?? false;
 
   function refreshLoadSourceAvailability(): void {
     if (!loadSourceLocalStorageInput || !loadSourceLocalStorageLabel) {
@@ -150,6 +155,12 @@ export function createSaveLoadPanel(
   }
 
   function handleSaveClick(): void {
+    // Full-review H2: refuse to save while a replay is playing — the save
+    // would serialize the historical replay world over the live save slot.
+    if (isReplayMode()) {
+      showToast("Can't save while watching a replay.");
+      return;
+    }
     let json: string;
     try {
       const blob = saveGame();

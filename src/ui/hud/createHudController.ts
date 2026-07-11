@@ -215,9 +215,22 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       saveGame: () => bridge.saveGame(),
       loadGame: (blob: SaveBlob) => bridge.loadGame(blob),
       showToast,
+      isReplayMode: () => bridge.isReplayMode?.() ?? false,
     },
   );
   teardownCallbacks.push(() => saveLoadPanel.destroy());
+
+  // Full-review H2: disable the Save button while a replay is playing. The
+  // panel handler already refuses the save (the source-of-truth guard); this
+  // is the matching UX affordance, mirroring the Replay button's re-entry gate.
+  if (saveButton) {
+    const refreshSaveDisabled = (): void => {
+      saveButton.disabled = bridge.isReplayMode?.() ?? false;
+    };
+    refreshSaveDisabled();
+    const unsubscribeSaveDisabled = bridge.subscribeReplayModeChange?.(refreshSaveDisabled);
+    teardownCallbacks.push(() => unsubscribeSaveDisabled?.());
+  }
 
   // v0.1.95: the in-game menu (Esc / ☰). Save/Load/Replay live inside its markup
   // but are wired above via saveLoadPanel + the replay button; this only owns

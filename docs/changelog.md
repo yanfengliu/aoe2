@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.135 - 2026-07-10
+
+### Saving is disabled while you watch a replay
+
+While a replay was playing, the Save button still worked — but it saved the *replay's* historical game state on top of your live save, silently overwriting it. Saving is now blocked during replay: the Save button is greyed out, and if it is triggered anyway you get a "Can't save while watching a replay" message instead of losing your save. Exit the replay to save your live game again. Found by the full-codebase review.
+
 ## 0.1.134 - 2026-07-10
 
 ### Hunted and killed wildlife no longer reset when you load a save
