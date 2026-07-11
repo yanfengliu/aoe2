@@ -71,15 +71,32 @@ function parseArgs(argv) {
     // open findings are rendered into the agent prompts as known issues.
     knownFindings: null,
   };
+  // Full-review H8: validate numeric flags. A bare Number('nope') is NaN,
+  // which makes every budget/tick comparison in llmAgent/llmRunner false —
+  // silently removing the spend and run bounds. Fail loud instead.
+  const requireFinite = (raw, flag, { integer = false, min } = {}) => {
+    const n = Number(raw);
+    const ok =
+      Number.isFinite(n) &&
+      (!integer || Number.isInteger(n)) &&
+      (min === undefined || n >= min);
+    if (!ok) {
+      const kind = integer ? 'an integer' : 'a finite number';
+      const bound = min === undefined ? '' : ` >= ${min}`;
+      console.error(`playtest-llm: ${flag} must be ${kind}${bound}, got '${raw}'`);
+      process.exit(2);
+    }
+    return n;
+  };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--seed') args.seed = argv[++i];
-    else if (a === '--max-ticks') args.maxTicks = Number(argv[++i]);
+    else if (a === '--max-ticks') args.maxTicks = requireFinite(argv[++i], '--max-ticks', { integer: true, min: 1 });
     else if (a === '--out') args.out = argv[++i];
-    else if (a === '--decision-interval') args.decisionInterval = Number(argv[++i]);
-    else if (a === '--strategy-every') args.strategyEvery = Number(argv[++i]);
-    else if (a === '--owners') args.owners = argv[++i].split(',').map(Number);
-    else if (a === '--cost-budget') args.costBudget = Number(argv[++i]);
+    else if (a === '--decision-interval') args.decisionInterval = requireFinite(argv[++i], '--decision-interval', { integer: true, min: 1 });
+    else if (a === '--strategy-every') args.strategyEvery = requireFinite(argv[++i], '--strategy-every', { integer: true, min: 1 });
+    else if (a === '--owners') args.owners = argv[++i].split(',').map((o) => requireFinite(o, '--owners', { integer: true, min: 1 }));
+    else if (a === '--cost-budget') args.costBudget = requireFinite(argv[++i], '--cost-budget', { min: 0 });
     else if (a === '--provider') {
       const v = argv[++i];
       if (v !== 'claude-code' && v !== 'api') {
@@ -90,7 +107,7 @@ function parseArgs(argv) {
     }
     else if (a === '--use-dev-server') args.useDevServer = true;
     else if (a === '--no-screenshot') args.noScreenshot = true;
-    else if (a === '--screenshot-every') args.screenshotEvery = Number(argv[++i]);
+    else if (a === '--screenshot-every') args.screenshotEvery = requireFinite(argv[++i], '--screenshot-every', { integer: true, min: 0 });
     else if (a === '--omniscient') args.omniscient = true;
     else if (a === '--known-findings') args.knownFindings = argv[++i];
     else if (a.startsWith('--')) {
