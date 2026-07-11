@@ -25,6 +25,7 @@ export {
   createFogMemoryFixture,
   createBuildingFootprintVisionFixture,
   createBoarAggroFixture,
+  createBoarHuntFixture,
   createWolfAggroFixture,
   createGatherUnreachableRerouteFixture,
   createDropOffUnreachableRerouteFixture,

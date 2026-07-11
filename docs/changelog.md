@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.134 - 2026-07-10
+
+### Hunted and killed wildlife no longer reset when you load a save
+
+Wildlife hit points and death were not being written into the save file. If you saved after wounding or killing a boar and then loaded that save, the boar came back at full health — a killed boar could even resurrect as a live, huntable animal. Saving now preserves each animal's current health and its alive/dead state, so a hunt you were partway through (or had finished) survives a save and load. Found by the full-codebase review.
+
 ## 0.1.133 - 2026-07-10
 
 ### Units behind buildings show a white outline

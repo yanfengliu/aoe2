@@ -206,6 +206,66 @@ export function createBoarAggroFixture(seed: string): PrototypeScenario {
   };
 }
 
+export function createBoarHuntFixture(seed: string): PrototypeScenario {
+  // Six villagers ringed around a single boar so the pack out-damages the
+  // boar and actually KILLS it (a lone villager loses the fight). Used by the
+  // wildlife-persistence regression: killing a corpse-persisting boar must
+  // survive save/load (the boar must not resurrect).
+  const boar = { x: 13, y: 8 };
+  const ring = [
+    { x: 12, y: 7 },
+    { x: 13, y: 7 },
+    { x: 14, y: 7 },
+    { x: 12, y: 9 },
+    { x: 13, y: 9 },
+    { x: 14, y: 9 },
+  ];
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 40, y: 24 } },
+    ],
+    spawns: [
+      {
+        kind: 'town-center',
+        x: 4,
+        y: 4,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 7 },
+      },
+      ...ring.map((cell) => ({
+        kind: 'villager' as const,
+        x: cell.x,
+        y: cell.y,
+        owner: 1,
+        baseOwner: 1,
+        vision: { playerId: 1, radius: 4 },
+      })),
+      {
+        kind: 'boar',
+        x: boar.x,
+        y: boar.y,
+        owner: null,
+        baseOwner: null,
+        amount: 340,
+      },
+      {
+        kind: 'town-center',
+        x: 40,
+        y: 24,
+        owner: 2,
+        baseOwner: 2,
+        vision: { playerId: 2, radius: 7 },
+      },
+    ],
+  };
+}
+
 export function createWolfAggroFixture(seed: string): PrototypeScenario {
   return {
     seed,

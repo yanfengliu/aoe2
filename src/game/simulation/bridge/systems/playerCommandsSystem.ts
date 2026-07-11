@@ -277,6 +277,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             targetWildlife.targetEntityRef = getEntityRef(id);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
             accessor.markDirty(combatStatesCodec);
+            accessor.markDirty(wildlifeStatesCodec); // full-review H1: persist the wildlife HP mutation
             markOutOfBandRenderChange();
 
             if (targetWildlife.currentHp <= 0) {

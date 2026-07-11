@@ -344,6 +344,10 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     wildlife.cooldownTicks = 0;
     wildlife.isAlive = false;
     wildlife.targetEntityRef = null;
+    // Full-review H1: this mutates the cached wildlife value; without marking
+    // the slot dirty the `isAlive=false` corpse state never reaches
+    // world.state, so a save/load RESURRECTS the killed boar.
+    accessor.markDirty(wildlifeStatesCodec);
 
     if (!wildlife.corpsePersists || resource.amount <= 0) {
       destroyResourceEntity(id);

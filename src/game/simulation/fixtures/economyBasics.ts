@@ -21,6 +21,7 @@ export {
   createFogMemoryFixture,
   createBuildingFootprintVisionFixture,
   createBoarAggroFixture,
+  createBoarHuntFixture,
   createWolfAggroFixture,
 } from './economyBasics/visionAndAggro';
 
