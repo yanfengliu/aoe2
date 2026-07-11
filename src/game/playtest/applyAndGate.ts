@@ -47,6 +47,59 @@ export interface ApplyAndGateInput {
    *  When undefined, the worktree is left dirty post-success — the
    *  caller is responsible for any commit. (Codex impl-1 H1.) */
   commitMessage?: string;
+  /** H9 (security): when false (default) a patch that touches gate-executing
+   *  or dependency-surface files (package.json / lockfile / npm/CI config /
+   *  git hooks) is REFUSED before apply — running the npm gates on such a
+   *  patch would execute model-authored lifecycle scripts / altered build
+   *  config with the operator's privileges, before any human review. Set true
+   *  only for a human-supervised caller that has already reviewed the diff. */
+  allowSensitivePaths?: boolean;
+}
+
+// H9: files whose modification lets a model-authored patch EXECUTE code when the
+// gates run (npm lifecycle scripts, altered build/test config, CI, git hooks) or
+// change the resolved dependency graph. A recursive/auto-fix patch touching any
+// of these is refused — such a change must go through human review, not the loop.
+const SENSITIVE_PATH_PATTERNS: readonly RegExp[] = [
+  /(^|\/)package\.json$/,
+  /(^|\/)package-lock\.json$/,
+  /(^|\/)npm-shrinkwrap\.json$/,
+  /(^|\/)yarn\.lock$/,
+  /(^|\/)pnpm-lock\.yaml$/,
+  /(^|\/)\.npmrc$/,
+  /(^|\/)\.github\/workflows\//,
+  /(^|\/)\.husky\//,
+  /(^|\/)(vite|vitest|playwright|eslint|jest|rollup|webpack|babel|tsconfig)[^/]*\.(c?[jt]s|json|mjs|cjs)$/,
+];
+
+// Parse the file paths a unified diff touches (both a/ and b/ sides), so a
+// rename/add/delete of a sensitive file is caught, not just an edit.
+export function patchTouchedPaths(patch: string): string[] {
+  const paths = new Set<string>();
+  for (const line of patch.split('\n')) {
+    const gitHeader = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
+    if (gitHeader) {
+      paths.add(gitHeader[1]!);
+      paths.add(gitHeader[2]!);
+      continue;
+    }
+    const plus = /^\+\+\+ b\/(.+)$/.exec(line);
+    if (plus && plus[1] !== '/dev/null') {
+      paths.add(plus[1]!.replace(/\t.*$/, ''));
+      continue;
+    }
+    const minus = /^--- a\/(.+)$/.exec(line);
+    if (minus && minus[1] !== '/dev/null') {
+      paths.add(minus[1]!.replace(/\t.*$/, ''));
+    }
+  }
+  return [...paths];
+}
+
+export function patchTouchesSensitivePaths(patch: string): string[] {
+  return patchTouchedPaths(patch).filter((p) =>
+    SENSITIVE_PATH_PATTERNS.some((re) => re.test(p)),
+  );
 }
 
 export type ApplyAndGateResult =
@@ -69,6 +122,11 @@ export type ApplyAndGateResult =
   | {
       kind: 'precondition-failed';
       message: string;
+    }
+  | {
+      kind: 'sensitive-patch-rejected';
+      message: string;
+      paths: string[];
     };
 
 export async function applyAndGate(input: ApplyAndGateInput): Promise<ApplyAndGateResult> {
@@ -85,6 +143,24 @@ export async function applyAndGate(input: ApplyAndGateInput): Promise<ApplyAndGa
       return {
         kind: 'precondition-failed',
         message: 'working tree is dirty; commit or stash before auto-applying patches',
+      };
+    }
+  }
+
+  // H9 (security): refuse a model-authored patch that touches gate-executing /
+  // dependency-surface files BEFORE apply — running the gates on it would run
+  // injected lifecycle scripts / altered build config with our privileges. Done
+  // before branch creation so a rejected patch leaves no trace.
+  if (!input.allowSensitivePaths) {
+    const sensitive = patchTouchesSensitivePaths(input.patch);
+    if (sensitive.length > 0) {
+      return {
+        kind: 'sensitive-patch-rejected',
+        message:
+          'patch touches gate-executing / dependency-surface files; refusing to '
+          + 'auto-apply model-authored code (requires human review): '
+          + sensitive.join(', '),
+        paths: sensitive,
       };
     }
   }
