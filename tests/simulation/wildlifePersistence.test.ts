@@ -57,10 +57,12 @@ describe('wildlife state persists across save/load (full-review H1)', () => {
     });
     const restoredBoar = boarEntity(restored);
 
-    // The corpse must persist AND stay dead (currentHp 0). Pre-fix it
-    // resurrected with HP > 0. (A missing corpse would be a different bug — so
-    // assert it is present rather than accepting undefined.)
+    // The corpse must PERSIST (a missing corpse would be a different bug, so
+    // assert it exists rather than accepting undefined — full-review iter-2) AND
+    // stay dead. Pre-fix it resurrected with HP > 0 (the test observed 3). A
+    // dead corpse projects `currentHp: null` (no HP bar for an `isAlive:false`
+    // carcass), so normalise null→0 — the resurrection bug is a POSITIVE value.
     expect(restoredBoar).toBeDefined();
-    expect(restoredBoar!.currentHp).toBe(0);
+    expect(restoredBoar!.currentHp ?? 0).toBe(0);
   });
 });
