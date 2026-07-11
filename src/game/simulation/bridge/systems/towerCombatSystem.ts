@@ -74,6 +74,13 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         if (buildingCombat.cooldownTicks > 0) {
           buildingCombat.cooldownTicks -= 1;
           accessor.markDirty(buildingCombatStatesCodec);
+          // M11 perf: a tower still reloading after this tick's decrement can't
+          // fire, so skip the garrison count + tech derive + (expensive) target
+          // acquisition below — the post-decrement `cooldownTicks > 0` guard
+          // discarded that work anyway. Behaviour-identical, just earlier.
+          if (buildingCombat.cooldownTicks > 0) {
+            continue;
+          }
         }
 
         const garrisonIds = accessor.get(garrisonedByBuildingCodec).get(id) ?? [];
@@ -109,7 +116,9 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           footprint,
           effectiveRange,
         );
-        if (targetId === null || buildingCombat.cooldownTicks > 0 || arrowCount <= 0) {
+        // cooldownTicks is guaranteed 0 here (the hoisted M11 guard above
+        // `continue`d while reloading), so it no longer needs re-checking.
+        if (targetId === null || arrowCount <= 0) {
           continue;
         }
 
