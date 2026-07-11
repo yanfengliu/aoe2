@@ -135,7 +135,6 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     return createDebugOverlayRenderer({
       debugLayer,
       bridge: getBridge(),
-      cellSize: CELL_SIZE,
     });
   }
 

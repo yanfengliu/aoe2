@@ -12,6 +12,7 @@ import type {
   SelectionState,
 } from '../../../game/simulation/types';
 import type { DebugOverlayMode } from '../GameScene';
+import { worldToIso } from './isoProjection';
 
 export interface DebugOverlayDeps {
   // The graphics layer the renderer paints onto. Scene owns the lifetime.
@@ -19,8 +20,6 @@ export interface DebugOverlayDeps {
   // Bridge read-only access for debug snapshots (unit paths, coarse-vs-fine
   // probes). No mutations happen here.
   bridge: SimulationBridge;
-  // World-space cell pitch in pixels. Matches GameScene's `CELL_SIZE`.
-  cellSize: number;
 }
 
 export interface DebugOverlayRenderer {
@@ -35,7 +34,7 @@ export interface DebugOverlayRenderer {
 }
 
 export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlayRenderer {
-  const { debugLayer, bridge, cellSize } = deps;
+  const { debugLayer, bridge } = deps;
 
   function renderDebugSelectionBounds(
     entities: ProjectedEntityView[],
@@ -71,12 +70,18 @@ export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlay
       return;
     }
 
-    const px = minX * cellSize;
-    const py = minY * cellSize;
-    const widthPx = (maxX - minX) * cellSize;
-    const heightPx = (maxY - minY) * cellSize;
+    // Iso: the selected-footprint AABB (minX,minY)-(maxX,maxY) projects to a
+    // DIAMOND (its four world corners run through worldToIso), not an axis-
+    // aligned rect. The debug layer shares the camera's iso transform, so a
+    // top-down strokeRect at `min*cellSize` lands where the world isn't.
+    const corners = [
+      worldToIso(minX, minY),
+      worldToIso(maxX, minY),
+      worldToIso(maxX, maxY),
+      worldToIso(minX, maxY),
+    ];
     debugLayer.lineStyle(2, 0x6ed4ff, 0.95);
-    debugLayer.strokeRect(px, py, widthPx, heightPx);
+    debugLayer.strokePoints(corners, true, true);
   }
 
   function renderDebugPathing(entities: ProjectedEntityView[]): void {
@@ -90,10 +95,10 @@ export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlay
     const snapshot = bridge.getDebugSnapshot();
     for (const path of snapshot.unitPaths) {
       const source = displayedPositionById.get(path.id) ?? { x: path.fromX, y: path.fromY };
-      const sx = source.x * cellSize + cellSize * 0.5;
-      const sy = source.y * cellSize + cellSize * 0.5;
-      const tx = path.toX * cellSize + cellSize * 0.5;
-      const ty = path.toY * cellSize + cellSize * 0.5;
+      // Iso: project the cell centres (worldToIso already returns screen pixels;
+      // no cellSize scaling) so the path line tracks the unit in the diamond view.
+      const from = worldToIso(source.x + 0.5, source.y + 0.5);
+      const to = worldToIso(path.toX + 0.5, path.toY + 0.5);
       const color =
         path.commandType === 'attack'
           ? 0xff5a5a
@@ -101,9 +106,9 @@ export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlay
             ? 0xffd97d
             : 0x6ed4ff;
       debugLayer.lineStyle(1.5, color, 0.9);
-      debugLayer.lineBetween(sx, sy, tx, ty);
+      debugLayer.lineBetween(from.x, from.y, to.x, to.y);
       debugLayer.fillStyle(color, 0.9);
-      debugLayer.fillCircle(tx, ty, 3);
+      debugLayer.fillCircle(to.x, to.y, 3);
     }
   }
 
@@ -120,7 +125,17 @@ export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlay
         } else {
           debugLayer.fillStyle(0x8a3f5b, 0.22);
         }
-        debugLayer.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        // Iso: paint the cell's four projected corners as a diamond (same shape
+        // the terrain/fog layers draw), not a top-down `x*cellSize` square.
+        debugLayer.fillPoints(
+          [
+            worldToIso(x, y),
+            worldToIso(x + 1, y),
+            worldToIso(x + 1, y + 1),
+            worldToIso(x, y + 1),
+          ],
+          true,
+        );
       }
     }
   }
@@ -134,19 +149,19 @@ export function createDebugOverlayRenderer(deps: DebugOverlayDeps): DebugOverlay
   function renderDebugCoarseVsFine(): void {
     const snapshot = bridge.getDebugSnapshot();
     for (const probe of snapshot.coarseVsFine) {
-      const coarseCx = (probe.coarseX + 0.5) * cellSize;
-      const coarseCy = (probe.coarseY + 0.5) * cellSize;
-      const fineCx = (probe.fineX + 0.5) * cellSize;
-      const fineCy = (probe.fineY + 0.5) * cellSize;
+      // Iso: project both cell centres so coarse/fine endpoints land in the
+      // diamond view (worldToIso returns screen pixels; no cellSize scaling).
+      const coarse = worldToIso(probe.coarseX + 0.5, probe.coarseY + 0.5);
+      const fine = worldToIso(probe.fineX + 0.5, probe.fineY + 0.5);
       // Line from coarse (blue) to fine (magenta) with a dot on the
       // coarse endpoint so the player can see which side is the
       // simulation cell.
       debugLayer.lineStyle(1.5, 0xff5ed1, 0.9);
-      debugLayer.lineBetween(coarseCx, coarseCy, fineCx, fineCy);
+      debugLayer.lineBetween(coarse.x, coarse.y, fine.x, fine.y);
       debugLayer.fillStyle(0x6ed4ff, 0.9);
-      debugLayer.fillCircle(coarseCx, coarseCy, 3);
+      debugLayer.fillCircle(coarse.x, coarse.y, 3);
       debugLayer.fillStyle(0xff5ed1, 0.9);
-      debugLayer.fillCircle(fineCx, fineCy, 3);
+      debugLayer.fillCircle(fine.x, fine.y, 3);
     }
   }
 
