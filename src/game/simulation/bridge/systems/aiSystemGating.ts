@@ -134,14 +134,20 @@ export function createOwnerProducerHelpers(
         return id;
       }
     }
-    // Fallback: any owned villager not yet claimed (mirrors the
-    // owned-villager fallback that the original helper had).
+    // Fallback: any owned villager not yet claimed AND not currently building
+    // (mirrors the owned-villager fallback the original helper had). L3: the
+    // first loop already skips busy villagers via `!unitCommands.has(id)`; this
+    // fallback must still never return a villager on a `build` command, or the
+    // uncapped watch-tower push could yank the SOLE builder off an in-progress
+    // foundation and leave it builderless. Reassigning a gatherer/mover is fine;
+    // abandoning a foundation is not — return null instead (skip the build).
     for (const id of activeWorld.query('unit')) {
       const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
       if (
         unit?.owner === ownerId
         && unit.unitType === 'villager'
         && !claimedVillagers.has(id)
+        && unitCommands.get(id)?.type !== 'build'
       ) {
         return id;
       }

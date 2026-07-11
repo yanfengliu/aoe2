@@ -193,6 +193,13 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     debugOverlayRenderer = makeDebugOverlayRenderer();
     worldLayersRenderer = makeWorldLayersRenderer();
     selectionLayersRenderer = makeSelectionLayersRenderer();
+    // Full-review L7: `hasCenteredOnBase` is DELIBERATELY not reset here. A
+    // bridge swap includes replay fog-owner swaps (replayController.replace ->
+    // setBridge -> here), and the replay spec requires a perspective swap to
+    // leave the camera position untouched (spec §Replay fog perspective). Not
+    // resetting also preserves the player's camera across a save-load rather
+    // than yanking it back to the base. Re-centering happens once, on first
+    // sight of the base after scene start.
   }
 
   function syncFromBridge(force = false): void {
