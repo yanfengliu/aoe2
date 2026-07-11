@@ -73,6 +73,24 @@ describe('Slice 8 Wonder, Relic, Score win conditions', () => {
       expect(matchState.winCondition).toBe('wonder');
     });
 
+    it('awards the tie to the human when two Wonders complete on the same tick (full-review L5)', () => {
+      // Both owners hold a Wonder with the SAME 10-tick countdown, so both
+      // complete on the same tick. Owner 2's Wonder has the lower entity id
+      // (spawned first), so the pre-fix strict-`<` tie-break handed the human
+      // (owner 1) a `defeat`; the fix prefers the human on a tie.
+      const bridge = createSimulationBridge('two-wonder-tie-fixture');
+      expect(
+        stepBridgeUntil(
+          bridge,
+          () => bridge.getMatchState().outcome !== 'running',
+          { maxSteps: 60 },
+        ),
+      ).toBe(true);
+      const matchState = bridge.getMatchState();
+      expect(matchState.winCondition).toBe('wonder');
+      expect(matchState.outcome).toBe('victory'); // human wins the tie, not 'defeat'
+    });
+
     it('does not award Wonder victory when the Wonder is destroyed mid-countdown', () => {
       // Fixture: player 1 has a Wonder with very low HP and a short
       // countdown override. Player 2 has an enemy siege unit standing next

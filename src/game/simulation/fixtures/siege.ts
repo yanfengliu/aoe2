@@ -28,6 +28,7 @@ export {
 
 export {
   createBombardCannonVsBuildingFixture,
+  createTownCenterReselectFixture,
   createBombardCannonMinRangeBlockedFixture,
 } from './siege/bombardCannon';
 

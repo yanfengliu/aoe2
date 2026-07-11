@@ -104,6 +104,7 @@ export {
   createCamelVsRamFixture,
   createOnagerMinRangeBlockedFixture,
   createBombardCannonVsBuildingFixture,
+  createTownCenterReselectFixture,
   createBombardCannonMinRangeBlockedFixture,
   createSiegeRamVsBuildingFixture,
   createTrebuchetPackFixture,
@@ -172,6 +173,8 @@ export {
   createWonderRelicTieFixture,
   createWonderOwnerAfterConversionFixture,
 } from './wonderRelic';
+
+export { createTwoWonderTieFixture } from './fullReview';
 
 export {
   createTownCenterDefenseFixture,

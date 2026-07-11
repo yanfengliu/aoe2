@@ -3,7 +3,7 @@
 // the pre-extraction inline implementation byte-for-byte; the only change
 // is the dependency surface is explicit instead of closure-captured.
 
-import type { Position } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
   RenderableComponent,
@@ -231,7 +231,25 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     if (building?.buildingType === 'town-center') {
       const townCenterRef = accessor.get(townCenterRefsCodec).get(building.owner) ?? null;
       if (isSameEntity(townCenterRef, id, world)) {
-        accessor.mutate(townCenterRefsCodec, (m) => m.delete(building.owner));
+        // Full-review M12: the destroyed TC was the owner's referenced one. A
+        // player can own multiple TCs, and this per-owner ref gates TC-dependent
+        // AI logic (villager training / age-up) and feeds the AI's attack
+        // targeting + rally against that owner. Re-select a surviving TC instead
+        // of leaving the owner reference-less; only delete when none remain.
+        const owner = building.owner;
+        let replacement: EntityRef | null = null;
+        for (const otherId of world.query('position', 'building')) {
+          if (otherId === id) continue;
+          const other = world.getComponent<BuildingComponent>(otherId, 'building');
+          if (other?.buildingType === 'town-center' && other.owner === owner) {
+            replacement = world.getEntityRef(otherId);
+            if (replacement) break;
+          }
+        }
+        accessor.mutate(townCenterRefsCodec, (m) => {
+          if (replacement) m.set(owner, replacement);
+          else m.delete(owner);
+        });
       }
     }
 

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.140 - 2026-07-11
+
+### A simultaneous Wonder victory now goes to you, not the enemy
+
+If your Wonder and an enemy's Wonder both completed their victory countdown on the exact same tick, the game could hand you a defeat purely because the enemy's Wonder was built first. A tie now resolves in your favour, so a Wonder you kept standing for the full countdown is never turned into a loss by the enemy's coincidental timing. (Found by the full-codebase review.)
+
 ## 0.1.139 - 2026-07-10
 
 ### The minimap's view rectangle now matches what's on screen

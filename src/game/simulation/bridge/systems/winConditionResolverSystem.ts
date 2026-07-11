@@ -52,7 +52,15 @@ export function registerWinConditionResolverSystem(deps: WinConditionResolverSys
         if (!building) {
           continue;
         }
-        if (earliestWonderTick === null || entry.lastCompletedTick < earliestWonderTick) {
+        // Full-review L5: on a strictly-earlier completion take it; on a TIE
+        // (two wonders endure the same completion tick) prefer the human, so a
+        // human whose wonder also survived the full countdown is not handed a
+        // `defeat` purely because the enemy's wonder was built (inserted) first.
+        if (
+          earliestWonderTick === null
+          || entry.lastCompletedTick < earliestWonderTick
+          || (entry.lastCompletedTick === earliestWonderTick && building.owner === humanPlayerId)
+        ) {
           earliestWonderTick = entry.lastCompletedTick;
           earliestWonderOwner = building.owner;
         }
