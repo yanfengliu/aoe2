@@ -28,11 +28,8 @@ export interface MinimapCameraState {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
-  // Visible region in CELL space (AABB of the on-screen iso diamond).
-  viewCellMinX: number;
-  viewCellMinY: number;
-  viewCellMaxX: number;
-  viewCellMaxY: number;
+  // The visible iso-pixel rectangle's 4 corners in CELL space, polygon order.
+  viewCorners: readonly { cellX: number; cellY: number }[];
 }
 
 const MARKER_BACKING_STYLE = 'rgba(4, 8, 9, 0.72)';
@@ -101,14 +98,10 @@ function getMinimapViewportState(
   if (!cameraState) {
     return null;
   }
-  const { viewCellMinX, viewCellMinY, viewCellMaxX, viewCellMaxY } = cameraState;
+  // Full-review M8: project the 4 real view corners directly. Projecting the
+  // cell-space AABB corners instead drew an oversized circumscribing diamond.
   return {
-    points: [
-      cellToMinimap(viewCellMinX, viewCellMinY, layout),
-      cellToMinimap(viewCellMaxX, viewCellMinY, layout),
-      cellToMinimap(viewCellMaxX, viewCellMaxY, layout),
-      cellToMinimap(viewCellMinX, viewCellMaxY, layout),
-    ],
+    points: cameraState.viewCorners.map((c) => cellToMinimap(c.cellX, c.cellY, layout)),
   };
 }
 

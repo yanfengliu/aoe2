@@ -5,6 +5,7 @@
 - **H3 (v0.1.136) IndexedDB flush requeue:** `_flushNow` detached `_pending` before the tx and never restored it on error/abort → dropped recording batch. Fix: `_requeuePending` prepends the failed batch; idempotent retry.
 - **H4 (v0.1.137) crash-recovery replay endTick:** a never-closed session's `session_meta` froze at `endTick==startTick`, disabling Replay for the whole recorded session. Fix: `reconstructBundle` recomputes endTick/persistedEndTick/durationTicks from persisted data when `!closed`.
 - **M7 (v0.1.138) marker-list click by id:** live-mode row click resolved the marker by positional `data-marker-index` into a re-sorted, re-allocated `recording.markers()`; a marker added since render shifted every index → wrong marker. Now resolves by `row.dataset.markerId` `.find(m=>m.id===id)`, mirroring the replay branch.
+- **M8 (v0.1.139) minimap viewport quad:** `getCameraState` returned the cell-space AABB of the 4 view corners (`viewCellMin/Max`); `minimap` re-projected the box → an oversized (~2×) circumscribing diamond. Now exposes the 4 real corners (`viewCorners`, polygon order) and projects them directly. Unit test asserts a skewed quad projects to the true corners, not the AABB.
 - **H8 (harness, no bump) validate playtest CLI numbers:** `playtest-llm.mjs` numeric flags were bare `Number(...)`; `Number('nope')`=NaN silently disabled the budget/tick guards. New `requireFinite` exits 2 on non-finite/out-of-range input.
 
 ## 2026-07-10 (graphics batch v0.1.129–133)

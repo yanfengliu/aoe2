@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.139 - 2026-07-10
+
+### The minimap's view rectangle now matches what's on screen
+
+The white outline on the minimap that shows your current view was drawn about twice too large and as the wrong shape — it traced a bounding box around the visible area rather than the visible area itself. It now projects the four real corners of your on-screen view, so the outline is the correct size and shape and accurately shows how much of the map you're looking at. Found by the full-codebase review.
+
 ## 0.1.138 - 2026-07-10
 
 ### Clicking a marker in the list always jumps to the right one

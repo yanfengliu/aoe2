@@ -190,10 +190,18 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     // the map.
     const mapWidth = frame?.mapWidth ?? 0;
     const mapHeight = frame?.mapHeight ?? 0;
-    const halfCellW = ((movedCamera?.viewCellMaxX ?? 0) - (movedCamera?.viewCellMinX ?? 0)) / 2;
-    const halfCellH = ((movedCamera?.viewCellMaxY ?? 0) - (movedCamera?.viewCellMinY ?? 0)) / 2;
-    const cellCenterX = ((movedCamera?.viewCellMinX ?? 0) + (movedCamera?.viewCellMaxX ?? 0)) / 2;
-    const cellCenterY = ((movedCamera?.viewCellMinY ?? 0) + (movedCamera?.viewCellMaxY ?? 0)) / 2;
+    // Full-review M8: getCameraState now exposes the 4 real view corners;
+    // derive the cell-space AABB centre + half-extents from them.
+    const cornerXs = (movedCamera?.viewCorners ?? []).map((c) => c.cellX);
+    const cornerYs = (movedCamera?.viewCorners ?? []).map((c) => c.cellY);
+    const minCellX = Math.min(...cornerXs);
+    const maxCellX = Math.max(...cornerXs);
+    const minCellY = Math.min(...cornerYs);
+    const maxCellY = Math.max(...cornerYs);
+    const halfCellW = (maxCellX - minCellX) / 2;
+    const halfCellH = (maxCellY - minCellY) / 2;
+    const cellCenterX = (minCellX + maxCellX) / 2;
+    const cellCenterY = (minCellY + maxCellY) / 2;
     const expectedCellX = Math.min(0.84 * mapWidth, mapWidth - halfCellW);
     const expectedCellY = Math.min(0.76 * mapHeight, mapHeight - halfCellH);
     expect(Math.abs(cellCenterX - expectedCellX)).toBeLessThan(4);
@@ -228,8 +236,11 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
       if (!camera || !frame) {
         return null;
       }
-      const cellCenterX = (camera.viewCellMinX + camera.viewCellMaxX) / 2;
-      const cellCenterY = (camera.viewCellMinY + camera.viewCellMaxY) / 2;
+      // Full-review M8: centre = midpoint of the 4 real view corners' AABB.
+      const cxs = camera.viewCorners.map((c) => c.cellX);
+      const cys = camera.viewCorners.map((c) => c.cellY);
+      const cellCenterX = (Math.min(...cxs) + Math.max(...cxs)) / 2;
+      const cellCenterY = (Math.min(...cys) + Math.max(...cys)) / 2;
       return {
         offCentreX: Math.abs(cellCenterX - frame.mapWidth / 2) <= 1,
         offCentreY: Math.abs(cellCenterY - frame.mapHeight / 2) <= 1,
@@ -260,10 +271,18 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     // Iso camera: assert in CELL space (the minimap is a top-down cell grid).
     const mapWidth = frame?.mapWidth ?? 0;
     const mapHeight = frame?.mapHeight ?? 0;
-    const halfCellW = ((movedCamera?.viewCellMaxX ?? 0) - (movedCamera?.viewCellMinX ?? 0)) / 2;
-    const halfCellH = ((movedCamera?.viewCellMaxY ?? 0) - (movedCamera?.viewCellMinY ?? 0)) / 2;
-    const cellCenterX = ((movedCamera?.viewCellMinX ?? 0) + (movedCamera?.viewCellMaxX ?? 0)) / 2;
-    const cellCenterY = ((movedCamera?.viewCellMinY ?? 0) + (movedCamera?.viewCellMaxY ?? 0)) / 2;
+    // Full-review M8: getCameraState now exposes the 4 real view corners;
+    // derive the cell-space AABB centre + half-extents from them.
+    const cornerXs = (movedCamera?.viewCorners ?? []).map((c) => c.cellX);
+    const cornerYs = (movedCamera?.viewCorners ?? []).map((c) => c.cellY);
+    const minCellX = Math.min(...cornerXs);
+    const maxCellX = Math.max(...cornerXs);
+    const minCellY = Math.min(...cornerYs);
+    const maxCellY = Math.max(...cornerYs);
+    const halfCellW = (maxCellX - minCellX) / 2;
+    const halfCellH = (maxCellY - minCellY) / 2;
+    const cellCenterX = (minCellX + maxCellX) / 2;
+    const cellCenterY = (minCellY + maxCellY) / 2;
     const expectedCellX = Math.min(0.82 * mapWidth, mapWidth - halfCellW);
     const expectedCellY = Math.min(0.78 * mapHeight, mapHeight - halfCellH);
     expect(Math.abs(cellCenterX - expectedCellX)).toBeLessThan(4);
@@ -304,8 +323,9 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
       }
 
       // Iso DIAMOND minimap (v0.1.130): the viewport dataset is the bounding
-      // box of the visible CELL AABB projected through the diamond transform
+      // box of the 4 real view corners projected through the diamond transform
       // (mirrors getMinimapLayout + cellToMinimap in src/ui/hud/minimap.ts).
+      // Full-review M8: project the actual corners, not their cell-space AABB.
       const span = frame.mapWidth + frame.mapHeight;
       const hw = Math.min(minimap.width / span, (2 * minimap.height) / span) * 0.96;
       const hh = hw / 2;
@@ -315,12 +335,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
         x: originX + (cellX - cellY) * hw,
         y: originY + (cellX + cellY) * hh,
       });
-      const corners = [
-        project(camera.viewCellMinX, camera.viewCellMinY),
-        project(camera.viewCellMaxX, camera.viewCellMinY),
-        project(camera.viewCellMaxX, camera.viewCellMaxY),
-        project(camera.viewCellMinX, camera.viewCellMaxY),
-      ];
+      const corners = camera.viewCorners.map((c) => project(c.cellX, c.cellY));
       const xs = corners.map((c) => c.x);
       const ys = corners.map((c) => c.y);
       const minX = Math.min(...xs);

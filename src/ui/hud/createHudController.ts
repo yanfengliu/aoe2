@@ -39,10 +39,8 @@ interface HudCameraState {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
-  viewCellMinX: number;
-  viewCellMinY: number;
-  viewCellMaxX: number;
-  viewCellMaxY: number;
+  // Visible iso-pixel rectangle's 4 corners in CELL space, polygon order (full-review M8).
+  viewCorners: readonly { cellX: number; cellY: number }[];
 }
 
 interface HudBridge {

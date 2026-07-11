@@ -44,13 +44,10 @@ export interface CameraStateSnapshot {
   viewY: number;
   viewWidth: number;
   viewHeight: number;
-  // Visible region projected back to CELL space (the AABB of the on-screen
-  // diamond). The minimap is a top-down cell grid and consumes these; the
-  // iso-pixel view* fields are meaningless on it.
-  viewCellMinX: number;
-  viewCellMinY: number;
-  viewCellMaxX: number;
-  viewCellMaxY: number;
+  // The 4 corners of the visible iso-pixel rectangle projected to CELL space,
+  // in polygon order (TL, TR, BR, BL). The isometric-diamond minimap (v0.1.130)
+  // projects these directly to draw the viewport indicator.
+  viewCorners: readonly { cellX: number; cellY: number }[];
 }
 
 export interface CameraControllerDeps {
@@ -328,16 +325,18 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
     const viewX = camera.scrollX + (camera.width - viewWidth) * 0.5;
     const viewY = camera.scrollY + (camera.height - viewHeight) * 0.5;
 
-    // Cell-space AABB of the visible iso-pixel rectangle (its 4 corners project
-    // to a diamond of cells; take their bounding box for the top-down minimap).
-    const cornerCells = [
+    // The 4 real corners of the visible iso-pixel rectangle, projected to CELL
+    // space in polygon order (top-left → top-right → bottom-right → bottom-left).
+    // The minimap projects these directly, so the viewport indicator matches the
+    // true on-screen rectangle. Taking their AABB instead (min/max) and
+    // projecting the box corners drew an oversized circumscribing diamond ~2×
+    // the real footprint (full-review M8).
+    const viewCorners = [
       isoToWorld(viewX, viewY),
       isoToWorld(viewX + viewWidth, viewY),
-      isoToWorld(viewX, viewY + viewHeight),
       isoToWorld(viewX + viewWidth, viewY + viewHeight),
-    ];
-    const cellXs = cornerCells.map((cell) => cell.cellX);
-    const cellYs = cornerCells.map((cell) => cell.cellY);
+      isoToWorld(viewX, viewY + viewHeight),
+    ].map((cell) => ({ cellX: cell.cellX, cellY: cell.cellY }));
 
     return {
       scrollX: camera.scrollX,
@@ -349,10 +348,7 @@ export function createCameraController(deps: CameraControllerDeps): CameraContro
       viewY,
       viewWidth,
       viewHeight,
-      viewCellMinX: Math.min(...cellXs),
-      viewCellMinY: Math.min(...cellYs),
-      viewCellMaxX: Math.max(...cellXs),
-      viewCellMaxY: Math.max(...cellYs),
+      viewCorners,
     };
   }
 

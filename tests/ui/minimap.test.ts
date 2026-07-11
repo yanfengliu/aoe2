@@ -233,7 +233,12 @@ describe('drawMinimap (iso diamond)', () => {
     const camera: MinimapCameraState = {
       scrollX: 0, scrollY: 0, zoom: 1, width: 0, height: 0,
       viewX: 0, viewY: 0, viewWidth: 0, viewHeight: 0,
-      viewCellMinX: 2, viewCellMinY: 2, viewCellMaxX: 6, viewCellMaxY: 5,
+      viewCorners: [
+        { cellX: 2, cellY: 2 },
+        { cellX: 6, cellY: 2 },
+        { cellX: 6, cellY: 5 },
+        { cellX: 2, cellY: 5 },
+      ],
     };
     drawMinimap(canvas, { tick: 0, frame: visibleFrame(), entities: [] }, camera);
 
@@ -242,6 +247,38 @@ describe('drawMinimap (iso diamond)', () => {
     expect(calls.filter((c) => c.op === 'lineTo').length).toBe(3);
     expect(calls.some((c) => c.op === 'stroke' && c.strokeStyle === 'rgba(247, 229, 165, 0.95)')).toBe(true);
     expect(canvas.dataset.viewportActive).toBe('true');
+  });
+
+  it('projects the actual (skewed) view corners, not their bounding box (full-review M8)', () => {
+    const { canvas, calls } = createCanvasSpy();
+    const frame = visibleFrame();
+    // A rotated quad; its cell-space AABB would be [1,1]-[7,9] — much larger.
+    const viewCorners = [
+      { cellX: 1, cellY: 5 },
+      { cellX: 5, cellY: 1 },
+      { cellX: 7, cellY: 5 },
+      { cellX: 5, cellY: 9 },
+    ];
+    const camera: MinimapCameraState = {
+      scrollX: 0, scrollY: 0, zoom: 1, width: 0, height: 0,
+      viewX: 0, viewY: 0, viewWidth: 0, viewHeight: 0,
+      viewCorners,
+    };
+    drawMinimap(canvas, { tick: 0, frame, entities: [] }, camera);
+
+    const layout = getMinimapLayout(canvas, frame)!;
+    const expected = viewCorners.map((c) => cellToMinimap(c.cellX, c.cellY, layout));
+    const drawn = calls
+      .filter((c) => c.op === 'moveTo' || c.op === 'lineTo')
+      .map((c) => ({ x: c.args[0]!, y: c.args[1]! }));
+    expect(drawn.length).toBe(4);
+    drawn.forEach((p, i) => {
+      expect(p.x).toBeCloseTo(expected[i]!.x, 5);
+      expect(p.y).toBeCloseTo(expected[i]!.y, 5);
+    });
+    // The real first corner (1,5) must NOT project to the old AABB min (1,1).
+    const aabbMin = cellToMinimap(1, 1, layout);
+    expect(Math.abs(drawn[0]!.y - aabbMin.y)).toBeGreaterThan(1);
   });
 
   it('marks the viewport inactive without a camera', () => {
