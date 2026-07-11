@@ -44,78 +44,22 @@ import {
 import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
 import { runLlmPlaytest } from '../src/game/playtest/llmRunner.ts';
 import { selectKnownIssues } from '../src/game/playtest/knownIssues.ts';
+import { parsePlaytestLlmArgs, PlaytestLlmArgError } from '../src/game/playtest/playtestLlmArgs.ts';
 
+// Full-review iter-2 H8: parsing + numeric validation lives in the typed,
+// unit-tested `playtestLlmArgs` module (a bare `Number('nope')` used to be NaN
+// and silently disabled the budget/tick bounds). The module throws on bad
+// input; keep the CLI's exit-2 contract here.
 function parseArgs(argv) {
-  const args = {
-    seed: 'aoe2-prototype',
-    maxTicks: 5000,
-    out: 'output/playtests-llm/run',
-    decisionInterval: 250,
-    strategyEvery: 10,
-    // LLM plays player 1 (the human slot) so player 2's in-game AI is a
-    // real opponent. campaign-1..5 used owners [2], which left the LLM in
-    // the only AI slot and player 1 (human, no AI) inert — no opponent.
-    owners: [1],
-    costBudget: 5.0,
-    provider: null, // null = auto-detect
-    useDevServer: false,
-    noScreenshot: false,
-    // Dashboard checkpoint screenshots every N ticks (option C: no
-    // baseline comparison — captures are for human eyeballing via the
-    // corpus dashboard only). 0 disables.
-    screenshotEvery: 1000,
-    // Phase-6.B (impl-2 M7): default false → enemies are visibility-
-    // filtered. Pass --omniscient to revert to cheat-mode global view.
-    omniscient: false,
-    // Episodic memory: path to a prior self-improvement ledger JSON whose
-    // open findings are rendered into the agent prompts as known issues.
-    knownFindings: null,
-  };
-  // Full-review H8: validate numeric flags. A bare Number('nope') is NaN,
-  // which makes every budget/tick comparison in llmAgent/llmRunner false —
-  // silently removing the spend and run bounds. Fail loud instead.
-  const requireFinite = (raw, flag, { integer = false, min } = {}) => {
-    const n = Number(raw);
-    const ok =
-      Number.isFinite(n) &&
-      (!integer || Number.isInteger(n)) &&
-      (min === undefined || n >= min);
-    if (!ok) {
-      const kind = integer ? 'an integer' : 'a finite number';
-      const bound = min === undefined ? '' : ` >= ${min}`;
-      console.error(`playtest-llm: ${flag} must be ${kind}${bound}, got '${raw}'`);
+  try {
+    return parsePlaytestLlmArgs(argv);
+  } catch (err) {
+    if (err instanceof PlaytestLlmArgError) {
+      console.error(err.message);
       process.exit(2);
     }
-    return n;
-  };
-  for (let i = 2; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--seed') args.seed = argv[++i];
-    else if (a === '--max-ticks') args.maxTicks = requireFinite(argv[++i], '--max-ticks', { integer: true, min: 1 });
-    else if (a === '--out') args.out = argv[++i];
-    else if (a === '--decision-interval') args.decisionInterval = requireFinite(argv[++i], '--decision-interval', { integer: true, min: 1 });
-    else if (a === '--strategy-every') args.strategyEvery = requireFinite(argv[++i], '--strategy-every', { integer: true, min: 1 });
-    else if (a === '--owners') args.owners = argv[++i].split(',').map((o) => requireFinite(o, '--owners', { integer: true, min: 1 }));
-    else if (a === '--cost-budget') args.costBudget = requireFinite(argv[++i], '--cost-budget', { min: 0 });
-    else if (a === '--provider') {
-      const v = argv[++i];
-      if (v !== 'claude-code' && v !== 'api') {
-        console.error(`playtest-llm: --provider must be 'claude-code' or 'api', got '${v}'`);
-        process.exit(2);
-      }
-      args.provider = v;
-    }
-    else if (a === '--use-dev-server') args.useDevServer = true;
-    else if (a === '--no-screenshot') args.noScreenshot = true;
-    else if (a === '--screenshot-every') args.screenshotEvery = requireFinite(argv[++i], '--screenshot-every', { integer: true, min: 0 });
-    else if (a === '--omniscient') args.omniscient = true;
-    else if (a === '--known-findings') args.knownFindings = argv[++i];
-    else if (a.startsWith('--')) {
-      console.error(`playtest-llm: unknown argument '${a}'`);
-      process.exit(2);
-    }
+    throw err;
   }
-  return args;
 }
 
 // Pick the provider. Explicit --provider wins. Otherwise:
