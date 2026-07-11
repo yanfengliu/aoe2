@@ -144,6 +144,25 @@ describe('Slice 9 — save/load round-trip', () => {
     expect(afterLoad.winCondition).toBe(before.winCondition);
   });
 
+  it('preserves the full observable economy state across save/load — guards cache-flush misses (full-review M14)', () => {
+    const bridge = createSimulationBridge('conquest-victory-fixture');
+    // Run long enough to exercise economy, combat, gather, and resource-amount
+    // cache mutations across many Tier-1 slots.
+    for (let i = 0; i < 200; i += 1) {
+      bridge.step(100);
+    }
+    // The ORIGINAL bridge reads observable state through the live accessor CACHE;
+    // the LOADED bridge reads it from the flushed save blob. A mutation that
+    // marked the WRONG codec dirty (the H1 class: cache updated, world.state left
+    // stale because flush only writes dirty slots) is invisible to the codec-only
+    // snapshotEquivalence test (it reads both sides off world.state), but here it
+    // surfaces as a divergence between the cache-read and the blob-read.
+    const before = bridge.getEconomyState();
+    const blob = JSON.parse(JSON.stringify(bridge.saveGame())) as SaveBlob;
+    const loaded = createSimulationBridge('conquest-victory-fixture', { savedGame: blob });
+    expect(loaded.getEconomyState()).toEqual(before);
+  });
+
   it('produces matching state after stepping both saved and loaded bridges 100 more ticks', () => {
     const bridge1 = createSimulationBridge('conquest-victory-fixture');
     for (let i = 0; i < 150; i += 1) {

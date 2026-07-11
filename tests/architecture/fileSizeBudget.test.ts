@@ -21,20 +21,29 @@ import { describe, expect, it } from 'vitest';
 
 const HARD_LIMIT = 500;
 
-const ROOTS = ['src', 'tests'];
+// Full-review M14: `scripts/` (harness/build tooling, `.mjs`) was outside the
+// size gate, so a script could grow unbounded (content-lib.mjs 633, playtest-
+// llm.mjs 531 at the time). Now covered — new scripts are capped at 500 and the
+// two current violators are legacy-listed (shrink-only) below. NOTE: the LINT
+// gate is deliberately NOT extended to scripts/ here — `eslint scripts` surfaces
+// 300+ pre-existing errors under the app ruleset (the .mjs tooling has a
+// different baseline), which is a separate, larger cleanup than this budget gate.
+const ROOTS = ['src', 'tests', 'scripts'];
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'generated', 'coverage']);
-const FILE_EXTS = ['.ts', '.tsx'];
+const FILE_EXTS = ['.ts', '.tsx', '.mjs'];
 
 // Current known-over-budget files keyed by repo-relative POSIX path.
 // Each entry is the file's CURRENT line count — the test fails if the
 // file exceeds this. To shrink: split the file, drop the entry. To
 // regress: the test fails (do not raise the entry).
 const LEGACY_VIOLATIONS: Record<string, number> = {
-  // 2026-07-10: the map is EMPTY — the four src/ violators split in the
-  // file-size-budget arc (GameScene, aiSystem, IndexedDBMirror,
-  // wireBridgeOps) and tests/playtest/oracles.test.ts split with the
-  // pinned-units oracle rework (suites moved to pinnedUnitsOracle*.test.ts,
-  // remainder ~250 lines). One-way ratchet: do not re-add entries.
+  // 2026-07-10: the src/tests map reached EMPTY (the four src/ violators split
+  // in the file-size-budget arc + oracles.test.ts split with the pinned-units
+  // rework). 2026-07-11 (full-review M14): scripts/ was brought under the gate,
+  // grandfathering its two pre-existing violators (shrink-only, one-way ratchet
+  // — split them under 500 and delete the entry; do not raise the cap).
+  'scripts/content-lib.mjs': 633,
+  'scripts/playtest-llm.mjs': 531,
 };
 
 function walk(root: string, base = root): string[] {
