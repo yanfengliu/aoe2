@@ -5,8 +5,11 @@ import {
   buildingSilhouettePolygon,
   computeOccludedUnits,
   depthKey,
+  findFrontmostBuildingAtIsoPoint,
   pointInPolygon,
 } from '../../src/phaser/scenes/gameScene/occlusionSilhouettes';
+import { buildingRole } from '../../src/phaser/scenes/gameScene/buildingRole';
+import { isoBuildingHeightPx } from '../../src/phaser/scenes/gameScene/isoBuilding';
 import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
 
 // "Unit behind a building" occlusion (v0.1.133): a unit painted over by a
@@ -161,5 +164,38 @@ describe('computeOccludedUnits', () => {
     const res = building({ id: 200, kind: 'resource', layer: 'resource', entityType: 'tree', x: 8, y: 8 } as Partial<ProjectedEntityView>);
     const occluded = computeOccludedUnits([tc, res]);
     expect(occluded.every((e) => e.kind === 'unit')).toBe(true);
+  });
+});
+
+describe('findFrontmostBuildingAtIsoPoint — click on the drawn iso volume (full-review M10)', () => {
+  it('selects a building clicked on its RAISED ROOF, above the ground footprint', () => {
+    const b = building({ id: 100, x: 10, y: 10 });
+    const back = worldToIso(10, 10); // footprint back corner (ground level)
+    // A point lifted near the roof: ABOVE the ground footprint diamond but still
+    // inside the drawn silhouette. The top-down footprint test would miss it.
+    const roofPoint = { x: back.x, y: back.y - isoBuildingHeightPx(buildingRole('town-center')) + 6 };
+    expect(pointInPolygon(roofPoint.x, roofPoint.y, buildingSilhouettePolygon(b))).toBe(true);
+    expect(findFrontmostBuildingAtIsoPoint([b], roofPoint.x, roofPoint.y)?.id).toBe(100);
+  });
+
+  it('returns null for a click on empty ground outside every building silhouette', () => {
+    const b = building({ id: 100, x: 10, y: 10 });
+    const far = worldToIso(30, 30);
+    expect(findFrontmostBuildingAtIsoPoint([b], far.x, far.y)).toBeNull();
+  });
+
+  it('returns the FRONT-MOST building (largest depthKey) when two overlap at the point', () => {
+    const back = building({ id: 100, x: 10, y: 10 }); // depthKey 20
+    const front = building({ id: 200, x: 12, y: 10 }); // depthKey 22 (painted on top)
+    const p = worldToIso(13, 11); // a ground cell inside BOTH 4x4 footprints (10-14 / 12-16)
+    // Precondition: the point is inside both silhouettes.
+    expect(pointInPolygon(p.x, p.y, buildingSilhouettePolygon(back))).toBe(true);
+    expect(pointInPolygon(p.x, p.y, buildingSilhouettePolygon(front))).toBe(true);
+    // The front-most (larger depthKey) wins — matches what's painted on top.
+    expect(depthKey(front)).toBeGreaterThan(depthKey(back));
+    expect(findFrontmostBuildingAtIsoPoint([back, front], p.x, p.y)?.id).toBe(200);
+    expect(findFrontmostBuildingAtIsoPoint([front, back], p.x, p.y)?.id).toBe(200);
+    // Memory ghosts are never selectable.
+    expect(findFrontmostBuildingAtIsoPoint([{ ...front, isMemory: true }], p.x, p.y)).toBeNull();
   });
 });

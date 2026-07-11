@@ -145,3 +145,28 @@ export function computeOccludedUnits(
   }
   return occluded;
 }
+
+// Full-review M10: which building did the player CLICK, given a click point in
+// iso-pixel space? A building draws as an extruded volume (footprint diamond +
+// walls + pitched roof), so a click on its raised roof/wall lands OUTSIDE the
+// ground footprint — the top-down footprint hit-test misses it and the click
+// falls through to the empty cell drawn BEHIND the building. Test the click
+// against the SAME drawn silhouette the renderer paints (buildingSilhouettePolygon)
+// and return the FRONT-MOST match (largest depthKey = painted last = on top),
+// so selection agrees with what the player sees. Memory ghosts don't occlude and
+// aren't selectable, so they're skipped. Pure geometry (no RNG/time).
+export function findFrontmostBuildingAtIsoPoint(
+  entities: readonly ProjectedEntityView[],
+  isoX: number,
+  isoY: number,
+): ProjectedEntityView | null {
+  let best: ProjectedEntityView | null = null;
+  for (const entity of entities) {
+    if (entity.kind !== 'building' || entity.isMemory) continue;
+    if (!pointInPolygon(isoX, isoY, buildingSilhouettePolygon(entity))) continue;
+    if (best === null || depthKey(entity) > depthKey(best)) {
+      best = entity;
+    }
+  }
+  return best;
+}

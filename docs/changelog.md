@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.145 - 2026-07-11
+
+### Clicking a building selects it, even on its roof
+
+Buildings are drawn as raised 3-D volumes, but clicks were tested only against the flat ground tile the building sits on — so clicking the upper walls or roof missed the building and selected the empty ground drawn behind it (often clearing your selection). A click anywhere on a building's drawn shape now selects that building, and when buildings overlap the front-most one (the one drawn on top) is chosen — matching what you see. Clicking a unit still selects the unit. Found by the full-codebase review.
+
 ## 0.1.144 - 2026-07-11
 
 ### Your units obey a move order near enemies instead of charging in

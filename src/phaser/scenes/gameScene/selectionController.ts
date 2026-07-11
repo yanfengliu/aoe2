@@ -22,6 +22,8 @@ import {
   findCommandTargetEntityAtWorldPointInEntities,
   findEntitiesAtWorldPointInEntities,
 } from '../entityHitTest';
+import { worldToIso } from './isoProjection';
+import { findFrontmostBuildingAtIsoPoint } from './occlusionSilhouettes';
 import { isoViewportCellBounds } from './isoViewHelpers';
 import { isUnitType as isUnitTypeExternal } from './unitTypeMap';
 import {
@@ -62,12 +64,30 @@ export function createSelectionController(
 
     const clickCellX = Phaser.Math.Clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
     const clickCellY = Phaser.Math.Clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
-    const targetEntities = findEntitiesAtWorldPointInEntities(
-      getDisplayedEntities(),
+    const displayed = getDisplayedEntities();
+    let targetEntities = findEntitiesAtWorldPointInEntities(
+      displayed,
       worldX * CELL_SIZE,
       worldY * CELL_SIZE,
       CELL_SIZE,
     );
+    // Full-review M10: a building draws as an extruded iso VOLUME, so a click on
+    // its raised roof/wall misses the top-down footprint above and would select
+    // the empty cell drawn BEHIND it. Unless a UNIT is under the click (a unit in
+    // front wins, per the existing layer priority), prefer the front-most building
+    // whose DRAWN silhouette contains the click's iso-pixel — so selection agrees
+    // with what was painted. (worldToIso∘isoToWorld is identity on the ground
+    // plane, so this recovers the exact click iso-pixel from the projected cell.)
+    if (targetEntities[0]?.kind !== 'unit') {
+      const isoPoint = worldToIso(worldX, worldY);
+      const silhouetteBuilding = findFrontmostBuildingAtIsoPoint(displayed, isoPoint.x, isoPoint.y);
+      if (silhouetteBuilding) {
+        targetEntities = [
+          silhouetteBuilding,
+          ...targetEntities.filter((entity) => entity.id !== silhouetteBuilding.id),
+        ];
+      }
+    }
     if (targetEntities.length === 0) {
       clearRecentSelectionClicks();
       getBridge().clearSelection();
