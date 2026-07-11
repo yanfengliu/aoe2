@@ -7,6 +7,7 @@ import type {
   Marker,
   RecordedCommand,
   SessionBundle,
+  SessionMetadata,
   SessionSnapshotEntry,
   SessionTickEntry,
   TickFailure,
@@ -62,6 +63,30 @@ export async function listSessions(
   // Sort recordedAt desc so most recent surfaces first.
   result.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
   return result;
+}
+
+/** Full-review H4: recompute the tick extent of a session that was never
+ *  cleanly closed (a crash / refresh mid-recording) from the durably persisted
+ *  ticks + snapshots, so the bundle is replayable up to the last recorded tick
+ *  instead of being frozen at `startTick`. We do NOT set `incomplete` — the
+ *  data up to `endTick` is what actually persisted (we read it here), and
+ *  replay re-simulates from the initial snapshot, so `replayableUpperBound`
+ *  should be the last recorded tick, not the last periodic snapshot. */
+function recomputeCrashRecoveredMeta(
+  base: SessionMetadata,
+  ticks: readonly SessionTickEntry[],
+  snapshots: readonly SessionSnapshotEntry[],
+): SessionMetadata {
+  const lastTick = ticks.length > 0 ? ticks[ticks.length - 1]!.tick : base.startTick;
+  const lastSnapshotTick =
+    snapshots.length > 0 ? snapshots[snapshots.length - 1]!.tick : base.startTick;
+  const endTick = Math.max(base.startTick, lastTick);
+  return {
+    ...base,
+    endTick,
+    persistedEndTick: Math.max(base.startTick, lastSnapshotTick),
+    durationTicks: endTick - base.startTick,
+  };
 }
 
 /** AO-7c: reconstruct a SessionBundle from the per-stream stores.
@@ -125,9 +150,20 @@ export async function reconstructBundle(
   // <Record<string, never>>. Cast through unknown — the bundle is
   // structurally compatible (we wrote it with a narrower type and
   // are reading it back into the wider one).
+  // Full-review H4: a crash-recovered session (never stop()'d → `closed` is
+  // false) had its session_meta written once at the first snapshot with
+  // endTick == startTick / durationTicks == 0, and this returned it verbatim.
+  // The engine's replayableUpperBound then stayed at startTick, so openAt(t >
+  // startTick) threw `too_high` and the panel disabled Replay for the whole
+  // (durably recoverable) session. Recompute the extent from what actually
+  // persisted. Closed sessions keep their finalized meta untouched.
+  const metadata = metaRow.closed
+    ? metaRow.metadata
+    : recomputeCrashRecoveredMeta(metaRow.metadata, ticks, snapshots);
+
   const bundle: SessionBundle = {
     schemaVersion: SESSION_BUNDLE_SCHEMA_VERSION,
-    metadata: metaRow.metadata,
+    metadata,
     initialSnapshot: metaRow.initialSnapshot,
     ticks: ticks as unknown as SessionBundle['ticks'],
     commands: commands as unknown as SessionBundle['commands'],

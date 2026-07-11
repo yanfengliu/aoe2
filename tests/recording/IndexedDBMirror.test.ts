@@ -419,6 +419,41 @@ describe('IndexedDBMirror — flush-failure requeue (full-review H3)', () => {
     expect(internals._pending.metaUpdates.get('s1')?.metadata.startTick).toBe(9);
   });
 
+  it('recomputes a crash-recovered session\'s endTick from persisted data', async () => {
+    // Never markClosed() -> simulates a refresh/crash mid-recording. session_meta
+    // stays frozen at endTick == startTick; reconstructBundle must recover it.
+    const mirror = newMirror(uniqueDbName());
+    mirror.recordMeta(
+      's1',
+      stubMetadata('s1', { startTick: 0, endTick: 0, persistedEndTick: 0, durationTicks: 0 }),
+      stubSnapshot(),
+    );
+    mirror.recordTick('s1', stubTick(0));
+    mirror.recordTick('s1', stubTick(5));
+    mirror.recordTick('s1', stubTick(12));
+    mirror.recordSnapshot('s1', { tick: 10, snapshot: stubSnapshot() });
+    await mirror.flushAll();
+
+    const bundle = await mirror.reconstructBundle('s1');
+    expect(bundle.metadata.endTick).toBe(12); // last recorded tick, not 0
+    expect(bundle.metadata.persistedEndTick).toBe(10); // last snapshot tick
+    expect(bundle.metadata.durationTicks).toBe(12);
+  });
+
+  it('keeps a cleanly closed session\'s finalized endTick verbatim', async () => {
+    const mirror = newMirror(uniqueDbName());
+    mirror.recordMeta('s1', stubMetadata('s1', { startTick: 0, endTick: 0 }), stubSnapshot());
+    mirror.recordTick('s1', stubTick(0)); // only tick 0 durably in the store
+    await mirror.flushAll();
+    // stop(): finalize meta with the true endTick (3), then markClosed.
+    await mirror.updateMeta('s1', stubMetadata('s1', { startTick: 0, endTick: 3, durationTicks: 3 }));
+    await mirror.markClosed('s1');
+
+    const bundle = await mirror.reconstructBundle('s1');
+    // Closed -> verbatim (3), NOT recomputed down to the last stored tick (0).
+    expect(bundle.metadata.endTick).toBe(3);
+  });
+
   it('does not drop a batch when the flush transaction aborts', async () => {
     const mirror = newMirror(uniqueDbName());
     await mirror.open();

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.137 - 2026-07-10
+
+### Replays from an interrupted session can be watched again
+
+If the game was closed or refreshed mid-match (without quitting cleanly), the recording of that session was marked as zero-length, and the replay browser refused to open it — even though the whole session was safely recorded. Such sessions now report their true length when loaded, so you can watch the replay of a game that ended in a crash or a page refresh, right up to the last recorded moment. Found by the full-codebase review.
+
 ## 0.1.136 - 2026-07-10
 
 ### Recordings survive a transient storage hiccup
