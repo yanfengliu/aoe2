@@ -55,6 +55,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         humanMemory.set(id, {
           kind: 'building',
           entityType: building.buildingType,
+          generation: activeWorld.getEntityGeneration(id),
           position: { x: position.x, y: position.y },
           footprintWidth: renderable.footprintWidth,
           footprintHeight: renderable.footprintHeight,
@@ -88,6 +89,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         humanMemory.set(id, {
           kind: 'resource',
           entityType: resource.resourceType,
+          generation: activeWorld.getEntityGeneration(id),
           position: { x: position.x, y: position.y },
           footprintWidth: renderable.footprintWidth,
           footprintHeight: renderable.footprintHeight,
@@ -105,7 +107,12 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
       // ghost when only a non-anchor cell of its old footprint is in vision
       // (mirrors the iter-3 V3-1 write/select footprint-visibility fix).
       for (const [entityId, entry] of humanMemory) {
-        const stillExists = activeWorld.getComponent<Position>(entityId, 'position') !== undefined;
+        // Generation-aware existence: isCurrent is false on BOTH death and id
+        // recycle (a new entity reusing this id has a bumped generation), so a
+        // recycled id no longer masks a destroyed-under-fog building as "still
+        // there" (the M5 bug — a raw `getComponent(id,'position')` probe was
+        // fooled by the recycled entity's position).
+        const stillExists = activeWorld.isCurrent({ id: entityId, generation: entry.generation });
         if (stillExists) {
           continue;
         }

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.143 - 2026-07-11
+
+### Destroyed buildings no longer haunt your map forever
+
+A building you had scouted and then lost sight of is remembered under the fog of war as a "last seen" ghost. If that building was later destroyed while you couldn't see it, and the game happened to reuse its internal id for a new unit or building, the ghost could stay on your map permanently — it never cleared even when you re-explored the now-empty ground, and it persisted through save/load. Fog memories are now matched to the exact entity that was seen, so a destroyed building's ghost clears correctly once you look again. Found by the full-codebase review.
+
 ## 0.1.142 - 2026-07-11
 
 ### Replay minimap updates when you switch whose fog you're viewing

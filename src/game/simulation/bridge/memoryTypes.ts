@@ -9,6 +9,11 @@ import type { ProjectedEntityView } from '../types';
 export interface MemoryEntry {
   kind: 'building' | 'resource';
   entityType: ProjectedEntityView['entityType'];
+  // Entity-ref generation captured when the snapshot was taken. civ-engine
+  // recycles entity ids (generation bumps on reuse), so the fog-memory cleanup
+  // must compare generation (via world.isCurrent) — a raw-id existence probe is
+  // fooled by a recycled id into keeping a destroyed-under-fog ghost forever.
+  generation: number;
   position: Position;
   footprintWidth: number;
   footprintHeight: number;

@@ -167,6 +167,10 @@ export interface SerializedSideMaps {
       {
         kind: 'building' | 'resource';
         entityType: string;
+        // Optional (full-review M5): additive field — older blobs lack it and
+        // hydrate self-heals from the live generation, so NO schemaVersion bump
+        // (same additive-tolerant policy as population.rawSupply).
+        generation?: number;
         position: { x: number; y: number };
         footprintWidth: number;
         footprintHeight: number;

@@ -1147,6 +1147,7 @@ Expected behavior:
 
 - terrain remains known after exploration
 - last-known buildings may persist in fog until re-scouted
+- a last-known ("ghost") building/resource memory is cleared once the player re-observes its footprint AND the remembered entity no longer exists. Existence is matched by entity IDENTITY (id + generation), not id alone: the engine recycles entity ids, so a bare id check would let a destroyed-under-fog building whose id was reused keep its ghost forever (and survive save/load). The stored memory carries the entity generation and is compared with the live entity to detect death or recycle. (full-review M5)
 - enemy units update only while visible
 
 ### 12.2 Line of Sight

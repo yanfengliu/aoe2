@@ -243,6 +243,9 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
         inner.set(entityId, {
           kind: entry.kind,
           entityType: entry.entityType as MemoryEntry['entityType'],
+          // M5: pre-fix blobs lack generation — self-heal from the live counter
+          // (the next fog tick overwrites live entries with the true value).
+          generation: entry.generation ?? world.getEntityGeneration(entityId),
           position: { x: entry.position.x, y: entry.position.y },
           footprintWidth: entry.footprintWidth,
           footprintHeight: entry.footprintHeight,

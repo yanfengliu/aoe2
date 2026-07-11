@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import { lastSeenStaticCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
+
+// Read player 1's fog-memory (lastSeenStatic) directly off world.state — the
+// RenderStore isn't updated by raw runMaintenance mutations, so we assert on the
+// authoritative serialized slot the fog-memory system writes.
+function humanFogMemoryIds(bridge: ReturnType<typeof createSimulationBridge>): number[] {
+  const serialized = bridge.world.getState(lastSeenStaticCodec.slot) as
+    | Array<[number, Array<[number, unknown]>]>
+    | undefined;
+  const inner = serialized?.find(([playerId]) => playerId === 1)?.[1] ?? [];
+  return inner.map(([entityId]) => entityId);
+}
 
 describe('fog memory', () => {
   it('keeps an enemy house visible as a memory entity after the scout walks out of range', () => {
@@ -212,6 +224,51 @@ describe('fog memory', () => {
     const afterEntities = bridge.getRenderState().entities;
     const stillRenderedBoar = afterEntities.find((entity) => entity.id === boarId);
     expect(stillRenderedBoar).toBeUndefined();
+  });
+
+  it('forgets a destroyed-under-fog building whose id is recycled (full-review M5)', () => {
+    const bridge = createSimulationBridge('fog-memory-fixture');
+
+    // Warm up so the enemy house at (14, 10) is visible to the scout at (10, 10)
+    // (distance 4). The fog-memory refresh records it into lastSeenStatic.
+    for (let i = 0; i < 3; i += 1) {
+      bridge.step(100);
+    }
+    const house = bridge
+      .getRenderState()
+      .entities.find(
+        (entity) => entity.kind === 'building' && entity.entityType === 'house' && entity.owner === 2,
+      );
+    expect(house).toBeDefined();
+    expect(house!.isMemory).toBe(false);
+    const houseId = house!.id;
+    const staleRef = bridge.world.getEntityRef(houseId);
+    expect(staleRef).not.toBeNull();
+    // Sanity: the house is recorded in fog memory before we destroy it.
+    expect(humanFogMemoryIds(bridge)).toContain(houseId);
+
+    // Destroy the house directly on the world (as if it died under fog), then
+    // recycle its id onto a bare positioned entity. civ-engine reuses the freed
+    // id at a BUMPED generation, so `isCurrent(staleRef)` is now false — but the
+    // old cleanup's `getComponent(id, 'position')` probe is fooled into "still
+    // exists" by the recycled entity's position.
+    const recycled = bridge.world.runMaintenance(() => {
+      bridge.world.destroyEntity(houseId);
+      const id = bridge.world.createEntity();
+      bridge.world.addComponent(id, 'position', { x: 1, y: 1 });
+      return id;
+    });
+    expect(recycled).toBe(houseId);
+    expect(bridge.world.isCurrent(staleRef!)).toBe(false);
+
+    // The scout still sees the house's old footprint (14, 10) → the player has
+    // watched the ground go empty. A generation-aware cleanup deletes the fog
+    // entry; the raw-id cleanup is fooled by the recycled entity and keeps the
+    // ghost forever (the M5 bug).
+    for (let i = 0; i < 3; i += 1) {
+      bridge.step(100);
+    }
+    expect(humanFogMemoryIds(bridge)).not.toContain(houseId);
   });
 
   it('treats a multi-tile building as live when any cell of its footprint is visible', () => {

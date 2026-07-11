@@ -98,6 +98,7 @@ describe('BridgeStateAccessor', () => {
       const entry = (lastSeenTick: number, owner: number | null) => ({
         kind: 'building' as const,
         entityType: 'town-center' as const,
+        generation: 1,
         position: { x: 8, y: 8 },
         footprintWidth: 4,
         footprintHeight: 4,
