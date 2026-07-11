@@ -126,17 +126,41 @@ describe('fixProposalInput', () => {
 
     const selected = selectLedgerFixCandidate(ledger([medium, observe, high]));
 
+    // M6-#5: the HIGH match-completes finding is a non-completion SIGNAL, not a
+    // code bug the loop can patch, so it is excluded from auto-fix selection —
+    // the highest-severity ELIGIBLE fix (the medium pinned-units oracle) wins,
+    // rather than the loop preferentially trying to code-patch a non-completion.
     expect(selected).toMatchObject({
       prefix: 'output/self-improvement/fresh-smoke-current',
-      findingId: 'match-fix',
+      findingId: 'medium-fix',
       violation: {
-        oracle: 'match-completes',
-        severity: 'high',
-        tick: null,
-        message: 'match did not complete: stopReason=maxTicks',
-        details: { stopReason: 'maxTicks', ticksRun: 700 },
+        oracle: 'no-pinned-or-oscillating-units',
+        severity: 'medium',
+        tick: 42,
+        message: 'unit 99 stayed pinned',
+        details: { unitId: 99 },
       },
     });
+  });
+
+  it('excludes match-completes (a non-completion signal) from auto-fix selection (full-review M6-#5)', () => {
+    const matchOnly = ledgerFinding('match-fix', {
+      finding: improvementFinding('match-fix', {
+        severity: 'high',
+        area: 'match-completes',
+        data: {
+          aoe2OracleViolation: {
+            oracle: 'match-completes',
+            severity: 'high',
+            tick: null,
+            message: 'match did not complete',
+            details: { stopReason: 'costBudget' },
+          },
+        },
+      }),
+    });
+    // The ONLY fix-classified finding is match-completes → no eligible candidate.
+    expect(selectLedgerFixCandidate(ledger([matchOnly]))).toBeNull();
   });
 
   it('honors finding id and oracle filters while ignoring non-fix findings', () => {

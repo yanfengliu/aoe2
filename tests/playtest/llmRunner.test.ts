@@ -92,7 +92,7 @@ describe('runLlmPlaytest', () => {
     expect(screenshotCalls).toBe(0);
   });
 
-  it('halts on cost-budget-exceeded with stopReason=stopWhen + errorMessage', async () => {
+  it('halts on cost-budget-exceeded with stopReason=costBudget + errorMessage', async () => {
     const host = new StubHost(MIN_BUNDLE);
     const provider = new MockProvider({
       responses: [
@@ -124,7 +124,9 @@ describe('runLlmPlaytest', () => {
         screenshotEnabled: false,
       },
     });
-    expect(result.envelope.stopReason).toBe('stopWhen');
+    // M13-#7: budget death reports honestly as 'costBudget' (was laundered into
+    // 'stopWhen', which the match-completes oracle read as a clean completion).
+    expect(result.envelope.stopReason).toBe('costBudget');
     expect(result.envelope.errorMessage).toBe('cost-budget-exceeded');
     expect(result.envelope.ticksRun).toBeLessThan(1000);
     // After impl-2 fix: the within-call cost guard bails after the
@@ -132,6 +134,24 @@ describe('runLlmPlaytest', () => {
     // cost-budget-exceeded on the first decide() and breaks — exactly
     // one trace entry rather than the previous 2+.
     expect(result.trace.length).toBe(1);
+  });
+
+  it('halts (engineHalt) when the sim does not advance — silent no-op advanceTicks (full-review M13-#2)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    // Frozen page: advanceTicks does NOT throw, but the tick never moves.
+    // Pre-fix, ticksRun still climbed to maxTicks and false-greened the run.
+    host.advanceTicks = async () => {};
+    const provider = new MockProvider({
+      responses: [{ content: STRATEGY_OK }, { content: TACTICAL_OK_ONE_COMMAND }],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: { ownerId: 2, maxTicks: 1000, decisionIntervalTicks: 250, screenshotEnabled: false },
+    });
+    expect(result.envelope.stopReason).toBe('engineHalt');
+    expect(result.envelope.ticksRun).toBeLessThan(1000);
+    expect(result.envelope.errorMessage).toMatch(/did not advance/);
   });
 
   it('halts on host error with stopReason=engineHalt', async () => {

@@ -212,6 +212,17 @@ export async function runLlmPlaytest(input: {
         Math.max(1, config.maxTicks - ticksRun),
       );
       await host.advanceTicks(ticksToAdvance);
+      // M13-#2: detect a silent halt — a frozen page whose advanceTicks is a
+      // no-op (not a throw) would otherwise let ticksRun climb to maxTicks,
+      // false-greening the run (winner oracle scores stale counts, corpus
+      // regression sees a clean maxTicks). If the sim did not advance AT ALL,
+      // stop honestly. Use `<= tickBefore` (no progress), NOT a strict
+      // requested-amount check — free-running hosts legitimately overshoot.
+      if ((await host.getCurrentTick()) <= tickBefore) {
+        stopReason = 'engineHalt';
+        errorMessage = `sim did not advance at tick ${tickBefore} (requested ${ticksToAdvance})`;
+        break;
+      }
       ticksRun += ticksToAdvance;
 
       const dispatchEvents = await host.drainDispatchLog();
@@ -292,7 +303,10 @@ export async function runLlmPlaytest(input: {
       decisionsRun += 1;
 
       if (decision.stopReason === 'cost-budget-exceeded') {
-        stopReason = 'stopWhen';
+        // M13-#7: report budget death HONESTLY (was laundered into 'stopWhen',
+        // which the match-completes oracle reads as a clean completion and
+        // prove-fixed reads as a genuine horizon).
+        stopReason = 'costBudget';
         errorMessage = 'cost-budget-exceeded';
         break;
       }

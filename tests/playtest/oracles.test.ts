@@ -99,6 +99,22 @@ describe('match-completes oracle', () => {
     expect(violations[0]!.message).toContain('engineHalt');
   });
 
+  it('fails on costBudget — budget death is NOT a completion (full-review M13-#7)', () => {
+    // Pre-fix, budget death was laundered into stopReason 'stopWhen', which this
+    // oracle read as a clean completion. Now it reports honestly as 'costBudget'
+    // and correctly fires the match-completes violation, like maxTicks/engineHalt.
+    const env: OracleEnvelope = {
+      ...baseEnvelope,
+      stopReason: 'costBudget',
+      errorMessage: 'cost-budget-exceeded',
+    };
+    const violations = runOracles(emptyBundle, env, ORACLE_DEFAULTS).filter(
+      (v) => v.oracle === 'match-completes',
+    );
+    expect(violations).toHaveLength(1);
+    expect(violations[0]!.severity).toBe('high');
+  });
+
   it('skips when matchCompleteRequired is false', () => {
     const env = { ...baseEnvelope, stopReason: 'maxTicks' as const };
     const violations = runOracles(emptyBundle, env, {

@@ -64,6 +64,18 @@ function findingIdentity(finding: ImprovementFinding): FindingIdentity {
       id: finding.id,
     };
   }
+  // M13-#3: conformance finding ids embed the anchor tick + index (see
+  // visualPlaytestAdapter), so the SAME defect at tick 500 vs 750 gets a
+  // different id → the `id:` fallback would report it resolved+introduced every
+  // run. Key on the stable semantic signature (category + area) instead. This is
+  // the safe direction (over-merge under-counts `introduced` rather than
+  // thrashing); a normalized-`observed` discriminator is a possible refinement.
+  if (isRecord(finding.data) && 'aoe2FindingCategory' in finding.data) {
+    return {
+      key: `conformance:${JSON.stringify([finding.category, finding.area ?? ''])}`,
+      id: finding.id,
+    };
+  }
   return { key: `id:${finding.id}`, id: finding.id };
 }
 

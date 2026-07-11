@@ -106,37 +106,39 @@ describe('propose-fix script', () => {
             id: 'run',
             prefix,
           },
+          // M6-#5: match-completes is now excluded from auto-fix selection, so a
+          // ledger whose only candidate is a code-fixable oracle is used here.
           findings: [{
-            id: 'aoe2-oracle-match-completes-run-0',
-            title: 'match-completes',
+            id: 'aoe2-oracle-no-pinned-or-oscillating-units-run-0',
+            title: 'no-pinned-or-oscillating-units',
             severity: 'high',
             category: 'regression',
-            area: 'match-completes',
-            observed: 'match did not complete: stopReason=maxTicks',
-            expected: 'match should complete',
+            area: 'no-pinned-or-oscillating-units',
+            observed: 'unit 99 stayed pinned near its base',
+            expected: 'units should make net progress',
             verificationStatus: 'verified',
             nextAction: 'manualFix',
             disposition: 'candidate',
             classification: { kind: 'fix', autoFixEligible: false },
             finding: {
               schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
-              id: 'aoe2-oracle-match-completes-run-0',
-              title: 'match-completes',
+              id: 'aoe2-oracle-no-pinned-or-oscillating-units-run-0',
+              title: 'no-pinned-or-oscillating-units',
               severity: 'high',
               category: 'regression',
-              area: 'match-completes',
-              observed: 'match did not complete: stopReason=maxTicks',
-              expected: 'match should complete',
-              suggestion: 'inspect match completion',
+              area: 'no-pinned-or-oscillating-units',
+              observed: 'unit 99 stayed pinned near its base',
+              expected: 'units should make net progress',
+              suggestion: 'inspect unit pathing',
               verificationStatus: 'verified',
               nextAction: 'manualFix',
               data: {
                 aoe2OracleViolation: {
-                  oracle: 'match-completes',
+                  oracle: 'no-pinned-or-oscillating-units',
                   severity: 'high',
                   tick: null,
-                  message: 'match did not complete: stopReason=maxTicks',
-                  details: { stopReason: 'maxTicks', ticksRun: 700 },
+                  message: 'unit 99 stayed pinned near its base',
+                  details: { unitId: 99 },
                 },
               },
             },
@@ -165,19 +167,19 @@ describe('propose-fix script', () => {
       expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
       expect(result.stdout).toContain('status: dry-run');
       const target = JSON.parse(
-        readFileSync(join(proposalRoot, 'run', 'match-completes', 'TARGET.json'), 'utf8'),
+        readFileSync(join(proposalRoot, 'run', 'no-pinned-or-oscillating-units', 'TARGET.json'), 'utf8'),
       );
       expect(target).toMatchObject({
         prefix,
-        findingId: 'aoe2-oracle-match-completes-run-0',
+        findingId: 'aoe2-oracle-no-pinned-or-oscillating-units-run-0',
         violation: {
-          oracle: 'match-completes',
+          oracle: 'no-pinned-or-oscillating-units',
           severity: 'high',
           tick: null,
         },
       });
-      expect(readFileSync(join(proposalRoot, 'run', 'match-completes', 'PROMPT.md'), 'utf8'))
-        .toContain('match did not complete: stopReason=maxTicks');
+      expect(readFileSync(join(proposalRoot, 'run', 'no-pinned-or-oscillating-units', 'PROMPT.md'), 'utf8'))
+        .toContain('unit 99 stayed pinned near its base');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

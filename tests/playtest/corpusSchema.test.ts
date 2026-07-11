@@ -32,10 +32,10 @@ describe('parseCorpusFile', () => {
 
   it('accepts optional thresholds', () => {
     const json = JSON.stringify({
-      runs: [{ name: 'x', seed: 'x', maxTicks: 100, thresholds: { economyByTick: 1000 } }],
+      runs: [{ name: 'x', seed: 'x', maxTicks: 100, thresholds: { perfP99WarmupTicks: 1000 } }],
     });
     const corpus = parseCorpusFile(json);
-    expect(corpus.runs[0]!.thresholds?.economyByTick).toBe(1000);
+    expect(corpus.runs[0]!.thresholds?.perfP99WarmupTicks).toBe(1000);
   });
 
   it('rejects null thresholds', () => {

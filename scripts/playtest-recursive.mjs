@@ -409,11 +409,30 @@ async function main() {
     await cleanupBranch(branchName, baseBranch || 'main');
     return finish('fix-unproven', 1);
   }
+  // M6-#6: a fix is only PROVEN if the rerun actually exercised the game — its
+  // replay self-check passed AND it reached a genuine horizon (maxTicks/stopWhen,
+  // not a costBudget/providerError/engineHalt early death). Otherwise the absence
+  // of the candidate violation is meaningless (the rerun never reached the tick
+  // where the bug manifests).
+  const rerunVerified = rerunLedger.verification?.current?.ok === true;
+  const rerunStopReason = rerunLedger.current?.stopReason;
+  const rerunReachedHorizon =
+    rerunStopReason === 'maxTicks' || rerunStopReason === 'stopWhen';
+  if (!rerunVerified || !rerunReachedHorizon) {
+    console.error(
+      `[recursive] rerun did not qualify for prove-fixed `
+        + `(verified=${rerunVerified}, stopReason=${rerunStopReason}) — treating as unproven`,
+    );
+    await cleanupBranch(branchName, baseBranch || 'main');
+    return finish('fix-unproven', 1);
+  }
   const outcome = proveFixOutcome({
     candidateOracle: candidate.violation.oracle,
     candidateFinding: candidate.finding.finding,
     ledgerFindings: (rerunLedger.findings ?? []).map((entry) => entry.finding),
     oracleFindings: rerunOracleFindings,
+    rerunVerified,
+    rerunReachedHorizon,
   });
   if (outcome === 'fixed-proven') {
     console.log(`[recursive] fix PROVEN — ${candidate.findingId} is resolved in the rerun ledger`);

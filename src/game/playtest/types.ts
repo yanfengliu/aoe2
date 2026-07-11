@@ -18,6 +18,13 @@ export type StopReason =
   // is healthy (only the model call died), so the winner oracle, final
   // screenshot, and bundle export still run.
   | 'providerError'
+  // cost-budget-exceeded (full-review M13-#7): the LLM spend cap was hit, so the
+  // run STOPPED SHORT of a real conclusion. Distinct from `stopWhen` (a genuine
+  // terminal predicate) so the match-completes oracle fires on it and prove-fixed
+  // does not treat a budget-truncated rerun as a clean completion. The page is
+  // healthy (only the budget ran out), so unlike engineHalt the winner oracle /
+  // screenshot / export still run.
+  | 'costBudget'
   | 'engineHalt';
 
 export interface OracleEnvelope {
@@ -64,9 +71,10 @@ export interface OracleThresholds {
   matchCompleteRequired?: boolean;
   perfP99WarmupTicks?: number;
   perfP99BudgetMs?: number | 'auto';
-  economyByTick?: number;
-  economyMinVillagers?: number;
-  economyMinAge?: 'feudal' | 'castle' | 'imperial';
+  // (full-review M13-#4) economyByTick/economyMinVillagers/economyMinAge removed:
+  // no oracle ever implemented them (the economy-progression oracle is
+  // intentionally unregistered); the shipped economy gate is the separate corpus
+  // `requireAgeByEnd`. Dead thresholds that only passed schema validation.
   // Confinement box radius: a unit is "confined" while every position stays
   // within (strictly under) this Manhattan distance of the span's anchor.
   // Leaving the box re-anchors the span.
@@ -91,9 +99,6 @@ export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
   matchCompleteRequired: true,
   perfP99WarmupTicks: 200,
   perfP99BudgetMs: 'auto',
-  economyByTick: 5000,
-  economyMinVillagers: 8,
-  economyMinAge: 'feudal',
   pinnedNetProgressCells: 3,
   pinnedStuckTicks: 1200,
   pinnedOscillationBoxCells: 6,

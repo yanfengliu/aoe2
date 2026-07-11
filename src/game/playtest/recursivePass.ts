@@ -51,6 +51,14 @@ export interface ProveFixInput {
   // Oracle findings computed directly over the rerun bundle, so the ledger's
   // marker/envelope source priority cannot shadow persisting violations.
   oracleFindings: readonly ImprovementFinding[];
+  // M6-#6: the rerun's replay self-check passed. "No violation" from a rerun
+  // whose own replay didn't verify is not evidence of a fix.
+  rerunVerified: boolean;
+  // M6-#6: the rerun reached a genuine horizon (maxTicks/stopWhen) rather than
+  // dying early (costBudget/providerError/engineHalt). A budget-truncated rerun
+  // simply never reached the tick where the bug manifests, so its absence of the
+  // candidate violation is meaningless — treat it as unproven, not proven.
+  rerunReachedHorizon: boolean;
 }
 
 export function findingOracleName(finding: ImprovementFinding): string | null {
@@ -71,6 +79,10 @@ export function findingOracleName(finding: ImprovementFinding): string | null {
 export function proveFixOutcome(
   input: ProveFixInput,
 ): Extract<RecursivePassOutcome, 'fixed-proven' | 'fix-unproven'> {
+  // M6-#6: absence of the violation only proves a fix if the rerun actually
+  // exercised the game — it must have passed its replay self-check AND reached a
+  // genuine horizon. Otherwise a truncated / unverified rerun false-proves.
+  if (!input.rerunVerified || !input.rerunReachedHorizon) return 'fix-unproven';
   const candidateKey = findingIdentityKey(input.candidateFinding);
   const rerunFindings = [...input.ledgerFindings, ...input.oracleFindings];
   const stillPresent = rerunFindings.some(

@@ -44,6 +44,8 @@ describe('recursive pass fix proving', () => {
     const outcome = proveFixOutcome({
       candidateOracle: 'match-completes',
       candidateFinding: candidate,
+      rerunVerified: true,
+      rerunReachedHorizon: true,
       ledgerFindings: [markerFinding('unrelated-marker')],
       oracleFindings: [oracleFinding('other', 'no-perf-regression', 100, 'tick 100 took 40ms')],
     });
@@ -54,6 +56,8 @@ describe('recursive pass fix proving', () => {
     const outcome = proveFixOutcome({
       candidateOracle: 'match-completes',
       candidateFinding: candidate,
+      rerunVerified: true,
+      rerunReachedHorizon: true,
       ledgerFindings: [],
       oracleFindings: [
         // Nondeterministic rerun: same bug class, different tick and message
@@ -69,6 +73,8 @@ describe('recursive pass fix proving', () => {
     const outcome = proveFixOutcome({
       candidateOracle: 'match-completes',
       candidateFinding: candidate,
+      rerunVerified: true,
+      rerunReachedHorizon: true,
       ledgerFindings: [oracleFinding('same-tuple-different-id', 'match-completes', null, 'match did not complete')],
       oracleFindings: [],
     });
@@ -79,10 +85,36 @@ describe('recursive pass fix proving', () => {
     const outcome = proveFixOutcome({
       candidateOracle: 'match-completes',
       candidateFinding: candidate,
+      rerunVerified: true,
+      rerunReachedHorizon: true,
       // Ledger extraction chose markers (source priority) — no oracle rows.
       ledgerFindings: [markerFinding('llm-authored')],
       // Fresh oracle sweep over the rerun bundle still sees the violation.
       oracleFindings: [oracleFinding('fresh', 'match-completes', 1873, 'match did not complete: tick 1873')],
+    });
+    expect(outcome).toBe('fix-unproven');
+  });
+
+  it('does NOT prove a fix from a budget-truncated rerun even when the violation is absent (full-review M6-#6)', () => {
+    const outcome = proveFixOutcome({
+      candidateOracle: 'match-completes',
+      candidateFinding: candidate,
+      ledgerFindings: [],
+      oracleFindings: [], // violation absent — but only because the rerun died early
+      rerunVerified: true,
+      rerunReachedHorizon: false, // costBudget/providerError/engineHalt
+    });
+    expect(outcome).toBe('fix-unproven');
+  });
+
+  it('does NOT prove a fix when the rerun replay self-check failed (full-review M6-#6)', () => {
+    const outcome = proveFixOutcome({
+      candidateOracle: 'match-completes',
+      candidateFinding: candidate,
+      ledgerFindings: [],
+      oracleFindings: [], // violation absent — but the rerun did not verify
+      rerunVerified: false,
+      rerunReachedHorizon: true,
     });
     expect(outcome).toBe('fix-unproven');
   });

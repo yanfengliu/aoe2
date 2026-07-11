@@ -22,8 +22,10 @@ describe('isLlmCorpusRegression', () => {
   });
 
   it('does NOT flag a cost-budget-exceeded stop (operator-set spend cap)', () => {
+    // M13-#7: budget death now reports honestly as stopReason 'costBudget'
+    // (was 'stopWhen'); still a non-regression, keyed on the errorMessage.
     expect(
-      isLlmCorpusRegression({ stopReason: 'stopWhen', errorMessage: 'cost-budget-exceeded' }),
+      isLlmCorpusRegression({ stopReason: 'costBudget', errorMessage: 'cost-budget-exceeded' }),
     ).toBe(false);
   });
 

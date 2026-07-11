@@ -22,6 +22,13 @@ const SEVERITY_RANK: Record<OracleViolation['severity'], number> = {
   low: 1,
 };
 
+// M6-#5: oracles whose violations are NOT a code bug the loop can patch — a
+// non-completion (match-completes fires on maxTicks/costBudget/halt) or a perf
+// regression is a signal about the RUN, not a defect to auto-fix. They must be
+// excluded from auto-apply candidate selection, else the loop preferentially
+// tries to code-patch them (match-completes is HIGH, so it sorts first).
+const NON_AUTOFIX_ORACLES = new Set<string>(['match-completes', 'no-perf-regression']);
+
 export function selectLedgerFixCandidate(
   ledger: SelfImprovementLedger,
   options: LedgerFixSelectionOptions = {},
@@ -35,7 +42,8 @@ export function selectLedgerFixCandidate(
       violation: ledgerFindingToOracleViolation(finding),
     }))
     .filter((candidate) =>
-      (!options.findingId || candidate.findingId === options.findingId)
+      !NON_AUTOFIX_ORACLES.has(candidate.violation.oracle)
+        && (!options.findingId || candidate.findingId === options.findingId)
         && (!options.oracle || candidate.violation.oracle === options.oracle),
     )
     .sort((a, b) => SEVERITY_RANK[b.violation.severity] - SEVERITY_RANK[a.violation.severity]);

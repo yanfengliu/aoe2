@@ -53,4 +53,26 @@ describe('compareSelfImprovementFindings', () => {
       introduced: [],
     });
   });
+
+  it('matches CONFORMANCE findings by category+area when the tick-embedded id shifts (full-review M13-#3)', () => {
+    // Conformance ids embed the anchor tick, so the SAME defect at tick 500 vs
+    // 750 gets different ids. Pre-fix the id-fallback key reported it
+    // resolved+introduced every run; keying on category+area holds it persisted.
+    const baseline = finding('aoe2-conformance-performance-command-card-500-0', {
+      area: 'command-card',
+      data: { aoe2FindingCategory: 'ux-gap' },
+    });
+    const current = finding('aoe2-conformance-performance-command-card-750-0', {
+      area: 'command-card',
+      data: { aoe2FindingCategory: 'ux-gap' },
+    });
+
+    expect(compareSelfImprovementFindings([baseline], [current])).toEqual({
+      baselineCount: 1,
+      currentCount: 1,
+      resolved: [],
+      persisted: ['aoe2-conformance-performance-command-card-750-0'],
+      introduced: [],
+    });
+  });
 });
