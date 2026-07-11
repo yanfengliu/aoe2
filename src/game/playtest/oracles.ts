@@ -2,6 +2,7 @@ import { bundleHotspots, type SessionBundle } from 'civ-engine';
 import type { OracleEnvelope, OracleThresholds, OracleViolation } from './types';
 import { ORACLE_DEFAULTS } from './types';
 import { noPinnedOrOscillatingUnits } from './pinnedUnitsOracle';
+import { repairBundleEndTick } from './bundleEndTick';
 
 type OracleFn = (
   bundle: SessionBundle,
@@ -96,6 +97,14 @@ export function runOracles(
   envelope: OracleEnvelope,
   thresholds: OracleThresholds,
 ): OracleViolation[] {
+  // Full-review iter-2 (Codex H7): repair a frozen (0) endTick before scanning
+  // so range-scanning oracles (pinned-units) see the recorded range. Centralized
+  // in the entrypoint so no caller can forget it — `scripts/run-oracles.mjs`
+  // did, producing 10 vs 32 findings on the campaign-4 bundle (22 pinned-unit
+  // findings dropped). Idempotent: a bundle whose endTick is already > 0 is
+  // untouched, so the callers that already repair (recursive / self-improve)
+  // are unaffected.
+  repairBundleEndTick(bundle);
   const merged = { ...ORACLE_DEFAULTS, ...thresholds };
   return ORACLES.flatMap((o) => o(bundle, envelope, merged));
 }

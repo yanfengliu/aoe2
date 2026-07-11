@@ -269,3 +269,31 @@ describe('reconstructPositions', () => {
     expect(timeline.activeUntil.has(5)).toBe(false);
   });
 });
+
+describe('runOracles repairs a frozen endTick (full-review H7)', () => {
+  const tickAt = (tick: number) => ({
+    tick,
+    events: [],
+    metrics: { durationMs: { total: 0 } },
+    diff: { components: {} },
+  });
+  const ticksOf = (...t: number[]) => t.map(tickAt) as unknown as SessionBundle['ticks'];
+
+  it('centralizes the endTick repair so range oracles see the recorded range', () => {
+    const bundle = makeMinimalBundle({ endTick: 0, ticks: ticksOf(0, 8, 17) });
+    expect(bundle.metadata.endTick).toBe(0); // frozen going in
+
+    runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS);
+
+    // Repaired from the recorded ticks — pre-fix this stayed 0, blinding the
+    // range-scanning oracles (run-oracles.mjs saw 10 vs 32 findings).
+    expect(bundle.metadata.endTick).toBe(17);
+    expect(bundle.metadata.durationTicks).toBe(17);
+  });
+
+  it('leaves an already-finalized endTick untouched (idempotent)', () => {
+    const bundle = makeMinimalBundle({ endTick: 42, ticks: ticksOf(0, 5) });
+    runOracles(bundle, baseEnvelope, ORACLE_DEFAULTS);
+    expect(bundle.metadata.endTick).toBe(42);
+  });
+});
