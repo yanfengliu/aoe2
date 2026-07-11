@@ -14,7 +14,7 @@
 ## 2026-07-09/10 (recursive loop + process)
 - **pinned-units candidate fixed-proven (v0.1.128):** 16 `no-pinned-or-oscillating-units` canary violations → 0, proven under a strong replay self-check (14 oracle misfires rebuilt as `pinnedUnitsOracle.ts`; 2 real). Adversarial rounds hardened the verdict (gathering-suffix exemption, wide-box/pocket-orbit livelock, `applyWanderKick` patrol). Spec §13.3.
 - **oracle canary drill (v0.1.127):** `playtest:canary` seeds one-line bugs on throwaway branches and asserts the declared oracle fires (canary-ok/blind/stale/invalid → passes.jsonl; non-ok exits 1). LLM-free.
-- **file-size legacy splits:** GameScene/aiSystem/IndexedDBMirror/wireBridgeOps split into 13 role modules (all ≤450); `LEGACY_VIOLATIONS` now holds only `tests/playtest/oracles.test.ts`. No behavior change.
+- **file-size legacy splits:** GameScene/aiSystem/IndexedDBMirror/wireBridgeOps split into 13 role modules (all ≤450); `LEGACY_VIOLATIONS` is now empty (the oracle test split too — one-way ratchet). No behavior change.
 - **Process/tooling:** model policy = most-advanced everywhere (Fable ban lifted, §15.7); multi-CLI review runbook fleet-canonical in `loop-ops/docs/skills/multi-cli-review.md` (single pin-bump site; `-o` codex extraction); AGENTS.md restructured (Session-start reads, real file-size gate). Docs/tooling only.
 
 ## 2026-07-07 – 2026-07-08 (recursive-loop machinery, compacted)
