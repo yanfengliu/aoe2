@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.136 - 2026-07-10
+
+### Recordings survive a transient storage hiccup
+
+The background recorder writes gameplay to browser storage in batches. If one of those writes failed — a storage-quota error or a transient transaction abort — the whole batch used to be thrown away, silently truncating the recording or leaving a gap that could break replay. Failed batches are now put back in the queue and retried on the next write, so a momentary storage error no longer costs you recorded data. Found by the full-codebase review.
+
 ## 0.1.135 - 2026-07-10
 
 ### Saving is disabled while you watch a replay

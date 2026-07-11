@@ -15,6 +15,7 @@ import {
   SchemaMismatchError,
   SessionNotFoundError,
 } from '../../src/game/recording/IndexedDBMirrorErrors';
+import { emptyPending, type PendingWrites } from '../../src/game/recording/IndexedDBMirrorSchema';
 import type {
   Marker,
   RecordedCommand,
@@ -390,5 +391,68 @@ describe('IndexedDBMirror — onPersistenceError surface', () => {
     emit(new Error('test'));
     expect(errors.length).toBe(1);
     expect(errors[0].message).toBe('test');
+  });
+});
+
+describe('IndexedDBMirror — flush-failure requeue (full-review H3)', () => {
+  it('requeues the failed batch in front of newer writes, newer meta wins', () => {
+    const mirror = newMirror(uniqueDbName());
+    const internals = mirror as unknown as {
+      _pending: PendingWrites;
+      _requeuePending: (failed: PendingWrites) => void;
+    };
+
+    // Simulate _flushNow: capture the batch, detach _pending, accumulate a
+    // newer write during the (failed) transaction, then requeue.
+    mirror.recordMeta('s1', stubMetadata('s1', { startTick: 0 }), stubSnapshot());
+    mirror.recordTick('s1', stubTick(0));
+    mirror.recordTick('s1', stubTick(1));
+    const failed = internals._pending;
+    internals._pending = emptyPending();
+    mirror.recordMeta('s1', stubMetadata('s1', { startTick: 9 }), stubSnapshot());
+    mirror.recordTick('s1', stubTick(2));
+
+    internals._requeuePending(failed);
+
+    // Older ticks precede the newer one; the newer meta (startTick 9) wins.
+    expect(internals._pending.ticks.map((t) => t.entry.tick)).toEqual([0, 1, 2]);
+    expect(internals._pending.metaUpdates.get('s1')?.metadata.startTick).toBe(9);
+  });
+
+  it('does not drop a batch when the flush transaction aborts', async () => {
+    const mirror = newMirror(uniqueDbName());
+    await mirror.open();
+    mirror.recordMeta('s1', stubMetadata('s1'), stubSnapshot());
+    mirror.recordTick('s1', stubTick(0));
+    mirror.recordTick('s1', stubTick(1));
+
+    // Abort the next flush transaction after its writes are queued.
+    const db = (mirror as unknown as { _db: IDBDatabase })._db;
+    const realTransaction = db.transaction.bind(db);
+    let failNext = true;
+    (db as unknown as { transaction: IDBDatabase['transaction'] }).transaction = ((
+      ...args: Parameters<IDBDatabase['transaction']>
+    ) => {
+      const tx = realTransaction(...args);
+      if (failNext) {
+        failNext = false;
+        void Promise.resolve().then(() => {
+          try {
+            tx.abort();
+          } catch {
+            /* already settled */
+          }
+        });
+      }
+      return tx;
+    }) as IDBDatabase['transaction'];
+
+    // First flush aborts — the batch must be requeued, not lost.
+    await expect(mirror.flushAll()).rejects.toBeDefined();
+    // Second flush (transaction restored) persists the requeued batch.
+    await mirror.flushAll();
+
+    const bundle = await mirror.reconstructBundle('s1');
+    expect(bundle.ticks.map((t) => t.tick)).toEqual([0, 1]);
   });
 });

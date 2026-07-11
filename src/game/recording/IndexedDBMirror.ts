@@ -330,16 +330,40 @@ export class IndexedDBMirror {
       tx.oncomplete = () => resolve();
       tx.onerror = () => {
         const err = tx.error ?? new Error('flush tx failed');
+        this._requeuePending(pending);
         this._emitError(err);
         reject(err);
       };
       tx.onabort = () => {
         const err = tx.error ?? new Error('flush tx aborted');
+        this._requeuePending(pending);
         this._emitError(err);
         reject(err);
       };
       applyPendingWrites(tx, pending);
     });
+  }
+
+  /** Full-review H3: a flush transaction can fail (QuotaExceededError, a
+   *  transient abort). `_flushNow` detaches `this._pending` BEFORE the tx, so
+   *  without this the whole batch was lost — truncating the recording tail or
+   *  leaving a gap that later fails replay's contiguity check. Merge the failed
+   *  (older) batch back in FRONT of anything that accumulated during the async
+   *  transaction so tick/command order is preserved; newer meta wins on key
+   *  conflict. Writes are idempotent keyed puts, so a later retry is safe. The
+   *  next `recordTick`/`flushAll` re-attempts the flush. */
+  private _requeuePending(failed: PendingWrites): void {
+    this._pending.ticks = [...failed.ticks, ...this._pending.ticks];
+    this._pending.commands = [...failed.commands, ...this._pending.commands];
+    this._pending.executions = [...failed.executions, ...this._pending.executions];
+    this._pending.failures = [...failed.failures, ...this._pending.failures];
+    this._pending.snapshots = [...failed.snapshots, ...this._pending.snapshots];
+    this._pending.markers = [...failed.markers, ...this._pending.markers];
+    this._pending.attachments = [...failed.attachments, ...this._pending.attachments];
+    this._pending.metaUpdates = new Map([
+      ...failed.metaUpdates,
+      ...this._pending.metaUpdates,
+    ]);
   }
 
   private async _ensureOpen(): Promise<IDBDatabase> {
