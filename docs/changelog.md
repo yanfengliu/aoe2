@@ -62,15 +62,21 @@ The map terrain (~2160 isometric tiles) was being cleared and redrawn on every s
 
 The minimap matches the game's camera angle: the map projects as a rotated 2:1 diamond (the same isometric transform the world view uses) instead of a top-down rectangle. Terrain and fog tile the diamond, entity markers sit at their projected positions, and the camera viewport draws as a diamond-aligned quad. Click- and drag-to-pan still work — a click is projected back to the map cell under it, and clicks that land on the off-map corners of the minimap panel are ignored.
 
+## 0.1.129 - 2026-07-10
+
 ### Dying units collapse instead of blinking out
 
 When a unit dies you now see it: a short (~0.7s) tell plays where it stood — the body tips over and wilts to the ground while fading, under a pair of expanding dust rings. Combat no longer reads as silhouettes vanishing between frames. The effect is purely visual and fog-respecting: you see a death only if you WITNESSED it — had vision of the cell at the moment it happened. A kill that occurred in your fog never surfaces, even if you later scout the cell (no off-screen-combat leak), while your own lone unit's death still shows even though losing it re-fogs its cell. A garrisoned unit dying inside a building shows nothing (the building's own destruction is the visible event). It touches no gameplay — saves, replays, hit-testing, and simulation determinism are unchanged (a load drops any in-flight death animations; replays re-play deaths naturally). Under the hood this adds a transient, never-persisted death feed to the render frame (`ProjectedFrameView.recentUnitDeaths`).
+
+## 0.1.128 - 2026-07-10
 
 ### AI scouts patrol reliably; pinned-unit detection stops crying wolf
 
 Both AI scouts now actually patrol for the whole match. Previously the base scout wedged against its own Town Center footprint within a few ticks (the wander step reset its sub-cell transform on an impassable next cell but never changed heading), and the forward enemy scout never moved at all (spawned without wander state). Scouts also no longer freeze at wander-box edges: when the next cell is blocked, the scout re-picks its heading by emulating each candidate's stepped path — box reflection included — instead of blindly rotating 90°, which the edge reflection could cancel into a permanent two-state freeze (observed live: a scout frozen 2502 ticks beside its own forward house). A deterministic patrol kick (heading rotation every 400 ticks, staggered per unit, angle cycling) keeps the otherwise-deterministic bounce dynamics from settling into a closed orbit inside a pocket of water/forest/resources — the prove rerun caught the forward scout circling a 5-cell pocket for 2963 ticks with an open exit to the south — and a scout stranded outside its box by a chase now walks home stepwise instead of teleporting to the box edge. Replays and saves stay deterministic.
 
 The `no-pinned-or-oscillating-units` playtest oracle was rebuilt to evaluate per unit-lifetime interval (entity-id reuse no longer conflates a berry bush with the villager that inherited its id — including same-tick kill-and-reuse, which the engine nets into a single component set), skip owners nothing drives (an inert human's idle units are correct, not pinned; drivenness resolves through an explicit per-command actor whitelist), exclude garrison stays from confinement (a garrison round-trip is not a pin), and detect two confinement shapes: PINNED (inside a 3-cell box ≥ 1200 ticks) and OSCILLATING (still moving, but trapped inside a 6-cell box ≥ 1200 ticks — the shuttle livelock the tight box alone cannot see). Confined spans are exempt only while the latest snapshot 'gathering' sample is fresh (a zero-walk gold miner adjacent to both mine and Town Center is optimal, not stuck; a stale sample no longer excuses a later freeze). A frozen `to-resource` villager still fires. Validation: the 16 baseline violations at the canary seed went to 0 on rerun with a strong replay self-check; unit tests pin the exact recorded trap geometry, id reuse (both shapes), the undriven-owner gate, the gathering-suffix exemption, garrison round-trips, wide-box oscillation, and a per-600-tick-block distinct-cell bound over 2000 live ticks.
+
+## 0.1.127 - 2026-07-09
 
 ### Oracle canary drill
 
