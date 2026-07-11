@@ -203,6 +203,12 @@ export interface WanderBoundsComponent {
 
 export interface ProjectedEntityView {
   id: number;
+  // Entity-ref generation (civ-engine recycles ids; the generation bumps on
+  // reuse). Present for live-projected entities (visibility.projectEntity);
+  // omitted for fog-memory ghosts, which are static and never interpolated.
+  // The render layer keys per-unit interpolation/facing caches by id:generation
+  // so a recycled id can't inherit the destroyed entity's previous position.
+  generation?: number;
   kind: 'tile' | 'unit' | 'building' | 'resource';
   layer: 'terrain' | 'resource' | 'building' | 'unit';
   entityType: TerrainKind | UnitComponent['unitType'] | BuildingComponent['buildingType'] | ResourceKind;

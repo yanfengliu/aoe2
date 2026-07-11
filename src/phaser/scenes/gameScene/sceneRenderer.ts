@@ -18,7 +18,7 @@ import type {
   RenderState,
   SelectionState,
 } from '../../../game/simulation/types';
-import { interpolateProjectedEntities } from '../interpolateProjectedEntities';
+import { interpolateProjectedEntities, renderIdentityKey } from '../interpolateProjectedEntities';
 import { createBuildingRenderer } from './buildingRenderer';
 import type { CameraController } from './cameraController';
 import { createDebugOverlayRenderer } from './debugOverlay';
@@ -97,7 +97,9 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   let lastRenderedInterpolationAlpha = Number.NaN;
   let lastSelectionKey = '';
   let lastProjectedEntities: ProjectedEntityView[] = [];
-  let previousUnitProjectedPositions = new Map<number, { x: number; y: number }>();
+  // Keyed by renderIdentityKey (id:generation), NOT raw id, so a recycled id
+  // can't inherit a destroyed unit's previous position (see the helper's note).
+  let previousUnitProjectedPositions = new Map<string, { x: number; y: number }>();
   // M7 feedback: selection pulse + hit-flash (render-only, time-based; owns the hp-delta tracker).
   const feedbackRenderer: FeedbackEffectsRenderer = createFeedbackEffectsRenderer();
   // v0.1.129: unit death collapse/dust, fed by the frame's fog-filtered death feed.
@@ -221,7 +223,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       previousUnitProjectedPositions = new Map(
         lastProjectedEntities
           .filter((entity) => entity.kind === 'unit')
-          .map((entity) => [entity.id, { x: entity.x, y: entity.y }]),
+          .map((entity) => [renderIdentityKey(entity), { x: entity.x, y: entity.y }]),
       );
       lastProjectedEntities = state.entities.map((entity) => ({ ...entity }));
       feedbackRenderer.recordTick(state.entities, scene.time.now); // hp delta → arms hit flashes (units only)
@@ -327,7 +329,11 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       // movement facing — derived render-side from the prior-tick projected
       // position (the interpolated current lies on the prev→current segment, so
       // the heading angle is identical); idle units use a rest orientation.
-      const facing = unitFacingRadians(previousUnitProjectedPositions.get(entity.id), entity, interpolationAlpha);
+      const facing = unitFacingRadians(
+        previousUnitProjectedPositions.get(renderIdentityKey(entity)),
+        entity,
+        interpolationAlpha,
+      );
       unitRenderer.drawUnit(entity, px, py, facing, fillAlpha, scene.time.now);
       feedbackRenderer.drawUnitFlash(entityLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
         py + CELL_SIZE * 0.5, CELL_SIZE * entity.size * 0.5, entity.id, scene.time.now);

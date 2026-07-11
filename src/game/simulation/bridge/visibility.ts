@@ -125,6 +125,9 @@ export function createProjector(
 
       return {
         id: ref.id,
+        // Carry the ref generation so the render layer can disambiguate a
+        // recycled id (unit destroyed → new unit reuses the id, bumped gen).
+        generation: ref.generation,
         kind: renderable.kind,
         layer: renderable.layer,
         entityType,
