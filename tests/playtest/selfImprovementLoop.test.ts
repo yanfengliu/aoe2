@@ -173,6 +173,50 @@ describe('extractImprovementFindingsFromRun', () => {
     });
   });
 
+  it('unions marker AND oracle findings instead of letting a marker hide the oracle (full-review H6)', () => {
+    // A single low-severity conformance marker used to SHORT-CIRCUIT the
+    // extraction (markers-first), hiding a HIGH deterministic oracle violation
+    // from the ledger + fix-candidate selection.
+    const [marker] = findingsToMarkers(
+      [conformanceFinding()],
+      { anchorTick: 500, agentId: 'current / model', createdAt: FIXED_NOW },
+    );
+    const violation: OracleViolation = {
+      oracle: 'no-tick-failures',
+      severity: 'high',
+      tick: 42,
+      message: 'tick 42 failed',
+    };
+
+    const result = extractImprovementFindingsFromRun(
+      runArtifacts({ markers: [marker], oracleViolations: [violation] }),
+    );
+
+    const ids = result.findings.map((finding) => finding.id);
+    // The oracle finding is now SURFACED (was dropped pre-fix)...
+    expect(ids).toContain('aoe2-oracle-no-tick-failures-42-0');
+    // ...alongside the marker/conformance finding (not instead of it).
+    expect(ids).toContain('aoe2-conformance-ux-gap-command-card-500-0');
+    expect(result.findings).toHaveLength(2);
+    // Two detectors contributed → provenance label is 'mixed'.
+    expect(result.source).toBe('mixed');
+  });
+
+  it('dedups a conformance finding present in BOTH the markers and the envelope (full-review H6)', () => {
+    // The same conformance finding written to bundle markers AND the envelope
+    // (as playtest-findings.mjs does) must collapse to ONE finding by identity.
+    const finding = conformanceFinding();
+    const [marker] = findingsToMarkers(
+      [finding],
+      { anchorTick: 500, agentId: 'current / model', createdAt: FIXED_NOW },
+    );
+    const result = extractImprovementFindingsFromRun(
+      runArtifacts({ markers: [marker], findings: [finding], traceRows: [traceRow()] }),
+    );
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.id).toBe('aoe2-conformance-ux-gap-command-card-500-0');
+  });
+
   it('converts deterministic oracle violations into shared ImprovementFindings', () => {
     const violation: OracleViolation = {
       oracle: 'match-completes',

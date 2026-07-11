@@ -21,6 +21,7 @@ import {
 import { deriveAnchorTick, findingsToMarkers } from './findingsToMarkers';
 import {
   compareSelfImprovementFindings,
+  findingIdentityKey,
   type SelfImprovementFindingComparison,
 } from './selfImprovementFindingComparison';
 import { oracleViolationsToImprovementFindings } from './oracleImprovementFindings';
@@ -51,6 +52,7 @@ export type ImprovementFindingSource =
   | 'markers'
   | 'envelope-findings'
   | 'oracle-violations'
+  | 'mixed'
   | 'none';
 
 export interface ExtractedImprovementFindings {
@@ -163,30 +165,56 @@ export interface BuildSelfImprovementLedgerInput {
 export function extractImprovementFindingsFromRun(
   run: SelfImprovementRunArtifacts,
 ): ExtractedImprovementFindings {
+  // H6: UNION all three detectors rather than returning the first non-empty
+  // source. The old priority (markers → envelope → oracle) let a single
+  // low-severity LLM/annotation marker SHADOW deterministic HIGH oracle findings
+  // (tick-failure, pinned-units) — hiding them from the ledger AND the recursive
+  // loop's fix-candidate selection (only oracle findings are ever fix-classified,
+  // so a marker-only extraction yielded zero candidates and the loop bailed).
   const markerFindings = improvementFindingsFromMarkers(run.bundle.markers ?? []);
-  if (markerFindings.length > 0) {
-    return { source: 'markers', findings: markerFindings };
-  }
-
-  const envelopeFindings = readConformanceFindings(run.envelope.findings);
-  if (envelopeFindings.length > 0) {
-    const anchorTick = deriveAnchorTick(run.traceRows, run.bundle);
-    const markers = findingsToMarkers(envelopeFindings, {
-      anchorTick,
-      agentId: run.id,
-    });
-    return {
-      source: 'envelope-findings',
-      findings: improvementFindingsFromMarkers(markers),
-    };
-  }
-
+  const envelopeFindings = envelopeConformanceFindings(run);
   const oracleFindings = oracleViolationsToImprovementFindings(run);
-  if (oracleFindings.length > 0) {
-    return { source: 'oracle-violations', findings: oracleFindings };
+
+  // Dedup by the SAME stable identity the prove stage + cross-run comparison use
+  // (findingIdentityKey): conformance findings that appear in BOTH markers and
+  // the envelope collapse by id, while oracle findings keep their violation
+  // tuple. Keep first-seen (markers win over the envelope re-derivation).
+  const seen = new Set<string>();
+  const findings: ImprovementFinding[] = [];
+  for (const finding of [...markerFindings, ...envelopeFindings, ...oracleFindings]) {
+    const key = findingIdentityKey(finding);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    findings.push(finding);
   }
 
-  return { source: 'none', findings: [] };
+  // Provenance stays per-finding (data.aoe2OracleViolation / aoe2FindingCategory);
+  // `source` is telemetry only — the single contributing detector, or 'mixed'.
+  const contributing: ImprovementFindingSource[] = [];
+  if (markerFindings.length > 0) contributing.push('markers');
+  if (envelopeFindings.length > 0) contributing.push('envelope-findings');
+  if (oracleFindings.length > 0) contributing.push('oracle-violations');
+  const source: ImprovementFindingSource =
+    contributing.length === 0
+      ? 'none'
+      : contributing.length === 1
+        ? contributing[0]!
+        : 'mixed';
+
+  return { source, findings };
+}
+
+// Envelope conformance findings → markers → shared ImprovementFindings (the
+// same transform the old envelope branch ran inline). Empty when the envelope
+// carries no conformance findings.
+function envelopeConformanceFindings(
+  run: SelfImprovementRunArtifacts,
+): ImprovementFinding[] {
+  const conformance = readConformanceFindings(run.envelope.findings);
+  if (conformance.length === 0) return [];
+  const anchorTick = deriveAnchorTick(run.traceRows, run.bundle);
+  const markers = findingsToMarkers(conformance, { anchorTick, agentId: run.id });
+  return improvementFindingsFromMarkers(markers);
 }
 
 export function buildSelfImprovementLedger(
@@ -232,51 +260,10 @@ export function buildSelfImprovementLedger(
   };
 }
 
-export function formatSelfImprovementLedgerMarkdown(
-  ledger: SelfImprovementLedger,
-): string {
-  const lines: string[] = [];
-  lines.push(`# Self-improvement ledger - ${ledger.current.id}`);
-  lines.push('');
-  lines.push(`Generated: ${ledger.generatedAt}`);
-  lines.push(`Current run: ${ledger.current.prefix}`);
-  if (ledger.baseline) {
-    lines.push(`Baseline run: ${ledger.baseline.prefix}`);
-  }
-  lines.push(
-    `Replay self-check: ${ledger.verification.current.ok ? 'ok' : 'failed'}`
-      + checkedSuffix(ledger.verification.current),
-  );
-  if (!ledger.verification.current.ok) {
-    lines.push(`Replay evidence: ${verificationDetails(ledger.verification.current)}`);
-  }
-  lines.push(
-    `Standardized improvement findings: ${ledger.current.standardizedFindingCount}`
-      + ` (source: ${ledger.current.findingSource})`,
-  );
-  if (ledger.comparison) {
-    lines.push(`Comparison: ${ledger.comparison.baselineRunId} -> ${ledger.comparison.currentRunId}`);
-    lines.push(
-      `Finding delta: ${ledger.comparison.findings.introduced.length} introduced, `
-        + `${ledger.comparison.findings.persisted.length} persisted, `
-        + `${ledger.comparison.findings.resolved.length} resolved`,
-    );
-  }
-  lines.push('');
-  lines.push('| ID | Severity | Category | Classification | Disposition |');
-  lines.push('|---|---|---|---|---|');
-  if (ledger.findings.length === 0) {
-    lines.push('| (none) | - | - | - | - |');
-  } else {
-    for (const finding of ledger.findings) {
-      lines.push(
-        `| ${finding.id} | ${finding.severity} | ${finding.category}`
-          + ` | ${finding.classification.kind} | ${finding.disposition} |`,
-      );
-    }
-  }
-  return lines.join('\n');
-}
+// The markdown presentation lives in ./selfImprovementLedgerFormat (split to
+// keep this file under the 500-LOC cap); re-exported so existing importers
+// (scripts + tests) keep resolving it from here.
+export { formatSelfImprovementLedgerMarkdown } from './selfImprovementLedgerFormat';
 
 function ledgerFinding(
   finding: ImprovementFinding,
@@ -429,22 +416,6 @@ function deterministicMetrics(run: SelfImprovementRunArtifacts): MetricsResult {
 
 function finiteNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function checkedSuffix(evidence: ReplaySelfCheckEvidence): string {
-  const checked = evidence.checkedSegments ?? 0;
-  const skipped = evidence.skippedSegments ?? 0;
-  return ` (${checked} checked, ${skipped} skipped)`;
-}
-
-function verificationDetails(evidence: ReplaySelfCheckEvidence): string {
-  const parts = [
-    `state divergences ${evidence.stateDivergences ?? 0}`,
-    `event divergences ${evidence.eventDivergences ?? 0}`,
-    `execution divergences ${evidence.executionDivergences ?? 0}`,
-  ];
-  if (evidence.error) parts.push(`error: ${evidence.error}`);
-  return parts.join(', ');
 }
 
 function partialReplaySelfCheckReason(
