@@ -376,6 +376,10 @@ export async function createApp(): Promise<Phaser.Game> {
     timelinePanel.dispose();
     replayLoadDialog.dispose();
     hotkeyRegistry.dispose();
+    // M2: hudController owns the render-loop RAF + window mouse listeners (its
+    // teardown walk); without this call they leaked on scene destroy (test
+    // isolation / HMR / future return-to-title). Its destroy() is idempotent.
+    hudController.destroy();
   });
 
   return game;

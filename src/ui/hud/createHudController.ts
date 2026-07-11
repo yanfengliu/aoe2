@@ -331,7 +331,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       isMinimapDragActive = false;
     };
 
-    minimap.addEventListener('mousedown', (event) => {
+    // M2: named handler so its removal can be registered — the prior inline
+    // arrow could never be removed, leaking a listener on the minimap element
+    // on destroy (test isolation / HMR / future return-to-title).
+    const handleMinimapMouseDown = (event: MouseEvent): void => {
       if (event.button !== 0) {
         return;
       }
@@ -339,11 +342,14 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       isMinimapDragActive = true;
       event.preventDefault();
       handleMinimapPointer(event.clientX, event.clientY);
-    });
+    };
+    minimap.addEventListener('mousedown', handleMinimapMouseDown);
     minimap.addEventListener('mousemove', handleTrackedMinimapMouseMove);
     window.addEventListener('mousemove', handleTrackedMinimapMouseMove);
     window.addEventListener('mouseup', handleTrackedMinimapMouseEnd);
     teardownCallbacks.push(() => {
+      minimap.removeEventListener('mousedown', handleMinimapMouseDown);
+      minimap.removeEventListener('mousemove', handleTrackedMinimapMouseMove);
       window.removeEventListener('mousemove', handleTrackedMinimapMouseMove);
       window.removeEventListener('mouseup', handleTrackedMinimapMouseEnd);
     });
