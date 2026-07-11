@@ -234,15 +234,18 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
     if (!(e.target instanceof HTMLElement)) return;
     const row = e.target.closest<HTMLElement>('[data-testid="marker-list-current-row"]');
     if (!row) return;
-    const idx = Number(row.dataset.markerIndex ?? '-1');
-    if (idx < 0) return;
+    const markerId = row.dataset.markerId;
+    if (!markerId) return;
     if (currentMode() === 'replay') {
-      const markerId = row.dataset.markerId;
-      if (markerId && replay) replay.jumpToMarker(markerId);
+      if (replay) replay.jumpToMarker(markerId);
       return;
     }
-    const markers = recording.markers();
-    const marker = markers[idx];
+    // Full-review M7: resolve by the marker's stable id, not the positional
+    // row index. recording.markers() is re-sorted (tick-desc) and re-allocated
+    // on every call, and the panel does not re-render on marker-add — so a
+    // marker added since this row was drawn shifts every index and the old
+    // index-based lookup selected the wrong marker.
+    const marker = recording.markers().find((m) => m.id === markerId);
     if (!marker) return;
 
     pauseControl.pause();

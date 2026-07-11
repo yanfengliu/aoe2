@@ -186,6 +186,35 @@ describe('MarkerListPanel — row click stale-ref filter (DESIGN §7)', () => {
     panel.dispose();
   });
 
+  it('resolves a clicked row by marker id, not the shifted positional index (full-review M7)', () => {
+    isCurrent.mockReturnValue(true);
+    const markerA = stubMarker({ id: 'A', tick: 10, refs: { cells: [{ x: 1, y: 1 }] } });
+    const markerB = stubMarker({ id: 'B', tick: 5, refs: { cells: [{ x: 2, y: 2 }] } });
+    const markerC = stubMarker({ id: 'C', tick: 20, refs: { cells: [{ x: 9, y: 9 }] } });
+    recording.markers = vi.fn(() => [markerA, markerB]); // rendered order (tick-desc)
+    const host = mountedHost();
+    const panel = createMarkerListPanel({
+      recording: recording as never,
+      pauseControl,
+      toast,
+      bridge,
+      worldRef: () => world,
+      autoRefresh: false,
+    });
+    panel.mount(host);
+    panel.toggleVisibility();
+
+    // A new higher-tick marker arrives AFTER render (no re-render): it prepends
+    // in the tick-desc list, shifting every positional index by one.
+    recording.markers = vi.fn(() => [markerC, markerA, markerB]);
+    const rows = host.querySelectorAll<HTMLElement>('[data-testid="marker-list-current-row"]');
+    rows[0]!.click(); // the row still showing marker A
+
+    expect(bridge.panCameraTo).toHaveBeenCalledWith({ x: 1, y: 1 }); // A, not C's {9,9}
+    expect(bridge.panCameraTo).not.toHaveBeenCalledWith({ x: 9, y: 9 });
+    panel.dispose();
+  });
+
   it('all-stale entity refs falls back to first cell', () => {
     isCurrent.mockReturnValue(false); // every ref is stale
     recording.markers = vi.fn(() => [

@@ -4,6 +4,8 @@
 - **H2 (v0.1.135) no save during replay:** the HUD saveGame closure resolves the replay bridge, so Save clobbered the live `aoe2-save-v1`. Fix: `saveLoadPanel` refuses in replay (toast) + Save button disabled on mode change.
 - **H3 (v0.1.136) IndexedDB flush requeue:** `_flushNow` detached `_pending` before the tx and never restored it on error/abort → dropped recording batch. Fix: `_requeuePending` prepends the failed batch; idempotent retry.
 - **H4 (v0.1.137) crash-recovery replay endTick:** a never-closed session's `session_meta` froze at `endTick==startTick`, disabling Replay for the whole recorded session. Fix: `reconstructBundle` recomputes endTick/persistedEndTick/durationTicks from persisted data when `!closed`.
+- **M7 (v0.1.138) marker-list click by id:** live-mode row click resolved the marker by positional `data-marker-index` into a re-sorted, re-allocated `recording.markers()`; a marker added since render shifted every index → wrong marker. Now resolves by `row.dataset.markerId` `.find(m=>m.id===id)`, mirroring the replay branch.
+- **H8 (harness, no bump) validate playtest CLI numbers:** `playtest-llm.mjs` numeric flags were bare `Number(...)`; `Number('nope')`=NaN silently disabled the budget/tick guards. New `requireFinite` exits 2 on non-finite/out-of-range input.
 
 ## 2026-07-10 (graphics batch v0.1.129–133)
 - **Render/UI-only AoE2 polish, each adversarial-review-vetted:** unit death feedback (fog-gated death feed, v0.1.129); isometric DIAMOND minimap (v0.1.130); terrain render cache (~6× cheaper/frame — draw once, repaint on `computeTerrainSignature` change, v0.1.131); pitched ridged-hip building roofs with ridge-anchored accents (v0.1.132); white occlusion silhouette for units behind buildings (`occlusionSilhouettes.ts`, `depthKey` shared with the draw sort, v0.1.133). All preserve simulation/saves/replays/hit-testing/fog/camera. Spec §14.3/§14.5.
@@ -27,3 +29,4 @@
 ## Current Practice
 - Use the vision harness for real play evidence, but verify its findings against the live code before acting. Short max-tick openings are not proof that age-up, tech, or combat are absent.
 - For user-visible gameplay/visual changes, keep the full loop: TDD red/green, before/after/diff when visual, spec/changelog/version as applicable, detailed devlog, four gates, commit to `main`, then continue.
+

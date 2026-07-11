@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.138 - 2026-07-10
+
+### Clicking a marker in the list always jumps to the right one
+
+In the annotation marker list, clicking a row jumped the camera to and selected a marker by its position in the list. If a new marker had just been added (markers sort newest-first, so it jumps to the top and pushes the others down), clicking an existing row could briefly select the wrong marker until the list refreshed. Rows are now matched to their own marker by identity, so a click always targets the marker you clicked. Found by the full-codebase review.
+
 ## 0.1.137 - 2026-07-10
 
 ### Replays from an interrupted session can be watched again
