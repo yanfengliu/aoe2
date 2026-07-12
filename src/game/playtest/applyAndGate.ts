@@ -60,39 +60,64 @@ export interface ApplyAndGateInput {
 // gates run (npm lifecycle scripts, altered build/test config, CI, git hooks) or
 // change the resolved dependency graph. A recursive/auto-fix patch touching any
 // of these is refused — such a change must go through human review, not the loop.
+// Patterns are CASE-INSENSITIVE: the loop runs on Windows/macOS, whose default
+// filesystems are case-insensitive, so `git apply` of `--- a/Vite.config.ts`
+// writes the real `vite.config.ts`. A case-sensitive classifier was a complete
+// bypass (iter-4 review, confirmed by both CLIs with a live git-apply repro).
 const SENSITIVE_PATH_PATTERNS: readonly RegExp[] = [
-  /(^|\/)package\.json$/,
-  /(^|\/)package-lock\.json$/,
-  /(^|\/)npm-shrinkwrap\.json$/,
-  /(^|\/)yarn\.lock$/,
-  /(^|\/)pnpm-lock\.yaml$/,
-  /(^|\/)\.npmrc$/,
-  /(^|\/)\.github\/workflows\//,
-  /(^|\/)\.husky\//,
-  /(^|\/)(vite|vitest|playwright|eslint|jest|rollup|webpack|babel|tsconfig)[^/]*\.(c?[jt]s|json|mjs|cjs)$/,
+  /(^|\/)package\.json$/i,
+  /(^|\/)package-lock\.json$/i,
+  /(^|\/)npm-shrinkwrap\.json$/i,
+  /(^|\/)yarn\.lock$/i,
+  /(^|\/)pnpm-lock\.yaml$/i,
+  /(^|\/)\.npmrc$/i,
+  /(^|\/)\.github\/workflows\//i,
+  /(^|\/)\.husky\//i,
+  /(^|\/)(vite|vitest|playwright|eslint|jest|rollup|webpack|babel|tsconfig)[^/]*\.(c?[jt]s|json|mjs|cjs)$/i,
 ];
+
+// Normalize a path parsed from a diff header so the classifier sees the same
+// string `git apply` will actually write. Hand-rolled diff parsing drifts from
+// git in ways a malicious patch can weaponize: a trailing CR (CRLF headers) left
+// every `$`-anchored pattern unmatched for EVERY path, and a `\t<timestamp>`
+// suffix mangled the tail. Both are stripped here. (Quoted `"a/…"` headers are
+// NOT a vector for the plain-named sensitive set — git only c-quotes paths with
+// special chars, which none of these files can have and still be loaded by the
+// toolchain. A fuller hardening would derive the touched set from
+// `git apply --numstat --summary` to erase parser drift entirely.)
+function normalizePatchPath(raw: string): string {
+  return raw
+    .replace(/\r$/, '')
+    .replace(/\t.*$/, '')
+    .trim()
+    .replace(/^\.\//, '');
+}
 
 // Parse the file paths a unified diff touches (both a/ and b/ sides), so a
 // rename/add/delete of a sensitive file is caught, not just an edit.
 export function patchTouchedPaths(patch: string): string[] {
   const paths = new Set<string>();
-  for (const line of patch.split('\n')) {
+  for (const rawLine of patch.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
     const gitHeader = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
     if (gitHeader) {
-      paths.add(gitHeader[1]!);
-      paths.add(gitHeader[2]!);
+      paths.add(normalizePatchPath(gitHeader[1]!));
+      paths.add(normalizePatchPath(gitHeader[2]!));
       continue;
     }
     const plus = /^\+\+\+ b\/(.+)$/.exec(line);
-    if (plus && plus[1] !== '/dev/null') {
-      paths.add(plus[1]!.replace(/\t.*$/, ''));
+    if (plus) {
+      const path = normalizePatchPath(plus[1]!);
+      if (path !== '/dev/null') paths.add(path);
       continue;
     }
     const minus = /^--- a\/(.+)$/.exec(line);
-    if (minus && minus[1] !== '/dev/null') {
-      paths.add(minus[1]!.replace(/\t.*$/, ''));
+    if (minus) {
+      const path = normalizePatchPath(minus[1]!);
+      if (path !== '/dev/null') paths.add(path);
     }
   }
+  paths.delete('');
   return [...paths];
 }
 
