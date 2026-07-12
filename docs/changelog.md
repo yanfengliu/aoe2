@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.146 - 2026-07-11
+
+### The game runs dramatically faster
+
+The map terrain was being fully re-drawn to the GPU every single frame — roughly 24,000 individual tile fills per frame — which dominated render time and made the whole game feel sluggish regardless of how much was happening. The terrain is fixed for a match, so it is now drawn once and reused as a single image. In a headless measurement the per-frame render work dropped from ~199 ms to ~5 ms (about 37× faster); on real hardware this is the difference between a choppy and a smooth frame rate. One minor visual trade-off: because the terrain is now a baked image, it looks slightly softer when you zoom all the way in (units, buildings, and everything else stay crisp; the default view is unchanged).
+
 ## 0.1.145 - 2026-07-11
 
 ### Clicking a building selects it, even on its roof

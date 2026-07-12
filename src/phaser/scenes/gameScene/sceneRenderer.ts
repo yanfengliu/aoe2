@@ -36,6 +36,7 @@ import { drawResourceEntity } from './resourceRenderer';
 import { createSelectionLayersRenderer } from './selectionLayers';
 import { drawTerrainCell } from './terrainRenderer';
 import { createTerrainCache } from './terrainCache';
+import { bakeTerrainTexture } from './terrainBake';
 import { createUnitRenderer, unitFacingRadians } from './unitRenderer';
 import { computeOccludedUnits, depthKey } from './occlusionSilhouettes';
 import { createWorldLayersRenderer } from './worldLayers';
@@ -118,7 +119,15 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   // signature; resetForBridgeSwap forces a repaint against a swapped-in world.
   const terrainCache = createTerrainCache();
 
-  const terrainLayer = scene.add.graphics();
+  // Perf: the terrain is BAKED to a RenderTexture (see renderTerrainIfChanged),
+  // not left as a live Graphics. A Phaser Graphics re-walks its ENTIRE command
+  // list to the GPU every frame even when nothing redraws it, so the ~24k static
+  // iso-diamond terrain fills were the dominant per-frame cost (~200ms/frame
+  // render, headless-measured). Baking them once makes the terrain a single
+  // textured-quad draw. `terrainTexture` is the visible bottom layer; the
+  // Graphics below is the hidden draw-source the bake renders from.
+  const terrainTexture = scene.add.renderTexture(0, 0, 1, 1).setOrigin(0, 0);
+  const terrainLayer = scene.add.graphics().setVisible(false);
   const entityLayer = scene.add.graphics();
   const fogLayer = scene.add.graphics();
   // v0.1.133: white silhouettes of units hidden behind buildings. Created here
@@ -256,6 +265,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
       for (const cell of terrainCells) {
         drawTerrainCell(terrainLayer, entities, cell, CELL_SIZE);
       }
+      bakeTerrainTexture(terrainTexture, terrainLayer, terrainCells, CELL_SIZE);
     });
   }
 
