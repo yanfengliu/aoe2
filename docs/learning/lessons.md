@@ -449,7 +449,7 @@ Lesson: with a write-back cache (the `BridgeStateAccessor`), the load-bearing in
 
 | Field | Value |
 |---|---|
-| Surfaced by | Full-review iteration 4, Codex MEDIUM-8 ("the committed hard file-size gate is red"); `docs/threads/current/full/2026-07-11/4/REVIEW.md`. |
+| Surfaced by | Full-review iteration 4, Codex MEDIUM-8 ("the committed hard file-size gate is red"); `docs/threads/done/full/2026-07-11/4/REVIEW.md`. |
 | Reviewer findings | Codex MEDIUM-8 CONFIRMED — `tests/simulation/saveLoad.test.ts` was 519 LOC (> the 500 hard cap), unexempted, so `fileSizeBudget.test.ts` was RED on `main`. |
 | Fix commit | ba6d159 (extract `captureSnapshot` → `saveBlobTestUtils`, 519→476). |
 | Test added | n/a — process lesson (the `fileSizeBudget` test already existed and correctly failed; the failure was in READING it). |
