@@ -65,7 +65,7 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 - [x] Update `design/spec-final.md`, README, architecture, decisions, drift log, detailed devlog, summary, and the durable thread artifacts.
 - [x] Update changelog/version for v0.1.147.
 - [x] Leave Phaser as the default and record the exact unmet promotion gates in `DESIGN.md`.
-- [ ] Commit the coherent AoE2 increment directly to `main` after the final diff/secret/content checks.
+- [x] Commit the coherent AoE2 increment directly to `main` after the final diff/secret/content checks (`a22fe8d`).
 - [ ] Push the already committed engine revision first, then AoE2, so the pinned CI source exists before the consumer commit reaches `origin/main`.
 
 Approval blocker: the required external Codex/Claude review would transmit private live diffs to those CLI services, and both attempted invocations were refused by the safety reviewer without explicit user consent. Pushing both default-branch commits likewise requires explicit remote-publication approval. Do not mark either action complete or imply it ran until that approval is given.

@@ -36,7 +36,7 @@ The browser test's rightward click route spent a tick dispatching and then reach
 
 ## External review and publication boundary
 
-The prescribed Codex `gpt-5.6-sol` and Claude review invocations were prepared, but the safety reviewer refused both because sending the private live diffs to external CLI services requires explicit user consent. No external finding or approval is claimed. Publishing the locally committed engine and the pending AoE2 default-branch commit also requires explicit remote-publication approval; the engine must be pushed first because AoE2 CI pins its full commit hash.
+The prescribed Codex `gpt-5.6-sol` and Claude review invocations were prepared, but the safety reviewer refused both because sending the private live diffs to external CLI services requires explicit user consent. No external finding or approval is claimed. Publishing the locally committed engine (`7fbae42`) and AoE2 implementation (`a22fe8d`) also requires explicit remote-publication approval; the engine must be pushed first because AoE2 CI pins its full commit hash.
 
 ## Result
 
