@@ -75,6 +75,8 @@ describe('fog memory', () => {
     );
     expect(memoryHouse).toBeDefined();
     expect(memoryHouse!.isMemory).toBe(true);
+    expect(memoryHouse!.generation).toBe(initialHouse!.generation);
+    expect(memoryHouse!.elevation).toBe(0);
     expect(memoryHouse!.x).toBe(14);
     expect(memoryHouse!.y).toBe(10);
 

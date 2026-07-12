@@ -28,6 +28,10 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     );
     expect(didPlaceHouse).toBe(true);
 
+    // Placement commands are applied at the next deterministic simulation
+    // boundary; do not depend on a browser animation frame winning this race.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+
     const placedSnapshot = await game.getSnapshot(page);
     expect(
       placedSnapshot.economyState.buildings.some(
@@ -39,8 +43,6 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
           && building.isComplete === false,
       ),
     ).toBe(true);
-
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
 
     const constructingHouseVisual = await game.getBuildingVisualState(
       page,

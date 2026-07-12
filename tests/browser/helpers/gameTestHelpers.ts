@@ -19,6 +19,7 @@ export {
   getSnapshot,
   waitForBoot,
   waitForBootWithSeed,
+  waitForPausedBootWithSeed,
 } from './gameTestHelpers/snapshot';
 
 export {

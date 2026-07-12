@@ -98,12 +98,14 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
       // memory still carries the most recent snapshot.
       memoryViews.push({
         id: entityId,
+        generation: entry.generation,
         kind: entry.kind,
         layer: entry.kind,
         entityType: entry.entityType,
         owner: entry.owner,
         x: entry.position.x,
         y: entry.position.y,
+        elevation: 0,
         tint: entry.tint,
         size: entry.size,
         footprintWidth: entry.footprintWidth,

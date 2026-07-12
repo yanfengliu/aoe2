@@ -278,7 +278,7 @@ export function makeAgentApi(
 }
 
 function getCanvasRect(): { x: number; y: number; width: number; height: number } {
-  const canvas = document.querySelector('canvas');
+  const canvas = document.querySelector('.phaser-overlay-canvas');
   if (!canvas) return { x: 0, y: 0, width: 0, height: 0 };
   const rect = canvas.getBoundingClientRect();
   return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };

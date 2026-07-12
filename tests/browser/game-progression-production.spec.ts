@@ -289,16 +289,58 @@ test.describe('browser gameplay smoke tests - production', () => {
   test('can train a Skirmisher and use it to kill a visible Archer through the live command panel', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'feudal-skirmisher-fixture');
+    await game.waitForPausedBootWithSeed(page, 'feudal-skirmisher-fixture');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
     await page.locator('[data-command="train-skirmisher"]').click();
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     await expect(page.locator('[data-hud="food"]')).toHaveText('215');
     await expect(page.locator('[data-hud="wood"]')).toHaveText('225');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(240, 100));
+    const trainedSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let tick = 0; tick < 240; tick += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        if (snapshot.economyState.units.some(
+          (unit) => unit.owner === 1 && unit.unitType === 'skirmisher',
+        )) {
+          break;
+        }
+      }
+      return snapshot;
+    });
 
+    expect(trainedSnapshot.economyState.units).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ owner: 1, unitType: 'skirmisher' }),
+        expect.objectContaining({ owner: 2, unitType: 'archer' }),
+      ]),
+    );
+    const visibleTargetSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let tick = 0; tick < 20; tick += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        if (snapshot.renderState.entities.some(
+          (entity) => entity.owner === 2 && entity.entityType === 'archer',
+        )) {
+          break;
+        }
+      }
+      return snapshot;
+    });
+    expect(
+      visibleTargetSnapshot.economyState.units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'archer',
+      ),
+    ).toBe(true);
+    expect(
+      visibleTargetSnapshot.renderState.entities.some(
+        (entity) => entity.owner === 2 && entity.entityType === 'archer',
+      ),
+    ).toBe(true);
     expect(await game.selectOwnedUnitDirect(page, 1, 'skirmisher')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Skirmisher');
     const enemyArcher = await game.getDisplayedEntityState(page, 2, 'unit', 'archer');
@@ -310,13 +352,23 @@ test.describe('browser gameplay smoke tests - production', () => {
       ),
     ).toBe(true);
 
-    await expect.poll(async () => {
-      const postCombatSnapshot = await page.evaluate(
-        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
-      );
-      return postCombatSnapshot.economyState.units.some(
+    const postCombatSnapshot = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let snapshot = api.getSnapshot();
+      for (let tick = 0; tick < 240; tick += 1) {
+        snapshot = api.advanceTicks(1, 100);
+        if (!snapshot.economyState.units.some(
+          (unit) => unit.owner === 2 && unit.unitType === 'archer',
+        )) {
+          break;
+        }
+      }
+      return snapshot;
+    });
+    expect(
+      postCombatSnapshot.economyState.units.some(
         (unit) => unit.owner === 2 && unit.unitType === 'archer',
-      );
-    }, { timeout: 20_000 }).toBe(false);
+      ),
+    ).toBe(false);
   });
 });

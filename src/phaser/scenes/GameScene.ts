@@ -7,6 +7,11 @@ import {
 } from '../../game/simulation/prototypeScenario';
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
 import {
+  AoeVoxelWorldRenderer,
+  type AoeVoxelRendererState,
+} from '../../rendering/voxel/AoeVoxelWorldRenderer';
+import type { ThreeCaptureResult } from 'voxel/three';
+import {
   createCameraController,
   type CameraController,
 } from './gameScene/cameraController';
@@ -35,6 +40,7 @@ import {
   type PlacementPreviewViewState,
   type PlacementPreviewVisualState,
   type SelectionBoxState,
+  type WorldRendererMode,
 } from './gameScene/sceneViewTypes';
 
 // View-state types + the debug-overlay mode union live in
@@ -61,6 +67,8 @@ export class GameScene extends Phaser.Scene {
   private wasd?: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private cameraController?: CameraController;
   private sceneRenderer?: GameSceneRenderer;
+  private voxelWorldRenderer?: AoeVoxelWorldRenderer;
+  private activeRendererMode: WorldRendererMode = 'phaser';
   private selectionController?: SelectionController;
   private pointerInput?: PointerInputController;
   private readonly handleNativeDoubleClick = (event: MouseEvent): void => {
@@ -79,6 +87,28 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.activeRendererMode = this.options.rendererMode ?? 'phaser';
+    this.game.canvas?.classList.add('phaser-overlay-canvas');
+    if (this.activeRendererMode === 'voxel') {
+      const host = this.game.canvas?.parentElement;
+      if (host) {
+        try {
+          this.voxelWorldRenderer = new AoeVoxelWorldRenderer({
+            host,
+            width: this.scale.width,
+            height: this.scale.height,
+            pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+          });
+        } catch (error) {
+          console.warn('[aoe2] voxel renderer failed to initialize; using Phaser.', error);
+          this.activeRendererMode = 'phaser';
+        }
+      } else {
+        console.warn('[aoe2] voxel renderer host is unavailable; using Phaser.');
+        this.activeRendererMode = 'phaser';
+      }
+    }
+
     // Creates the eight graphics layers (in the pre-split depth order) plus
     // the per-role sub-renderers, and owns every render-side cache.
     this.sceneRenderer = createGameSceneRenderer({
@@ -89,9 +119,13 @@ export class GameScene extends Phaser.Scene {
       getPlacementPreviewState: () => this.getPlacementPreviewState(),
       getSelectionBoxState: () => this.getSelectionBoxState(),
       getSelectionBoxKey: () => this.pointerInput?.getSelectionBoxKey() ?? 'none',
+      worldRendererMode: this.activeRendererMode,
+      presentVoxelWorld: (entities) => this.voxelWorldRenderer?.present(entities),
     });
 
-    this.cameras.main.setBackgroundColor('#132224');
+    this.cameras.main.setBackgroundColor(
+      this.activeRendererMode === 'voxel' ? 'rgba(0,0,0,0)' : '#132224',
+    );
     // Isometric world extent: the diamond bounding box of all cells (its left
     // half spans negative X), with a one-tile margin so edge diamonds aren't
     // clipped. Replaces the top-down square extent.
@@ -119,6 +153,8 @@ export class GameScene extends Phaser.Scene {
     this.game.canvas?.addEventListener('dblclick', this.handleNativeDoubleClick);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.canvas?.removeEventListener('dblclick', this.handleNativeDoubleClick);
+      this.voxelWorldRenderer?.dispose();
+      this.voxelWorldRenderer = undefined;
     });
 
     this.selectionController = createSelectionController({
@@ -148,6 +184,10 @@ export class GameScene extends Phaser.Scene {
       wasd: this.wasd,
     });
     this.syncFromBridge();
+    const camera = this.cameraController?.getState();
+    if (camera && this.voxelWorldRenderer) {
+      this.voxelWorldRenderer.frame(camera, _time, delta);
+    }
   }
 
   // FU5: swap the live simulation bridge the scene is reading from. The
@@ -161,6 +201,7 @@ export class GameScene extends Phaser.Scene {
     this.cameraController?.resetEdgePanState();
     this.clearRecentSelectionClicks();
     this.sceneRenderer?.resetForBridgeSwap();
+    this.voxelWorldRenderer?.resetForBridgeSwap();
     this.syncFromBridge(true);
   }
 
@@ -170,6 +211,21 @@ export class GameScene extends Phaser.Scene {
 
   getCameraState(): CameraState | null {
     return this.cameraController?.getState() ?? null;
+  }
+
+  getWorldRendererState(): AoeVoxelRendererState | { mode: 'phaser'; metrics: null } {
+    return this.voxelWorldRenderer?.state() ?? { mode: 'phaser', metrics: null };
+  }
+
+  getCaptureCanvas(): HTMLCanvasElement | null {
+    const overlay = this.game.canvas;
+    if (!overlay) return null;
+    if (this.voxelWorldRenderer) return this.voxelWorldRenderer.captureComposite(overlay);
+    return overlay;
+  }
+
+  getWorldCapture(): ThreeCaptureResult | null {
+    return this.voxelWorldRenderer?.captureWorld() ?? null;
   }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {

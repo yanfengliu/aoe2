@@ -17,6 +17,9 @@ export default defineConfig({
     port: 5173,
   },
   resolve: {
+    // Local `voxel` is linked during development. Pin every import to the
+    // consumer's Three instance so constructors/materials never cross copies.
+    dedupe: ['three'],
     alias: {
       'node:crypto': nodeCryptoShim,
       'node:fs': nodeFsShim,

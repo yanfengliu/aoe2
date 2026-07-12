@@ -4,7 +4,7 @@ import * as game from './helpers/gameTestHelpers';
 test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () => {
   test('supports camera panning and zoom with in-game controls', async ({ page }) => {
     await game.waitForBoot(page);
-    const gameCanvas = page.locator('#game-root canvas');
+    const gameCanvas = page.locator('.phaser-overlay-canvas');
     await gameCanvas.click();
 
     const initialCamera = (await game.getSnapshot(page)).cameraState;
@@ -160,7 +160,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
   test('clicking the minimap pans the camera toward that map region', async ({ page }) => {
     await game.waitForBoot(page);
 
-    const gameCanvas = page.locator('#game-root canvas');
+    const gameCanvas = page.locator('.phaser-overlay-canvas');
     const canvasBox = await gameCanvas.boundingBox();
     expect(canvasBox).not.toBeNull();
 
@@ -215,7 +215,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
   }) => {
     await game.waitForBoot(page);
 
-    const gameCanvas = page.locator('#game-root canvas');
+    const gameCanvas = page.locator('.phaser-overlay-canvas');
     const canvasBox = await gameCanvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     await page.mouse.move(
@@ -294,7 +294,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
   }) => {
     await game.waitForBoot(page);
 
-    const gameCanvas = page.locator('#game-root canvas');
+    const gameCanvas = page.locator('.phaser-overlay-canvas');
     await gameCanvas.click();
     const canvasBounds = await game.getGameCanvasBounds(page);
     await page.mouse.move(
@@ -413,7 +413,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
 
     await game.clickMinimapAt(page, 0.88, 0.82);
 
-    const gameCanvas = page.locator('#game-root canvas');
+    const gameCanvas = page.locator('.phaser-overlay-canvas');
     const canvasBox = await gameCanvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     await page.mouse.move(

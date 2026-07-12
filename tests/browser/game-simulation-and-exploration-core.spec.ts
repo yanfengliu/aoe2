@@ -99,7 +99,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
   });
 
   test('renders units on a finer sub-grid while buildings stay snapped to coarse cells', async ({ page }) => {
-    await game.waitForBoot(page);
+    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
 
     const initialSnapshot = await game.getSnapshot(page);
     const scout = initialSnapshot.economyState.units.find(
@@ -115,7 +115,12 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     expect(initialTownCenterRender).toBeDefined();
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
-    await game.clickCell(page, 12, 7, 'right');
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.issueMoveCommand(Math.max(x - 5, 0), y),
+        { x: scout?.x ?? 0, y: scout?.y ?? 0 },
+      ),
+    ).toBe(true);
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(1, 100),
@@ -125,7 +130,6 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     const advancedTownCenterRender = advancedSnapshot.renderState.entities.find(
       (entity) => entity.owner === 1 && entity.entityType === 'town-center',
     );
-
     expect(
       Math.abs((advancedScoutRender?.x ?? 0) - (initialScoutRender?.x ?? 0))
       + Math.abs((advancedScoutRender?.y ?? 0) - (initialScoutRender?.y ?? 0)),
@@ -144,10 +148,11 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
   });
 
   test('interpolates live unit visuals between simulation ticks instead of only snapping to tick positions', async ({ page }) => {
-    await game.waitForBoot(page);
+    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(12, 7))).toBe(true);
+    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(false));
 
     await expect.poll(async () => {
       const displayedScout = await game.getDisplayedEntityState(page, 1, 'unit', 'scout');

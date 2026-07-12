@@ -1,3 +1,6 @@
+## 2026-07-12 (isometric voxel renderer opt-in slice, v0.1.147)
+- **Real reusable 3-D path, safely reversible:** `?renderer=voxel` now renders lit chunk terrain plus deterministic block units/buildings/resources through the sibling `voxel` package and Three.js, behind Phaser's transparent input/fog/selection/health/feedback overlay. Phaser remains the default because elevation-aware hit geometry and the full voxel parity matrix are still open. World/epoch/revision identity, replay rebuilds, real WebGL context loss/restoration, explicit capture with `preserveDrawingBuffer:false`, one Three runtime, minimap pixels, and a 5/5 focused browser spec are proven. Controlled 800x600/DPR1/tick0 evidence changed 343,580/480,000 pixels (71.58%) while preserving the HUD/minimap. Final gates passed 2,046 unit tests and 100 production-browser tests (two intentional skips in each surface), zero-warning lint/build, and zero-vulnerability audits. Shared engine commit: `7fbae42`; AoE CI pins the full hash. Details: `docs/devlog/detailed/2026-07-11_2026-07-12.md`.
+
 ## 2026-07-11 (perf — terrain texture bake, v0.1.146)
 - **Render ~199ms → ~5ms/frame (~37×)** the terrain was ~24,283 Phaser Graphics fills re-submitted to the GPU EVERY frame (a Graphics re-renders its whole command list per frame even when unchanged, so the v0.1.131 redraw-skip cache didn't help). Now baked to a `RenderTexture` once → 1 textured-quad draw/frame. Measured via a throttle-independent per-render-CPU probe (RAF FPS is headless-throttled). Trade-off: baked terrain samples slightly blocky at max 2.4× zoom (units/buildings crisp; default view identical). `sceneRenderer.ts` only; sim unchanged. Lesson in lessons.md.
 
@@ -56,4 +59,3 @@
 ## Current Practice
 - Use the vision harness for real play evidence, but verify its findings against the live code before acting. Short max-tick openings are not proof that age-up, tech, or combat are absent.
 - For user-visible gameplay/visual changes, keep the full loop: TDD red/green, before/after/diff when visual, spec/changelog/version as applicable, detailed devlog, four gates, commit to `main`, then continue.
-

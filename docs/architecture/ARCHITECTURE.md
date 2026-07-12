@@ -149,6 +149,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
   - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay), `sceneRenderer.ts` (layer + sub-renderer construction, the syncFromBridge/renderState pipeline, render caches), `pointerInputController.ts` (pointer/wheel handler registration, drag-selection + middle-drag-pan state, marquee preview), `selectionController.ts` (click-to-select + right-click context command dispatch), and `sceneViewTypes.ts` (shared view-state types + layout consts).
+  - `rendering/voxel/` — AoE-owned adapter and composed Three.js world host. `aoeVoxelAdapter.ts` translates projected terrain/entities into game-neutral chunk, geometry-resource, and rigid-instance snapshots; `AoeVoxelWorldRenderer.ts` owns the sibling `voxel/three` runtime, canvas, explicit composite capture, metrics, bridge epochs, and teardown; `aoeCameraSync.ts` maps the established Phaser camera to the shared 2:1 orthographic view. AoE visual recipes remain here rather than entering the reusable package.
   - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/`, `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
@@ -161,9 +162,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
 The runtime is layered and the boundaries are intentional.
 
 ```
-DOM HUD  ─────► Phaser scene (render + input) ─────► Simulation bridge ─────► civ-engine World
-                                                       │
-                                                       └── content tables (design/stats → generated/content.json)
+civ-engine World ──► Simulation bridge ──► projected render frame ──► GameScene host
+        ▲                       │                                      ├── Phaser world + input (default)
+        │                       └──► DOM HUD/minimap                    └── composed voxel mode (opt-in)
+        │                                                                      ├── AoE adapter ──► voxel/three ──► Three world canvas
+        └──────────────────────────── commands ◄── Phaser input                 └── Phaser input/overlays ────────► overlay canvas
+
+design/stats ──build──► generated/content.json ──load──► Simulation bridge
 ```
 
 - `civ-engine` owns authoritative simulation state and deterministic ticking. All
@@ -172,9 +177,15 @@ DOM HUD  ─────► Phaser scene (render + input) ─────► Sim
 - The simulation bridge (`src/game/simulation/`) owns repo-specific systems and
   scenario setup. It runs on top of `civ-engine` primitives and exposes a stable
   surface to the Phaser scene and HUD.
-- Phaser is view and input only. It consumes render frames projected through
-  `civ-engine`'s `RenderAdapter` and issues commands back into the simulation. No
-  gameplay state lives in Phaser scenes.
+- `GameScene` is the current renderer host and Phaser is view/input only. The
+  default path draws the whole world in Phaser. `?renderer=voxel` instead sends
+  the same projected view through the AoE-owned adapter to the sibling
+  `voxel/three` runtime while a transparent Phaser canvas retains camera, input,
+  fog, selection, placement, health, and feedback overlays. Neither renderer
+  owns gameplay state.
+- The sibling `voxel` package owns only reusable render contracts, validation,
+  chunk meshing, Three resource presentation, capture, metrics, and disposal.
+  AoE concepts and authoritative state never cross that package boundary.
 - The DOM HUD is a pure consumer of render frames and selection state. It emits
   commands through the same seam as right-click orders from the scene.
 - Content flows one-way: design CSVs under `design/stats/*.csv` are normalized at

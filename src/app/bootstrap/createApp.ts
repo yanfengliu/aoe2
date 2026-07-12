@@ -10,6 +10,7 @@ import { createHudController, type HudController } from '../../ui/hud/createHudC
 import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
 import { parseCivParam } from './civParam';
+import { parseRendererMode } from './rendererMode';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -75,6 +76,7 @@ export async function createApp(): Promise<Phaser.Game> {
   // bonuses (Britons sheep, Franks knights, Goths infantry, Aztecs speed, …)
   // are felt in a real game. Unknown/absent → the default (Britons).
   const civilizationsByOwner = parseCivParam(window.location.href);
+  const rendererMode = parseRendererMode(window.location.href);
 
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
@@ -159,10 +161,7 @@ export async function createApp(): Promise<Phaser.Game> {
       form,
       worldRef: () => bridgeRef().world,
       selection: { getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs() },
-      canvasRef: () => {
-        const canvas = gameRoot!.querySelector('canvas');
-        return canvas instanceof HTMLCanvasElement ? canvas : null;
-      },
+      canvasRef: () => scene.getCaptureCanvas(),
       toast: hudController.toastHandle,
     });
     const markerListPanel = createMarkerListPanel({
@@ -243,6 +242,7 @@ export async function createApp(): Promise<Phaser.Game> {
 
   scene = new GameScene(bridge, {
     getDebugOverlayMode: () => hudController.getDebugOverlayMode(),
+    rendererMode,
   });
 
   hudController = createHudController(hudRoot, {
@@ -333,11 +333,15 @@ export async function createApp(): Promise<Phaser.Game> {
   });
 
   const game = new Phaser.Game({
-    type: Phaser.AUTO,
+    // Canvas mode keeps the transparent overlay directly compositable without
+    // preserving a second WebGL drawing buffer. The standalone fallback keeps
+    // Phaser's normal AUTO renderer choice.
+    type: rendererMode === 'voxel' ? Phaser.CANVAS : Phaser.AUTO,
     parent: gameRoot,
     width: gameRoot.clientWidth,
     height: gameRoot.clientHeight,
-    backgroundColor: '#132224',
+    backgroundColor: rendererMode === 'voxel' ? 'rgba(0,0,0,0)' : '#132224',
+    transparent: rendererMode === 'voxel',
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -1,15 +1,3 @@
-// Render/sync pipeline factored out of GameScene. Same dep-bag factory shape
-// as the other gameScene/ extractions. The renderer owns the eight graphics
-// layers (created here in the scene's original depth order), the per-role
-// sub-renderer factories, and every render-side cache the scene used to carry
-// (tick/selection/interpolation signatures, projected-entity snapshots, the
-// per-frame visual-state records the browser test API reads, and the
-// center-on-base-once latch). Move-only: the syncFromBridge / renderState /
-// getSelectionKey bodies mirror the prior private methods on GameScene. The
-// layer/sub-renderer existence guards those methods carried are gone because
-// the factory constructs all of them up front — the optionality was an
-// artifact of the scene's two-phase (constructor vs create) initialization.
-
 import type { SimulationBridge } from '../../../game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../../game/simulation/prototypeScenario';
 import type {
@@ -50,6 +38,7 @@ import {
   type PlacementPreviewViewState,
   type PlacementPreviewVisualState,
   type SelectionBoxState,
+  type WorldRendererMode,
 } from './sceneViewTypes';
 
 export interface GameSceneRendererDeps {
@@ -65,6 +54,8 @@ export interface GameSceneRendererDeps {
   getPlacementPreviewState: () => PlacementPreviewViewState | null;
   getSelectionBoxState: () => SelectionBoxState | null;
   getSelectionBoxKey: () => string;
+  worldRendererMode: WorldRendererMode;
+  presentVoxelWorld?: (entities: readonly ProjectedEntityView[]) => void;
 }
 
 export interface GameSceneRenderer {
@@ -92,6 +83,8 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     getPlacementPreviewState,
     getSelectionBoxState,
     getSelectionBoxKey,
+    worldRendererMode,
+    presentVoxelWorld,
   } = deps;
 
   let lastRenderedTick = -1;
@@ -128,8 +121,12 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   // Graphics below is the hidden draw-source the bake renders from.
   const terrainTexture = scene.add.renderTexture(0, 0, 1, 1).setOrigin(0, 0);
   const terrainLayer = scene.add.graphics().setVisible(false);
+  // Feedback stays on dedicated overlay layers so voxel mode can hide legacy
+  // entity art without also hiding death collapse/dust or hit flashes.
+  const deathFeedbackLayer = scene.add.graphics();
   const entityLayer = scene.add.graphics();
   const fogLayer = scene.add.graphics();
+  const hitFeedbackLayer = scene.add.graphics();
   // v0.1.133: white silhouettes of units hidden behind buildings. Created here
   // (above fog, below the health-bar layer) so — z-order being Phaser
   // display-list insertion order, no setDepth anywhere — the outlines paint
@@ -141,6 +138,10 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
   const placementLayer = scene.add.graphics();
   const selectionBoxLayer = scene.add.graphics();
   const debugLayer = scene.add.graphics();
+  const renderLegacyWorld = worldRendererMode === 'phaser';
+  terrainTexture.setVisible(renderLegacyWorld);
+  entityLayer.setVisible(renderLegacyWorld);
+  occlusionOutlineLayer.setVisible(renderLegacyWorld);
 
   function makeDebugOverlayRenderer() {
     return createDebugOverlayRenderer({
@@ -285,6 +286,8 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     // dominant per-frame render cost). It is (re)drawn only when the terrain
     // set changes (first frame, or a bridge swap via resetForBridgeSwap).
     entityLayer.clear();
+    deathFeedbackLayer.clear();
+    hitFeedbackLayer.clear();
     occlusionOutlineLayer.clear();
     // Iter-3 V3-18: do NOT clear fogLayer here. `renderFog` below now
     // memoizes on the projected frame reference; clearing
@@ -305,11 +308,14 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
     );
 
     centerOnPlayerBaseOnce();
+    if (worldRendererMode === 'voxel') {
+      presentVoxelWorld?.(displayedEntities);
+    }
     renderTerrainIfChanged(displayedEntities);
 
     // v0.1.129: death effects draw FIRST on the entity layer so corpses lie
     // under every living unit and building (they are ground decals).
-    deathEffectsRenderer.drawAll(entityLayer, scene.time.now, CELL_SIZE);
+    deathEffectsRenderer.drawAll(deathFeedbackLayer, scene.time.now, CELL_SIZE);
 
     // Isometric depth order: draw back-to-front (increasing cellX+cellY) so a
     // nearer entity occludes a farther one. Sort a COPY — `displayedEntities`
@@ -352,7 +358,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
         interpolationAlpha,
       );
       unitRenderer.drawUnit(entity, px, py, facing, fillAlpha, scene.time.now);
-      feedbackRenderer.drawUnitFlash(entityLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
+      feedbackRenderer.drawUnitFlash(hitFeedbackLayer, px + CELL_SIZE * 0.5, // M7 impact flash on hp drop
         py + CELL_SIZE * 0.5, CELL_SIZE * entity.size * 0.5, entity.id, scene.time.now);
     }
 

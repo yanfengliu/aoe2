@@ -27,7 +27,7 @@ export async function emulateMonitorSize(
 
 async function isCanvasContainedByFullscreenElement(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const canvas = document.querySelector('#game-root canvas');
+    const canvas = document.querySelector('.phaser-overlay-canvas');
     const fullscreenElement = document.fullscreenElement;
     return canvas instanceof Node && fullscreenElement instanceof Element && fullscreenElement.contains(canvas);
   });
@@ -104,7 +104,7 @@ export async function getScreenPointForWorldPosition(
 }
 
 export async function getGameCanvasBounds(page: Page): Promise<NonNullable<Awaited<ReturnType<ReturnType<Page['locator']>['boundingBox']>>>> {
-  const canvas = page.locator('#game-root canvas');
+  const canvas = page.locator('.phaser-overlay-canvas');
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
   return bounds!;
@@ -122,7 +122,7 @@ export async function getGameCanvasMetrics(page: Page): Promise<{
 }> {
   return page.evaluate(() => {
     const root = document.getElementById('game-root');
-    const canvas = document.querySelector<HTMLCanvasElement>('#game-root canvas');
+    const canvas = document.querySelector<HTMLCanvasElement>('.phaser-overlay-canvas');
     if (!root || !canvas) {
       throw new Error('Expected #game-root and its canvas to exist.');
     }

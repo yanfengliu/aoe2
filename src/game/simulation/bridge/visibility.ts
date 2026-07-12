@@ -138,6 +138,7 @@ export function createProjector(
         y: unitTransform
           ? projectUnitTransformCoordinate(unitTransform.fineY)
           : position.y,
+        elevation: terrain?.elevation ?? 0,
         tint: renderable.tint,
         size: renderable.size,
         footprintWidth: renderable.footprintWidth,

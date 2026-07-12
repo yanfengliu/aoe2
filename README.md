@@ -6,16 +6,28 @@ An AoE2-style RTS prototype built on `civ-engine`.
 
 - Node.js 24 or newer
 - The sibling repo `../civ-engine` present on disk, since this project depends on it through a local `file:` dependency
+- The sibling repo `../voxel` present on disk at the revision recorded in `.github/voxel-commit`, since the optional Three.js world renderer depends on its local `file:` package
 
 ## Setup
 
 From the repo root:
 
-1. Install dependencies: `npm.cmd install`
-2. Install the Playwright Chromium runtime (one-time, used by browser gameplay tests): `npm.cmd run test:browser:install`
-3. Start the dev server: `npm.cmd run dev`
+1. Install and build the reusable renderer package: `npm.cmd --prefix ../voxel install`
+2. Install this project's dependencies: `npm.cmd install`
+3. Install the Playwright Chromium runtime (one-time, used by browser gameplay tests): `npm.cmd run test:browser:install`
+4. Start the dev server: `npm.cmd run dev`
 
 Then open the local Vite URL printed in the terminal. By default this is `http://127.0.0.1:5173`.
+
+The development, test, typecheck, lint, and build commands rebuild `../voxel` first. A fresh checkout therefore needs the sibling package and its dependencies installed before those commands run.
+
+## Renderer modes
+
+Phaser remains the safe default. Open the app normally, with `?renderer=phaser`, or with an unsupported renderer value to use the established Phaser world renderer.
+
+Add `?renderer=voxel` to opt into the isometric voxel proving path, for example `http://127.0.0.1:5173/?seed=aoe2-prototype&renderer=voxel`. This mode renders the lit Three.js world on a WebGL canvas beneath a transparent Phaser Canvas overlay, so the existing camera, pointer input, selection, fog, feedback, minimap, and DOM HUD remain in place. If the Three renderer cannot initialize, the app logs a warning and falls back to Phaser.
+
+The voxel path is not the default yet. Its current adapter renders terrain and entities on a flat ground plane even though the projection contract carries terrain elevation; elevation-aware overlay/input hit geometry and broader parity validation are promotion work. The Phaser mode remains the reference path while those gaps are open.
 
 ## Controls
 

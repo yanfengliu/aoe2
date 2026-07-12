@@ -182,19 +182,16 @@ export function createFeudalSkirmisherFixture(seed: string): PrototypeScenario {
         vision: { playerId: 2, radius: 7 },
       },
       {
-        // Slice 12 Task B: deliberate overlap — the utility test
-        // `can train a Skirmisher in Feudal Age and use its anti-
-        // archer bonus` expects an enemy archer exactly at (14, 10)
-        // so its `issueContextCommand(14, 10)` resolves to this
-        // archer. That cell sits inside the Archery Range footprint
-        // at (13..15, 8..10); opt out of the fixture validator.
+        // Keep the target outside the Town Center's six-cell arrow range,
+        // but exactly inside a newly trained Skirmisher's five-cell vision.
+        // The old overlapping spawn was culled before training completed,
+        // which made the anti-archer exercise pass vacuously.
         kind: 'archer',
-        x: 14,
-        y: 10,
+        x: 18,
+        y: 7,
         owner: 2,
         baseOwner: 2,
         vision: { playerId: 2, radius: 6 },
-        allowOverlappingSpawn: true,
       },
     ],
   };

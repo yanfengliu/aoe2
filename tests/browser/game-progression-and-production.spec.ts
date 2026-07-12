@@ -114,13 +114,13 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
   test('can garrison and ungarrison a villager through the Town Center in the live game', async ({
     page,
   }) => {
-    await game.waitForBoot(page);
+    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
 
-    let snapshot = await game.getSnapshot(page);
+    let snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     expect(
       snapshot.economyState.units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
@@ -131,7 +131,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="action-ungarrison"]').click();
 
-    snapshot = await game.getSnapshot(page);
+    snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     const villagersAfterUngarrison = snapshot.economyState.units.filter(
       (unit) => unit.owner === 1 && unit.unitType === 'villager',
     );
@@ -147,14 +147,14 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
   test('lets a garrisoned Town Center automatically kill a nearby enemy scout', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'town-center-defense-fixture');
+    await game.waitForPausedBootWithSeed(page, 'town-center-defense-fixture');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
 
     const snapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(80, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(100, 100),
     );
 
     expect(
@@ -167,7 +167,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
   test('can build a Market and exchange resources through the live command panel', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'feudal-market-fixture');
+    await game.waitForPausedBootWithSeed(page, 'feudal-market-fixture');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
@@ -180,6 +180,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
         marketPlacement,
       ),
     ).toBe(true);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
@@ -189,7 +190,9 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
 
     const afterBuild = await game.getSnapshot(page);
     await page.locator('[data-command="market-sell-wood"]').click();
-    const afterFirstSale = await game.getSnapshot(page);
+    const afterFirstSale = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+    );
     expect(afterFirstSale.hudState.playerResources.wood).toBe(
       afterBuild.hudState.playerResources.wood - 100,
     );
@@ -198,7 +201,9 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     );
 
     await page.locator('[data-command="market-buy-food"]').click();
-    const afterFirstBuy = await game.getSnapshot(page);
+    const afterFirstBuy = await page.evaluate(
+      () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+    );
     expect(afterFirstBuy.hudState.playerResources.food).toBe(
       afterFirstSale.hudState.playerResources.food + 100,
     );

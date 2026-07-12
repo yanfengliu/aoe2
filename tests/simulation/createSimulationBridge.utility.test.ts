@@ -63,26 +63,35 @@ describe('createSimulationBridge utility progression', () => {
       wood: 225,
     });
 
-    for (let index = 0; index < 240; index += 1) {
-      bridge.step(100);
-    }
-
-    const skirmisher = bridge
-      .getEconomyState()
-      .units.find((unit) => unit.owner === 1 && unit.unitType === 'skirmisher');
-    expect(skirmisher).toBeDefined();
-    expect(bridge.selectEntityAtCell(skirmisher?.x ?? 0, skirmisher?.y ?? 0)).toBe(true);
-    expect(bridge.issueContextCommand(14, 10)).toBe(true);
-
-    for (let index = 0; index < 120; index += 1) {
-      bridge.step(100);
-    }
-
     expect(
-      bridge.getEconomyState().units.some(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().units.some(
+          (unit) => unit.owner === 1 && unit.unitType === 'skirmisher',
+        ),
+        { maxSteps: 240 },
+      ),
+    ).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () => bridge.getRenderState().entities.some(
+          (entity) => entity.owner === 2 && entity.entityType === 'archer',
+        ),
+        { maxSteps: 20 },
+      ),
+    ).toBe(true);
+    expect(selectOwnedUnitDirect(bridge, 1, 'skirmisher')).toBe(true);
+    expect(bridge.issueContextCommand(18, 7)).toBe(true);
+
+    const didKillArcher = stepBridgeUntil(
+      bridge,
+      () => !bridge.getEconomyState().units.some(
         (unit) => unit.owner === 2 && unit.unitType === 'archer',
       ),
-    ).toBe(false);
+      { maxSteps: 240 },
+    );
+    expect(didKillArcher).toBe(true);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can build a Watch Tower in Feudal Age and let it automatically kill a nearby visible Scout', () => {

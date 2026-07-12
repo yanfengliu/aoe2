@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import type { ThreeCaptureResult, ThreeRenderMetrics } from 'voxel/three';
 
 import type {
   UnitType,
@@ -21,6 +22,7 @@ import type {
 } from '../../phaser/scenes/GameScene';
 import type { RecordingService } from '../../game/recording/RecordingService';
 import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
+import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
 
 export interface BrowserTestBridge {
   step(deltaMs: number): void;
@@ -89,6 +91,17 @@ export interface BrowserTestSnapshot {
   cameraState: CameraState | null;
 }
 
+export interface BrowserWorldRendererState {
+  readonly mode: 'voxel' | 'phaser';
+  readonly metrics: ThreeRenderMetrics | null;
+}
+
+export interface BrowserCaptureState {
+  readonly dataUrl: string;
+  readonly width: number;
+  readonly height: number;
+}
+
 // Slice 6 (replay-load-and-e2e v0.1.13): replay-related test surface.
 // Lets Playwright assert replay mode + current tick + open the dialog
 // programmatically without poking at internal HUD/dialog markup.
@@ -114,6 +127,10 @@ export interface BrowserTestApi {
   getEconomyState(): EconomyState;
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
+  getWorldRendererState(): BrowserWorldRendererState;
+  hasSingleThreeIdentity(): boolean;
+  captureCompositeFrame(): BrowserCaptureState | null;
+  captureWorldFrame(): ThreeCaptureResult | null;
   /** Phase 1.B (llm-agent-playtest). Five methods scoped to the
    *  LLM-agent harness; production app never calls them. */
   agent: BrowserTestAgentApi;
@@ -214,6 +231,7 @@ export function installBrowserTestApi(
   // load) is solved by the `getBridge` thunk, which always resolves
   // to createApp's live `bridge` cell — so handleLoadGame doesn't
   // need to re-install at all (and now doesn't).
+  let pausedThroughTestApi = false;
   const api: BrowserTestApi = {
     isBooted: () => game.isBooted && scene.scene.isActive(),
     getHudState: () => getBridge().getHudState(),
@@ -224,6 +242,18 @@ export function installBrowserTestApi(
       scene.syncFromBridge(true);
       return scene.getCameraState();
     },
+    getWorldRendererState: () => scene.getWorldRendererState(),
+    hasSingleThreeIdentity,
+    captureCompositeFrame: () => {
+      const canvas = scene.getCaptureCanvas();
+      if (!canvas) return null;
+      return {
+        dataUrl: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height,
+      };
+    },
+    captureWorldFrame: () => scene.getWorldCapture(),
     getSelectionBoxState: () => scene.getSelectionBoxState(),
     getPlacementPreviewState: () => {
       scene.syncFromBridge(true);
@@ -313,14 +343,20 @@ export function installBrowserTestApi(
     },
     getSnapshot: () => getSnapshot(getBridge(), scene),
     setPaused: (paused: boolean) => {
+      pausedThroughTestApi = paused;
       getBridge().setPaused(paused);
     },
     advanceTicks: (count: number, deltaMs = 100) => {
       const safeCount = Math.max(0, Math.floor(count));
       const safeDeltaMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 100;
       const liveBridge = getBridge();
-      for (let index = 0; index < safeCount; index += 1) {
-        liveBridge.step(safeDeltaMs);
+      if (pausedThroughTestApi) liveBridge.setPaused(false);
+      try {
+        for (let index = 0; index < safeCount; index += 1) {
+          liveBridge.step(safeDeltaMs);
+        }
+      } finally {
+        if (pausedThroughTestApi) liveBridge.setPaused(true);
       }
 
       scene.syncFromBridge(true);

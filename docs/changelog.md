@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.147 - 2026-07-12
+
+### Try the battlefield as real 3-D voxel graphics
+
+Add `?renderer=voxel` to the game URL to enable an experimental isometric 3-D view. Terrain, units, buildings, and resources are rendered as lit voxel/block geometry by the new shared Three.js renderer, while the existing fog, selection, health, minimap, controls, HUD, saves, and replays continue to work through the AoE2-owned overlay. The simulation is unchanged, and replayed worlds rebuild the voxel scene instead of retaining stale geometry.
+
+The regular Phaser renderer remains the default while the voxel path is completed. This first reversible slice deliberately flattens terrain elevation to keep its world and hit targets aligned with the existing overlay; raised-geometry picking, final art, animation, and performance promotion remain later work. Omit `renderer=voxel` (or use `?renderer=phaser`) for the established view.
+
 ## 0.1.146 - 2026-07-11
 
 ### The game runs dramatically faster

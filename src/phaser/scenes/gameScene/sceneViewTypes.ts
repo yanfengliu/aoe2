@@ -22,8 +22,12 @@ export type DebugOverlayMode =
   | 'perf'
   | 'coarse-vs-fine';
 
+export type WorldRendererMode = 'voxel' | 'phaser';
+
 export interface GameSceneOptions {
   getDebugOverlayMode(): DebugOverlayMode;
+  /** Omitted by isolated scene tests; the production bootstrap passes it explicitly. */
+  rendererMode?: WorldRendererMode;
 }
 
 export const CELL_SIZE = 24;

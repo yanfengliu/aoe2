@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - 'package.json'
+      - 'package-lock.json'
+      - '.github/voxel-commit'
 
 permissions:
   contents: read
@@ -28,9 +30,25 @@ jobs:
           curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
           mkdir -p ../civ-engine
           tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+      - name: Fetch pinned voxel source
+        shell: bash
+        run: |
+          VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
+          printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test ! -e "$GITHUB_WORKSPACE/../voxel"
+          mkdir -p "$GITHUB_WORKSPACE/../voxel"
+          curl -fsSL --retry 3 \
+            -o "$RUNNER_TEMP/voxel.tgz" \
+            "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
+          tar -xzf "$RUNNER_TEMP/voxel.tgz" \
+            -C "$GITHUB_WORKSPACE/../voxel" \
+            --strip-components=1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install and build voxel
+        shell: bash
+        run: npm --prefix "$GITHUB_WORKSPACE/../voxel" ci
       - run: npm ci
       - run: npm run playtest:corpus
       - name: Upload corpus output
