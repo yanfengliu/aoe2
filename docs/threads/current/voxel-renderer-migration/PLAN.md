@@ -1,6 +1,6 @@
 # Isometric voxel renderer migration — implementation plan
 
-Status: opt-in vertical slice implemented and locally gate-complete as of 2026-07-12. External CLI review and remote publication remain approval-blocked; the default-promotion backlog remains active. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
+Status: opt-in vertical slice implemented, locally gate-complete, and published as of 2026-07-12. External CLI review remains unavailable; GitHub-hosted verification is account-billing-blocked before job start; the default-promotion backlog remains active. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
 
 ## Preflight
 
@@ -68,6 +68,7 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 - [x] Commit the coherent AoE2 increment directly to `main` after the final diff/secret/content checks (`a22fe8d`).
 - [x] Push the committed engine revision first so the pinned CI source exists remotely (`voxel` `7fbae42`).
 - [x] Push the AoE2 commits to `origin/main` after recording the external-review outcome.
+- [ ] Restore GitHub Actions billing/spending availability and rerun CI plus `playtest-corpus`; runs `29208222795` and `29208222802` were rejected before their first step.
 
 External-review blocker: the user explicitly approved private-diff review on 2026-07-12, but the platform safety reviewer still denied the Codex and AoE2 Claude exports before invocation. The voxel Claude Fable invocation returned only its quota-limit message. No external reviewer inspected code, no external approval is claimed, and the prohibited export was not rerouted through another model. Publication was separately approved and completed in engine-first order.
 

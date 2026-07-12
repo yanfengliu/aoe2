@@ -24,3 +24,7 @@ No provider inspected code in this iteration. No response is counted as an appro
 ## Result
 
 External multi-CLI review remains unavailable, not passed. The failure is tooling/policy availability rather than a code finding. The user separately approved remote publication, which completed on the existing local review and executable gates with `voxel/main` pushed before AoE2 to preserve CI dependency order. Default renderer promotion and the deferred parity/performance work remain open.
+
+## Hosted verification
+
+GitHub Actions runs `29208222795` (CI) and `29208222802` (`playtest-corpus`) were created for the published implementation range, but every job failed with zero steps. Their check-run annotations state that the account's recent payments failed or its spending limit must be increased. This is an external account-state blocker, not a test result; hosted verification remains pending a billing/settings correction and rerun.
