@@ -56,6 +56,14 @@ export interface RunnerHost {
   /** Phase-6.D: per-owner unit/building counts at the current tick.
    *  Used by the winner oracle to score the game outcome. */
   getEntityCountsByOwner(): Promise<PerOwnerEntityCounts>;
+  /** iter-4 review Finding C (C2): the live match outcome. Returns
+   *  'running' while the match is in progress, else the terminal outcome
+   *  ('victory' | 'defeat' | 'draw'). A finished match makes the live
+   *  bridge's step() no-op, so a completed game presents like a frozen
+   *  page; the runner reads this to end the run honestly as 'stopWhen'
+   *  (a genuine horizon) instead of mislabeling it 'engineHalt'. Sentinel
+   *  verified against MatchState.outcome in src/game/simulation/types.ts. */
+  getMatchOutcome(): Promise<string>;
 }
 
 export interface LlmRunnerConfig {
@@ -212,18 +220,47 @@ export async function runLlmPlaytest(input: {
         Math.max(1, config.maxTicks - ticksRun),
       );
       await host.advanceTicks(ticksToAdvance);
+      // iter-4 review Finding C: read the OBSERVED tick delta ONCE, right
+      // after advancing, and reuse it below (checkpoints + trace). No ticks
+      // move between here and the trace entry — drainDispatchLog /
+      // reportDispatchOutcome are pure reads — so this single read IS the
+      // final tickAfter for this decision.
+      const tickAfter = await host.getCurrentTick();
+      const advanced = tickAfter - tickBefore;
+
+      // C2: a finished match is a genuine horizon, NOT an engine crash. The
+      // live bridge's step() no-ops once getMatchState().outcome !==
+      // 'running' (createSimulationBridge.ts), so a completed match presents
+      // to the runner exactly like a frozen page — zero (or partial) tick
+      // progress while the host keeps calling advanceTicks. Check the match
+      // outcome BEFORE the halt check so a completed game is credited as
+      // 'stopWhen' (mirroring the deterministic runPlaytest.ts) instead of
+      // being mislabeled 'engineHalt' — which would drop the winner and make
+      // match-completes fire "did not complete". Credit the OBSERVED delta so
+      // a mid-batch finish is not over-counted.
+      const matchOutcome = await host.getMatchOutcome();
+      if (matchOutcome !== 'running') {
+        stopReason = 'stopWhen';
+        ticksRun += Math.max(0, advanced);
+        break;
+      }
       // M13-#2: detect a silent halt — a frozen page whose advanceTicks is a
       // no-op (not a throw) would otherwise let ticksRun climb to maxTicks,
       // false-greening the run (winner oracle scores stale counts, corpus
-      // regression sees a clean maxTicks). If the sim did not advance AT ALL,
-      // stop honestly. Use `<= tickBefore` (no progress), NOT a strict
-      // requested-amount check — free-running hosts legitimately overshoot.
-      if ((await host.getCurrentTick()) <= tickBefore) {
+      // regression sees a clean maxTicks). Reached only when the match is
+      // still 'running' (the C2 check above already handled a finished game),
+      // so no progress here IS a genuine halt. Use `advanced <= 0` (no
+      // progress), NOT a strict requested-amount check — free-running hosts
+      // legitimately overshoot.
+      if (advanced <= 0) {
         stopReason = 'engineHalt';
         errorMessage = `sim did not advance at tick ${tickBefore} (requested ${ticksToAdvance})`;
         break;
       }
-      ticksRun += ticksToAdvance;
+      // C1: credit the OBSERVED delta (tickAfter - tickBefore), NOT the
+      // requested ticksToAdvance. A partial final batch (sim advanced 30 of
+      // 250 requested) must not be over-credited.
+      ticksRun += advanced;
 
       const dispatchEvents = await host.drainDispatchLog();
       // Merge host-level pre-queue rejections (not-owned / malformed-
@@ -246,7 +283,8 @@ export async function runLlmPlaytest(input: {
       if (decision.stopReason === 'normal') {
         agent.reportDispatchOutcome(allDispatchEvents);
       }
-      const tickAfter = await host.getCurrentTick();
+      // (tickAfter / advanced were read once above, right after advanceTicks;
+      // no ticks move between there and here, so they remain current.)
 
       // Capture screenshots ONLY when an advance lands exactly on a
       // checkpoint tick (dashboard thumbnails; no baseline diffing). If

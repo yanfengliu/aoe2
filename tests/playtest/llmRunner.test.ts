@@ -297,6 +297,62 @@ describe('runLlmPlaytest', () => {
   });
 });
 
+// iter-4 review Finding C (C1 miscount + C2 terminal-match mislabel):
+// once a match finishes, the live bridge's step() no-ops, so advanceTicks
+// stops moving the tick and a COMPLETED match presents to the runner
+// exactly like a frozen page. The runner must (C2) end such a run as
+// 'stopWhen' — a genuine horizon, NOT 'engineHalt' — and (C1) credit the
+// OBSERVED tick delta, not the requested batch size.
+describe('runLlmPlaytest — terminal match + observed delta (iter-4 Finding C)', () => {
+  it('ends a completed match as stopWhen (not engineHalt) and credits the observed total', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    // Match completes exactly at tick 500 (end of the 2nd 250-tick batch);
+    // thereafter advanceTicks no-ops like the live post-match bridge.
+    host.matchEndsAtTick = 500;
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: { ownerId: 2, maxTicks: 1000, decisionIntervalTicks: 250, screenshotEnabled: false },
+    });
+    // C2: a finished game is a genuine horizon, not an engine crash.
+    expect(result.envelope.stopReason).toBe('stopWhen');
+    expect(result.envelope.stopReason).not.toBe('engineHalt');
+    // Observed total = 250 + 250 = 500 (the match-end tick).
+    expect(result.envelope.ticksRun).toBe(500);
+    expect(result.envelope.ticksRun).toBe(host.tickCounter);
+  });
+
+  it('credits the OBSERVED delta on a partial final batch, not the requested sum (C1)', async () => {
+    const host = new StubHost(MIN_BUNDLE);
+    // Match ends mid-batch at tick 300: batch 1 advances 250, batch 2 is
+    // requested 250 but only 50 land before step() no-ops.
+    host.matchEndsAtTick = 300;
+    const provider = new MockProvider({
+      responses: [
+        { content: STRATEGY_OK },
+        { content: TACTICAL_OK_NO_COMMANDS },
+        { content: TACTICAL_OK_NO_COMMANDS },
+      ],
+    });
+    const result = await runLlmPlaytest({
+      host,
+      agent: makeAgent(provider),
+      config: { ownerId: 2, maxTicks: 1000, decisionIntervalTicks: 250, screenshotEnabled: false },
+    });
+    expect(result.envelope.stopReason).toBe('stopWhen');
+    // Observed 250 + 50 = 300, NOT the requested 250 + 250 = 500.
+    expect(result.envelope.ticksRun).toBe(300);
+    expect(host.advanceCalls).toEqual([250, 250]); // requested sum WOULD be 500
+  });
+});
+
 // playtest-fixes C: with a pausing host, the sim is frozen before the
 // first decision and advanceTicks is the only tick source — the
 // 2026-06-09 run drifted to bridge tick 5413 on a maxTicks-2000 run

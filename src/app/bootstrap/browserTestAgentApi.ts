@@ -72,6 +72,13 @@ export interface BrowserTestAgentApi {
    *  the bridge's existing economy-state surface — no engine-internal
    *  coupling. */
   getEntityCountsByOwner(): Record<number, { units: number; buildings: number }>;
+  /** iter-4 review Finding C: the live match outcome ('running' while in
+   *  progress, else 'victory' | 'defeat' | 'draw'). The LLM runner reads
+   *  this to end a completed match as a genuine horizon ('stopWhen')
+   *  instead of mislabeling the post-match tick-freeze as 'engineHalt'.
+   *  Reads getHudState().matchState (identical to the bridge's
+   *  getMatchState()) so it stays within the BrowserTestBridge surface. */
+  getMatchOutcome(): string;
 }
 
 export function makeAgentApi(
@@ -262,6 +269,11 @@ export function makeAgentApi(
       }
       return counts;
     },
+
+    // iter-4 review Finding C: the live match outcome. getHudState() reads
+    // matchState fresh via getMatchState() each call, so this is the
+    // current outcome ('running' | 'victory' | 'defeat' | 'draw').
+    getMatchOutcome: () => getBridge().getHudState().matchState.outcome,
   };
 }
 

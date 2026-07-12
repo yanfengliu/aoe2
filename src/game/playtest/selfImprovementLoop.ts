@@ -21,7 +21,7 @@ import {
 import { deriveAnchorTick, findingsToMarkers } from './findingsToMarkers';
 import {
   compareSelfImprovementFindings,
-  findingIdentityKey,
+  withinRunUnionKey,
   type SelfImprovementFindingComparison,
 } from './selfImprovementFindingComparison';
 import { oracleViolationsToImprovementFindings } from './oracleImprovementFindings';
@@ -175,14 +175,17 @@ export function extractImprovementFindingsFromRun(
   const envelopeFindings = envelopeConformanceFindings(run);
   const oracleFindings = oracleViolationsToImprovementFindings(run);
 
-  // Dedup by the SAME stable identity the prove stage + cross-run comparison use
-  // (findingIdentityKey): conformance findings that appear in BOTH markers and
-  // the envelope collapse by id, while oracle findings keep their violation
-  // tuple. Keep first-seen (markers win over the envelope re-derivation).
+  // Dedup by the WITHIN-run union key (finer than the cross-run findingIdentityKey
+  // used by the prove stage + before/after comparison): conformance findings that
+  // appear in BOTH markers and the envelope collapse by their per-finding id,
+  // while oracle findings keep their violation tuple. Crucially, two DISTINCT
+  // conformance defects in one [category, area] stay separate — the coarse
+  // cross-run key would hide the second (iter-4 review). Keep first-seen (markers
+  // win over the envelope re-derivation).
   const seen = new Set<string>();
   const findings: ImprovementFinding[] = [];
   for (const finding of [...markerFindings, ...envelopeFindings, ...oracleFindings]) {
-    const key = findingIdentityKey(finding);
+    const key = withinRunUnionKey(finding);
     if (seen.has(key)) continue;
     seen.add(key);
     findings.push(finding);

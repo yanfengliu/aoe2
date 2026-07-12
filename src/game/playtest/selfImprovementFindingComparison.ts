@@ -56,6 +56,24 @@ export function findingIdentityKey(finding: ImprovementFinding): string {
   return findingIdentity(finding).key;
 }
 
+// Within a SINGLE run's union (markers ∪ envelope ∪ oracle), dedup with a FINER
+// key than the cross-run findingIdentityKey. Conformance findings key on their
+// per-finding id: the SAME defect surfaced by both markers and the envelope
+// carries the SAME id (tick + index) and still collapses, but two DISTINCT
+// defects in one [category, area] have distinct id suffixes and are BOTH kept —
+// whereas the coarse cross-run conformance key (deliberately [category, area] for
+// resolved/introduced stability) collapsed them, hiding the second (iter-4
+// review: a later HIGH could vanish behind an earlier LOW). Oracle findings keep
+// the violation tuple, since their positional id churn would wrongly split true
+// duplicates that appear in more than one source.
+export function withinRunUnionKey(finding: ImprovementFinding): string {
+  const oracle = oracleFindingPayload(finding.data);
+  if (oracle) {
+    return `oracle:${JSON.stringify([oracle.oracle, oracle.tick, oracle.message])}`;
+  }
+  return `id:${finding.id}`;
+}
+
 function findingIdentity(finding: ImprovementFinding): FindingIdentity {
   const oracle = oracleFindingPayload(finding.data);
   if (oracle) {

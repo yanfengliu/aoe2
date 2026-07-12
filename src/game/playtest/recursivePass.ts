@@ -13,7 +13,27 @@ export type RecursivePassOutcome =
   | 'apply-failed'
   | 'gate-failed'
   | 'fixed-proven'
-  | 'fix-unproven';
+  | 'fix-unproven'
+  | 'initial-run-unqualified';
+
+// iter-4 Finding A: a DEGENERATE initial run — one that died on
+// costBudget/providerError/engineHalt — surfaces no auto-fixable candidate,
+// because its only oracle signal (match-completes) is excluded from candidate
+// selection by NON_AUTOFIX_ORACLES. Candidate selection then returns null and,
+// without this gate, the pass is reported as a healthy 'no-fix-candidate' (exit
+// 0), appending a CLEAN row to passes.jsonl that hides a broken run. This
+// mirrors the rerun's prove-fixed qualification (rerunVerified +
+// rerunReachedHorizon, added by commit 38a7ccc): an initial run only counts as a
+// trustworthy "nothing to fix" pass when its replay self-check verified AND it
+// reached a genuine horizon (maxTicks/stopWhen) rather than dying early. The
+// horizon set is a WHITELIST, so any other/future stopReason defaults to
+// unqualified. Kept pure so the script's gate is unit-testable (the .mjs is not).
+export function qualifyInitialRun(input: { verified: boolean; stopReason: string | undefined }): boolean {
+  return (
+    input.verified === true
+    && (input.stopReason === 'maxTicks' || input.stopReason === 'stopWhen')
+  );
+}
 
 export interface RecursivePassArtifact {
   kind: string;

@@ -49,6 +49,14 @@ export class StubHost implements RunnerHost {
   // Ordered host-call log so tests can pin sequencing contracts
   // (e.g. playtest-fixes C: setPaused(true) before the first snapshot).
   callLog: string[] = [];
+  // C2 (iter-4 review Finding C): simulate a match that completes
+  // mid-run. When set, `getMatchOutcome` returns `matchEndOutcome` once
+  // the tick reaches `matchEndsAtTick`, AND `advanceTicks` caps the tick
+  // there — mirroring the live bridge, whose step() no-ops post-match so
+  // the world tick freezes even as the host keeps calling advanceTicks.
+  // Default null keeps the legacy free-advance / always-'running' host.
+  matchEndsAtTick: number | null = null;
+  matchEndOutcome = 'victory';
 
   constructor(bundle: SessionBundle) {
     this.bundle = bundle;
@@ -94,7 +102,13 @@ export class StubHost implements RunnerHost {
   async advanceTicks(count: number): Promise<void> {
     this.advanceCalls.push(count);
     this.callLog.push(`advance:${count}`);
-    this.tickCounter += count;
+    // C2: once the match ends the live bridge's step() no-ops, so a
+    // requested batch may only PARTIALLY land (or not at all). Cap the
+    // tick at matchEndsAtTick when configured; otherwise advance freely.
+    this.tickCounter =
+      this.matchEndsAtTick === null
+        ? this.tickCounter + count
+        : Math.min(this.tickCounter + count, this.matchEndsAtTick);
   }
   async drainDispatchLog(): Promise<AgentDispatchEvent[]> {
     return this.dispatchEvents.shift() ?? [];
@@ -107,6 +121,15 @@ export class StubHost implements RunnerHost {
   // override this on the instance.
   async getEntityCountsByOwner() {
     return {};
+  }
+  // C2 (iter-4 review Finding C): the live match outcome. Defaults to
+  // 'running' (in-progress) so every existing test behaves like a live
+  // match; flips to `matchEndOutcome` once the tick reaches
+  // `matchEndsAtTick`, exactly as the live bridge reports a finished game.
+  async getMatchOutcome(): Promise<string> {
+    return this.matchEndsAtTick !== null && this.tickCounter >= this.matchEndsAtTick
+      ? this.matchEndOutcome
+      : 'running';
   }
 }
 

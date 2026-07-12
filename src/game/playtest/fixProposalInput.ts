@@ -34,7 +34,17 @@ export function selectLedgerFixCandidate(
   options: LedgerFixSelectionOptions = {},
 ): LedgerFixCandidate | null {
   const candidates = ledger.findings
-    .filter((finding) => finding.classification.kind === 'fix')
+    // Only auto-select findings whose bug was replay-VERIFIED. A finding
+    // downgraded to 'unverified' (its run's replay self-check failed) — or a
+    // 'falsePositive'/'regressed' finding — is not trustworthy evidence of a
+    // real, reproducible defect; auto-patching it would let a spurious finding
+    // vanish on a healthy rerun and be declared fixed-proven (iter-4 review B).
+    // Oracle findings default to 'verified' and only downgrade on replay
+    // failure, so this doesn't starve legitimate selection.
+    .filter(
+      (finding) =>
+        finding.classification.kind === 'fix' && finding.verificationStatus === 'verified',
+    )
     .map((finding) => ({
       prefix: ledger.current.prefix,
       findingId: finding.id,

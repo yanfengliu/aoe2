@@ -258,9 +258,8 @@ async function makePlaywrightHost(page, hostOptions = {}) {
       return await page.evaluate(() => window.__AOE2_TEST__.getRenderState().tick);
     },
     async snapshotForAgent(ownerId) {
-      // Phase-6.B (impl-2 M7): forward host-level omniscient flag so
-      // the snapshot honors visibility-gating per the corpus row /
-      // CLI flag.
+      // Phase-6.B (impl-2 M7): forward host-level omniscient flag so the
+      // snapshot honors visibility-gating per the corpus row / CLI flag.
       return await page.evaluate(
         ([id, opts]) => window.__AOE2_TEST__.agent.snapshotForAgent(id, opts),
         [ownerId, { omniscient }],
@@ -298,9 +297,10 @@ async function makePlaywrightHost(page, hostOptions = {}) {
       return await page.evaluate(() => window.__AOE2_TEST__.agent.drainAgentDispatchLog());
     },
     async getEntityCountsByOwner() {
-      return await page.evaluate(() =>
-        window.__AOE2_TEST__.agent.getEntityCountsByOwner(),
-      );
+      return await page.evaluate(() => window.__AOE2_TEST__.agent.getEntityCountsByOwner());
+    },
+    async getMatchOutcome() {
+      return await page.evaluate(() => window.__AOE2_TEST__.agent.getMatchOutcome());
     },
     async exportBundle() {
       // playtest-fixes D: the previous blob-URL path was dead on

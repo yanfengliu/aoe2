@@ -5,6 +5,7 @@ import {
   buildRecursivePassManifest,
   findingOracleName,
   proveFixOutcome,
+  qualifyInitialRun,
 } from '../../src/game/playtest/recursivePass';
 
 function oracleFinding(id: string, oracle: string, tick: number | null, message: string): ImprovementFinding {
@@ -122,6 +123,29 @@ describe('recursive pass fix proving', () => {
   it('extracts oracle names only from oracle-payload findings', () => {
     expect(findingOracleName(candidate)).toBe('match-completes');
     expect(findingOracleName(markerFinding('m'))).toBeNull();
+  });
+});
+
+describe('qualifyInitialRun (iter-4 Finding A: refuse a clean pass over a degenerate initial run)', () => {
+  it.each(['costBudget', 'engineHalt', 'providerError'])(
+    'returns false for a verified run that died early on %s (no genuine horizon)',
+    (stopReason) => {
+      expect(qualifyInitialRun({ verified: true, stopReason })).toBe(false);
+    },
+  );
+
+  it('returns false when the stopReason is undefined (no horizon recorded)', () => {
+    expect(qualifyInitialRun({ verified: true, stopReason: undefined })).toBe(false);
+  });
+
+  it('returns false when the replay self-check did not verify, even at a genuine horizon', () => {
+    expect(qualifyInitialRun({ verified: false, stopReason: 'maxTicks' })).toBe(false);
+    expect(qualifyInitialRun({ verified: false, stopReason: 'stopWhen' })).toBe(false);
+  });
+
+  it('returns true only for a verified run that reached a genuine horizon (maxTicks|stopWhen)', () => {
+    expect(qualifyInitialRun({ verified: true, stopReason: 'maxTicks' })).toBe(true);
+    expect(qualifyInitialRun({ verified: true, stopReason: 'stopWhen' })).toBe(true);
   });
 });
 

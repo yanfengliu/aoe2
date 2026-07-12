@@ -24,7 +24,8 @@
 //     [--out-root output/self-improvement/recursive] [--reviewer claude|codex]
 //
 // Outcomes (also the manifest stopReason): no-fix-candidate | proposal-only |
-// proposal-failed | apply-failed | gate-failed | fixed-proven | fix-unproven.
+// proposal-failed | apply-failed | gate-failed | fixed-proven | fix-unproven |
+// initial-run-unqualified.
 
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -38,6 +39,7 @@ import { repairBundleEndTick } from '../src/game/playtest/bundleEndTick.ts';
 import {
   buildRecursivePassManifest,
   proveFixOutcome,
+  qualifyInitialRun,
 } from '../src/game/playtest/recursivePass.ts';
 
 const useShell = process.platform === 'win32';
@@ -304,6 +306,25 @@ async function main() {
   const ledger = await buildLedger(runBase, args.baseline, ledgerPath);
   if (!ledger) await finish('proposal-failed', 1);
   artifacts.push({ kind: 'ledger', path: ledgerPath });
+
+  // 2b. iter-4 Finding A: qualify the INITIAL run before trusting its ledger.
+  // A degenerate run that died on costBudget/providerError/engineHalt surfaces no
+  // auto-fixable candidate — its only oracle signal (match-completes) is excluded
+  // by NON_AUTOFIX_ORACLES — so candidate selection returns null and the pass
+  // would otherwise be mis-reported as a healthy 'no-fix-candidate' (exit 0), a
+  // clean passes.jsonl row hiding a broken run. Mirror the rerun's prove-fixed
+  // horizon gate (lines ~417-421): the run must have verified its replay AND
+  // reached a genuine horizon (maxTicks/stopWhen).
+  const initialVerified = ledger.verification?.current?.ok === true;
+  const initialStopReason = ledger.current?.stopReason;
+  if (!qualifyInitialRun({ verified: initialVerified, stopReason: initialStopReason })) {
+    console.error(
+      `[recursive] initial run did not qualify as a healthy pass `
+        + `(verified=${initialVerified}, stopReason=${initialStopReason}) — `
+        + `refusing to report a clean no-fix-candidate over a degenerate run`,
+    );
+    return finish('initial-run-unqualified', 1);
+  }
 
   // 3. Fix candidate.
   candidate = selectLedgerFixCandidate(ledger);

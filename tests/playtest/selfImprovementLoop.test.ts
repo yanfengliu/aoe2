@@ -1,139 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import {
-  IMPROVEMENT_FINDING_SCHEMA_VERSION,
-  type ImprovementFinding,
-  type Marker,
-  type SessionBundle,
-} from 'civ-engine';
 
-import type { ConformanceFinding, ConformanceTraceRow } from '../../src/game/playtest/conformanceProbe';
 import { findingsToMarkers } from '../../src/game/playtest/findingsToMarkers';
 import {
   buildSelfImprovementLedger,
   extractImprovementFindingsFromRun,
   formatSelfImprovementLedgerMarkdown,
   replaySelfCheckEvidenceFromResult,
-  type SelfImprovementRunArtifacts,
 } from '../../src/game/playtest/selfImprovementLoop';
 import type { OracleViolation } from '../../src/game/playtest/types';
-
-const FIXED_NOW = '2026-07-08T12:00:00.000Z';
-
-function conformanceFinding(overrides: Partial<ConformanceFinding> = {}): ConformanceFinding {
-  return {
-    category: 'ux-gap',
-    area: 'command-card',
-    observed: 'No visible age-up command.',
-    expected: 'The Town Center exposes age-up when prerequisites are met.',
-    severity: 'medium',
-    suggestion: 'Expose age-up in the command card.',
-    ...overrides,
-  };
-}
-
-function traceRow(overrides: Partial<ConformanceTraceRow> = {}): ConformanceTraceRow {
-  return {
-    decisionIndex: 0,
-    tickBefore: 250,
-    tickAfter: 500,
-    thought: 'Inspect command card.',
-    commands: [{ type: 'queue.research' }],
-    costUsd: 0.1,
-    stopReason: 'normal',
-    dispatchEvents: [{ commandType: 'queue.research', accepted: true }],
-    ...overrides,
-  };
-}
-
-function bundle(markers: Marker[] = [], endTick = 1000): SessionBundle {
-  return {
-    schemaVersion: 1,
-    metadata: {
-      sessionId: 'session-1',
-      startTick: 0,
-      endTick,
-      durationTicks: endTick,
-      engineVersion: '1.4.0',
-      nodeVersion: process.version,
-    },
-    initialSnapshot: {},
-    ticks: [],
-    commands: [],
-    executions: [],
-    failures: [],
-    snapshots: [],
-    markers,
-    attachments: [],
-  } as unknown as SessionBundle;
-}
-
-function runArtifacts(
-  overrides: Partial<SelfImprovementRunArtifacts> & {
-    markers?: Marker[];
-    findings?: ConformanceFinding[];
-    traceRows?: ConformanceTraceRow[];
-    oracleViolations?: OracleViolation[];
-  } = {},
-): SelfImprovementRunArtifacts {
-  const traceRows = overrides.traceRows ?? [traceRow()];
-  return {
-    id: overrides.id ?? 'current',
-    prefix: overrides.prefix ?? 'output/playtests-llm/current',
-    bundle: overrides.bundle ?? bundle(overrides.markers ?? []),
-    envelope: overrides.envelope ?? {
-      stopReason: 'maxTicks',
-      ticksRun: 500,
-      decisionsRun: 1,
-      totalCostUsd: 0.1,
-      maxTicks: 1000,
-      ...(overrides.findings ? { findings: overrides.findings } : {}),
-    },
-    traceRows,
-    ...(overrides.oracleViolations ? { oracleViolations: overrides.oracleViolations } : {}),
-  };
-}
-
-function improvementFinding(
-  id: string,
-  nextAction: ImprovementFinding['nextAction'],
-  overrides: Partial<ImprovementFinding> = {},
-): ImprovementFinding {
-  return {
-    schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
-    id,
-    title: `Finding ${id}`,
-    severity: 'high',
-    category: 'bug',
-    area: 'loop',
-    observed: 'A loop issue was observed.',
-    expected: 'The loop should classify it.',
-    suggestion: 'Classify and route it.',
-    evidence: [{ kind: 'tick', tick: 500 }],
-    verificationStatus: 'unverified',
-    nextAction,
-    ...overrides,
-  };
-}
-
-function improvementMarker(finding: ImprovementFinding): Marker {
-  return {
-    id: `marker-${finding.id}`,
-    tick: 500,
-    kind: 'annotation',
-    provenance: 'game',
-    text: finding.title,
-    data: {
-      author: 'agent',
-      severity: 'bug',
-      category: 'ai',
-      improvementLoop: {
-        schemaVersion: IMPROVEMENT_FINDING_SCHEMA_VERSION,
-        type: 'finding',
-        finding,
-      },
-    } as unknown as Marker['data'],
-  };
-};
+import {
+  conformanceFinding,
+  FIXED_NOW,
+  improvementFinding,
+  improvementMarker,
+  runArtifacts,
+  traceRow,
+} from './selfImprovementLoopTestKit';
 
 describe('extractImprovementFindingsFromRun', () => {
   it('recovers shared ImprovementFinding payloads from markers first', () => {
@@ -215,6 +97,21 @@ describe('extractImprovementFindingsFromRun', () => {
     );
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]?.id).toBe('aoe2-conformance-ux-gap-command-card-500-0');
+  });
+
+  it('keeps two DISTINCT conformance findings in the same category+area (iter-4 review)', () => {
+    // The cross-run findingIdentityKey coarsens conformance to [category, area]
+    // for resolved/introduced stability; reusing it for the WITHIN-run union
+    // collapsed two genuinely different ux-gap/command-card defects into one, so
+    // a later HIGH could vanish behind an earlier LOW. The union must keep both
+    // (while the same-defect-from-two-sources case above still collapses to one).
+    const first = conformanceFinding({ observed: 'No age-up button.', severity: 'low' });
+    const second = conformanceFinding({ observed: 'Idle-villager button missing.', severity: 'high' });
+    const result = extractImprovementFindingsFromRun(
+      runArtifacts({ findings: [first, second], traceRows: [traceRow()] }),
+    );
+    expect(result.findings).toHaveLength(2);
+    expect(result.findings.map((f) => f.severity).sort()).toEqual(['high', 'low']);
   });
 
   it('converts deterministic oracle violations into shared ImprovementFindings', () => {

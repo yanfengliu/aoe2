@@ -163,6 +163,29 @@ describe('fixProposalInput', () => {
     expect(selectLedgerFixCandidate(ledger([matchOnly]))).toBeNull();
   });
 
+  it('excludes a fix finding whose replay verification was downgraded to unverified (iter-4 review B)', () => {
+    // A finding from a run whose replay self-check FAILED is downgraded to
+    // verificationStatus 'unverified'. It is not trustworthy evidence of a real,
+    // reproducible bug, so it must not be auto-selected — else a spurious finding
+    // gets patched and, having been spurious, vanishes on a healthy rerun and is
+    // declared fixed-proven. The verified (lower-severity) finding wins instead.
+    const unverifiedHigh = ledgerFinding('unverified-fix', {
+      finding: improvementFinding('unverified-fix', { severity: 'high', verificationStatus: 'unverified' }),
+    });
+    const verifiedMedium = ledgerFinding('verified-fix', {
+      finding: improvementFinding('verified-fix', { severity: 'medium' }),
+    });
+    const result = selectLedgerFixCandidate(ledger([unverifiedHigh, verifiedMedium]));
+    expect(result?.findingId).toBe('verified-fix');
+  });
+
+  it('returns null when the only fix finding is unverified (iter-4 review B)', () => {
+    const unverified = ledgerFinding('unverified-fix', {
+      finding: improvementFinding('unverified-fix', { verificationStatus: 'unverified' }),
+    });
+    expect(selectLedgerFixCandidate(ledger([unverified]))).toBeNull();
+  });
+
   it('honors finding id and oracle filters while ignoring non-fix findings', () => {
     const observe = ledgerFinding('perf-observe', {
       classification: { kind: 'observe', autoFixEligible: false },
