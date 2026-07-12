@@ -186,3 +186,49 @@ export function legacySchema1FromBridge(bridge: Bridge): SaveBlobV1 {
     sideMaps: sideMapsFromWorldState(state),
   };
 }
+
+// Pull the bridge state we want to compare across a save/load round trip.
+// `matchOutcome`/`winCondition`/countdowns come straight off matchState; the
+// rest are derived from getEconomyState so combat and gather progress both
+// register. Shared by the round-trip tests in saveLoad.test.ts (the M14
+// observable-equivalence guard reads this through the live accessor cache on
+// one bridge and the flushed blob on the other).
+export function captureSnapshot(bridge: Bridge): {
+  tick: number;
+  ages: Record<number, string>;
+  playerResources: Record<number, { food: number; wood: number; gold: number; stone: number }>;
+  population: Record<number, { current: number; cap: number }>;
+  unitIds: number[];
+  buildingIds: number[];
+  unitHps: Array<{ id: number; unitType: string; owner: number; x: number; y: number }>;
+  buildingProgress: Array<{ id: number; isComplete: boolean; buildProgressTicks: number }>;
+  matchOutcome: string;
+  winCondition: string | null;
+  wonderCountdown: number | null;
+  relicCountdown: number | null;
+} {
+  const economy = bridge.getEconomyState();
+  const match = bridge.getMatchState();
+  return {
+    tick: bridge.getHudState().tick,
+    ages: { ...economy.ages },
+    playerResources: { ...economy.playerResources },
+    population: { ...economy.population },
+    unitIds: economy.units.map((u) => u.id).sort((a, b) => a - b),
+    buildingIds: economy.buildings.map((b) => b.id).sort((a, b) => a - b),
+    unitHps: economy.units
+      .map((u) => ({ id: u.id, unitType: u.unitType, owner: u.owner, x: u.x, y: u.y }))
+      .sort((a, b) => a.id - b.id),
+    buildingProgress: economy.buildings
+      .map((b) => ({
+        id: b.id,
+        isComplete: b.isComplete,
+        buildProgressTicks: b.buildProgressTicks,
+      }))
+      .sort((a, b) => a.id - b.id),
+    matchOutcome: match.outcome,
+    winCondition: match.winCondition,
+    wonderCountdown: match.wonderCountdownTicks,
+    relicCountdown: match.relicCountdownTicks,
+  };
+}
