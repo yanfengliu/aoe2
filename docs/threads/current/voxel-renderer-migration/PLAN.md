@@ -67,9 +67,9 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 - [x] Leave Phaser as the default and record the exact unmet promotion gates in `DESIGN.md`.
 - [x] Commit the coherent AoE2 increment directly to `main` after the final diff/secret/content checks (`a22fe8d`).
 - [x] Push the committed engine revision first so the pinned CI source exists remotely (`voxel` `7fbae42`).
-- [ ] Push the AoE2 commits to `origin/main` after recording the external-review outcome.
+- [x] Push the AoE2 commits to `origin/main` after recording the external-review outcome.
 
-External-review blocker: the user explicitly approved private-diff review on 2026-07-12, but the platform safety reviewer still denied the Codex and AoE2 Claude exports before invocation. The voxel Claude Fable invocation returned only its quota-limit message. No external reviewer inspected code, no external approval is claimed, and the prohibited export was not rerouted through another model. Publication was separately approved; the engine-first push is complete and the AoE2 push remains pending in this ledger.
+External-review blocker: the user explicitly approved private-diff review on 2026-07-12, but the platform safety reviewer still denied the Codex and AoE2 Claude exports before invocation. The voxel Claude Fable invocation returned only its quota-limit message. No external reviewer inspected code, no external approval is claimed, and the prohibited export was not rerouted through another model. Publication was separately approved and completed in engine-first order.
 
 ## Deferred backlog
 
