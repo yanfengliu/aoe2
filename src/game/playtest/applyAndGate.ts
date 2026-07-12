@@ -127,6 +127,26 @@ export function patchTouchesSensitivePaths(patch: string): string[] {
   );
 }
 
+// Parse the touched paths out of `git apply --numstat -z` — git's OWN parser,
+// so it is the AUTHORITATIVE list of what a real `git apply` will write. `-z`
+// emits NUL-separated records with UNQUOTED paths, so c-quoted `"a/…"` headers,
+// CRLF headers, and case are already resolved exactly as git resolves them (the
+// hand-rolled regex classifier above missed all three — each a confirmed
+// complete bypass, proven with live `git apply`). Record format per file is
+// `<added>\t<deleted>\t<path>` (a rename emits `<a>\t<d>\t` then the old and new
+// paths as their own records), so the path is the segment after the last tab,
+// or the whole record when it has no tab (a rename's old/new path).
+export function parseNumstatPaths(numstatZOutput: string): string[] {
+  const paths: string[] = [];
+  for (const record of numstatZOutput.split('\0')) {
+    if (record.length === 0) continue;
+    const lastTab = record.lastIndexOf('\t');
+    const path = lastTab >= 0 ? record.slice(lastTab + 1) : record;
+    if (path.length > 0) paths.push(path);
+  }
+  return paths;
+}
+
 export type ApplyAndGateResult =
   | {
       kind: 'success';
@@ -176,8 +196,18 @@ export async function applyAndGate(input: ApplyAndGateInput): Promise<ApplyAndGa
   // dependency-surface files BEFORE apply — running the gates on it would run
   // injected lifecycle scripts / altered build config with our privileges. Done
   // before branch creation so a rejected patch leaves no trace.
+  //
+  // Path detection uses git's OWN parser as the source of truth: `git apply
+  // --numstat -z` reports exactly what a real apply would write (doesn't touch
+  // the tree), so it resolves c-quoted / CRLF / mixed-case headers the way git
+  // actually resolves them. The regex classifier is kept as defense-in-depth
+  // (covers a patch --numstat can't parse but a later apply might still write);
+  // we reject on the UNION, so a hit from EITHER source is fatal.
   if (!input.allowSensitivePaths) {
-    const sensitive = patchTouchesSensitivePaths(input.patch);
+    const numstat = await input.runFn('git', ['apply', '--numstat', '-z', '-'], { stdin: input.patch });
+    const gitTouchedSensitive = (numstat.exitCode === 0 ? parseNumstatPaths(numstat.stdout) : [])
+      .filter((p) => SENSITIVE_PATH_PATTERNS.some((re) => re.test(p)));
+    const sensitive = [...new Set([...gitTouchedSensitive, ...patchTouchesSensitivePaths(input.patch)])];
     if (sensitive.length > 0) {
       return {
         kind: 'sensitive-patch-rejected',
