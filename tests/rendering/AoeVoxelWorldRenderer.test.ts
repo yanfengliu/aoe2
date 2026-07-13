@@ -111,7 +111,15 @@ describe('AoeVoxelWorldRenderer', () => {
     expect(runtimeOptions?.canvas).toBe(host.querySelector('.voxel-world-canvas'));
     expect(runtimeOptions?.rendererParameters).toMatchObject({
       alpha: true,
-      antialias: false,
+      antialias: true,
+    });
+    expect(runtimeOptions?.daylight).toEqual({
+      skyColor: 0xcfe7f1,
+      groundColor: 0x4a3826,
+      fillIntensity: 1.45,
+      sunColor: 0xffdfa3,
+      sunIntensity: 2.65,
+      sunOffset: { x: -22, y: 36, z: -18 },
     });
     expect(runtimeOptions?.rendererParameters).not.toHaveProperty('preserveDrawingBuffer');
 

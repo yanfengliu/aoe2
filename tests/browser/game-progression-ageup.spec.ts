@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 test.describe('browser gameplay smoke tests - age up', () => {
+  // These scenarios deliberately drive 1,600-2,000 synchronous simulation
+  // ticks through the browser API. Keep their behavior assertions strict, but
+  // allow enough wall-clock time for software-rendered CI and slower hosts.
+  test.describe.configure({ timeout: 60_000 });
+
   test('can research Feudal Age and train an Archer through the live command panel', async ({
     page,
   }) => {

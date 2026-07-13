@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 
 import type { ProjectedEntityView, UnitType } from '../../../game/simulation/types';
+import { unitRole } from './unitRole';
+
+export { unitRole, type UnitRole } from './unitRole';
 
 // M7 graphics (north star: an AoE2-HD-quality look from ORIGINAL/procedural
 // art only — no copyrighted assets): units used to render as a single flat
@@ -22,14 +25,6 @@ import type { ProjectedEntityView, UnitType } from '../../../game/simulation/typ
 // silhouettes would be unreadable at this zoom; role is the AoE2-meaningful
 // glance distinction (villager vs foot-melee vs foot-ranged vs mounted vs
 // mounted-ranged vs machine vs monk).
-export type UnitRole =
-  | 'villager'
-  | 'infantry'
-  | 'archer'
-  | 'cavalry'
-  | 'cavalry-archer'
-  | 'siege'
-  | 'monk';
 
 // Exhaustive, render-OWNED mapping. The `satisfies Record<UnitType, UnitRole>`
 // makes a newly-added UnitType a compile error here (same guard style as
@@ -37,53 +32,6 @@ export type UnitRole =
 // agree, but stays independent on purpose — `skirmisher` is foot-ranged yet is
 // NOT in the sim's ARCHER_LINE_UNITS, and the visual must not couple to combat
 // semantics.
-const UNIT_ROLES = {
-  villager: 'villager',
-  // Infantry (foot melee).
-  militia: 'infantry',
-  'man-at-arms': 'infantry',
-  'long-swordsman': 'infantry',
-  'two-handed-swordsman': 'infantry',
-  champion: 'infantry',
-  spearman: 'infantry',
-  pikeman: 'infantry',
-  halberdier: 'infantry',
-  // Archer (foot ranged).
-  archer: 'archer',
-  crossbowman: 'archer',
-  arbalest: 'archer',
-  skirmisher: 'archer',
-  longbowman: 'archer',
-  'elite-longbowman': 'archer',
-  // Cavalry (mounted melee).
-  scout: 'cavalry',
-  'light-cavalry': 'cavalry',
-  hussar: 'cavalry',
-  camel: 'cavalry',
-  'heavy-camel': 'cavalry',
-  knight: 'cavalry',
-  cavalier: 'cavalry',
-  paladin: 'cavalry',
-  // Cavalry archer (mounted ranged).
-  'cavalry-archer': 'cavalry-archer',
-  'heavy-cavalry-archer': 'cavalry-archer',
-  // Siege (machines).
-  mangonel: 'siege',
-  onager: 'siege',
-  scorpion: 'siege',
-  'heavy-scorpion': 'siege',
-  'battering-ram': 'siege',
-  'siege-ram': 'siege',
-  'bombard-cannon': 'siege',
-  trebuchet: 'siege',
-  // Monk.
-  monk: 'monk',
-} as const satisfies Record<UnitType, UnitRole>;
-
-export function unitRole(unitType: UnitType): UnitRole {
-  return UNIT_ROLES[unitType];
-}
-
 // Minimum per-tick displacement (in cells) before we treat a unit as MOVING
 // and orient it toward the delta. Below this it is idle/jitter and gets the
 // default rest orientation — we do NOT fabricate a heading from noise.

@@ -313,3 +313,19 @@ Consequences:
 - City can adopt rigid batches and Townscaper can adopt consumer-authored geometry without importing AoE types or being forced through cube terrain.
 - CI must fetch and build the exact pinned voxel revision before installing AoE2's local `file:` dependency.
 - Phaser remains an intentional compatibility host during migration rather than a second source of world state.
+
+## KAD-0019 - Voxel art recipes stay AoE-owned; only daylight is shared
+
+Date: 2026-07-12.
+Status: Active.
+
+Context: the first voxel slice proved the renderer boundary but its two-box unit, building, and resource fallbacks were not a usable Age-of-Empires-style art direction. City and Townscaper also need better lighting, but they do not share AoE building roles, unit equipment, faction accents, terrain clutter, or fog-memory presentation. Moving those details into `voxel` would make a nominally reusable package depend on one game's vocabulary.
+
+Decision: keep every procedural facade and silhouette recipe under `src/rendering/voxel/`, split by building, unit, resource, terrain, recipe-helper, and material-resource responsibilities. Both AoE presenters share the pure exhaustive `unitRole` mapping, but no AoE role enters shared package declarations. A centred group-less cube geometry feeds four bounded instance batches (matte, metal, contact shadow, and memory), so hundreds of detailed parts remain a handful of draw calls rather than scene objects. The reusable package exposes only a validated hemisphere-plus-directional daylight rig whose target follows the current view centre; AoE supplies its own warm colors and antialias context flag.
+
+Consequences:
+- Faction color is an AoE recipe input used on accents, while neutral stone, plaster, timber, cloth, foliage, skin, and metal remain AoE palette decisions.
+- Recipe outputs are deterministic rigid transforms with canonical keys and no wall-clock or random input; animation meaning still requires an explicit future projected contract.
+- Contact shadows are bounded translucent instance geometry, not a claim of shadow-map support. True shadows remain gated on renderer budgets, caster/receiver policy, context restoration, metrics, and teardown.
+- Terrain props remain visually sparse and physically flat, so Phaser overlay/input parity is unchanged.
+- City and Townscaper may reuse the daylight option and instance/geometry lanes without inheriting AoE art or role classifications.

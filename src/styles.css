@@ -47,7 +47,7 @@ body {
 .voxel-world-canvas {
   z-index: 0;
   pointer-events: none;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 
 .phaser-overlay-canvas {

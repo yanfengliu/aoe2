@@ -1,0 +1,186 @@
+import { describe, expect, it } from 'vitest';
+
+import type { ProjectedEntityView } from '../../src/game/simulation/types';
+import { createBuildingParts } from '../../src/rendering/voxel/aoeVoxelBuildingRecipes';
+import { createResourceParts } from '../../src/rendering/voxel/aoeVoxelResourceRecipes';
+import {
+  matrixForPart,
+  type VoxelPart,
+} from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
+import { createTerrainDetailParts } from '../../src/rendering/voxel/aoeVoxelTerrain';
+import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
+
+const TEAM_BLUE = 0x3568c0;
+
+function entity(overrides: Partial<ProjectedEntityView>): ProjectedEntityView {
+  return {
+    id: 1,
+    generation: 0,
+    kind: 'unit',
+    layer: 'unit',
+    entityType: 'villager',
+    owner: 1,
+    x: 4,
+    y: 5,
+    elevation: 0,
+    tint: TEAM_BLUE,
+    size: 0.72,
+    footprintWidth: 1,
+    footprintHeight: 1,
+    visualVariant: 'default',
+    selected: false,
+    currentHp: 25,
+    maxHp: 25,
+    isMemory: false,
+    ...overrides,
+  };
+}
+
+function suffixes(parts: readonly VoxelPart[]): string[] {
+  return parts.map((part) => part.key.split(':').slice(2).join(':'));
+}
+
+function expectValidParts(parts: readonly VoxelPart[], min: number, max: number): void {
+  expect(parts.length).toBeGreaterThanOrEqual(min);
+  expect(parts.length).toBeLessThanOrEqual(max);
+  expect(new Set(parts.map((part) => part.key)).size).toBe(parts.length);
+  for (const part of parts) {
+    expect([part.centerX, part.centerY, part.centerZ, part.width, part.height, part.depth]
+      .every(Number.isFinite)).toBe(true);
+    expect(part.width).toBeGreaterThan(0);
+    expect(part.height).toBeGreaterThan(0);
+    expect(part.depth).toBeGreaterThan(0);
+    expect(matrixForPart(part).every(Number.isFinite)).toBe(true);
+  }
+}
+
+describe('AoE voxel building recipes', () => {
+  it('turns a Town Center into a detailed neutral landmark with faction accents', () => {
+    const parts = createBuildingParts(entity({
+      kind: 'building',
+      layer: 'building',
+      entityType: 'town-center',
+      footprintWidth: 4,
+      footprintHeight: 4,
+      visualVariant: 'complete',
+    }), '20:3', 0);
+
+    expectValidParts(parts, 20, 40);
+    expect(suffixes(parts)).toEqual(expect.arrayContaining([
+      'town-center-plinth',
+      'town-center-door',
+      'town-center-tower',
+      'town-center-flag',
+      'town-center-window-left',
+    ]));
+    expect(parts.some((part) => part.tint === TEAM_BLUE)).toBe(true);
+    expect(parts.some((part) => part.tint !== TEAM_BLUE && part.surface === 'matte')).toBe(true);
+    expect(parts.filter((part) => part.tint === TEAM_BLUE).length).toBeLessThan(parts.length / 2);
+  });
+
+  it('keeps construction visibly scaffolded and simpler than the completed facade', () => {
+    const base = entity({
+      kind: 'building',
+      layer: 'building',
+      entityType: 'house',
+      footprintWidth: 2,
+      footprintHeight: 2,
+    });
+    const complete = createBuildingParts({ ...base, visualVariant: 'complete' }, '2:1', 0);
+    const construction = createBuildingParts(
+      { ...base, visualVariant: 'construction' },
+      '2:1',
+      0,
+    );
+
+    expect(suffixes(complete)).toContain('house-chimney-cap');
+    expect(suffixes(construction)).toEqual(expect.arrayContaining([
+      'construction-foundation',
+      'construction-scaffold-front-left',
+      'construction-wall-course',
+    ]));
+    expect(construction.length).toBeLessThan(complete.length);
+  });
+});
+
+describe('AoE voxel unit recipes', () => {
+  it.each([
+    ['villager', ['villager-tool-handle', 'villager-tool-head']],
+    ['militia', ['infantry-shield', 'infantry-sword']],
+    ['archer', ['archer-bow-upper', 'archer-quiver']],
+    ['knight', ['cavalry-horse-body', 'cavalry-rider-tunic']],
+    ['mangonel', ['siege-chassis', 'siege-wheel-left']],
+    ['monk', ['monk-robe', 'monk-staff']],
+  ] as const)('gives %s a bounded role-specific silhouette', (entityType, expected) => {
+    const parts = createUnitParts(entity({ entityType }), '7:4', 0);
+    expectValidParts(parts, 8, 26);
+    expect(suffixes(parts)).toEqual(expect.arrayContaining([...expected]));
+    expect(parts.some((part) => part.surface === 'shadow')).toBe(true);
+  });
+});
+
+describe('AoE voxel resource and terrain recipes', () => {
+  it.each([
+    ['tree', ['tree-trunk', 'tree-crown-top']],
+    ['gold-mine', ['gold-mine-rock-center', 'gold-mine-glint']],
+    ['berry-bush', ['berry-bush-leaves-center', 'berry-bush-berry-left']],
+    ['sheep', ['sheep-body', 'sheep-head']],
+    ['relic', ['relic-pedestal', 'relic-crossbar']],
+  ] as const)('gives %s clustered readable detail', (entityType, expected) => {
+    const parts = createResourceParts(entity({
+      kind: 'resource',
+      layer: 'resource',
+      entityType,
+    }), '8:2', 0);
+    expectValidParts(parts, 5, 20);
+    expect(suffixes(parts)).toEqual(expect.arrayContaining([...expected]));
+  });
+
+  it('uses reduced-opacity memory material and omits live contact shadows', () => {
+    const parts = createResourceParts(entity({
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'tree',
+      isMemory: true,
+    }), '8:memory', 0);
+    expect(parts.every((part) => part.surface === 'memory')).toBe(true);
+  });
+
+  it('emits sparse deterministic terrain props independent of input order', () => {
+    const cells = Array.from({ length: 48 }, (_, index) => entity({
+      id: 100 + index,
+      kind: 'tile',
+      layer: 'terrain',
+      entityType: index % 4 === 0 ? 'water' : index % 5 === 0 ? 'hill' : 'grass',
+      x: index % 8,
+      y: Math.floor(index / 8),
+      owner: null,
+      tint: 0x587f4e,
+    }));
+    const forward = createTerrainDetailParts(cells);
+    const reverse = createTerrainDetailParts([...cells].reverse());
+    expect(forward).toEqual(reverse);
+    expectValidParts(forward, 3, 30);
+    expect(forward.some((part) => part.key.includes('water-glint'))).toBe(true);
+  });
+
+  it('encodes rotated thin parts as non-axis-aligned finite matrices', () => {
+    const part: VoxelPart = {
+      key: 'demo:part',
+      surface: 'matte',
+      tint: 0xffffff,
+      centerX: 1,
+      centerY: 2,
+      centerZ: 3,
+      width: 0.1,
+      height: 1,
+      depth: 0.1,
+      yaw: Math.PI / 4,
+      roll: Math.PI / 6,
+    };
+    const matrix = matrixForPart(part);
+    expect(matrix.every(Number.isFinite)).toBe(true);
+    expect(matrix[1]).not.toBe(0);
+    expect(matrix[2]).not.toBe(0);
+  });
+});

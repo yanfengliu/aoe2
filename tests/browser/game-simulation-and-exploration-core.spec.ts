@@ -152,22 +152,23 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(12, 7))).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(false));
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    const partialSnapshot = await page.evaluate(
+      // The first full step admits the queued command. A 150 ms follow-up
+      // guarantees one movement tick plus a half-tick interpolation remainder.
+      () => window.__AOE2_TEST__!.advanceTicks(1, 150),
+    );
+    const displayedScout = await game.getDisplayedEntityState(page, 1, 'unit', 'scout');
+    const projectedScout = partialSnapshot.renderState.entities.find(
+      (entity) => entity.owner === 1 && entity.kind === 'unit' && entity.entityType === 'scout',
+    );
 
-    await expect.poll(async () => {
-      const displayedScout = await game.getDisplayedEntityState(page, 1, 'unit', 'scout');
-      const projectedScout = (await game.getSnapshot(page)).renderState.entities.find(
-        (entity) => entity.owner === 1 && entity.kind === 'unit' && entity.entityType === 'scout',
-      );
-      if (!displayedScout || !projectedScout) {
-        return 0;
-      }
-
-      return (
-        Math.abs(displayedScout.x - projectedScout.x)
-        + Math.abs(displayedScout.y - projectedScout.y)
-      );
-    }).toBeGreaterThan(0);
+    expect(displayedScout).toBeDefined();
+    expect(projectedScout).toBeDefined();
+    expect(
+      Math.abs((displayedScout?.x ?? 0) - (projectedScout?.x ?? 0))
+      + Math.abs((displayedScout?.y ?? 0) - (projectedScout?.y ?? 0)),
+    ).toBeGreaterThan(0);
   });
 
   test('lets multiple friendly units share one coarse cell while rendering them at distinct sub-grid positions', async ({ page }) => {

@@ -85,6 +85,20 @@ The first slice represents the complete visible world with deterministic fallbac
 
 Rigid transforms and deterministic primitive meshes are sufficient for the first slice. General skeletal crowd animation is deferred.
 
+## Visual-quality increment: an original voxel Age-of-Empires vocabulary
+
+The next increment replaces the two-box fallback look without turning the shared renderer into an AoE asset library. The target is immediate RTS readability at the established camera: players should distinguish a Town Center, house, farm, military hall, tower, villager, infantry, archer, cavalry, siege unit, tree, mine, forage bush, and herd animal by silhouette and material breakup before reading a label.
+
+AoE owns deterministic procedural recipes split by visual domain. Buildings use neutral plaster, stone, timber, thatch/tile, doors, windows, beams, stepped roofs, towers, merlons, banners, market awnings, mill blades, crop rows, and construction scaffolds; faction color appears on deliberate accents instead of tinting an entire structure. Units use feet, limbs, skin, clothing, helmets, shields, weapons, mounts, wheels, and role-specific proportions; faction color stays on tunics, shields, saddle cloth, or banners. Resources use clustered canopies, irregular mineral facets, berry dots, animal bodies, and relic ornament. Sparse deterministic terrain props break up broad flat areas without changing collision, height, or picking.
+
+All parts remain bounded rigid instances of game-owned recipes. A centred group-less cube geometry allows several material batches and rotated thin blocks while still avoiding one Three object or draw call per part. Matte, metal, shadow, and fog-memory batches provide a small material vocabulary; fixed material keys and canonical key ordering preserve deterministic snapshots. Contact shadows are procedural ground parts, not shadow-map claims. The adapter stays orchestration-only and recipe modules remain below the repository file-size ceiling.
+
+The reusable package contributes only a configurable daylight rig: sky/ground hemisphere fill plus a target-tracked directional key light. AoE selects the warm daylight values and antialiased context; City and Townscaper may select different values without inheriting AoE palettes or recipes. True shadow maps, ambient occlusion, skeletal animation, per-civilization architecture, raised terrain, and a standalone Three overlay/input host remain later measured increments.
+
+Acceptance requires pure recipe tests for deterministic keys, finite transforms, representative silhouettes, neutral-versus-faction color use, construction and memory treatment, and bounded part counts; adapter tests for multiple material batches and copied output; engine tests for daylight validation, tracking, borrowed-scene behavior, and disposal; then a fixed-view before/after/diff plus structural browser metrics. A pleasing image alone is not sufficient, and exact PNG hashes are not portable correctness gates.
+
+The opt-in slice consciously accepts whole-snapshot CPU churn for this art increment rather than mixing a batching migration into the same visual change. The controlled tick-zero browser frame is bounded at 1,000 instances, four batches, eight draw calls, 16,632 triangles, five materials, and one geometry resource. Adversarial review also measured a synthetic 2,261-entity/1,436-instance adapter build at about 2.86 ms and 97.6 KiB of emitted typed arrays on that review machine, before reusable validation/copy/reconcile; this is a local reference, not a cross-machine promise. If representative browser profiling exceeds a 4 ms adapter-update budget or frame/resource counts cross the checked browser ceilings, the next optimization is static terrain/building/resource versus dynamic unit batches with independent content revisions. Until then, four whole-snapshot batches keep the contract simple and the rendering visibly within the opt-in path's budget.
+
 ## State, ordering, and ownership
 
 - Ordinary adapter snapshots are borrowed; the reusable runtime copies every typed array it retains.

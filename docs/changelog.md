@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.148 - 2026-07-12
+
+### The voxel battlefield now looks like an actual RTS settlement
+
+The experimental `?renderer=voxel` view no longer represents every unit, building, and resource with one or two generic blocks. The Town Center now has a stone plinth, plaster hall, timber framing, doors, windows, wings, stepped roofs, a tower, and a faction banner. Houses, farms, mills, production halls, markets, monasteries, fortifications, walls, and construction sites have distinct procedural voxel silhouettes. Villagers carry tools; infantry have helmets, shields, and swords; archers have bows and quivers; cavalry have mounts and saddle cloth; siege units have chassis, wheels, and arms; monks have robes and staffs. Trees use clustered crowns, mines use irregular facets and glints, berries and animals are recognisable, and the ground gains restrained grass, rock, log, and water-glint detail.
+
+Natural plaster, stone, timber, thatch, foliage, skin, cloth, leather, and metal now provide the base palette, while player color is reserved for tunics, shields, eaves, banners, awnings, and other readable accents. A reusable warm daylight rig, small procedural contact shadows, antialiasing, and smooth canvas sampling give the rigid voxel shapes depth without changing the simulation, fog, selection, commands, saves, or replays. Phaser remains the default renderer and still owns the aligned overlay/input plane in voxel mode.
+
+The reviewed pair uses the same `aoe2-prototype` seed, tick 0, camera scroll `(-400, 80)`, zoom `1.4`, 800x600 viewport, 800x480 game canvas, and DPR 1. It changes 71,616 of 480,000 perceptually compared pixels (14.92%), concentrated on terrain texture and the new entity silhouettes. The controlled after frame stays bounded at 1,000 rigid instances, four instance batches, eight draw calls, 16,632 triangles, five materials, and one reusable geometry resource.
+
 ## 0.1.147 - 2026-07-12
 
 ### Try the battlefield as real 3-D voxel graphics

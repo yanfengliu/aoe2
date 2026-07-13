@@ -120,13 +120,19 @@ test.describe('voxel world renderer', () => {
       presentedEpoch: 'aoe2:bridge:0',
       chunks: 12,
       visibleChunks: 12,
+      materialResources: 5,
       geometryResources: 1,
-      instanceBatches: 1,
+      instanceBatches: 4,
       contextLosses: 0,
       contextRestorations: 0,
     });
-    expect(result.state.metrics!.instances).toBeGreaterThan(0);
+    expect(result.state.metrics!.instances).toBeGreaterThan(500);
+    expect(result.state.metrics!.instances).toBeLessThan(5_000);
     expect(result.state.metrics!.drawCalls).toBeGreaterThan(0);
+    expect(result.state.metrics!.drawCalls).toBeLessThanOrEqual(16);
+    expect(result.state.metrics!.triangles).toBeLessThan(100_000);
+    expect(result.state.metrics!.rendererGeometries).toBeLessThanOrEqual(20);
+    expect(result.state.metrics!.rendererTextures).toBeLessThanOrEqual(4);
   });
 
   test('starts a fresh renderer epoch when save/load replaces the bridge', async ({ page }) => {

@@ -72,6 +72,22 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 
 External-review blocker: the user explicitly approved private-diff review on 2026-07-12, but the platform safety reviewer still denied the Codex and AoE2 Claude exports before invocation. The voxel Claude Fable invocation returned only its quota-limit message. No external reviewer inspected code, no external approval is claimed, and the prohibited export was not rerouted through another model. Publication was separately approved and completed in engine-first order.
 
+## Increment 6: voxel visual quality
+
+- [x] Capture the true `?renderer=voxel` baseline at `output/playwright/voxel-visual-quality/before.png` and verify the URL/mode.
+- [x] Audit the live AoE recipes and reusable Three runtime; keep AoE semantics local and select only a target-tracked daylight rig for the shared package.
+- [x] Add red tests for representative building, unit, resource, terrain-detail, material-batch, and daylight contracts.
+- [x] Split the 489-line adapter into focused recipe/resource/terrain modules before increasing vocabulary.
+- [x] Implement detailed original procedural recipes, neutral material palettes with faction accents, sparse deterministic terrain detail, memory/construction treatment, contact shadows, and antialiased presentation.
+- [x] Capture a fixed-view after image and pixel diff, inspect both at full resolution, and record changed-pixel plus renderer-budget evidence. The accepted `docs/devlog/2026-07-12-voxel-visual-quality-{before,after,diff}.png` set uses seed `aoe2-prototype`, tick 0, camera `(-400,80)`, zoom `1.4`, 800x600 viewport, 800x480 game size, and DPR 1. Pixelmatch changed 71,616/480,000 pixels (14.92%).
+- [x] Run focused tests while iterating, then the voxel package `verify`, AoE's four mandatory gates, focused and complete browser gates, dependency audits if the dependency surface changes, and adversarial live-code review. The final browser matrix passed 100 tests with two intentional visual-baseline skips after replacing one RAF-timing-dependent interpolation probe with a deterministic half-tick probe and giving the two multi-thousand-tick age-up scenarios a 60-second wall-clock budget.
+- [x] Update the game spec, architecture/drift records, changelog/version, detailed devlog, summary, review artifact, and this ledger; prepare the coherent local AoE change after the engine commit in dependency order.
+- [x] Commit the reusable engine increment locally as `dd9b811d0dd3a5912cbc4626cc1b7ade94895e74`.
+- [x] Commit the coherent AoE v0.1.148 increment locally after final staged content and secret review.
+- [ ] After explicit approval, push engine commit `dd9b811d0dd3a5912cbc4626cc1b7ade94895e74` first, then push the AoE v0.1.148 commit whose CI pin names that exact engine revision.
+
+Exit gate: the controlled seed has recognisable AoE-style voxel architecture, units, resources, and terrain detail with bounded draw calls/resources, deterministic snapshots, aligned overlays/input, stable lifecycle behavior, and reviewed before/after/diff evidence. Phaser remains the safe default until the separate promotion gates pass.
+
 ## Deferred backlog
 
 - Standalone Three renderer host and Phaser removal.
@@ -82,3 +98,4 @@ External-review blocker: the user explicitly approved private-diff review on 202
 - General animated crowds and richer per-civilization assets.
 - Worker/WASM/greedy meshing after the Voxelize and `block-mesh-rs` bake-off.
 - City embedded-batch proof and Townscaper geometry-resource proof.
+- Static terrain/building/resource versus dynamic unit batches if representative adapter updates exceed the documented 4 ms local budget or browser instance/draw/resource ceilings.

@@ -25,7 +25,7 @@ The development, test, typecheck, lint, and build commands rebuild `../voxel` fi
 
 Phaser remains the safe default. Open the app normally, with `?renderer=phaser`, or with an unsupported renderer value to use the established Phaser world renderer.
 
-Add `?renderer=voxel` to opt into the isometric voxel proving path, for example `http://127.0.0.1:5173/?seed=aoe2-prototype&renderer=voxel`. This mode renders the lit Three.js world on a WebGL canvas beneath a transparent Phaser Canvas overlay, so the existing camera, pointer input, selection, fog, feedback, minimap, and DOM HUD remain in place. If the Three renderer cannot initialize, the app logs a warning and falls back to Phaser.
+Add `?renderer=voxel` to opt into the isometric voxel proving path, for example `http://127.0.0.1:5173/?seed=aoe2-prototype&renderer=voxel`. This mode renders the antialiased, daylight-lit Three.js world on a WebGL canvas beneath a transparent Phaser Canvas overlay, so the existing camera, pointer input, selection, fog, feedback, minimap, and DOM HUD remain in place. Its original procedural art uses detailed role-specific buildings, units, resources, contact shadows, material palettes, and sparse terrain props; faction color appears as readable accents instead of painting every structure as one team-colored block. If the Three renderer cannot initialize, the app logs a warning and falls back to Phaser.
 
 The voxel path is not the default yet. Its current adapter renders terrain and entities on a flat ground plane even though the projection contract carries terrain elevation; elevation-aware overlay/input hit geometry and broader parity validation are promotion work. The Phaser mode remains the reference path while those gaps are open.
 

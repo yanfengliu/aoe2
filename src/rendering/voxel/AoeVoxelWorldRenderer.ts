@@ -66,9 +66,17 @@ export class AoeVoxelWorldRenderer {
       pixelRatio: this.pixelRatio,
       tileWidthPixels: 64,
       tileHeightPixels: 32,
+      daylight: {
+        skyColor: 0xcfe7f1,
+        groundColor: 0x4a3826,
+        fillIntensity: 1.45,
+        sunColor: 0xffdfa3,
+        sunIntensity: 2.65,
+        sunOffset: { x: -22, y: 36, z: -18 },
+      },
       rendererParameters: {
         alpha: true,
-        antialias: false,
+        antialias: true,
         powerPreference: 'high-performance',
       },
     });

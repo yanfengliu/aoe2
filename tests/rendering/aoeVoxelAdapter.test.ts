@@ -7,6 +7,7 @@ import {
   AOE_TERRAIN_CHUNK_SIZE,
   AoeVoxelAdapter,
 } from '../../src/rendering/voxel/aoeVoxelAdapter';
+import { terrainVoxelTint } from '../../src/rendering/voxel/aoeVoxelTerrain';
 
 function view(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
   return {
@@ -67,6 +68,23 @@ function chunkSampler(chunks: ReturnType<AoeVoxelAdapter['createSnapshot']>['chu
   };
 }
 
+type AdapterSnapshot = ReturnType<AoeVoxelAdapter['createSnapshot']>;
+
+function allInstanceKeys(snapshot: AdapterSnapshot): string[] {
+  return snapshot.batches.flatMap((batch) => batch.instanceKeys);
+}
+
+function partRecord(snapshot: AdapterSnapshot, key: string) {
+  const batch = snapshot.batches.find((candidate) => candidate.instanceKeys.includes(key));
+  if (!batch) throw new Error(`Missing expected voxel part: ${key}`);
+  const index = batch.instanceKeys.indexOf(key);
+  return {
+    batch,
+    matrix: batch.matrices.slice(index * 16, index * 16 + 16),
+    color: batch.colors?.slice(index * 4, index * 4 + 4),
+  };
+}
+
 describe('AoeVoxelAdapter terrain projection', () => {
   it('builds flat palette-indexed 16-cell chunks while the composed host retains ground-plane input', () => {
     const snapshot = new AoeVoxelAdapter().createSnapshot([
@@ -90,11 +108,19 @@ describe('AoeVoxelAdapter terrain projection', () => {
     expect(right?.size).toEqual({ x: 16, y: 1, z: 16 });
 
     const palette = snapshot.resources.find((resource) => resource.kind === 'palette');
+    const expectedTints = [
+      terrainVoxelTint(0x112233, 'grass', 0, 0),
+      terrainVoxelTint(0x445566, 'grass', 15, 0),
+      terrainVoxelTint(0x778899, 'hill', 16, 0),
+    ].sort((a, b) => a - b);
     expect(palette?.entries.map((entry) => entry.color)).toEqual([
       { r: 0, g: 0, b: 0, a: 0 },
-      { r: 0x11, g: 0x22, b: 0x33, a: 255 },
-      { r: 0x44, g: 0x55, b: 0x66, a: 255 },
-      { r: 0x77, g: 0x88, b: 0x99, a: 255 },
+      ...expectedTints.map((tint) => ({
+        r: (tint >>> 16) & 0xff,
+        g: (tint >>> 8) & 0xff,
+        b: tint & 0xff,
+        a: 255,
+      })),
     ]);
 
     const rightChunk = new DensePaletteChunk({
@@ -181,33 +207,41 @@ describe('AoeVoxelAdapter instance projection', () => {
       }),
     ]);
 
-    expect(snapshot.batches).toHaveLength(1);
-    const keys = snapshot.batches[0]!.instanceKeys;
+    expect(snapshot.batches.map((batch) => batch.key)).toEqual([
+      'aoe2:batch:matte-parts',
+      'aoe2:batch:metal-parts',
+      'aoe2:batch:shadow-parts',
+      'aoe2:batch:memory-parts',
+    ]);
+    const keys = allInstanceKeys(snapshot);
     expect(keys).toEqual(expect.arrayContaining([
-      '7:3:unit-body',
-      '7:3:unit-head',
+      '7:3:villager-tunic',
+      '7:3:villager-tool-handle',
       '8:2:tree-trunk',
-      '8:2:tree-crown',
-      '9:memory:building-base',
-      '9:memory:building-roof',
+      '8:2:tree-crown-top',
+      '9:memory:house-plinth',
+      '9:memory:house-chimney-cap',
     ]));
     expect(new Set(keys).size).toBe(keys.length);
-    expect(snapshot.batches[0]!.matrices).toHaveLength(keys.length * 16);
-    expect(snapshot.batches[0]!.colors).toHaveLength(keys.length * 4);
-    const partsMaterial = snapshot.resources.find(
-      (resource) => resource.kind === 'material' && resource.key.endsWith(':parts'),
+    for (const batch of snapshot.batches) {
+      expect(batch.matrices).toHaveLength(batch.instanceKeys.length * 16);
+      expect(batch.colors).toHaveLength(batch.instanceKeys.length * 4);
+    }
+    const matteMaterial = snapshot.resources.find(
+      (resource) => resource.kind === 'material' && resource.key.endsWith(':matte'),
     );
-    expect(partsMaterial).toMatchObject({ vertexColors: false });
+    const memoryMaterial = snapshot.resources.find(
+      (resource) => resource.kind === 'material' && resource.key.endsWith(':memory'),
+    );
+    expect(matteMaterial).toMatchObject({ vertexColors: false, transparent: false });
+    expect(memoryMaterial).toMatchObject({ transparent: true, opacity: 0.5 });
     const cube = snapshot.resources.find((resource) => resource.kind === 'geometry')!;
-    expect(cube.pivot).toEqual({ x: 0, y: 0, z: 0 });
-    const bodyMatrix = snapshot.batches[0]!.matrices.slice(
-      keys.indexOf('7:3:unit-body') * 16,
-      keys.indexOf('7:3:unit-body') * 16 + 16,
-    );
-    expect(bodyMatrix[12]).toBeCloseTo(2.332);
-    expect(bodyMatrix[14]).toBeCloseTo(3.367);
-    const memoryBase = keys.indexOf('9:memory:building-base');
-    const memoryColor = snapshot.batches[0]!.colors!.slice(memoryBase * 4, memoryBase * 4 + 4);
+    expect(cube.pivot).toEqual({ x: 0.5, y: 0.5, z: 0.5 });
+    expect(cube.groups).toEqual([]);
+    const tunic = partRecord(snapshot, '7:3:villager-tunic').matrix;
+    expect(tunic[12]).toBeCloseTo(2.5);
+    expect(tunic[14]).toBeCloseTo(3.5);
+    const memoryColor = partRecord(snapshot, '9:memory:house-plinth').color!;
     expect([...memoryColor]).not.toEqual([0x9b, 0x5b, 0x45, 255]);
     expect(memoryColor[3]).toBe(255);
   });
@@ -225,7 +259,7 @@ describe('AoeVoxelAdapter instance projection', () => {
       }),
     ]);
 
-    const keys = snapshot.batches[0]!.instanceKeys;
+    const keys = allInstanceKeys(snapshot);
     expect(keys.some((key) => key.startsWith('12:legacy:'))).toBe(true);
     expect(keys.some((key) => key.startsWith('12:memory:'))).toBe(true);
   });
@@ -240,11 +274,13 @@ describe('AoeVoxelAdapter instance projection', () => {
       entityType: 'house',
       isMemory: true,
     });
-    const first = adapter.createSnapshot([memory]).batches[0]!.instanceKeys[0]!;
+    const first = allInstanceKeys(adapter.createSnapshot([memory]))
+      .find((key) => key.endsWith(':house-plinth'));
     adapter.createSnapshot([]);
-    const recreated = adapter.createSnapshot([memory]).batches[0]!.instanceKeys[0]!;
-    expect(first).toBe('12:memory:building-base');
-    expect(recreated).toBe('12:memory:2:building-base');
+    const recreated = allInstanceKeys(adapter.createSnapshot([memory]))
+      .find((key) => key.endsWith(':house-plinth'));
+    expect(first).toBe('12:memory:house-plinth');
+    expect(recreated).toBe('12:memory:2:house-plinth');
   });
 
   it('insets large building shells so a four-cell landmark does not become a monolith', () => {
@@ -259,9 +295,7 @@ describe('AoeVoxelAdapter instance projection', () => {
         footprintHeight: 4,
       }),
     ]);
-    const keys = snapshot.batches[0]!.instanceKeys;
-    const baseIndex = keys.indexOf('20:1:building-base');
-    const base = snapshot.batches[0]!.matrices.slice(baseIndex * 16, baseIndex * 16 + 16);
+    const base = partRecord(snapshot, '20:1:town-center-hall').matrix;
 
     expect(base[0]).toBeLessThan(3.2);
     expect(base[5]).toBeLessThan(2.1);
@@ -272,7 +306,15 @@ describe('AoeVoxelAdapter instance projection', () => {
     const snapshot = new AoeVoxelAdapter().createSnapshot([
       terrain(1, 2, 3, { entityType: 'hill', elevation: 1 }),
       terrain(2, 6, 7, { entityType: 'hill', elevation: 1 }),
-      view({ id: 20, generation: 4, kind: 'unit', layer: 'unit', x: 2.25, y: 3.1 }),
+      view({
+        id: 20,
+        generation: 4,
+        kind: 'unit',
+        layer: 'unit',
+        entityType: 'villager',
+        x: 2.25,
+        y: 3.1,
+      }),
       view({
         id: 21,
         generation: undefined,
@@ -284,10 +326,9 @@ describe('AoeVoxelAdapter instance projection', () => {
         isMemory: true,
       }),
     ]);
-    const batch = snapshot.batches[0]!;
-    for (const key of ['20:4:unit-body', '21:memory:building-base']) {
-      const matrixOffset = batch.instanceKeys.indexOf(key) * 16;
-      expect(batch.matrices[matrixOffset + 13]).toBe(0);
+    for (const key of ['20:4:villager-boot-left', '21:memory:house-plinth']) {
+      const matrix = partRecord(snapshot, key).matrix;
+      expect(matrix[13]! - matrix[5]! / 2).toBeCloseTo(0);
     }
   });
 });
