@@ -1,5 +1,5 @@
 import type { SimulationBridge } from '../../../game/simulation/createSimulationBridge';
-import { HUMAN_PLAYER_ID } from '../../../game/simulation/prototypeScenario';
+import { HUMAN_PLAYER_ID, TPS } from '../../../game/simulation/prototypeScenario';
 import type {
   ProjectedEntityView,
   ProjectedFrameView,
@@ -55,7 +55,7 @@ export interface GameSceneRendererDeps {
   getSelectionBoxState: () => SelectionBoxState | null;
   getSelectionBoxKey: () => string;
   worldRendererMode: WorldRendererMode;
-  presentVoxelWorld?: (entities: readonly ProjectedEntityView[]) => void;
+  presentVoxelWorld?: (entities: readonly ProjectedEntityView[], simulationDisplayTimeMs: number) => void;
 }
 
 export interface GameSceneRenderer {
@@ -309,7 +309,7 @@ export function createGameSceneRenderer(deps: GameSceneRendererDeps): GameSceneR
 
     centerOnPlayerBaseOnce();
     if (worldRendererMode === 'voxel') {
-      presentVoxelWorld?.(displayedEntities);
+      presentVoxelWorld?.(displayedEntities, (state.tick + interpolationAlpha) * 1_000 / TPS);
     }
     renderTerrainIfChanged(displayedEntities);
 

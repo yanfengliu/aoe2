@@ -54,6 +54,23 @@ function expectValidParts(parts: readonly VoxelPart[], min: number, max: number)
   }
 }
 
+function minTransformedY(part: VoxelPart): number {
+  const matrix = matrixForPart(part);
+  return [-0.5, 0.5].flatMap((x) => [-0.5, 0.5].flatMap((y) => (
+    [-0.5, 0.5].map((z) => (
+      matrix[1]! * x + matrix[5]! * y + matrix[9]! * z + matrix[13]!
+    ))
+  ))).reduce((minimum, value) => Math.min(minimum, value), Number.POSITIVE_INFINITY);
+}
+
+function expectPitchPlane(part: VoxelPart, directionX: number, directionZ: number): void {
+  const matrix = matrixForPart(part);
+  const pitchedUpX = matrix[4]! / part.height;
+  const pitchedUpZ = matrix[6]! / part.height;
+  expect(Math.abs(pitchedUpX * directionZ - pitchedUpZ * directionX)).toBeLessThan(1e-6);
+  expect(Math.hypot(pitchedUpX, pitchedUpZ)).toBeGreaterThan(0.01);
+}
+
 describe('AoE voxel building recipes', () => {
   it('turns a Town Center into a detailed neutral landmark with faction accents', () => {
     const parts = createBuildingParts(entity({
@@ -117,6 +134,69 @@ describe('AoE voxel unit recipes', () => {
     expect(suffixes(parts)).toEqual(expect.arrayContaining([...expected]));
     expect(parts.some((part) => part.surface === 'shadow')).toBe(true);
   });
+
+  it('lifts and advances opposing humanoid feet without penetrating the ground', () => {
+    const parts = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+      mode: 'moving',
+      phaseRadians: 0,
+      gaitPhaseRadians: Math.PI / 2,
+      locomotionWeight: 1,
+      speedWorldUnitsPerSecond: 1,
+      directionX: 0,
+      directionZ: 1,
+    });
+    const left = parts.find((part) => part.key.endsWith('villager-boot-left'))!;
+    const right = parts.find((part) => part.key.endsWith('villager-boot-right'))!;
+
+    expect(left.centerY).toBeGreaterThan(right.centerY);
+    expect(left.centerZ).toBeGreaterThan(right.centerZ);
+    expect(left.centerY - left.height / 2).toBeGreaterThanOrEqual(0);
+    expect(right.centerY - right.height / 2).toBeGreaterThanOrEqual(0);
+    expect(left.pitch).not.toBe(0);
+    expect(right.pitch ?? 0).toBe(0);
+    expect(minTransformedY(left)).toBeGreaterThanOrEqual(0);
+    expect(minTransformedY(right)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('keeps the planted cavalry leg grounded while its opposite leg lifts', () => {
+    const parts = createUnitParts(entity({ entityType: 'knight', size: 1 }), '8:2', 0, {
+      mode: 'moving',
+      phaseRadians: 0,
+      gaitPhaseRadians: Math.PI / 2,
+      locomotionWeight: 1,
+      speedWorldUnitsPerSecond: 4,
+      directionX: 1,
+      directionZ: 0,
+    });
+    const lifted = parts.find((part) => part.key.endsWith('cavalry-horse-leg-front-left'))!;
+    const planted = parts.find((part) => part.key.endsWith('cavalry-horse-leg-front-right'))!;
+
+    expect(lifted.centerY).toBeGreaterThan(planted.centerY);
+    expect(lifted.pitch).not.toBe(0);
+    expect(planted.pitch ?? 0).toBe(0);
+    expect(minTransformedY(lifted)).toBeGreaterThanOrEqual(0);
+    expect(minTransformedY(planted)).toBeGreaterThanOrEqual(0);
+  });
+
+  it.each([
+    [1, 0],
+    [0, 1],
+    [Math.SQRT1_2, Math.SQRT1_2],
+  ])('aligns foot flexion with travel direction (%s, %s)', (directionX, directionZ) => {
+    const parts = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+      mode: 'moving',
+      phaseRadians: 0,
+      gaitPhaseRadians: Math.PI / 2,
+      locomotionWeight: 1,
+      speedWorldUnitsPerSecond: 2,
+      directionX,
+      directionZ,
+    });
+    const lifted = parts.find((part) => part.key.endsWith('villager-boot-left'))!;
+
+    expectPitchPlane(lifted, directionX, directionZ);
+    expect(minTransformedY(lifted)).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('AoE voxel resource and terrain recipes', () => {
@@ -176,6 +256,8 @@ describe('AoE voxel resource and terrain recipes', () => {
       height: 1,
       depth: 0.1,
       yaw: Math.PI / 4,
+      pitch: Math.PI / 5,
+      pitchHeadingRadians: Math.PI / 3,
       roll: Math.PI / 6,
     };
     const matrix = matrixForPart(part);

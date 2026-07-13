@@ -4,22 +4,22 @@ import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import {
   animateUnitParts,
   phaseForUnitIdentity,
+  resolveUnitAnimationState,
   type AoeUnitAnimationState,
 } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
-import { makePartBatches } from '../../src/rendering/voxel/aoeVoxelResources';
 
 function unit(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
   return {
     id: 7,
-    generation: 2,
+    generation: 3,
     kind: 'unit',
     layer: 'unit',
     entityType: 'villager',
     owner: 1,
-    x: 4,
-    y: 5,
+    x: 0,
+    y: 0,
     elevation: 0,
     tint: 0x3568c0,
     size: 0.72,
@@ -34,8 +34,22 @@ function unit(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView
   };
 }
 
-function state(mode: AoeUnitAnimationState['mode']): AoeUnitAnimationState {
-  return { mode, phaseRadians: 0.4 };
+function forwardRadians(from: number, to: number): number {
+  const tau = Math.PI * 2;
+  return ((to - from) % tau + tau) % tau;
+}
+
+function movingState(overrides: Partial<AoeUnitAnimationState> = {}): AoeUnitAnimationState {
+  return {
+    mode: 'moving',
+    phaseRadians: 0.4,
+    gaitPhaseRadians: Math.PI / 2,
+    locomotionWeight: 1,
+    speedWorldUnitsPerSecond: 2,
+    directionX: 1,
+    directionZ: 0,
+    ...overrides,
+  };
 }
 
 function part(parts: readonly VoxelPart[], suffix: string): VoxelPart {
@@ -44,83 +58,163 @@ function part(parts: readonly VoxelPart[], suffix: string): VoxelPart {
   return match;
 }
 
-describe('AoE voxel unit animation profiles', () => {
-  it('derives a stable identity phase without synchronizing distinct units', () => {
-    const first = phaseForUnitIdentity('7:2');
-    expect(phaseForUnitIdentity('7:2')).toBe(first);
-    expect(phaseForUnitIdentity('8:2')).not.toBe(first);
-    expect(first).toBeGreaterThanOrEqual(0);
-    expect(first).toBeLessThan(Math.PI * 2);
-  });
-
-  it('gives moving humanoids opposing limb gait and stronger bob than idle units', () => {
-    const base = createUnitParts(unit(), '7:2', 0);
-    const idle = animateUnitParts(base, unit(), state('idle'));
-    const moving = animateUnitParts(base, unit(), state('moving'));
-    const idleTunic = part(idle, 'villager-tunic').animation!;
-    const movingTunic = part(moving, 'villager-tunic').animation!;
-    const leftLeg = part(moving, 'villager-leg-left').animation!;
-    const rightLeg = part(moving, 'villager-leg-right').animation!;
-    const leftArm = part(moving, 'villager-arm-left').animation!;
-
-    expect(movingTunic.translationAmplitude.y).toBeGreaterThan(
-      idleTunic.translationAmplitude.y,
+describe('AoE voxel unit locomotion sampling', () => {
+  it('advances gait phase by displayed distance so faster movement has faster cadence', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const slow = resolveUnitAnimationState(
+      unit({ x: 0.1 }), identity, initial.history, 100,
     );
-    expect(Math.abs(leftLeg.rotationAmplitude.x)).toBeGreaterThan(0.2);
-    expect(rightLeg.phaseRadians - leftLeg.phaseRadians).toBeCloseTo(Math.PI, 5);
-    expect(leftArm.phaseRadians - leftLeg.phaseRadians).toBeCloseTo(Math.PI, 5);
-    expect(part(moving, 'unit-shadow').animation).toBeUndefined();
+    const fast = resolveUnitAnimationState(
+      unit({ x: 0.2 }), identity, initial.history, 100,
+    );
+
+    const slowAdvance = forwardRadians(
+      initial.state.gaitPhaseRadians,
+      slow.state.gaitPhaseRadians,
+    );
+    const fastAdvance = forwardRadians(
+      initial.state.gaitPhaseRadians,
+      fast.state.gaitPhaseRadians,
+    );
+    expect(fastAdvance).toBeCloseTo(slowAdvance * 2);
+    expect(fast.state.speedWorldUnitsPerSecond).toBeCloseTo(2);
+    expect(slow.state.speedWorldUnitsPerSecond).toBeCloseTo(1);
   });
 
-  it('keeps fog-memory units completely static', () => {
+  it('is split-distance invariant and does not advance phase while stopped', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const single = resolveUnitAnimationState(
+      unit({ x: 0.42 }), identity, initial.history, 200,
+    );
+    const half = resolveUnitAnimationState(
+      unit({ x: 0.21 }), identity, initial.history, 100,
+    );
+    const split = resolveUnitAnimationState(
+      unit({ x: 0.42 }), identity, half.history, 200,
+    );
+    const stopped = resolveUnitAnimationState(
+      unit({ x: 0.42 }), identity, split.history, 300,
+    );
+
+    expect(split.state.gaitPhaseRadians).toBeCloseTo(single.state.gaitPhaseRadians);
+    expect(stopped.state.gaitPhaseRadians).toBeCloseTo(split.state.gaitPhaseRadians);
+    expect(stopped.state.locomotionWeight).toBeLessThan(split.state.locomotionWeight);
+    expect(stopped.state.locomotionWeight).toBeGreaterThan(0);
+  });
+
+  it('tracks normalized displayed direction and resets cleanly on a rewound clock', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const moving = resolveUnitAnimationState(
+      unit({ x: 0.3, y: 0.4 }), identity, initial.history, 100,
+    );
+    const rewound = resolveUnitAnimationState(
+      unit({ x: 9, y: 9 }), identity, moving.history, 50,
+    );
+
+    expect(moving.state.directionX).toBeCloseTo(0.6);
+    expect(moving.state.directionZ).toBeCloseTo(0.8);
+    expect(rewound.state.gaitPhaseRadians).toBeCloseTo(phaseForUnitIdentity(identity));
+    expect(rewound.state.locomotionWeight).toBe(0);
+    expect(rewound.state.speedWorldUnitsPerSecond).toBe(0);
+  });
+
+  it('eases a moving unit through path corners instead of snapping its gait plane', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const east = resolveUnitAnimationState(
+      unit({ x: 0.2 }), identity, initial.history, 100,
+    );
+    const corner = resolveUnitAnimationState(
+      unit({ x: 0.2, y: 0.2 }), identity, east.history, 200,
+    );
+
+    expect(east.state.directionX).toBeCloseTo(1);
+    expect(east.state.directionZ).toBeCloseTo(0);
+    expect(corner.state.directionX).toBeGreaterThan(0);
+    expect(corner.state.directionZ).toBeGreaterThan(0);
+    expect(corner.state.directionZ).toBeLessThan(1);
+    expect(Math.hypot(corner.state.directionX, corner.state.directionZ)).toBeCloseTo(1);
+  });
+
+  it('is invariant to selection-forced redraws while simulation display time is paused', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const moving = resolveUnitAnimationState(
+      unit({ x: 0.2 }), identity, initial.history, 100,
+    );
+    let forced = moving;
+    for (let redraw = 0; redraw < 8; redraw += 1) {
+      forced = resolveUnitAnimationState(unit({ x: 0.2 }), identity, forced.history, 100);
+    }
+    const resumedWithoutRedraw = resolveUnitAnimationState(
+      unit({ x: 0.3 }), identity, moving.history, 120,
+    );
+    const resumedAfterForcedRedraw = resolveUnitAnimationState(
+      unit({ x: 0.3 }), identity, forced.history, 120,
+    );
+
+    expect(forced.state).toEqual(moving.state);
+    expect(resumedAfterForcedRedraw).toEqual(resumedWithoutRedraw);
+    expect(resumedAfterForcedRedraw.state.speedWorldUnitsPerSecond).toBeCloseTo(5);
+  });
+
+  it('uses the full injected interval for speed while bounding only transition smoothing', () => {
+    const initial = resolveUnitAnimationState(unit(), '7:3', undefined, 0);
+    const delayed = resolveUnitAnimationState(
+      unit({ x: 2.5 }), '7:3', initial.history, 1_000,
+    );
+
+    expect(delayed.state.speedWorldUnitsPerSecond).toBeCloseTo(2.5);
+    expect(delayed.state.locomotionWeight).toBeGreaterThan(0);
+    expect(delayed.state.locomotionWeight).toBeLessThanOrEqual(1);
+  });
+
+  it('is deterministic for identical displayed entity and injected-time sequences', () => {
+    const run = () => {
+      let history = resolveUnitAnimationState(unit(), '7:3', undefined, 0);
+      const states = [history.state];
+      for (const [x, y, nowMs] of [[0.04, 0, 16], [0.12, 0.03, 33], [0.12, 0.03, 133]] as const) {
+        history = resolveUnitAnimationState(unit({ x, y }), '7:3', history.history, nowMs);
+        states.push(history.state);
+      }
+      return states;
+    };
+
+    expect(run()).toEqual(run());
+  });
+
+  it('keeps identity phases distinct and fog memories static', () => {
+    expect(phaseForUnitIdentity('7:3')).toBe(phaseForUnitIdentity('7:3'));
+    expect(phaseForUnitIdentity('8:3')).not.toBe(phaseForUnitIdentity('7:3'));
     const memory = unit({ isMemory: true });
     const animated = animateUnitParts(
       createUnitParts(memory, '7:memory', 0),
       memory,
-      state('moving'),
+      movingState(),
     );
     expect(animated.every((candidate) => candidate.animation === undefined)).toBe(true);
   });
 
-  it.each([
-    ['knight', 'cavalry-horse-leg-front-left', 'cavalry-horse-tail'],
-    ['mangonel', 'siege-wheel-left', 'siege-throwing-arm'],
-    ['monk', 'monk-sleeve-left', 'monk-staff'],
-  ] as const)('animates role-readable %s mechanisms', (entityType, primary, secondary) => {
-    const candidate = unit({ entityType });
-    const animated = animateUnitParts(
-      createUnitParts(candidate, '7:2', 0),
-      candidate,
-      state('moving'),
+  it('separates baked locomotion from role-readable ambient mechanisms', () => {
+    const cavalry = createUnitParts(
+      unit({ entityType: 'knight' }), '7:3', 0, movingState(),
     );
-    expect(part(animated, primary).animation?.periodMs).toBeGreaterThan(0);
-    expect(part(animated, secondary).animation?.periodMs).toBeGreaterThan(0);
-  });
+    expect(part(cavalry, 'cavalry-horse-leg-front-left').animation).toBeUndefined();
+    expect(part(cavalry, 'cavalry-horse-leg-front-left').pitch).not.toBe(0);
+    expect(part(cavalry, 'cavalry-horse-tail').animation?.periodMs).toBe(780);
 
-  it('packs motion in canonical instance order and omits the lane for static-only parts', () => {
-    const candidate = unit();
-    const animated = animateUnitParts(
-      createUnitParts(candidate, '7:2', 0),
-      candidate,
-      state('moving'),
+    const siege = createUnitParts(
+      unit({ entityType: 'mangonel' }), '7:3', 0, movingState(),
     );
-    const batches = makePartBatches(animated, 3);
-    const matte = batches.find((batch) => batch.key === 'aoe2:batch:matte-parts')!;
-    expect(matte.animation?.periodsMs).toHaveLength(matte.instanceKeys.length);
-    expect([...matte.animation!.periodsMs].filter((period) => period > 0).length)
-      .toBeGreaterThan(8);
+    expect(part(siege, 'siege-wheel-left').animation).toBeUndefined();
+    expect(part(siege, 'siege-wheel-left').pitch).not.toBe(0);
+    expect(part(siege, 'siege-throwing-arm').animation?.periodMs).toBe(1_200);
 
-    const staticPart: VoxelPart = {
-      key: 'static:one',
-      surface: 'matte',
-      tint: 0xffffff,
-      centerX: 0,
-      centerY: 0,
-      centerZ: 0,
-      width: 1,
-      height: 1,
-      depth: 1,
-    };
-    expect(makePartBatches([staticPart], 1)[0]?.animation).toBeUndefined();
+    const monk = createUnitParts(unit({ entityType: 'monk' }), '7:3', 0, movingState());
+    expect(part(monk, 'monk-sleeve-left').animation?.periodMs).toBe(1_100);
+    expect(part(monk, 'monk-staff').animation?.periodMs).toBe(1_500);
   });
 });

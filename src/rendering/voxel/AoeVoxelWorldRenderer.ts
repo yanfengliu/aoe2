@@ -11,6 +11,7 @@ import type { ProjectedEntityView } from '../../game/simulation/types';
 import type { CameraStateSnapshot } from '../../phaser/scenes/gameScene/cameraController';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
+import type { AoeUnitMotionHistory } from './aoeVoxelUnitAnimation';
 
 export interface AoeVoxelRuntime {
   acceptSnapshot(snapshot: RenderSnapshotV1): ApplyResultV1;
@@ -83,9 +84,11 @@ export class AoeVoxelWorldRenderer {
     options.host.append(this.canvas);
   }
 
-  present(entities: readonly ProjectedEntityView[]): void {
+  present(entities: readonly ProjectedEntityView[], simulationDisplayTimeMs: number): void {
     this.assertActive();
-    const result = this.runtime.acceptSnapshot(this.adapter.createSnapshot(entities));
+    const result = this.runtime.acceptSnapshot(
+      this.adapter.createSnapshot(entities, simulationDisplayTimeMs),
+    );
     if (result.status === 'rejected') {
       throw new Error(
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
@@ -117,6 +120,11 @@ export class AoeVoxelWorldRenderer {
 
   state(): AoeVoxelRendererState {
     return { mode: 'voxel', metrics: this.runtime.metrics() };
+  }
+
+  inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {
+    this.assertActive();
+    return this.adapter.inspectUnitMotion(identity);
   }
 
   captureWorld(): ThreeCaptureResult {

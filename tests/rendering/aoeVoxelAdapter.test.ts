@@ -215,8 +215,8 @@ describe('AoeVoxelAdapter instance projection', () => {
     ]);
 
     expect(snapshot.batches.map((batch) => batch.key)).toEqual([
-      'aoe2:batch:matte-parts',
-      'aoe2:batch:metal-parts',
+      'aoe2:batch:matte-parts', 'aoe2:batch:matte-animated-parts',
+      'aoe2:batch:metal-parts', 'aoe2:batch:metal-animated-parts',
       'aoe2:batch:shadow-parts',
       'aoe2:batch:memory-parts',
     ]);
@@ -339,7 +339,7 @@ describe('AoeVoxelAdapter instance projection', () => {
     }
   });
 
-  it('switches live units from subtle idle motion to stronger locomotion profiles', () => {
+  it('advances live foot poses from displayed movement and relaxes them after stopping', () => {
     const adapter = new AoeVoxelAdapter();
     const villager = view({
       id: 20,
@@ -351,17 +351,15 @@ describe('AoeVoxelAdapter instance projection', () => {
       y: 3,
       size: 0.72,
     });
-    const idle = adapter.createSnapshot([villager]);
-    const moving = adapter.createSnapshot([{ ...villager, x: 2.2 }]);
-    const stopped = adapter.createSnapshot([{ ...villager, x: 2.2 }]);
-    const idleBob = partRecord(idle, '20:4:villager-tunic').animation!;
-    const movingBob = partRecord(moving, '20:4:villager-tunic').animation!;
-    const stoppedBob = partRecord(stopped, '20:4:villager-tunic').animation!;
+    const idle = adapter.createSnapshot([villager], 0);
+    const moving = adapter.createSnapshot([{ ...villager, x: 2.2 }], 100);
+    const stopped = adapter.createSnapshot([{ ...villager, x: 2.2 }], 200);
+    const key = '20:4:villager-boot-left';
 
-    expect(movingBob.translationAmplitude[1]).toBeGreaterThan(idleBob.translationAmplitude[1]!);
-    expect(movingBob.periodMs).toBeLessThan(idleBob.periodMs!);
-    expect(stoppedBob.translationAmplitude[1]).toBeCloseTo(idleBob.translationAmplitude[1]!);
-    expect(stoppedBob.phaseRadians).toBe(idleBob.phaseRadians);
+    expect(partRecord(moving, key).matrix).not.toEqual(partRecord(idle, key).matrix);
+    expect(partRecord(stopped, key).matrix).not.toEqual(partRecord(moving, key).matrix);
+    expect(partRecord(moving, key).animation).toBeUndefined();
+    expect(partRecord(moving, '20:4:villager-tunic').animation?.periodMs).toBe(1_400);
   });
 });
 
@@ -411,25 +409,51 @@ describe('AoeVoxelAdapter lifecycle', () => {
       x: 2,
       y: 3,
     });
-    const idle = adapter.createSnapshot([unit]);
-    const moving = adapter.createSnapshot([{ ...unit, x: 2.2 }]);
-    const replacement = adapter.createSnapshot([{ ...unit, generation: 5, x: 2.2 }]);
-    const idleAmplitude = partRecord(idle, '20:4:villager-tunic').animation!
-      .translationAmplitude[1]!;
-    const movingAmplitude = partRecord(moving, '20:4:villager-tunic').animation!
-      .translationAmplitude[1]!;
-    const replacementAmplitude = partRecord(replacement, '20:5:villager-tunic').animation!
-      .translationAmplitude[1]!;
+    const idle = adapter.createSnapshot([unit], 0);
+    const moving = adapter.createSnapshot([{ ...unit, x: 2.2 }], 100);
+    const replacementEntity = { ...unit, generation: 5, x: 2.2 };
+    const replacement = adapter.createSnapshot([replacementEntity], 200);
+    const freshReplacement = new AoeVoxelAdapter().createSnapshot([replacementEntity], 200);
 
-    expect(movingAmplitude).toBeGreaterThan(idleAmplitude);
-    expect(replacementAmplitude).toBeCloseTo(idleAmplitude);
+    expect(partRecord(moving, '20:4:villager-boot-left').matrix)
+      .not.toEqual(partRecord(idle, '20:4:villager-boot-left').matrix);
+    expect(partRecord(replacement, '20:5:villager-boot-left').matrix)
+      .toEqual(partRecord(freshReplacement, '20:5:villager-boot-left').matrix);
 
-    adapter.createSnapshot([{ ...unit, generation: 5, x: 2.4 }]);
+    adapter.createSnapshot([{ ...unit, generation: 5, x: 2.4 }], 300);
     adapter.resetForBridgeSwap();
-    const reset = adapter.createSnapshot([{ ...unit, generation: 5, x: 2.4 }]);
-    expect(
-      partRecord(reset, '20:5:villager-tunic').animation!.translationAmplitude[1],
-    ).toBeCloseTo(idleAmplitude);
+    const resetEntity = { ...unit, generation: 5, x: 2.4 };
+    const reset = adapter.createSnapshot([resetEntity], 400);
+    const freshReset = new AoeVoxelAdapter().createSnapshot([resetEntity], 400);
+    expect(partRecord(reset, '20:5:villager-boot-left').matrix)
+      .toEqual(partRecord(freshReset, '20:5:villager-boot-left').matrix);
+  });
+
+  it('does not inherit gait history after disappearance or memory projection', () => {
+    const unit = view({
+      id: 30,
+      generation: 2,
+      kind: 'unit',
+      layer: 'unit',
+      entityType: 'villager',
+      x: 3,
+      y: 4,
+    });
+    const adapter = new AoeVoxelAdapter();
+    adapter.createSnapshot([unit], 0);
+    adapter.createSnapshot([{ ...unit, x: 3.4 }], 100);
+    adapter.createSnapshot([], 200);
+    const reappearedEntity = { ...unit, x: 3.4 };
+    const reappeared = adapter.createSnapshot([reappearedEntity], 300);
+    const fresh = new AoeVoxelAdapter().createSnapshot([reappearedEntity], 300);
+    expect(partRecord(reappeared, '30:2:villager-boot-left').matrix).toEqual(partRecord(fresh, '30:2:villager-boot-left').matrix);
+
+    adapter.createSnapshot([{ ...reappearedEntity, x: 3.8 }], 400);
+    adapter.createSnapshot([{ ...reappearedEntity, isMemory: true }], 500);
+    const afterMemory = adapter.createSnapshot([reappearedEntity], 600);
+    const freshAfterMemory = new AoeVoxelAdapter().createSnapshot([reappearedEntity], 600);
+    expect(partRecord(afterMemory, '30:2:villager-boot-left').matrix)
+      .toEqual(partRecord(freshAfterMemory, '30:2:villager-boot-left').matrix);
   });
 
   it('increments a terrain chunk incarnation when its key is removed and recreated', () => {

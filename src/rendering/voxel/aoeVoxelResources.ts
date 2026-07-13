@@ -4,6 +4,7 @@ import type {
   InstanceTransformAnimationV1,
   MaterialResourceV1,
 } from 'voxel/core';
+import { MAX_ACTIVE_INSTANCE_ANIMATIONS_V1 } from 'voxel/core';
 import { DensePaletteChunk, meshVisibleFaces } from 'voxel/meshing';
 
 import {
@@ -139,6 +140,53 @@ function packedAnimation(parts: readonly VoxelPart[]): InstanceTransformAnimatio
   };
 }
 
+function identityOf(part: VoxelPart): string {
+  return part.key.slice(0, part.key.lastIndexOf(':'));
+}
+
+function enabledAnimationKeys(parts: readonly VoxelPart[]): ReadonlySet<string> {
+  const groups = new Map<string, VoxelPart[]>();
+  for (const part of parts) {
+    if (!part.animation || (part.surface !== 'matte' && part.surface !== 'metal')) continue;
+    const identity = identityOf(part);
+    const group = groups.get(identity) ?? [];
+    group.push(part);
+    groups.set(identity, group);
+  }
+  let remaining = MAX_ACTIVE_INSTANCE_ANIMATIONS_V1;
+  const enabled = new Set<string>();
+  for (const group of groups.values()) {
+    if (group.length > remaining) continue;
+    for (const part of group) enabled.add(part.key);
+    remaining -= group.length;
+  }
+  return enabled;
+}
+
+function makeBatch(
+  surface: VoxelSurface,
+  lane: 'static' | 'animated',
+  parts: readonly VoxelPart[],
+  revision: number,
+): InstanceBatchV1 {
+  const matrices = new Float32Array(parts.flatMap((part) => matrixForPart(part)));
+  const colors = new Uint8Array(parts.flatMap((part) => tintToBytes(part.tint)));
+  const animation = lane === 'animated' ? packedAnimation(parts) : undefined;
+  return {
+    key: lane === 'static'
+      ? `aoe2:batch:${surface}-parts`
+      : `aoe2:batch:${surface}-animated-parts`,
+    incarnation: 1,
+    revision,
+    geometryKey: CUBE_GEOMETRY_KEY,
+    materialKey: MATERIAL_KEYS[surface],
+    instanceKeys: parts.map((part) => part.key),
+    matrices,
+    colors,
+    ...(animation ? { animation } : {}),
+  };
+}
+
 export function makePartBatches(
   input: readonly VoxelPart[],
   revision: number,
@@ -149,21 +197,22 @@ export function makePartBatches(
     if (seen.has(part.key)) throw new Error(`Duplicate voxel instance key: ${part.key}`);
     seen.add(part.key);
   }
-  return SURFACES.map((surface): InstanceBatchV1 => {
-    const selected = parts.filter((part) => part.surface === surface);
-    const matrices = new Float32Array(selected.flatMap((part) => matrixForPart(part)));
-    const colors = new Uint8Array(selected.flatMap((part) => tintToBytes(part.tint)));
-    const animation = packedAnimation(selected);
-    return {
-      key: `aoe2:batch:${surface}-parts`,
-      incarnation: 1,
-      revision,
-      geometryKey: CUBE_GEOMETRY_KEY,
-      materialKey: MATERIAL_KEYS[surface],
-      instanceKeys: selected.map((part) => part.key),
-      matrices,
-      colors,
-      ...(animation ? { animation } : {}),
-    };
-  });
+  const enabled = enabledAnimationKeys(parts);
+  const batches: InstanceBatchV1[] = [];
+  for (const surface of SURFACES) {
+    const surfaceParts = parts.filter((part) => part.surface === surface);
+    const staticParts = surfaceParts
+      .filter((part) => !enabled.has(part.key))
+      .map((part) => part.animation ? { ...part, animation: undefined } : part);
+    batches.push(makeBatch(surface, 'static', staticParts, revision));
+    if (surface === 'matte' || surface === 'metal') {
+      batches.push(makeBatch(
+        surface,
+        'animated',
+        surfaceParts.filter((part) => enabled.has(part.key)),
+        revision,
+      ));
+    }
+  }
+  return batches;
 }

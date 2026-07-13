@@ -36,7 +36,7 @@ function add(
   width: number,
   height: number,
   depth: number,
-  rotation: { readonly yaw?: number; readonly roll?: number } = {},
+  rotation: { readonly yaw?: number; readonly pitch?: number; readonly roll?: number } = {},
 ): void {
   const scale = context.scale;
   context.parts.push(makePart(
@@ -166,6 +166,11 @@ export function createUnitParts(
   animationState: AoeUnitAnimationState = {
     mode: 'idle',
     phaseRadians: phaseForUnitIdentity(identity),
+    gaitPhaseRadians: phaseForUnitIdentity(identity),
+    locomotionWeight: 0,
+    speedWorldUnitsPerSecond: 0,
+    directionX: 1,
+    directionZ: 0,
   },
 ): VoxelPart[] {
   const scale = Math.max(0.48, entity.size);

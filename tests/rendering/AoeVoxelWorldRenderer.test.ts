@@ -126,7 +126,7 @@ describe('AoeVoxelWorldRenderer', () => {
     });
     expect(runtimeOptions?.rendererParameters).not.toHaveProperty('preserveDrawingBuffer');
 
-    renderer.present([terrain()]);
+    renderer.present([terrain()], 0);
     const firstEpoch = runtime.accepted[0]!.descriptor.epoch;
     renderer.frame({
       scrollX: -400,
@@ -145,7 +145,7 @@ describe('AoeVoxelWorldRenderer', () => {
     expect(runtime.frame).toHaveBeenCalledWith({ nowMs: 100, deltaMs: 16, frameIndex: 0 });
 
     renderer.resetForBridgeSwap();
-    renderer.present([terrain()]);
+    renderer.present([terrain()], 100);
     expect(runtime.accepted[1]!.descriptor.epoch).not.toBe(firstEpoch);
     expect(runtime.accepted[1]!.revision).toBe(1);
 

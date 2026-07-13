@@ -92,6 +92,7 @@ export interface ReplayControllerConfig {
 }
 
 const REPLAY_TICK_MS = 1000 / TPS;
+const INITIAL_PLAYBACK_TIME = Number.NEGATIVE_INFINITY;
 
 export function createReplayController(config: ReplayControllerConfig): ReplayController {
   const worldFactory = config.worldFactory ?? createReplayWorldOnly;
@@ -109,7 +110,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   let playing = false;
   let frameHandle: number | null = null;
   let playbackAccumulatorMs = 0;
-  let lastFrameTimeMs: number | null = null;
+  let lastFrameTimeMs: number | null = INITIAL_PLAYBACK_TIME;
   let renderInterpolationAlpha = 0;
   let fogOwner = HUMAN_PLAYER_ID;
 
@@ -202,10 +203,9 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       frameHandle = null;
     }
   }
-
   function resetPlaybackClock(): void {
     playbackAccumulatorMs = 0;
-    lastFrameTimeMs = null;
+    lastFrameTimeMs = INITIAL_PLAYBACK_TIME;
     renderInterpolationAlpha = 0;
   }
 
@@ -289,8 +289,10 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   }
 
   function runPlaybackFrame(timestamp: number): void {
-    if (lastFrameTimeMs === null) {
+    if (lastFrameTimeMs === INITIAL_PLAYBACK_TIME) {
       lastFrameTimeMs = timestamp - REPLAY_TICK_MS;
+    } else if (lastFrameTimeMs === null) {
+      lastFrameTimeMs = timestamp;
     }
     const deltaMs = Math.max(0, timestamp - lastFrameTimeMs);
     lastFrameTimeMs = timestamp;
@@ -470,14 +472,14 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       const context = requireReplayContext();
       if (context.world.tick >= replayUpperBoundFor(context.bundle)) return;
       assertReplayPayloadsAvailable(context.bundle, context.world.tick + 1);
-      resetPlaybackClock();
       playing = true;
       scheduleNextFrame();
     },
     pause() {
+      if (!playing) return;
       playing = false;
       cancelFrame();
-      resetPlaybackClock();
+      lastFrameTimeMs = null;
     },
     isPlaying() {
       return playing;

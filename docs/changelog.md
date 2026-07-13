@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.150 - 2026-07-12
+
+### Voxel units plant their feet and match their movement speed
+
+Units in the experimental `?renderer=voxel` view no longer use one fixed walk cycle whenever their position changes. Their gait now follows the smoothly interpolated position on screen: more distance in the same time advances more of the step cycle, while slowing or stopping slows or settles the pose. Humanoid boots visibly travel and lift without dipping through the ground, opposing legs and arms stay coordinated, cavalry use longer paired strides, and siege wheels rotate from distance traveled.
+
+Starts, stops, and path corners use short visual blends so limbs do not pop between rest and motion or snap sideways on an axis-aligned turn. Feet flex in the current travel plane. Pausing the simulation or holding position cannot leave feet walking in place, and selection redraws cannot change how a unit resumes; identity, bridge, fog-memory, disappearance, and replay resets cannot inherit stale gait history. Root position, pathfinding, collision, commands, saves, replays, selection, and hit geometry are unchanged.
+
+This refinement remains AoE-owned. The shared voxel package keeps its existing game-neutral rigid-instance and ambient harmonic contracts; no new gait, unit-role, or movement-state schema was added for City or Townscaper to inherit.
+
 ## 0.1.149 - 2026-07-12
 
 ### Voxel units are alive

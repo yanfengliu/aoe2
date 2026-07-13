@@ -33,6 +33,9 @@ export interface VoxelPart {
   readonly height: number;
   readonly depth: number;
   readonly yaw?: number;
+  readonly pitch?: number;
+  /** World-space heading whose perpendicular horizontal axis receives pitch. */
+  readonly pitchHeadingRadians?: number;
   readonly roll?: number;
   readonly animation?: VoxelPartAnimation;
 }
@@ -127,7 +130,7 @@ export function makePart(
   width: number,
   height: number,
   depth: number,
-  rotation: { readonly yaw?: number; readonly roll?: number } = {},
+  rotation: { readonly yaw?: number; readonly pitch?: number; readonly roll?: number } = {},
 ): VoxelPart {
   if (identity.length === 0 || suffix.length === 0) throw new Error('Voxel part keys must not be empty.');
   for (const [name, value] of Object.entries({ centerX, centerY, centerZ })) {
@@ -140,6 +143,9 @@ export function makePart(
   }
   if (rotation.yaw !== undefined && !Number.isFinite(rotation.yaw)) {
     throw new RangeError('yaw must be finite.');
+  }
+  if (rotation.pitch !== undefined && !Number.isFinite(rotation.pitch)) {
+    throw new RangeError('pitch must be finite.');
   }
   if (rotation.roll !== undefined && !Number.isFinite(rotation.roll)) {
     throw new RangeError('roll must be finite.');
@@ -157,6 +163,44 @@ export function makePart(
     depth,
     ...rotation,
   };
+}
+
+type Matrix3 = readonly [
+  number, number, number,
+  number, number, number,
+  number, number, number,
+];
+
+function multiply3(left: Matrix3, right: Matrix3): Matrix3 {
+  return [
+    left[0] * right[0] + left[1] * right[3] + left[2] * right[6],
+    left[0] * right[1] + left[1] * right[4] + left[2] * right[7],
+    left[0] * right[2] + left[1] * right[5] + left[2] * right[8],
+    left[3] * right[0] + left[4] * right[3] + left[5] * right[6],
+    left[3] * right[1] + left[4] * right[4] + left[5] * right[7],
+    left[3] * right[2] + left[4] * right[5] + left[5] * right[8],
+    left[6] * right[0] + left[7] * right[3] + left[8] * right[6],
+    left[6] * right[1] + left[7] * right[4] + left[8] * right[7],
+    left[6] * right[2] + left[7] * right[5] + left[8] * right[8],
+  ];
+}
+
+function rotationX(angle: number): Matrix3 {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return [1, 0, 0, 0, cosine, -sine, 0, sine, cosine];
+}
+
+function rotationY(angle: number): Matrix3 {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return [cosine, 0, sine, 0, 1, 0, -sine, 0, cosine];
+}
+
+function rotationZ(angle: number): Matrix3 {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return [cosine, -sine, 0, sine, cosine, 0, 0, 0, 1];
 }
 
 export function contactShadow(
@@ -185,26 +229,33 @@ export function contactShadow(
   )];
 }
 
-/** Column-major transform for a centred unit cube: translation * yaw * roll * scale. */
+/** Column-major transform for a centred unit cube: translation * yaw * pitch * roll * scale. */
 export function matrixForPart(part: VoxelPart): readonly number[] {
   const yaw = part.yaw ?? 0;
+  const pitch = part.pitch ?? 0;
   const roll = part.roll ?? 0;
-  const cy = Math.cos(yaw);
-  const sy = Math.sin(yaw);
-  const cr = Math.cos(roll);
-  const sr = Math.sin(roll);
+  const baseRotation = multiply3(rotationY(yaw), rotationZ(roll));
+  const rotation = part.pitchHeadingRadians === undefined
+    ? multiply3(multiply3(rotationY(yaw), rotationX(pitch)), rotationZ(roll))
+    : multiply3(
+      multiply3(
+        multiply3(rotationY(part.pitchHeadingRadians), rotationX(pitch)),
+        rotationY(-part.pitchHeadingRadians),
+      ),
+      baseRotation,
+    );
   return [
-    cy * cr * part.width,
-    sr * part.width,
-    -sy * cr * part.width,
+    rotation[0] * part.width,
+    rotation[3] * part.width,
+    rotation[6] * part.width,
     0,
-    -cy * sr * part.height,
-    cr * part.height,
-    sy * sr * part.height,
+    rotation[1] * part.height,
+    rotation[4] * part.height,
+    rotation[7] * part.height,
     0,
-    sy * part.depth,
-    0,
-    cy * part.depth,
+    rotation[2] * part.depth,
+    rotation[5] * part.depth,
+    rotation[8] * part.depth,
     0,
     part.centerX,
     part.centerY,

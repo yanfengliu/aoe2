@@ -10,6 +10,7 @@ import {
   AoeVoxelWorldRenderer,
   type AoeVoxelRendererState,
 } from '../../rendering/voxel/AoeVoxelWorldRenderer';
+import type { AoeUnitMotionHistory } from '../../rendering/voxel/aoeVoxelUnitAnimation';
 import type { ThreeCaptureResult } from 'voxel/three';
 import {
   createCameraController,
@@ -120,7 +121,9 @@ export class GameScene extends Phaser.Scene {
       getSelectionBoxState: () => this.getSelectionBoxState(),
       getSelectionBoxKey: () => this.pointerInput?.getSelectionBoxKey() ?? 'none',
       worldRendererMode: this.activeRendererMode,
-      presentVoxelWorld: (entities) => this.voxelWorldRenderer?.present(entities),
+      presentVoxelWorld: (entities, simulationDisplayTimeMs) => (
+        this.voxelWorldRenderer?.present(entities, simulationDisplayTimeMs)
+      ),
     });
 
     this.cameras.main.setBackgroundColor(
@@ -215,6 +218,10 @@ export class GameScene extends Phaser.Scene {
 
   getWorldRendererState(): AoeVoxelRendererState | { mode: 'phaser'; metrics: null } {
     return this.voxelWorldRenderer?.state() ?? { mode: 'phaser', metrics: null };
+  }
+
+  inspectVoxelUnitMotion(identity: string): AoeUnitMotionHistory | null {
+    return this.voxelWorldRenderer?.inspectUnitMotion(identity) ?? null;
   }
 
   getCaptureCanvas(): HTMLCanvasElement | null {

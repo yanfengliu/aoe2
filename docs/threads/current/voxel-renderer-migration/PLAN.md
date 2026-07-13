@@ -103,6 +103,18 @@ Exit gate: the controlled seed has recognisable AoE-style voxel architecture, un
 
 Exit gate: live non-memory voxel units visibly breathe or move their rigid limbs/tools/mounts/machines under the renderer clock even when no new world snapshot is accepted; static world geometry and gameplay state remain unchanged. General skeletal animation, attack/gather clip events, projectiles, and imported character assets remain later increments.
 
+## Increment 8: smooth speed-matched locomotion
+
+- [x] Trace the displayed interpolation path and record why gait speed/stride/feet stay AoE-owned while `voxel` remains a history-free harmonic sampler.
+- [x] Add red tests for injected sample time, faster-speed cadence, split-distance phase invariance, opposing feet, foot clearance, deterministic histories, and generation/disappearance/bridge/clock-rewind reset.
+- [x] Replace binary movement classification with bounded per-identity gait history driven by displayed distance and injected simulation-display time.
+- [x] Bake role-scaled distance phase, eased direction, direction-aligned grounded foot/limb pose, wheel rotation, and short start/stop amplitude ramps into AoE part transforms without changing authoritative root position, saves, replay, hit geometry, shadows, or the reusable animation schema.
+- [x] Split static/animated instance lanes at the engine's active limits; add a focused browser gait diagnostic plus fixed-camera before/after/diff evidence and record renderer/simulation metrics.
+- [x] Run focused tests, AoE's four mandatory gates, the applicable browser suite, and the unchanged sibling engine `verify`.
+- [x] Complete grounded adversarial review, update durable architecture/changelog/devlog records, bump the user-visible AoE version, then commit and push `main`.
+
+Exit gate: a live displayed unit's root remains smoothly interpolated, its foot cadence increases with displayed speed, its feet visibly lift and oppose one another, and speed transitions preserve phase without changing gameplay authority or the reusable engine schema.
+
 ## Deferred backlog
 
 - Standalone Three renderer host and Phaser removal.

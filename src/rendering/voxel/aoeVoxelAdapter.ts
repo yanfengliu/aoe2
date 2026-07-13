@@ -18,6 +18,7 @@ import { createUnitParts } from './aoeVoxelUnitRecipes';
 import {
   resolveUnitAnimationState,
   type AoeUnitAnimationState,
+  type AoeUnitMotionHistory,
 } from './aoeVoxelUnitAnimation';
 
 export { AOE_TERRAIN_CHUNK_SIZE } from './aoeVoxelTerrain';
@@ -95,7 +96,7 @@ export class AoeVoxelAdapter {
   private paletteRevision = 0;
   private readonly chunkStates = new Map<string, ChunkState>();
   private readonly fallbackIdentities = new Map<string, FallbackIdentityState>();
-  private readonly previousUnitPositions = new Map<string, { x: number; y: number }>();
+  private readonly unitMotionHistories = new Map<string, AoeUnitMotionHistory>();
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
@@ -106,7 +107,19 @@ export class AoeVoxelAdapter {
     return `${this.epochPrefix}:${String(this.epochIndex)}`;
   }
 
-  createSnapshot(entities: readonly ProjectedEntityView[]): RenderSnapshotV1 {
+  /** Bounded diagnostic seam used by the browser gait proof. */
+  inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {
+    const history = this.unitMotionHistories.get(identity);
+    return history ? { ...history } : null;
+  }
+
+  createSnapshot(
+    entities: readonly ProjectedEntityView[],
+    sampleTimeMs = 0,
+  ): RenderSnapshotV1 {
+    if (!Number.isFinite(sampleTimeMs) || sampleTimeMs < 0) {
+      throw new RangeError('AoE voxel sample time must be a non-negative finite number.');
+    }
     const cells = terrainCells(entities);
     const nextRevision = this.revision + 1;
     if (!Number.isSafeInteger(nextRevision)) throw new RangeError('AoE voxel revision overflow.');
@@ -114,7 +127,7 @@ export class AoeVoxelAdapter {
       .sort((a, b) => a - b)
       .join(',');
     const drafts = draftTerrainChunks(cells, nextPaletteSignature);
-    const prepared = this.prepareInstanceEntities(entities);
+    const prepared = this.prepareInstanceEntities(entities, sampleTimeMs);
     const parts = [
       ...createTerrainDetailParts(entities),
       ...prepared.entities.flatMap(partsFor),
@@ -188,7 +201,7 @@ export class AoeVoxelAdapter {
           maxResources: 16,
           maxPaletteEntries: 4_096,
           maxChunks: 4_096,
-          maxBatches: 4,
+          maxBatches: 6,
           maxVoxelsPerChunk: AOE_TERRAIN_CHUNK_SIZE * AOE_TERRAIN_CHUNK_SIZE * 64,
           maxGeometryVertices: 1_024,
           maxGeometryIndices: 3_072,
@@ -203,7 +216,10 @@ export class AoeVoxelAdapter {
     };
   }
 
-  private prepareInstanceEntities(entities: readonly ProjectedEntityView[]): {
+  private prepareInstanceEntities(
+    entities: readonly ProjectedEntityView[],
+    sampleTimeMs: number,
+  ): {
     entities: KeyedEntity[];
     fallbacks: Map<string, FallbackIdentityState>;
   } {
@@ -211,6 +227,7 @@ export class AoeVoxelAdapter {
       [...this.fallbackIdentities].map(([key, state]) => [key, { ...state, active: false }]),
     );
     const seenFallbacks = new Set<string>();
+    const nextMotionHistories = new Map<string, AoeUnitMotionHistory>();
     const keyed = entities.filter((entity) => entity.layer !== 'terrain').map((entity) => {
       const explicit = explicitEntityKey(entity);
       let identity = explicit;
@@ -225,24 +242,25 @@ export class AoeVoxelAdapter {
         const suffix = incarnation === 1 ? namespace : `${namespace}:${String(incarnation)}`;
         identity = `${String(entity.id)}:${suffix}`;
       }
-      const animationState = entity.layer === 'unit'
-        ? resolveUnitAnimationState(entity, identity, this.previousUnitPositions.get(identity))
+      const resolvedAnimation = entity.layer === 'unit' && !entity.isMemory
+        ? resolveUnitAnimationState(
+          entity,
+          identity,
+          this.unitMotionHistories.get(identity),
+          sampleTimeMs,
+        )
         : undefined;
+      if (resolvedAnimation) nextMotionHistories.set(identity, resolvedAnimation.history);
       return {
         entity,
         identity,
         ground: compositionGround(entity),
-        ...(animationState ? { animationState } : {}),
+        ...(resolvedAnimation ? { animationState: resolvedAnimation.state } : {}),
       };
     });
-    this.previousUnitPositions.clear();
-    for (const record of keyed) {
-      if (record.entity.layer === 'unit' && !record.entity.isMemory) {
-        this.previousUnitPositions.set(record.identity, {
-          x: record.entity.x,
-          y: record.entity.y,
-        });
-      }
+    this.unitMotionHistories.clear();
+    for (const [identity, history] of nextMotionHistories) {
+      this.unitMotionHistories.set(identity, history);
     }
     return { entities: keyed, fallbacks };
   }
@@ -259,6 +277,6 @@ export class AoeVoxelAdapter {
     this.paletteRevision = 0;
     this.chunkStates.clear();
     this.fallbackIdentities.clear();
-    this.previousUnitPositions.clear();
+    this.unitMotionHistories.clear();
   }
 }

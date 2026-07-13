@@ -321,7 +321,7 @@ Status: Active.
 
 Context: the first voxel slice proved the renderer boundary but its two-box unit, building, and resource fallbacks were not a usable Age-of-Empires-style art direction. City and Townscaper also need better lighting, but they do not share AoE building roles, unit equipment, faction accents, terrain clutter, or fog-memory presentation. Moving those details into `voxel` would make a nominally reusable package depend on one game's vocabulary.
 
-Decision: keep every procedural facade and silhouette recipe under `src/rendering/voxel/`, split by building, unit, resource, terrain, recipe-helper, and material-resource responsibilities. Both AoE presenters share the pure exhaustive `unitRole` mapping, but no AoE role enters shared package declarations. A centred group-less cube geometry feeds four bounded instance batches (matte, metal, contact shadow, and memory), so hundreds of detailed parts remain a handful of draw calls rather than scene objects. The reusable package exposes only a validated hemisphere-plus-directional daylight rig whose target follows the current view centre; AoE supplies its own warm colors and antialias context flag.
+Decision: keep every procedural facade and silhouette recipe under `src/rendering/voxel/`, split by building, unit, resource, terrain, recipe-helper, and material-resource responsibilities. Both AoE presenters share the pure exhaustive `unitRole` mapping, but no AoE role enters shared package declarations. A centred group-less cube geometry feeds separate static and animated matte/metal lanes plus contact-shadow and memory lanes, so detailed parts remain six bounded batches rather than scene objects; separating lanes prevents static scenery from inheriting the engine's smaller active-batch ceiling. The reusable package exposes only a validated hemisphere-plus-directional daylight rig whose target follows the current view centre; AoE supplies its own warm colors and antialias context flag.
 
 Consequences:
 - Faction color is an AoE recipe input used on accents, while neutral stone, plaster, timber, cloth, foliage, skin, and metal remain AoE palette decisions.
@@ -340,7 +340,23 @@ Context: detailed procedural voxel units need continuous motion, but idle, locom
 Decision: the sibling renderer owns only an optional bounded harmonic transform lane sampled from injected frame time. AoE owns `aoeVoxelUnitAnimation.ts`, stable `id:generation` phase selection, movement-history classification, named-part profiles, memory/static policy, and every amplitude/period relationship. Bridge replacement clears movement history; a new entity generation begins idle. The engine caps active and per-batch workloads, preserves full snapshot uploads, coalesces partial updates, and computes conservative affine-safe motion bounds.
 
 Consequences:
-- Idle and locomotion motion can continue while the simulation is paused and no new snapshot is accepted; it has no save, replay, command, collision, fog, health, or selection authority.
+- Ambient idle/secondary motion can continue while the simulation is paused and no new snapshot is accepted; distance-driven locomotion is superseded by KAD-0021 and freezes with the displayed root. Neither path has save, replay, command, collision, fog, health, or selection authority.
 - Contact shadows, fog-memory ghosts, terrain, buildings, and resources remain static in this slice.
 - AoE does not leak role or clip enums into `voxel`; City can use the lane for pedestrians or props, and Townscaper for wildlife or ornaments, with their own adapters.
 - Event-synchronized attacks/gathering, projectiles, root motion, clip blending, skeletal assets, and animation textures remain later measured contracts.
+
+## KAD-0021 - Speed-matched gait uses displayed simulation time and AoE base poses
+
+Date: 2026-07-12.
+Status: Active; supersedes KAD-0020 only for locomotion sampling.
+
+Context: the first rigid-animation slice classified movement from snapshot-to-snapshot position changes and played a fixed clock-driven walk profile. That made cadence independent of displayed speed and let feet keep cycling after the root stopped. A first distance sampler fixed cadence but used Phaser wall time; adversarial review proved a pause gap then produced different resume speed depending on whether selection forced snapshots. Path corners also changed the travel vector instantly while flexion remained on a fixed local axis, producing sideways limb bend and visible turn pops.
+
+Decision: `sceneRenderer` supplies `(tick + interpolationAlpha) * 1000 / TPS` as the gait sample clock. It freezes under manual/replay pause and rewinds on replay discontinuity, while the independent renderer frame clock still drives ambient harmonics. Replay pause preserves the current accumulator and interpolation alpha, then consumes zero elapsed time on the first resumed frame; fresh playback retains its established immediate first tick. `aoeVoxelUnitAnimation.ts` advances a wrapped role-stride phase only by displayed root distance, derives speed from simulation-display time for a bounded start/stop weight, eases heading across moving corners, and bakes foot/limb/wheel pose into ordinary matrices. Direction-aligned pitch rotates around the horizontal axis perpendicular to travel; feet and horse legs receive exact transformed-corner ground clearance. History is bounded to current live `id:generation` identities and resets on disappearance, memory projection, generation/bridge replacement, or clock rewind. Static and animated surface lanes are split, whole identities beyond the engine's active-animation budget degrade deterministically to static ambient poses, and unsupported animated shadow/memory parts degrade visibly to their static lanes.
+
+Consequences:
+- Cadence follows the path the player actually sees, including existing root interpolation, without changing simulation position, pathfinding, collision, commands, saves, replays, hit geometry, or the shared snapshot schema.
+- Paused selection redraws cannot decay or refresh locomotion history differently from an unselected world; gait phase, speed weight, and heading freeze until simulation-display time advances.
+- X, Z, diagonal, corner, and reversal travel share one movement plane instead of translating in one direction while flexing in another.
+- The engine remains history-free. City vehicles and Townscaper routes retain consumer-specific clocks and continuity rules; only a second proven neutral contract could justify extraction.
+- General skeletal clips, event-synchronized attacks/gathering, projectiles, root motion, and imported character animation remain deferred.

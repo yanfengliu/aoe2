@@ -122,12 +122,12 @@ test.describe('voxel world renderer', () => {
       visibleChunks: 12,
       materialResources: 5,
       geometryResources: 1,
-      instanceBatches: 4,
+      instanceBatches: 6,
       animatedBatches: 2,
       contextLosses: 0,
       contextRestorations: 0,
     });
-    expect(result.state.metrics!.animatedInstances).toBeGreaterThan(30);
+    expect(result.state.metrics!.animatedInstances).toBeGreaterThan(20);
     expect(result.state.metrics!.animatedInstances).toBeLessThan(500);
     expect(result.state.metrics!.animationMatrixUpdates).toBeGreaterThan(
       result.state.metrics!.animatedInstances,
@@ -154,7 +154,7 @@ test.describe('voxel world renderer', () => {
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
     await expect.poll(() => page.evaluate(
       () => window.__AOE2_TEST__!.getWorldRendererState().metrics!.animatedInstances,
-    )).toBeGreaterThan(30);
+    )).toBeGreaterThan(20);
     await page.waitForTimeout(100);
 
     const before = await page.evaluate(() => ({
@@ -189,6 +189,70 @@ test.describe('voxel world renderer', () => {
     expect(after.metrics.rendererGeometries).toBe(before.metrics.rendererGeometries);
     expect(after.metrics.rendererTextures).toBe(before.metrics.rendererTextures);
     expect(sha256(after.dataUrl)).not.toBe(sha256(before.dataUrl));
+  });
+
+  test('keeps commanded roots smooth and freezes speed-matched gait across pause redraws', async ({ page }) => {
+    await page.addInitScript(() => {
+      const timer = window.setInterval(() => {
+        if (!window.__AOE2_TEST__) return;
+        window.__AOE2_TEST__.setPaused(true);
+        window.clearInterval(timer);
+      }, 0);
+    });
+    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
+    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(6, 8))).toBe(true);
+    const selected = await page.evaluate(() => {
+      const id = window.__AOE2_TEST__!.getSelectionState().selectedEntityIds[0];
+      return window.__AOE2_TEST__!.getRenderState().entities.find((entity) => entity.id === id);
+    });
+    expect(selected).toBeDefined();
+    const identity = `${String(selected!.id)}:${String(selected!.generation ?? 0)}`;
+    const before = await page.evaluate(() => ({
+      capture: window.__AOE2_TEST__!.captureWorldFrame()!.dataUrl,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
+    }));
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(15, 15))).toBe(true);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    const admitted = await page.evaluate((key) => ({
+      motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),
+      displayed: window.__AOE2_TEST__!.getDisplayedEntities(),
+    }), identity);
+    const partial = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
+    const moving = await page.evaluate((key) => ({
+      motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),
+      displayed: window.__AOE2_TEST__!.getDisplayedEntities(),
+    }), identity);
+    const admittedRoot = admitted.displayed.find((entity) => entity.id === selected!.id)!;
+    const movingRoot = moving.displayed.find((entity) => entity.id === selected!.id)!;
+    const projectedRoot = partial.renderState.entities.find((entity) => entity.id === selected!.id)!;
+    expect(Math.hypot(movingRoot.x - admittedRoot.x, movingRoot.y - admittedRoot.y)).toBeGreaterThan(0);
+    expect(movingRoot).not.toMatchObject({ x: projectedRoot.x, y: projectedRoot.y });
+    expect(moving.motion?.gaitPhaseRadians).not.toBe(admitted.motion?.gaitPhaseRadians);
+    expect(moving.motion?.speedWorldUnitsPerSecond).toBeGreaterThan(0);
+    expect(moving.motion?.locomotionWeight).toBeGreaterThan(0);
+
+    await page.waitForTimeout(150);
+    const frozen = await page.evaluate((key) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(key), identity);
+    expect(frozen).toEqual(moving.motion);
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
+    const resumed = await page.evaluate((key) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(key), identity);
+    expect(resumed?.gaitPhaseRadians).not.toBe(frozen?.gaitPhaseRadians);
+    expect(resumed?.sampleTimeMs).toBeGreaterThan(frozen!.sampleTimeMs);
+
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics!;
+      return metrics.presentedRevision === metrics.acceptedRevision;
+    })).toBe(true);
+    const after = await page.evaluate(() => ({
+      capture: window.__AOE2_TEST__!.captureWorldFrame()!.dataUrl,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
+    }));
+    expect(after.metrics.acceptedRevision).toBeGreaterThan(before.metrics.acceptedRevision!);
+    expect(after.metrics.drawCalls).toBe(before.metrics.drawCalls);
+    expect(after.metrics.instances).toBe(before.metrics.instances);
+    expect(sha256(after.capture)).not.toBe(sha256(before.capture));
   });
 
   test('starts a fresh renderer epoch when save/load replaces the bridge', async ({ page }) => {
