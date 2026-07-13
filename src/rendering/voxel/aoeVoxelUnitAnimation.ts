@@ -49,6 +49,22 @@ const STRIDE_LENGTH_WORLD_UNITS: Readonly<Record<UnitRole, number>> = Object.fre
   monk: 2.5,
 });
 
+const AUTHORED_FORWARD_RADIANS: Readonly<Record<UnitRole, number>> = Object.freeze({
+  villager: Math.PI / 2,
+  infantry: Math.PI / 2,
+  archer: Math.PI / 2,
+  cavalry: Math.atan2(-0.36, 0.5),
+  'cavalry-archer': Math.atan2(-0.36, 0.5),
+  siege: Math.atan2(-0.43, 0.88),
+  monk: Math.PI / 2,
+});
+
+const FALLBACK_STRIDE_LENGTH_WORLD_UNITS = STRIDE_LENGTH_WORLD_UNITS.infantry;
+
+function animationRole(entity: ProjectedEntityView): UnitRole | undefined {
+  return unitRole(entity.entityType as UnitType) as UnitRole | undefined;
+}
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -72,14 +88,16 @@ function initialUnitMotion(
   sampleTimeMs: number,
 ): ResolvedUnitAnimationState {
   const phaseRadians = phaseForUnitIdentity(identity);
+  const role = animationRole(entity);
+  const authoredForward = role === undefined ? 0 : AUTHORED_FORWARD_RADIANS[role];
   const state: AoeUnitAnimationState = {
     mode: 'idle',
     phaseRadians,
     gaitPhaseRadians: phaseRadians,
     locomotionWeight: 0,
     speedWorldUnitsPerSecond: 0,
-    directionX: 1,
-    directionZ: 0,
+    directionX: Math.cos(authoredForward),
+    directionZ: Math.sin(authoredForward),
   };
   return {
     state,
@@ -93,7 +111,6 @@ function smoothDirection(
   targetZ: number,
   smoothingDeltaMs: number,
 ): readonly [number, number] {
-  if (previous.locomotionWeight < 0.001) return [targetX, targetZ];
   const blend = smoothingDeltaMs > 0
     ? 1 - Math.exp(-smoothingDeltaMs / TURN_RESPONSE_MS)
     : 0;
@@ -161,9 +178,12 @@ export function resolveUnitAnimationState(
   const locomotionWeight = targetWeight === 0 && blendedWeight < 0.001
     ? 0
     : clamp01(blendedWeight);
-  const role = unitRole(entity.entityType as UnitType);
+  const role = animationRole(entity);
+  const strideLength = role === undefined
+    ? FALLBACK_STRIDE_LENGTH_WORLD_UNITS
+    : STRIDE_LENGTH_WORLD_UNITS[role];
   const gaitPhaseRadians = wrapRadians(
-    previous.gaitPhaseRadians + distance / STRIDE_LENGTH_WORLD_UNITS[role] * TAU,
+    previous.gaitPhaseRadians + distance / strideLength * TAU,
   );
   const [directionX, directionZ] = moving
     ? smoothDirection(
@@ -404,6 +424,48 @@ function ambientAnimation(
   return base;
 }
 
+function orientUnitParts(
+  parts: readonly VoxelPart[],
+  entity: ProjectedEntityView,
+  role: UnitRole,
+  state: AoeUnitAnimationState,
+): readonly VoxelPart[] {
+  const targetHeading = Math.atan2(state.directionZ, state.directionX);
+  const authoredForward = AUTHORED_FORWARD_RADIANS[role] ?? 0;
+  const heading = Math.atan2(
+    Math.sin(targetHeading - authoredForward),
+    Math.cos(targetHeading - authoredForward),
+  );
+  if (Math.abs(heading) <= MOVEMENT_EPSILON) return parts;
+  const cosine = Math.cos(heading);
+  const sine = Math.sin(heading);
+  const rootX = entity.x + 0.5;
+  const rootZ = entity.y + 0.5;
+  return parts.map((part) => {
+    const offsetX = part.centerX - rootX;
+    const offsetZ = part.centerZ - rootZ;
+    return {
+      ...part,
+      centerX: rootX + offsetX * cosine - offsetZ * sine,
+      centerZ: rootZ + offsetX * sine + offsetZ * cosine,
+      yaw: (part.yaw ?? 0) - heading,
+    };
+  });
+}
+
+function normalizeAnimationDirection(state: AoeUnitAnimationState): AoeUnitAnimationState {
+  const length = Math.hypot(state.directionX, state.directionZ);
+  if (!Number.isFinite(length) || length <= MOVEMENT_EPSILON) {
+    throw new RangeError('Unit animation direction must be finite and non-zero.');
+  }
+  if (Math.abs(length - 1) <= MOVEMENT_EPSILON) return state;
+  return {
+    ...state,
+    directionX: state.directionX / length,
+    directionZ: state.directionZ / length,
+  };
+}
+
 export function animateUnitParts(
   parts: readonly VoxelPart[],
   entity: ProjectedEntityView,
@@ -412,10 +474,14 @@ export function animateUnitParts(
   if (entity.isMemory) return parts.map((part) => ({ ...part, animation: undefined }));
   const role = unitRole(entity.entityType as UnitType);
   const scale = Math.max(0.48, entity.size);
-  return parts.map((part) => {
+  const normalizedState = normalizeAnimationDirection(state);
+  return orientUnitParts(parts, entity, role, normalizedState).map((part) => {
     if (part.surface === 'shadow') return part;
     const suffix = part.key.slice(part.key.lastIndexOf(':') + 1);
-    const posed = posePart(part, suffix, role, state, scale);
-    return { ...posed, animation: ambientAnimation(suffix, role, state, scale) };
+    const posed = posePart(part, suffix, role, normalizedState, scale);
+    return {
+      ...posed,
+      animation: ambientAnimation(suffix, role, normalizedState, scale),
+    };
   });
 }

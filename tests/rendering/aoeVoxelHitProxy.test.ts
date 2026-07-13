@@ -9,6 +9,7 @@ import {
 } from '../../src/rendering/voxel/aoeVoxelHitProxy';
 import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
 import { pointInConvexPolygon } from '../../src/rendering/voxel/aoeVoxelGeometry';
+import { matrixForPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 
 function entity(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
   return {
@@ -102,10 +103,26 @@ describe('AoE voxel recipe hit proxy', () => {
     });
     adapter.createSnapshot([idle], 0);
     const moving = { ...idle, x: 3.25, y: 3.4 };
-    adapter.createSnapshot([moving], 100);
+    const snapshot = adapter.createSnapshot([moving], 100);
     const state = adapter.latestHitState();
     const prepared = state?.entities[0];
     expect(prepared).toBeDefined();
+    const motion = adapter.inspectUnitMotion('14:0');
+    expect(motion).not.toBeNull();
+    const apron = prepared!.parts.find((part) => part.key.endsWith(':villager-apron'))!;
+    const tool = prepared!.parts.find((part) => part.key.endsWith(':villager-tool-head'))!;
+    const scale = moving.size;
+    expect(apron.centerX - (moving.x + 0.5)).toBeCloseTo(0.21 * scale * motion!.directionX);
+    expect(apron.centerZ - (moving.y + 0.5)).toBeCloseTo(0.21 * scale * motion!.directionZ);
+    const renderedBatch = snapshot.batches.find((batch) => batch.instanceKeys.includes(tool.key))!;
+    const renderedIndex = renderedBatch.instanceKeys.indexOf(tool.key);
+    const renderedMatrix = renderedBatch.matrices.slice(
+      renderedIndex * 16,
+      renderedIndex * 16 + 16,
+    );
+    matrixForPart(tool).forEach((value, index) => {
+      expect(renderedMatrix[index]).toBeCloseTo(value, 5);
+    });
     const exact = preparedVoxelEntityHitRegions(prepared!, 350);
     const idleRecipe = voxelEntityHitRegions(moving);
 

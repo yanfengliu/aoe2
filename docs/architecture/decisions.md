@@ -404,3 +404,38 @@ Consequences:
 - New world visuals must enter through voxel snapshot data or recipes. New input
   behavior belongs in renderer-neutral controllers, not a replacement scene
   framework.
+
+## KAD-0023 - Exact-tick display interpolation and lightweight live metrics
+
+Date: 2026-07-13.
+Status: Active.
+
+Context: retaining the prior browser-rendered frame was not enough to interpolate
+correctly when one browser callback advanced multiple fixed simulation ticks.
+Moving fine-grid resources could still jump between samples, and the full actor
+rig did not consistently face its smoothed travel direction. Profiling also
+showed the routine render/HUD metrics capture serializing and structured-cloning
+the complete ECS world every tick even when debug UI was closed, consuming most
+of the simulation-frame budget.
+
+Decision: `RenderStore` captures exact unit and moving-resource positions before
+each forward tick and publishes them beside the current projection. Presentation
+uses that history only for `previous.tick === current.tick - 1`; same-tick writes
+cannot replace it, while rewinds, gaps, bridge epochs, and entity generations
+fail closed. AoE rotates the complete procedural actor through the shortest yaw
+arc toward its eased travel direction using role-specific authored forward axes.
+The live/replay render path uses a narrow metrics capture (alive count plus
+existing world metrics). AoE's explicit `getDebugSnapshot()` remains an
+on-demand game diagnostic; full `WorldDebugger.capture()` serialization is no
+longer constructed by the bridge or routine render path.
+
+Consequences:
+- Simulation positions, pathfinding, collision, commands, saves, and replay state
+  remain unchanged; all smoothing state is disposable presentation data.
+- Units, moving wildlife, hit proxies, contact shadows, body facing, and gait read
+  one coherent presented transform. Teleports and discontinuities never invent a
+  path between unrelated states.
+- Rich world serialization is not permitted in an always-on render or HUD hot
+  path. New diagnostics must prove their cost or remain on demand.
+- The shared `voxel` package receives no AoE motion schema. City and Townscaper
+  keep their own identity, route, and animation semantics.

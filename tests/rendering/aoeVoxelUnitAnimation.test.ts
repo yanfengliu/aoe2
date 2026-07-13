@@ -6,6 +6,7 @@ import {
   phaseForUnitIdentity,
   resolveUnitAnimationState,
   type AoeUnitAnimationState,
+  type AoeUnitMotionHistory,
 } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
@@ -39,6 +40,10 @@ function forwardRadians(from: number, to: number): number {
   return ((to - from) % tau + tau) % tau;
 }
 
+function signedAngleDelta(from: number, to: number): number {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
 function movingState(overrides: Partial<AoeUnitAnimationState> = {}): AoeUnitAnimationState {
   return {
     mode: 'moving',
@@ -59,6 +64,56 @@ function part(parts: readonly VoxelPart[], suffix: string): VoxelPart {
 }
 
 describe('AoE voxel unit locomotion sampling', () => {
+  it('starts a fresh idle identity on its authored forward axis', () => {
+    const initial = resolveUnitAnimationState(
+      unit({ entityType: 'militia' }),
+      '7:3',
+      undefined,
+      0,
+    );
+
+    expect(initial.state.directionX).toBeCloseTo(0);
+    expect(initial.state.directionZ).toBeCloseTo(1);
+  });
+
+  it('keeps malformed unit projections renderable with the neutral forward axis', () => {
+    const initial = resolveUnitAnimationState(
+      unit({ entityType: 'grass' }),
+      'malformed-unit',
+      undefined,
+      0,
+    );
+
+    expect(initial.state.directionX).toBeCloseTo(1);
+    expect(initial.state.directionZ).toBeCloseTo(0);
+    expect(Math.hypot(initial.state.directionX, initial.state.directionZ)).toBeCloseTo(1);
+
+    const malformedMoving = resolveUnitAnimationState(
+      unit({ entityType: 'grass', x: 0.1 }),
+      'malformed-unit',
+      initial.history,
+      16.67,
+    );
+    const recovered = resolveUnitAnimationState(
+      unit({ entityType: 'villager', x: 0.2 }),
+      'malformed-unit',
+      malformedMoving.history,
+      33.34,
+    );
+
+    for (const resolved of [malformedMoving, recovered]) {
+      expect(Object.values(resolved.state).every((value) => (
+        typeof value !== 'number' || Number.isFinite(value)
+      ))).toBe(true);
+    }
+    expect(() => createUnitParts(
+      unit({ entityType: 'villager', x: 0.2 }),
+      'malformed-unit',
+      0,
+      recovered.state,
+    )).not.toThrow();
+  });
+
   it('advances gait phase by displayed distance so faster movement has faster cadence', () => {
     const identity = '7:3';
     const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
@@ -114,11 +169,16 @@ describe('AoE voxel unit locomotion sampling', () => {
       unit({ x: 9, y: 9 }), identity, moving.history, 50,
     );
 
-    expect(moving.state.directionX).toBeCloseTo(0.6);
-    expect(moving.state.directionZ).toBeCloseTo(0.8);
+    expect(moving.state.directionX).toBeGreaterThan(0);
+    expect(moving.state.directionX).toBeLessThan(0.6);
+    expect(moving.state.directionZ).toBeGreaterThan(0.8);
+    expect(moving.state.directionZ).toBeLessThan(1);
+    expect(Math.hypot(moving.state.directionX, moving.state.directionZ)).toBeCloseTo(1);
     expect(rewound.state.gaitPhaseRadians).toBeCloseTo(phaseForUnitIdentity(identity));
     expect(rewound.state.locomotionWeight).toBe(0);
     expect(rewound.state.speedWorldUnitsPerSecond).toBe(0);
+    expect(rewound.state.directionX).toBeCloseTo(0);
+    expect(rewound.state.directionZ).toBeCloseTo(1);
   });
 
   it('eases a moving unit through path corners instead of snapping its gait plane', () => {
@@ -131,12 +191,74 @@ describe('AoE voxel unit locomotion sampling', () => {
       unit({ x: 0.2, y: 0.2 }), identity, east.history, 200,
     );
 
-    expect(east.state.directionX).toBeCloseTo(1);
-    expect(east.state.directionZ).toBeCloseTo(0);
+    expect(east.state.directionX).toBeGreaterThan(0);
+    expect(east.state.directionZ).toBeGreaterThan(0);
     expect(corner.state.directionX).toBeGreaterThan(0);
-    expect(corner.state.directionZ).toBeGreaterThan(0);
+    expect(corner.state.directionX).toBeLessThan(east.state.directionX);
+    expect(corner.state.directionZ).toBeGreaterThan(east.state.directionZ);
     expect(corner.state.directionZ).toBeLessThan(1);
     expect(Math.hypot(corner.state.directionX, corner.state.directionZ)).toBeCloseTo(1);
+  });
+
+  it.each([
+    ['north', 0, 1, Math.PI / 2],
+    ['west', -1, 0, Math.PI],
+  ] as const)('bounds an idle-to-%s body turn at a 60 Hz sample', (
+    _label,
+    targetX,
+    targetZ,
+    targetAngle,
+  ) => {
+    const previous: AoeUnitMotionHistory = {
+      ...movingState({
+        mode: 'idle',
+        locomotionWeight: 0,
+        speedWorldUnitsPerSecond: 0,
+        directionX: 1,
+        directionZ: 0,
+      }),
+      x: 0,
+      y: 0,
+      sampleTimeMs: 0,
+    };
+    const next = resolveUnitAnimationState(
+      unit({ x: targetX * 0.1, y: targetZ * 0.1 }),
+      '7:3',
+      previous,
+      1_000 / 60,
+    );
+    const nextAngle = Math.atan2(next.state.directionZ, next.state.directionX);
+    const turn = Math.abs(signedAngleDelta(0, nextAngle));
+
+    expect(turn).toBeGreaterThan(0);
+    expect(turn).toBeLessThan(0.5);
+    expect(Math.abs(signedAngleDelta(nextAngle, targetAngle))).toBeLessThan(targetAngle);
+  });
+
+  it('takes a bounded shortest-arc turn across the -pi/pi seam at a 60 Hz sample', () => {
+    const previousAngle = Math.PI - 0.02;
+    const targetAngle = -Math.PI + 0.02;
+    const previous: AoeUnitMotionHistory = {
+      ...movingState({
+        directionX: Math.cos(previousAngle),
+        directionZ: Math.sin(previousAngle),
+      }),
+      x: 0,
+      y: 0,
+      sampleTimeMs: 0,
+    };
+    const next = resolveUnitAnimationState(
+      unit({ x: Math.cos(targetAngle) * 0.1, y: Math.sin(targetAngle) * 0.1 }),
+      '7:3',
+      previous,
+      1_000 / 60,
+    );
+    const nextAngle = Math.atan2(next.state.directionZ, next.state.directionX);
+    const turn = signedAngleDelta(previousAngle, nextAngle);
+
+    expect(turn).toBeGreaterThan(0);
+    expect(turn).toBeLessThan(0.01);
+    expect(Math.abs(signedAngleDelta(nextAngle, targetAngle))).toBeLessThan(0.04);
   });
 
   it('is invariant to selection-forced redraws while simulation display time is paused', () => {

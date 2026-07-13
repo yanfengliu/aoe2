@@ -137,8 +137,7 @@ export function createAoeVoxelPresentationCoordinator(
   let lastInterpolationAlpha = Number.NaN;
   let lastInteractionKey = '';
   let lastSelectionKey = '';
-  let lastProjectedEntities: ProjectedEntityView[] = [];
-  let previousUnitPositions = new Map<string, { x: number; y: number }>();
+  let previousPositions = new Map<string, { x: number; y: number }>();
   let displayedEntities: ProjectedEntityView[] = [];
   let hasCenteredOnBase = false;
   let lastPlacementVisual: PlacementPreviewVisualState | null = null;
@@ -175,12 +174,15 @@ export function createAoeVoxelPresentationCoordinator(
     ) return;
 
     if (state.tick !== lastRenderedTick) {
-      previousUnitPositions = new Map(
-        lastProjectedEntities
-          .filter((entity) => entity.kind === 'unit')
-          .map((entity) => [renderIdentityKey(entity), { x: entity.x, y: entity.y }]),
+      const previousFrame = state.previousPositionFrame;
+      previousPositions = new Map(
+        previousFrame?.tick === state.tick - 1
+          ? previousFrame.positions.map((position) => [
+              renderIdentityKey(position),
+              { x: position.x, y: position.y },
+            ])
+          : [],
       );
-      lastProjectedEntities = state.entities.map((entity) => ({ ...entity }));
     }
     lastRenderedTick = state.tick;
     lastInterpolationAlpha = alpha;
@@ -188,7 +190,7 @@ export function createAoeVoxelPresentationCoordinator(
     lastSelectionKey = nextSelectionKey;
     displayedEntities = interpolateProjectedEntities(
       state.entities,
-      previousUnitPositions,
+      previousPositions,
       alpha,
     );
 
@@ -226,8 +228,7 @@ export function createAoeVoxelPresentationCoordinator(
     lastInterpolationAlpha = Number.NaN;
     lastInteractionKey = '';
     lastSelectionKey = '';
-    lastProjectedEntities = [];
-    previousUnitPositions.clear();
+    previousPositions.clear();
     displayedEntities = [];
     lastPlacementVisual = null;
     lastBuildings = [];

@@ -1,6 +1,5 @@
 import {
   RenderAdapter,
-  WorldDebugger,
 } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
@@ -11,6 +10,7 @@ import type { GameWorld } from '../bridge/pureHelpers';
 import { toEngineWorld } from '../bridge/pureHelpers';
 import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from '../prototypeScenario';
 import { RenderStore } from '../renderStore';
+import { createRenderMetricsCapture } from '../renderMetricsCapture';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -59,7 +59,6 @@ export function makeReplayBridge(
   const fogOwner = options.fogOwner ?? HUMAN_PLAYER_ID;
 
   const renderStore = new RenderStore();
-  const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });
   const renderAdapter = new RenderAdapter({
     world: toEngineWorld(world),
     projector: createProjector(
@@ -70,7 +69,7 @@ export function makeReplayBridge(
       api.getEntityHealth,
       api.getRecentUnitDeaths,
     ),
-    debug: debuggerView,
+    debug: createRenderMetricsCapture(world),
     send(message) {
       renderStore.apply(message);
     },

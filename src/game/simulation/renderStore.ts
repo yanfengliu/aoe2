@@ -1,18 +1,19 @@
 import type {
   RenderEntity,
   RenderServerMessage,
-  WorldDebugSnapshot,
 } from 'civ-engine';
 
 import type {
   ProjectedEntityView,
   ProjectedFrameView,
+  RenderPositionFrame,
 } from './types';
+import type { RenderMetricsSnapshot } from './renderMetricsCapture';
 
 type RenderMessage = RenderServerMessage<
   ProjectedEntityView,
   ProjectedFrameView,
-  WorldDebugSnapshot
+  RenderMetricsSnapshot
 >;
 
 function renderKey(entity: RenderEntity<ProjectedEntityView>): string {
@@ -27,9 +28,29 @@ export class RenderStore {
   private readonly entities = new Map<string, RenderEntity<ProjectedEntityView>>();
   private tick = 0;
   private frame: ProjectedFrameView | null = null;
-  private debug: WorldDebugSnapshot | null = null;
+  private debug: RenderMetricsSnapshot | null = null;
+  private initialized = false;
+  private previousPositionFrame: RenderPositionFrame | null = null;
 
   apply(message: RenderMessage): void {
+    const nextTick = message.data.render.tick;
+    if (this.initialized && nextTick > this.tick) {
+      const positions = [...this.entities.values()]
+        .filter(({ view }) => (
+          !view.isMemory && (view.kind === 'unit' || view.kind === 'resource')
+        ))
+        .map(({ ref, view }) => ({
+          id: ref.id,
+          generation: ref.generation,
+          x: view.x,
+          y: view.y,
+        }))
+        .sort((left, right) => left.id - right.id || left.generation - right.generation);
+      this.previousPositionFrame = { tick: this.tick, positions };
+    } else if (this.initialized && nextTick < this.tick) {
+      this.previousPositionFrame = null;
+    }
+
     if (message.type === 'renderSnapshot') {
       this.entities.clear();
       for (const entity of message.data.render.entities) {
@@ -38,6 +59,7 @@ export class RenderStore {
       this.tick = message.data.render.tick;
       this.frame = message.data.render.frame;
       this.debug = message.data.debug;
+      this.initialized = true;
       return;
     }
 
@@ -53,6 +75,7 @@ export class RenderStore {
     this.tick = message.data.render.tick;
     this.frame = message.data.render.frame;
     this.debug = message.data.debug;
+    this.initialized = true;
   }
 
   getEntities(): ProjectedEntityView[] {
@@ -76,7 +99,14 @@ export class RenderStore {
     return this.frame;
   }
 
-  getDebug(): WorldDebugSnapshot | null {
+  getDebug(): RenderMetricsSnapshot | null {
     return this.debug;
+  }
+
+  getPreviousPositionFrame(): RenderPositionFrame | null {
+    const frame = this.previousPositionFrame;
+    return frame
+      ? { tick: frame.tick, positions: frame.positions.map((position) => ({ ...position })) }
+      : null;
   }
 }

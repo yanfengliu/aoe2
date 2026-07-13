@@ -135,8 +135,98 @@ describe('AoE voxel unit recipes', () => {
     expect(parts.some((part) => part.surface === 'shadow')).toBe(true);
   });
 
+  it.each([
+    'villager',
+    'knight',
+    'battering-ram',
+  ] as const)('rotates the complete %s pose rigidly between travel headings', (entityType) => {
+    const east = createUnitParts(entity({ entityType }), '7:4', 0, {
+      mode: 'idle',
+      phaseRadians: 0,
+      gaitPhaseRadians: 0,
+      locomotionWeight: 0,
+      speedWorldUnitsPerSecond: 0,
+      directionX: 1,
+      directionZ: 0,
+    });
+    const south = createUnitParts(entity({ entityType }), '7:4', 0, {
+      mode: 'idle',
+      phaseRadians: 0,
+      gaitPhaseRadians: 0,
+      locomotionWeight: 0,
+      speedWorldUnitsPerSecond: 0,
+      directionX: 0,
+      directionZ: 1,
+    });
+    const rootX = 4.5;
+    const rootZ = 5.5;
+
+    expect(south.map((part) => part.key)).toEqual(east.map((part) => part.key));
+    for (let index = 0; index < east.length; index += 1) {
+      const eastPart = east[index]!;
+      const southPart = south[index]!;
+      const eastMatrix = matrixForPart(eastPart);
+      const southMatrix = matrixForPart(southPart);
+      expect(southPart.centerX - rootX).toBeCloseTo(-(eastPart.centerZ - rootZ));
+      expect(southPart.centerZ - rootZ).toBeCloseTo(eastPart.centerX - rootX);
+      expect(southMatrix[0]).toBeCloseTo(-eastMatrix[2]!);
+      expect(southMatrix[2]).toBeCloseTo(eastMatrix[0]!);
+    }
+  });
+
+  it.each([
+    ['villager', 'villager-apron'],
+    ['monk', 'monk-face'],
+    ['knight', 'cavalry-horse-head'],
+    ['battering-ram', 'siege-ram-head'],
+  ] as const)('points the semantic front of %s along every cardinal heading', (
+    entityType,
+    frontSuffix,
+  ) => {
+    for (const [directionX, directionZ] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
+      const parts = createUnitParts(entity({ entityType }), '7:4', 0, {
+        mode: 'idle',
+        phaseRadians: 0,
+        gaitPhaseRadians: 0,
+        locomotionWeight: 0,
+        speedWorldUnitsPerSecond: 0,
+        directionX,
+        directionZ,
+      });
+      const front = parts.find((part) => part.key.endsWith(frontSuffix))!;
+      const offsetX = front.centerX - 4.5;
+      const offsetZ = front.centerZ - 5.5;
+
+      expect(offsetX * directionX + offsetZ * directionZ).toBeGreaterThan(0);
+      expect(offsetX * directionZ - offsetZ * directionX).toBeCloseTo(0);
+    }
+  });
+
+  it('normalizes one direction for the complete pose and rejects non-finite headings', () => {
+    const state = {
+      mode: 'moving',
+      phaseRadians: 0,
+      gaitPhaseRadians: Math.PI / 2,
+      locomotionWeight: 1,
+      speedWorldUnitsPerSecond: 2,
+      directionX: 1,
+      directionZ: 0,
+    } as const;
+    const normalized = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, state);
+    const scaled = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+      ...state,
+      directionX: 2,
+    });
+
+    expect(scaled).toEqual(normalized);
+    expect(() => createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+      ...state,
+      directionX: Number.NaN,
+    })).toThrow(RangeError);
+  });
+
   it('lifts and advances opposing humanoid feet without penetrating the ground', () => {
-    const parts = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+    const moving = {
       mode: 'moving',
       phaseRadians: 0,
       gaitPhaseRadians: Math.PI / 2,
@@ -144,12 +234,22 @@ describe('AoE voxel unit recipes', () => {
       speedWorldUnitsPerSecond: 1,
       directionX: 0,
       directionZ: 1,
+    } as const;
+    const parts = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, moving);
+    const resting = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
+      ...moving,
+      mode: 'idle',
+      locomotionWeight: 0,
+      speedWorldUnitsPerSecond: 0,
     });
     const left = parts.find((part) => part.key.endsWith('villager-boot-left'))!;
     const right = parts.find((part) => part.key.endsWith('villager-boot-right'))!;
+    const restingLeft = resting.find((part) => part.key.endsWith('villager-boot-left'))!;
+    const restingRight = resting.find((part) => part.key.endsWith('villager-boot-right'))!;
 
     expect(left.centerY).toBeGreaterThan(right.centerY);
-    expect(left.centerZ).toBeGreaterThan(right.centerZ);
+    expect(left.centerZ).toBeGreaterThan(restingLeft.centerZ);
+    expect(right.centerZ).toBeLessThan(restingRight.centerZ);
     expect(left.centerY - left.height / 2).toBeGreaterThanOrEqual(0);
     expect(right.centerY - right.height / 2).toBeGreaterThanOrEqual(0);
     expect(left.pitch).not.toBe(0);

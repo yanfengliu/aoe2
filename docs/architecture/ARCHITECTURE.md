@@ -86,7 +86,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       authoritative blocker/crowding contract), `selectionActivity.ts`
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
-      writes into). Phase 1A added two more siblings: `commands.ts` (the
+      writes into, including the exact immediately prior forward-tick unit and
+      moving-resource positions used only for display interpolation) and
+      `renderMetricsCapture.ts` (the lightweight alive-count/world-metrics HUD
+      capture that deliberately avoids full-world debug serialization). Phase
+      1A added two more siblings: `commands.ts` (the
       `GameCommands` type alias for the 15-command surface that drives
       every gameplay-state mutation) and `dispatcher.ts` (the
       `drainPendingCommands(world, queue)` between-step helper that
@@ -163,7 +167,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     AoE visual-role tables. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
-    interaction state into snapshots; `aoeVoxelOverlayParts.ts` emits selection,
+    interaction state into snapshots, accepts prior positions only from the
+    exact adjacent simulation tick, and drives AoE-owned smooth root/facing
+    presentation; `aoeVoxelOverlayParts.ts` emits selection,
     drag marquee, placement, authored-height health, hit, and death feedback into
     normal rigid-instance lanes;
     `AoeVoxelWorldRenderer.ts` owns direct capture, metrics, context lifecycle,
@@ -194,7 +200,11 @@ design/stats ──build──► generated/content.json ──load──► Sim
   boundary through ECS systems, queries, and commands.
 - The simulation bridge (`src/game/simulation/`) owns repo-specific systems and
   scenario setup. It runs on top of `civ-engine` primitives and exposes a stable
-  surface to the standalone voxel view and HUD.
+  surface to the standalone voxel view and HUD. Routine render metrics count
+  alive entities and read existing ECS metrics. The AoE-specific
+  `getDebugSnapshot()` remains an explicit on-demand diagnostic; full
+  `WorldDebugger.capture()` serialization is not constructed by this bridge or
+  the per-tick render path.
 - `AoeVoxelGameView` is the sole renderer host. It advances the live bridge,
   updates renderer-neutral camera/input controllers, presents the AoE-owned
   voxel snapshot, and frames one Three canvas. Fog, selection, drag marquee,
@@ -216,8 +226,10 @@ design/stats ──build──► generated/content.json ──load──► Sim
 - Seeds are reproducible from `?seed=<name>` URL parameters for fixtures.
 - Commands and fixed-step ticks are the only sources of state change.
 - Render interpolation is a display concern; it does not feed back into simulation
-  state. Click hit-testing prefers the displayed entity so the player's perceived
-  target matches the authoritative target.
+  state. It consumes only the exact immediately preceding forward-tick projection;
+  gaps, rewinds, and generation changes snap instead of extrapolating across
+  unrelated state. Click hit-testing prefers the displayed entity so the player's
+  perceived target matches the authoritative target.
 
 ## Test boundaries
 

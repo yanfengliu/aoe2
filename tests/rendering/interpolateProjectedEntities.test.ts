@@ -65,6 +65,66 @@ describe('interpolateProjectedEntities', () => {
     expect(previousPositions.get(String(recycled.id))).toBeUndefined();
   });
 
+  it('interpolates a moving live sheep even though it projects through the resource layer', () => {
+    const sheep = createProjectedEntity({
+      id: 12,
+      generation: 4,
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'sheep',
+      owner: 1,
+      x: 8,
+      y: 6,
+      currentHp: null,
+      maxHp: null,
+    });
+    const previousPositions = new Map<string, { x: number; y: number }>([
+      [renderIdentityKey(sheep), { x: 7.5, y: 6 }],
+    ]);
+
+    const displayed = interpolateProjectedEntities([sheep], previousPositions, 0.5);
+
+    expect(displayed[0]).toMatchObject({ x: 7.75, y: 6 });
+    expect(displayed[0]).not.toBe(sheep);
+  });
+
+  it('preserves static resources and fog memories without allocating interpolated copies', () => {
+    const tree = createProjectedEntity({
+      id: 13,
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'tree',
+      x: 9,
+      y: 6,
+      currentHp: null,
+      maxHp: null,
+    });
+    const memory = createProjectedEntity({
+      id: 14,
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'tree',
+      x: 10,
+      y: 6,
+      currentHp: null,
+      maxHp: null,
+      isMemory: true,
+    });
+    const previousPositions = new Map<string, { x: number; y: number }>([
+      [renderIdentityKey(tree), { x: 9, y: 6 }],
+      [renderIdentityKey(memory), { x: 4, y: 6 }],
+    ]);
+
+    const displayed = interpolateProjectedEntities(
+      [tree, memory],
+      previousPositions,
+      0.5,
+    );
+
+    expect(displayed[0]).toBe(tree);
+    expect(displayed[1]).toBe(memory);
+  });
+
   it('keeps non-unit entities at their authoritative projected positions', () => {
     const entities = [
       createProjectedEntity({

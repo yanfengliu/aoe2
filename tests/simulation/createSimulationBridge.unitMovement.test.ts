@@ -36,10 +36,13 @@ describe('createSimulationBridge core systems', () => {
 
     bridge.step(100);
 
-    const tickOneRenderScout = bridge.getRenderState().entities.find((entity) => entity.id === scout?.id);
-    const tickOneTownCenter = bridge
-      .getRenderState()
-      .entities.find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
+    const tickOneState = bridge.getRenderState();
+    const tickOneRenderScout = tickOneState.entities.find((entity) => entity.id === scout?.id);
+    const tickOneTownCenter = tickOneState.entities
+      .find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
+    const previousScout = tickOneState.previousPositionFrame?.positions.find((position) => (
+      position.id === scout?.id && position.generation === initialScoutRender?.generation
+    ));
 
     // After one 100ms tick the scout's render position must differ from
     // its starting render position (it is moving on the sub-grid) but
@@ -51,6 +54,11 @@ describe('createSimulationBridge core systems', () => {
     ).toBeLessThan(1);
     expect(tickOneTownCenter?.x).toBe(townCenter?.x);
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
+    expect(tickOneState.previousPositionFrame?.tick).toBe(initialRenderState.tick);
+    expect(previousScout).toMatchObject({
+      x: initialScoutRender?.x,
+      y: initialScoutRender?.y,
+    });
   });
 
   it('does not publish monkTasks diffs for ordinary unit moves with no prior Monk task', () => {

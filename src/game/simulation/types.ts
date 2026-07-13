@@ -270,10 +270,16 @@ export interface ProjectedFrameView {
   recentUnitDeaths: ProjectedUnitDeathView[];
 }
 
+export interface RenderPositionFrame {
+  tick: number;
+  positions: Array<{ id: number; generation: number; x: number; y: number }>;
+}
+
 export interface RenderState {
   tick: number;
   entities: ProjectedEntityView[];
   frame: ProjectedFrameView | null;
+  previousPositionFrame?: RenderPositionFrame | null;
 }
 
 export interface PlayerResources {

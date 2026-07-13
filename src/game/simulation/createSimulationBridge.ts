@@ -1,7 +1,6 @@
 import {
   RenderAdapter,
   VisibilityMap,
-  WorldDebugger,
   type VisibilityMapState,
 } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
@@ -16,6 +15,7 @@ import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { drainPendingCommands } from './dispatcher';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from './prototypeScenario';
 import { RenderStore } from './renderStore';
+import { createRenderMetricsCapture } from './renderMetricsCapture';
 import {
   SAVE_SCHEMA_VERSION,
   isSaveBlobV1,
@@ -291,11 +291,10 @@ export function createSimulationBridge(
       civilizationsByOwner: options.civilizationsByOwner,
     });
   const renderStore = new RenderStore();
-  const debuggerView = new WorldDebugger({ world: toEngineWorld(world) });
   const renderAdapter = new RenderAdapter({
     world: toEngineWorld(world),
     projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths),
-    debug: debuggerView,
+    debug: createRenderMetricsCapture(world),
     send(message) {
       renderStore.apply(message);
     },

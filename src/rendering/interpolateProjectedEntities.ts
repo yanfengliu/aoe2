@@ -23,12 +23,18 @@ export function interpolateProjectedEntities(
   const clampedAlpha = Math.max(0, Math.min(1, interpolationAlpha));
 
   return entities.map((entity) => {
-    if (entity.kind !== 'unit') {
+    if (
+      entity.isMemory
+      || (entity.kind !== 'unit' && entity.kind !== 'resource')
+    ) {
       return entity;
     }
 
     const previousPosition = previousPositions.get(renderIdentityKey(entity));
     if (!previousPosition) {
+      return entity;
+    }
+    if (previousPosition.x === entity.x && previousPosition.y === entity.y) {
       return entity;
     }
 

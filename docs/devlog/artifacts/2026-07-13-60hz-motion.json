@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-07-13",
+  "environment": {
+    "browser": "Headless Chrome 150",
+    "os": "Windows 11",
+    "gpu": "NVIDIA GeForce RTX 4090 via ANGLE D3D11",
+    "viewportCssPixels": [1280, 720],
+    "devicePixelRatio": 1,
+    "scene": "aoe2-prototype foreground live game"
+  },
+  "framePacing": {
+    "warmupFrames": 60,
+    "measuredFrames": 658,
+    "measuredSeconds": 11,
+    "totalCaptureSeconds": 12,
+    "meanFps": 59.82,
+    "intervalMs": { "p50": 16.7, "p95": 16.8, "p99": 16.8, "max": 33.3 },
+    "mainThreadWorkMs": { "p50": 3.9, "p95": 8.2, "p99": 11.9, "max": 19.5 },
+    "drawCalls": 13,
+    "triangles": 10396,
+    "instances": 371,
+    "terrainChunks": 12,
+    "instanceBatches": 7
+  },
+  "scoutCorner": {
+    "sampledFrames": 150,
+    "movingFrames": 69,
+    "distinctPositions": 70,
+    "fractionalPositionSamples": 78,
+    "worldStep": { "p95": 0.168, "max": 0.1867 },
+    "headingDeltaRadians": { "p95": 0.169, "max": 0.23 },
+    "facingVelocityDot": { "median": 0.914, "p95": 0.996 }
+  },
+  "verification": {
+    "unitTestsPassed": 1926,
+    "unitTestsSkipped": 2,
+    "browserTestsPassed": 104,
+    "browserTestsSkipped": 2,
+    "contentValidation": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "productionBuildModules": 443
+  },
+  "scope": "Named reference evidence only; not an unconditional frame-rate guarantee across hardware, tabs, DPRs, or host contention."
+}

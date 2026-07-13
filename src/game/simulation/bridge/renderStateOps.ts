@@ -9,6 +9,7 @@ import { VisibilityMap } from 'civ-engine';
 import type {
   ProjectedEntityView,
   ProjectedFrameView,
+  RenderPositionFrame,
 } from '../types';
 import { compareProjectedRenderEntities, isFootprintVisible } from './pureHelpers';
 import type { RenderStore } from '../renderStore';
@@ -26,6 +27,7 @@ export interface RenderStateValue {
   tick: number;
   entities: ProjectedEntityView[];
   frame: ProjectedFrameView | null;
+  previousPositionFrame: RenderPositionFrame | null;
 }
 
 export function createRenderStateOps(deps: RenderStateOpsDeps): {
@@ -79,6 +81,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
         tick: currentTick,
         entities: liveEntities,
         frame: renderStore.getFrame(),
+        previousPositionFrame: renderStore.getPreviousPositionFrame(),
       };
       cache = {
         tick: currentTick,
@@ -99,6 +102,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
         tick: currentTick,
         entities: liveEntities,
         frame: renderStore.getFrame(),
+        previousPositionFrame: renderStore.getPreviousPositionFrame(),
       };
       cache = {
         tick: currentTick,
@@ -118,6 +122,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       tick: currentTick,
       entities: merged,
       frame: renderStore.getFrame(),
+      previousPositionFrame: renderStore.getPreviousPositionFrame(),
     };
     cache = {
       tick: currentTick,

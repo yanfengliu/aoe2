@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.1 - 2026-07-13
+
+### Units move and turn continuously at a measured 60 Hz
+
+Units no longer jump from the position captured by an arbitrary prior browser frame. The renderer keeps the exact immediately preceding simulation-tick projection and interpolates from it, so a slow browser frame that advances more than one simulation tick still presents the correct current segment. Sheep and other moving fine-grid resources use the same root interpolation rather than hopping between projected samples.
+
+The whole voxel actor now turns through the shortest arc toward its smoothed travel heading. Feet and other articulated parts retain the existing speed-matched gait, so starts, stops, corners, and reversals blend continuously while the body actually faces its movement direction. Teleports, replay discontinuities, generation changes, and non-adjacent frames deliberately snap instead of inventing motion across unrelated state.
+
+The always-on HUD metrics path no longer serializes and structured-clones the complete ECS world every simulation tick. AoE's explicit game-specific debug snapshot remains available on demand, while full `WorldDebugger` serialization is removed from the bridge/render path and normal rendering reads only alive-entity count plus existing world metrics. On the named Windows/Chrome 150/RTX 4090 reference at 1280x720 and DPR 1, the live voxel battlefield measured 59.82 FPS over 658 post-warmup frames; browser-frame intervals were p50 16.7 ms, p95 16.8 ms, and p99 16.8 ms, while full main-thread callback work was p50 3.9 ms, p95 8.2 ms, and p99 11.9 ms. This is a reference-scene result, not a guarantee for arbitrary hardware or browser scheduling.
+
 ## 0.2.0 - 2026-07-13
 
 ### Voxel graphics are now the whole game world
