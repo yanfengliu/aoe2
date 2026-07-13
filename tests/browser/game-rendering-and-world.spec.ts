@@ -162,7 +162,10 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
   test('renders a wolf health bar and lets hostile wildlife auto-aggro nearby human units', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'wolf-aggro-fixture');
+    // Freeze the fixture before reading its baseline. The assertion below
+    // advances deterministic ticks explicitly, so wall-clock renderer startup
+    // must not race the first wolf strike.
+    await game.waitForPausedBootWithSeed(page, 'wolf-aggro-fixture');
 
     const initialWolfBar = await game.getEntityHealthBarState(page, null, 'resource', 'wolf');
     const initialVillagerBar = await game.getEntityHealthBarState(page, 1, 'unit', 'villager');
@@ -433,37 +436,6 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
       String(incomeSnapshot.hudState.playerResources.gold),
     );
     expect(incomeSnapshot.hudState.playerResources.gold).toBeGreaterThan(100);
-  });
-
-  test('units hidden behind a building get a white occlusion silhouette', async ({ page }) => {
-    // v0.1.133: on the default base, some starting villagers stand behind the
-    // Town Center (smaller cellX+cellY → painted over by the TC). They must be
-    // reported as occluded so the scene stamps their white silhouette on the
-    // occlusion layer above the building.
-    await game.waitForBoot(page);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(40, 100));
-
-    const occluded = await page.evaluate(() => window.__AOE2_TEST__!.getOccludedUnitStates());
-    const displayed = await page.evaluate(() => window.__AOE2_TEST__!.getDisplayedEntities());
-
-    // At least one unit is hidden behind the TC on the default view…
-    expect(occluded.length).toBeGreaterThan(0);
-    // …but not ALL units are occluded (villagers also stand in the open).
-    const unitCount = displayed.filter((e) => e.kind === 'unit').length;
-    expect(occluded.length).toBeLessThan(unitCount);
-    // Every occluded record is a real unit currently displayed.
-    const unitIds = new Set(displayed.filter((e) => e.kind === 'unit').map((e) => e.id));
-    for (const occ of occluded) {
-      expect(unitIds.has(occ.id), `occluded id ${occ.id} is a displayed unit`).toBe(true);
-    }
-    // Each occluded unit sorts BEHIND some building (building cellX+cellY greater).
-    const buildings = displayed.filter((e) => e.kind === 'building');
-    for (const occ of occluded) {
-      expect(
-        buildings.some((b) => b.x + b.y > occ.x + occ.y),
-        `occluded unit ${occ.id} is behind a building`,
-      ).toBe(true);
-    }
   });
 
 });

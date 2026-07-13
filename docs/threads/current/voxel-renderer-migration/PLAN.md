@@ -1,6 +1,27 @@
 # Isometric voxel renderer migration — implementation plan
 
-Status: opt-in vertical slice implemented, locally gate-complete, and published as of 2026-07-12. External CLI review remains unavailable; GitHub-hosted verification is account-billing-blocked before job start; the default-promotion backlog remains active. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
+Status: Increment 9 standalone voxel-only runtime implemented and verified on 2026-07-13. The previous opt-in composed slice and its later visual/animation increments are preserved below as history. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
+
+## Increment 9: mandatory voxel-only graphics
+
+- [x] Re-audit bootstrap, scene lifecycle, renderer selection, hidden painters, overlays, capture, browser API, tests, and package/build surfaces against the live code.
+- [x] Capture the current composed `?renderer=voxel` browser baseline before edits.
+- [x] Decide the migration boundary: Three/`voxel` owns every world and world-overlay pixel; DOM HUD/minimap remain UI; a standalone AoE host owns input/camera/frame orchestration.
+- [x] Add red tests proving default and legacy renderer queries produce mandatory voxel presentation with no fallback state.
+- [x] Add an architectural test proving production code imports no deleted painters and retains no Phaser source, dependency, lock entry, or Vite chunk policy; audit the generated bundle separately in the build gate.
+- [x] Extract renderer-neutral projection, interpolation, role, hit-test, camera/input view-state, and selection helpers from `src/phaser`.
+- [x] Replace `createGameSceneRenderer` with a renderer-neutral AoE voxel presentation coordinator driven by displayed state and injected simulation-display time.
+- [x] Emit critical fog, selection, placement, health, hit/death feedback, and selection-preview visuals as AoE-owned voxel parts or terrain data; retain AoE semantics outside the reusable engine.
+- [x] Make voxel construction mandatory and failure terminal; remove renderer parsing, graphics fallback, hidden legacy drawing, nullable renderer/capture states, and composite Canvas2D capture.
+- [x] Delete the complete Phaser runtime/painter tree and obsolete painter tests; replace it with `AoeVoxelGameView` and renderer-neutral controllers.
+- [x] Update Playwright boot/canvas helpers and replace hidden-painter assertions with voxel diagnostics and visible-output evidence.
+- [x] Restore visible interaction parity with recipe-derived raised-entity hit regions, a four-segment voxel drag marquee, authored-part health-bar clearance, and paused selection invalidation.
+- [x] Make startup transactional and visibly fatal, keep annotation markers on capture failure, and replace the 50 ms simulation-time discard with bounded visible catch-up plus hidden-tab clock reset.
+- [x] Record fixed-camera after/diff evidence for the one-canvas output and measure draw calls, triangles, instances, resources, rebuilds, and teardown stability.
+- [x] Run focused tests, AoE's four mandatory gates, applicable browser tests, sibling engine `verify`, both dependency audits, adversarial live-code review, and verifier re-review. Final: AoE 1,905 unit tests plus two skips, 104 browser tests plus two intentional skips, typecheck, lint, and 442-module build; engine 80/80 plus typecheck, lint, and build; zero audit findings.
+- [x] Update spec, README, architecture, decisions, drift log, changelog/version, detailed/summary devlogs, review artifact, and this ledger; prepare the coherent local migration commit without pushing absent fresh publication approval.
+
+Exit gate: every playable world pixel and world feedback pixel comes from the voxel/Three scene; no runtime or query can activate Phaser graphics; hidden legacy work and misleading painter diagnostics are gone; commands, camera, fog comprehension, selection, placement, health, save/load, replay, capture, context recovery, and teardown remain proven.
 
 ## Preflight
 
@@ -117,12 +138,9 @@ Exit gate: a live displayed unit's root remains smoothly interpolated, its foot 
 
 ## Deferred backlog
 
-- Standalone Three renderer host and Phaser removal.
-- Elevation-aware voxel presentation, pointer projection, fog/health/selection placement, and raised-building hit geometry.
-- Elimination of hidden legacy draw work in the composed path.
-- Three-native fog/selection/placement/health/death/debug passes.
+- Raised terrain/cliffs plus a game-neutral presented-state voxel/heightfield ray query; the current AoE recipe proxy covers raised entity silhouettes only.
 - Depth-aware unit x-ray/outline treatment.
 - General skeletal crowds, attack/gather event clips, imported character assets, and richer per-civilization art.
 - Worker/WASM/greedy meshing after the Voxelize and `block-mesh-rs` bake-off.
 - City embedded-batch proof and Townscaper geometry-resource proof.
-- Static terrain/building/resource versus dynamic unit batches if representative adapter updates exceed the documented 4 ms local budget or browser instance/draw/resource ceilings.
+- Static terrain/building/resource deltas versus dynamic unit/interaction deltas; the current whole-snapshot adapter still revalidates and republishes interpolated state each display frame.

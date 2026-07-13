@@ -1,10 +1,25 @@
 # Isometric voxel renderer migration — design
 
-Status: opt-in vertical slice implemented from 2026-07-11; default promotion remains deferred. User direction: co-edit AoE2 into an isometric voxel presentation while building the graphics code in the sibling `voxel` repository for reuse by City and Townscaper. The prior AoE2 worktree was confirmed clean, fetched, and exactly synchronized with `origin/main` at `23f99b7` before this thread was created.
+Status: voxel-only runtime implemented, verified, and locally approved on 2026-07-13. Three/`voxel` is the only source of world and world-overlay pixels, with one interactive canvas, no renderer flag, no fallback renderer, and no Phaser dependency. The DOM HUD and minimap remain product UI rather than a second world renderer. User direction: co-edit AoE2 into an isometric voxel presentation while building reusable graphics code in the sibling `voxel` repository for City and Townscaper.
+
+## Voxel-only graphics decision
+
+The promotion gate is no longer a future option. AoE2 has one graphics direction going forward:
+
+- terrain, resources, buildings, units, fog, selection, placement, health, and hit/death feedback are emitted through AoE-owned voxel snapshot data and presented by the reusable Three runtime; debug summaries remain DOM text rather than a second world-paint path;
+- no URL parameter, initialization error, or compatibility branch may reactivate the Phaser world renderer;
+- voxel initialization failure is terminal and visible instead of silently changing art and interaction semantics;
+- legacy Phaser painters, hidden render layers, their painter-only diagnostics, and two-canvas composite capture are removed;
+- `AoeVoxelGameView` owns the browser frame loop and composes renderer-neutral camera, pointer, selection, and presentation controllers around the sole voxel canvas;
+- the DOM HUD, dialogs, timeline, and minimap remain normal UI. They do not duplicate the playable world renderer and are outside the voxel-art contract.
+
+The standalone host preserves the existing bridge, replay, HUD, annotation, and browser-test seams while removing the obsolete renderer and its second canvas. Input hit rules remain AoE-owned: exact targets come from recipe-projected silhouettes plus the established ground fallback, are promoted only with the matching presented epoch/revision, and are fenced while the renderer is lost or presentation is stale. Repeated exact clicks cycle distinct current semantic groups; prior hits are an ordering hint only, never a selectable cache. Reusable snapshot, recipe, capture, and presentation contracts do not gain game semantics.
+
+Increment 9 deletes the legacy painter tree and painter-only tests, removes renderer selection and composite capture, removes Phaser from the dependency graph and production bundle, and replaces hidden-painter diagnostics with voxel snapshot/metrics plus one-canvas browser assertions.
 
 ## Product outcome
 
-AoE2 now has an explicitly selected proving path that presents its playable world as real lit 3D, with voxel terrain and deterministic blocky procedural units, buildings, and resources. The established Phaser renderer remains the default while elevation-aware interaction and the complete parity matrix are unfinished. Both modes preserve the authoritative simulation, saves, replays, DOM HUD, fog semantics, command behavior, selection behavior, and automated playtest surface.
+AoE2 now always presents its playable world as real lit 3D, with voxel terrain and deterministic procedural units, buildings, resources, fog shading, and world feedback. The sole path preserves the authoritative simulation, saves, replays, DOM HUD, fog semantics, command behavior, selection behavior, and automated playtest surface. An AoE-owned CPU hit proxy projects the same rigid-part recipes as the adapter, so raised entity silhouettes are interactive without coupling renderer-neutral input to Three.js. Raised terrain/cliffs and a generic presented-state ray query remain future reusable work rather than a reason to retain a second renderer.
 
 The migration must remain original/procedural art. It may evoke the readability and 2:1 presentation of Age of Empires II but may not copy its assets.
 
@@ -20,7 +35,9 @@ The package owns validation, copied ingest, epochs, accepted/presented revisions
 
 No shared type may contain AoE terms such as unit, building, owner, fog, health, construction, command, or civilization. City roads/zones and Townscaper facades/stories/massing rules are equally excluded.
 
-## Why the first slice is composed, not a big-bang host replacement
+## Historical composed-slice rationale (superseded by Increment 9)
+
+The sections below preserve the decisions and evidence that led from an opt-in composed proof to the mandatory standalone renderer. Any statement below that Phaser is the default, that `?renderer=voxel` is required, or that two canvases compose the world is historical and superseded by the voxel-only decision above. The reusable boundary, recipe ownership, animation, revision, lifecycle, and performance contracts remain current unless explicitly superseded.
 
 The existing simulation seam is already favorable:
 
@@ -128,12 +145,12 @@ Acceptance requires tests for cadence versus displayed speed, split-distance pha
 - Stable external identity is `id:generation` plus renderer epoch. Instance slots remain private and may move.
 - A newer accepted snapshot supersedes an unpresented one. Results from a prior epoch or resource incarnation are discarded.
 - Three resources, canvas listeners/observers, render targets, geometries, materials, and batches have idempotent disposal.
-- `GameScene.setBridge()` starts a new renderer epoch and forces a complete adapter snapshot without recentering the established Phaser camera.
+- `AoeVoxelGameView.setBridge()` starts a new renderer epoch and forces a complete adapter snapshot without recentering the established voxel camera.
 - Shutdown removes the Three canvas and disposes the runtime exactly once.
 
 ## Capture and observability
 
-Page screenshots naturally composite the two canvases, but annotation capture currently selects one canvas. Voxel mode must provide an explicit composite capture: render Three, draw the Three canvas into an owned capture canvas, then draw the transparent Phaser overlay on top. Capture must not depend on globally enabling `preserveDrawingBuffer`.
+The sole world canvas is captured directly through `ThreeRenderRuntime.capture()` with `preserveDrawingBuffer:false`. `AoeVoxelGameView.getWorldCapture()` first drives a frame, so an accepted pending snapshot is reconciled and the returned manifest identifies the epoch and presented revision that produced the pixels. Annotation capture consumes that direct data URL; page screenshots separately include the DOM HUD and minimap.
 
 The browser-test surface gains data-only diagnostics:
 
@@ -145,30 +162,27 @@ The browser-test surface gains data-only diagnostics:
 
 No Three.js object escapes through the test API.
 
-## Promotion gate status
+## Mandatory-path gate status
 
-The opt-in proving slice has fixed-view before/after/diff evidence, nonblank composite and world capture, bounded renderer metrics, one runtime Three identity, bridge-epoch replacement, replay pixel changes across a revision-one epoch swap, context-loss recovery, and a browser assertion that the safe default creates no Three canvas. Those results prove the architecture, not default parity.
-
-Voxel may become the default only when all of the following pass on the named default seed and targeted showcase seeds:
+The user superseded the optional promotion decision: voxel is now the only world graphics path. The migration is acceptable only when all of the following pass on the named default seed and targeted showcase seeds:
 
 - fixed 800x600, fixed-DPR after screenshot is nonblank, aligned, and deliberately accepted against the preserved before capture;
 - terrain, a rigid unit, a multi-cell building, and resources are visibly 3D and use the three separate shared data lanes as designed;
 - left-click selection, right-click ground/entity commands, marquee selection, WASD/arrow pan, middle-drag pan, and wheel zoom retain behavior;
 - fog, exploration memory, selection, placement preview, health bars, minimap, HUD, save/load, replay scrubbing, and annotation capture still work;
 - bridge replacement creates a new renderer epoch and cannot show stale resources;
-- repeated create/snapshot/frame/dispose cycles keep resource counts stable;
+- repeated snapshot/frame/rebuild cycles keep resource counts bounded and disposal remains idempotent;
 - voxel verification, AoE's four mandatory gates, dependency audits, targeted browser tests, and adversarial review are green.
 
-The gate is currently unmet. In particular, elevation-aware overlay/input hit geometry is not implemented, raised-building hit proxies still derive from the hidden Phaser presentation, voxel-specific coverage has not exercised the full interaction/fog/save/replay matrix, and the composed path still computes some hidden legacy drawing work. Keeping Phaser as the default contains those limitations while the reusable renderer and opt-in path remain available for iteration.
+The implementation removes the fallback instead of hiding its limitations. Terrain remains elevation-zero; entity picking follows the current presented recipe-derived silhouettes, while geometry-aware raised-terrain picking is a named future voxel feature. Selection and death cues are currently static rigid parts, and the old white behind-building x-ray is intentionally absent until a depth-aware voxel pass exists. There is no hidden painter or alternate renderer masking those boundaries. Exact final gate, visual, and review evidence lives in `PLAN.md`, the linked detailed devlog, and `2026-07-13/7/REVIEW.md`.
 
-## Explicit non-goals for the first slice
+## Explicit non-goals for the standalone slice
 
-- Removing Phaser or replacing its input/overlay host.
-- Perfect parity with every existing 2D procedural art detail.
-- General skeletal animation, attacks, death particles, or depth-aware x-ray silhouettes in Three.
+- Preserving pixel parity with the deleted 2D procedural painter.
+- General skeletal animation, event-synchronized attacks, projectile clips, or depth-aware x-ray silhouettes in Three.
 - Greedy/WASM/worker meshing, AO, propagated voxel light, transparent voxel merging, liquids, LOD, streaming, WebGPU, or smooth terrain.
 - Migrating City or Townscaper in the same commit.
 
 ## Follow-on direction
 
-Before promotion, add an elevation-aware presentation/input contract, replace raised-building hit proxies with geometry that matches the visible voxel shell, eliminate hidden legacy draw work, and run the complete voxel-specific parity matrix. After those gates pass, extract a renderer-host interface and migrate Phaser-owned overlays one behavior at a time. In parallel, prove reuse with one City instance batch and one Townscaper geometry-resource slice. Advanced meshing begins only after the documented Voxelize versus `block-mesh-rs` bake-off.
+Add elevation-aware terrain presentation and a generic presented-state query together, then consider depth-aware unit visibility and richer event-synchronized animation from measured gameplay needs. Split static world data from interpolated unit/interaction deltas before scaling scene size. Prove reuse with one City instance-batch consumer and one Townscaper geometry-resource consumer before generalizing the AoE host. Advanced meshing begins only after the documented Voxelize versus `block-mesh-rs` bake-off.

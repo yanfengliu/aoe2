@@ -1,5 +1,5 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
-import { unitRole } from '../../phaser/scenes/gameScene/unitRole';
+import { unitRole } from '../roles/unitRole';
 import {
   contactShadow,
   makePart,

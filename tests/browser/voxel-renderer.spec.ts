@@ -7,122 +7,59 @@ function sha256(value: string): string {
 }
 
 test.describe('voxel world renderer', () => {
-  test('composes matching canvases and presents bounded metrics when explicitly enabled', async ({ page }) => {
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+  test('uses one interactive voxel canvas as the only graphics authority', async ({ page }) => {
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
 
     await expect.poll(async () => page.evaluate(
-      () => window.__AOE2_TEST__!.getWorldRendererState().metrics?.presentedRevision ?? null,
+      () => window.__AOE2_TEST__!.getWorldRendererState().metrics.presentedRevision,
     )).not.toBeNull();
     await expect.poll(async () => (
       await game.getMinimapStats(page)
     ).nonBackgroundPixelCount).toBeGreaterThan(1_000);
 
     const result = await page.evaluate(async () => {
-      const overlay = document.querySelector<HTMLCanvasElement>('.phaser-overlay-canvas')!;
       const world = document.querySelector<HTMLCanvasElement>('.voxel-world-canvas')!;
-      const capture = window.__AOE2_TEST__!.captureCompositeFrame();
+      const capture = window.__AOE2_TEST__!.captureFrame();
       const worldCapture = window.__AOE2_TEST__!.captureWorldFrame();
-      if (!capture || !worldCapture) throw new Error('Voxel capture surfaces are unavailable.');
-
-      const decode = async (dataUrl: string): Promise<ImageData> => {
-        const image = new Image();
-        image.src = dataUrl;
-        await image.decode();
-        const canvas = document.createElement('canvas');
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        if (!context) throw new Error('2D decode context is unavailable.');
-        context.drawImage(image, 0, 0);
-        return context.getImageData(0, 0, canvas.width, canvas.height);
-      };
-
-      const overlayOnly = document.createElement('canvas');
-      overlayOnly.width = capture.width;
-      overlayOnly.height = capture.height;
-      const overlayContext = overlayOnly.getContext('2d', { willReadFrequently: true });
-      if (!overlayContext) throw new Error('2D overlay context is unavailable.');
-      overlayContext.drawImage(overlay, 0, 0, overlayOnly.width, overlayOnly.height);
-
-      const [compositePixels, worldPixels] = await Promise.all([
-        decode(capture.dataUrl),
-        decode(worldCapture.dataUrl),
-      ]);
-      const overlayPixels = overlayContext.getImageData(
-        0,
-        0,
-        overlayOnly.width,
-        overlayOnly.height,
-      );
-      let worldContributionPixels = 0;
-      let unoccludedWorldMatches = 0;
-      for (let offset = 0; offset < compositePixels.data.length; offset += 4) {
-        const compositeDiffersFromOverlay =
-          compositePixels.data[offset] !== overlayPixels.data[offset]
-          || compositePixels.data[offset + 1] !== overlayPixels.data[offset + 1]
-          || compositePixels.data[offset + 2] !== overlayPixels.data[offset + 2]
-          || compositePixels.data[offset + 3] !== overlayPixels.data[offset + 3];
-        const worldIsVisible = worldPixels.data[offset + 3]! > 0;
-        if (compositeDiffersFromOverlay && worldIsVisible) worldContributionPixels += 1;
-
-        const compositeMatchesWorld =
-          compositePixels.data[offset] === worldPixels.data[offset]
-          && compositePixels.data[offset + 1] === worldPixels.data[offset + 1]
-          && compositePixels.data[offset + 2] === worldPixels.data[offset + 2]
-          && compositePixels.data[offset + 3] === worldPixels.data[offset + 3];
-        if (overlayPixels.data[offset + 3] === 0 && worldIsVisible && compositeMatchesWorld) {
-          unoccludedWorldMatches += 1;
-        }
-      }
-
       const context = world.getContext('webgl2') ?? world.getContext('webgl');
       return {
         state: window.__AOE2_TEST__!.getWorldRendererState(),
         singleThreeIdentity: window.__AOE2_TEST__!.hasSingleThreeIdentity(),
         capture,
-        captureProof: {
-          pixelCount: capture.width * capture.height,
-          worldContributionPixels,
-          unoccludedWorldMatches,
-        },
+        captureMatchesWorld: capture.dataUrl === worldCapture.dataUrl,
         preserveDrawingBuffer: context?.getContextAttributes()?.preserveDrawingBuffer ?? null,
         canvasCount: document.querySelectorAll('#game-root > canvas').length,
-        overlayRect: overlay.getBoundingClientRect().toJSON(),
         worldRect: world.getBoundingClientRect().toJSON(),
-        overlayWidth: overlay.width,
-        overlayHeight: overlay.height,
-        overlayZ: getComputedStyle(overlay).zIndex,
-        worldZ: getComputedStyle(world).zIndex,
+        worldWidth: world.width,
+        worldHeight: world.height,
+        pointerEvents: getComputedStyle(world).pointerEvents,
       };
     });
 
     expect(result.state.mode).toBe('voxel');
     expect(result.singleThreeIdentity).toBe(true);
     expect(result.capture).toMatchObject({
-      width: result.overlayWidth,
-      height: result.overlayHeight,
+      width: result.worldWidth,
+      height: result.worldHeight,
     });
     expect(result.capture!.dataUrl.startsWith('data:image/png;base64,')).toBe(true);
     expect(result.capture!.dataUrl.length).toBeGreaterThan(10_000);
     expect(result.preserveDrawingBuffer).toBe(false);
-    expect(result.captureProof.worldContributionPixels).toBeGreaterThan(1_000);
-    expect(result.captureProof.unoccludedWorldMatches).toBeGreaterThan(1_000);
-    expect(result.captureProof.worldContributionPixels).toBeLessThanOrEqual(
-      result.captureProof.pixelCount,
-    );
-    expect(result.canvasCount).toBe(2);
-    expect(result.worldRect).toEqual(result.overlayRect);
-    expect(Number(result.worldZ)).toBeLessThan(Number(result.overlayZ));
+    expect(result.captureMatchesWorld).toBe(true);
+    expect(result.canvasCount).toBe(1);
+    expect(result.worldRect.width).toBeGreaterThan(0);
+    expect(result.worldRect.height).toBeGreaterThan(0);
+    expect(result.pointerEvents).toBe('auto');
     expect(result.state.metrics).toMatchObject({
       state: 'running',
       acceptedEpoch: 'aoe2:bridge:0',
       presentedEpoch: 'aoe2:bridge:0',
       chunks: 12,
       visibleChunks: 12,
-      materialResources: 5,
+      materialResources: 6,
       geometryResources: 1,
-      instanceBatches: 6,
+      instanceBatches: 7,
       animatedBatches: 2,
       contextLosses: 0,
       contextRestorations: 0,
@@ -132,13 +69,52 @@ test.describe('voxel world renderer', () => {
     expect(result.state.metrics!.animationMatrixUpdates).toBeGreaterThan(
       result.state.metrics!.animatedInstances,
     );
-    expect(result.state.metrics!.instances).toBeGreaterThan(500);
-    expect(result.state.metrics!.instances).toBeLessThan(5_000);
+    // Fog now shades terrain data instead of allocating one overlay instance
+    // per hidden cell, so the same scene stays deliberately below the former
+    // composed-renderer instance floor.
+    expect(result.state.metrics!.instances).toBeGreaterThan(300);
+    expect(result.state.metrics!.instances).toBeLessThan(10_000);
     expect(result.state.metrics!.drawCalls).toBeGreaterThan(0);
-    expect(result.state.metrics!.drawCalls).toBeLessThanOrEqual(16);
-    expect(result.state.metrics!.triangles).toBeLessThan(100_000);
+    expect(result.state.metrics!.drawCalls).toBeLessThanOrEqual(20);
+    expect(result.state.metrics!.triangles).toBeLessThan(200_000);
     expect(result.state.metrics!.rendererGeometries).toBeLessThanOrEqual(20);
     expect(result.state.metrics!.rendererTextures).toBeLessThanOrEqual(4);
+  });
+
+  test('presents paused click-selection feedback without waiting for a simulation tick', async ({
+    page,
+  }) => {
+    await game.waitForPausedBootWithSeed(page, 'villager-selection-fixture');
+    const villager = (await game.getRenderedOwnedUnits(page, 1, 'villager'))[0];
+    expect(villager).toBeDefined();
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
+      return metrics.presentedRevision === metrics.acceptedRevision;
+    })).toBe(true);
+    const before = await page.evaluate(() => ({
+      tick: window.__AOE2_TEST__!.getRenderState().tick,
+      capture: window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics,
+    }));
+
+    await game.clickWorldPosition(page, villager!.x + 0.5, villager!.y + 0.5);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
+      return metrics.acceptedRevision !== null
+        && metrics.acceptedRevision > 0
+        && metrics.presentedRevision === metrics.acceptedRevision;
+    })).toBe(true);
+
+    const after = await page.evaluate(() => ({
+      tick: window.__AOE2_TEST__!.getRenderState().tick,
+      capture: window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics,
+    }));
+    expect(after.tick).toBe(before.tick);
+    expect(after.metrics.acceptedRevision).toBeGreaterThan(before.metrics.acceptedRevision!);
+    expect(after.metrics.instances).toBeGreaterThanOrEqual(before.metrics.instances + 6);
+    expect(sha256(after.capture)).not.toBe(sha256(before.capture));
   });
 
   test('animates rigid unit parts without accepting new world state while paused', async ({ page }) => {
@@ -149,7 +125,7 @@ test.describe('voxel world renderer', () => {
         window.clearInterval(timer);
       }, 0);
     });
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
     await expect.poll(() => page.evaluate(
@@ -199,7 +175,7 @@ test.describe('voxel world renderer', () => {
         window.clearInterval(timer);
       }, 0);
     });
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
     expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(6, 8))).toBe(true);
@@ -250,13 +226,16 @@ test.describe('voxel world renderer', () => {
       metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
     }));
     expect(after.metrics.acceptedRevision).toBeGreaterThan(before.metrics.acceptedRevision!);
-    expect(after.metrics.drawCalls).toBe(before.metrics.drawCalls);
-    expect(after.metrics.instances).toBe(before.metrics.instances);
+    // Movement can reveal fog-shaded terrain detail and activate one existing
+    // material batch; resource/draw growth must stay within the scene budget.
+    expect(after.metrics.drawCalls).toBeGreaterThan(0);
+    expect(after.metrics.drawCalls).toBeLessThanOrEqual(20);
+    expect(Math.abs(after.metrics.instances - before.metrics.instances)).toBeLessThan(200);
     expect(sha256(after.capture)).not.toBe(sha256(before.capture));
   });
 
   test('starts a fresh renderer epoch when save/load replaces the bridge', async ({ page }) => {
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     const before = await page.evaluate(
       () => window.__AOE2_TEST__!.getWorldRendererState().metrics!.acceptedEpoch,
@@ -273,7 +252,7 @@ test.describe('voxel world renderer', () => {
   });
 
   test('rebuilds visible Three resources when a replay scrub changes epoch at revision one', async ({ page }) => {
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(6, 8))).toBe(true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(15, 15))).toBe(true);
@@ -337,11 +316,22 @@ test.describe('voxel world renderer', () => {
   });
 
   test('fences presentation during context loss and catches up after restoration', async ({ page }) => {
-    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.goto('/?seed=aoe2-prototype');
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     await expect.poll(() => page.evaluate(
       () => window.__AOE2_TEST__!.getWorldRendererState().metrics!.presentedRevision,
     )).not.toBeNull();
+    const interactionTarget = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      const unit = api.getRenderState().entities.find((entity) => (
+        entity.kind === 'unit' && entity.owner === 1 && !entity.isMemory
+      ));
+      if (!unit) return null;
+      const x = unit.x + 0.5;
+      const y = unit.y + 0.5;
+      return api.selectEntityAtWorldPosition(x, y) ? { x, y } : null;
+    });
+    expect(interactionTarget).not.toBeNull();
 
     const lossAttempt = await page.locator('.voxel-world-canvas').evaluate((canvas) => {
       const webglCanvas = canvas as HTMLCanvasElement;
@@ -384,6 +374,21 @@ test.describe('voxel world renderer', () => {
       () => window.__AOE2_TEST__!.getWorldRendererState().metrics!,
     );
     expect(lost.contextLosses).toBe(1);
+    const blockedInteraction = await page.evaluate((target) => {
+      const api = window.__AOE2_TEST__!;
+      const before = api.getSelectionState().selectedEntityIds;
+      const didSelect = api.selectEntityAtWorldPosition(target!.x, target!.y);
+      const didCommand = api.issueContextCommandAtWorldPosition(14.5, 7.5);
+      return {
+        before,
+        after: api.getSelectionState().selectedEntityIds,
+        didSelect,
+        didCommand,
+      };
+    }, interactionTarget);
+    expect(blockedInteraction.didSelect).toBe(false);
+    expect(blockedInteraction.didCommand).toBe(false);
+    expect(blockedInteraction.after).toEqual(blockedInteraction.before);
 
     expect(await page.evaluate(() => {
       const holder = window as typeof window & {
@@ -408,15 +413,15 @@ test.describe('voxel world renderer', () => {
     })).toBe(false);
   });
 
-  test('retains Phaser as the safe default without creating a Three canvas', async ({ page }) => {
-    await page.goto('/?seed=aoe2-prototype');
-    await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
+  test('ignores every legacy or invalid renderer query', async ({ page }) => {
+    for (const renderer of ['phaser', 'voxel', 'unsupported']) {
+      await page.goto(`/?seed=aoe2-prototype&renderer=${renderer}`);
+      await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
 
-    expect(await page.evaluate(() => window.__AOE2_TEST__!.getWorldRendererState())).toEqual({
-      mode: 'phaser',
-      metrics: null,
-    });
-    await expect(page.locator('.voxel-world-canvas')).toHaveCount(0);
-    await expect(page.locator('.phaser-overlay-canvas')).toHaveCount(1);
+      expect(await page.evaluate(() => window.__AOE2_TEST__!.getWorldRendererState().mode))
+        .toBe('voxel');
+      await expect(page.locator('.voxel-world-canvas')).toHaveCount(1);
+      await expect(page.locator('#game-root > canvas')).toHaveCount(1);
+    }
   });
 });

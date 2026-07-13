@@ -1,5 +1,5 @@
-import type { CameraStateSnapshot } from '../../phaser/scenes/gameScene/cameraController';
-import { isoToWorld } from '../../phaser/scenes/gameScene/isoProjection';
+import { isoToWorld } from '../isometricProjection';
+import type { CameraState } from '../viewTypes';
 
 export interface AoeVoxelCameraView {
   readonly center: { readonly x: number; readonly y: number; readonly z: number };
@@ -8,7 +8,7 @@ export interface AoeVoxelCameraView {
   readonly zoom: number;
 }
 
-export function cameraStateToVoxelView(camera: CameraStateSnapshot): AoeVoxelCameraView {
+export function cameraStateToVoxelView(camera: CameraState): AoeVoxelCameraView {
   const isoCenterX = camera.viewX + camera.viewWidth / 2;
   const isoCenterY = camera.viewY + camera.viewHeight / 2;
   const cellCenter = isoToWorld(isoCenterX, isoCenterY);

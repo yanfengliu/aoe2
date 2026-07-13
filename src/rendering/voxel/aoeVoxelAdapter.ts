@@ -3,7 +3,7 @@ import type { RenderSnapshotV1, VoxelChunkV1 } from 'voxel/core';
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import { createBuildingParts } from './aoeVoxelBuildingRecipes';
 import { createResourceParts } from './aoeVoxelResourceRecipes';
-import { type VoxelPart } from './aoeVoxelRecipeTypes';
+import { shade, type VoxelPart } from './aoeVoxelRecipeTypes';
 import { copyAoeVoxelResources, makePartBatches } from './aoeVoxelResources';
 import {
   AOE_TERRAIN_CHUNK_SIZE,
@@ -16,10 +16,20 @@ import {
 } from './aoeVoxelTerrain';
 import { createUnitParts } from './aoeVoxelUnitRecipes';
 import {
+  createAoeVoxelOverlayParts,
+  EMPTY_VOXEL_OVERLAYS,
+  type AoeVoxelOverlayInput,
+} from './aoeVoxelOverlayParts';
+import {
   resolveUnitAnimationState,
   type AoeUnitAnimationState,
   type AoeUnitMotionHistory,
 } from './aoeVoxelUnitAnimation';
+import { voxelPartMaxY } from './aoeVoxelGeometry';
+import {
+  prepareVoxelHitEntity,
+  type PreparedVoxelHitState,
+} from './aoeVoxelHitProxy';
 
 export { AOE_TERRAIN_CHUNK_SIZE } from './aoeVoxelTerrain';
 
@@ -35,7 +45,11 @@ interface KeyedEntity {
   readonly identity: string;
   readonly ground: number;
   readonly animationState?: AoeUnitAnimationState;
+  readonly parts: readonly VoxelPart[];
+  readonly visualTop: number;
 }
+
+type EntityRecipeInput = Omit<KeyedEntity, 'parts' | 'visualTop'>;
 
 interface FallbackIdentityState {
   active: boolean;
@@ -66,13 +80,31 @@ function explicitEntityKey(entity: ProjectedEntityView): string | null {
 }
 
 function compositionGround(entity: ProjectedEntityView): number {
-  // The projected contract retains elevation for the future standalone host,
-  // but the composed Phaser overlay/input plane is elevation-zero.
+  // The projected contract retains elevation, while the current standalone
+  // input projection remains elevation-zero.
   elevationOf(entity);
   return 0;
 }
 
-function partsFor(entity: KeyedEntity): VoxelPart[] {
+function terrainWithVoxelFog(
+  entities: readonly ProjectedEntityView[],
+  frame: AoeVoxelOverlayInput['frame'],
+): readonly ProjectedEntityView[] {
+  if (!frame) return entities;
+  const visible = new Set(frame.visibleCells);
+  const explored = new Set(frame.exploredCells);
+  return entities.map((entity) => {
+    if (entity.layer !== 'terrain') return entity;
+    const index = Math.floor(entity.y) * frame.mapWidth + Math.floor(entity.x);
+    if (visible.has(index)) return entity;
+    return {
+      ...entity,
+      tint: shade(entity.tint, explored.has(index) ? 0.32 : 0.12),
+    };
+  });
+}
+
+function partsFor(entity: EntityRecipeInput): VoxelPart[] {
   if (entity.entity.layer === 'unit') {
     return createUnitParts(
       entity.entity,
@@ -97,6 +129,10 @@ export class AoeVoxelAdapter {
   private readonly chunkStates = new Map<string, ChunkState>();
   private readonly fallbackIdentities = new Map<string, FallbackIdentityState>();
   private readonly unitMotionHistories = new Map<string, AoeUnitMotionHistory>();
+  private readonly healthByIdentity = new Map<string, number>();
+  private readonly hitUntilByIdentity = new Map<string, number>();
+  private lastFeedbackTimeMs = 0;
+  private currentHitState: PreparedVoxelHitState | null = null;
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
@@ -113,14 +149,20 @@ export class AoeVoxelAdapter {
     return history ? { ...history } : null;
   }
 
+  latestHitState(): PreparedVoxelHitState | null {
+    return this.currentHitState;
+  }
+
   createSnapshot(
     entities: readonly ProjectedEntityView[],
     sampleTimeMs = 0,
+    overlays: AoeVoxelOverlayInput = EMPTY_VOXEL_OVERLAYS,
   ): RenderSnapshotV1 {
     if (!Number.isFinite(sampleTimeMs) || sampleTimeMs < 0) {
       throw new RangeError('AoE voxel sample time must be a non-negative finite number.');
     }
-    const cells = terrainCells(entities);
+    const foggedTerrainEntities = terrainWithVoxelFog(entities, overlays.frame);
+    const cells = terrainCells(foggedTerrainEntities);
     const nextRevision = this.revision + 1;
     if (!Number.isSafeInteger(nextRevision)) throw new RangeError('AoE voxel revision overflow.');
     const nextPaletteSignature = [...new Set(cells.map((cell) => cell.tint))]
@@ -128,11 +170,42 @@ export class AoeVoxelAdapter {
       .join(',');
     const drafts = draftTerrainChunks(cells, nextPaletteSignature);
     const prepared = this.prepareInstanceEntities(entities, sampleTimeMs);
+    const hitEntityIdentities = this.updateHitFeedback(prepared.entities, sampleTimeMs);
+    const overlayFrame = overlays.frame;
+    const visibleTerrain = overlayFrame ? new Set(overlayFrame.visibleCells) : null;
+    const terrainDetailEntities = visibleTerrain && overlayFrame
+      ? entities.filter((entity) => (
+          entity.layer !== 'terrain'
+          || visibleTerrain.has(
+            Math.floor(entity.y) * overlayFrame.mapWidth + Math.floor(entity.x),
+          )
+        ))
+      : entities;
     const parts = [
-      ...createTerrainDetailParts(entities),
-      ...prepared.entities.flatMap(partsFor),
+      ...createTerrainDetailParts(terrainDetailEntities),
+      ...prepared.entities.flatMap((entity) => entity.parts),
+      ...createAoeVoxelOverlayParts(prepared.entities, {
+        ...overlays,
+        hitEntityIdentities,
+      }),
     ];
     const batches = makePartBatches(parts, nextRevision);
+    const animatedKeys = new Set(batches.flatMap((batch) => {
+      if (!batch.animation) return [];
+      return batch.instanceKeys.filter((_, index) => batch.animation!.periodsMs[index]! > 0);
+    }));
+    this.currentHitState = {
+      epoch: this.epoch,
+      revision: nextRevision,
+      entities: prepared.entities.map(({ entity, parts: entityParts }) => prepareVoxelHitEntity(
+        entity,
+        entityParts.map((part) => (
+          part.animation && !animatedKeys.has(part.key)
+            ? { ...part, animation: undefined }
+            : part
+        )),
+      )),
+    };
     this.replaceFallbackIdentities(prepared.fallbacks);
 
     if (nextPaletteSignature !== this.paletteSignature) {
@@ -201,7 +274,7 @@ export class AoeVoxelAdapter {
           maxResources: 16,
           maxPaletteEntries: 4_096,
           maxChunks: 4_096,
-          maxBatches: 6,
+          maxBatches: 7,
           maxVoxelsPerChunk: AOE_TERRAIN_CHUNK_SIZE * AOE_TERRAIN_CHUNK_SIZE * 64,
           maxGeometryVertices: 1_024,
           maxGeometryIndices: 3_072,
@@ -251,11 +324,20 @@ export class AoeVoxelAdapter {
         )
         : undefined;
       if (resolvedAnimation) nextMotionHistories.set(identity, resolvedAnimation.history);
-      return {
+      const recipeInput: EntityRecipeInput = {
         entity,
         identity,
         ground: compositionGround(entity),
         ...(resolvedAnimation ? { animationState: resolvedAnimation.state } : {}),
+      };
+      const parts = partsFor(recipeInput);
+      const visibleParts = parts.filter((part) => part.surface !== 'shadow');
+      return {
+        ...recipeInput,
+        parts,
+        visualTop: visibleParts.length === 0
+          ? recipeInput.ground
+          : Math.max(...visibleParts.map(voxelPartMaxY)),
       };
     });
     this.unitMotionHistories.clear();
@@ -270,6 +352,37 @@ export class AoeVoxelAdapter {
     for (const [key, state] of next) this.fallbackIdentities.set(key, state);
   }
 
+  private updateHitFeedback(
+    entities: readonly KeyedEntity[],
+    sampleTimeMs: number,
+  ): string[] {
+    if (sampleTimeMs < this.lastFeedbackTimeMs) {
+      this.healthByIdentity.clear();
+      this.hitUntilByIdentity.clear();
+    }
+    this.lastFeedbackTimeMs = sampleTimeMs;
+    const activeIdentities = new Set<string>();
+    const nextHealth = new Map<string, number>();
+    for (const { entity, identity } of entities) {
+      if (entity.isMemory || entity.currentHp === null) continue;
+      activeIdentities.add(identity);
+      nextHealth.set(identity, entity.currentHp);
+      const previous = this.healthByIdentity.get(identity);
+      if (previous !== undefined && entity.currentHp < previous) {
+        this.hitUntilByIdentity.set(identity, sampleTimeMs + 260);
+      }
+    }
+    this.healthByIdentity.clear();
+    for (const [identity, health] of nextHealth) this.healthByIdentity.set(identity, health);
+    for (const identity of [...this.hitUntilByIdentity.keys()]) {
+      const until = this.hitUntilByIdentity.get(identity) ?? 0;
+      if (!activeIdentities.has(identity) || until <= sampleTimeMs) {
+        this.hitUntilByIdentity.delete(identity);
+      }
+    }
+    return [...this.hitUntilByIdentity.keys()].sort();
+  }
+
   resetForBridgeSwap(): void {
     this.epochIndex += 1;
     this.revision = 0;
@@ -278,5 +391,9 @@ export class AoeVoxelAdapter {
     this.chunkStates.clear();
     this.fallbackIdentities.clear();
     this.unitMotionHistories.clear();
+    this.healthByIdentity.clear();
+    this.hitUntilByIdentity.clear();
+    this.lastFeedbackTimeMs = 0;
+    this.currentHitState = null;
   }
 }

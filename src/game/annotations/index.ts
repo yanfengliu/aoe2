@@ -13,4 +13,8 @@ export {
   isAoeMarkerData,
 } from './markerSchema';
 export { type SelectionAwareRefs, selectionToRefs } from './selectionToRefs';
-export { type CaptureScreenshotOptions, captureScreenshot } from './captureScreenshot';
+export {
+  type CaptureScreenshotOptions,
+  captureScreenshot,
+  captureScreenshotDataUrl,
+} from './captureScreenshot';

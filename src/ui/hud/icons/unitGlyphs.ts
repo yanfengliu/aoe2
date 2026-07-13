@@ -4,7 +4,7 @@
 // Slice 1 (v0.1.39) iconified the top-bar resource chips and the
 // "Build <Name>" command buttons (see ./glyphs.ts). This slice gives the
 // SELECTION badge a glyph: one inline-SVG per unit RENDER ROLE (mirroring
-// the on-map silhouettes in `src/phaser/scenes/gameScene/unitRenderer.ts`),
+// the on-map voxel silhouettes in `src/rendering/voxel/aoeVoxelUnitRecipes.ts`),
 // plus the existing per-building glyph reused for a selected building.
 //
 // Authoring rules are identical to slice 1: every glyph is 100% ORIGINAL
@@ -31,9 +31,7 @@ import {
   selectionExtraGlyph,
 } from './glyphs';
 
-// The 7 render roles, identical to `unitRenderer.UnitRole`. Kept as a
-// local type (not imported from the Phaser layer) so this DOM module never
-// pulls Phaser into the HUD bundle; a test asserts the two role maps agree.
+// The seven AoE-owned visual roles used by both DOM glyphs and voxel recipes.
 export type UnitGlyphRole =
   | 'villager'
   | 'infantry'
@@ -126,12 +124,10 @@ const UNIT_ROLE_GLYPH_BODY: Record<UnitGlyphRole, string> = {
   monk: MONK_GLYPH,
 };
 
-// Exhaustive, selection-OWNED mapping of every UnitType to its render role.
+// Exhaustive, selection-owned mapping of every UnitType to its visual role.
 // `satisfies Record<UnitType, UnitGlyphRole>` makes a newly-added UnitType a
-// compile error here. This intentionally MIRRORS `unitRenderer.unitRole`
-// (a test asserts they agree for every type) so the badge glyph and the
-// on-map silhouette never diverge — but production code stays decoupled
-// from the Phaser layer.
+// compile error here. A drift-guard test compares this mapping with the voxel
+// recipe classification so the badge glyph and world silhouette agree.
 const UNIT_GLYPH_ROLES = {
   villager: 'villager',
   // Infantry (foot melee).

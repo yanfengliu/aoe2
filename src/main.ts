@@ -6,5 +6,9 @@ import './hudChrome.css';
 import './hudIcons.css';
 
 import { createApp } from './app/bootstrap/createApp';
+import { renderFatalStartupError } from './app/bootstrap/renderFatalStartupError';
 
-createApp();
+void createApp().catch((error: unknown) => {
+  console.error('[aoe2] startup failed', error);
+  renderFatalStartupError(error);
+});

@@ -6,7 +6,7 @@
 // a unit.move command) so the resulting bundle has actual command
 // payloads and round-trips through the engine. The tests here exercise
 // the helpers + dialog end-to-end against a real-world fixture without
-// standing up Phaser.
+// standing up the browser renderer.
 
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -8,10 +8,16 @@ import {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../game/simulation/types';
-import type { CameraStateSnapshot } from '../../phaser/scenes/gameScene/cameraController';
+import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
+import type { AoeVoxelOverlayInput } from './aoeVoxelOverlayParts';
 import type { AoeUnitMotionHistory } from './aoeVoxelUnitAnimation';
+import {
+  findPreparedVoxelEntitiesAtIsoPoint,
+  type PreparedVoxelHitState,
+  type VoxelHitPurpose,
+} from './aoeVoxelHitProxy';
 
 export interface AoeVoxelRuntime {
   acceptSnapshot(snapshot: RenderSnapshotV1): ApplyResultV1;
@@ -48,6 +54,9 @@ export class AoeVoxelWorldRenderer {
   private width: number;
   private height: number;
   private frameIndex = 0;
+  private pendingHitState: PreparedVoxelHitState | null = null;
+  private presentedHitState: PreparedVoxelHitState | null = null;
+  private presentedNowMs = 0;
   private disposed = false;
 
   constructor(options: AoeVoxelWorldRendererOptions) {
@@ -56,7 +65,9 @@ export class AoeVoxelWorldRenderer {
     this.pixelRatio = options.pixelRatio ?? 1;
     this.canvas = options.host.ownerDocument.createElement('canvas');
     this.canvas.className = 'voxel-world-canvas';
-    this.canvas.setAttribute('aria-hidden', 'true');
+    this.canvas.setAttribute('aria-label', 'Age of Empires voxel world');
+    this.canvas.setAttribute('role', 'application');
+    this.canvas.tabIndex = 0;
     this.canvas.dataset.worldRenderer = 'voxel';
 
     const createRuntime = options.createRuntime ?? defaultRuntime;
@@ -84,20 +95,30 @@ export class AoeVoxelWorldRenderer {
     options.host.append(this.canvas);
   }
 
-  present(entities: readonly ProjectedEntityView[], simulationDisplayTimeMs: number): void {
+  present(
+    entities: readonly ProjectedEntityView[],
+    simulationDisplayTimeMs: number,
+    overlays?: AoeVoxelOverlayInput,
+  ): void {
     this.assertActive();
-    const result = this.runtime.acceptSnapshot(
-      this.adapter.createSnapshot(entities, simulationDisplayTimeMs),
-    );
+    const snapshot = this.adapter.createSnapshot(entities, simulationDisplayTimeMs, overlays);
+    const result = this.runtime.acceptSnapshot(snapshot);
     if (result.status === 'rejected') {
       throw new Error(
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
       );
     }
+    const hitState = this.adapter.latestHitState();
+    if (
+      !hitState
+      || hitState.epoch !== result.epoch
+      || hitState.revision !== result.revision
+    ) throw new Error('Voxel hit state did not match the accepted render snapshot.');
+    this.pendingHitState = hitState;
   }
 
   frame(
-    camera: CameraStateSnapshot,
+    camera: CameraState,
     nowMs: number,
     deltaMs: number,
   ): void {
@@ -111,11 +132,26 @@ export class AoeVoxelWorldRenderer {
     this.runtime.setView(view.center, view.zoom);
     this.runtime.frame({ nowMs, deltaMs, frameIndex: this.frameIndex });
     this.frameIndex += 1;
+    const metrics = this.runtime.metrics();
+    if (
+      metrics.state === 'running'
+      && this.pendingHitState
+      && metrics.presentedEpoch === this.pendingHitState.epoch
+      && metrics.presentedRevision === this.pendingHitState.revision
+    ) this.presentedHitState = this.pendingHitState;
+    if (
+      metrics.state === 'running'
+      && this.presentedHitState
+      && metrics.presentedEpoch === this.presentedHitState.epoch
+      && metrics.presentedRevision === this.presentedHitState.revision
+    ) this.presentedNowMs = nowMs;
   }
 
   resetForBridgeSwap(): void {
     this.assertActive();
     this.adapter.resetForBridgeSwap();
+    this.pendingHitState = null;
+    this.presentedHitState = null;
   }
 
   state(): AoeVoxelRendererState {
@@ -127,29 +163,43 @@ export class AoeVoxelWorldRenderer {
     return this.adapter.inspectUnitMotion(identity);
   }
 
+  isInteractionReady(): boolean {
+    this.assertActive();
+    const metrics = this.runtime.metrics();
+    return metrics.state === 'running'
+      && metrics.acceptedEpoch !== null
+      && metrics.acceptedRevision !== null
+      && metrics.acceptedEpoch === metrics.presentedEpoch
+      && metrics.acceptedRevision === metrics.presentedRevision
+      && metrics.presentedEpoch === this.presentedHitState?.epoch
+      && metrics.presentedRevision === this.presentedHitState.revision;
+  }
+
+  findPresentedEntitiesAtIsoPoint(
+    isoX: number,
+    isoY: number,
+    purpose: VoxelHitPurpose,
+  ): ProjectedEntityView[] {
+    if (!this.isInteractionReady() || !this.presentedHitState) return [];
+    return findPreparedVoxelEntitiesAtIsoPoint(
+      this.presentedHitState.entities,
+      isoX,
+      isoY,
+      purpose,
+      this.presentedNowMs,
+    );
+  }
+
   captureWorld(): ThreeCaptureResult {
     this.assertActive();
     return this.runtime.capture();
   }
 
-  captureComposite(overlay: HTMLCanvasElement): HTMLCanvasElement | null {
-    this.assertActive();
-    const composite = overlay.ownerDocument.createElement('canvas');
-    composite.width = overlay.width;
-    composite.height = overlay.height;
-    const context = composite.getContext('2d');
-    if (!context) return null;
-    // Force a same-call render/readback before drawing the WebGL canvas. This
-    // keeps capture valid without a globally preserved drawing buffer.
-    this.captureWorld();
-    context.drawImage(this.canvas, 0, 0, composite.width, composite.height);
-    context.drawImage(overlay, 0, 0, composite.width, composite.height);
-    return composite;
-  }
-
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.pendingHitState = null;
+    this.presentedHitState = null;
     this.runtime.dispose();
     this.canvas.remove();
   }

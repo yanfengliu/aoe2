@@ -9,6 +9,7 @@ import type {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
+import { worldToIso } from '../../src/rendering/isometricProjection';
 import {
   AoeVoxelWorldRenderer,
   type AoeVoxelRuntime,
@@ -39,6 +40,9 @@ function terrain(): ProjectedEntityView {
 
 class FakeRuntime implements AoeVoxelRuntime {
   readonly accepted: RenderSnapshotV1[] = [];
+  state: ThreeRenderMetrics['state'] = 'running';
+  presentedEpoch: string | null = null;
+  presentedRevision: number | null = null;
   readonly acceptSnapshot = vi.fn((snapshot: RenderSnapshotV1): ApplyResultV1 => {
     this.accepted.push(snapshot);
     return {
@@ -49,16 +53,19 @@ class FakeRuntime implements AoeVoxelRuntime {
   });
   readonly frame = vi.fn((_context: ThreeFrameContext) => {
     void _context;
+    if (this.state !== 'running') return;
+    this.presentedEpoch = this.accepted.at(-1)?.descriptor.epoch ?? null;
+    this.presentedRevision = this.accepted.at(-1)?.revision ?? null;
   });
   readonly setView = vi.fn();
   readonly resize = vi.fn();
   readonly dispose = vi.fn();
   readonly metrics = vi.fn((): ThreeRenderMetrics => ({
-    state: 'running',
+    state: this.state,
     acceptedEpoch: this.accepted.at(-1)?.descriptor.epoch ?? null,
     acceptedRevision: this.accepted.at(-1)?.revision ?? null,
-    presentedEpoch: null,
-    presentedRevision: null,
+    presentedEpoch: this.presentedEpoch,
+    presentedRevision: this.presentedRevision,
     frames: 0,
     materialResources: 0,
     geometryResources: 0,
@@ -155,11 +162,7 @@ describe('AoeVoxelWorldRenderer', () => {
     expect(host.querySelector('.voxel-world-canvas')).toBeNull();
   });
 
-  it('composites the Three world below the transparent Phaser overlay', () => {
-    const drawImage = vi.fn();
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      drawImage,
-    } as unknown as CanvasRenderingContext2D);
+  it('captures the voxel world directly without a Canvas2D composite path', () => {
     const host = document.createElement('div');
     const runtime = new FakeRuntime();
     const renderer = new AoeVoxelWorldRenderer({
@@ -168,17 +171,88 @@ describe('AoeVoxelWorldRenderer', () => {
       height: 200,
       createRuntime: () => runtime,
     });
-    const overlay = document.createElement('canvas');
-    overlay.width = 640;
-    overlay.height = 400;
+    const capture = renderer.captureWorld();
 
-    const composite = renderer.captureComposite(overlay);
-
-    expect(composite).not.toBeNull();
+    expect(capture).toMatchObject({
+      dataUrl: 'data:image/png;base64,fake',
+      width: 320,
+      height: 200,
+    });
     expect(runtime.capture).toHaveBeenCalledTimes(1);
-    expect(composite).toMatchObject({ width: 640, height: 400 });
-    expect(drawImage).toHaveBeenCalledTimes(2);
-    expect(drawImage.mock.calls[0]?.[0]).toBe(renderer.canvas);
-    expect(drawImage.mock.calls[1]?.[0]).toBe(overlay);
+    expect('captureComposite' in renderer).toBe(false);
+  });
+
+  it('only exposes hit data for the snapshot actually presented by a running context', () => {
+    const host = document.createElement('div');
+    const runtime = new FakeRuntime();
+    const renderer = new AoeVoxelWorldRenderer({
+      host,
+      width: 320,
+      height: 200,
+      createRuntime: () => runtime,
+    });
+    const villager: ProjectedEntityView = {
+      ...terrain(),
+      id: 7,
+      kind: 'unit',
+      layer: 'unit',
+      entityType: 'villager',
+      owner: 1,
+      x: 2,
+      y: 3,
+      size: 0.7,
+      currentHp: 40,
+      maxHp: 40,
+    };
+    const point = worldToIso(villager.x + 0.5, villager.y + 0.5);
+
+    renderer.present([villager], 0);
+    renderer.frame({
+      scrollX: 0,
+      scrollY: 0,
+      zoom: 1,
+      width: 320,
+      height: 200,
+      viewX: 0,
+      viewY: 0,
+      viewWidth: 320,
+      viewHeight: 200,
+      viewCorners: [],
+    }, 0, 0);
+    expect(renderer.isInteractionReady()).toBe(true);
+    expect(renderer.findPresentedEntitiesAtIsoPoint(point.x, point.y, 'selection')[0]?.id)
+      .toBe(villager.id);
+
+    runtime.state = 'lost';
+    renderer.present([{ ...villager, x: 4 }], 100);
+    renderer.frame({
+      scrollX: 0,
+      scrollY: 0,
+      zoom: 1,
+      width: 320,
+      height: 200,
+      viewX: 0,
+      viewY: 0,
+      viewWidth: 320,
+      viewHeight: 200,
+      viewCorners: [],
+    }, 100, 100);
+    expect(renderer.isInteractionReady()).toBe(false);
+    expect(renderer.findPresentedEntitiesAtIsoPoint(point.x, point.y, 'selection')).toEqual([]);
+
+    runtime.state = 'running';
+    renderer.frame({
+      scrollX: 0,
+      scrollY: 0,
+      zoom: 1,
+      width: 320,
+      height: 200,
+      viewX: 0,
+      viewY: 0,
+      viewWidth: 320,
+      viewHeight: 200,
+      viewCorners: [],
+    }, 116, 16);
+    expect(renderer.isInteractionReady()).toBe(true);
   });
 });

@@ -5,7 +5,7 @@
 // with ownership enforcement, dispatch-event log, canvas bbox, and
 // recorder-bundle access. Production app code never calls these.
 
-import type { GameScene } from '../../phaser/scenes/GameScene';
+import type { AoeVoxelGameView } from '../AoeVoxelGameView';
 import { TPS } from '../../game/simulation/prototypeScenario';
 import type { RecordingService } from '../../game/recording/RecordingService';
 import type { AgentStateSnapshot, CommandDispatchResult } from '../../game/playtest/types';
@@ -83,7 +83,7 @@ export interface BrowserTestAgentApi {
 
 export function makeAgentApi(
   getBridge: () => BrowserTestBridge,
-  scene: GameScene,
+  view: AoeVoxelGameView,
   getRecording: () => RecordingService,
 ): BrowserTestAgentApi {
   // Per-runner dispatch log. The agent observer fires once per drained
@@ -113,7 +113,7 @@ export function makeAgentApi(
       ownerId: number,
       options?: { omniscient?: boolean },
     ): AgentStateSnapshot => {
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       const bridge = getBridge();
       const economy = bridge.getEconomyState();
       const selection = bridge.getSelectionState();
@@ -121,10 +121,10 @@ export function makeAgentApi(
       // Camera bbox in world coords; pixel bbox + worldToScreen sample
       // table for the visible cells (caps at 64 entries to keep prompt
       // tokens bounded).
-      const camera = scene.getCameraState();
-      const canvasRect = getCanvasRect();
+      const camera = view.getCameraState();
+      const canvasRect = view.getWorldCanvasRect();
       // CameraState.viewX/Y/Width/Height is the world-coords viewport
-      // exposed by GameScene.getCameraState — convert to integer cell
+      // exposed by AoeVoxelGameView.getCameraState — convert to integer cell
       // bbox for the snapshot.
       const worldBbox = camera
         ? {
@@ -144,7 +144,7 @@ export function makeAgentApi(
       for (let cy = worldBbox.minY; cy <= worldBbox.maxY; cy += STEP) {
         for (let cx = worldBbox.minX; cx <= worldBbox.maxX; cx += STEP) {
           if (worldToScreenSamples.length >= 64) break;
-          const pt = scene.getScreenPointForCell(cx, cy);
+          const pt = view.getScreenPointForCell(cx, cy);
           if (pt) worldToScreenSamples.push({ cellX: cx, cellY: cy, pixelX: pt.x, pixelY: pt.y });
         }
       }
@@ -194,7 +194,7 @@ export function makeAgentApi(
       });
     },
 
-    getCanvasBboxForScreenshot: () => getCanvasRect(),
+    getCanvasBboxForScreenshot: () => view.getWorldCanvasRect(),
 
     dispatchAgentCommand: async (
       command: unknown,
@@ -275,11 +275,4 @@ export function makeAgentApi(
     // current outcome ('running' | 'victory' | 'defeat' | 'draw').
     getMatchOutcome: () => getBridge().getHudState().matchState.outcome,
   };
-}
-
-function getCanvasRect(): { x: number; y: number; width: number; height: number } {
-  const canvas = document.querySelector('.phaser-overlay-canvas');
-  if (!canvas) return { x: 0, y: 0, width: 0, height: 0 };
-  const rect = canvas.getBoundingClientRect();
-  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
 }

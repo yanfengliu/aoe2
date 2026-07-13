@@ -1,4 +1,3 @@
-import type Phaser from 'phaser';
 import type { ThreeCaptureResult, ThreeRenderMetrics } from 'voxel/three';
 
 import type {
@@ -13,13 +12,12 @@ import type {
   BuildingVisualState,
   DisplayedEntityState,
   EntityHealthBarState,
-  OccludedUnitState,
   CameraState,
-  GameScene,
   PlacementPreviewViewState,
   PlacementPreviewVisualState,
   SelectionBoxState,
-} from '../../phaser/scenes/GameScene';
+} from '../../rendering/viewTypes';
+import type { AoeVoxelGameView } from '../AoeVoxelGameView';
 import type { RecordingService } from '../../game/recording/RecordingService';
 import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
 import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
@@ -93,8 +91,8 @@ export interface BrowserTestSnapshot {
 }
 
 export interface BrowserWorldRendererState {
-  readonly mode: 'voxel' | 'phaser';
-  readonly metrics: ThreeRenderMetrics | null;
+  readonly mode: 'voxel';
+  readonly metrics: ThreeRenderMetrics;
 }
 
 export interface BrowserCaptureState {
@@ -131,8 +129,8 @@ export interface BrowserTestApi {
   getWorldRendererState(): BrowserWorldRendererState;
   inspectVoxelUnitMotion(identity: string): AoeUnitMotionHistory | null;
   hasSingleThreeIdentity(): boolean;
-  captureCompositeFrame(): BrowserCaptureState | null;
-  captureWorldFrame(): ThreeCaptureResult | null;
+  captureFrame(): BrowserCaptureState;
+  captureWorldFrame(): ThreeCaptureResult;
   /** Phase 1.B (llm-agent-playtest). Five methods scoped to the
    *  LLM-agent harness; production app never calls them. */
   agent: BrowserTestAgentApi;
@@ -147,7 +145,6 @@ export interface BrowserTestApi {
   getPlacementPreviewAt(cellX: number, cellY: number): PlacementPreviewState | null;
   getBuildingVisualStates(): BuildingVisualState[];
   getEntityHealthBarStates(): EntityHealthBarState[];
-  getOccludedUnitStates(): OccludedUnitState[];
   getDisplayedEntities(): DisplayedEntityState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
@@ -168,7 +165,7 @@ export interface BrowserTestApi {
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
   /** playtest-fixes C: manual-pause pass-through (`bridge.setPaused`).
-   *  While paused, `bridge.step` is a no-op, so the scene's frame loop
+   *  While paused, `bridge.step` is a no-op, so the view's frame loop
    *  cannot advance the sim — `advanceTicks` (which the pausing host
    *  wraps in an atomic unpause→step→repause task) becomes the only
    *  tick source during LLM playtests. */
@@ -183,15 +180,15 @@ declare global {
 
 function getSnapshot(
   bridge: BrowserTestBridge,
-  scene: GameScene,
+  view: AoeVoxelGameView,
 ): BrowserTestSnapshot {
-  scene.syncFromBridge(true);
+  view.syncFromBridge(true);
   return {
     hudState: bridge.getHudState(),
     renderState: bridge.getRenderState(),
     economyState: bridge.getEconomyState(),
     selectionState: bridge.getSelectionState(),
-    cameraState: scene.getCameraState(),
+    cameraState: view.getCameraState(),
   };
 }
 
@@ -219,135 +216,146 @@ export interface BrowserTestApiInstallOptions {
   getRecording: () => RecordingService;
 }
 
+interface BrowserTestApiInstallation {
+  readonly previous: BrowserTestApi | undefined;
+  disposed: boolean;
+}
+
+// Symbol metadata stays attached to the frozen API object across HMR module
+// replacement, so a newer disposer can skip older installations that already
+// tore down out of order instead of resurrecting a dead view.
+const BROWSER_TEST_API_INSTALLATION = Symbol.for('aoe2.browser-test-api-installation');
+
+function installationOf(api: BrowserTestApi): BrowserTestApiInstallation | undefined {
+  return (api as unknown as Record<symbol, BrowserTestApiInstallation | undefined>)[
+    BROWSER_TEST_API_INSTALLATION
+  ];
+}
+
 export function installBrowserTestApi(
   target: Window,
-  game: Phaser.Game,
   getBridge: () => BrowserTestBridge,
-  scene: GameScene,
+  view: AoeVoxelGameView,
   options: BrowserTestApiInstallOptions,
-): void {
+): () => void {
   // Iter-3 V3-25 follow-up: do NOT short-circuit when an API is
   // already installed. Re-install replaces the object so a full
   // app-bootstrap (HMR, multi-instance test harness) sees the new
-  // game/scene closures. The original V3-25 concern (stale-bridge-on-
+  // game-view closures. The original V3-25 concern (stale-bridge-on-
   // load) is solved by the `getBridge` thunk, which always resolves
   // to createApp's live `bridge` cell — so handleLoadGame doesn't
   // need to re-install at all (and now doesn't).
+  const previous = target.__AOE2_TEST__;
   let pausedThroughTestApi = false;
   const api: BrowserTestApi = {
-    isBooted: () => game.isBooted && scene.scene.isActive(),
+    isBooted: () => view.isBooted(),
     getHudState: () => getBridge().getHudState(),
     getRenderState: () => getBridge().getRenderState(),
     getEconomyState: () => getBridge().getEconomyState(),
     getSelectionState: () => getBridge().getSelectionState(),
     getCameraState: () => {
-      scene.syncFromBridge(true);
-      return scene.getCameraState();
+      view.syncFromBridge(true);
+      return view.getCameraState();
     },
-    getWorldRendererState: () => scene.getWorldRendererState(),
+    getWorldRendererState: () => view.getWorldRendererState(),
     inspectVoxelUnitMotion: (identity: string) => {
-      scene.syncFromBridge(true);
-      return scene.inspectVoxelUnitMotion(identity);
+      view.syncFromBridge(true);
+      return view.inspectVoxelUnitMotion(identity);
     },
     hasSingleThreeIdentity,
-    captureCompositeFrame: () => {
-      const canvas = scene.getCaptureCanvas();
-      if (!canvas) return null;
+    captureFrame: () => {
+      const capture = view.getWorldCapture();
       return {
-        dataUrl: canvas.toDataURL('image/png'),
-        width: canvas.width,
-        height: canvas.height,
+        dataUrl: capture.dataUrl,
+        width: capture.width,
+        height: capture.height,
       };
     },
-    captureWorldFrame: () => scene.getWorldCapture(),
-    getSelectionBoxState: () => scene.getSelectionBoxState(),
+    captureWorldFrame: () => view.getWorldCapture(),
+    getSelectionBoxState: () => view.getSelectionBoxState(),
     getPlacementPreviewState: () => {
-      scene.syncFromBridge(true);
-      return scene.getPlacementPreviewState();
+      view.syncFromBridge(true);
+      return view.getPlacementPreviewState();
     },
     getPlacementPreviewVisualState: () => {
-      scene.syncFromBridge(true);
-      return scene.getPlacementPreviewVisualState();
+      view.syncFromBridge(true);
+      return view.getPlacementPreviewVisualState();
     },
     getPlacementPreviewAt: (cellX: number, cellY: number) => {
       // Iter-3 V3-17: parity with the other getters in this API; tests
       // calling this immediately after a command (without manually
       // advancing ticks) would otherwise observe a stale preview
-      // through the scene-cached path. The bridge call itself is the
+      // through the view-cached path. The bridge call itself is the
       // authoritative source so the value isn't wrong without the
       // sync, but the asymmetry is a correctness footgun.
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return getBridge().getPlacementPreview(cellX, cellY);
     },
     getBuildingVisualStates: () => {
-      scene.syncFromBridge(true);
-      return scene.getBuildingVisualStates();
+      view.syncFromBridge(true);
+      return view.getBuildingVisualStates();
     },
     getEntityHealthBarStates: () => {
-      scene.syncFromBridge(true);
-      return scene.getEntityHealthBarStates();
-    },
-    getOccludedUnitStates: () => {
-      scene.syncFromBridge(true);
-      return scene.getOccludedUnitStates();
+      view.syncFromBridge(true);
+      return view.getEntityHealthBarStates();
     },
     getDisplayedEntities: () => {
-      scene.syncFromBridge(true);
-      return scene.getDisplayedEntities();
+      view.syncFromBridge(true);
+      return view.getDisplayedEntities();
     },
     worldToScreen: (cellX: number, cellY: number) => {
-      scene.syncFromBridge(true);
-      const point = scene.getScreenPointForCell(cellX, cellY);
+      view.syncFromBridge(true);
+      const point = view.getScreenPointForCell(cellX, cellY);
       if (!point) {
-        throw new Error('Game scene is not ready to project screen coordinates.');
+        throw new Error('Voxel game view is not ready to project screen coordinates.');
       }
       return point;
     },
     selectEntityAtCell: (cellX: number, cellY: number) => {
       const didSelect = getBridge().selectEntityAtCell(cellX, cellY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didSelect;
     },
     selectEntityAtWorldPosition: (worldX: number, worldY: number) => {
-      const didSelect = scene.selectEntityAtWorldPosition(worldX, worldY);
-      scene.syncFromBridge(true);
+      const didSelect = view.selectEntityAtWorldPosition(worldX, worldY);
+      view.syncFromBridge(true);
       return didSelect;
     },
     selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => {
       const didSelect = getBridge().selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didSelect;
     },
     selectUnitsInBox: (minX, minY, maxX, maxY) => {
       const didSelect = getBridge().selectUnitsInBox(minX, minY, maxX, maxY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didSelect;
     },
     confirmBuildingPlacement: (cellX: number, cellY: number) => {
       const didPlace = getBridge().confirmBuildingPlacement(cellX, cellY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didPlace;
     },
     clearSelection: () => {
       getBridge().clearSelection();
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
     },
     issueContextCommand: (cellX: number, cellY: number) => {
       const didIssue = getBridge().issueContextCommand(cellX, cellY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didIssue;
     },
     issueContextCommandAtWorldPosition: (worldX: number, worldY: number) => {
-      const didIssue = scene.issueContextCommandAtWorldPosition(worldX, worldY);
-      scene.syncFromBridge(true);
+      const didIssue = view.issueContextCommandAtWorldPosition(worldX, worldY);
+      view.syncFromBridge(true);
       return didIssue;
     },
     issueMoveCommand: (cellX: number, cellY: number) => {
       const didIssue = getBridge().issueMoveCommand(cellX, cellY);
-      scene.syncFromBridge(true);
+      view.syncFromBridge(true);
       return didIssue;
     },
-    getSnapshot: () => getSnapshot(getBridge(), scene),
+    getSnapshot: () => getSnapshot(getBridge(), view),
     setPaused: (paused: boolean) => {
       pausedThroughTestApi = paused;
       getBridge().setPaused(paused);
@@ -365,11 +373,24 @@ export function installBrowserTestApi(
         if (pausedThroughTestApi) liveBridge.setPaused(true);
       }
 
-      scene.syncFromBridge(true);
-      return getSnapshot(liveBridge, scene);
+      view.syncFromBridge(true);
+      return getSnapshot(liveBridge, view);
     },
     replay: options.replay,
-    agent: makeAgentApi(getBridge, scene, options.getRecording),
+    agent: makeAgentApi(getBridge, view, options.getRecording),
   };
-  target.__AOE2_TEST__ = Object.freeze(api);
+  const installation: BrowserTestApiInstallation = { previous, disposed: false };
+  Object.defineProperty(api, BROWSER_TEST_API_INSTALLATION, { value: installation });
+  const installed = Object.freeze(api);
+  target.__AOE2_TEST__ = installed;
+  return () => {
+    installation.disposed = true;
+    if (target.__AOE2_TEST__ !== installed) return;
+    let replacement = installation.previous;
+    while (replacement && installationOf(replacement)?.disposed) {
+      replacement = installationOf(replacement)?.previous;
+    }
+    if (replacement === undefined) delete target.__AOE2_TEST__;
+    else target.__AOE2_TEST__ = replacement;
+  };
 }

@@ -1,6 +1,6 @@
 {
   "name": "aoe2",
-  "version": "0.1.150",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -41,7 +41,6 @@
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "civ-engine": "file:../civ-engine",
-    "phaser": "^3.90.0",
     "three": "0.185.1",
     "voxel": "file:../voxel"
   },

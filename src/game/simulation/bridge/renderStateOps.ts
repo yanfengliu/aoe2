@@ -1,5 +1,5 @@
 // Render-state assembly + per-tick memo. Caller drives `getRenderState()`
-// from multiple sites (HUD RAF, GameScene.syncFromBridge, browserTestApi
+// from multiple sites (HUD RAF, AoeVoxelGameView, browserTestApi
 // getSnapshot); the work below — filter every entity by isFootprintVisible,
 // build a dedupe Set, possibly merge memory entries, possibly re-sort —
 // is not free. The cache invalidates on (tick, renderStoreVersion,

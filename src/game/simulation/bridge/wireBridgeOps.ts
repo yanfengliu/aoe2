@@ -387,20 +387,33 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setReplayWorldContext(world, { accessor, visibility, visibilityCell, matchState, pendingCommands: state.pendingCommands, seed: getSeed() });
   }
 
+  const selectionMutation = <Result>(mutate: () => Result): Result => {
+    const result = mutate();
+    // Selection lives outside ECS component storage, but projected entities
+    // carry `selected`. Invalidate even on an empty/clearing selection so a
+    // paused renderer cannot retain a stale ring or selected health cue.
+    markOutOfBandRenderChange();
+    return result;
+  };
+
   return {
     ...finalize,
     ...agentOptionsOps,
     getPlayerAge,
     getSelectionState,
     getEntityHealth,
-    selectEntityAtCell,
-    selectEntityById,
-    selectOwnedUnitsByTypeInRect,
+    selectEntityAtCell: (x, y) => selectionMutation(() => selectEntityAtCell(x, y)),
+    selectEntityById: (id) => selectionMutation(() => selectEntityById(id)),
+    selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => selectionMutation(
+      () => selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY),
+    ),
     filterSelectableUnitIds,
-    selectUnitsByIds,
-    selectByRefs,
-    selectUnitsInBox,
-    clearSelection,
+    selectUnitsByIds: (ids) => selectionMutation(() => selectUnitsByIds(ids)),
+    selectByRefs: (refs) => selectionMutation(() => selectByRefs(refs)),
+    selectUnitsInBox: (minX, minY, maxX, maxY) => selectionMutation(
+      () => selectUnitsInBox(minX, minY, maxX, maxY),
+    ),
+    clearSelection: () => selectionMutation(clearSelection),
     getDebugSnapshot,
     getFogMemoryEntities,
     getHumanFogMemorySize,

@@ -89,7 +89,7 @@ describe('Siege Engineers — gating at the Siege Workshop', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('siege-engineers');
-  }, 30_000);
+  }, 60_000); // Full-suite contention: 36.2-37.8s observed vs 24.6s isolated (2026-07-13).
 
   it('is NOT offered before Imperial Age (Castle-Age Siege Workshop)', () => {
     const bridge = createSimulationBridge('siege-workshop-fixture');

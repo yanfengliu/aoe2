@@ -26,7 +26,7 @@ Consequences:
 
 ## KAD-0002 — Phaser is view and input only
 Date: 2026-04-10
-Status: Active
+Status: Superseded by KAD-0022
 
 Phaser renders projected render frames and dispatches user input as commands.
 It holds no authoritative gameplay state. Render-only concerns like unit
@@ -301,7 +301,7 @@ Consequences:
 ## KAD-0018 - The first voxel renderer is an opt-in composed view
 
 Date: 2026-07-12.
-Status: Active.
+Status: Superseded by KAD-0022.
 
 Context: AoE2 needs a real 3-D voxel presentation, but `GameScene` and Phaser still own proven camera, pointer, selection, placement, fog, health, feedback, minimap, replay, and browser-test behavior. City and Townscaper also need the shared graphics code, so moving AoE semantics into a new renderer would create the wrong reusable boundary. A one-shot Phaser removal would combine renderer migration, interaction migration, and art migration into one untestable change.
 
@@ -360,3 +360,47 @@ Consequences:
 - X, Z, diagonal, corner, and reversal travel share one movement plane instead of translating in one direction while flexing in another.
 - The engine remains history-free. City vehicles and Townscaper routes retain consumer-specific clocks and continuity rules; only a second proven neutral contract could justify extraction.
 - General skeletal clips, event-synchronized attacks/gathering, projectiles, root motion, and imported character animation remain deferred.
+
+## KAD-0022 - Voxel is AoE2's sole world renderer
+
+Date: 2026-07-13.
+Status: Active; supersedes KAD-0002 and KAD-0018.
+
+Context: the composed proof established that the sibling `voxel` package can
+present AoE's projected world, but retaining the old renderer kept two graphics
+authorities, duplicate painter work, two canvases, misleading diagnostics, and a
+1.48 MB Phaser production chunk. User direction made voxel graphics the only
+AoE2 graphics path going forward. City and Townscaper still require the shared
+engine boundary to remain game-neutral.
+
+Decision: delete the Phaser runtime, dependency, scene tree, painters, renderer
+selector, fallback, and composite capture. `AoeVoxelGameView` is the sole browser
+world host and owns one interactive canvas, the injected animation-frame loop,
+bridge replacement, resize/fullscreen lifecycle, and composition of pure camera,
+pointer, selection, and presentation controllers. AoE emits fog shading,
+selection, placement, health, hit, and death feedback as terrain or rigid-instance
+snapshot data. The DOM HUD, minimap, dialogs, and replay timeline remain UI, not
+a second world renderer. Voxel initialization failure is terminal and visible.
+
+Consequences:
+- Simulation state, commands, save/load, replay, visibility, selection priority,
+  hit policy, art recipes, and animation meaning remain AoE-owned.
+- The sibling package retains only bounded game-neutral chunk, geometry,
+  instance, frame, capture, metrics, context, and disposal contracts reusable by
+  City and Townscaper.
+- Renderer query strings no longer choose behavior. The production build must
+  contain no Phaser dependency or chunk, and browser architecture tests enforce
+  one world canvas.
+- Terrain remains elevation-zero. Raised and moving entity interaction uses an
+  AoE-owned, data-only silhouette proxy generated from the same presented
+  rigid-part recipes. Prepared hits are promoted only when epoch/revision match
+  the canvas; context loss and stale presentation fence interaction. Repeated
+  exact clicks reorder only distinct groups in the current hit set, never cached
+  vanished targets. Raised terrain and a reusable presented-state ray query
+  remain deferred. No hidden 2-D path masks that limitation.
+- The old white behind-building x-ray and animated selection/death painter cues
+  are not compatibility exceptions. Reintroducing them requires voxel snapshot
+  or depth-aware Three treatments with their own visible-output evidence.
+- New world visuals must enter through voxel snapshot data or recipes. New input
+  behavior belongs in renderer-neutral controllers, not a replacement scene
+  framework.

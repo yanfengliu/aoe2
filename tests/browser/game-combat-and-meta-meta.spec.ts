@@ -198,7 +198,7 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
     await page.locator('[data-hud="menu-resume"]').click();
 
     // Parse the stored blob — that's the authoritative snapshot of the
-    // moment the Save click fired. The natural Phaser RAF loop keeps
+    // moment the Save click fired. The natural game-view RAF loop keeps
     // ticking between our test commands, so comparing to a pre-click
     // `game.getSnapshot()` would race.
     const storedBlob = await page.evaluate(

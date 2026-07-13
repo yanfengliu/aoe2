@@ -144,6 +144,7 @@ vite.config.ts.timestamp-*
 generated/content/content.json
 playwright-report/
 test-results/
+.playwright-cli/
 bash.exe.stackdump
 code_review/
 # Local test outputs (vitest reporter logs, etc.)

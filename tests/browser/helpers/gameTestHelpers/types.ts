@@ -1,4 +1,4 @@
-import type { SelectionBoxState } from '../../../../src/phaser/scenes/GameScene';
+import type { SelectionBoxState } from '../../../../src/rendering/viewTypes';
 
 export interface MinimapStats {
   width: number;

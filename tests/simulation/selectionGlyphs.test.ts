@@ -11,8 +11,8 @@ import {
   buildingGlyphWithClass,
   resourceGlyph,
 } from '../../src/ui/hud/icons/glyphs';
-import { unitRole } from '../../src/phaser/scenes/gameScene/unitRenderer';
-import { ALL_UNIT_TYPES } from '../../src/phaser/scenes/gameScene/unitTypeMap';
+import { unitRole } from '../../src/rendering/roles/unitRole';
+import { ALL_UNIT_TYPES } from '../../src/input/unitTypeMap';
 import { renderSelectionIcons } from '../../src/ui/hud/selectionPanel';
 import type {
   BuildableBuildingType,

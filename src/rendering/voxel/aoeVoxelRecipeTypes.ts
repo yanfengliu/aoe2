@@ -1,6 +1,6 @@
 import type { ProjectedEntityView } from '../../game/simulation/types';
 
-export type VoxelSurface = 'matte' | 'metal' | 'shadow' | 'memory';
+export type VoxelSurface = 'matte' | 'metal' | 'shadow' | 'memory' | 'ui';
 
 export interface VoxelPartAnimation {
   readonly periodMs: number;

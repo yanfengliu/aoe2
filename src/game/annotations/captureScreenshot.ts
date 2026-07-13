@@ -14,10 +14,13 @@ export function captureScreenshot(
   options: CaptureScreenshotOptions = {},
 ): Uint8Array {
   const mime = options.mimeType ?? 'image/png';
-  const dataUrl = canvas.toDataURL(mime);
+  return captureScreenshotDataUrl(canvas.toDataURL(mime));
+}
+
+export function captureScreenshotDataUrl(dataUrl: string): Uint8Array {
   const commaIdx = dataUrl.indexOf(',');
   if (commaIdx === -1) {
-    throw new Error(`captureScreenshot: invalid dataUrl returned from canvas (no comma)`);
+    throw new Error('captureScreenshot: invalid dataUrl returned from renderer (no comma)');
   }
   const b64 = dataUrl.slice(commaIdx + 1);
   return base64ToBytes(b64);

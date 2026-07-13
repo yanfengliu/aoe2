@@ -6,7 +6,7 @@ An AoE2-style RTS prototype built on `civ-engine`.
 
 - Node.js 24 or newer
 - The sibling repo `../civ-engine` present on disk, since this project depends on it through a local `file:` dependency
-- The sibling repo `../voxel` present on disk at the revision recorded in `.github/voxel-commit`, since the optional Three.js world renderer depends on its local `file:` package
+- The sibling repo `../voxel` present on disk at the revision recorded in `.github/voxel-commit`, since AoE2's sole world renderer depends on its local `file:` package
 
 ## Setup
 
@@ -21,20 +21,20 @@ Then open the local Vite URL printed in the terminal. By default this is `http:/
 
 The development, test, typecheck, lint, and build commands rebuild `../voxel` first. A fresh checkout therefore needs the sibling package and its dependencies installed before those commands run.
 
-## Renderer modes
+## Renderer
 
-Phaser remains the safe default. Open the app normally, with `?renderer=phaser`, or with an unsupported renderer value to use the established Phaser world renderer.
+AoE2 has one graphics path: an antialiased, daylight-lit Three.js voxel world backed by the reusable sibling `voxel` package. No renderer URL flag is required, and legacy `?renderer=...` values are ignored rather than selecting a fallback. The application creates one interactive WebGL canvas; terrain, fog shading, units, buildings, resources, selection rings, placement feedback, health cues, hit sparks, and death debris all come from voxel snapshots. The minimap and HUD remain DOM/Canvas UI rather than a second world renderer.
 
-Add `?renderer=voxel` to opt into the isometric voxel proving path, for example `http://127.0.0.1:5173/?seed=aoe2-prototype&renderer=voxel`. This mode renders the antialiased, daylight-lit Three.js world on a WebGL canvas beneath a transparent Phaser Canvas overlay, so the existing camera, pointer input, selection, fog, feedback, minimap, and DOM HUD remain in place. Its original procedural art uses detailed role-specific buildings, animated rigid-part units, resources, contact shadows, material palettes, and sparse terrain props; faction color appears as readable accents instead of painting every structure as one team-colored block. Unit roots follow the existing smooth display interpolation, while grounded feet, paired limbs, cavalry legs, and siege wheels advance by displayed travel distance so cadence follows visual speed. Travel direction eases through path corners, feet flex in that direction, and pausing freezes gait consistently even when selection forces redraws; independent identity-phased breathing and secondary motion remain renderer-timed. None of this changes simulation state, saves, replays, commands, or hit geometry. If the Three renderer cannot initialize, the app logs a warning and falls back to Phaser.
+The original procedural art uses role-specific buildings, animated rigid-part units, resources, contact shadows, material palettes, and sparse terrain props. Unit roots follow smooth display interpolation; grounded feet, paired limbs, cavalry legs, and siege wheels advance by displayed travel distance so cadence follows visible speed. Travel direction eases through path corners, feet flex in that direction, and simulation pause freezes gait consistently while independent identity-phased breathing and secondary motion remain renderer-timed. Simulation state, saves, replays, commands, and hit rules remain authoritative outside the renderer.
 
-The voxel path is not the default yet. Its current adapter renders terrain and entities on a flat ground plane even though the projection contract carries terrain elevation; elevation-aware overlay/input hit geometry and broader parity validation are promotion work. The Phaser mode remains the reference path while those gaps are open.
+The current adapter still presents terrain on an elevation-zero plane even though the projected contract carries elevation. Clicks on raised or moving units, resources, walls, and roofs use an AoE-owned silhouette proxy generated from the same presented voxel recipes, so visible entity geometry remains interactive without importing Three.js into input code. Input pauses during WebGL context loss or an accepted/presented revision mismatch rather than targeting stale pixels. True raised terrain, cliffs, and a generic engine-level presented-state ray query remain future voxel work; none is backed by a hidden 2-D renderer.
 
 ## Controls
 
 Selection:
 
 - Left click to select a unit, building, or resource
-- Repeated left click on the same tile cycles through every selectable entity stacked there
+- Repeated left click at the same visible overlap cycles the distinct unit, building, and resource groups currently under the pointer
 - Double click a friendly unit to select all visible friendly units of the same type on screen
 - Left click and drag to box-select friendly units
 

@@ -31,10 +31,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('/node_modules/phaser/') || id.includes('\\node_modules\\phaser\\')) {
-            return 'phaser';
-          }
-
           if (
             id.includes('/node_modules/civ-engine/')
             || id.includes('\\node_modules\\civ-engine\\')
@@ -52,7 +48,7 @@ export default defineConfig({
     // the default test environment (node); tests that need DOM (form / panel /
     // createApp / integration tests) opt in via the `// @vitest-environment jsdom`
     // pragma at the top of the file. This per-file approach avoids forcing
-    // jsdom on every test (Phaser stubs etc.).
+    // jsdom on every test.
     environment: 'node',
   },
 });

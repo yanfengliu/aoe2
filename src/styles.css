@@ -46,12 +46,8 @@ body {
 
 .voxel-world-canvas {
   z-index: 0;
-  pointer-events: none;
+  pointer-events: auto;
   image-rendering: auto;
-}
-
-.phaser-overlay-canvas {
-  z-index: 1;
 }
 
 body:has(.timeline-panel:not([hidden])) #game-root {
@@ -76,7 +72,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   min-width: 0;
   /* Slice 11: let hover events land on the top-bar chips. Without this,
      pointer-events: none on #hud-root cascades all the way down and the
-     Phaser canvas intercepts hover events. */
+     world canvas intercepts hover events. */
   pointer-events: auto;
 }
 
@@ -655,7 +651,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 /* Spec 2 (annotation-ui v0.1.5): AnnotationForm modal + MarkerListPanel.
    Both opt into pointer-events because #hud-root blocks them by default
-   so the Phaser canvas can receive input. */
+   so the world canvas can receive input. */
 
 .annotation-form {
   position: fixed;

@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import * as game from './helpers/gameTestHelpers';
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 test.describe('browser gameplay smoke tests - selection: marquee + activity', () => {
   test('shows a live marquee preview for the exact unit body that will be selected on mouse-up', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'villager-selection-fixture');
+    await game.waitForPausedBootWithSeed(page, 'villager-selection-fixture');
     const renderedVillagers = await game.getRenderedOwnedUnits(page, 1, 'villager');
     const leadVillager = renderedVillagers
       .slice()
@@ -42,7 +47,7 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
   test('does not preview or select units when the marquee only crosses the visible gap between adjacent unit bodies', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'villager-selection-fixture');
+    await game.waitForPausedBootWithSeed(page, 'villager-selection-fixture');
     const renderedVillagers = await game.getRenderedOwnedUnits(page, 1, 'villager');
     expect(renderedVillagers.length).toBeGreaterThan(1);
 
@@ -87,6 +92,10 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
     const stripHalfWidth = Math.min(0.04, resolvedPreviewGap.gap * 0.2);
     const stripHalfLength = 0.3;
     const alignMostlyHorizontally = Math.abs(resolvedPreviewGap.dx) >= Math.abs(resolvedPreviewGap.dy);
+    const before = await page.evaluate(() => ({
+      capture: window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics,
+    }));
 
     if (alignMostlyHorizontally) {
       await game.dragSelectWorldRect(
@@ -113,6 +122,16 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
     const emptyPreviewState = marqueeState!;
     expect(emptyPreviewState.active).toBe(true);
     expect(emptyPreviewState.previewEntityIds).toEqual([]);
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
+      return metrics.presentedRevision === metrics.acceptedRevision
+        ? metrics.instances
+        : -1;
+    })).toBe(before.metrics.instances + 4);
+    const marqueeCapture = await page.evaluate(
+      () => window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+    );
+    expect(sha256(marqueeCapture)).not.toBe(sha256(before.capture));
 
     await page.mouse.up({ button: 'left' });
 
@@ -180,6 +199,60 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
           && unit.y >= 11,
       ),
     ).toHaveLength(3);
+  });
+
+  test('keeps the voxel marquee visible while its border crosses a town center', async ({
+    page,
+  }) => {
+    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+    const building = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      const target = api.getRenderState().entities.find((entity) => (
+        entity.kind === 'building'
+        && entity.owner === 1
+        && entity.entityType === 'town-center'
+        && !entity.isMemory
+      ));
+      return target ? {
+        x: target.x,
+        y: target.y,
+        width: target.footprintWidth,
+        height: target.footprintHeight,
+      } : null;
+    });
+    expect(building).not.toBeNull();
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
+      return metrics.presentedRevision === metrics.acceptedRevision;
+    })).toBe(true);
+    const before = await page.evaluate(() => ({
+      capture: window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+      instances: window.__AOE2_TEST__!.getWorldRendererState().metrics.instances,
+    }));
+
+    await game.dragSelectWorldRect(
+      page,
+      building!.x + 0.8,
+      building!.y + 0.8,
+      building!.x + building!.width - 0.8,
+      building!.y + building!.height - 0.8,
+    );
+
+    const marquee = await page.evaluate(() => window.__AOE2_TEST__!.getSelectionBoxState());
+    expect(marquee?.active).toBe(true);
+    expect(marquee?.previewEntityIds).toBeDefined();
+    const previewRingInstances = (marquee?.previewEntityIds.length ?? 0) * 4;
+    await expect.poll(() => page.evaluate(() => {
+      const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
+      return metrics.presentedRevision === metrics.acceptedRevision
+        ? metrics.instances
+        : -1;
+    })).toBe(before.instances + previewRingInstances + 4);
+    const after = await page.evaluate(
+      () => window.__AOE2_TEST__!.captureWorldFrame().dataUrl,
+    );
+    expect(sha256(after)).not.toBe(sha256(before.capture));
+    await page.mouse.up({ button: 'left' });
   });
 
   test('double clicking a friendly unit selects same-type friendly units on screen', async ({

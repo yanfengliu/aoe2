@@ -3,7 +3,7 @@
 // AO-12.5: Vitest integration suite covering DESIGN §11 cross-component
 // scenarios. Constructs RecordingService + IndexedDBMirror + AnnotationForm
 // + AnnotationController + MarkerListPanel directly (not through createApp,
-// which depends on Phaser).
+// which depends on the browser renderer).
 //
 // Scenarios:
 //   1. Full write flow — Alt+M → form → submit → marker in bundle.
@@ -82,7 +82,7 @@ describe('Integration: full write flow (Alt+M → form → submit → bundle)', 
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => null,
+      captureDataUrlRef: () => null,
       toast,
     });
 
@@ -140,7 +140,7 @@ describe('Integration: full write flow (Alt+M → form → submit → bundle)', 
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => selectedRefs },
-      canvasRef: () => null,
+      captureDataUrlRef: () => null,
       toast,
     });
 

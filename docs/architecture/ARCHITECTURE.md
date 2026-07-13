@@ -14,6 +14,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     swapping the live bridge. `installBrowserTestApi(...)` exposes the in-page
     `window.__AOE2_TEST__` test seam Playwright drives during browser tests;
     there is no separate dev HTTP server.
+  - `app/AoeVoxelGameView.ts` — sole browser world host. Owns the injected
+    animation-frame loop, one interactive voxel canvas, bridge replacement,
+    resize/fullscreen lifecycle, and composition of renderer-neutral camera,
+    pointer, selection, and presentation controllers. It owns no gameplay state.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
@@ -148,8 +152,23 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         selection, sheep, scenario validation). The `fixtures/index.ts`
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
-  - `phaser/` — Phaser-specific scenes and render projection. Hosts `scenes/GameScene.ts` (scene class wiring lifecycle, input, and projection-driven render orchestration) plus a `scenes/gameScene/` subdirectory for the dep-bag renderer factories factored out of the scene file: `debugOverlay.ts` (world-space debug-mode overlays), `worldLayers.ts` (health-bar + fog-of-war paints), `selectionLayers.ts` (selection ring + placement preview + marquee paints), `cameraController.ts` (per-frame update, middle-drag pan, edge-pan, zoom/scroll clamp, HUD-facing camera queries), `buildingRenderer.ts` (the per-building rendering primitives — anchor sprite, footprint outline, construction overlay), `sceneRenderer.ts` (layer + sub-renderer construction, the syncFromBridge/renderState pipeline, render caches), `pointerInputController.ts` (pointer/wheel handler registration, drag-selection + middle-drag-pan state, marquee preview), `selectionController.ts` (click-to-select + right-click context command dispatch), and `sceneViewTypes.ts` (shared view-state types + layout consts).
-  - `rendering/voxel/` — AoE-owned adapter, original procedural art recipes, and composed Three.js world host. `aoeVoxelAdapter.ts` orchestrates identity/epoch/revision, bounded per-generation gait history, lifecycle reset, and game-neutral snapshots only; `aoeVoxelTerrain.ts` owns flat chunk projection, quantized terrain color variation, and sparse surface props; `aoeVoxelBuildingRecipes.ts`, `aoeVoxelUnitRecipes.ts`, and `aoeVoxelResourceRecipes.ts` own role-specific rigid-part compositions; `aoeVoxelUnitAnimation.ts` advances locomotion phase from displayed distance and simulation-display time while keeping identity-phased ambient profiles separate; `aoeVoxelRecipeTypes.ts` owns deterministic color/hash transforms plus direction-aligned pitch; `aoeVoxelResources.ts` packs the centred group-less cube into separate static and bounded animated matte/metal lanes plus contact-shadow and memory lanes. `AoeVoxelWorldRenderer.ts` owns the sibling `voxel/three` runtime, antialiased canvas, AoE daylight values, explicit composite capture, metrics, bridge epochs, and teardown; `aoeCameraSync.ts` maps the established Phaser camera to the shared 2:1 orthographic view. The pure exhaustive unit-role mapping lives in `phaser/scenes/gameScene/unitRole.ts` and is shared by both AoE presenters. AoE visual and animation semantics remain here rather than entering the reusable package.
+  - `input/` — renderer-neutral hit testing, unit classification, standalone
+    isometric camera control, DOM pointer normalization, drag/middle pan state,
+    click selection, and context-command dispatch. Raised entity clicks consume
+    AoE recipe-projected hit regions promoted only at matching presented
+    epoch/revision; context loss or stale presentation fences interaction. Exact
+    click history can reorder only the current target set. Input imports neither
+    Three.js nor DOM/GPU renderer objects.
+  - `rendering/` — pure isometric projection/interpolation/view contracts and
+    AoE visual-role tables. `rendering/voxel/` owns the sole world adapter,
+    procedural art, feedback parts, and Three runtime integration.
+    `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
+    interaction state into snapshots; `aoeVoxelOverlayParts.ts` emits selection,
+    drag marquee, placement, authored-height health, hit, and death feedback into
+    normal rigid-instance lanes;
+    `AoeVoxelWorldRenderer.ts` owns direct capture, metrics, context lifecycle,
+    and disposal. AoE semantics remain here rather than entering the reusable
+    package.
   - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/`, `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
@@ -162,11 +181,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
 The runtime is layered and the boundaries are intentional.
 
 ```
-civ-engine World ──► Simulation bridge ──► projected render frame ──► GameScene host
-        ▲                       │                                      ├── Phaser world + input (default)
-        │                       └──► DOM HUD/minimap                    └── composed voxel mode (opt-in)
-        │                                                                      ├── AoE adapter ──► voxel/three ──► Three world canvas
-        └──────────────────────────── commands ◄── Phaser input                 └── Phaser input/overlays ────────► overlay canvas
+civ-engine World ──► Simulation bridge ──► projected render frame ──► AoE voxel adapter ──► voxel/three ──► one world canvas
+        ▲                       │                                             ▲
+        │                       └──► DOM HUD/minimap                         │
+        └────────────────────── commands ◄── AoeVoxelGameView input/camera ─┘
 
 design/stats ──build──► generated/content.json ──load──► Simulation bridge
 ```
@@ -176,13 +194,13 @@ design/stats ──build──► generated/content.json ──load──► Sim
   boundary through ECS systems, queries, and commands.
 - The simulation bridge (`src/game/simulation/`) owns repo-specific systems and
   scenario setup. It runs on top of `civ-engine` primitives and exposes a stable
-  surface to the Phaser scene and HUD.
-- `GameScene` is the current renderer host and Phaser is view/input only. The
-  default path draws the whole world in Phaser. `?renderer=voxel` instead sends
-  the same projected view through the AoE-owned adapter to the sibling
-  `voxel/three` runtime while a transparent Phaser canvas retains camera, input,
-  fog, selection, placement, health, and feedback overlays. Neither renderer
-  owns gameplay state.
+  surface to the standalone voxel view and HUD.
+- `AoeVoxelGameView` is the sole renderer host. It advances the live bridge,
+  updates renderer-neutral camera/input controllers, presents the AoE-owned
+  voxel snapshot, and frames one Three canvas. Fog, selection, drag marquee,
+  placement, health, hit, and death feedback are snapshot data, not a second
+  paint layer.
+  The view owns no gameplay state.
 - The sibling `voxel` package owns only reusable render contracts, validation,
   chunk meshing, bounded injected-time rigid-instance playback, Three resource
   presentation, capture, metrics, and disposal.
@@ -204,7 +222,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
 ## Test boundaries
 
 - Vitest (`npx vitest run`) covers simulation, content normalization, and scenario
-  behavior. These tests drive simulation directly; they do not start Phaser.
+  behavior. These tests drive simulation directly; they do not start a browser renderer.
 - Playwright (`npm run test:browser`) drives the built preview app and asserts
   render-state and command flow end-to-end. Fixture seeds keep runs deterministic.
 - `npx tsc --noEmit` and `npx vite build` gate type and build health.
@@ -214,7 +232,8 @@ design/stats ──build──► generated/content.json ──load──► Sim
 - A new gameplay rule, unit behavior, or AI change → simulation bridge or
   `civ-engine` (flag an engine gap in `docs/engine-feedback/current.md` if the
   engine lacks the primitive).
-- A new render treatment or input control → Phaser scene with a render-state seam
-  so browser tests can assert on the rendered output.
+- A new AoE render treatment → `src/rendering/voxel/` as snapshot data/recipes;
+  a new world input control → `src/input/` plus `AoeVoxelGameView`. Add a
+  renderer-neutral diagnostic and visible browser evidence where needed.
 - A new HUD element → `src/ui/` consuming render frames and selection state.
 - New content → `design/stats/*.csv` plus any normalizer work in `scripts/`.

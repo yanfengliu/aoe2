@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { cameraStateToVoxelView } from '../../src/rendering/voxel/aoeCameraSync';
-import { worldToIso } from '../../src/phaser/scenes/gameScene/isoProjection';
+import { worldToIso } from '../../src/rendering/isometricProjection';
 
 describe('cameraStateToVoxelView', () => {
-  it('maps the Phaser iso-pixel viewport centre back to the Three cell plane', () => {
+  it('maps the standalone iso-pixel viewport centre back to the Three cell plane', () => {
     const target = worldToIso(10, 12);
     const width = 800;
     const height = 600;
@@ -28,7 +28,7 @@ describe('cameraStateToVoxelView', () => {
     });
   });
 
-  it('preserves the logical viewport size and Phaser zoom', () => {
+  it('preserves the logical viewport size and standalone zoom', () => {
     const view = cameraStateToVoxelView({
       scrollX: 100,
       scrollY: 50,

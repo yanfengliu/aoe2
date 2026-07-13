@@ -64,7 +64,7 @@ describe('Bloodlines — gating at the Stable', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('bloodlines');
-  }, 30_000);
+  }, 60_000); // Full-suite contention: 31.4s observed vs 22.7s isolated (2026-07-13).
 
   it('IS offered at a FEUDAL-Age Stable (technologies.csv:78 — v0.1.67 conformance fix)', () => {
     const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture');

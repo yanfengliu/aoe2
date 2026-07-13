@@ -1,5 +1,5 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
-import { unitRole, type UnitRole } from '../../phaser/scenes/gameScene/unitRole';
+import { unitRole, type UnitRole } from '../roles/unitRole';
 import type {
   VoxelPart,
   VoxelPartAnimation,

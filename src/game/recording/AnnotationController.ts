@@ -23,7 +23,7 @@ import type { EntityRef, World } from 'civ-engine';
 import {
   type AoeMarkerData,
   selectionToRefs,
-  captureScreenshot,
+  captureScreenshotDataUrl,
 } from '../annotations';
 import type { PauseControl } from '../control/PauseControl';
 import type { RecordingService } from './RecordingService';
@@ -41,10 +41,10 @@ export interface AnnotationControllerConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly worldRef: () => World<any, any, any>;
   readonly selection: { getSelectedEntityRefs(): readonly EntityRef[] };
-  /** Returns the canvas to capture for screenshot attachments. May
-   *  return null if no canvas is mounted yet (then the screenshot
+  /** Returns the authoritative voxel capture data URL for screenshot attachments. May
+   *  return null if no renderer is mounted yet (then the screenshot
    *  checkbox is silently ignored and a toast is surfaced). */
-  readonly canvasRef: () => HTMLCanvasElement | null;
+  readonly captureDataUrlRef: () => string | null;
   /** Toast surface for soft-failure messages (capture failed, recorder
    *  rejected the marker, etc.). */
   readonly toast: { showToast(text: string): void };
@@ -61,7 +61,15 @@ export interface AnnotationController {
 export function createAnnotationController(
   config: AnnotationControllerConfig,
 ): AnnotationController {
-  const { recording, pauseControl, form, worldRef, selection, canvasRef, toast } = config;
+  const {
+    recording,
+    pauseControl,
+    form,
+    worldRef,
+    selection,
+    captureDataUrlRef,
+    toast,
+  } = config;
   let formIsOpen = false;
   // FR-1 review fix (Codex MAJOR): refs are captured at hotkey time —
   // the selection at the moment Alt+M fires becomes the marker's anchored
@@ -95,19 +103,21 @@ export function createAnnotationController(
 
     let attachmentId: string | undefined;
     if (input.captureScreenshot) {
-      const canvas = canvasRef();
-      if (canvas !== null) {
-        try {
-          const bytes = captureScreenshot(canvas);
+      try {
+        const dataUrl = captureDataUrlRef();
+        if (dataUrl !== null) {
+          const bytes = captureScreenshotDataUrl(dataUrl);
           attachmentId = recording.attachScreenshot(bytes);
-        } catch (err) {
-          toast.showToast(
-            `screenshot capture failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          // Continue without attachment.
+        } else {
+          toast.showToast('screenshot capture unavailable (no canvas)');
         }
-      } else {
-        toast.showToast('screenshot capture unavailable (no canvas)');
+      } catch (err) {
+        toast.showToast(
+          `screenshot capture failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        // Renderer readback and attachment encoding are both optional. Keep
+        // the marker even when capture is unavailable (for example during a
+        // WebGL context-loss window).
       }
     }
 

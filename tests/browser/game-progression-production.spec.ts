@@ -184,7 +184,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     // Sample gold and tick together so we can isolate exactly how many
     // simulation ticks pass alongside the advanceTicks(20, 100) call.
-    // Phaser's render loop keeps running between page.evaluate() calls,
+    // The game view's render loop keeps running between page.evaluate() calls,
     // so a plain "advance 20, diff the gold totals" assertion would pick
     // up 1-2 extra ticks of jitter. Capturing the tick counter at both
     // endpoints pins the expectation to exactly the ticks that elapsed.
@@ -199,7 +199,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     });
     const ticksElapsed = depositAfter.tick - depositBaseline.tick;
     // At least the 20 ticks from advanceTicks, allow up to a few more
-    // from Phaser's own update loop running between evaluate() calls.
+    // from the game view's own update loop running between evaluate() calls.
     expect(ticksElapsed).toBeGreaterThanOrEqual(20);
     expect(ticksElapsed).toBeLessThanOrEqual(25);
     // Gold income is exactly +1 per tick per stored relic.

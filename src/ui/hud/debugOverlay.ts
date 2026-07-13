@@ -31,10 +31,8 @@ export const DEBUG_OVERLAY_CYCLE: DebugOverlayMode[] = [
   'coarse-vs-fine',
 ];
 
-// Slice 11: debug-overlay host. Owns the F2 key listener, the cycle
-// pointer, and the DOM-side text summary for each mode. The scene
-// reads the current mode separately via `getMode()` for its
-// world-space drawing (selection rectangles, pathing lines, etc.).
+// Slice 11: debug-overlay host. Owns the F2 key listener, cycle pointer,
+// and DOM text summary for each mode.
 export interface DebugOverlayHandle {
   getMode(): DebugOverlayMode;
   cycleMode(): DebugOverlayMode;
@@ -97,8 +95,7 @@ export function createDebugOverlayController(
   // Slice 11: render a short text summary inside the debug overlay. The
   // off and selection-bounds modes leave the text empty; pathing /
   // fog-state modes show a single line with counts; ai-state and perf
-  // modes show a small table. GameScene reads the mode separately for its
-  // world-space drawing.
+  // modes show a small table.
   function render(
     hudState: HudState,
     selectionState: SelectionState,
@@ -158,9 +155,8 @@ export function createDebugOverlayController(
     }
 
     if (debugOverlayMode === 'coarse-vs-fine') {
-      // Slice 12 Task D: the scene draws the per-unit coarse → fine
-      // line; the HUD pane just reports the unit count so the player
-      // can confirm the overlay is actually on.
+      // Slice 12 Task D: report how many coarse/fine transform pairs the
+      // simulation exposes without introducing a second world renderer.
       debugOverlay.textContent =
         `Debug: coarse-vs-fine (F2)\n`
         + `Units tracked: ${snapshot.coarseVsFine?.length ?? 0}`;

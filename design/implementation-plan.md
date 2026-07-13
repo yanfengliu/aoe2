@@ -1,5 +1,11 @@
 # AoE2 Implementation Plan
 
+> Historical baseline: the original Phaser stack, directory, and bootstrap
+> steps below describe the prototype's first implementation. KAD-0022 and
+> `docs/threads/current/voxel-renderer-migration/PLAN.md` supersede those
+> rendering steps as of 2026-07-13: AoE2 now ships only the standalone
+> Three/`voxel` world path.
+
 ## Purpose
 
 This document turns [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>) into an execution plan.

@@ -22,9 +22,16 @@ const MATERIAL_KEYS = {
   metal: 'aoe2:material:metal',
   shadow: 'aoe2:material:shadow',
   memory: 'aoe2:material:memory',
+  ui: 'aoe2:material:ui',
 } as const satisfies Record<VoxelSurface, string>;
 
-const SURFACES = ['matte', 'metal', 'shadow', 'memory'] as const satisfies readonly VoxelSurface[];
+const SURFACES = [
+  'matte',
+  'metal',
+  'shadow',
+  'memory',
+  'ui',
+] as const satisfies readonly VoxelSurface[];
 
 function material(
   key: string,
@@ -60,6 +67,9 @@ const MATERIALS: readonly MaterialResourceV1[] = [
   material(MATERIAL_KEYS.memory, {
     transparent: true,
     opacity: 0.5,
+  }),
+  material(MATERIAL_KEYS.ui, {
+    shading: 'unlit',
   }),
 ];
 

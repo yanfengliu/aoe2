@@ -219,6 +219,7 @@ describe('AoeVoxelAdapter instance projection', () => {
       'aoe2:batch:metal-parts', 'aoe2:batch:metal-animated-parts',
       'aoe2:batch:shadow-parts',
       'aoe2:batch:memory-parts',
+      'aoe2:batch:ui-parts',
     ]);
     const keys = allInstanceKeys(snapshot);
     expect(keys).toEqual(expect.arrayContaining([
@@ -307,36 +308,6 @@ describe('AoeVoxelAdapter instance projection', () => {
     expect(base[0]).toBeLessThan(3.2);
     expect(base[5]).toBeLessThan(2.1);
     expect(base[12]).toBeGreaterThan(0.4);
-  });
-
-  it('keeps live and fog-memory parts on the composed ground plane', () => {
-    const snapshot = new AoeVoxelAdapter().createSnapshot([
-      terrain(1, 2, 3, { entityType: 'hill', elevation: 1 }),
-      terrain(2, 6, 7, { entityType: 'hill', elevation: 1 }),
-      view({
-        id: 20,
-        generation: 4,
-        kind: 'unit',
-        layer: 'unit',
-        entityType: 'villager',
-        x: 2.25,
-        y: 3.1,
-      }),
-      view({
-        id: 21,
-        generation: undefined,
-        kind: 'building',
-        layer: 'building',
-        entityType: 'house',
-        x: 6,
-        y: 7,
-        isMemory: true,
-      }),
-    ]);
-    for (const key of ['20:4:villager-boot-left', '21:memory:house-plinth']) {
-      const matrix = partRecord(snapshot, key).matrix;
-      expect(matrix[13]! - matrix[5]! / 2).toBeCloseTo(0);
-    }
   });
 
   it('advances live foot poses from displayed movement and relaxes them after stopping', () => {

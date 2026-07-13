@@ -1,16 +1,13 @@
-import Phaser from 'phaser';
-
 import {
   createSimulationBridge,
   type SimulationBridge,
 } from '../../game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../game/simulation/saveSchema';
-import { GameScene } from '../../phaser/scenes/GameScene';
+import { AoeVoxelGameView } from '../AoeVoxelGameView';
 import { createHudController, type HudController } from '../../ui/hud/createHudController';
 import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
 import { parseCivParam } from './civParam';
-import { parseRendererMode } from './rendererMode';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -47,9 +44,9 @@ interface AnnotationStack {
 
 // Spec 2 (annotation-ui v0.1.5) AO-12: createApp is async because
 // RecordingService.start() awaits IDB connection. main.ts awaits this
-// before mounting Phaser; on rejection, main.ts catches and renders a
+// before mounting the game view; on rejection, main.ts catches and renders a
 // fatal error message in document.body.
-export async function createApp(): Promise<Phaser.Game> {
+export async function createApp(): Promise<AoeVoxelGameView> {
   const gameRoot = document.getElementById('game-root');
   const hudRoot = document.getElementById('hud-root');
 
@@ -76,7 +73,6 @@ export async function createApp(): Promise<Phaser.Game> {
   // bonuses (Britons sheep, Franks knights, Goths infantry, Aztecs speed, …)
   // are felt in a real game. Unknown/absent → the default (Britons).
   const civilizationsByOwner = parseCivParam(window.location.href);
-  const rendererMode = parseRendererMode(window.location.href);
 
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
@@ -91,12 +87,10 @@ export async function createApp(): Promise<Phaser.Game> {
   // hudController is needed by the annotation stack (toastHandle), so
   // create it BEFORE the first stack rebuild. It receives `handleLoadGame`
   // (defined further down) via the loadGame field.
-  // Forward declarations: `scene` and `hudController` are assigned once
+  // Forward declarations: `view` and `hudController` are assigned once
   // before the first `chainRebuild` call but the assignment must happen
   // AFTER `rebuildAnnotationStack` is defined (the helper closes over them).
-  // eslint-disable-next-line prefer-const
-  let scene: GameScene;
-  // eslint-disable-next-line prefer-const
+  let view: AoeVoxelGameView;
   let hudController: HudController;
   // Slice 5 (v0.1.12): the ReplayLoadDialog's `recording` config closes
   // over `stack` lazily (its `bundle()`, `listPriorSessions()`, and
@@ -117,7 +111,7 @@ export async function createApp(): Promise<Phaser.Game> {
       current: () => bridge,
       replace: (nextBridge) => {
         bridge = nextBridge;
-        scene.setBridge(nextBridge);
+        view.setBridge(nextBridge);
       },
     },
     isLivePaused: () => pauseControl.isPaused(),
@@ -152,44 +146,56 @@ export async function createApp(): Promise<Phaser.Game> {
     const unsubscribePersistenceError = recording.onPersistenceError((err) => {
       hudController.toastHandle.showToast(`recording: ${err.message}`);
     });
-    await recording.start();
-    const form = createAnnotationForm();
-    form.mount(hudRoot!);
-    const annotationController = createAnnotationController({
-      recording,
-      pauseControl,
-      form,
-      worldRef: () => bridgeRef().world,
-      selection: { getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs() },
-      canvasRef: () => scene.getCaptureCanvas(),
-      toast: hudController.toastHandle,
-    });
-    const markerListPanel = createMarkerListPanel({
-      recording,
-      pauseControl,
-      toast: hudController.toastHandle,
-      bridge: {
-        panCameraTo: (target) => scene.panCameraTo(target),
-        select: (refs) => bridgeRef().select(refs),
-      },
-      worldRef: () => bridgeRef().world,
-      replay: {
-        mode: () => replayController.mode,
-        bundle: () => replayController.bundle,
-        jumpToMarker: (markerId) => replayController.jumpToMarker(markerId),
-        onModeChange: (listener) => replayController.onModeChange(listener),
-      },
-      onReplayPriorSession: async (sessionId: string) => {
-        const result = await loadPriorSessionAsReplay({ replayController, recording }, sessionId);
-        if (result.status === 'no-payloads') {
-          throw new Error('session has no recorded commands; nothing to replay forward');
-        }
-        if (result.status === 'error') {
-          throw result.error ?? new Error('unknown replay error');
-        }
-      },
-    });
-    markerListPanel.mount(hudRoot!);
+    let form: AnnotationFormView | null = null;
+    let annotationController: AnnotationController | null = null;
+    let markerListPanel: MarkerListPanel | null = null;
+    try {
+      await recording.start();
+      form = createAnnotationForm();
+      form.mount(hudRoot!);
+      annotationController = createAnnotationController({
+        recording,
+        pauseControl,
+        form,
+        worldRef: () => bridgeRef().world,
+        selection: { getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs() },
+        captureDataUrlRef: () => view.getWorldCapture().dataUrl,
+        toast: hudController.toastHandle,
+      });
+      markerListPanel = createMarkerListPanel({
+        recording,
+        pauseControl,
+        toast: hudController.toastHandle,
+        bridge: {
+          panCameraTo: (target) => view.panCameraTo(target),
+          select: (refs) => bridgeRef().select(refs),
+        },
+        worldRef: () => bridgeRef().world,
+        replay: {
+          mode: () => replayController.mode,
+          bundle: () => replayController.bundle,
+          jumpToMarker: (markerId) => replayController.jumpToMarker(markerId),
+          onModeChange: (listener) => replayController.onModeChange(listener),
+        },
+        onReplayPriorSession: async (sessionId: string) => {
+          const result = await loadPriorSessionAsReplay({ replayController, recording }, sessionId);
+          if (result.status === 'no-payloads') {
+            throw new Error('session has no recorded commands; nothing to replay forward');
+          }
+          if (result.status === 'error') {
+            throw result.error ?? new Error('unknown replay error');
+          }
+        },
+      });
+      markerListPanel.mount(hudRoot!);
+    } catch (error) {
+      unsubscribePersistenceError();
+      annotationController?.dispose();
+      markerListPanel?.dispose();
+      form?.dispose();
+      try { await recording.stop(); } catch { /* preserve the startup failure */ }
+      throw error;
+    }
     return {
       recording,
       annotationController,
@@ -229,7 +235,7 @@ export async function createApp(): Promise<Phaser.Game> {
       createBridge: () => createSimulationBridge(seed, { savedGame: blob }),
       replaceBridge: (nextBridge) => {
         bridge = nextBridge;
-        scene.setBridge(nextBridge);
+        view.setBridge(nextBridge);
       },
     });
     // Chain off any in-flight rebuild OR the live stack — whichever is
@@ -240,19 +246,43 @@ export async function createApp(): Promise<Phaser.Game> {
     stack = await chainRebuild(priorPromise);
   }
 
-  scene = new GameScene(bridge, {
-    getDebugOverlayMode: () => hudController.getDebugOverlayMode(),
-    rendererMode,
+  try {
+    view = new AoeVoxelGameView({ host: gameRoot, bridge });
+  } catch (error) {
+    hotkeyRegistry.dispose();
+    throw error;
+  }
+  const cleanupCallbacks: Array<() => void | Promise<void>> = [
+    () => hotkeyRegistry.dispose(),
+  ];
+  let cleanupPromise: Promise<void> | null = null;
+  const cleanupStartupResources = (): Promise<void> => {
+    cleanupPromise ??= (async () => {
+      for (const cleanup of [...cleanupCallbacks].reverse()) {
+        try {
+          await cleanup();
+        } catch (error) {
+          console.error('[aoe2] startup resource cleanup failed', error);
+        }
+      }
+      cleanupCallbacks.length = 0;
+    })();
+    return cleanupPromise;
+  };
+  view.onDestroy(() => {
+    void cleanupStartupResources();
   });
+
+  try {
 
   hudController = createHudController(hudRoot, {
     getHudState: () => bridge.getHudState(),
     getRenderState: () => bridge.getRenderState(),
     getEconomyState: () => bridge.getEconomyState(),
     getSelectionState: () => bridge.getSelectionState(),
-    getCameraState: () => scene.getCameraState(),
+    getCameraState: () => view.getCameraState(),
     centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
-      scene.centerCameraOnWorldPosition(worldX, worldY);
+      view.centerCameraOnWorldPosition(worldX, worldY);
     },
     issueAction: (actionType) => bridge.issueAction(actionType),
     queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
@@ -280,8 +310,10 @@ export async function createApp(): Promise<Phaser.Game> {
     onRestart: () => { window.location.reload(); },
     onQuit: () => { window.location.href = window.location.origin + window.location.pathname; },
   });
+  cleanupCallbacks.push(() => hudController.destroy());
   const timelinePanel = createTimelinePanel({ controller: replayController });
   timelinePanel.mount(hudRoot);
+  cleanupCallbacks.push(() => timelinePanel.dispose());
   const replayLoadDialog = createReplayLoadDialog({
     host: hudRoot,
     replayController,
@@ -298,9 +330,13 @@ export async function createApp(): Promise<Phaser.Game> {
     },
     toast: hudController.toastHandle,
   });
+  cleanupCallbacks.push(() => replayLoadDialog.dispose());
 
   // Initial annotation stack. handleLoadGame replaces this cell on bridge swap.
   stack = await chainRebuild(undefined);
+  cleanupCallbacks.push(async () => {
+    if (stack) await stack.dispose();
+  });
 
   // Hotkey closures resolve `stack` at call time, so handleLoadGame's
   // reassignment is observed automatically (Alt+M after load fires the
@@ -331,29 +367,9 @@ export async function createApp(): Promise<Phaser.Game> {
     controller: replayController,
     panel: timelinePanel,
   });
+  cleanupCallbacks.push(() => replayHotkeys.dispose());
 
-  const game = new Phaser.Game({
-    // Canvas mode keeps the transparent overlay directly compositable without
-    // preserving a second WebGL drawing buffer. The standalone fallback keeps
-    // Phaser's normal AUTO renderer choice.
-    type: rendererMode === 'voxel' ? Phaser.CANVAS : Phaser.AUTO,
-    parent: gameRoot,
-    width: gameRoot.clientWidth,
-    height: gameRoot.clientHeight,
-    backgroundColor: rendererMode === 'voxel' ? 'rgba(0,0,0,0)' : '#132224',
-    transparent: rendererMode === 'voxel',
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-    render: {
-      pixelArt: true,
-      antialias: false,
-    },
-    scene: [scene],
-  });
-
-  installBrowserTestApi(window, game, () => bridge, scene, {
+  const disposeBrowserTestApi = installBrowserTestApi(window, () => bridge, view, {
     replay: {
       getReplayMode: () => replayController.mode,
       getReplayCurrentTick: () => replayController.currentTick,
@@ -373,18 +389,16 @@ export async function createApp(): Promise<Phaser.Game> {
     // service for getRecorderBundle.
     getRecording: () => stack?.recording ?? (() => { throw new Error('recording not initialized'); })(),
   });
+  cleanupCallbacks.push(disposeBrowserTestApi);
+  // Install the automation seam before the first simulation frame. This lets
+  // deterministic browser harnesses pause immediately without accumulating
+  // hidden startup time while recording and HUD services initialize.
+  view.start();
 
-  game.events.on('destroy', () => {
-    if (stack) void stack.dispose();
-    replayHotkeys.dispose();
-    timelinePanel.dispose();
-    replayLoadDialog.dispose();
-    hotkeyRegistry.dispose();
-    // M2: hudController owns the render-loop RAF + window mouse listeners (its
-    // teardown walk); without this call they leaked on scene destroy (test
-    // isolation / HMR / future return-to-title). Its destroy() is idempotent.
-    hudController.destroy();
-  });
-
-  return game;
+  return view;
+  } catch (error) {
+    view.destroy();
+    await cleanupStartupResources();
+    throw error;
+  }
 }

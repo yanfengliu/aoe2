@@ -1,5 +1,5 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
-import { buildingRole } from '../../phaser/scenes/gameScene/buildingRole';
+import { buildingRole } from '../roles/buildingRole';
 import {
   contactShadow,
   makePart,

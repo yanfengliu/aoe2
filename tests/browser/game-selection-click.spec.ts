@@ -2,6 +2,43 @@ import { expect, test } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 
 test.describe('browser gameplay smoke tests - selection: click', () => {
+  test('selects a town center by clicking its raised voxel tower roof', async ({ page }) => {
+    await game.waitForPausedBootWithSeed(page, 'voxel-raised-picking');
+    const target = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      const building = api.getRenderState().entities.find((entity) => (
+        entity.kind === 'building'
+        && entity.owner === 1
+        && entity.entityType === 'town-center'
+        && !entity.isMemory
+      ));
+      const camera = api.getCameraState();
+      if (!building || !camera) return null;
+      const groundCenter = api.worldToScreen(
+        building.x + building.footprintWidth / 2 - 0.5,
+        building.y + building.footprintHeight / 2 - 0.5,
+      );
+      const verticalPixelsPerWorldUnit = 64 / Math.SQRT2 * Math.sqrt(1 - (32 / 64) ** 2);
+      return {
+        id: building.id,
+        x: groundCenter.x,
+        y: groundCenter.y - 2.61 * verticalPixelsPerWorldUnit * camera.zoom,
+      };
+    });
+    expect(target).not.toBeNull();
+    const resolved = target!;
+    expect(await page.evaluate(({ x, y }) => (
+      document.elementFromPoint(x, y)?.classList.contains('voxel-world-canvas') ?? false
+    ), resolved)).toBe(true);
+
+    await page.mouse.click(resolved.x, resolved.y);
+
+    await expect.poll(() => page.evaluate(() => (
+      window.__AOE2_TEST__!.getSelectionState().selectedEntityId
+    ))).toBe(resolved.id);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
+  });
+
   test('shows a player-facing info card for an individually selected unit', async ({ page }) => {
     await game.waitForBootWithSeed(page, 'villager-selection-fixture');
     const villagerCells = await game.getOwnedUnitCells(page, 1, 'villager');
@@ -70,12 +107,13 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     await game.expectSelectionDetail(page, 'inventory', '100 / 100 food remaining');
   });
 
-  test('only advances an overlapping exact-click stack after a repeated click on the same click cell', async ({
+  test('only advances an overlapping exact-click stack at the same presented hit point', async ({
     page,
   }) => {
     await game.waitForBootWithSeed(page, 'tile-selection-cycle-fixture');
     const stackPoint = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
+      api.setPaused(true);
       const militia = api
         .getDisplayedEntities()
         .find(
@@ -88,22 +126,20 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         return null;
       }
 
-      for (let offsetY = -0.2; offsetY <= 0.2; offsetY += 0.05) {
-        for (let offsetX = -0.2; offsetX <= 0.2; offsetX += 0.05) {
+      for (let offsetY = -0.6; offsetY <= 0.6; offsetY += 0.05) {
+        for (let offsetX = -0.6; offsetX <= 0.6; offsetX += 0.05) {
           const point = {
             x: militia.x + 0.5 + offsetX,
             y: militia.y + 0.5 + offsetY,
           };
-          api.clearSelection();
-          if (!api.selectEntityAtWorldPosition(point.x, point.y)) {
-            continue;
+          api.selectEntityAtWorldPosition(-10, -10);
+          const sequence: Array<string | null> = [];
+          for (let click = 0; click < 4; click += 1) {
+            if (!api.selectEntityAtWorldPosition(point.x, point.y)) break;
+            sequence.push(api.getSnapshot().selectionState.selectedEntityType);
           }
 
-          const selectionState = api.getSnapshot().selectionState;
-          if (
-            selectionState.selectedCount === 1
-            && selectionState.selectedEntityType === 'militia'
-          ) {
+          if (sequence.join(',') === 'militia,house,sheep,militia') {
             api.selectEntityAtWorldPosition(-10, -10);
             return point;
           }
@@ -114,10 +150,6 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     });
     expect(stackPoint).not.toBeNull();
     const resolvedStackPoint = stackPoint!;
-    // The probe loop above uses exact world-position selection to discover a
-    // real "Militia wins here" overlap point. Reboot the deterministic fixture
-    // so the assertion below starts from a clean scene state.
-    await game.waitForBootWithSeed(page, 'tile-selection-cycle-fixture');
 
     expect(
       await page.evaluate(
@@ -141,6 +173,22 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
       ),
     ).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('House');
+
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
+        resolvedStackPoint,
+      ),
+    ).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
+
+    expect(
+      await page.evaluate(
+        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
+        resolvedStackPoint,
+      ),
+    ).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
   });
 
   test('can click the visible body of a moving unit after it has crossed into a new cell', async ({
@@ -171,14 +219,27 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
           && displayed
           && (Math.floor(displayed.x) !== authority.x || Math.floor(displayed.y) !== authority.y)
         ) {
-          const didSelect = api.selectEntityAtWorldPosition(displayed.x + 0.5, displayed.y + 0.5);
-          const selectionState = api.getSnapshot().selectionState;
-          return {
-            didSelect,
-            selectedCount: selectionState.selectedCount,
-            selectedEntityId: selectionState.selectedEntityId,
-            villagerId: villager.id,
-          };
+          for (let offsetY = -0.3; offsetY <= 0.3; offsetY += 0.1) {
+            for (let offsetX = -0.3; offsetX <= 0.3; offsetX += 0.1) {
+              // A second villager can legitimately cover the root centre. Probe
+              // the moving body's exposed area and reset exact-click cycling
+              // between points so the target must win the current hit test.
+              api.selectEntityAtWorldPosition(-10, -10);
+              const didSelect = api.selectEntityAtWorldPosition(
+                displayed.x + 0.5 + offsetX,
+                displayed.y + 0.5 + offsetY,
+              );
+              const selectionState = api.getSnapshot().selectionState;
+              if (didSelect && selectionState.selectedEntityId === villager.id) {
+                return {
+                  didSelect,
+                  selectedCount: selectionState.selectedCount,
+                  selectedEntityId: selectionState.selectedEntityId,
+                  villagerId: villager.id,
+                };
+              }
+            }
+          }
         }
       }
 
@@ -229,7 +290,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         const unitY = dy / distance;
         const gapX = leftCenterX + unitX * (leftRadius + gap * 0.5);
         const gapY = leftCenterY + unitY * (leftRadius + gap * 0.5);
-        if (!bestGap || gap < bestGap.gap) {
+        if (!bestGap || gap > bestGap.gap) {
           bestGap = { gap, x: gapX, y: gapY, dx, dy };
         }
       }
@@ -274,16 +335,35 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     const selectedSnapshot = await game.getSnapshot(page);
     expect(selectedSnapshot.selectionState.selectedCount).toBe(renderedVillagers.length);
 
-    await game.clickCell(page, 10, 12, 'right');
+    // The expanded multi-selection command card intentionally covers the old
+    // (10, 12) screen point at the 800x600 browser-test viewport. Exercise a
+    // genuinely player-clickable terrain destination instead of dispatching
+    // through the HUD.
+    const destination = { x: 14, y: 7 };
+    const destinationPoint = await game.getScreenPointForCell(
+      page,
+      destination.x,
+      destination.y,
+    );
+    expect(
+      await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains('voxel-world-canvas'),
+        destinationPoint,
+      ),
+    ).toBe(true);
+    await game.clickCell(page, destination.x, destination.y, 'right');
 
-    const movedSnapshot = await page.evaluate(() => {
+    const movedSnapshot = await page.evaluate((target) => {
       const api = window.__AOE2_TEST__!;
       let snapshot = api.getSnapshot();
 
       for (let index = 0; index < 80; index += 1) {
         snapshot = api.advanceTicks(1, 100);
         const arrivedCount = snapshot.economyState.units.filter(
-          (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+          (unit) => unit.owner === 1
+            && unit.unitType === 'villager'
+            && unit.x >= target.x - 1
+            && unit.y <= target.y + 1,
         ).length;
         if (arrivedCount === 3) {
           break;
@@ -291,11 +371,14 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
       }
 
       return snapshot;
-    });
+    }, destination);
 
     expect(
       movedSnapshot.economyState.units.filter(
-        (unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x >= 9 && unit.y >= 11,
+        (unit) => unit.owner === 1
+          && unit.unitType === 'villager'
+          && unit.x >= destination.x - 1
+          && unit.y <= destination.y + 1,
       ),
     ).toHaveLength(renderedVillagers.length);
   });

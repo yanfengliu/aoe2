@@ -71,7 +71,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => selectedRefs },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -89,7 +89,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => selectedRefs },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -108,7 +108,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => selectedRefs },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -132,7 +132,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -151,7 +151,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -172,13 +172,41 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => null,
+      captureDataUrlRef: () => null,
       toast,
     });
     controller.onHotkey();
     form.emitSubmit({ text: 'no canvas', severity: 'info', category: 'general', captureScreenshot: true });
     expect(recording.attachScreenshot).not.toHaveBeenCalled();
     expect(toast.showToast).toHaveBeenCalledWith('screenshot capture unavailable (no canvas)');
+    expect(recording.addMarker).toHaveBeenCalledTimes(1);
+    expect(recording.addMarker.mock.calls[0][0].attachments).toBeUndefined();
+    controller.dispose();
+  });
+
+  it('submit with renderer capture failure: saves marker without attachment + soft toast', () => {
+    const form = stubForm();
+    const controller = createAnnotationController({
+      recording: recording as never,
+      pauseControl,
+      form,
+      worldRef: () => world,
+      selection: { getSelectedEntityRefs: () => [] },
+      captureDataUrlRef: () => { throw new Error('WebGL context is lost'); },
+      toast,
+    });
+    controller.onHotkey();
+    form.emitSubmit({
+      text: 'capture unavailable',
+      severity: 'warning',
+      category: 'ui',
+      captureScreenshot: true,
+    });
+
+    expect(recording.attachScreenshot).not.toHaveBeenCalled();
+    expect(toast.showToast).toHaveBeenCalledWith(
+      'screenshot capture failed: WebGL context is lost',
+    );
     expect(recording.addMarker).toHaveBeenCalledTimes(1);
     expect(recording.addMarker.mock.calls[0][0].attachments).toBeUndefined();
     controller.dispose();
@@ -193,7 +221,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -212,7 +240,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.onHotkey();
@@ -231,7 +259,7 @@ describe('AnnotationController', () => {
       form,
       worldRef: () => world,
       selection: { getSelectedEntityRefs: () => [] },
-      canvasRef: () => canvas,
+      captureDataUrlRef: () => canvas?.toDataURL('image/png') ?? null,
       toast,
     });
     controller.dispose();

@@ -12,7 +12,7 @@
  *
  * This sheet only paints the panel CHASSIS. It deliberately does NOT touch
  * layout/position/size, the warm-gold-on-dark-teal palette, button/chip/
- * icon styling, or anything inside `src/phaser/` (the change is DOM/CSS
+ * icon styling, or anything inside the world renderer (the change is DOM/CSS
  * only). Every colour below is derived from the existing palette
  * (gold `#c4ae7a` / `rgba(221,196,145,…)` over dark teal
  * `rgba(17,24,26,…)`); no new hues are introduced. Loaded after

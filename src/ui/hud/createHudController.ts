@@ -99,14 +99,11 @@ interface HudBridge {
   onQuit?(): void;
 }
 
-// Slice 11: debug-overlay mode type is re-exported so GameScene +
-// browser test API continue to import from `createHudController`.
+// Slice 11: debug-overlay mode type remains part of the HUD facade.
 export type { DebugOverlayMode } from './debugOverlay';
 
 export interface HudController {
-  // Slice 11: GameScene reads the active overlay mode so it can draw
-  // world-space debug shapes (selection bounds, pathing lines). The HUD
-  // itself renders the text overlay for ai-state / perf.
+  // Slice 11: the HUD cycles and renders text summaries for debug modes.
   getDebugOverlayMode(): DebugOverlayMode;
   cycleDebugOverlayMode(): DebugOverlayMode;
   // v0.1.95: open/close the in-game menu. createApp binds the Esc key to this
@@ -177,8 +174,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     '[data-hud="replay-load-button"]',
   );
   // Slice 11: debug-overlay controller owns the F2 cycle, the mode
-  // pointer, and the text summary. GameScene reads the mode through
-  // the `HudController` facade returned below.
+  // pointer and text summary.
   const debugOverlayController = createDebugOverlayController(debugOverlay);
   teardownCallbacks.push(() => debugOverlayController.destroy());
 

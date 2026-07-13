@@ -2,6 +2,20 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.0 - 2026-07-13
+
+### Voxel graphics are now the whole game world
+
+AoE2 now launches directly into its isometric 3-D voxel battlefield. There is no renderer mode, legacy 2-D fallback, or second input/overlay canvas: terrain, fog shading, buildings, resources, animated units, selection rings, placement previews, health cues, hit sparks, and death debris all come from one interactive Three.js voxel canvas. The HUD, minimap, dialogs, and replay timeline remain normal UI.
+
+Camera pan/zoom, middle-drag, edge pan, selection, box selection, context orders, construction placement, save/load, replay, annotation capture, and browser automation were moved onto a standalone AoE view host without changing simulation authority. The drag rectangle itself is now four bright voxel segments, including when no units are inside it. Clicks and context orders resolve against the currently presented rigid-part silhouettes, so moving units, raised roofs, and walls stay interactive; repeated clicks cycle only the distinct visible groups still under that exact point. Interaction pauses during context loss or a pending presentation revision instead of targeting stale pixels. Health bars and hit sparks clear the authored top of voxel parts instead of relying on footprint guesses.
+
+Legacy `?renderer=phaser`, `?renderer=voxel`, and invalid renderer query values cannot change the graphics path. Failure to initialize the voxel renderer is visible and terminal instead of silently switching art and input behavior, and partial startup failures release the canvas, GPU runtime, listeners, controls, HUD, and recording resources they already created.
+
+The obsolete Phaser source tree, painter tests, runtime dependency, and separate 1.48 MB production chunk are removed. The remaining application bundle retains the reusable sibling `voxel` boundary so City and Townscaper can adopt the same game-neutral chunk, geometry, instance, capture, metrics, and lifecycle contracts without inheriting AoE rules or art.
+
+Terrain remains on an elevation-zero isometric plane for now. The current recipe-derived entity hit proxy is AoE-specific; raised terrain/cliffs and a reusable presented-state engine ray query remain future voxel work. Selection outlines and death debris are currently static voxel cues, and the old white unit-through-building x-ray cue is not present; depth-aware x-ray, gameplay-event attack/gather animation, and richer death motion are explicit follow-ups rather than hidden legacy drawing.
+
 ## 0.1.150 - 2026-07-12
 
 ### Voxel units plant their feet and match their movement speed
