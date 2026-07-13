@@ -84,9 +84,24 @@ External-review blocker: the user explicitly approved private-diff review on 202
 - [x] Update the game spec, architecture/drift records, changelog/version, detailed devlog, summary, review artifact, and this ledger; prepare the coherent local AoE change after the engine commit in dependency order.
 - [x] Commit the reusable engine increment locally as `dd9b811d0dd3a5912cbc4626cc1b7ade94895e74`.
 - [x] Commit the coherent AoE v0.1.148 increment locally after final staged content and secret review.
-- [ ] After explicit approval, push engine commit `dd9b811d0dd3a5912cbc4626cc1b7ade94895e74` first, then push the AoE v0.1.148 commit whose CI pin names that exact engine revision.
+- [x] After explicit approval, push engine commit `dd9b811d0dd3a5912cbc4626cc1b7ade94895e74` first, then push AoE v0.1.148 commit `5a42649` whose CI pin names that exact engine revision.
 
 Exit gate: the controlled seed has recognisable AoE-style voxel architecture, units, resources, and terrain detail with bounded draw calls/resources, deterministic snapshots, aligned overlays/input, stable lifecycle behavior, and reviewed before/after/diff evidence. Phaser remains the safe default until the separate promotion gates pass.
+
+## Increment 7: animated voxel units
+
+- [x] Decide the ownership boundary: reusable bounded harmonic rigid-instance playback belongs in `voxel`; AoE owns roles, part names, gait profiles, memory policy, and future gameplay clip semantics.
+- [x] Add red engine tests for copied/validated animation arrays, deterministic injected-time sampling, static-slot stability, replacement, conservative bounds, full-versus-partial GPU uploads, context-loss fencing, metrics, and disposal.
+- [x] Add red AoE tests for deterministic identity phase, memory exclusion, idle bob, opposing humanoid gait, cavalry gait, monk motion, siege motion, generation replacement, and bridge reset without animating buildings/resources/shadows.
+- [x] Implement the reusable optional instance-animation lane without per-frame snapshots or Three/DOM imports in portable core; bound it to 8,192 active slots, 16,384 total slots per active batch, and 64 upload ranges.
+- [x] Implement `aoeVoxelUnitAnimation.ts`, attach motion profiles to existing rigid parts, and keep the adapter orchestration-only and every source file below 500 lines.
+- [x] Add browser evidence that two world captures at one paused simulation revision differ because animation continues, while draw calls, instances, resources, accepted revision, and presented revision remain bounded/stable.
+- [x] Capture and inspect fixed-camera before/after/diff evidence; record animated instance/update counts and named viewport/DPR/time separation.
+- [x] Update spec, README, architecture/decisions/drift, changelog/version, devlogs, shared-engine docs, review artifact, and this ledger.
+- [x] Run focused tests, engine `verify`, AoE's four gates, focused and complete browser suites, then adversarial live-code review and re-review. Final: engine 80/80 plus typecheck/lint/build and package dry-run; AoE 2,071 unit tests plus two skips, typecheck, zero-warning lint, 456-module build, and 101 browser tests plus two intentional visual-baseline skips.
+- [x] Commit and publish engine-first (`voxel` `f85f10e961896de26e2be4fd0f1985b89a291929`), update AoE's exact pin, then commit and publish AoE v0.1.149 second.
+
+Exit gate: live non-memory voxel units visibly breathe or move their rigid limbs/tools/mounts/machines under the renderer clock even when no new world snapshot is accepted; static world geometry and gameplay state remain unchanged. General skeletal animation, attack/gather clip events, projectiles, and imported character assets remain later increments.
 
 ## Deferred backlog
 
@@ -95,7 +110,7 @@ Exit gate: the controlled seed has recognisable AoE-style voxel architecture, un
 - Elimination of hidden legacy draw work in the composed path.
 - Three-native fog/selection/placement/health/death/debug passes.
 - Depth-aware unit x-ray/outline treatment.
-- General animated crowds and richer per-civilization assets.
+- General skeletal crowds, attack/gather event clips, imported character assets, and richer per-civilization art.
 - Worker/WASM/greedy meshing after the Voxelize and `block-mesh-rs` bake-off.
 - City embedded-batch proof and Townscaper geometry-resource proof.
 - Static terrain/building/resource versus dynamic unit batches if representative adapter updates exceed the documented 4 ms local budget or browser instance/draw/resource ceilings.

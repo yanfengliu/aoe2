@@ -1,6 +1,7 @@
 import type {
   GeometryResourceV1,
   InstanceBatchV1,
+  InstanceTransformAnimationV1,
   MaterialResourceV1,
 } from 'voxel/core';
 import { DensePaletteChunk, meshVisibleFaces } from 'voxel/meshing';
@@ -117,6 +118,27 @@ function tintToBytes(tint: number): readonly [number, number, number, number] {
   return [(tint >>> 16) & 0xff, (tint >>> 8) & 0xff, tint & 0xff, 255];
 }
 
+function packedAnimation(parts: readonly VoxelPart[]): InstanceTransformAnimationV1 | undefined {
+  if (!parts.some((part) => part.animation !== undefined)) return undefined;
+  return {
+    schemaVersion: 'voxel.instance-transform-animation/1',
+    periodsMs: new Float32Array(parts.map((part) => part.animation?.periodMs ?? 0)),
+    phasesRadians: new Float32Array(parts.map((part) => part.animation?.phaseRadians ?? 0)),
+    translationAmplitudes: new Float32Array(parts.flatMap((part) => {
+      const value = part.animation?.translationAmplitude;
+      return value ? [value.x, value.y, value.z] : [0, 0, 0];
+    })),
+    rotationAmplitudesRadians: new Float32Array(parts.flatMap((part) => {
+      const value = part.animation?.rotationAmplitude;
+      return value ? [value.x, value.y, value.z] : [0, 0, 0];
+    })),
+    scaleAmplitudes: new Float32Array(parts.flatMap((part) => {
+      const value = part.animation?.scaleAmplitude;
+      return value ? [value.x, value.y, value.z] : [0, 0, 0];
+    })),
+  };
+}
+
 export function makePartBatches(
   input: readonly VoxelPart[],
   revision: number,
@@ -131,6 +153,7 @@ export function makePartBatches(
     const selected = parts.filter((part) => part.surface === surface);
     const matrices = new Float32Array(selected.flatMap((part) => matrixForPart(part)));
     const colors = new Uint8Array(selected.flatMap((part) => tintToBytes(part.tint)));
+    const animation = packedAnimation(selected);
     return {
       key: `aoe2:batch:${surface}-parts`,
       incarnation: 1,
@@ -140,6 +163,7 @@ export function makePartBatches(
       instanceKeys: selected.map((part) => part.key),
       matrices,
       colors,
+      ...(animation ? { animation } : {}),
     };
   });
 }

@@ -15,6 +15,10 @@ import {
   createTerrainDetailParts,
 } from './aoeVoxelTerrain';
 import { createUnitParts } from './aoeVoxelUnitRecipes';
+import {
+  resolveUnitAnimationState,
+  type AoeUnitAnimationState,
+} from './aoeVoxelUnitAnimation';
 
 export { AOE_TERRAIN_CHUNK_SIZE } from './aoeVoxelTerrain';
 
@@ -29,6 +33,7 @@ interface KeyedEntity {
   readonly entity: ProjectedEntityView;
   readonly identity: string;
   readonly ground: number;
+  readonly animationState?: AoeUnitAnimationState;
 }
 
 interface FallbackIdentityState {
@@ -68,7 +73,12 @@ function compositionGround(entity: ProjectedEntityView): number {
 
 function partsFor(entity: KeyedEntity): VoxelPart[] {
   if (entity.entity.layer === 'unit') {
-    return createUnitParts(entity.entity, entity.identity, entity.ground);
+    return createUnitParts(
+      entity.entity,
+      entity.identity,
+      entity.ground,
+      entity.animationState,
+    );
   }
   if (entity.entity.layer === 'building') {
     return createBuildingParts(entity.entity, entity.identity, entity.ground);
@@ -85,6 +95,7 @@ export class AoeVoxelAdapter {
   private paletteRevision = 0;
   private readonly chunkStates = new Map<string, ChunkState>();
   private readonly fallbackIdentities = new Map<string, FallbackIdentityState>();
+  private readonly previousUnitPositions = new Map<string, { x: number; y: number }>();
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
@@ -202,17 +213,37 @@ export class AoeVoxelAdapter {
     const seenFallbacks = new Set<string>();
     const keyed = entities.filter((entity) => entity.layer !== 'terrain').map((entity) => {
       const explicit = explicitEntityKey(entity);
-      if (explicit) return { entity, identity: explicit, ground: compositionGround(entity) };
-      const namespace = entity.isMemory ? 'memory' : 'legacy';
-      const slot = `${String(entity.id)}:${namespace}`;
-      if (seenFallbacks.has(slot)) throw new Error(`Duplicate fallback voxel identity: ${slot}`);
-      seenFallbacks.add(slot);
-      const previous = this.fallbackIdentities.get(slot);
-      const incarnation = previous?.active ? previous.incarnation : (previous?.incarnation ?? 0) + 1;
-      fallbacks.set(slot, { active: true, incarnation });
-      const suffix = incarnation === 1 ? namespace : `${namespace}:${String(incarnation)}`;
-      return { entity, identity: `${String(entity.id)}:${suffix}`, ground: compositionGround(entity) };
+      let identity = explicit;
+      if (!identity) {
+        const namespace = entity.isMemory ? 'memory' : 'legacy';
+        const slot = `${String(entity.id)}:${namespace}`;
+        if (seenFallbacks.has(slot)) throw new Error(`Duplicate fallback voxel identity: ${slot}`);
+        seenFallbacks.add(slot);
+        const previous = this.fallbackIdentities.get(slot);
+        const incarnation = previous?.active ? previous.incarnation : (previous?.incarnation ?? 0) + 1;
+        fallbacks.set(slot, { active: true, incarnation });
+        const suffix = incarnation === 1 ? namespace : `${namespace}:${String(incarnation)}`;
+        identity = `${String(entity.id)}:${suffix}`;
+      }
+      const animationState = entity.layer === 'unit'
+        ? resolveUnitAnimationState(entity, identity, this.previousUnitPositions.get(identity))
+        : undefined;
+      return {
+        entity,
+        identity,
+        ground: compositionGround(entity),
+        ...(animationState ? { animationState } : {}),
+      };
     });
+    this.previousUnitPositions.clear();
+    for (const record of keyed) {
+      if (record.entity.layer === 'unit' && !record.entity.isMemory) {
+        this.previousUnitPositions.set(record.identity, {
+          x: record.entity.x,
+          y: record.entity.y,
+        });
+      }
+    }
     return { entities: keyed, fallbacks };
   }
 
@@ -228,5 +259,6 @@ export class AoeVoxelAdapter {
     this.paletteRevision = 0;
     this.chunkStates.clear();
     this.fallbackIdentities.clear();
+    this.previousUnitPositions.clear();
   }
 }

@@ -8,6 +8,11 @@ import {
   type VoxelPart,
   type VoxelSurface,
 } from './aoeVoxelRecipeTypes';
+import {
+  animateUnitParts,
+  phaseForUnitIdentity,
+  type AoeUnitAnimationState,
+} from './aoeVoxelUnitAnimation';
 
 interface UnitContext {
   readonly entity: ProjectedEntityView;
@@ -158,6 +163,10 @@ export function createUnitParts(
   entity: ProjectedEntityView,
   identity: string,
   ground: number,
+  animationState: AoeUnitAnimationState = {
+    mode: 'idle',
+    phaseRadians: phaseForUnitIdentity(identity),
+  },
 ): VoxelPart[] {
   const scale = Math.max(0.48, entity.size);
   const context: UnitContext = {
@@ -179,5 +188,5 @@ export function createUnitParts(
     case 'siege': siege(context); break;
     case 'monk': monk(context); break;
   }
-  return context.parts;
+  return animateUnitParts(context.parts, entity, animationState);
 }

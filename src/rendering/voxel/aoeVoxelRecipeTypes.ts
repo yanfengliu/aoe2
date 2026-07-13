@@ -2,6 +2,26 @@ import type { ProjectedEntityView } from '../../game/simulation/types';
 
 export type VoxelSurface = 'matte' | 'metal' | 'shadow' | 'memory';
 
+export interface VoxelPartAnimation {
+  readonly periodMs: number;
+  readonly phaseRadians: number;
+  readonly translationAmplitude: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+  };
+  readonly rotationAmplitude: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+  };
+  readonly scaleAmplitude: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+  };
+}
+
 export interface VoxelPart {
   readonly key: string;
   readonly surface: VoxelSurface;
@@ -14,6 +34,7 @@ export interface VoxelPart {
   readonly depth: number;
   readonly yaw?: number;
   readonly roll?: number;
+  readonly animation?: VoxelPartAnimation;
 }
 
 export const VOXEL_COLORS = {

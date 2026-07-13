@@ -329,3 +329,18 @@ Consequences:
 - Contact shadows are bounded translucent instance geometry, not a claim of shadow-map support. True shadows remain gated on renderer budgets, caster/receiver policy, context restoration, metrics, and teardown.
 - Terrain props remain visually sparse and physically flat, so Phaser overlay/input parity is unchanged.
 - City and Townscaper may reuse the daylight option and instance/geometry lanes without inheriting AoE art or role classifications.
+
+## KAD-0020 - Unit animation semantics stay AoE-owned
+
+Date: 2026-07-12.
+Status: Active.
+
+Context: detailed procedural voxel units need continuous motion, but idle, locomotion, part names, unit roles, attacks, gathering, and reload timing are game vocabulary. City and Townscaper may need unrelated rigid motion, while general skeletal clips would introduce a much larger asset and lifecycle contract.
+
+Decision: the sibling renderer owns only an optional bounded harmonic transform lane sampled from injected frame time. AoE owns `aoeVoxelUnitAnimation.ts`, stable `id:generation` phase selection, movement-history classification, named-part profiles, memory/static policy, and every amplitude/period relationship. Bridge replacement clears movement history; a new entity generation begins idle. The engine caps active and per-batch workloads, preserves full snapshot uploads, coalesces partial updates, and computes conservative affine-safe motion bounds.
+
+Consequences:
+- Idle and locomotion motion can continue while the simulation is paused and no new snapshot is accepted; it has no save, replay, command, collision, fog, health, or selection authority.
+- Contact shadows, fog-memory ghosts, terrain, buildings, and resources remain static in this slice.
+- AoE does not leak role or clip enums into `voxel`; City can use the lane for pedestrians or props, and Townscaper for wildlife or ornaments, with their own adapters.
+- Event-synchronized attacks/gathering, projectiles, root motion, clip blending, skeletal assets, and animation textures remain later measured contracts.

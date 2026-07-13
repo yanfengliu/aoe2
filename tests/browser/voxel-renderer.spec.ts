@@ -123,9 +123,15 @@ test.describe('voxel world renderer', () => {
       materialResources: 5,
       geometryResources: 1,
       instanceBatches: 4,
+      animatedBatches: 2,
       contextLosses: 0,
       contextRestorations: 0,
     });
+    expect(result.state.metrics!.animatedInstances).toBeGreaterThan(30);
+    expect(result.state.metrics!.animatedInstances).toBeLessThan(500);
+    expect(result.state.metrics!.animationMatrixUpdates).toBeGreaterThan(
+      result.state.metrics!.animatedInstances,
+    );
     expect(result.state.metrics!.instances).toBeGreaterThan(500);
     expect(result.state.metrics!.instances).toBeLessThan(5_000);
     expect(result.state.metrics!.drawCalls).toBeGreaterThan(0);
@@ -133,6 +139,56 @@ test.describe('voxel world renderer', () => {
     expect(result.state.metrics!.triangles).toBeLessThan(100_000);
     expect(result.state.metrics!.rendererGeometries).toBeLessThanOrEqual(20);
     expect(result.state.metrics!.rendererTextures).toBeLessThanOrEqual(4);
+  });
+
+  test('animates rigid unit parts without accepting new world state while paused', async ({ page }) => {
+    await page.addInitScript(() => {
+      const timer = window.setInterval(() => {
+        if (!window.__AOE2_TEST__) return;
+        window.__AOE2_TEST__.setPaused(true);
+        window.clearInterval(timer);
+      }, 0);
+    });
+    await page.goto('/?seed=aoe2-prototype&renderer=voxel');
+    await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
+    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
+    await expect.poll(() => page.evaluate(
+      () => window.__AOE2_TEST__!.getWorldRendererState().metrics!.animatedInstances,
+    )).toBeGreaterThan(30);
+    await page.waitForTimeout(100);
+
+    const before = await page.evaluate(() => ({
+      tick: window.__AOE2_TEST__!.getRenderState().tick,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
+      dataUrl: window.__AOE2_TEST__!.captureWorldFrame()!.dataUrl,
+    }));
+    await expect.poll(() => page.evaluate(
+      () => window.__AOE2_TEST__!.getWorldRendererState().metrics!.animationMatrixUpdates,
+    )).toBeGreaterThan(
+      before.metrics.animationMatrixUpdates + before.metrics.animatedInstances * 2,
+    );
+    const after = await page.evaluate(() => ({
+      tick: window.__AOE2_TEST__!.getRenderState().tick,
+      metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
+      dataUrl: window.__AOE2_TEST__!.captureWorldFrame()!.dataUrl,
+    }));
+
+    expect(after.tick).toBe(before.tick);
+    expect(after.metrics.acceptedEpoch).toBe(before.metrics.acceptedEpoch);
+    expect(after.metrics.acceptedRevision).toBe(before.metrics.acceptedRevision);
+    expect(after.metrics.presentedRevision).toBe(before.metrics.presentedRevision);
+    expect(after.metrics.drawCalls).toBe(before.metrics.drawCalls);
+    expect(after.metrics.materialResources).toBe(before.metrics.materialResources);
+    expect(after.metrics.geometryResources).toBe(before.metrics.geometryResources);
+    expect(after.metrics.chunks).toBe(before.metrics.chunks);
+    expect(after.metrics.visibleChunks).toBe(before.metrics.visibleChunks);
+    expect(after.metrics.instanceBatches).toBe(before.metrics.instanceBatches);
+    expect(after.metrics.instances).toBe(before.metrics.instances);
+    expect(after.metrics.animatedBatches).toBe(before.metrics.animatedBatches);
+    expect(after.metrics.animatedInstances).toBe(before.metrics.animatedInstances);
+    expect(after.metrics.rendererGeometries).toBe(before.metrics.rendererGeometries);
+    expect(after.metrics.rendererTextures).toBe(before.metrics.rendererTextures);
+    expect(sha256(after.dataUrl)).not.toBe(sha256(before.dataUrl));
   });
 
   test('starts a fresh renderer epoch when save/load replaces the bridge', async ({ page }) => {

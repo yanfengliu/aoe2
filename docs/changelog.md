@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.1.149 - 2026-07-12
+
+### Voxel units are alive
+
+Live units in the experimental `?renderer=voxel` view now animate their existing procedural parts. Villagers, infantry, and archers breathe and bob at rest, then swing opposing arms and legs while moving. Cavalry animate horse legs, tails, and riders; monks move sleeves and staffs; siege units turn wheels or work their mechanisms. Stable identity phases keep a crowd from moving in lockstep.
+
+This is renderer-only motion. Buildings, terrain, resources, contact shadows, and fog-memory ghosts remain static, while gameplay state, commands, selection, hit geometry, saves, and replays are unchanged. The first slice does not claim event-synchronized attacks, gathering, projectiles, skeletal clips, or root motion.
+
+The reusable sibling engine owns only the bounded injected-time harmonic transform lane, conservative motion bounds, partial-upload policy, and metrics. AoE2 owns every unit role, part name, idle/movement profile, amplitude, period, and phase relationship.
+
 ## 0.1.148 - 2026-07-12
 
 ### The voxel battlefield now looks like an actual RTS settlement
