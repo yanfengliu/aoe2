@@ -15,6 +15,14 @@ interface CachedMovePath {
   nextPathIndex: number;
 }
 
+export interface UnitAttackFeedRuntime {
+  byAttacker: Map<string, ProjectedUnitAttackView>;
+  materialized: ProjectedUnitAttackView[];
+  materializedDirty: boolean;
+  persistenceDirty: boolean;
+  lastPrunedTick: number;
+}
+
 export interface BridgeState {
   // Phase 2D: `trackedVisibilitySources` + `playerAges` + `playerCivilizations`
   // migrated to `world.state.aoe2.*` via accessor + codec.
@@ -93,7 +101,7 @@ export interface BridgeState {
   recentUnitDeaths: ProjectedUnitDeathView[];
   // Successful unit hits, one latest event per attacker ref. Like deaths this
   // is a bounded transient render feed and deliberately has no save codec.
-  recentUnitAttacks: ProjectedUnitAttackView[];
+  unitAttackFeed: UnitAttackFeedRuntime;
 }
 
 export function createBridgeState(): BridgeState {
@@ -103,6 +111,12 @@ export function createBridgeState(): BridgeState {
     monkConvertProcessedThisTick: new Map(),
     pendingCommands: createPendingCommandsQueue(),
     recentUnitDeaths: [],
-    recentUnitAttacks: [],
+    unitAttackFeed: {
+      byAttacker: new Map(),
+      materialized: [],
+      materializedDirty: false,
+      persistenceDirty: false,
+      lastPrunedTick: Number.NEGATIVE_INFINITY,
+    },
   };
 }

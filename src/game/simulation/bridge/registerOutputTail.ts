@@ -18,7 +18,7 @@ import type { MatchState } from '../types';
 import type { PendingCommandsQueue } from '../dispatcher';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
-import type { ProjectedUnitAttackView } from '../types';
+import type { UnitAttackFeedRuntime } from './bridgeState';
 import { registerTier3SyncSystem } from './tier3SyncSystem';
 import { registerBridgeSnapshotSystem } from './bridgeSnapshotSystem';
 
@@ -28,7 +28,7 @@ export function registerOutputTail(deps: {
   visibilityCell: VisibilityCell;
   matchState: MatchState;
   pendingCommands: PendingCommandsQueue;
-  recentUnitAttacks: ProjectedUnitAttackView[];
+  unitAttackFeed: UnitAttackFeedRuntime;
   syncReplayUnitAttacks?: boolean;
 }): void {
   const {
@@ -37,7 +37,7 @@ export function registerOutputTail(deps: {
     visibilityCell,
     matchState,
     pendingCommands,
-    recentUnitAttacks,
+    unitAttackFeed,
     syncReplayUnitAttacks = true,
   } = deps;
   registerTier3SyncSystem({
@@ -45,7 +45,7 @@ export function registerOutputTail(deps: {
     visibilityCell,
     matchState,
     pendingCommands,
-    recentUnitAttacks,
+    unitAttackFeed,
     syncReplayUnitAttacks,
   });
   registerBridgeSnapshotSystem({ world, accessor });

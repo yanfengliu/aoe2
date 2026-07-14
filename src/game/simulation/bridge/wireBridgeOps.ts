@@ -381,7 +381,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     visibilityCell,
     matchState,
     pendingCommands: state.pendingCommands,
-    recentUnitAttacks: state.recentUnitAttacks,
+    unitAttackFeed: state.unitAttackFeed,
     syncReplayUnitAttacks,
   });
   bootstrapFlush({
@@ -390,7 +390,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     visibilityCell,
     matchState,
     pendingCommands: state.pendingCommands,
-    recentUnitAttacks: state.recentUnitAttacks,
+    unitAttackFeed: state.unitAttackFeed,
     syncReplayUnitAttacks,
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,

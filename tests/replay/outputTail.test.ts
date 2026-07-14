@@ -8,6 +8,13 @@ import {
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { VisibilityCell } from '../../src/game/simulation/bridge/visibilityCell';
 import { registerOutputTail } from '../../src/game/simulation/bridge/registerOutputTail';
+import { createBridgeState } from '../../src/game/simulation/bridge/bridgeState';
+import {
+  flushReplayUnitAttacksState,
+} from '../../src/game/simulation/bridge/tier3SyncSystem';
+import {
+  upsertUnitAttack,
+} from '../../src/game/simulation/bridge/unitAttackAnimationFeed';
 import type {
   GameCommands,
   GameComponents,
@@ -37,13 +44,72 @@ function makeMatchState(): MatchState {
 }
 
 describe('registerOutputTail', () => {
+  it('publishes attack feed only on bootstrap, change, and expiry', () => {
+    const world = makeWorld();
+    const accessor = new BridgeStateAccessor(() => world);
+    const visibilityCell = new VisibilityCell(new VisibilityMap(20, 20));
+    const matchState = makeMatchState();
+    const feed = createBridgeState().unitAttackFeed;
+    const attackDiffs: Array<{ tick: number; value: unknown }> = [];
+
+    world.runMaintenance(() => {
+      flushReplayUnitAttacksState(world, feed, world.tick, true);
+    });
+    registerOutputTail({
+      world,
+      accessor,
+      visibilityCell,
+      matchState,
+      pendingCommands: [],
+      unitAttackFeed: feed,
+    });
+    world.onDiff((diff) => {
+      if (Object.hasOwn(diff.state.set, TIER_3_SLOTS.replayUnitAttacks)) {
+        attackDiffs.push({
+          tick: diff.tick,
+          value: diff.state.set[TIER_3_SLOTS.replayUnitAttacks],
+        });
+      }
+    });
+
+    world.step();
+    expect(attackDiffs).toEqual([]);
+
+    upsertUnitAttack(feed, {
+      attackerId: 7,
+      attackerGeneration: 0,
+      tick: 2,
+      targetX: 4,
+      targetY: 4,
+      witnessedBy: [1],
+    }, 2);
+    world.step();
+    expect(attackDiffs).toEqual([{ tick: 2, value: [{
+      attackerId: 7,
+      attackerGeneration: 0,
+      tick: 2,
+      targetX: 4,
+      targetY: 4,
+      witnessedBy: [1],
+    }] }]);
+
+    for (let tick = 3; tick <= 12; tick += 1) world.step();
+    expect(attackDiffs).toHaveLength(1);
+
+    world.step();
+    expect(attackDiffs).toEqual([
+      expect.objectContaining({ tick: 2 }),
+      { tick: 13, value: [] },
+    ]);
+  });
+
   it('flushes dirty Tier-1 slots to world.state on tick', () => {
     const world = makeWorld();
     const accessor = new BridgeStateAccessor(() => world);
     const visibilityCell = new VisibilityCell(new VisibilityMap(20, 20));
     const matchState = makeMatchState();
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], recentUnitAttacks: [] });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], unitAttackFeed: createBridgeState().unitAttackFeed });
 
     accessor.mutate(combatStatesCodec, (m) =>
       m.set(42, {
@@ -76,7 +142,7 @@ describe('registerOutputTail', () => {
     matchState.outcome = 'victory';
     matchState.winCondition = 'wonder';
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], recentUnitAttacks: [] });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], unitAttackFeed: createBridgeState().unitAttackFeed });
     world.step();
 
     const persisted = world.getState(TIER_3_SLOTS.matchState) as
@@ -96,7 +162,7 @@ describe('registerOutputTail', () => {
     const visibilityCell = new VisibilityCell(new VisibilityMap(20, 20));
     const matchState = makeMatchState();
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], recentUnitAttacks: [] });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], unitAttackFeed: createBridgeState().unitAttackFeed });
 
     // First tick: cell starts dirty → visibility WRITTEN.
     expect(visibilityCell.isDirty).toBe(true);
@@ -155,7 +221,7 @@ describe('registerOutputTail', () => {
       execute: () => trace.push('controlOutput'),
     });
 
-    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], recentUnitAttacks: [] });
+    registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: [], unitAttackFeed: createBridgeState().unitAttackFeed });
 
     world.step();
 

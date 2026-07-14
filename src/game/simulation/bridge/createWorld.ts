@@ -31,8 +31,12 @@ import {
 import type { SaveBlob } from '../saveSchema';
 import { createWorldOccupancy } from '../worldOccupancy';
 import type { BuildableBuildingType, MatchState } from '../types';
-import { TIER_3_SLOTS } from './bridgeStateSerialize';
-import { hydrateUnitAttacks } from './unitAttackAnimationFeed';
+import { populationCodec, TIER_3_SLOTS } from './bridgeStateSerialize';
+import {
+  hydrateUnitAttacks,
+  initializeUnitAttackFeed,
+  MAX_ATTACK_PLAYER_ID,
+} from './unitAttackAnimationFeed';
 
 export type { CreateWorldResult } from './createWorldResult';
 import type { CreateWorldResult } from './createWorldResult';
@@ -74,17 +78,25 @@ export function createWorld(
   worldOccupancy.attachWorld(world);
 
   const state = createBridgeState();
-  state.recentUnitAttacks.push(
-    ...hydrateUnitAttacks(
+  const accessor = new BridgeStateAccessor(() => world);
+  const populations = accessor.get(populationCodec);
+  const validAttackPlayerIds = new Set<number>();
+  for (let playerId = 1; playerId <= MAX_ATTACK_PLAYER_ID; playerId += 1) {
+    if (populations.has(playerId)) validAttackPlayerIds.add(playerId);
+  }
+  initializeUnitAttackFeed(
+    state.unitAttackFeed,
+    hydrateUnitAttacks(
       world.getState(TIER_3_SLOTS.replayUnitAttacks),
       world.tick,
+      validAttackPlayerIds,
     ),
+    world.tick,
   );
   // Phase 2D — accessor needs to be available to bridgeHelpers (which
   // reads playerAges via accessor in ensureAiState). Constructed here
   // so subsequent ops can consume it. wireBridgeOps does NOT re-construct;
   // it receives this instance.
-  const accessor = new BridgeStateAccessor(() => world);
   const helpers = createBridgeHelpers({ world, state, accessor });
 
   const matchState: MatchState = {

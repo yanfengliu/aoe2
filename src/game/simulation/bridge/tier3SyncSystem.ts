@@ -27,11 +27,15 @@
 
 import type { GameWorld } from './pureHelpers';
 import type { VisibilityCell } from './visibilityCell';
-import type { MatchState, ProjectedUnitAttackView } from '../types';
+import type { MatchState } from '../types';
+import type { UnitAttackFeedRuntime } from './bridgeState';
 import type { PersistedMatchState } from '../saveSchema';
 import { clonePendingCommand, type PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
-import { pruneUnitAttacks } from './unitAttackAnimationFeed';
+import {
+  getUnitAttackFeedEntries,
+  pruneUnitAttackFeed,
+} from './unitAttackAnimationFeed';
 
 // Pure Tier-3 flush body extracted so saveGameOps can call it at save
 // time WITHOUT relying on the next output phase. Without this, full-review
@@ -85,16 +89,20 @@ export function flushPendingCommandsState(
 
 export function flushReplayUnitAttacksState(
   world: GameWorld,
-  recentUnitAttacks: ProjectedUnitAttackView[],
+  unitAttackFeed: UnitAttackFeedRuntime,
   observableTick: number,
-): void {
-  pruneUnitAttacks(recentUnitAttacks, observableTick);
+  force = false,
+): boolean {
+  pruneUnitAttackFeed(unitAttackFeed, observableTick);
+  if (!force && !unitAttackFeed.persistenceDirty) return false;
   world.setState(
     TIER_3_SLOTS.replayUnitAttacks,
-    structuredClone(recentUnitAttacks) as unknown as Parameters<
+    structuredClone(getUnitAttackFeedEntries(unitAttackFeed)) as unknown as Parameters<
       typeof world.setState
     >[1],
   );
+  unitAttackFeed.persistenceDirty = false;
+  return true;
 }
 
 export function registerTier3SyncSystem(deps: {
@@ -102,7 +110,7 @@ export function registerTier3SyncSystem(deps: {
   visibilityCell: VisibilityCell;
   matchState: MatchState;
   pendingCommands: PendingCommandsQueue;
-  recentUnitAttacks: ProjectedUnitAttackView[];
+  unitAttackFeed: UnitAttackFeedRuntime;
   syncReplayUnitAttacks?: boolean;
 }): void {
   const {
@@ -110,7 +118,7 @@ export function registerTier3SyncSystem(deps: {
     visibilityCell,
     matchState,
     pendingCommands,
-    recentUnitAttacks,
+    unitAttackFeed,
     syncReplayUnitAttacks = true,
   } = deps;
   world.registerSystem({
@@ -149,11 +157,13 @@ export function registerTier3SyncSystem(deps: {
       flushPendingCommandsState(activeWorld, pendingCommands);
       // Systems observe `activeWorld.tick` before civ-engine advances it;
       // attack events are stamped with the resulting observable tick + 1.
+      const observableTick = activeWorld.tick + 1;
+      pruneUnitAttackFeed(unitAttackFeed, observableTick);
       if (syncReplayUnitAttacks) {
         flushReplayUnitAttacksState(
           activeWorld,
-          recentUnitAttacks,
-          activeWorld.tick + 1,
+          unitAttackFeed,
+          observableTick,
         );
       }
     },

@@ -14,7 +14,8 @@
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
-import type { MatchState, ProjectedUnitAttackView } from '../types';
+import type { MatchState } from '../types';
+import type { UnitAttackFeedRuntime } from './bridgeState';
 import type { PersistedMatchState } from '../saveSchema';
 import type { PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
@@ -34,7 +35,7 @@ export function bootstrapFlush(deps: {
   visibilityCell: VisibilityCell;
   matchState: MatchState;
   pendingCommands: PendingCommandsQueue;
-  recentUnitAttacks: ProjectedUnitAttackView[];
+  unitAttackFeed: UnitAttackFeedRuntime;
   syncReplayUnitAttacks?: boolean;
   mapWidth: number;
   mapHeight: number;
@@ -45,7 +46,7 @@ export function bootstrapFlush(deps: {
     visibilityCell,
     matchState,
     pendingCommands,
-    recentUnitAttacks,
+    unitAttackFeed,
     syncReplayUnitAttacks = true,
     mapWidth,
     mapHeight,
@@ -94,7 +95,7 @@ export function bootstrapFlush(deps: {
 
   flushPendingCommandsState(world, pendingCommands);
   if (syncReplayUnitAttacks) {
-    flushReplayUnitAttacksState(world, recentUnitAttacks, world.tick);
+    flushReplayUnitAttacksState(world, unitAttackFeed, world.tick, true);
   }
 
   // 5. Initial Tier-1 flush. Phase 2D migrations populate the dirty set

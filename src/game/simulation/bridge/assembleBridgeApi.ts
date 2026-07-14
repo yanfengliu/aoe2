@@ -9,7 +9,10 @@ import {
   playerResourcesCodec,
   populationCodec,
 } from './bridgeStateSerialize';
-import { pruneUnitAttacks } from './unitAttackAnimationFeed';
+import {
+  getUnitAttackFeedEntries,
+  pruneUnitAttackFeed,
+} from './unitAttackAnimationFeed';
 
 export interface AssembleBridgeApiDeps
   extends Omit<
@@ -90,7 +93,8 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
       return state.recentUnitDeaths;
     },
     getRecentUnitAttacks() {
-      return pruneUnitAttacks(state.recentUnitAttacks, rest.world.tick);
+      pruneUnitAttackFeed(state.unitAttackFeed, rest.world.tick);
+      return getUnitAttackFeedEntries(state.unitAttackFeed);
     },
   };
 }
