@@ -119,7 +119,7 @@ function attachmentDistances(first: VoxelPart, second: VoxelPart): number[] {
 }
 
 describe('AoE voxel unit attack animation sampling', () => {
-  it('eases into target-facing attack motion, freezes at equal display time, and eases out', () => {
+  it('uses deterministic target-facing impact motion, freezes at equal display time, and eases out', () => {
     const identity = '7:3';
     const idle = resolveUnitAnimationState(unit(), identity, undefined, 0);
     const attack = unit({
@@ -154,19 +154,16 @@ describe('AoE voxel unit attack animation sampling', () => {
     const exitedState = attackState(exited.state);
 
     expect(enteredState.mode).toBe('attacking');
-    expect(enteredState.attackWeight).toBeGreaterThan(0);
-    expect(enteredState.attackWeight).toBeLessThan(1);
+    expect(enteredState.attackWeight).toBe(1);
     expect(enteredState.attackPhase).toBeGreaterThanOrEqual(0.55);
-    expect(enteredState.directionX).toBeGreaterThan(0);
-    expect(enteredState.directionZ).toBeGreaterThan(0);
-    expect(progressedState.directionX).toBeGreaterThan(enteredState.directionX);
-    expect(progressedState.directionZ).toBeLessThan(enteredState.directionZ);
+    expect(enteredState.directionX).toBeCloseTo(1);
+    expect(enteredState.directionZ).toBeCloseTo(0);
+    expect(progressedState.directionX).toBeCloseTo(enteredState.directionX);
+    expect(progressedState.directionZ).toBeCloseTo(enteredState.directionZ);
     expect(progressedState.attackPhase).toBeGreaterThan(
       enteredState.attackPhase,
     );
-    expect(progressedState.attackWeight).toBeGreaterThan(
-      enteredState.attackWeight,
-    );
+    expect(progressedState.attackWeight).toBe(1);
     expect(frozen).toEqual(progressed);
     expect(exitedState.attackWeight).toBeGreaterThan(0);
     expect(exitedState.attackWeight).toBeLessThan(progressedState.attackWeight);

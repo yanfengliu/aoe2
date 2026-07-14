@@ -38,7 +38,6 @@ const MAX_SMOOTHING_DELTA_MS = 250;
 const FULL_LOCOMOTION_SPEED = 2.5;
 const START_RESPONSE_MS = 90;
 const STOP_RESPONSE_MS = 180;
-const ATTACK_START_RESPONSE_MS = 72;
 const ATTACK_STOP_RESPONSE_MS = 120;
 const TURN_RESPONSE_MS = 110;
 
@@ -189,18 +188,15 @@ export function resolveUnitAnimationState(
     : targetWeight === 0 && blendedWeight < 0.001
       ? 0
       : clamp01(blendedWeight);
-  const targetAttackWeight = attack ? 1 : 0;
-  const attackResponseMs = targetAttackWeight > previous.attackWeight
-    ? ATTACK_START_RESPONSE_MS
-    : ATTACK_STOP_RESPONSE_MS;
-  const attackBlend = 1 - Math.exp(-smoothingDeltaMs / attackResponseMs);
-  const blendedAttackWeight = previous.attackWeight
-    + (targetAttackWeight - previous.attackWeight) * attackBlend;
+  const fadedAttackWeight = previous.attackWeight
+    * Math.exp(-smoothingDeltaMs / ATTACK_STOP_RESPONSE_MS);
   const attackWeight = moving
     ? 0
-    : targetAttackWeight === 0 && blendedAttackWeight < 0.001
-      ? 0
-      : clamp01(blendedAttackWeight);
+    : attack
+      ? 1
+      : fadedAttackWeight < 0.001
+        ? 0
+        : clamp01(fadedAttackWeight);
   const role = animationRole(entity);
   const strideLength = role === undefined
     ? FALLBACK_STRIDE_LENGTH_WORLD_UNITS
@@ -216,12 +212,7 @@ export function resolveUnitAnimationState(
       smoothingDeltaMs,
     )
     : attack
-      ? smoothDirection(
-        previous,
-        attack.directionX,
-        attack.directionZ,
-        smoothingDeltaMs,
-      )
+      ? [attack.directionX, attack.directionZ]
       : [previous.directionX, previous.directionZ];
   const state: AoeUnitAnimationState = {
     mode: moving ? 'moving' : attack ? 'attacking' : 'idle',

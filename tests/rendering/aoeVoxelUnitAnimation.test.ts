@@ -66,6 +66,14 @@ function part(parts: readonly VoxelPart[], suffix: string): VoxelPart {
   return match;
 }
 
+function maxMatrixDelta(left: VoxelPart, right: VoxelPart): number {
+  const leftMatrix = matrixForPart(left);
+  const rightMatrix = matrixForPart(right);
+  return Math.max(...leftMatrix.map((value, index) => (
+    Math.abs(value - rightMatrix[index]!)
+  )));
+}
+
 describe('AoE voxel unit locomotion sampling', () => {
   it('starts a fresh idle identity on its authored forward axis', () => {
     const initial = resolveUnitAnimationState(
@@ -369,6 +377,81 @@ describe('AoE voxel unit locomotion sampling', () => {
     ))).toEqual(matrixForPart(part(
       createUnitParts(attacker, '7:3', 0, recovery.state),
       'villager-boot-left',
+    )));
+  });
+
+  it('makes the attack channel identical for warm and fresh impact history', () => {
+    const identity = '7:3';
+    const attacker = unit({
+      attackAnimation: { tick: 2, targetX: 6, targetY: 0 },
+    });
+    const idle = resolveUnitAnimationState(unit(), identity, undefined, 550 / 3);
+    const warmImpact = resolveUnitAnimationState(attacker, identity, idle.history, 200);
+    const freshImpact = resolveUnitAnimationState(attacker, identity, undefined, 200);
+    const warmRecovery = resolveUnitAnimationState(
+      attacker, identity, warmImpact.history, 300,
+    );
+    const freshRecovery = resolveUnitAnimationState(attacker, identity, undefined, 300);
+
+    for (const [warm, fresh] of [
+      [warmImpact, freshImpact],
+      [warmRecovery, freshRecovery],
+    ] as const) {
+      expect(warm.state.attackPhase).toBeCloseTo(fresh.state.attackPhase);
+      expect(warm.state.attackWeight).toBe(1);
+      expect(warm.state.attackWeight).toBe(fresh.state.attackWeight);
+      expect(warm.state.directionX).toBeCloseTo(fresh.state.directionX);
+      expect(warm.state.directionZ).toBeCloseTo(fresh.state.directionZ);
+      expect(matrixForPart(part(
+        createUnitParts(attacker, identity, 0, warm.state),
+        'villager-tool-head',
+      ))).toEqual(matrixForPart(part(
+        createUnitParts(attacker, identity, 0, fresh.state),
+        'villager-tool-head',
+      )));
+    }
+  });
+
+  it('isolates fresh-history geometry differences to disposable gait history', () => {
+    const identity = '7:3';
+    const initial = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const moving = resolveUnitAnimationState(
+      unit({ x: 0.2 }), identity, initial.history, 100,
+    );
+    const attacker = unit({
+      x: 0.2,
+      attackAnimation: {
+        tick: 2,
+        targetX: 0.2 + moving.state.directionX,
+        targetY: moving.state.directionZ,
+      },
+    });
+    const warm = resolveUnitAnimationState(attacker, identity, moving.history, 200);
+    const fresh = resolveUnitAnimationState(attacker, identity, undefined, 200);
+    const warmParts = createUnitParts(attacker, identity, 0, warm.state);
+    const freshParts = createUnitParts(attacker, identity, 0, fresh.state);
+    const withoutGaitHistory = createUnitParts(attacker, identity, 0, {
+      ...warm.state,
+      gaitPhaseRadians: fresh.state.gaitPhaseRadians,
+      locomotionWeight: fresh.state.locomotionWeight,
+    });
+
+    expect(warm.state.attackPhase).toBeCloseTo(fresh.state.attackPhase);
+    expect(warm.state.attackWeight).toBe(fresh.state.attackWeight);
+    expect(warm.state.directionX).toBeCloseTo(fresh.state.directionX);
+    expect(warm.state.directionZ).toBeCloseTo(fresh.state.directionZ);
+    expect(maxMatrixDelta(
+      part(warmParts, 'villager-tool-head'),
+      part(freshParts, 'villager-tool-head'),
+    )).toBeGreaterThan(0.001);
+    expect(maxMatrixDelta(
+      part(warmParts, 'villager-boot-left'),
+      part(freshParts, 'villager-boot-left'),
+    )).toBeGreaterThan(0.001);
+    expect(matrixForPart(part(
+      withoutGaitHistory, 'villager-tool-head',
+    ))).toEqual(matrixForPart(part(
+      freshParts, 'villager-tool-head',
     )));
   });
 
