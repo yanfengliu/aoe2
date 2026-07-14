@@ -480,3 +480,15 @@ Lesson: a `Phaser.GameObjects.Graphics` object re-walks and re-submits its ENTIR
 | Behavior delta | Before: a new world could be accepted at revision one while unchanged version strings kept the old GPU geometry, and a stale acknowledgement could alias a replacement world. After: cache versions and presentation acknowledgement carry the full `{worldId, epoch, revision}` identity; pixels rebuild and presented state advances only after successful render. |
 
 Lesson: a monotonic revision is monotonic only inside its namespace. Any renderer cache, async job, acknowledgement, remove operation, or capture watermark that survives world replacement must key on world/epoch plus local incarnation/revision; defaulting a missing epoch/world from current state manufactures the exact alias the identity was meant to prevent. Prove this at the output boundary: reset to a new epoch with the same local revision and assert captured pixels/resources change, not merely that accepted state changed.
+
+## A moving unit's current root is not its occupancy assignment — persist destination authority separately — 2026-07-14
+
+| Field | Value |
+|---|---|
+| Surfaced by | `docs/threads/done/motion-continuity/2026-07-13/1/REVIEW.md` during crowded save/load and overflow reconstruction review. |
+| Reviewer findings | Codex in-process HIGH — crowded moving root was treated as assigned slot; HIGH — missing slot fields conflated legacy saves with explicit overflow; HIGH — reconstruction opportunistically promoted overflow after a peer freed its slot. |
+| Fix commit | `8f2a130` |
+| Test added | `tests/simulation/createSimulationBridge.unitMovement.test.ts > continues toward the same crowded-cell slot after a mid-movement save/load`; `tests/simulation/unitMotionPersistence.test.ts > keeps an authoritative overflow unit overflowed across save/load`; `tests/simulation/unitMotionPersistence.test.ts > restores overflow before smoothly claiming a slot freed before save` |
+| Behavior delta | Before: a crowded unit saved while fine X 80 was still moving toward assigned X 83 could reload owning X 80, clear early, and diverge; an explicit overflow unit could also be promoted ahead of uninterrupted play. After: numeric slot authority or explicit overflow reconstructs independently of the serialized root, and any newly available slot is reached under the ordinary Euclidean fine-step bound before the command clears. |
+
+Lesson: occupancy answers two different questions during movement: where the body is now, and which unique subcell endpoint it owns. A fine transform can answer only the first. Persist the assigned slot (or an explicit no-slot/overflow marker) as separate additive authority, reconstruct owned numeric slots before legacy fallbacks and overflow claims, and never snap the live root to make reconstruction convenient. Prove continuation against an uninterrupted twin tick by tick, including command state and Euclidean step bounds; a codec round trip or one post-load position cannot catch early completion or opportunistic promotion.
