@@ -20,6 +20,8 @@ import {
 } from '../pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../pureHelpers';
 import { aiStatesCodec, unitCommandsCodec } from '../bridgeStateSerialize';
+import type { UnitAttackFeedRuntime } from '../bridgeState';
+import { markUnitAttackMovementStartedForEntity } from '../unitAttackAnimationFeed';
 
 type CivWorld = GameWorld;
 
@@ -27,6 +29,7 @@ export interface ScoutMovementSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
+  unitAttackFeed: UnitAttackFeedRuntime;
   isCellPassableForUnit: (
     entityId: number,
     x: number,
@@ -49,6 +52,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
     world,
     humanPlayerId,
     accessor,
+    unitAttackFeed,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
     getUnitTargetTransformForPosition,
@@ -151,6 +155,10 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           const nextGridPosition = gridPositionFromUnitTransform(candidateTransform);
           if (nextGridPosition.x === position.x && nextGridPosition.y === position.y) {
             activeWorld.setComponent(id, 'unitTransform', candidateTransform);
+            if (
+              candidateTransform.fineX !== transform.fineX
+              || candidateTransform.fineY !== transform.fineY
+            ) markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
           } else if (isCellPassableForUnit(
             id,
             nextGridPosition.x,
@@ -158,6 +166,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
             activeWorld,
           )) {
             activeWorld.setComponent(id, 'unitTransform', candidateTransform);
+            markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
             setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
           } else {
             // Impassable next cell (a building footprint, a resource, bad
@@ -182,6 +191,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
                 fineX: recenteredTransform.fineX,
                 fineY: recenteredTransform.fineY,
               });
+              markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
             }
             // A blind 90°
             // rotation is not enough: at a wander-box edge the bounds
@@ -219,6 +229,9 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           y: clamp(position.y + velocity.dy, effectiveBounds.minY, effectiveBounds.maxY),
         };
         if (isCellPassableForUnit(id, nextPosition.x, nextPosition.y, activeWorld)) {
+          if (nextPosition.x !== position.x || nextPosition.y !== position.y) {
+            markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
+          }
           setPositionAndSyncOccupancy(id, nextPosition, activeWorld);
         } else {
           // Same livelock guard as the transform path, emulated from the

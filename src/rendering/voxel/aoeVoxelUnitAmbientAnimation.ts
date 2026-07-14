@@ -6,7 +6,27 @@ const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 
 interface AmbientAnimationState {
   readonly phaseRadians: number;
-  readonly attackWeight: number;
+  readonly ambientSuppressionWeight: number;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function scaleVector(
+  value: VoxelPartAnimation['translationAmplitude'],
+  weight: number,
+): VoxelPartAnimation['translationAmplitude'] {
+  return { x: value.x * weight, y: value.y * weight, z: value.z * weight };
+}
+
+function scaleMotion(animation: VoxelPartAnimation, weight: number): VoxelPartAnimation {
+  return {
+    ...animation,
+    translationAmplitude: scaleVector(animation.translationAmplitude, weight),
+    rotationAmplitude: scaleVector(animation.rotationAmplitude, weight),
+    scaleAmplitude: scaleVector(animation.scaleAmplitude, weight),
+  };
 }
 
 function motion(
@@ -44,36 +64,34 @@ export function unitAmbientAnimation(
   state: AmbientAnimationState,
   scale: number,
 ): VoxelPartAnimation | undefined {
-  if (state.attackWeight > 0 && isUnitAttackControlledPart(suffix, role)) {
-    return undefined;
-  }
   const base = ambientBodyMotion(state, scale);
+  let animation: VoxelPartAnimation | undefined;
   if (role === 'villager' || role === 'infantry' || role === 'archer') {
     if (/(boot|leg|arm|tool|sword|bow|shield)/u.test(suffix)) return undefined;
-    return base;
-  }
-  if (role === 'cavalry' || role === 'cavalry-archer') {
+    animation = base;
+  } else if (role === 'cavalry' || role === 'cavalry-archer') {
     if (suffix.includes('horse-leg')) return undefined;
     if (suffix.includes('horse-tail')) {
-      return motion(780, state.phaseRadians + 0.7, ZERO, { x: 0, y: 0, z: 0.24 });
+      animation = motion(780, state.phaseRadians + 0.7, ZERO, { x: 0, y: 0, z: 0.24 });
+    } else {
+      animation = base;
     }
-    return base;
-  }
-  if (role === 'siege') {
+  } else if (role === 'siege') {
     if (suffix.includes('wheel')) return undefined;
     if (suffix.includes('throwing-arm') || suffix.includes('bucket')) {
-      return motion(1_200, state.phaseRadians + 0.4, ZERO, { x: 0, y: 0, z: 0.18 });
+      animation = motion(1_200, state.phaseRadians + 0.4, ZERO, { x: 0, y: 0, z: 0.18 });
+    } else {
+      animation = base;
     }
-    return base;
+  } else if (suffix.includes('sleeve-left')) {
+    animation = motion(1_100, state.phaseRadians, ZERO, { x: 0, y: 0, z: 0.2 });
+  } else if (suffix.includes('sleeve-right')) {
+    animation = motion(1_100, state.phaseRadians + Math.PI, ZERO, { x: 0, y: 0, z: 0.2 });
+  } else if (suffix.includes('staff')) {
+    animation = motion(1_500, state.phaseRadians + 0.5, ZERO, { x: 0, y: 0, z: 0.08 });
+  } else {
+    animation = base;
   }
-  if (suffix.includes('sleeve-left')) {
-    return motion(1_100, state.phaseRadians, ZERO, { x: 0, y: 0, z: 0.2 });
-  }
-  if (suffix.includes('sleeve-right')) {
-    return motion(1_100, state.phaseRadians + Math.PI, ZERO, { x: 0, y: 0, z: 0.2 });
-  }
-  if (suffix.includes('staff')) {
-    return motion(1_500, state.phaseRadians + 0.5, ZERO, { x: 0, y: 0, z: 0.08 });
-  }
-  return base;
+  if (!isUnitAttackControlledPart(suffix, role)) return animation;
+  return scaleMotion(animation, 1 - clamp01(state.ambientSuppressionWeight));
 }

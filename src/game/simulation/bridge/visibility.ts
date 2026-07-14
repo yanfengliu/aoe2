@@ -8,7 +8,6 @@ import { MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import { resourceTint } from '../prototypeEconomyRules';
 import {
   distanceSquared,
-  isFootprintVisible,
   projectUnitTransformCoordinate,
   toCellIndex,
   type GameCommands,
@@ -130,21 +129,6 @@ export function createProjector(
       if (resource && !building) {
         owner = resource.owner;
         entityType = resource.resourceType;
-      }
-
-      if (
-        renderable.kind !== 'tile' &&
-        owner !== playerId &&
-        !isFootprintVisible(
-          visibility,
-          playerId,
-          position.x,
-          position.y,
-          renderable.footprintWidth,
-          renderable.footprintHeight,
-        )
-      ) {
-        return null;
       }
 
       return {

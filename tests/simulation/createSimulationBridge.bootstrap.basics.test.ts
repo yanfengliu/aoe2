@@ -15,6 +15,7 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
     const economyState = bridge.getEconomyState();
 
     expect(state.frame).not.toBeNull();
+    expect(bridge.getHudState().visibleEntities).toBe(state.entities.length);
     expect(state.entities.some((entity) => entity.owner === 1 && entity.entityType === 'town-center')).toBe(
       true,
     );

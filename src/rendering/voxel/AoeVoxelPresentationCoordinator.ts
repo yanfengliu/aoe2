@@ -192,6 +192,7 @@ export function createAoeVoxelPresentationCoordinator(
       state.entities,
       previousPositions,
       alpha,
+      state.tick,
     );
 
     if (!hasCenteredOnBase) {

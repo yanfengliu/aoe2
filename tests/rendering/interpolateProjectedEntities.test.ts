@@ -46,6 +46,32 @@ describe('interpolateProjectedEntities', () => {
     expect(displayed[0]).not.toBe(entity);
   });
 
+  it('uses a persisted attack source for a fresh cancellation-tick checkpoint', () => {
+    const entity = createProjectedEntity({
+      id: 7,
+      generation: 3,
+      x: 5.5,
+      y: 5,
+      attackAnimation: {
+        tick: 4,
+        cancelTick: 5,
+        sourceX: 5,
+        sourceY: 5,
+        targetX: 6,
+        targetY: 5,
+      },
+    });
+
+    expect(interpolateProjectedEntities([entity], new Map(), 0, 5)[0]).toMatchObject({
+      x: 5,
+      y: 5,
+    });
+    expect(interpolateProjectedEntities([entity], new Map(), 0.5, 5)[0]).toMatchObject({
+      x: 5.25,
+      y: 5,
+    });
+  });
+
   it('does NOT inherit a destroyed unit position when the id is recycled (full-review id:generation)', () => {
     // A unit with id 7 / generation 1 was at (5,5) last tick, was destroyed,
     // and its id was recycled by a NEW unit (id 7 / generation 2) now at (6,5).

@@ -42,12 +42,14 @@ describe('makeReplayBridge fogOwner', () => {
     expect(hiddenFromP1).toBeDefined();
     const renderedP1 = bridgeP1.getRenderState().entities;
     expect(renderedP1.some((entity) => entity.id === hiddenFromP1!.id)).toBe(false);
+    expect(bridgeP1.getHudState().visibleEntities).toBe(renderedP1.length);
 
     // fogOwner 2: the same unit is the agent's own — it must render.
     const worldP2 = openReplayWorld(bundle);
     const bridgeP2 = makeReplayBridge(worldP2, { fogOwner: 2 });
     const renderedP2 = bridgeP2.getRenderState().entities;
     expect(renderedP2.some((entity) => entity.id === hiddenFromP1!.id)).toBe(true);
+    expect(bridgeP2.getHudState().visibleEntities).toBe(renderedP2.length);
 
     // Symmetry: an owner-1 unit standing where player 2 cannot see must
     // now be hidden.

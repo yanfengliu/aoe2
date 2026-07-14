@@ -289,9 +289,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
   }
 
   function runPlaybackFrame(timestamp: number): void {
-    if (lastFrameTimeMs === INITIAL_PLAYBACK_TIME) {
-      lastFrameTimeMs = timestamp - REPLAY_TICK_MS;
-    } else if (lastFrameTimeMs === null) {
+    if (lastFrameTimeMs === INITIAL_PLAYBACK_TIME || lastFrameTimeMs === null) {
       lastFrameTimeMs = timestamp;
     }
     const deltaMs = boundedVisibleSimulationDelta(timestamp - lastFrameTimeMs);

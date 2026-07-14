@@ -48,7 +48,7 @@ describe('ReplayController interpolation clock', () => {
     controller.pause();
     controller.play();
     scheduler.flushNext(0);
-    expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
+    expect(controller.currentTick).toBe(bundle.metadata.startTick);
     scheduler.flushNext(50);
     const pausedTick = controller.currentTick;
 

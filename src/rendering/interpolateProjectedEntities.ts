@@ -19,6 +19,7 @@ export function interpolateProjectedEntities(
   entities: ProjectedEntityView[],
   previousPositions: ReadonlyMap<string, { x: number; y: number }>,
   interpolationAlpha: number,
+  currentTick?: number,
 ): ProjectedEntityView[] {
   const clampedAlpha = Math.max(0, Math.min(1, interpolationAlpha));
 
@@ -30,7 +31,11 @@ export function interpolateProjectedEntities(
       return entity;
     }
 
-    const previousPosition = previousPositions.get(renderIdentityKey(entity));
+    const attack = entity.attackAnimation;
+    const previousPosition = previousPositions.get(renderIdentityKey(entity))
+      ?? (attack !== undefined && attack.cancelTick === currentTick
+        ? { x: attack.sourceX, y: attack.sourceY }
+        : undefined);
     if (!previousPosition) {
       return entity;
     }

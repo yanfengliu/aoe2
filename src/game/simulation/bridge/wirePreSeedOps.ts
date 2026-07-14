@@ -99,6 +99,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     worldOccupancy,
     tiles,
     accessor,
+    unitAttackFeed: state.unitAttackFeed,
     isBootstrappingScenario: () => isBootstrappingScenarioRef.current,
   });
   const {

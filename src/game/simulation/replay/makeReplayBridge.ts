@@ -146,7 +146,7 @@ export function makeReplayBridge(
       return {
         tick: renderStore.getTick(),
         entityCount: debugState?.entityCount ?? 0,
-        visibleEntities: renderStore.getEntities().length,
+        visibleEntities: getRenderStateInternal().entities.length,
         visibleCells: frame?.visibleCells.length ?? 0,
         exploredCells: frame?.exploredCells.length ?? 0,
         tickDurationMs: metrics?.durationMs.total ?? 0,

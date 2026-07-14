@@ -53,6 +53,19 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     value: RenderStateValue;
   } | null = null;
 
+  const isCurrentlyVisible = (entity: ProjectedEntityView): boolean => (
+    entity.kind === 'tile'
+    || entity.owner === humanPlayerId
+    || isFootprintVisible(
+      visibility,
+      humanPlayerId,
+      entity.x,
+      entity.y,
+      entity.footprintWidth,
+      entity.footprintHeight,
+    )
+  );
+
   function getRenderState(): RenderStateValue {
     const currentTick = renderStore.getTick();
     const currentFogMemorySize = getHumanFogMemorySize();
@@ -72,27 +85,31 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
         currentTick,
         humanPlayerId,
       ),
+      isCurrentlyVisible,
     );
     const liveEntitiesRaw = renderStore.getEntities();
-    const liveEntities = liveEntitiesRaw.filter((entity) => {
-      if (entity.kind !== 'building' && entity.kind !== 'resource') return true;
-      if (entity.owner === humanPlayerId) return true;
-      return isFootprintVisible(
-        visibility,
-        humanPlayerId,
-        entity.x,
-        entity.y,
-        entity.footprintWidth,
-        entity.footprintHeight,
-      );
-    });
+    const liveEntities = liveEntitiesRaw.filter(isCurrentlyVisible);
+    const visiblePositionKeys = new Set(
+      liveEntities
+        .filter((entity) => entity.kind === 'unit' || entity.kind === 'resource')
+        .map((entity) => `${entity.id}:${entity.generation ?? 0}`),
+    );
+    const rawPreviousPositionFrame = renderStore.getPreviousPositionFrame();
+    const previousPositionFrame = rawPreviousPositionFrame
+      ? {
+        tick: rawPreviousPositionFrame.tick,
+        positions: rawPreviousPositionFrame.positions.filter((position) => (
+          visiblePositionKeys.has(`${position.id}:${position.generation}`)
+        )),
+      }
+      : null;
 
     if (currentFogMemorySize === 0) {
       const value: RenderStateValue = {
         tick: currentTick,
         entities: liveEntities,
         frame: renderStore.getFrame(),
-        previousPositionFrame: renderStore.getPreviousPositionFrame(),
+        previousPositionFrame,
       };
       cache = {
         tick: currentTick,
@@ -113,7 +130,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
         tick: currentTick,
         entities: liveEntities,
         frame: renderStore.getFrame(),
-        previousPositionFrame: renderStore.getPreviousPositionFrame(),
+        previousPositionFrame,
       };
       cache = {
         tick: currentTick,
@@ -133,7 +150,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       tick: currentTick,
       entities: merged,
       frame: renderStore.getFrame(),
-      previousPositionFrame: renderStore.getPreviousPositionFrame(),
+      previousPositionFrame,
     };
     cache = {
       tick: currentTick,

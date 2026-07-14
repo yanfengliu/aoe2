@@ -56,6 +56,7 @@ function movingState(overrides: Partial<AoeUnitAnimationState> = {}): AoeUnitAni
     directionZ: 0,
     attackPhase: 0,
     attackWeight: 0,
+    ambientSuppressionWeight: 0,
     ...overrides,
   };
 }
@@ -360,6 +361,8 @@ describe('AoE voxel unit locomotion sampling', () => {
       x: 0.2,
       attackAnimation: {
         tick: 2,
+        sourceX: 0.2,
+        sourceY: 0,
         targetX: 0.2 + moving.state.directionX,
         targetY: moving.state.directionZ,
       },
@@ -383,7 +386,7 @@ describe('AoE voxel unit locomotion sampling', () => {
   it('makes the attack channel identical for warm and fresh impact history', () => {
     const identity = '7:3';
     const attacker = unit({
-      attackAnimation: { tick: 2, targetX: 6, targetY: 0 },
+      attackAnimation: { tick: 2, sourceX: 0, sourceY: 0, targetX: 6, targetY: 0 },
     });
     const idle = resolveUnitAnimationState(unit(), identity, undefined, 550 / 3);
     const warmImpact = resolveUnitAnimationState(attacker, identity, idle.history, 200);
@@ -422,6 +425,8 @@ describe('AoE voxel unit locomotion sampling', () => {
       x: 0.2,
       attackAnimation: {
         tick: 2,
+        sourceX: 0.2,
+        sourceY: 0,
         targetX: 0.2 + moving.state.directionX,
         targetY: moving.state.directionZ,
       },
@@ -455,25 +460,27 @@ describe('AoE voxel unit locomotion sampling', () => {
     )));
   });
 
-  it('clears the attack channel as soon as authoritative movement wins', () => {
+  it('keeps movement authoritative while the strike pose blends out', () => {
     const attacker = unit({
-      attackAnimation: { tick: 0, targetX: 1, targetY: 0 },
+      attackAnimation: {
+        tick: 0, cancelTick: 1, sourceX: 0, sourceY: 0, targetX: 1, targetY: 0,
+      },
     });
     const impact = resolveUnitAnimationState(attacker, '7:3', undefined, 0);
     const moving = resolveUnitAnimationState(
       unit({ ...attacker, x: 0.2 }),
       '7:3',
       impact.history,
-      100,
+      150,
     );
     const withoutAttack = { ...moving.state, attackWeight: 0 };
 
     expect(moving.state.mode).toBe('moving');
-    expect(moving.state.attackWeight).toBe(0);
+    expect(moving.state.attackWeight).toBe(0.5);
     expect(matrixForPart(part(
       createUnitParts(unit({ ...attacker, x: 0.2 }), '7:3', 0, moving.state),
       'villager-tool-head',
-    ))).toEqual(matrixForPart(part(
+    ))).not.toEqual(matrixForPart(part(
       createUnitParts(unit({ ...attacker, x: 0.2 }), '7:3', 0, withoutAttack),
       'villager-tool-head',
     )));

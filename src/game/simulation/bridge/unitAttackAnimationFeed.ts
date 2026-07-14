@@ -8,6 +8,7 @@ import type {
   UnitComponent,
   UnitTransformComponent,
 } from '../types';
+import { UNIT_ATTACK_FEED_TICKS } from '../attackAnimationTypes';
 import { MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import type { BridgeState, UnitAttackFeedRuntime } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -18,7 +19,7 @@ import {
   type GameWorld,
 } from './pureHelpers';
 
-export const ATTACK_FEED_TICKS = 10;
+export const ATTACK_FEED_TICKS = UNIT_ATTACK_FEED_TICKS;
 const MAX_ATTACK_FEED_ENTRIES = 1_024;
 export const MAX_ATTACK_PLAYER_ID = 8;
 
@@ -71,7 +72,10 @@ export function pruneUnitAttackFeed(
   const minTick = currentTick - ATTACK_FEED_TICKS;
   let changed = false;
   for (const [key, attack] of feed.byAttacker) {
-    if (attack.tick < minTick) {
+    if (
+      attack.tick < minTick
+      || (attack.cancelTick !== undefined && attack.cancelTick < currentTick)
+    ) {
       feed.byAttacker.delete(key);
       changed = true;
     }
@@ -90,6 +94,9 @@ export function upsertUnitAttack(
     attackerId: attack.attackerId,
     attackerGeneration: attack.attackerGeneration,
     tick: attack.tick,
+    ...(attack.cancelTick === undefined ? {} : { cancelTick: attack.cancelTick }),
+    sourceX: attack.sourceX,
+    sourceY: attack.sourceY,
     targetX: attack.targetX,
     targetY: attack.targetY,
     witnessedBy: [...attack.witnessedBy],
@@ -105,6 +112,43 @@ export function upsertUnitAttack(
   markUnitAttackFeedChanged(feed);
 }
 
+export function markUnitAttackMovementStarted(
+  feed: UnitAttackFeedRuntime,
+  attackerId: number,
+  attackerGeneration: number,
+  cancelTick: number,
+): boolean {
+  const key = unitAttackKey(attackerId, attackerGeneration);
+  const attack = feed.byAttacker.get(key);
+  if (
+    !attack
+    || attack.cancelTick !== undefined
+    || !Number.isSafeInteger(cancelTick)
+    || cancelTick < attack.tick
+  ) {
+    return false;
+  }
+  feed.byAttacker.set(key, { ...attack, cancelTick });
+  markUnitAttackFeedChanged(feed);
+  return true;
+}
+
+export function markUnitAttackMovementStartedForEntity(
+  feed: UnitAttackFeedRuntime,
+  entityId: number,
+  activeWorld: GameWorld,
+): boolean {
+  const ref = activeWorld.getEntityRef(entityId);
+  return ref
+    ? markUnitAttackMovementStarted(
+      feed,
+      entityId,
+      ref.generation,
+      activeWorld.tick + 1,
+    )
+    : false;
+}
+
 export function hydrateUnitAttacks(
   value: unknown,
   currentTick: number,
@@ -118,6 +162,7 @@ export function hydrateUnitAttacks(
     const candidate = value[index];
     if (!candidate || typeof candidate !== 'object') continue;
     const attack = candidate as Partial<ProjectedUnitAttackView>;
+    const hasCancelTick = attack.cancelTick !== undefined;
     if (
       !Number.isSafeInteger(attack.attackerId)
       || (attack.attackerId ?? -1) < 0
@@ -126,6 +171,17 @@ export function hydrateUnitAttacks(
       || !Number.isSafeInteger(attack.tick)
       || (attack.tick ?? Number.NEGATIVE_INFINITY) < minTick
       || (attack.tick ?? Number.POSITIVE_INFINITY) > currentTick
+      || (hasCancelTick && (
+        !Number.isSafeInteger(attack.cancelTick)
+        || (attack.cancelTick ?? Number.NEGATIVE_INFINITY) < (attack.tick ?? 0)
+        || (attack.cancelTick ?? Number.POSITIVE_INFINITY) !== currentTick
+      ))
+      || !Number.isFinite(attack.sourceX)
+      || (attack.sourceX ?? -1) < 0
+      || (attack.sourceX ?? MAP_WIDTH) >= MAP_WIDTH
+      || !Number.isFinite(attack.sourceY)
+      || (attack.sourceY ?? -1) < 0
+      || (attack.sourceY ?? MAP_HEIGHT) >= MAP_HEIGHT
       || !Number.isFinite(attack.targetX)
       || (attack.targetX ?? -1) < 0
       || (attack.targetX ?? MAP_WIDTH) >= MAP_WIDTH
@@ -155,6 +211,9 @@ export function hydrateUnitAttacks(
       attackerId: attack.attackerId!,
       attackerGeneration: attack.attackerGeneration!,
       tick: attack.tick!,
+      ...(attack.cancelTick === undefined ? {} : { cancelTick: attack.cancelTick }),
+      sourceX: attack.sourceX!,
+      sourceY: attack.sourceY!,
       targetX: attack.targetX!,
       targetY: attack.targetY!,
       witnessedBy,
@@ -177,6 +236,7 @@ export function visibleUnitAttacks<Attack extends ProjectedUnitAttackView>(
       age >= 0 &&
       age <= ATTACK_FEED_TICKS &&
       attack.witnessedBy.includes(playerId)
+      && (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     );
   });
 }
@@ -196,10 +256,14 @@ export function attackAnimationForEntity(
       attack.attackerGeneration === entity.generation &&
       age >= 0 &&
       age <= ATTACK_FEED_TICKS &&
-      attack.witnessedBy.includes(playerId)
+      attack.witnessedBy.includes(playerId) &&
+      (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     ) {
       return {
         tick: attack.tick,
+        ...(attack.cancelTick === undefined ? {} : { cancelTick: attack.cancelTick }),
+        sourceX: attack.sourceX,
+        sourceY: attack.sourceY,
         targetX: attack.targetX,
         targetY: attack.targetY,
       };
@@ -219,6 +283,7 @@ export function indexVisibleUnitAttackAnimations(
     if (
       age < 0
       || age > ATTACK_FEED_TICKS
+      || (attack.cancelTick !== undefined && currentTick > attack.cancelTick)
       || !attack.witnessedBy.includes(playerId)
     ) {
       continue;
@@ -227,6 +292,9 @@ export function indexVisibleUnitAttackAnimations(
       unitAttackKey(attack.attackerId, attack.attackerGeneration),
       {
         tick: attack.tick,
+        ...(attack.cancelTick === undefined ? {} : { cancelTick: attack.cancelTick }),
+        sourceX: attack.sourceX,
+        sourceY: attack.sourceY,
         targetX: attack.targetX,
         targetY: attack.targetY,
       },
@@ -277,10 +345,20 @@ export function createUnitAttackRecorder(deps: {
     )
       return;
 
+    const attackerTransform = world.getComponent<UnitTransformComponent>(
+      attackerId,
+      'unitTransform',
+    );
     const targetTransform = world.getComponent<UnitTransformComponent>(
       targetId,
       'unitTransform',
     );
+    const sourceRootX = attackerTransform
+      ? projectUnitTransformCoordinate(attackerTransform.fineX)
+      : attackerPosition.x;
+    const sourceRootY = attackerTransform
+      ? projectUnitTransformCoordinate(attackerTransform.fineY)
+      : attackerPosition.y;
     const targetRootX = targetTransform
       ? projectUnitTransformCoordinate(targetTransform.fineX)
       : targetPosition.x;
@@ -338,6 +416,8 @@ export function createUnitAttackRecorder(deps: {
       attackerId,
       attackerGeneration: attackerRef.generation,
       tick,
+      sourceX: sourceRootX,
+      sourceY: sourceRootY,
       // Entity roots use cell-origin coordinates. `(footprint - 1) / 2`
       // captures a multi-cell target's visual center in that same space.
       targetX: targetRootX + (targetRenderable.footprintWidth - 1) / 2,

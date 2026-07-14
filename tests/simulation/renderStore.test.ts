@@ -121,10 +121,12 @@ describe('RenderStore transient attack reconciliation', () => {
     store.apply(snapshot(20, [entity(1), entity(2, { id: 8, generation: 0 })]));
 
     expect(store.reconcileUnitAttackAnimations(new Map([
-      ['7:3', { tick: 20, targetX: 5, targetY: 4 }],
+      ['7:3', { tick: 20, sourceX: 3, sourceY: 4, targetX: 5, targetY: 4 }],
     ]))).toBe(1);
     expect(store.getEntities().find((view) => view.id === 7)?.attackAnimation).toEqual({
       tick: 20,
+      sourceX: 3,
+      sourceY: 4,
       targetX: 5,
       targetY: 4,
     });
@@ -134,5 +136,24 @@ describe('RenderStore transient attack reconciliation', () => {
 
     // Once the transient key has been cleared, quiet ticks do no per-unit work.
     expect(store.reconcileUnitAttackAnimations(new Map())).toBe(0);
+  });
+
+  it('replaces an active cue when its captured source changes', () => {
+    const store = new RenderStore();
+    store.apply(snapshot(20, [entity(1)]));
+    store.reconcileUnitAttackAnimations(new Map([[
+      '7:3',
+      { tick: 20, sourceX: 1, sourceY: 4, targetX: 5, targetY: 4 },
+    ]]));
+
+    store.reconcileUnitAttackAnimations(new Map([[
+      '7:3',
+      { tick: 20, sourceX: 2, sourceY: 3, targetX: 5, targetY: 4 },
+    ]]));
+
+    expect(store.getEntities()[0]?.attackAnimation).toMatchObject({
+      sourceX: 2,
+      sourceY: 3,
+    });
   });
 });

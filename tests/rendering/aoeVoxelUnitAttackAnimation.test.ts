@@ -25,6 +25,8 @@ import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 interface AttackAnimationProjection {
   readonly tick: number;
+  readonly sourceX: number;
+  readonly sourceY: number;
   readonly targetX: number;
   readonly targetY: number;
 }
@@ -78,6 +80,7 @@ function animationState(
     directionZ: 0,
     attackPhase: 0,
     attackWeight: 0,
+    ambientSuppressionWeight: 0,
     ...overrides,
   } as unknown as AoeUnitAnimationState;
 }
@@ -123,7 +126,7 @@ describe('AoE voxel unit attack animation sampling', () => {
     const identity = '7:3';
     const idle = resolveUnitAnimationState(unit(), identity, undefined, 0);
     const attack = unit({
-      attackAnimation: { tick: 0, targetX: 6, targetY: 0 },
+      attackAnimation: { tick: 0, sourceX: 0, sourceY: 0, targetX: 6, targetY: 0 },
     });
     const entered = resolveUnitAnimationState(
       attack,
@@ -165,8 +168,8 @@ describe('AoE voxel unit attack animation sampling', () => {
     );
     expect(progressedState.attackWeight).toBe(1);
     expect(frozen).toEqual(progressed);
-    expect(exitedState.attackWeight).toBeGreaterThan(0);
-    expect(exitedState.attackWeight).toBeLessThan(progressedState.attackWeight);
+    expect(exitedState.attackWeight).toBe(0);
+    expect(exitedState.ambientSuppressionWeight).toBe(0);
   });
 
   it('keeps distance-driven gait while an attacker is still approaching its target', () => {
@@ -175,7 +178,7 @@ describe('AoE voxel unit attack animation sampling', () => {
     const approaching = resolveUnitAnimationState(
       unit({
         x: 0.2,
-        attackAnimation: { tick: 1, targetX: 6, targetY: 0 },
+        attackAnimation: { tick: 1, sourceX: 0, sourceY: 0, targetX: 6, targetY: 0 },
       }),
       identity,
       idle.history,
@@ -184,7 +187,7 @@ describe('AoE voxel unit attack animation sampling', () => {
     const continuing = resolveUnitAnimationState(
       unit({
         x: 0.4,
-        attackAnimation: { tick: 1, targetX: 6, targetY: 0 },
+        attackAnimation: { tick: 1, sourceX: 0, sourceY: 0, targetX: 6, targetY: 0 },
       }),
       identity,
       approaching.history,
@@ -276,6 +279,7 @@ describe('AoE voxel role-aware attack poses', () => {
           mode: 'attacking',
           attackPhase: 0.55,
           attackWeight: 1,
+          ambientSuppressionWeight: 1,
         }),
       );
       const phaseStart = createUnitParts(
@@ -339,6 +343,7 @@ describe('AoE voxel role-aware attack poses', () => {
           mode: 'attacking',
           attackPhase: 0.55,
           attackWeight: 1,
+          ambientSuppressionWeight: 1,
         }),
       );
       const restingDistances = attachmentDistances(
@@ -375,12 +380,17 @@ describe('AoE voxel role-aware attack poses', () => {
           mode: 'attacking',
           attackPhase: 0.55,
           attackWeight: 1,
+          ambientSuppressionWeight: 1,
         }),
       );
 
       for (const suffix of controlledSuffixes) {
         const controlledPart = part(strike, suffix);
-        expect(controlledPart.animation).toBeUndefined();
+        if (controlledPart.animation) {
+          expect(controlledPart.animation.translationAmplitude).toEqual({ x: 0, y: 0, z: 0 });
+          expect(controlledPart.animation.rotationAmplitude).toEqual({ x: 0, y: 0, z: 0 });
+          expect(controlledPart.animation.scaleAmplitude).toEqual({ x: 0, y: 0, z: 0 });
+        }
         expect(voxelPartWorldCornersAtTime(controlledPart, 0)).toEqual(
           voxelPartWorldCornersAtTime(controlledPart, 777),
         );
@@ -401,7 +411,7 @@ describe('AoE voxel attacking hit-proxy parity', () => {
     const attacker = unit({
       id: 41,
       entityType: 'militia',
-      attackAnimation: { tick: 1, targetX: 8, targetY: 0 },
+      attackAnimation: { tick: 1, sourceX: 0, sourceY: 0, targetX: 8, targetY: 0 },
     });
     adapter.createSnapshot([attacker], 100);
     const snapshot = adapter.createSnapshot([attacker], 458);

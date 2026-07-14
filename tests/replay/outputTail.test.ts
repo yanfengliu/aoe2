@@ -13,6 +13,7 @@ import {
   flushReplayUnitAttacksState,
 } from '../../src/game/simulation/bridge/tier3SyncSystem';
 import {
+  markUnitAttackMovementStarted,
   upsertUnitAttack,
 } from '../../src/game/simulation/bridge/unitAttackAnimationFeed';
 import type {
@@ -79,6 +80,8 @@ describe('registerOutputTail', () => {
       attackerId: 7,
       attackerGeneration: 0,
       tick: 2,
+      sourceX: 3,
+      sourceY: 4,
       targetX: 4,
       targetY: 4,
       witnessedBy: [1],
@@ -88,6 +91,8 @@ describe('registerOutputTail', () => {
       attackerId: 7,
       attackerGeneration: 0,
       tick: 2,
+      sourceX: 3,
+      sourceY: 4,
       targetX: 4,
       targetY: 4,
       witnessedBy: [1],
@@ -101,6 +106,47 @@ describe('registerOutputTail', () => {
       expect.objectContaining({ tick: 2 }),
       { tick: 13, value: [] },
     ]);
+  });
+
+  it('publishes a movement cancellation once and prunes it on the next tick', () => {
+    const world = makeWorld();
+    const accessor = new BridgeStateAccessor(() => world);
+    const feed = createBridgeState().unitAttackFeed;
+    const values: unknown[] = [];
+    world.runMaintenance(() => flushReplayUnitAttacksState(world, feed, 0, true));
+    registerOutputTail({
+      world,
+      accessor,
+      visibilityCell: new VisibilityCell(new VisibilityMap(20, 20)),
+      matchState: makeMatchState(),
+      pendingCommands: [],
+      unitAttackFeed: feed,
+    });
+    world.onDiff((diff) => {
+      if (Object.hasOwn(diff.state.set, TIER_3_SLOTS.replayUnitAttacks)) {
+        values.push(diff.state.set[TIER_3_SLOTS.replayUnitAttacks]);
+      }
+    });
+    upsertUnitAttack(feed, {
+      attackerId: 7,
+      attackerGeneration: 0,
+      tick: 1,
+      sourceX: 3,
+      sourceY: 4,
+      targetX: 4,
+      targetY: 4,
+      witnessedBy: [1],
+    }, 1);
+
+    world.step();
+    expect(markUnitAttackMovementStarted(feed, 7, 0, 2)).toBe(true);
+    world.step();
+    world.step();
+    world.step();
+
+    expect(values).toHaveLength(3);
+    expect(values[1]).toEqual([expect.objectContaining({ cancelTick: 2 })]);
+    expect(values[2]).toEqual([]);
   });
 
   it('flushes dirty Tier-1 slots to world.state on tick', () => {

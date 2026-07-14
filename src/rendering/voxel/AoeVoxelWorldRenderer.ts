@@ -63,6 +63,9 @@ export class AoeVoxelWorldRenderer {
   private frameIndex = 0;
   private pendingHitState: PreparedVoxelHitState | null = null;
   private presentedHitState: PreparedVoxelHitState | null = null;
+  private animationNowMs = 0;
+  private animationClockInitialized = false;
+  private lastSimulationDisplayTimeMs: number | null = null;
   private presentedNowMs = 0;
   private disposed = false;
 
@@ -115,6 +118,21 @@ export class AoeVoxelWorldRenderer {
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
       );
     }
+    // Voxel ambient animation and hit geometry share a monotonic clock driven
+    // only by forward simulation display progress. Browser RAF time advances
+    // while paused, while replay scrubs can move simulation time backward;
+    // neither may move this dependency-facing clock. Bridge swaps rebase the
+    // next sample through lastSimulationDisplayTimeMs=null below.
+    if (!this.animationClockInitialized) {
+      this.animationNowMs = simulationDisplayTimeMs;
+      this.animationClockInitialized = true;
+    } else if (this.lastSimulationDisplayTimeMs !== null) {
+      this.animationNowMs += Math.max(
+        0,
+        simulationDisplayTimeMs - this.lastSimulationDisplayTimeMs,
+      );
+    }
+    this.lastSimulationDisplayTimeMs = simulationDisplayTimeMs;
     const hitState = this.adapter.latestHitState();
     if (
       !hitState
@@ -126,7 +144,7 @@ export class AoeVoxelWorldRenderer {
 
   frame(
     camera: CameraState,
-    nowMs: number,
+    _wallNowMs: number,
     deltaMs: number,
   ): void {
     this.assertActive();
@@ -137,7 +155,11 @@ export class AoeVoxelWorldRenderer {
       this.runtime.resize(this.width, this.height, this.pixelRatio);
     }
     this.runtime.setView(view.center, view.zoom);
-    this.runtime.frame({ nowMs, deltaMs, frameIndex: this.frameIndex });
+    this.runtime.frame({
+      nowMs: this.animationNowMs,
+      deltaMs,
+      frameIndex: this.frameIndex,
+    });
     this.frameIndex += 1;
     const metrics = this.runtime.metrics();
     if (
@@ -151,12 +173,13 @@ export class AoeVoxelWorldRenderer {
       && this.presentedHitState
       && metrics.presentedEpoch === this.presentedHitState.epoch
       && metrics.presentedRevision === this.presentedHitState.revision
-    ) this.presentedNowMs = nowMs;
+    ) this.presentedNowMs = this.animationNowMs;
   }
 
   resetForBridgeSwap(): void {
     this.assertActive();
     this.adapter.resetForBridgeSwap();
+    this.lastSimulationDisplayTimeMs = null;
     this.pendingHitState = null;
     this.presentedHitState = null;
   }

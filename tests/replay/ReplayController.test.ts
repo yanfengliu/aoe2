@@ -202,7 +202,9 @@ describe('Phase 3B - ReplayController', () => {
 
     controller.enterReplay(bundle, bundle.metadata.startTick);
     controller.play();
-    scheduler.flushNext();
+    scheduler.flushNext(0);
+    expect(controller.currentTick).toBe(bundle.metadata.startTick);
+    scheduler.flushNext(100);
     const expectedWorld = SessionReplayer.fromBundle(bundle, { worldFactory: (snapshot) => createReplayWorldOnly(snapshot), skipRegistrationCheck: true }).openAt(bundle.metadata.startTick + 1);
 
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
@@ -237,7 +239,9 @@ describe('Phase 3B - ReplayController', () => {
 
     controller.enterReplay(oneTickBundle, oneTickBundle.metadata.startTick);
     controller.play();
-    scheduler.flushNext();
+    scheduler.flushNext(0);
+    expect(controller.isPlaying()).toBe(true);
+    scheduler.flushNext(100);
 
     expect(controller.currentTick).toBe(oneTickBundle.metadata.endTick);
     expect(playingStates.at(-1)).toBe(false);
@@ -261,12 +265,15 @@ describe('Phase 3B - ReplayController', () => {
     controller.enterReplay(bundle, bundle.metadata.startTick);
     controller.play();
     scheduler.flushNext(0);
-    expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
+    expect(controller.currentTick).toBe(bundle.metadata.startTick);
 
     scheduler.flushNext(50);
-    expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
+    expect(controller.currentTick).toBe(bundle.metadata.startTick);
 
     scheduler.flushNext(100);
+    expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
+
+    scheduler.flushNext(200);
     expect(controller.currentTick).toBe(bundle.metadata.startTick + 2);
   });
 
@@ -298,7 +305,7 @@ describe('Phase 3B - ReplayController', () => {
       scheduler.flushNext(0);
       scheduler.flushNext(100);
 
-      expect(controller.currentTick).toBe(bundle.metadata.startTick + 2);
+      expect(controller.currentTick).toBe(bundle.metadata.startTick + 1);
       expect(openAtSpy).toHaveBeenCalledTimes(1);
     } finally {
       fromBundleSpy.mockRestore();
@@ -331,6 +338,7 @@ describe('Phase 3B - ReplayController', () => {
     controller.enterReplay(failedBundle, failedBundle.metadata.startTick);
     controller.play();
     scheduler.flushNext(0);
+    scheduler.flushNext(100);
 
     expect(controller.currentTick).toBe(failedBundle.metadata.startTick + 1);
     expect(controller.isPlaying()).toBe(false);

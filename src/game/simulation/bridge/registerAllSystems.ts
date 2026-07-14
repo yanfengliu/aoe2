@@ -278,6 +278,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     accessor,
+    unitAttackFeed: state.unitAttackFeed,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
     getUnitTargetTransformForPosition,

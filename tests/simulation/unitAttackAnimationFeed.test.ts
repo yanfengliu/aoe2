@@ -13,6 +13,7 @@ import {
   getUnitAttackFeedEntries,
   hydrateUnitAttacks,
   initializeUnitAttackFeed,
+  markUnitAttackMovementStarted,
   pruneUnitAttackFeed,
 } from "../../src/game/simulation/bridge/unitAttackAnimationFeed";
 
@@ -20,6 +21,8 @@ type Bridge = ReturnType<typeof createSimulationBridge>;
 
 interface AttackAnimationView {
   tick: number;
+  sourceX: number;
+  sourceY: number;
   targetX: number;
   targetY: number;
 }
@@ -87,6 +90,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       attackerId: 7,
       attackerGeneration: 2,
       tick: 100,
+      sourceX: 12,
+      sourceY: 8,
       targetX: 13,
       targetY: 8,
       witnessedBy: [1, 1, 2, 99],
@@ -99,6 +104,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       attackerId: 7,
       attackerGeneration: 2,
       tick: 100,
+      sourceX: 12,
+      sourceY: 8,
       targetX: 13,
       targetY: 8,
       witnessedBy: [1, 2],
@@ -107,6 +114,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       "attackerId",
       "attackerGeneration",
       "tick",
+      "sourceX",
+      "sourceY",
       "targetX",
       "targetY",
       "witnessedBy",
@@ -118,6 +127,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       attackerId: 7,
       attackerGeneration: 2,
       tick: 100,
+      sourceX: 12,
+      sourceY: 8,
       targetX: 13,
       targetY: 8,
       witnessedBy: [1],
@@ -127,6 +138,10 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       { ...valid, attackerGeneration: -1 },
       { ...valid, tick: 89 },
       { ...valid, tick: 101 },
+      { ...valid, cancelTick: 99 },
+      { ...valid, cancelTick: 101 },
+      { ...valid, sourceX: Number.NaN },
+      { ...valid, sourceY: 64 },
       { ...valid, targetX: -1 },
       { ...valid, targetY: Number.POSITIVE_INFINITY },
       { ...valid, witnessedBy: Array.from({ length: 100 }, () => 1) },
@@ -134,6 +149,20 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
     ], 100, new Set([1]));
 
     expect(attacks).toEqual([valid]);
+  });
+
+  it("hydrates a movement cancellation only on its observable tick", () => {
+    expect(hydrateUnitAttacks([{
+      attackerId: 7,
+      attackerGeneration: 2,
+      tick: 99,
+      cancelTick: 100,
+      sourceX: 12,
+      sourceY: 8,
+      targetX: 13,
+      targetY: 8,
+      witnessedBy: [1],
+    }], 100, new Set([1]))[0]?.cancelTick).toBe(100);
   });
 
   it("surfaces only fresh attacks witnessed by the viewing player", () => {
@@ -153,6 +182,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
         attackerId: 7,
         attackerGeneration: 2,
         tick: currentTick,
+        sourceX: 12,
+        sourceY: 8,
         targetX: 13,
         targetY: 8,
         witnessedBy: [1, 2],
@@ -162,6 +193,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
         attackerId: 8,
         attackerGeneration: 0,
         tick: currentTick,
+        sourceX: 29,
+        sourceY: 20,
         targetX: 30,
         targetY: 20,
         witnessedBy: [2],
@@ -171,6 +204,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
         attackerId: 9,
         attackerGeneration: 4,
         tick: currentTick - attackVisibility.ATTACK_FEED_TICKS - 1,
+        sourceX: 12,
+        sourceY: 8,
         targetX: 13,
         targetY: 8,
         witnessedBy: [1],
@@ -197,6 +232,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
         attackerId: 7,
         attackerGeneration: 2,
         tick: 89,
+        sourceX: 12,
+        sourceY: 8,
         targetX: 13,
         targetY: 8,
         witnessedBy: [1],
@@ -205,6 +242,8 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
         attackerId: 8,
         attackerGeneration: 0,
         tick: 90,
+        sourceX: 12,
+        sourceY: 8,
         targetX: 13,
         targetY: 8,
         witnessedBy: [1],
@@ -215,6 +254,27 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
     expect(pruneUnitAttackFeed(feed, 100)).toBe(true);
     expect(getUnitAttackFeedEntries(feed).map((attack) => attack.attackerId)).toEqual([8]);
     expect(pruneUnitAttackFeed(feed, 100)).toBe(false);
+  });
+
+  it("persists the first movement cancellation for one presentation tick", () => {
+    const feed = createBridgeState().unitAttackFeed;
+    initializeUnitAttackFeed(feed, [{
+      attackerId: 7,
+      attackerGeneration: 2,
+      tick: 100,
+      sourceX: 12,
+      sourceY: 8,
+      targetX: 13,
+      targetY: 8,
+      witnessedBy: [1],
+    }], 100);
+
+    expect(markUnitAttackMovementStarted(feed, 7, 2, 101)).toBe(true);
+    expect(markUnitAttackMovementStarted(feed, 7, 2, 102)).toBe(false);
+    expect(getUnitAttackFeedEntries(feed)[0]).toMatchObject({ cancelTick: 101 });
+    expect(pruneUnitAttackFeed(feed, 101)).toBe(false);
+    expect(pruneUnitAttackFeed(feed, 102)).toBe(true);
+    expect(getUnitAttackFeedEntries(feed)).toEqual([]);
   });
 
   it("synchronizes visibility before capturing non-owner witnesses", () => {
@@ -338,6 +398,8 @@ describe("unit attack animation feed - live grouped boar hunt", () => {
       const attack = attacker.attackAnimation!;
       expect(attack).toEqual({
         tick: renderState.tick,
+        sourceX: attacker.x,
+        sourceY: attacker.y,
         targetX: boar.x,
         targetY: boar.y,
       });
@@ -372,6 +434,8 @@ describe("unit attack animation feed - live grouped boar hunt", () => {
     for (const attacker of lethalHits) {
       expect(attacker.attackAnimation).toEqual({
         tick: lethalTick,
+        sourceX: attacker.x,
+        sourceY: attacker.y,
         targetX: boar.x,
         targetY: boar.y,
       });

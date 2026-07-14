@@ -1,4 +1,5 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
+import { TPS } from '../../game/simulation/prototypeScenario';
 import { unitRole, type UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import { matrixForPart } from './aoeVoxelRecipeTypes';
@@ -18,6 +19,7 @@ export interface AoeUnitAnimationState {
   readonly directionZ: number;
   readonly attackPhase: number;
   readonly attackWeight: number;
+  readonly ambientSuppressionWeight: number;
 }
 
 export interface AoeUnitMotionHistory extends AoeUnitAnimationState {
@@ -38,7 +40,6 @@ const MAX_SMOOTHING_DELTA_MS = 250;
 const FULL_LOCOMOTION_SPEED = 2.5;
 const START_RESPONSE_MS = 90;
 const STOP_RESPONSE_MS = 180;
-const ATTACK_STOP_RESPONSE_MS = 120;
 const TURN_RESPONSE_MS = 110;
 
 const STRIDE_LENGTH_WORLD_UNITS: Readonly<Record<UnitRole, number>> = Object.freeze({
@@ -89,20 +90,44 @@ function initialUnitMotion(
   identity: string,
   sampleTimeMs: number,
 ): ResolvedUnitAnimationState {
+  const attackAnimation = entity.attackAnimation;
+  if (attackAnimation?.cancelTick !== undefined) {
+    const cancelTimeMs = attackAnimation.cancelTick * 1_000 / TPS;
+    const cancelEndTimeMs = cancelTimeMs + 1_000 / TPS;
+    const distanceFromSource = Math.hypot(
+      entity.x - attackAnimation.sourceX,
+      entity.y - attackAnimation.sourceY,
+    );
+    if (
+      sampleTimeMs > cancelTimeMs
+      && sampleTimeMs < cancelEndTimeMs
+      && distanceFromSource > MOVEMENT_EPSILON
+    ) {
+      const atSource = {
+        ...entity,
+        x: attackAnimation.sourceX,
+        y: attackAnimation.sourceY,
+      };
+      const start = initialUnitMotion(atSource, identity, cancelTimeMs);
+      return resolveUnitAnimationState(entity, identity, start.history, sampleTimeMs);
+    }
+  }
   const phaseRadians = phaseForUnitIdentity(identity);
   const role = animationRole(entity);
   const authoredForward = role === undefined ? 0 : AUTHORED_FORWARD_RADIANS[role];
-  const attack = sampleUnitAttack(entity, sampleTimeMs);
+  const attackSample = sampleUnitAttack(entity, sampleTimeMs);
+  const attack = attackSample?.poseWeight ? attackSample : null;
   const state: AoeUnitAnimationState = {
     mode: attack ? 'attacking' : 'idle',
     phaseRadians,
     gaitPhaseRadians: phaseRadians,
     locomotionWeight: 0,
     speedWorldUnitsPerSecond: 0,
-    directionX: attack?.directionX ?? Math.cos(authoredForward),
-    directionZ: attack?.directionZ ?? Math.sin(authoredForward),
-    attackPhase: attack?.phase ?? 0,
-    attackWeight: attack ? 1 : 0,
+    directionX: attackSample?.directionX ?? Math.cos(authoredForward),
+    directionZ: attackSample?.directionZ ?? Math.sin(authoredForward),
+    attackPhase: attackSample?.phase ?? 0,
+    attackWeight: attack?.poseWeight ?? 0,
+    ambientSuppressionWeight: attackSample?.ambientSuppressionWeight ?? 0,
   };
   return {
     state,
@@ -160,6 +185,7 @@ export function resolveUnitAnimationState(
           directionZ: previous.directionZ,
           attackPhase: previous.attackPhase,
           attackWeight: previous.attackWeight,
+          ambientSuppressionWeight: previous.ambientSuppressionWeight,
         },
         history: { ...previous, x: entity.x, y: entity.y },
       };
@@ -173,7 +199,9 @@ export function resolveUnitAnimationState(
   const speed = elapsedMs > 0
     ? Math.min(MAX_SPEED_WORLD_UNITS_PER_SECOND, distance * 1_000 / elapsedMs)
     : 0;
-  const attack = moving ? null : sampleUnitAttack(entity, sampleTimeMs);
+  const attackSample = sampleUnitAttack(entity, sampleTimeMs);
+  const attack = !attackSample?.poseWeight ? null : attackSample;
+  const stationaryAttack = moving ? null : attack;
   const targetWeight = clamp01(speed / FULL_LOCOMOTION_SPEED);
   const responseMs = targetWeight > previous.locomotionWeight
     ? START_RESPONSE_MS
@@ -183,20 +211,12 @@ export function resolveUnitAnimationState(
     : 0;
   const blendedWeight = previous.locomotionWeight
     + (targetWeight - previous.locomotionWeight) * blend;
-  const locomotionWeight = attack
+  const locomotionWeight = stationaryAttack
     ? previous.locomotionWeight
     : targetWeight === 0 && blendedWeight < 0.001
       ? 0
       : clamp01(blendedWeight);
-  const fadedAttackWeight = previous.attackWeight
-    * Math.exp(-smoothingDeltaMs / ATTACK_STOP_RESPONSE_MS);
-  const attackWeight = moving
-    ? 0
-    : attack
-      ? 1
-      : fadedAttackWeight < 0.001
-        ? 0
-        : clamp01(fadedAttackWeight);
+  const attackWeight = attack?.poseWeight ?? 0;
   const role = animationRole(entity);
   const strideLength = role === undefined
     ? FALLBACK_STRIDE_LENGTH_WORLD_UNITS
@@ -211,19 +231,20 @@ export function resolveUnitAnimationState(
       deltaZ / distance,
       smoothingDeltaMs,
     )
-    : attack
-      ? [attack.directionX, attack.directionZ]
+    : attackSample
+      ? [attackSample.directionX, attackSample.directionZ]
       : [previous.directionX, previous.directionZ];
   const state: AoeUnitAnimationState = {
-    mode: moving ? 'moving' : attack ? 'attacking' : 'idle',
+    mode: moving ? 'moving' : stationaryAttack ? 'attacking' : 'idle',
     phaseRadians: previous.phaseRadians,
     gaitPhaseRadians,
     locomotionWeight,
     speedWorldUnitsPerSecond: speed,
     directionX,
     directionZ,
-    attackPhase: attack?.phase ?? previous.attackPhase,
+    attackPhase: attackSample?.phase ?? 0,
     attackWeight,
+    ambientSuppressionWeight: attackSample?.ambientSuppressionWeight ?? 0,
   };
   return {
     state,

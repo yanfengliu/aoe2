@@ -17,6 +17,7 @@ type RenderMessage = RenderServerMessage<
 >;
 
 type UnitAttackAnimation = NonNullable<ProjectedEntityView['attackAnimation']>;
+const ALWAYS_VISIBLE = (): boolean => true;
 
 function renderKey(entity: RenderEntity<ProjectedEntityView>): string {
   return `${entity.ref.id}:${entity.ref.generation}`;
@@ -26,9 +27,34 @@ function destroyedKey(id: number, generation: number): string {
   return `${id}:${generation}`;
 }
 
+function wasVisibleInFrame(
+  view: ProjectedEntityView,
+  frame: ProjectedFrameView | null,
+  visibleCells: ReadonlySet<number> | null,
+): boolean {
+  if (!frame || !visibleCells || view.owner === frame.playerId) return true;
+  const anchorX = Math.floor(view.x);
+  const anchorY = Math.floor(view.y);
+  for (let offsetY = 0; offsetY < view.footprintHeight; offsetY += 1) {
+    for (let offsetX = 0; offsetX < view.footprintWidth; offsetX += 1) {
+      const x = anchorX + offsetX;
+      const y = anchorY + offsetY;
+      if (
+        x >= 0
+        && y >= 0
+        && x < frame.mapWidth
+        && y < frame.mapHeight
+        && visibleCells.has(y * frame.mapWidth + x)
+      ) return true;
+    }
+  }
+  return false;
+}
+
 export class RenderStore {
   private readonly entities = new Map<string, RenderEntity<ProjectedEntityView>>();
   private readonly attackAnimationKeys = new Set<string>();
+  private readonly suppressedAttackAnimationTicks = new Map<string, number>();
   private tick = 0;
   private frame: ProjectedFrameView | null = null;
   private debug: RenderMetricsSnapshot | null = null;
@@ -38,9 +64,15 @@ export class RenderStore {
   apply(message: RenderMessage): void {
     const nextTick = message.data.render.tick;
     if (this.initialized && nextTick > this.tick) {
+      // Capture interpolation history through the PRIOR tick's perspective.
+      // The raw store intentionally retains fogged entities so a stationary
+      // one can reveal later, but its unseen prior position must never become
+      // a movement interpolation source when it first enters line of sight.
+      const visibleCells = this.frame ? new Set(this.frame.visibleCells) : null;
       const positions = [...this.entities.values()]
         .filter(({ view }) => (
           !view.isMemory && (view.kind === 'unit' || view.kind === 'resource')
+          && wasVisibleInFrame(view, this.frame, visibleCells)
         ))
         .map(({ ref, view }) => ({
           id: ref.id,
@@ -52,6 +84,7 @@ export class RenderStore {
       this.previousPositionFrame = { tick: this.tick, positions };
     } else if (this.initialized && nextTick < this.tick) {
       this.previousPositionFrame = null;
+      this.suppressedAttackAnimationTicks.clear();
     }
 
     if (message.type === 'renderSnapshot') {
@@ -111,15 +144,30 @@ export class RenderStore {
    * every unit forever. The return value is the number of keys examined. */
   reconcileUnitAttackAnimations(
     active: ReadonlyMap<string, UnitAttackAnimation>,
+    isCurrentlyVisible: (view: ProjectedEntityView) => boolean = ALWAYS_VISIBLE,
   ): number {
+    for (const [key, tick] of this.suppressedAttackAnimationTicks) {
+      if (active.get(key)?.tick !== tick) {
+        this.suppressedAttackAnimationTicks.delete(key);
+      }
+    }
     const keys = new Set([...this.attackAnimationKeys, ...active.keys()]);
     for (const key of keys) {
       const entity = this.entities.get(key);
+      let next = active.get(key);
+      if (next && (!entity || !isCurrentlyVisible(entity.view))) {
+        this.suppressedAttackAnimationTicks.set(key, next.tick);
+        next = undefined;
+      } else if (
+        next
+        && this.suppressedAttackAnimationTicks.get(key) === next.tick
+      ) {
+        next = undefined;
+      }
       if (!entity) {
         this.attackAnimationKeys.delete(key);
         continue;
       }
-      const next = active.get(key);
       const current = entity.view.attackAnimation;
       if (!next) {
         if (current) {
@@ -132,6 +180,9 @@ export class RenderStore {
       }
       if (
         current?.tick !== next.tick
+        || current.cancelTick !== next.cancelTick
+        || current.sourceX !== next.sourceX
+        || current.sourceY !== next.sourceY
         || current.targetX !== next.targetX
         || current.targetY !== next.targetY
       ) {

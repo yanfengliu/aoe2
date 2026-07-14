@@ -119,6 +119,41 @@ afterEach(() => {
 });
 
 describe('AoeVoxelWorldRenderer', () => {
+  it('freezes Voxel ambient animation time while simulation display time is paused', () => {
+    const runtime = new FakeRuntime();
+    const renderer = new AoeVoxelWorldRenderer({
+      host: document.createElement('div'),
+      width: 320,
+      height: 200,
+      createRuntime: () => runtime,
+    });
+    const camera = {
+      scrollX: 0,
+      scrollY: 0,
+      zoom: 1,
+      width: 320,
+      height: 200,
+      viewX: 0,
+      viewY: 0,
+      viewWidth: 320,
+      viewHeight: 200,
+      viewCorners: [],
+    };
+
+    renderer.present([terrain()], 500);
+    renderer.frame(camera, 1_000, 16);
+    renderer.frame(camera, 2_000, 1_000);
+    expect(runtime.frame.mock.calls.map(([context]) => context.nowMs)).toEqual([500, 500]);
+
+    renderer.resetForBridgeSwap();
+    renderer.present([terrain()], 150);
+    renderer.frame(camera, 2_016, 16);
+    expect(runtime.frame.mock.calls.at(-1)?.[0].nowMs).toBe(500);
+    renderer.present([terrain()], 175);
+    renderer.frame(camera, 2_032, 16);
+    expect(runtime.frame.mock.calls.at(-1)?.[0].nowMs).toBe(525);
+  });
+
   it('owns one world canvas and drives snapshot, camera, frame, reset, and teardown', () => {
     const host = document.createElement('div');
     document.body.append(host);
@@ -167,7 +202,7 @@ describe('AoeVoxelWorldRenderer', () => {
     }, 100, 16);
 
     expect(runtime.setView).toHaveBeenCalledWith({ x: 0, y: 0, z: 0 }, 1);
-    expect(runtime.frame).toHaveBeenCalledWith({ nowMs: 100, deltaMs: 16, frameIndex: 0 });
+    expect(runtime.frame).toHaveBeenCalledWith({ nowMs: 0, deltaMs: 16, frameIndex: 0 });
 
     renderer.resetForBridgeSwap();
     renderer.present([terrain()], 100);

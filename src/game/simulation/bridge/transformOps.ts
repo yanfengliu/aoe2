@@ -28,6 +28,8 @@ import {
   movementSpeedPercent,
   settleMovementCarry,
 } from '../movementTechEffects';
+import type { UnitAttackFeedRuntime } from './bridgeState';
+import { markUnitAttackMovementStartedForEntity } from './unitAttackAnimationFeed';
 
 type CivWorld = GameWorld;
 
@@ -67,6 +69,7 @@ export interface TransformOpsDeps {
   // The factory's other slot reads were already on the accessor side, so we
   // can drop the bridgeState dep entirely here.
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
+  unitAttackFeed: UnitAttackFeedRuntime;
   isBootstrappingScenario: () => boolean;
 }
 
@@ -113,6 +116,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     worldOccupancy,
     tiles,
     accessor,
+    unitAttackFeed,
     isBootstrappingScenario,
   } = deps;
 
@@ -152,11 +156,14 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     // path fires on every cell crossing during movement and snapping there
     // would teleport mid-flight sprites.
     const targetTransform = getUnitTargetTransformForPosition(id, position);
+    const moved = transform.fineX !== targetTransform.fineX
+      || transform.fineY !== targetTransform.fineY;
     activeWorld.setComponent(id, 'unitTransform', {
       ...transform,
       fineX: targetTransform.fineX,
       fineY: targetTransform.fineY,
     });
+    if (moved) markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
   }
 
   function syncOccupancyForEntity(
@@ -240,6 +247,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     entity: number,
     activeWorld: CivWorld = world,
   ): void {
+    markUnitAttackMovementStartedForEntity(unitAttackFeed, entity, activeWorld);
     worldOccupancy.release(entity);
     activeWorld.removeComponent(entity, 'position');
   }
@@ -313,6 +321,8 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     const nextTransform = clampUnitTransformToMap(
       stepUnitTransformToward(transform, targetTransform, resolvedStepUnits),
     );
+    const moved = nextTransform.fineX !== transform.fineX
+      || nextTransform.fineY !== transform.fineY;
     let nextMoveCarryHundredths = transform.moveCarryHundredths;
     if (entitledHundredths !== null) {
       // Settle on ACTUAL movement (pre-assignment deltas) so a clamped step
@@ -329,6 +339,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         ? {}
         : { moveCarryHundredths: nextMoveCarryHundredths }),
     });
+    if (moved) markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
 
     const nextGridPosition = gridPositionFromUnitTransform(nextTransform);
     const currentGridPosition = activeWorld.getComponent<Position>(id, 'position');
