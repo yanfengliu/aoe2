@@ -93,7 +93,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
   test('renders health bars above units and buildings and updates them as health changes', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'conquest-victory-fixture');
+    await game.waitForPausedBootWithSeed(page, 'conquest-victory-fixture');
 
     const initialMilitiaBar = await game.getEntityHealthBarState(page, 1, 'unit', 'militia');
     const initialHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');

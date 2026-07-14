@@ -46,6 +46,7 @@ export {
   doubleClickWorldPosition,
   dragSelectCells,
   dragSelectWorldRect,
+  findClearGapBetweenUnitBodies,
   getOwnedResourceCells,
   getOwnedUnitCells,
   selectOwnedBuildingAtDirect,

@@ -19,16 +19,22 @@ describe('fog memory', () => {
   it('keeps an enemy house visible as a memory entity after the scout walks out of range', () => {
     const bridge = createSimulationBridge('fog-memory-fixture');
 
-    // Give the tick machinery a few steps so visibility runs and the house starts out
-    // properly visible to the scout at (10, 10) (distance 4 from house at (14, 10)).
-    // Phase 1B unit.attack adds 1-tick delay between AI auto-aggression decisions
-    // and their effect on bridge state (intention pushed at tick K, dispatcher
-    // submits between ticks, handler runs at start of K+1). Bumping from 2 to 3
-    // steps absorbs that lag for AI vision sources whose presence depends on
-    // attack-issuance timing.
-    for (let i = 0; i < 3; i += 1) {
-      bridge.step(100);
-    }
+    // Wait for the fog-memory writer to record the currently visible house.
+    // Do not couple this prerequisite to a fixed number of auto-aggression
+    // movement ticks: sub-cell slot convergence may legitimately change when
+    // the scout crosses the next coarse visibility cell.
+    const visibleHouseId = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 2 && building.buildingType === 'house')?.id;
+    expect(visibleHouseId).toBeDefined();
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        const candidate = bridge.getRenderState().entities.find((entity) => entity.id === visibleHouseId);
+        return candidate?.isMemory === false && humanFogMemoryIds(bridge).includes(visibleHouseId!);
+      },
+      { maxSteps: 20 },
+    )).toBe(true);
 
     // The enemy house should be in the live render frame as a normal (non-memory) entity.
     const initialEntities = bridge.getRenderState().entities;
@@ -231,11 +237,21 @@ describe('fog memory', () => {
   it('forgets a destroyed-under-fog building whose id is recycled (full-review M5)', () => {
     const bridge = createSimulationBridge('fog-memory-fixture');
 
-    // Warm up so the enemy house at (14, 10) is visible to the scout at (10, 10)
-    // (distance 4). The fog-memory refresh records it into lastSeenStatic.
-    for (let i = 0; i < 3; i += 1) {
-      bridge.step(100);
-    }
+    // Wait for the house to be both live-visible and recorded. A fixed tick
+    // count is brittle because the scout may begin an auto-attack route along
+    // a different fine-slot phase while preserving the same visibility rules.
+    const visibleHouseId = bridge
+      .getEconomyState()
+      .buildings.find((building) => building.owner === 2 && building.buildingType === 'house')?.id;
+    expect(visibleHouseId).toBeDefined();
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        const candidate = bridge.getRenderState().entities.find((entity) => entity.id === visibleHouseId);
+        return candidate?.isMemory === false && humanFogMemoryIds(bridge).includes(visibleHouseId!);
+      },
+      { maxSteps: 20 },
+    )).toBe(true);
     const house = bridge
       .getRenderState()
       .entities.find(

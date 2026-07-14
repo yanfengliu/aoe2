@@ -2,15 +2,15 @@
 
 > Historical baseline: the original Phaser stack, directory, and bootstrap
 > steps below describe the prototype's first implementation. KAD-0022 and
-> `docs/threads/current/voxel-renderer-migration/PLAN.md` supersede those
+> `docs/threads/done/voxel-renderer-migration/PLAN.md` supersede those
 > rendering steps as of 2026-07-13: AoE2 now ships only the standalone
 > Three/`voxel` world path.
 
 ## Purpose
 
-This document turns [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>) into an execution plan.
+This document records the original execution plan that turned [spec-final.md](<C:/Users/38909/Documents/github/aoe2/design/spec-final.md>) into the Phaser-era prototype. It is preserved as historical delivery evidence, not active implementation guidance.
 
-It is not another gameplay spec. It defines:
+It is not another gameplay spec. At the time, it defined:
 
 - the recommended implementation stack
 - the module boundaries
@@ -488,7 +488,9 @@ The project is implementation-complete for this revision when:
 - the game is driven by normalized content data rather than hard-coded gameplay tables
 - the remaining unsupported civ content is explicit and measurable
 
-## 9. Recommended Immediate Actions
+## 9. Historical Immediate Actions
+
+These bootstrap actions describe the original Phaser implementation and are complete or superseded. Current renderer work follows the voxel-only architecture and the completed migration plan linked above.
 
 1. Bootstrap the TypeScript, Vite, Phaser, and test shell.
 2. Define the `civ-engine` integration contract and prove the simulation can tick independently.

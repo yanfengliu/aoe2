@@ -14,8 +14,8 @@ import type {
 } from '../../types';
 import {
   clamp,
-  getUnitTargetTransformForCell,
   gridPositionFromUnitTransform,
+  stepUnitTransformToward,
   type GameWorld,
 } from '../pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../pureHelpers';
@@ -38,11 +38,10 @@ export interface ScoutMovementSystemDeps {
     position: Position,
     activeWorld?: CivWorld,
   ) => void;
-  syncUnitTransformToPosition: (
+  getUnitTargetTransformForPosition: (
     entityId: number,
     position: Position,
-    activeWorld?: CivWorld,
-  ) => void;
+  ) => UnitTransformComponent;
 }
 
 export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void {
@@ -52,7 +51,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
     accessor,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
+    getUnitTargetTransformForPosition,
   } = deps;
 
   world.registerSystem({
@@ -95,7 +94,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         // 90/180/270) breaks any such cycle while keeping runs replayable.
         applyWanderKick(velocity, activeWorld.tick, id);
 
-        const slottedPosition = getUnitTargetTransformForCell(id, position);
+        const slottedPosition = getUnitTargetTransformForPosition(id, position);
         const currentFineX = transform?.fineX ?? slottedPosition.fineX;
         const currentFineY = transform?.fineY ?? slottedPosition.fineY;
 
@@ -136,40 +135,67 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         }
 
         if (transform) {
-          transform.fineX = clamp(
-            currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK,
-            effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION,
-            effectiveBounds.maxX * UNIT_SUBGRID_RESOLUTION,
-          );
-          transform.fineY = clamp(
-            currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK,
-            effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION,
-            effectiveBounds.maxY * UNIT_SUBGRID_RESOLUTION,
-          );
-          const nextGridPosition = gridPositionFromUnitTransform(transform);
-          if (
-            (nextGridPosition.x !== position.x || nextGridPosition.y !== position.y)
-            && isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld)
-          ) {
+          const candidateTransform = {
+            ...transform,
+            fineX: clamp(
+              currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK,
+              effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION,
+              effectiveBounds.maxX * UNIT_SUBGRID_RESOLUTION,
+            ),
+            fineY: clamp(
+              currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK,
+              effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION,
+              effectiveBounds.maxY * UNIT_SUBGRID_RESOLUTION,
+            ),
+          };
+          const nextGridPosition = gridPositionFromUnitTransform(candidateTransform);
+          if (nextGridPosition.x === position.x && nextGridPosition.y === position.y) {
+            activeWorld.setComponent(id, 'unitTransform', candidateTransform);
+          } else if (isCellPassableForUnit(
+            id,
+            nextGridPosition.x,
+            nextGridPosition.y,
+            activeWorld,
+          )) {
+            activeWorld.setComponent(id, 'unitTransform', candidateTransform);
             setPositionAndSyncOccupancy(id, nextGridPosition, activeWorld);
-          } else if (
-            nextGridPosition.x !== position.x
-            || nextGridPosition.y !== position.y
-          ) {
+          } else {
             // Impassable next cell (a building footprint, a resource, bad
             // terrain — units crowd-share cells and do not block).
-            // Reset the subgrid transform, then pick the escape heading by
-            // EMULATING each candidate's fine-step path. A blind 90°
+            // The candidate was never published. Recenter toward the
+            // occupancy-assigned slot by at most one normal movement step,
+            // then use that slot as the escape probe. The bounded recenter
+            // preserves the deterministic phase change that avoids closed
+            // obstacle orbits; publishing the slot in one jump would visibly
+            // teleport whenever the fine transform is farther away.
+            const recenteredTransform = stepUnitTransformToward(
+              transform,
+              slottedPosition,
+              UNIT_SUBGRID_STEP_PER_TICK,
+            );
+            if (
+              recenteredTransform.fineX !== transform.fineX
+              || recenteredTransform.fineY !== transform.fineY
+            ) {
+              activeWorld.setComponent(id, 'unitTransform', {
+                ...transform,
+                fineX: recenteredTransform.fineX,
+                fineY: recenteredTransform.fineY,
+              });
+            }
+            // A blind 90°
             // rotation is not enough: at a wander-box edge the bounds
             // reflection flips the rotated heading straight back into the
             // wall it just hit — a two-state livelock that froze the
             // canary-seed scout at (38,18) for 2502 ticks beside its own
             // forward house (docs/debugging/2026-07-09-pinned-units-oracle.md).
-            syncUnitTransformToPosition(id, position, activeWorld);
-            const reset =
-              activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform') ?? transform;
             const escape = pickEscapeHeading(
-              { fineX: reset.fineX, fineY: reset.fineY, position, bounds: effectiveBounds },
+              {
+                fineX: slottedPosition.fineX,
+                fineY: slottedPosition.fineY,
+                position,
+                bounds: effectiveBounds,
+              },
               velocity,
               (x, y) => isCellPassableForUnit(id, x, y, activeWorld),
             );

@@ -107,6 +107,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     applyMonkDeposit,
     setPositionAndSyncOccupancy,
     syncUnitTransformToPosition,
+    getUnitTargetTransformForPosition,
     findBuildingSpawnPosition,
     addUnitEntity,
     applyTechnology,
@@ -258,7 +259,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     accessor,
     isCellPassableForUnit,
     setPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
+    getUnitTargetTransformForPosition,
   });
 
   registerVillagerEconomySystem({

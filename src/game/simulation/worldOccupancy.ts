@@ -111,7 +111,7 @@ export interface WorldOccupancy {
   blockTerrain(cells: ReadonlyArray<Position>): void;
   syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void;
   syncResource(entity: EntityId, position: Position): void;
-  syncUnit(entity: EntityId, position: Position): SyncUnitResult;
+  syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow?: boolean): SyncUnitResult;
   // Spec §12.6 fallback for fresh placements (spawn, train, ungarrison):
   // redirect to the nearest neighbor with a free slot when the cell is full.
   placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult;
@@ -317,10 +317,14 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       }
     },
 
-    syncUnit(entity: EntityId, position: Position): SyncUnitResult {
+    syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow = false): SyncUnitResult {
       binding.release(entity);
       clearOverflowForEntity(entity);
       unitSlotOffsets.delete(entity);
+      if (restoreOverflow) {
+        addOverflowCrowdedClaim(entity, position);
+        return { placedAt: position, slotOffset: null };
+      }
 
       const preferredSlot =
         ((entity % UNIT_OCCUPANCY_SLOTS.length) + UNIT_OCCUPANCY_SLOTS.length)
@@ -334,6 +338,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       const placement = binding.occupySubcell(entity, position, {
         metadata: { kind: 'unit' },
         preferredSlot,
+        preferredOffset,
       });
 
       if (placement) {

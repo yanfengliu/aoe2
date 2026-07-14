@@ -239,6 +239,10 @@ export interface RegisterAllSystemsDeps {
     position: Position,
     activeWorld?: CivWorld,
   ) => void;
+  getUnitTargetTransformForPosition: (
+    entityId: number,
+    position: Position,
+  ) => UnitTransformComponent;
   findBuildingSpawnPosition: (
     anchor: Position,
     buildingType: BuildingComponent['buildingType'],

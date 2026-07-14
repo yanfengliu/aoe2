@@ -14,6 +14,11 @@ import { defineConfig } from 'vitest/config';
 // explicit per-test timeouts; `tests/simulation/createSimulationBridge.production.test.ts`
 // also uses a shared 30s cap because it slows down under full-suite contention.
 export default defineConfig({
+  resolve: {
+    // Match the production Vite contract for the linked voxel package: every
+    // test import must share the consumer's Three constructors and materials.
+    dedupe: ['three'],
+  },
   test: {
     pool: 'threads',
     // Cap worker concurrency at half the cores. The heaviest simulation tests

@@ -81,9 +81,9 @@ export interface PlayerCommandsSystemDeps {
   // cell; a redirected target Position if it overflowed and a neighbor has a
   // free slot (caller rewrites the move target there, preventing oscillation).
   resolveArrivalRedirect: (unitId: number, arrivalCell: Position) => Position | null;
-  // Spec §12.6 visual non-overlap snap-on-stop: invoked at the move-arrival
-  // site to snap fineX/fineY to the engine-allocated slot offset so two
-  // stationary units in the same cell render at distinct screen points.
+  // Spec §12.6 visual non-overlap arrival publication: once movement has
+  // converged on the engine-allocated slot, republish that exact endpoint so
+  // stationary units in the same cell remain distinct without a final snap.
   syncUnitTransformToPosition: (
     unitId: number,
     position: Position,
@@ -397,11 +397,10 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               accessor.markDirty(unitCommandsCodec);
               continue;
             }
-            // Spec §12.6 snap-on-stop: the unit has reached its destination
-            // with an engine-allocated slot. Snap fineX/fineY to that slot
-            // so two stationary units in the same cell render at distinct
-            // screen points. The snap fires once at arrival, never during
-            // in-flight cell crossings.
+            // Spec §12.6 arrival publication: isUnitAtTarget only succeeds
+            // after the fine transform has converged on the allocated slot.
+            // Republishing the same endpoint is therefore continuity-safe;
+            // it never introduces an arrival snap.
             syncUnitTransformToPosition(id, movePlan.destination, activeWorld);
             clearUnitCommand(id);
             continue;

@@ -75,7 +75,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
       replay bridge, coalesces drag scrubs, exposes the current replay bundle
       for UI consumers, steps cached replay worlds by submitting recorded
-      commands before `world.step()`, and restores the live bridge on exit.
+      commands before `world.step()`, bounds one animation-frame catch-up with
+      the shared visible-simulation timing policy, and restores the live bridge on exit.
       `TimelinePanel.ts` renders the replay-only bottom strip, marker pins,
       hotspot pins, and scrub controls against the controller boundary.
       `ReplayHotkeys.ts` binds replay navigation keys only while replay mode is
@@ -89,7 +90,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       writes into, including the exact immediately prior forward-tick unit and
       moving-resource positions used only for display interpolation) and
       `renderMetricsCapture.ts` (the lightweight alive-count/world-metrics HUD
-      capture that deliberately avoids full-world debug serialization). Phase
+      capture that deliberately avoids full-world debug serialization).
+      `src/game/visibleSimulationTiming.ts` is the shared live/replay elapsed-time bound,
+      preventing either host from consuming an unbounded hidden interval in one
+      visible callback. Phase
       1A added two more siblings: `commands.ts` (the
       `GameCommands` type alias for the 15-command surface that drives
       every gameplay-state mutation) and `dispatcher.ts` (the
@@ -134,7 +138,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
 
         Helper-ops tier (factories used by either systems or the input surface):
         - `playerQueries.ts`, `aiDecisionOps.ts`, `targetFindingOps.ts`, `selectionFinders.ts` — read-side queries.
-        - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators.
+        - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators. Fine-grid movement in `transformOps.ts` publishes replacement `unitTransform` components through the ECS API on every fixed step and targets the occupancy grid's allocated slot; the component persists that numeric assignment or an explicit overflow marker so live-load and replay occupancy rebuilds preserve continuation. Direct in-place mutation would bypass render dirty tracking.
         - `humanInputOps.ts`, `selectionInputOps.ts`, `selectionStateOps.ts`, `unitCommandOps.ts`, `unitSelectionOps.ts`, `sheepCommandOps.ts` — command and selection surface.
         - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers. `monkTaskOps.ts` exposes the AI-decision intention producer (`pushAiMonkTaskIntentions`); `aiSystem` uses it so pickup/deposit/heal task creation goes through `monk.contextAtEntity` on the next tick (the legacy direct-assignment helper `assignAiMonkTasks` was removed in full-review L4, leaving the intention path as the only AI monk-task route and keeping the KAD-0008 direct-mutation-vs-intention race closed). The actual task state is accessor-backed through `aoe2.monkTasks`, preserving snapshot/replay visibility.
         - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries.
@@ -230,6 +234,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
   gaps, rewinds, and generation changes snap instead of extrapolating across
   unrelated state. Click hit-testing prefers the displayed entity so the player's
   perceived target matches the authoritative target.
+- Fine-grid transforms remain authoritative simulation components. Systems must publish replacements through `World.setComponent`; modifying a retrieved component object in place is outside the diff/render/replay contract and is prohibited.
 
 ## Test boundaries
 

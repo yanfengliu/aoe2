@@ -34,7 +34,7 @@ import type {
   PlacementPreviewVisualState,
   SelectionBoxState,
 } from '../rendering/viewTypes';
-import { boundedVisibleSimulationDelta } from './voxelFrameTiming';
+import { boundedVisibleSimulationDelta } from '../game/visibleSimulationTiming';
 
 export interface AoeVoxelGameViewOptions {
   readonly host: HTMLElement;

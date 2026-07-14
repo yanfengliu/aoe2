@@ -1,6 +1,6 @@
 # Isometric voxel renderer migration — implementation plan
 
-Status: Increment 9 standalone voxel-only runtime implemented and verified on 2026-07-13. The previous opt-in composed slice and its later visual/animation increments are preserved below as history. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
+Status: closed and archived after Increment 9's standalone voxel-only runtime was implemented and verified on 2026-07-13. The previous opt-in composed slice and its later visual/animation increments are preserved below as history. This file is the cross-session execution ledger. Mark an item complete only when its named test or artifact exists. Keep implementation discoveries and changed assumptions synchronized with `DESIGN.md`, the canonical architecture docs, the game spec, changelog, and devlog.
 
 ## Increment 9: mandatory voxel-only graphics
 
@@ -69,10 +69,10 @@ Gate: targeted browser smoke proves two canvases compose into one visible game, 
 - [x] Render every visible non-terrain entity through deterministic fallback recipes.
 - [x] Give units two-part body/head geometry and multi-cell buildings inset wall/roof volumes.
 - [x] Preserve construction and memory visual distinctions.
-- [ ] Verify fog, selection, placement, health, minimap, pan/zoom, commands, save/load, and replay under `?renderer=voxel`.
+- [x] Verify fog, selection, placement, health, minimap, pan/zoom, commands, save/load, and replay under `?renderer=voxel`; Increment 9 later repeated and superseded this matrix on the mandatory one-canvas path.
 - [x] Capture controlled `before.png`/`after.png`, generate `diff.png`, and record the 343,580/480,000 (71.58%) changed-pixel result after waiting for the DOM minimap canvas to paint.
 
-Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused checks at the controlled viewport, including composition, epoch reset, replay pixel change, context restoration, and safe Phaser default. The full voxel-specific interaction matrix above remains open.
+Historical gate status: `tests/browser/voxel-renderer.spec.ts` passed its five focused checks at the controlled viewport, including composition, epoch reset, replay pixel change, context restoration, and safe Phaser default. The interaction matrix was subsequently closed by Increment 9 on the mandatory standalone path.
 
 ## Increment 5: promotion, review, and delivery
 
@@ -81,7 +81,7 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 - [x] Run the complete applicable browser suite after restoring Phaser as the safe default.
 - [x] Run the sibling `voxel` package's complete `verify` and both npm audits in both repositories.
 - [x] Run in-process adversarial review grounded in the live diff and record iteration 1.
-- [ ] Run final multi-CLI review because the change adds a local package and graphics dependency surface.
+- [ ] Historical non-blocking external gate: run final multi-CLI review because the change adds a local package and graphics dependency surface. Invocation was denied before review, as recorded below; in-process adversarial review and publication completed without claiming external approval.
 - [x] Fix every substantive in-process finding and re-review the final local behavior.
 - [x] Update `design/spec-final.md`, README, architecture, decisions, drift log, detailed devlog, summary, and the durable thread artifacts.
 - [x] Update changelog/version for v0.1.147.
@@ -89,7 +89,7 @@ Gate status: `tests/browser/voxel-renderer.spec.ts` passes its five focused chec
 - [x] Commit the coherent AoE2 increment directly to `main` after the final diff/secret/content checks (`a22fe8d`).
 - [x] Push the committed engine revision first so the pinned CI source exists remotely (`voxel` `7fbae42`).
 - [x] Push the AoE2 commits to `origin/main` after recording the external-review outcome.
-- [ ] Restore GitHub Actions billing/spending availability and rerun CI plus `playtest-corpus`; runs `29208222795` and `29208222802` were rejected before their first step.
+- [ ] Historical non-blocking infrastructure follow-up: restore GitHub Actions billing/spending availability and rerun CI plus `playtest-corpus`; runs `29208222795` and `29208222802` were rejected before their first step. This external account state is not an open renderer-migration implementation gate.
 
 External-review blocker: the user explicitly approved private-diff review on 2026-07-12, but the platform safety reviewer still denied the Codex and AoE2 Claude exports before invocation. The voxel Claude Fable invocation returned only its quota-limit message. No external reviewer inspected code, no external approval is claimed, and the prohibited export was not rerouted through another model. Publication was separately approved and completed in engine-first order.
 

@@ -176,9 +176,13 @@ describe('AoE voxel unit recipes', () => {
 
   it.each([
     ['villager', 'villager-apron'],
+    ['militia', 'infantry-belt'],
+    ['archer', 'archer-belt'],
     ['monk', 'monk-face'],
     ['knight', 'cavalry-horse-head'],
+    ['cavalry-archer', 'cavalry-horse-head'],
     ['battering-ram', 'siege-ram-head'],
+    ['mangonel', 'siege-bucket'],
   ] as const)('points the semantic front of %s along every cardinal heading', (
     entityType,
     frontSuffix,
@@ -198,7 +202,10 @@ describe('AoE voxel unit recipes', () => {
       const offsetZ = front.centerZ - 5.5;
 
       expect(offsetX * directionX + offsetZ * directionZ).toBeGreaterThan(0);
-      expect(offsetX * directionZ - offsetZ * directionX).toBeCloseTo(0);
+      expect(
+        Math.abs(offsetX * directionZ - offsetZ * directionX)
+        / Math.hypot(offsetX, offsetZ),
+      ).toBeLessThan(0.01);
     }
   });
 

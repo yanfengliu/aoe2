@@ -44,9 +44,10 @@ export default defineConfig({
     },
   },
   test: {
-    // Vitest inherits resolve.alias from this config above. Most files use
-    // the default test environment (node); tests that need DOM (form / panel /
-    // createApp / integration tests) opt in via the `// @vitest-environment jsdom`
+    // The standalone vitest.config.ts mirrors shared resolve settings
+    // explicitly. Most files use the default test environment (node); tests
+    // that need DOM (form / panel / createApp / integration tests) opt in via
+    // the `// @vitest-environment jsdom`
     // pragma at the top of the file. This per-file approach avoids forcing
     // jsdom on every test.
     environment: 'node',

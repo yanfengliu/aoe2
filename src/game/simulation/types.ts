@@ -182,6 +182,13 @@ export interface VelocityComponent {
 export interface UnitTransformComponent {
   fineX: number;
   fineY: number;
+  // Persist the assigned occupancy destination separately from the moving fine
+  // root. Legacy schema-v2 saves omit it and receive a one-time fallback.
+  occupancySlotX?: number;
+  occupancySlotY?: number;
+  // Preserve an authoritative no-slot result; rebuild it after numeric slots
+  // so entity-id order cannot promote overflow units on load.
+  occupancySlotOverflow?: true;
   // Banked fractional movement entitlement in hundredths of a fine unit (the
   // movementTechEffects carry accumulator). Written only while a unit moves at
   // a speed percent ≠ 100 (e.g. Husbandry); pre-speed-model saves and un-teched

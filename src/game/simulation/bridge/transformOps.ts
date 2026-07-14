@@ -21,7 +21,7 @@ import {
   stepUnitTransformToward,
   type GameWorld,
 } from './pureHelpers';
-import { UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
+import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
 import { constructionStatesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import {
   movementEntitlement,
@@ -34,7 +34,8 @@ type CivWorld = GameWorld;
 // Spec §12.6 contract surface — the worldOccupancy module returns this and
 // exposes `placeUnitForSpawn` / `getUnitSlotOffset` so future spawn / movement
 // layers can consume the engine-allocated visual slot. Production code paths
-// today still use the entity-id-derived fallback in pureHelpers.
+// without a live occupancy context use the entity-id-derived fallback in
+// pureHelpers.
 interface SyncUnitResult {
   placedAt: Position;
   slotOffset: SubcellSlotOffset | null;
@@ -44,7 +45,12 @@ interface WorldOccupancyLike {
   release(entity: number): void;
   syncBuilding(entity: number, position: Position, footprint: { width: number; height: number }): void;
   syncResource(entity: number, position: Position): void;
-  syncUnit(entity: number, position: Position): SyncUnitResult;
+  syncUnit(
+    entity: number,
+    position: Position,
+    preferredOffset?: SubcellSlotOffset,
+    restoreOverflow?: boolean,
+  ): SyncUnitResult;
   getUnitSlotOffset(entity: number): SubcellSlotOffset | null;
   findNearestFreeUnitCell(entity: number, requestedPosition: Position): Position | null;
   reset(): void;
@@ -66,6 +72,7 @@ export interface TransformOpsDeps {
 
 export interface TransformOps {
   getUnitTransform(id: number, activeWorld?: CivWorld): UnitTransformComponent | null;
+  getUnitTargetTransformForPosition(id: number, position: Position): UnitTransformComponent;
   syncUnitTransformToPosition(
     id: number,
     position: Position,
@@ -83,7 +90,11 @@ export interface TransformOps {
   // and a free slot exists in a neighbor cell. Caller rewrites the move
   // command's target so movement does not re-aim at the original full target.
   resolveArrivalRedirect(unitId: number, arrivalCell: Position): Position | null;
-  syncOccupancyForEntity(entity: number, activeWorld?: CivWorld): void;
+  syncOccupancyForEntity(
+    entity: number,
+    activeWorld?: CivWorld,
+    preferredUnitOffset?: SubcellSlotOffset,
+  ): void;
   setPositionAndSyncOccupancy(
     entity: number,
     position: Position,
@@ -112,6 +123,17 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     return activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform') ?? null;
   }
 
+  function getUnitTargetTransformForPosition(
+    id: number,
+    position: Position,
+  ): UnitTransformComponent {
+    return getUnitTargetTransformForCell(
+      id,
+      position,
+      worldOccupancy.getUnitSlotOffset(id),
+    );
+  }
+
   function syncUnitTransformToPosition(
     id: number,
     position: Position,
@@ -129,15 +151,18 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     // intentionally NOT called from `syncOccupancyForEntity` because that
     // path fires on every cell crossing during movement and snapping there
     // would teleport mid-flight sprites.
-    const slotOffset = worldOccupancy.getUnitSlotOffset(id);
-    const targetTransform = getUnitTargetTransformForCell(id, position, slotOffset);
-    transform.fineX = targetTransform.fineX;
-    transform.fineY = targetTransform.fineY;
+    const targetTransform = getUnitTargetTransformForPosition(id, position);
+    activeWorld.setComponent(id, 'unitTransform', {
+      ...transform,
+      fineX: targetTransform.fineX,
+      fineY: targetTransform.fineY,
+    });
   }
 
   function syncOccupancyForEntity(
     entity: number,
     activeWorld: CivWorld = world,
+    preferredUnitOffset?: SubcellSlotOffset,
   ): void {
     const position = activeWorld.getComponent<Position>(entity, 'position');
     if (!position) {
@@ -167,7 +192,35 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       // `getUnitSlotOffset` so the unit aims at the allocated slot in its
       // target cell, and `placeFreshSpawnUnit` / `syncSpawnedEntityOccupancy`
       // do snap once at spawn time.
-      worldOccupancy.syncUnit(entity, position);
+      const placement = worldOccupancy.syncUnit(entity, position, preferredUnitOffset);
+      const transform = getUnitTransform(entity, activeWorld);
+      if (transform && placement.slotOffset) {
+        if (
+          transform.occupancySlotX !== placement.slotOffset.x
+          || transform.occupancySlotY !== placement.slotOffset.y
+          || transform.occupancySlotOverflow === true
+        ) {
+          const assignedTransform = {
+            ...transform,
+            occupancySlotX: placement.slotOffset.x,
+            occupancySlotY: placement.slotOffset.y,
+          };
+          delete assignedTransform.occupancySlotOverflow;
+          activeWorld.setComponent(entity, 'unitTransform', assignedTransform);
+        }
+      } else if (
+        transform
+        && (
+          transform.occupancySlotX !== undefined
+          || transform.occupancySlotY !== undefined
+          || transform.occupancySlotOverflow !== true
+        )
+      ) {
+        const withoutSlot = { ...transform, occupancySlotOverflow: true as const };
+        delete withoutSlot.occupancySlotX;
+        delete withoutSlot.occupancySlotY;
+        activeWorld.setComponent(entity, 'unitTransform', withoutSlot);
+      }
       return;
     }
 
@@ -192,12 +245,19 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
   }
 
   function syncSpawnedEntityOccupancy(entity: number): void {
-    if (!isBootstrappingScenario()) {
+    const syncSpawn = (): void => {
       syncOccupancyForEntity(entity);
+      const position = world.getComponent<Position>(entity, 'position');
+      if (position) {
+        syncUnitTransformToPosition(entity, position);
+      }
+    };
+    if (!isBootstrappingScenario()) {
+      syncSpawn();
       return;
     }
     try {
-      syncOccupancyForEntity(entity);
+      syncSpawn();
     } catch (err) {
       // Fresh-scenario validation owns the user-facing error for invalid
       // fixture spawns; suppress so the seed-named throw stays primary.
@@ -249,19 +309,26 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       }
     }
 
-    const targetTransform = getUnitTargetTransformForCell(id, target);
+    const targetTransform = getUnitTargetTransformForPosition(id, target);
     const nextTransform = clampUnitTransformToMap(
       stepUnitTransformToward(transform, targetTransform, resolvedStepUnits),
     );
+    let nextMoveCarryHundredths = transform.moveCarryHundredths;
     if (entitledHundredths !== null) {
       // Settle on ACTUAL movement (pre-assignment deltas) so a clamped step
       // banks its shortfall instead of losing it.
       const movedSteps = Math.abs(nextTransform.fineX - transform.fineX)
         + Math.abs(nextTransform.fineY - transform.fineY);
-      transform.moveCarryHundredths = settleMovementCarry(entitledHundredths, movedSteps);
+      nextMoveCarryHundredths = settleMovementCarry(entitledHundredths, movedSteps);
     }
-    transform.fineX = nextTransform.fineX;
-    transform.fineY = nextTransform.fineY;
+    activeWorld.setComponent(id, 'unitTransform', {
+      ...transform,
+      fineX: nextTransform.fineX,
+      fineY: nextTransform.fineY,
+      ...(nextMoveCarryHundredths === undefined
+        ? {}
+        : { moveCarryHundredths: nextMoveCarryHundredths }),
+    });
 
     const nextGridPosition = gridPositionFromUnitTransform(nextTransform);
     const currentGridPosition = activeWorld.getComponent<Position>(id, 'position');
@@ -287,7 +354,12 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       return position ? isAtTarget(position, target) : false;
     }
 
-    return isUnitTransformAtTarget(transform, id, target);
+    return isUnitTransformAtTarget(
+      transform,
+      id,
+      target,
+      worldOccupancy.getUnitSlotOffset(id),
+    );
   }
 
   function resolveArrivalRedirect(unitId: number, arrivalCell: Position): Position | null {
@@ -301,10 +373,11 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     }
     if (freeCell.x === arrivalCell.x && freeCell.y === arrivalCell.y) {
       // The arrival cell itself reports free for this entity (the entity is
-      // currently in overflow there). Letting movement clear the command and
-      // calling `syncOccupancyForEntity` re-binds the unit to a real slot in
-      // the same cell — no redirect needed.
-      return null;
+      // currently in overflow there). Rebind now, but return the same target
+      // so the command stays active until the fine root converges on the new
+      // slot at the normal movement bound; the arrival path must not snap.
+      syncOccupancyForEntity(unitId);
+      return { ...arrivalCell };
     }
     return freeCell;
   }
@@ -331,13 +404,61 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     for (const entity of world.query('position', 'resource')) {
       syncOccupancyForEntity(entity);
     }
-    for (const entity of world.query('position', 'unit')) {
-      syncOccupancyForEntity(entity);
+    const unitEntities = [...world.query('position', 'unit')];
+    const savedSlotFor = (entity: number): SubcellSlotOffset | null => {
+      const position = world.getComponent<Position>(entity, 'position');
+      const transform = getUnitTransform(entity);
+      const hasSavedSlot = transform
+        && Number.isFinite(transform.occupancySlotX)
+        && Number.isFinite(transform.occupancySlotY);
+      return position && hasSavedSlot
+        ? { x: transform.occupancySlotX!, y: transform.occupancySlotY! }
+        : null;
+    };
+
+    // Restore every authoritative numeric assignment before legacy or
+    // explicit-overflow units. Otherwise entity-id query order can promote a
+    // low-id overflow unit and displace a peer that owned the slot at save.
+    for (const entity of unitEntities) {
+      const savedSlot = savedSlotFor(entity);
+      if (savedSlot) syncOccupancyForEntity(entity, world, savedSlot);
+    }
+    for (const entity of unitEntities) {
+      const position = world.getComponent<Position>(entity, 'position');
+      const transform = getUnitTransform(entity);
+      if (savedSlotFor(entity) || transform?.occupancySlotOverflow === true) continue;
+      const legacyOffset = position && transform
+        ? {
+            x: transform.fineX / UNIT_SUBGRID_RESOLUTION - position.x,
+            y: transform.fineY / UNIT_SUBGRID_RESOLUTION - position.y,
+          }
+        : undefined;
+
+      // Current saves persist the assigned slot separately because a moving
+      // fine root may not have reached it yet. Legacy schema-v2 saves lack
+      // that additive datum, so use their serialized root as the closest safe
+      // one-time preference. Rebuild never snaps fineX/fineY: live loads and
+      // replay materialization both preserve the serialized presentation root.
+      syncOccupancyForEntity(entity, world, legacyOffset);
+    }
+    for (const entity of unitEntities) {
+      const transform = getUnitTransform(entity);
+      if (transform?.occupancySlotOverflow === true) {
+        const position = world.getComponent<Position>(entity, 'position');
+        if (position) {
+          // Recreate the authoritative no-slot claim exactly. Normal sync is
+          // intentionally not used: a peer may have freed a slot after this
+          // unit overflowed, but load/replay cannot promote it earlier than
+          // uninterrupted play would.
+          worldOccupancy.syncUnit(entity, position, undefined, true);
+        }
+      }
     }
   }
 
   return {
     getUnitTransform,
+    getUnitTargetTransformForPosition,
     syncUnitTransformToPosition,
     moveUnitOneSubgridStep,
     isUnitAtTarget,

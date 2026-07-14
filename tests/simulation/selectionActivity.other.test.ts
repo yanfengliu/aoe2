@@ -89,17 +89,18 @@ describe('selection activity — hidden cases', () => {
 
   it('enemy building selection returns null activity', () => {
     // fog-memory-fixture: player-1 scout at (10,10) with vision radius 4,
-    // enemy house at (14,10) — distance 4, on the exact boundary. Step 3 ticks
-    // so visibility propagates (matches fogMemory.test.ts pattern post-Phase
-    // 1B unit.attack — see that file for the +1 tick rationale).
+    // enemy house at (14,10) — distance 4, on the exact boundary. Wait on the
+    // visibility contract itself rather than a fixed auto-aggression tick.
     const bridge = createSimulationBridge('fog-memory-fixture');
-    bridge.step(100);
-    bridge.step(100);
-    bridge.step(100);
     const enemyHouse = bridge
       .getEconomyState()
       .buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
     expect(enemyHouse).toBeDefined();
+    expect(stepBridgeUntil(
+      bridge,
+      () => bridge.isCellVisibleForOwner(HUMAN_PLAYER_ID, enemyHouse!.x, enemyHouse!.y),
+      { maxSteps: 20 },
+    )).toBe(true);
     expect(bridge.selectEntityAtCell(enemyHouse!.x, enemyHouse!.y)).toBe(true);
     expect(bridge.getSelectionState().activity).toBeNull();
     expect(bridge.getSelectionState().activityBreakdown).toBeNull();

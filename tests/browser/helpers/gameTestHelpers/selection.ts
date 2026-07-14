@@ -1,6 +1,54 @@
 import { type Page } from '@playwright/test';
 
 import { getScreenPointForCell, getScreenPointForWorldPosition } from './camera';
+import type { RenderedUnitState } from './types';
+
+interface UnitBodyGap {
+  readonly gap: number;
+  readonly x: number;
+  readonly y: number;
+  readonly dx: number;
+  readonly dy: number;
+}
+
+export function findClearGapBetweenUnitBodies(
+  units: readonly RenderedUnitState[],
+  minimumGap: number,
+): UnitBodyGap | null {
+  let bestGap: UnitBodyGap | null = null;
+  for (let leftIndex = 0; leftIndex < units.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < units.length; rightIndex += 1) {
+      const left = units[leftIndex]!;
+      const right = units[rightIndex]!;
+      const leftCenterX = left.x + 0.5;
+      const leftCenterY = left.y + 0.5;
+      const rightCenterX = right.x + 0.5;
+      const rightCenterY = right.y + 0.5;
+      const leftRadius = left.size * 0.5;
+      const rightRadius = right.size * 0.5;
+      const dx = rightCenterX - leftCenterX;
+      const dy = rightCenterY - leftCenterY;
+      const distance = Math.hypot(dx, dy);
+      const gap = distance - leftRadius - rightRadius;
+      if (gap <= minimumGap || distance <= 0) continue;
+
+      const gapX = leftCenterX + dx / distance * (leftRadius + gap * 0.5);
+      const gapY = leftCenterY + dy / distance * (leftRadius + gap * 0.5);
+      const overlapsThirdBody = units.some((candidate, candidateIndex) => (
+        candidateIndex !== leftIndex
+        && candidateIndex !== rightIndex
+        && Math.hypot(gapX - (candidate.x + 0.5), gapY - (candidate.y + 0.5))
+          <= candidate.size * 0.5
+      ));
+      if (overlapsThirdBody) continue;
+
+      if (!bestGap || gap > bestGap.gap) {
+        bestGap = { gap, x: gapX, y: gapY, dx, dy };
+      }
+    }
+  }
+  return bestGap;
+}
 
 export async function doubleClickWorldPosition(
   page: Page,

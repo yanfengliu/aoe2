@@ -1,5 +1,7 @@
 # Isometric 2.5D + detailed-art overhaul — DESIGN
 
+> Historical status (superseded 2026-07-13): this Phaser-era plan delivered the original isometric projection and procedural-art increments, then KAD-0022 replaced that renderer with the standalone Three/`voxel` path. The body is preserved as dated design history; current graphics guidance lives in `docs/threads/done/voxel-renderer-migration/DESIGN.md` and `design/spec-final.md` §14.5.
+
 **Decision (user, 2026-07-05):** the graphics look too simplistic vs Age of Empires II. Direction chosen = "Full isometric 2.5D + detailed art". Constraint (unchanged): ORIGINAL/procedural art only — no copyrighted AoE2 assets; the target is a game that EVOKES AoE2, not one that is pixel-identical. This is a multi-session engine refactor, executed increment-by-increment (each with tests + the visual protocol + a commit), never a big-bang.
 
 ## Why isometric is the biggest lever

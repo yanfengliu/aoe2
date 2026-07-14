@@ -51,42 +51,7 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
     const renderedVillagers = await game.getRenderedOwnedUnits(page, 1, 'villager');
     expect(renderedVillagers.length).toBeGreaterThan(1);
 
-    let bestGap:
-      | {
-        gap: number;
-        x: number;
-        y: number;
-        dx: number;
-        dy: number;
-      }
-      | null = null;
-    for (let leftIndex = 0; leftIndex < renderedVillagers.length; leftIndex += 1) {
-      for (let rightIndex = leftIndex + 1; rightIndex < renderedVillagers.length; rightIndex += 1) {
-        const left = renderedVillagers[leftIndex]!;
-        const right = renderedVillagers[rightIndex]!;
-        const leftCenterX = left.x + 0.5;
-        const leftCenterY = left.y + 0.5;
-        const rightCenterX = right.x + 0.5;
-        const rightCenterY = right.y + 0.5;
-        const leftRadius = left.size * 0.5;
-        const rightRadius = right.size * 0.5;
-        const dx = rightCenterX - leftCenterX;
-        const dy = rightCenterY - leftCenterY;
-        const distance = Math.hypot(dx, dy);
-        const gap = distance - leftRadius - rightRadius;
-        if (gap <= 0.05 || distance <= 0) {
-          continue;
-        }
-
-        const unitX = dx / distance;
-        const unitY = dy / distance;
-        const gapX = leftCenterX + unitX * (leftRadius + gap * 0.5);
-        const gapY = leftCenterY + unitY * (leftRadius + gap * 0.5);
-        if (!bestGap || gap > bestGap.gap) {
-          bestGap = { gap, x: gapX, y: gapY, dx, dy };
-        }
-      }
-    }
+    const bestGap = game.findClearGapBetweenUnitBodies(renderedVillagers, 0.05);
     expect(bestGap).not.toBeNull();
     const resolvedPreviewGap = bestGap!;
     const stripHalfWidth = Math.min(0.04, resolvedPreviewGap.gap * 0.2);

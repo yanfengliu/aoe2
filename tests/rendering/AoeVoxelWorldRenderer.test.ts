@@ -60,7 +60,11 @@ class FakeRuntime implements AoeVoxelRuntime {
   readonly setView = vi.fn();
   readonly resize = vi.fn();
   readonly dispose = vi.fn();
-  readonly metrics = vi.fn((): ThreeRenderMetrics => ({
+  // AoE2's file link may exercise a Voxel worktree newer than the reachable
+  // release pin. Keep this fake as a forward-compatible metrics superset; the
+  // inferred structural superset also compiles against pinned 0.1.4, where
+  // the ownership counters are not yet part of ThreeRenderMetrics.
+  readonly metrics = vi.fn(() => ({
     state: this.state,
     acceptedEpoch: this.accepted.at(-1)?.descriptor.epoch ?? null,
     acceptedRevision: this.accepted.at(-1)?.revision ?? null,
@@ -84,6 +88,17 @@ class FakeRuntime implements AoeVoxelRuntime {
     rendererTextures: 0,
     contextLosses: 0,
     contextRestorations: 0,
+    snapshotInputTypedArrayBytes: 0,
+    snapshotCopiedTypedArrayBytes: 0,
+    snapshotCopyOperations: 0,
+    defensiveSnapshotCopyBytes: 0,
+    retainedTypedArrayBytes: 0,
+    peakRetainedTypedArrayBytes: 0,
+    presentationStagingBytes: 0,
+    peakPresentationStagingBytes: 0,
+    deltaInputTypedArrayBytes: 0,
+    deltaCopiedTypedArrayBytes: 0,
+    deltaCopyOperations: 0,
   }));
   readonly capture = vi.fn(() => ({
     dataUrl: 'data:image/png;base64,fake',

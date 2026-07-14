@@ -439,3 +439,19 @@ Consequences:
   path. New diagnostics must prove their cost or remain on demand.
 - The shared `voxel` package receives no AoE motion schema. City and Townscaper
   keep their own identity, route, and animation semantics.
+
+## KAD-0024 - Publish fine transforms and bound visible replay catch-up
+
+Date: 2026-07-13.
+Status: Active.
+
+Context: exact adjacent-tick interpolation still received stale endpoints because commanded and autonomous movers changed retrieved `unitTransform` objects in place. Civ-engine dirties components only through its mutation API, so render projection held until another dirty component forced a refresh. Commanded movement also aimed at an identity-derived fallback slot and snapped to the occupancy grid's allocated slot only after arrival. Occupancy itself is runtime state: rebuilding it in entity-id order after save/load could assign a different destination than the saved moving root was approaching, or promote an explicitly overflowed low-id unit ahead of a saved slot holder. Separately, replay consumed an entire animation-frame timestamp gap and could finish many seconds of simulation in one visible callback after browser suspension.
+
+Decision: every fine-grid step publishes a replacement `unitTransform` through `World.setComponent`; blocked autonomous moves validate a candidate before publication and may recenter toward the allocated in-cell slot only by one normal fine step before choosing an escape heading. Stationary spawns, commanded targets, and arrival predicates use the current allocated occupancy slot. `UnitTransformComponent` additively persists the assigned numeric offset or an explicit overflow marker. Live-load and replay reconstruction restore numeric assignments first, legacy no-field units second using their serialized fine root as a preference, and exact explicit-overflow claims last without changing `fineX/fineY` or opportunistically allocating a slot. A later same-cell rebind keeps the move command active until the root reaches the new slot at the ordinary step bound. Live and replay frame hosts share `boundedVisibleSimulationDelta`, capped at 250 ms, while explicit replay scrubs and identity/bridge discontinuities continue to snap deliberately.
+
+Consequences:
+- RenderAdapter receives every fine endpoint, so the existing adjacent-tick interpolator has continuous authoritative samples instead of reconstructing hidden mutation.
+- Arrival converges on the slot the unit keeps, eliminating the final stationary sub-cell teleport without changing coarse pathfinding or crowding authority.
+- Fresh cardinal movement cannot spend its first step recentering from an identity fallback, and crowded mid-movement or overflow saves continue identically after live load or replay materialization without a schema bump.
+- Replay suspension cannot consume the complete hidden interval in one callback; the cap may intentionally slow catch-up after a long stall rather than display an unbounded fast-forward.
+- ECS components used by diffs, rendering, recording, or replay must never rely on in-place mutation as a publication mechanism.

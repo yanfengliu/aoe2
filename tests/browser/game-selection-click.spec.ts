@@ -217,7 +217,8 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         if (
           authority
           && displayed
-          && (Math.floor(displayed.x) !== authority.x || Math.floor(displayed.y) !== authority.y)
+          && authority.task === 'moving'
+          && (Math.floor(displayed.x) !== villager.x || Math.floor(displayed.y) !== villager.y)
         ) {
           for (let offsetY = -0.3; offsetY <= 0.3; offsetY += 0.1) {
             for (let offsetX = -0.3; offsetX <= 0.3; offsetX += 0.1) {
@@ -236,6 +237,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
                   selectedCount: selectionState.selectedCount,
                   selectedEntityId: selectionState.selectedEntityId,
                   villagerId: villager.id,
+                  task: authority.task,
                 };
               }
             }
@@ -250,6 +252,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     expect(resolvedSelectionResult.didSelect).toBe(true);
     expect(resolvedSelectionResult.selectedCount).toBe(1);
     expect(resolvedSelectionResult.selectedEntityId).toBe(resolvedSelectionResult.villagerId);
+    expect(resolvedSelectionResult.task).toBe('moving');
   });
 
   test('does not select a unit when the click lands in the visible gap between adjacent unit bodies', async ({
@@ -259,42 +262,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     const renderedVillagers = await game.getRenderedOwnedUnits(page, 1, 'villager');
     expect(renderedVillagers.length).toBeGreaterThan(1);
 
-    let bestGap:
-      | {
-        gap: number;
-        x: number;
-        y: number;
-        dx: number;
-        dy: number;
-      }
-      | null = null;
-    for (let leftIndex = 0; leftIndex < renderedVillagers.length; leftIndex += 1) {
-      for (let rightIndex = leftIndex + 1; rightIndex < renderedVillagers.length; rightIndex += 1) {
-        const left = renderedVillagers[leftIndex]!;
-        const right = renderedVillagers[rightIndex]!;
-        const leftCenterX = left.x + 0.5;
-        const leftCenterY = left.y + 0.5;
-        const rightCenterX = right.x + 0.5;
-        const rightCenterY = right.y + 0.5;
-        const leftRadius = left.size * 0.5;
-        const rightRadius = right.size * 0.5;
-        const dx = rightCenterX - leftCenterX;
-        const dy = rightCenterY - leftCenterY;
-        const distance = Math.hypot(dx, dy);
-        const gap = distance - leftRadius - rightRadius;
-        if (gap <= 0.02 || distance <= 0) {
-          continue;
-        }
-
-        const unitX = dx / distance;
-        const unitY = dy / distance;
-        const gapX = leftCenterX + unitX * (leftRadius + gap * 0.5);
-        const gapY = leftCenterY + unitY * (leftRadius + gap * 0.5);
-        if (!bestGap || gap > bestGap.gap) {
-          bestGap = { gap, x: gapX, y: gapY, dx, dy };
-        }
-      }
-    }
+    const bestGap = game.findClearGapBetweenUnitBodies(renderedVillagers, 0.02);
     expect(bestGap).not.toBeNull();
     const resolvedBestGap = bestGap!;
 

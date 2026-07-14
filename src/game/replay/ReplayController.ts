@@ -5,7 +5,6 @@ import {
   type SessionBundle,
   type SessionMetadata,
 } from 'civ-engine';
-
 import {
   assertReplayPayloadsAvailable,
   clampTick,
@@ -25,6 +24,7 @@ import {
   type ReplayBridgeOptions,
 } from '../simulation/replay/makeReplayBridge';
 import { HUMAN_PLAYER_ID, TPS } from '../simulation/prototypeScenario';
+import { boundedVisibleSimulationDelta } from '../visibleSimulationTiming';
 
 export type ReplayMode = 'live' | 'replay';
 export type ReplayBundle = SessionBundle<GameEvents, GameCommands>;
@@ -294,7 +294,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     } else if (lastFrameTimeMs === null) {
       lastFrameTimeMs = timestamp;
     }
-    const deltaMs = Math.max(0, timestamp - lastFrameTimeMs);
+    const deltaMs = boundedVisibleSimulationDelta(timestamp - lastFrameTimeMs);
     lastFrameTimeMs = timestamp;
     playbackAccumulatorMs += deltaMs;
 

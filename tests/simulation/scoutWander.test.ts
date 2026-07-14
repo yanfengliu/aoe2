@@ -6,6 +6,8 @@ import {
   headingEscapes,
   pickEscapeHeading,
 } from '../../src/game/simulation/bridge/systems/scoutMovementSystem';
+import { UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
+import type { UnitTransformComponent } from '../../src/game/simulation/types';
 
 // Scout wander behavior (2026-07-09 canary-drill fix,
 // docs/debugging/2026-07-09-pinned-units-oracle.md). Both AI scouts sat
@@ -49,6 +51,31 @@ function trackScouts(
 }
 
 describe('scout wander', () => {
+  it('keeps blocked autonomous fine transforms within one normal step', () => {
+    const bridge = createSimulationBridge('aoe2-canary');
+    const scoutIds = bridge.getEconomyState().units
+      .filter((unit) => unit.owner === 2 && unit.unitType === 'scout')
+      .map((unit) => unit.id);
+    const previous = new Map(scoutIds.map((id) => {
+      const transform = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
+      return [id, { fineX: transform.fineX, fineY: transform.fineY }] as const;
+    }));
+
+    expect(scoutIds.length).toBeGreaterThanOrEqual(2);
+    for (let tick = 0; tick < 10; tick += 1) {
+      bridge.step(TICK_MS);
+      for (const id of scoutIds) {
+        const prior = previous.get(id)!;
+        const current = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
+        expect(Math.abs(current.fineX - prior.fineX), `scout ${id} x jump at tick ${tick}`)
+          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+        expect(Math.abs(current.fineY - prior.fineY), `scout ${id} y jump at tick ${tick}`)
+          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+        previous.set(id, { fineX: current.fineX, fineY: current.fineY });
+      }
+    }
+  });
+
   it('both AI scouts roam instead of pinning at spawn (canary seed)', () => {
     const bridge = createSimulationBridge('aoe2-canary');
     const scouts = trackScouts(bridge, 2, 800);
@@ -96,10 +123,21 @@ describe('scout wander', () => {
     expect(scoutIds.length).toBeGreaterThanOrEqual(2);
     const BLOCK_TICKS = 600;
     const blocks = new Map<number, Set<string>[]>(scoutIds.map((id) => [id, []]));
+    const previous = new Map(scoutIds.map((id) => {
+      const transform = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
+      return [id, { fineX: transform.fineX, fineY: transform.fineY }] as const;
+    }));
     for (let i = 0; i < 2000; i++) {
       bridge.step(TICK_MS);
       const blockIndex = Math.floor(i / BLOCK_TICKS);
       for (const id of scoutIds) {
+        const prior = previous.get(id)!;
+        const transform = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
+        expect(Math.abs(transform.fineX - prior.fineX), `scout ${id} x jump at tick ${i}`)
+          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+        expect(Math.abs(transform.fineY - prior.fineY), `scout ${id} y jump at tick ${i}`)
+          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+        previous.set(id, { fineX: transform.fineX, fineY: transform.fineY });
         const pos = (bridge.world as { getComponent<T>(id: number, name: string): T | null })
           .getComponent<{ x: number; y: number }>(id, 'position');
         if (!pos) continue;
