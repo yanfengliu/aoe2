@@ -99,6 +99,9 @@ class FakeRuntime implements AoeVoxelRuntime {
     deltaInputTypedArrayBytes: 0,
     deltaCopiedTypedArrayBytes: 0,
     deltaCopyOperations: 0,
+    instancePresentationMatrixWrites: 0,
+    instancePresentationColorWrites: 0,
+    instancePresentationUpdateRanges: 0,
   }));
   readonly capture = vi.fn(() => ({
     dataUrl: 'data:image/png;base64,fake',
