@@ -19,6 +19,7 @@ import { isoToWorld, worldToIso } from '../rendering/isometricProjection';
 import {
   AoeVoxelWorldRenderer,
   type AoeVoxelRendererState,
+  type PresentedVoxelPartMatrix,
 } from '../rendering/voxel/AoeVoxelWorldRenderer';
 import {
   createAoeVoxelPresentationCoordinator,
@@ -198,6 +199,13 @@ export class AoeVoxelGameView {
 
   inspectVoxelUnitMotion(identity: string): AoeUnitMotionHistory | null {
     return this.renderer.inspectUnitMotion(identity);
+  }
+
+  inspectPresentedVoxelPartMatrix(
+    identity: string,
+    partSuffix: string,
+  ): PresentedVoxelPartMatrix | null {
+    return this.renderer.inspectPresentedPartMatrix(identity, partSuffix);
   }
 
   getWorldCapture(): ThreeCaptureResult {

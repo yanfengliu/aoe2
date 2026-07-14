@@ -22,6 +22,7 @@ import type { RecordingService } from '../../game/recording/RecordingService';
 import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
 import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
 import type { AoeUnitMotionHistory } from '../../rendering/voxel/aoeVoxelUnitAnimation';
+import type { PresentedVoxelPartMatrix } from '../../rendering/voxel/AoeVoxelWorldRenderer';
 
 export interface BrowserTestBridge {
   step(deltaMs: number): void;
@@ -128,6 +129,10 @@ export interface BrowserTestApi {
   getCameraState(): CameraState | null;
   getWorldRendererState(): BrowserWorldRendererState;
   inspectVoxelUnitMotion(identity: string): AoeUnitMotionHistory | null;
+  inspectPresentedVoxelPartMatrix(
+    identity: string,
+    partSuffix: string,
+  ): PresentedVoxelPartMatrix | null;
   hasSingleThreeIdentity(): boolean;
   captureFrame(): BrowserCaptureState;
   captureWorldFrame(): ThreeCaptureResult;
@@ -262,6 +267,9 @@ export function installBrowserTestApi(
       view.syncFromBridge(true);
       return view.inspectVoxelUnitMotion(identity);
     },
+    inspectPresentedVoxelPartMatrix: (identity: string, partSuffix: string) => (
+      view.inspectPresentedVoxelPartMatrix(identity, partSuffix)
+    ),
     hasSingleThreeIdentity,
     captureFrame: () => {
       const capture = view.getWorldCapture();

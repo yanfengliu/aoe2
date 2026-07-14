@@ -1,13 +1,13 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
 import { unitRole, type UnitRole } from '../roles/unitRole';
-import type {
-  VoxelPart,
-  VoxelPartAnimation,
-} from './aoeVoxelRecipeTypes';
+import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import { matrixForPart } from './aoeVoxelRecipeTypes';
+import { unitAmbientAnimation } from './aoeVoxelUnitAmbientAnimation';
+import { poseUnitAttackParts } from './aoeVoxelUnitAttackAnimation';
+import { sampleUnitAttack } from './aoeVoxelUnitAttackSampling';
 
 export interface AoeUnitAnimationState {
-  readonly mode: 'idle' | 'moving';
+  readonly mode: 'idle' | 'moving' | 'attacking';
   /** Stable identity phase used only by ambient clock-driven motion. */
   readonly phaseRadians: number;
   /** Wrapped pose phase advanced only by displayed root distance. */
@@ -16,6 +16,8 @@ export interface AoeUnitAnimationState {
   readonly speedWorldUnitsPerSecond: number;
   readonly directionX: number;
   readonly directionZ: number;
+  readonly attackPhase: number;
+  readonly attackWeight: number;
 }
 
 export interface AoeUnitMotionHistory extends AoeUnitAnimationState {
@@ -36,8 +38,9 @@ const MAX_SMOOTHING_DELTA_MS = 250;
 const FULL_LOCOMOTION_SPEED = 2.5;
 const START_RESPONSE_MS = 90;
 const STOP_RESPONSE_MS = 180;
+const ATTACK_START_RESPONSE_MS = 72;
+const ATTACK_STOP_RESPONSE_MS = 120;
 const TURN_RESPONSE_MS = 110;
-const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 
 const STRIDE_LENGTH_WORLD_UNITS: Readonly<Record<UnitRole, number>> = Object.freeze({
   villager: 2.2,
@@ -90,14 +93,17 @@ function initialUnitMotion(
   const phaseRadians = phaseForUnitIdentity(identity);
   const role = animationRole(entity);
   const authoredForward = role === undefined ? 0 : AUTHORED_FORWARD_RADIANS[role];
+  const attack = sampleUnitAttack(entity, sampleTimeMs);
   const state: AoeUnitAnimationState = {
-    mode: 'idle',
+    mode: attack ? 'attacking' : 'idle',
     phaseRadians,
     gaitPhaseRadians: phaseRadians,
     locomotionWeight: 0,
     speedWorldUnitsPerSecond: 0,
-    directionX: Math.cos(authoredForward),
-    directionZ: Math.sin(authoredForward),
+    directionX: attack?.directionX ?? Math.cos(authoredForward),
+    directionZ: attack?.directionZ ?? Math.sin(authoredForward),
+    attackPhase: attack?.phase ?? 0,
+    attackWeight: attack ? 1 : 0,
   };
   return {
     state,
@@ -153,6 +159,8 @@ export function resolveUnitAnimationState(
           speedWorldUnitsPerSecond: previous.speedWorldUnitsPerSecond,
           directionX: previous.directionX,
           directionZ: previous.directionZ,
+          attackPhase: previous.attackPhase,
+          attackWeight: previous.attackWeight,
         },
         history: { ...previous, x: entity.x, y: entity.y },
       };
@@ -166,6 +174,7 @@ export function resolveUnitAnimationState(
   const speed = elapsedMs > 0
     ? Math.min(MAX_SPEED_WORLD_UNITS_PER_SECOND, distance * 1_000 / elapsedMs)
     : 0;
+  const attack = moving ? null : sampleUnitAttack(entity, sampleTimeMs);
   const targetWeight = clamp01(speed / FULL_LOCOMOTION_SPEED);
   const responseMs = targetWeight > previous.locomotionWeight
     ? START_RESPONSE_MS
@@ -175,9 +184,23 @@ export function resolveUnitAnimationState(
     : 0;
   const blendedWeight = previous.locomotionWeight
     + (targetWeight - previous.locomotionWeight) * blend;
-  const locomotionWeight = targetWeight === 0 && blendedWeight < 0.001
+  const locomotionWeight = attack
+    ? previous.locomotionWeight
+    : targetWeight === 0 && blendedWeight < 0.001
+      ? 0
+      : clamp01(blendedWeight);
+  const targetAttackWeight = attack ? 1 : 0;
+  const attackResponseMs = targetAttackWeight > previous.attackWeight
+    ? ATTACK_START_RESPONSE_MS
+    : ATTACK_STOP_RESPONSE_MS;
+  const attackBlend = 1 - Math.exp(-smoothingDeltaMs / attackResponseMs);
+  const blendedAttackWeight = previous.attackWeight
+    + (targetAttackWeight - previous.attackWeight) * attackBlend;
+  const attackWeight = moving
     ? 0
-    : clamp01(blendedWeight);
+    : targetAttackWeight === 0 && blendedAttackWeight < 0.001
+      ? 0
+      : clamp01(blendedAttackWeight);
   const role = animationRole(entity);
   const strideLength = role === undefined
     ? FALLBACK_STRIDE_LENGTH_WORLD_UNITS
@@ -192,46 +215,29 @@ export function resolveUnitAnimationState(
       deltaZ / distance,
       smoothingDeltaMs,
     )
-    : [previous.directionX, previous.directionZ];
+    : attack
+      ? smoothDirection(
+        previous,
+        attack.directionX,
+        attack.directionZ,
+        smoothingDeltaMs,
+      )
+      : [previous.directionX, previous.directionZ];
   const state: AoeUnitAnimationState = {
-    mode: moving ? 'moving' : 'idle',
+    mode: moving ? 'moving' : attack ? 'attacking' : 'idle',
     phaseRadians: previous.phaseRadians,
     gaitPhaseRadians,
     locomotionWeight,
     speedWorldUnitsPerSecond: speed,
     directionX,
     directionZ,
+    attackPhase: attack?.phase ?? previous.attackPhase,
+    attackWeight,
   };
   return {
     state,
     history: { ...state, x: entity.x, y: entity.y, sampleTimeMs },
   };
-}
-
-function motion(
-  periodMs: number,
-  phaseRadians: number,
-  translationAmplitude: VoxelPartAnimation['translationAmplitude'] = ZERO,
-  rotationAmplitude: VoxelPartAnimation['rotationAmplitude'] = ZERO,
-  scaleAmplitude: VoxelPartAnimation['scaleAmplitude'] = ZERO,
-): VoxelPartAnimation {
-  return {
-    periodMs,
-    phaseRadians,
-    translationAmplitude,
-    rotationAmplitude,
-    scaleAmplitude,
-  };
-}
-
-function ambientBodyMotion(state: AoeUnitAnimationState, scale: number): VoxelPartAnimation {
-  return motion(
-    1_400,
-    state.phaseRadians,
-    { x: scale * 0.005, y: scale * 0.026, z: 0 },
-    ZERO,
-    { x: 0.006, y: 0.012, z: 0.006 },
-  );
 }
 
 function movePart(
@@ -387,43 +393,6 @@ function posePart(
   return poseMonkPart(part, state, scale);
 }
 
-function ambientAnimation(
-  suffix: string,
-  role: UnitRole,
-  state: AoeUnitAnimationState,
-  scale: number,
-): VoxelPartAnimation | undefined {
-  const base = ambientBodyMotion(state, scale);
-  if (role === 'villager' || role === 'infantry' || role === 'archer') {
-    if (/(boot|leg|arm|tool|sword|bow|shield)/u.test(suffix)) return undefined;
-    return base;
-  }
-  if (role === 'cavalry' || role === 'cavalry-archer') {
-    if (suffix.includes('horse-leg')) return undefined;
-    if (suffix.includes('horse-tail')) {
-      return motion(780, state.phaseRadians + 0.7, ZERO, { x: 0, y: 0, z: 0.24 });
-    }
-    return base;
-  }
-  if (role === 'siege') {
-    if (suffix.includes('wheel')) return undefined;
-    if (suffix.includes('throwing-arm') || suffix.includes('bucket')) {
-      return motion(1_200, state.phaseRadians + 0.4, ZERO, { x: 0, y: 0, z: 0.18 });
-    }
-    return base;
-  }
-  if (suffix.includes('sleeve-left')) {
-    return motion(1_100, state.phaseRadians, ZERO, { x: 0, y: 0, z: 0.2 });
-  }
-  if (suffix.includes('sleeve-right')) {
-    return motion(1_100, state.phaseRadians + Math.PI, ZERO, { x: 0, y: 0, z: 0.2 });
-  }
-  if (suffix.includes('staff')) {
-    return motion(1_500, state.phaseRadians + 0.5, ZERO, { x: 0, y: 0, z: 0.08 });
-  }
-  return base;
-}
-
 function orientUnitParts(
   parts: readonly VoxelPart[],
   entity: ProjectedEntityView,
@@ -475,13 +444,22 @@ export function animateUnitParts(
   const role = unitRole(entity.entityType as UnitType);
   const scale = Math.max(0.48, entity.size);
   const normalizedState = normalizeAnimationDirection(state);
-  return orientUnitParts(parts, entity, role, normalizedState).map((part) => {
+  const locomotionParts = orientUnitParts(parts, entity, role, normalizedState).map((part) => {
     if (part.surface === 'shadow') return part;
     const suffix = part.key.slice(part.key.lastIndexOf(':') + 1);
-    const posed = posePart(part, suffix, role, normalizedState, scale);
+    return posePart(part, suffix, role, normalizedState, scale);
+  });
+  return poseUnitAttackParts(
+    locomotionParts,
+    role,
+    normalizedState,
+    scale,
+  ).map((posed) => {
+    if (posed.surface === 'shadow') return posed;
+    const suffix = posed.key.slice(posed.key.lastIndexOf(':') + 1);
     return {
       ...posed,
-      animation: ambientAnimation(suffix, role, normalizedState, scale),
+      animation: unitAmbientAnimation(suffix, role, normalizedState, scale),
     };
   });
 }

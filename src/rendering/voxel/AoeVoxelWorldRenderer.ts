@@ -13,6 +13,7 @@ import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
 import type { AoeVoxelOverlayInput } from './aoeVoxelOverlayParts';
 import type { AoeUnitMotionHistory } from './aoeVoxelUnitAnimation';
+import { matrixForPart } from './aoeVoxelRecipeTypes';
 import {
   findPreparedVoxelEntitiesAtIsoPoint,
   type PreparedVoxelHitState,
@@ -40,6 +41,12 @@ export interface AoeVoxelWorldRendererOptions {
 export interface AoeVoxelRendererState {
   readonly mode: 'voxel';
   readonly metrics: ThreeRenderMetrics;
+}
+
+export interface PresentedVoxelPartMatrix {
+  readonly revision: number;
+  readonly key: string;
+  readonly matrix: readonly number[];
 }
 
 function defaultRuntime(options: ThreeRenderRuntimeOptions): AoeVoxelRuntime {
@@ -161,6 +168,27 @@ export class AoeVoxelWorldRenderer {
   inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {
     this.assertActive();
     return this.adapter.inspectUnitMotion(identity);
+  }
+
+  /** Bounded read-only diagnostic for browser presentation proofs. */
+  inspectPresentedPartMatrix(
+    identity: string,
+    partSuffix: string,
+  ): PresentedVoxelPartMatrix | null {
+    this.assertActive();
+    if (!this.isInteractionReady() || !this.presentedHitState) return null;
+    const key = `${identity}:${partSuffix}`;
+    for (const entity of this.presentedHitState.entities) {
+      const part = entity.parts.find((candidate) => candidate.key === key);
+      if (part) {
+        return {
+          revision: this.presentedHitState.revision,
+          key,
+          matrix: [...matrixForPart(part)],
+        };
+      }
+    }
+    return null;
   }
 
   isInteractionReady(): boolean {

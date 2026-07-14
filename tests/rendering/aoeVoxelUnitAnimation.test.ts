@@ -9,6 +9,7 @@ import {
   type AoeUnitMotionHistory,
 } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
+import { matrixForPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 function unit(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
@@ -53,6 +54,8 @@ function movingState(overrides: Partial<AoeUnitAnimationState> = {}): AoeUnitAni
     speedWorldUnitsPerSecond: 2,
     directionX: 1,
     directionZ: 0,
+    attackPhase: 0,
+    attackWeight: 0,
     ...overrides,
   };
 }
@@ -338,5 +341,58 @@ describe('AoE voxel unit locomotion sampling', () => {
     const monk = createUnitParts(unit({ entityType: 'monk' }), '7:3', 0, movingState());
     expect(part(monk, 'monk-sleeve-left').animation?.periodMs).toBe(1_100);
     expect(part(monk, 'monk-staff').animation?.periodMs).toBe(1_500);
+  });
+
+  it('freezes the last locomotion pose while a stationary strike recovers', () => {
+    const initial = resolveUnitAnimationState(unit(), '7:3', undefined, 0);
+    const moving = resolveUnitAnimationState(
+      unit({ x: 0.2 }), '7:3', initial.history, 100,
+    );
+    const attacker = unit({
+      x: 0.2,
+      attackAnimation: {
+        tick: 2,
+        targetX: 0.2 + moving.state.directionX,
+        targetY: moving.state.directionZ,
+      },
+    });
+    const impact = resolveUnitAnimationState(attacker, '7:3', moving.history, 200);
+    const recovery = resolveUnitAnimationState(attacker, '7:3', impact.history, 300);
+
+    expect(impact.state.mode).toBe('attacking');
+    expect(recovery.state.mode).toBe('attacking');
+    expect(impact.state.locomotionWeight).toBe(moving.state.locomotionWeight);
+    expect(recovery.state.locomotionWeight).toBe(moving.state.locomotionWeight);
+    expect(matrixForPart(part(
+      createUnitParts(attacker, '7:3', 0, impact.state),
+      'villager-boot-left',
+    ))).toEqual(matrixForPart(part(
+      createUnitParts(attacker, '7:3', 0, recovery.state),
+      'villager-boot-left',
+    )));
+  });
+
+  it('clears the attack channel as soon as authoritative movement wins', () => {
+    const attacker = unit({
+      attackAnimation: { tick: 0, targetX: 1, targetY: 0 },
+    });
+    const impact = resolveUnitAnimationState(attacker, '7:3', undefined, 0);
+    const moving = resolveUnitAnimationState(
+      unit({ ...attacker, x: 0.2 }),
+      '7:3',
+      impact.history,
+      100,
+    );
+    const withoutAttack = { ...moving.state, attackWeight: 0 };
+
+    expect(moving.state.mode).toBe('moving');
+    expect(moving.state.attackWeight).toBe(0);
+    expect(matrixForPart(part(
+      createUnitParts(unit({ ...attacker, x: 0.2 }), '7:3', 0, moving.state),
+      'villager-tool-head',
+    ))).toEqual(matrixForPart(part(
+      createUnitParts(unit({ ...attacker, x: 0.2 }), '7:3', 0, withoutAttack),
+      'villager-tool-head',
+    )));
   });
 });
