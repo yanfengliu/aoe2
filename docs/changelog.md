@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.2 - 2026-07-14
+
+### Villager groups can surround and hunt one boar together
+
+One group selection and one right-click now keeps every selected villager attacking the same living boar with independent approach, attack, and reload state. The boar may retaliate against one hunter at a time, but that retaliation target does not lock out the others.
+
+When hunters crowd around the boar, a friendly villager's presented silhouette no longer steals the right-click from the boar underneath and turn the group attack into a move order. This arbitration is limited to villager context commands: raw voxel silhouette ordering still drives selection, and Monk healing targets retain their existing priority.
+
 ## 0.2.1 - 2026-07-13
 
 ### Units move and turn continuously at a measured 60 Hz

@@ -26,21 +26,14 @@ function boarEntity(bridge: ReturnType<typeof createSimulationBridge>) {
 describe('wildlife state persists across save/load (full-review H1)', () => {
   it('a killed corpse-persisting boar stays dead after a save + load round-trip', () => {
     const bridge = createSimulationBridge('boar-hunt-fixture');
-    const boarCell = { x: 13, y: 8 };
-    const villagerCells = [
-      { x: 12, y: 7 },
-      { x: 13, y: 7 },
-      { x: 14, y: 7 },
-      { x: 12, y: 9 },
-      { x: 13, y: 9 },
-      { x: 14, y: 9 },
-    ];
+    const boar = boarEntity(bridge);
+    expect(boar).toBeDefined();
 
-    // Order the whole pack onto the boar.
-    for (const cell of villagerCells) {
-      expect(bridge.selectEntityAtCell(cell.x, cell.y)).toBe(true);
-      bridge.issueContextCommand(boarCell.x, boarCell.y);
-    }
+    // One group selection and one target order must retain all six independent
+    // attack commands through the kill and persistence path.
+    expect(bridge.selectUnitsInBox(12, 7, 14, 9)).toBe(true);
+    expect(bridge.getSelectionState().selectedCount).toBe(6);
+    expect(bridge.issueContextCommandAtEntity(boar!.id)).toBe(true);
 
     // Drive until the boar is dead — the LIVE bridge reads the correct cache.
     const boarDead = (): boolean => {

@@ -54,6 +54,40 @@ describe('voxel selection controller', () => {
     expect(controller.selectEntityAtWorldPosition(0.75, 0.25, 16, 8)).toBe(true);
     expect(bridge.getSelectionState().selectedEntityType).toBe('militia');
   });
+
+  it('targets a boar through an overlapping friendly villager for a group command', () => {
+    const bridge = createSimulationBridge('boar-hunt-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const villager = findEntity(displayed, 'villager');
+    const boar = findEntity(displayed, 'boar');
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      nowMs: () => 0,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      // Presented silhouettes rank units above resources. The controller must
+      // keep that raw hit order for selection while choosing the actionable
+      // boar for a selected villager group's context command.
+      getVoxelHitEntities: () => [villager, boar],
+      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+    });
+
+    expect(bridge.selectUnitsInBox(12, 7, 14, 9)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedCount: 6,
+      selectedEntityType: 'villager',
+    });
+    expect(controller.issueContextCommandAtWorldPosition(13.5, 8.5, 0, 0)).toBe(true);
+
+    bridge.step(100);
+    expect(
+      bridge
+        .getDebugSnapshot()
+        .unitPaths.filter(
+          (path) => path.commandType === 'attack' && path.toX === 13 && path.toY === 8,
+        ),
+    ).toHaveLength(6);
+  });
 });
 
 function findEntity(

@@ -157,4 +157,33 @@ describe('createSimulationBridge core systems', () => {
       );
     expect(damagedBoar?.currentHp).toBeLessThan(75);
   });
+
+  it('lets a selected villager group attack the same boar concurrently', () => {
+    const bridge = createSimulationBridge('boar-hunt-fixture');
+    const boar = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.kind === 'resource' && entity.entityType === 'boar');
+    expect(boar).toBeDefined();
+
+    expect(bridge.selectUnitsInBox(12, 7, 14, 9)).toBe(true);
+    expect(bridge.getSelectionState().selectedCount).toBe(6);
+    expect(bridge.issueContextCommandAtEntity(boar!.id)).toBe(true);
+
+    // One step drains all six submitted context commands and runs combat.
+    // The two villagers already orthogonally adjacent to the boar both hit
+    // during that same tick; the other four retain attack commands while
+    // approaching instead of displacing one another's target.
+    bridge.step(100);
+    const attackPaths = bridge
+      .getDebugSnapshot()
+      .unitPaths.filter(
+        (path) => path.commandType === 'attack' && path.toX === 13 && path.toY === 8,
+      );
+    expect(attackPaths).toHaveLength(6);
+
+    const damagedBoar = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.id === boar!.id);
+    expect(damagedBoar?.currentHp).toBe(69);
+  });
 });

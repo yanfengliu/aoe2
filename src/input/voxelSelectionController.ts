@@ -179,10 +179,11 @@ export function createVoxelSelectionController(
     const clampedCellX = clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
     const clampedCellY = clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
     const displayed = getDisplayedEntities();
+    const voxelTargets = isoX === undefined || isoY === undefined
+      ? []
+      : deps.getVoxelHitEntities(isoX, isoY, 'command');
     const displayedTargetEntity = (
-      isoX === undefined || isoY === undefined
-        ? null
-        : deps.getVoxelHitEntities(isoX, isoY, 'command')[0] ?? null
+      chooseVillagerContextTarget(voxelTargets, getBridge().getSelectionState())
     ) ?? findCommandTargetEntityAtWorldPointInEntities(
       displayed,
       worldX * CELL_SIZE,
@@ -324,6 +325,25 @@ function orderCurrentSelectionCycleEntities(
     ...[...currentByGroup.keys()].filter((group) => !priorGroups.includes(group)),
   ];
   return orderedGroups.map((group) => currentByGroup.get(group)!);
+}
+
+function chooseVillagerContextTarget(
+  rawHits: readonly ProjectedEntityView[],
+  selectionState: SelectionState,
+): ProjectedEntityView | null {
+  const firstHit = rawHits[0] ?? null;
+  if (selectionState.selectedEntityType !== 'villager') {
+    return firstHit;
+  }
+
+  // A friendly villager may visually stand in front of the resource or enemy
+  // that a villager group is trying to act on. Friendly units have no villager
+  // context action of their own, so prefer the first actionable hit beneath
+  // them. Keep the raw presented-hit order for every other selection type so
+  // Monk healing and selection semantics remain unchanged.
+  return rawHits.find(
+    (entity) => entity.kind !== 'unit' || entity.owner !== HUMAN_PLAYER_ID,
+  ) ?? firstHit;
 }
 
 function selectionCycleGroup(entity: ProjectedEntityView): string {
