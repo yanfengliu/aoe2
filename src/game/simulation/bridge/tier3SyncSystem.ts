@@ -27,10 +27,11 @@
 
 import type { GameWorld } from './pureHelpers';
 import type { VisibilityCell } from './visibilityCell';
-import type { MatchState } from '../types';
+import type { MatchState, ProjectedUnitAttackView } from '../types';
 import type { PersistedMatchState } from '../saveSchema';
 import { clonePendingCommand, type PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
+import { pruneUnitAttacks } from './unitAttackAnimationFeed';
 
 // Pure Tier-3 flush body extracted so saveGameOps can call it at save
 // time WITHOUT relying on the next output phase. Without this, full-review
@@ -82,13 +83,36 @@ export function flushPendingCommandsState(
   );
 }
 
+export function flushReplayUnitAttacksState(
+  world: GameWorld,
+  recentUnitAttacks: ProjectedUnitAttackView[],
+  observableTick: number,
+): void {
+  pruneUnitAttacks(recentUnitAttacks, observableTick);
+  world.setState(
+    TIER_3_SLOTS.replayUnitAttacks,
+    structuredClone(recentUnitAttacks) as unknown as Parameters<
+      typeof world.setState
+    >[1],
+  );
+}
+
 export function registerTier3SyncSystem(deps: {
   world: GameWorld;
   visibilityCell: VisibilityCell;
   matchState: MatchState;
   pendingCommands: PendingCommandsQueue;
+  recentUnitAttacks: ProjectedUnitAttackView[];
+  syncReplayUnitAttacks?: boolean;
 }): void {
-  const { world, visibilityCell, matchState, pendingCommands } = deps;
+  const {
+    world,
+    visibilityCell,
+    matchState,
+    pendingCommands,
+    recentUnitAttacks,
+    syncReplayUnitAttacks = true,
+  } = deps;
   world.registerSystem({
     name: 'aoe2Tier3Sync',
     phase: 'output',
@@ -123,6 +147,15 @@ export function registerTier3SyncSystem(deps: {
         persisted as unknown as Parameters<typeof activeWorld.setState>[1],
       );
       flushPendingCommandsState(activeWorld, pendingCommands);
+      // Systems observe `activeWorld.tick` before civ-engine advances it;
+      // attack events are stamped with the resulting observable tick + 1.
+      if (syncReplayUnitAttacks) {
+        flushReplayUnitAttacksState(
+          activeWorld,
+          recentUnitAttacks,
+          activeWorld.tick + 1,
+        );
+      }
     },
   });
 }

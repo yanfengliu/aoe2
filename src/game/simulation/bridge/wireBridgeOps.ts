@@ -20,6 +20,7 @@ import {
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
 } from './bridgeConstants';
+import { TIER_3_SLOTS } from './bridgeStateSerialize';
 
 export type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
 import type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
@@ -372,13 +373,25 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   // migrated slots like `villagerOrdinals` could receive them as deps).
   // Now register the output tail + run bootstrapFlush to populate the
   // Tier-3 slots before tick 1.
-  registerOutputTail({ world, accessor, visibilityCell, matchState, pendingCommands: state.pendingCommands });
+  const syncReplayUnitAttacks = systemMode !== 'replay'
+    || world.getState(TIER_3_SLOTS.replayUnitAttacks) !== undefined;
+  registerOutputTail({
+    world,
+    accessor,
+    visibilityCell,
+    matchState,
+    pendingCommands: state.pendingCommands,
+    recentUnitAttacks: state.recentUnitAttacks,
+    syncReplayUnitAttacks,
+  });
   bootstrapFlush({
     world,
     accessor,
     visibilityCell,
     matchState,
     pendingCommands: state.pendingCommands,
+    recentUnitAttacks: state.recentUnitAttacks,
+    syncReplayUnitAttacks,
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
   });

@@ -14,11 +14,14 @@
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
-import type { MatchState } from '../types';
+import type { MatchState, ProjectedUnitAttackView } from '../types';
 import type { PersistedMatchState } from '../saveSchema';
 import type { PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
-import { flushPendingCommandsState } from './tier3SyncSystem';
+import {
+  flushPendingCommandsState,
+  flushReplayUnitAttacksState,
+} from './tier3SyncSystem';
 
 interface BridgeMeta {
   mapWidth: number;
@@ -31,10 +34,22 @@ export function bootstrapFlush(deps: {
   visibilityCell: VisibilityCell;
   matchState: MatchState;
   pendingCommands: PendingCommandsQueue;
+  recentUnitAttacks: ProjectedUnitAttackView[];
+  syncReplayUnitAttacks?: boolean;
   mapWidth: number;
   mapHeight: number;
 }): void {
-  const { world, accessor, visibilityCell, matchState, pendingCommands, mapWidth, mapHeight } = deps;
+  const {
+    world,
+    accessor,
+    visibilityCell,
+    matchState,
+    pendingCommands,
+    recentUnitAttacks,
+    syncReplayUnitAttacks = true,
+    mapWidth,
+    mapHeight,
+  } = deps;
 
   // 1. aoe2.bridgeMeta — written once and never re-written. Holds the map
   // dimensions so loaders can recover map size for any snapshot regardless
@@ -78,6 +93,9 @@ export function bootstrapFlush(deps: {
   );
 
   flushPendingCommandsState(world, pendingCommands);
+  if (syncReplayUnitAttacks) {
+    flushReplayUnitAttacksState(world, recentUnitAttacks, world.tick);
+  }
 
   // 5. Initial Tier-1 flush. Phase 2D migrations populate the dirty set
   // during seed / hydrate (e.g., `villagerOrdinals` is set per-player by

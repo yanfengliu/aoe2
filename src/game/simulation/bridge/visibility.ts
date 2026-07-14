@@ -19,6 +19,7 @@ import type {
   BuildingComponent,
   ProjectedEntityView,
   ProjectedFrameView,
+  ProjectedUnitAttackView,
   ProjectedUnitDeathView,
   RenderableComponent,
   ResourceComponent,
@@ -28,6 +29,14 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import { trackedVisibilitySourcesCodec } from './bridgeStateSerialize';
+import {
+  ATTACK_FEED_TICKS,
+  indexVisibleUnitAttackAnimations,
+  unitAttackKey,
+  visibleUnitAttacks,
+} from './unitAttackAnimationFeed';
+
+export { ATTACK_FEED_TICKS, visibleUnitAttacks };
 
 export const SHEEP_VISION_RADIUS = 4;
 export const MAX_HERDABLE_CLAIM_RADIUS = 6;
@@ -63,12 +72,16 @@ export function createProjector(
   isSelected: (id: number) => boolean,
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null,
   getRecentUnitDeaths: () => readonly ProjectedUnitDeathView[],
+  getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[],
 ): RenderProjector<
   GameEvents,
   GameCommands,
   ProjectedEntityView,
   ProjectedFrameView
 > {
+  let attackAnimationTick = Number.NaN;
+  let attackAnimations = indexVisibleUnitAttackAnimations([], 0, playerId);
+
   return {
     projectEntity(ref, world) {
       const position = world.getComponent<Position>(ref.id, 'position');
@@ -83,6 +96,17 @@ export function createProjector(
       const building = world.getComponent<BuildingComponent>(ref.id, 'building');
       const resource = world.getComponent<ResourceComponent>(ref.id, 'resource');
       const health = getEntityHealth(ref.id);
+      if (unit && attackAnimationTick !== world.tick) {
+        attackAnimations = indexVisibleUnitAttackAnimations(
+          getRecentUnitAttacks(),
+          world.tick,
+          playerId,
+        );
+        attackAnimationTick = world.tick;
+      }
+      const attackAnimation = unit
+        ? attackAnimations.get(unitAttackKey(ref.id, ref.generation))
+        : undefined;
 
       let owner: number | null = null;
       let entityType: ProjectedEntityView['entityType'] = 'grass';
@@ -147,6 +171,7 @@ export function createProjector(
         selected: isSelected(ref.id),
         currentHp: health?.currentHp ?? null,
         maxHp: health?.maxHp ?? null,
+        ...(attackAnimation ? { attackAnimation } : {}),
         isMemory: false,
       };
     },

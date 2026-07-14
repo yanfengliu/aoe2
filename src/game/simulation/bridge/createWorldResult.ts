@@ -53,6 +53,7 @@ export interface CreateWorldResult {
   // v0.1.129 death feedback: raw (un-fog-filtered) death feed for the render
   // projector, which applies the per-player fog filter in projectFrame.
   getRecentUnitDeaths: () => readonly import('../types').ProjectedUnitDeathView[];
+  getRecentUnitAttacks: () => readonly import('../types').ProjectedUnitAttackView[];
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectEntityById: (id: number) => boolean;
   selectOwnedUnitsByTypeInRect: (

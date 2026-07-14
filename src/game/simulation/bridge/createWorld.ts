@@ -31,6 +31,8 @@ import {
 import type { SaveBlob } from '../saveSchema';
 import { createWorldOccupancy } from '../worldOccupancy';
 import type { BuildableBuildingType, MatchState } from '../types';
+import { TIER_3_SLOTS } from './bridgeStateSerialize';
+import { hydrateUnitAttacks } from './unitAttackAnimationFeed';
 
 export type { CreateWorldResult } from './createWorldResult';
 import type { CreateWorldResult } from './createWorldResult';
@@ -72,6 +74,12 @@ export function createWorld(
   worldOccupancy.attachWorld(world);
 
   const state = createBridgeState();
+  state.recentUnitAttacks.push(
+    ...hydrateUnitAttacks(
+      world.getState(TIER_3_SLOTS.replayUnitAttacks),
+      world.tick,
+    ),
+  );
   // Phase 2D — accessor needs to be available to bridgeHelpers (which
   // reads playerAges via accessor in ensureAiState). Constructed here
   // so subsequent ops can consume it. wireBridgeOps does NOT re-construct;

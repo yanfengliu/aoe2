@@ -114,3 +114,25 @@ describe('RenderStore interpolation frame', () => {
     expect(store.getPreviousPositionFrame()).toBeNull();
   });
 });
+
+describe('RenderStore transient attack reconciliation', () => {
+  it('touches only active and previously active attackers, then forgets expired keys', () => {
+    const store = new RenderStore();
+    store.apply(snapshot(20, [entity(1), entity(2, { id: 8, generation: 0 })]));
+
+    expect(store.reconcileUnitAttackAnimations(new Map([
+      ['7:3', { tick: 20, targetX: 5, targetY: 4 }],
+    ]))).toBe(1);
+    expect(store.getEntities().find((view) => view.id === 7)?.attackAnimation).toEqual({
+      tick: 20,
+      targetX: 5,
+      targetY: 4,
+    });
+
+    expect(store.reconcileUnitAttackAnimations(new Map())).toBe(1);
+    expect(store.getEntities().find((view) => view.id === 7)?.attackAnimation).toBeUndefined();
+
+    // Once the transient key has been cleared, quiet ticks do no per-unit work.
+    expect(store.reconcileUnitAttackAnimations(new Map())).toBe(0);
+  });
+});

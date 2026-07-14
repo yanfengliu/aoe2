@@ -68,6 +68,7 @@ export function makeReplayBridge(
       api.isSelected,
       api.getEntityHealth,
       api.getRecentUnitDeaths,
+      api.getRecentUnitAttacks,
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {
@@ -110,6 +111,7 @@ export function makeReplayBridge(
       fogOwner === HUMAN_PLAYER_ID ? api.getHumanFogMemorySize : () => 0,
     getFogMemoryEntities:
       fogOwner === HUMAN_PLAYER_ID ? api.getFogMemoryEntities : () => [],
+    getRecentUnitAttacks: api.getRecentUnitAttacks,
     getRenderStoreVersion: () => renderStoreVersion,
   });
 

@@ -77,6 +77,7 @@ export type TrainableUnitType =
 // existing `from './types'` imports keep working.
 import type { ResearchableTechnologyType } from './technologyTypes';
 export type { ResearchableTechnologyType };
+export type { ProjectedUnitAttackAnimationView, ProjectedUnitAttackView } from './attackAnimationTypes';
 export type ActionType = 'ungarrison';
 export type MarketActionType =
   | 'buy-food'
@@ -210,11 +211,7 @@ export interface WanderBoundsComponent {
 
 export interface ProjectedEntityView {
   id: number;
-  // Entity-ref generation (civ-engine recycles ids; the generation bumps on
-  // reuse). Present for live-projected entities and persisted fog-memory
-  // ghosts so neither resource nor interpolation identity aliases a recycled id.
-  // The render layer keys per-unit interpolation/facing caches by id:generation
-  // so a recycled id can't inherit the destroyed entity's previous position.
+  // Generation keeps recycled ids from inheriting stale projection state.
   generation?: number;
   kind: 'tile' | 'unit' | 'building' | 'resource';
   layer: 'terrain' | 'resource' | 'building' | 'unit';
@@ -234,6 +231,7 @@ export interface ProjectedEntityView {
   selected: boolean;
   currentHp: number | null;
   maxHp: number | null;
+  attackAnimation?: import('./attackAnimationTypes').ProjectedUnitAttackAnimationView;
   // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
   // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;

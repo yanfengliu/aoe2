@@ -9,6 +9,7 @@ import {
   playerResourcesCodec,
   populationCodec,
 } from './bridgeStateSerialize';
+import { pruneUnitAttacks } from './unitAttackAnimationFeed';
 
 export interface AssembleBridgeApiDeps
   extends Omit<
@@ -23,6 +24,7 @@ export interface AssembleBridgeApiDeps
     | 'getSelectedEntityRefs'
     | 'selectByRefs'
     | 'getRecentUnitDeaths'
+    | 'getRecentUnitAttacks'
   > {
   world: GameWorld;
   state: BridgeState;
@@ -87,6 +89,8 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getRecentUnitDeaths() {
       return state.recentUnitDeaths;
     },
+    getRecentUnitAttacks() {
+      return pruneUnitAttacks(state.recentUnitAttacks, rest.world.tick);
+    },
   };
 }
-

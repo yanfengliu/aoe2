@@ -26,6 +26,8 @@ import { registerVisibilitySystem } from './systems/visibilitySystem';
 import { registerWildlifeCombatSystem } from './systems/wildlifeCombatSystem';
 import { registerWinConditionResolverSystem } from './systems/winConditionResolverSystem';
 import { registerWonderCountdownSystem } from './systems/wonderCountdownSystem';
+import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
+import { syncVisibilitySources } from './visibility';
 
 export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   const {
@@ -134,6 +136,24 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     monkConvertProcessedThisTick,
     monksByOwner,
   } = state;
+  const recordUnitAttack = createUnitAttackRecorder({
+    world,
+    state,
+    accessor,
+    visibility,
+    // Player-command attacks resolve before the normal end-of-update
+    // visibility system. Refresh here so witnesses are captured from the
+    // positions at the instant of each hit, including same-tick movement.
+    ensureVisibilityCurrent: () => {
+      syncVisibilitySources(
+        world,
+        visibility,
+        accessor,
+        visibilityFingerprints,
+        visibilityCell,
+      );
+    },
+  });
 
   if (systemMode === 'replay') {
     registerReplayPendingCommandDrainSystem(world, pendingCommands);
@@ -213,6 +233,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     killWildlifeEntity,
     destroyBuildingEntity,
     getEntityRef,
+    recordUnitAttack,
     onBuildingConstructionComplete,
   });
 

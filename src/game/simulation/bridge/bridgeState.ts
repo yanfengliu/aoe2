@@ -3,7 +3,7 @@
 // instantiates one of these and threads it into factories + systems.
 
 import type { Position } from 'civ-engine';
-import type { ProjectedUnitDeathView } from '../types';
+import type { ProjectedUnitAttackView, ProjectedUnitDeathView } from '../types';
 import {
   createPendingCommandsQueue,
   type PendingCommandsQueue,
@@ -91,6 +91,9 @@ export interface BridgeState {
   // replays re-emit deaths because destroyUnitEntity re-runs during
   // re-simulation. Bounded by DEATH_FEED_TICKS pruning at the push site.
   recentUnitDeaths: ProjectedUnitDeathView[];
+  // Successful unit hits, one latest event per attacker ref. Like deaths this
+  // is a bounded transient render feed and deliberately has no save codec.
+  recentUnitAttacks: ProjectedUnitAttackView[];
 }
 
 export function createBridgeState(): BridgeState {
@@ -100,5 +103,6 @@ export function createBridgeState(): BridgeState {
     monkConvertProcessedThisTick: new Map(),
     pendingCommands: createPendingCommandsQueue(),
     recentUnitDeaths: [],
+    recentUnitAttacks: [],
   };
 }

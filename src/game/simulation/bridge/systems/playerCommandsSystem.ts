@@ -72,11 +72,7 @@ export interface PlayerCommandsSystemDeps {
     activeWorld?: CivWorld,
     stepPerTick?: number,
   ) => void;
-  isUnitAtTarget: (
-    unitId: number,
-    target: Position,
-    activeWorld: CivWorld,
-  ) => boolean;
+  isUnitAtTarget: (unitId: number, target: Position, activeWorld: CivWorld) => boolean;
   // Spec §12.7 lazy redirect: null if the unit found a free slot at its arrival
   // cell; a redirected target Position if it overflowed and a neighbor has a
   // free slot (caller rewrites the move target there, preventing oscillation).
@@ -100,6 +96,7 @@ export interface PlayerCommandsSystemDeps {
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
   getEntityRef: (id: number) => EntityRef | null;
+  recordUnitAttack: (attackerId: number, targetId: number) => void;
   onBuildingConstructionComplete: (
     buildingId: number,
     owner: number,
@@ -131,7 +128,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     destroyUnitEntity,
     killWildlifeEntity,
     destroyBuildingEntity,
-    getEntityRef,
+    getEntityRef, recordUnitAttack,
     onBuildingConstructionComplete,
   } = deps;
 
@@ -212,6 +209,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
             // Primary melee/pierce hit + mangonel-line blast/splash (spec
             // §10.2/§10.7). Splash hits enemy AND friendly units in the radius.
+            recordUnitAttack(id, targetId);
             const primaryDied = resolveUnitAttackOnUnit({
               world: activeWorld,
               combatStates: accessor.get(combatStatesCodec),
@@ -273,6 +271,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               continue;
             }
 
+            recordUnitAttack(id, targetId);
             targetWildlife.currentHp -= attackerCombat.attackDamage;
             targetWildlife.targetEntityRef = getEntityRef(id);
             attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
@@ -333,6 +332,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           const attackerTechs =
             accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
           const attackerCiv = accessor.get(playerCivilizationsCodec).get(unit.owner);
+          recordUnitAttack(id, targetId);
           targetHealth.currentHp -= Math.max(
             0,
             attackerCombat.attackDamage

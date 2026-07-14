@@ -9,10 +9,12 @@ import { VisibilityMap } from 'civ-engine';
 import type {
   ProjectedEntityView,
   ProjectedFrameView,
+  ProjectedUnitAttackView,
   RenderPositionFrame,
 } from '../types';
 import { compareProjectedRenderEntities, isFootprintVisible } from './pureHelpers';
 import type { RenderStore } from '../renderStore';
+import { indexVisibleUnitAttackAnimations } from './unitAttackAnimationFeed';
 
 export interface RenderStateOpsDeps {
   visibility: VisibilityMap;
@@ -20,6 +22,7 @@ export interface RenderStateOpsDeps {
   renderStore: RenderStore;
   getHumanFogMemorySize: () => number;
   getFogMemoryEntities: (liveIds: Set<number>) => ProjectedEntityView[];
+  getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[];
   getRenderStoreVersion: () => number;
 }
 
@@ -39,6 +42,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     renderStore,
     getHumanFogMemorySize,
     getFogMemoryEntities,
+    getRecentUnitAttacks,
     getRenderStoreVersion,
   } = deps;
 
@@ -62,6 +66,13 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       return cache.value;
     }
 
+    renderStore.reconcileUnitAttackAnimations(
+      indexVisibleUnitAttackAnimations(
+        getRecentUnitAttacks(),
+        currentTick,
+        humanPlayerId,
+      ),
+    );
     const liveEntitiesRaw = renderStore.getEntities();
     const liveEntities = liveEntitiesRaw.filter((entity) => {
       if (entity.kind !== 'building' && entity.kind !== 'resource') return true;

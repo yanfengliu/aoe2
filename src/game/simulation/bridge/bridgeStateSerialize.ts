@@ -305,4 +305,5 @@ export const TIER_3_SLOTS = {
   matchState: 'aoe2.matchState',
   bridgeMeta: 'aoe2.bridgeMeta',
   pendingCommands: 'aoe2.pendingCommands',
+  replayUnitAttacks: 'aoe2.replayUnitAttacks',
 } as const;

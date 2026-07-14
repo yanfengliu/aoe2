@@ -67,6 +67,7 @@ export type WireBridgeOpsResult = Omit<
   | 'consumeCommandRejection'
   // v0.1.129: implemented by assembleBridgeApi directly off BridgeState.
   | 'getRecentUnitDeaths'
+  | 'getRecentUnitAttacks'
 > & {
   getHumanWonderCountdownTicks: () => number | null;
   getHumanRelicCountdownTicks: () => number | null;

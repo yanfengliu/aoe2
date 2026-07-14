@@ -11,6 +11,7 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { VisibilityCell } from './visibilityCell';
 import { flushPendingCommandsState, flushTier3State } from './tier3SyncSystem';
+import { TIER_3_SLOTS } from './bridgeStateSerialize';
 
 interface MatchStateLike {
   outcome: 'running' | 'victory' | 'defeat' | 'draw';
@@ -52,10 +53,18 @@ export function createSaveGameOps(deps: SaveGameDeps): SaveGameOps {
 
   function saveGame(): SaveBlob {
     flushBeforeSerialize();
+    const worldSnapshot = world.serialize();
+    // Attack cues are checkpoint evidence for deterministic replay scrubbing,
+    // not user-save state. `serialize()` returns a detached snapshot, so strip
+    // only the returned copy and leave the live recorder slot intact.
+    const snapshotState = (worldSnapshot as {
+      state?: Record<string, unknown>;
+    }).state;
+    if (snapshotState) delete snapshotState[TIER_3_SLOTS.replayUnitAttacks];
     return {
       schema: SAVE_SCHEMA_VERSION,
       seed: getSeed(),
-      worldSnapshot: world.serialize(),
+      worldSnapshot,
     };
   }
 

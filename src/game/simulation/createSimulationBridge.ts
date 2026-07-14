@@ -257,7 +257,7 @@ export function createSimulationBridge(
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,
-    getEntityHealth, getRecentUnitDeaths,
+    getEntityHealth, getRecentUnitDeaths, getRecentUnitAttacks,
     selectEntityAtCell,
     selectEntityById,
     selectOwnedUnitsByTypeInRect,
@@ -293,7 +293,7 @@ export function createSimulationBridge(
   const renderStore = new RenderStore();
   const renderAdapter = new RenderAdapter({
     world: toEngineWorld(world),
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths),
+    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths, getRecentUnitAttacks),
     debug: createRenderMetricsCapture(world),
     send(message) {
       renderStore.apply(message);
@@ -328,6 +328,7 @@ export function createSimulationBridge(
     renderStore,
     getHumanFogMemorySize,
     getFogMemoryEntities,
+    getRecentUnitAttacks,
     getRenderStoreVersion: () => renderStoreVersion,
   });
 

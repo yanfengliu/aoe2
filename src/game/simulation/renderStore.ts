@@ -16,6 +16,8 @@ type RenderMessage = RenderServerMessage<
   RenderMetricsSnapshot
 >;
 
+type UnitAttackAnimation = NonNullable<ProjectedEntityView['attackAnimation']>;
+
 function renderKey(entity: RenderEntity<ProjectedEntityView>): string {
   return `${entity.ref.id}:${entity.ref.generation}`;
 }
@@ -26,6 +28,7 @@ function destroyedKey(id: number, generation: number): string {
 
 export class RenderStore {
   private readonly entities = new Map<string, RenderEntity<ProjectedEntityView>>();
+  private readonly attackAnimationKeys = new Set<string>();
   private tick = 0;
   private frame: ProjectedFrameView | null = null;
   private debug: RenderMetricsSnapshot | null = null;
@@ -53,8 +56,11 @@ export class RenderStore {
 
     if (message.type === 'renderSnapshot') {
       this.entities.clear();
+      this.attackAnimationKeys.clear();
       for (const entity of message.data.render.entities) {
-        this.entities.set(renderKey(entity), entity);
+        const key = renderKey(entity);
+        this.entities.set(key, entity);
+        if (entity.view.attackAnimation) this.attackAnimationKeys.add(key);
       }
       this.tick = message.data.render.tick;
       this.frame = message.data.render.frame;
@@ -64,13 +70,21 @@ export class RenderStore {
     }
 
     for (const entity of message.data.render.created) {
-      this.entities.set(renderKey(entity), entity);
+      const key = renderKey(entity);
+      this.entities.set(key, entity);
+      if (entity.view.attackAnimation) this.attackAnimationKeys.add(key);
+      else this.attackAnimationKeys.delete(key);
     }
     for (const entity of message.data.render.updated) {
-      this.entities.set(renderKey(entity), entity);
+      const key = renderKey(entity);
+      this.entities.set(key, entity);
+      if (entity.view.attackAnimation) this.attackAnimationKeys.add(key);
+      else this.attackAnimationKeys.delete(key);
     }
     for (const ref of message.data.render.destroyed) {
-      this.entities.delete(destroyedKey(ref.id, ref.generation));
+      const key = destroyedKey(ref.id, ref.generation);
+      this.entities.delete(key);
+      this.attackAnimationKeys.delete(key);
     }
     this.tick = message.data.render.tick;
     this.frame = message.data.render.frame;
@@ -89,6 +103,46 @@ export class RenderStore {
         if (left.y !== right.y) return left.y - right.y;
         return left.x - right.x;
       });
+  }
+
+  /** Reconciles transient attack overlays in O(active + previously-active).
+   * Render diffs may not revisit a stationary attacker when its cue expires,
+   * so the store owns the one-time removal instead of every frame scanning
+   * every unit forever. The return value is the number of keys examined. */
+  reconcileUnitAttackAnimations(
+    active: ReadonlyMap<string, UnitAttackAnimation>,
+  ): number {
+    const keys = new Set([...this.attackAnimationKeys, ...active.keys()]);
+    for (const key of keys) {
+      const entity = this.entities.get(key);
+      if (!entity) {
+        this.attackAnimationKeys.delete(key);
+        continue;
+      }
+      const next = active.get(key);
+      const current = entity.view.attackAnimation;
+      if (!next) {
+        if (current) {
+          const view = { ...entity.view };
+          delete view.attackAnimation;
+          this.entities.set(key, { ...entity, view });
+        }
+        this.attackAnimationKeys.delete(key);
+        continue;
+      }
+      if (
+        current?.tick !== next.tick
+        || current.targetX !== next.targetX
+        || current.targetY !== next.targetY
+      ) {
+        this.entities.set(key, {
+          ...entity,
+          view: { ...entity.view, attackAnimation: next },
+        });
+      }
+      this.attackAnimationKeys.add(key);
+    }
+    return keys.size;
   }
 
   getTick(): number {
