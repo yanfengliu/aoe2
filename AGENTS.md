@@ -104,6 +104,7 @@ Policy for every reviewer, in-process subagent or CLI:
 
 ## Git
 
+- During substantial multi-step work, treat each minimal coherent unit as a delivery boundary: once it passes the applicable verification and review and all substantive findings are resolved, promptly stage only its scoped files and commit it before unrelated completed units accumulate in the worktree or diff. Self-review trivial changes; adversarially review behavior and public-contract changes. Never commit failing, in-flight, or partial work merely as a checkpoint.
 - **Commit directly to `main`.** This is a solo-developer project; branches add overhead without payoff and block autonomous progress while waiting for merge authorization. Each coherent change lands as its own commit on `main`. The full suite (`npm test`, `npm run typecheck`, `npm run lint`, `npm run build`) must pass before each commit.
 - When you iterate, only run affected tests.
 - After confidence in the change, run the full suite to make sure you didn't accidentally break anything before committing.
