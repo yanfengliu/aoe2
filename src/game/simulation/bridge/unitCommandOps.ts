@@ -224,7 +224,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || !targetPosition) return false;
+    if (!unit || unit.unitType === 'monk' || !targetPosition) return false;
 
     if (targetEntityKind === 'unit') {
       const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');

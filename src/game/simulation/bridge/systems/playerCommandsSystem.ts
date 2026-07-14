@@ -143,7 +143,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
       for (const [id, command] of unitCommands.entries()) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        if (!position || !unit) {
+        if (!position || !unit || (command.type === 'attack' && unit.unitType === 'monk')) {
           clearUnitCommand(id);
           continue;
         }

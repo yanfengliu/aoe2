@@ -1,7 +1,7 @@
 // Validator for `unit.attack` command (DESIGN v17 §6.2 / §6.4).
 //
-// Structural validation only — entity existence + correct component shape +
-// ownership rule. The handler re-checks the same conditions (since the
+// Semantic attacker capability plus structural entity existence / component
+// shape validation. The handler re-checks the same conditions (since the
 // target may have died between submit and execute) and silently no-ops on
 // a stale-state miss; recorder still captures `executed: true` because the
 // handler ran without throwing.
@@ -31,6 +31,9 @@ export const unitAttackValidator: UnitAttackValidator = (data, world) => {
   const unit = world.getComponent<UnitComponent>(data.unitId, 'unit');
   if (!unit) {
     return { code: 'not_a_unit', message: 'Attacker is not a unit.' };
+  }
+  if (unit.unitType === 'monk') {
+    return { code: 'unit_cannot_attack', message: 'Monks cannot attack.' };
   }
   if (!world.isAlive(data.targetEntityId)) {
     return { code: 'target_not_found', message: 'Target no longer exists.' };
