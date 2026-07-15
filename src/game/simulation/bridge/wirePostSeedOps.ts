@@ -79,14 +79,14 @@ export interface WirePostSeedDeps {
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
   getActionOptions: Parameters<typeof createSelectionStateOps>[0]['getActionOptions'];
   getApproachCellsForFootprint: Parameters<typeof createEntityDestroyOps>[0]['getApproachCellsForFootprint'];
-  setPositionAndSyncOccupancy: Parameters<typeof createTrainingMarketOps>[0]['setPositionAndSyncOccupancy'];
+  placeFreshSpawnUnit: Parameters<typeof createTrainingMarketOps>[0]['placeFreshSpawnUnit'];
   clearPositionAndSyncOccupancy: Parameters<typeof createTrainingMarketOps>[0]['clearPositionAndSyncOccupancy'];
-  syncUnitTransformToPosition: Parameters<typeof createTrainingMarketOps>[0]['syncUnitTransformToPosition'];
   addBuildingEntity: Parameters<typeof createTrainingMarketOps>[0]['addBuildingEntity'];
   addResourceEntity: Parameters<typeof createEntityDestroyOps>[0]['addResourceEntity'];
   findBuildingSpawnPosition: (
     anchor: Position,
     buildingType: BuildingType,
+    preferForeground?: boolean,
   ) => Position | null;
   clearGathererOrder: (id: number) => void;
   getTrainOptions: Parameters<typeof createSelectionStateOps>[0]['getTrainOptions'];
@@ -154,9 +154,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     isHarvestableResource,
     getActionOptions,
     getApproachCellsForFootprint,
-    setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
     addBuildingEntity,
     addResourceEntity,
     findBuildingSpawnPosition,
@@ -252,9 +251,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     setUnitCommand,
     addBuildingEntity,
     findBuildingSpawnPosition,
-    setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
     getEntityRef,
     markOutOfBandRenderChange,
   });

@@ -4,6 +4,7 @@
 // the destroy/garrison paths share one occupancy-sync definition.
 
 import type { Position, SubcellSlotOffset } from 'civ-engine';
+import type { SyncUnitResult, WorldOccupancy } from '../worldOccupancy';
 import type {
   BuildingComponent,
   ResourceComponent,
@@ -38,32 +39,11 @@ type CivWorld = GameWorld;
 // layers can consume the engine-allocated visual slot. Production code paths
 // without a live occupancy context use the entity-id-derived fallback in
 // pureHelpers.
-interface SyncUnitResult {
-  placedAt: Position;
-  slotOffset: SubcellSlotOffset | null;
-}
-
-interface WorldOccupancyLike {
-  release(entity: number): void;
-  syncBuilding(entity: number, position: Position, footprint: { width: number; height: number }): void;
-  syncResource(entity: number, position: Position): void;
-  syncUnit(
-    entity: number,
-    position: Position,
-    preferredOffset?: SubcellSlotOffset,
-    restoreOverflow?: boolean,
-  ): SyncUnitResult;
-  getUnitSlotOffset(entity: number): SubcellSlotOffset | null;
-  findNearestFreeUnitCell(entity: number, requestedPosition: Position): Position | null;
-  reset(): void;
-  blockTerrain(cells: Position[]): void;
-}
-
 export interface TransformOpsDeps {
   world: GameWorld;
   mapWidth: number;
   mapHeight: number;
-  worldOccupancy: WorldOccupancyLike;
+  worldOccupancy: WorldOccupancy;
   tiles: number[][];
   // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
   // The factory's other slot reads were already on the accessor side, so we
@@ -103,6 +83,7 @@ export interface TransformOps {
     position: Position,
     activeWorld?: CivWorld,
   ): void;
+  placeFreshSpawnUnit(entity: number, position: Position): Position | null;
   clearPositionAndSyncOccupancy(entity: number, activeWorld?: CivWorld): void;
   syncSpawnedEntityOccupancy(entity: number): void;
   rebuildWorldOccupancyFromWorld(): void;
@@ -200,38 +181,46 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       // target cell, and `placeFreshSpawnUnit` / `syncSpawnedEntityOccupancy`
       // do snap once at spawn time.
       const placement = worldOccupancy.syncUnit(entity, position, preferredUnitOffset);
-      const transform = getUnitTransform(entity, activeWorld);
-      if (transform && placement.slotOffset) {
-        if (
-          transform.occupancySlotX !== placement.slotOffset.x
-          || transform.occupancySlotY !== placement.slotOffset.y
-          || transform.occupancySlotOverflow === true
-        ) {
-          const assignedTransform = {
-            ...transform,
-            occupancySlotX: placement.slotOffset.x,
-            occupancySlotY: placement.slotOffset.y,
-          };
-          delete assignedTransform.occupancySlotOverflow;
-          activeWorld.setComponent(entity, 'unitTransform', assignedTransform);
-        }
-      } else if (
-        transform
-        && (
-          transform.occupancySlotX !== undefined
-          || transform.occupancySlotY !== undefined
-          || transform.occupancySlotOverflow !== true
-        )
-      ) {
-        const withoutSlot = { ...transform, occupancySlotOverflow: true as const };
-        delete withoutSlot.occupancySlotX;
-        delete withoutSlot.occupancySlotY;
-        activeWorld.setComponent(entity, 'unitTransform', withoutSlot);
-      }
+      recordUnitPlacement(entity, placement, activeWorld);
       return;
     }
 
     worldOccupancy.release(entity);
+  }
+
+  function recordUnitPlacement(
+    entity: number,
+    placement: SyncUnitResult,
+    activeWorld: CivWorld,
+  ): void {
+    const transform = getUnitTransform(entity, activeWorld);
+    if (transform && placement.slotOffset) {
+      if (
+        transform.occupancySlotX !== placement.slotOffset.x
+        || transform.occupancySlotY !== placement.slotOffset.y
+        || transform.occupancySlotOverflow === true
+      ) {
+        const assignedTransform = {
+          ...transform,
+          occupancySlotX: placement.slotOffset.x,
+          occupancySlotY: placement.slotOffset.y,
+        };
+        delete assignedTransform.occupancySlotOverflow;
+        activeWorld.setComponent(entity, 'unitTransform', assignedTransform);
+      }
+    } else if (
+      transform
+      && (
+        transform.occupancySlotX !== undefined
+        || transform.occupancySlotY !== undefined
+        || transform.occupancySlotOverflow !== true
+      )
+    ) {
+      const withoutSlot = { ...transform, occupancySlotOverflow: true as const };
+      delete withoutSlot.occupancySlotX;
+      delete withoutSlot.occupancySlotY;
+      activeWorld.setComponent(entity, 'unitTransform', withoutSlot);
+    }
   }
 
   function setPositionAndSyncOccupancy(
@@ -241,6 +230,18 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
   ): void {
     activeWorld.setPosition(entity, position);
     syncOccupancyForEntity(entity, activeWorld);
+  }
+
+  function placeFreshSpawnUnit(
+    entity: number,
+    position: Position,
+  ): Position | null {
+    const placement = worldOccupancy.placeUnitForSpawn(entity, position);
+    if (!placement) return null;
+    world.setPosition(entity, placement.placedAt);
+    recordUnitPlacement(entity, placement, world);
+    syncUnitTransformToPosition(entity, placement.placedAt);
+    return placement.placedAt;
   }
 
   function clearPositionAndSyncOccupancy(
@@ -476,6 +477,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     resolveArrivalRedirect,
     syncOccupancyForEntity,
     setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
     syncSpawnedEntityOccupancy,
     rebuildWorldOccupancyFromWorld,

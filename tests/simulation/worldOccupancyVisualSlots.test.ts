@@ -91,10 +91,53 @@ describe('worldOccupancy — visual slot non-overlap (spec §12.6)', () => {
 
     const overflow = occupancy.placeUnitForSpawn(116, { x: 8, y: 8 });
 
+    expect(overflow).not.toBeNull();
+    if (!overflow) throw new Error('expected a free neighboring spawn slot');
     expect(overflow.placedAt).not.toEqual({ x: 8, y: 8 });
     expect(overflow.slotOffset).not.toBeNull();
     expect(Math.abs(overflow.placedAt.x - 8)).toBeLessThanOrEqual(1);
     expect(Math.abs(overflow.placedAt.y - 8)).toBeLessThanOrEqual(1);
+  });
+
+  it('placeUnitForSpawn reaches a diagonal slot when every cardinal neighbor is full', () => {
+    const occupancy = createWorldOccupancy(16, 16);
+    let entityId = 100;
+    for (const position of [
+      { x: 8, y: 8 },
+      { x: 9, y: 8 },
+      { x: 7, y: 8 },
+      { x: 8, y: 9 },
+      { x: 8, y: 7 },
+    ]) {
+      for (let slot = 0; slot < 16; slot += 1) {
+        occupancy.syncUnit(entityId, position);
+        entityId += 1;
+      }
+    }
+
+    const redirected = occupancy.placeUnitForSpawn(entityId, { x: 8, y: 8 });
+
+    expect(redirected).not.toBeNull();
+    if (!redirected) throw new Error('expected a free diagonal spawn slot');
+    expect(redirected.placedAt).toEqual({ x: 9, y: 9 });
+    expect(redirected.slotOffset).not.toBeNull();
+  });
+
+  it('placeUnitForSpawn reports exhaustion instead of stacking when no cell has a slot', () => {
+    const occupancy = createWorldOccupancy(3, 3);
+    let entityId = 100;
+    for (let y = 0; y < 3; y += 1) {
+      for (let x = 0; x < 3; x += 1) {
+        for (let slot = 0; slot < 16; slot += 1) {
+          occupancy.syncUnit(entityId, { x, y });
+          entityId += 1;
+        }
+      }
+    }
+
+    expect(occupancy.placeUnitForSpawn(entityId, { x: 1, y: 1 })).toBeNull();
+    expect(occupancy.getUnitSlotOffset(entityId)).toBeNull();
+    expect(occupancy.getCellStatus(1, 1).crowdedBy).toHaveLength(16);
   });
 
   it('placeUnitForSpawn keeps the requested cell when a slot is available', () => {
@@ -102,6 +145,8 @@ describe('worldOccupancy — visual slot non-overlap (spec §12.6)', () => {
 
     const result = occupancy.placeUnitForSpawn(101, { x: 5, y: 5 });
 
+    expect(result).not.toBeNull();
+    if (!result) throw new Error('expected the requested spawn slot');
     expect(result.placedAt).toEqual({ x: 5, y: 5 });
     expect(result.slotOffset).not.toBeNull();
     expect(occupancy.getUnitSlotOffset(101)).toEqual(result.slotOffset);

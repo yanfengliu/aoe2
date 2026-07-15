@@ -128,6 +128,19 @@ describe('createSimulationBridge utility progression', () => {
 
   it('can garrison and ungarrison a villager through the Town Center', () => {
     const bridge = createSimulationBridge('aoe2-prototype');
+    const garrisonedVillager = bridge
+      .getEconomyState()
+      .units.find((unit) => (
+        unit.owner === 1
+        && unit.unitType === 'villager'
+        && unit.x === 6
+        && unit.y === 8
+      ));
+    expect(garrisonedVillager).toBeDefined();
+    const garrisonedVillagerView = bridge
+      .getRenderState()
+      .entities.find((entity) => entity.id === garrisonedVillager?.id);
+    expect(garrisonedVillagerView).toBeDefined();
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.issueContextCommand(8, 8)).toBe(true);
@@ -139,6 +152,9 @@ describe('createSimulationBridge utility progression', () => {
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
       ),
     ).toHaveLength(2);
+    expect(
+      bridge.getRenderState().entities.some((entity) => entity.id === garrisonedVillager?.id),
+    ).toBe(false);
 
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
@@ -154,12 +170,24 @@ describe('createSimulationBridge utility progression', () => {
       .getEconomyState()
       .units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager');
     expect(villagersAfterUngarrison).toHaveLength(3);
+    const releasedVillager = villagersAfterUngarrison.find(
+      (villager) => villager.id === garrisonedVillager?.id,
+    );
+    expect(releasedVillager).toBeDefined();
+    // The authored Town Center exit is on its south/east perimeter, keeping a
+    // released villager in front of rather than hidden by the building.
+    expect(releasedVillager?.x === 12 || releasedVillager?.y === 12).toBe(true);
     expect(
       villagersAfterUngarrison.some(
         (villager) =>
           villager.x !== 6 && villager.y !== 8 && Math.abs(villager.x - 8) <= 2 && Math.abs(villager.y - 8) <= 2,
       ),
     ).toBe(true);
+    expect(
+      bridge
+        .getRenderState()
+        .entities.find((entity) => entity.id === garrisonedVillager?.id)?.generation,
+    ).toBe(garrisonedVillagerView?.generation);
   });
 
   it('can garrison and ungarrison a villager through a completed Watch Tower', () => {

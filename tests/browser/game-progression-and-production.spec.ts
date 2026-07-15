@@ -117,6 +117,10 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    const garrisonedVillagerId = await page.evaluate(
+      () => window.__AOE2_TEST__!.getSelectionState().selectedEntityIds[0],
+    );
+    expect(garrisonedVillagerId).toBeDefined();
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
 
@@ -136,6 +140,11 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
       (unit) => unit.owner === 1 && unit.unitType === 'villager',
     );
     expect(villagersAfterUngarrison).toHaveLength(3);
+    const releasedVillager = villagersAfterUngarrison.find(
+      (villager) => villager.id === garrisonedVillagerId,
+    );
+    expect(releasedVillager).toBeDefined();
+    expect(releasedVillager!.x === 12 || releasedVillager!.y === 12).toBe(true);
     expect(
       villagersAfterUngarrison.some(
         (villager) =>

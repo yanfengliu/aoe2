@@ -207,6 +207,7 @@ export function createSpawnFinders(deps: {
   findBuildingSpawnPosition: (
     anchor: Position,
     buildingType: import('../types').BuildingType,
+    preferForeground?: boolean,
   ) => Position | null;
 } {
   const {
@@ -232,10 +233,24 @@ export function createSpawnFinders(deps: {
   function findBuildingSpawnPosition(
     anchor: Position,
     buildingType: import('../types').BuildingType,
+    preferForeground = false,
   ): Position | null {
     const footprint = buildingFootprint(buildingType);
+    const perimeter = getApproachCellsForFootprint(
+      anchor,
+      footprint.width,
+      footprint.height,
+      1,
+    );
+    if (preferForeground) {
+      // Ungarrison uses the authored south/east exit so units emerge in front
+      // of their host; preserve deterministic south-before-east ties.
+      perimeter.sort((left, right) =>
+        (right.x + right.y) - (left.x + left.y) || right.y - left.y || right.x - left.x,
+      );
+    }
     return findSafeSpawnPosition(
-      getApproachCellsForFootprint(anchor, footprint.width, footprint.height, 1),
+      perimeter,
     );
   }
 

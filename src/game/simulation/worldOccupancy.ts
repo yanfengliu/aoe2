@@ -94,12 +94,11 @@ function syntheticOutOfBoundsStatus(x: number, y: number): OccupancyCellStatus {
   };
 }
 
-// Spec §12.6 contract: every syncUnit call returns the cell the unit was
-// actually placed in (may differ from the requested position when overflow
-// fallback engages) plus the visual slot offset assigned by the engine's
-// SubcellOccupancyGrid. `slotOffset === null` means no slot was available
-// even after neighbor-tile fallback — the last-resort overflow path was used
-// and the renderer should expect visual stacking for this entity.
+// Spec §12.6 contract: `syncUnit` records the requested coarse cell and
+// returns the visual slot assigned by the engine's SubcellOccupancyGrid;
+// `slotOffset === null` means that cell was full. `placeUnitForSpawn` builds
+// on that primitive, returning a nearby-cell result after its bounded search
+// or outer null when no legal fresh-placement slot exists.
 export interface SyncUnitResult {
   placedAt: Position;
   slotOffset: SubcellSlotOffset | null;
@@ -114,10 +113,10 @@ export interface WorldOccupancy {
   syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow?: boolean): SyncUnitResult;
   // Spec §12.6 fallback for fresh placements (spawn, train, ungarrison):
   // redirect to the nearest neighbor with a free slot when the cell is full.
-  placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult;
+  placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult | null;
   // Spec §12.7 lazy redirect: closest cell with a free slot, or null. The
-  // entity itself is treated as non-blocking. Search window: 8 immediate
-  // neighbors (spec allows up to 16-cell BFS; widen later if needed).
+  // entity itself is treated as non-blocking. Search is a deterministic
+  // eight-direction BFS capped at a 16-cell Chebyshev radius.
   findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null;
   // Spec §12.7 eager pre-reservation for group moves. See
   // `worldOccupancyAllocators.allocateGroupMoveTargets` for the algorithm.
@@ -358,30 +357,28 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       return { placedAt: position, slotOffset: null };
     },
 
-    placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult {
+    placeUnitForSpawn(entity: EntityId, requestedPosition: Position): SyncUnitResult | null {
       const initial = this.syncUnit(entity, requestedPosition);
       if (initial.slotOffset !== null) {
         return initial;
       }
 
-      // Original cell was full — search neighbors via the engine's
-      // closest-first ordering. Spec §12.6 says the simulation must place
-      // the unit at the nearest neighbor with a free slot.
-      const neighbors = binding.neighborsWithSpace(entity, requestedPosition, {
-        metadata: { kind: 'unit' },
-      });
-      for (const neighbor of neighbors) {
-        const result = this.syncUnit(entity, neighbor.position);
+      // Original cell was full — use the same bounded deterministic spiral
+      // as lazy move-arrival redirects so diagonals and farther legal cells
+      // remain reachable when cardinal neighbors are full.
+      const freeCell = this.findNearestFreeUnitCell(entity, requestedPosition);
+      if (freeCell) {
+        const result = this.syncUnit(entity, freeCell);
         if (result.slotOffset !== null) {
           return result;
         }
       }
 
-      // Every neighbor in the engine's default 8-cell window is also full.
-      // Re-sync at the original position so the overflow tracking
-      // (`addOverflowCrowdedClaim`) reflects the unit's actual whereabouts.
-      // Visual overlap is accepted as the last-resort behavior.
-      return this.syncUnit(entity, requestedPosition);
+      // Every cell in the bounded spiral is full. A fresh placement may fail;
+      // release the provisional overflow claim so its caller can keep the unit
+      // contained rather than publishing a stacked world position.
+      this.release(entity);
+      return null;
     },
 
     findNearestFreeUnitCell(entity: EntityId, requestedPosition: Position): Position | null {

@@ -97,10 +97,13 @@ export interface TrainingMarketOpsDeps {
     isComplete: boolean,
     vision?: VisionSourceComponent,
   ) => number;
-  findBuildingSpawnPosition: (anchor: Position, buildingType: BuildingType) => Position | null;
-  setPositionAndSyncOccupancy: (entity: number, position: Position) => void;
+  findBuildingSpawnPosition: (
+    anchor: Position,
+    buildingType: BuildingType,
+    preferForeground?: boolean,
+  ) => Position | null;
+  placeFreshSpawnUnit: (entity: number, position: Position) => Position | null;
   clearPositionAndSyncOccupancy: (entity: number) => void;
-  syncUnitTransformToPosition: (entity: number, position: Position) => void;
   getEntityRef: (id: number) => EntityRef | null;
   markOutOfBandRenderChange: () => void;
 }
@@ -152,9 +155,8 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     setUnitCommand,
     addBuildingEntity,
     findBuildingSpawnPosition,
-    setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
-    syncUnitTransformToPosition,
     getEntityRef,
     markOutOfBandRenderChange,
   } = deps;
@@ -365,14 +367,20 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       const unit = world.getComponent<UnitComponent>(unitId, 'unit');
       if (!unit) continue;
 
-      const spawnPosition = findBuildingSpawnPosition(buildingPosition, building.buildingType);
+      const spawnPosition = findBuildingSpawnPosition(
+        buildingPosition,
+        building.buildingType,
+        true,
+      );
       if (!spawnPosition) {
         remainingGarrisonedUnits.push(unitId);
         continue;
       }
 
-      setPositionAndSyncOccupancy(unitId, spawnPosition);
-      syncUnitTransformToPosition(unitId, spawnPosition);
+      if (!placeFreshSpawnUnit(unitId, spawnPosition)) {
+        remainingGarrisonedUnits.push(unitId);
+        continue;
+      }
       const storedVisionSource = accessor.get(garrisonedUnitVisionSourcesCodec).get(unitId);
       if (storedVisionSource) {
         world.addComponent(unitId, 'visionSource', storedVisionSource);

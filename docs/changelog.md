@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.4 - 2026-07-14
+
+### Villagers visibly emerge when ungarrisoned
+
+Ungarrisoned units now prefer each building's authored south/east exit, placing them in front of the voxel building instead of restoring them on its fully occluded back edge. This changes only the first safe perimeter choice for ungarrison; trained-unit spawn ordering and blocked-exit egress search remain unchanged.
+
+A full 20-villager Castle release now uses the fresh-placement occupancy path. When the first cell's 16 distinct sub-tile slots are occupied, later villagers use a deterministic bounded spiral to reach free neighboring slots and write those actual cells and slot assignments into authoritative state instead of permanently sharing roots under other villagers. If no legal slot exists within that search, the unit stays safely garrisoned. Save/load reproduces the same release positions and transforms. No x-ray overlay, fog rule, entity identity, garrison capacity, or save schema changed.
+
+Validation passed 2,022 Vitest tests with two skips across 266 files, 106 serial headless Chromium tests with two skips, typecheck, lint, content validation, and a 529-module production build. Production-only and complete dependency audits both reported zero vulnerabilities.
+
 ## 0.2.3 - 2026-07-14
 
 ### Units visibly strike when their attacks land

@@ -103,8 +103,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isBootstrappingScenario: () => isBootstrappingScenarioRef.current,
   });
   const {
-    syncUnitTransformToPosition,
-    setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
     syncSpawnedEntityOccupancy,
     rebuildWorldOccupancyFromWorld,
@@ -225,8 +224,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
     transformOps,
-    syncUnitTransformToPosition,
-    setPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
     rebuildWorldOccupancyFromWorld,
     playerQueries,

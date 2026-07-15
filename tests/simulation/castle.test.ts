@@ -239,6 +239,94 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(inventory).toContain('15 / 20 garrisoned');
   });
 
+  it('ungarrisons a full Castle without stacking released villagers onto identical roots', () => {
+    const bridge = createSimulationBridge('castle-garrison-fixture');
+    const castle = findOwnedBuilding(bridge, 1, 'castle');
+    expect(castle).toBeDefined();
+
+    const villagerIds = bridge
+      .getEconomyState()
+      .units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager')
+      .map((unit) => unit.id);
+    expect(villagerIds).toHaveLength(20);
+    const originalPresentedIdentities = bridge
+      .getRenderState()
+      .entities.filter((entity) => villagerIds.includes(entity.id))
+      .map(({ id, generation }) => ({ id, generation }))
+      .sort((left, right) => left.id - right.id);
+    expect(originalPresentedIdentities).toHaveLength(20);
+
+    for (const villagerId of villagerIds) {
+      expect(bridge.selectEntityById(villagerId)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      bridge.step(100);
+    }
+    expect(
+      bridge.getEconomyState().units.filter((unit) => villagerIds.includes(unit.id)),
+    ).toHaveLength(0);
+    expect(
+      bridge.getRenderState().entities.filter((entity) => villagerIds.includes(entity.id)),
+    ).toHaveLength(0);
+    expect(bridge.selectEntityById(castle!.id)).toBe(true);
+    expect(bridge.getSelectionState().inventory).toContain('20 / 20 garrisoned');
+
+    const restored = createSimulationBridge('ignored', {
+      savedGame: structuredClone(bridge.saveGame()),
+    });
+    for (const candidate of [bridge, restored]) {
+      expect(candidate.selectEntityById(castle!.id)).toBe(true);
+      expect(candidate.issueAction('ungarrison')).toBe(true);
+      candidate.step(100);
+    }
+
+    const releasedVillagers = bridge
+      .getEconomyState()
+      .units.filter((unit) => villagerIds.includes(unit.id));
+    expect(releasedVillagers).toHaveLength(20);
+    expect(new Set(releasedVillagers.map((unit) => `${unit.x},${unit.y}`)).size)
+      .toBeGreaterThan(1);
+
+    const presentedVillagers = bridge
+      .getRenderState()
+      .entities.filter((entity) => villagerIds.includes(entity.id));
+    expect(presentedVillagers).toHaveLength(20);
+    expect(
+      presentedVillagers
+        .map(({ id, generation }) => ({ id, generation }))
+        .sort((left, right) => left.id - right.id),
+    ).toEqual(originalPresentedIdentities);
+    expect(new Set(presentedVillagers.map((entity) => `${entity.x},${entity.y}`)).size)
+      .toBe(20);
+    expect(
+      restored
+        .getEconomyState()
+        .units.filter((unit) => villagerIds.includes(unit.id))
+        .map(({ id, x, y }) => ({ id, x, y })),
+    ).toEqual(releasedVillagers.map(({ id, x, y }) => ({ id, x, y })));
+    expect(
+      restored
+        .getRenderState()
+        .entities.filter((entity) => villagerIds.includes(entity.id))
+        .map(({ id, generation, x, y }) => ({ id, generation, x, y }))
+        .sort((left, right) => left.id - right.id),
+    ).toEqual(
+      presentedVillagers
+        .map(({ id, generation, x, y }) => ({ id, generation, x, y }))
+        .sort((left, right) => left.id - right.id),
+    );
+
+    for (const villagerId of villagerIds) {
+      expect(
+        bridge.world.getComponent<{ occupancySlotOverflow?: true }>(
+          villagerId,
+          'unitTransform',
+        )?.occupancySlotOverflow,
+      ).toBeUndefined();
+      expect(restored.world.getComponent(villagerId, 'unitTransform'))
+        .toEqual(bridge.world.getComponent(villagerId, 'unitTransform'));
+    }
+  });
+
   it('Castle auto-fires on a visible enemy unit within range 8 over a few ticks', () => {
     // castle-defensive-fire-fixture plants a completed player-1 Castle at
     // (14, 6) with an enemy Spearman at (21, 8) — within the Castle's
