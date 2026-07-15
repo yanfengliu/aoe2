@@ -78,6 +78,46 @@ describe('AoeVoxelAdapter occlusion silhouettes', () => {
     ]);
   });
 
+  it('holds a boar facing across later snapshots that carry no strike', () => {
+    // The reported bug: the boar turned back and forth. Facing was weighted by
+    // the decaying gore pose, so it rotated home between bites. It must now
+    // persist across snapshots exactly like unit gait history — and reset on
+    // bridge swap, since it is disposable render state.
+    const adapter = new AoeVoxelAdapter();
+    const boar = view({
+      id: 90,
+      generation: 2,
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'boar',
+      x: 12,
+      y: 8,
+      tint: 0x6b4a2f,
+      size: 0.9,
+      currentHp: 69,
+      maxHp: 75,
+    });
+    const striking = {
+      ...boar,
+      attackAnimation: { tick: 0, sourceX: 12, sourceY: 8, targetX: 11, targetY: 8 },
+    } as ProjectedEntityView;
+
+    const headX = (snapshot: ReturnType<AoeVoxelAdapter['createSnapshot']>): number => {
+      const batch = snapshot.batches.find((candidate) => candidate.instanceKeys
+        .some((key) => key.endsWith(':boar-head')))!;
+      const index = batch.instanceKeys.findIndex((key) => key.endsWith(':boar-head'));
+      return batch.matrices[index * 16 + 12]!;
+    };
+
+    const duringGore = headX(adapter.createSnapshot([view(), striking], 50));
+    // Long after the strike window: no live attack on this view at all.
+    const settled = headX(adapter.createSnapshot([view(), boar], 4_000));
+    const rootX = boar.x + 0.5;
+    expect(duringGore).toBeLessThan(rootX);
+    expect(settled, 'the boar turned back to authored facing after the gore')
+      .toBeLessThan(rootX);
+  });
+
   it('clears the retained occluded list on bridge swap (review iter-1)', () => {
     const adapter = new AoeVoxelAdapter();
     adapter.createSnapshot([view(), hiddenVillager, townCenter()], 1_000);

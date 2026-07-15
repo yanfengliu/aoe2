@@ -34,7 +34,11 @@ import {
   computeOcclusionSilhouettes,
   type OccludedUnitState,
 } from './aoeVoxelOcclusionSilhouettes';
-import { poseWildlifeAttackParts } from './aoeVoxelWildlifePose';
+import {
+  poseWildlifeAttackParts,
+  resolveWildlifeFacing,
+  type WildlifeFacing,
+} from './aoeVoxelWildlifePose';
 
 export { AOE_TERRAIN_CHUNK_SIZE } from './aoeVoxelTerrain';
 
@@ -109,7 +113,11 @@ function terrainWithVoxelFog(
   });
 }
 
-function partsFor(entity: EntityRecipeInput, sampleTimeMs: number): VoxelPart[] {
+function partsFor(
+  entity: EntityRecipeInput,
+  sampleTimeMs: number,
+  facing: WildlifeFacing | undefined,
+): VoxelPart[] {
   if (entity.entity.layer === 'unit') {
     return createUnitParts(
       entity.entity,
@@ -127,6 +135,7 @@ function partsFor(entity: EntityRecipeInput, sampleTimeMs: number): VoxelPart[] 
     createResourceParts(entity.entity, entity.identity, entity.ground),
     entity.entity,
     sampleTimeMs,
+    facing,
   )];
 }
 
@@ -140,6 +149,7 @@ export class AoeVoxelAdapter {
   private readonly chunkStates = new Map<string, ChunkState>();
   private readonly fallbackIdentities = new Map<string, FallbackIdentityState>();
   private readonly unitMotionHistories = new Map<string, AoeUnitMotionHistory>();
+  private readonly wildlifeFacings = new Map<string, WildlifeFacing>();
   private readonly healthByIdentity = new Map<string, number>();
   private readonly hitUntilByIdentity = new Map<string, number>();
   private lastFeedbackTimeMs = 0;
@@ -321,6 +331,7 @@ export class AoeVoxelAdapter {
     );
     const seenFallbacks = new Set<string>();
     const nextMotionHistories = new Map<string, AoeUnitMotionHistory>();
+    const nextWildlifeFacings = new Map<string, WildlifeFacing>();
     const keyed = entities.filter((entity) => entity.layer !== 'terrain').map((entity) => {
       const explicit = explicitEntityKey(entity);
       let identity = explicit;
@@ -344,13 +355,19 @@ export class AoeVoxelAdapter {
         )
         : undefined;
       if (resolvedAnimation) nextMotionHistories.set(identity, resolvedAnimation.history);
+      // Wildlife facing is sticky between strikes, so it is retained per
+      // identity exactly like unit gait history: disposable, never persisted.
+      const facing = entity.layer === 'resource' && !entity.isMemory
+        ? resolveWildlifeFacing(entity, sampleTimeMs, this.wildlifeFacings.get(identity))
+        : undefined;
+      if (facing) nextWildlifeFacings.set(identity, facing);
       const recipeInput: EntityRecipeInput = {
         entity,
         identity,
         ground: compositionGround(entity),
         ...(resolvedAnimation ? { animationState: resolvedAnimation.state } : {}),
       };
-      const parts = partsFor(recipeInput, sampleTimeMs);
+      const parts = partsFor(recipeInput, sampleTimeMs, facing);
       const visibleParts = parts.filter((part) => part.surface !== 'shadow');
       return {
         ...recipeInput,
@@ -363,6 +380,10 @@ export class AoeVoxelAdapter {
     this.unitMotionHistories.clear();
     for (const [identity, history] of nextMotionHistories) {
       this.unitMotionHistories.set(identity, history);
+    }
+    this.wildlifeFacings.clear();
+    for (const [identity, facing] of nextWildlifeFacings) {
+      this.wildlifeFacings.set(identity, facing);
     }
     return { entities: keyed, fallbacks };
   }
@@ -416,5 +437,6 @@ export class AoeVoxelAdapter {
     this.lastFeedbackTimeMs = 0;
     this.currentHitState = null;
     this.currentOccludedUnits = [];
+    this.wildlifeFacings.clear();
   }
 }

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.12 - 2026-07-15
+
+### Fixed
+
+- **Boars no longer swivel back and forth while fighting.** A boar now keeps facing whatever it last struck instead of rotating back to its default orientation between bites. Introduced in 0.2.8: the facing was tied to the strike animation's fade-out, so the animal turned home as each gore finished and snapped around again on the next hit.
+
 ## 0.2.11 - 2026-07-15
 
 ### Changed

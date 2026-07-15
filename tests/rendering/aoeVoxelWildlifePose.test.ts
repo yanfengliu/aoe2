@@ -8,7 +8,11 @@ import { describe, expect, it } from 'vitest';
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { TPS } from '../../src/game/simulation/prototypeScenario';
 import { createResourceParts } from '../../src/rendering/voxel/aoeVoxelResourceRecipes';
-import { poseWildlifeAttackParts } from '../../src/rendering/voxel/aoeVoxelWildlifePose';
+import {
+  poseWildlifeAttackParts,
+  resolveWildlifeFacing,
+  type WildlifeFacing,
+} from '../../src/rendering/voxel/aoeVoxelWildlifePose';
 import { matrixForPart, type VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 
 const ATTACK_TICK = 40;
@@ -51,11 +55,14 @@ function withAttack(target: { x: number; y: number }): ProjectedEntityView {
   } as ProjectedEntityView;
 }
 
+// Mirrors what the adapter does per snapshot: resolve the retained facing,
+// then pose with it.
 function partsAt(entity: ProjectedEntityView, sampleTimeMs: number): readonly VoxelPart[] {
   return poseWildlifeAttackParts(
     createResourceParts(entity, '90:2', 0),
     entity,
     sampleTimeMs,
+    resolveWildlifeFacing(entity, sampleTimeMs, undefined),
   );
 }
 
@@ -70,6 +77,62 @@ function matricesEqual(left: VoxelPart, right: VoxelPart): boolean {
   const b = matrixForPart(right);
   return a.every((value, index) => Math.abs(value - b[index]!) < 1e-9);
 }
+
+describe('wildlife facing retention (spec §14.5)', () => {
+  const goreTimeMs = ATTACK_TICK * TICK_MS + 120;
+  // Well past the 650ms pose window: the gore is over, but the boar must not
+  // rotate back to its authored facing.
+  const afterGoreMs = ATTACK_TICK * TICK_MS + 900;
+
+  function headOffsetX(entity: ProjectedEntityView, timeMs: number, facing?: WildlifeFacing): number {
+    const posed = poseWildlifeAttackParts(
+      createResourceParts(entity, '90:2', 0),
+      entity,
+      timeMs,
+      facing,
+    );
+    return part(posed, 'boar-head').centerX - (entity.x + 0.5);
+  }
+
+  it('keeps facing the target after the strike instead of turning back', () => {
+    // A boar that bit something to its -x side must still be looking that way
+    // once the gore finishes. Before this fix the facing was weighted by the
+    // pose weight, so it swung back to authored forward as the pose decayed —
+    // and snapped again on the next bite, reading as turning back and forth.
+    const struck = withAttack({ x: 11, y: 8 });
+    const facing = resolveWildlifeFacing(struck, goreTimeMs, undefined);
+    expect(facing).toBeDefined();
+
+    const duringGore = headOffsetX(struck, goreTimeMs, facing);
+    expect(duringGore, 'head must swing toward the -x target during the gore')
+      .toBeLessThan(0);
+
+    // Same retained facing, sampled after the window with no live attack.
+    const settled = boarView();
+    const heldFacing = resolveWildlifeFacing(settled, afterGoreMs, facing);
+    expect(headOffsetX(settled, afterGoreMs, heldFacing), 'the boar turned back to authored facing')
+      .toBeLessThan(0);
+  });
+
+  it('retains the last facing when no attack is active, and adopts a new one on the next strike', () => {
+    const first = resolveWildlifeFacing(withAttack({ x: 11, y: 8 }), goreTimeMs, undefined)!;
+    const held = resolveWildlifeFacing(boarView(), afterGoreMs, first)!;
+    expect(held.directionX).toBeCloseTo(first.directionX, 10);
+    expect(held.directionZ).toBeCloseTo(first.directionZ, 10);
+
+    // A later bite from the opposite side re-aims it.
+    const second = resolveWildlifeFacing(withAttack({ x: 13, y: 8 }), goreTimeMs, held)!;
+    expect(second.directionX).toBeGreaterThan(0);
+    expect(first.directionX).toBeLessThan(0);
+  });
+
+  it('leaves a boar that has never attacked at its authored facing', () => {
+    const never = boarView();
+    expect(resolveWildlifeFacing(never, goreTimeMs, undefined)).toBeUndefined();
+    expect(poseWildlifeAttackParts(createResourceParts(never, '90:2', 0), never, goreTimeMs, undefined))
+      .toEqual(createResourceParts(never, '90:2', 0));
+  });
+});
 
 describe('wildlife gore pose (spec §14.5)', () => {
   const rest = boarView();
