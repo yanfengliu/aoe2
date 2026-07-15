@@ -122,6 +122,25 @@ describe('AoE voxel unit attack lifecycle', () => {
     expect(weights).toEqual([1, 0.84375, 0.5, 0.15625, 0]);
   });
 
+  it('reconstructs the warm moving state at the exact cancellation boundary', () => {
+    const event = attackEvent(0, { cancelTick: 1, targetX: 0, targetY: 1 });
+    const source = unit({ attackAnimation: event });
+    const impact = resolveUnitAnimationState(source, '7:3', undefined, 0);
+    const displayed = unit({ x: 0.2, attackAnimation: event });
+    const warm = resolveUnitAnimationState(displayed, '7:3', impact.history, 100);
+    const fresh = resolveUnitAnimationState(displayed, '7:3', undefined, 100);
+
+    expect(warm.state.mode).toBe('moving');
+    expect(fresh.state.mode).toBe(warm.state.mode);
+    expect(fresh.state.locomotionWeight).toBeCloseTo(warm.state.locomotionWeight);
+    expect(fresh.state.directionX).toBeCloseTo(warm.state.directionX);
+    expect(fresh.state.directionZ).toBeCloseTo(warm.state.directionZ);
+    expect(fresh.state.attackWeight).toBe(warm.state.attackWeight);
+    expect(fresh.state.ambientSuppressionWeight).toBe(
+      warm.state.ambientSuppressionWeight,
+    );
+  });
+
   it('reconstructs the same moving handoff from a fresh cancellation checkpoint', () => {
     const event = attackEvent(0, { cancelTick: 1, targetX: 0, targetY: 1 });
     const source = unit({ attackAnimation: event });

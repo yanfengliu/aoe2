@@ -99,7 +99,7 @@ function initialUnitMotion(
       entity.y - attackAnimation.sourceY,
     );
     if (
-      sampleTimeMs > cancelTimeMs
+      sampleTimeMs >= cancelTimeMs
       && sampleTimeMs < cancelEndTimeMs
       && distanceFromSource > MOVEMENT_EPSILON
     ) {
@@ -108,8 +108,14 @@ function initialUnitMotion(
         x: attackAnimation.sourceX,
         y: attackAnimation.sourceY,
       };
-      const start = initialUnitMotion(atSource, identity, cancelTimeMs);
-      return resolveUnitAnimationState(entity, identity, start.history, sampleTimeMs);
+      const reconstructionTimeMs = sampleTimeMs === cancelTimeMs
+        ? cancelTimeMs - 1_000 / TPS
+        : cancelTimeMs;
+      const start = initialUnitMotion(atSource, identity, Math.max(0, reconstructionTimeMs));
+      const history = reconstructionTimeMs < 0
+        ? { ...start.history, sampleTimeMs: reconstructionTimeMs }
+        : start.history;
+      return resolveUnitAnimationState(entity, identity, history, sampleTimeMs);
     }
   }
   const phaseRadians = phaseForUnitIdentity(identity);
