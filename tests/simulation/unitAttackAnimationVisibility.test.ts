@@ -92,6 +92,7 @@ describe('unit attack animation visibility lifetime', () => {
       () => null,
       () => [],
       () => [],
+      () => undefined,
     );
 
     expect(projector.projectEntity(

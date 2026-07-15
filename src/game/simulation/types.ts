@@ -232,6 +232,11 @@ export interface ProjectedEntityView {
   currentHp: number | null;
   maxHp: number | null;
   attackAnimation?: import('./attackAnimationTypes').ProjectedUnitAttackAnimationView;
+  // Wildlife life state (spec §14.5 carcass): true live, false for a
+  // persisted corpse, absent for non-wildlife. Explicit on purpose —
+  // `currentHp === null` is a health-display convention shared with every
+  // other resource, so the carcass look must not key off it.
+  wildlifeAlive?: boolean;
   // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
   // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;
@@ -240,9 +245,8 @@ export interface ProjectedEntityView {
 // One unit death, as surfaced to the render layer (v0.1.129 death feedback).
 // Emitted at the sim's destroyUnitEntity chokepoint and fog-filtered per
 // viewing player before it reaches a frame, because present→absent diffing on
-// the entity view cannot distinguish death from fog exit or garrisoning.
-// x/y are the unit's PROJECTED (sub-cell fine) coordinates at death so the
-// effect plays exactly where the unit visually stood.
+// the entity view cannot distinguish death from fog exit or garrisoning. x/y
+// are the unit's PROJECTED (sub-cell fine) coordinates at death.
 export interface ProjectedUnitDeathView {
   id: number;
   tick: number;
@@ -253,11 +257,10 @@ export interface ProjectedUnitDeathView {
   tint: number;
   size: number;
   // Players who could see the death cell AT THE MOMENT OF DEATH (captured
-  // before the unit is destroyed and vision recomputed). The death cue is
-  // gated on THIS, not on current visibility: you see a death you witnessed
-  // and only that one — a kill in your fog never surfaces when you later
-  // uncover the cell, and your own lone unit's death still shows even though
-  // losing it re-fogs its cell the same tick.
+  // before the unit is destroyed and vision recomputed) — the cue is gated on
+  // this, not current visibility: a kill in your fog never surfaces when you
+  // later uncover the cell, and your own lone unit's death still shows even
+  // though losing it re-fogs its cell the same tick.
   witnessedBy: number[];
 }
 
@@ -465,10 +468,9 @@ export interface SimulationDebugSnapshot {
     villagerTargets: Partial<Record<string, number>>;
     attackGroupSize: number;
   }>;
-  // Slice 12 Task D: per-unit probe for the "coarse-vs-fine" debug
-  // overlay. `coarseX/Y` is the integer simulation cell; `fineX/Y` is
-  // the interpolated render position (in whole-cell units). The scene
-  // draws a line from coarse → fine for every entry.
+  // Slice 12 Task D: per-unit probe for the "coarse-vs-fine" debug overlay.
+  // `coarseX/Y` is the integer simulation cell; `fineX/Y` the interpolated
+  // render position (whole-cell units); the scene draws coarse → fine.
   coarseVsFine: Array<{
     id: number;
     coarseX: number;

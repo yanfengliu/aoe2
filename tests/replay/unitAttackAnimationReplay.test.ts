@@ -229,11 +229,14 @@ describe('unit attack animation replay snapshots', () => {
     const replay = makeReplayBridge(replayWorld);
     try {
       const renderState = replay.getRenderState();
-      expect(
-        renderState.entities.filter(
-          (entity) => entity.attackAnimation?.tick === attackTick,
-        ),
-      ).toHaveLength(2);
+      const restored = renderState.entities.filter(
+        (entity) => entity.attackAnimation?.tick === attackTick,
+      );
+      // Every attacker the live run recorded at that tick restores — and
+      // since v0.2.8 wildlife retaliation shares this feed, so the boar's
+      // own strike is legitimately part of the set (spec §14.5).
+      expect(restored).toHaveLength(expectedAttacks.length);
+      expect(restored.filter((entity) => entity.kind === 'unit')).toHaveLength(2);
     } finally {
       replay.disposeReplayRenderAdapter();
     }

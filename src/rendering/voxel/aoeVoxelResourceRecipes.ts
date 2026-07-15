@@ -144,6 +144,32 @@ function farm(context: ResourceContext): void {
   }
 }
 
+// Spec §14.5 wildlife carcass: a killed huntable is tipped onto its side so
+// it reads as dead at default zoom, for as long as the simulation keeps its
+// gatherable corpse. Render-only — the part SET is unchanged (the hit
+// silhouette derives from these same parts), every part stays inside the
+// footprint cell, and the ground shadow stays planted.
+const CARCASS_ROLL = Math.PI / 2;
+
+function fellWildlifeParts(parts: VoxelPart[], entity: ProjectedEntityView): VoxelPart[] {
+  const rootX = entity.x + 0.5;
+  const rootZ = entity.y + 0.5;
+  return parts.map((part) => {
+    if (part.surface === 'shadow') return part;
+    // Rotate the body about the root's forward axis: height becomes lateral
+    // spread and the mass settles at ground level.
+    const localY = part.centerY;
+    const localZ = part.centerZ - rootZ;
+    return {
+      ...part,
+      centerY: Math.max(0.04, localZ === 0 ? localY * 0.22 : Math.abs(localZ) * 0.5 + 0.04),
+      centerZ: rootZ + Math.max(-0.42, Math.min(0.42, localY * 0.6 - 0.1)),
+      centerX: rootX + Math.max(-0.42, Math.min(0.42, (part.centerX - rootX) * 0.9)),
+      roll: (part.roll ?? 0) + CARCASS_ROLL,
+    };
+  });
+}
+
 export function createResourceParts(
   entity: ProjectedEntityView,
   identity: string,
@@ -171,5 +197,7 @@ export function createResourceParts(
     case 'relic': relic(context); break;
     case 'farm': farm(context); break;
   }
-  return context.parts;
+  return entity.wildlifeAlive === false
+    ? fellWildlifeParts(context.parts, entity)
+    : context.parts;
 }

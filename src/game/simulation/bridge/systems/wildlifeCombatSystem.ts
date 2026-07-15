@@ -38,6 +38,9 @@ export interface WildlifeCombatSystemDeps {
   ) => void;
   destroyUnitEntity: (id: number) => void;
   markOutOfBandRenderChange: () => void;
+  // Spec §14.5 wildlife retaliation animation: landed bites publish through
+  // the same witnessed successful-hit feed as unit attacks.
+  recordUnitAttack: (attackerId: number, targetId: number) => void;
 }
 
 export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): void {
@@ -51,6 +54,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
     setPositionAndSyncOccupancy,
     destroyUnitEntity,
     markOutOfBandRenderChange,
+    recordUnitAttack,
   } = deps;
 
   world.registerSystem({
@@ -126,6 +130,9 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
         wildlife.cooldownTicks = wildlife.reloadTicks;
         wildlifeDirty = true;
         markOutOfBandRenderChange();
+        // Spec §14.5: the landed bite is a witnessed successful hit — same
+        // feed, witness rule, and replay semantics as a unit attack.
+        recordUnitAttack(id, targetId);
 
         if (targetCombat.currentHp <= 0) {
           destroyUnitEntity(targetId);

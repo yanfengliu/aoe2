@@ -69,6 +69,7 @@ export function makeReplayBridge(
       api.getEntityHealth,
       api.getRecentUnitDeaths,
       api.getRecentUnitAttacks,
+      api.getWildlifeAlive,
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {

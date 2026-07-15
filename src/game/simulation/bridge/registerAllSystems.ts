@@ -341,6 +341,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     setPositionAndSyncOccupancy,
     destroyUnitEntity,
     markOutOfBandRenderChange,
+    recordUnitAttack,
   });
 
   registerHerdableOwnershipSystem({ world, markOutOfBandRenderChange });

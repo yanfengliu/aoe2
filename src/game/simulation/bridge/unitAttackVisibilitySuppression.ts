@@ -1,6 +1,6 @@
 import type { Position, VisibilityMap } from 'civ-engine';
 
-import type { RenderableComponent, UnitComponent } from '../types';
+import type { RenderableComponent, ResourceComponent, UnitComponent } from '../types';
 import type { UnitAttackFeedRuntime } from './bridgeState';
 import { isFootprintVisible, type GameWorld } from './pureHelpers';
 import { markUnitAttackFeedChanged } from './unitAttackAnimationFeed';
@@ -17,6 +17,11 @@ export function suppressHiddenUnitAttacks(
 
     const attackerRef = world.getEntityRef(attack.attackerId);
     const attacker = world.getComponent<UnitComponent>(attack.attackerId, 'unit');
+    // Wildlife retaliation (spec §14.5): a boar attacker exists as a resource
+    // entity — treat its continued presence like a unit's for suppression.
+    const attackerResource = attacker
+      ? undefined
+      : world.getComponent<ResourceComponent>(attack.attackerId, 'resource');
     const position = world.getComponent<Position>(attack.attackerId, 'position');
     const renderable = world.getComponent<RenderableComponent>(
       attack.attackerId,
@@ -28,11 +33,11 @@ export function suppressHiddenUnitAttacks(
       if (suppressedFor.has(playerId)) continue;
       const remainsVisible = Boolean(
         isCurrentGeneration
-        && attacker
+        && (attacker || attackerResource)
         && position
         && renderable
         && (
-          attacker.owner === playerId
+          attacker?.owner === playerId
           || isFootprintVisible(
             visibility,
             playerId,

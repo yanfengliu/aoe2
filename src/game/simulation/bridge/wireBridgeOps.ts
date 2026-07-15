@@ -237,7 +237,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   } = trainingMarketOps;
-  const { getEntityHealth, getSelectionState } = selectionStateOps;
+  const { getEntityHealth, getWildlifeAlive, getSelectionState } = selectionStateOps;
   const { applyTechnology } = technologyOps;
   const {
     issueUnitMoveCommand,
@@ -413,6 +413,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getPlayerAge,
     getSelectionState,
     getEntityHealth,
+    getWildlifeAlive,
     selectEntityAtCell: (x, y) => selectionMutation(() => selectEntityAtCell(x, y)),
     selectEntityById: (id) => selectionMutation(() => selectEntityById(id)),
     selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => selectionMutation(

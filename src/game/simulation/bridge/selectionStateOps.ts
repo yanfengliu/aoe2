@@ -81,6 +81,7 @@ export interface SelectionStateOpsDeps {
 
 export interface SelectionStateOps {
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
+  getWildlifeAlive(id: number): boolean | undefined;
   getSelectionState(): SelectionState;
 }
 
@@ -131,6 +132,14 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     }
 
     return null;
+  }
+
+  // Spec §14.5 carcass: the renderer needs wildlife LIFE state explicitly.
+  // `getEntityHealth` deliberately returns null for a corpse (no HP bar), so
+  // it cannot answer "is this a carcass or a rock?" — this can.
+  function getWildlifeAlive(id: number): boolean | undefined {
+    if (!world.getComponent<ResourceComponent>(id, 'resource')) return undefined;
+    return accessor.get(wildlifeStatesCodec).get(id)?.isAlive;
   }
 
   function getSelectionHealth(id: number): SelectionState['health'] {
@@ -428,5 +437,5 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     };
   }
 
-  return { getEntityHealth, getSelectionState };
+  return { getEntityHealth, getWildlifeAlive, getSelectionState };
 }

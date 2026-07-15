@@ -12,7 +12,7 @@ import { UNIT_ATTACK_FEED_TICKS } from '../attackAnimationTypes';
 import { MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import type { BridgeState, UnitAttackFeedRuntime } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { populationCodec } from './bridgeStateSerialize';
+import { populationCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
 import {
   isFootprintVisible,
   projectUnitTransformCoordinate,
@@ -349,6 +349,12 @@ export function createUnitAttackRecorder(deps: {
   return (attackerId, targetId) => {
     const attackerRef = world.getEntityRef(attackerId);
     const attacker = world.getComponent<UnitComponent>(attackerId, 'unit');
+    // Wildlife retaliation (spec §14.5): a live boar is a valid attacker.
+    // Everything below the class gate — roots, witness rule, event shape —
+    // is attacker-class agnostic, so the feed stays shared.
+    const attackerWildlife = attacker
+      ? undefined
+      : accessor.get(wildlifeStatesCodec).get(attackerId);
     const attackerPosition = world.getComponent<Position>(
       attackerId,
       'position',
@@ -364,7 +370,7 @@ export function createUnitAttackRecorder(deps: {
     );
     if (
       !attackerRef ||
-      !attacker ||
+      (!attacker && attackerWildlife?.isAlive !== true) ||
       !attackerPosition ||
       !attackerRenderable ||
       !targetPosition ||

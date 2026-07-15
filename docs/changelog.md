@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.8 - 2026-07-15
+
+### Added
+
+- **Boars fight back visibly, and killed animals stay down as carcasses.** A boar whose retaliation lands now rears and gores toward whoever it hit, driven by the same successful-hit channel as unit attacks — so it obeys the identical fog rules (you only see strikes you could witness), freezes with pause, and replays exactly. A killed huntable now presents as a fallen carcass tipped onto its side for as long as its corpse is gatherable, instead of standing upright as if alive. Gather targeting, amounts, hit detection, saves, and replays are unchanged.
+
 ## 0.2.7 - 2026-07-15
 
 ### Changed

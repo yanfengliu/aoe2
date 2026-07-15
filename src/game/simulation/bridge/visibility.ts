@@ -72,6 +72,7 @@ export function createProjector(
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null,
   getRecentUnitDeaths: () => readonly ProjectedUnitDeathView[],
   getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[],
+  getWildlifeAlive: (id: number) => boolean | undefined,
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -95,7 +96,10 @@ export function createProjector(
       const building = world.getComponent<BuildingComponent>(ref.id, 'building');
       const resource = world.getComponent<ResourceComponent>(ref.id, 'resource');
       const health = getEntityHealth(ref.id);
-      if (unit && attackAnimationTick !== world.tick) {
+      // Units AND wildlife resources carry the successful-hit channel (spec
+      // §14.5 wildlife retaliation) — the feed itself only holds keys for
+      // entities that recorded a witnessed strike.
+      if ((unit || resource) && attackAnimationTick !== world.tick) {
         attackAnimations = indexVisibleUnitAttackAnimations(
           getRecentUnitAttacks(),
           world.tick,
@@ -103,9 +107,10 @@ export function createProjector(
         );
         attackAnimationTick = world.tick;
       }
-      const attackAnimation = unit
+      const attackAnimation = (unit || resource)
         ? attackAnimations.get(unitAttackKey(ref.id, ref.generation))
         : undefined;
+      const wildlifeAlive = resource ? getWildlifeAlive(ref.id) : undefined;
 
       let owner: number | null = null;
       let entityType: ProjectedEntityView['entityType'] = 'grass';
@@ -156,6 +161,7 @@ export function createProjector(
         currentHp: health?.currentHp ?? null,
         maxHp: health?.maxHp ?? null,
         ...(attackAnimation ? { attackAnimation } : {}),
+        ...(wildlifeAlive === undefined ? {} : { wildlifeAlive }),
         isMemory: false,
       };
     },
