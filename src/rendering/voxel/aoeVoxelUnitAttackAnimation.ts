@@ -22,14 +22,24 @@ function smoothstep(value: number): number {
 function attackArc(phase: number): number {
   const normalized = clamp01(phase);
   if (normalized <= 0 || normalized >= 1) return 0;
-  if (normalized < 0.35) {
-    return -0.65 * smoothstep(normalized / 0.35);
+  // Violence directive (spec §14.5, 2026-07-14): sampling honestly starts AT
+  // the 0.55 impact sample, so the VISIBLE window must carry the whole read.
+  // Load the coil through the production-invisible windup, hold it so the
+  // first visible sample is fully loaded, whip-crack to the strike peak in
+  // ~52 ms, then recover through one bounded recoil back to rest. Endpoints
+  // stay exact no-ops (arc(0) === arc(1) === 0 — pinned by tests).
+  if (normalized < 0.4) {
+    return -0.85 * smoothstep(normalized / 0.4);
   }
   if (normalized < 0.55) {
-    const transition = smoothstep((normalized - 0.35) / 0.2);
-    return -0.65 + transition * 1.65;
+    return -0.85;
   }
-  return 1 - smoothstep((normalized - 0.55) / 0.45);
+  const snapEnd = 0.586;
+  if (normalized < snapEnd) {
+    return -0.85 + 1.85 * smoothstep((normalized - 0.55) / (snapEnd - 0.55));
+  }
+  const recovery = (normalized - snapEnd) / (1 - snapEnd);
+  return Math.cos(recovery * Math.PI * 1.5) * (1 - recovery) * (1 - recovery);
 }
 
 interface Point3 {
@@ -199,27 +209,27 @@ function poseHumanoidAttack(
       return transformPart(
         part,
         state,
-        (lunge * 0.13 - windup * 0.04) * scale,
-        windup * 0.025 * scale,
-        -arc * 0.22,
+        (lunge * 0.19 - windup * 0.06) * scale,
+        windup * 0.04 * scale,
+        -arc * 0.34,
         0,
         pivots.bow,
       );
     }
     if (suffix.includes('arm-left')) {
-      return transformPart(part, state, lunge * 0.09 * scale, 0, -arc * 0.48);
+      return transformPart(part, state, lunge * 0.13 * scale, 0, -arc * 0.7);
     }
     if (suffix.includes('arm-right')) {
       return transformPart(
         part,
         state,
-        (lunge * 0.04 - windup * 0.12) * scale,
-        windup * 0.04 * scale,
-        arc * 0.58,
+        (lunge * 0.06 - windup * 0.18) * scale,
+        windup * 0.06 * scale,
+        arc * 0.85,
       );
     }
     if (suffix.includes('tunic')) {
-      return transformPart(part, state, lunge * 0.035 * scale, 0, -lunge * 0.08);
+      return transformPart(part, state, lunge * 0.055 * scale, 0, -lunge * 0.13);
     }
     return part;
   }
@@ -231,19 +241,26 @@ function poseHumanoidAttack(
     return transformPart(
       part,
       state,
-      (lunge * 0.14 - windup * 0.05) * scale,
-      (windup * 0.12 - lunge * 0.05) * scale,
-      -arc * (role === 'villager' ? 1.05 : 0.82),
-      arc * (role === 'villager' ? -0.18 : 0.14),
+      (lunge * 0.2 - windup * 0.075) * scale,
+      (windup * 0.17 - lunge * 0.075) * scale,
+      // Sign convention (review iter-1 HIGH): POSITIVE pitch swings the
+      // weapon head forward-and-down about its pivot, negative swings it
+      // up-and-back. The strike (arc -> +1) must therefore pitch POSITIVE so
+      // the chop drives through the captured target, and the coil (arc < 0)
+      // loads it over the shoulder. v0.2.3 used the opposite sign, which was
+      // invisible while the window was a monotone decay and became a
+      // backward strike once the coil->snap window was authored.
+      arc * (role === 'villager' ? 1.6 : 1.25),
+      arc * (role === 'villager' ? -0.27 : 0.21),
       suffix.includes('tool') ? pivots.tool
         : suffix.includes('sword') ? pivots.sword : undefined,
     );
   }
   if (role === 'infantry' && /(shield|arm-left)/u.test(suffix)) {
-    return transformPart(part, state, lunge * 0.055 * scale, 0, -lunge * 0.16);
+    return transformPart(part, state, lunge * 0.08 * scale, 0, -lunge * 0.24);
   }
   if (suffix.includes('tunic')) {
-    return transformPart(part, state, lunge * 0.045 * scale, 0, -lunge * 0.1);
+    return transformPart(part, state, lunge * 0.07 * scale, 0, -lunge * 0.16);
   }
   return part;
 }
@@ -263,9 +280,9 @@ function poseCavalryAttack(
     return transformPart(
       part,
       state,
-      (lunge * 0.16 - windup * 0.06) * scale,
-      windup * 0.04 * scale,
-      -arc * 0.28,
+      (lunge * 0.24 - windup * 0.09) * scale,
+      windup * 0.06 * scale,
+      -arc * 0.42,
       0,
       pivots.bow,
     );
@@ -274,16 +291,16 @@ function poseCavalryAttack(
     return transformPart(
       part,
       state,
-      (lunge * 0.3 - windup * 0.12) * scale,
-      -lunge * 0.025 * scale,
-      -arc * 0.36,
+      (lunge * 0.45 - windup * 0.18) * scale,
+      -lunge * 0.04 * scale,
+      -arc * 0.55,
     );
   }
   if (suffix.includes('rider-tunic')) {
-    return transformPart(part, state, lunge * 0.065 * scale, 0, -lunge * 0.12);
+    return transformPart(part, state, lunge * 0.1 * scale, 0, -lunge * 0.18);
   }
   if (role === 'cavalry' && suffix.includes('shield')) {
-    return transformPart(part, state, lunge * 0.04 * scale, 0, -lunge * 0.1);
+    return transformPart(part, state, lunge * 0.06 * scale, 0, -lunge * 0.15);
   }
   return part;
 }
@@ -313,7 +330,9 @@ function poseSiegeAttack(
       state,
       0,
       (windup * 0.06 - lunge * 0.03) * scale,
-      -arc * 1.1,
+      // Same sign correction as the humanoid chop: the arm is loaded back at
+      // the coil and snaps FORWARD through the release.
+      arc * 1.1,
       arc * 0.08,
       pivots.throwingArm,
     );

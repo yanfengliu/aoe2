@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.7 - 2026-07-15
+
+### Changed
+
+- **Attacks land like they mean it.** Successful hits now read as forceful strikes rather than gentle taps: the weapon starts the visible window fully coiled, whip-cracks into the target in about 50 ms, and recovers through one bounded follow-through. Every attacking role got a proportional amplitude raise (villagers, infantry, archers, cavalry, cavalry archers, siege). This also fixes a long-standing direction bug the retune exposed — melee weapons and siege arms were swinging *away* from their target, ending behind the attacker; they now drive through the captured target point. Roots still never lunge, and pause/replay/fog behavior is unchanged.
+
 ## 0.2.6 - 2026-07-15
 
 ### Added
