@@ -17,19 +17,31 @@ export {
   createMiningCampFixture,
   createFishFixture,
   createVillagerNoWoodDropoffFixture,
+} from './economyBasics/gathering';
+
+export {
   createFogMemoryCastleDestroyEdgeFixture,
   createFogMemoryCastleEdgeFixture,
   createResourceDepletionFixture,
   createMoveTargetUnblocksFixture,
   createNarrowCorridorFixture,
+} from './economyBasics/fogAndMovement';
+
+export {
   createFogMemoryFixture,
   createBuildingFootprintVisionFixture,
   createBoarAggroFixture,
   createBoarHuntFixture,
   createWolfAggroFixture,
+} from './economyBasics/visionAndAggro';
+
+export {
   createGatherUnreachableRerouteFixture,
+} from './economyBasics/gatherReroute';
+
+export {
   createDropOffUnreachableRerouteFixture,
-} from './economyBasics';
+} from './economyBasics/dropOffReroute';
 
 export {
   createFeudalMissingPrereqFixture,
@@ -38,9 +50,19 @@ export {
   createFeudalStableFixture,
   createBlockedStableSpawnFixture,
   createIsolatedScoutSpawnFixture,
+  createFeudalMarketFixture,
+  createFeudalSpearmanFixture,
+  createFeudalSkirmisherFixture,
+  createFeudalWatchTowerFixture,
+} from './ageProgression/feudal';
+
+export {
   createCastleAgeFixture,
   createCastleTownCenterFixture,
   createCastleUpgradesFixture,
+} from './ageProgression/castle';
+
+export {
   createImperialAgeFixture,
   createImperialMissingPrereqFixture,
   createImperialUpgradesFixture,
@@ -51,14 +73,13 @@ export {
   createImperialCastleFranksFixture,
   createImperialSiegeFixture,
   createImperialBlacksmithFixture,
+  createImperialCastleFixture,
+} from './ageProgression/imperial';
+
+export {
   createBlacksmithProgressionFixture,
   createDoubleBlacksmithRaceFixture,
-  createImperialCastleFixture,
-  createFeudalMarketFixture,
-  createFeudalSpearmanFixture,
-  createFeudalSkirmisherFixture,
-  createFeudalWatchTowerFixture,
-} from './ageProgression';
+} from './ageProgression/blacksmith';
 
 export {
   createPikemanVsKnightFixture,
@@ -67,15 +88,24 @@ export {
   createHalberdierVsKnightFixture,
   createCamelVsCavalryFixture,
   createSpearmanVsCamelFixture,
+  createPaladinFixture,
+  createHeavyCamelVsKnightFixture,
+} from './combatMatchups/infantryAndCavalry';
+
+export {
   createCavalryArcherRangedFixture,
   createSkirmisherVsCavalryArcherFixture,
+} from './combatMatchups/rangedSkirmish';
+
+export {
   createMilitiaCombatFixture,
   createMovingEnemyAttackFixture,
   createChampionVsHalberdierFixture,
   createChampionVsArmoredHalberdierFixture,
   createMilitiaLineFixture,
-  createPaladinFixture,
-  createHeavyCamelVsKnightFixture,
+} from './combatMatchups/generalCombat';
+
+export {
   createAutoAggroIdleMilitiaInVisionFixture,
   createAutoAggroIdleMilitiaOutOfVisionFixture,
   createAutoAggroArcherPursuitFixture,
@@ -85,10 +115,14 @@ export {
   createAutoAggroVillagerGatheringFixture,
   createAutoAggroMonkSkipFixture,
   createAutoAggroSequentialTargetsFixture,
-} from './combatMatchups';
+} from './combatMatchups/autoAggression';
 
 export {
   createSiegeWorkshopFixture,
+  createTowerVsSiegePriorityFixture,
+} from './siege/workshop';
+
+export {
   createMangonelRangedFixture,
   createMangonelVsSpearmanFixture,
   createMangonelVsClusteredInfantryFixture,
@@ -96,63 +130,92 @@ export {
   createMangonelVsKnightFixture,
   createMangonelMinRangeBlockedFixture,
   createMangonelOutsideMinRangeFixture,
-  createTowerVsSiegePriorityFixture,
+  createOnagerMinRangeBlockedFixture,
+} from './siege/mangonel';
+
+export {
   createScorpionRangedFixture,
+} from './siege/scorpion';
+
+export {
   createRamVsBuildingFixture,
   createRamVsVillagerFixture,
   createPikemanVsRamFixture,
   createCamelVsRamFixture,
-  createOnagerMinRangeBlockedFixture,
+  createSiegeRamVsBuildingFixture,
+} from './siege/ram';
+
+export {
   createBombardCannonVsBuildingFixture,
   createTownCenterReselectFixture,
   createBombardCannonMinRangeBlockedFixture,
-  createSiegeRamVsBuildingFixture,
+} from './siege/bombardCannon';
+
+export {
   createTrebuchetPackFixture,
   createTrebuchetVsBuildingFixture,
-} from './siege';
+} from './siege/trebuchet';
 
 export {
   createMonasteryFixture,
+  createMonkRelicDropCrampedFixture,
+  createMonkRelicDropFixture,
+  createMonkRelicFixture,
+} from './monastery/relic';
+
+export {
   createMonkHealFixture,
+  createMonkHealthyFriendlyWithEnemyFixture,
+  createMonkHealOverConvertFixture,
+} from './monastery/heal';
+
+export {
   createMonkConvertFixture,
   createMonkConvertHeresyFixture,
   createMonkDoubleConvertFixture,
   createMonkFlipFlopFixture,
   createMonkConvertCleanupFixture,
-  createMonkRelicDropCrampedFixture,
-  createMonkRelicDropFixture,
-  createMonkHealthyFriendlyWithEnemyFixture,
-  createMonkHealOverConvertFixture,
   createMonkConvertVisionFixture,
   createMonkFogFixture,
-  createMonkRelicFixture,
-} from './monastery';
+} from './monastery/convert';
 
 export {
   createCastleNonBritonsFixture,
   createCastleUniqueFixture,
   createCastleAiTargetPriorityFixture,
   createCastleDefensiveFireFixture,
+} from './castleDefense/towerAndCastle';
+
+export {
   createLongbowmanRangedFixture,
   createCastleFletchingFixture,
   createCastleGarrisonFixture,
   createGarrisonHealFixture,
   createGarrisonHealHerbalFixture,
+} from './castleDefense/fletching';
+
+export {
   createFu3CastleNoArchersFixture,
   createFu3CastleThreeArchersFixture,
   createFu3CastleFiveArchersFixture,
   createFu3CastleEdgeRangeFixture,
+} from './castleDefense/fu3Archers';
+
+export {
   createFu3PalisadeWallFixture,
   createFu3StoneWallFixture,
   createFu3StoneWallBlockingFixture,
   createFu3StoneWallCombatFixture,
-} from './castleDefense';
+} from './castleDefense/fu3Walls';
 
 export {
   createAiPlannerFixture,
   createAiMonkFixture,
   createAiMonkHealFixture,
   createAiWonderFixture,
+} from './ai/plannerAndMonk';
+
+export {
   createAiMonkRelicFixture,
   createAiScoutingResponseFixture,
   createAiDifficultyFixture,
@@ -161,7 +224,7 @@ export {
   createAiAgeUpPriorityFixture,
   createAiVillagerReserveFixture,
   createAiMarketAgeUpFixture,
-} from './ai';
+} from './ai/scoutingAndRush';
 
 export {
   createWonderImperialFixture,
