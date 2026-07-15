@@ -49,14 +49,49 @@ function add(
   ));
 }
 
+// Per-instance variation (spec §14.5, user directive 2026-07-14). Seeded by
+// the resource's MAP POSITION: immobile resources never move, so this is
+// stable across every frame, save/load, and replay — no per-frame or
+// per-load randomness anywhere. `vary(seed, spread)` returns a symmetric
+// deviation in [-spread, +spread].
+function vary(context: ResourceContext, seed: number, spread: number): number {
+  return (hash01(context.entity.x, context.entity.y, seed) - 0.5) * 2 * spread;
+}
+
 function tree(context: ResourceContext): void {
-  const jitter = 0.9 + hash01(context.entity.x, context.entity.y, 11) * 0.22;
-  add(context, 'tree-trunk', 'matte', VOXEL_COLORS.timber, 0, 0, 0, 0.25, 1.22 * jitter, 0.25);
-  add(context, 'tree-trunk-light', 'matte', shade(VOXEL_COLORS.timber, 1.18), -0.08, 0.18, 0.13, 0.07, 0.75, 0.06);
-  add(context, 'tree-crown-left', 'matte', VOXEL_COLORS.foliageDark, -0.32, 0.72, 0.1, 0.78, 0.68, 0.72);
-  add(context, 'tree-crown-right', 'matte', VOXEL_COLORS.foliage, 0.32, 0.82, -0.08, 0.72, 0.72, 0.68);
-  add(context, 'tree-crown-center', 'matte', context.entity.tint, 0, 1.02, 0, 0.92, 0.78, 0.86);
-  add(context, 'tree-crown-top', 'matte', VOXEL_COLORS.foliageLight, -0.16, 1.55, -0.08, 0.54, 0.42, 0.5);
+  // Trunk height and a slight whole-tree lean.
+  const jitter = 0.94 + vary(context, 11, 0.16);
+  const leanRoll = vary(context, 12, 0.07);
+  add(context, 'tree-trunk', 'matte', VOXEL_COLORS.timber, 0, 0, 0, 0.25, 1.22 * jitter, 0.25, { roll: leanRoll });
+  add(context, 'tree-trunk-light', 'matte', shade(VOXEL_COLORS.timber, 1.18), -0.08, 0.18, 0.13, 0.07, 0.75, 0.06, { roll: leanRoll });
+  // Canopy: each block gets its own offset, size, and yaw so no two trees
+  // share a silhouette. Bounds stay inside the cell (max |offset| + half
+  // width < 0.85) and the crown stack keeps its layered read.
+  const crownLift = 1 + vary(context, 20, 0.1);
+  add(
+    context, 'tree-crown-left', 'matte', VOXEL_COLORS.foliageDark,
+    -0.32 + vary(context, 13, 0.1), (0.72 + vary(context, 21, 0.08)) * crownLift, 0.1 + vary(context, 14, 0.1),
+    0.78 + vary(context, 15, 0.12), 0.68 + vary(context, 22, 0.1), 0.72 + vary(context, 16, 0.12),
+    { yaw: vary(context, 17, 0.5) },
+  );
+  add(
+    context, 'tree-crown-right', 'matte', VOXEL_COLORS.foliage,
+    0.32 + vary(context, 18, 0.1), (0.82 + vary(context, 23, 0.08)) * crownLift, -0.08 + vary(context, 19, 0.1),
+    0.72 + vary(context, 24, 0.12), 0.72 + vary(context, 25, 0.1), 0.68 + vary(context, 26, 0.12),
+    { yaw: vary(context, 27, 0.5) },
+  );
+  add(
+    context, 'tree-crown-center', 'matte', context.entity.tint,
+    vary(context, 28, 0.07), (1.02 + vary(context, 29, 0.09)) * crownLift, vary(context, 30, 0.07),
+    0.92 + vary(context, 31, 0.1), 0.78 + vary(context, 32, 0.1), 0.86 + vary(context, 33, 0.1),
+    { yaw: vary(context, 34, 0.5) },
+  );
+  add(
+    context, 'tree-crown-top', 'matte', VOXEL_COLORS.foliageLight,
+    -0.16 + vary(context, 35, 0.12), (1.55 + vary(context, 36, 0.1)) * crownLift, -0.08 + vary(context, 37, 0.12),
+    0.54 + vary(context, 38, 0.12), 0.42 + vary(context, 39, 0.1), 0.5 + vary(context, 40, 0.12),
+    { yaw: vary(context, 41, 0.6) },
+  );
 }
 
 function mine(context: ResourceContext, kind: 'gold-mine' | 'stone-mine'): void {
@@ -69,12 +104,40 @@ function mine(context: ResourceContext, kind: 'gold-mine' | 'stone-mine'): void 
     ['front', 0.08, 0.31, 0.43, 0.44],
     ['back', -0.12, -0.32, 0.4, 0.46],
   ] as const;
-  for (const [name, x, z, width, height] of rocks) {
-    const yaw = (hash01(context.entity.x, context.entity.y, name.length) - 0.5) * 0.7;
-    add(context, `${kind}-rock-${name}`, 'matte', name === 'center' ? base : shade(base, 0.82 + name.length * 0.03), x, 0, z, width, height, width * 0.82, { yaw, roll: name === 'center' ? 0.12 : -0.08 });
+  // Per-instance layout variation (spec §14.5): each rock shifts, resizes,
+  // and turns on its own position-seeded deviation, so a mine cluster reads
+  // as distinct deposits rather than one shape stamped repeatedly. Offsets
+  // stay small enough that every rock remains inside the cell.
+  for (const [index, [name, x, z, width, height]] of rocks.entries()) {
+    const seed = 40 + index * 7;
+    const rockWidth = width * (1 + vary(context, seed + 1, 0.16));
+    add(
+      context,
+      `${kind}-rock-${name}`,
+      'matte',
+      name === 'center' ? base : shade(base, 0.82 + name.length * 0.03),
+      x + vary(context, seed + 2, 0.1),
+      0,
+      z + vary(context, seed + 3, 0.1),
+      rockWidth,
+      height * (1 + vary(context, seed + 4, 0.18)),
+      rockWidth * 0.82,
+      {
+        yaw: vary(context, seed + 5, 0.45),
+        roll: (name === 'center' ? 0.12 : -0.08) + vary(context, seed + 6, 0.06),
+      },
+    );
   }
-  add(context, `${kind}-glint`, kind === 'gold-mine' ? 'metal' : 'matte', light, -0.12, 0.59, 0.16, 0.24, 0.14, 0.16, { roll: -0.25 });
-  add(context, `${kind}-vein`, kind === 'gold-mine' ? 'metal' : 'matte', light, 0.27, 0.3, 0.25, 0.08, 0.34, 0.08, { roll: 0.38 });
+  add(
+    context, `${kind}-glint`, kind === 'gold-mine' ? 'metal' : 'matte', light,
+    -0.12 + vary(context, 80, 0.16), 0.59 + vary(context, 81, 0.1), 0.16 + vary(context, 82, 0.16),
+    0.24, 0.14, 0.16, { roll: -0.25 + vary(context, 83, 0.3) },
+  );
+  add(
+    context, `${kind}-vein`, kind === 'gold-mine' ? 'metal' : 'matte', light,
+    0.27 + vary(context, 84, 0.14), 0.3 + vary(context, 85, 0.12), 0.25 + vary(context, 86, 0.14),
+    0.08, 0.34 * (1 + vary(context, 87, 0.25)), 0.08, { roll: 0.38 + vary(context, 88, 0.35) },
+  );
 }
 
 function berryBush(context: ResourceContext): void {

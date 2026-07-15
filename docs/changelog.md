@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.10 - 2026-07-15
+
+### Changed
+
+- **Forests and mineral deposits stop looking stamped.** Every tree now has its own canopy — block placement, size, lean, and rotation all vary per tree instead of only the trunk height — and every gold and stone mine gets its own rock layout, sizes, and vein placement rather than one arrangement repeated with a slight turn. Variation is a pure function of each resource's map position, so it is identical every frame, across save/load, and in replays; nothing about amounts, gathering, click targeting, or fog memory changes. On the default map this redraws 4.9% of the screen.
+
 ## 0.2.9 - 2026-07-15
 
 ### Added
