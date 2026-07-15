@@ -1,279 +1,102 @@
-// Entity-name + plural-name + selection-name + isUnitType — every
-// SelectionState['selectedEntityType'] case mapped to display string.
+// Display names for every selectable entity type.
 //
-// Co-located because the singular and plural switches need to stay in
-// lockstep (every new entity type ships in both); separating them would
-// invite drift.
+// ONE ROW PER TYPE, singular and plural together: the two used to be parallel
+// 61-case switches whose own comment warned they "need to stay in lockstep
+// (every new entity type ships in both); separating them would invite drift".
+// A table makes that lockstep structural rather than a promise — a new type
+// cannot ship half-named, because there is only one place to add it.
+//
+// A bare string means the plural is the regular '+s' form (44 of 61 types).
+// A tuple spells out a plural that isn't ('Wolves', 'Men-at-Arms', 'Barracks').
 
 import type { SelectionState, UnitType } from '../../../game/simulation/types';
+
+type EntityName = string | readonly [singular: string, plural: string];
+
+const ENTITY_NAMES: Readonly<Record<string, EntityName>> = {
+  'town-center': 'Town Center',
+  'house': 'House',
+  'mill': 'Mill',
+  'lumber-camp': 'Lumber Camp',
+  'mining-camp': 'Mining Camp',
+  'barracks': ['Barracks', 'Barracks'],
+  'watch-tower': 'Watch Tower',
+  'stable': 'Stable',
+  'archery-range': 'Archery Range',
+  'blacksmith': 'Blacksmith',
+  'market': 'Market',
+  'berry-bush': ['Berry Bush', 'Berry Bushes'],
+  'gold-mine': 'Gold Mine',
+  'stone-mine': 'Stone Mine',
+  'boar': 'Boar',
+  'fish': ['Fish', 'Fish'],
+  'sheep': ['Sheep', 'Sheep'],
+  'wolf': ['Wolf', 'Wolves'],
+  'tree': 'Tree',
+  'villager': 'Villager',
+  'militia': ['Militia', 'Militia'],
+  'spearman': ['Spearman', 'Spearmen'],
+  'archer': 'Archer',
+  'skirmisher': 'Skirmisher',
+  'knight': 'Knight',
+  'scout': ['Scout Cavalry', 'Scout Cavalry'],
+  'crossbowman': ['Crossbowman', 'Crossbowmen'],
+  'pikeman': ['Pikeman', 'Pikemen'],
+  'light-cavalry': ['Light Cavalry', 'Light Cavalry'],
+  'camel': 'Camel',
+  'cavalry-archer': 'Cavalry Archer',
+  'mangonel': 'Mangonel',
+  'scorpion': 'Scorpion',
+  'battering-ram': 'Battering Ram',
+  'siege-workshop': 'Siege Workshop',
+  'monastery': ['Monastery', 'Monasteries'],
+  'monk': 'Monk',
+  'relic': 'Relic',
+  'castle': 'Castle',
+  'wonder': 'Wonder',
+  'longbowman': ['Longbowman', 'Longbowmen'],
+  'arbalest': 'Arbalest',
+  'halberdier': 'Halberdier',
+  'hussar': 'Hussar',
+  'heavy-cavalry-archer': 'Heavy Cavalry Archer',
+  'cavalier': 'Cavalier',
+  'champion': 'Champion',
+  'elite-longbowman': ['Elite Longbowman', 'Elite Longbowmen'],
+  'onager': 'Onager',
+  'heavy-scorpion': 'Heavy Scorpion',
+  'siege-ram': 'Siege Ram',
+  'bombard-cannon': 'Bombard Cannon',
+  'trebuchet': 'Trebuchet',
+  'man-at-arms': ['Man-at-Arms', 'Men-at-Arms'],
+  'long-swordsman': ['Long Swordsman', 'Long Swordsmen'],
+  'two-handed-swordsman': ['Two-Handed Swordsman', 'Two-Handed Swordsmen'],
+  'paladin': 'Paladin',
+  'heavy-camel': 'Heavy Camel',
+  'stone-wall': 'Stone Wall',
+  'palisade-wall': 'Palisade Wall',
+  'farm': 'Farm',
+};
+
+function nameOf(entityType: string): EntityName | undefined {
+  return ENTITY_NAMES[entityType];
+}
 
 // Human-readable name for the entity selected in the HUD. The fallback
 // returns the raw kebab-cased id so unknown future entity types stay
 // legible until they're added here.
 export function formatEntityName(entityType: SelectionState['selectedEntityType']): string {
-  if (!entityType) {
-    return 'No selection';
-  }
-
-  switch (entityType) {
-    case 'town-center':
-      return 'Town Center';
-    case 'house':
-      return 'House';
-    case 'mill':
-      return 'Mill';
-    case 'lumber-camp':
-      return 'Lumber Camp';
-    case 'mining-camp':
-      return 'Mining Camp';
-    case 'barracks':
-      return 'Barracks';
-    case 'watch-tower':
-      return 'Watch Tower';
-    case 'stable':
-      return 'Stable';
-    case 'archery-range':
-      return 'Archery Range';
-    case 'blacksmith':
-      return 'Blacksmith';
-    case 'market':
-      return 'Market';
-    case 'berry-bush':
-      return 'Berry Bush';
-    case 'gold-mine':
-      return 'Gold Mine';
-    case 'stone-mine':
-      return 'Stone Mine';
-    case 'boar':
-      return 'Boar';
-    case 'fish':
-      return 'Fish';
-    case 'sheep':
-      return 'Sheep';
-    case 'wolf':
-      return 'Wolf';
-    case 'tree':
-      return 'Tree';
-    case 'villager':
-      return 'Villager';
-    case 'militia':
-      return 'Militia';
-    case 'spearman':
-      return 'Spearman';
-    case 'archer':
-      return 'Archer';
-    case 'skirmisher':
-      return 'Skirmisher';
-    case 'knight':
-      return 'Knight';
-    case 'scout':
-      return 'Scout Cavalry';
-    case 'crossbowman':
-      return 'Crossbowman';
-    case 'pikeman':
-      return 'Pikeman';
-    case 'light-cavalry':
-      return 'Light Cavalry';
-    case 'camel':
-      return 'Camel';
-    case 'cavalry-archer':
-      return 'Cavalry Archer';
-    case 'mangonel':
-      return 'Mangonel';
-    case 'scorpion':
-      return 'Scorpion';
-    case 'battering-ram':
-      return 'Battering Ram';
-    case 'siege-workshop':
-      return 'Siege Workshop';
-    case 'monastery':
-      return 'Monastery';
-    case 'monk':
-      return 'Monk';
-    case 'relic':
-      return 'Relic';
-    case 'castle':
-      return 'Castle';
-    case 'wonder':
-      return 'Wonder';
-    case 'longbowman':
-      return 'Longbowman';
-    case 'arbalest':
-      return 'Arbalest';
-    case 'halberdier':
-      return 'Halberdier';
-    case 'hussar':
-      return 'Hussar';
-    case 'heavy-cavalry-archer':
-      return 'Heavy Cavalry Archer';
-    case 'cavalier':
-      return 'Cavalier';
-    case 'champion':
-      return 'Champion';
-    case 'elite-longbowman':
-      return 'Elite Longbowman';
-    case 'onager':
-      return 'Onager';
-    case 'heavy-scorpion':
-      return 'Heavy Scorpion';
-    case 'siege-ram':
-      return 'Siege Ram';
-    case 'bombard-cannon':
-      return 'Bombard Cannon';
-    case 'trebuchet':
-      return 'Trebuchet';
-    case 'man-at-arms':
-      return 'Man-at-Arms';
-    case 'long-swordsman':
-      return 'Long Swordsman';
-    case 'two-handed-swordsman':
-      return 'Two-Handed Swordsman';
-    case 'paladin':
-      return 'Paladin';
-    case 'heavy-camel':
-      return 'Heavy Camel';
-    case 'stone-wall':
-      return 'Stone Wall';
-    case 'palisade-wall':
-      return 'Palisade Wall';
-    case 'farm':
-      return 'Farm';
-    default:
-      return entityType;
-  }
+  if (!entityType) return 'No selection';
+  const name = nameOf(entityType);
+  if (name === undefined) return entityType;
+  return typeof name === 'string' ? name : name[0];
 }
 
+// An unknown type pluralises with the same '+s' rule as a regular row, so a
+// future entity stays legible until it is added to the table.
 export function formatEntityPluralName(entityType: SelectionState['selectedEntityType']): string {
-  if (!entityType) {
-    return 'Units';
-  }
-
-  switch (entityType) {
-    case 'town-center':
-      return 'Town Centers';
-    case 'house':
-      return 'Houses';
-    case 'mill':
-      return 'Mills';
-    case 'lumber-camp':
-      return 'Lumber Camps';
-    case 'mining-camp':
-      return 'Mining Camps';
-    case 'barracks':
-      return 'Barracks';
-    case 'watch-tower':
-      return 'Watch Towers';
-    case 'stable':
-      return 'Stables';
-    case 'archery-range':
-      return 'Archery Ranges';
-    case 'blacksmith':
-      return 'Blacksmiths';
-    case 'market':
-      return 'Markets';
-    case 'berry-bush':
-      return 'Berry Bushes';
-    case 'gold-mine':
-      return 'Gold Mines';
-    case 'stone-mine':
-      return 'Stone Mines';
-    case 'boar':
-      return 'Boars';
-    case 'fish':
-      return 'Fish';
-    case 'sheep':
-      return 'Sheep';
-    case 'wolf':
-      return 'Wolves';
-    case 'tree':
-      return 'Trees';
-    case 'villager':
-      return 'Villagers';
-    case 'militia':
-      return 'Militia';
-    case 'spearman':
-      return 'Spearmen';
-    case 'archer':
-      return 'Archers';
-    case 'skirmisher':
-      return 'Skirmishers';
-    case 'knight':
-      return 'Knights';
-    case 'scout':
-      return 'Scout Cavalry';
-    case 'crossbowman':
-      return 'Crossbowmen';
-    case 'pikeman':
-      return 'Pikemen';
-    case 'light-cavalry':
-      return 'Light Cavalry';
-    case 'camel':
-      return 'Camels';
-    case 'cavalry-archer':
-      return 'Cavalry Archers';
-    case 'mangonel':
-      return 'Mangonels';
-    case 'scorpion':
-      return 'Scorpions';
-    case 'battering-ram':
-      return 'Battering Rams';
-    case 'siege-workshop':
-      return 'Siege Workshops';
-    case 'monastery':
-      return 'Monasteries';
-    case 'monk':
-      return 'Monks';
-    case 'relic':
-      return 'Relics';
-    case 'castle':
-      return 'Castles';
-    case 'wonder':
-      return 'Wonders';
-    case 'longbowman':
-      return 'Longbowmen';
-    case 'arbalest':
-      return 'Arbalests';
-    case 'halberdier':
-      return 'Halberdiers';
-    case 'hussar':
-      return 'Hussars';
-    case 'heavy-cavalry-archer':
-      return 'Heavy Cavalry Archers';
-    case 'cavalier':
-      return 'Cavaliers';
-    case 'champion':
-      return 'Champions';
-    case 'elite-longbowman':
-      return 'Elite Longbowmen';
-    case 'onager':
-      return 'Onagers';
-    case 'heavy-scorpion':
-      return 'Heavy Scorpions';
-    case 'siege-ram':
-      return 'Siege Rams';
-    case 'bombard-cannon':
-      return 'Bombard Cannons';
-    case 'trebuchet':
-      return 'Trebuchets';
-    case 'man-at-arms':
-      return 'Men-at-Arms';
-    case 'long-swordsman':
-      return 'Long Swordsmen';
-    case 'two-handed-swordsman':
-      return 'Two-Handed Swordsmen';
-    case 'paladin':
-      return 'Paladins';
-    case 'heavy-camel':
-      return 'Heavy Camels';
-    case 'stone-wall':
-      return 'Stone Walls';
-    case 'palisade-wall':
-      return 'Palisade Walls';
-    case 'farm':
-      return 'Farms';
-    default:
-      return `${entityType}s`;
-  }
+  if (!entityType) return 'Units';
+  const name = nameOf(entityType) ?? entityType;
+  return typeof name === 'string' ? `${name}s` : name[1];
 }
 
 export function formatSelectionName(selectionState: SelectionState): string {
