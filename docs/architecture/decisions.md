@@ -317,7 +317,7 @@ Consequences:
 ## KAD-0019 - Voxel art recipes stay AoE-owned; only daylight is shared
 
 Date: 2026-07-12.
-Status: Active.
+Status: Active for art ownership; the animation-future clause is superseded by KAD-0020/KAD-0025 and the Phaser-parity clause is superseded by KAD-0022.
 
 Context: the first voxel slice proved the renderer boundary but its two-box unit, building, and resource fallbacks were not a usable Age-of-Empires-style art direction. City and Townscaper also need better lighting, but they do not share AoE building roles, unit equipment, faction accents, terrain clutter, or fog-memory presentation. Moving those details into `voxel` would make a nominally reusable package depend on one game's vocabulary.
 
@@ -333,7 +333,7 @@ Consequences:
 ## KAD-0020 - Unit animation semantics stay AoE-owned
 
 Date: 2026-07-12.
-Status: Active.
+Status: Active for AoE ownership and workload bounds; the ambient-pause and attack-deferral clauses are superseded by KAD-0025.
 
 Context: detailed procedural voxel units need continuous motion, but idle, locomotion, part names, unit roles, attacks, gathering, and reload timing are game vocabulary. City and Townscaper may need unrelated rigid motion, while general skeletal clips would introduce a much larger asset and lifecycle contract.
 
@@ -348,7 +348,7 @@ Consequences:
 ## KAD-0021 - Speed-matched gait uses displayed simulation time and AoE base poses
 
 Date: 2026-07-12.
-Status: Active; supersedes KAD-0020 only for locomotion sampling.
+Status: Active for locomotion sampling; the independent-ambient-clock, fresh-playback-first-tick, and attack-deferral clauses are superseded by KAD-0025.
 
 Context: the first rigid-animation slice classified movement from snapshot-to-snapshot position changes and played a fixed clock-driven walk profile. That made cadence independent of displayed speed and let feet keep cycling after the root stopped. A first distance sampler fixed cadence but used Phaser wall time; adversarial review proved a pause gap then produced different resume speed depending on whether selection forced snapshots. Path corners also changed the travel vector instantly while flexion remained on a fixed local axis, producing sideways limb bend and visible turn pops.
 
@@ -455,3 +455,22 @@ Consequences:
 - Fresh cardinal movement cannot spend its first step recentering from an identity fallback, and crowded mid-movement or overflow saves continue identically after live load or replay materialization without a schema bump.
 - Replay suspension cannot consume the complete hidden interval in one callback; the cap may intentionally slow catch-up after a long stall rather than display an unbounded fast-forward.
 - ECS components used by diffs, rendering, recording, or replay must never rely on in-place mutation as a publication mechanism.
+
+## KAD-0025 - Successful-hit animation is AoE-owned transient projection state
+
+Date: 2026-07-14.
+Status: Active; supersedes the ambient-pause and attack-deferral clauses of KAD-0020 plus the independent-ambient-clock, fresh-playback-first-tick, and attack-deferral clauses of KAD-0021.
+
+Context: damage resolves instantly inside the simulation and the current command model exposes no earlier wind-up event. Inferring a strike from HP deltas or command state would miss lethal hits, confuse non-unit damage, and fail when a stationary attacker produces no ordinary render diff. Replay scrubs may also start directly from a recorder snapshot rather than replaying the hit-producing tick. The reusable Voxel package deliberately has no AoE combat roles, fog policy, or save/replay authority.
+
+Decision: record one bounded latest successful-hit event per attacker entity reference at the combat-resolution chokepoint. Prove visibility current before each successful impact: synchronize on the first impact each tick and after every intervening player-command LOS mutation, while reusing the same snapshot for an unchanged same-tick burst; source fingerprints may avoid a `VisibilityMap` recomputation. Recursive building destruction compares the actual source fingerprints of the building plus its bounded garrison IDs, while construction invalidates only when completion actually adds a source. Every witness, including the attacker's owner, must see at least one cell of the attacker footprint and at least one cell of the target footprint; when no perspective qualifies, no event or coordinates are recorded, and ownership alone cannot publish a hidden target coordinate from a retained ranged order. Each event stores its observable tick, source/target roots, and captured witnesses; the first actual root change adds a cancellation tick. The event tick maps directly to the authored impact keyframe. If the presented roots coincide, the pose remains valid and uses the prior finite displayed facing or the role's authored forward for a fresh renderer. Movement-facing becomes authoritative immediately at cancellation while strike and ambient-suppression weights smoothstep to zero across that one observable tick. Presented roots plus attack phase, weight, and ambient suppression remain deterministic and continuous across the boundary; fresh disposable gait history may restart and is not a warm/fresh equivalence contract. Connected tools and weapons use shared rigid pivots, while feet, wheels, roots, shadows, and the presented silhouette proxy remain authoritative and planted. Raw projection retains live entities independently of fog; `renderStateOps` applies the final perspective filter and `RenderStore` captures interpolation history through the prior frame's visible cells. When a witnessed attacker becomes hidden from one perspective, the feed persists that player in `suppressedFor` before recorder checkpoint publication; tower targeting retains one immutable pass-start visibility snapshot and refreshes final LOS exactly once after a successful pass containing any kill, and `RenderStore` keeps its local tombstone as defense in depth. New recorder snapshots therefore restore per-perspective suppression plus exact source/target coordinates, attack-channel phase, weight, and cancellation state; historical checkpoints whose feed predates `suppressedFor` cannot reconstruct an earlier hide/reveal. The first replay frame establishes the wall-clock baseline instead of consuming a synthetic tick. A fresh renderer may reinitialize disposable gait history, so full assembled rig matrices are not a replay contract. Ordinary user saves remove the detached checkpoint slot before returning the save blob. `AoeVoxelWorldRenderer` supplies Voxel and AoE hit geometry with one monotonic clock that advances only by positive simulation-display deltas, freezes on pause, and rebases without decrement on replay or bridge replacement.
+
+Consequences:
+- Damage, reloads, target reservations, pathing, root motion, selection, and presented hit authority remain unchanged. Several villagers can animate independent same-tick hits on one boar while approaching villagers keep locomotion.
+- Fog eligibility is captured independently at every impact and requires at least one visible cell of each actor footprint even for the attacker's owner, so ownership or later vision never leaks an unseen target or hit. Current fog can hide a witnessed cue; new recorder checkpoints persist that per-perspective suppression after re-reveal, while a genuinely newer event tick can display normally.
+- Rewinds, bridge epochs, and entity-generation changes reset disposable unit history. Equal displayed simulation time freezes gait, ambient breathing, secondary motion, attack pose, and matching hit geometry; the dependency-facing clock never moves backward.
+- The feed is replay-checkpoint evidence, not gameplay or user-save state. Hydration examines only the final 1,024 candidates, validates and canonicalizes fresh in-bounds records, and retains the latest record per attacker. After forced bootstrap publication, checkpoint state is dirtied only on add, change, suppression, or expiry.
+- Monks are rejected at semantic validation and by the direct helper, while the execution system clears any hydrated or persisted Monk attack before it can deal damage or emit an attack event.
+- Replay construction preserves an absent attack-feed slot in legacy recordings, including on later output ticks, so the world factory does not change the recorded snapshot contract. New live recordings and new-format replay snapshots enable the slot.
+- Role pose sampling, connected pivots, and target-facing behavior remain under `src/rendering/voxel/`; no AoE combat contract enters the sibling Voxel package.
+- Wildlife retaliation, gathering clips, projectile travel, and skeletal animation remain separate future work.

@@ -77,6 +77,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       for UI consumers, steps cached replay worlds by submitting recorded
       commands before `world.step()`, bounds one animation-frame catch-up with
       the shared visible-simulation timing policy, and restores the live bridge on exit.
+      Initial and resumed playback callbacks establish their timestamp with zero
+      delta, so the checkpoint is displayed before later elapsed time advances it.
       `TimelinePanel.ts` renders the replay-only bottom strip, marker pins,
       hotspot pins, and scrub controls against the controller boundary.
       `ReplayHotkeys.ts` binds replay navigation keys only while replay mode is
@@ -88,7 +90,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
       writes into, including the exact immediately prior forward-tick unit and
-      moving-resource positions used only for display interpolation) and
+      moving-resource positions used only for display interpolation plus
+      indexed reconciliation of transient attack overlays),
+      `attackAnimationTypes.ts` (the projected successful-hit contract), and
       `renderMetricsCapture.ts` (the lightweight alive-count/world-metrics HUD
       capture that deliberately avoids full-world debug serialization).
       `src/game/visibleSimulationTiming.ts` is the shared live/replay elapsed-time bound,
@@ -103,7 +107,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       task intentions). `replay/` contains the replay-world helpers:
       `createReplayWorldOnly(snapshot)` builds a replay-mode bridge world for
       `SessionReplayer.openAt`, `makeReplayBridge(world)` wraps that world in
-      the full `SimulationBridge` read surface without letting scene frames
+      the full `SimulationBridge` read surface without letting host/view frames
       advance replay time, and `replayWorldContext.ts` stores the accessor,
       visibility cell, match state, pending-command queue, and bridge API in a
       WeakMap keyed by replay `World`.
@@ -113,18 +117,18 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         - `createWorld.ts` — entry point invoked by the facade. Builds (or deserializes) the civ-engine `World`, instantiates `BridgeState`, builds tile grids, then calls `wireBridgeOps` and `assembleBridgeApi`.
         - `wireBridgeOps.ts` — pre-seed wiring orchestrator: delegates pre-seed factory construction to `wirePreSeedOps.ts` (entity-create/destroy ops, target finding, technology, match-end, etc., including the `VisibilityCell` and the Phase 2E `visibilityFingerprints` Map shared between the bootstrap call and the per-tick visibilitySystem), makes the call into `seedFreshScenario` (skipped on save-load), and composes the AI intention-pusher closures from `aiIntentionPushers.ts` into the deps handed to `registerBridgeSystems`.
         - `wirePostSeedOps.ts` — post-seed factory wiring (visibility queries, selection input, training/market, monk tasks, AI decision, unit command).
-        - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems`; calls the Phase 2C `bootstrapFlush` that populates the four Tier-3 slots (bridgeMeta / visibility / matchState / pendingCommands) once at construction; calls `registerOutputTail` so `tier3SyncSystem` + `bridgeSnapshotSystem` run at the end of every output phase; and creates the post-register input ops (placement, save, economy state, human input).
+        - `registerBridgeSystems.ts` — final glue: spreads the 10 ops factories through `registerAllSystems`; calls the Phase 2C `bootstrapFlush` that populates the four legacy Tier-3 slots (bridgeMeta / visibility / matchState / pendingCommands) plus the recorder attack slot for live and new-format replay worlds; calls `registerOutputTail` so `tier3SyncSystem` + `bridgeSnapshotSystem` run at the end of every output phase; and creates the post-register input ops (placement, save, economy state, human input).
         - `registerAllSystems.ts` — bundles all 20 ECS system registrations + the 4 Tier-1 codec accessors threaded through them. In replay mode it keeps deterministic systems real, runs replay-safe AI-decision systems with real intention emitters into the replay-only pending queue, and registers `aoe2ReplayPendingCommandDrain` before `prototypeAi` so hydrated pending snapshots do not leak while AI-decision boundary state can still be reproduced.
-        - `bootstrapFlush.ts` — once-at-construction writer for `aoe2.bridgeMeta` / `aoe2.matchState` / `aoe2.visibility` / `aoe2.pendingCommands` so snapshots taken before tick 1 are complete.
+        - `bootstrapFlush.ts` — once-at-construction writer for `aoe2.bridgeMeta` / `aoe2.matchState` / `aoe2.visibility` / `aoe2.pendingCommands` and, for live or already-new-format replay worlds, `aoe2.replayUnitAttacks`, so fresh recording snapshots taken before tick 1 are complete without changing legacy replay snapshot key sets.
         - `assembleBridgeApi.ts` — composes the `SimulationBridge` public surface from the ops + state.
         - `scenarioSeedOps.ts`, `hydrateFromSavedGame.ts`, `hydrateFromWorldState.ts` — fresh-scenario seeding, schema-1 side-map hydration, and schema-2 world-state hydration. Schema-1 hydrate treats legacy `SaveBlob.sideMaps` as authoritative, while schema-2 hydrate reads pending commands and runtime cache rebuild inputs from `worldSnapshot.state.aoe2.*`. Both paths enforce the garrison cross-ref invariant and entity-id orphan pruning before the bridge resumes; schema-2 pruning only flushes slots that actually changed so replay construction does not add absent empty Tier-1 state keys.
 
         State + types tier:
-        - `bridgeState.ts` — single `createBridgeState()` factory that owns bridge-only runtime caches and side maps that are intentionally not Tier-1 serialized state (`movePathCache`, `monksByOwner`, `monkConvertProcessedThisTick`, `pendingCommands`). Phase 2D moved the Tier-1 codec slots, including `monkTasks` and `unitCommands`, into `world.state.aoe2.<slot>` through `BridgeStateAccessor.mutate(codec, ...)`; Phase 2F persists `pendingCommands` through `aoe2.pendingCommands` at save time so AI intentions queued between ticks survive schema-2 save/load.
+        - `bridgeState.ts` — single `createBridgeState()` factory that owns bridge-only runtime caches and side maps that are intentionally not Tier-1 serialized state (`movePathCache`, `monksByOwner`, `monkConvertProcessedThisTick`, `pendingCommands`, `unitAttackFeed`). Phase 2D moved the Tier-1 codec slots, including `monkTasks` and `unitCommands`, into `world.state.aoe2.<slot>` through `BridgeStateAccessor.mutate(codec, ...)`; Phase 2F persists `pendingCommands` through `aoe2.pendingCommands` at save time so AI intentions queued between ticks survive schema-2 save/load. The bounded attack feed is mirrored into `aoe2.replayUnitAttacks` only for recorder checkpoint fidelity and is stripped from ordinary user-save snapshots; hydration inspects only the final 1,024 candidates, validates and canonicalizes fresh in-bounds records, and retains only the latest record per attacker identity.
         - `bridgeStateSerialize.ts` — 35 Tier-1 `SlotCodec<TNative, TJson>` pairs (`flatMapCodec`, `mapOfSetCodec`, `mapOfMapCodec` factories) + `TIER_1_CODECS` registry + `SLOT_CODECS_BY_KEY` lookup + Tier-3/save-state slot-name constants. Phase 2A/2F.
         - `bridgeStateAccessor.ts` — per-tick cache layer with lazy-bound world reference. Public surface: `get<T>(codec)` (lazy deserialize from `world.state` + decoupled clone), `mutate(codec, fn)` (read-modify-write + automatic markDirty), `markDirty(codec)`, `flush()` (atomic — pre-pass throws on unknown slots OR uncached dirty marks before any write), `reset()` (post-load cache invalidation). Phase 2A + iter-1 R2 atomicity.
         - `visibilityCell.ts` — wraps `VisibilityMap` with a dirty bit so `tier3SyncSystem` skips the visibility re-publish when no source moved. `markDirty()` is called by `syncVisibilitySources` only when an actual fingerprint change happens (Phase 2E).
-        - `tier3SyncSystem.ts` — output-phase system that writes `aoe2.visibility` (gated by cell dirty bit), `aoe2.matchState` (unconditional, small/flat), and `aoe2.pendingCommands` (cloned queue snapshot). Exports `flushTier3State` and `flushPendingCommandsState` for save-time use.
+        - `tier3SyncSystem.ts` — output-phase system that writes `aoe2.visibility` (gated by cell dirty bit), `aoe2.matchState` (unconditional, small/flat), `aoe2.pendingCommands` (cloned queue snapshot), and the pruned `aoe2.replayUnitAttacks` checkpoint feed when that format is enabled. The attack slot is forced at bootstrap, then published only on add, change, or expiry; quiet output ticks do not dirty recorder state. Legacy replay worlds preserve the absent slot across construction and stepping. Exports focused flush helpers for construction, recording, and save-time use.
         - `bridgeSnapshotSystem.ts` — output-phase system that calls `accessor.flush()`. Registered LAST in output phase via `registerOutputTail`.
         - `registerOutputTail.ts` — registration site that bundles the two output-phase systems above with their ordering invariant pinned.
         - `pendingCommandQuery.ts` — pure exhaustive-switch `hasPendingUnitCommand(queue, unitId)` predicate. autoAggression uses it to skip units aiSystem already pushed an intention for. Adding a new GameCommands variant without a case is a TS compile error here (full-review iter-1 R2-M1).
@@ -141,12 +145,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         - `entityCreateOps.ts`, `entityDestroyOps.ts`, `transformOps.ts`, `movementPlanOps.ts`, `placementOps.ts`, `trainingMarketOps.ts` — write-side entity/state mutators. Fine-grid movement in `transformOps.ts` publishes replacement `unitTransform` components through the ECS API on every fixed step and targets the occupancy grid's allocated slot; the component persists that numeric assignment or an explicit overflow marker so live-load and replay occupancy rebuilds preserve continuation. Direct in-place mutation would bypass render dirty tracking.
         - `humanInputOps.ts`, `selectionInputOps.ts`, `selectionStateOps.ts`, `unitCommandOps.ts`, `unitSelectionOps.ts`, `sheepCommandOps.ts` — command and selection surface.
         - `monkTaskOps.ts`, `monkAiSearchHelpers.ts`, `monkTaskAppliers.ts`, `technologyOps.ts`, `matchEndOps.ts`, `trebuchetState.ts` — system-specific helpers. `monkTaskOps.ts` exposes the AI-decision intention producer (`pushAiMonkTaskIntentions`); `aiSystem` uses it so pickup/deposit/heal task creation goes through `monk.contextAtEntity` on the next tick (the legacy direct-assignment helper `assignAiMonkTasks` was removed in full-review L4, leaving the intention path as the only AI monk-task route and keeping the KAD-0008 direct-mutation-vs-intention race closed). The actual task state is accessor-backed through `aoe2.monkTasks`, preserving snapshot/replay visibility.
-        - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries.
+        - `cellPassability.ts`, `visibilityQueries.ts`, `visibility.ts`, `fogMemoryOps.ts` — terrain/visibility queries, raw live-entity projection, and fog-memory production. Raw projection retains stationary entities while hidden so a later LOS change can reveal them without an ECS mutation; `renderStateOps.ts` owns the final perspective boundary.
+        - `unitAttackAnimationFeed.ts`, `unitAttackVisibilitySuppression.ts`, `playerCommandVisibilityRevision.ts` — bounded, generation-aware successful-hit recording, per-perspective hide-once replay state, and a command-local visibility-current gate. The first successful impact each tick and every later impact after a player-command LOS fingerprint mutation synchronize visibility sources; unchanged same-tick impacts and fine-only movement reuse the proven-current snapshot, while source fingerprints prevent unnecessary `VisibilityMap` recomputation. Recursive building destruction compares the actual source fingerprints of the building plus its bounded garrison IDs, and construction invalidates only when completion actually adds a source. Every witness, including the attacker's owner, must see at least one cell of the attacker footprint and at least one cell of the target footprint at that impact; when no perspective qualifies, no event or coordinates are recorded. The feed captures the source and target roots, indexes one latest event per attacker for projection, records `cancelTick` on the first actual root movement, and persists `suppressedFor` when an attacker later leaves a witness's current view so a fresh recorder-checkpoint bridge cannot resurrect that cue. Tower targeting keeps the pass-start visibility snapshot immutable for every building, then one final visibility refresh runs after a successful pass if any unit died and before output suppression and checkpoint publication. The feed prunes quiet expired events and hydrates only a validated, canonical tail of the recorder checkpoint slot; it has no damage, command, movement, or user-save authority.
         - `optionsRules.ts` — train/research/market/build option lookup.
         - `researchAvailability.ts` — shared "why is this research unavailable" reason engine (agent-affordances 2026-06-11); consumed by the queue.research validator's `cannot_research` message and by `buildingOptionsOps` so the two surfaces never disagree.
         - `buildingOptionsOps.ts` — `getAgentBuildingOptions(ownerId)`: per completed owned building type, research available/locked (with reasons) + trainable units + the villager build menu. Read-side payload for the LLM-agent snapshot, exposed on `SimulationBridge`.
         - `commandValidatorDeps.ts` — single construction site for the per-command semantic-validator dep bags (factored out of `wireBridgeOps` when the actionable-message collaborators pushed it past its line budget).
-        - `renderStateOps.ts`, `debugSnapshotOps.ts`, `economyStateOps.ts`, `saveGameOps.ts` — read-side projections to the HUD/test surface. `saveGameOps.ts` now emits schema-2 blobs (`seed + worldSnapshot`) after flushing accessors, Tier-3 state, and pending commands into `world.state`.
+        - `renderStateOps.ts`, `debugSnapshotOps.ts`, `economyStateOps.ts`, `saveGameOps.ts` — read-side projections to the HUD/test surface. `renderStateOps.ts` applies the final current-player visibility predicate to the raw store, reconciles active attack overlays even when a stationary attacker has no ordinary ECS diff, and exposes only prior positions that were visible in the prior frame and remain current visible identities. Recorder checkpoints persist per-perspective cue suppression before snapshot publication, while `RenderStore` keeps a renderer-local tombstone as defense in depth; live and replay `visibleEntities` surfaces consume the filtered state, while `entityCount` deliberately remains an all-world alive debug/performance metric. `saveGameOps.ts` emits schema-2 blobs (`seed + worldSnapshot`) after flushing accessors, Tier-3 state, and pending commands into `world.state`, then removes recorder-only attack cues from the detached user-save snapshot.
 
         `createSimulationBridge.ts` imports from `bridge/` rather than re-declaring any of this. The four shared types in `sharedTypes.ts` are re-exported from the facade so external `SimulationBridge` consumers keep stable import paths.
       - `mapGeneration/` — deterministic procedural map generators and the
@@ -173,12 +178,19 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
     interaction state into snapshots, accepts prior positions only from the
     exact adjacent simulation tick, and drives AoE-owned smooth root/facing
-    presentation; `aoeVoxelOverlayParts.ts` emits selection,
+    presentation; `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to
+    the authored impact keyframe and smooth recovery, while
+    `aoeVoxelUnitAttackAnimation.ts` applies role-specific connected rigid-part
+    pivots and `aoeVoxelUnitAmbientAnimation.ts` suppresses competing ambient
+    transforms on attack-controlled parts; `aoeVoxelOverlayParts.ts` emits selection,
     drag marquee, placement, authored-height health, hit, and death feedback into
     normal rigid-instance lanes;
     `AoeVoxelWorldRenderer.ts` owns direct capture, metrics, context lifecycle,
-    and disposal. AoE semantics remain here rather than entering the reusable
-    package.
+    disposal, and the monotonic animation clock supplied to both Voxel harmonic
+    presentation and AoE hit geometry. It advances only on positive simulation
+    display deltas, freezes on pause, and rebases without decrement on a bridge
+    swap or replay rewind. AoE semantics remain here rather than entering the
+    reusable package.
   - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/`, `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
@@ -204,15 +216,20 @@ design/stats ──build──► generated/content.json ──load──► Sim
   boundary through ECS systems, queries, and commands.
 - The simulation bridge (`src/game/simulation/`) owns repo-specific systems and
   scenario setup. It runs on top of `civ-engine` primitives and exposes a stable
-  surface to the standalone voxel view and HUD. Routine render metrics count
-  alive entities and read existing ECS metrics. The AoE-specific
+  surface to the standalone voxel view and HUD. Successful unit hits also enter
+  a bounded, fog-witnessed presentation feed whose event tick is the visible
+  impact keyframe; the first actual root change records a one-tick cancellation
+  handoff. Recording snapshots preserve that disposable feed across replay
+  checkpoint starts, while ordinary saves remove it. The raw render store is
+  filtered at this bridge boundary so hidden entities, prior positions, attack
+  cues, and visible-entity HUD surfaces do not escape the selected fog perspective. Routine render metrics deliberately count all alive entities and read existing ECS metrics. The AoE-specific
   `getDebugSnapshot()` remains an explicit on-demand diagnostic; full
   `WorldDebugger.capture()` serialization is not constructed by this bridge or
   the per-tick render path.
 - `AoeVoxelGameView` is the sole renderer host. It advances the live bridge,
   updates renderer-neutral camera/input controllers, presents the AoE-owned
   voxel snapshot, and frames one Three canvas. Fog, selection, drag marquee,
-  placement, health, hit, and death feedback are snapshot data, not a second
+  placement, health, hit, attack-pose, and death feedback are snapshot data, not a second
   paint layer.
   The view owns no gameplay state.
 - The sibling `voxel` package owns only reusable render contracts, validation,
@@ -220,7 +237,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
   presentation, capture, metrics, and disposal.
   AoE concepts and authoritative state never cross that package boundary.
 - The DOM HUD is a pure consumer of render frames and selection state. It emits
-  commands through the same seam as right-click orders from the scene.
+  commands through the same seam as right-click orders from the voxel view.
 - Content flows one-way: design CSVs under `design/stats/*.csv` are normalized at
   build time into `generated/content/content.json`, which the simulation loads.
   The generated file is not committed.

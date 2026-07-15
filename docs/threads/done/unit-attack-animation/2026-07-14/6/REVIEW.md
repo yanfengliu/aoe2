@@ -1,0 +1,14 @@
+# Review iteration 6
+
+## Scope
+
+OpenAI Codex externally reviewed the complete corrected v0.2.3 worktree diff with ultra reasoning and read-only live-code access. It was directed to verify every claim against the actual symbols, system order, tests, replay lifecycle, documentation, and 500-line budget, with special focus on the iteration-5 visibility and persisted-suppression fixes. Anthropic Claude was launched in the same explicitly authorized review request, but tenant export policy rejected the Anthropic destination before either process started; no AoE source or diff was transmitted to Claude. The permitted Codex-only launch then completed successfully without modifying the repository.
+
+## Findings and disposition
+
+- **MEDIUM — lethal tower fire could leave final LOS stale for output suppression and replay checkpoints. Confirmed and fixed.** The actual order is `prototypeVisibility` → `prototypeFogMemory` → `prototypeTowerCombat` → output suppression/publication. A tower could therefore destroy the last local witness source after visibility synchronization, persist an unsuppressed cue, and let a fresh N+1 scrub resurrect it after re-reveal. TowerCombat's lethal destroy dependency now immediately invokes the existing visibility synchronization helper before output. The contract-level regression kills the source, asserts final visibility and `suppressedFor: [2]`, re-reveals the attacker, reconstructs a fresh replay bridge, and proves the old cue remains absent.
+- **MEDIUM — refreshing visibility sources on every impact made unchanged same-tick bursts O(impacts × vision sources). Confirmed and fixed.** Source fingerprints avoided `VisibilityMap` recomputation but did not avoid allocating and scanning source maps. A focused live probe measured reachable 400-source/100-call work, and the max-pop regression failed with 200 scans. The recorder now keys its proven-current snapshot by observable tick plus a player-command visibility-mutation revision. The first hit each tick and every hit after movement, entity/building destruction, wildlife destruction, or construction completion resynchronize; an unchanged 200-attacker burst scans once. Callers without the revision retain conservative per-call behavior.
+
+## Result
+
+Both new contracts failed before implementation: the max-pop burst called the sync spy 200 times, and post-tower visibility remained stale. After the fixes, the focused replay/feed tests passed 13/13, the broader replay/fog/feed/file-size set passed six files and 31 tests, TypeScript and focused ESLint passed, and every changed file remained below 500 lines. Two independent in-process refuters reran the exact N→N+1 replay probe and audited every possible between-impact LOS mutation; both approved with no substantive finding. Because iteration 6 found two real issues, iteration 7 must review the final corrected code and documentation before this thread closes.

@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.3 - 2026-07-14
+
+### Units visibly strike when their attacks land
+
+Perspective-eligible successful unit attacks now drive target-facing rigid-part attack motion instead of leaving the attacker in its idle pose. Villagers swing their tools, infantry use swords and shields, archers and mounted archers work their bows, cavalry thrust their weapons, rams drive their beams, and throwing siege articulates its arm. Connected weapon pieces stay joined around shared pivots, feet and wheels remain planted, and the authoritative unit root does not lunge or teleport.
+
+The impact pose appears when damage lands and recovers smoothly into movement without moving the authoritative root. Pausing now freezes the complete voxel actor, including gait, ambient breathing, secondary motion, and attack geometry. Replay rewinds rebase without sending Voxel a backward timestamp, and playback displays the selected checkpoint before consuming elapsed time. Approaching units keep their speed-matched locomotion, and several villagers hitting one boar on the same tick animate independently. Presented roots and the strike fade remain continuous across movement cancellation; a freshly created renderer restores the same attack phase, weight, and ambient suppression while non-authoritative gait smoothing may restart. If packed occupancy and conversion leave opponents on the same presented root, the valid hit still animates using the actor's prior facing, or its authored forward for a fresh renderer, instead of disappearing. Damage, reload timing, pathing, selection, and ordinary saves are unchanged. Authoritative fog state is unchanged; cue eligibility uses visibility proven current for each impact, including after an intervening same-tick LOS mutation, and at least one cell of both the attacker and target footprints must be visible to a perspective before that perspective receives the cue or its coordinates. New recorder checkpoints also preserve per-perspective suppression after a witnessed attacker later leaves view. Tower targeting keeps one pass-start visibility snapshot for every building, then refreshes final visibility once after any kills and before suppression/checkpoint publication, preventing a fresh replay bridge from resurrecting a cue without making later tower fire depend on building order. Presented silhouette-proxy picking remains authoritative and follows the posed geometry. Monks do not gain an attack, and wildlife retaliation, gathering clips, projectiles, and skeletal animation remain future work.
+
+Validation passed 2,018 Vitest tests with two skips across 265 files, 106 serial headless Chromium tests with two skips, typecheck, lint, content validation, and a 528-module production build. Production-only and complete dependency audits both reported zero vulnerabilities.
+
 ## 0.2.2 - 2026-07-14
 
 ### Villager groups can surround and hunt one boar together
