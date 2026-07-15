@@ -9,7 +9,12 @@
 // A bare string means the plural is the regular '+s' form (44 of 61 types).
 // A tuple spells out a plural that isn't ('Wolves', 'Men-at-Arms', 'Barracks').
 
-import type { SelectionState, UnitType } from '../../../game/simulation/types';
+import type { SelectionState } from '../../../game/simulation/types';
+
+// The canonical predicate lives with the unit-type table, where
+// `satisfies Record<UnitType, true>` makes the compiler enforce exhaustiveness.
+// This module re-exports it so HUD callers keep one import site.
+export { isUnitType } from '../../../input/unitTypeMap';
 
 type EntityName = string | readonly [singular: string, plural: string];
 
@@ -111,41 +116,3 @@ export function formatSelectionName(selectionState: SelectionState): string {
   return `${selectionState.selectedCount} ${label} Selected`;
 }
 
-export function isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
-  return (
-    entityType === 'villager'
-    || entityType === 'scout'
-    || entityType === 'militia'
-    || entityType === 'spearman'
-    || entityType === 'archer'
-    || entityType === 'skirmisher'
-    || entityType === 'knight'
-    || entityType === 'crossbowman'
-    || entityType === 'pikeman'
-    || entityType === 'light-cavalry'
-    || entityType === 'camel'
-    || entityType === 'cavalry-archer'
-    || entityType === 'mangonel'
-    || entityType === 'scorpion'
-    || entityType === 'battering-ram'
-    || entityType === 'monk'
-    || entityType === 'longbowman'
-    || entityType === 'arbalest'
-    || entityType === 'halberdier'
-    || entityType === 'hussar'
-    || entityType === 'heavy-cavalry-archer'
-    || entityType === 'cavalier'
-    || entityType === 'champion'
-    || entityType === 'elite-longbowman'
-    || entityType === 'onager'
-    || entityType === 'heavy-scorpion'
-    || entityType === 'siege-ram'
-    || entityType === 'bombard-cannon'
-    || entityType === 'trebuchet'
-    || entityType === 'man-at-arms'
-    || entityType === 'long-swordsman'
-    || entityType === 'two-handed-swordsman'
-    || entityType === 'paladin'
-    || entityType === 'heavy-camel'
-  );
-}

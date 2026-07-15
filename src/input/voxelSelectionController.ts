@@ -19,7 +19,7 @@ import {
 } from './entityHitTest';
 import type { VoxelHitPurpose } from '../rendering/voxel/aoeVoxelHitProxy';
 import { worldToIso } from '../rendering/isometricProjection';
-import { isUnitType as isUnitTypeExternal } from './unitTypeMap';
+import { isUnitType } from './unitTypeMap';
 import {
   CELL_SIZE,
   DOUBLE_CLICK_WINDOW_MS,
@@ -282,10 +282,6 @@ export function createVoxelSelectionController(
     const deltaY = isoY - recentExactSelectionClick.isoY;
     return deltaX * deltaX + deltaY * deltaY
       <= EXACT_CLICK_REPEAT_RADIUS_ISO_PX * EXACT_CLICK_REPEAT_RADIUS_ISO_PX;
-  }
-
-  function isUnitType(entityType: SelectionState['selectedEntityType']): entityType is UnitType {
-    return isUnitTypeExternal(entityType);
   }
 
   return {
