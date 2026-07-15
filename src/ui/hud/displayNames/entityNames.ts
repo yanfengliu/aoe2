@@ -17,8 +17,13 @@ import type { SelectionState } from '../../../game/simulation/types';
 export { isUnitType } from '../../../input/unitTypeMap';
 
 type EntityName = string | readonly [singular: string, plural: string];
+type EntityType = NonNullable<SelectionState['selectedEntityType']>;
 
-const ENTITY_NAMES: Readonly<Record<string, EntityName>> = {
+// `satisfies Record<EntityType, EntityName>` restores — and exceeds — the
+// key check the old switch gave us: a typo'd key ('castel') and a MISSING
+// type are both compile errors. Review proved the interim
+// `Record<string, EntityName>` let a renamed key through tsc clean.
+const ENTITY_NAMES = {
   'town-center': 'Town Center',
   'house': 'House',
   'mill': 'Mill',
@@ -80,10 +85,16 @@ const ENTITY_NAMES: Readonly<Record<string, EntityName>> = {
   'stone-wall': 'Stone Wall',
   'palisade-wall': 'Palisade Wall',
   'farm': 'Farm',
-};
+} as const satisfies Record<EntityType, EntityName>;
 
+// `hasOwn`, not bracket access alone: an object literal inherits from
+// Object.prototype, so ENTITY_NAMES['toString'] resolved to that method — the
+// `undefined` guard missed it and callers got undefined out of a `: string`
+// signature. Same hazard as the `in`-operator bug fixed in isUnitType.
 function nameOf(entityType: string): EntityName | undefined {
-  return ENTITY_NAMES[entityType];
+  return Object.hasOwn(ENTITY_NAMES, entityType)
+    ? (ENTITY_NAMES as Readonly<Record<string, EntityName>>)[entityType]
+    : undefined;
 }
 
 // Human-readable name for the entity selected in the HUD. The fallback
