@@ -26,6 +26,7 @@ import {
   type AoeVoxelPresentationCoordinator,
 } from '../rendering/voxel/AoeVoxelPresentationCoordinator';
 import type { AoeUnitMotionHistory } from '../rendering/voxel/aoeVoxelUnitAnimation';
+import type { OccludedUnitState } from '../rendering/voxel/aoeVoxelOcclusionSilhouettes';
 import type {
   BuildingVisualState,
   CameraState,
@@ -206,6 +207,10 @@ export class AoeVoxelGameView {
     partSuffix: string,
   ): PresentedVoxelPartMatrix | null {
     return this.renderer.inspectPresentedPartMatrix(identity, partSuffix);
+  }
+
+  getOccludedUnitStates(): readonly OccludedUnitState[] {
+    return this.renderer.getOccludedUnitStates();
   }
 
   getWorldCapture(): ThreeCaptureResult {

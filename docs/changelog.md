@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.5 - 2026-07-15
+
+### Added
+
+- **Units behind buildings show a white silhouette again.** A unit that walks behind a building now renders a solid white mirror of its full posed body — gait and attack pose included — through the building, restoring AoE2-style behind-building readability. The cue tracks exactly what the renderer paints (occluder regions project from the same recipe geometry picking uses), never reveals fog-hidden units, ignores fog-memory ghosts in both directions, freezes under pause, replays identically, and adds no render batches. This returns the v0.1.133 cue that the v0.2.0 voxel-only migration removed, and covers building flanks the old origin-depth predicate missed.
+
 ## 0.2.4 - 2026-07-14
 
 ### Villagers visibly emerge when ungarrisoned

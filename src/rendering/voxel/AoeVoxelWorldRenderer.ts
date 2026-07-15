@@ -19,6 +19,7 @@ import {
   type PreparedVoxelHitState,
   type VoxelHitPurpose,
 } from './aoeVoxelHitProxy';
+import type { OccludedUnitState } from './aoeVoxelOcclusionSilhouettes';
 
 export interface AoeVoxelRuntime {
   acceptSnapshot(snapshot: RenderSnapshotV1): ApplyResultV1;
@@ -212,6 +213,12 @@ export class AoeVoxelWorldRenderer {
       }
     }
     return null;
+  }
+
+  /** Units whose behind-building silhouette cue fired in the latest snapshot. */
+  getOccludedUnitStates(): readonly OccludedUnitState[] {
+    this.assertActive();
+    return this.adapter.latestOccludedUnits();
   }
 
   isInteractionReady(): boolean {

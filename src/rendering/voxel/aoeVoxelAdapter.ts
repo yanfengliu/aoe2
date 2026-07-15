@@ -30,6 +30,11 @@ import {
   prepareVoxelHitEntity,
   type PreparedVoxelHitState,
 } from './aoeVoxelHitProxy';
+import {
+  computeOcclusionSilhouettes,
+  type OccludedUnitState,
+} from './aoeVoxelOcclusionSilhouettes';
+import { poseWildlifeAttackParts } from './aoeVoxelWildlifePose';
 
 export { AOE_TERRAIN_CHUNK_SIZE } from './aoeVoxelTerrain';
 
@@ -104,7 +109,7 @@ function terrainWithVoxelFog(
   });
 }
 
-function partsFor(entity: EntityRecipeInput): VoxelPart[] {
+function partsFor(entity: EntityRecipeInput, sampleTimeMs: number): VoxelPart[] {
   if (entity.entity.layer === 'unit') {
     return createUnitParts(
       entity.entity,
@@ -116,7 +121,13 @@ function partsFor(entity: EntityRecipeInput): VoxelPart[] {
   if (entity.entity.layer === 'building') {
     return createBuildingParts(entity.entity, entity.identity, entity.ground);
   }
-  return createResourceParts(entity.entity, entity.identity, entity.ground);
+  // Wildlife retaliation (spec §14.5): the gore pose is baked onto the static
+  // resource lane at snapshot-build time, so equal presented time freezes it.
+  return [...poseWildlifeAttackParts(
+    createResourceParts(entity.entity, entity.identity, entity.ground),
+    entity.entity,
+    sampleTimeMs,
+  )];
 }
 
 export class AoeVoxelAdapter {
@@ -133,6 +144,7 @@ export class AoeVoxelAdapter {
   private readonly hitUntilByIdentity = new Map<string, number>();
   private lastFeedbackTimeMs = 0;
   private currentHitState: PreparedVoxelHitState | null = null;
+  private currentOccludedUnits: readonly OccludedUnitState[] = [];
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
@@ -151,6 +163,11 @@ export class AoeVoxelAdapter {
 
   latestHitState(): PreparedVoxelHitState | null {
     return this.currentHitState;
+  }
+
+  /** Units whose silhouette cue fired in the latest snapshot (browser-test seam). */
+  latestOccludedUnits(): readonly OccludedUnitState[] {
+    return this.currentOccludedUnits;
   }
 
   createSnapshot(
@@ -181,6 +198,8 @@ export class AoeVoxelAdapter {
           )
         ))
       : entities;
+    const occlusion = computeOcclusionSilhouettes(prepared.entities);
+    this.currentOccludedUnits = occlusion.occluded;
     const parts = [
       ...createTerrainDetailParts(terrainDetailEntities),
       ...prepared.entities.flatMap((entity) => entity.parts),
@@ -188,6 +207,7 @@ export class AoeVoxelAdapter {
         ...overlays,
         hitEntityIdentities,
       }),
+      ...occlusion.parts,
     ];
     const batches = makePartBatches(parts, nextRevision);
     const animatedKeys = new Set(batches.flatMap((batch) => {
@@ -330,7 +350,7 @@ export class AoeVoxelAdapter {
         ground: compositionGround(entity),
         ...(resolvedAnimation ? { animationState: resolvedAnimation.state } : {}),
       };
-      const parts = partsFor(recipeInput);
+      const parts = partsFor(recipeInput, sampleTimeMs);
       const visibleParts = parts.filter((part) => part.surface !== 'shadow');
       return {
         ...recipeInput,
@@ -395,5 +415,6 @@ export class AoeVoxelAdapter {
     this.hitUntilByIdentity.clear();
     this.lastFeedbackTimeMs = 0;
     this.currentHitState = null;
+    this.currentOccludedUnits = [];
   }
 }

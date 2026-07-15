@@ -37,6 +37,7 @@ import {
   createTownCenterReselectFixture,
   createBuildingFootprintVisionFixture,
   createBuildingShowcaseFixture,
+  createOcclusionShowcaseFixture,
   createCamelVsCavalryFixture,
   createCamelVsHussarFixture,
   createCamelVsRamFixture,
@@ -365,6 +366,9 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED
   // building per render role (capture target for the building-silhouette change).
   ['building-showcase-fixture', createBuildingShowcaseFixture],
+  // Behind-building silhouette cue: one hidden + one control villager
+  // (capture target for the unit-occlusion-outline change).
+  ['occlusion-showcase-fixture', createOcclusionShowcaseFixture],
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
   ['terrain-showcase-fixture', createTerrainShowcaseFixture],

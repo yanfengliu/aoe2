@@ -313,6 +313,10 @@ export {
 } from './buildingShowcase';
 
 export {
+  createOcclusionShowcaseFixture,
+} from './occlusionShowcase';
+
+export {
   createTerrainShowcaseFixture,
 } from './terrainShowcase';
 

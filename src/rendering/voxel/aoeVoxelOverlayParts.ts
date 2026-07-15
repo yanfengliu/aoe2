@@ -12,6 +12,8 @@ export interface VoxelOverlayEntity {
   readonly identity: string;
   readonly ground: number;
   readonly visualTop: number;
+  /** The entity's fully posed recipe parts for this snapshot (orientation/gait/attack already baked in). */
+  readonly parts: readonly VoxelPart[];
 }
 
 export interface AoeVoxelOverlayInput {
@@ -30,6 +32,15 @@ export const EMPTY_VOXEL_OVERLAYS: AoeVoxelOverlayInput = {
   placementPreview: null,
   selectionPreviewEntityIds: [],
 };
+
+// Camera-ray displacement shared by every screen-locked ui overlay (drag
+// marquee, behind-building silhouettes): moving a part by (OFFSET, LIFT,
+// OFFSET) keeps it pixel-fixed on screen while depth-testing in front of any
+// authored building shorter than LIFT world units. The occlusion test suite
+// guards LIFT against every completed building recipe's tallest part.
+export const SCREEN_LOCKED_DEPTH_LIFT = 8;
+export const SCREEN_LOCKED_DEPTH_OFFSET = SCREEN_LOCKED_DEPTH_LIFT
+  * VOXEL_VERTICAL_PIXELS_PER_WORLD_UNIT / ISO_TILE_HEIGHT;
 
 function part(
   key: string,
@@ -126,12 +137,8 @@ function marqueeParts(
   corners: AoeVoxelOverlayInput['selectionMarqueeWorldCorners'],
 ): VoxelPart[] {
   if (!corners || corners.length !== 4) return [];
-  const lift = 8;
-  // Move toward the isometric camera along its view ray. The equal x/z
-  // offset cancels the lift in screen space, so the marquee stays under the
-  // pointer while depth-testing in front of authored buildings and units.
-  const screenLockedDepthOffset = lift
-    * VOXEL_VERTICAL_PIXELS_PER_WORLD_UNIT / ISO_TILE_HEIGHT;
+  const lift = SCREEN_LOCKED_DEPTH_LIFT;
+  const screenLockedDepthOffset = SCREEN_LOCKED_DEPTH_OFFSET;
   return corners.map((start, index) => {
     const end = corners[(index + 1) % corners.length]!;
     const dx = end.x - start.x;

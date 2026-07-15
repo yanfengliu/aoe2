@@ -23,6 +23,7 @@ import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
 import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
 import type { AoeUnitMotionHistory } from '../../rendering/voxel/aoeVoxelUnitAnimation';
 import type { PresentedVoxelPartMatrix } from '../../rendering/voxel/AoeVoxelWorldRenderer';
+import type { OccludedUnitState } from '../../rendering/voxel/aoeVoxelOcclusionSilhouettes';
 
 export interface BrowserTestBridge {
   step(deltaMs: number): void;
@@ -151,6 +152,7 @@ export interface BrowserTestApi {
   getBuildingVisualStates(): BuildingVisualState[];
   getEntityHealthBarStates(): EntityHealthBarState[];
   getDisplayedEntities(): DisplayedEntityState[];
+  getOccludedUnitStates(): readonly OccludedUnitState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtWorldPosition(worldX: number, worldY: number): boolean;
@@ -310,6 +312,10 @@ export function installBrowserTestApi(
     getDisplayedEntities: () => {
       view.syncFromBridge(true);
       return view.getDisplayedEntities();
+    },
+    getOccludedUnitStates: () => {
+      view.syncFromBridge(true);
+      return view.getOccludedUnitStates();
     },
     worldToScreen: (cellX: number, cellY: number) => {
       view.syncFromBridge(true);
