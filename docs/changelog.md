@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.6 - 2026-07-15
+
+### Added
+
+- **Villagers start mining automatically after building a Mining Camp.** Every villager that built the camp now walks to the nearest harvestable gold or stone mine within 7 cells and starts gathering, instead of standing idle. Ties between equidistant mines resolve deterministically, depleted mines are skipped, and no mine in range leaves the builders idle exactly as before. The auto-order is an ordinary recorded gather order, so it saves, loads, and replays like any command you issue — and it never overrides an explicit order, including a chain-build placement clicked in the same moment the camp completes. Applies to AI villagers identically.
+
 ## 0.2.5 - 2026-07-15
 
 ### Added
