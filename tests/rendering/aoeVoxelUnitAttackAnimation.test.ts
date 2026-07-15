@@ -203,6 +203,37 @@ describe('AoE voxel unit attack animation sampling', () => {
       approaching.state.gaitPhaseRadians,
     );
   });
+
+  it('keeps a coincident-root attack visible with deterministic prior facing', () => {
+    const identity = 'overflow-convert:7';
+    const idle = resolveUnitAnimationState(unit(), identity, undefined, 0);
+    const coincidentAttack = unit({
+      attackAnimation: { tick: 0, sourceX: 0, sourceY: 0, targetX: 0, targetY: 0 },
+    });
+
+    const entered = resolveUnitAnimationState(
+      coincidentAttack,
+      identity,
+      idle.history,
+      1_000 / 60,
+    );
+    const fresh = resolveUnitAnimationState(
+      coincidentAttack,
+      identity,
+      undefined,
+      1_000 / 60,
+    );
+
+    expect(attackState(entered.state).mode).toBe('attacking');
+    expect(entered.state.attackWeight).toBe(1);
+    expect(entered.state.ambientSuppressionWeight).toBe(1);
+    expect(entered.state.directionX).toBeCloseTo(idle.state.directionX);
+    expect(entered.state.directionZ).toBeCloseTo(idle.state.directionZ);
+    expect(attackState(fresh.state).mode).toBe('attacking');
+    expect(fresh.state.attackWeight).toBe(1);
+    expect(fresh.state.ambientSuppressionWeight).toBe(1);
+    expect(Math.hypot(fresh.state.directionX, fresh.state.directionZ)).toBeCloseTo(1);
+  });
 });
 
 describe('AoE voxel role-aware attack poses', () => {

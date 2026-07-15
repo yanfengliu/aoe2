@@ -27,6 +27,8 @@ function smoothstep(value: number): number {
 export function sampleUnitAttack(
   entity: ProjectedEntityView,
   sampleTimeMs: number,
+  fallbackDirectionX = 1,
+  fallbackDirectionZ = 0,
 ): UnitAttackSample | null {
   const attack = entity.attackAnimation;
   if (!attack) return null;
@@ -35,7 +37,13 @@ export function sampleUnitAttack(
   const deltaX = attack.targetX - attack.sourceX;
   const deltaZ = attack.targetY - attack.sourceY;
   const distance = Math.hypot(deltaX, deltaZ);
-  if (!Number.isFinite(distance) || distance <= DIRECTION_EPSILON) return null;
+  if (!Number.isFinite(distance)) return null;
+  const fallbackDistance = Math.hypot(fallbackDirectionX, fallbackDirectionZ);
+  const useFallback = distance <= DIRECTION_EPSILON;
+  const hasUsableFallback = Number.isFinite(fallbackDistance)
+    && fallbackDistance > DIRECTION_EPSILON;
+  const safeFallbackX = hasUsableFallback ? fallbackDirectionX / fallbackDistance : 1;
+  const safeFallbackZ = hasUsableFallback ? fallbackDirectionZ / fallbackDistance : 0;
   const recovery = clamp01(elapsedMs / UNIT_ATTACK_ANIMATION_DURATION_MS);
   const displayTick = sampleTimeMs * TPS / 1_000;
   const cancellationWeight = attack.cancelTick === undefined
@@ -54,7 +62,7 @@ export function sampleUnitAttack(
     poseWeight: elapsedMs <= UNIT_ATTACK_ANIMATION_DURATION_MS
       ? cancellationWeight : 0,
     ambientSuppressionWeight: (1 - ambientRecovery) * cancellationWeight,
-    directionX: deltaX / distance,
-    directionZ: deltaZ / distance,
+    directionX: useFallback ? safeFallbackX : deltaX / distance,
+    directionZ: useFallback ? safeFallbackZ : deltaZ / distance,
   };
 }

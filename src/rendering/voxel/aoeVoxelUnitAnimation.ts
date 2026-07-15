@@ -115,7 +115,12 @@ function initialUnitMotion(
   const phaseRadians = phaseForUnitIdentity(identity);
   const role = animationRole(entity);
   const authoredForward = role === undefined ? 0 : AUTHORED_FORWARD_RADIANS[role];
-  const attackSample = sampleUnitAttack(entity, sampleTimeMs);
+  const attackSample = sampleUnitAttack(
+    entity,
+    sampleTimeMs,
+    Math.cos(authoredForward),
+    Math.sin(authoredForward),
+  );
   const attack = attackSample?.poseWeight ? attackSample : null;
   const state: AoeUnitAnimationState = {
     mode: attack ? 'attacking' : 'idle',
@@ -199,7 +204,12 @@ export function resolveUnitAnimationState(
   const speed = elapsedMs > 0
     ? Math.min(MAX_SPEED_WORLD_UNITS_PER_SECOND, distance * 1_000 / elapsedMs)
     : 0;
-  const attackSample = sampleUnitAttack(entity, sampleTimeMs);
+  const attackSample = sampleUnitAttack(
+    entity,
+    sampleTimeMs,
+    previous.directionX,
+    previous.directionZ,
+  );
   const attack = !attackSample?.poseWeight ? null : attackSample;
   const stationaryAttack = moving ? null : attack;
   const targetWeight = clamp01(speed / FULL_LOCOMOTION_SPEED);
