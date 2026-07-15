@@ -27,6 +27,7 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
     case 'unit.move':
     case 'unit.attack':
     case 'unit.gather':
+    case 'unit.autoGather':
     case 'unit.context':
     case 'unit.contextAtEntity':
     case 'monk.contextAtEntity':
@@ -60,12 +61,15 @@ export function hasPendingUnitCommand(
 }
 
 // Evict (in place) every pending intention targeting `unitId`. Full-review M3:
-// an explicit HUMAN command for a unit supersedes any stale auto-aggression
-// intention already queued for it — without eviction the FIFO drain runs the
-// human command, then the stale attack handler clobbers it (a one-tick loss of
-// control; "unit won't retreat near enemies"). A human-owned unit can only ever
-// have an auto-aggression intention pending (aiSystem strategic intentions
-// target AI-owned units), so this removes exactly the stale attack, nothing else.
+// an explicit HUMAN command for a unit supersedes any stale system intention
+// already queued for it — without eviction the FIFO drain runs the human
+// command, then the stale handler clobbers it (a one-tick loss of control;
+// "unit won't retreat near enemies"). A human-owned unit can have exactly two
+// classes of system intention pending — an auto-aggression `unit.attack` and,
+// since spec §6.2 auto-mine, a post-construction `unit.autoGather` (aiSystem
+// strategic intentions still target AI-owned units only) — and BOTH are
+// design-intended evictees: an explicit order always supersedes them. Callers:
+// humanInputOps (move/context) and placementOps (accepted chain-build).
 export function removePendingUnitCommands(
   pendingCommands: PendingCommand[],
   unitId: number,

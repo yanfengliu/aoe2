@@ -1,6 +1,6 @@
 // civ-engine GameCommands surface for aoe2.
 //
-// Per DESIGN.md v17 §6.1: 15 command types covering every gameplay-state
+// Per DESIGN.md v17 §6.1 (+ spec §6.2 auto-mine): 16 command types covering every gameplay-state
 // mutating bridge method. Selection / placement-preview / save-load are
 // NOT commands (UI state, no replay relevance).
 //
@@ -38,6 +38,10 @@ export type GameCommands = {
     targetEntityKind: 'unit' | 'building' | 'resource';
   };
   'unit.gather': { unitId: number; resourceId: number };
+  // Spec §6.2 automatic post-construction mining: queued at Mining Camp
+  // completion for each active builder; validator refuses to preempt any
+  // explicit order that landed in the same drain window.
+  'unit.autoGather': { unitId: number; resourceId: number; campBuildingId: number };
   'unit.context': { unitId: number; target: Position };
   'unit.contextAtEntity': { unitId: number; targetEntityId: number };
   // --- Specialty unit orders ---

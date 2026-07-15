@@ -35,6 +35,7 @@ import {
 } from '../prototypeEconomyRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { playerResourcesCodec } from './bridgeStateSerialize';
+import { removePendingUnitCommands } from './pendingCommandQuery';
 
 export interface PlacementModeHolder {
   // Shared mutable slot. When non-null, the player is in "click a cell
@@ -75,6 +76,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
   const {
     world,
     accessor,
+    state,
     placementMode,
     isMatchRunning,
     getSelectedHumanVillagerIds,
@@ -172,6 +174,17 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       ...(additionalBuilderIds.length > 0 ? { additionalBuilderIds } : {}),
     });
     if (result.accepted) {
+      // Same-window supersession (auto-mine review iter-1 HIGH): an accepted
+      // chain-build placement is an explicit PAID order for every listed
+      // builder. Without eviction it raced the drained post-construction
+      // autoGather intentions in the same processCommands pass and lost by
+      // FIFO order — resources spent, foundation stranded, builders gone
+      // mining. Placement now evicts pending system intentions exactly like
+      // the move/context paths in humanInputOps.
+      removePendingUnitCommands(state.pendingCommands, primaryId);
+      for (const builderId of additionalBuilderIds) {
+        removePendingUnitCommands(state.pendingCommands, builderId);
+      }
       placementMode.current = null;
       return true;
     }

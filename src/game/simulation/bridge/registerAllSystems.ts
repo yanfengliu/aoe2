@@ -4,6 +4,7 @@
 // only the side-map closures + factory wirings, not the per-system noise.
 
 import type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
+import { queuePostConstructionAutoGather } from './postConstructionAutoGather';
 export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 
 import { registerAiSystem } from './systems/aiSystem';
@@ -255,6 +256,16 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
       if (visionSourceAdded) {
         playerCommandVisibilityRevision.markMutation();
       }
+      // Spec §6.2: queue auto-mine intentions for the camp's active builders
+      // BEFORE the completion callback so the event ordering matches live and
+      // replay identically (both derive from the same recorded build stream).
+      queuePostConstructionAutoGather({
+        world,
+        accessor,
+        pendingCommands,
+        buildingId,
+        buildingType,
+      });
       onBuildingConstructionComplete(buildingId, owner, buildingType);
     },
   });
