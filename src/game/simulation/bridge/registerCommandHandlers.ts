@@ -38,6 +38,7 @@ import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
 import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
 import { unitGatherValidator } from '../handlers/unit/unitGatherValidator';
+import { makeUnitAutoGatherValidator } from '../handlers/unit/unitAutoGatherValidator';
 import { makeUnitGatherHandler } from '../handlers/unit/unitGatherHandler';
 import { unitContextValidator } from '../handlers/unit/unitContextValidator';
 import { makeUnitContextHandler } from '../handlers/unit/unitContextHandler';
@@ -170,7 +171,7 @@ export interface CommandHandlerDeps {
   trebuchetUnpackValidatorDeps: TrebuchetUnpackValidatorDeps;
 }
 
-/** Register all 15 command type validators + handlers on the given world.
+/** Register all 16 command type validators + handlers on the given world.
  *  Currently called only by `wireBridgeOps` (live). Phase 3A will add a
  *  `wireReplaySystems` helper that also calls this — replay needs the
  *  same handlers because `SessionReplayer.openAt` re-submits recorded
@@ -192,6 +193,14 @@ export function registerCommandHandlers(
   // Phase 1B — unit.gather
   world.registerValidator('unit.gather', unitGatherValidator);
   world.registerHandler('unit.gather', makeUnitGatherHandler({
+    setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
+  }));
+  // Spec §6.2 — unit.autoGather (post-construction auto-mine): same handler
+  // as an explicit gather, stricter never-preempt validator.
+  world.registerValidator('unit.autoGather', makeUnitAutoGatherValidator({
+    accessor: deps.accessor,
+  }));
+  world.registerHandler('unit.autoGather', makeUnitGatherHandler({
     setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
   }));
   // Phase 1B — unit.context

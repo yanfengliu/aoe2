@@ -123,7 +123,7 @@ function aiOwnersFromState(state: Record<string, unknown> | undefined, into: Set
   }
 }
 
-// Explicit ACTOR-entity keys per command type. Typed over the full 15-type
+// Explicit ACTOR-entity keys per command type. Typed over the full 16-type
 // command surface so adding a command type fails typecheck here until it is
 // classified. A suffix heuristic (endsWith 'Id') mis-resolved
 // unit.gather.resourceId — a TARGET resource; farms are building+resource
@@ -137,6 +137,10 @@ const COMMAND_ACTOR_KEYS: { [K in keyof GameCommands]: readonly string[] } = {
   'unit.move': ['unitId', 'unitIds'],
   'unit.attack': [],
   'unit.gather': ['unitId', 'unitIds'],
+  // unit.autoGather is SYSTEM-issued at Mining Camp completion (spec §6.2) on
+  // behalf of any owner — like unit.attack's auto-aggression, it is not
+  // evidence that the owner is driving units, so it carries no actor keys.
+  'unit.autoGather': [],
   'unit.context': ['unitId', 'unitIds'],
   'unit.contextAtEntity': ['unitId', 'unitIds'],
   'sheep.move': ['sheepId'],

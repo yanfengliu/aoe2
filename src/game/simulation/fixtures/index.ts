@@ -195,6 +195,7 @@ export {
 } from './scenarioValidation';
 
 export {
+  createAutoMineCampFixture,
   createMultiVillagerConstructionFixture,
   createRepairFixture,
   createSingleVillagerConstructionFixture,
