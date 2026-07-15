@@ -144,6 +144,11 @@ function house(context: BuildingContext): void {
 function fortress(context: BuildingContext): void {
   add(context, 'fortress-plinth', 'matte', VOXEL_COLORS.stoneDark, 0.5, 0, 0.5, 0.9, 0.2, 0.88);
   add(context, 'fortress-keep', 'matte', VOXEL_COLORS.stone, 0.5, 0.2, 0.5, 0.58, 1.65, 0.58);
+  // Heavy ashlar coursing: a castle keep should read as laid stone.
+  wallCourses(context, 'fortress', {
+    bottom: 0.2, height: 1.65, width: 0.58, depth: 0.58,
+    tint: shade(VOXEL_COLORS.stone, 0.82), count: 5,
+  });
   for (const [name, x, z] of [
     ['north-west', 0.2, 0.2], ['north-east', 0.8, 0.2],
     ['south-west', 0.2, 0.8], ['south-east', 0.8, 0.8],
@@ -187,10 +192,68 @@ function farm(context: BuildingContext): void {
   add(context, 'farm-team-marker', 'matte', context.team, 0.1, 0.35, 0.1, 0.09, 0.16, 0.025);
 }
 
+// Wall material relief (spec §14.5 detail pass, user directive 2026-07-14).
+// Thin proud courses banded up a wall face read as laid masonry or stacked
+// timber at default zoom, instead of one flat slab. Strictly original
+// procedural geometry: every course is inset inside the wall's own footprint,
+// so footprints, hit testing, health bars, and selection are unchanged.
+function wallCourses(
+  context: BuildingContext,
+  role: string,
+  options: {
+    readonly bottom: number;
+    readonly height: number;
+    readonly width: number;
+    readonly depth: number;
+    readonly tint: number;
+    readonly count?: number;
+    readonly centerX?: number;
+    readonly centerZ?: number;
+  },
+): void {
+  const count = options.count ?? 3;
+  const step = options.height / (count + 1);
+  const centerX = options.centerX ?? 0.5;
+  const centerZ = options.centerZ ?? 0.5;
+  const faceZ = centerZ + options.depth / 2;
+  for (let index = 0; index < count; index += 1) {
+    const bottom = options.bottom + step * (index + 1);
+    add(
+      context,
+      `${role}-course-${String(index)}`,
+      'matte',
+      options.tint,
+      centerX,
+      bottom,
+      faceZ,
+      options.width * 0.94,
+      0.035,
+      0.02,
+    );
+    add(
+      context,
+      `${role}-course-side-${String(index)}`,
+      'matte',
+      options.tint,
+      centerX + options.width / 2,
+      bottom,
+      centerZ,
+      0.02,
+      0.035,
+      options.depth * 0.94,
+    );
+  }
+}
+
 function mill(context: BuildingContext): void {
   add(context, 'mill-plinth', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.72, 0.15, 0.7);
   add(context, 'mill-body', 'matte', VOXEL_COLORS.plaster, 0.5, 0.15, 0.5, 0.52, 1.25, 0.5);
+  wallCourses(context, 'mill', {
+    bottom: 0.15, height: 1.25, width: 0.52, depth: 0.5,
+    tint: shade(VOXEL_COLORS.plaster, 0.86),
+  });
   add(context, 'mill-door', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.15, 0.765, 0.14, 0.58, 0.035);
+  add(context, 'mill-door-trim', 'matte', VOXEL_COLORS.timber, 0.5, 0.72, 0.767, 0.19, 0.04, 0.03);
   steppedRoof(context, 'mill', 1.4, 0.5, 0.5, 0.65, 0.63, VOXEL_COLORS.thatch);
   add(context, 'mill-axle', 'metal', VOXEL_COLORS.steelDark, 0.5, 1.03, 0.78, 0.08, 0.08, 0.18);
   add(context, 'mill-blade-a', 'matte', VOXEL_COLORS.timber, 0.5, 0.58, 0.89, 0.045, 1.02, 0.035, { roll: Math.PI / 4 });
@@ -200,8 +263,16 @@ function mill(context: BuildingContext): void {
 
 function hall(context: BuildingContext, role: 'military' | 'drop-site'): void {
   add(context, `${role}-platform`, 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.84, 0.14, 0.8);
-  add(context, `${role}-walls`, 'matte', role === 'military' ? VOXEL_COLORS.plaster : VOXEL_COLORS.timber, 0.5, 0.14, 0.5, 0.68, 0.92, 0.62);
+  const wallTint = role === 'military' ? VOXEL_COLORS.plaster : VOXEL_COLORS.timber;
+  add(context, `${role}-walls`, 'matte', wallTint, 0.5, 0.14, 0.5, 0.68, 0.92, 0.62);
+  // Military halls read as coursed plaster; timber drop-sites as stacked logs.
+  wallCourses(context, role, {
+    bottom: 0.14, height: 0.92, width: 0.68, depth: 0.62,
+    tint: shade(wallTint, role === 'military' ? 0.85 : 1.16),
+    count: role === 'military' ? 3 : 4,
+  });
   add(context, `${role}-door`, 'matte', VOXEL_COLORS.timberDark, 0.5, 0.14, 0.825, 0.2, 0.62, 0.035);
+  add(context, `${role}-door-trim`, 'matte', VOXEL_COLORS.timber, 0.5, 0.76, 0.827, 0.25, 0.045, 0.03);
   for (const [name, x] of [['left', 0.2], ['right', 0.8]] as const) {
     add(context, `${role}-front-post-${name}`, 'matte', VOXEL_COLORS.timberDark, x, 0.14, 0.82, 0.045, 0.96, 0.045);
   }
@@ -223,6 +294,9 @@ function market(context: BuildingContext): void {
   add(context, 'market-platform', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.88, 0.12, 0.84);
   for (const [name, x] of [['left', 0.25], ['right', 0.75]] as const) {
     add(context, `market-stall-${name}`, 'matte', VOXEL_COLORS.timber, x, 0.12, 0.56, 0.3, 0.58, 0.46);
+    // Plank seams across the stall front, and a timber post at each corner.
+    add(context, `market-stall-${name}-timber-seam`, 'matte', shade(VOXEL_COLORS.timber, 1.2), x, 0.4, 0.79, 0.28, 0.03, 0.02);
+    add(context, `market-stall-${name}-post`, 'matte', VOXEL_COLORS.timberDark, x - 0.14, 0.12, 0.78, 0.04, 0.58, 0.04);
     add(context, `market-awning-${name}`, 'matte', name === 'left' ? context.team : shade(context.team, 0.72), x, 0.7, 0.56, 0.36, 0.12, 0.52);
   }
   add(context, 'market-crate-left', 'matte', VOXEL_COLORS.timberDark, 0.2, 0.12, 0.82, 0.13, 0.2, 0.13);

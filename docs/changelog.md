@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.11 - 2026-07-15
+
+### Changed
+
+- **Buildings read as built material, not painted slabs.** Mills, lumber and mining camps, barracks and other military halls, markets, and castles now carry masonry or timber relief courses banded up their walls, with door trim, plank seams, and stall posts where they fit the role — military halls read as coursed plaster, drop-sites as stacked timber, and a castle keep as heavy laid ashlar. Sites still under construction keep their existing scaffold look so build progress stays legible. Footprints, click targeting, health bars, and selection are unchanged.
+
 ## 0.2.10 - 2026-07-15
 
 ### Changed
