@@ -117,7 +117,7 @@ test.describe('voxel world renderer', () => {
     expect(sha256(after.capture)).not.toBe(sha256(before.capture));
   });
 
-  test('animates rigid unit parts without accepting new world state while paused', async ({ page }) => {
+  test('freezes rigid unit parts without accepting new world state while paused', async ({ page }) => {
     await page.addInitScript(() => {
       const timer = window.setInterval(() => {
         if (!window.__AOE2_TEST__) return;
@@ -164,7 +164,7 @@ test.describe('voxel world renderer', () => {
     expect(after.metrics.animatedInstances).toBe(before.metrics.animatedInstances);
     expect(after.metrics.rendererGeometries).toBe(before.metrics.rendererGeometries);
     expect(after.metrics.rendererTextures).toBe(before.metrics.rendererTextures);
-    expect(sha256(after.dataUrl)).not.toBe(sha256(before.dataUrl));
+    expect(sha256(after.dataUrl)).toBe(sha256(before.dataUrl));
   });
 
   test('keeps commanded roots smooth and freezes speed-matched gait across pause redraws', async ({ page }) => {

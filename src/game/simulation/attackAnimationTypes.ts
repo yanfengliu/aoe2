@@ -14,4 +14,5 @@ export interface ProjectedUnitAttackView
   attackerId: number;
   attackerGeneration: number;
   witnessedBy: number[];
+  suppressedFor?: number[];
 }

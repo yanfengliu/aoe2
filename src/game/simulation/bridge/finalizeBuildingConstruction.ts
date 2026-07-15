@@ -28,7 +28,12 @@ export function finalizeBuildingConstruction(params: {
   accessor: BridgeStateAccessor;
   buildingId: number;
   building: BuildingComponent;
-  onComplete: (buildingId: number, owner: number, buildingType: BuildingComponent['buildingType']) => void;
+  onComplete: (
+    buildingId: number,
+    owner: number,
+    buildingType: BuildingComponent['buildingType'],
+    visionSourceAdded: boolean,
+  ) => void;
   markRender: () => void;
 }): void {
   const { world, accessor, buildingId, building } = params;
@@ -53,6 +58,7 @@ export function finalizeBuildingConstruction(params: {
   }
 
   const defaultVisionRadius = buildingVisionRadius(building.buildingType);
+  let visionSourceAdded = false;
   if (
     defaultVisionRadius !== null
     && !world.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
@@ -66,6 +72,7 @@ export function finalizeBuildingConstruction(params: {
       playerId: building.owner,
       radius: defaultVisionRadius + losBonus,
     });
+    visionSourceAdded = true;
   }
 
   const buildingCombatState = createBuildingCombatState(building.buildingType);
@@ -81,5 +88,5 @@ export function finalizeBuildingConstruction(params: {
     accessor.markDirty(populationCodec);
   }
 
-  params.onComplete(buildingId, building.owner, building.buildingType);
+  params.onComplete(buildingId, building.owner, building.buildingType, visionSourceAdded);
 }

@@ -96,6 +96,7 @@ describe('registerOutputTail', () => {
       targetX: 4,
       targetY: 4,
       witnessedBy: [1],
+      suppressedFor: [1],
     }] }]);
 
     for (let tick = 3; tick <= 12; tick += 1) world.step();

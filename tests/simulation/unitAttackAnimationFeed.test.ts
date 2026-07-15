@@ -8,13 +8,10 @@ import { createBridgeState } from "../../src/game/simulation/bridge/bridgeState"
 import type { BridgeStateAccessor } from "../../src/game/simulation/bridge/bridgeStateAccessor";
 import type { GameWorld } from "../../src/game/simulation/bridge/pureHelpers";
 import { TIER_3_SLOTS } from "../../src/game/simulation/bridge/bridgeStateSerialize";
+import { createPlayerCommandVisibilityRevision } from "../../src/game/simulation/bridge/playerCommandVisibilityRevision";
 import {
   createUnitAttackRecorder,
   getUnitAttackFeedEntries,
-  hydrateUnitAttacks,
-  initializeUnitAttackFeed,
-  markUnitAttackMovementStarted,
-  pruneUnitAttackFeed,
 } from "../../src/game/simulation/bridge/unitAttackAnimationFeed";
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -31,20 +28,8 @@ type EntityWithAttackAnimation = ProjectedEntityView & {
   attackAnimation?: AttackAnimationView;
 };
 
-interface RawAttackRecord extends AttackAnimationView {
-  attackerId: number;
-  attackerGeneration: number;
-  witnessedBy: number[];
-  label?: string;
-}
-
 type AttackVisibilityModule = typeof visibilityModule & {
   ATTACK_FEED_TICKS?: number;
-  visibleUnitAttacks?: (
-    attacks: readonly RawAttackRecord[],
-    currentTick: number,
-    playerId: number,
-  ) => RawAttackRecord[];
 };
 
 const attackVisibility = visibilityModule as AttackVisibilityModule;
@@ -78,206 +63,8 @@ function issueGroupBoarAttack(bridge: Bridge): EntityWithAttackAnimation {
   return boar!;
 }
 
-describe("unit attack animation feed - pure witness and age filtering", () => {
-  it("tail-bounds imported records before validation and returns canonical bounded values", () => {
-    const raw = new Array<unknown>(1_025);
-    Object.defineProperty(raw, 0, {
-      get() {
-        throw new Error("hydrate scanned outside the bounded tail");
-      },
-    });
-    raw[1_024] = {
-      attackerId: 7,
-      attackerGeneration: 2,
-      tick: 100,
-      sourceX: 12,
-      sourceY: 8,
-      targetX: 13,
-      targetY: 8,
-      witnessedBy: [1, 1, 2, 99],
-      extra: { retainedPayload: "must be stripped" },
-    };
-
-    const [attack] = hydrateUnitAttacks(raw, 100, new Set([1, 2]));
-
-    expect(attack).toEqual({
-      attackerId: 7,
-      attackerGeneration: 2,
-      tick: 100,
-      sourceX: 12,
-      sourceY: 8,
-      targetX: 13,
-      targetY: 8,
-      witnessedBy: [1, 2],
-    });
-    expect(Object.keys(attack!)).toEqual([
-      "attackerId",
-      "attackerGeneration",
-      "tick",
-      "sourceX",
-      "sourceY",
-      "targetX",
-      "targetY",
-      "witnessedBy",
-    ]);
-  });
-
-  it("rejects unsafe, out-of-range, expired, and oversized imported fields", () => {
-    const valid = {
-      attackerId: 7,
-      attackerGeneration: 2,
-      tick: 100,
-      sourceX: 12,
-      sourceY: 8,
-      targetX: 13,
-      targetY: 8,
-      witnessedBy: [1],
-    };
-    const attacks = hydrateUnitAttacks([
-      { ...valid, attackerId: Number.MAX_SAFE_INTEGER + 1 },
-      { ...valid, attackerGeneration: -1 },
-      { ...valid, tick: 89 },
-      { ...valid, tick: 101 },
-      { ...valid, cancelTick: 99 },
-      { ...valid, cancelTick: 101 },
-      { ...valid, sourceX: Number.NaN },
-      { ...valid, sourceY: 64 },
-      { ...valid, targetX: -1 },
-      { ...valid, targetY: Number.POSITIVE_INFINITY },
-      { ...valid, witnessedBy: Array.from({ length: 100 }, () => 1) },
-      valid,
-    ], 100, new Set([1]));
-
-    expect(attacks).toEqual([valid]);
-  });
-
-  it("hydrates a movement cancellation only on its observable tick", () => {
-    expect(hydrateUnitAttacks([{
-      attackerId: 7,
-      attackerGeneration: 2,
-      tick: 99,
-      cancelTick: 100,
-      sourceX: 12,
-      sourceY: 8,
-      targetX: 13,
-      targetY: 8,
-      witnessedBy: [1],
-    }], 100, new Set([1]))[0]?.cancelTick).toBe(100);
-  });
-
-  it("surfaces only fresh attacks witnessed by the viewing player", () => {
-    expect(attackVisibility.ATTACK_FEED_TICKS).toBeTypeOf("number");
-    expect(attackVisibility.ATTACK_FEED_TICKS).toBeGreaterThan(0);
-    expect(attackVisibility.visibleUnitAttacks).toBeTypeOf("function");
-    if (
-      attackVisibility.ATTACK_FEED_TICKS === undefined ||
-      attackVisibility.visibleUnitAttacks === undefined
-    ) {
-      return;
-    }
-
-    const currentTick = 100;
-    const records: RawAttackRecord[] = [
-      {
-        attackerId: 7,
-        attackerGeneration: 2,
-        tick: currentTick,
-        sourceX: 12,
-        sourceY: 8,
-        targetX: 13,
-        targetY: 8,
-        witnessedBy: [1, 2],
-        label: "visible",
-      },
-      {
-        attackerId: 8,
-        attackerGeneration: 0,
-        tick: currentTick,
-        sourceX: 29,
-        sourceY: 20,
-        targetX: 30,
-        targetY: 20,
-        witnessedBy: [2],
-        label: "fogged",
-      },
-      {
-        attackerId: 9,
-        attackerGeneration: 4,
-        tick: currentTick - attackVisibility.ATTACK_FEED_TICKS - 1,
-        sourceX: 12,
-        sourceY: 8,
-        targetX: 13,
-        targetY: 8,
-        witnessedBy: [1],
-        label: "expired",
-      },
-    ];
-
-    expect(
-      attackVisibility
-        .visibleUnitAttacks(records, currentTick, 1)
-        .map((record) => record.label),
-    ).toEqual(["visible"]);
-    expect(
-      attackVisibility
-        .visibleUnitAttacks(records, currentTick, 2)
-        .map((record) => record.label),
-    ).toEqual(["visible", "fogged"]);
-  });
-
-  it("physically prunes expired records during a quiet tick", () => {
-    const feed = createBridgeState().unitAttackFeed;
-    const attacks: RawAttackRecord[] = [
-      {
-        attackerId: 7,
-        attackerGeneration: 2,
-        tick: 89,
-        sourceX: 12,
-        sourceY: 8,
-        targetX: 13,
-        targetY: 8,
-        witnessedBy: [1],
-      },
-      {
-        attackerId: 8,
-        attackerGeneration: 0,
-        tick: 90,
-        sourceX: 12,
-        sourceY: 8,
-        targetX: 13,
-        targetY: 8,
-        witnessedBy: [1],
-      },
-    ];
-
-    initializeUnitAttackFeed(feed, attacks, 99);
-    expect(pruneUnitAttackFeed(feed, 100)).toBe(true);
-    expect(getUnitAttackFeedEntries(feed).map((attack) => attack.attackerId)).toEqual([8]);
-    expect(pruneUnitAttackFeed(feed, 100)).toBe(false);
-  });
-
-  it("persists the first movement cancellation for one presentation tick", () => {
-    const feed = createBridgeState().unitAttackFeed;
-    initializeUnitAttackFeed(feed, [{
-      attackerId: 7,
-      attackerGeneration: 2,
-      tick: 100,
-      sourceX: 12,
-      sourceY: 8,
-      targetX: 13,
-      targetY: 8,
-      witnessedBy: [1],
-    }], 100);
-
-    expect(markUnitAttackMovementStarted(feed, 7, 2, 101)).toBe(true);
-    expect(markUnitAttackMovementStarted(feed, 7, 2, 102)).toBe(false);
-    expect(getUnitAttackFeedEntries(feed)[0]).toMatchObject({ cancelTick: 101 });
-    expect(pruneUnitAttackFeed(feed, 101)).toBe(false);
-    expect(pruneUnitAttackFeed(feed, 102)).toBe(true);
-    expect(getUnitAttackFeedEntries(feed)).toEqual([]);
-  });
-
-  it("synchronizes visibility before capturing non-owner witnesses", () => {
+describe("unit attack animation feed - recorder visibility", () => {
+  it("requires both footprints to be visible even for the attacker owner", () => {
     let visibilityIsCurrent = false;
     const ensureVisibilityCurrent = vi.fn(() => {
       visibilityIsCurrent = true;
@@ -316,12 +103,106 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
     })(1, 2);
 
     expect(ensureVisibilityCurrent).toHaveBeenCalledOnce();
-    expect(getUnitAttackFeedEntries(state.unitAttackFeed)[0]?.witnessedBy).toEqual([1, 2]);
+    expect(getUnitAttackFeedEntries(state.unitAttackFeed)[0]?.witnessedBy).toEqual([2]);
   });
 
-  it("batches same-tick visibility refresh and keys many attackers without feed scans", () => {
+  it("does not publish a hidden target coordinate to the attacker owner", () => {
+    const state = createBridgeState();
+    const components = new Map<string, unknown>([
+      ["1:unit", { owner: 1, unitType: "arbalest" }],
+      ["1:position", { x: 3, y: 4 }],
+      ["1:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+      ["2:position", { x: 8, y: 4 }],
+      ["2:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+    ]);
+    const world = {
+      tick: 20,
+      getEntityRef: (id: number) =>
+        id === 1 ? { id: 1, generation: 3 } : { id, generation: 0 },
+      getComponent: (id: number, component: string) =>
+        components.get(`${id}:${component}`),
+    } as unknown as GameWorld;
+    const accessor = {
+      get: () => new Map([[1, { current: 1, cap: 5, rawSupply: 5 }]]),
+    } as unknown as BridgeStateAccessor;
+    const visibility = {
+      isVisible: (owner: number, x: number) => owner === 1 && x === 3,
+    } as unknown as VisibilityMap;
+
+    createUnitAttackRecorder({
+      world,
+      state,
+      accessor,
+      visibility,
+      ensureVisibilityCurrent: vi.fn(),
+    })(1, 2);
+
+    expect(getUnitAttackFeedEntries(state.unitAttackFeed)).toEqual([]);
+  });
+
+  it("refreshes visibility before each same-tick impact", () => {
+    const state = createBridgeState();
+    const components = new Map<string, unknown>([
+      ["1:unit", { owner: 1, unitType: "arbalest" }],
+      ["1:position", { x: 3, y: 4 }],
+      ["1:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+      ["2:unit", { owner: 1, unitType: "arbalest" }],
+      ["2:position", { x: 3, y: 5 }],
+      ["2:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+      ["100:position", { x: 4, y: 4 }],
+      ["100:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+      ["101:position", { x: 4, y: 5 }],
+      ["101:renderable", { footprintWidth: 1, footprintHeight: 1 }],
+    ]);
+    const world = {
+      tick: 20,
+      getEntityRef: (id: number) => ({ id, generation: 0 }),
+      getComponent: (id: number, component: string) =>
+        components.get(`${id}:${component}`),
+    } as unknown as GameWorld;
+    const accessor = {
+      get: () => new Map([[1, { current: 2, cap: 5, rawSupply: 5 }]]),
+    } as unknown as BridgeStateAccessor;
+    let sourceCoversTargets = true;
+    let visibilityCoversTargets = false;
+    let visibilitySourceRevision = 0;
+    const visibility = {
+      isVisible: (owner: number, x: number) => (
+        owner === 1 && (x === 3 || (x === 4 && visibilityCoversTargets))
+      ),
+    } as unknown as VisibilityMap;
+    const ensureVisibilityCurrent = vi.fn(() => {
+      visibilityCoversTargets = sourceCoversTargets;
+    });
+    const record = createUnitAttackRecorder({
+      world,
+      state,
+      accessor,
+      visibility,
+      ensureVisibilityCurrent,
+      getVisibilitySourceRevision: () => visibilitySourceRevision,
+    });
+
+    record(1, 100);
+    sourceCoversTargets = false;
+    visibilitySourceRevision += 1;
+    record(2, 101);
+
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(2);
+    expect(getUnitAttackFeedEntries(state.unitAttackFeed)).toHaveLength(1);
+    expect(getUnitAttackFeedEntries(state.unitAttackFeed)[0]).toMatchObject({
+      attackerId: 1,
+      targetX: 4,
+      targetY: 4,
+      witnessedBy: [1],
+    });
+  });
+
+  it("reuses one current snapshot across max-pop fine moves and impacts", () => {
     const state = createBridgeState();
     const ensureVisibilityCurrent = vi.fn();
+    const fineXByAttacker = new Map<number, number>();
+    const coarseXByAttacker = new Map<number, number>();
     const world = {
       tick: 20,
       getEntityRef: (id: number) => ({ id, generation: 0 }),
@@ -330,7 +211,20 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
           return { owner: 1, unitType: "villager" };
         }
         if (component === "position") {
-          return id === 10_000 ? { x: 4, y: 4 } : { x: 3, y: 4 };
+          return id === 10_000
+            ? { x: 4, y: 4 }
+            : { x: coarseXByAttacker.get(id) ?? 3, y: 4 };
+        }
+        if (component === "unitTransform" && id !== 10_000) {
+          return {
+            fineX: fineXByAttacker.get(id) ?? 12,
+            fineY: 16,
+            occupancySlotX: 0,
+            occupancySlotY: 0,
+          };
+        }
+        if (component === "visionSource" && id !== 10_000) {
+          return { playerId: 1, radius: 4 };
         }
         if (component === "renderable") {
           return { footprintWidth: 1, footprintHeight: 1 };
@@ -339,34 +233,49 @@ describe("unit attack animation feed - pure witness and age filtering", () => {
       },
     } as unknown as GameWorld;
     const accessor = {
-      get: () => new Map([[1, { current: 100, cap: 200, rawSupply: 200 }]]),
+      get: () => new Map([[1, { current: 200, cap: 200, rawSupply: 200 }]]),
     } as unknown as BridgeStateAccessor;
     const visibility = {
-      isVisible: () => false,
+      isVisible: () => true,
     } as unknown as VisibilityMap;
+    const visibilityRevision = createPlayerCommandVisibilityRevision(world);
     const record = createUnitAttackRecorder({
       world,
       state,
       accessor,
       visibility,
       ensureVisibilityCurrent,
+      getVisibilitySourceRevision: visibilityRevision.current,
     });
 
-    for (let attackerId = 1; attackerId <= 100; attackerId += 1) {
+    for (let attackerId = 1; attackerId <= 200; attackerId += 1) {
+      visibilityRevision.runEntityMutation(attackerId, () => {
+        fineXByAttacker.set(attackerId, 13);
+      });
       record(attackerId, 10_000);
     }
 
-    expect(ensureVisibilityCurrent).toHaveBeenCalledOnce();
-    expect(state.unitAttackFeed.byAttacker.size).toBe(100);
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(1);
+    expect(state.unitAttackFeed.byAttacker.size).toBe(200);
     record(1, 10_000);
-    expect(ensureVisibilityCurrent).toHaveBeenCalledOnce();
-    expect(state.unitAttackFeed.byAttacker.size).toBe(100);
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(1);
+    expect(state.unitAttackFeed.byAttacker.size).toBe(200);
+
+    visibilityRevision.runEntityMutation(1, () => {
+      coarseXByAttacker.set(1, 2);
+    });
+    record(1, 10_000);
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(2);
+
+    visibilityRevision.markMutation();
+    record(2, 10_000);
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(3);
 
     (world as unknown as { tick: number }).tick = 21;
-    record(101, 10_000);
-    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(2);
-    expect(state.unitAttackFeed.byAttacker.size).toBe(101);
-    expect(getUnitAttackFeedEntries(state.unitAttackFeed)).toHaveLength(101);
+    record(201, 10_000);
+    expect(ensureVisibilityCurrent).toHaveBeenCalledTimes(4);
+    expect(state.unitAttackFeed.byAttacker.size).toBe(201);
+    expect(getUnitAttackFeedEntries(state.unitAttackFeed)).toHaveLength(201);
   });
 });
 

@@ -101,6 +101,7 @@ export interface PlayerCommandsSystemDeps {
     buildingId: number,
     owner: number,
     buildingType: BuildingComponent['buildingType'],
+    visionSourceAdded: boolean,
   ) => void;
 }
 

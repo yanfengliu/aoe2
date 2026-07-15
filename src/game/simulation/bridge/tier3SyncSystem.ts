@@ -36,6 +36,7 @@ import {
   getUnitAttackFeedEntries,
   pruneUnitAttackFeed,
 } from './unitAttackAnimationFeed';
+import { suppressHiddenUnitAttacks } from './unitAttackVisibilitySuppression';
 
 // Pure Tier-3 flush body extracted so saveGameOps can call it at save
 // time WITHOUT relying on the next output phase. Without this, full-review
@@ -159,6 +160,14 @@ export function registerTier3SyncSystem(deps: {
       // attack events are stamped with the resulting observable tick + 1.
       const observableTick = activeWorld.tick + 1;
       pruneUnitAttackFeed(unitAttackFeed, observableTick);
+      // Once a witnessed cue's attacker leaves a player's current view, keep
+      // that cue suppressed for the remainder of its lifetime. Persisting the
+      // marker prevents a fresh replay/checkpoint bridge from resurrecting it.
+      suppressHiddenUnitAttacks(
+        unitAttackFeed,
+        activeWorld,
+        visibilityCell.map,
+      );
       if (syncReplayUnitAttacks) {
         flushReplayUnitAttacksState(
           activeWorld,

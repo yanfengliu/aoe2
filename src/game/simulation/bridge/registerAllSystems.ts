@@ -28,6 +28,10 @@ import { registerWinConditionResolverSystem } from './systems/winConditionResolv
 import { registerWonderCountdownSystem } from './systems/wonderCountdownSystem';
 import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
 import { syncVisibilitySources } from './visibility';
+import {
+  createPlayerCommandVisibilityRevision,
+  runBuildingDestructionVisibilityMutation,
+} from './playerCommandVisibilityRevision';
 
 export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   const {
@@ -132,27 +136,21 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     gameLength,
   } = deps;
 
-  const {
-    monkConvertProcessedThisTick,
-    monksByOwner,
-  } = state;
+  const { monkConvertProcessedThisTick, monksByOwner } = state;
+  const syncCurrentVisibility = (): void => {
+    syncVisibilitySources(world, visibility, accessor, visibilityFingerprints, visibilityCell);
+  };
+  const playerCommandVisibilityRevision = createPlayerCommandVisibilityRevision(world);
   const recordUnitAttack = createUnitAttackRecorder({
     world,
     state,
     accessor,
     visibility,
-    // Player-command attacks resolve before the normal end-of-update
-    // visibility system. Refresh here so witnesses are captured from the
-    // positions at the instant of each hit, including same-tick movement.
-    ensureVisibilityCurrent: () => {
-      syncVisibilitySources(
-        world,
-        visibility,
-        accessor,
-        visibilityFingerprints,
-        visibilityCell,
-      );
-    },
+    // Player-command attacks resolve before the normal end-of-update visibility
+    // system. Ensure the first impact and every post-mutation impact sees
+    // current sources without rescanning them for an unchanged max-pop burst.
+    ensureVisibilityCurrent: syncCurrentVisibility,
+    getVisibilitySourceRevision: playerCommandVisibilityRevision.current,
   });
 
   if (systemMode === 'replay') {
@@ -222,19 +220,43 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     beginTrebuchetPack,
     findUnitRangePlan,
     findBuildingApproachPlan,
-    moveUnitOneSubgridStep,
+    moveUnitOneSubgridStep: (...args) => {
+      playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
+        moveUnitOneSubgridStep(...args);
+      });
+    },
     isUnitAtTarget,
     resolveArrivalRedirect,
     syncUnitTransformToPosition,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
-    destroyUnitEntity,
-    killWildlifeEntity,
-    destroyBuildingEntity,
+    destroyUnitEntity: (...args) => {
+      playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
+        destroyUnitEntity(...args);
+      });
+    },
+    killWildlifeEntity: (...args) => {
+      playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
+        killWildlifeEntity(...args);
+      });
+    },
+    destroyBuildingEntity: (...args) => {
+      runBuildingDestructionVisibilityMutation(
+        playerCommandVisibilityRevision,
+        accessor,
+        args[0],
+        () => destroyBuildingEntity(...args),
+      );
+    },
     getEntityRef,
     recordUnitAttack,
-    onBuildingConstructionComplete,
+    onBuildingConstructionComplete: (buildingId, owner, buildingType, visionSourceAdded) => {
+      if (visionSourceAdded) {
+        playerCommandVisibilityRevision.markMutation();
+      }
+      onBuildingConstructionComplete(buildingId, owner, buildingType);
+    },
   });
 
   registerMonkBehaviorSystem({
@@ -342,7 +364,12 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
+    // Keep the ordinary visibility snapshot immutable across the authoritative
+    // tower pass, then publish final LOS once before output suppression and
+    // checkpointing. Mid-pass refreshes make later tower damage depend on
+    // building entity order and repeat the full source scan for every kill.
     destroyUnitEntity,
+    refreshVisibilityAfterCombat: syncCurrentVisibility,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
   });
@@ -384,10 +411,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   });
 }
 
-function registerReplayPendingCommandDrainSystem(
-  world: RegisterAllSystemsDeps['world'],
-  pendingCommands: RegisterAllSystemsDeps['pendingCommands'],
-): void {
+function registerReplayPendingCommandDrainSystem(world: RegisterAllSystemsDeps['world'], pendingCommands: RegisterAllSystemsDeps['pendingCommands']): void {
   world.registerSystem({
     name: 'aoe2ReplayPendingCommandDrain',
     phase: 'update',

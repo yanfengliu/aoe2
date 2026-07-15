@@ -27,7 +27,7 @@ export function unitAttackKey(attackerId: number, attackerGeneration: number): s
   return `${attackerId}:${attackerGeneration}`;
 }
 
-function markUnitAttackFeedChanged(feed: UnitAttackFeedRuntime): void {
+export function markUnitAttackFeedChanged(feed: UnitAttackFeedRuntime): void {
   feed.materializedDirty = true;
   feed.persistenceDirty = true;
 }
@@ -100,6 +100,9 @@ export function upsertUnitAttack(
     targetX: attack.targetX,
     targetY: attack.targetY,
     witnessedBy: [...attack.witnessedBy],
+    ...(attack.suppressedFor && attack.suppressedFor.length > 0
+      ? { suppressedFor: [...attack.suppressedFor] }
+      : {}),
   };
   const key = unitAttackKey(canonical.attackerId, canonical.attackerGeneration);
   feed.byAttacker.delete(key);
@@ -163,6 +166,7 @@ export function hydrateUnitAttacks(
     if (!candidate || typeof candidate !== 'object') continue;
     const attack = candidate as Partial<ProjectedUnitAttackView>;
     const hasCancelTick = attack.cancelTick !== undefined;
+    const hasSuppressedFor = attack.suppressedFor !== undefined;
     if (
       !Number.isSafeInteger(attack.attackerId)
       || (attack.attackerId ?? -1) < 0
@@ -191,6 +195,10 @@ export function hydrateUnitAttacks(
       || !Array.isArray(attack.witnessedBy)
       || attack.witnessedBy.length === 0
       || attack.witnessedBy.length > MAX_ATTACK_PLAYER_ID
+      || (hasSuppressedFor && (
+        !Array.isArray(attack.suppressedFor)
+        || attack.suppressedFor.length > MAX_ATTACK_PLAYER_ID
+      ))
     ) {
       continue;
     }
@@ -207,6 +215,18 @@ export function hydrateUnitAttacks(
       }
     }
     if (witnessedBy.length === 0) continue;
+    const suppressedFor: number[] = [];
+    if (Array.isArray(attack.suppressedFor)) {
+      for (const playerId of attack.suppressedFor) {
+        if (
+          Number.isSafeInteger(playerId)
+          && witnessedBy.includes(playerId)
+          && !suppressedFor.includes(playerId)
+        ) {
+          suppressedFor.push(playerId);
+        }
+      }
+    }
     const canonical: ProjectedUnitAttackView = {
       attackerId: attack.attackerId!,
       attackerGeneration: attack.attackerGeneration!,
@@ -217,6 +237,7 @@ export function hydrateUnitAttacks(
       targetX: attack.targetX!,
       targetY: attack.targetY!,
       witnessedBy,
+      ...(suppressedFor.length > 0 ? { suppressedFor } : {}),
     };
     const key = unitAttackKey(canonical.attackerId, canonical.attackerGeneration);
     attacks.delete(key);
@@ -236,6 +257,7 @@ export function visibleUnitAttacks<Attack extends ProjectedUnitAttackView>(
       age >= 0 &&
       age <= ATTACK_FEED_TICKS &&
       attack.witnessedBy.includes(playerId)
+      && !attack.suppressedFor?.includes(playerId)
       && (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     );
   });
@@ -257,6 +279,7 @@ export function attackAnimationForEntity(
       age >= 0 &&
       age <= ATTACK_FEED_TICKS &&
       attack.witnessedBy.includes(playerId) &&
+      !attack.suppressedFor?.includes(playerId) &&
       (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     ) {
       return {
@@ -285,6 +308,7 @@ export function indexVisibleUnitAttackAnimations(
       || age > ATTACK_FEED_TICKS
       || (attack.cancelTick !== undefined && currentTick > attack.cancelTick)
       || !attack.witnessedBy.includes(playerId)
+      || attack.suppressedFor?.includes(playerId)
     ) {
       continue;
     }
@@ -309,6 +333,7 @@ export function createUnitAttackRecorder(deps: {
   accessor: BridgeStateAccessor;
   visibility: VisibilityMap;
   ensureVisibilityCurrent?: () => void;
+  getVisibilitySourceRevision?: () => number;
 }): (attackerId: number, targetId: number) => void {
   const {
     world,
@@ -316,8 +341,10 @@ export function createUnitAttackRecorder(deps: {
     accessor,
     visibility,
     ensureVisibilityCurrent,
+    getVisibilitySourceRevision,
   } = deps;
   let visibilitySnapshotTick = Number.NEGATIVE_INFINITY;
+  let visibilitySnapshotRevision = Number.NEGATIVE_INFINITY;
 
   return (attackerId, targetId) => {
     const attackerRef = world.getEntityRef(attackerId);
@@ -366,13 +393,21 @@ export function createUnitAttackRecorder(deps: {
       ? projectUnitTransformCoordinate(targetTransform.fineY)
       : targetPosition.y;
     const tick = world.tick + 1;
-    // Player commands resolve sequentially inside one atomic simulation tick.
-    // The first successful impact refreshes visibility; later impacts in that
-    // observable tick share that snapshot, avoiding one full source scan per
-    // attacker. The normal visibility system still publishes final positions.
-    if (visibilitySnapshotTick !== tick) {
+    // Player commands resolve sequentially, and preceding commands can move or
+    // remove vision sources inside the same simulation tick. The first impact
+    // each tick always refreshes; later impacts may reuse it only while the
+    // command resolver's vision-source mutation revision remains unchanged.
+    // Callers without that explicit revision retain the conservative per-call
+    // refresh behavior.
+    const visibilitySourceRevision = getVisibilitySourceRevision?.();
+    if (
+      getVisibilitySourceRevision === undefined
+      || visibilitySnapshotTick !== tick
+      || visibilitySnapshotRevision !== visibilitySourceRevision
+    ) {
       ensureVisibilityCurrent?.();
       visibilitySnapshotTick = tick;
+      visibilitySnapshotRevision = visibilitySourceRevision ?? Number.NEGATIVE_INFINITY;
     }
     const witnessedBy: number[] = [];
     for (const owner of accessor.get(populationCodec).keys()) {
@@ -380,33 +415,23 @@ export function createUnitAttackRecorder(deps: {
         continue;
       }
       if (
-        owner === attacker.owner ||
-        (isFootprintVisible(
+        isFootprintVisible(
           visibility,
           owner,
           attackerPosition.x,
           attackerPosition.y,
           attackerRenderable.footprintWidth,
           attackerRenderable.footprintHeight,
-        ) &&
-          isFootprintVisible(
-            visibility,
-            owner,
-            targetPosition.x,
-            targetPosition.y,
-            targetRenderable.footprintWidth,
-            targetRenderable.footprintHeight,
-          ))
+        ) && isFootprintVisible(
+          visibility,
+          owner,
+          targetPosition.x,
+          targetPosition.y,
+          targetRenderable.footprintWidth,
+          targetRenderable.footprintHeight,
+        )
       )
         witnessedBy.push(owner);
-    }
-    if (
-      Number.isSafeInteger(attacker.owner)
-      && attacker.owner >= 1
-      && attacker.owner <= MAX_ATTACK_PLAYER_ID
-      && !witnessedBy.includes(attacker.owner)
-    ) {
-      witnessedBy.push(attacker.owner);
     }
     if (witnessedBy.length === 0) return;
 

@@ -37,6 +37,7 @@ export interface TowerCombatSystemDeps {
     range: number,
   ) => number | null;
   destroyUnitEntity: (id: number) => void;
+  refreshVisibilityAfterCombat: () => void;
   markOutOfBandRenderChange: () => void;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
 }
@@ -47,6 +48,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     destroyUnitEntity,
+    refreshVisibilityAfterCombat,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
   } = deps;
@@ -56,6 +58,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     phase: 'update',
     after: ['prototypeVisibility'],
     execute(activeWorld) {
+      let destroyedAnyUnit = false;
       for (const id of activeWorld.query('position', 'building')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -151,6 +154,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           markOutOfBandRenderChange();
           if (activeTargetCombat.currentHp <= 0) {
             ensurePlayerScoreCounters(building.owner).unitsKilled += 1;
+            destroyedAnyUnit = true;
             destroyUnitEntity(targetId);
             break;
           }
@@ -158,6 +162,9 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
 
         buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
         accessor.markDirty(buildingCombatStatesCodec);
+      }
+      if (destroyedAnyUnit) {
+        refreshVisibilityAfterCombat();
       }
     },
   });

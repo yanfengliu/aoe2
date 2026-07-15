@@ -12,7 +12,12 @@ import {
 } from '../../src/game/replay/ReplayController';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
 import { makeReplayBridge } from '../../src/game/simulation/replay/makeReplayBridge';
-import { TIER_3_SLOTS } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import { getReplayWorldContext } from '../../src/game/simulation/replay/replayWorldContext';
+import {
+  combatStatesCodec,
+  TIER_3_SLOTS,
+} from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import type { CombatState } from '../../src/game/simulation/bridge/systems/systemTypes';
 import type {
   GameCommands,
   GameEvents,
@@ -31,6 +36,152 @@ describe('unit attack animation replay snapshots', () => {
 
     replayWorld.step();
     expect(replayWorld.getState(TIER_3_SLOTS.replayUnitAttacks)).toBeUndefined();
+  });
+
+  it('does not resurrect a persisted fog-suppressed cue in a fresh replay bridge', () => {
+    const live = createSimulationBridge('boar-hunt-fixture');
+    const villager = live
+      .getRenderState()
+      .entities.find(
+        (entity) =>
+          entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager',
+      );
+    expect(villager?.generation).toBeDefined();
+    const snapshot = structuredClone(live.world.serialize());
+    const state = (snapshot as { state?: Record<string, unknown> }).state;
+    expect(state).toBeDefined();
+    state![TIER_3_SLOTS.replayUnitAttacks] = [
+      {
+        attackerId: villager!.id,
+        attackerGeneration: villager!.generation,
+        tick: snapshot.tick,
+        sourceX: villager!.x,
+        sourceY: villager!.y,
+        targetX: villager!.x + 1,
+        targetY: villager!.y,
+        witnessedBy: [1],
+        suppressedFor: [1],
+      },
+    ];
+
+    const replayWorld = createReplayWorldOnly(snapshot);
+    const replay = makeReplayBridge(replayWorld);
+    try {
+      expect(
+        replay.getRenderState().entities.find((entity) => entity.id === villager!.id)
+          ?.attackAnimation,
+      ).toBeUndefined();
+    } finally {
+      replay.disposeReplayRenderAdapter();
+    }
+  });
+
+  it('persists suppression when tower fire removes the final local witness source', () => {
+    const base = createSimulationBridge('castle-garrison-fixture');
+    const attacker = base
+      .getEconomyState()
+      .units.find(
+        (unit) =>
+          unit.owner === 1
+          && unit.unitType === 'villager'
+          && unit.x === 20
+          && unit.y === 10,
+      );
+    expect(attacker).toBeDefined();
+
+    const seeded = createReplayWorldOnly(structuredClone(base.world.serialize()));
+    const victim = seeded.runMaintenance(() => {
+      const id = seeded.createEntity();
+      seeded.setPosition(id, { x: 20, y: 8 });
+      seeded.addComponent(id, 'unit', { owner: 2, unitType: 'spearman' });
+      seeded.addComponent(id, 'unitTransform', {
+        fineX: 82,
+        fineY: 32,
+        occupancySlotX: 0.5,
+        occupancySlotY: 0,
+      });
+      seeded.addComponent(id, 'renderable', {
+        kind: 'unit',
+        layer: 'unit',
+        tint: 0x123456,
+        size: 0.45,
+        footprintWidth: 1,
+        footprintHeight: 1,
+        visualVariant: 'default',
+      });
+      seeded.addComponent(id, 'visionSource', { playerId: 2, radius: 4 });
+      return id;
+    });
+    const combatStates = structuredClone(
+      seeded.getState(combatStatesCodec.slot) ?? [],
+    ) as Array<[number, CombatState]>;
+    combatStates.push([
+      victim,
+      {
+        currentHp: 1,
+        maxHp: 45,
+        armor: 0,
+        attackDamage: 3,
+        attackRange: 1,
+        reloadTicks: 10,
+        cooldownTicks: 0,
+        pierceArmorBonus: 0,
+      },
+    ]);
+    seeded.setState(
+      combatStatesCodec.slot,
+      combatStates as unknown as Parameters<typeof seeded.setState>[1],
+    );
+    const attackerRef = seeded.getEntityRef(attacker!.id);
+    expect(attackerRef).not.toBeNull();
+    seeded.setState(
+      TIER_3_SLOTS.replayUnitAttacks,
+      [{
+        attackerId: attacker!.id,
+        attackerGeneration: attackerRef!.generation,
+        tick: seeded.tick,
+        sourceX: attacker!.x,
+        sourceY: attacker!.y,
+        targetX: 20,
+        targetY: 8,
+        witnessedBy: [2],
+      }] as unknown as Parameters<typeof seeded.setState>[1],
+    );
+
+    const hiddenTickWorld = createReplayWorldOnly(seeded.serialize());
+    expect(
+      getReplayWorldContext(hiddenTickWorld)?.visibility.isVisible(2, 20, 10),
+    ).toBe(true);
+    hiddenTickWorld.step();
+    expect(hiddenTickWorld.getEntityRef(victim)).toBeNull();
+    expect(
+      getReplayWorldContext(hiddenTickWorld)?.visibility.isVisible(2, 20, 10),
+    ).toBe(false);
+    expect(hiddenTickWorld.getState(TIER_3_SLOTS.replayUnitAttacks)).toEqual([
+      expect.objectContaining({ suppressedFor: [2] }),
+    ]);
+
+    const revealedTickWorld = createReplayWorldOnly(hiddenTickWorld.serialize());
+    revealedTickWorld.runMaintenance(() => {
+      const revealer = revealedTickWorld.createEntity();
+      revealedTickWorld.setPosition(revealer, { x: 20, y: 10 });
+      revealedTickWorld.addComponent(revealer, 'visionSource', {
+        playerId: 2,
+        radius: 1,
+      });
+    });
+    revealedTickWorld.step();
+    const scrubbedWorld = createReplayWorldOnly(revealedTickWorld.serialize());
+    const replay = makeReplayBridge(scrubbedWorld, { fogOwner: 2 });
+    try {
+      const projectedAttacker = replay
+        .getRenderState()
+        .entities.find((entity) => entity.id === attacker!.id);
+      expect(projectedAttacker).toBeDefined();
+      expect(projectedAttacker?.attackAnimation).toBeUndefined();
+    } finally {
+      replay.disposeReplayRenderAdapter();
+    }
   });
 
   it('restores a hit when openAt starts exactly on its snapshot tick', async () => {

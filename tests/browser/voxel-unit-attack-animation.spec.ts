@@ -240,6 +240,14 @@ test.describe('voxel unit attack animation', () => {
     }
     expect(progressedMotions.approacherMotions).toHaveLength(4);
     expect(progressedMotions.approacherMotions.every((motion) => motion?.mode === 'moving')).toBe(true);
-    expect(progressedMotions.approacherMotions.every((motion) => motion?.attackWeight === 0)).toBe(true);
+    expect(progressedMotions.approacherMotions.every((motion) => (
+      motion !== null
+      && Number.isFinite(motion.attackWeight)
+      && motion.attackWeight >= 0
+      && motion.attackWeight <= 1
+    ))).toBe(true);
+    expect(progressedMotions.approacherMotions.map(
+      (motion) => motion?.attackWeight ?? Number.NaN,
+    ).sort((left, right) => left - right)).toEqual([0, 0, 1, 1]);
   });
 });
