@@ -70,6 +70,7 @@ export function makeReplayBridge(
       api.getRecentUnitDeaths,
       api.getRecentUnitAttacks,
       api.getWildlifeAlive,
+      api.getUnitActiveVerb,
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {

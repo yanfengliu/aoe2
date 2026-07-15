@@ -237,6 +237,9 @@ export interface ProjectedEntityView {
   // `currentHp === null` is a health-display convention shared with every
   // other resource, so the carcass look must not key off it.
   wildlifeAlive?: boolean;
+  // Active work verb (spec §14.5 construction animation). Derived, never
+  // recorded: same predicate the HUD's selection panel reads.
+  activeVerb?: 'building';
   // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
   // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;
@@ -299,8 +302,7 @@ export interface PlayerResources {
 
 export interface PopulationState {
   current: number;
-  // cap = deriveCap(rawSupply) (stored; invariant holds). rawSupply is the
-  // honest unclamped housing sum (+=/-= at build/destroy); see bridgeConstants.
+  // cap = deriveCap(rawSupply); rawSupply is the honest unclamped housing sum.
   cap: number;
   rawSupply: number;
 }
@@ -487,12 +489,10 @@ export interface MatchState {
   summary: string;
   // Populated when `outcome !== 'running'`. Null while the match is live.
   winCondition: WinCondition | null;
-  // Per-owner score snapshot at match end. Null while the match is live.
-  // Keyed by ownerId -> total score.
+  // Per-owner score snapshot at match end (ownerId -> total); null while live.
   scores: Record<number, number> | null;
-  // Remaining ticks on an in-flight Wonder countdown for the human player,
-  // or null if no countdown is active. Surfaced so the HUD can render a
-  // running timer alongside age / pop.
+  // Remaining ticks on an in-flight Wonder countdown for the human player, or
+  // null if none — surfaced so the HUD can render a timer beside age / pop.
   wonderCountdownTicks: number | null;
   // Remaining ticks on an in-flight Relic countdown for the human player,
   // or null if no countdown is active.

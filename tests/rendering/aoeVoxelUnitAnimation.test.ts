@@ -57,6 +57,8 @@ function movingState(overrides: Partial<AoeUnitAnimationState> = {}): AoeUnitAni
     attackPhase: 0,
     attackWeight: 0,
     ambientSuppressionWeight: 0,
+    workPhase: 0,
+    workWeight: 0,
     ...overrides,
   };
 }

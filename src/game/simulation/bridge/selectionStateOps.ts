@@ -82,6 +82,7 @@ export interface SelectionStateOpsDeps {
 export interface SelectionStateOps {
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
   getWildlifeAlive(id: number): boolean | undefined;
+  getUnitActiveVerb(id: number): 'building' | undefined;
   getSelectionState(): SelectionState;
 }
 
@@ -140,6 +141,15 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
   function getWildlifeAlive(id: number): boolean | undefined {
     if (!world.getComponent<ResourceComponent>(id, 'resource')) return undefined;
     return accessor.get(wildlifeStatesCodec).get(id)?.isAlive;
+  }
+
+  // Spec §14.5 construction animation: the smallest honest carrier for "this
+  // villager is building" — the SAME `unitCommands` predicate the HUD's
+  // selection panel reads (computeUnitActivity), so nothing new is recorded
+  // or persisted and replay is identical by construction. The renderer gates
+  // the work loop on stationarity, so this stays true through the approach.
+  function getUnitActiveVerb(id: number): 'building' | undefined {
+    return accessor.get(unitCommandsCodec).get(id)?.type === 'build' ? 'building' : undefined;
   }
 
   function getSelectionHealth(id: number): SelectionState['health'] {
@@ -437,5 +447,5 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     };
   }
 
-  return { getEntityHealth, getWildlifeAlive, getSelectionState };
+  return { getEntityHealth, getWildlifeAlive, getUnitActiveVerb, getSelectionState };
 }

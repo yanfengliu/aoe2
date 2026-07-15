@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.2.9 - 2026-07-15
+
+### Added
+
+- **Builders swing a hammer while they work.** A villager standing at a construction site now raises its hammer overhead and smashes it down on a repeating loop, so building reads as work rather than standing still. Builders on the same site swing out of sync with each other, the swing stops the moment the villager walks or attacks, and it freezes with pause. Build progress, repair rates, saves, and replays are unchanged.
+
 ## 0.2.8 - 2026-07-15
 
 ### Added

@@ -73,6 +73,7 @@ export function createProjector(
   getRecentUnitDeaths: () => readonly ProjectedUnitDeathView[],
   getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[],
   getWildlifeAlive: (id: number) => boolean | undefined,
+  getUnitActiveVerb: (id: number) => 'building' | undefined,
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -111,6 +112,7 @@ export function createProjector(
         ? attackAnimations.get(unitAttackKey(ref.id, ref.generation))
         : undefined;
       const wildlifeAlive = resource ? getWildlifeAlive(ref.id) : undefined;
+      const activeVerb = unit ? getUnitActiveVerb(ref.id) : undefined;
 
       let owner: number | null = null;
       let entityType: ProjectedEntityView['entityType'] = 'grass';
@@ -162,6 +164,7 @@ export function createProjector(
         maxHp: health?.maxHp ?? null,
         ...(attackAnimation ? { attackAnimation } : {}),
         ...(wildlifeAlive === undefined ? {} : { wildlifeAlive }),
+        ...(activeVerb === undefined ? {} : { activeVerb }),
         isMemory: false,
       };
     },

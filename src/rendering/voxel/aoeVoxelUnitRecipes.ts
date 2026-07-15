@@ -174,6 +174,8 @@ export function createUnitParts(
     attackPhase: 0,
     attackWeight: 0,
     ambientSuppressionWeight: 0,
+    workPhase: 0,
+    workWeight: 0,
   },
 ): VoxelPart[] {
   const scale = Math.max(0.48, entity.size);
