@@ -47,5 +47,8 @@ export const ALL_UNIT_TYPES = {
 export function isUnitType(
   entityType: SelectionState['selectedEntityType'],
 ): entityType is UnitType {
-  return entityType !== null && entityType in ALL_UNIT_TYPES;
+  // `hasOwn`, not `in`: the latter walks the prototype chain, so an object
+  // literal answers true for 'toString', 'constructor', and every other
+  // Object.prototype member.
+  return entityType !== null && Object.hasOwn(ALL_UNIT_TYPES, entityType);
 }
