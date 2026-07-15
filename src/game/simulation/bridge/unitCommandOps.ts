@@ -116,9 +116,9 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // unit.context handler so live + replay execute identical routing.
   // Bridge facade dispatches monk routing BEFORE submission; this helper
   // is non-monk only.
-  routeUnitContextCommandDirect(unitId: number, target: Position): boolean;
+  routeUnitContextCommandDirect(unitId: number, target: Position, allowGarrison: boolean): boolean;
   // Phase 1B unit.contextAtEntity: routing helper by entity id.
-  routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean;
+  routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean;
   // Phase 1B monk.contextAtEntity: reads monk + target afresh, then routes to
   // setMonkTask or move-fallback. Kept here to avoid a monkTaskOps wiring cycle.
   routeMonkContextAtEntityCommandDirect(
@@ -131,9 +131,9 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
   ): boolean;
-  issueUnitContextCommand(unitId: number, target: Position): boolean;
+  issueUnitContextCommand(unitId: number, target: Position, garrison?: boolean): boolean;
   issueUnitGatherCommand(unitId: number, resourceId: number): boolean;
-  issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean;
+  issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number, garrison?: boolean): boolean;
 }
 
 export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
@@ -321,7 +321,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // garrison / attack / gather / move via the corresponding direct
   // helpers. Used by the `unit.context` handler so live + replay paths
   // execute identical routing logic against identical world state.
-  function routeUnitContextCommandDirect(unitId: number, target: Position): boolean {
+  function routeUnitContextCommandDirect(unitId: number, target: Position, allowGarrison: boolean): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) return false;
     // Monk routing is handled by the bridge facade BEFORE submission
@@ -330,12 +330,12 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
     const resourceId =
       unit.unitType === 'villager' ? findResourceAtCell(target.x, target.y) : null;
-    const ownedGarrisonBuildingId = findOwnedGarrisonBuildingAtCell(
-      target.x,
-      target.y,
-      unit.owner,
-      unit.unitType,
-    );
+    // Spec §9.3: without explicit intent an owned building is not a garrison
+    // target, so routing falls through to move at the click's own ground cell
+    // — that is what makes "base = walk to it, roof = walk behind it" free.
+    const ownedGarrisonBuildingId = allowGarrison
+      ? findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType)
+      : null;
     const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
     const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
     const hostileWildlifeId = findHostileWildlifeAtCell(target.x, target.y);
@@ -366,7 +366,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // the move-fallback (no monk-context target at the cell) clears any
   // existing task and submits `unit.move` via the commandified facade.
   // Non-monk path submits `unit.context` for handler-side routing.
-  function issueUnitContextCommand(unitId: number, target: Position): boolean {
+  function issueUnitContextCommand(unitId: number, target: Position, garrison = false): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit || unit.owner !== humanPlayerId) return false;
 
@@ -379,7 +379,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       return issueUnitMoveCommand(unitId, target);
     }
 
-    const result = world.submitWithResult('unit.context', { unitId, target });
+    const result = world.submitWithResult('unit.context', { unitId, target, garrison });
     return result.accepted;
   }
 
@@ -397,7 +397,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.
-  function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number): boolean {
+  function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || !targetPosition) return false;
@@ -430,8 +430,11 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
         return true;
       }
 
+      // Spec §9.3: garrison only on explicit intent; a plain right-click falls
+      // through to the move below and walks up to the building.
       if (
-        canGarrisonAt(targetBuilding.buildingType, unit.unitType)
+        allowGarrison
+        && canGarrisonAt(targetBuilding.buildingType, unit.unitType)
         && (!construction || construction.isComplete)
       ) {
         return garrisonUnit(unitId, targetEntityId);
@@ -463,7 +466,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // Bridge facade. Monk path submits `monk.contextAtEntity` (handler
   // re-routes via `routeMonkContextAtEntityCommandDirect`). Non-monk path
   // submits `unit.contextAtEntity`.
-  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number): boolean {
+  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number, garrison = false): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
@@ -472,7 +475,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       return issueMonkContextCommandAtEntity(unitId, targetEntityId);
     }
 
-    const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId });
+    // Always explicit on the live path (§9.3); only a pre-rule RECORDING omits
+    // `garrison`, which the handler reads as legacy.
+    const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId, garrison });
     return result.accepted;
   }
 

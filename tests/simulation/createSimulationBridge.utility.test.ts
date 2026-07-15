@@ -143,7 +143,7 @@ describe('createSimulationBridge utility progression', () => {
     expect(garrisonedVillagerView).toBeDefined();
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.issueContextCommand(8, 8)).toBe(true);
+    expect(bridge.issueContextCommand(8, 8, true)).toBe(true);
     // Phase 1B unit.context: handler routes to garrisonUnit at start of next
     // step's processCommands. Step once so the garrison mutation lands.
     bridge.step(100);
@@ -211,7 +211,7 @@ describe('createSimulationBridge utility progression', () => {
     expect(villager).toBeDefined();
 
     expect(bridge.selectEntityAtCell(villager?.x ?? 0, villager?.y ?? 0)).toBe(true);
-    expect(bridge.issueContextCommand(watchTowerAnchor.x, watchTowerAnchor.y)).toBe(true);
+    expect(bridge.issueContextCommand(watchTowerAnchor.x, watchTowerAnchor.y, true)).toBe(true);
     // Phase 1B unit.context: handler routes to garrisonUnit at start of next
     // step's processCommands. Step once so the garrison mutation lands.
     bridge.step(100);
@@ -241,7 +241,7 @@ describe('createSimulationBridge utility progression', () => {
     const bridge = createSimulationBridge('town-center-defense-fixture');
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
-    expect(bridge.issueContextCommand(8, 8)).toBe(true);
+    expect(bridge.issueContextCommand(8, 8, true)).toBe(true);
 
     // The TC fires PIERCE arrows (attack 5) and a Scout carries 2 pierce armor
     // (units.csv 0/2), so each arrow now deals 3 — the lone Scout still dies,

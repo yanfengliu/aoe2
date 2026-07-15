@@ -229,7 +229,7 @@ describe('Slice 6 Castle + Longbowman', () => {
       const villager = bridge.getEconomyState().units.find((u) => u.id === id);
       expect(villager).toBeDefined();
       expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
       bridge.step(100);
     }
 
@@ -258,7 +258,7 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     for (const villagerId of villagerIds) {
       expect(bridge.selectEntityById(villagerId)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
       bridge.step(100);
     }
     expect(

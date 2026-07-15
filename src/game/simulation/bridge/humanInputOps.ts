@@ -43,8 +43,8 @@ export interface HumanInputOpsDeps {
   isEntityVisibleToHuman: (id: number) => boolean;
   enqueueRejection: (reason: string) => void;
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
-  issueUnitContextCommand: (unitId: number, target: Position) => boolean;
-  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
+  issueUnitContextCommand: (unitId: number, target: Position, garrison?: boolean) => boolean;
+  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number, garrison?: boolean) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
   // Spec §12.7 eager pre-reservation: when N units are commanded together to
   // a single target, allocate distinct cells via spiral fill so multiple
@@ -57,8 +57,8 @@ export interface HumanInputOpsDeps {
 
 export interface HumanInputOps {
   issueMoveCommand(x: number, y: number): boolean;
-  issueContextCommand(x: number, y: number): boolean;
-  issueContextCommandAtEntityInternal(entityId: number): boolean;
+  issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
+  issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueAction(actionType: ActionType): boolean;
@@ -141,7 +141,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return didIssue;
   }
 
-  function issueContextCommand(x: number, y: number): boolean {
+  function issueContextCommand(x: number, y: number, garrison = false): boolean {
     if (!isMatchRunning()) return false;
 
     const selectedEntityId = getSelectedEntityId();
@@ -180,7 +180,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     placementMode.current = null;
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
-      didIssue = supersedeAutoAggression(unitId, issueUnitContextCommand(unitId, target)) || didIssue;
+      didIssue = supersedeAutoAggression(unitId, issueUnitContextCommand(unitId, target, garrison)) || didIssue;
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, target) || didIssue;
@@ -188,7 +188,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return didIssue;
   }
 
-  function issueContextCommandAtEntityInternal(entityId: number): boolean {
+  function issueContextCommandAtEntityInternal(entityId: number, garrison = false): boolean {
     if (!isMatchRunning()) return false;
 
     const targetPosition = world.getComponent<Position>(entityId, 'position');
@@ -231,7 +231,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue =
-        supersedeAutoAggression(unitId, issueUnitContextCommandAtEntity(unitId, entityId)) || didIssue;
+        supersedeAutoAggression(unitId, issueUnitContextCommandAtEntity(unitId, entityId, garrison)) || didIssue;
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, targetPosition) || didIssue;

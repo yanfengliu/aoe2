@@ -39,6 +39,8 @@ export interface VoxelPointerInputControllerDeps {
     worldY: number,
     isoX: number,
     isoY: number,
+    /** Alt held: the player explicitly asked to garrison (spec §9.3). */
+    garrison?: boolean,
   ) => boolean;
   readonly clearRecentSelectionClicks: () => void;
 }
@@ -139,7 +141,14 @@ export function createVoxelPointerInputController(
       event.preventDefault();
       deps.clearRecentSelectionClicks();
       const cell = worldCellAt(point.x, point.y);
-      deps.issueContextCommandAtWorldPosition(cell.x, cell.y, cell.isoX, cell.isoY);
+      // Alt+right-click = garrison; a plain right-click always moves (§9.3).
+      deps.issueContextCommandAtWorldPosition(
+        cell.x,
+        cell.y,
+        cell.isoX,
+        cell.isoY,
+        event.altKey,
+      );
       return;
     }
     if (event.button === 1) {

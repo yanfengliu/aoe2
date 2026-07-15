@@ -75,8 +75,8 @@ export interface CreateWorldResult {
   getSelectedEntityRefs: () => readonly EntityRef[];
   selectByRefs: (refs: readonly EntityRef[]) => boolean;
   clearSelection: () => void;
-  issueContextCommand: (x: number, y: number) => boolean;
-  issueContextCommandAtEntity: (entityId: number) => boolean;
+  issueContextCommand: (x: number, y: number, garrison?: boolean) => boolean;
+  issueContextCommandAtEntity: (entityId: number, garrison?: boolean) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;

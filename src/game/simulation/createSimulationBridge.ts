@@ -106,8 +106,8 @@ export interface SimulationBridge {
   selectUnitsByIds(ids: number[]): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
-  issueContextCommand(x: number, y: number): boolean;
-  issueContextCommandAtEntity(entityId: number): boolean;
+  issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
+  issueContextCommandAtEntity(entityId: number, options?: { garrison?: boolean }): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
@@ -351,8 +351,8 @@ export function createSimulationBridge(
   // LLM-agent harness observer slot (Phase 1 impl-1 H1).
   let agentDispatchObserver: import('./dispatcher').AgentDispatchObserver | null = null;
 
-  const issueContextCommandAtEntity = (entityId: number): boolean => {
-    const didIssue = issueContextCommandAtEntityInternal(entityId);
+  const issueContextCommandAtEntity = (entityId: number, options?: { garrison?: boolean }): boolean => {
+    const didIssue = issueContextCommandAtEntityInternal(entityId, options?.garrison ?? false);
     if (!didIssue) {
       return false;
     }
@@ -468,8 +468,8 @@ export function createSimulationBridge(
     selectUnitsByIds,
     selectUnitsInBox,
     clearSelection,
-    issueContextCommand(x: number, y: number) {
-      const didIssue = issueContextCommand(x, y);
+    issueContextCommand(x: number, y: number, garrison?: boolean) {
+      const didIssue = issueContextCommand(x, y, garrison);
       flushOutOfBandRenderChange();
       return didIssue;
     },

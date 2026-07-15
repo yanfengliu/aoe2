@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.0 - 2026-07-15
+
+### Changed (breaking)
+
+- **Right-click no longer garrisons — it moves. Garrison is Alt+right-click.** Right-clicking one of your buildings used to swallow the selected units into it. Now a plain right-click always issues a move to wherever you clicked *on the ground*: click a building's base and your units walk up against it, click its roof and they walk to the cell **behind** it, because the click is resolved through the flat ground plane rather than the building's drawn body. To garrison, hold **Alt** and right-click the building — same eligibility rules as before, and you still pick the exact building by pointing at it. Alt on anything that isn't an owned garrisonable building just does the normal thing for that target.
+- Everything else right-click does is unchanged: enemies are attacked, resources gathered, damaged buildings repaired by villagers.
+- **Migration — old replays.** Right-click garrison intent is now recorded with the order. Recordings made before this release don't carry it, and are replayed with the OLD rule (a right-click on your building garrisons), so they still play back exactly as they did. Recordings made from this release onward carry the intent explicitly. Saves are unaffected.
+
 ## 0.2.12 - 2026-07-15
 
 ### Fixed

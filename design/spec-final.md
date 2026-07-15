@@ -802,6 +802,12 @@ The input system must support:
 - convert
 - pack and unpack where applicable
 
+**Right-click never garrisons (user directive 2026-07-15; deliberate deviation from AoE2).** A plain right-click on ANY building — including an owned garrisonable one — issues a MOVE to the click's ground-plane position, never a garrison. The move target is the exact point the click inverts to through the flat ground plane, NOT the building's footprint: because the iso projection maps higher screen positions to deeper ground cells, clicking the base of a building walks the unit up against it ("towards"), while clicking its roof walks the unit to the cell BEHIND it. The building's drawn silhouette therefore stops capturing right-clicks for garrison, and the exact click point is what selects the destination.
+
+**Garrison is Alt+right-click** on an owned garrisonable building, using the same eligibility rules as before. The modifier is read from the pointer event, so there is no armed mode to enter or cancel and the target building is still chosen by pointing at it. Alt+right-click on anything that is not an owned garrisonable building falls back to the ordinary right-click behavior for that target.
+
+Right-click's other routings are unchanged: enemy units/buildings/wildlife are attacked, resources are gathered by villagers, and a damaged owned building is still repaired by a villager (repair is a distinct AoE2-faithful action the directive did not touch).
+
 Rally points carry AoE2 semantics: a building's rally point set ON a harvestable resource makes newly-trained villagers auto-gather that resource (they acquire the rally resource's kind and are routed to the nearest matching node), rather than merely walking to the rally cell and standing idle. A rally point on empty ground — or on a not-yet-harvestable target such as a live huntable animal, which must be killed before its meat can be gathered — is a plain move target. This is the standard anti-idle mechanism — a freshly-trained villager has no gather order of its own, so without a resource rally it stands idle until the player tasks it.
 
 ### 9.4 Selection and Group Control

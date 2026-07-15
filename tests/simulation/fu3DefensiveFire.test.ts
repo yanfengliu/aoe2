@@ -81,7 +81,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     // Drive the 3 archers into the Castle via the context-command path.
     for (const archer of archers) {
       expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
     }
 
     // 15 ticks < one reload (20 ticks), so exactly one reload fires.
@@ -130,7 +130,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
 
     for (const archer of archers) {
       expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
     }
 
     // 15 ticks < one reload (20 ticks). 5 arrows per shot × 10 pierce damage

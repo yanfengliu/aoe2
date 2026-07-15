@@ -5,7 +5,11 @@ import type { World } from 'civ-engine';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 
 export interface UnitContextAtEntityHandlerDeps {
-  routeUnitContextAtEntityCommandDirect: (unitId: number, targetEntityId: number) => boolean;
+  routeUnitContextAtEntityCommandDirect: (
+    unitId: number,
+    targetEntityId: number,
+    allowGarrison: boolean,
+  ) => boolean;
 }
 
 export type UnitContextAtEntityHandler = (
@@ -15,6 +19,12 @@ export type UnitContextAtEntityHandler = (
 
 export function makeUnitContextAtEntityHandler(deps: UnitContextAtEntityHandlerDeps): UnitContextAtEntityHandler {
   return (data) => {
-    deps.routeUnitContextAtEntityCommandDirect(data.unitId, data.targetEntityId);
+    // Absent `garrison` = a recording made before right-click stopped
+    // garrisoning (spec §9.3); replay it as the player saw it.
+    deps.routeUnitContextAtEntityCommandDirect(
+      data.unitId,
+      data.targetEntityId,
+      data.garrison ?? true,
+    );
   };
 }

@@ -42,8 +42,14 @@ export type GameCommands = {
   // completion for each active builder; validator refuses to preempt any
   // explicit order that landed in the same drain window.
   'unit.autoGather': { unitId: number; resourceId: number; campBuildingId: number };
-  'unit.context': { unitId: number; target: Position };
-  'unit.contextAtEntity': { unitId: number; targetEntityId: number };
+  // `garrison` carries the player's EXPLICIT garrison intent (Alt+right-click,
+  // spec §9.3). It rides the recorded command because it is part of the order,
+  // not a UI detail: without it a recorded garrison would replay as a move.
+  // ABSENT means a recording made before the rule changed, when a plain
+  // right-click garrisoned — replaying those must preserve what the player saw,
+  // so the handler treats absence as garrison-allowed. Live paths always set it.
+  'unit.context': { unitId: number; target: Position; garrison?: boolean };
+  'unit.contextAtEntity': { unitId: number; targetEntityId: number; garrison?: boolean };
   // --- Specialty unit orders ---
   'sheep.move': { sheepId: number; target: Position };
   'monk.contextAtEntity': {

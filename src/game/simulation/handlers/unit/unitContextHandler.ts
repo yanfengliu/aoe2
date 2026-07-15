@@ -7,7 +7,11 @@ import type { Position, World } from 'civ-engine';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 
 export interface UnitContextHandlerDeps {
-  routeUnitContextCommandDirect: (unitId: number, target: Position) => boolean;
+  routeUnitContextCommandDirect: (
+    unitId: number,
+    target: Position,
+    allowGarrison: boolean,
+  ) => boolean;
 }
 
 export type UnitContextHandler = (
@@ -17,6 +21,7 @@ export type UnitContextHandler = (
 
 export function makeUnitContextHandler(deps: UnitContextHandlerDeps): UnitContextHandler {
   return (data) => {
-    deps.routeUnitContextCommandDirect(data.unitId, data.target);
+    // Absent `garrison` = a pre-§9.3 recording; preserve its behavior.
+    deps.routeUnitContextCommandDirect(data.unitId, data.target, data.garrison ?? true);
   };
 }

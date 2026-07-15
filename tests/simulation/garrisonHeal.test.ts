@@ -56,7 +56,7 @@ function combatMaxHpOf(bridge: Bridge, unitId: number): number | null {
 // context command lands. Returns after the unit is confirmed garrisoned.
 function garrison(bridge: Bridge, unitX: number, unitY: number, buildingId: number): void {
   expect(bridge.selectEntityAtCell(unitX, unitY)).toBe(true);
-  expect(bridge.issueContextCommandAtEntity(buildingId)).toBe(true);
+  expect(bridge.issueContextCommandAtEntity(buildingId, { garrison: true })).toBe(true);
   bridge.step(100);
 }
 

@@ -122,7 +122,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     );
     expect(garrisonedVillagerId).toBeDefined();
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8, true))).toBe(true);
 
     let snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     expect(
@@ -160,7 +160,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8))).toBe(true);
+    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8, true))).toBe(true);
 
     const snapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(100, 100),

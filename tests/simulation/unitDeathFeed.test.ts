@@ -116,7 +116,7 @@ describe('unit death feed — live bridge (heresy kill fixture)', () => {
     const villagerId = villager!.id;
 
     expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
     for (let i = 0; i < 5; i += 1) bridge.step(100);
 
     // Garrisoned: gone from the live units list…

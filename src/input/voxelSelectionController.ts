@@ -171,6 +171,7 @@ export function createVoxelSelectionController(
     worldY: number,
     isoX?: number,
     isoY?: number,
+    garrison = false,
   ): boolean {
     if (!isActive()) {
       return false;
@@ -200,11 +201,16 @@ export function createVoxelSelectionController(
       );
     const targetEntity = displayedTargetEntity ?? projectedTargetEntity;
 
-    if (targetEntity && getBridge().issueContextCommandAtEntity(targetEntity.id)) {
+    if (targetEntity && getBridge().issueContextCommandAtEntity(targetEntity.id, { garrison })) {
       return true;
     }
 
-    return getBridge().issueContextCommand(clampedCellX, clampedCellY);
+    // Ground fallback. `clampedCell*` is the click inverted through the FLAT
+    // ground plane, which is exactly what spec §9.3 asks for: clicking a
+    // building's base resolves to its footprint (walk up to it), clicking its
+    // roof resolves to the cell behind it (walk behind it), because the iso
+    // projection maps higher screen points to deeper ground.
+    return getBridge().issueContextCommand(clampedCellX, clampedCellY, garrison);
   }
 
   function trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {

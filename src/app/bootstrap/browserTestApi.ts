@@ -47,7 +47,7 @@ export interface BrowserTestBridge {
   ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
-  issueContextCommand(x: number, y: number): boolean;
+  issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   // LLM-agent harness needs the in-place pendingCommands queue so
   // dispatchAgentCommand can shape-validate + push. `agentIssued` tags
@@ -166,7 +166,7 @@ export interface BrowserTestApi {
   ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
-  issueContextCommand(cellX: number, cellY: number): boolean;
+  issueContextCommand(cellX: number, cellY: number, garrison?: boolean): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
   issueMoveCommand(cellX: number, cellY: number): boolean;
   getSnapshot(): BrowserTestSnapshot;
@@ -354,8 +354,8 @@ export function installBrowserTestApi(
       getBridge().clearSelection();
       view.syncFromBridge(true);
     },
-    issueContextCommand: (cellX: number, cellY: number) => {
-      const didIssue = getBridge().issueContextCommand(cellX, cellY);
+    issueContextCommand: (cellX: number, cellY: number, garrison?: boolean) => {
+      const didIssue = getBridge().issueContextCommand(cellX, cellY, garrison);
       view.syncFromBridge(true);
       return didIssue;
     },

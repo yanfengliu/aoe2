@@ -106,10 +106,10 @@ export interface CommandHandlerDeps {
   // dispatches to garrison/attack/gather/move via the corresponding
   // direct helpers. Non-monk only — monk path is handled by the bridge
   // facade BEFORE submission.
-  routeUnitContextCommandDirect: (unitId: number, target: Position) => boolean;
+  routeUnitContextCommandDirect: (unitId: number, target: Position, allowGarrison: boolean) => boolean;
   // Phase 1B (unit.contextAtEntity): same shape as unit.context but
   // keyed on entity id.
-  routeUnitContextAtEntityCommandDirect: (unitId: number, targetEntityId: number) => boolean;
+  routeUnitContextAtEntityCommandDirect: (unitId: number, targetEntityId: number, allowGarrison: boolean) => boolean;
   // Phase 1B (sheep.move).
   setSheepMoveCommandDirect: (sheepId: number, target: Position) => boolean;
   // Phase 1B (monk.contextAtEntity): routing helper. Reads the monk + target
