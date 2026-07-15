@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { unitAmbientAnimation } from '../../src/rendering/voxel/aoeVoxelUnitAmbientAnimation';
+import { interpolateProjectedEntities } from '../../src/rendering/interpolateProjectedEntities';
 import { resolveUnitAnimationState } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 import { matrixForPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
@@ -122,23 +123,65 @@ describe('AoE voxel unit attack lifecycle', () => {
     expect(weights).toEqual([1, 0.84375, 0.5, 0.15625, 0]);
   });
 
-  it('reconstructs the warm moving state at the exact cancellation boundary', () => {
+  it('keeps fresh moved-root sampling continuous across the cancellation boundary', () => {
     const event = attackEvent(0, { cancelTick: 1, targetX: 0, targetY: 1 });
-    const source = unit({ attackAnimation: event });
-    const impact = resolveUnitAnimationState(source, '7:3', undefined, 0);
     const displayed = unit({ x: 0.2, attackAnimation: event });
-    const warm = resolveUnitAnimationState(displayed, '7:3', impact.history, 100);
-    const fresh = resolveUnitAnimationState(displayed, '7:3', undefined, 100);
-
-    expect(warm.state.mode).toBe('moving');
-    expect(fresh.state.mode).toBe(warm.state.mode);
-    expect(fresh.state.locomotionWeight).toBeCloseTo(warm.state.locomotionWeight);
-    expect(fresh.state.directionX).toBeCloseTo(warm.state.directionX);
-    expect(fresh.state.directionZ).toBeCloseTo(warm.state.directionZ);
-    expect(fresh.state.attackWeight).toBe(warm.state.attackWeight);
-    expect(fresh.state.ambientSuppressionWeight).toBe(
-      warm.state.ambientSuppressionWeight,
+    const atBoundary = resolveUnitAnimationState(displayed, '7:3', undefined, 100);
+    const afterBoundary = resolveUnitAnimationState(
+      displayed,
+      '7:3',
+      undefined,
+      100.001,
     );
+
+    expect(Math.abs(
+      atBoundary.state.locomotionWeight - afterBoundary.state.locomotionWeight,
+    )).toBeLessThan(0.001);
+    expect(atBoundary.state.attackWeight).toBeCloseTo(afterBoundary.state.attackWeight);
+    expect(Number.isFinite(atBoundary.state.directionX)).toBe(true);
+    expect(Number.isFinite(atBoundary.state.directionZ)).toBe(true);
+  });
+
+  it('keeps the attack channel deterministic while fresh gait history restarts', () => {
+    const event = attackEvent(1, {
+      cancelTick: 2,
+      sourceX: 0.2,
+      targetX: 0.2,
+      targetY: 1,
+    });
+    const idle = resolveUnitAnimationState(unit(), '7:3', undefined, 0);
+    const approach = resolveUnitAnimationState(unit({ x: 0.2 }), '7:3', idle.history, 50);
+    const impactEntity = unit({ x: 0.2, attackAnimation: event });
+    const impact = resolveUnitAnimationState(impactEntity, '7:3', approach.history, 100);
+    const beforeCancellation = resolveUnitAnimationState(
+      impactEntity,
+      '7:3',
+      impact.history,
+      199,
+    );
+    const current = unit({ x: 0.4, attackAnimation: event });
+    const positions = new Map([['7:3', { x: 0.2, y: 0 }]]);
+    const atAlphaZero = interpolateProjectedEntities([current], positions, 0, 2)[0]!;
+    const atAlphaHalf = interpolateProjectedEntities([current], positions, 0.5, 2)[0]!;
+    const warmZero = resolveUnitAnimationState(
+      atAlphaZero,
+      '7:3',
+      beforeCancellation.history,
+      200,
+    );
+    const freshZero = resolveUnitAnimationState(atAlphaZero, '7:3', undefined, 200);
+    const warmHalf = resolveUnitAnimationState(atAlphaHalf, '7:3', warmZero.history, 250);
+    const freshHalf = resolveUnitAnimationState(atAlphaHalf, '7:3', freshZero.history, 250);
+
+    expect(warmZero.state.locomotionWeight).toBeGreaterThan(freshZero.state.locomotionWeight);
+    expect(warmHalf.state.locomotionWeight).toBeGreaterThan(freshHalf.state.locomotionWeight);
+    for (const [warm, fresh] of [[warmZero, freshZero], [warmHalf, freshHalf]]) {
+      expect(warm.state.attackPhase).toBeCloseTo(fresh.state.attackPhase);
+      expect(warm.state.attackWeight).toBeCloseTo(fresh.state.attackWeight);
+      expect(warm.state.ambientSuppressionWeight).toBeCloseTo(
+        fresh.state.ambientSuppressionWeight,
+      );
+    }
   });
 
   it('reconstructs the same moving handoff from a fresh cancellation checkpoint', () => {
