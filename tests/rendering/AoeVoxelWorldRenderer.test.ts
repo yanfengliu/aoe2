@@ -102,6 +102,10 @@ class FakeRuntime implements AoeVoxelRuntime {
     instancePresentationMatrixWrites: 0,
     instancePresentationColorWrites: 0,
     instancePresentationUpdateRanges: 0,
+    // voxel @3623ba7 added the atomic frame-commit lane to ThreeRenderMetrics.
+    // AoE reads no atomic metric yet, so the fake reports the "not measured"
+    // value the engine itself uses when the lane is inactive.
+    atomic: null,
   }));
   readonly capture = vi.fn(() => ({
     dataUrl: 'data:image/png;base64,fake',

@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.1 - 2026-07-15
+
+### Changed
+
+- **Melee strikes now reach for what they are hitting.** A swing used to travel a fixed arc regardless of where its target actually was, so an axe or sword often finished its blow in mid-air. The strike now extends toward the captured target in proportion to how far away it is, leaning into the blow and retracting with the follow-through. Archers and siege are untouched.
+- **Known limit — they still do not quite touch.** Melee units stand about 1.1 tiles apart while their bodies are only a quarter of a tile wide, leaving roughly three quarters of a tile of open ground between them; an arm and axe simply cannot span that without the torso pulling off the hips. This release closes about a third of the gap (0.366 → 0.246 tiles) without breaking the body. Fully connecting means having melee units walk closer before they strike, which is a change to unit spacing rather than to the animation, and is not attempted here.
+
 ## 0.3.0 - 2026-07-15
 
 ### Changed (breaking)

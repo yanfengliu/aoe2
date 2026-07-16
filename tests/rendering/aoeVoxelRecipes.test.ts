@@ -153,6 +153,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     });
     const south = createUnitParts(entity({ entityType }), '7:4', 0, {
       mode: 'idle',
@@ -167,6 +168,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     });
     const rootX = 4.5;
     const rootZ = 5.5;
@@ -211,6 +213,7 @@ describe('AoE voxel unit recipes', () => {
         ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
       });
       const front = parts.find((part) => part.key.endsWith(frontSuffix))!;
       const offsetX = front.centerX - 4.5;
@@ -238,6 +241,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     } as const;
     const normalized = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, state);
     const scaled = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
@@ -266,6 +270,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     } as const;
     const parts = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, moving);
     const resting = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0, {
@@ -304,6 +309,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     });
     const lifted = parts.find((part) => part.key.endsWith('cavalry-horse-leg-front-left'))!;
     const planted = parts.find((part) => part.key.endsWith('cavalry-horse-leg-front-right'))!;
@@ -333,6 +339,7 @@ describe('AoE voxel unit recipes', () => {
       ambientSuppressionWeight: 0,
     workPhase: 0,
     workWeight: 0,
+    targetDistance: 0,
     });
     const lifted = parts.find((part) => part.key.endsWith('villager-boot-left'))!;
 

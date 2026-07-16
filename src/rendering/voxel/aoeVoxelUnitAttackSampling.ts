@@ -13,6 +13,9 @@ export interface UnitAttackSample {
   readonly ambientSuppressionWeight: number;
   readonly directionX: number;
   readonly directionZ: number;
+  /** Root-to-target-centre distance, so a melee strike can reach the target
+   *  it captured instead of swinging a fixed arc through empty air. */
+  readonly targetDistance: number;
 }
 
 function clamp01(value: number): number {
@@ -64,5 +67,6 @@ export function sampleUnitAttack(
     ambientSuppressionWeight: (1 - ambientRecovery) * cancellationWeight,
     directionX: useFallback ? safeFallbackX : deltaX / distance,
     directionZ: useFallback ? safeFallbackZ : deltaZ / distance,
+    targetDistance: distance,
   };
 }

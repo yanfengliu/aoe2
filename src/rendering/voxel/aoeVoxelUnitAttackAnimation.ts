@@ -1,5 +1,6 @@
 import type { UnitRole } from '../roles/unitRole';
 import { matrixForPart, type VoxelPart } from './aoeVoxelRecipeTypes';
+import { voxelPartWorldCorners } from './aoeVoxelGeometry';
 
 export const UNIT_ATTACK_ANIMATION_DURATION_MS = 650;
 
@@ -8,6 +9,86 @@ export interface UnitAttackPoseState {
   readonly attackWeight: number;
   readonly directionX: number;
   readonly directionZ: number;
+  /** Root-to-target-centre distance; 0 when unknown (no reach correction). */
+  readonly targetDistance: number;
+}
+
+// Melee rigs whose tip is meant to make contact, and how far each may lean to
+// do it. Draw rigs (bows) and siege are absent on purpose: an archer's arrow
+// is not modelled, so stretching a bow at a distant target would be nonsense.
+const MELEE_TIP_SUFFIX: Partial<Record<UnitRole, string>> = {
+  villager: 'villager-tool-head',
+  infantry: 'infantry-sword',
+  cavalry: 'cavalry-lance',
+};
+// How far the weapon assembly may lean, as a fraction of the actor's scale.
+// Bounded by BODY COHERENCE, not by taste: the lean translates the upper body
+// (tunic + arms + weapon) while the legs stay planted, so too much lean floats
+// the torso off the hips. At villager scale 0.48 the legs span x 0.452-0.529
+// and the tunic half-width is 0.125, so the tunic centre may travel ~0.154
+// before it stops overlapping the legs — the pose itself already spends ~0.034
+// of that. `bodyStaysCoherentDuringReachLean` in the reach suite pins this.
+const MAX_REACH_LEAN: Partial<Record<UnitRole, number>> = {
+  villager: 0.25,
+  infantry: 0.25,
+  cavalry: 0.35,
+};
+/** Land the tip just inside the target's near side rather than at its centre. */
+const BITE_STANDOFF = 0.22;
+
+function reachAlong(part: VoxelPart, state: UnitAttackPoseState, rootX: number, rootZ: number): number {
+  let reach = -Infinity;
+  for (const corner of voxelPartWorldCorners(part)) {
+    reach = Math.max(
+      reach,
+      (corner.x - rootX) * state.directionX + (corner.z - rootZ) * state.directionZ,
+    );
+  }
+  return reach;
+}
+
+/**
+ * Close the gap between a melee tip and the target it captured.
+ *
+ * The authored arc uses a fixed forward displacement, so the tip landed
+ * wherever the rig happened to put it — measured on the real boar hunt, a
+ * villager's axe stopped 0.366 world units short of the boar and chopped air.
+ * The root may not lunge (spec §14.5), so the correction is a BOUNDED lean of
+ * the weapon assembly along the strike axis, scaled by the strike's own lunge
+ * so it grows into the blow and retracts with the follow-through.
+ */
+function applyReachCorrection(
+  posed: VoxelPart[],
+  role: UnitRole,
+  state: UnitAttackPoseState,
+  scale: number,
+  arc: number,
+  rootX: number,
+  rootZ: number,
+): VoxelPart[] {
+  const tipSuffix = MELEE_TIP_SUFFIX[role];
+  const maxLean = MAX_REACH_LEAN[role];
+  const lunge = Math.max(0, arc);
+  // Fail CLOSED on every gate: `>` is false for NaN and undefined, so a state
+  // built without the reach channel is a clean no-op rather than a
+  // NaN-corrupted pose. (`targetDistance <= 0` would fail OPEN for undefined.)
+  if (!tipSuffix || maxLean === undefined || !(lunge > 0) || !(state.targetDistance > 0)) {
+    return posed;
+  }
+  const tip = posed.find((part) => suffixOf(part) === tipSuffix);
+  if (!tip) return posed;
+  const deficit = state.targetDistance - BITE_STANDOFF - reachAlong(tip, state, rootX, rootZ);
+  const lean = Math.min(Math.max(0, deficit), maxLean * scale) * lunge;
+  if (!(lean > 1e-4)) return posed;
+  return posed.map((part) => (
+    isUnitAttackControlledPart(suffixOf(part), role)
+      ? {
+        ...part,
+        centerX: part.centerX + state.directionX * lean,
+        centerZ: part.centerZ + state.directionZ * lean,
+      }
+      : part
+  ));
 }
 
 function clamp01(value: number): number {
@@ -348,11 +429,13 @@ export function poseUnitAttackParts(
   role: UnitRole,
   state: UnitAttackPoseState,
   scale: number,
+  rootX = 0,
+  rootZ = 0,
 ): VoxelPart[] {
   const arc = attackArc(state.attackPhase) * clamp01(state.attackWeight);
   if (Math.abs(arc) <= Number.EPSILON || role === 'monk') return [...parts];
   const pivots = attackPivots(parts, role);
-  return parts.map((part) => {
+  const posed = parts.map((part) => {
     if (part.surface === 'shadow') return part;
     const suffix = suffixOf(part);
     if (role === 'villager' || role === 'infantry' || role === 'archer') {
@@ -363,6 +446,7 @@ export function poseUnitAttackParts(
     }
     return poseSiegeAttack(part, suffix, state, scale, arc, pivots);
   });
+  return applyReachCorrection(posed, role, state, scale, arc, rootX, rootZ);
 }
 
 export function isUnitAttackControlledPart(

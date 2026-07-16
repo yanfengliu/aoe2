@@ -19,4 +19,6 @@ export interface AoeUnitAnimationState {
   readonly workPhase: number;
   /** 0 when not building, stationary-gated so the swing never plays mid-walk. */
   readonly workWeight: number;
+  /** Root-to-target-centre distance for the active strike; 0 when idle. */
+  readonly targetDistance: number;
 }

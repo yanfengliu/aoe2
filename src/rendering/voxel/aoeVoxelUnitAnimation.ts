@@ -129,6 +129,7 @@ function initialUnitMotion(
     ambientSuppressionWeight: attackSample?.ambientSuppressionWeight ?? 0,
     workPhase: builderWorkPhase(sampleTimeMs, phaseRadians),
     workWeight: builderWorkWeight(entity, false, attack?.poseWeight ?? 0),
+    targetDistance: attackSample?.targetDistance ?? 0,
   };
   return {
     state,
@@ -190,6 +191,7 @@ export function resolveUnitAnimationState(
           // Equal display time freezes the work loop with everything else.
           workPhase: previous.workPhase,
           workWeight: previous.workWeight,
+          targetDistance: previous.targetDistance,
         },
         history: { ...previous, x: entity.x, y: entity.y },
       };
@@ -256,6 +258,7 @@ export function resolveUnitAnimationState(
     ambientSuppressionWeight: attackSample?.ambientSuppressionWeight ?? 0,
     workPhase: builderWorkPhase(sampleTimeMs, previous.phaseRadians),
     workWeight: builderWorkWeight(entity, moving, attackWeight),
+    targetDistance: attackSample?.targetDistance ?? 0,
   };
   return {
     state,
@@ -329,6 +332,8 @@ export function animateUnitParts(
     role,
     normalizedState,
     scale,
+    entity.x + 0.5,
+    entity.y + 0.5,
   ).map((posed) => {
     if (posed.surface === 'shadow') return posed;
     const suffix = posed.key.slice(posed.key.lastIndexOf(':') + 1);
