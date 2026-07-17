@@ -317,20 +317,6 @@ export function shouldMaintainGatheringOrder(
   return owner !== HUMAN_PLAYER_ID || isAiControlled || gatherer.hasExplicitGatherOrder;
 }
 
-export function isResourceCandidate(
-  entry: {
-    id: number;
-    position: Position | undefined;
-    resource: ResourceComponent | undefined;
-  },
-): entry is {
-  id: number;
-  position: Position;
-  resource: ResourceComponent;
-} {
-  return Boolean(entry.position && entry.resource);
-}
-
 export function isEconomyVillager(
   entry: {
     owner: number;

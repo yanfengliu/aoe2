@@ -265,17 +265,6 @@ export type PersistedMatchState = Omit<
   'wonderCountdownTicks' | 'relicCountdownTicks'
 >;
 
-export function serializeMatchStateForWorldState(
-  m: SerializedMatchState,
-): PersistedMatchState {
-  return {
-    outcome: m.outcome,
-    summary: m.summary,
-    winCondition: m.winCondition,
-    scores: m.scores,
-  };
-}
-
 export interface SaveBlobV1 {
   schema: typeof LEGACY_SAVE_SCHEMA_VERSION;
   seed: string;
@@ -304,10 +293,6 @@ export type SaveBlob = SaveBlobV1 | SaveBlobV2;
 
 export function isSaveBlobV1(blob: SaveBlob): blob is SaveBlobV1 {
   return blob.schema === LEGACY_SAVE_SCHEMA_VERSION;
-}
-
-export function isSaveBlobV2(blob: SaveBlob): blob is SaveBlobV2 {
-  return blob.schema === SAVE_SCHEMA_VERSION;
 }
 
 export function isSupportedSaveSchema(schema: number): schema is SaveBlob['schema'] {

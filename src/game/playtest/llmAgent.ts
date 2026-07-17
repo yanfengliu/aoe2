@@ -58,22 +58,12 @@ export interface LlmAgentConfig {
   knownIssues?: readonly string[];
 }
 
-export const DEFAULT_AGENT_CONFIG = {
-  strategyEveryNDecisions: 10,
-  maxOutputTokensTactical: 1024,
-  maxOutputTokensStrategy: 2048,
-  costBudgetUsd: 5.0,
-  maxImageBytes: 1_048_576, // 1 MiB
-  historyWindow: 5,
-};
-
 type DecisionHistoryEntry = TacticalHistoryEntry;
 
 export class LlmAgent {
   private readonly config: LlmAgentConfig;
   private decisionsSinceStrategyRefresh = Infinity;
   private currentStrategy: string | null = null;
-  private currentStrategyRefresh: AgentStrategyRefresh | null = null;
   private rollingCostUsd = 0;
   private warnedOn80 = false;
   private commandToolSchemas: LlmToolSchema[];
@@ -145,7 +135,6 @@ export class LlmAgent {
       this.decisionsSinceStrategyRefresh = 0;
       if (refresh) {
         strategyRefresh = refresh;
-        this.currentStrategyRefresh = refresh;
         this.currentStrategy = refresh.strategy;
       } else {
         console.warn(

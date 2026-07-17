@@ -89,18 +89,6 @@ export function shade(tint: number, multiplier: number): number {
   return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
 
-export function mixTint(a: number, b: number, amount: number): number {
-  requireTint(a);
-  requireTint(b);
-  if (!Number.isFinite(amount) || amount < 0 || amount > 1) {
-    throw new RangeError('Color mix amount must be from 0 through 1.');
-  }
-  const channel = (shift: number) => clampChannel(
-    ((a >>> shift) & 0xff) * (1 - amount) + ((b >>> shift) & 0xff) * amount,
-  );
-  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
-}
-
 export function memoryTint(tint: number): number {
   const gray = (
     ((tint >>> 16) & 0xff)

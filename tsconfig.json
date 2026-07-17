@@ -11,6 +11,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "strict": true,
+    // Catches module-private helpers, write-only fields, and imports left
+    // behind when a refactor deletes their last caller. Does NOT catch unused
+    // *exports* — nothing in this repo does, so those still need a manual
+    // sweep. A parameter kept deliberately for a shared signature is marked
+    // used with `void param;` (see cellPassability.ts).
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true,
     "types": ["vite/client", "node"]
   },

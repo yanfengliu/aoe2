@@ -1,7 +1,6 @@
 import { type Position, type VisibilityMap } from 'civ-engine';
 
 import type {
-  ProjectedEntityView,
   ProjectedUnitAttackAnimationView,
   ProjectedUnitAttackView,
   RenderableComponent,
@@ -261,38 +260,6 @@ export function visibleUnitAttacks<Attack extends ProjectedUnitAttackView>(
       && (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     );
   });
-}
-
-export function attackAnimationForEntity(
-  attacks: readonly ProjectedUnitAttackView[],
-  currentTick: number,
-  playerId: number,
-  entity: Pick<ProjectedEntityView, 'id' | 'generation'>,
-): ProjectedEntityView['attackAnimation'] {
-  if (entity.generation === undefined) return undefined;
-  for (let index = attacks.length - 1; index >= 0; index -= 1) {
-    const attack = attacks[index]!;
-    const age = currentTick - attack.tick;
-    if (
-      attack.attackerId === entity.id &&
-      attack.attackerGeneration === entity.generation &&
-      age >= 0 &&
-      age <= ATTACK_FEED_TICKS &&
-      attack.witnessedBy.includes(playerId) &&
-      !attack.suppressedFor?.includes(playerId) &&
-      (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
-    ) {
-      return {
-        tick: attack.tick,
-        ...(attack.cancelTick === undefined ? {} : { cancelTick: attack.cancelTick }),
-        sourceX: attack.sourceX,
-        sourceY: attack.sourceY,
-        targetX: attack.targetX,
-        targetY: attack.targetY,
-      };
-    }
-  }
-  return undefined;
 }
 
 export function indexVisibleUnitAttackAnimations(

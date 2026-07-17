@@ -166,13 +166,6 @@ export function sharedPayloadsForConformanceFinding(
   };
 }
 
-export function visualPlaytestPayloadForConformanceFinding(
-  finding: ConformanceFinding,
-  ctx: ConformanceVisualPlaytestContext,
-): AoeJsonValue | undefined {
-  return sharedPayloadsForConformanceFinding(finding, ctx).visualPlaytest;
-}
-
 function toolToVisualPlaytestControl(tool: LlmToolSchema): VisualPlaytestControl {
   return {
     id: tool.name,
