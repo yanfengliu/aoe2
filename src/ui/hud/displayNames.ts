@@ -10,8 +10,6 @@ export {
 } from './displayNames/entityNames';
 
 export {
-  formatUnitIcon,
-  formatUnitIconAccent,
   formatEntityIcon,
   formatEntityIconAccent,
 } from './displayNames/icons';

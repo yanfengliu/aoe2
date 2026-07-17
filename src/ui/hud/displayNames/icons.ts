@@ -1,276 +1,115 @@
-// Unit + entity icon glyphs and accent colors. Co-located because the
-// glyph and accent maps need to stay synchronized — when a new unit
-// type is added, both maps gain a case.
+// Icon glyph + accent color for every selectable entity type.
+//
+// ONE ROW PER TYPE, glyph and accent together: these used to be FOUR parallel
+// switches — `formatUnitIcon`/`formatUnitIconAccent` over the 34 unit types,
+// and `formatEntityIcon`/`formatEntityIconAccent` over the 27 building and
+// resource types, each falling through to the unit pair — and this file's own
+// header warned they "need to stay synchronized … when a new unit type is
+// added, both maps gain a case". A table makes that synchronization structural
+// rather than a promise: a type cannot ship with a glyph but no accent,
+// because there is only one place to add it.
+//
+// Same shape, and same reasoning, as the sibling `entityNames.ts` table.
+// `tests/ui/entityIconsTable.test.ts` pins all 61 rows against the values the
+// switches produced.
+//
+// The unit-only pair is gone rather than kept: nothing outside this module
+// ever called it (only a barrel re-export nobody imported), and the entity
+// functions reach every unit row through the table directly.
 
-import type { SelectionState, UnitType } from '../../../game/simulation/types';
-import { isUnitType } from './entityNames';
+import type { SelectionState } from '../../../game/simulation/types';
 
-export function formatUnitIcon(unitType: UnitType): string {
-  switch (unitType) {
-    case 'villager':
-      return 'V';
-    case 'scout':
-      return 'SC';
-    case 'militia':
-      return 'M';
-    case 'spearman':
-      return 'SP';
-    case 'archer':
-      return 'A';
-    case 'skirmisher':
-      return 'SK';
-    case 'knight':
-      return 'K';
-    case 'crossbowman':
-      return 'CB';
-    case 'pikeman':
-      return 'PK';
-    case 'light-cavalry':
-      return 'LC';
-    case 'camel':
-      return 'Cm';
-    case 'cavalry-archer':
-      return 'CA';
-    case 'mangonel':
-      return 'Mg';
-    case 'scorpion':
-      return 'Sc';
-    case 'battering-ram':
-      return 'Rm';
-    case 'monk':
-      return 'Mn';
-    case 'longbowman':
-      return 'LB';
-    case 'arbalest':
-      return 'Ab';
-    case 'halberdier':
-      return 'Hb';
-    case 'hussar':
-      return 'Hs';
-    case 'heavy-cavalry-archer':
-      return 'HC';
-    case 'cavalier':
-      return 'Cv';
-    case 'champion':
-      return 'Ch';
-    case 'elite-longbowman':
-      return 'EL';
-    case 'onager':
-      return 'On';
-    case 'heavy-scorpion':
-      return 'HS';
-    case 'siege-ram':
-      return 'SR';
-    case 'bombard-cannon':
-      return 'BC';
-    case 'trebuchet':
-      return 'Tr';
-    case 'man-at-arms':
-      return 'MA';
-    case 'long-swordsman':
-      return 'LS';
-    case 'two-handed-swordsman':
-      return 'TH';
-    case 'paladin':
-      return 'Pl';
-    case 'heavy-camel':
-      return 'HCm';
-  }
-}
+type EntityType = NonNullable<SelectionState['selectedEntityType']>;
+type IconRow = readonly [icon: string, accent: string];
 
-export function formatUnitIconAccent(unitType: UnitType): string {
-  switch (unitType) {
-    case 'villager':
-      return '#8fc6a3';
-    case 'scout':
-      return '#c9a160';
-    case 'militia':
-      return '#d07a66';
-    case 'spearman':
-      return '#d2b16a';
-    case 'archer':
-      return '#7fb3d5';
-    case 'skirmisher':
-      return '#7ec7c0';
-    case 'knight':
-      return '#c4b0dc';
-    case 'crossbowman':
-      return '#6ba0cc';
-    case 'pikeman':
-      return '#a7c98a';
-    case 'light-cavalry':
-      return '#d7b87c';
-    case 'camel':
-      return '#d8c18a';
-    case 'cavalry-archer':
-      return '#8ca6c8';
-    case 'mangonel':
-      return '#a0805a';
-    case 'scorpion':
-      return '#b09862';
-    case 'battering-ram':
-      return '#8f6a4a';
-    case 'monk':
-      return '#e3d9b5';
-    case 'longbowman':
-      return '#6fa070';
-    case 'arbalest':
-      return '#4f8cc2';
-    case 'halberdier':
-      return '#8cba6f';
-    case 'hussar':
-      return '#c09960';
-    case 'heavy-cavalry-archer':
-      return '#7188b0';
-    case 'cavalier':
-      return '#ae9fcc';
-    case 'champion':
-      return '#cf8b52';
-    case 'elite-longbowman':
-      return '#4f8652';
-    case 'onager':
-      return '#7a5d3f';
-    case 'heavy-scorpion':
-      return '#957848';
-    case 'siege-ram':
-      return '#6e4e33';
-    case 'bombard-cannon':
-      return '#3a3a42';
-    case 'trebuchet':
-      return '#6a4f2e';
-    case 'man-at-arms':
-      return '#c78a5e';
-    case 'long-swordsman':
-      return '#b87548';
-    case 'two-handed-swordsman':
-      return '#b66b48';
-    case 'paladin':
-      return '#b8a78c';
-    case 'heavy-camel':
-      return '#ccb37d';
-  }
+// Shown for no selection, and for a future entity type not yet in the table.
+const UNKNOWN_ICON = '?';
+const UNKNOWN_ACCENT = '#c4ae7a';
+
+// `satisfies Record<EntityType, IconRow>` restores the exhaustiveness the four
+// switches had between them: a missing type and a typo'd key are both compile
+// errors. ('LC' on lumber-camp and light-cavalry, and 'Pl' on paladin and
+// palisade-wall, are pre-existing glyph collisions carried across as-is.)
+const ENTITY_ICONS = {
+  'town-center': ['TC', '#cfb56f'],
+  'house': ['H', '#c39355'],
+  'mill': ['ML', '#b79a5f'],
+  'lumber-camp': ['LC', '#7ca46a'],
+  'mining-camp': ['MC', '#9daabd'],
+  'barracks': ['BA', '#b78363'],
+  'watch-tower': ['WT', '#b6a7be'],
+  'stable': ['ST', '#bf9463'],
+  'archery-range': ['AR', '#a6866f'],
+  'blacksmith': ['BS', '#8f98aa'],
+  'market': ['MK', '#c4a166'],
+  'berry-bush': ['BB', '#a16a89'],
+  'gold-mine': ['G', '#d7c46a'],
+  'stone-mine': ['S', '#b8c0cf'],
+  'boar': ['BO', '#bf7d68'],
+  'fish': ['F', '#73b9d6'],
+  'sheep': ['SH', '#d9e0e5'],
+  'wolf': ['WO', '#9ca6b2'],
+  'tree': ['T', '#7fb07a'],
+  'villager': ['V', '#8fc6a3'],
+  'militia': ['M', '#d07a66'],
+  'spearman': ['SP', '#d2b16a'],
+  'archer': ['A', '#7fb3d5'],
+  'skirmisher': ['SK', '#7ec7c0'],
+  'knight': ['K', '#c4b0dc'],
+  'scout': ['SC', '#c9a160'],
+  'crossbowman': ['CB', '#6ba0cc'],
+  'pikeman': ['PK', '#a7c98a'],
+  'light-cavalry': ['LC', '#d7b87c'],
+  'camel': ['Cm', '#d8c18a'],
+  'cavalry-archer': ['CA', '#8ca6c8'],
+  'mangonel': ['Mg', '#a0805a'],
+  'scorpion': ['Sc', '#b09862'],
+  'battering-ram': ['Rm', '#8f6a4a'],
+  'siege-workshop': ['SW', '#98856a'],
+  'monastery': ['My', '#cfc3a8'],
+  'monk': ['Mn', '#e3d9b5'],
+  'relic': ['Rl', '#f5d680'],
+  'castle': ['Ct', '#a09f9c'],
+  'wonder': ['Wn', '#e6c36a'],
+  'longbowman': ['LB', '#6fa070'],
+  'arbalest': ['Ab', '#4f8cc2'],
+  'halberdier': ['Hb', '#8cba6f'],
+  'hussar': ['Hs', '#c09960'],
+  'heavy-cavalry-archer': ['HC', '#7188b0'],
+  'cavalier': ['Cv', '#ae9fcc'],
+  'champion': ['Ch', '#cf8b52'],
+  'elite-longbowman': ['EL', '#4f8652'],
+  'onager': ['On', '#7a5d3f'],
+  'heavy-scorpion': ['HS', '#957848'],
+  'siege-ram': ['SR', '#6e4e33'],
+  'bombard-cannon': ['BC', '#3a3a42'],
+  'trebuchet': ['Tr', '#6a4f2e'],
+  'man-at-arms': ['MA', '#c78a5e'],
+  'long-swordsman': ['LS', '#b87548'],
+  'two-handed-swordsman': ['TH', '#b66b48'],
+  'paladin': ['Pl', '#b8a78c'],
+  'heavy-camel': ['HCm', '#ccb37d'],
+  'stone-wall': ['Wl', '#9aa0a8'],
+  'palisade-wall': ['Pl', '#a88555'],
+  'farm': ['Fm', '#d9b84a'],
+} as const satisfies Record<EntityType, IconRow>;
+
+// `hasOwn`, not bracket access alone: an object literal inherits from
+// Object.prototype, so ENTITY_ICONS['toString'] would resolve to that method
+// and the `?? fallback` below would never fire. Same hazard the sibling name
+// table hit in commit 3c1016e — a table trades the switch's value comparison
+// for a property lookup, and the prototype chain comes with it.
+function iconRow(entityType: SelectionState['selectedEntityType']): IconRow | undefined {
+  if (!entityType) return undefined;
+  return Object.hasOwn(ENTITY_ICONS, entityType)
+    ? (ENTITY_ICONS as Readonly<Record<string, IconRow>>)[entityType]
+    : undefined;
 }
 
 export function formatEntityIcon(entityType: SelectionState['selectedEntityType']): string {
-  switch (entityType) {
-    case 'town-center':
-      return 'TC';
-    case 'house':
-      return 'H';
-    case 'mill':
-      return 'ML';
-    case 'lumber-camp':
-      return 'LC';
-    case 'mining-camp':
-      return 'MC';
-    case 'barracks':
-      return 'BA';
-    case 'watch-tower':
-      return 'WT';
-    case 'stable':
-      return 'ST';
-    case 'archery-range':
-      return 'AR';
-    case 'blacksmith':
-      return 'BS';
-    case 'market':
-      return 'MK';
-    case 'siege-workshop':
-      return 'SW';
-    case 'monastery':
-      return 'My';
-    case 'castle':
-      return 'Ct';
-    case 'wonder':
-      return 'Wn';
-    case 'stone-wall':
-      return 'Wl';
-    case 'palisade-wall':
-      return 'Pl';
-    case 'farm':
-      return 'Fm';
-    case 'relic':
-      return 'Rl';
-    case 'berry-bush':
-      return 'BB';
-    case 'gold-mine':
-      return 'G';
-    case 'stone-mine':
-      return 'S';
-    case 'boar':
-      return 'BO';
-    case 'fish':
-      return 'F';
-    case 'sheep':
-      return 'SH';
-    case 'wolf':
-      return 'WO';
-    case 'tree':
-      return 'T';
-    default:
-      return entityType ? formatUnitIcon(entityType) : '?';
-  }
+  return iconRow(entityType)?.[0] ?? UNKNOWN_ICON;
 }
 
 export function formatEntityIconAccent(entityType: SelectionState['selectedEntityType']): string {
-  switch (entityType) {
-    case 'town-center':
-      return '#cfb56f';
-    case 'house':
-      return '#c39355';
-    case 'mill':
-      return '#b79a5f';
-    case 'lumber-camp':
-      return '#7ca46a';
-    case 'mining-camp':
-      return '#9daabd';
-    case 'barracks':
-      return '#b78363';
-    case 'watch-tower':
-      return '#b6a7be';
-    case 'stable':
-      return '#bf9463';
-    case 'archery-range':
-      return '#a6866f';
-    case 'blacksmith':
-      return '#8f98aa';
-    case 'market':
-      return '#c4a166';
-    case 'siege-workshop':
-      return '#98856a';
-    case 'monastery':
-      return '#cfc3a8';
-    case 'castle':
-      return '#a09f9c';
-    case 'wonder':
-      return '#e6c36a';
-    case 'stone-wall':
-      return '#9aa0a8';
-    case 'palisade-wall':
-      return '#a88555';
-    case 'farm':
-      return '#d9b84a';
-    case 'relic':
-      return '#f5d680';
-    case 'berry-bush':
-      return '#a16a89';
-    case 'gold-mine':
-      return '#d7c46a';
-    case 'stone-mine':
-      return '#b8c0cf';
-    case 'boar':
-      return '#bf7d68';
-    case 'fish':
-      return '#73b9d6';
-    case 'sheep':
-      return '#d9e0e5';
-    case 'wolf':
-      return '#9ca6b2';
-    case 'tree':
-      return '#7fb07a';
-    default:
-      return entityType && isUnitType(entityType)
-        ? formatUnitIconAccent(entityType)
-        : '#c4ae7a';
-  }
+  return iconRow(entityType)?.[1] ?? UNKNOWN_ACCENT;
 }
