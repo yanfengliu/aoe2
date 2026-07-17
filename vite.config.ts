@@ -1,15 +1,4 @@
 import { defineConfig } from 'vite';
-import { fileURLToPath } from 'node:url';
-
-// Spec 2 (annotation-ui v0.1.5): Vite aliases for Node-namespace imports
-// that civ-engine exposes. node:crypto is needed at runtime by
-// SessionRecorder; node:fs and node:path are present only because
-// civ-engine's barrel re-exports FileSink and BundleCorpus, which aoe2
-// does not use at runtime but Vite includes in the module graph
-// (civ-engine's package.json doesn't declare `sideEffects: false`).
-const nodeCryptoShim = fileURLToPath(new URL('./src/shims/node-crypto.ts', import.meta.url));
-const nodeFsShim = fileURLToPath(new URL('./src/shims/node-fs.ts', import.meta.url));
-const nodePathShim = fileURLToPath(new URL('./src/shims/node-path.ts', import.meta.url));
 
 export default defineConfig({
   server: {
@@ -20,11 +9,9 @@ export default defineConfig({
     // Local `voxel` is linked during development. Pin every import to the
     // consumer's Three instance so constructors/materials never cross copies.
     dedupe: ['three'],
-    alias: {
-      'node:crypto': nodeCryptoShim,
-      'node:fs': nodeFsShim,
-      'node:path': nodePathShim,
-    },
+    // No `node:*` aliases here. civ-engine 2.4.1's `browser` export condition
+    // resolves to a curated entry with no node builtins, so Vite never pulls
+    // one into the graph; `tests/civEngineBrowserEntry.test.ts` pins that.
   },
   build: {
     chunkSizeWarningLimit: 1700,
