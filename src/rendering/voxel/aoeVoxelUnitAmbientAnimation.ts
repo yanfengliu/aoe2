@@ -1,16 +1,13 @@
 import type { UnitRole } from '../roles/unitRole';
 import type { VoxelPartAnimation } from './aoeVoxelRecipeTypes';
 import { isUnitAttackControlledPart } from './aoeVoxelUnitAttackAnimation';
+import { clamp01 } from './voxelMath';
 
 const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 
 interface AmbientAnimationState {
   readonly phaseRadians: number;
   readonly ambientSuppressionWeight: number;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
 }
 
 function scaleVector(

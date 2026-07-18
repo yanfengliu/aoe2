@@ -4,6 +4,7 @@ import { unitRole, type UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
 import { posePart } from './aoeVoxelUnitLocomotionPose';
+import { clamp01 } from './voxelMath';
 
 export type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
 import { unitAmbientAnimation } from './aoeVoxelUnitAmbientAnimation';
@@ -60,10 +61,6 @@ const FALLBACK_STRIDE_LENGTH_WORLD_UNITS = STRIDE_LENGTH_WORLD_UNITS.infantry;
 
 function animationRole(entity: ProjectedEntityView): UnitRole | undefined {
   return unitRole(entity.entityType as UnitType) as UnitRole | undefined;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
 }
 
 function wrapRadians(value: number): number {

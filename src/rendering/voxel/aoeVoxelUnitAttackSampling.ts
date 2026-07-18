@@ -2,6 +2,7 @@ import type { ProjectedEntityView } from '../../game/simulation/types';
 import { UNIT_ATTACK_FEED_TICKS } from '../../game/simulation/attackAnimationTypes';
 import { TPS } from '../../game/simulation/prototypeScenario';
 import { UNIT_ATTACK_ANIMATION_DURATION_MS } from './aoeVoxelUnitAttackAnimation';
+import { clamp01, smoothstep } from './voxelMath';
 
 const ATTACK_IMPACT_PHASE = 0.55;
 const DIRECTION_EPSILON = 1e-5;
@@ -16,15 +17,6 @@ export interface UnitAttackSample {
   /** Root-to-target-centre distance, so a melee strike can reach the target
    *  it captured instead of swinging a fixed arc through empty air. */
   readonly targetDistance: number;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function smoothstep(value: number): number {
-  const t = clamp01(value);
-  return t * t * (3 - 2 * t);
 }
 
 export function sampleUnitAttack(

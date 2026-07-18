@@ -1,16 +1,12 @@
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import { sampleUnitAttack } from './aoeVoxelUnitAttackSampling';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
+import { smoothstep } from './voxelMath';
 
 // Same whip-crack family as the unit attack arc's visible window (spec §14.5
 // violence directive): reared coil at the 0.55 impact sample, snap into the
 // gore by ~52 ms, one bounded recoil, exact zero at the window end.
 const GORE_SNAP_END = 0.586;
-
-function smoothstep(value: number): number {
-  const t = Math.max(0, Math.min(1, value));
-  return t * t * (3 - 2 * t);
-}
 
 function goreArc(phase: number): number {
   const p = Math.max(0.55, Math.min(1, phase));

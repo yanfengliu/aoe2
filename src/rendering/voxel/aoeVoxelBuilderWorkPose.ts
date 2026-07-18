@@ -1,5 +1,6 @@
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
+import { clamp01, smoothstep } from './voxelMath';
 
 /** One raise→smash→reset cycle. Slow enough to read at default zoom. */
 export const BUILDER_WORK_PERIOD_MS = 900;
@@ -33,15 +34,6 @@ export interface BuilderWorkPoseState {
   readonly workPhase: number;
   /** 0 = not working, 1 = full swing. Blends the loop in and out. */
   readonly workWeight: number;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function smoothstep(value: number): number {
-  const t = clamp01(value);
-  return t * t * (3 - 2 * t);
 }
 
 /**

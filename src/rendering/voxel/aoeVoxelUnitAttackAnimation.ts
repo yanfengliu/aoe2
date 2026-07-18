@@ -1,6 +1,7 @@
 import type { UnitRole } from '../roles/unitRole';
 import { matrixForPart, type VoxelPart } from './aoeVoxelRecipeTypes';
 import { voxelPartWorldCorners } from './aoeVoxelGeometry';
+import { clamp01, smoothstep } from './voxelMath';
 
 export const UNIT_ATTACK_ANIMATION_DURATION_MS = 650;
 
@@ -89,15 +90,6 @@ function applyReachCorrection(
       }
       : part
   ));
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function smoothstep(value: number): number {
-  const t = clamp01(value);
-  return t * t * (3 - 2 * t);
 }
 
 function attackArc(phase: number): number {
