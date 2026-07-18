@@ -11,7 +11,7 @@ import type {
   GathererComponent,
   ResourceComponent,
   UnitComponent,
-  UnitType,
+  UnitType, EconomyResourceKind,
 } from '../types';
 import type { MonkTask } from './sharedTypes';
 import { clamp, type GameWorld } from './pureHelpers';
@@ -69,7 +69,7 @@ export interface UnitCommandOpsDeps {
   findNearestDropOffBuilding: (
     activeWorld: GameWorld,
     owner: number,
-    resource: 'food' | 'wood' | 'gold' | 'stone',
+    resource: EconomyResourceKind,
     position: Position,
   ) => number | null;
   clearGathererOrder: (id: number) => void;

@@ -10,7 +10,7 @@ import type {
   GathererComponent,
   ResearchableTechnologyType,
   ResourceComponent,
-  UnitComponent,
+  UnitComponent, EconomyResourceKind,
 } from '../../types';
 import {
   type GameWorld,
@@ -106,7 +106,7 @@ export interface VillagerEconomySystemDeps {
   findNearestDropOffBuilding: (
     activeWorld: CivWorld,
     owner: number,
-    resource: 'food' | 'wood' | 'gold' | 'stone',
+    resource: EconomyResourceKind,
     position: Position,
     excludeIds?: ReadonlySet<number>,
   ) => number | null;

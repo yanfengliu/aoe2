@@ -20,12 +20,11 @@ import type {
   BuildingComponent,
   GathererComponent,
   ResourceComponent,
+  EconomyResourceKind,
 } from '../types';
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import type { UnitMovementPlan } from './movementTypes';
-
-type EconomyResource = 'food' | 'wood' | 'gold' | 'stone';
 
 // Cap on how many candidates the reachability-aware reroute pathfinds against
 // per call. The success case (a reachable resource exists) short-circuits at
@@ -43,7 +42,7 @@ export interface GatherAssignmentDeps {
   findNearestDropOffBuilding: (
     activeWorld: GameWorld,
     owner: number,
-    resource: EconomyResource,
+    resource: EconomyResourceKind,
     position: Position,
   ) => number | null;
   // Used only when `requireReachable` is set: a null plan means the villager

@@ -20,8 +20,7 @@
 import type { UnitMovementPlan } from './movementTypes';
 import type { GameWorld } from './pureHelpers';
 import type { Position } from 'civ-engine';
-
-type EconomyResource = 'food' | 'wood' | 'gold' | 'stone';
+import type { EconomyResourceKind } from '../types';
 
 // Cap on how many drop-off candidates the reroute pathfinds against per call.
 // The success case (the nearest drop-off is reachable) short-circuits at the
@@ -36,7 +35,7 @@ export interface DropOffAssignmentDeps {
   findNearestDropOffBuilding: (
     activeWorld: GameWorld,
     owner: number,
-    resource: EconomyResource,
+    resource: EconomyResourceKind,
     position: Position,
     excludeIds?: ReadonlySet<number>,
   ) => number | null;
@@ -60,7 +59,7 @@ export function findReachableDropOff(
   deps: DropOffAssignmentDeps,
   activeWorld: GameWorld,
   owner: number,
-  resource: EconomyResource,
+  resource: EconomyResourceKind,
   villagerId: number,
   origin: Position,
 ): ReachableDropOff | null {

@@ -17,6 +17,7 @@ import type {
   UnitTransformComponent,
   UnitType,
   VisionSourceComponent,
+  EconomyResourceKind,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { AiState } from '../ai';
@@ -276,7 +277,7 @@ export interface RegisterAllSystemsDeps {
   findNearestDropOffBuilding: (
     activeWorld: CivWorld,
     owner: number,
-    resource: 'food' | 'wood' | 'gold' | 'stone',
+    resource: EconomyResourceKind,
     position: Position,
     excludeIds?: ReadonlySet<number>,
   ) => number | null;
