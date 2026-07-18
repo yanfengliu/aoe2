@@ -26,27 +26,63 @@ function isRectangleResource(resourceType: ProjectedEntityView['entityType']): r
   return resourceType === 'gold-mine' || resourceType === 'stone-mine' || resourceType === 'tree';
 }
 
-function containsCircle(
-  centerX: number,
-  centerY: number,
-  radius: number,
-  worldX: number,
-  worldY: number,
-): boolean {
-  const dx = worldX - centerX;
-  const dy = worldY - centerY;
-  return dx * dx + dy * dy <= radius * radius;
-}
+// The one authoritative encoding of what each entity kind's clickable body IS.
+// Every hit predicate in this module derives from this descriptor, so a shape
+// constant (the unit radius factor, the resource-rect inset, the 0.55 circle
+// factor, a footprint rule) exists in exactly one place. `unitPadding` widens
+// the UNIT circle only — command targeting is forgiving about slightly-missed
+// unit bodies, never about buildings or resources. Tiles have no body (null).
+type EntityHitShape =
+  | { kind: 'circle'; cx: number; cy: number; r: number }
+  | { kind: 'rect'; x: number; y: number; w: number; h: number };
 
-function containsRectangle(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  worldX: number,
-  worldY: number,
-): boolean {
-  return worldX >= x && worldX <= x + width && worldY >= y && worldY <= y + height;
+function entityHitShape(
+  entity: ProjectedEntityView,
+  cellSize: number,
+  unitPadding = 0,
+): EntityHitShape | null {
+  const px = entity.x * cellSize;
+  const py = entity.y * cellSize;
+
+  if (entity.kind === 'unit') {
+    return {
+      kind: 'circle',
+      cx: px + cellSize * 0.5,
+      cy: py + cellSize * 0.5,
+      r: cellSize * entity.size * 0.5 + cellSize * unitPadding,
+    };
+  }
+
+  if (entity.kind === 'building') {
+    return {
+      kind: 'rect',
+      x: px,
+      y: py,
+      w: entity.footprintWidth * cellSize,
+      h: entity.footprintHeight * cellSize,
+    };
+  }
+
+  if (entity.kind === 'resource') {
+    if (isRectangleResource(entity.entityType)) {
+      return {
+        kind: 'rect',
+        x: px + cellSize * 0.1,
+        y: py + cellSize * 0.1,
+        w: cellSize * entity.size,
+        h: cellSize * entity.size,
+      };
+    }
+
+    return {
+      kind: 'circle',
+      cx: px + cellSize * 0.5,
+      cy: py + cellSize * 0.5,
+      r: cellSize * entity.size * 0.55,
+    };
+  }
+
+  return null;
 }
 
 function intersectsRectangle(
@@ -83,58 +119,40 @@ function intersectsCircle(
   return dx * dx + dy * dy <= radius * radius;
 }
 
+function shapeIntersectsRect(
+  shape: EntityHitShape | null,
+  minWorldX: number,
+  minWorldY: number,
+  maxWorldX: number,
+  maxWorldY: number,
+): boolean {
+  if (shape === null) {
+    return false;
+  }
+
+  if (shape.kind === 'circle') {
+    return intersectsCircle(shape.cx, shape.cy, shape.r, minWorldX, minWorldY, maxWorldX, maxWorldY);
+  }
+
+  return intersectsRectangle(shape.x, shape.y, shape.w, shape.h, minWorldX, minWorldY, maxWorldX, maxWorldY);
+}
+
+// A point test IS the degenerate rect test: for a rect collapsed to a point,
+// intersectsCircle's closest-point clamp returns the point itself and
+// intersectsRectangle's four comparisons reduce to containment, term for term
+// (NaN agrees too — every comparison fails either way). Routing through one
+// predicate keeps the equivalence structural instead of maintained by hand.
+function shapeContainsPoint(shape: EntityHitShape | null, worldX: number, worldY: number): boolean {
+  return shapeIntersectsRect(shape, worldX, worldY, worldX, worldY);
+}
+
 export function isWorldPointInsideEntity(
   entity: ProjectedEntityView,
   worldX: number,
   worldY: number,
   cellSize: number,
 ): boolean {
-  const px = entity.x * cellSize;
-  const py = entity.y * cellSize;
-
-  if (entity.kind === 'unit') {
-    return containsCircle(
-      px + cellSize * 0.5,
-      py + cellSize * 0.5,
-      cellSize * entity.size * 0.5,
-      worldX,
-      worldY,
-    );
-  }
-
-  if (entity.kind === 'building') {
-    return containsRectangle(
-      px,
-      py,
-      entity.footprintWidth * cellSize,
-      entity.footprintHeight * cellSize,
-      worldX,
-      worldY,
-    );
-  }
-
-  if (entity.kind === 'resource') {
-    if (isRectangleResource(entity.entityType)) {
-      return containsRectangle(
-        px + cellSize * 0.1,
-        py + cellSize * 0.1,
-        cellSize * entity.size,
-        cellSize * entity.size,
-        worldX,
-        worldY,
-      );
-    }
-
-    return containsCircle(
-      px + cellSize * 0.5,
-      py + cellSize * 0.5,
-      cellSize * entity.size * 0.55,
-      worldX,
-      worldY,
-    );
-  }
-
-  return false;
+  return shapeContainsPoint(entityHitShape(entity, cellSize), worldX, worldY);
 }
 
 export function isWorldPointInsideCommandTargetEntity(
@@ -143,20 +161,11 @@ export function isWorldPointInsideCommandTargetEntity(
   worldY: number,
   cellSize: number,
 ): boolean {
-  const px = entity.x * cellSize;
-  const py = entity.y * cellSize;
-
-  if (entity.kind === 'unit') {
-    return containsCircle(
-      px + cellSize * 0.5,
-      py + cellSize * 0.5,
-      cellSize * entity.size * 0.5 + cellSize * UNIT_COMMAND_TARGET_PADDING_CELLS,
-      worldX,
-      worldY,
-    );
-  }
-
-  return isWorldPointInsideEntity(entity, worldX, worldY, cellSize);
+  return shapeContainsPoint(
+    entityHitShape(entity, cellSize, UNIT_COMMAND_TARGET_PADDING_CELLS),
+    worldX,
+    worldY,
+  );
 }
 
 export function doesWorldRectIntersectEntity(
@@ -167,73 +176,24 @@ export function doesWorldRectIntersectEntity(
   endWorldY: number,
   cellSize: number,
 ): boolean {
-  const minWorldX = Math.min(startWorldX, endWorldX);
-  const minWorldY = Math.min(startWorldY, endWorldY);
-  const maxWorldX = Math.max(startWorldX, endWorldX);
-  const maxWorldY = Math.max(startWorldY, endWorldY);
-  const px = entity.x * cellSize;
-  const py = entity.y * cellSize;
-
-  if (entity.kind === 'unit') {
-    return intersectsCircle(
-      px + cellSize * 0.5,
-      py + cellSize * 0.5,
-      cellSize * entity.size * 0.5,
-      minWorldX,
-      minWorldY,
-      maxWorldX,
-      maxWorldY,
-    );
-  }
-
-  if (entity.kind === 'building') {
-    return intersectsRectangle(
-      px,
-      py,
-      entity.footprintWidth * cellSize,
-      entity.footprintHeight * cellSize,
-      minWorldX,
-      minWorldY,
-      maxWorldX,
-      maxWorldY,
-    );
-  }
-
-  if (entity.kind === 'resource') {
-    if (isRectangleResource(entity.entityType)) {
-      return intersectsRectangle(
-        px + cellSize * 0.1,
-        py + cellSize * 0.1,
-        cellSize * entity.size,
-        cellSize * entity.size,
-        minWorldX,
-        minWorldY,
-        maxWorldX,
-        maxWorldY,
-      );
-    }
-
-    return intersectsCircle(
-      px + cellSize * 0.5,
-      py + cellSize * 0.5,
-      cellSize * entity.size * 0.55,
-      minWorldX,
-      minWorldY,
-      maxWorldX,
-      maxWorldY,
-    );
-  }
-
-  return false;
+  return shapeIntersectsRect(
+    entityHitShape(entity, cellSize),
+    Math.min(startWorldX, endWorldX),
+    Math.min(startWorldY, endWorldY),
+    Math.max(startWorldX, endWorldX),
+    Math.max(startWorldY, endWorldY),
+  );
 }
 
 // Isometric marquee test. The drag rectangle is axis-aligned in the camera's
 // iso-pixel space (the camera transform is pure translate+scale, no rotation),
 // and each entity's body is centred at its iso cell-centre — worldToIso(x + 0.5,
-// y + 0.5) — rather than its top-down pixel centre. Drag-selectable entities
-// (units, non-farm resources like sheep) render as circles, so the circle case
-// is exact; buildings / farms are never drag-selectable and fall back to an
-// iso-centre point test for completeness.
+// y + 0.5) — rather than its top-down pixel centre. Note the anchor CELL, not
+// the footprint: a 2x2 building's iso reference point is its anchor cell's
+// centre. The circle-bodied entities (units, non-rect resources like sheep) are
+// exactly the ones whose descriptor is a circle, re-centred here with the same
+// radius; buildings / farms / rect resources are never drag-selectable and fall
+// back to an iso-centre point test for completeness, as do bodiless tiles.
 export function doesIsoWorldRectIntersectEntity(
   entity: ProjectedEntityView,
   startWorldX: number,
@@ -247,29 +207,10 @@ export function doesIsoWorldRectIntersectEntity(
   const maxWorldX = Math.max(startWorldX, endWorldX);
   const maxWorldY = Math.max(startWorldY, endWorldY);
   const centre = worldToIso(entity.x + 0.5, entity.y + 0.5);
+  const shape = entityHitShape(entity, cellSize);
 
-  if (entity.kind === 'unit') {
-    return intersectsCircle(
-      centre.x,
-      centre.y,
-      cellSize * entity.size * 0.5,
-      minWorldX,
-      minWorldY,
-      maxWorldX,
-      maxWorldY,
-    );
-  }
-
-  if (entity.kind === 'resource' && !isRectangleResource(entity.entityType)) {
-    return intersectsCircle(
-      centre.x,
-      centre.y,
-      cellSize * entity.size * 0.55,
-      minWorldX,
-      minWorldY,
-      maxWorldX,
-      maxWorldY,
-    );
+  if (shape?.kind === 'circle') {
+    return intersectsCircle(centre.x, centre.y, shape.r, minWorldX, minWorldY, maxWorldX, maxWorldY);
   }
 
   return (
