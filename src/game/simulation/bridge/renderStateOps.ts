@@ -104,51 +104,30 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       }
       : null;
 
-    if (currentFogMemorySize === 0) {
-      const value: RenderStateValue = {
-        tick: currentTick,
-        entities: liveEntities,
-        frame: renderStore.getFrame(),
-        previousPositionFrame,
-      };
-      cache = {
-        tick: currentTick,
-        renderStoreVersion: currentVersion,
-        fogMemorySize: currentFogMemorySize,
-        value,
-      };
-      return value;
+    // Fog-memory ghosts are merged in only when there are any; with none
+    // (the common case, and always when fogMemorySize is 0) the live set is
+    // returned as-is. All three former exits built an identical value + cache
+    // differing only in `entities`, so that construction happens once here.
+    let entities = liveEntities;
+    if (currentFogMemorySize > 0) {
+      const liveIds = new Set<number>();
+      for (const entity of liveEntities) {
+        liveIds.add(entity.id);
+      }
+      const memoryEntities = getFogMemoryEntities(liveIds);
+      if (memoryEntities.length > 0) {
+        const merged = liveEntities.slice();
+        for (const entity of memoryEntities) {
+          merged.push(entity);
+        }
+        merged.sort(compareProjectedRenderEntities);
+        entities = merged;
+      }
     }
 
-    const liveIds = new Set<number>();
-    for (const entity of liveEntities) {
-      liveIds.add(entity.id);
-    }
-    const memoryEntities = getFogMemoryEntities(liveIds);
-    if (memoryEntities.length === 0) {
-      const value: RenderStateValue = {
-        tick: currentTick,
-        entities: liveEntities,
-        frame: renderStore.getFrame(),
-        previousPositionFrame,
-      };
-      cache = {
-        tick: currentTick,
-        renderStoreVersion: currentVersion,
-        fogMemorySize: currentFogMemorySize,
-        value,
-      };
-      return value;
-    }
-
-    const merged = liveEntities.slice();
-    for (const entity of memoryEntities) {
-      merged.push(entity);
-    }
-    merged.sort(compareProjectedRenderEntities);
     const value: RenderStateValue = {
       tick: currentTick,
-      entities: merged,
+      entities,
       frame: renderStore.getFrame(),
       previousPositionFrame,
     };
