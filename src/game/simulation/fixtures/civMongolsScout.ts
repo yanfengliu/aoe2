@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Civ-bonus Mongols-scout fixture (v0.1.99). Owner 1 (AI disabled) owns a lone
 // Light Cavalry; the only thing that varies between the two variants is owner 1's
@@ -33,30 +33,9 @@ function createCivMongolsScoutScenario(seed: string, civilization: string): Prot
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'light-cavalry',
-        x: 12,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('light-cavalry', 1, 12, 12, { vision: 4 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }

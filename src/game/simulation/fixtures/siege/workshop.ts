@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 4 fixture: Castle-Age human with a completed Siege Workshop, used to
 // assert that the Siege Workshop train menu offers Mangonel / Scorpion /
@@ -35,37 +33,10 @@ export function createSiegeWorkshopFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'siege-workshop',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('siege-workshop', 1, 14, 6),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -93,55 +64,20 @@ export function createTowerVsSiegePriorityFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Slice 12 moved this off (10,10) (inside the TC footprint at
-        // 8..11, 8..11). Now at (12,19): still within tower range 7 of both
-        // enemy units below (priority test unchanged), and clear of the human
-        // TC's range so the empty-TC base arrow (spec §10.8) doesn't confound it.
-        kind: 'watch-tower',
-        x: 12,
-        y: 19,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 8 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Slice 12 moved this off (10,10) (inside the TC footprint at
+      // 8..11, 8..11). Now at (12,19): still within tower range 7 of both
+      // enemy units below (priority test unchanged), and clear of the human
+      // TC's range so the empty-TC base arrow (spec §10.8) doesn't confound it.
+      ownedSpawn('watch-tower', 1, 12, 19, { vision: 8 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
       // Both enemies sit inside the tower's range 7. Militia is CLOSER than
       // the Mangonel (dist 3 vs dist 4 after the tower move) — before the
       // priority fix the tower fell back on proximity and killed the Militia
       // first. The fix must make the Mangonel the preferred target regardless
       // of proximity.
-      {
-        kind: 'militia',
-        x: 15,
-        y: 19,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'mangonel',
-        x: 16,
-        y: 19,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 9 },
-      },
+      ownedSpawn('militia', 2, 15, 19, { vision: 3 }),
+      ownedSpawn('mangonel', 2, 16, 19, { vision: 9 }),
     ],
   };
 }

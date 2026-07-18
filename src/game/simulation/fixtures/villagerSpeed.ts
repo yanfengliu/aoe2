@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Wheelbarrow / Hand Cart villager movement-speed fixtures (v0.1.69). Player 1
 // (human, AI disabled) owns a single Villager on open grass with a long clear
@@ -44,30 +44,9 @@ function createVillagerSpeedScenario(
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }

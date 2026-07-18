@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 export function createFogMemoryFixture(seed: string): PrototypeScenario {
   // Layout: human scout at (10, 10) with vision radius 4, enemy house at (14, 10)
@@ -30,61 +28,20 @@ export function createFogMemoryFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'scout',
-        x: 10,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'house',
-        x: 14,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        // A resource patch at a cell that starts outside human vision. The test
-        // can use a human unit's vision to reveal it, then leave to observe
-        // memory behavior.
-        kind: 'gold-mine',
-        x: 14,
-        y: 12,
-        owner: null,
-        baseOwner: null,
-        amount: 500,
-      },
-      {
-        // A wandering boar that is currently inside the scout's radius-4 vision
-        // (distance 3.16 from (10, 10)) and outside the human TC's radius-7 vision
-        // (distance >11). Used to assert that wildlife is NOT memorized when it
-        // exits vision — its position would otherwise go stale immediately because
-        // it walks around.
-        kind: 'boar',
-        x: 13,
-        y: 11,
-        owner: null,
-        baseOwner: null,
-        amount: 340,
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('scout', 1, 10, 10, { vision: 4 }),
+      ownedSpawn('house', 2, 14, 10),
+      // A resource patch at a cell that starts outside human vision. The test
+      // can use a human unit's vision to reveal it, then leave to observe
+      // memory behavior.
+      gaiaSpawn('gold-mine', 14, 12, { amount: 500 }),
+      // A wandering boar that is currently inside the scout's radius-4 vision
+      // (distance 3.16 from (10, 10)) and outside the human TC's radius-7 vision
+      // (distance >11). Used to assert that wildlife is NOT memorized when it
+      // exits vision — its position would otherwise go stale immediately because
+      // it walks around.
+      gaiaSpawn('boar', 13, 11, { amount: 340 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }
@@ -126,29 +83,9 @@ export function createBuildingFootprintVisionFixture(seed: string): PrototypeSce
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 1,
-        y: 1,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 1 },
-      },
-      {
-        kind: 'scout',
-        x: 17,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 1 },
-      },
-      {
-        kind: 'town-center',
-        x: 13,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-      },
+      ownedSpawn('town-center', 1, 1, 1, { vision: 1 }),
+      ownedSpawn('scout', 1, 17, 13, { vision: 1 }),
+      ownedSpawn('town-center', 2, 13, 10),
     ],
   };
 }
@@ -170,38 +107,10 @@ export function createBoarAggroFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'boar',
-        x: 13,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 340,
-      },
-      {
-        kind: 'house',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 8, { vision: 4 }),
+      gaiaSpawn('boar', 13, 8, { amount: 340 }),
+      ownedSpawn('house', 2, 28, 16, { vision: 4 }),
     ],
   };
 }
@@ -230,38 +139,10 @@ export function createBoarHuntFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 40, y: 24 } },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      ...ring.map((cell) => ({
-        kind: 'villager' as const,
-        x: cell.x,
-        y: cell.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      })),
-      {
-        kind: 'boar',
-        x: boar.x,
-        y: boar.y,
-        owner: null,
-        baseOwner: null,
-        amount: 340,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ...ring.map((cell) => (ownedSpawn('villager' as const, 1, cell.x, cell.y, { vision: 4 }))),
+      gaiaSpawn('boar', boar.x, boar.y, { amount: 340 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }
@@ -283,38 +164,10 @@ export function createWolfAggroFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'wolf',
-        x: 13,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 0,
-      },
-      {
-        kind: 'house',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 8, { vision: 4 }),
+      gaiaSpawn('wolf', 13, 8, { amount: 0 }),
+      ownedSpawn('house', 2, 28, 16, { vision: 4 }),
     ],
   };
 }

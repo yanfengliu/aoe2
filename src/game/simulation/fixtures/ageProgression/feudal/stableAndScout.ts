@@ -4,12 +4,7 @@ import {
   type PrototypeScenario,
   type ScenarioSpawnSpec,
 } from '../../../prototypeScenario';
-import {
-  FIXTURE_NEARBY_VILLAGER_POSITION,
-  FIXTURE_PRIMARY_BUILDING_POSITION,
-  FIXTURE_SECONDARY_BUILDING_POSITION,
-  createGrassFixtureTerrain,
-} from '../../common';
+import { FIXTURE_NEARBY_VILLAGER_POSITION, FIXTURE_PRIMARY_BUILDING_POSITION, FIXTURE_SECONDARY_BUILDING_POSITION, createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../../common';
 export function createFeudalBlacksmithFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -34,52 +29,14 @@ export function createFeudalBlacksmithFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'archery-range',
-        x: FIXTURE_PRIMARY_BUILDING_POSITION.x,
-        y: FIXTURE_PRIMARY_BUILDING_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'blacksmith',
-        x: FIXTURE_SECONDARY_BUILDING_POSITION.x,
-        y: FIXTURE_SECONDARY_BUILDING_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'archer',
-        x: 12,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_NEARBY_VILLAGER_POSITION.x,
-        y: FIXTURE_NEARBY_VILLAGER_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('archery-range', 1, FIXTURE_PRIMARY_BUILDING_POSITION.x, FIXTURE_PRIMARY_BUILDING_POSITION.y),
+      ownedSpawn('blacksmith', 1, FIXTURE_SECONDARY_BUILDING_POSITION.x, FIXTURE_SECONDARY_BUILDING_POSITION.y),
+      ownedSpawn('archer', 1, 12, 12, { vision: 6 }),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -108,37 +65,12 @@ export function createFeudalStableFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: FIXTURE_PRIMARY_BUILDING_POSITION.x,
-        y: FIXTURE_PRIMARY_BUILDING_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_NEARBY_VILLAGER_POSITION.x,
-        y: FIXTURE_NEARBY_VILLAGER_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('barracks', 1, FIXTURE_PRIMARY_BUILDING_POSITION.x, FIXTURE_PRIMARY_BUILDING_POSITION.y),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -189,29 +121,9 @@ export function createBlockedStableSpawnFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stable',
-        x: stableAnchor.x,
-        y: stableAnchor.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('stable', 1, stableAnchor.x, stableAnchor.y),
+      ownedSpawn('town-center', 2, 28, 16, { vision: 7 }),
       ...ringTreeSpawns,
     ],
   };
@@ -234,63 +146,13 @@ export function createIsolatedScoutSpawnFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'tree',
-        x: 11,
-        y: 10,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'tree',
-        x: 13,
-        y: 10,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'tree',
-        x: 12,
-        y: 9,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'tree',
-        x: 12,
-        y: 11,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'scout',
-        x: 12,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-        requiresSafeSpawn: true,
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('town-center', 2, 28, 16, { vision: 7 }),
+      gaiaSpawn('tree', 11, 10, { amount: 100 }),
+      gaiaSpawn('tree', 13, 10, { amount: 100 }),
+      gaiaSpawn('tree', 12, 9, { amount: 100 }),
+      gaiaSpawn('tree', 12, 11, { amount: 100 }),
+      ownedSpawn('scout', 1, 12, 10, { vision: 6, requiresSafeSpawn: true }),
     ],
   };
 }

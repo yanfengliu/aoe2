@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 4 fixture: player-1 Battering Ram next to an enemy House. Used to
 // assert the Ram's +75 anti-building bonus destroys a 75-HP House in one hit
@@ -29,37 +27,10 @@ export function createRamVsBuildingFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'battering-ram',
-        x: 13,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'house',
-        x: 14,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('battering-ram', 1, 13, 8, { vision: 3 }),
+      ownedSpawn('house', 2, 14, 8),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -85,38 +56,10 @@ export function createRamVsVillagerFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'battering-ram',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('battering-ram', 1, 14, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('villager', 2, 15, 17, { vision: 4 }),
     ],
   };
 }
@@ -142,38 +85,10 @@ export function createPikemanVsRamFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'pikeman',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'battering-ram',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('pikeman', 1, 14, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('battering-ram', 2, 15, 17, { vision: 3 }),
     ],
   };
 }
@@ -199,38 +114,10 @@ export function createCamelVsRamFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'camel',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'battering-ram',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('camel', 1, 14, 17, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('battering-ram', 2, 15, 17, { vision: 3 }),
     ],
   };
 }
@@ -259,31 +146,9 @@ export function createSiegeRamVsBuildingFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'siege-ram',
-        x: 22,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 10 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-        startHp: 200,
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('siege-ram', 1, 22, 8, { vision: 10 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7, startHp: 200 }),
     ],
   };
 }

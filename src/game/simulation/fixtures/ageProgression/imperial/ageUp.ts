@@ -3,10 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../../prototypeScenario';
-import {
-  FIXTURE_NEARBY_VILLAGER_POSITION,
-  createGrassFixtureTerrain,
-} from '../../common';
+import { FIXTURE_NEARBY_VILLAGER_POSITION, createGrassFixtureTerrain, ownedSpawn } from '../../common';
 
 // Slice 7A fixture: Castle-Age human with two Castle-Age-unlocked buildings
 // (Monastery + Castle) already completed. Used to assert the Imperial Age
@@ -39,44 +36,13 @@ export function createImperialAgeFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 4,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_NEARBY_VILLAGER_POSITION.x,
-        y: FIXTURE_NEARBY_VILLAGER_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 1, 4, 6),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -110,22 +76,8 @@ export function createImperialMissingPrereqFixture(seed: string): PrototypeScena
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }

@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Bloodlines (v0.1.65; scope/gate conformance-fixed v0.1.67) fixtures. Player 1
 // (human, AI disabled) owns a Knight (cavalry), a Cavalry Archer (mounted
@@ -54,46 +54,11 @@ function createBloodlinesScenario(
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'knight',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'cavalry-archer',
-        x: 14,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('knight', 1, 10, 13, { vision: 4 }),
+      ownedSpawn('militia', 1, 12, 13, { vision: 6 }),
+      ownedSpawn('cavalry-archer', 1, 14, 13, { vision: 5 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }
@@ -136,37 +101,10 @@ export function createBloodlinesFeudalStableFixture(seed: string): PrototypeScen
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stable',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'cavalry-archer',
-        x: 18,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('stable', 1, 14, 6),
+      ownedSpawn('cavalry-archer', 1, 18, 12, { vision: 5 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }

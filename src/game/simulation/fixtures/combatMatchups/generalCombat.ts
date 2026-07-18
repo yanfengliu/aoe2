@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 export function createMilitiaCombatFixture(seed: string): PrototypeScenario {
   return {
@@ -24,38 +22,10 @@ export function createMilitiaCombatFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'scout',
-        x: 15,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 6 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('militia', 1, 12, 8, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('scout', 2, 15, 8, { vision: 6 }),
     ],
   };
 }
@@ -85,45 +55,14 @@ export function createMovingEnemyAttackFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'scout',
-        x: 15,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('militia', 1, 12, 8, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('scout', 2, 15, 8, {
         velocity: { dx: 1, dy: 0 },
-        wanderBounds: {
-          minX: 15,
-          maxX: 17,
-          minY: 8,
-          maxY: 8,
-        },
-        vision: { playerId: 2, radius: 6 },
-      },
+        wanderBounds: { minX: 15, maxX: 17, minY: 8, maxY: 8 },
+        vision: 6,
+      }),
     ],
   };
 }
@@ -166,38 +105,10 @@ export function createChampionVsHalberdierFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'champion',
-        x: 20,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'halberdier',
-        x: 22,
-        y: 18,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 54,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('champion', 1, 20, 18, { vision: 6 }),
+      ownedSpawn('halberdier', 2, 22, 18, { vision: 3 }),
+      ownedSpawn('town-center', 2, 54, 30, { vision: 7 }),
     ],
   };
 }
@@ -233,38 +144,10 @@ export function createChampionVsArmoredHalberdierFixture(seed: string): Prototyp
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'champion',
-        x: 20,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'halberdier',
-        x: 22,
-        y: 18,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 54,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('champion', 1, 20, 18, { vision: 6 }),
+      ownedSpawn('halberdier', 2, 22, 18, { vision: 3 }),
+      ownedSpawn('town-center', 2, 54, 30, { vision: 7 }),
     ],
   };
 }
@@ -305,52 +188,12 @@ export function createMilitiaLineFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 42,
-        y: 26,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'militia',
-        x: 44,
-        y: 33,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('barracks', 1, 16, 6),
+      ownedSpawn('militia', 1, 12, 13, { vision: 3 }),
+      ownedSpawn('town-center', 2, 50, 28, { vision: 7 }),
+      ownedSpawn('barracks', 2, 42, 26),
+      ownedSpawn('militia', 2, 44, 33, { vision: 3 }),
     ],
   };
 }

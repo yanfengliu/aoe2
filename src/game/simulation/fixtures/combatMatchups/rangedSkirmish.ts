@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Castle-Age ranged combat fixture: a player-1 Cavalry Archer stationed
 // exactly 4 tiles (its attack range) away from a stationary enemy Militia.
@@ -29,38 +27,10 @@ export function createCavalryArcherRangedFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'cavalry-archer',
-        x: 12,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 16,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('cavalry-archer', 1, 12, 17, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('militia', 2, 16, 17, { vision: 3 }),
     ],
   };
 }
@@ -88,38 +58,10 @@ export function createSkirmisherVsCavalryArcherFixture(seed: string): PrototypeS
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'skirmisher',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'cavalry-archer',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 5 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('skirmisher', 1, 14, 17, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('cavalry-archer', 2, 15, 17, { vision: 5 }),
     ],
   };
 }

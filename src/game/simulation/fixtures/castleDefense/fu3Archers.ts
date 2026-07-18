@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // FU3 fixture: player-1 Castle with a single enemy Champion at Castle
 // anchor-to-target distance 8 (within range 8). Used as the no-archer
@@ -30,39 +28,13 @@ export function createFu3CastleNoArchersFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
       // Champion at (20, 8). Closest Castle footprint cell is (17, 8),
       // distance 3 — well within range 8. Champion HP 70, 0 armor, so
       // one 11-damage arrow drops it to 59.
-      {
-        kind: 'champion',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('champion', 2, 20, 8),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -91,62 +63,15 @@ export function createFu3CastleThreeArchersFixture(seed: string): PrototypeScena
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
       // 3 archers adjacent to the Castle's south edge — ready to garrison
       // via the issueContextCommandAtEntity(castle) flow.
-      {
-        kind: 'archer',
-        x: 14,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 15,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 16,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'champion',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('archer', 1, 14, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 15, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 16, 11, { vision: 5 }),
+      ownedSpawn('champion', 2, 20, 8),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -173,76 +98,15 @@ export function createFu3CastleFiveArchersFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'archer',
-        x: 14,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 15,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 16,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 17,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'archer',
-        x: 18,
-        y: 11,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'champion',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('archer', 1, 14, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 15, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 16, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 17, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 18, 11, { vision: 5 }),
+      ownedSpawn('champion', 2, 20, 8),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -271,36 +135,10 @@ export function createFu3CastleEdgeRangeFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 2,
-        y: 2,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 6,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'spearman',
-        x: 14,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
+      ownedSpawn('castle', 1, 6, 6),
+      ownedSpawn('spearman', 2, 14, 8),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

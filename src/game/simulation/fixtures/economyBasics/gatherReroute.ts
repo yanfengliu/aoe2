@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import { createGrassFixtureTerrain } from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 // campaign-11 regression. A food resource boxed in by tree blockers (every
 // approach cell sealed → no path to it) used to deadlock villagers in
@@ -44,100 +44,29 @@ export function createGatherUnreachableRerouteFixture(seed: string): PrototypeSc
       { owner: 2, townCenter: { x: 8, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 50, 30, { vision: 7 }),
+      ownedSpawn('town-center', 2, 8, 8, { vision: 7 }),
       // The boxed-in (unreachable) FARM — the NEAREST food to player 2's
       // villagers. (Its food resource spawns neutral/home-base [tier-1] despite
       // the owner: 2 spawn field; the reproduction relies on the below-cap
       // villager count, not the tier — see the header note.)
-      {
-        kind: 'farm',
-        x: 4,
-        y: 4,
-        owner: 2,
-        baseOwner: 2,
-        farmFood: 175,
-        vision: { playerId: 2, radius: 2 },
-      },
+      ownedSpawn('farm', 2, 4, 4, { farmFood: 175, vision: 2 }),
       // Ring of trees sealing every approach cell of the boxed farm.
-      ...ringOffsets.map(([dx, dy]) => ({
-        kind: 'tree' as const,
-        x: 4 + dx,
-        y: 4 + dy,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      })),
+      ...ringOffsets.map(([dx, dy]) => (gaiaSpawn('tree' as const, 4 + dx, 4 + dy, { amount: 100 }))),
       // Reachable berries to the east (open approach cells), tier-1 (neutral,
       // home-base of player 2) so the tier-0 farm always outranks them in
       // assignment — the villagers only reach these once the reroute skips the
       // unreachable farm.
-      {
-        kind: 'berry-bush',
-        x: 12,
-        y: 4,
-        owner: null,
-        baseOwner: 2,
-        amount: 200,
-      },
-      {
-        kind: 'berry-bush',
-        x: 13,
-        y: 4,
-        owner: null,
-        baseOwner: 2,
-        amount: 200,
-      },
-      {
-        kind: 'berry-bush',
-        x: 12,
-        y: 5,
-        owner: null,
-        baseOwner: 2,
-        amount: 200,
-      },
+      gaiaSpawn('berry-bush', 12, 4, { baseOwner: 2, amount: 200 }),
+      gaiaSpawn('berry-bush', 13, 4, { baseOwner: 2, amount: 200 }),
+      gaiaSpawn('berry-bush', 12, 5, { baseOwner: 2, amount: 200 }),
       // Three player-2 villagers just east of the boxed farm's ring (open
       // cells, clear of the Town Center footprint at (8,8)-(11,11)). They
       // auto-assign to the tier-0 farm first (unreachable) before the reachable
       // berries.
-      {
-        kind: 'villager',
-        x: 7,
-        y: 3,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 7,
-        y: 4,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 7,
-        y: 5,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('villager', 2, 7, 3, { vision: 4 }),
+      ownedSpawn('villager', 2, 7, 4, { vision: 4 }),
+      ownedSpawn('villager', 2, 7, 5, { vision: 4 }),
     ],
   };
 }

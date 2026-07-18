@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../../../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../../../common';
 
 export function createImperialStableFixture(seed: string): PrototypeScenario {
   return {
@@ -32,46 +30,12 @@ export function createImperialStableFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stable',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
-        kind: 'light-cavalry',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'knight',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('stable', 1, 16, 6),
+      // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+      ownedSpawn('light-cavalry', 1, 10, 13, { vision: 6 }),
+      ownedSpawn('knight', 1, 12, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -108,83 +72,17 @@ export function createImperialBlacksmithFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'blacksmith',
-        x: 4,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'archery-range',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'barracks',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'stable',
-        x: 20,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
-        kind: 'arbalest',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'champion',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'halberdier',
-        x: 14,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'cavalier',
-        x: 16,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 32,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('blacksmith', 1, 4, 6),
+      ownedSpawn('archery-range', 1, 12, 6),
+      ownedSpawn('barracks', 1, 16, 6),
+      ownedSpawn('stable', 1, 20, 6),
+      // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
+      ownedSpawn('arbalest', 1, 10, 13, { vision: 5 }),
+      ownedSpawn('champion', 1, 12, 13, { vision: 3 }),
+      ownedSpawn('halberdier', 1, 14, 13, { vision: 3 }),
+      ownedSpawn('cavalier', 1, 16, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 32, 8, { vision: 7 }),
     ],
   };
 }
@@ -225,54 +123,13 @@ export function createImperialSiegeFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'siege-workshop',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
-        kind: 'mangonel',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'scorpion',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'battering-ram',
-        x: 14,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('siege-workshop', 1, 14, 6),
+      // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
+      ownedSpawn('mangonel', 1, 10, 13, { vision: 9 }),
+      ownedSpawn('scorpion', 1, 12, 13, { vision: 9 }),
+      ownedSpawn('battering-ram', 1, 14, 13, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }

@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Score-timer victory fixtures (spec §4.3). Every fixture sets a short
 // `gameLength` and gives each player a Town Center, so no player is
@@ -40,33 +40,12 @@ function buildScenario(
   const spawns: PrototypeScenario['spawns'] = [];
   for (const { owner, villagers, houses } of loadouts) {
     const anchor = ANCHORS[owner];
-    spawns.push({
-      kind: 'town-center',
-      x: anchor.tc.x,
-      y: anchor.tc.y,
-      owner,
-      baseOwner: owner,
-      vision: { playerId: owner, radius: 7 },
-    });
+    spawns.push(ownedSpawn('town-center', owner, anchor.tc.x, anchor.tc.y, { vision: 7 }));
     for (let i = 0; i < villagers; i += 1) {
-      spawns.push({
-        kind: 'villager',
-        x: anchor.x0 + i,
-        y: anchor.row,
-        owner,
-        baseOwner: owner,
-        vision: { playerId: owner, radius: 4 },
-      });
+      spawns.push(ownedSpawn('villager', owner, anchor.x0 + i, anchor.row, { vision: 4 }));
     }
     for (let i = 0; i < houses; i += 1) {
-      spawns.push({
-        kind: 'house',
-        x: anchor.x0 + i * 3,
-        y: anchor.houseRow,
-        owner,
-        baseOwner: owner,
-        vision: { playerId: owner, radius: 3 },
-      });
+      spawns.push(ownedSpawn('house', owner, anchor.x0 + i * 3, anchor.houseRow, { vision: 3 }));
     }
   }
   return {

@@ -3,13 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import {
-  FIXTURE_MIXED_SELECTION_HOUSE_POSITION,
-  FIXTURE_MIXED_SELECTION_UNITS,
-  FIXTURE_STACK_POSITION,
-  FIXTURE_VILLAGER_CLUSTER,
-  createGrassFixtureTerrain,
-} from './common';
+import { FIXTURE_MIXED_SELECTION_HOUSE_POSITION, FIXTURE_MIXED_SELECTION_UNITS, FIXTURE_STACK_POSITION, FIXTURE_VILLAGER_CLUSTER, createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 export function createTownCenterDefenseFixture(seed: string): PrototypeScenario {
   return {
@@ -28,38 +22,10 @@ export function createTownCenterDefenseFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'scout',
-        x: 12,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 6 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('scout', 2, 12, 8, { vision: 6 }),
     ],
   };
 }
@@ -81,46 +47,17 @@ export function createVillagerSelectionFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[0].x,
-        y: FIXTURE_VILLAGER_CLUSTER[0].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[1].x,
-        y: FIXTURE_VILLAGER_CLUSTER[1].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[2].x,
-        y: FIXTURE_VILLAGER_CLUSTER[2].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[0].x, FIXTURE_VILLAGER_CLUSTER[0].y, {
+        vision: 4,
+      }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[1].x, FIXTURE_VILLAGER_CLUSTER[1].y, {
+        vision: 4,
+      }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[2].x, FIXTURE_VILLAGER_CLUSTER[2].y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -142,54 +79,18 @@ export function createDoubleClickSelectionFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[0].x,
-        y: FIXTURE_VILLAGER_CLUSTER[0].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[1].x,
-        y: FIXTURE_VILLAGER_CLUSTER[1].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_VILLAGER_CLUSTER[2].x,
-        y: FIXTURE_VILLAGER_CLUSTER[2].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'scout',
-        x: 9,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[0].x, FIXTURE_VILLAGER_CLUSTER[0].y, {
+        vision: 4,
+      }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[1].x, FIXTURE_VILLAGER_CLUSTER[1].y, {
+        vision: 4,
+      }),
+      ownedSpawn('villager', 1, FIXTURE_VILLAGER_CLUSTER[2].x, FIXTURE_VILLAGER_CLUSTER[2].y, {
+        vision: 4,
+      }),
+      ownedSpawn('scout', 1, 9, 12, { vision: 6 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -211,53 +112,18 @@ export function createMixedSelectionFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'house',
-        x: FIXTURE_MIXED_SELECTION_HOUSE_POSITION.x,
-        y: FIXTURE_MIXED_SELECTION_HOUSE_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: FIXTURE_MIXED_SELECTION_UNITS[0].kind,
-        x: FIXTURE_MIXED_SELECTION_UNITS[0].x,
-        y: FIXTURE_MIXED_SELECTION_UNITS[0].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: FIXTURE_MIXED_SELECTION_UNITS[1].kind,
-        x: FIXTURE_MIXED_SELECTION_UNITS[1].x,
-        y: FIXTURE_MIXED_SELECTION_UNITS[1].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: FIXTURE_MIXED_SELECTION_UNITS[2].kind,
-        x: FIXTURE_MIXED_SELECTION_UNITS[2].x,
-        y: FIXTURE_MIXED_SELECTION_UNITS[2].y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('house', 1, FIXTURE_MIXED_SELECTION_HOUSE_POSITION.x, FIXTURE_MIXED_SELECTION_HOUSE_POSITION.y),
+      ownedSpawn(FIXTURE_MIXED_SELECTION_UNITS[0].kind, 1, FIXTURE_MIXED_SELECTION_UNITS[0].x, FIXTURE_MIXED_SELECTION_UNITS[0].y, {
+        vision: 4,
+      }),
+      ownedSpawn(FIXTURE_MIXED_SELECTION_UNITS[1].kind, 1, FIXTURE_MIXED_SELECTION_UNITS[1].x, FIXTURE_MIXED_SELECTION_UNITS[1].y, {
+        vision: 5,
+      }),
+      ownedSpawn(FIXTURE_MIXED_SELECTION_UNITS[2].kind, 1, FIXTURE_MIXED_SELECTION_UNITS[2].x, FIXTURE_MIXED_SELECTION_UNITS[2].y, {
+        vision: 6,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -279,52 +145,24 @@ export function createTileSelectionCycleFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Slice 12 Task B: deliberate overlap — the UX test needs a
-        // house + militia + sheep stacked on one cell so the tile-
-        // selection-cycle can iterate through all three. Opt out of
-        // the fixture validator via `allowOverlappingSpawn` on each.
-        kind: 'house',
-        x: FIXTURE_STACK_POSITION.x,
-        y: FIXTURE_STACK_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Slice 12 Task B: deliberate overlap — the UX test needs a
+      // house + militia + sheep stacked on one cell so the tile-
+      // selection-cycle can iterate through all three. Opt out of
+      // the fixture validator via `allowOverlappingSpawn` on each.
+      ownedSpawn('house', 1, FIXTURE_STACK_POSITION.x, FIXTURE_STACK_POSITION.y, {
         allowOverlappingSpawn: true,
-      },
-      {
-        kind: 'militia',
-        x: FIXTURE_STACK_POSITION.x,
-        y: FIXTURE_STACK_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
+      }),
+      ownedSpawn('militia', 1, FIXTURE_STACK_POSITION.x, FIXTURE_STACK_POSITION.y, {
+        vision: 5,
         allowOverlappingSpawn: true,
-      },
-      {
-        kind: 'sheep',
-        x: FIXTURE_STACK_POSITION.x,
-        y: FIXTURE_STACK_POSITION.y,
-        owner: null,
+      }),
+      gaiaSpawn('sheep', FIXTURE_STACK_POSITION.x, FIXTURE_STACK_POSITION.y, {
         baseOwner: 1,
         amount: 100,
         allowOverlappingSpawn: true,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }

@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../../common';
 export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -28,46 +26,11 @@ export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'camel',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'knight',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'scout',
-        x: 14,
-        y: 18,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('camel', 1, 14, 17, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('knight', 2, 15, 17, { vision: 4 }),
+      ownedSpawn('scout', 2, 14, 18, { vision: 4 }),
     ],
   };
 }
@@ -97,38 +60,10 @@ export function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'camel',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('spearman', 1, 14, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('camel', 2, 15, 17, { vision: 4 }),
     ],
   };
 }
@@ -161,38 +96,10 @@ export function createHeavyCamelVsKnightFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'heavy-camel',
-        x: 20,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'knight',
-        x: 22,
-        y: 18,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('heavy-camel', 1, 20, 18, { vision: 4 }),
+      ownedSpawn('knight', 2, 22, 18, { vision: 4 }),
+      ownedSpawn('town-center', 2, 50, 28, { vision: 7 }),
     ],
   };
 }
@@ -234,45 +141,11 @@ export function createPaladinFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stable',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'knight',
-        x: 14,
-        y: 14,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'camel',
-        x: 20,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('stable', 1, 16, 6),
+      ownedSpawn('knight', 1, 14, 14, { vision: 4 }),
+      ownedSpawn('camel', 1, 20, 18, { vision: 4 }),
+      ownedSpawn('town-center', 2, 50, 8, { vision: 7 }),
     ],
   };
 }

@@ -4,9 +4,7 @@ import {
   type PrototypeScenario,
   type ScenarioSpawnSpec,
 } from '../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 // Slice 12 Task B: minimal all-grass fixtures for the scenario-validation
 // pass. Each seed wires in exactly one mistake; the `-ok-fixture` variant
@@ -15,14 +13,7 @@ import {
 // human-only setup is enough to test the validator.
 export function createScenarioValidationFixture(seed: string): PrototypeScenario {
   const baseSpawns: ScenarioSpawnSpec[] = [
-    {
-      kind: 'town-center',
-      x: 4,
-      y: 4,
-      owner: 1,
-      baseOwner: 1,
-      vision: { playerId: 1, radius: 7 },
-    },
+    ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
   ];
 
   switch (seed) {
@@ -31,67 +22,28 @@ export function createScenarioValidationFixture(seed: string): PrototypeScenario
     case 'slice12-validation-out-of-bounds-fixture':
       // A 4x4 Town Center anchored at x = MAP_WIDTH - 1 extends past
       // the right edge (x = MAP_WIDTH + 2).
-      baseSpawns.push({
-        kind: 'town-center',
-        x: MAP_WIDTH - 1,
-        y: 5,
-        owner: 2,
-        baseOwner: 2,
-      });
+      baseSpawns.push(ownedSpawn('town-center', 2, MAP_WIDTH - 1, 5));
       break;
     case 'slice12-validation-overlap-fixture':
       // A 2x2 house placed inside the human TC's 4x4 footprint (TC
       // covers x=[4,7], y=[4,7]; house at (5,5) covers x=[5,6], y=[5,6]).
-      baseSpawns.push({
-        kind: 'house',
-        x: 5,
-        y: 5,
-        owner: 1,
-        baseOwner: 1,
-      });
+      baseSpawns.push(ownedSpawn('house', 1, 5, 5));
       break;
     case 'slice12-validation-unit-in-building-fixture':
       // A Spearman anchored at (5, 5) sits inside the TC footprint with
       // no `requiresSafeSpawn` escape. Validation should catch that the
       // unit cannot legally live inside a building.
-      baseSpawns.push({
-        kind: 'spearman',
-        x: 5,
-        y: 5,
-        owner: 1,
-        baseOwner: 1,
-      });
+      baseSpawns.push(ownedSpawn('spearman', 1, 5, 5));
       break;
     case 'slice12-validation-resource-on-building-fixture':
       // Gold mine placed on a town-center footprint cell.
-      baseSpawns.push({
-        kind: 'gold-mine',
-        x: 5,
-        y: 5,
-        owner: null,
-        baseOwner: null,
-        amount: 500,
-      });
+      baseSpawns.push(gaiaSpawn('gold-mine', 5, 5, { amount: 500 }));
       break;
     case 'slice12-validation-resource-on-resource-fixture':
       // Tree and stone-mine placed on the same cell. Validation should
       // catch the resource-on-resource overlap.
-      baseSpawns.push({
-        kind: 'tree',
-        x: 12,
-        y: 4,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      });
-      baseSpawns.push({
-        kind: 'stone-mine',
-        x: 12,
-        y: 4,
-        owner: null,
-        baseOwner: null,
-        amount: 350,
-      });
+      baseSpawns.push(gaiaSpawn('tree', 12, 4, { amount: 100 }));
+      baseSpawns.push(gaiaSpawn('stone-mine', 12, 4, { amount: 350 }));
       break;
     default:
       // Unknown validation seed — fall through to the ok scenario so

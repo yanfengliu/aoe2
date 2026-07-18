@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 4 fixture: player-1 Mangonel stationed exactly 7 tiles (its attack
 // range) from a stationary enemy Spearman. Used to assert ranged combat
@@ -32,38 +30,10 @@ export function createMangonelRangedFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'mangonel',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 19,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('mangonel', 1, 12, 8, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 19, 8, { vision: 3 }),
     ],
   };
 }
@@ -94,38 +64,10 @@ export function createMangonelVsSpearmanFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'mangonel',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 18,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('mangonel', 1, 12, 8, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 18, 8, { vision: 3 }),
     ],
   };
 }
@@ -147,17 +89,17 @@ export function createMangonelVsClusteredInfantryFixture(seed: string): Prototyp
       { owner: 2, townCenter: { x: 24, y: 8 }, startingAge: 'castle-age' },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'mangonel', x: 12, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('mangonel', 1, 12, 8, { vision: 9 }),
       // Friendly villager adjacent to the impact — hit by friendly fire.
-      { kind: 'villager', x: 18, y: 7, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 3 } },
-      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('villager', 1, 18, 7, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
       // Primary target + two splashed orthogonal neighbours (Euclidean dist 1).
-      { kind: 'spearman', x: 18, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
-      { kind: 'spearman', x: 18, y: 9, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
-      { kind: 'militia', x: 19, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      ownedSpawn('spearman', 2, 18, 8, { vision: 3 }),
+      ownedSpawn('spearman', 2, 18, 9, { vision: 3 }),
+      ownedSpawn('militia', 2, 19, 8, { vision: 3 }),
       // Far enemy Spearman — distance 3 from the impact, outside the blast.
-      { kind: 'spearman', x: 18, y: 11, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      ownedSpawn('spearman', 2, 18, 11, { vision: 3 }),
     ],
   };
 }
@@ -178,13 +120,13 @@ export function createMangonelVsBuildingSplashFixture(seed: string): PrototypeSc
       { owner: 2, townCenter: { x: 4, y: 30 }, startingAge: 'castle-age' },
     ],
     spawns: [
-      { kind: 'town-center', x: 4, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'mangonel', x: 16, y: 20, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
-      { kind: 'town-center', x: 4, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('mangonel', 1, 16, 20, { vision: 9 }),
+      ownedSpawn('town-center', 2, 4, 30, { vision: 7 }),
       // Enemy House (the primary target) + a Spearman orthogonally adjacent to
       // the anchor cell (21,20), outside the 2×2 footprint.
-      { kind: 'house', x: 22, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
-      { kind: 'spearman', x: 21, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
+      ownedSpawn('house', 2, 22, 20, { vision: 3 }),
+      ownedSpawn('spearman', 2, 21, 20, { vision: 3 }),
     ],
   };
 }
@@ -214,38 +156,10 @@ export function createMangonelVsKnightFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'mangonel',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'knight',
-        x: 18,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('mangonel', 1, 12, 8, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('knight', 2, 18, 8, { vision: 4 }),
     ],
   };
 }
@@ -276,32 +190,11 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
-        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
-        kind: 'mangonel',
-        x: 10,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+      // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
+      ownedSpawn('mangonel', 1, 10, 20, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
       // Spearman at distance 2 from the Mangonel — inside the min-range 3
       // dead zone. The test issues an attack command; the Mangonel should
       // hold fire (no cooldown consumed) and the Spearman's HP must stay
@@ -318,14 +211,7 @@ export function createMangonelMinRangeBlockedFixture(seed: string): PrototypeSce
       // retaliation. Tight radius-1 vision keeps the Spearman unaware
       // of the Mangonel so the test isolates the Mangonel's own
       // min-range behaviour.
-      {
-        kind: 'spearman',
-        x: 12,
-        y: 20,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 1 },
-      },
+      ownedSpawn('spearman', 2, 12, 20, { vision: 1 }),
     ],
   };
 }
@@ -357,40 +243,12 @@ export function createMangonelOutsideMinRangeFixture(seed: string): PrototypeSce
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
-        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
-        kind: 'mangonel',
-        x: 10,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 15,
-        y: 20,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+      // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
+      ownedSpawn('mangonel', 1, 10, 20, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 15, 20, { vision: 3 }),
     ],
   };
 }
@@ -417,44 +275,16 @@ export function createOnagerMinRangeBlockedFixture(seed: string): PrototypeScena
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Slice 12 moved this off (10,10) (inside the TC footprint); now at
-        // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
-        kind: 'onager',
-        x: 10,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 10 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Slice 12 moved this off (10,10) (inside the TC footprint); now at
+      // y=20 so the empty-TC base arrow (spec §10.8) can't reach the enemy.
+      ownedSpawn('onager', 1, 10, 20, { vision: 10 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
       // Spearman at distance 2 — inside the Onager's min range of 3.
       // Slice 12 Task B: radius-1 vision so the enemy AI does not spot
       // the Onager and walk the Spearman in to melee it (see
       // mangonel-min-range-blocked-fixture for the same reason).
-      {
-        kind: 'spearman',
-        x: 12,
-        y: 20,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 1 },
-      },
+      ownedSpawn('spearman', 2, 12, 20, { vision: 1 }),
     ],
   };
 }

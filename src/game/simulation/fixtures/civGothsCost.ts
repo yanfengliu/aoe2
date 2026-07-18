@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Civ-bonus Goths-cost fixture (v0.1.86). Player 1 (AI disabled) is in the
 // Feudal Age with a Barracks and EXACTLY enough resources to train a Militia at
@@ -36,30 +36,9 @@ function createCivGothsCostScenario(seed: string, civilization: string): Prototy
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 4,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('barracks', 1, 4, 10, { vision: 6 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }

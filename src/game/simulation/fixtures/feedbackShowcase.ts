@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Visual-only showcase scenario (M7 combat/gather-feedback slice, v0.1.45).
 // Exercises the two dynamic feedback effects so the AGENTS.md visual-change
@@ -32,35 +32,21 @@ export function createFeedbackShowcaseFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 26, y: 22 }, startingAge: 'castle-age', disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 16 },
-      },
+      ownedSpawn('town-center', 1, 8, 6, { vision: 16 }),
       // Lone villager for the selection-pulse capture (kept clear of combat).
       // Placed in the open lower-left, left of the HUD selection panel so the
       // pulsing ring is fully visible in the captured frame.
-      { kind: 'villager', x: 6, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
+      ownedSpawn('villager', 1, 6, 14, { vision: 6 }),
       // A melee knot: three P1 vs three P2 units packed adjacent so
       // auto-aggression trades blows immediately → HP drops → hit flash. Kept in
       // the open upper-left (left of the HUD panel) so the flashes are visible.
-      { kind: 'militia', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 5 } },
-      { kind: 'militia', x: 6, y: 9, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 5 } },
-      { kind: 'spearman', x: 6, y: 10, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 5 } },
-      { kind: 'militia', x: 7, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 5 } },
-      { kind: 'militia', x: 7, y: 9, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 5 } },
-      { kind: 'scout', x: 7, y: 10, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 5 } },
-      {
-        kind: 'town-center',
-        x: 26,
-        y: 22,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('militia', 1, 6, 8, { vision: 5 }),
+      ownedSpawn('militia', 1, 6, 9, { vision: 5 }),
+      ownedSpawn('spearman', 1, 6, 10, { vision: 5 }),
+      ownedSpawn('militia', 2, 7, 8, { vision: 5 }),
+      ownedSpawn('militia', 2, 7, 9, { vision: 5 }),
+      ownedSpawn('scout', 2, 7, 10, { vision: 5 }),
+      ownedSpawn('town-center', 2, 26, 22, { vision: 7 }),
     ],
   };
 }

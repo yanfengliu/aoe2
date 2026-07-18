@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // FU7 fixture: player-1 Trebuchet sitting far from any enemy. Used to
 // assert a freshly-placed Trebuchet is packed by default and can move
@@ -29,30 +27,9 @@ export function createTrebuchetPackFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'trebuchet',
-        x: 12,
-        y: 14,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 10 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('trebuchet', 1, 12, 14, { vision: 10 }),
+      ownedSpawn('town-center', 2, 50, 8, { vision: 7 }),
     ],
   };
 }
@@ -83,45 +60,16 @@ export function createTrebuchetVsBuildingFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'trebuchet',
-        x: 15,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        // Wide vision so the enemy TC is already visible when the
-        // attack command lands.
-        vision: { playerId: 1, radius: 18 },
-      },
-      {
-        kind: 'town-center',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-        // Low HP so one Trebuchet shot (attack 7 + 200 anti-building
-        // bonus = 207) is guaranteed to kill it.
-        startHp: 200,
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // Wide vision so the enemy TC is already visible when the
+      // attack command lands.
+      ownedSpawn('trebuchet', 1, 15, 8, { vision: 18 }),
+      // Low HP so one Trebuchet shot (attack 7 + 200 anti-building
+      // bonus = 207) is guaranteed to kill it.
+      ownedSpawn('town-center', 2, 20, 8, { vision: 7, startHp: 200 }),
       // Second player-2 Town Center far from the action so conquest
       // does not fire when the near TC is destroyed.
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 25,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 50, 25, { vision: 7 }),
     ],
   };
 }

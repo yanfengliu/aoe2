@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import { createGrassFixtureTerrain } from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 // AI-vs-AI grounding regression (2026-07-01). The SYMMETRIC twin of the
 // campaign-11 gather-unreachable-reroute (v0.1.47): that fix rerouted a
@@ -54,33 +54,12 @@ export function createDropOffUnreachableRerouteFixture(seed: string): PrototypeS
       { owner: 2, townCenter: { x: 8, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 50, 28, { vision: 7 }),
       // The REACHABLE drop-off — farther than the boxed Mill, so the fix must
       // fall through to it once the unreachable-nearest Mill is skipped.
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 8, 8, { vision: 7 }),
       // The boxed (unreachable) Mill — the NEAREST food drop-off to the berries.
-      {
-        kind: 'mill',
-        x: millAnchor.x,
-        y: millAnchor.y,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 2 },
-      },
+      ownedSpawn('mill', 2, millAnchor.x, millAnchor.y, { vision: 2 }),
       // Tree ring sealing every approach cell of the boxed Mill.
       ...ringCells.map(([x, y]) => ({
         kind: 'tree' as const,
@@ -93,49 +72,14 @@ export function createDropOffUnreachableRerouteFixture(seed: string): PrototypeS
       // Reachable berry cluster the villagers gather (home-base neutral of
       // player 2, tier-1). Sits between the Mill (south, boxed) and the TC
       // (west, reachable): the villagers fill up here, then head to drop off.
-      {
-        kind: 'berry-bush',
-        x: 20,
-        y: 8,
-        owner: null,
-        baseOwner: 2,
-        amount: 400,
-      },
-      {
-        kind: 'berry-bush',
-        x: 21,
-        y: 8,
-        owner: null,
-        baseOwner: 2,
-        amount: 400,
-      },
-      {
-        kind: 'berry-bush',
-        x: 20,
-        y: 9,
-        owner: null,
-        baseOwner: 2,
-        amount: 400,
-      },
+      gaiaSpawn('berry-bush', 20, 8, { baseOwner: 2, amount: 400 }),
+      gaiaSpawn('berry-bush', 21, 8, { baseOwner: 2, amount: 400 }),
+      gaiaSpawn('berry-bush', 20, 9, { baseOwner: 2, amount: 400 }),
       // Two player-2 villagers just west of the berries (open cells, clear of
       // the Town Center footprint at (8,8)-(11,11) and the berry cells). They
       // auto-assign to the reachable berries, fill up, then must drop off.
-      {
-        kind: 'villager',
-        x: 18,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 18,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('villager', 2, 18, 8, { vision: 4 }),
+      ownedSpawn('villager', 2, 18, 9, { vision: 4 }),
     ],
   };
 }

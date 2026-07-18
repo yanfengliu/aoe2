@@ -3,12 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  FIXTURE_NEARBY_VILLAGER_POSITION,
-  FIXTURE_PRIMARY_BUILDING_POSITION,
-  FIXTURE_SECONDARY_BUILDING_POSITION,
-  createGrassFixtureTerrain,
-} from '../common';
+import { FIXTURE_NEARBY_VILLAGER_POSITION, FIXTURE_PRIMARY_BUILDING_POSITION, FIXTURE_SECONDARY_BUILDING_POSITION, createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 export function createCastleAgeFixture(seed: string): PrototypeScenario {
   return {
@@ -34,44 +29,13 @@ export function createCastleAgeFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'blacksmith',
-        x: FIXTURE_PRIMARY_BUILDING_POSITION.x,
-        y: FIXTURE_PRIMARY_BUILDING_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'stable',
-        x: FIXTURE_SECONDARY_BUILDING_POSITION.x,
-        y: FIXTURE_SECONDARY_BUILDING_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: FIXTURE_NEARBY_VILLAGER_POSITION.x,
-        y: FIXTURE_NEARBY_VILLAGER_POSITION.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('blacksmith', 1, FIXTURE_PRIMARY_BUILDING_POSITION.x, FIXTURE_PRIMARY_BUILDING_POSITION.y),
+      ownedSpawn('stable', 1, FIXTURE_SECONDARY_BUILDING_POSITION.x, FIXTURE_SECONDARY_BUILDING_POSITION.y),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -108,30 +72,9 @@ export function createCastleTownCenterFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 34,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 34, 8, { vision: 7 }),
     ],
   };
 }
@@ -161,89 +104,23 @@ export function createCastleUpgradesFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'archery-range',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'barracks',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'stable',
-        x: 20,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'blacksmith',
-        x: 4,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (10, 10) which sat inside the human
-        // TC footprint (TC covers 8..11, 8..11). The (10, 13) slot keeps
-        // the archer adjacent to the TC and out of any building
-        // footprint so fixture validation passes.
-        kind: 'archer',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'spearman',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'scout',
-        x: 14,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'archer',
-        // Slice 12 Task B: moved from (22, 10) which sat inside the
-        // enemy TC footprint (TC covers 24..27, 8..11). (22, 13) keeps
-        // the archer adjacent to the enemy base and out of the footprint.
-        x: 22,
-        y: 13,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 5 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('archery-range', 1, 12, 6),
+      ownedSpawn('barracks', 1, 16, 6),
+      ownedSpawn('stable', 1, 20, 6),
+      ownedSpawn('blacksmith', 1, 4, 6),
+      // Slice 12 Task B: moved from (10, 10) which sat inside the human
+      // TC footprint (TC covers 8..11, 8..11). The (10, 13) slot keeps
+      // the archer adjacent to the TC and out of any building
+      // footprint so fixture validation passes.
+      ownedSpawn('archer', 1, 10, 13, { vision: 5 }),
+      ownedSpawn('spearman', 1, 12, 13, { vision: 3 }),
+      ownedSpawn('scout', 1, 14, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      // Slice 12 Task B: moved from (22, 10) which sat inside the
+      // enemy TC footprint (TC covers 24..27, 8..11). (22, 13) keeps
+      // the archer adjacent to the enemy base and out of the footprint.
+      ownedSpawn('archer', 2, 22, 13, { vision: 5 }),
     ],
   };
 }

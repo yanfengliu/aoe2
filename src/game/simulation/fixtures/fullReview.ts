@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Fixtures for full-review deferred-backlog regressions. Kept in their own file
 // so the topical fixture modules (wonderRelic / siege) stay under the 500-LOC cap.
@@ -33,25 +33,11 @@ export function createTwoWonderTieFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
       // Owner 2's Wonder FIRST (lower id).
-      { kind: 'wonder', x: 24, y: 6, owner: 2, baseOwner: 2 },
-      { kind: 'wonder', x: 14, y: 6, owner: 1, baseOwner: 1 },
+      ownedSpawn('wonder', 2, 24, 6),
+      ownedSpawn('wonder', 1, 14, 6),
     ],
   };
 }

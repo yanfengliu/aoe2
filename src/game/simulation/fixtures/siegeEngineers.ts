@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Siege Engineers (v0.1.62) fixtures. Player 1 (human, AI disabled) owns a
 // completed Siege Workshop plus one Mangonel (a SIEGE unit) and one Archer (a
@@ -52,45 +52,11 @@ function createSiegeEngineersScenario(
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'siege-workshop',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'mangonel',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'archer',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('siege-workshop', 1, 14, 6),
+      ownedSpawn('mangonel', 1, 10, 13, { vision: 9 }),
+      ownedSpawn('archer', 1, 12, 13, { vision: 6 }),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

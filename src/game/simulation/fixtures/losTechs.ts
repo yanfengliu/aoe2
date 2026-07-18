@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Line-of-sight tech fixture (v0.1.80). Player 1 (human, AI disabled) starts in
 // Castle Age with a Town Center (base vision 7) at (4,4), a Barracks at (4,10)
@@ -36,37 +36,10 @@ export function createLosTechsFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 4,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'militia',
-        x: 30,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 56,
-        y: 32,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('barracks', 1, 4, 10),
+      ownedSpawn('militia', 1, 30, 4, { vision: 3 }),
+      ownedSpawn('town-center', 2, 56, 32, { vision: 7 }),
     ],
   };
 }

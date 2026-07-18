@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 // Slice 5 fixture for Monk heal: player-1 Monk adjacent to a friendly
 // Spearman with a neutral wolf close enough to auto-aggro the Spearman when
@@ -31,50 +29,15 @@ export function createMonkHealFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'spearman',
-        x: 15,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        // Wolf auto-aggros on the nearest player unit within its aggro range;
-        // placed at (17, 17) → range 2 from the Spearman at (15, 17). Wolf
-        // attack 3 / reload 12, so HP accrues slowly and we can stop combat
-        // by killing the wolf once it's done some damage.
-        kind: 'wolf',
-        x: 17,
-        y: 17,
-        owner: null,
-        baseOwner: null,
-        amount: 0,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
+      ownedSpawn('spearman', 1, 15, 17, { vision: 3 }),
+      // Wolf auto-aggros on the nearest player unit within its aggro range;
+      // placed at (17, 17) → range 2 from the Spearman at (15, 17). Wolf
+      // attack 3 / reload 12, so HP accrues slowly and we can stop combat
+      // by killing the wolf once it's done some damage.
+      gaiaSpawn('wolf', 17, 17, { amount: 0 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -104,49 +67,14 @@ export function createMonkHealthyFriendlyWithEnemyFixture(seed: string): Prototy
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
       // Friendly Militia at full HP — the heal pass must skip it.
-      {
-        kind: 'militia',
-        x: 16,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
+      ownedSpawn('militia', 1, 16, 17, { vision: 3 }),
       // Enemy Militia stacked on the same cell — the convert pass should
       // pick this up.
-      {
-        kind: 'militia',
-        x: 16,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('militia', 2, 16, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -174,46 +102,11 @@ export function createMonkHealOverConvertFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'spearman',
-        x: 16,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'militia',
-        x: 16,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
+      ownedSpawn('spearman', 1, 16, 17, { vision: 3 }),
+      ownedSpawn('militia', 2, 16, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }

@@ -5,9 +5,7 @@ import {
   setTerrainKind,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 export function createConquestVictoryFixture(seed: string): PrototypeScenario {
   const terrain = Array.from({ length: MAP_HEIGHT }, (_, y) =>
@@ -24,22 +22,8 @@ export function createConquestVictoryFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 10, y: 8 } },
     ],
     spawns: [
-      {
-        kind: 'militia',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'house',
-        x: 10,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('militia', 1, 8, 8, { vision: 6 }),
+      ownedSpawn('house', 2, 10, 8, { vision: 4 }),
     ],
   };
 }
@@ -59,22 +43,8 @@ export function createConquestDefeatFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 14, y: 8 } },
     ],
     spawns: [
-      {
-        kind: 'house',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'militia',
-        x: 11,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 5 },
-      },
+      ownedSpawn('house', 1, 8, 8, { vision: 6 }),
+      ownedSpawn('militia', 2, 11, 8, { vision: 5 }),
     ],
   };
 }
@@ -103,77 +73,20 @@ export function createBlockingRulesFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 28, y: 16 } },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        // Slice 12 Task B: deliberate overlap — the
-        // `rejects house placement on blocked terrain, resources,
-        // buildings, and units` core test expects this villager at
-        // (6, 8) which sits inside the TC footprint (4..7, 8..11) so
-        // a placement preview at (6, 8) is rejected for a
-        // unit-occupied cell. Opt out of the fixture validator.
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-        allowOverlappingSpawn: true,
-      },
-      {
-        kind: 'scout',
-        x: 6,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'villager',
-        x: 7,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'tree',
-        x: 10,
-        y: 5,
-        owner: null,
-        baseOwner: 1,
-        amount: 100,
-      },
-      {
-        kind: 'gold-mine',
-        x: 12,
-        y: 5,
-        owner: null,
-        baseOwner: 1,
-        amount: 800,
-      },
-      {
-        kind: 'stone-mine',
-        x: 14,
-        y: 5,
-        owner: null,
-        baseOwner: 1,
-        amount: 350,
-      },
+      ownedSpawn('town-center', 1, 4, 8, { vision: 7 }),
+      ownedSpawn('town-center', 2, 28, 16, { vision: 7 }),
+      // Slice 12 Task B: deliberate overlap — the
+      // `rejects house placement on blocked terrain, resources,
+      // buildings, and units` core test expects this villager at
+      // (6, 8) which sits inside the TC footprint (4..7, 8..11) so
+      // a placement preview at (6, 8) is rejected for a
+      // unit-occupied cell. Opt out of the fixture validator.
+      ownedSpawn('villager', 1, 6, 8, { vision: 5, allowOverlappingSpawn: true }),
+      ownedSpawn('scout', 1, 6, 13, { vision: 6 }),
+      ownedSpawn('villager', 1, 7, 13, { vision: 5 }),
+      gaiaSpawn('tree', 10, 5, { baseOwner: 1, amount: 100 }),
+      gaiaSpawn('gold-mine', 12, 5, { baseOwner: 1, amount: 800 }),
+      gaiaSpawn('stone-mine', 14, 5, { baseOwner: 1, amount: 350 }),
     ],
   };
 }
@@ -195,38 +108,10 @@ export function createUnitSharingFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 2,
-        y: 2,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 16,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'scout',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'villager',
-        x: 7,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
+      ownedSpawn('town-center', 2, 28, 16, { vision: 7 }),
+      ownedSpawn('scout', 1, 6, 10, { vision: 6 }),
+      ownedSpawn('villager', 1, 7, 10, { vision: 4 }),
     ],
   };
 }
@@ -254,46 +139,11 @@ export function createOrdersFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'scout',
-        x: 7,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'sheep',
-        x: 12,
-        y: 9,
-        owner: null,
-        baseOwner: 1,
-        amount: 100,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      ownedSpawn('scout', 1, 7, 12, { vision: 6 }),
+      gaiaSpawn('sheep', 12, 9, { baseOwner: 1, amount: 100 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }

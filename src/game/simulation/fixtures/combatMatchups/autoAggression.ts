@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import { createGrassFixtureTerrain } from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 // Auto-aggression fixtures.
 //
@@ -32,38 +32,10 @@ export function createAutoAggroIdleMilitiaInVisionFixture(seed: string): Prototy
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 15,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('militia', 1, 12, 8, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 15, 8, { vision: 3 }),
     ],
   };
 }
@@ -81,38 +53,10 @@ export function createAutoAggroIdleMilitiaOutOfVisionFixture(seed: string): Prot
       { owner: 2, townCenter: { x: 32, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 32,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('militia', 1, 12, 8, { vision: 3 }),
+      ownedSpawn('town-center', 2, 32, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 20, 8, { vision: 3 }),
     ],
   };
 }
@@ -131,38 +75,10 @@ export function createAutoAggroArcherPursuitFixture(seed: string): PrototypeScen
       { owner: 2, townCenter: { x: 24, y: 8 }, startingAge: 'feudal-age', disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'archer',
-        x: 13,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 18,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('archer', 1, 13, 8, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 18, 8, { vision: 3 }),
     ],
   };
 }
@@ -183,38 +99,10 @@ export function createAutoAggroPlayerMoveOverridesFixture(seed: string): Prototy
       { owner: 2, townCenter: { x: 40, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 12,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 4, 28, { vision: 7 }),
+      ownedSpawn('militia', 1, 8, 8, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 12, 9, { vision: 3 }),
     ],
   };
 }
@@ -233,38 +121,10 @@ export function createAutoAggroVillagerAdjacentFixture(seed: string): PrototypeS
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 13,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('villager', 1, 12, 8, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 13, 8, { vision: 3 }),
     ],
   };
 }
@@ -284,38 +144,10 @@ export function createAutoAggroVillagerNoPursuitFixture(seed: string): Prototype
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 16,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('villager', 1, 12, 8, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 16, 8, { vision: 3 }),
     ],
   };
 }
@@ -337,47 +169,12 @@ export function createAutoAggroVillagerGatheringFixture(seed: string): Prototype
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'tree',
-        x: 13,
-        y: 8,
-        owner: null,
-        baseOwner: 1,
-        amount: 200,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        // radius-1 vision so the enemy AI doesn't walk the spearman away.
-        kind: 'spearman',
-        x: 12,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 1 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('villager', 1, 12, 8, { vision: 4 }),
+      gaiaSpawn('tree', 13, 8, { baseOwner: 1, amount: 200 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      // radius-1 vision so the enemy AI doesn't walk the spearman away.
+      ownedSpawn('spearman', 2, 12, 9, { vision: 1 }),
     ],
   };
 }
@@ -398,38 +195,10 @@ export function createAutoAggroMonkSkipFixture(seed: string): PrototypeScenario 
       { owner: 2, townCenter: { x: 24, y: 8 }, startingAge: 'castle-age', disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 13,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 1 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('monk', 1, 12, 8, { vision: 9 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 13, 8, { vision: 1 }),
     ],
   };
 }
@@ -449,46 +218,11 @@ export function createAutoAggroSequentialTargetsFixture(seed: string): Prototype
       { owner: 2, townCenter: { x: 24, y: 8 }, disableAi: true },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 28,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 12,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'spearman',
-        x: 13,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'spearman',
-        x: 14,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 8, 28, { vision: 7 }),
+      ownedSpawn('militia', 1, 12, 8, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('spearman', 2, 13, 8, { vision: 3 }),
+      ownedSpawn('spearman', 2, 14, 8, { vision: 3 }),
     ],
   };
 }

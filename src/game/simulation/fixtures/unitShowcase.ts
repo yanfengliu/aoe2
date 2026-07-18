@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Visual-only showcase scenario (M7 units-beyond-circles slice 1). Places one
 // human-owned unit of EVERY render role — villager, infantry, archer, cavalry,
@@ -28,30 +28,16 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 12 },
-      },
+      ownedSpawn('town-center', 1, 8, 6, { vision: 12 }),
       // One unit per render role, spaced 3 cells apart on a single row so each
       // silhouette is isolated and legible.
-      { kind: 'villager', x: 5, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
-      { kind: 'champion', x: 8, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
-      { kind: 'arbalest', x: 11, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
-      { kind: 'knight', x: 14, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
-      {
-        kind: 'cavalry-archer',
-        x: 17,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      { kind: 'mangonel', x: 20, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
-      { kind: 'monk', x: 23, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+      ownedSpawn('villager', 1, 5, 12, { vision: 6 }),
+      ownedSpawn('champion', 1, 8, 12, { vision: 6 }),
+      ownedSpawn('arbalest', 1, 11, 12, { vision: 6 }),
+      ownedSpawn('knight', 1, 14, 12, { vision: 6 }),
+      ownedSpawn('cavalry-archer', 1, 17, 12, { vision: 6 }),
+      ownedSpawn('mangonel', 1, 20, 12, { vision: 9 }),
+      ownedSpawn('monk', 1, 23, 12, { vision: 9 }),
     ],
   };
 }

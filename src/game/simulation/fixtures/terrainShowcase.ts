@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 import { setTerrainKind } from '../mapGeneration/sharedTerrainHelpers';
 import type { TerrainKind } from '../types';
 
@@ -64,17 +64,10 @@ export function createTerrainShowcaseFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 1,
-        baseOwner: 1,
-        // Generous vision so the whole patchwork is fog-visible to player 1 at
-        // boot (terrain is not fog-filtered, but a wide reveal keeps the frame
-        // bright and matches the other showcase fixtures).
-        vision: { playerId: 1, radius: 60 },
-      },
+      // Generous vision so the whole patchwork is fog-visible to player 1 at
+      // boot (terrain is not fog-filtered, but a wide reveal keeps the frame
+      // bright and matches the other showcase fixtures).
+      ownedSpawn('town-center', 1, 50, 30, { vision: 60 }),
     ],
   };
 }

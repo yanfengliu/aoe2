@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Husbandry (v0.1.66) movement-race fixtures. Player 1 (human, AI disabled)
 // owns a Knight (MOUNTED) and a Militia (non-mounted control) parked on open
@@ -52,45 +52,11 @@ function createHusbandryScenario(
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stable',
-        x: 4,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'knight',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'militia',
-        x: 10,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('stable', 1, 4, 10),
+      ownedSpawn('knight', 1, 10, 13, { vision: 4 }),
+      ownedSpawn('militia', 1, 10, 16, { vision: 6 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }

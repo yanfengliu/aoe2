@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 export function createFogMemoryCastleEdgeFixture(seed: string): PrototypeScenario {
   return {
@@ -27,41 +25,14 @@ export function createFogMemoryCastleEdgeFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Human scout positioned so its radius-4 vision sees ONLY the
-        // (18, 16) corner cell of the enemy castle below — the (15, 13)
-        // anchor at distance 5+3=8 is outside vision; (18, 16) at
-        // distance 2+0=2 is comfortably inside.
-        kind: 'scout',
-        x: 20,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'castle',
-        x: 15,
-        y: 13,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      // Human scout positioned so its radius-4 vision sees ONLY the
+      // (18, 16) corner cell of the enemy castle below — the (15, 13)
+      // anchor at distance 5+3=8 is outside vision; (18, 16) at
+      // distance 2+0=2 is comfortably inside.
+      ownedSpawn('scout', 1, 20, 16, { vision: 4 }),
+      ownedSpawn('castle', 2, 15, 13),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }
@@ -91,56 +62,21 @@ export function createFogMemoryCastleDestroyEdgeFixture(seed: string): Prototype
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        // Same scout placement as fog-memory-castle-edge-fixture: radius-4
-        // vision from (20, 16) covers (18, 16) — a non-anchor cell of the
-        // castle at (15, 13) — but does not reach the (15, 13) anchor.
-        kind: 'scout',
-        x: 20,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        // Siege Ram south of the castle, adjacent to the (16, 16) edge cell.
-        // Vision radius 1 keeps the castle anchor (15, 13) outside the ram's
-        // own LOS so destroying the castle does not silently grant the
-        // player visibility on the anchor cell — the only post-destruction
-        // visibility on the castle's footprint is the scout's (18, 16) view.
-        kind: 'siege-ram',
-        x: 16,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 1 },
-      },
-      {
-        // Castle at the same anchor as the existing edge fixture, low HP so
-        // a single Siege Ram hit (3 base + 250 anti-building = 253) kills it.
-        kind: 'castle',
-        x: 15,
-        y: 13,
-        owner: 2,
-        baseOwner: 2,
-        startHp: 200,
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      // Same scout placement as fog-memory-castle-edge-fixture: radius-4
+      // vision from (20, 16) covers (18, 16) — a non-anchor cell of the
+      // castle at (15, 13) — but does not reach the (15, 13) anchor.
+      ownedSpawn('scout', 1, 20, 16, { vision: 4 }),
+      // Siege Ram south of the castle, adjacent to the (16, 16) edge cell.
+      // Vision radius 1 keeps the castle anchor (15, 13) outside the ram's
+      // own LOS so destroying the castle does not silently grant the
+      // player visibility on the anchor cell — the only post-destruction
+      // visibility on the castle's footprint is the scout's (18, 16) view.
+      ownedSpawn('siege-ram', 1, 16, 17, { vision: 1 }),
+      // Castle at the same anchor as the existing edge fixture, low HP so
+      // a single Siege Ram hit (3 base + 250 anti-building = 253) kills it.
+      ownedSpawn('castle', 2, 15, 13, { startHp: 200 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }
@@ -162,38 +98,10 @@ export function createResourceDepletionFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'tree',
-        x: 12,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      gaiaSpawn('tree', 12, 8, { amount: 1 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -215,75 +123,19 @@ export function createNarrowCorridorFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 54, y: 30 } },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 2,
-        y: 2,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 54,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
+      ownedSpawn('town-center', 2, 54, 30, { vision: 7 }),
       // North wall of the narrow corridor.
-      ...Array.from({ length: 17 }, (_, offset) => ({
-        kind: 'tree' as const,
-        x: 12 + offset,
-        y: 7,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      })),
+      ...Array.from({ length: 17 }, (_, offset) => (gaiaSpawn('tree' as const, 12 + offset, 7, { amount: 100 }))),
       // South wall of the narrow corridor.
-      ...Array.from({ length: 17 }, (_, offset) => ({
-        kind: 'tree' as const,
-        x: 12 + offset,
-        y: 9,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      })),
+      ...Array.from({ length: 17 }, (_, offset) => (gaiaSpawn('tree' as const, 12 + offset, 9, { amount: 100 }))),
       // Cluster of four friendly villagers just west of the corridor mouth.
       // The villager at (11, 8) is the designated mover; the other three
       // surround it and sit directly in front of the corridor entrance.
-      {
-        kind: 'villager',
-        x: 11,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 11,
-        y: 7,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 11,
-        y: 9,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
+      ownedSpawn('villager', 1, 11, 8, { vision: 4 }),
+      ownedSpawn('villager', 1, 10, 8, { vision: 4 }),
+      ownedSpawn('villager', 1, 11, 7, { vision: 4 }),
+      ownedSpawn('villager', 1, 11, 9, { vision: 4 }),
     ],
   };
 }
@@ -305,46 +157,11 @@ export function createMoveTargetUnblocksFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 2,
-        y: 2,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 17,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'tree',
-        x: 18,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 36,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 8, { vision: 4 }),
+      ownedSpawn('villager', 1, 17, 8, { vision: 4 }),
+      gaiaSpawn('tree', 18, 8, { amount: 1 }),
+      ownedSpawn('town-center', 2, 36, 8, { vision: 7 }),
     ],
   };
 }

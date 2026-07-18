@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../../../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../../../common';
 
 export function createImperialUpgradesFixture(seed: string): PrototypeScenario {
   // Same shape as castle-upgrades-fixture but the human player starts in
@@ -36,43 +34,11 @@ export function createImperialUpgradesFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'archery-range',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'barracks',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'stable',
-        x: 20,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('archery-range', 1, 12, 6),
+      ownedSpawn('barracks', 1, 16, 6),
+      ownedSpawn('stable', 1, 20, 6),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -107,53 +73,13 @@ export function createImperialArbalestFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'archery-range',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'blacksmith',
-        x: 4,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
-        kind: 'crossbowman',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'cavalry-archer',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('archery-range', 1, 12, 6),
+      ownedSpawn('blacksmith', 1, 4, 6),
+      // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+      ownedSpawn('crossbowman', 1, 10, 13, { vision: 5 }),
+      ownedSpawn('cavalry-archer', 1, 12, 13, { vision: 5 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -186,46 +112,12 @@ export function createImperialHalberdierFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 16,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
-        kind: 'militia',
-        x: 10,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'pikeman',
-        x: 12,
-        y: 13,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('barracks', 1, 16, 6),
+      // Slice 12 Task B: moved from (10, 10) (inside TC footprint).
+      ownedSpawn('militia', 1, 10, 13, { vision: 3 }),
+      ownedSpawn('pikeman', 1, 12, 13, { vision: 3 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }

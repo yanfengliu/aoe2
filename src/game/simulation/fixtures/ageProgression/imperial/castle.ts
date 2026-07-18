@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../../common';
 
 // Slice 7C fixture: Britons human with a completed Castle, a Blacksmith,
 // a pre-existing Longbowman, and generous resources. Used to verify that
@@ -38,44 +36,11 @@ export function createImperialCastleBritonsFixture(seed: string): PrototypeScena
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'blacksmith',
-        x: 4,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'longbowman',
-        x: 10,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('blacksmith', 1, 4, 6),
+      ownedSpawn('longbowman', 1, 10, 12, { vision: 7 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -111,29 +76,9 @@ export function createImperialCastleFranksFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -161,38 +106,10 @@ export function createImperialCastleFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 14,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 11 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 34,
-        y: 14,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 11 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 14, { vision: 11 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
+      ownedSpawn('castle', 2, 34, 14, { vision: 11 }),
     ],
   };
 }

@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Visual-only capture target for the behind-building unit silhouette cue
 // (spec §14.5 "units behind buildings"). One completed human Town Center with
@@ -26,18 +26,11 @@ export function createOcclusionShowcaseFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 14 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 14 }),
       // Hidden: diagonally behind the TC volume from the fixed iso camera.
-      { kind: 'villager', x: 7, y: 7, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
+      ownedSpawn('villager', 1, 7, 7, { vision: 6 }),
       // Control: in the open, must never receive the cue.
-      { kind: 'villager', x: 3, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
+      ownedSpawn('villager', 1, 3, 12, { vision: 6 }),
     ],
   };
 }

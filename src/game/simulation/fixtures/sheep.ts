@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 export function createSheepOwnershipFixture(seed: string): PrototypeScenario {
   return {
@@ -24,30 +22,9 @@ export function createSheepOwnershipFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'scout',
-        x: 3,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'sheep',
-        x: 10,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'house',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('scout', 1, 3, 8, { vision: 4 }),
+      gaiaSpawn('sheep', 10, 8, { amount: 100 }),
+      ownedSpawn('house', 2, 24, 8, { vision: 4 }),
     ],
   };
 }
@@ -69,83 +46,20 @@ export function createSheepMovementFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        // Large vision so that unclaimed and enemy sheep elsewhere on the map
-        // are selectable from the test (visibility-gated). TCs do not have a
-        // `unit` component, so this does not affect proximity-based ownership.
-        vision: { playerId: 1, radius: 50 },
-      },
-      {
-        kind: 'villager',
-        x: 20,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'sheep',
-        x: 20,
-        y: 19,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'scout',
-        x: 21,
-        y: 19,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'scout',
-        x: 36,
-        y: 25,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'sheep',
-        x: 35,
-        y: 25,
-        owner: 2,
-        baseOwner: 2,
-        amount: 100,
-      },
-      {
-        kind: 'sheep',
-        x: 45,
-        y: 25,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
+      // Large vision so that unclaimed and enemy sheep elsewhere on the map
+      // are selectable from the test (visibility-gated). TCs do not have a
+      // `unit` component, so this does not affect proximity-based ownership.
+      ownedSpawn('town-center', 1, 4, 4, { vision: 50 }),
+      ownedSpawn('villager', 1, 20, 18, { vision: 4 }),
+      gaiaSpawn('sheep', 20, 19, { amount: 100 }),
+      ownedSpawn('scout', 2, 21, 19, { vision: 4 }),
+      ownedSpawn('scout', 2, 36, 25, { vision: 4 }),
+      ownedSpawn('sheep', 2, 35, 25, { amount: 100 }),
+      gaiaSpawn('sheep', 45, 25, { amount: 100 }),
       // Two extra human-owned sheep adjacent to the human villager so the
       // group-selection test can drag-box several owned sheep at once.
-      {
-        kind: 'sheep',
-        x: 19,
-        y: 18,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'sheep',
-        x: 19,
-        y: 19,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
+      gaiaSpawn('sheep', 19, 18, { amount: 100 }),
+      gaiaSpawn('sheep', 19, 19, { amount: 100 }),
     ],
   };
 }
@@ -167,76 +81,21 @@ export function createSheepVisionFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 10,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'sheep',
-        x: 11,
-        y: 10,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'house',
-        x: 18,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        // Stays unclaimed: outside both the human villager's herdable-claim
-        // radius and the nearby enemy scout's vision radius. If neutral sheep
-        // ever leaked HUMAN_PLAYER_ID vision, the sheep-vision tests would
-        // reveal the enemy house before the player's sheep starts exploring.
-        kind: 'sheep',
-        x: 22,
-        y: 10,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      },
-      {
-        kind: 'scout',
-        x: 19,
-        y: 13,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        // Claimed by the nearby enemy scout. If enemy-owned sheep ever leaked
-        // human vision, this sheep would also reveal the hidden house before
-        // the player's sheep starts exploring.
-        kind: 'sheep',
-        x: 20,
-        y: 13,
-        owner: 2,
-        baseOwner: 2,
-        amount: 100,
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 10, { vision: 4 }),
+      gaiaSpawn('sheep', 11, 10, { amount: 100 }),
+      ownedSpawn('house', 2, 18, 10),
+      // Stays unclaimed: outside both the human villager's herdable-claim
+      // radius and the nearby enemy scout's vision radius. If neutral sheep
+      // ever leaked HUMAN_PLAYER_ID vision, the sheep-vision tests would
+      // reveal the enemy house before the player's sheep starts exploring.
+      gaiaSpawn('sheep', 22, 10, { amount: 100 }),
+      ownedSpawn('scout', 2, 19, 13, { vision: 4 }),
+      // Claimed by the nearby enemy scout. If enemy-owned sheep ever leaked
+      // human vision, this sheep would also reveal the hidden house before
+      // the player's sheep starts exploring.
+      ownedSpawn('sheep', 2, 20, 13, { amount: 100 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }

@@ -4,9 +4,7 @@ import {
   type PrototypeScenario,
   type ScenarioSpawnSpec,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 // Slice 5 fixture: Castle-Age human start with a completed Monastery and a
 // nearby neutral relic. Used for Monastery train-menu, Monk build placement,
@@ -38,45 +36,11 @@ export function createMonasteryFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'relic',
-        x: 14,
-        y: 12,
-        owner: null,
-        baseOwner: null,
-        amount: 0,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 1, 14, 6),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      gaiaSpawn('relic', 14, 12, { amount: 0 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -150,48 +114,22 @@ export function createMonkRelicDropCrampedFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        // Wide vision so the Mangonel sees its target without having
-        // to drive its own LOS forward through the tree ring.
-        vision: { playerId: 1, radius: 18 },
-      },
+      // Wide vision so the Mangonel sees its target without having
+      // to drive its own LOS forward through the tree ring.
+      ownedSpawn('town-center', 1, 4, 4, { vision: 18 }),
       // Hostile Monastery — owns 2 relics deposited ahead of time;
       // extremely low HP so the Mangonel one-shots it.
-      {
-        kind: 'monastery',
-        x: monasteryAnchor.x,
-        y: monasteryAnchor.y,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
+      ownedSpawn('monastery', 2, monasteryAnchor.x, monasteryAnchor.y, {
+        vision: 7,
         startingRelicsInMonastery: 2,
         startHp: 10,
-      },
+      }),
       ...blockerSpawns,
       // Mangonel parked beyond the tree ring at manhattan distance 5
       // from the nearest Monastery cell (well within range 7 and
       // outside min range 3).
-      {
-        kind: 'mangonel',
-        x: 10,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 20,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('mangonel', 1, 10, 16, { vision: 9 }),
+      ownedSpawn('town-center', 2, 40, 20, { vision: 7 }),
     ],
   };
 }
@@ -215,40 +153,14 @@ export function createMonkRelicDropFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 18,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 2, 18, 8, {
+        vision: 7,
         startingRelicsInMonastery: 1,
         startHp: 10,
-      },
-      {
-        kind: 'pikeman',
-        x: 17,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      }),
+      ownedSpawn('pikeman', 1, 17, 8, { vision: 4 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -275,45 +187,11 @@ export function createMonkRelicFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 18,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'relic',
-        x: 15,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: 0,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 1, 18, 8),
+      ownedSpawn('monk', 1, 14, 8, { vision: 9 }),
+      gaiaSpawn('relic', 15, 8, { amount: 0 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }

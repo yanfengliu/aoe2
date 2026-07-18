@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Visual-only showcase scenario (M7 building-visuals slice 1). Places one
 // COMPLETED human-owned building of every render ROLE — town-center, fortress
@@ -35,28 +35,21 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
     ],
     spawns: [
       // Row 1 — the 4x4 landmarks.
-      {
-        kind: 'town-center',
-        x: 3,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 16 },
-      },
-      { kind: 'castle', x: 10, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 16 } },
-      { kind: 'wonder', x: 17, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 16 } },
-      { kind: 'market', x: 24, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 16 } },
+      ownedSpawn('town-center', 1, 3, 4, { vision: 16 }),
+      ownedSpawn('castle', 1, 10, 4, { vision: 16 }),
+      ownedSpawn('wonder', 1, 17, 4, { vision: 16 }),
+      ownedSpawn('market', 1, 24, 4, { vision: 16 }),
       // Row 2 — 3x3 halls + 2x2 economy.
-      { kind: 'barracks', x: 3, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 10 } },
-      { kind: 'blacksmith', x: 9, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 10 } },
-      { kind: 'house', x: 15, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 8 } },
-      { kind: 'mill', x: 19, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 8 } },
-      { kind: 'lumber-camp', x: 23, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 8 } },
-      { kind: 'monastery', x: 27, y: 12, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 8 } },
+      ownedSpawn('barracks', 1, 3, 12, { vision: 10 }),
+      ownedSpawn('blacksmith', 1, 9, 12, { vision: 10 }),
+      ownedSpawn('house', 1, 15, 12, { vision: 8 }),
+      ownedSpawn('mill', 1, 19, 12, { vision: 8 }),
+      ownedSpawn('lumber-camp', 1, 23, 12, { vision: 8 }),
+      ownedSpawn('monastery', 1, 27, 12, { vision: 8 }),
       // Row 3 — the 1x1 defensive + farm.
-      { kind: 'watch-tower', x: 3, y: 18, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 8 } },
-      { kind: 'stone-wall', x: 6, y: 18, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
-      { kind: 'farm', x: 9, y: 18, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
+      ownedSpawn('watch-tower', 1, 3, 18, { vision: 8 }),
+      ownedSpawn('stone-wall', 1, 6, 18, { vision: 6 }),
+      ownedSpawn('farm', 1, 9, 18, { vision: 6 }),
     ],
   };
 }

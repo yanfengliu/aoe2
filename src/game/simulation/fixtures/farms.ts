@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // M1 Farms (slice 1) depletion fixture. Player 2's economy (AI planner
 // disabled for determinism, but the villager-economy auto-gather still runs
@@ -46,57 +46,14 @@ export function createFarmDepletionFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 6,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 22,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 6, 6, { vision: 7 }),
+      ownedSpawn('town-center', 2, 22, 10, { vision: 7 }),
       // A complete farm holding only a little food, next to player 2's
       // villagers + Town Center so they gather + deposit quickly.
-      {
-        kind: 'farm',
-        x: 20,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        farmFood: 6,
-        vision: { playerId: 2, radius: 2 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 11,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('farm', 2, 20, 10, { farmFood: 6, vision: 2 }),
+      ownedSpawn('villager', 2, 19, 10, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 11, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 9, { vision: 4 }),
     ],
   };
 }
@@ -136,57 +93,14 @@ export function createFarmReseedFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 6,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 22,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 6, 6, { vision: 7 }),
+      ownedSpawn('town-center', 2, 22, 10, { vision: 7 }),
       // A complete farm holding only a little food so depletion (and thus the
       // reseed) is reached quickly.
-      {
-        kind: 'farm',
-        x: 20,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        farmFood: 6,
-        vision: { playerId: 2, radius: 2 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 11,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('farm', 2, 20, 10, { farmFood: 6, vision: 2 }),
+      ownedSpawn('villager', 2, 19, 10, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 11, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 9, { vision: 4 }),
     ],
   };
 }
@@ -221,40 +135,12 @@ export function createFarmUpgradeTechsFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       // Owner 1's farm: with all three techs researched it boots at 550 food.
-      {
-        kind: 'farm',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 2 },
-      },
-      {
-        kind: 'town-center',
-        x: 30,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('farm', 1, 6, 8, { vision: 2 }),
+      ownedSpawn('town-center', 2, 30, 8, { vision: 7 }),
       // Owner 2's farm: no farm techs → stays at the base 175.
-      {
-        kind: 'farm',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 2 },
-      },
+      ownedSpawn('farm', 2, 28, 8, { vision: 2 }),
     ],
   };
 }
@@ -286,30 +172,9 @@ export function createFarmUpgradeBuildFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 30,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 12, { vision: 4 }),
+      ownedSpawn('town-center', 2, 30, 8, { vision: 7 }),
     ],
   };
 }
@@ -340,58 +205,15 @@ export function createFarmUpgradeReseedFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 6,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'town-center',
-        x: 22,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 6, 6, { vision: 7 }),
+      ownedSpawn('town-center', 2, 22, 10, { vision: 7 }),
       // A complete farm seeded nearly-depleted (6 food) but at the upgraded max
       // (250, since Horse Collar is researched on boot) so depletion → reseed is
       // reached quickly and the reseed target is observable.
-      {
-        kind: 'farm',
-        x: 20,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        farmFood: 6,
-        vision: { playerId: 2, radius: 2 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 11,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 19,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('farm', 2, 20, 10, { farmFood: 6, vision: 2 }),
+      ownedSpawn('villager', 2, 19, 10, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 11, { vision: 4 }),
+      ownedSpawn('villager', 2, 19, 9, { vision: 4 }),
     ],
   };
 }
@@ -425,51 +247,16 @@ export function createFarmOwnershipFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       // Player 1's farm, near player 2's villager so distance is not the
       // reason the player-2 villager avoids it — ownership is.
-      {
-        kind: 'farm',
-        x: 20,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 2 },
-      },
+      ownedSpawn('farm', 1, 20, 8, { vision: 2 }),
       // Player 1's own villager (will gather its own farm). Placed left of the
       // 4x4 Town Center (anchored at 8,8 → spans 8..11) so it does not collide.
-      {
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 22,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      ownedSpawn('town-center', 2, 22, 8, { vision: 7 }),
       // Player 2's food villager — its only nearby food is player 1's farm.
-      {
-        kind: 'villager',
-        x: 21,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('villager', 2, 21, 8, { vision: 4 }),
     ],
   };
 }

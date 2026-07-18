@@ -5,9 +5,7 @@ import {
   setTerrainKind,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 
 export function createMiningCampFixture(seed: string): PrototypeScenario {
   return {
@@ -32,62 +30,13 @@ export function createMiningCampFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'gold-mine',
-        x: 13,
-        y: 7,
-        owner: null,
-        baseOwner: 1,
-        amount: 800,
-      },
-      {
-        kind: 'gold-mine',
-        x: 14,
-        y: 7,
-        owner: null,
-        baseOwner: 1,
-        amount: 800,
-      },
-      {
-        kind: 'gold-mine',
-        x: 13,
-        y: 8,
-        owner: null,
-        baseOwner: 1,
-        amount: 800,
-      },
-      {
-        kind: 'gold-mine',
-        x: 14,
-        y: 8,
-        owner: null,
-        baseOwner: 1,
-        amount: 800,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      gaiaSpawn('gold-mine', 13, 7, { baseOwner: 1, amount: 800 }),
+      gaiaSpawn('gold-mine', 14, 7, { baseOwner: 1, amount: 800 }),
+      gaiaSpawn('gold-mine', 13, 8, { baseOwner: 1, amount: 800 }),
+      gaiaSpawn('gold-mine', 14, 8, { baseOwner: 1, amount: 800 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -127,38 +76,10 @@ export function createVillagerNoWoodDropoffFixture(seed: string): PrototypeScena
     spawns: [
       // Player 1's only owned building is a Mill — accepts food only,
       // not wood. Intentionally NO Town Center and NO Lumber Camp.
-      {
-        kind: 'mill',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 11,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'tree',
-        x: 13,
-        y: 8,
-        owner: null,
-        baseOwner: 1,
-        amount: 200,
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('mill', 1, 8, 8, { vision: 4 }),
+      ownedSpawn('villager', 1, 11, 8, { vision: 4 }),
+      gaiaSpawn('tree', 13, 8, { baseOwner: 1, amount: 200 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -193,38 +114,10 @@ export function createFishFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 9,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'fish',
-        x: 11,
-        y: 8,
-        owner: null,
-        baseOwner: null,
-        amount: SHORE_FISH_AMOUNT,
-      },
-      {
-        kind: 'house',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('town-center', 1, 4, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 9, 8, { vision: 4 }),
+      gaiaSpawn('fish', 11, 8, { amount: SHORE_FISH_AMOUNT }),
+      ownedSpawn('house', 2, 24, 8, { vision: 4 }),
     ],
   };
 }

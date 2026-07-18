@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 // Block Printing (v0.1.58): +2 monk CONVERSION range. Discriminator fixture —
 // a player-1 Monk BOXED by trees at (10,10) so it cannot walk closer, with an
@@ -35,35 +35,14 @@ function createBlockPrintingScenario(seed: string, researched: boolean): Prototy
       { owner: 2, townCenter: { x: 40, y: 30 }, startingAge: 'castle-age', disableAi: true },
     ],
     spawns: [
-      { kind: 'town-center', x: 4, y: 4, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 20 } },
-      {
-        kind: 'monk',
-        x: monk.x,
-        y: monk.y,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 12 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 20 }),
+      ownedSpawn('monk', 1, monk.x, monk.y, { vision: 12 }),
       // Trees boxing the monk so moveUnitOneSubgridStep can never advance it.
-      ...ring.map(([dx, dy]) => ({
-        kind: 'tree' as const,
-        x: monk.x + dx,
-        y: monk.y + dy,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      })),
+      ...ring.map(([dx, dy]) => (gaiaSpawn('tree' as const, monk.x + dx, monk.y + dy, { amount: 100 }))),
       // Enemy villager at Manhattan distance 5 (idle, no resource nearby so it
       // stays put; villagers don't auto-aggress). Convertible target.
-      {
-        kind: 'villager',
-        x: 15,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      { kind: 'town-center', x: 40, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('villager', 2, 15, 10, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 30, { vision: 7 }),
     ],
   };
 }
@@ -94,8 +73,8 @@ function createSanctityScenario(seed: string, researched: boolean): PrototypeSce
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 12 } },
-      { kind: 'monk', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 9 } },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 12 }),
+      ownedSpawn('monk', 1, 14, 14, { vision: 9 }),
     ],
   };
 }
@@ -131,10 +110,10 @@ function createFaithScenario(seed: string, defenderHasFaith: boolean): Prototype
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 6, y: 6, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 20 } },
-      { kind: 'monk', x: 14, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 10 } },
-      { kind: 'villager', x: 15, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 3 } },
-      { kind: 'town-center', x: 40, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('town-center', 1, 6, 6, { vision: 20 }),
+      ownedSpawn('monk', 1, 14, 14, { vision: 10 }),
+      ownedSpawn('villager', 2, 15, 14, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 30, { vision: 7 }),
     ],
   };
 }

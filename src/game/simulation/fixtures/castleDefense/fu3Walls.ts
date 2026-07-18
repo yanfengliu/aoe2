@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // FU3 fixture: Feudal-Age human with a completed Barracks so the
 // villager build options include palisade-wall. Mirrors the
@@ -30,37 +28,10 @@ export function createFu3PalisadeWallFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'barracks',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 12,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('barracks', 1, 4, 4),
+      ownedSpawn('villager', 1, 12, 12, { vision: 4 }),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -87,30 +58,9 @@ export function createFu3StoneWallFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 12,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 12, 12, { vision: 4 }),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -137,37 +87,10 @@ export function createFu3StoneWallBlockingFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stone-wall',
-        x: 18,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 18,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('stone-wall', 1, 18, 18),
+      ownedSpawn('villager', 1, 18, 20, { vision: 4 }),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -195,41 +118,13 @@ export function createFu3StoneWallCombatFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'stone-wall',
-        x: 20,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        startHp: 50,
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('stone-wall', 1, 20, 20, { startHp: 50 }),
       // Enemy Battering Ram one cell south of the wall. Ram atk 2 + 75
       // vs buildings = 77 per hit, so one reload cycle kills the 50-HP
       // wall segment.
-      {
-        kind: 'battering-ram',
-        x: 20,
-        y: 21,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 5 },
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('battering-ram', 2, 20, 21, { vision: 5 }),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

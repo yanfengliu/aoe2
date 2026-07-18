@@ -4,9 +4,7 @@ import {
   type PrototypeScenario,
   type ScenarioSpawnSpec,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 6 fixture: a player-1 Longbowman stationed exactly 6 tiles from a
 // stationary enemy Spearman. Used to assert ranged combat at the Longbow's
@@ -31,39 +29,12 @@ export function createLongbowmanRangedFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'longbowman',
-        x: 14,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('longbowman', 1, 14, 8, { vision: 7 }),
       // Spearman at (20, 8). Manhattan distance from (14, 8) = 6, exactly
       // at the Longbow's canonical Castle-Age range.
-      {
-        kind: 'spearman',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('spearman', 2, 20, 8),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -97,36 +68,10 @@ export function createCastleFletchingFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'blacksmith',
-        x: 20,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('blacksmith', 1, 20, 6),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -142,13 +87,7 @@ export function createCastleGarrisonFixture(seed: string): PrototypeScenario {
   for (let i = 0; i < 20; i += 1) {
     const offsetX = i % 5;
     const offsetY = Math.floor(i / 5);
-    villagerSpawns.push({
-      kind: 'villager',
-      x: 20 + offsetX,
-      y: 10 + offsetY,
-      owner: 1,
-      baseOwner: 1,
-    });
+    villagerSpawns.push(ownedSpawn('villager', 1, 20 + offsetX, 10 + offsetY));
   }
   return {
     seed,
@@ -169,30 +108,10 @@ export function createCastleGarrisonFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
       ...villagerSpawns,
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -205,8 +124,8 @@ export function createCastleGarrisonFixture(seed: string): PrototypeScenario {
 // Town Center sits far away so the match keeps running.
 export function createGarrisonHealFixture(seed: string): PrototypeScenario {
   const woundedVillagers: ScenarioSpawnSpec[] = [
-    { kind: 'villager', x: 12, y: 10, owner: 1, baseOwner: 1, startHp: 5 },
-    { kind: 'villager', x: 14, y: 10, owner: 1, baseOwner: 1, startHp: 5 },
+    ownedSpawn('villager', 1, 12, 10, { startHp: 5 }),
+    ownedSpawn('villager', 1, 14, 10, { startHp: 5 }),
   ];
   return {
     seed,
@@ -227,23 +146,9 @@ export function createGarrisonHealFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ...woundedVillagers,
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

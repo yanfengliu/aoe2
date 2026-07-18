@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 // Five villagers clustered near a Town Center with full coffers, primed
 // for placing a building together. The seed is shared between this and
@@ -37,28 +37,14 @@ export function createMultiVillagerConstructionFixture(seed: string): PrototypeS
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       // Five villagers at adjacent free cells south of the Town Center.
-      { kind: 'villager', x: 6, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 7, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 8, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 9, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 10, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('villager', 1, 6, 13, { vision: 4 }),
+      ownedSpawn('villager', 1, 7, 13, { vision: 4 }),
+      ownedSpawn('villager', 1, 8, 13, { vision: 4 }),
+      ownedSpawn('villager', 1, 9, 13, { vision: 4 }),
+      ownedSpawn('villager', 1, 10, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -90,23 +76,9 @@ export function createSingleVillagerConstructionFixture(seed: string): Prototype
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      { kind: 'villager', x: 8, y: 13, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 8, 13, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],
   };
 }
@@ -148,18 +120,18 @@ export function createAutoMineCampFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'villager', x: 6, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 7, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'villager', x: 8, y: 14, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'stone-mine', x: 14, y: 18, owner: null, baseOwner: 1, amount: 400 },
-      { kind: 'gold-mine', x: 18, y: 14, owner: null, baseOwner: 1, amount: 400 },
-      { kind: 'gold-mine', x: 20, y: 14, owner: null, baseOwner: 1, amount: 400 },
-      { kind: 'gold-mine', x: 16, y: 17, owner: null, baseOwner: 1, amount: 0 },
-      { kind: 'town-center', x: 34, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      { kind: 'villager', x: 32, y: 17, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 33, y: 17, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'gold-mine', x: 34, y: 14, owner: null, baseOwner: 2, amount: 400 },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 14, { vision: 4 }),
+      ownedSpawn('villager', 1, 7, 14, { vision: 4 }),
+      ownedSpawn('villager', 1, 8, 14, { vision: 4 }),
+      gaiaSpawn('stone-mine', 14, 18, { baseOwner: 1, amount: 400 }),
+      gaiaSpawn('gold-mine', 18, 14, { baseOwner: 1, amount: 400 }),
+      gaiaSpawn('gold-mine', 20, 14, { baseOwner: 1, amount: 400 }),
+      gaiaSpawn('gold-mine', 16, 17, { baseOwner: 1, amount: 0 }),
+      ownedSpawn('town-center', 2, 34, 8, { vision: 7 }),
+      ownedSpawn('villager', 2, 32, 17, { vision: 4 }),
+      ownedSpawn('villager', 2, 33, 17, { vision: 4 }),
+      gaiaSpawn('gold-mine', 34, 14, { baseOwner: 2, amount: 400 }),
     ],
   };
 }
@@ -188,10 +160,10 @@ export function createRepairFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 6, y: 6, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'house', x: 14, y: 14, owner: 1, baseOwner: 1, startHp: 30, vision: { playerId: 1, radius: 3 } },
-      { kind: 'villager', x: 14, y: 17, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'town-center', x: 40, y: 30, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('town-center', 1, 6, 6, { vision: 7 }),
+      ownedSpawn('house', 1, 14, 14, { startHp: 30, vision: 3 }),
+      ownedSpawn('villager', 1, 14, 17, { vision: 4 }),
+      ownedSpawn('town-center', 2, 40, 30, { vision: 7 }),
     ],
   };
 }

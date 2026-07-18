@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Sappers (v0.1.64) fixtures. Player 1 (human, AI disabled) owns a Militia at
 // (13, 8) standing adjacent to an enemy (owner 2) House at (14, 8). A test
@@ -49,37 +49,10 @@ function createSappersScenario(seed: string, options: SappersOptions): Prototype
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'militia',
-        x: 13,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'house',
-        x: 14,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 24,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 20, { vision: 7 }),
+      ownedSpawn('militia', 1, 13, 8, { vision: 6 }),
+      ownedSpawn('house', 2, 14, 8),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }

@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 6 fixture: Franks human (player 1) with a completed Castle.
 // Used to pin the contract that a non-Britons Castle offers NO train
@@ -30,29 +28,9 @@ export function createCastleNonBritonsFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }
@@ -88,37 +66,10 @@ export function createCastleUniqueFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -156,53 +107,20 @@ export function createCastleAiTargetPriorityFixture(seed: string): PrototypeScen
       // Player 1 TC sits far away — does not draw the militia (TC is
       // also high priority, but distance keeps it out of consideration
       // for this scenario).
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       // Castle the AI must NOT prefer (4x4 anchor at (15, 5); cells
       // (15..18, 5..8)).
-      {
-        kind: 'castle',
-        x: 15,
-        y: 5,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('castle', 1, 15, 5),
       // House the AI MUST prefer (2x2 anchor at (15, 15); cells
       // (15..16, 15..16)). Anchor distance to the militia is 6,
       // strictly larger than the Castle's 4.
-      {
-        kind: 'house',
-        x: 15,
-        y: 15,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('house', 1, 15, 15),
       // AI Militia. Vision radius 12 ensures both buildings'
       // anchor cells fall inside player-2 visibility.
-      {
-        kind: 'militia',
-        x: 15,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 12 },
-      },
+      ownedSpawn('militia', 2, 15, 9, { vision: 12 }),
       // AI TC kept far enough away that the AI militia is the only
       // thing in range of either player-1 building.
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 40, 30, { vision: 7 }),
     ],
   };
 }
@@ -227,21 +145,8 @@ export function createCastleDefensiveFireFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'castle',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('castle', 1, 14, 6),
       // Spearman at (20, 8). Manhattan distance from the Castle's anchor
       // cell (14, 6) = 6 + 2 = 8, matching the Castle's attack range
       // exactly (tower combat uses anchor-to-target distance, not
@@ -249,21 +154,8 @@ export function createCastleDefensiveFireFixture(seed: string): PrototypeScenari
       // Castle vision radius 11 keeps the Spearman visible. No enemy AI
       // is reachable (enemy TC is at (48, 28) across the map), so the
       // Spearman just stands and absorbs arrows.
-      {
-        kind: 'spearman',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('spearman', 2, 20, 8),
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

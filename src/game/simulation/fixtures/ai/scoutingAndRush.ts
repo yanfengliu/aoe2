@@ -4,9 +4,7 @@ import {
   type PrototypeScenario,
   type ScenarioSpawnSpec,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from '../common';
 export function createAiMonkRelicFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -24,15 +22,15 @@ export function createAiMonkRelicFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'villager', x: 6, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-      { kind: 'town-center', x: 2, y: 2, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      { kind: 'monastery', x: 27, y: 22, owner: 2, baseOwner: 2 },
-      { kind: 'monk', x: 28, y: 26, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 9 } },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
+      ownedSpawn('town-center', 2, 30, 20, { vision: 7 }),
+      ownedSpawn('monastery', 2, 27, 22),
+      ownedSpawn('monk', 2, 28, 26, { vision: 9 }),
       // Neutral relic close to the Monk so the pickup path completes
       // within the test budget.
-      { kind: 'relic', x: 30, y: 26, owner: null, baseOwner: null, amount: 0 },
+      gaiaSpawn('relic', 30, 26, { amount: 0 }),
     ],
   };
 }
@@ -57,21 +55,21 @@ export function createAiScoutingResponseFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 8, y: 8, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-      { kind: 'town-center', x: 30, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('town-center', 2, 30, 20, { vision: 7 }),
       // AI villagers so the Watch Tower has a builder available.
-      { kind: 'villager', x: 28, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 29, y: 20, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      ownedSpawn('villager', 2, 28, 20, { vision: 4 }),
+      ownedSpawn('villager', 2, 29, 20, { vision: 4 }),
       // Slice 12 Task B: TC at (30, 20) covers (30..33, 20..23), so
       // the old Blacksmith at (32, 20) and Barracks at (34, 20) both
       // collided with the TC footprint. Moved both buildings west of
       // the TC so they are adjacent but not overlapping.
-      { kind: 'barracks', x: 34, y: 24, owner: 2, baseOwner: 2 },
-      { kind: 'blacksmith', x: 26, y: 21, owner: 2, baseOwner: 2 },
+      ownedSpawn('barracks', 2, 34, 24),
+      ownedSpawn('blacksmith', 2, 26, 21),
       // Human scout positioned inside the AI's base vision but south
       // of the Town Center so the Watch Tower anchor ends up south as
       // well.
-      { kind: 'scout', x: 28, y: 24, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 6 } },
+      ownedSpawn('scout', 1, 28, 24, { vision: 6 }),
     ],
   };
 }
@@ -95,20 +93,20 @@ export function createAiDifficultyFixture(seed: string): PrototypeScenario {
     // Minimal owner-1 presence — the `prototypeConquestOutcome` system
     // short-circuits to 'defeat' if the human has no presence, which
     // would halt simulation before the AIs have a chance to gather.
-    { kind: 'town-center', x: 28, y: 16, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 7 } },
-    { kind: 'villager', x: 26, y: 16, owner: 1, baseOwner: 1, vision: { playerId: 1, radius: 4 } },
-    { kind: 'town-center', x: 8, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-    { kind: 'villager', x: 7, y: 6, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-    { kind: 'villager', x: 8, y: 6, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-    { kind: 'town-center', x: 50, y: 28, owner: 3, baseOwner: 3, vision: { playerId: 3, radius: 7 } },
-    { kind: 'villager', x: 49, y: 26, owner: 3, baseOwner: 3, vision: { playerId: 3, radius: 4 } },
-    { kind: 'villager', x: 50, y: 26, owner: 3, baseOwner: 3, vision: { playerId: 3, radius: 4 } },
+    ownedSpawn('town-center', 1, 28, 16, { vision: 7 }),
+    ownedSpawn('villager', 1, 26, 16, { vision: 4 }),
+    ownedSpawn('town-center', 2, 8, 8, { vision: 7 }),
+    ownedSpawn('villager', 2, 7, 6, { vision: 4 }),
+    ownedSpawn('villager', 2, 8, 6, { vision: 4 }),
+    ownedSpawn('town-center', 3, 50, 28, { vision: 7 }),
+    ownedSpawn('villager', 3, 49, 26, { vision: 4 }),
+    ownedSpawn('villager', 3, 50, 26, { vision: 4 }),
     // Sheep directly adjacent to the villager cluster so the first
     // gather → drop-off cycle is only a couple of ticks long.
-    { kind: 'sheep', x: 7, y: 5, owner: null, baseOwner: 2, amount: 500 },
-    { kind: 'sheep', x: 8, y: 5, owner: null, baseOwner: 2, amount: 500 },
-    { kind: 'sheep', x: 49, y: 25, owner: null, baseOwner: 3, amount: 500 },
-    { kind: 'sheep', x: 50, y: 25, owner: null, baseOwner: 3, amount: 500 },
+    gaiaSpawn('sheep', 7, 5, { baseOwner: 2, amount: 500 }),
+    gaiaSpawn('sheep', 8, 5, { baseOwner: 2, amount: 500 }),
+    gaiaSpawn('sheep', 49, 25, { baseOwner: 3, amount: 500 }),
+    gaiaSpawn('sheep', 50, 25, { baseOwner: 3, amount: 500 }),
   ];
   return {
     seed,
@@ -155,76 +153,20 @@ export function createAiRushFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       // FU: human villagers relocated to open ground (16,16 cluster), well
       // clear of the human Town Center at (8,8) (footprint-Manhattan ≥ 10).
       // The AI's attack group targets a human villager directly, so it still
       // hunts and kills one here — but now away from the TC's base defensive
       // fire, which (after the empty-TC-fires-1 rule) would otherwise shield
       // the villagers and break the "AI kills a villager" assertion.
-      {
-        kind: 'villager',
-        x: 16,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 16,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 17,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 24,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 22,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 22,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 23,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
+      ownedSpawn('villager', 1, 16, 16, { vision: 4 }),
+      ownedSpawn('villager', 1, 16, 17, { vision: 4 }),
+      ownedSpawn('villager', 1, 17, 17, { vision: 4 }),
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('villager', 2, 22, 8, { vision: 4 }),
+      ownedSpawn('villager', 2, 22, 9, { vision: 4 }),
+      ownedSpawn('villager', 2, 23, 9, { vision: 4 }),
     ],
   };
 }
@@ -246,52 +188,12 @@ export function createAiEconomyFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'house',
-        x: 4,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'mill',
-        x: 20,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'villager',
-        x: 22,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'villager',
-        x: 22,
-        y: 9,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'sheep',
-        x: 24,
-        y: 8,
-        owner: null,
-        baseOwner: 2,
-        amount: 100,
-      },
-      {
-        kind: 'sheep',
-        x: 24,
-        y: 9,
-        owner: null,
-        baseOwner: 2,
-        amount: 100,
-      },
+      ownedSpawn('house', 1, 4, 8),
+      ownedSpawn('mill', 2, 20, 8),
+      ownedSpawn('villager', 2, 22, 8, { vision: 4 }),
+      ownedSpawn('villager', 2, 22, 9, { vision: 4 }),
+      gaiaSpawn('sheep', 24, 8, { baseOwner: 2, amount: 100 }),
+      gaiaSpawn('sheep', 24, 9, { baseOwner: 2, amount: 100 }),
     ],
   };
 }
@@ -330,27 +232,27 @@ export function createAiAgeUpPriorityFixture(seed: string): PrototypeScenario {
     ],
     spawns: [
       // AI base: complete TC + the two Feudal prerequisites (barracks + mill).
-      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
-      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('barracks', 2, 18, 8),
+      ownedSpawn('mill', 2, 30, 8),
       // Houses for population headroom (TC 5 + 2x house 10 = 15 cap) so the AI
       // is never pop-blocked (which would divert it to House builds).
-      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
-      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      ownedSpawn('house', 2, 18, 14),
+      ownedSpawn('house', 2, 21, 14),
       // 6 villagers = the Dark-Age villager cap, so the TC trains no more and
       // stays idle to accept the age-up research.
-      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 24, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 25, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 26, y: 14, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      ownedSpawn('villager', 2, 24, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 25, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 26, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 24, 14, { vision: 4 }),
+      ownedSpawn('villager', 2, 25, 14, { vision: 4 }),
+      ownedSpawn('villager', 2, 26, 14, { vision: 4 }),
       // Human (owner 1) conquest presence only — corner Houses far outside the
       // AI's vision so they are never attacked and the match cannot end by
       // conquest before the AI ages up.
-      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+      ownedSpawn('house', 1, 2, 2),
+      ownedSpawn('house', 1, 2, 5),
+      ownedSpawn('house', 1, 5, 2),
     ],
   };
 }
@@ -384,26 +286,26 @@ export function createAiVillagerReserveFixture(seed: string): PrototypeScenario 
     ],
     spawns: [
       // AI base: complete TC + the two Feudal prerequisites (barracks + mill).
-      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
-      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('barracks', 2, 18, 8),
+      ownedSpawn('mill', 2, 30, 8),
       // Houses for population headroom (TC 5 + 2x house 10 = 15 cap) so the AI
       // is never pop-blocked and trains villagers freely (the behavior we gate).
-      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
-      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      ownedSpawn('house', 2, 18, 14),
+      ownedSpawn('house', 2, 21, 14),
       // 3 villagers — below the Dark-Age villager cap (10) so the AI keeps
       // trying to train more (which the reserve fix must suppress). No food
       // resource exists on the grass map, so these villagers gather nothing:
       // food income is zero and any food change is purely villager-training.
-      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      ownedSpawn('villager', 2, 24, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 25, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 26, 13, { vision: 4 }),
       // Human (owner 1) conquest presence only — corner Houses far outside the
       // AI's vision so they are never attacked and the match cannot end by
       // conquest before the test window closes.
-      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+      ownedSpawn('house', 1, 2, 2),
+      ownedSpawn('house', 1, 2, 5),
+      ownedSpawn('house', 1, 5, 2),
     ],
   };
 }
@@ -435,23 +337,23 @@ export function createAiMarketAgeUpFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      { kind: 'town-center', x: 24, y: 8, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 7 } },
-      { kind: 'barracks', x: 18, y: 8, owner: 2, baseOwner: 2 },
-      { kind: 'mill', x: 30, y: 8, owner: 2, baseOwner: 2 },
+      ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
+      ownedSpawn('barracks', 2, 18, 8),
+      ownedSpawn('mill', 2, 30, 8),
       // Feudal→Castle prerequisites: blacksmith + the Market (also the trade venue).
-      { kind: 'blacksmith', x: 18, y: 11, owner: 2, baseOwner: 2 },
-      { kind: 'market', x: 30, y: 12, owner: 2, baseOwner: 2 },
-      { kind: 'house', x: 18, y: 14, owner: 2, baseOwner: 2 },
-      { kind: 'house', x: 21, y: 14, owner: 2, baseOwner: 2 },
+      ownedSpawn('blacksmith', 2, 18, 11),
+      ownedSpawn('market', 2, 30, 12),
+      ownedSpawn('house', 2, 18, 14),
+      ownedSpawn('house', 2, 21, 14),
       // A few villagers — idle (no food resource exists) so food only moves via
       // the market trade, isolating the fix.
-      { kind: 'villager', x: 24, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 25, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
-      { kind: 'villager', x: 26, y: 13, owner: 2, baseOwner: 2, vision: { playerId: 2, radius: 4 } },
+      ownedSpawn('villager', 2, 24, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 25, 13, { vision: 4 }),
+      ownedSpawn('villager', 2, 26, 13, { vision: 4 }),
       // Human (owner 1) conquest presence only, far outside the AI's vision.
-      { kind: 'house', x: 2, y: 2, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 2, y: 5, owner: 1, baseOwner: 1 },
-      { kind: 'house', x: 5, y: 2, owner: 1, baseOwner: 1 },
+      ownedSpawn('house', 1, 2, 2),
+      ownedSpawn('house', 1, 2, 5),
+      ownedSpawn('house', 1, 5, 2),
     ],
   };
 }

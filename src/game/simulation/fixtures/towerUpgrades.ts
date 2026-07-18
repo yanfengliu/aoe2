@@ -4,7 +4,7 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import type { ResearchableTechnologyType } from '../types';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Tower-upgrade (Guard Tower → Keep, v0.1.57) fixtures. Player 1 (human, AI
 // disabled) owns a completed Watch Tower at (14, 6). An enemy Spearman (player
@@ -55,41 +55,14 @@ function createTowerUpgradeScenario(
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       // Watch Tower at (14, 6); vision radius 12 keeps the Spearman visible at
       // both the in-range (7) and edge (8) distances used by the fixtures.
-      {
-        kind: 'watch-tower',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 12 },
-      },
-      {
-        kind: 'spearman',
-        x: options.spearman.x,
-        y: options.spearman.y,
-        owner: 2,
-        baseOwner: 2,
-      },
+      ownedSpawn('watch-tower', 1, 14, 6, { vision: 12 }),
+      ownedSpawn('spearman', 2, options.spearman.x, options.spearman.y),
       // Enemy TC far across the map — no enemy AI is active, so the Spearman
       // just stands and absorbs arrows.
-      {
-        kind: 'town-center',
-        x: 48,
-        y: 28,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
   };
 }

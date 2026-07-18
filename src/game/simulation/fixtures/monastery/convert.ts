@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from '../common';
+import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 5 fixture for Monk convert: player-1 Monk adjacent to an enemy
 // Militia. After about 50 ticks the Militia flips to player 1.
@@ -28,38 +26,10 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'militia',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
+      ownedSpawn('militia', 2, 15, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -112,54 +82,12 @@ export function createMonkFlipFlopFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 4,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 28,
-        owner: 3,
-        baseOwner: 3,
-        vision: { playerId: 3, radius: 3 },
-      },
-      {
-        kind: 'monk',
-        x: 28,
-        y: 16,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 6 },
-      },
-      {
-        kind: 'monk',
-        x: 28,
-        y: 18,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 6 },
-      },
-      {
-        kind: 'militia',
-        x: 29,
-        y: 17,
-        owner: 3,
-        baseOwner: 3,
-        vision: { playerId: 3, radius: 3 },
-      },
+      ownedSpawn('town-center', 1, 4, 4, { vision: 3 }),
+      ownedSpawn('town-center', 2, 50, 4, { vision: 3 }),
+      ownedSpawn('town-center', 3, 4, 28, { vision: 3 }),
+      ownedSpawn('monk', 1, 28, 16, { vision: 6 }),
+      ownedSpawn('monk', 2, 28, 18, { vision: 6 }),
+      ownedSpawn('militia', 3, 29, 17, { vision: 3 }),
     ],
   };
 }
@@ -187,46 +115,11 @@ export function createMonkDoubleConvertFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'militia',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
+      ownedSpawn('monk', 1, 14, 18, { vision: 9 }),
+      ownedSpawn('militia', 2, 15, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -254,48 +147,13 @@ export function createMonkConvertCleanupFixture(seed: string): PrototypeScenario
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 14,
-        y: 17,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'pikeman',
-        x: 14,
-        y: 18,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        // Militia has a ton of HP relative to default so the Pikeman does
-        // not kill it before conversion completes (~50 ticks).
-        kind: 'militia',
-        x: 15,
-        y: 17,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 14, 17, { vision: 9 }),
+      ownedSpawn('pikeman', 1, 14, 18, { vision: 3 }),
+      // Militia has a ton of HP relative to default so the Pikeman does
+      // not kill it before conversion completes (~50 ticks).
+      ownedSpawn('militia', 2, 15, 17, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -324,45 +182,17 @@ export function createMonkConvertVisionFixture(seed: string): PrototypeScenario 
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        // Keep TC vision short so it does not overlap the Monk/Scout area.
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        kind: 'monk',
-        x: 20,
-        y: 20,
-        owner: 1,
-        baseOwner: 1,
-        // Small vision so only the Monk's immediate cells are visible —
-        // cells 3+ away around the Scout are fog-hidden until vision flips.
-        vision: { playerId: 1, radius: 2 },
-      },
-      {
-        kind: 'scout',
-        x: 21,
-        y: 20,
-        owner: 2,
-        baseOwner: 2,
-        // Radius 6 so (scoutX + 3) is inside the Scout's vision but
-        // outside the Monk's radius-2 vision. After conversion, player 1
-        // should see that cell iff the Scout's visionSource playerId was
-        // flipped.
-        vision: { playerId: 2, radius: 6 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      // Keep TC vision short so it does not overlap the Monk/Scout area.
+      ownedSpawn('town-center', 1, 8, 8, { vision: 3 }),
+      // Small vision so only the Monk's immediate cells are visible —
+      // cells 3+ away around the Scout are fog-hidden until vision flips.
+      ownedSpawn('monk', 1, 20, 20, { vision: 2 }),
+      // Radius 6 so (scoutX + 3) is inside the Scout's vision but
+      // outside the Monk's radius-2 vision. After conversion, player 1
+      // should see that cell iff the Scout's visionSource playerId was
+      // flipped.
+      ownedSpawn('scout', 2, 21, 20, { vision: 6 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
@@ -391,46 +221,18 @@ export function createMonkFogFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 3 },
-      },
-      {
-        // Slice 12 Task B: moved from (8, 10) (inside TC footprint at
-        // 8..11, 8..11). (8, 12) keeps the Monk just south of the TC
-        // and still within MONK_ACTION_RANGE = 4 of the enemy militia.
-        kind: 'monk',
-        x: 8,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        // Small vision so the adjacent enemy Militia is in fog.
-        vision: { playerId: 1, radius: 1 },
-      },
-      {
-        // Distance 3 from the Monk at (8, 12) (manhattan, to (11, 12))
-        // → within MONK_ACTION_RANGE = 4 but outside Monk's radius-1
-        // vision; the TC's radius-3 vision from (8, 8) also does not
-        // reach. Fog hides the unit from the human.
-        kind: 'militia',
-        x: 11,
-        y: 12,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 3 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 3 }),
+      // Slice 12 Task B: moved from (8, 10) (inside TC footprint at
+      // 8..11, 8..11). (8, 12) keeps the Monk just south of the TC
+      // and still within MONK_ACTION_RANGE = 4 of the enemy militia.
+      // Small vision so the adjacent enemy Militia is in fog.
+      ownedSpawn('monk', 1, 8, 12, { vision: 1 }),
+      // Distance 3 from the Monk at (8, 12) (manhattan, to (11, 12))
+      // → within MONK_ACTION_RANGE = 4 but outside Monk's radius-1
+      // vision; the TC's radius-3 vision from (8, 8) also does not
+      // reach. Fog hides the unit from the human.
+      ownedSpawn('militia', 2, 11, 12, { vision: 3 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }

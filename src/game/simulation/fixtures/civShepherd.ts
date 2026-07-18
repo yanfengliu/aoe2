@@ -3,7 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import { createGrassFixtureTerrain } from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 // Civ-bonus shepherd fixture (v0.1.81). Owner 1 (AI disabled) has a lone
 // villager next to a neutral sheep it claims by proximity, with its Town
@@ -32,45 +32,17 @@ function createCivShepherdScenario(seed: string, civilization: string): Prototyp
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 4,
-        y: 4,
-        owner: 1,
-        baseOwner: 1,
-        // Wide vision so the sheep is selectable/commandable from the test.
-        vision: { playerId: 1, radius: 50 },
-      },
-      {
-        // Villager + sheep sit right next to the Town Center drop-off so the
-        // deposit walk is tiny and per-load time is gather-dominated — this
-        // keeps the +25% gather bonus from being diluted by fixed walk time.
-        kind: 'villager',
-        x: 9,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        // Large stock so neither villager exhausts it inside the race window
-        // (equal exhaustion would erase the rate difference). Just east of the
-        // 4×4 Town Center footprint (x 4..7) so the deposit walk stays tiny.
-        kind: 'sheep',
-        x: 10,
-        y: 6,
-        owner: null,
-        baseOwner: null,
-        amount: 400,
-      },
-      {
-        kind: 'town-center',
-        x: 50,
-        y: 30,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      // Wide vision so the sheep is selectable/commandable from the test.
+      ownedSpawn('town-center', 1, 4, 4, { vision: 50 }),
+      // Villager + sheep sit right next to the Town Center drop-off so the
+      // deposit walk is tiny and per-load time is gather-dominated — this
+      // keeps the +25% gather bonus from being diluted by fixed walk time.
+      ownedSpawn('villager', 1, 9, 6, { vision: 4 }),
+      // Large stock so neither villager exhausts it inside the race window
+      // (equal exhaustion would erase the rate difference). Just east of the
+      // 4×4 Town Center footprint (x 4..7) so the deposit walk stays tiny.
+      gaiaSpawn('sheep', 10, 6, { amount: 400 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],
   };
 }

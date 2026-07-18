@@ -3,9 +3,7 @@ import {
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
-import {
-  createGrassFixtureTerrain,
-} from './common';
+import { createGrassFixtureTerrain, ownedSpawn, gaiaSpawn } from './common';
 
 // Slice 8 fixture: Imperial-Age human with no Wonder yet. Used to assert
 // the villager build menu exposes 'wonder' once the Imperial gate is
@@ -36,30 +34,9 @@ export function createWonderImperialFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -90,37 +67,10 @@ export function createWonderExistingFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'wonder',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'villager',
-        x: 6,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('wonder', 1, 14, 6),
+      ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -148,29 +98,9 @@ export function createWonderShortCountdownFixture(seed: string): PrototypeScenar
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'wonder',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('wonder', 1, 14, 6),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -203,41 +133,13 @@ export function createWonderDestroyedFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 6,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'wonder',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        // Wonder starts with 4 HP so one militia swing finishes it. The
-        // long 60-tick countdown gives the militia time to close, engage,
-        // and swing before the countdown would naturally expire.
-        startHp: 4,
-      },
-      {
-        kind: 'militia',
-        x: 18,
-        y: 7,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 10 },
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 12,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 6, 12, { vision: 7 }),
+      // Wonder starts with 4 HP so one militia swing finishes it. The
+      // long 60-tick countdown gives the militia time to close, engage,
+      // and swing before the countdown would naturally expire.
+      ownedSpawn('wonder', 1, 14, 6, { startHp: 4 }),
+      ownedSpawn('militia', 2, 18, 7, { vision: 10 }),
+      ownedSpawn('town-center', 2, 28, 12, { vision: 7 }),
     ],
   };
 }
@@ -265,30 +167,9 @@ export function createRelicShortCountdownFixture(seed: string): PrototypeScenari
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        startingRelicsInMonastery: 3,
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 1, 12, 6, { startingRelicsInMonastery: 3 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -316,38 +197,10 @@ export function createRelicNotAllHeldFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monastery',
-        x: 12,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-        startingRelicsInMonastery: 2,
-      },
-      {
-        kind: 'relic',
-        x: 20,
-        y: 12,
-        owner: null,
-        baseOwner: null,
-        amount: 0,
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monastery', 1, 12, 6, { startingRelicsInMonastery: 2 }),
+      gaiaSpawn('relic', 20, 12, { amount: 0 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -379,39 +232,12 @@ export function createWonderRelicTieFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'wonder',
-        x: 14,
-        y: 6,
-        owner: 1,
-        baseOwner: 1,
-      },
-      {
-        kind: 'monastery',
-        x: 4,
-        y: 12,
-        owner: 1,
-        baseOwner: 1,
-        // Pre-loaded with every relic so the Relic countdown kicks off
-        // on tick 0 alongside the Wonder's countdown.
-        startingRelicsInMonastery: 3,
-      },
-      {
-        kind: 'town-center',
-        x: 28,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('wonder', 1, 14, 6),
+      // Pre-loaded with every relic so the Relic countdown kicks off
+      // on tick 0 alongside the Wonder's countdown.
+      ownedSpawn('monastery', 1, 4, 12, { startingRelicsInMonastery: 3 }),
+      ownedSpawn('town-center', 2, 28, 8, { vision: 7 }),
     ],
   };
 }
@@ -445,45 +271,11 @@ export function createWonderOwnerAfterConversionFixture(seed: string): Prototype
       },
     ],
     spawns: [
-      {
-        kind: 'town-center',
-        x: 8,
-        y: 8,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 7 },
-      },
-      {
-        kind: 'monk',
-        x: 20,
-        y: 10,
-        owner: 1,
-        baseOwner: 1,
-        vision: { playerId: 1, radius: 9 },
-      },
-      {
-        kind: 'wonder',
-        x: 22,
-        y: 6,
-        owner: 2,
-        baseOwner: 2,
-      },
-      {
-        kind: 'villager',
-        x: 22,
-        y: 10,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 4 },
-      },
-      {
-        kind: 'town-center',
-        x: 40,
-        y: 8,
-        owner: 2,
-        baseOwner: 2,
-        vision: { playerId: 2, radius: 7 },
-      },
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('monk', 1, 20, 10, { vision: 9 }),
+      ownedSpawn('wonder', 2, 22, 6),
+      ownedSpawn('villager', 2, 22, 10, { vision: 4 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
 }
