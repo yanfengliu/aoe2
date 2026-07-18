@@ -286,13 +286,23 @@ export function findEntityAtWorldPoint(
   return findEntityAtWorldPointInEntities(renderState.entities, worldX, worldY, cellSize);
 }
 
-export function findEntityAtWorldPointInEntities(
+// Topmost point-hit under the pointer: higher render layer wins, ties broken
+// by later render order (the entity drawn on top). `containsPoint` defaults to
+// the exact-body test; command targeting passes the slightly padded variant.
+// Both callers had this identical sort/pick body; only the point test differed.
+function topPointHit(
   entities: ProjectedEntityView[],
   worldX: number,
   worldY: number,
   cellSize: number,
+  containsPoint?: (
+    entity: ProjectedEntityView,
+    pointWorldX: number,
+    pointWorldY: number,
+    pointCellSize: number,
+  ) => boolean,
 ): ProjectedEntityView | null {
-  return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize)
+  return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize, containsPoint)
     .sort((left, right) => {
       const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
       if (layerDelta !== 0) {
@@ -303,27 +313,22 @@ export function findEntityAtWorldPointInEntities(
     })[0]?.entity ?? null;
 }
 
+export function findEntityAtWorldPointInEntities(
+  entities: ProjectedEntityView[],
+  worldX: number,
+  worldY: number,
+  cellSize: number,
+): ProjectedEntityView | null {
+  return topPointHit(entities, worldX, worldY, cellSize);
+}
+
 export function findCommandTargetEntityAtWorldPointInEntities(
   entities: ProjectedEntityView[],
   worldX: number,
   worldY: number,
   cellSize: number,
 ): ProjectedEntityView | null {
-  return getIndexedPointHitCandidates(
-    entities,
-    worldX,
-    worldY,
-    cellSize,
-    isWorldPointInsideCommandTargetEntity,
-  )
-    .sort((left, right) => {
-      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
-      if (layerDelta !== 0) {
-        return layerDelta;
-      }
-
-      return right.index - left.index;
-    })[0]?.entity ?? null;
+  return topPointHit(entities, worldX, worldY, cellSize, isWorldPointInsideCommandTargetEntity);
 }
 
 export function findEntitiesAtWorldPointInEntities(
