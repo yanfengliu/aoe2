@@ -2,58 +2,19 @@ import type { ProjectedEntityView, UnitType } from '../../game/simulation/types'
 import { unitRole } from '../roles/unitRole';
 import {
   contactShadow,
-  makePart,
   shade,
   VOXEL_COLORS,
   type VoxelPart,
-  type VoxelSurface,
 } from './aoeVoxelRecipeTypes';
 import {
   animateUnitParts,
   phaseForUnitIdentity,
   type AoeUnitAnimationState,
 } from './aoeVoxelUnitAnimation';
-
-interface UnitContext {
-  readonly entity: ProjectedEntityView;
-  readonly identity: string;
-  readonly ground: number;
-  readonly centerX: number;
-  readonly centerZ: number;
-  readonly scale: number;
-  readonly team: number;
-  readonly parts: VoxelPart[];
-}
-
-function add(
-  context: UnitContext,
-  suffix: string,
-  surface: VoxelSurface,
-  tint: number,
-  offsetX: number,
-  bottom: number,
-  offsetZ: number,
-  width: number,
-  height: number,
-  depth: number,
-  rotation: { readonly yaw?: number; readonly pitch?: number; readonly roll?: number } = {},
-): void {
-  const scale = context.scale;
-  context.parts.push(makePart(
-    context.entity,
-    context.identity,
-    suffix,
-    surface,
-    tint,
-    context.centerX + offsetX * scale,
-    context.ground + (bottom + height / 2) * scale,
-    context.centerZ + offsetZ * scale,
-    width * scale,
-    height * scale,
-    depth * scale,
-    rotation,
-  ));
-}
+import {
+  addUnitPart as add,
+  type UnitRecipeContext as UnitContext,
+} from './aoeVoxelUnitRecipeContext';
 
 function humanoid(
   context: UnitContext,

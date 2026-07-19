@@ -9,6 +9,7 @@ import { clamp01 } from './voxelMath';
 export type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
 import { unitAmbientAnimation } from './aoeVoxelUnitAmbientAnimation';
 import { poseUnitAttackParts } from './aoeVoxelUnitAttackAnimation';
+import { unitAttackRig } from './aoeVoxelUnitAttackRigs';
 import { sampleUnitAttack } from './aoeVoxelUnitAttackSampling';
 import {
   builderWorkPhase,
@@ -311,7 +312,9 @@ export function animateUnitParts(
   state: AoeUnitAnimationState,
 ): VoxelPart[] {
   if (entity.isMemory) return parts.map((part) => ({ ...part, animation: undefined }));
-  const role = unitRole(entity.entityType as UnitType);
+  const unitType = entity.entityType as UnitType;
+  const role = unitRole(unitType);
+  const attackRig = unitAttackRig(unitType);
   const scale = Math.max(0.48, entity.size);
   const normalizedState = normalizeAnimationDirection(state);
   const locomotionParts = orientUnitParts(parts, entity, role, normalizedState).map((part) => {
@@ -327,6 +330,7 @@ export function animateUnitParts(
   return poseUnitAttackParts(
     workedParts,
     role,
+    attackRig,
     normalizedState,
     scale,
     entity.x + 0.5,
@@ -336,7 +340,7 @@ export function animateUnitParts(
     const suffix = posed.key.slice(posed.key.lastIndexOf(':') + 1);
     return {
       ...posed,
-      animation: unitAmbientAnimation(suffix, role, normalizedState, scale),
+      animation: unitAmbientAnimation(suffix, role, normalizedState, scale, attackRig),
     };
   });
 }

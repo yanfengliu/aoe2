@@ -1,6 +1,10 @@
 import type { UnitRole } from '../roles/unitRole';
 import type { VoxelPartAnimation } from './aoeVoxelRecipeTypes';
-import { isUnitAttackControlledPart } from './aoeVoxelUnitAttackAnimation';
+import {
+  unitAttackRigForRole,
+  unitAttackRigControlsPart,
+  type UnitAttackRig,
+} from './aoeVoxelUnitAttackRigs';
 import { clamp01 } from './voxelMath';
 
 const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
@@ -60,6 +64,7 @@ export function unitAmbientAnimation(
   role: UnitRole,
   state: AmbientAnimationState,
   scale: number,
+  attackRig: UnitAttackRig = unitAttackRigForRole(role),
 ): VoxelPartAnimation | undefined {
   const base = ambientBodyMotion(state, scale);
   let animation: VoxelPartAnimation | undefined;
@@ -89,6 +94,6 @@ export function unitAmbientAnimation(
   } else {
     animation = base;
   }
-  if (!isUnitAttackControlledPart(suffix, role)) return animation;
+  if (!unitAttackRigControlsPart(attackRig, suffix)) return animation;
   return scaleMotion(animation, 1 - clamp01(state.ambientSuppressionWeight));
 }

@@ -181,6 +181,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     presentation; `aoeVoxelBuildingDetails.ts` owns the exhaustive concrete-type
     facade/prop layer appended to completed role recipes, keeping construction
     generic and using the same prepared parts for drawing and silhouette hits;
+    `aoeVoxelUnitRecipeContext.ts` centralizes scaled procedural part authorship,
+    while exhaustive per-`UnitType` descriptors in `aoeVoxelUnitAttackRigs.ts`
+    own controlled parts, pivots, and bounded melee reach and
+    `aoeVoxelUnitAttackGeometry.ts` owns their rigid transforms;
     `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to
     the authored impact keyframe and smooth recovery, while
     `aoeVoxelUnitAttackAnimation.ts` applies role-specific connected rigid-part

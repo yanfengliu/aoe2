@@ -1,3 +1,6 @@
+## 2026-07-19 (unit recipe and attack-rig extraction, no bump)
+- **Eight exact hashes guard the no-op seam.** Scaled part authorship, rigid attack geometry, and exhaustive per-unit controlled-part/pivot/reach descriptors are now separate modules, ready for concrete weapons without changing one existing idle, moving, working, striking, recovering, or memory recipe across all 34 types. Gates: 2,181 unit/2 skips (291 files), typecheck, lint, 569-module build; independent review recorded in the detailed devlog.
+
 ## 2026-07-19 (concrete building detail, v0.3.5)
 - **Shared mass, concrete identity.** Every completed building keeps its readable role silhouette but gains a bounded type-specific facade or working-prop signature; construction remains intentionally generic, transformed detail corners stay inside authoritative footprints, and presented instance matrices equal silhouette-hit matrices. Review caught a terminal evidence fixture; a RED liveness test plus inert hidden opponent now keep it running. The matched all-18 world pair changed 4,148/864,000 pixels (0.4801%) with no extra material, batch, or draw. Gates: 2,180 unit/2 skips (290 files), typecheck, lint, 566-module build; two independent audits approved.
 
