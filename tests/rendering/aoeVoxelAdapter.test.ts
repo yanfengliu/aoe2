@@ -217,6 +217,7 @@ describe('AoeVoxelAdapter instance projection', () => {
     expect(snapshot.batches.map((batch) => batch.key)).toEqual([
       'aoe2:batch:matte-parts', 'aoe2:batch:matte-animated-parts',
       'aoe2:batch:metal-parts', 'aoe2:batch:metal-animated-parts',
+      'aoe2:batch:water-parts', 'aoe2:batch:water-animated-parts',
       'aoe2:batch:shadow-parts',
       'aoe2:batch:memory-parts',
       'aoe2:batch:ui-parts',

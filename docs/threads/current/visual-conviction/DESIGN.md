@@ -12,7 +12,7 @@ Every visible slice is test-first, stays under the 500-LOC cap through focused m
 
 ## Art direction
 
-Trees use several strong silhouettes and natural palette families rather than one jittered stamp. Terrain gains material-scale marks, edge strata, shoreline foam, and deterministic color variation without pretending flat simulation terrain has raised collision. Water uses shallow geometry, low-roughness material, phase-offset wave crests, and bright reflected-sky cues; literal scene-mirror rendering is a separate performance-heavy feature and is not implied by this slice. Buildings share coherent masonry, timber, roof, door, and window grammar while major types retain unmistakable props. Units share body construction but choose per-type armor and equipment profiles whose animated attack rig matches the weapon shown.
+Trees use several strong silhouettes and natural palette families rather than one jittered stamp. Terrain gains material-scale flecks, litter, logs, strata, stone clusters, shoreline foam, and deterministic color variation without pretending flat simulation terrain has raised collision. Water uses shallow geometry, low-roughness material, phase-offset wave crests, and bright reflected-sky cues; literal scene-mirror rendering is a separate performance-heavy feature and is not implied by this slice. Buildings share coherent masonry, timber, roof, door, and window grammar while major types retain unmistakable props. Units share body construction but choose per-type armor and equipment profiles whose animated attack rig matches the weapon shown.
 
 ## Non-goals
 

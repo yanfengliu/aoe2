@@ -382,6 +382,7 @@ export {
 
 export {
   createTerrainShowcaseFixture,
+  createTerrainWaterMotionFixture,
 } from './terrainShowcase';
 
 export {

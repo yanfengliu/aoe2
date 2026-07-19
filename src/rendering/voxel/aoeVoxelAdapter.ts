@@ -304,7 +304,7 @@ export class AoeVoxelAdapter {
           maxResources: 16,
           maxPaletteEntries: 4_096,
           maxChunks: 4_096,
-          maxBatches: 7,
+          maxBatches: 9,
           maxVoxelsPerChunk: AOE_TERRAIN_CHUNK_SIZE * AOE_TERRAIN_CHUNK_SIZE * 64,
           maxGeometryVertices: 1_024,
           maxGeometryIndices: 3_072,

@@ -57,10 +57,10 @@ test.describe('voxel world renderer', () => {
       presentedEpoch: 'aoe2:bridge:0',
       chunks: 12,
       visibleChunks: 12,
-      materialResources: 6,
+      materialResources: 7,
       geometryResources: 1,
-      instanceBatches: 7,
-      animatedBatches: 2,
+      instanceBatches: 9,
+      animatedBatches: 3,
       contextLosses: 0,
       contextRestorations: 0,
     });

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.4 - 2026-07-19
+
+### Changed
+
+- **Terrain has richer material detail, and water now moves and catches the light.** Grass gains pale flecks and tufts, forest ground gains leaf litter and fallen logs, and hills gain strata and stone clusters. Water uses spatially phased wave crests, darker ripples, pale sky-and-sun reflection cues, and foam where it meets land. These procedural details are deterministic, freeze with simulation time, remain hidden under fog, and do not change terrain occupancy or picking. The reflection is a restrained lit-material cue rather than a mirrored second scene.
+
 ## 0.3.3 - 2026-07-19
 
 ### Changed

@@ -72,7 +72,7 @@ describe('AoeVoxelAdapter occlusion silhouettes', () => {
     expect(uiBatch).toBeDefined();
     expect(occlusionKeys.every((key) => uiBatch!.instanceKeys.includes(key))).toBe(true);
 
-    expect(snapshot.batches.length).toBeLessThanOrEqual(7);
+    expect(snapshot.batches.length).toBeLessThanOrEqual(9);
     expect(adapter.latestOccludedUnits()).toEqual([
       { id: 7, x: 7, y: 7, entityType: 'villager' },
     ]);

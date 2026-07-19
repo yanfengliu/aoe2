@@ -236,6 +236,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
   chunk meshing, bounded injected-time rigid-instance playback, Three resource
   presentation, capture, metrics, and disposal.
   AoE concepts and authoritative state never cross that package boundary.
+- AoE keeps mixed terrain in opaque palette chunks and layers deterministic low-profile detail through its own rigid-instance recipes. Water owns a dedicated low-roughness standard-material surface with static and animated batches; the static lane is the budget-overflow fallback, and neither lane enters entity hit state or changes ground-plane terrain picking.
 - The DOM HUD is a pure consumer of render frames and selection state. It emits
   commands through the same seam as right-click orders from the voxel view.
 - Content flows one-way: design CSVs under `design/stats/*.csv` are normalized at

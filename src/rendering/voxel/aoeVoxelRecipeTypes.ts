@@ -1,6 +1,6 @@
 import type { ProjectedEntityView } from '../../game/simulation/types';
 
-export type VoxelSurface = 'matte' | 'metal' | 'shadow' | 'memory' | 'ui';
+export type VoxelSurface = 'matte' | 'metal' | 'water' | 'shadow' | 'memory' | 'ui';
 
 export interface VoxelPartAnimation {
   readonly periodMs: number;
@@ -64,7 +64,9 @@ export const VOXEL_COLORS = {
   steel: 0xb9c2c1,
   steelDark: 0x687473,
   gold: 0xd9ae3d,
+  waterDark: 0x315f72,
   waterGlint: 0x70acc2,
+  waterReflection: 0xb8e2e8,
   window: 0x76979b,
   berry: 0x8b3352,
 } as const;

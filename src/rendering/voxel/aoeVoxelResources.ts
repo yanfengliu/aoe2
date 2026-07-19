@@ -20,6 +20,7 @@ export const CUBE_GEOMETRY_KEY = 'aoe2:geometry:centered-cube';
 const MATERIAL_KEYS = {
   matte: 'aoe2:material:matte',
   metal: 'aoe2:material:metal',
+  water: 'aoe2:material:water',
   shadow: 'aoe2:material:shadow',
   memory: 'aoe2:material:memory',
   ui: 'aoe2:material:ui',
@@ -28,6 +29,7 @@ const MATERIAL_KEYS = {
 const SURFACES = [
   'matte',
   'metal',
+  'water',
   'shadow',
   'memory',
   'ui',
@@ -58,6 +60,7 @@ const MATERIALS: readonly MaterialResourceV1[] = [
   material(TERRAIN_MATERIAL_KEY, { vertexColors: true }),
   material(MATERIAL_KEYS.matte),
   material(MATERIAL_KEYS.metal, { shading: 'standard', roughness: 0.48, metalness: 0.5 }),
+  material(MATERIAL_KEYS.water, { shading: 'standard', roughness: 0.18, metalness: 0.06 }),
   material(MATERIAL_KEYS.shadow, {
     shading: 'unlit',
     transparent: true,
@@ -157,7 +160,10 @@ function identityOf(part: VoxelPart): string {
 function enabledAnimationKeys(parts: readonly VoxelPart[]): ReadonlySet<string> {
   const groups = new Map<string, VoxelPart[]>();
   for (const part of parts) {
-    if (!part.animation || (part.surface !== 'matte' && part.surface !== 'metal')) continue;
+    if (
+      !part.animation
+      || (part.surface !== 'matte' && part.surface !== 'metal' && part.surface !== 'water')
+    ) continue;
     const identity = identityOf(part);
     const group = groups.get(identity) ?? [];
     group.push(part);
@@ -215,7 +221,7 @@ export function makePartBatches(
       .filter((part) => !enabled.has(part.key))
       .map((part) => part.animation ? { ...part, animation: undefined } : part);
     batches.push(makeBatch(surface, 'static', staticParts, revision));
-    if (surface === 'matte' || surface === 'metal') {
+    if (surface === 'matte' || surface === 'metal' || surface === 'water') {
       batches.push(makeBatch(
         surface,
         'animated',

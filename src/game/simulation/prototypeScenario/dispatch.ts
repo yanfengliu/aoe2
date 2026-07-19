@@ -206,6 +206,7 @@ import {
   createTrebuchetPackFixture,
   createTrebuchetVsBuildingFixture,
   createTerrainShowcaseFixture,
+  createTerrainWaterMotionFixture,
   createUnitShowcaseFixture,
   createUnitSharingFixture,
   createVillagerNoWoodDropoffFixture,
@@ -374,6 +375,7 @@ const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory> = new Map<string,
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
   ['terrain-showcase-fixture', createTerrainShowcaseFixture],
+  ['terrain-water-motion-fixture', createTerrainWaterMotionFixture],
   // M7 combat/gather-feedback: a visual-only showcase with a selectable lone
   // villager (pulse) + an adjacent melee knot that auto-fights (hit flash).
   ['feedback-showcase-fixture', createFeedbackShowcaseFixture],

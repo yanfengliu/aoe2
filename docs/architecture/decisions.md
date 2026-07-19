@@ -489,3 +489,18 @@ Consequences:
 - Head-on pairs and longer occupied loops may pause for one learning tick, then make deterministic progress without a persistent fairness token.
 - Save/load and replay retain the last attempted leg and its provenance through four optional component fields (direction X/Y, intent key, attempt tick) without a schema-version bump; old saves learn them on first use.
 - Autonomous scout wandering and herdable drift remain outside this layer, and long-term bidirectional fairness, formation regrouping, and idle-blocker timeouts remain separate work.
+
+## KAD-0027 - Water reflection is an AoE-owned material cue, not a mirrored scene
+
+Date: 2026-07-19.
+Status: Active.
+
+Context: convincing water needs visible motion and light response, but pinned Voxel 0.1.4 exposes only unlit, Lambert, or standard materials with roughness and metalness; it has no texture-map, normal-map, environment-map, transparent mixed-chunk, or planar-reflection contract. A Three `Reflector` would create a second scene pass plus lifecycle, context-loss, performance, and presented-state coordination outside the reusable snapshot boundary.
+
+Decision: retain one opaque palette-material terrain chunk per mixed chunk and layer sparse AoE-authored water instances above it. A dedicated opaque low-roughness standard `water` surface owns static ripple/reflection strips and spatially phased animated crests. Its static and animated batches are always declared, share the existing bounded instance-animation contract, and degrade excess crests into static matrices. Visible land adjacency may add matte shoreline foam; no terrain detail enters entity hit state.
+
+Consequences:
+- The renderer declares seven materials and nine instance batches; scenes with visible animated units plus water may activate three animated batches.
+- Equal displayed simulation time freezes water, pause and replay use the existing monotonic presentation clock, and coordinate-derived phase keeps reconstruction deterministic.
+- The effect reflects the daylight rig as a material cue but does not mirror buildings, units, terrain, or the sky into a second framebuffer; true reflection remains a separate engine contract and performance decision.
+- Terrain chunks, occupancy, fog authority, ground-plane picking, saves, replays, and the dense uniform-terrain raycast boundary remain unchanged.

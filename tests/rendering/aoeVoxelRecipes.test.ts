@@ -389,8 +389,10 @@ describe('AoE voxel resource and terrain recipes', () => {
     const forward = createTerrainDetailParts(cells);
     const reverse = createTerrainDetailParts([...cells].reverse());
     expect(forward).toEqual(reverse);
-    expectValidParts(forward, 3, 30);
-    expect(forward.some((part) => part.key.includes('water-glint'))).toBe(true);
+    // The adversarial checkerboard exercises four foam edges around isolated
+    // water cells; real contiguous shorelines reuse long boundary runs.
+    expectValidParts(forward, 3, 100);
+    expect(forward.some((part) => part.key.includes('water-ripple'))).toBe(true);
   });
 
   it('encodes rotated thin parts as non-axis-aligned finite matrices', () => {

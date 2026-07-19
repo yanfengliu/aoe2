@@ -71,3 +71,25 @@ export function createTerrainShowcaseFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+/** Two inert opponents keep displayed simulation time available for wave-motion proof. */
+export function createTerrainWaterMotionFixture(seed: string): PrototypeScenario {
+  const showcase = createTerrainShowcaseFixture(seed);
+  return {
+    ...showcase,
+    starts: [
+      ...showcase.starts,
+      {
+        owner: 2,
+        townCenter: { x: 2, y: 30 },
+        startingAge: 'imperial-age',
+        startingResources: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
+        disableAi: true,
+      },
+    ],
+    spawns: [
+      ...showcase.spawns,
+      ownedSpawn('town-center', 2, 2, 30, { vision: 1 }),
+    ],
+  };
+}
