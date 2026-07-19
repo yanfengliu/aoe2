@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { createResourceParts } from '../../src/rendering/voxel/aoeVoxelResourceRecipes';
-import { voxelPartMaxY } from '../../src/rendering/voxel/aoeVoxelGeometry';
+import { voxelPartMaxY, voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
 import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 
 function resource(
@@ -104,7 +104,49 @@ function visiblyDiffers(
   return moved > 0.08 || resized > 0.08 || Math.abs(left.yaw - right.yaw) > 0.25;
 }
 
+type TreeForm = 'broadleaf' | 'conifer' | 'windswept';
+
+function treeForm(x: number, y: number): TreeForm {
+  const crowns = parts('tree', x, y).filter((part) => part.key.includes(':tree-crown-'));
+  const minX = Math.min(...crowns.map((part) => part.centerX - part.width / 2));
+  const maxX = Math.max(...crowns.map((part) => part.centerX + part.width / 2));
+  const top = Math.max(...crowns.map((part) => part.centerY + part.height / 2));
+  const centroidX = crowns.reduce((total, part) => total + part.centerX - (x + 0.5), 0) / crowns.length;
+  if (top > 2.3 && maxX - minX < 1.35) return 'conifer';
+  if (Math.abs(centroidX) > 0.18) return 'windswept';
+  return 'broadleaf';
+}
+
+function treeCanopyColorSignature(x: number, y: number): string {
+  return parts('tree', x, y)
+    .filter((part) => part.key.includes(':tree-crown-'))
+    .map((part) => part.tint.toString(16).padStart(6, '0'))
+    .join('|');
+}
+
 describe('resource visual variation (spec §14.5)', () => {
+  it('mixes broadleaf, conifer, and windswept tree forms in a deterministic cluster', () => {
+    expect(new Set(CELLS.map(([x, y]) => treeForm(x, y))))
+      .toEqual(new Set<TreeForm>(['broadleaf', 'conifer', 'windswept']));
+  });
+
+  it('uses at least three deterministic canopy color signatures in a cluster', () => {
+    const signatures = CELLS.map(([x, y]) => treeCanopyColorSignature(x, y));
+    expect(new Set(signatures).size).toBeGreaterThanOrEqual(3);
+    expect(signatures).toEqual(CELLS.map(([x, y]) => treeCanopyColorSignature(x, y)));
+  });
+
+  it('keeps rotated tree geometry inside the existing one-cell-radius presentation envelope', () => {
+    for (const [x, y] of CELLS) {
+      for (const part of parts('tree', x, y)) {
+        for (const corner of voxelPartWorldCorners(part)) {
+          expect(Math.abs(corner.x - (x + 0.5))).toBeLessThan(1);
+          expect(Math.abs(corner.z - (y + 0.5))).toBeLessThan(1);
+        }
+      }
+    }
+  });
+
   it('gives adjacent trees visibly different CANOPIES, not just trunk height', () => {
     // The pre-v0.2.10 recipe jittered only the trunk's height: every tree's
     // crown blocks were byte-identical, which is what made a forest read as

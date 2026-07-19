@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.3 - 2026-07-19
+
+### Changed
+
+- **Forests now mix recognizably different trees.** Trees deterministically vary between broadleaf, tall conifer, and wind-swept forms, with three natural green palettes and smaller per-tree differences inside each family. The arrangement is stable across every frame, save/load, and replay; resource amounts and occupied cells are unchanged, while recipe-driven presented picking remains synchronized with the visible forms.
+
 ## 0.3.2 - 2026-07-19
 
 ### Fixed

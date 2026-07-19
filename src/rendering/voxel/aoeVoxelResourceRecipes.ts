@@ -58,40 +58,78 @@ function vary(context: ResourceContext, seed: number, spread: number): number {
   return (hash01(context.entity.x, context.entity.y, seed) - 0.5) * 2 * spread;
 }
 
-function tree(context: ResourceContext): void {
-  // Trunk height and a slight whole-tree lean.
-  const jitter = 0.94 + vary(context, 11, 0.16);
-  const leanRoll = vary(context, 12, 0.07);
-  add(context, 'tree-trunk', 'matte', VOXEL_COLORS.timber, 0, 0, 0, 0.25, 1.22 * jitter, 0.25, { roll: leanRoll });
-  add(context, 'tree-trunk-light', 'matte', shade(VOXEL_COLORS.timber, 1.18), -0.08, 0.18, 0.13, 0.07, 0.75, 0.06, { roll: leanRoll });
-  // Canopy: each block gets its own offset, size, and yaw so no two trees
-  // share a silhouette. Bounds stay inside the cell (max |offset| + half
-  // width < 0.85) and the crown stack keeps its layered read.
-  const crownLift = 1 + vary(context, 20, 0.1);
+type TreeCanopyPalette = readonly [number, number, number, number];
+
+const TREE_CANOPY_PALETTES: readonly TreeCanopyPalette[] = [
+  [VOXEL_COLORS.foliageDark, VOXEL_COLORS.foliage, 0x477d43, VOXEL_COLORS.foliageLight],
+  [0x344b28, 0x566b35, 0x718346, 0x929b59],
+  [0x1e443a, 0x2b5b4b, 0x40745b, 0x609070],
+];
+
+function treeVariant(context: ResourceContext, seed: number, count: number): number {
+  return Math.min(count - 1, Math.floor(hash01(context.entity.x, context.entity.y, seed) * count));
+}
+
+function broadleafTree(context: ResourceContext, palette: TreeCanopyPalette): void {
+  const crownLift = 1 + vary(context, 20, 0.08);
   add(
-    context, 'tree-crown-left', 'matte', VOXEL_COLORS.foliageDark,
-    -0.32 + vary(context, 13, 0.1), (0.72 + vary(context, 21, 0.08)) * crownLift, 0.1 + vary(context, 14, 0.1),
-    0.78 + vary(context, 15, 0.12), 0.68 + vary(context, 22, 0.1), 0.72 + vary(context, 16, 0.12),
+    context, 'tree-crown-left', 'matte', palette[0],
+    -0.32 + vary(context, 13, 0.08), (0.72 + vary(context, 21, 0.07)) * crownLift, 0.1 + vary(context, 14, 0.08),
+    0.78 + vary(context, 15, 0.1), 0.68 + vary(context, 22, 0.08), 0.72 + vary(context, 16, 0.1),
     { yaw: vary(context, 17, 0.5) },
   );
   add(
-    context, 'tree-crown-right', 'matte', VOXEL_COLORS.foliage,
-    0.32 + vary(context, 18, 0.1), (0.82 + vary(context, 23, 0.08)) * crownLift, -0.08 + vary(context, 19, 0.1),
-    0.72 + vary(context, 24, 0.12), 0.72 + vary(context, 25, 0.1), 0.68 + vary(context, 26, 0.12),
+    context, 'tree-crown-right', 'matte', palette[1],
+    0.32 + vary(context, 18, 0.08), (0.82 + vary(context, 23, 0.07)) * crownLift, -0.08 + vary(context, 19, 0.08),
+    0.72 + vary(context, 24, 0.1), 0.72 + vary(context, 25, 0.08), 0.68 + vary(context, 26, 0.1),
     { yaw: vary(context, 27, 0.5) },
   );
   add(
-    context, 'tree-crown-center', 'matte', context.entity.tint,
-    vary(context, 28, 0.07), (1.02 + vary(context, 29, 0.09)) * crownLift, vary(context, 30, 0.07),
-    0.92 + vary(context, 31, 0.1), 0.78 + vary(context, 32, 0.1), 0.86 + vary(context, 33, 0.1),
+    context, 'tree-crown-center', 'matte', palette[2],
+    vary(context, 28, 0.06), (1.02 + vary(context, 29, 0.08)) * crownLift, vary(context, 30, 0.06),
+    0.92 + vary(context, 31, 0.08), 0.78 + vary(context, 32, 0.08), 0.86 + vary(context, 33, 0.08),
     { yaw: vary(context, 34, 0.5) },
   );
   add(
-    context, 'tree-crown-top', 'matte', VOXEL_COLORS.foliageLight,
-    -0.16 + vary(context, 35, 0.12), (1.55 + vary(context, 36, 0.1)) * crownLift, -0.08 + vary(context, 37, 0.12),
-    0.54 + vary(context, 38, 0.12), 0.42 + vary(context, 39, 0.1), 0.5 + vary(context, 40, 0.12),
+    context, 'tree-crown-top', 'matte', palette[3],
+    -0.14 + vary(context, 35, 0.1), (1.55 + vary(context, 36, 0.08)) * crownLift, -0.08 + vary(context, 37, 0.1),
+    0.54 + vary(context, 38, 0.1), 0.42 + vary(context, 39, 0.08), 0.5 + vary(context, 40, 0.1),
     { yaw: vary(context, 41, 0.6) },
   );
+}
+
+function coniferTree(context: ResourceContext, palette: TreeCanopyPalette): void {
+  // Four compact tiers narrow toward the crown, producing a tall evergreen
+  // profile without changing the part set consumed by silhouettes/picking.
+  add(context, 'tree-crown-left', 'matte', palette[0], vary(context, 51, 0.035), 0.62, vary(context, 52, 0.035), 1.08, 0.58, 0.98, { yaw: vary(context, 53, 0.18) });
+  add(context, 'tree-crown-right', 'matte', palette[1], vary(context, 54, 0.035), 1.03, vary(context, 55, 0.035), 0.84, 0.58, 0.78, { yaw: vary(context, 56, 0.18) });
+  add(context, 'tree-crown-center', 'matte', palette[2], vary(context, 57, 0.03), 1.43, vary(context, 58, 0.03), 0.62, 0.56, 0.58, { yaw: vary(context, 59, 0.18) });
+  add(context, 'tree-crown-top', 'matte', palette[3], vary(context, 60, 0.025), 1.82, vary(context, 61, 0.025), 0.36, 0.66, 0.34, { yaw: vary(context, 62, 0.18) });
+}
+
+function windsweptTree(context: ResourceContext, palette: TreeCanopyPalette): void {
+  // A low windward shoulder and rising leeward crown shift the canopy mass
+  // to one side. Extents remain within 0.85 cell units at full recipe scale.
+  const direction = hash01(context.entity.x, context.entity.y, 109) < 0.5 ? -1 : 1;
+  const offset = (value: number, seed: number): number => direction * (value + vary(context, seed, 0.035));
+  add(context, 'tree-crown-left', 'matte', palette[0], offset(0.12, 71), 0.72, 0.08 + vary(context, 72, 0.05), 0.66, 0.58, 0.68, { yaw: direction * 0.16 + vary(context, 73, 0.16) });
+  add(context, 'tree-crown-right', 'matte', palette[1], offset(0.38, 74), 0.91, -0.08 + vary(context, 75, 0.05), 0.62, 0.62, 0.62, { yaw: direction * 0.25 + vary(context, 76, 0.16) });
+  add(context, 'tree-crown-center', 'matte', palette[2], offset(0.48, 77), 1.18, 0.04 + vary(context, 78, 0.05), 0.58, 0.58, 0.56, { yaw: direction * 0.32 + vary(context, 79, 0.16) });
+  add(context, 'tree-crown-top', 'matte', palette[3], offset(0.58, 80), 1.49, -0.06 + vary(context, 81, 0.05), 0.38, 0.48, 0.4, { yaw: direction * 0.4 + vary(context, 82, 0.16) });
+}
+
+function tree(context: ResourceContext): void {
+  const form = treeVariant(context, 103, 3);
+  const palette = TREE_CANOPY_PALETTES[treeVariant(context, 108, TREE_CANOPY_PALETTES.length)]!;
+  const trunkHeight = [1.2, 1.52, 1.3][form]! * (1 + vary(context, 11, 0.06));
+  const leanRoll = form === 2
+    ? (hash01(context.entity.x, context.entity.y, 109) < 0.5 ? -1 : 1) * (0.1 + vary(context, 12, 0.025))
+    : vary(context, 12, 0.055);
+  add(context, 'tree-trunk', 'matte', VOXEL_COLORS.timber, 0, 0, 0, form === 1 ? 0.22 : 0.25, trunkHeight, form === 1 ? 0.22 : 0.25, { roll: leanRoll });
+  add(context, 'tree-trunk-light', 'matte', shade(VOXEL_COLORS.timber, 1.18), -0.08, 0.18, 0.13, 0.07, trunkHeight * 0.62, 0.06, { roll: leanRoll });
+  if (form === 0) broadleafTree(context, palette);
+  else if (form === 1) coniferTree(context, palette);
+  else windsweptTree(context, palette);
 }
 
 function mine(context: ResourceContext, kind: 'gold-mine' | 'stone-mine'): void {
