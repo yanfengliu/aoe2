@@ -178,7 +178,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
     interaction state into snapshots, accepts prior positions only from the
     exact adjacent simulation tick, and drives AoE-owned smooth root/facing
-    presentation; `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to
+    presentation; `aoeVoxelBuildingDetails.ts` owns the exhaustive concrete-type
+    facade/prop layer appended to completed role recipes, keeping construction
+    generic and using the same prepared parts for drawing and silhouette hits;
+    `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to
     the authored impact keyframe and smooth recovery, while
     `aoeVoxelUnitAttackAnimation.ts` applies role-specific connected rigid-part
     pivots and `aoeVoxelUnitAmbientAnimation.ts` suppresses competing ambient

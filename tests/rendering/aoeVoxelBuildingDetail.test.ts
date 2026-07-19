@@ -7,8 +7,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { BuildingType, ProjectedEntityView } from '../../src/game/simulation/types';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
+import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
 import { createBuildingParts } from '../../src/rendering/voxel/aoeVoxelBuildingRecipes';
-import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
+import { voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
+import {
+  matrixForPart,
+  type VoxelPart,
+} from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 
 function building(entityType: BuildingType, variant: 'complete' | 'construction' = 'complete'): ProjectedEntityView {
   const footprint = AUTHORITATIVE_BUILDING_FOOTPRINTS[entityType];
@@ -48,7 +53,42 @@ const WALLED: readonly BuildingType[] = [
   'barracks', 'blacksmith', 'market', 'monastery', 'castle',
 ];
 
+const TYPE_DETAIL_SIGNATURES = {
+  'town-center': ['detail-town-center-roof-ridge', 'detail-town-center-bell'],
+  house: ['detail-house-roof-ridge', 'detail-house-shutter-left'],
+  mill: ['detail-mill-blade-hub', 'detail-mill-grain-sack-left'],
+  'lumber-camp': ['detail-lumber-camp-log-low', 'detail-lumber-camp-axe-head'],
+  'mining-camp': ['detail-mining-camp-ore-bin', 'detail-mining-camp-ore-glint'],
+  barracks: ['detail-barracks-shield', 'detail-barracks-spear-head'],
+  'watch-tower': ['detail-watch-tower-arrow-slit-front', 'detail-watch-tower-brace'],
+  stable: ['detail-stable-hitch-rail', 'detail-stable-hay-bale'],
+  'archery-range': ['detail-archery-range-bow-rack', 'detail-archery-range-arrow-head'],
+  blacksmith: ['detail-blacksmith-chimney-band', 'detail-blacksmith-tongs-left'],
+  market: ['detail-market-pot-left', 'detail-market-counter-goods'],
+  'siege-workshop': ['detail-siege-workshop-spare-wheel', 'detail-siege-workshop-axle'],
+  monastery: ['detail-monastery-rose-window', 'detail-monastery-buttress-left'],
+  castle: ['detail-castle-portcullis-bar-left', 'detail-castle-arrow-slit'],
+  wonder: ['detail-wonder-relief-left', 'detail-wonder-finial'],
+  'stone-wall': ['detail-stone-wall-course-low', 'detail-stone-wall-cap'],
+  'palisade-wall': ['detail-palisade-wall-lashing', 'detail-palisade-wall-brace'],
+  farm: ['detail-farm-scarecrow-post', 'detail-farm-scarecrow-head'],
+} as const satisfies Record<BuildingType, readonly string[]>;
+
 describe('building detail pass (spec §14.5)', () => {
+  it('gives every concrete building type a recognizable bounded detail set', () => {
+    for (const entityType of Object.keys(TYPE_DETAIL_SIGNATURES) as BuildingType[]) {
+      const buildingSuffixes = suffixes(entityType);
+      const detailSuffixes = buildingSuffixes.filter((suffix) => suffix.startsWith('detail-'));
+
+      expect(buildingSuffixes, entityType).toEqual(
+        expect.arrayContaining([...TYPE_DETAIL_SIGNATURES[entityType]]),
+      );
+      expect(detailSuffixes.length, `${entityType} detail instance budget`).toBeGreaterThanOrEqual(2);
+      expect(detailSuffixes.length, `${entityType} detail instance budget`).toBeLessThanOrEqual(7);
+      expect(parts(entityType).length, `${entityType} total instance budget`).toBeLessThanOrEqual(48);
+    }
+  });
+
   for (const entityType of WALLED) {
     it(`gives ${entityType} masonry or timber relief courses`, () => {
       expect(
@@ -62,16 +102,16 @@ describe('building detail pass (spec §14.5)', () => {
     for (const entityType of Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS) as BuildingType[]) {
       const footprint = AUTHORITATIVE_BUILDING_FOOTPRINTS[entityType];
       for (const part of parts(entityType)) {
-        const minX = 8 - 0.02;
-        const maxX = 8 + footprint.width + 0.02;
-        const minZ = 8 - 0.02;
-        const maxZ = 8 + footprint.height + 0.02;
-        expect(part.centerX - part.width / 2, `${entityType}:${part.key} escapes -x`)
-          .toBeGreaterThanOrEqual(minX - 0.25);
-        expect(part.centerX + part.width / 2, `${entityType}:${part.key} escapes +x`)
-          .toBeLessThanOrEqual(maxX + 0.25);
-        expect(part.centerZ - part.depth / 2).toBeGreaterThanOrEqual(minZ - 0.25);
-        expect(part.centerZ + part.depth / 2).toBeLessThanOrEqual(maxZ + 0.25);
+        for (const corner of voxelPartWorldCorners(part)) {
+          expect(corner.x, `${entityType}:${part.key} escapes -x`)
+            .toBeGreaterThanOrEqual(8 - 0.02);
+          expect(corner.x, `${entityType}:${part.key} escapes +x`)
+            .toBeLessThanOrEqual(8 + footprint.width + 0.02);
+          expect(corner.z, `${entityType}:${part.key} escapes -z`)
+            .toBeGreaterThanOrEqual(8 - 0.02);
+          expect(corner.z, `${entityType}:${part.key} escapes +z`)
+            .toBeLessThanOrEqual(8 + footprint.height + 0.02);
+        }
       }
     }
   });
@@ -85,6 +125,12 @@ describe('building detail pass (spec §14.5)', () => {
     expect(suffixes('house').length).toBeGreaterThan(
       parts('house', 'construction').length,
     );
+    for (const entityType of Object.keys(TYPE_DETAIL_SIGNATURES) as BuildingType[]) {
+      expect(
+        parts(entityType, 'construction').some((part) => part.key.includes(':detail-')),
+        `${entityType} construction gained completed facade details`,
+      ).toBe(false);
+    }
   });
 
   it('is deterministic', () => {
@@ -96,6 +142,26 @@ describe('building detail pass (spec §14.5)', () => {
   it('adds no shadow-surface parts beyond the authored contact shadow', () => {
     for (const entityType of WALLED) {
       expect(parts(entityType).filter((part) => part.surface === 'shadow')).toHaveLength(1);
+    }
+  });
+
+  it('uses the exact presented detail geometry for building picking', () => {
+    const entity = building('castle');
+    const expected = parts('castle').filter((part) => part.surface !== 'shadow');
+    const adapter = new AoeVoxelAdapter();
+    const snapshot = adapter.createSnapshot([entity], 0);
+    const prepared = adapter.latestHitState()!.entities[0]!;
+
+    expect(prepared.parts).toEqual(expected);
+    for (const detail of prepared.parts.filter((part) => part.key.includes(':detail-'))) {
+      const batch = snapshot.batches.find((candidate) => candidate.instanceKeys.includes(detail.key));
+      expect(batch, detail.key).toBeDefined();
+      const instanceIndex = batch!.instanceKeys.indexOf(detail.key);
+      const presentedMatrix = batch!.matrices.slice(instanceIndex * 16, instanceIndex * 16 + 16);
+      matrixForPart(detail).forEach((value, index) => {
+        expect(presentedMatrix[index], `${detail.key} matrix[${String(index)}]`)
+          .toBeCloseTo(value, 5);
+      });
     }
   });
 });

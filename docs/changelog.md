@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.5 - 2026-07-19
+
+### Changed
+
+- **Every completed building now carries type-specific architectural or working detail.** Shared role silhouettes remain readable at RTS zoom, while Town Centers gain a ridge and bell, houses shutters, camps stockpiles and tools, military buildings their own racks or yard equipment, monasteries a rose window and buttresses, castles a portcullis, walls material-specific courses or lashings, and farms a scarecrow. The details are deterministic, stay inside each building footprint, and participate in the same presented silhouette picking as the visible geometry; construction scaffolds and gameplay are unchanged.
+
 ## 0.3.4 - 2026-07-19
 
 ### Changed

@@ -1,5 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
+import { createBuildingDetailParts } from './aoeVoxelBuildingDetails';
 import {
   contactShadow,
   makePart,
@@ -383,5 +384,6 @@ export function createBuildingParts(
     case 'tower': tower(context); break;
     case 'wall': wall(context); break;
   }
+  context.parts.push(...createBuildingDetailParts(entity, identity, ground));
   return context.parts;
 }

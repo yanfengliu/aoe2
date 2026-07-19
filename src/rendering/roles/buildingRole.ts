@@ -5,10 +5,10 @@ import type { BuildingType } from '../../game/simulation/types';
 // rounded-rect body + roof triangle regardless of type, so a Town Center, a
 // House, a Castle, and a Wonder were indistinguishable except by footprint size
 // and owner colour. This module is the render-OWNED mapping from a concrete
-// `BuildingType` to a READABLE silhouette ROLE — the building analogue of
-// `unitRole`. 18 distinct silhouettes would be unreadable at this zoom, so we
-// group by the AoE2-meaningful glance distinction (landmark vs home vs
-// production hall vs drop-site vs defensive vs wall vs farm, …).
+// `BuildingType` to a READABLE base-silhouette ROLE — the building analogue
+// of `unitRole`. The shared role establishes the large readable mass at RTS
+// zoom; aoeVoxelBuildingDetails then distinguishes every concrete type with
+// smaller facade, equipment, stockpile, or landmark props.
 
 export type BuildingRole =
   | 'town-center' // the player's iconic landmark hall

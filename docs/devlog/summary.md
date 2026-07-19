@@ -1,3 +1,6 @@
+## 2026-07-19 (concrete building detail, v0.3.5)
+- **Shared mass, concrete identity.** Every completed building keeps its readable role silhouette but gains a bounded type-specific facade or working-prop signature; construction remains intentionally generic, transformed detail corners stay inside authoritative footprints, and presented instance matrices equal silhouette-hit matrices. Review caught a terminal evidence fixture; a RED liveness test plus inert hidden opponent now keep it running. The matched all-18 world pair changed 4,148/864,000 pixels (0.4801%) with no extra material, batch, or draw. Gates: 2,180 unit/2 skips (290 files), typecheck, lint, 566-module build; two independent audits approved.
+
 ## 2026-07-19 (terrain materials and moving water, v0.3.4)
 - **Land reads as material and water is alive.** Deterministic grass flecks/tufts, forest litter/logs, hill strata/rocks, shoreline foam, dark ripples, low-roughness reflection cues, and spatially phased wave crests layer over unchanged opaque terrain chunks. Equal displayed time freezes water; fog, ground picking, occupancy, saves, and replays remain authoritative. Focused proof: 65/65; fixed evidence changed 20,591/480,000 world pixels (4.2898%) and 1,631/384,000 water-motion pixels (0.4247%). Gates: 2,175 unit/2 skips (289 files), typecheck, lint, 565-module build.
 
