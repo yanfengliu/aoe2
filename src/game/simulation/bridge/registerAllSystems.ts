@@ -28,6 +28,7 @@ import { registerWildlifeCombatSystem } from './systems/wildlifeCombatSystem';
 import { registerWinConditionResolverSystem } from './systems/winConditionResolverSystem';
 import { registerWonderCountdownSystem } from './systems/wonderCountdownSystem';
 import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
+import { createMovementTrafficOps } from './movementTrafficOps';
 import { syncVisibilitySources } from './visibility';
 import {
   createPlayerCommandVisibilityRevision,
@@ -142,6 +143,27 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     syncVisibilitySources(world, visibility, accessor, visibilityFingerprints, visibilityCell);
   };
   const playerCommandVisibilityRevision = createPlayerCommandVisibilityRevision(world);
+  const { resolveMovementTraffic } = createMovementTrafficOps({
+    world,
+    accessor,
+    isCellPassableForUnit,
+  });
+  const moveUnitWithTraffic: typeof moveUnitOneSubgridStep = (
+    entityId,
+    nextStep,
+    activeWorld = world,
+    stepPerTick,
+  ) => {
+    const decision = resolveMovementTraffic(entityId, nextStep, activeWorld);
+    if (decision.kind === 'wait') return null;
+    return moveUnitOneSubgridStep(
+      entityId,
+      nextStep,
+      activeWorld,
+      stepPerTick,
+      decision.laneAxis,
+    );
+  };
   const recordUnitAttack = createUnitAttackRecorder({
     world,
     state,
@@ -223,7 +245,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findBuildingApproachPlan,
     moveUnitOneSubgridStep: (...args) => {
       playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
-        moveUnitOneSubgridStep(...args);
+        moveUnitWithTraffic(...args);
       });
     },
     isUnitAtTarget,
@@ -277,7 +299,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     distanceToBuilding,
     findBuildingApproachPlan,
     findUnitRangePlan,
-    moveUnitOneSubgridStep,
+    moveUnitOneSubgridStep: moveUnitWithTraffic,
     setPositionAndSyncOccupancy,
     applyMonkHeal,
     applyMonkConvert,
@@ -324,7 +346,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findResourceApproachPlan,
     isHarvestableResource,
     isUnitAtTarget,
-    moveUnitOneSubgridStep,
+    moveUnitOneSubgridStep: moveUnitWithTraffic,
     destroyResourceEntity,
     findNearestDropOffBuilding,
     findBuildingApproachPlan,

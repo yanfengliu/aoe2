@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.2 - 2026-07-19
+
+### Fixed
+
+- **Commanded and task-driven units now form a queue through one-cell passages.** Units following move, attack, build, repair, monk, and villager-work travel no longer fan across subcell slots and appear to wrap around the unit in front. The front unit advances while followers keep their terrain route, wait in a centered line through straight passages and bends, and retry on the next tick; a stable tie-break breaks fully occupied opposing-flow deadlocks. Buildings, resources, water, forest, and map bounds remain permanent route blockers that trigger normal path replanning; open terrain still supports multi-unit subcell spacing. Queue order, save/load, and replay remain deterministic.
+
 ## 0.3.1 - 2026-07-15
 
 ### Changed

@@ -66,6 +66,7 @@ export interface TransformOps {
     target: Position,
     activeWorld?: CivWorld,
     stepUnits?: number,
+    laneAxis?: import('./movementTrafficOps').MovementLaneAxis,
   ): Position | null;
   isUnitAtTarget(id: number, target: Position, activeWorld?: CivWorld): boolean;
   // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
@@ -283,6 +284,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     target: Position,
     activeWorld: CivWorld = world,
     stepUnits?: number,
+    laneAxis?: import('./movementTrafficOps').MovementLaneAxis,
   ): Position | null {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) return null;
@@ -318,9 +320,22 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       }
     }
 
-    const targetTransform = getUnitTargetTransformForPosition(id, target);
+    const targetTransform = laneAxis
+      ? getUnitTargetTransformForCell(id, target, { x: 0.5, y: 0.5 })
+      : getUnitTargetTransformForPosition(id, target);
+    const alignTarget = laneAxis === 'horizontal'
+      ? { ...transform, fineY: targetTransform.fineY }
+      : laneAxis === 'vertical'
+        ? { ...transform, fineX: targetTransform.fineX }
+        : targetTransform;
+    const needsLaneAlignment = alignTarget.fineX !== transform.fineX
+      || alignTarget.fineY !== transform.fineY;
     const nextTransform = clampUnitTransformToMap(
-      stepUnitTransformToward(transform, targetTransform, resolvedStepUnits),
+      stepUnitTransformToward(
+        transform,
+        needsLaneAlignment ? alignTarget : targetTransform,
+        resolvedStepUnits,
+      ),
     );
     const moved = nextTransform.fineX !== transform.fineX
       || nextTransform.fineY !== transform.fineY;

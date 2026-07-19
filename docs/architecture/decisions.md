@@ -474,3 +474,18 @@ Consequences:
 - Replay construction preserves an absent attack-feed slot in legacy recordings, including on later output ticks, so the world factory does not change the recorded snapshot contract. New live recordings and new-format replay snapshots enable the slot.
 - Role pose sampling, connected pivots, and target-facing behavior remain under `src/rendering/voxel/`; no AoE combat contract enters the sibling Voxel package.
 - Wildlife retaliation, gathering clips, projectile travel, and skeletal animation remain separate future work.
+
+## KAD-0026 - Narrow-choke traffic is local, directed, and cache-independent
+
+Date: 2026-07-19.
+Status: Active.
+
+Context: Units must remain soft traffic outside the global A* blocker graph, but one-cell passages cannot use ordinary subcell sharing without presenting followers wrapping around a leader. Inferring peer flow from the transient route cache breaks save/load parity, while inferring only from final targets can deadlock at detours, moving targets, head-on pairs, and longer fully occupied loops.
+
+Decision: Keep terrain, resources, buildings, water, forest, and bounds as the only global route blockers. A local commanded/task traffic layer recognizes straight and turning one-cell passages, centers the lane, and reserves at most one co-located origin per tick. Each participating unit additively persists its last actual cardinal traffic leg on `UnitTransformComponent`, refreshed even when it waits; legacy absent fields temporarily fall back to serialized intent. Acyclic followers wait without clearing their route, while a directed occupied-cell cycle admits only its lowest entity id to create an empty slot. The transient A* cache is never traffic authority.
+
+Consequences:
+- Same-direction followers queue instead of taking a long global detour or passing through lateral subcell slots.
+- Head-on pairs and longer occupied loops may pause for one learning tick, then make deterministic progress without a persistent fairness token.
+- Save/load and replay retain the last attempted leg and its provenance through four optional component fields (direction X/Y, intent key, attempt tick) without a schema-version bump; old saves learn them on first use.
+- Autonomous scout wandering and herdable drift remain outside this layer, and long-term bidirectional fairness, formation regrouping, and idle-blocker timeouts remain separate work.

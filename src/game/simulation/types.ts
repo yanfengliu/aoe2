@@ -1,3 +1,5 @@
+import type { UnitMovementPersistence } from './movementPersistenceTypes';
+
 export type TerrainKind = 'grass' | 'forest' | 'water' | 'hill';
 export type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 export type UnitType =
@@ -180,7 +182,7 @@ export interface VelocityComponent {
   dy: number;
 }
 
-export interface UnitTransformComponent {
+export interface UnitTransformComponent extends UnitMovementPersistence {
   fineX: number;
   fineY: number;
   // Persist the assigned occupancy destination separately from the moving fine
@@ -190,11 +192,6 @@ export interface UnitTransformComponent {
   // Preserve an authoritative no-slot result; rebuild it after numeric slots
   // so entity-id order cannot promote overflow units on load.
   occupancySlotOverflow?: true;
-  // Banked fractional movement entitlement in hundredths of a fine unit (the
-  // movementTechEffects carry accumulator). Written only while a unit moves at
-  // a speed percent ≠ 100 (e.g. Husbandry); pre-speed-model saves and un-teched
-  // units read `?? 0` — additive like pierceArmorBonus, no schema bump.
-  moveCarryHundredths?: number;
 }
 
 export interface VisionSourceComponent {

@@ -1,0 +1,322 @@
+// Local traffic arbitration for narrow passages. Global A* deliberately sees
+// only durable topology (terrain, resources, and buildings); this layer keeps
+// active friendly movers from using subcell slots to pass each other in
+// a one-cell choke. Decisions are derived from a tick-start snapshot so ECS
+// iteration order cannot decide who gets to enter first.
+
+import type { Position } from 'civ-engine';
+
+import type { GathererComponent, UnitComponent, UnitTransformComponent } from '../types';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { monkTasksCodec, unitCommandsCodec } from './bridgeStateSerialize';
+import type { GameWorld } from './pureHelpers';
+
+export type MovementLaneAxis = 'horizontal' | 'vertical';
+
+export type MovementTrafficDecision =
+  | { readonly kind: 'wait' }
+  | { readonly kind: 'proceed'; readonly laneAxis?: MovementLaneAxis };
+
+interface TrafficUnitSnapshot {
+  readonly id: number;
+  readonly owner: number;
+  readonly position: Position;
+  readonly fineX: number;
+  readonly fineY: number;
+  readonly activeIntent: boolean;
+  readonly direction: Position | null;
+  readonly recentAttempt: boolean;
+}
+
+interface TrafficIntent {
+  readonly key: string;
+  readonly target: Position | null;
+}
+
+interface MovementTrafficOpsDeps {
+  readonly world: GameWorld;
+  readonly accessor: BridgeStateAccessor;
+  readonly isCellPassableForUnit: (
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld: GameWorld,
+  ) => boolean;
+}
+
+function cardinalDirection(from: Position, to: Position): Position | null {
+  const dx = Math.sign(to.x - from.x);
+  const dy = Math.sign(to.y - from.y);
+  if (Math.abs(dx) + Math.abs(dy) !== 1) return null;
+  return { x: dx, y: dy };
+}
+
+function dominantDirection(from: Position, to: Position): Position | null {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (dx === 0 && dy === 0) return null;
+  return Math.abs(dx) >= Math.abs(dy)
+    ? { x: Math.sign(dx), y: 0 }
+    : { x: 0, y: Math.sign(dy) };
+}
+
+function samePosition(left: Position, right: Position): boolean {
+  return left.x === right.x && left.y === right.y;
+}
+
+function projection(unit: TrafficUnitSnapshot, direction: Position): number {
+  return unit.fineX * direction.x + unit.fineY * direction.y;
+}
+
+export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
+  resolveMovementTraffic(
+    unitId: number,
+    nextStep: Position,
+    activeWorld?: GameWorld,
+  ): MovementTrafficDecision;
+} {
+  const { world, accessor, isCellPassableForUnit } = deps;
+  let snapshotTick: number | null = null;
+  let snapshot: TrafficUnitSnapshot[] = [];
+  const attemptedDirections = new Map<number, Position>();
+  const originReservations = new Map<string, number>();
+
+  function trafficIntentFor(
+    id: number,
+    activeWorld: GameWorld,
+  ): TrafficIntent | null {
+    const command = accessor.get(unitCommandsCodec).get(id);
+    if (command) {
+      const targetRef = command.targetEntityRef ?? command.buildingRef;
+      return {
+        key: [
+          'command',
+          command.type,
+          command.target.x,
+          command.target.y,
+          targetRef?.id ?? '-',
+          targetRef?.generation ?? '-',
+        ].join(':'),
+        target: command.target,
+      };
+    }
+    const monkTask = accessor.get(monkTasksCodec).get(id);
+    if (monkTask) {
+      return {
+        key: [
+          'monk',
+          monkTask.kind,
+          monkTask.targetEntityRef.id,
+          monkTask.targetEntityRef.generation,
+        ].join(':'),
+        target: activeWorld.getComponent<Position>(monkTask.targetEntityRef.id, 'position') ?? null,
+      };
+    }
+    const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+    if (!gatherer) return null;
+    if (gatherer.task === 'to-resource' && gatherer.targetResourceId !== null) {
+      return {
+        key: `gather:resource:${gatherer.targetResourceId}`,
+        target: activeWorld.getComponent<Position>(gatherer.targetResourceId, 'position') ?? null,
+      };
+    }
+    if (gatherer.task === 'to-dropoff' && gatherer.dropOffBuildingId !== null) {
+      return {
+        key: `gather:dropoff:${gatherer.dropOffBuildingId}`,
+        target: activeWorld.getComponent<Position>(gatherer.dropOffBuildingId, 'position') ?? null,
+      };
+    }
+    if (gatherer.task === 'idle' && gatherer.hasExplicitGatherOrder) {
+      return { key: `gather:pending:${gatherer.desiredResource}`, target: null };
+    }
+    return null;
+  }
+
+  function snapshotForTick(activeWorld: GameWorld): readonly TrafficUnitSnapshot[] {
+    if (snapshotTick === activeWorld.tick) return snapshot;
+    snapshot = [];
+    attemptedDirections.clear();
+    originReservations.clear();
+    for (const id of activeWorld.query('position', 'unit', 'unitTransform')) {
+      const position = activeWorld.getComponent<Position>(id, 'position');
+      const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+      const transform = activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform');
+      if (!position || !unit || !transform) continue;
+      const intent = trafficIntentFor(id, activeWorld);
+      const attemptAge = transform.trafficAttemptTick === undefined
+        ? Number.POSITIVE_INFINITY
+        : activeWorld.tick - transform.trafficAttemptTick;
+      const rememberedIsCurrent = intent !== null
+        && transform.trafficIntentKey === intent.key
+        && attemptAge >= 0
+        && attemptAge <= 1;
+      const rememberedDirection = cardinalDirection(
+        { x: 0, y: 0 },
+        {
+          x: transform.trafficDirectionX ?? 0,
+          y: transform.trafficDirectionY ?? 0,
+        },
+      );
+      snapshot.push({
+        id,
+        owner: unit.owner,
+        position: { ...position },
+        fineX: transform.fineX,
+        fineY: transform.fineY,
+        activeIntent: intent !== null,
+        direction: rememberedIsCurrent
+          ? rememberedDirection
+          : intent?.target
+            ? dominantDirection(position, intent.target)
+            : null,
+        recentAttempt: rememberedIsCurrent && rememberedDirection !== null,
+      });
+    }
+    snapshot.sort((left, right) => left.id - right.id);
+    snapshotTick = activeWorld.tick;
+    return snapshot;
+  }
+
+  function narrowLaneAxis(
+    unitId: number,
+    current: Position,
+    nextStep: Position,
+    activeWorld: GameWorld,
+  ): MovementLaneAxis | null {
+    const direction = cardinalDirection(current, nextStep);
+    if (!direction) return null;
+    const hasBlockedFlanks = (cell: Position): boolean => {
+      const flanks = direction.x !== 0
+        ? [{ x: cell.x, y: cell.y - 1 }, { x: cell.x, y: cell.y + 1 }]
+        : [{ x: cell.x - 1, y: cell.y }, { x: cell.x + 1, y: cell.y }];
+      return flanks.every((flank) => (
+        !isCellPassableForUnit(unitId, flank.x, flank.y, activeWorld)
+      ));
+    };
+    // Checking both cells preserves a one-wide lane through a bend: the corner
+    // itself has an open flank (the outgoing leg), while the incoming or
+    // outgoing neighbour remains statically one cell wide.
+    const isNarrow = hasBlockedFlanks(current) || hasBlockedFlanks(nextStep);
+    if (!isNarrow) return null;
+    return direction.x !== 0 ? 'horizontal' : 'vertical';
+  }
+
+  function resolveMovementTraffic(
+    unitId: number,
+    nextStep: Position,
+    activeWorld: GameWorld = world,
+  ): MovementTrafficDecision {
+    const units = snapshotForTick(activeWorld);
+    const mover = units.find((unit) => unit.id === unitId);
+    if (!mover) return { kind: 'proceed' };
+    const direction = cardinalDirection(mover.position, nextStep);
+    if (!direction) return { kind: 'proceed' };
+    // Record the actual caller-selected leg even when its task became active
+    // after this tick's snapshot. Later callers then see a stable reservation
+    // instead of slipping through because their prior task state was idle.
+    attemptedDirections.set(unitId, direction);
+    const liveIntent = trafficIntentFor(unitId, activeWorld);
+    const liveTransform = activeWorld.getComponent<UnitTransformComponent>(unitId, 'unitTransform');
+    if (
+      liveTransform
+      && liveIntent
+      && (
+        liveTransform.trafficDirectionX !== direction.x
+        || liveTransform.trafficDirectionY !== direction.y
+        || liveTransform.trafficIntentKey !== liveIntent.key
+        || liveTransform.trafficAttemptTick !== activeWorld.tick
+      )
+    ) {
+      activeWorld.setComponent(unitId, 'unitTransform', {
+        ...liveTransform,
+        trafficDirectionX: direction.x,
+        trafficDirectionY: direction.y,
+        trafficIntentKey: liveIntent.key,
+        trafficAttemptTick: activeWorld.tick,
+      });
+    }
+    const laneAxis = narrowLaneAxis(unitId, mover.position, nextStep, activeWorld);
+    if (!laneAxis) return { kind: 'proceed' };
+
+    const trafficPeers = units.filter((unit) => (
+      unit.id !== mover.id
+      && unit.owner === mover.owner
+      && (unit.activeIntent || attemptedDirections.has(unit.id))
+    ));
+    const directionFor = (unit: TrafficUnitSnapshot): Position | null => (
+      attemptedDirections.get(unit.id) ?? unit.direction
+    );
+    const originKey = `${mover.owner}:${mover.position.x},${mover.position.y}`;
+    const existingReservation = originReservations.get(originKey);
+    if (existingReservation !== undefined && existingReservation !== mover.id) {
+      return { kind: 'wait' };
+    }
+    const nextCellPeers = trafficPeers.filter((unit) => samePosition(unit.position, nextStep));
+    if (nextCellPeers.length > 0) {
+      const trafficUnits = [mover, ...trafficPeers];
+      const nextFor = (unit: TrafficUnitSnapshot): Position | null => {
+        if (
+          unit.id !== mover.id
+          && !attemptedDirections.has(unit.id)
+          && !unit.recentAttempt
+        ) {
+          return null;
+        }
+        const unitDirection = unit.id === mover.id ? direction : directionFor(unit);
+        return unitDirection
+          ? { x: unit.position.x + unitDirection.x, y: unit.position.y + unitDirection.y }
+          : null;
+      };
+      const closeDependencies = (
+        current: TrafficUnitSnapshot,
+        visited: ReadonlySet<number>,
+      ): ReadonlySet<number> | null => {
+        const currentNext = nextFor(current);
+        if (!currentNext) return null;
+        const occupants = trafficUnits.filter((unit) => samePosition(unit.position, currentNext));
+        if (occupants.length === 0) return null;
+        const closedIds = new Set([current.id]);
+        for (const occupant of occupants) {
+          if (occupant.id === mover.id) continue;
+          // A side loop or shared occupant that does not close back through the
+          // caller is not releasable by admitting the caller.
+          if (visited.has(occupant.id)) return null;
+          const branch = closeDependencies(
+            occupant,
+            new Set([...visited, occupant.id]),
+          );
+          if (!branch) return null;
+          for (const id of branch) closedIds.add(id);
+        }
+        return closedIds;
+      };
+      const cycle = closeDependencies(mover, new Set([mover.id]));
+      // A normal occupied lane has no directed cycle, so its follower waits.
+      // A fully learned head-on pair or longer occupied loop admits only the
+      // stable lowest-id caller when every blocking branch closes back to it.
+      if (!cycle || mover.id !== Math.min(...cycle)) {
+        return { kind: 'wait' };
+      }
+    }
+
+    const coLocated = trafficPeers.filter((unit) => samePosition(unit.position, mover.position));
+    const crossFlow = coLocated.filter((unit) => {
+      const peerDirection = directionFor(unit);
+      return peerDirection !== null
+        && (peerDirection.x !== direction.x || peerDirection.y !== direction.y);
+    });
+    if (crossFlow.some((unit) => unit.id < mover.id)) return { kind: 'wait' };
+    const sameFlow = coLocated.filter((unit) => !crossFlow.includes(unit));
+    const moverProjection = projection(mover, direction);
+    const anotherHasPriority = sameFlow.some((unit) => {
+      const otherProjection = projection(unit, direction);
+      return otherProjection > moverProjection
+        || (otherProjection === moverProjection && unit.id < mover.id);
+    });
+    if (anotherHasPriority) return { kind: 'wait' };
+    originReservations.set(originKey, mover.id);
+    return { kind: 'proceed', laneAxis };
+  }
+
+  return { resolveMovementTraffic };
+}

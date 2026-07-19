@@ -188,6 +188,7 @@ export interface RegisterAllSystemsDeps {
     nextStep: Position,
     activeWorld?: CivWorld,
     stepPerTick?: number,
+    laneAxis?: import('./movementTrafficOps').MovementLaneAxis,
   ) => void;
   isUnitAtTarget: (
     unitId: number,
