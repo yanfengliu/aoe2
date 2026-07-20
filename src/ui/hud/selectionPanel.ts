@@ -7,10 +7,15 @@ import type {
   BuildableBuildingType,
   EconomyState,
   MarketActionType,
+  PlayerResources,
   ResearchableTechnologyType,
   SelectionState,
   TrainableUnitType,
 } from '../../game/simulation/types';
+import {
+  canAfford,
+  constructionCost,
+} from '../../game/simulation/prototypeEconomyRules';
 import {
   formatActionName,
   formatEntityName,
@@ -25,6 +30,7 @@ import {
   formatBuildTooltip,
   formatMarketActionTooltip,
   formatResearchTooltip,
+  formatResourceCost,
   formatTrainTooltip,
 } from './tooltips';
 import {
@@ -37,6 +43,7 @@ import {
   buildingGlyph,
   marketActionGlyph,
   researchGlyph,
+  resourceGlyph,
 } from './icons/glyphs';
 import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
@@ -48,21 +55,122 @@ export { renderSelectionIcons } from './selectionPanel/render';
 // replace — the "Build <Name>" text + the `data-command="build-<type>"`
 // hook the click handler and the browser tests rely on are preserved).
 // Exported so it is unit-testable in isolation.
-export function renderBuildButtons(buildOptions: BuildableBuildingType[]): string {
-  return buildOptions
-    .map(
-      (buildingType) => `
-          <button
-            class="hud-command-button"
-            data-command="build-${buildingType}"
-            data-tooltip="${formatBuildTooltip(buildingType, formatEntityName(buildingType))}"
-            type="button"
-          >
-            ${buildingGlyph(buildingType)}<span class="hud-command-label">Build ${formatEntityName(buildingType)}</span>
-          </button>
-        `,
-    )
+const BUILD_COST_ORDER: readonly (keyof PlayerResources)[] = [
+  'food',
+  'wood',
+  'gold',
+  'stone',
+];
+
+function buildCostMarkup(
+  cost: Partial<PlayerResources>,
+  resources: PlayerResources,
+): string {
+  return BUILD_COST_ORDER
+    .filter((resource) => (cost[resource] ?? 0) > 0)
+    .map((resource) => {
+      const amount = cost[resource]!;
+      const covered = resources[resource] >= amount;
+      return `
+        <span
+          class="hud-build-cost"
+          data-build-cost-resource="${resource}"
+          data-build-cost-covered="${covered}"
+        >
+          ${resourceGlyph(resource, 'hud-build-cost__glyph')}
+          <span class="hud-build-cost__value">${amount}</span>
+        </span>`;
+    })
     .join('');
+}
+
+function formatMissingBuildResources(
+  cost: Partial<PlayerResources>,
+  resources: PlayerResources,
+): string {
+  return BUILD_COST_ORDER
+    .filter((resource) => resources[resource] < (cost[resource] ?? 0))
+    .join(' and ');
+}
+
+function buildAvailabilitySignature(
+  buildOptions: BuildableBuildingType[],
+  resources: PlayerResources,
+): string {
+  return buildOptions
+    .map((buildingType) => {
+      const cost = constructionCost(buildingType);
+      return BUILD_COST_ORDER
+        .filter((resource) => (cost[resource] ?? 0) > 0)
+        .map((resource) => `${resource}:${resources[resource] >= (cost[resource] ?? 0)}`)
+        .join(',');
+    })
+    .join('|');
+}
+
+export function renderBuildButtons(
+  buildOptions: BuildableBuildingType[],
+  resources: PlayerResources,
+  placementMode: BuildableBuildingType | null,
+): string {
+  return buildOptions
+    .map((buildingType) => {
+      const displayName = formatEntityName(buildingType);
+      const cost = constructionCost(buildingType);
+      const affordable = canAfford(resources, cost);
+      const active = placementMode === buildingType;
+      const readiness = affordable ? 'Ready' : 'Short';
+      const missingResources = affordable ? '' : formatMissingBuildResources(cost, resources);
+      const accessibleStatus = affordable ? 'ready' : `short on ${missingResources}`;
+      return `
+          <button
+            class="hud-command-button hud-build-card"
+            data-command="build-${buildingType}"
+            data-command-affordable="${affordable}"
+            data-command-active="${active}"
+            data-tooltip="${formatBuildTooltip(buildingType, displayName)}"
+            type="button"
+            aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}."
+            aria-pressed="${active}"
+          >
+            <span class="hud-build-card__visual">${buildingGlyph(buildingType)}</span>
+            <span class="hud-command-label hud-build-card__name"><span class="hud-build-card__verb">Build </span>${displayName}</span>
+            <span class="hud-build-card__readiness" data-build-readiness>${readiness}</span>
+            <span class="hud-build-card__costs" aria-hidden="true">
+              ${buildCostMarkup(cost, resources)}
+            </span>
+          </button>
+        `;
+    })
+    .join('');
+}
+
+type CommandGroupKind = 'action' | 'train' | 'market' | 'research' | 'build';
+
+function renderCommandGroup(
+  kind: CommandGroupKind,
+  label: string,
+  content: string,
+  count: number,
+): string {
+  if (!content) {
+    return '';
+  }
+  const headingId = `hud-command-group-${kind}`;
+  const listClass = kind === 'build' ? 'hud-build-menu' : 'hud-command-list';
+  return `
+    <section
+      class="hud-command-group hud-command-group--${kind}"
+      data-command-group="${kind}"
+      data-command-group-count="${count}"
+      aria-labelledby="${headingId}"
+    >
+      <div class="hud-command-group__heading">
+        <span class="hud-command-group__title" id="${headingId}">${label}</span>
+        <span class="hud-command-group__count" aria-hidden="true">${count}</span>
+      </div>
+      <div class="${listClass}">${content}</div>
+    </section>`;
 }
 
 // M7 UI-icons (v0.1.72): the command-card "Train <Name>" buttons get a per-role
@@ -168,7 +276,7 @@ export interface SelectionPanelDeps {
 }
 
 export interface SelectionPanelHandle {
-  update(selectionState: SelectionState): void;
+  update(selectionState: SelectionState, playerResources: PlayerResources): void;
 }
 
 // Renders the left-side selection panel: icons, detail rows, production
@@ -186,17 +294,27 @@ export function createSelectionPanel(
 
   let lastSelectionSignature = '';
 
-  function update(selectionState: SelectionState): void {
+  function update(selectionState: SelectionState, playerResources: PlayerResources): void {
     const el = selectionPanel;
     if (!el) {
       return;
     }
 
-    const signature = JSON.stringify(selectionState);
+    const signature = JSON.stringify([
+      selectionState,
+      selectionState.buildOptions.length > 0
+        ? buildAvailabilitySignature(selectionState.buildOptions, playerResources)
+        : null,
+    ]);
     if (signature === lastSelectionSignature) {
       return;
     }
     lastSelectionSignature = signature;
+
+    const focusedCommand = el.contains(document.activeElement)
+      && document.activeElement instanceof HTMLElement
+      ? document.activeElement.dataset.command ?? null
+      : null;
 
     const economyState = deps.getEconomyState();
     const selectionIcons = renderSelectionIcons(selectionState, economyState);
@@ -227,10 +345,17 @@ export function createSelectionPanel(
         .join('')
       : '';
     const placementMarkup = selectionState.placementMode
-      ? `<div class="hud-selection-meta" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</div>`
+      ? `<div class="hud-placement-status">
+          <div class="hud-selection-meta" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</div>
+          <div class="hud-placement-status__hint">Choose a clear map tile</div>
+        </div>`
       : '';
 
-    const buildButtons = renderBuildButtons(selectionState.buildOptions);
+    const buildButtons = renderBuildButtons(
+      selectionState.buildOptions,
+      playerResources,
+      selectionState.placementMode,
+    );
     const actionButtons = renderActionButtons(selectionState.actionOptions);
     const trainButtons = renderTrainButtons(selectionState.trainOptions);
     const marketButtons = renderMarketButtons(selectionState.marketOptions);
@@ -239,21 +364,30 @@ export function createSelectionPanel(
       selectionState.researchOptions,
     );
 
+    const commandGroups = [
+      renderCommandGroup('action', 'Orders', actionButtons, selectionState.actionOptions.length),
+      renderCommandGroup('train', 'Train', trainButtons, selectionState.trainOptions.length),
+      renderCommandGroup('market', 'Trade', marketButtons, selectionState.marketOptions.length),
+      renderCommandGroup(
+        'research',
+        'Research',
+        researchButtons,
+        selectionState.visibleResearchOptions.length,
+      ),
+      renderCommandGroup('build', 'Build', buildButtons, selectionState.buildOptions.length),
+    ].join('');
+
     el.innerHTML = `
-      <div class="hud-label">Selection</div>
-      <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
-      ${renderSelectionActivity(selectionState)}
+      <div class="hud-selection-heading">
+        <div class="hud-label">Selection</div>
+        <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
+        ${renderSelectionActivity(selectionState)}
+      </div>
       ${selectionIcons}
       ${selectionDetails}
       ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
       ${placementMarkup}
-      <div class="hud-command-list">
-        ${actionButtons}
-        ${trainButtons}
-        ${marketButtons}
-        ${researchButtons}
-        ${buildButtons}
-      </div>
+      ${commandGroups ? `<div class="hud-command-deck" data-command-deck>${commandGroups}</div>` : ''}
     `;
 
     el.querySelectorAll<HTMLButtonElement>('[data-command^="train-"]').forEach((button) => {
@@ -304,6 +438,12 @@ export function createSelectionPanel(
         deps.beginBuildingPlacement(buildingType);
       });
     });
+
+    if (focusedCommand) {
+      const replacement = [...el.querySelectorAll<HTMLButtonElement>('[data-command]')]
+        .find((button) => button.dataset.command === focusedCommand);
+      replacement?.focus({ preventScroll: true });
+    }
   }
 
   return { update };

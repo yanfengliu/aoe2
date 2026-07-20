@@ -116,7 +116,7 @@ export const HUD_TEMPLATE_HTML = `
       </div>
       <div class="hud-footer" data-hud="match-summary" hidden></div>
     </div>
-    <div class="hud-tooltip" data-hud="tooltip" data-hud-tooltip-active="false" role="tooltip" aria-hidden="true"></div>
+    <div id="hud-tooltip" class="hud-tooltip" data-hud="tooltip" data-hud-tooltip-active="false" role="tooltip" aria-hidden="true"></div>
     <div class="hud-toasts" data-hud="toast-container" aria-live="polite"></div>
     <div
       class="hud-debug-overlay"

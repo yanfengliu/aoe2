@@ -105,21 +105,57 @@ export function formatBuildTooltip(
 }
 
 export interface TooltipHandle {
-  // Cleanup hook for tests / future teardown. Currently a no-op because
-  // the event listeners live on the root element, which the HUD owns.
+  // Cleanup hook for tests and HUD teardown.
   destroy(): void;
 }
 
+let nextTooltipId = 0;
+
 // Slice 11: lightweight tooltip mechanism. Any descendant of `root` with a
 // `data-tooltip` attribute surfaces its copy in `tooltipElement` on
-// pointerenter and hides it on pointerleave. Event delegation on the
-// root keeps us cheap even when the selection panel re-renders.
+// pointerenter or keyboard focus and hides it on pointerleave/focusout.
+// Event delegation on the root keeps us cheap even when the selection
+// panel re-renders.
 export function createTooltipController(
   root: HTMLElement,
   tooltipElement: HTMLElement | null,
 ): TooltipHandle {
   if (!tooltipElement) {
     return { destroy: () => {} };
+  }
+
+  const tooltipId = tooltipElement.id || `hud-tooltip-${nextTooltipId += 1}`;
+  tooltipElement.id = tooltipId;
+  let pointerHost: Element | null = null;
+  let focusHost: Element | null = null;
+  let describedHost: Element | null = null;
+
+  function clearTooltipDescription(): void {
+    if (!describedHost) {
+      return;
+    }
+    const remainingIds = (describedHost.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter((id) => id.length > 0 && id !== tooltipId);
+    if (remainingIds.length > 0) {
+      describedHost.setAttribute('aria-describedby', remainingIds.join(' '));
+    } else {
+      describedHost.removeAttribute('aria-describedby');
+    }
+    describedHost = null;
+  }
+
+  function describeTooltipFor(target: Element): void {
+    if (describedHost !== target) {
+      clearTooltipDescription();
+      describedHost = target;
+    }
+    const descriptionIds = (target.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter((id) => id.length > 0);
+    if (!descriptionIds.includes(tooltipId)) {
+      target.setAttribute('aria-describedby', [...descriptionIds, tooltipId].join(' '));
+    }
   }
 
   function positionTooltip(target: Element): void {
@@ -146,8 +182,10 @@ export function createTooltipController(
   function showTooltipFor(target: Element, text: string): void {
     const tooltip = tooltipElement;
     if (!tooltip || text.trim().length === 0) {
+      hideTooltip();
       return;
     }
+    describeTooltipFor(target);
     tooltip.textContent = text;
     tooltip.dataset.hudTooltipActive = 'true';
     tooltip.setAttribute('aria-hidden', 'false');
@@ -159,6 +197,7 @@ export function createTooltipController(
     if (!tooltip) {
       return;
     }
+    clearTooltipDescription();
     tooltip.dataset.hudTooltipActive = 'false';
     tooltip.setAttribute('aria-hidden', 'true');
     tooltip.textContent = '';
@@ -170,6 +209,7 @@ export function createTooltipController(
     if (!host) {
       return;
     }
+    pointerHost = host;
     const text = host.getAttribute('data-tooltip') ?? '';
     showTooltipFor(host, text);
   };
@@ -184,22 +224,94 @@ export function createTooltipController(
     if (related && host.contains(related)) {
       return;
     }
-    hideTooltip();
+    if (pointerHost === host) {
+      pointerHost = null;
+    }
+    if (focusHost && root.contains(focusHost)) {
+      showTooltipFor(focusHost, focusHost.getAttribute('data-tooltip') ?? '');
+    } else {
+      hideTooltip();
+    }
   };
 
-  const onFocusOut = (): void => {
-    hideTooltip();
+  const onFocusIn = (event: FocusEvent): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    const host = target?.closest('[data-tooltip]');
+    if (!host) {
+      return;
+    }
+    focusHost = host;
+    const text = host.getAttribute('data-tooltip') ?? '';
+    showTooltipFor(host, text);
   };
+
+  const onFocusOut = (event: FocusEvent): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    const host = target?.closest('[data-tooltip]');
+    const related = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+    if (!host || (related && host.contains(related))) {
+      return;
+    }
+    if (focusHost === host) {
+      focusHost = null;
+    }
+    if (pointerHost && root.contains(pointerHost)) {
+      showTooltipFor(pointerHost, pointerHost.getAttribute('data-tooltip') ?? '');
+    } else {
+      hideTooltip();
+    }
+  };
+
+  const ownerObserver = new MutationObserver((records) => {
+    const changedOutsideTooltip = records.some(
+      (record) => record.target !== tooltipElement && !tooltipElement.contains(record.target),
+    );
+    if (!changedOutsideTooltip) {
+      return;
+    }
+    let ownerDisconnected = false;
+    if (pointerHost && !root.contains(pointerHost)) {
+      pointerHost = null;
+      ownerDisconnected = true;
+    }
+    if (focusHost && !root.contains(focusHost)) {
+      focusHost = null;
+      ownerDisconnected = true;
+    }
+    if (describedHost && !root.contains(describedHost)) {
+      ownerDisconnected = true;
+    }
+    if (!ownerDisconnected) {
+      return;
+    }
+    if (describedHost && root.contains(describedHost)) {
+      return;
+    }
+    if (focusHost) {
+      showTooltipFor(focusHost, focusHost.getAttribute('data-tooltip') ?? '');
+    } else if (pointerHost) {
+      showTooltipFor(pointerHost, pointerHost.getAttribute('data-tooltip') ?? '');
+    } else {
+      hideTooltip();
+    }
+  });
+  ownerObserver.observe(root, { childList: true, subtree: true });
 
   root.addEventListener('pointerover', onPointerOver);
   root.addEventListener('pointerout', onPointerOut);
+  root.addEventListener('focusin', onFocusIn);
   root.addEventListener('focusout', onFocusOut);
 
   return {
     destroy: () => {
       root.removeEventListener('pointerover', onPointerOver);
       root.removeEventListener('pointerout', onPointerOut);
+      root.removeEventListener('focusin', onFocusIn);
       root.removeEventListener('focusout', onFocusOut);
+      ownerObserver.disconnect();
+      pointerHost = null;
+      focusHost = null;
+      hideTooltip();
     },
   };
 }

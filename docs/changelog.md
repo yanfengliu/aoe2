@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.7 - 2026-07-19
+
+### Changed
+
+- **The HUD command deck and villager build menu are faster to read and operate.** Commands now appear in named groups, while build choices use compact cards with their existing building glyph, visible resource cost, live Ready/Short status, and a clear active-placement highlight. All seven Dark Age choices fit at the normal desktop view; narrow and replay-timeline layouts stay scrollable without colliding with the minimap, resource bar, or timeline. Keyboard focus now receives a strong visible treatment and the same accessibly associated tooltip as pointer hover; mixed pointer/focus ownership prevents premature dismissal, disappearing commands clear stale tooltip state, and resource updates preserve the focused command without rebuilding an unchanged palette. Existing command order, build validation, placement behavior, and simulation authority are unchanged.
+
 ## 0.3.6 - 2026-07-19
 
 ### Changed

@@ -400,7 +400,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
         countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
       }
     }
-    selectionPanelHandle.update(selectionState);
+    selectionPanelHandle.update(selectionState, hudState.playerResources);
 
     // Slice 11: drain any command-rejection reasons the bridge collected
     // since the last frame. `consumeCommandRejection()` pops one at a time

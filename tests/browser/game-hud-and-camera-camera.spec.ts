@@ -25,10 +25,18 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     const canvasBox = await gameCanvas.boundingBox();
     expect(canvasBox).not.toBeNull();
 
-    await page.mouse.move(
-      (canvasBox?.x ?? 0) + (canvasBox?.width ?? 0) * 0.5,
-      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) * 0.5,
-    );
+    const zoomPoint = await gameCanvas.evaluate((canvas) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = rect.left + Math.min(48, rect.width * 0.1);
+      const y = rect.top + rect.height * 0.5;
+      return {
+        x,
+        y,
+        targetsCanvas: document.elementFromPoint(x, y) === canvas,
+      };
+    });
+    expect(zoomPoint.targetsCanvas).toBe(true);
+    await page.mouse.move(zoomPoint.x, zoomPoint.y);
     await page.mouse.wheel(0, -400);
 
     await expect.poll(async () => {

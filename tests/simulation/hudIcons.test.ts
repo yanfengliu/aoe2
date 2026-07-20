@@ -118,7 +118,11 @@ describe('buildingGlyph — procedural inline-SVG build icons', () => {
 
 describe('renderBuildButtons — augments, does not replace', () => {
   it('keeps the data-command hook and the "Build <Name>" text label intact alongside the glyph', () => {
-    const html = renderBuildButtons(['house', 'mill', 'lumber-camp']);
+    const html = renderBuildButtons(
+      ['house', 'mill', 'lumber-camp'],
+      { food: 200, wood: 200, gold: 100, stone: 200 },
+      null,
+    );
 
     // Contract preserved for the existing browser tests + click handler.
     expect(html).toContain('data-command="build-house"');
@@ -135,6 +139,8 @@ describe('renderBuildButtons — augments, does not replace', () => {
   });
 
   it('renders nothing for an empty build-options list', () => {
-    expect(renderBuildButtons([])).toBe('');
+    expect(
+      renderBuildButtons([], { food: 200, wood: 200, gold: 100, stone: 200 }, null),
+    ).toBe('');
   });
 });

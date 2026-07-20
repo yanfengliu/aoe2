@@ -101,4 +101,52 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     }
   });
 
+  test('keeps a full villager command panel between the top bar and replay timeline', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    await game.waitForBoot(page);
+    expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await page.getByTestId('timeline-panel').evaluate((element) => {
+      if (!(element instanceof HTMLElement)) {
+        throw new Error('Expected the replay timeline panel.');
+      }
+      element.hidden = false;
+    });
+
+    for (const viewport of [
+      { width: 800, height: 600 },
+      { width: 700, height: 600 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(180);
+      const layout = await page.evaluate(async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+        const topBar = document.querySelector('.hud-bar');
+        const selectionPanel = document.querySelector('[data-hud="selection-panel"]');
+        const timelinePanel = document.querySelector('.timeline-panel:not([hidden])');
+        if (!(topBar instanceof HTMLElement)
+          || !(selectionPanel instanceof HTMLElement)
+          || !(timelinePanel instanceof HTMLElement)) {
+          throw new Error('Expected visible HUD layout surfaces.');
+        }
+        const topRect = topBar.getBoundingClientRect();
+        const selectionRect = selectionPanel.getBoundingClientRect();
+        const timelineRect = timelinePanel.getBoundingClientRect();
+        return {
+          documentWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+          topBottom: topRect.bottom,
+          selectionTop: selectionRect.top,
+          selectionBottom: selectionRect.bottom,
+          timelineTop: timelineRect.top,
+        };
+      });
+
+      expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+      expect(layout.selectionTop).toBeGreaterThanOrEqual(layout.topBottom);
+      expect(layout.selectionBottom).toBeLessThanOrEqual(layout.timelineTop);
+    }
+  });
+
 });

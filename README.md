@@ -41,7 +41,8 @@ Selection:
 Orders:
 
 - Right click to issue a context-sensitive order to the current selection
-- Villagers right-click resources to gather, or right-click owned Town Centers and Watch Towers to garrison
+- Villagers right-click resources to gather; `Alt`+right-click an owned Town Center, Watch Tower, or Castle to garrison, while ordinary right-click moves to the clicked ground position
+- Villager build cards show each structure's cost and live Ready/Short status; choose a card, then choose a clear map tile
 - Military units right-click enemy units and buildings to attack
 
 Camera:
