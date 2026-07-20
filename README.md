@@ -63,7 +63,7 @@ Add `?civ=<name>` to choose your (the human player's) civilization — e.g. `?ci
 Every recorded session — including the bundles exported by `npm run playtest:llm` campaign runs — can be replayed bit-exact in the app:
 
 1. Find the session bundle. Campaign runs write it next to their `--out` prefix as `<out>.json` (e.g. `output/campaign-2/envelope.json.json`); the small `<out>.envelope.json` sibling is run stats, and `<out>.llm-trace.jsonl` holds the agent's per-decision reasoning — worth reading alongside the replay, since each line carries the tick range it played out in.
-2. Start the app (`npm run dev`) and click the **Replay…** button in the HUD's save/load cluster.
+2. Start the app (`npm run dev`), open the **☰ game menu**, and choose the replay-film icon whose accessible name and tooltip read **Watch a replay…**.
 3. Pick the **From file** tab and select the bundle `.json`. The dialog also offers the current live session and prior sessions persisted in IndexedDB.
 4. Drive playback with the bottom timeline panel (scrub bar) or hotkeys: `Space` play/pause, `←`/`→` step one tick, `Home`/`End` jump to start/end, `Alt+T` toggle the timeline panel, `Esc` exit replay.
 5. To spectate a specific player, cycle the fog-of-war perspective with the timeline panel's **Fog: P\<n\>** button (or `Alt+F`). LLM-playtest agents play as player 1 (the human slot, so player 2's in-game AI is a real opponent), so `Fog: P1` — the default — already shows the agent's base and army. The toggle changes only the rendered fog — the HUD's resource panels stay on player 1, and replays default back to player 1's view on entry.

@@ -36,6 +36,7 @@ export const DEBUG_OVERLAY_CYCLE: DebugOverlayMode[] = [
 export interface DebugOverlayHandle {
   getMode(): DebugOverlayMode;
   cycleMode(): DebugOverlayMode;
+  subscribeModeChange(listener: (mode: DebugOverlayMode) => void): () => void;
   render(
     hudState: HudState,
     selectionState: SelectionState,
@@ -49,6 +50,7 @@ export function createDebugOverlayController(
   debugOverlay: HTMLElement | null,
 ): DebugOverlayHandle {
   let debugOverlayMode: DebugOverlayMode = 'off';
+  const modeListeners = new Set<(mode: DebugOverlayMode) => void>();
 
   function applyMode(): void {
     if (!debugOverlay) {
@@ -62,6 +64,9 @@ export function createDebugOverlayController(
     const next = DEBUG_OVERLAY_CYCLE[(currentIndex + 1) % DEBUG_OVERLAY_CYCLE.length];
     debugOverlayMode = next;
     applyMode();
+    for (const listener of modeListeners) {
+      listener(debugOverlayMode);
+    }
     return debugOverlayMode;
   }
 
@@ -175,9 +180,15 @@ export function createDebugOverlayController(
   return {
     getMode: () => debugOverlayMode,
     cycleMode,
+    subscribeModeChange: (listener) => {
+      modeListeners.add(listener);
+      listener(debugOverlayMode);
+      return () => modeListeners.delete(listener);
+    },
     render,
     destroy: () => {
       window.removeEventListener('keydown', onKeyDown);
+      modeListeners.clear();
     },
   };
 }

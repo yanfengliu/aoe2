@@ -10,11 +10,15 @@ import { createHudController } from '../../src/ui/hud/createHudController';
 // isolation / HMR / future return-to-title). We stub the RAF so the render
 // loop never runs (a Proxy bridge answers construction-time calls), then assert
 // destroy() removes each listener it registered.
-function proxyBridge() {
+function proxyBridge(overrides: Record<PropertyKey, unknown> = {}) {
   // Every method returns a no-op function; construction only invokes optional-
   // chained probes, and the RAF update() (which reads real state) is stubbed
   // out below, so undefined returns are safe.
-  return new Proxy({}, { get: () => () => undefined }) as never;
+  return new Proxy(overrides, {
+    get: (target, property) => Reflect.has(target, property)
+      ? Reflect.get(target, property)
+      : () => undefined,
+  }) as never;
 }
 
 describe('createHudController teardown (full-review M2)', () => {
@@ -60,5 +64,41 @@ describe('createHudController teardown (full-review M2)', () => {
       controller.destroy();
       controller.destroy();
     }).not.toThrow();
+  });
+
+  it('keeps replay-unavailable icon actions focusable but non-actionable', () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const openReplayLoadDialog = vi.fn();
+    const controller = createHudController(root, proxyBridge({
+      isReplayMode: () => true,
+      subscribeReplayModeChange: () => () => {},
+      openReplayLoadDialog,
+    }));
+    const save = root.querySelector<HTMLButtonElement>('[data-hud="save-button"]')!;
+    const replay = root.querySelector<HTMLButtonElement>('[data-hud="replay-load-button"]')!;
+
+    expect(save.disabled).toBe(false);
+    expect(replay.disabled).toBe(false);
+    expect(save.getAttribute('aria-disabled')).toBe('true');
+    expect(replay.getAttribute('aria-disabled')).toBe('true');
+    replay.click();
+    expect(openReplayLoadDialog).not.toHaveBeenCalled();
+
+    controller.destroy();
+  });
+
+  it('mirrors F2 debug cycles into the menu state and accessible name', () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const controller = createHudController(root, proxyBridge());
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', cancelable: true }));
+    controller.toggleGameMenu();
+
+    expect(root.querySelector('[data-hud="menu-debug-mode"]')?.textContent).toBe('selection-bounds');
+    expect(root.querySelector('[data-hud="menu-debug-cycle"]')?.getAttribute('aria-label')).toBe('Debug overlay: selection-bounds');
+
+    controller.destroy();
   });
 });

@@ -118,9 +118,13 @@ export function createSaveLoadPanel(
     if (!loadPanel) {
       return;
     }
+    const wasOpen = !loadPanel.hidden;
     loadPanel.hidden = true;
     if (loadPasteTextarea) {
       loadPasteTextarea.value = '';
+    }
+    if (wasOpen && loadButton?.isConnected) {
+      loadButton.focus();
     }
   }
 

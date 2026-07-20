@@ -231,6 +231,7 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
     await page.locator('[data-hud="load-confirm"]').click();
     await expect(page.locator('[data-hud="toast-container"]')).toContainText(/loaded/i);
     await expect(page.locator('[data-hud="load-panel"]')).toBeHidden();
+    await expect(page.locator('[data-hud="load-button"]')).toBeFocused();
 
     // The loaded bridge starts at savedTick. The natural RAF loop is
     // also running — so tick may be >= savedTick by the time we observe

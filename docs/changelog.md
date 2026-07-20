@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.8 - 2026-07-20
+
+### Changed
+
+- **The in-match menu now uses dedicated icons instead of visible action labels.** Resume, Save, Load, Replay, Restart, Quit, and Debug overlay each have a distinct original procedural glyph in a compact action grid. Native button names, pointer/keyboard tooltips, focus rings, live debug state, comfortable hit targets, and existing menu behavior remain intact; tooltips now stack above and position outside the modal instead of hiding behind it or covering its title, keyboard focus wraps inside the menu, and closing Load returns focus to its icon.
+
 ## 0.3.7 - 2026-07-19
 
 ### Changed

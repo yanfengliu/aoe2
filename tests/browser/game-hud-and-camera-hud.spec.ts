@@ -101,6 +101,142 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     }
   });
 
+  test('renders dedicated accessible icons for every game-menu action', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    await game.waitForBoot(page);
+    await page.keyboard.press('Escape');
+
+    const actions = [
+      { hook: 'menu-resume', name: 'Resume', icon: 'resume', text: '' },
+      { hook: 'save-button', name: 'Save game', icon: 'save', text: '' },
+      { hook: 'load-button', name: 'Load game', icon: 'load', text: '' },
+      { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', text: '' },
+      { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: '' },
+      { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: '' },
+      { hook: 'menu-debug-cycle', name: 'Debug overlay: off', icon: 'debug', text: 'off' },
+    ] as const;
+
+    for (const action of actions) {
+      const button = page.locator(`[data-hud="${action.hook}"]`);
+      await expect(button).toHaveAccessibleName(action.name);
+      await expect(button.locator(`svg[data-menu-icon="${action.icon}"]`)).toHaveCount(1);
+      expect((await button.innerText()).trim()).toBe(action.text);
+      const box = await button.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+
+    await expect(page.locator('[data-hud="menu-resume"]')).toBeFocused();
+    const focusedState = await page.evaluate(() => {
+      const panel = document.querySelector('.hud-game-menu__panel');
+      const tooltip = document.querySelector('[data-hud="tooltip"]');
+      const focused = document.activeElement;
+      if (!(panel instanceof HTMLElement)
+        || !(tooltip instanceof HTMLElement)
+        || !(focused instanceof HTMLElement)) {
+        throw new Error('Expected the open game menu, tooltip, and focused action.');
+      }
+      const panelRect = panel.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const focusedStyle = window.getComputedStyle(focused);
+      return {
+        menuZ: Number.parseInt(window.getComputedStyle(panel.closest('.hud-game-menu')!).zIndex, 10),
+        tooltipZ: Number.parseInt(window.getComputedStyle(tooltip).zIndex, 10),
+        tooltipActive: tooltip.dataset.hudTooltipActive,
+        describedBy: focused.getAttribute('aria-describedby'),
+        tooltipId: tooltip.id,
+        outlineStyle: focusedStyle.outlineStyle,
+        outlineWidth: Number.parseFloat(focusedStyle.outlineWidth),
+        overlapsPanel: !(
+          tooltipRect.right <= panelRect.left
+          || tooltipRect.left >= panelRect.right
+          || tooltipRect.bottom <= panelRect.top
+          || tooltipRect.top >= panelRect.bottom
+        ),
+      };
+    });
+    expect(focusedState.tooltipZ).toBeGreaterThan(focusedState.menuZ);
+    expect(focusedState.tooltipActive).toBe('true');
+    expect(focusedState.describedBy).toContain(focusedState.tooltipId);
+    expect(focusedState.outlineStyle).not.toBe('none');
+    expect(focusedState.outlineWidth).toBeGreaterThanOrEqual(2);
+    expect(focusedState.overlapsPanel).toBe(false);
+
+    await page.keyboard.press('F2');
+    await expect(page.locator('[data-hud="menu-debug-cycle"]')).toHaveAccessibleName('Debug overlay: selection-bounds');
+    await expect(page.locator('[data-hud="menu-debug-mode"]')).toHaveText('selection-bounds');
+
+    for (const action of actions.slice(1)) {
+      await page.keyboard.press('Tab');
+      const button = page.locator(`[data-hud="${action.hook}"]`);
+      await expect(button).toBeFocused();
+      await expect(page.locator('[data-hud="tooltip"]')).toContainText(action.name.split(':')[0]);
+      expect(await button.getAttribute('aria-describedby')).toContain('hud-tooltip');
+    }
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-hud="menu-resume"]')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.locator('[data-hud="menu-debug-cycle"]')).toBeFocused();
+
+    for (const viewport of [
+      { width: 800, height: 600 },
+      { width: 700, height: 600 },
+      { width: 390, height: 560 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      }));
+      const layout = await page.evaluate(() => {
+        const panel = document.querySelector('.hud-game-menu__panel');
+        const tooltip = document.querySelector('[data-hud="tooltip"]');
+        if (!(panel instanceof HTMLElement) || !(tooltip instanceof HTMLElement)) {
+          throw new Error('Expected menu layout surfaces.');
+        }
+        const panelRect = panel.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        return {
+          documentWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+          panel: { left: panelRect.left, right: panelRect.right, top: panelRect.top, bottom: panelRect.bottom },
+          tooltip: {
+            left: tooltipRect.left,
+            right: tooltipRect.right,
+            top: tooltipRect.top,
+            bottom: tooltipRect.bottom,
+          },
+          overlapsPanel: !(
+            tooltipRect.right <= panelRect.left
+            || tooltipRect.left >= panelRect.right
+            || tooltipRect.bottom <= panelRect.top
+            || tooltipRect.top >= panelRect.bottom
+          ),
+        };
+      });
+      expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+      expect(layout.panel.left).toBeGreaterThanOrEqual(0);
+      expect(layout.panel.right).toBeLessThanOrEqual(viewport.width);
+      expect(layout.panel.top).toBeGreaterThanOrEqual(0);
+      expect(layout.panel.bottom).toBeLessThanOrEqual(viewport.height);
+      expect(layout.tooltip.left).toBeGreaterThanOrEqual(0);
+      expect(layout.tooltip.right).toBeLessThanOrEqual(viewport.width);
+      expect(layout.tooltip.top).toBeGreaterThanOrEqual(0);
+      expect(layout.tooltip.bottom).toBeLessThanOrEqual(viewport.height);
+      expect(layout.overlapsPanel, JSON.stringify({ viewport, layout })).toBe(false);
+    }
+
+    await page.locator('[data-hud="load-button"]').click();
+    await page.locator('[data-hud="load-cancel"]').click();
+    await expect(page.locator('[data-hud="load-button"]')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-hud="replay-load-button"]')).toBeFocused();
+
+    await page.locator('[data-hud="menu-resume"]').click();
+    await expect(page.locator('[data-hud="game-menu"]')).toBeHidden();
+    await expect(page.locator('[data-hud="menu-button"]')).toBeFocused();
+  });
+
   test('keeps a full villager command panel between the top bar and replay timeline', async ({
     page,
   }) => {

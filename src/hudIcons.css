@@ -10,11 +10,9 @@
  * new hues, NO image assets, NO external fonts. Loaded after
  * `hudChrome.css` in `main.ts`.
  *
- * Contract note: the glyphs AUGMENT the text labels (they do not replace
- * them) and they are siblings of the `[data-hud="<resource>"]` value
- * element / sit before the "Build <Name>" label text, so the existing
- * data-hud / data-command / text-content contracts the HUD + browser
- * tests rely on are untouched.
+ * Contract note: resource, command, and selection glyphs AUGMENT their text.
+ * The dedicated game-menu glyphs are the deliberate icon-only exception:
+ * their native buttons retain accessible names plus hover/focus tooltips.
  */
 
 /* Resource chips: glyph + label share one row above the value. The chip
@@ -93,4 +91,65 @@
 .hud-selection-unit-chip--compact .hud-selection-unit-glyph {
   width: 30px;
   height: 30px;
+}
+
+/* v0.3.8: dedicated icon-only game-menu actions. Six match actions form a
+   compact scan grid; the Settings action keeps its live state visible. */
+.hud-game-menu__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hud-game-menu__actions .hud-menu-item {
+  justify-content: center;
+  min-width: 0;
+  min-height: 66px;
+  padding: 10px;
+}
+
+.hud-menu-item__glyph {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  color: currentColor;
+  opacity: 0.96;
+}
+
+.hud-menu-item--toggle {
+  position: relative;
+  justify-content: center;
+  min-height: 58px;
+}
+
+.hud-menu-item--toggle .hud-menu-item__glyph {
+  width: 28px;
+  height: 28px;
+}
+
+.hud-menu-item--toggle .hud-menu-item__state {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  min-width: 28px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.hud-menu-item:focus-visible {
+  outline: 2px solid #f0d596;
+  outline-offset: 2px;
+  border-color: rgba(240, 213, 150, 0.9);
+  box-shadow: 0 0 0 4px rgba(240, 213, 150, 0.18);
+}
+
+.hud-menu-item:disabled,
+.hud-menu-item[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+/* The shared tooltip used to sit under the modal's z-index:50 backdrop. */
+.hud-tooltip {
+  z-index: 60;
 }

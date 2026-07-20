@@ -220,12 +220,14 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   );
   teardownCallbacks.push(() => saveLoadPanel.destroy());
 
-  // Full-review H2: disable the Save button while a replay is playing. The
-  // panel handler already refuses the save (the source-of-truth guard); this
-  // is the matching UX affordance, mirroring the Replay button's re-entry gate.
+  // Full-review H2: mark Save unavailable while a replay is playing. The panel
+  // handler already refuses the save (the source-of-truth guard); aria-disabled
+  // keeps the icon focusable so keyboard users can still reach its explanation.
   if (saveButton) {
     const refreshSaveDisabled = (): void => {
-      saveButton.disabled = bridge.isReplayMode?.() ?? false;
+      const unavailable = bridge.isReplayMode?.() ?? false;
+      saveButton.disabled = false;
+      saveButton.setAttribute('aria-disabled', String(unavailable));
     };
     refreshSaveDisabled();
     const unsubscribeSaveDisabled = bridge.subscribeReplayModeChange?.(refreshSaveDisabled);
@@ -241,23 +243,29 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     onRestart: bridge.onRestart ? () => bridge.onRestart!() : undefined,
     onQuit: bridge.onQuit ? () => bridge.onQuit!() : undefined,
     cycleDebugOverlay: () => debugOverlayController.cycleMode(),
+    subscribeDebugOverlayModeChange: debugOverlayController.subscribeModeChange,
   });
   teardownCallbacks.push(() => gameMenu.destroy());
 
   if (replayLoadButtonEl) {
-    // The unified "Replay…" button. Disabled while replay mode is
-    // already active (re-entry guard). Subscribes to replayController
-    // mode-change events so the disabled state flips immediately on
-    // enter/exit; falls back to the click-time refresh if no
+    // The unified "Replay…" button. Marked unavailable while replay mode is
+    // already active (re-entry guard), but kept focusable for its tooltip.
+    // Subscribes to replayController mode-change events so the state flips
+    // immediately on enter/exit; falls back to click-time refresh if no
     // subscription is wired.
     // v0.1.95: the Replay flow is its own modal, so close the game menu (whose
     // full-screen backdrop would otherwise sit over the replay dialog + timeline).
     const handler = (): void => {
+      if (bridge.isReplayMode?.()) {
+        return;
+      }
       gameMenu.close();
       bridge.openReplayLoadDialog?.();
     };
     const refreshDisabled = (): void => {
-      replayLoadButtonEl.disabled = bridge.isReplayMode?.() ?? false;
+      const unavailable = bridge.isReplayMode?.() ?? false;
+      replayLoadButtonEl.disabled = false;
+      replayLoadButtonEl.setAttribute('aria-disabled', String(unavailable));
     };
     replayLoadButtonEl.addEventListener('click', handler);
     refreshDisabled();

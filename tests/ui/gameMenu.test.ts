@@ -3,6 +3,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createGameMenu } from '../../src/ui/hud/gameMenu';
+import type { DebugOverlayMode } from '../../src/ui/hud/debugOverlay';
 
 // v0.1.95: the in-game menu controller. These test the open/close/toggle logic
 // and the Resume/Restart/Quit/Settings wiring against the data-hud contract
@@ -14,7 +15,7 @@ const MENU_FIXTURE = `
     <button data-hud="menu-resume">Resume</button>
     <button data-hud="menu-restart">Restart match</button>
     <button data-hud="menu-quit">Quit to title</button>
-    <button data-hud="menu-debug-cycle"><span data-hud="menu-debug-mode">off</span></button>
+    <button data-hud="menu-debug-cycle" aria-label="Debug overlay: off"><span data-hud="menu-debug-mode">off</span></button>
   </div>`;
 
 function mount(): HTMLElement {
@@ -68,11 +69,60 @@ describe('createGameMenu', () => {
 
   it('cycles the debug overlay and renders the new mode label in Settings', () => {
     const root = mount();
-    const cycleDebugOverlay = vi.fn(() => 'perf');
+    const cycleDebugOverlay = vi.fn((): DebugOverlayMode => 'perf');
     createGameMenu(root, { cycleDebugOverlay });
     click(root, 'menu-debug-cycle');
     expect(cycleDebugOverlay).toHaveBeenCalledTimes(1);
     expect(root.querySelector('[data-hud="menu-debug-mode"]')!.textContent).toBe('perf');
+    expect(root.querySelector('[data-hud="menu-debug-cycle"]')!.getAttribute('aria-label')).toBe('Debug overlay: perf');
+  });
+
+  it('keeps the debug mode label synchronized with external F2/API cycles', () => {
+    const root = mount();
+    let publishMode: ((mode: DebugOverlayMode) => void) | undefined;
+    const unsubscribe = vi.fn();
+    const menu = createGameMenu(root, {
+      subscribeDebugOverlayModeChange: (listener) => {
+        publishMode = listener;
+        return unsubscribe;
+      },
+    });
+
+    publishMode?.('pathing');
+    expect(root.querySelector('[data-hud="menu-debug-mode"]')!.textContent).toBe('pathing');
+    expect(root.querySelector('[data-hud="menu-debug-cycle"]')!.getAttribute('aria-label')).toBe('Debug overlay: pathing');
+
+    menu.destroy();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('wraps Tab within enabled modal actions and skips native-disabled controls', () => {
+    const root = mount();
+    document.body.append(root);
+    const menu = createGameMenu(root, {});
+    const resume = root.querySelector<HTMLButtonElement>('[data-hud="menu-resume"]')!;
+    const quit = root.querySelector<HTMLButtonElement>('[data-hud="menu-quit"]')!;
+    const debug = root.querySelector<HTMLButtonElement>('[data-hud="menu-debug-cycle"]')!;
+    quit.disabled = true;
+    menu.open();
+
+    resume.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Tab',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    }));
+    expect(debug).toBe(document.activeElement);
+
+    debug.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Tab',
+      bubbles: true,
+      cancelable: true,
+    }));
+    expect(resume).toBe(document.activeElement);
+
+    menu.destroy();
+    root.remove();
   });
 
   it('returns an inert handle when the menu markup is absent (headless mount)', () => {

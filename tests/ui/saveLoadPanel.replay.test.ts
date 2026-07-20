@@ -72,4 +72,33 @@ describe('saveLoadPanel refuses to save during replay (full-review H2)', () => {
     expect(window.localStorage.getItem('aoe2-save-v1')).not.toBeNull();
     panel.destroy();
   });
+
+  it('returns focus to the Load action after its nested panel closes', () => {
+    const loadButton = document.createElement('button');
+    const loadPanel = document.createElement('div');
+    const loadCancelButton = document.createElement('button');
+    loadPanel.hidden = true;
+    loadPanel.append(loadCancelButton);
+    document.body.append(loadButton, loadPanel);
+    const panel = createSaveLoadPanel({
+      ...elementsWith(document.createElement('button')),
+      loadButton,
+      loadPanel,
+      loadCancelButton,
+    }, {
+      saveGame: () => FAKE_BLOB,
+      loadGame: async () => {},
+      showToast: () => {},
+    });
+
+    loadButton.click();
+    loadCancelButton.focus();
+    loadCancelButton.click();
+
+    expect(loadPanel.hidden).toBe(true);
+    expect(loadButton).toBe(document.activeElement);
+    panel.destroy();
+    loadButton.remove();
+    loadPanel.remove();
+  });
 });

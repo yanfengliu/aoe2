@@ -5,6 +5,7 @@
 
 import { HUD_CHIP_TOOLTIPS } from './tooltips';
 import { resourceGlyph } from './icons/glyphs';
+import { gameMenuGlyph } from './icons/menuGlyphs';
 
 // M7 UI-icons slice 1 (v0.1.39): each resource chip gains an original
 // procedural glyph in its label row, BEFORE the `.hud-value` element.
@@ -38,18 +39,18 @@ const GAME_MENU_HTML = `
         <div class="hud-game-menu__panel">
           <div class="hud-game-menu__title">Menu</div>
           <div class="hud-game-menu__actions">
-            <button type="button" class="hud-menu-item hud-menu-item--primary" data-hud="menu-resume">Resume</button>
-            <button type="button" class="hud-menu-item" data-hud="save-button" data-tooltip="Save the current match to browser storage and download a .json copy.">Save game</button>
-            <button type="button" class="hud-menu-item" data-hud="load-button" data-tooltip="Load a saved match from browser storage or paste in a save blob.">Load game</button>
-            <button type="button" class="hud-menu-item" data-hud="replay-load-button" data-tooltip="Open a recorded session in replay mode (live, prior session, or imported file).">Watch a replay…</button>
-            <button type="button" class="hud-menu-item" data-hud="menu-restart" data-tooltip="Start this scenario over from the beginning.">Restart match</button>
-            <button type="button" class="hud-menu-item hud-menu-item--danger" data-hud="menu-quit" data-tooltip="Leave the current match and return to a fresh start.">Quit to title</button>
+            <button type="button" class="hud-menu-item hud-menu-item--primary" data-hud="menu-resume" aria-label="Resume" data-tooltip="Resume — return to the paused match (or press Esc).">${gameMenuGlyph('resume')}</button>
+            <button type="button" class="hud-menu-item" data-hud="save-button" aria-label="Save game" data-tooltip="Save game — store the current match in this browser and download a .json copy.">${gameMenuGlyph('save')}</button>
+            <button type="button" class="hud-menu-item" data-hud="load-button" aria-label="Load game" data-tooltip="Load game — restore a browser save or paste in a save blob.">${gameMenuGlyph('load')}</button>
+            <button type="button" class="hud-menu-item" data-hud="replay-load-button" aria-label="Watch a replay…" data-tooltip="Watch a replay… — open a live, prior-session, or imported recording.">${gameMenuGlyph('replay')}</button>
+            <button type="button" class="hud-menu-item" data-hud="menu-restart" aria-label="Restart match" data-tooltip="Restart match — start this scenario again from the beginning.">${gameMenuGlyph('restart')}</button>
+            <button type="button" class="hud-menu-item hud-menu-item--danger" data-hud="menu-quit" aria-label="Quit to title" data-tooltip="Quit to title — leave this match and return to a fresh start.">${gameMenuGlyph('quit')}</button>
           </div>
           <div class="hud-game-menu__section">
             <div class="hud-game-menu__section-title">Settings</div>
-            <button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="menu-debug-cycle" data-tooltip="Cycle the debug overlay (same as pressing F2).">
-              <span>Debug overlay</span>
-              <span class="hud-menu-item__state" data-hud="menu-debug-mode">off</span>
+            <button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="menu-debug-cycle" aria-label="Debug overlay: off" data-tooltip="Debug overlay — cycle its mode (same as pressing F2).">
+              ${gameMenuGlyph('debug')}
+              <span class="hud-menu-item__state" data-hud="menu-debug-mode" aria-live="polite" aria-atomic="true">off</span>
             </button>
           </div>
           <div class="hud-load-panel" data-hud="load-panel" hidden>
@@ -95,6 +96,7 @@ export const HUD_TEMPLATE_HTML = `
           data-hud="menu-button"
           aria-label="Game menu"
           aria-haspopup="dialog"
+          aria-expanded="false"
           data-tooltip="Open the game menu (or press Esc): save, load, replay, restart, settings."
         >☰</button>
       </div>

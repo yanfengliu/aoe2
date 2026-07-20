@@ -6,6 +6,8 @@
 // `data-hud` ids, so they stay bound by createSaveLoadPanel + the replay dialog
 // — this controller does not touch them.
 
+import type { DebugOverlayMode } from './debugOverlay';
+
 export interface GameMenuDeps {
   // Pause/resume the simulation while the menu is open. Optional so tests and
   // headless mounts can omit them.
@@ -17,7 +19,10 @@ export interface GameMenuDeps {
   onQuit?: () => void;
   // Advance the debug overlay to its next mode; returns the new mode label to
   // render in the Settings row.
-  cycleDebugOverlay?: () => string;
+  cycleDebugOverlay?: () => DebugOverlayMode;
+  subscribeDebugOverlayModeChange?: (
+    listener: (mode: DebugOverlayMode) => void,
+  ) => () => void;
 }
 
 export interface GameMenuHandle {
@@ -48,6 +53,14 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   const backdrop = root.querySelector<HTMLElement>('[data-hud="game-menu-backdrop"]');
   const debugCycleButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-debug-cycle"]');
   const debugModeLabel = root.querySelector<HTMLElement>('[data-hud="menu-debug-mode"]');
+
+  const renderDebugMode = (mode: DebugOverlayMode): void => {
+    if (debugModeLabel) {
+      debugModeLabel.textContent = mode;
+    }
+    debugCycleButton?.setAttribute('aria-label', `Debug overlay: ${mode}`);
+  };
+  const unsubscribeDebugMode = deps.subscribeDebugOverlayModeChange?.(renderDebugMode);
 
   const isOpen = (): boolean => !menu.hidden;
 
@@ -102,8 +115,27 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   };
   const onDebugCycle = (): void => {
     const mode = deps.cycleDebugOverlay?.();
-    if (mode !== undefined && debugModeLabel) {
-      debugModeLabel.textContent = mode;
+    if (mode !== undefined) {
+      renderDebugMode(mode);
+    }
+  };
+  const onMenuKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Tab' || event.defaultPrevented) {
+      return;
+    }
+    const focusable = Array.from(menu.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.closest('[hidden]'));
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    if (currentIndex < 0 || focusable.length === 0) {
+      return;
+    }
+    if (event.shiftKey && currentIndex === 0) {
+      event.preventDefault();
+      focusable.at(-1)?.focus();
+    } else if (!event.shiftKey && currentIndex === focusable.length - 1) {
+      event.preventDefault();
+      focusable[0]?.focus();
     }
   };
 
@@ -113,6 +145,7 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   restartButton?.addEventListener('click', onRestart);
   quitButton?.addEventListener('click', onQuit);
   debugCycleButton?.addEventListener('click', onDebugCycle);
+  menu.addEventListener('keydown', onMenuKeyDown);
 
   return {
     open,
@@ -126,6 +159,8 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
       restartButton?.removeEventListener('click', onRestart);
       quitButton?.removeEventListener('click', onQuit);
       debugCycleButton?.removeEventListener('click', onDebugCycle);
+      menu.removeEventListener('keydown', onMenuKeyDown);
+      unsubscribeDebugMode?.();
     },
   };
 }

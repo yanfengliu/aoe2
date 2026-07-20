@@ -168,10 +168,32 @@ export function createTooltipController(
     const margin = 8;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    let left = rect.left + rect.width * 0.5 - tooltipRect.width * 0.5;
-    let top = rect.top - tooltipRect.height - margin;
-    if (top < margin) {
-      top = rect.bottom + margin;
+    const menuPanel = target.closest('.hud-game-menu__panel');
+    let left: number;
+    let top: number;
+    if (menuPanel) {
+      const panelRect = menuPanel.getBoundingClientRect();
+      const rightSpace = viewportWidth - panelRect.right - margin;
+      const leftSpace = panelRect.left - margin;
+      if (rightSpace >= tooltipRect.width) {
+        left = panelRect.right + margin;
+        top = rect.top + rect.height * 0.5 - tooltipRect.height * 0.5;
+      } else if (leftSpace >= tooltipRect.width) {
+        left = panelRect.left - tooltipRect.width - margin;
+        top = rect.top + rect.height * 0.5 - tooltipRect.height * 0.5;
+      } else {
+        left = panelRect.left + panelRect.width * 0.5 - tooltipRect.width * 0.5;
+        top = panelRect.top - tooltipRect.height - margin;
+        if (top < margin) {
+          top = panelRect.bottom + margin;
+        }
+      }
+    } else {
+      left = rect.left + rect.width * 0.5 - tooltipRect.width * 0.5;
+      top = rect.top - tooltipRect.height - margin;
+      if (top < margin) {
+        top = rect.bottom + margin;
+      }
     }
     left = Math.max(margin, Math.min(left, viewportWidth - tooltipRect.width - margin));
     top = Math.max(margin, Math.min(top, viewportHeight - tooltipRect.height - margin));
@@ -301,6 +323,27 @@ export function createTooltipController(
   root.addEventListener('pointerout', onPointerOut);
   root.addEventListener('focusin', onFocusIn);
   root.addEventListener('focusout', onFocusOut);
+  let resizeFrame: number | null = null;
+  const repositionActiveTooltip = (): void => {
+    if (describedHost && root.contains(describedHost)) {
+      positionTooltip(describedHost);
+    }
+  };
+  const repositionAfterResponsiveLayout = (): void => {
+    repositionActiveTooltip();
+    if (typeof window.requestAnimationFrame !== 'function') {
+      return;
+    }
+    if (resizeFrame !== null) {
+      window.cancelAnimationFrame(resizeFrame);
+    }
+    resizeFrame = window.requestAnimationFrame(() => {
+      resizeFrame = null;
+      repositionActiveTooltip();
+    });
+  };
+  window.addEventListener('resize', repositionAfterResponsiveLayout);
+  window.addEventListener('scroll', repositionActiveTooltip, true);
 
   return {
     destroy: () => {
@@ -308,6 +351,12 @@ export function createTooltipController(
       root.removeEventListener('pointerout', onPointerOut);
       root.removeEventListener('focusin', onFocusIn);
       root.removeEventListener('focusout', onFocusOut);
+      window.removeEventListener('resize', repositionAfterResponsiveLayout);
+      window.removeEventListener('scroll', repositionActiveTooltip, true);
+      if (resizeFrame !== null) {
+        window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = null;
+      }
       ownerObserver.disconnect();
       pointerHost = null;
       focusHost = null;
