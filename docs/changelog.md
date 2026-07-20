@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.9 - 2026-07-20
+
+### Changed
+
+- **Natural resources no longer appear to belong to a faction, and unclaimed wildlife is labeled Neutral.** Trees, berry bushes, gold mines, stone mines, and relics omit the selection-panel faction row; unclaimed boar, wolves, sheep, and fish use the player-facing `Neutral` label, while discovered herdables continue to show their current player or enemy owner. The internal simulation compatibility identifier is unchanged.
+
 ## 0.3.8 - 2026-07-20
 
 ### Changed

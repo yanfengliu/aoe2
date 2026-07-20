@@ -90,11 +90,46 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
       },
       attack: 7,
       armor: 0,
-      faction: 'Gaia',
+      faction: 'Neutral',
       civ: null,
       inventory: '340 / 340 food remaining',
       resourceAmount: 340,
       resourceMaxAmount: 340,
+    });
+  });
+
+  it.each(['berry-bush', 'tree', 'gold-mine', 'stone-mine'] as const)(
+    'omits the internal neutral owner from %s selection details',
+    (resourceType) => {
+      const bridge = createSimulationBridge(DEFAULT_SEED);
+      const resource = bridge
+        .getEconomyState()
+        .resources.find((candidate) => candidate.resourceType === resourceType);
+      expect(resource).toBeDefined();
+
+      expect(bridge.selectEntityById(resource?.id ?? -1)).toBe(true);
+      expect(bridge.getSelectionState()).toMatchObject({
+        selectedKind: 'resource',
+        selectedEntityType: resourceType,
+        owner: null,
+        faction: null,
+      });
+    },
+  );
+
+  it('labels an enemy-claimed herdable by its current faction', () => {
+    const bridge = createSimulationBridge('sheep-movement-fixture');
+    const enemySheep = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'sheep' && resource.owner === 2);
+    expect(enemySheep).toBeDefined();
+
+    expect(bridge.selectEntityById(enemySheep?.id ?? -1)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({
+      selectedKind: 'resource',
+      selectedEntityType: 'sheep',
+      owner: 2,
+      faction: 'Enemy',
     });
   });
 

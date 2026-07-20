@@ -296,7 +296,7 @@ Placement rules:
 - map scripts should bias toward fairness, not perfect symmetry
 - closed maps may cluster neutral resources differently from open maps
 
-### 5.6 Gaia Entities
+### 5.6 Neutral World Entities
 
 Required neutral entities:
 
@@ -313,6 +313,9 @@ Required neutral entities:
 
 Rules:
 
+- Player-facing UI calls unowned wildlife and fish `Neutral`; it never exposes the internal `gaia` owner identifier.
+- Stationary natural objects such as berry bushes, trees, gold mines, stone mines, and relics do not display a faction because they are world resources rather than a side.
+- The internal `gaia` identifier may remain in fixtures, data, and simulation ownership for compatibility; discovered herdables display the faction of their current owner.
 - herdables change ownership when discovered
 - boar retaliate when lured or attacked
 - multiple selected villagers may attack one living boar concurrently; every villager retains independent approach, attack, and cooldown state, while the boar's retaliation target is non-exclusive and never reserves the boar against other attackers

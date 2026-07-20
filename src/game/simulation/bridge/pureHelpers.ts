@@ -149,7 +149,7 @@ export function defaultCivilizationName(owner: number): string {
 
 export function factionName(owner: number | null): string | null {
   if (owner === null) {
-    return 'Gaia';
+    return 'Neutral';
   }
 
   return owner === HUMAN_PLAYER_ID ? 'Player' : 'Enemy';

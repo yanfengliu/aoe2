@@ -91,7 +91,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     await game.clickCell(page, fish?.x ?? 0, fish?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Fish');
     await expect(page.locator('[data-selection-entity-icon="fish"]')).toHaveText('F');
-    await game.expectSelectionDetail(page, 'faction', 'Gaia');
+    await game.expectSelectionDetail(page, 'faction', 'Neutral');
     await game.expectSelectionDetail(page, 'inventory', `${fish?.amount} / ${fish?.maxAmount} food remaining`);
     await game.expectSelectionDetailAbsent(page, 'health');
     await game.expectSelectionDetailAbsent(page, 'attack');
@@ -126,6 +126,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
 
     await game.clickCell(page, 12, 8);
     await expect(page.locator('[data-selection-name]')).toHaveText('Tree');
+    await game.expectSelectionDetailAbsent(page, 'faction');
     await game.expectSelectionDetail(page, 'inventory', '1 / 1 wood remaining');
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);

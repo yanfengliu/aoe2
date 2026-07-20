@@ -50,6 +50,24 @@ import {
   getSelectionActivityBreakdown,
   type SelectionActivitySources,
 } from '../selectionActivity';
+
+const FACTIONLESS_NATURAL_RESOURCES: ReadonlySet<ResourceComponent['resourceType']> = new Set([
+  'berry-bush',
+  'gold-mine',
+  'stone-mine',
+  'tree',
+  'relic',
+]);
+
+function selectionFactionName(
+  owner: number | null,
+  resource: ResourceComponent | null,
+): string | null {
+  return resource && FACTIONLESS_NATURAL_RESOURCES.has(resource.resourceType)
+    ? null
+    : factionName(owner);
+}
+
 export interface SelectionStateOpsDeps {
   world: GameWorld;
   humanPlayerId: number;
@@ -412,7 +430,10 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         selectedEntityIds.length === 1
           ? getSelectionPierceArmor(unit, building, resource, selectedEntityId)
           : null,
-      faction: selectedEntityIds.length === 1 ? factionName(owner) : null,
+      faction:
+        selectedEntityIds.length === 1
+          ? selectionFactionName(owner, resource ?? null)
+          : null,
       civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
       inventory:
         selectedEntityIds.length === 1

@@ -138,7 +138,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await game.expectSelectionDetail(page, 'health', '75 / 75');
     await game.expectSelectionDetail(page, 'attack', '7');
     await game.expectSelectionDetail(page, 'armor', '0');
-    await game.expectSelectionDetail(page, 'faction', 'Gaia');
+    await game.expectSelectionDetail(page, 'faction', 'Neutral');
     await game.expectSelectionDetailAbsent(page, 'civ');
     await game.expectSelectionDetail(page, 'inventory', '340 / 340 food remaining');
 
