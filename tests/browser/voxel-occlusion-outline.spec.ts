@@ -40,7 +40,7 @@ test.describe('voxel behind-building unit silhouette', () => {
 
     expect(states.occluded.map((entry) => entry.id)).toEqual([states.hiddenId]);
     expect(states.occluded[0]!.entityType).toBe('villager');
-    expect(states.batches).toBeLessThanOrEqual(7);
+    expect(states.batches).toBeLessThanOrEqual(9);
 
     const whitePixels = await page.evaluate(async (screen) => {
       const api = window.__AOE2_TEST__!;

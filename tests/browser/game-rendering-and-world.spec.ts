@@ -387,6 +387,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     });
 
     await game.clickCell(page, goldMine.x, goldMine.y, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
     const advancedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(260, 100),
@@ -414,6 +415,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     ]);
     await game.clickCell(page, miningCampPlacement.x, miningCampPlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('100');
+    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
 
