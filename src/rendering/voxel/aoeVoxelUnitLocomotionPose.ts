@@ -76,7 +76,7 @@ function poseHumanoidPart(
       Math.atan2(state.directionX, state.directionZ),
     );
   }
-  if (/(tool|sword|bow|shield)/u.test(suffix)) {
+  if (/(tool|sword|bow|shield|polearm|halberd|javelin)/u.test(suffix)) {
     return movePart(
       part, 0, bounce, 0, -leftWave * 0.19 * weight,
       Math.atan2(state.directionX, state.directionZ),
@@ -160,4 +160,3 @@ export function posePart(
   if (role === 'siege') return poseSiegePart(part, suffix, state, scale);
   return poseMonkPart(part, state, scale);
 }
-

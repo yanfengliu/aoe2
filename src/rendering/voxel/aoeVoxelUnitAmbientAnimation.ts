@@ -69,7 +69,9 @@ export function unitAmbientAnimation(
   const base = ambientBodyMotion(state, scale);
   let animation: VoxelPartAnimation | undefined;
   if (role === 'villager' || role === 'infantry' || role === 'archer') {
-    if (/(boot|leg|arm|tool|sword|bow|shield)/u.test(suffix)) return undefined;
+    if (/(boot|leg|arm|tool|sword|bow|shield|polearm|halberd|javelin)/u.test(suffix)) {
+      return undefined;
+    }
     animation = base;
   } else if (role === 'cavalry' || role === 'cavalry-archer') {
     if (suffix.includes('horse-leg')) return undefined;

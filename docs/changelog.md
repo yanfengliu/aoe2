@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.6 - 2026-07-19
+
+### Changed
+
+- **All 34 unit types now carry convincing, type-specific equipment.** Infantry lines progress through leather, mail, and plate with swords, greatswords, spears, pikes, or halberds; ranged units carry bows, longbows, crossbows, pavises, or javelins; mounted lines distinguish horses, camels, barding, lances, swords, polearms, and bows; and each siege type has its own working machine silhouette. Matching rigid attack rigs swing, thrust, draw, throw, recoil, or release the weapon that is actually shown, while attached pieces stay joined and feet, mounts, wheels, shadows, and authoritative roots stay planted. The recipes remain deterministic, bounded, memory-safe, and identical between rendered geometry and presented silhouette picking; combat timing, damage, pathing, saves, and replays are unchanged.
+
 ## 0.3.5 - 2026-07-19
 
 ### Changed

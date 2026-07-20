@@ -72,7 +72,7 @@ interface WeaponProbe {
 }
 
 // Thresholds sit ~40% above the MEASURED v0.2.3 peaks (villager tool-head
-// 0.680, champion infantry-sword 0.476, knight cavalry-lance 0.389 world
+// 0.680, champion infantry-greatsword 0.476, knight cavalry-lance 0.389 world
 // units — probed 2026-07-15), so the old amplitudes FAIL and a "gentle tap"
 // cannot silently return.
 // Every role whose amplitudes this directive retuned gets a bar — review
@@ -80,7 +80,7 @@ interface WeaponProbe {
 // and siege rigs regress to a tap while all gates stayed green.
 const PROBES: readonly WeaponProbe[] = [
   { entityType: 'villager', suffix: 'villager-tool-head', peakThresholdWorldUnits: 0.95, rig: 'chop' },
-  { entityType: 'champion', suffix: 'infantry-sword', peakThresholdWorldUnits: 0.66, rig: 'chop' },
+  { entityType: 'champion', suffix: 'infantry-greatsword', peakThresholdWorldUnits: 0.66, rig: 'chop' },
   { entityType: 'knight', suffix: 'cavalry-lance', peakThresholdWorldUnits: 0.54, rig: 'thrust' },
   { entityType: 'mangonel', suffix: 'siege-throwing-arm', peakThresholdWorldUnits: 0.85, rig: 'thrust' },
   { entityType: 'battering-ram', suffix: 'siege-ram-head', peakThresholdWorldUnits: 0.2, rig: 'thrust' },

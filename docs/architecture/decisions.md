@@ -504,3 +504,18 @@ Consequences:
 - Equal displayed simulation time freezes water, pause and replay use the existing monotonic presentation clock, and coordinate-derived phase keeps reconstruction deterministic.
 - The effect reflects the daylight rig as a material cue but does not mirror buildings, units, terrain, or the sky into a second framebuffer; true reflection remains a separate engine contract and performance decision.
 - Terrain chunks, occupancy, fog authority, ground-plane picking, saves, replays, and the dense uniform-terrain raycast boundary remain unchanged.
+
+## KAD-0028 - Concrete unit identity is profile-driven and AoE-owned
+
+Date: 2026-07-19.
+Status: Active.
+
+Context: Seven broad unit roles provide coherent body construction and animation vocabulary, but they collapse meaningful concrete identities such as swordsman versus halberdier, archer versus crossbowman, horse versus camel, and ram versus cannon. Duplicating complete recipes per type would make locomotion, ambient suppression, attack pivots, melee reach, memory projection, and presented silhouette picking drift independently.
+
+Decision: Keep seven shared body families and give every one of the 34 `UnitType` values one exhaustive AoE-owned visual profile for armor, headgear, shield, mount, weapon, tier, and signature detail. Family builders turn that data into deterministic recipes of at most 32 parts. The exhaustive attack-rig table selects controlled suffixes, pivot, melee reach, and one of 17 concrete pose styles; each style rigidly transforms the same connected weapon compound the resting recipe displays. The prepared recipe remains the single source for Voxel matrices, memory variants, ambient/locomotion posing, and AoE's presented silhouette proxy. No art semantics or unit-type schema enters the sibling Voxel package, and no simulation, combat, persistence, or replay authority changes.
+
+Consequences:
+- All concrete types read through their equipment and machine silhouette while upgrades within a line retain a common visual language.
+- Attack motion cannot silently fall back to a role-wide weapon that the unit does not carry; exhaustive compile-time maps and adapter-parity tests guard the profile/rig/presentation seam.
+- Feet, mounts, wheels, contact shadows, and authoritative roots remain planted during attacks; connected compound distances remain rigid, recipes are stable and bounded, and memory projections contain no active animation.
+- Per-civilization variants, projectiles, gathering/death clips, and skeletal or imported character animation remain separate future work.

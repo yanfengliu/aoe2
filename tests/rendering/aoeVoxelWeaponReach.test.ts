@@ -94,13 +94,18 @@ interface MeleeProbe {
   readonly suffix: string;
 }
 
-// The melee rigs whose tip is meant to make contact. Draw rigs (bows) and
-// siege are excluded on purpose: an archer's arrow is not modelled, so
-// stretching the bow toward a distant target would be nonsense.
-const MELEE: readonly MeleeProbe[] = [
+// One short melee rig from each body family whose authored weapon cannot cover
+// an adjacent target without the bounded lean. Long greatswords, polearms, and
+// couched lances may already reach the near side and must not telescope merely
+// to make this test observe a delta. Draw/throw rigs and siege are excluded.
+const ADJACENT_LEAN: readonly MeleeProbe[] = [
   { entityType: 'villager', suffix: 'villager-tool-head' },
-  { entityType: 'champion', suffix: 'infantry-sword' },
-  { entityType: 'knight', suffix: 'cavalry-lance' },
+  { entityType: 'militia', suffix: 'infantry-sword' },
+];
+
+const TARGET_DISTANCE_LEAN: readonly MeleeProbe[] = [
+  ...ADJACENT_LEAN,
+  { entityType: 'scout', suffix: 'cavalry-sword' },
 ];
 
 describe('melee weapons connect with the target (spec §14.5)', () => {
@@ -110,7 +115,7 @@ describe('melee weapons connect with the target (spec §14.5)', () => {
     // The strike now closes as much of that as the body allows — it cannot
     // close ALL of it, because at melee range the two bodies are ~0.78 wu
     // apart and no arm spans that (see the reach-limit test below).
-    for (const probe of MELEE) {
+    for (const probe of ADJACENT_LEAN) {
       const reach = tipReach(probe.entityType, probe.suffix, 1.118);
       expect(reach, `${probe.suffix} did not extend toward the target at all`)
         .toBeGreaterThan(tipReach(probe.entityType, probe.suffix, 0));
@@ -133,7 +138,7 @@ describe('melee weapons connect with the target (spec §14.5)', () => {
   });
 
   it('extends further for a farther target, within an arm-length cap', () => {
-    for (const probe of MELEE) {
+    for (const probe of TARGET_DISTANCE_LEAN) {
       const near = tipReach(probe.entityType, probe.suffix, 0.9);
       const far = tipReach(probe.entityType, probe.suffix, 1.4);
       expect(far, `${probe.suffix} ignores target distance`).toBeGreaterThan(near);
@@ -145,7 +150,7 @@ describe('melee weapons connect with the target (spec §14.5)', () => {
   });
 
   it('never overshoots so far that the weapon passes through the target', () => {
-    for (const probe of MELEE) {
+    for (const probe of TARGET_DISTANCE_LEAN) {
       const reach = tipReach(probe.entityType, probe.suffix, 1.118);
       expect(reach, `${probe.suffix} punches clean through the target`)
         .toBeLessThan(1.118 + 0.35);
@@ -178,7 +183,7 @@ describe('melee weapons connect with the target (spec §14.5)', () => {
   });
 
   it('leaves every role a melee rig', () => {
-    for (const probe of MELEE) {
+    for (const probe of TARGET_DISTANCE_LEAN) {
       expect(['villager', 'infantry', 'cavalry'])
         .toContain(unitRole(probe.entityType as UnitType));
     }

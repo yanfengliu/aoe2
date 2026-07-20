@@ -181,15 +181,19 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     presentation; `aoeVoxelBuildingDetails.ts` owns the exhaustive concrete-type
     facade/prop layer appended to completed role recipes, keeping construction
     generic and using the same prepared parts for drawing and silhouette hits;
-    `aoeVoxelUnitRecipeContext.ts` centralizes scaled procedural part authorship,
-    while exhaustive per-`UnitType` descriptors in `aoeVoxelUnitAttackRigs.ts`
-    own controlled parts, pivots, and bounded melee reach and
-    `aoeVoxelUnitAttackGeometry.ts` owns their rigid transforms;
-    `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to
-    the authored impact keyframe and smooth recovery, while
-    `aoeVoxelUnitAttackAnimation.ts` applies role-specific connected rigid-part
-    pivots and `aoeVoxelUnitAmbientAnimation.ts` suppresses competing ambient
-    transforms on attack-controlled parts; `aoeVoxelOverlayParts.ts` emits selection,
+    `aoeVoxelUnitRecipeContext.ts` centralizes scaled procedural part authorship;
+    `aoeVoxelUnitVisualProfiles.ts` exhaustively selects armor, headgear, shield,
+    mount, weapon, tier, and signature identity for all 34 concrete unit types;
+    and the humanoid, mounted, siege, and monk recipe modules build those profiles
+    through bounded shared family grammars. Exhaustive per-`UnitType` descriptors
+    in `aoeVoxelUnitAttackRigs.ts` own controlled parts, pivots, pose style, and
+    bounded melee reach; `aoeVoxelUnitAttackPoseStyles.ts` transforms each visible
+    weapon compound, while `aoeVoxelUnitAttackGeometry.ts` owns the shared rigid
+    math. `aoeVoxelUnitAttackSampling.ts` maps an authoritative hit to the authored
+    impact keyframe and smooth recovery, and `aoeVoxelUnitAmbientAnimation.ts`
+    suppresses competing transforms on attack-controlled parts. Prepared unit
+    recipes remain the single source for both presented matrices and silhouette
+    hits; `aoeVoxelOverlayParts.ts` emits selection,
     drag marquee, placement, authored-height health, hit, and death feedback into
     normal rigid-instance lanes;
     `AoeVoxelWorldRenderer.ts` owns direct capture, metrics, context lifecycle,
