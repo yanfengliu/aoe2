@@ -28,7 +28,7 @@ An AoE2-style RTS in TypeScript, built on the sibling `civ-engine` repo. Spec-dr
 
 ## Session start
 
-Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work.
+Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work. Read `docs/learning/lessons.md` too — it records what has already been tried and what it cost, and a lessons file nothing tells anyone to open is write-only.
 
 ## Invariants & boundaries
 
