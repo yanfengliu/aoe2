@@ -36,7 +36,8 @@
     "content:validate": "node scripts/validate-content.mjs",
     "content:validate:strict": "node scripts/validate-content.mjs --strict",
     "verify": "npm run content:validate && npm run test && npm run test:browser && npm run lint && npm run build",
-    "playtest:canary": "tsx scripts/playtest-canary.mjs"
+    "playtest:canary": "tsx scripts/playtest-canary.mjs",
+    "lessons:check": "node scripts/check-lessons.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
