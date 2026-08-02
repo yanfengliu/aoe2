@@ -45,8 +45,8 @@ function readEndStateFromBundle(bundlePath) {
 // Resolve npm shim explicitly per platform. On Windows we MUST set
 // shell: true: CVE-2024-27980's mitigation (Node 18.20.2 / 20.12.2 /
 // 22.0.0+) refuses to spawn .cmd / .bat files without a shell and returns
-// EINVAL. cmd.exe does not glob-expand `[]` so the bracketed model name in
-// propose-fix is safe; per-row thresholds are still passed via tempfile +
+// EINVAL. cmd.exe does not glob-expand `[]` so a bracketed model name is
+// safe; per-row thresholds are still passed via tempfile +
 // `--thresholds-file` rather than inline JSON to avoid any cmd.exe quoting
 // quirks. On Linux/macOS we keep shell: false so bash's glob-expansion of
 // `[1m]` cannot bite us.

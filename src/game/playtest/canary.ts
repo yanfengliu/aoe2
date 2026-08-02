@@ -1,5 +1,5 @@
 import { createImprovementRunManifest, type ImprovementRunManifest } from 'civ-engine';
-import { ledgerFindingToOracleViolation } from './fixProposalInput';
+import { ledgerFindingToOracleViolation } from './ledgerOracleViolation';
 import type { SelfImprovementLedger } from './selfImprovementLoop';
 
 // Canary drill: seeded-bug patches that prove the oracles still SEE. Each

@@ -1,65 +1,12 @@
+// Adapter: render a self-improvement ledger finding in this repo's OracleViolation
+// shape, so ledger findings and deterministic oracle violations read the same way.
+// The canary drill uses it to check that a seeded bug's oracle actually fired.
+//
+// This module also used to pick which finding to auto-patch. That half left with
+// the automated fix arm on 2026-08-01 — nothing here writes code any more.
+
 import type { JsonValue, OracleViolation } from './types';
-import type {
-  SelfImprovementLedger,
-  SelfImprovementLedgerFinding,
-} from './selfImprovementLoop';
-
-export interface LedgerFixSelectionOptions {
-  findingId?: string | null;
-  oracle?: string | null;
-}
-
-export interface LedgerFixCandidate {
-  prefix: string;
-  findingId: string;
-  finding: SelfImprovementLedgerFinding;
-  violation: OracleViolation;
-}
-
-const SEVERITY_RANK: Record<OracleViolation['severity'], number> = {
-  high: 3,
-  medium: 2,
-  low: 1,
-};
-
-// M6-#5: oracles whose violations are NOT a code bug the loop can patch — a
-// non-completion (match-completes fires on maxTicks/costBudget/halt) or a perf
-// regression is a signal about the RUN, not a defect to auto-fix. They must be
-// excluded from auto-apply candidate selection, else the loop preferentially
-// tries to code-patch them (match-completes is HIGH, so it sorts first).
-const NON_AUTOFIX_ORACLES = new Set<string>(['match-completes', 'no-perf-regression']);
-
-export function selectLedgerFixCandidate(
-  ledger: SelfImprovementLedger,
-  options: LedgerFixSelectionOptions = {},
-): LedgerFixCandidate | null {
-  const candidates = ledger.findings
-    // Only auto-select findings whose bug was replay-VERIFIED. A finding
-    // downgraded to 'unverified' (its run's replay self-check failed) — or a
-    // 'falsePositive'/'regressed' finding — is not trustworthy evidence of a
-    // real, reproducible defect; auto-patching it would let a spurious finding
-    // vanish on a healthy rerun and be declared fixed-proven (iter-4 review B).
-    // Oracle findings default to 'verified' and only downgrade on replay
-    // failure, so this doesn't starve legitimate selection.
-    .filter(
-      (finding) =>
-        finding.classification.kind === 'fix' && finding.verificationStatus === 'verified',
-    )
-    .map((finding) => ({
-      prefix: ledger.current.prefix,
-      findingId: finding.id,
-      finding,
-      violation: ledgerFindingToOracleViolation(finding),
-    }))
-    .filter((candidate) =>
-      !NON_AUTOFIX_ORACLES.has(candidate.violation.oracle)
-        && (!options.findingId || candidate.findingId === options.findingId)
-        && (!options.oracle || candidate.violation.oracle === options.oracle),
-    )
-    .sort((a, b) => SEVERITY_RANK[b.violation.severity] - SEVERITY_RANK[a.violation.severity]);
-
-  return candidates[0] ?? null;
-}
+import type { SelfImprovementLedgerFinding } from './selfImprovementLoop';
 
 export function ledgerFindingToOracleViolation(
   ledgerFinding: SelfImprovementLedgerFinding,

@@ -519,3 +519,17 @@ Consequences:
 - Attack motion cannot silently fall back to a role-wide weapon that the unit does not carry; exhaustive compile-time maps and adapter-parity tests guard the profile/rig/presentation seam.
 - Feet, mounts, wheels, contact shadows, and authoritative roots remain planted during attacks; connected compound distances remain rigid, recipes are stable and bounded, and memory projections contain no active animation.
 - Per-civilization variants, projectiles, gathering/death clips, and skeletal or imported character animation remain separate future work.
+
+## 2026-08-01 — The playtest harness observes; it does not write code
+
+Supersedes the Phase-6.E auto-apply decision and the 2026-07-08 ledger-driven proposal-intake decision, both of which assumed an automated fix arm downstream of the ledger.
+
+Decision: the recursive loop ends at the ledger. `playtest:self-improve` classifies findings and records replay self-check evidence, and a person or an agent session takes it from there through the ordinary TDD/gates/review cycle. No harness path proposes a patch, applies one, runs gates on a generated branch, or touches git.
+
+Reasoning: the arm was the expensive half and the weak half. It needed `applyAndGate` (branch/apply/gate/commit/hard-revert), a fix-prompt builder, a candidate selector with its own eligibility rules, an N=3 counterfactual sampler to cover LLM non-determinism, and roughly 1,900 lines of script and source to hold it together — and across the loop's operating life it proved one fix. The observation half around it (runner, oracles, corpus, findings, canary, ledger, replay inspection) is what actually found things, and it stays whole.
+
+Consequences:
+- `ledgerOracleViolation.ts` keeps the ledger→`OracleViolation` adapter the canary drill depends on; fix-candidate selection is gone, so no code path ranks findings by "what should we auto-patch."
+- The playtest model policy in `design/spec-final.md` §15.7 now covers three call sites (tactical, strategy, conformance probe) instead of five.
+- Determinism caveat stands on its own: a single clean rerun of a non-deterministic LLM was never evidence a change worked, and there is no longer a sampler implying otherwise.
+- Reinstating automation means rebuilding `applyAndGate` deliberately, with the prove-fixed rule from the fleet canon designed in from the start rather than bolted on.

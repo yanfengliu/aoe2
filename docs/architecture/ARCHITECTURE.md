@@ -30,9 +30,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       (unit-lifetime intervals, drivenness gate, tight/wide confinement
       boxes, gathering-suffix exemption); `positionReplay.ts` reconstructs
       unit positions tick-by-tick from initial snapshot + diffs, including
-      garrison position gaps; `fixBotPrompt.ts`
-      builds the prompt for `scripts/propose-fix.mjs` (Codex / Claude
-      shell-out, propose-only via `git apply --check`);
+      garrison position gaps;
       `visualPlaytestAdapter.ts` is the civ-engine v1.3 visual-playtest
       adapter seam: it turns the aoe2 LLM snapshot/tool surface into
       engine `VisualPlaytestObservation`/control/state vocabulary for
@@ -48,8 +46,8 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       generated ids carry order-dependent suffixes;
       `oracleImprovementFindings.ts` converts
       deterministic oracle violations into the same shared finding
-      contract; `fixProposalInput.ts` selects classified ledger fix
-      findings for the `propose-fix --ledger` prompt path; `corpusSchema.ts`
+      contract; `ledgerOracleViolation.ts` renders a ledger finding in the
+      repo's `OracleViolation` shape for the canary drill; `corpusSchema.ts`
       validates `playtest-corpus.json` for `scripts/playtest-corpus.mjs`,
       which loops the runner + oracles per row and emits
       `output/corpus/<date>/SUMMARY.md`. CI runs the corpus on PR + main

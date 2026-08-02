@@ -79,9 +79,8 @@ function oracleCategory(oracle: string): ImprovementFinding['category'] {
   }
 }
 
-// Exported: also the shared path-safe segment for proposal directories, so
-// propose-fix and playtest-recursive derive identical on-disk layouts even
-// for free-text (marker-derived) oracle names.
+// Exported: the shared path-safe segment for on-disk artifact directories,
+// stable even for free-text (marker-derived) oracle names.
 export function slugIdPart(value: string): string {
   return value
     .trim()
