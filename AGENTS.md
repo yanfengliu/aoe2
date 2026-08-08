@@ -41,13 +41,8 @@ Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before sta
 - The playtest LLM model policy — one model for every harness call, the current pin, and the wholesale-swap procedure — is governed by `design/spec-final.md` §15.7; never bump the playtest pin anywhere else.
 - File size: 500 LOC cap per file, enforced by `tests/architecture/fileSizeBudget.test.ts` (legacy violators grandfathered there with shrink-only caps; split by lifecycle/role and delete the entry).
 - TDD for behavior changes: tests first, testing the contract (app experience and mechanisms), not the code.
+- A visual change is not verified until a before screenshot, the change, an after screenshot, and a pixel diff exist alongside the normal gates, and the diff shows the delta confined to the region the change was meant to touch. `scripts/captureMapScreenshot.mjs` + `scripts/diffMapScreenshots.mjs` are the maintained pair (`SEED`/`LABEL` env vars reach any scenario); one-off capture scripts are not.
 - The playtest harness observes and reports; it never writes code, applies a patch, or touches git. (The automated fix arm was removed 2026-08-01 — see `docs/architecture/decisions.md`.)
-
-## Known traps
-
-- Reach for the engine's introspection FIRST when debugging — `WorldDebugger`, the occupancy/path-queue/visibility probes, and `SessionReplayer` via `scripts/replay-inspect.mjs` (`fromBundle` → `openAt(tick)` → `getEconomyState()` per owner, un-fog-filtered). A playtest finding is a claim about a recorded run: verify it by replaying that exact bundle, not with a synthetic repro. (2026-06-13: an LLM conformance finding and a subagent's synthetic-repro hypothesis were both wrong; replaying the real campaign-4 bundle showed 19 woodcutters stuck `to-resource` with full trees 8 cells away, and exposed a recorder bug — `metadata.endTick: 0` — that made the bundle look un-replayable.)
-- Visual changes verify with before screenshot → change → after screenshot → pixel diff, alongside the normal gates.
-- Debugging sessions record their process in a new file per session from `docs/debugging/template.md`; if a later session invalidates an old conclusion, update the old doc; clean up temporary dumps when done.
 
 ## Conventions
 
@@ -55,5 +50,6 @@ Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before sta
 - Changelog `docs/changelog.md` + `package.json` version: user-visible changes only (external audience; migration focus). Bump `c` per non-breaking change, `b` (reset `c`) per breaking change, `a` only when the user says so; one bump per coherent shipped change; pure refactors/doc sweeps bump nothing.
 - Architecture: structural changes update `docs/architecture/ARCHITECTURE.md` and append a row to `docs/architecture/drift-log.md`; non-obvious tradeoffs append to `docs/architecture/decisions.md` (append-only — supersede, never delete). Non-structural fixes touch none of these.
 - Lessons: `docs/learning/lessons.md` per the fleet evidence-anchor rule; code lessons need a real test node id.
+- Debugging: one file per session, copied from `docs/debugging/template.md`, which owns the copy-and-cleanup mechanics; when a later session invalidates an old conclusion, update that old doc rather than leaving it to mislead.
 - Review threads: syntheses land in `docs/threads/current/<objective>/<date>/<n>/REVIEW.md` (synthesis only — no raw CLI output; temp captures go to gitignored `tmp/review-runs/`); `DESIGN.md`/`PLAN.md` live at the objective root; move the objective to `docs/threads/done/` when closed and keep it as audit trail. Archived threads carry synthesis only — strip any `raw/` when moving to `done/` (raw has zero downstream reuse; the `REVIEW.md` is the durable, cited record).
 - Canonical doc surfaces are README, ARCHITECTURE + decisions + drift-log, devlogs, and changelog. There is deliberately no `docs/api-reference.md` or guides tree — TypeScript types (e.g. `SimulationBridge` in `src/game/simulation/createSimulationBridge.ts`) are the API reference. README changes only when public surface or user-visible features change.
