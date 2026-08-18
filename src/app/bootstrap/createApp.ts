@@ -309,6 +309,10 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     isPaused: () => pauseControl.isPaused(),
     onRestart: () => { window.location.reload(); },
     onQuit: () => { window.location.href = window.location.origin + window.location.pathname; },
+    // Art style is a display preference, not world state: it never enters a
+    // save, and switching it re-resolves the frame rather than the world.
+    cycleArtStyle: () => view.cycleArtStyle(),
+    artStyleLabel: () => view.artStyleLabel(),
   });
   cleanupCallbacks.push(() => hudController.destroy());
   const timelinePanel = createTimelinePanel({ controller: replayController });

@@ -11,6 +11,7 @@ export const GAME_MENU_ICON_KINDS = [
   'restart',
   'quit',
   'debug',
+  'artStyle',
 ] as const;
 
 export type GameMenuIconKind = (typeof GAME_MENU_ICON_KINDS)[number];
@@ -41,6 +42,13 @@ const GAME_MENU_ICON_BODY: Record<GameMenuIconKind, string> = {
     <rect x="3.5" y="4.5" width="17" height="13" rx="1.5" />
     <path d="M8 20.25h8M12 17.5v2.75M12 8v5m-2.5-2.5h5" />
     <circle cx="12" cy="10.5" r="4" />`,
+  // A drawing nib over a flat field: the two halves of the look this setting
+  // switches between — the contour, and the unmodulated colour under it.
+  artStyle: `
+    <path d="M4.6 19.4 8 11.6l7.2-7.2a2 2 0 0 1 2.8 2.8l-7.2 7.2z" />
+    <path d="M8 11.6 10.8 14.4" />
+    <path d="M4.6 19.4 7.3 18.3" />
+    <path d="M14.4 19.9h5.2" />`,
 };
 
 export function gameMenuGlyph(kind: GameMenuIconKind): string {

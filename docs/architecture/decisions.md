@@ -533,3 +533,19 @@ Consequences:
 - The playtest model policy in `design/spec-final.md` §15.7 now covers three call sites (tactical, strategy, conformance probe) instead of five.
 - Determinism caveat stands on its own: a single clean rerun of a non-deterministic LLM was never evidence a change worked, and there is no longer a sampler implying otherwise.
 - Reinstating automation means rebuilding `applyAndGate` deliberately, with the prove-fixed rule from the fleet canon designed in from the start rather than bolted on.
+
+---
+
+## The frame's art style is a display preference resolved in the engine, not game state
+
+**Date:** 2026-08-17
+
+**Decision.** The Moebius look is a whole-frame resolve pass owned by the sibling `voxel` package (`StylizedResolvePass`), opted into through `ThreeRenderRuntimeOptions.stylizedResolve`. AoE owns only the tuning and the player-facing choice. The selected style lives in `localStorage`, never in the save format.
+
+**Why the pass lives in `voxel` rather than here.** It reads depth, view-space normals, and luminance, and nothing else — no part of it knows what a villager or a Town Center is. `ThreeRenderRuntime` has a single `renderer.render(scene, camera)` seam shared by every frame path *and* the capture path, which is both the only place a frame-level operation can go and the reason stylized screenshots agree with the canvas. The look already existed in the sibling `townscaper` repo; keeping a second copy here would have meant maintaining the same shader twice, and `city` and `3d-maker` would have made it three or four. This does not weaken the standing rule that AoE owns every palette, recipe, role, fog cue, and animation meaning: the pass is given no scene knowledge, and every constant that decides how this game looks is in `src/rendering/artStyles.ts` with its measurement recorded.
+
+**Why it is not world state.** Two players can watch the same match in different styles, and neither is more correct. Putting it in the save would let one player's display preference travel to another's screen and would make an art-direction change a save-format migration. Persistence is best-effort by design — storage that throws must not stop the game booting or refuse an in-session switch.
+
+**Why Painted is the absence of the pass.** A "neutral" configuration would still cost a second scene render, a fullscreen resolve, and two offscreen targets every frame. `artStyleById('painted').resolve` is `null` and the option is omitted entirely, so the previous look costs exactly what it did before.
+
+**Consequence.** An engine update can change how this game looks. The tuning in `artStyles.ts` records what each value was measured against and what the frame's mean luminance was, so a regression is checkable rather than arguable, and `scripts/captureMapScreenshot.mjs` plus `scripts/diffMapScreenshots.mjs` retake it.

@@ -21,6 +21,8 @@ import {
   type AoeVoxelRendererState,
   type PresentedVoxelPartMatrix,
 } from '../rendering/voxel/AoeVoxelWorldRenderer';
+import { artStyleById, nextArtStyleId } from '../rendering/artStyles';
+import { writeArtStylePreference } from '../rendering/artStylePreference';
 import {
   createAoeVoxelPresentationCoordinator,
   type AoeVoxelPresentationCoordinator,
@@ -153,6 +155,27 @@ export class AoeVoxelGameView {
       rendererToDispose?.dispose();
       throw error;
     }
+  }
+
+  /**
+   * Advances to the next art style, persists it, and returns its label.
+   *
+   * The choice is a display preference: it is remembered per player, never
+   * enters a save, and changing it re-resolves the frame rather than the
+   * world, so no voxel content is rebuilt.
+   */
+  cycleArtStyle(): string {
+    const next = nextArtStyleId(this.renderer.artStyleId());
+
+    this.renderer.setArtStyle(next);
+    writeArtStylePreference(next);
+
+    return artStyleById(next).label;
+  }
+
+  /** The label of the style the canvas is currently drawn in. */
+  artStyleLabel(): string {
+    return artStyleById(this.renderer.artStyleId()).label;
   }
 
   isBooted(): boolean {

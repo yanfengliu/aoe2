@@ -4,15 +4,24 @@ import { describe, expect, it } from 'vitest';
 
 import { HUD_TEMPLATE_HTML } from '../../src/ui/hud/hudTemplate';
 
+// `state` is the visible text a settings toggle shows beside its glyph. Plain
+// actions show none. Keyed by content rather than by position in this list: an
+// earlier version asserted "every entry but the last is text-free", which
+// silently meant "debug is the only toggle" and broke the moment a second one
+// was added below it.
 const MENU_ACTIONS = [
-  { hook: 'menu-resume', label: 'Resume', icon: 'resume' },
-  { hook: 'save-button', label: 'Save game', icon: 'save' },
-  { hook: 'load-button', label: 'Load game', icon: 'load' },
-  { hook: 'replay-load-button', label: 'Watch a replay…', icon: 'replay' },
-  { hook: 'menu-restart', label: 'Restart match', icon: 'restart' },
-  { hook: 'menu-quit', label: 'Quit to title', icon: 'quit' },
-  { hook: 'menu-debug-cycle', label: 'Debug overlay: off', icon: 'debug' },
+  { hook: 'menu-resume', label: 'Resume', icon: 'resume', state: '' },
+  { hook: 'save-button', label: 'Save game', icon: 'save', state: '' },
+  { hook: 'load-button', label: 'Load game', icon: 'load', state: '' },
+  { hook: 'replay-load-button', label: 'Watch a replay…', icon: 'replay', state: '' },
+  { hook: 'menu-restart', label: 'Restart match', icon: 'restart', state: '' },
+  { hook: 'menu-quit', label: 'Quit to title', icon: 'quit', state: '' },
+  { hook: 'menu-debug-cycle', label: 'Debug overlay: off', icon: 'debug', state: 'off' },
+  { hook: 'menu-art-style-cycle', label: 'Art style: Moebius', icon: 'artStyle', state: 'Moebius' },
 ] as const;
+
+// Every toggle's state must be announced, not just rendered.
+const LIVE_STATE_HOOKS = ['menu-debug-mode', 'menu-art-style'] as const;
 
 function mountTemplate(): HTMLElement {
   const root = document.createElement('div');
@@ -46,17 +55,20 @@ describe('game-menu dedicated action icons', () => {
     expect(glyphBodies.size).toBe(MENU_ACTIONS.length);
   });
 
-  it('removes visible action-name text while retaining the debug mode state', () => {
+  it('removes visible action-name text while retaining each toggle state', () => {
     const root = mountTemplate();
 
-    for (const action of MENU_ACTIONS.slice(0, -1)) {
+    for (const action of MENU_ACTIONS) {
       const button = root.querySelector<HTMLButtonElement>(`[data-hud="${action.hook}"]`)!;
-      expect(button.textContent?.trim()).toBe('');
+      expect(button.textContent?.trim(), action.hook).toBe(action.state);
     }
 
-    const debugButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-debug-cycle"]')!;
-    expect(debugButton.textContent?.trim()).toBe('off');
-    expect(debugButton.querySelector('[data-hud="menu-debug-mode"]')?.getAttribute('aria-live')).toBe('polite');
+    for (const hook of LIVE_STATE_HOOKS) {
+      const state = root.querySelector(`[data-hud="${hook}"]`);
+      expect(state, hook).not.toBeNull();
+      expect(state!.getAttribute('aria-live'), hook).toBe('polite');
+      expect(state!.getAttribute('aria-atomic'), hook).toBe('true');
+    }
   });
 
   it('declares the closed state on the persistent game-menu trigger', () => {

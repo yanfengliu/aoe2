@@ -171,7 +171,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     click history can reorder only the current target set. Input imports neither
     Three.js nor DOM/GPU renderer objects.
   - `rendering/` — pure isometric projection/interpolation/view contracts and
-    AoE visual-role tables. `rendering/voxel/` owns the sole world adapter,
+    AoE visual-role tables. `artStyles.ts` and `artStylePreference.ts` own the
+    display-only art-style layer: which resolve tuning each style applies to
+    the sibling `voxel` package's `StylizedResolvePass`, and where the choice
+    is remembered. The pass itself is engine-owned because it reads only depth,
+    normals, and luminance; AoE owns the tuning, and every constant records the
+    frame measurement it was chosen against. Style is never world state and
+    never enters a save. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
     interaction state into snapshots, accepts prior positions only from the
@@ -276,6 +282,10 @@ design/stats ──build──► generated/content.json ──load──► Sim
 - A new gameplay rule, unit behavior, or AI change → simulation bridge or
   `civ-engine` (flag an engine gap in `docs/engine-feedback/current.md` if the
   engine lacks the primitive).
+- A new art style → an entry in `src/rendering/artStyles.ts`; the menu row, the
+  persisted preference, and the renderer all read that list, so none of them
+  needs touching. A new *capability* the styles need (a further colour or edge
+  control) belongs in `voxel`'s `StylizedResolvePass`, not here.
 - A new AoE render treatment → `src/rendering/voxel/` as snapshot data/recipes;
   a new world input control → `src/input/` plus `AoeVoxelGameView`. Add a
   renderer-neutral diagnostic and visible browser evidence where needed.

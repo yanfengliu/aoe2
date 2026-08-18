@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.10 - 2026-08-17
+
+### Changed
+
+- **The game now draws in a Moebius art style by default: ink contours over flat, vibrant colour.** The world canvas is resolved through an ink-and-flat-colour pass — tone quantised into flat bands, chroma and gain lifted, and contours inked at silhouettes. The previous look ships as **Painted**, and the Settings section of the in-game menu cycles between the two. Switching re-resolves the frame rather than the world: no content is rebuilt and no simulation state is touched.
+- **The in-game menu now scrolls instead of running off a short window.** The panel grew by one settings row and crossed the point where, at 390x560, the load form's Cancel button sat below the bottom of the screen — visible to no one and clickable by no one, with Escape the only way out. The panel is capped to the viewport and scrolls past it.
+- **The art style is remembered per player and is never part of a save.** Loading someone else's save cannot impose their look, and a match played in one style can be watched back in the other. A stored style that no longer exists falls back to the default rather than failing to start.
+
 ## 0.3.9 - 2026-07-20
 
 ### Changed

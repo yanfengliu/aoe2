@@ -114,6 +114,10 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
       { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: '' },
       { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: '' },
       { hook: 'menu-debug-cycle', name: 'Debug overlay: off', icon: 'debug', text: 'off' },
+      // The live row, not the markup default: the label is republished on
+      // mount from the persisted preference, so this also pins that the
+      // default style really is the one the canvas is drawn in.
+      { hook: 'menu-art-style-cycle', name: 'Art style: Moebius', icon: 'artStyle', text: 'Moebius' },
     ] as const;
 
     for (const action of actions) {
@@ -174,10 +178,16 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
       expect(await button.getAttribute('aria-describedby')).toContain('hud-tooltip');
     }
 
+    // Derived from the list rather than naming a button: the rule is "the trap
+    // wraps at both ends", and hardcoding whichever action happens to sit last
+    // makes an unrelated new menu row look like a focus regression.
+    const firstAction = actions[0]!;
+    const lastAction = actions.at(-1)!;
+
     await page.keyboard.press('Tab');
-    await expect(page.locator('[data-hud="menu-resume"]')).toBeFocused();
+    await expect(page.locator(`[data-hud="${firstAction.hook}"]`)).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(page.locator('[data-hud="menu-debug-cycle"]')).toBeFocused();
+    await expect(page.locator(`[data-hud="${lastAction.hook}"]`)).toBeFocused();
 
     for (const viewport of [
       { width: 800, height: 600 },

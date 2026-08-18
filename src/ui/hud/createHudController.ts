@@ -97,6 +97,10 @@ interface HudBridge {
   isPaused?(): boolean;
   onRestart?(): void;
   onQuit?(): void;
+  // Art style: cycle the frame's look and report the current one. Optional so
+  // tests and the headless HUD can omit them (the menu row stays inert).
+  cycleArtStyle?(): string;
+  artStyleLabel?(): string;
 }
 
 // Slice 11: debug-overlay mode type remains part of the HUD facade.
@@ -244,6 +248,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     onQuit: bridge.onQuit ? () => bridge.onQuit!() : undefined,
     cycleDebugOverlay: () => debugOverlayController.cycleMode(),
     subscribeDebugOverlayModeChange: debugOverlayController.subscribeModeChange,
+    cycleArtStyle: bridge.cycleArtStyle?.bind(bridge),
+    artStyleLabel: bridge.artStyleLabel?.bind(bridge),
   });
   teardownCallbacks.push(() => gameMenu.destroy());
 

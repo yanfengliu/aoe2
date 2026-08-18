@@ -1254,6 +1254,14 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   position: relative;
   min-width: 280px;
   max-width: 360px;
+  /* The panel grows with its content — every settings row, and the load form
+     when it opens. Without a ceiling it simply overflows a short viewport, and
+     the overflowing part is the bottom: the load form's Cancel button ends up
+     off-screen, where it can be neither seen nor clicked and the only way out
+     of the panel is Escape. Adding one menu row was enough to cross that line
+     at 390x560. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
