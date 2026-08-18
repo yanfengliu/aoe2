@@ -7,6 +7,7 @@ import {
   voxelPartWorldCorners,
   voxelPartWorldCornersAtTime,
 } from '../../src/rendering/voxel/aoeVoxelGeometry';
+import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { copyAoeVoxelResources, makePartBatches } from '../../src/rendering/voxel/aoeVoxelResources';
 import { createTerrainDetailParts } from '../../src/rendering/voxel/aoeVoxelTerrain';
 
@@ -63,71 +64,147 @@ describe('AoE voxel terrain surface detail', () => {
     expect(keys.some((key) => key.includes('water-shore-foam'))).toBe(false);
   });
 
-  describe('shoreline surf replaces the static straight foam bar', () => {
-    // A straight 12-tile coastline: grass row at z=0, water at z=1..2. Every
-    // z=1 water tile has exactly one land edge (north), so the old renderer
-    // drew one identical full-width bar per tile — a perfectly straight line.
+  describe('shoreline surf is a connected meandering curve', () => {
+    // A straight 12-tile coastline: grass row at z=0, water at z=1..2.
     const coastline = () => [
       ...Array.from({ length: 12 }, (_, x) => terrain('grass', x, 0)),
       ...Array.from({ length: 12 }, (_, x) => terrain('water', x, 1)),
       ...Array.from({ length: 12 }, (_, x) => terrain('water', x, 2)),
     ];
-    const surf = () => createTerrainDetailParts(coastline())
+    const surfOf = (entities: ProjectedEntityView[]) => createTerrainDetailParts(entities)
       .filter((part) => part.key.includes('water-shore-surf'));
-
-    it('emits several irregular segments per coast edge, only on coast tiles', () => {
-      const parts = surf();
-      expect(parts.length).toBeGreaterThanOrEqual(18);
-      expect(parts.length).toBeLessThanOrEqual(12 * 4);
-      // Only the z=1 row touches land; open water gets no surf.
-      expect(parts.every((part) => part.key.startsWith('terrain:') && part.key.includes(':1:')))
-        .toBe(true);
-      // Along-edge placement is jittered per segment, not centered per tile.
-      const along = parts.map((part) => Math.round((part.centerX % 1) * 100) / 100);
-      expect(new Set(along).size).toBeGreaterThanOrEqual(8);
-      expect(along.some((value) => value < 0.4)).toBe(true);
-      expect(along.some((value) => value > 0.6)).toBe(true);
-      // Distance from the waterline varies, so segments do not form one line.
-      const inshore = parts.map((part) => Math.round((part.centerZ % 1) * 1000) / 1000);
-      expect(new Set(inshore).size).toBeGreaterThanOrEqual(5);
-      // Segment widths vary too.
-      expect(new Set(parts.map((part) => part.width)).size).toBeGreaterThanOrEqual(5);
-      // Slight yaw jitter keeps segments off the exact tile-edge axis.
-      expect(parts.some((part) => Math.abs(part.yaw ?? 0) > 0.02)).toBe(true);
-      expect(new Set(parts.map((part) => part.yaw ?? 0)).size).toBeGreaterThanOrEqual(5);
-    });
-
-    it('animates every surf segment: lapping travel, phase sweep, near-vanishing fade', () => {
-      const parts = surf();
-      expect(parts.every((part) => (part.animation?.periodMs ?? 0) > 0)).toBe(true);
-      for (const part of parts) {
-        const animation = part.animation!;
-        // North shore: travel runs along z (perpendicular to the edge), not x.
-        expect(Math.abs(animation.translationAmplitude.x)).toBeLessThan(1e-9);
-        expect(Math.abs(animation.translationAmplitude.z)).toBeGreaterThanOrEqual(0.02);
-        // Fade: at the trough the segment collapses to a sliver (<= 30% size).
-        expect(animation.scaleAmplitude.z).toBeGreaterThanOrEqual(0.7);
-        expect(animation.scaleAmplitude.y).toBeGreaterThanOrEqual(0.7);
+    const surfByTile = (entities: ProjectedEntityView[]) => {
+      const byTile = new Map<string, VoxelPart[]>();
+      for (const part of surfOf(entities)) {
+        const tile = part.key.split(':').slice(0, 3).join(':');
+        byTile.set(tile, [...(byTile.get(tile) ?? []), part]);
       }
-      // The lap sweeps along the coast: phases vary with position instead of
-      // blinking in unison.
-      const phases = parts.map((part) => part.animation!.phaseRadians);
-      expect(new Set(phases).size).toBeGreaterThanOrEqual(8);
+      return byTile;
+    };
+
+    it('chains overlapping segments that cover the edge with a wandering offset', () => {
+      const byTile = surfByTile(coastline());
+      expect(byTile.size).toBe(12);
+      for (const boxes of byTile.values()) {
+        expect(boxes.length).toBeGreaterThanOrEqual(5);
+        const sorted = [...boxes].sort((a, b) => a.centerX - b.centerX);
+        // Consecutive boxes overlap: the chain is connected, not dashed.
+        for (let i = 1; i < sorted.length; i += 1) {
+          const gap = sorted[i]!.centerX - sorted[i - 1]!.centerX;
+          expect(gap).toBeLessThanOrEqual((sorted[i]!.width + sorted[i - 1]!.width) / 2 * 0.9);
+        }
+        // The chain spans nearly the whole edge.
+        const first = sorted[0]!;
+        const last = sorted[sorted.length - 1]!;
+        expect((last.centerX + last.width / 2) - (first.centerX - first.width / 2))
+          .toBeGreaterThanOrEqual(0.9);
+        // The inshore offset wanders (a curve, not a straight line) and boxes
+        // rotate to follow the local tangent.
+        const offsets = sorted.map((part) => part.centerZ % 1);
+        expect(Math.max(...offsets) - Math.min(...offsets)).toBeGreaterThanOrEqual(0.02);
+        expect(sorted.some((part) => Math.abs(part.yaw ?? 0) > 0.01)).toBe(true);
+      }
+      // Different tiles bend differently: mid-edge offsets vary across the coast.
+      const mids = [...byTile.values()].map((boxes) => {
+        const sorted = [...boxes].sort((a, b) => a.centerX - b.centerX);
+        return Math.round((sorted[Math.floor(sorted.length / 2)]!.centerZ % 1) * 1000);
+      });
+      expect(new Set(mids).size).toBeGreaterThanOrEqual(5);
     });
 
-    it('keeps east/west shores travelling along x instead of z', () => {
-      const column = [
-        ...Array.from({ length: 6 }, (_, z) => terrain('grass', 0, z)),
-        ...Array.from({ length: 6 }, (_, z) => terrain('water', 1, z)),
+    it('agrees at shared tile corners so the curve continues across tiles', () => {
+      const byTile = surfByTile(coastline());
+      for (let x = 0; x < 11; x += 1) {
+        const leftBoxes = [...byTile.get(`terrain:${String(x)}:1`)!]
+          .sort((a, b) => a.centerX - b.centerX);
+        const rightBoxes = [...byTile.get(`terrain:${String(x + 1)}:1`)!]
+          .sort((a, b) => a.centerX - b.centerX);
+        const leftEnd = leftBoxes[leftBoxes.length - 1]!;
+        const rightStart = rightBoxes[0]!;
+        // The terminal boxes approach the shared corner at the same inshore
+        // offset (hashed from the corner, so both tiles compute it).
+        expect(Math.abs((leftEnd.centerZ % 1) - (rightStart.centerZ % 1)))
+          .toBeLessThanOrEqual(0.03);
+        // And they nearly touch across the boundary.
+        expect(rightStart.centerX - leftEnd.centerX)
+          .toBeLessThanOrEqual((leftEnd.width + rightStart.width) / 2 + 0.06);
+      }
+    });
+
+    it('rounds concave corners by joining the two chains inside the tile', () => {
+      // Water at (1,1) with land north and east: the two chains must meet.
+      const entities = [
+        terrain('grass', 0, 0), terrain('grass', 1, 0), terrain('grass', 2, 0),
+        terrain('water', 0, 1), terrain('water', 1, 1), terrain('grass', 2, 1),
+        terrain('water', 0, 2), terrain('water', 1, 2), terrain('water', 2, 2),
       ];
-      const parts = createTerrainDetailParts(column)
-        .filter((part) => part.key.includes('water-shore-surf-west'));
-      expect(parts.length).toBeGreaterThanOrEqual(6);
-      for (const part of parts) {
-        expect(Math.abs(part.animation!.translationAmplitude.z)).toBeLessThan(1e-9);
-        expect(Math.abs(part.animation!.translationAmplitude.x)).toBeGreaterThanOrEqual(0.02);
-        expect(part.animation!.scaleAmplitude.x).toBeGreaterThanOrEqual(0.7);
+      const parts = surfOf(entities).filter((part) => part.key.startsWith('terrain:1:1:'));
+      const north = parts.filter((part) => part.key.includes('-north-'));
+      const east = parts.filter((part) => part.key.includes('-east-'));
+      expect(north.length).toBeGreaterThanOrEqual(5);
+      expect(east.length).toBeGreaterThanOrEqual(5);
+      const northEnd = [...north].sort((a, b) => a.centerX - b.centerX)[north.length - 1]!;
+      const eastTop = [...east].sort((a, b) => a.centerZ - b.centerZ)[0]!;
+      const distance = Math.hypot(
+        northEnd.centerX - eastTop.centerX,
+        northEnd.centerZ - eastTop.centerZ,
+      );
+      expect(distance).toBeLessThanOrEqual(0.24);
+    });
+
+    it('pinches to the land point at convex corners instead of stopping short', () => {
+      // Land finger (x<=5, z=0) surrounded by water; the coast turns at x=6.
+      const entities: ProjectedEntityView[] = [];
+      for (let x = 0; x < 10; x += 1) {
+        for (let z = 0; z < 3; z += 1) {
+          entities.push(terrain(x <= 5 && z === 0 ? 'grass' : 'water', x, z));
+        }
       }
+      const parts = createTerrainDetailParts(entities);
+      const northChain = parts
+        .filter((part) => part.key.startsWith('terrain:5:1:') && part.key.includes('-north-'))
+        .sort((a, b) => a.centerX - b.centerX);
+      const westChain = parts
+        .filter((part) => part.key.startsWith('terrain:6:0:') && part.key.includes('-west-'))
+        .sort((a, b) => a.centerZ - b.centerZ);
+      expect(northChain.length).toBeGreaterThanOrEqual(5);
+      expect(westChain.length).toBeGreaterThanOrEqual(5);
+      // Both chains run toward the shared land corner at (6, 1): the north
+      // chain's right terminal hugs the waterline, as does the west chain's
+      // bottom terminal.
+      const northEnd = northChain[northChain.length - 1]!;
+      const westEnd = westChain[westChain.length - 1]!;
+      expect(northEnd.centerZ % 1).toBeLessThanOrEqual(0.09);
+      expect(westEnd.centerX % 1).toBeLessThanOrEqual(0.09);
+    });
+
+    it('animates the whole curve with tapered ends so joints never tear', () => {
+      const byTile = surfByTile(coastline());
+      const phases = new Set<number>();
+      for (const boxes of byTile.values()) {
+        const sorted = [...boxes].sort((a, b) => a.centerX - b.centerX);
+        for (const part of sorted) {
+          const animation = part.animation!;
+          expect(animation.periodMs).toBeGreaterThan(0);
+          phases.add(animation.phaseRadians);
+          // Travel stays perpendicular to this north-shore edge.
+          expect(Math.abs(animation.translationAmplitude.x)).toBeLessThan(1e-9);
+          // Connectedness survives the fade: length barely breathes while
+          // thickness and height collapse.
+          expect(animation.scaleAmplitude.x).toBeLessThanOrEqual(0.2);
+          expect(animation.scaleAmplitude.z).toBeGreaterThanOrEqual(0.4);
+          expect(animation.scaleAmplitude.y).toBeGreaterThanOrEqual(0.4);
+        }
+        // Ends are pinned (taper), the middle laps hardest.
+        const middle = sorted[Math.floor(sorted.length / 2)]!;
+        expect(Math.abs(middle.animation!.translationAmplitude.z))
+          .toBeGreaterThanOrEqual(0.02);
+        expect(Math.abs(sorted[0]!.animation!.translationAmplitude.z))
+          .toBeLessThanOrEqual(0.015);
+        expect(Math.abs(sorted[sorted.length - 1]!.animation!.translationAmplitude.z))
+          .toBeLessThanOrEqual(0.015);
+      }
+      expect(phases.size).toBeGreaterThanOrEqual(10);
     });
   });
 

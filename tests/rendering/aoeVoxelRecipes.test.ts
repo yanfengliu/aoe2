@@ -365,6 +365,41 @@ describe('AoE voxel resource and terrain recipes', () => {
     expect(suffixes(parts)).toEqual(expect.arrayContaining([...expected]));
   });
 
+  it('draws berry bushes from several forms with varied foliage and berries', () => {
+    const bushes = Array.from({ length: 24 }, (_, index) => createResourceParts(entity({
+      kind: 'resource',
+      layer: 'resource',
+      entityType: 'berry-bush',
+      x: index % 6,
+      y: 2 + Math.floor(index / 6),
+    }), `berry:${String(index)}`, 0));
+    // Several silhouette forms: the emitted part-key sets differ.
+    const shapes = new Set(bushes.map((parts) => (
+      parts.map((part) => part.key.split(':').pop()).sort().join('|')
+    )));
+    expect(shapes.size).toBeGreaterThanOrEqual(3);
+    // Foliage palettes vary between bushes.
+    const leafTints = new Set(bushes.flatMap((parts) => parts
+      .filter((part) => part.key.includes('leaves'))
+      .map((part) => part.tint)));
+    expect(leafTints.size).toBeGreaterThanOrEqual(5);
+    // Berry clusters vary in count, placement, and size.
+    const berryCounts = new Set(bushes.map((parts) => (
+      parts.filter((part) => part.key.includes('berry-bush-berry')).length
+    )));
+    expect(berryCounts.size).toBeGreaterThanOrEqual(2);
+    const berrySizes = new Set(bushes.flatMap((parts) => parts
+      .filter((part) => part.key.includes('berry-bush-berry'))
+      .map((part) => part.width)));
+    expect(berrySizes.size).toBeGreaterThanOrEqual(6);
+    // Every form keeps the shared readable anchors.
+    for (const parts of bushes) {
+      const suffixSet = parts.map((part) => part.key.split(':').pop());
+      expect(suffixSet).toContain('berry-bush-leaves-center');
+      expect(suffixSet).toContain('berry-bush-berry-left');
+    }
+  });
+
   it('uses reduced-opacity memory material and omits live contact shadows', () => {
     const parts = createResourceParts(entity({
       kind: 'resource',
@@ -389,10 +424,10 @@ describe('AoE voxel resource and terrain recipes', () => {
     const forward = createTerrainDetailParts(cells);
     const reverse = createTerrainDetailParts([...cells].reverse());
     expect(forward).toEqual(reverse);
-    // The adversarial checkerboard exercises four surf edges around isolated
-    // water cells (up to three animated segments each); real contiguous
-    // shorelines reuse long boundary runs. Still under ~2.6 parts per cell.
-    expectValidParts(forward, 3, 165);
+    // The adversarial checkerboard forms two water columns whose every cell
+    // carries two land edges, each now a connected six-box surf chain; real
+    // maps have far lower land-water adjacency. Still ~3 parts per cell.
+    expectValidParts(forward, 3, 220);
     expect(forward.some((part) => part.key.includes('water-ripple'))).toBe(true);
   });
 

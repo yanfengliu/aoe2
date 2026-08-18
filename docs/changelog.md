@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.12 - 2026-08-17
+
+### Changed
+
+- **The shoreline is now one connected, curving line.** The broken dashes of 0.3.11 are replaced by a continuous surf curve: each shoreline edge lays six overlapping boxes along a smoothly wandering path, adjoining tiles agree at their shared corners so the line runs unbroken down the coast, inner corners round off where two shores meet inside a tile, and headlands pinch to the land point. The whole curve still laps toward the shore and thins to a hairline as it recedes — but it never breaks apart, because the fade collapses thickness and height while the boxes' lengths hold their overlap, and the lap is pinned at corner joints.
+- **The ground has patches now, and so does the water.** Grass drifts between warm yellow-greens and cool deep greens in broad irregular patches; open water drifts between deep and lighter blue. Water near land lightens into a shallow turquoise band that wraps around corners. Colours change only with position — nothing shimmers, and fog-hidden ground stays dark.
+- **Terrain kinds stop meeting at a hard line.** Cells at a boundary pull toward their neighbour's colour so grass-to-hill and grass-to-forest transitions read as gradients, and grass at the waterline warms toward a wet sandy edge beneath the surf line.
+- **Berry bushes come in three shapes.** Twin-mound, low sprawl, and upright dome forms with three foliage palettes and three-to-five berry clusters of varying position, size, and ripeness — chosen by map position, so every bush keeps its look across saves and replays.
+
 ## 0.3.11 - 2026-08-17
 
 ### Changed

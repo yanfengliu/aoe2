@@ -1,12 +1,8 @@
 import type { PaletteResourceV1 } from 'voxel/core';
 
 import type { ProjectedEntityView, TerrainKind } from '../../game/simulation/types';
-import {
-  compareParts,
-  hash01,
-  shade,
-  type VoxelPart,
-} from './aoeVoxelRecipeTypes';
+import { compareParts, type VoxelPart } from './aoeVoxelRecipeTypes';
+import { terrainCellColor, type TerrainCellSample } from './aoeVoxelTerrainColor';
 import { landDecorParts } from './aoeVoxelTerrainDecor';
 import { waterDetailParts } from './aoeVoxelTerrainWaterDetail';
 
@@ -50,20 +46,18 @@ function tintToColor(tint: number, alpha = 255) {
   return { r: (tint >>> 16) & 0xff, g: (tint >>> 8) & 0xff, b: tint & 0xff, a: alpha };
 }
 
-export function terrainVoxelTint(
-  tint: number,
-  kind: TerrainKind,
-  x: number,
-  z: number,
-): number {
-  const bucket = Math.floor(hash01(x, z, 31) * 5) - 2;
-  const step = kind === 'water' ? 0.018 : kind === 'hill' ? 0.035 : 0.027;
-  return shade(tint, 1 + bucket * step);
-}
-
 export function terrainCells(entities: readonly ProjectedEntityView[]): TerrainCell[] {
-  const cells = entities
-    .filter((entity) => entity.layer === 'terrain')
+  const terrainEntities = entities.filter((entity) => entity.layer === 'terrain');
+  // The colour pipeline reads neighbours (seam blending, the shallow-water
+  // band), so gather every cell's kind and raw tint before colouring any.
+  const samples = new Map<string, TerrainCellSample>(terrainEntities.map((entity) => [
+    `${String(entity.x)}:${String(entity.y)}`,
+    { kind: entity.entityType as TerrainKind, tint: entity.tint },
+  ]));
+  const cellAt = (x: number, z: number): TerrainCellSample | undefined => (
+    samples.get(`${String(x)}:${String(z)}`)
+  );
+  const cells = terrainEntities
     .map((entity) => {
       elevationOf(entity);
       const x = requireCoordinate('x', entity.x);
@@ -73,7 +67,7 @@ export function terrainCells(entities: readonly ProjectedEntityView[]): TerrainC
         x,
         z,
         elevation: 0,
-        tint: terrainVoxelTint(entity.tint, kind, x, z),
+        tint: terrainCellColor(entity.tint, kind, x, z, cellAt),
         kind,
       };
     })

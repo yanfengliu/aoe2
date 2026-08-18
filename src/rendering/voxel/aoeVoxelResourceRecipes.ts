@@ -178,15 +178,64 @@ function mine(context: ResourceContext, kind: 'gold-mine' | 'stone-mine'): void 
   );
 }
 
+// Bush foliage palettes: standard, sun-yellowed, cool dark. Selected per
+// position like tree canopies, so neighbouring bushes differ.
+const BUSH_PALETTES: readonly (readonly [number, number, number])[] = [
+  [VOXEL_COLORS.foliageDark, VOXEL_COLORS.foliage, VOXEL_COLORS.foliageLight],
+  [0x4a5f2c, 0x6b7f3a, 0x8b9450],
+  [0x27503b, 0x36654a, 0x4e7d58],
+];
+
 function berryBush(context: ResourceContext): void {
-  add(context, 'berry-bush-stem-left', 'matte', VOXEL_COLORS.timber, -0.2, 0, 0.08, 0.08, 0.46, 0.08, { roll: -0.3 });
-  add(context, 'berry-bush-stem-right', 'matte', VOXEL_COLORS.timber, 0.2, 0, -0.04, 0.08, 0.44, 0.08, { roll: 0.3 });
-  add(context, 'berry-bush-leaves-left', 'matte', VOXEL_COLORS.foliageDark, -0.27, 0.18, 0.08, 0.52, 0.46, 0.46);
-  add(context, 'berry-bush-leaves-right', 'matte', VOXEL_COLORS.foliage, 0.27, 0.2, -0.04, 0.5, 0.48, 0.44);
-  add(context, 'berry-bush-leaves-center', 'matte', VOXEL_COLORS.foliageLight, 0, 0.38, 0, 0.58, 0.48, 0.52);
-  add(context, 'berry-bush-berry-left', 'matte', context.entity.tint, -0.22, 0.42, 0.3, 0.14, 0.14, 0.13);
-  add(context, 'berry-bush-berry-right', 'matte', context.entity.tint, 0.24, 0.5, 0.26, 0.14, 0.14, 0.13);
-  add(context, 'berry-bush-berry-top', 'matte', VOXEL_COLORS.berry, 0.02, 0.7, 0.12, 0.13, 0.13, 0.12);
+  const form = treeVariant(context, 141, 3);
+  const [dark, mid, light] = BUSH_PALETTES[treeVariant(context, 143, BUSH_PALETTES.length)]!;
+  const lean = vary(context, 145, 0.1);
+  if (form === 0) {
+    // Twin-mound bush with upright stems.
+    add(context, 'berry-bush-stem-left', 'matte', VOXEL_COLORS.timber, -0.2, 0, 0.08, 0.08, 0.46, 0.08, { roll: -0.3 + lean });
+    add(context, 'berry-bush-stem-right', 'matte', VOXEL_COLORS.timber, 0.2, 0, -0.04, 0.08, 0.44, 0.08, { roll: 0.3 + lean });
+    add(context, 'berry-bush-leaves-left', 'matte', dark, -0.27 + vary(context, 146, 0.05), 0.18, 0.08, 0.52 + vary(context, 147, 0.06), 0.46, 0.46, { yaw: vary(context, 148, 0.4) });
+    add(context, 'berry-bush-leaves-right', 'matte', mid, 0.27 + vary(context, 149, 0.05), 0.2, -0.04, 0.5, 0.48 + vary(context, 150, 0.06), 0.44, { yaw: vary(context, 151, 0.4) });
+    add(context, 'berry-bush-leaves-center', 'matte', light, 0, 0.38 + vary(context, 152, 0.05), 0, 0.58, 0.48, 0.52, { yaw: vary(context, 153, 0.4) });
+  } else if (form === 1) {
+    // Low sprawling bush: three squat mounds hugging the ground.
+    add(context, 'berry-bush-leaves-left', 'matte', mid, -0.3 + vary(context, 146, 0.06), 0.06, 0.16, 0.5, 0.34, 0.44, { yaw: vary(context, 148, 0.5) });
+    add(context, 'berry-bush-leaves-right', 'matte', dark, 0.3 + vary(context, 149, 0.06), 0.05, -0.12, 0.48, 0.32 + vary(context, 150, 0.05), 0.46, { yaw: vary(context, 151, 0.5) });
+    add(context, 'berry-bush-leaves-back', 'matte', dark, -0.02, 0.08, -0.3, 0.44, 0.3, 0.4, { yaw: vary(context, 154, 0.5) });
+    add(context, 'berry-bush-leaves-center', 'matte', light, 0, 0.16 + vary(context, 152, 0.04), 0.04, 0.56, 0.36, 0.5, { yaw: vary(context, 153, 0.5) });
+  } else {
+    // Upright dome on a visible trunk.
+    add(context, 'berry-bush-stem-left', 'matte', VOXEL_COLORS.timberDark, -0.04, 0, 0.02, 0.1, 0.34, 0.1, { roll: lean });
+    add(context, 'berry-bush-leaves-left', 'matte', dark, -0.16 + vary(context, 146, 0.05), 0.24, 0.1, 0.42, 0.4, 0.4, { yaw: vary(context, 148, 0.4) });
+    add(context, 'berry-bush-leaves-right', 'matte', mid, 0.16, 0.28, -0.08, 0.4 + vary(context, 149, 0.06), 0.42, 0.38, { yaw: vary(context, 151, 0.4) });
+    add(context, 'berry-bush-leaves-center', 'matte', light, 0, 0.5 + vary(context, 152, 0.06), 0, 0.5, 0.42 + vary(context, 150, 0.05), 0.46, { yaw: vary(context, 153, 0.4) });
+  }
+  // Berry clusters: 3-5 visible fruits with hashed placement, size, and a
+  // ripeness mix between the faction-facing tint and the deep berry red.
+  const berryCount = 3 + treeVariant(context, 157, 3);
+  const crownLift = form === 1 ? 0.18 : form === 2 ? 0.42 : 0.4;
+  for (let index = 0; index < berryCount; index += 1) {
+    const angle = (index / berryCount) * Math.PI * 2 + vary(context, 160 + index, 0.5);
+    const radius = 0.2 + vary(context, 166 + index, 0.08);
+    const size = 0.11 + hash01(context.entity.x, context.entity.y, 172 + index) * 0.05;
+    const ripeness = hash01(context.entity.x, context.entity.y, 178 + index);
+    const suffix = index === 0 ? 'berry-bush-berry-left'
+      : index === 1 ? 'berry-bush-berry-right'
+      : index === 2 ? 'berry-bush-berry-top'
+      : `berry-bush-berry-${String(index)}`;
+    add(
+      context,
+      suffix,
+      'matte',
+      ripeness < 0.5 ? context.entity.tint : shade(VOXEL_COLORS.berry, 0.85 + ripeness * 0.3),
+      Math.cos(angle) * radius,
+      crownLift + vary(context, 184 + index, 0.1) + 0.08,
+      Math.sin(angle) * radius * 0.8,
+      size,
+      size,
+      size * 0.94,
+    );
+  }
 }
 
 function sheep(context: ResourceContext): void {

@@ -7,7 +7,7 @@ import {
   AOE_TERRAIN_CHUNK_SIZE,
   AoeVoxelAdapter,
 } from '../../src/rendering/voxel/aoeVoxelAdapter';
-import { terrainVoxelTint } from '../../src/rendering/voxel/aoeVoxelTerrain';
+import { terrainCellColor } from '../../src/rendering/voxel/aoeVoxelTerrainColor';
 
 function view(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
   return {
@@ -115,10 +115,16 @@ describe('AoeVoxelAdapter terrain projection', () => {
     expect(right?.size).toEqual({ x: 16, y: 1, z: 16 });
 
     const palette = snapshot.resources.find((resource) => resource.kind === 'palette');
+    const cellAt = (x: number, z: number) => (
+      x === 0 && z === 0 ? { kind: 'grass' as const, tint: 0x112233 }
+      : x === 15 && z === 0 ? { kind: 'grass' as const, tint: 0x445566 }
+      : x === 16 && z === 0 ? { kind: 'hill' as const, tint: 0x778899 }
+      : undefined
+    );
     const expectedTints = [
-      terrainVoxelTint(0x112233, 'grass', 0, 0),
-      terrainVoxelTint(0x445566, 'grass', 15, 0),
-      terrainVoxelTint(0x778899, 'hill', 16, 0),
+      terrainCellColor(0x112233, 'grass', 0, 0, cellAt),
+      terrainCellColor(0x445566, 'grass', 15, 0, cellAt),
+      terrainCellColor(0x778899, 'hill', 16, 0, cellAt),
     ].sort((a, b) => a - b);
     expect(palette?.entries.map((entry) => entry.color)).toEqual([
       { r: 0, g: 0, b: 0, a: 0 },
