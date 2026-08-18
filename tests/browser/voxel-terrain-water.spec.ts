@@ -43,8 +43,11 @@ test.describe('voxel terrain and water presentation', () => {
       animatedBatches: 1,
     });
     expect(before.metrics.animatedInstances).toBeGreaterThan(10);
-    expect(before.metrics.animatedInstances).toBeLessThan(500);
-    expect(before.metrics.instances).toBeLessThan(2_000);
+    expect(before.metrics.animatedInstances).toBeLessThan(700);
+    // The decoration variant library (flecks, tuft clusters, pebbles, stone
+    // formations, multi-segment surf) raised the showcase from ~1.4k to ~3.7k
+    // instances; draw calls and triangles below are the real cost guards.
+    expect(before.metrics.instances).toBeLessThan(6_000);
     expect(before.metrics.drawCalls).toBeLessThanOrEqual(20);
     expect(before.metrics.triangles).toBeLessThan(100_000);
 

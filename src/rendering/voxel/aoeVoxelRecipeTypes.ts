@@ -67,6 +67,7 @@ export const VOXEL_COLORS = {
   waterDark: 0x315f72,
   waterGlint: 0x70acc2,
   waterReflection: 0xb8e2e8,
+  waterFoam: 0xddeef0,
   window: 0x76979b,
   berry: 0x8b3352,
 } as const;

@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.11 - 2026-08-17
+
+### Changed
+
+- **Shorelines now break like water instead of tracing tile edges.** The straight light-blue bar that outlined every water tile touching land is gone. In its place, each shoreline edge carries up to three irregular surf segments — jittered in position, width, distance from the waterline, and angle — and every segment moves: it laps toward the land, swells at the waterline, and dissolves to a sliver before the next lap, with the phase sweeping along the coast so the shore never blinks in unison. Surf freezes with displayed simulation time exactly like wave crests, so saves, replays, and pause behave unchanged.
+- **Ground decoration is drawn from a variant library instead of one repeated stamp.** Grass pulls tuft clusters from five distinct shapes with per-blade height, lean, and colour variation; flecks vary in size, angle, and placement; occasional pebble scatters appear on grass and hills; and hill stone comes from four formation shapes (boulder-and-shard, twin boulders, slab cluster, cairn) with hashed position, rotation, and grey-tone. The same cell always decorates identically — nothing shimmers or reshuffles.
+
 ## 0.3.10 - 2026-08-17
 
 ### Changed

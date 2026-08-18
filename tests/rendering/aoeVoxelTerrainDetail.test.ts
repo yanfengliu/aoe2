@@ -59,7 +59,143 @@ describe('AoE voxel terrain surface detail', () => {
     expect(keys.some((key) => key.includes('hill-rock'))).toBe(true);
     expect(keys.some((key) => key.includes('water-ripple'))).toBe(true);
     expect(keys.some((key) => key.includes('water-reflection'))).toBe(true);
-    expect(keys.some((key) => key.includes('water-shore-foam'))).toBe(true);
+    expect(keys.some((key) => key.includes('water-shore-surf'))).toBe(true);
+    expect(keys.some((key) => key.includes('water-shore-foam'))).toBe(false);
+  });
+
+  describe('shoreline surf replaces the static straight foam bar', () => {
+    // A straight 12-tile coastline: grass row at z=0, water at z=1..2. Every
+    // z=1 water tile has exactly one land edge (north), so the old renderer
+    // drew one identical full-width bar per tile — a perfectly straight line.
+    const coastline = () => [
+      ...Array.from({ length: 12 }, (_, x) => terrain('grass', x, 0)),
+      ...Array.from({ length: 12 }, (_, x) => terrain('water', x, 1)),
+      ...Array.from({ length: 12 }, (_, x) => terrain('water', x, 2)),
+    ];
+    const surf = () => createTerrainDetailParts(coastline())
+      .filter((part) => part.key.includes('water-shore-surf'));
+
+    it('emits several irregular segments per coast edge, only on coast tiles', () => {
+      const parts = surf();
+      expect(parts.length).toBeGreaterThanOrEqual(18);
+      expect(parts.length).toBeLessThanOrEqual(12 * 4);
+      // Only the z=1 row touches land; open water gets no surf.
+      expect(parts.every((part) => part.key.startsWith('terrain:') && part.key.includes(':1:')))
+        .toBe(true);
+      // Along-edge placement is jittered per segment, not centered per tile.
+      const along = parts.map((part) => Math.round((part.centerX % 1) * 100) / 100);
+      expect(new Set(along).size).toBeGreaterThanOrEqual(8);
+      expect(along.some((value) => value < 0.4)).toBe(true);
+      expect(along.some((value) => value > 0.6)).toBe(true);
+      // Distance from the waterline varies, so segments do not form one line.
+      const inshore = parts.map((part) => Math.round((part.centerZ % 1) * 1000) / 1000);
+      expect(new Set(inshore).size).toBeGreaterThanOrEqual(5);
+      // Segment widths vary too.
+      expect(new Set(parts.map((part) => part.width)).size).toBeGreaterThanOrEqual(5);
+      // Slight yaw jitter keeps segments off the exact tile-edge axis.
+      expect(parts.some((part) => Math.abs(part.yaw ?? 0) > 0.02)).toBe(true);
+      expect(new Set(parts.map((part) => part.yaw ?? 0)).size).toBeGreaterThanOrEqual(5);
+    });
+
+    it('animates every surf segment: lapping travel, phase sweep, near-vanishing fade', () => {
+      const parts = surf();
+      expect(parts.every((part) => (part.animation?.periodMs ?? 0) > 0)).toBe(true);
+      for (const part of parts) {
+        const animation = part.animation!;
+        // North shore: travel runs along z (perpendicular to the edge), not x.
+        expect(Math.abs(animation.translationAmplitude.x)).toBeLessThan(1e-9);
+        expect(Math.abs(animation.translationAmplitude.z)).toBeGreaterThanOrEqual(0.02);
+        // Fade: at the trough the segment collapses to a sliver (<= 30% size).
+        expect(animation.scaleAmplitude.z).toBeGreaterThanOrEqual(0.7);
+        expect(animation.scaleAmplitude.y).toBeGreaterThanOrEqual(0.7);
+      }
+      // The lap sweeps along the coast: phases vary with position instead of
+      // blinking in unison.
+      const phases = parts.map((part) => part.animation!.phaseRadians);
+      expect(new Set(phases).size).toBeGreaterThanOrEqual(8);
+    });
+
+    it('keeps east/west shores travelling along x instead of z', () => {
+      const column = [
+        ...Array.from({ length: 6 }, (_, z) => terrain('grass', 0, z)),
+        ...Array.from({ length: 6 }, (_, z) => terrain('water', 1, z)),
+      ];
+      const parts = createTerrainDetailParts(column)
+        .filter((part) => part.key.includes('water-shore-surf-west'));
+      expect(parts.length).toBeGreaterThanOrEqual(6);
+      for (const part of parts) {
+        expect(Math.abs(part.animation!.translationAmplitude.z)).toBeLessThan(1e-9);
+        expect(Math.abs(part.animation!.translationAmplitude.x)).toBeGreaterThanOrEqual(0.02);
+        expect(part.animation!.scaleAmplitude.x).toBeGreaterThanOrEqual(0.7);
+      }
+    });
+  });
+
+  describe('ground decoration variant library', () => {
+    it('pulls grass tufts from several distinct cluster variants with varied blades', () => {
+      const parts = createTerrainDetailParts(patch('grass', 24));
+      const blades = parts.filter((part) => part.key.includes('grass-tuft'));
+      expect(blades.length).toBeGreaterThanOrEqual(80);
+      const variants = new Set(blades.map((part) => /grass-tuft-v(\d+)/.exec(part.key)?.[1]));
+      variants.delete(undefined);
+      expect(variants.size).toBeGreaterThanOrEqual(4);
+      // Cluster sizes differ between variants.
+      const perTile = new Map<string, number>();
+      for (const blade of blades) {
+        const tile = blade.key.split(':').slice(0, 3).join(':');
+        perTile.set(tile, (perTile.get(tile) ?? 0) + 1);
+      }
+      expect(new Set(perTile.values()).size).toBeGreaterThanOrEqual(3);
+      // Blade geometry and colour vary, not one stamped pair.
+      expect(new Set(blades.map((part) => part.height)).size).toBeGreaterThanOrEqual(6);
+      expect(new Set(blades.map((part) => part.tint)).size).toBeGreaterThanOrEqual(3);
+      expect(new Set(blades.map((part) => `${String(part.yaw ?? 0)}|${String(part.roll ?? 0)}`)).size)
+        .toBeGreaterThanOrEqual(8);
+    });
+
+    it('scatters flecks with varied placement, size, and tint instead of one centered stamp', () => {
+      const parts = createTerrainDetailParts(patch('grass', 24));
+      const flecks = parts.filter((part) => part.key.includes('grass-fleck'));
+      expect(flecks.length).toBeGreaterThanOrEqual(60);
+      expect(new Set(flecks.map((part) => Math.round((part.centerX % 1) * 100))).size)
+        .toBeGreaterThanOrEqual(8);
+      expect(new Set(flecks.map((part) => part.width)).size).toBeGreaterThanOrEqual(4);
+      expect(new Set(flecks.map((part) => part.tint)).size).toBeGreaterThanOrEqual(2);
+    });
+
+    it('drops occasional pebbles on grass with varied sizes and greys', () => {
+      const parts = createTerrainDetailParts(patch('grass', 24));
+      const pebbles = parts.filter((part) => part.key.includes('grass-pebble'));
+      expect(pebbles.length).toBeGreaterThanOrEqual(12);
+      expect(new Set(pebbles.map((part) => part.width)).size).toBeGreaterThanOrEqual(3);
+      expect(new Set(pebbles.map((part) => part.tint)).size).toBeGreaterThanOrEqual(2);
+    });
+
+    it('builds hill stone from formation variants scattered inside the tile', () => {
+      const parts = createTerrainDetailParts(patch('hill', 24));
+      const rocks = parts.filter((part) => part.key.includes('hill-rock'));
+      expect(rocks.length).toBeGreaterThanOrEqual(60);
+      const variants = new Set(rocks.map((part) => /hill-rock-v(\d+)/.exec(part.key)?.[1]));
+      variants.delete(undefined);
+      expect(variants.size).toBeGreaterThanOrEqual(3);
+      // Formation anchors move around the tile instead of sitting at one spot.
+      expect(new Set(rocks.map((part) => Math.round((part.centerX % 1) * 50))).size)
+        .toBeGreaterThanOrEqual(6);
+      expect(new Set(rocks.map((part) => part.tint)).size).toBeGreaterThanOrEqual(3);
+      expect(new Set(rocks.map((part) => part.width)).size).toBeGreaterThanOrEqual(6);
+    });
+
+    it('stays deterministic and bounded per tile', () => {
+      const entities = patch('grass', 24);
+      const forward = createTerrainDetailParts(entities);
+      expect(createTerrainDetailParts([...entities].reverse())).toEqual(forward);
+      const perTile = new Map<string, number>();
+      for (const part of forward) {
+        const tile = part.key.split(':').slice(0, 3).join(':');
+        perTile.set(tile, (perTile.get(tile) ?? 0) + 1);
+      }
+      expect(Math.max(...perTile.values())).toBeLessThanOrEqual(12);
+    });
   });
 
   it('drives spatially phased wave crests through the pinned instance-animation contract', () => {

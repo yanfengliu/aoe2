@@ -389,9 +389,10 @@ describe('AoE voxel resource and terrain recipes', () => {
     const forward = createTerrainDetailParts(cells);
     const reverse = createTerrainDetailParts([...cells].reverse());
     expect(forward).toEqual(reverse);
-    // The adversarial checkerboard exercises four foam edges around isolated
-    // water cells; real contiguous shorelines reuse long boundary runs.
-    expectValidParts(forward, 3, 100);
+    // The adversarial checkerboard exercises four surf edges around isolated
+    // water cells (up to three animated segments each); real contiguous
+    // shorelines reuse long boundary runs. Still under ~2.6 parts per cell.
+    expectValidParts(forward, 3, 165);
     expect(forward.some((part) => part.key.includes('water-ripple'))).toBe(true);
   });
 

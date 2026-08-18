@@ -4,11 +4,11 @@ import type { ProjectedEntityView, TerrainKind } from '../../game/simulation/typ
 import {
   compareParts,
   hash01,
-  makePart,
   shade,
-  VOXEL_COLORS,
   type VoxelPart,
 } from './aoeVoxelRecipeTypes';
+import { landDecorParts } from './aoeVoxelTerrainDecor';
+import { waterDetailParts } from './aoeVoxelTerrainWaterDetail';
 
 export const AOE_TERRAIN_CHUNK_SIZE = 16;
 const MAX_TERRAIN_LEVELS = 64;
@@ -169,160 +169,10 @@ export function createTerrainDetailParts(
     const z = requireCoordinate('y', entity.y);
     const identity = `terrain:${String(x)}:${String(z)}`;
     const kind = entity.entityType as TerrainKind;
-    const noise = hash01(x, z, 79);
-    const accent = hash01(x, z, 83);
-    const yaw = (hash01(x, z, 89) - 0.5) * 0.72;
     if (kind === 'water') {
-      // Pinned Voxel 0.1.4 has no texture or environment-map contract, and a
-      // mixed terrain chunk has one material. Raised, sparse instances provide
-      // standard-material highlights while the opaque chunk remains fallback.
-      if (noise < 0.72) {
-        parts.push(makePart(
-          entity,
-          identity,
-          'water-ripple-dark',
-          'water',
-          VOXEL_COLORS.waterDark,
-          x + 0.5,
-          0.022,
-          z + 0.5,
-          0.54,
-          0.018,
-          0.034,
-          { yaw },
-        ));
-      }
-      if (noise < 0.34) {
-        const crest = makePart(
-          entity,
-          identity,
-          'water-ripple-crest',
-          'water',
-          VOXEL_COLORS.waterGlint,
-          x + 0.5,
-          0.041,
-          z + 0.5,
-          0.61,
-          0.022,
-          0.044,
-          { yaw },
-        );
-        parts.push({
-          ...crest,
-          animation: {
-            periodMs: 2_100 + Math.floor(hash01(x, z, 97) * 900),
-            phaseRadians: hash01(x, z, 101) * Math.PI * 2,
-            translationAmplitude: {
-              x: Math.sin(yaw) * 0.022,
-              y: 0.016,
-              z: Math.cos(yaw) * 0.022,
-            },
-            rotationAmplitude: { x: 0.025, y: 0.04, z: 0.018 },
-            scaleAmplitude: { x: 0.12, y: 0, z: 0.18 },
-          },
-        });
-      }
-      if (accent < 0.24) {
-        parts.push(makePart(
-          entity,
-          identity,
-          'water-reflection-sky',
-          'water',
-          VOXEL_COLORS.waterReflection,
-          x + 0.5 + (accent - 0.12) * 1.2,
-          0.034,
-          z + 0.5 - (accent - 0.12) * 0.8,
-          0.24,
-          0.019,
-          0.095,
-          { yaw: -yaw * 0.62 },
-        ));
-      }
-      const shores = [
-        { suffix: 'north', dx: 0, dz: -1, centerX: x + 0.5, centerZ: z + 0.07, width: 0.72, depth: 0.045 },
-        { suffix: 'east', dx: 1, dz: 0, centerX: x + 0.93, centerZ: z + 0.5, width: 0.045, depth: 0.72 },
-        { suffix: 'south', dx: 0, dz: 1, centerX: x + 0.5, centerZ: z + 0.93, width: 0.72, depth: 0.045 },
-        { suffix: 'west', dx: -1, dz: 0, centerX: x + 0.07, centerZ: z + 0.5, width: 0.045, depth: 0.72 },
-      ] as const;
-      for (const shore of shores) {
-        const neighbour = terrainKinds.get(`${String(x + shore.dx)}:${String(z + shore.dz)}`);
-        if (neighbour === undefined || neighbour === 'water') continue;
-        parts.push(makePart(
-          entity,
-          identity,
-          `water-shore-foam-${shore.suffix}`,
-          'matte',
-          VOXEL_COLORS.waterReflection,
-          shore.centerX,
-          0.027,
-          shore.centerZ,
-          shore.width,
-          0.018,
-          shore.depth,
-        ));
-      }
-    } else if (kind === 'hill') {
-      if (noise < 0.58) {
-        parts.push(makePart(
-          entity,
-          identity,
-          'hill-strata-dark',
-          'matte',
-          shade(entity.tint, 0.72),
-          x + 0.5,
-          0.021,
-          z + 0.5,
-          0.55,
-          0.026,
-          0.045,
-          { yaw },
-        ));
-      }
-      if (accent < 0.34) {
-        parts.push(makePart(entity, identity, 'hill-rock', 'matte', VOXEL_COLORS.stoneDark, x + 0.3, 0.11, z + 0.58, 0.25, 0.22, 0.2, { yaw: noise * 0.7 }));
-        parts.push(makePart(entity, identity, 'hill-rock-light', 'matte', VOXEL_COLORS.stone, x + 0.63, 0.08, z + 0.4, 0.18, 0.16, 0.16, { yaw: -noise * 0.5 }));
-      }
-    } else if (kind === 'grass') {
-      if (noise < 0.38) {
-        parts.push(makePart(
-          entity,
-          identity,
-          'grass-fleck-light',
-          'matte',
-          shade(entity.tint, 1.16),
-          x + 0.5,
-          0.018,
-          z + 0.5,
-          0.26,
-          0.023,
-          0.04,
-          { yaw },
-        ));
-      }
-      if (accent < 0.16) {
-        parts.push(makePart(entity, identity, 'grass-tuft-left', 'matte', VOXEL_COLORS.foliageDark, x + 0.42, 0.13, z + 0.52, 0.035, 0.26, 0.035, { roll: -0.24 }));
-        parts.push(makePart(entity, identity, 'grass-tuft-right', 'matte', VOXEL_COLORS.foliageLight, x + 0.56, 0.11, z + 0.48, 0.035, 0.22, 0.035, { roll: 0.25 }));
-      }
-    } else if (kind === 'forest') {
-      if (noise < 0.42) {
-        parts.push(makePart(
-          entity,
-          identity,
-          'forest-leaf-litter',
-          'matte',
-          accent < 0.5 ? VOXEL_COLORS.soilDark : VOXEL_COLORS.foliageDark,
-          x + 0.5,
-          0.018,
-          z + 0.5,
-          0.26,
-          0.022,
-          0.11,
-          { yaw },
-        ));
-      }
-      if (accent < 0.16) {
-        parts.push(makePart(entity, identity, 'forest-log', 'matte', VOXEL_COLORS.timberDark, x + 0.5, 0.09, z + 0.5, 0.42, 0.14, 0.13, { yaw: noise * Math.PI }));
-      }
+      parts.push(...waterDetailParts(entity, identity, x, z, terrainKinds));
+    } else {
+      parts.push(...landDecorParts(entity, identity, kind, x, z));
     }
   }
   return parts.sort(compareParts);
