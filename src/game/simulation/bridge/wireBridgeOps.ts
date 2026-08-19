@@ -82,6 +82,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     addResourceEntity,
     buildingOccupiesCell,
     isTerrainPassableForUnit,
+    isTerrainPassableForUnitId,
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForUnit,
@@ -129,7 +130,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       addResourceEntity,
       findScenarioSpawnPosition,
       buildingOccupiesCell,
-      isTerrainPassableForUnit,
+      isTerrainPassableForUnitId,
       isCellBlockedByBuilding,
     });
   }

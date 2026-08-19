@@ -4,6 +4,19 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import { createGrassFixtureTerrain, ownedSpawn } from './common';
+import { createTerrainCell } from '../mapGeneration/sharedTerrainHelpers';
+
+// Grass everywhere, plus a small pool for the naval row. Ships are water-domain
+// units (see unitDomain.ts) and cannot occupy a land cell at all.
+function showcaseTerrain() {
+  const terrain = createGrassFixtureTerrain();
+  for (let y = 25; y <= 28; y += 1) {
+    for (let x = 4; x <= 12; x += 1) {
+      terrain[y]![x] = createTerrainCell(x, y, 'water');
+    }
+  }
+  return terrain;
+}
 
 // Visual-only showcase scenario (M7 units-beyond-circles). Places one P1 unit
 // of every concrete UnitType in isolated rows. The original seven role
@@ -14,7 +27,7 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
     seed,
     width: MAP_WIDTH,
     height: MAP_HEIGHT,
-    terrain: createGrassFixtureTerrain(),
+    terrain: showcaseTerrain(),
     starts: [
       {
         owner: 1,
@@ -68,6 +81,9 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('two-handed-swordsman', 1, 17, 22, { vision: 3 }),
       ownedSpawn('paladin', 1, 19, 22, { vision: 3 }),
       ownedSpawn('heavy-camel', 1, 21, 22, { vision: 3 }),
+      // M5 naval: ships can only exist on water, so the showcase has a small
+      // pool for them rather than a ship parked implausibly on grass.
+      ownedSpawn('fishing-ship', 1, 6, 26, { vision: 3 }),
       ownedSpawn('town-center', 2, 53, 29, { vision: 4 }),
     ],
   };

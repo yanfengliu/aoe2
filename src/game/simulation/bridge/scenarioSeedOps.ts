@@ -9,6 +9,8 @@
 
 import type { Position } from 'civ-engine';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
+import { UNIT_MAX_HP } from '../prototypeUnitRules/statTables';
+import { unitDomain } from '../unitDomain';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -93,7 +95,12 @@ export interface ScenarioSeedDeps {
     y: number,
     activeWorld?: CivWorld,
   ) => boolean;
-  isTerrainPassableForUnit: (x: number, y: number, activeWorld?: CivWorld) => boolean;
+  isTerrainPassableForUnitId: (
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld?: CivWorld,
+  ) => boolean;
   isCellBlockedByBuilding: (x: number, y: number) => boolean;
 }
 
@@ -223,42 +230,11 @@ const BUILDING_KINDS: ReadonlySet<string> = new Set(
   Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS),
 );
 
-const UNIT_KINDS = new Set<string>([
-  'villager',
-  'scout',
-  'militia',
-  'spearman',
-  'archer',
-  'skirmisher',
-  'knight',
-  'crossbowman',
-  'pikeman',
-  'light-cavalry',
-  'camel',
-  'cavalry-archer',
-  'mangonel',
-  'scorpion',
-  'battering-ram',
-  'monk',
-  'longbowman',
-  'arbalest',
-  'halberdier',
-  'hussar',
-  'heavy-cavalry-archer',
-  'cavalier',
-  'champion',
-  'elite-longbowman',
-  'onager',
-  'heavy-scorpion',
-  'siege-ram',
-  'bombard-cannon',
-  'trebuchet',
-  'man-at-arms',
-  'long-swordsman',
-  'two-handed-swordsman',
-  'paladin',
-  'heavy-camel',
-]);
+// DERIVED from the authoritative stat table, for the same reason BUILDING_KINDS
+// above is derived: a hand-listed copy silently routed a newly-added unit type
+// down the RESOURCE branch below, surfacing as an opaque engine tint error
+// rather than as a missing-unit error.
+const UNIT_KINDS: ReadonlySet<string> = new Set(Object.keys(UNIT_MAX_HP));
 
 export function seedFreshScenario(deps: ScenarioSeedDeps): void {
   seedPlayerStarts(deps);
@@ -374,7 +350,7 @@ function validateScenarioSpawns(
     mapWidth,
     mapHeight,
     buildingOccupiesCell,
-    isTerrainPassableForUnit,
+    isTerrainPassableForUnitId,
     isCellBlockedByBuilding,
   } = deps;
 
@@ -415,9 +391,15 @@ function validateScenarioSpawns(
         `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns outside map bounds at (${position.x},${position.y}).`,
       );
     }
-    if (!isTerrainPassableForUnit(position.x, position.y)) {
+    // M5 naval: passability is per-DOMAIN. A ship on grass and a villager on
+    // water are both errors, and the message says which domain was expected
+    // rather than a bare "impassable".
+    if (!isTerrainPassableForUnitId(unitId, position.x, position.y)) {
+      const domain = unitDomain(unit.unitType);
       throw new Error(
-        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) spawns on impassable terrain at (${position.x},${position.y}).`,
+        `Scenario '${scenario.seed}': ${unit.unitType} (owner ${unit.owner}) is a ${domain} unit `
+        + `and cannot spawn at (${position.x},${position.y}); it needs `
+        + `${domain === 'water' ? 'a water cell' : 'passable land (not water or forest)'}.`,
       );
     }
     if (overlapWhitelist.has(unitId)) continue;

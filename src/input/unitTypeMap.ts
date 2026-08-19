@@ -37,6 +37,7 @@ export const ALL_UNIT_TYPES = {
   'siege-ram': true,
   'bombard-cannon': true,
   trebuchet: true,
+  'fishing-ship': true,
   'man-at-arms': true,
   'long-swordsman': true,
   'two-handed-swordsman': true,

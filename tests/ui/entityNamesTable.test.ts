@@ -77,6 +77,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'siege-ram': ['Siege Ram', 'Siege Rams'],
   'bombard-cannon': ['Bombard Cannon', 'Bombard Cannons'],
   'trebuchet': ['Trebuchet', 'Trebuchets'],
+  'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'man-at-arms': ['Man-at-Arms', 'Men-at-Arms'],
   'long-swordsman': ['Long Swordsman', 'Long Swordsmen'],
   'two-handed-swordsman': ['Two-Handed Swordsman', 'Two-Handed Swordsmen'],

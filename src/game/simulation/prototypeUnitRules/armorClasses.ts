@@ -35,7 +35,9 @@ export type ArmorClass =
   | 'spearman'
   | 'archer'
   | 'siege'
-  | 'ram';
+  | 'ram'
+  // M5 naval: ships are their own armour class (anti-ship bonuses target it).
+  | 'ship';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -71,6 +73,7 @@ export const UNIT_ARMOR_CLASSES = {
   'siege-ram': new Set<ArmorClass>(['siege', 'ram']),
   'bombard-cannon': new Set<ArmorClass>(['siege']),
   trebuchet: new Set<ArmorClass>(['siege']),
+  'fishing-ship': new Set<ArmorClass>(['ship']),
   'man-at-arms': new Set<ArmorClass>(['infantry']),
   'long-swordsman': new Set<ArmorClass>(['infantry']),
   'two-handed-swordsman': new Set<ArmorClass>(['infantry']),

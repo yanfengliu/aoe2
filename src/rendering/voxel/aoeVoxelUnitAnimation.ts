@@ -46,6 +46,8 @@ const STRIDE_LENGTH_WORLD_UNITS: Readonly<Record<UnitRole, number>> = Object.fre
   'cavalry-archer': 3.4,
   siege: 0.95,
   monk: 2.5,
+  // A hull glides; it has no stride, so the gait cycle is long and shallow.
+  ship: 3.6,
 });
 
 const AUTHORED_FORWARD_RADIANS: Readonly<Record<UnitRole, number>> = Object.freeze({
@@ -56,6 +58,8 @@ const AUTHORED_FORWARD_RADIANS: Readonly<Record<UnitRole, number>> = Object.free
   'cavalry-archer': Math.atan2(-0.36, 0.5),
   siege: Math.atan2(-0.43, 0.88),
   monk: Math.PI / 2,
+  // The hull is authored bow-forward along +z, like the humanoids.
+  ship: Math.PI / 2,
 });
 
 const FALLBACK_STRIDE_LENGTH_WORLD_UNITS = STRIDE_LENGTH_WORLD_UNITS.infantry;

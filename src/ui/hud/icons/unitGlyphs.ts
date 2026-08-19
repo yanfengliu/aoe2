@@ -39,7 +39,8 @@ export type UnitGlyphRole =
   | 'cavalry'
   | 'cavalry-archer'
   | 'siege'
-  | 'monk';
+  | 'monk'
+  | 'ship';
 
 // The CSS hook the selection panel + `hudIcons.css` target for sizing and
 // colour. ONE hook for the whole selection badge (units AND buildings) so
@@ -114,6 +115,12 @@ const MONK_GLYPH =
   '<path d="M12 8v6"/>' +
   '<path d="M9.5 10.5h5"/>';
 
+// Ship: a hull with a mast and a furled sail.
+const SHIP_GLYPH =
+  '<path d="M4 14.5h16l-2.2 4.5H6.2z"/>' +
+  '<path d="M12 14V4"/>' +
+  '<path d="M12 5.5 17 10h-5"/>';
+
 const UNIT_ROLE_GLYPH_BODY: Record<UnitGlyphRole, string> = {
   villager: VILLAGER_GLYPH,
   infantry: INFANTRY_GLYPH,
@@ -122,6 +129,7 @@ const UNIT_ROLE_GLYPH_BODY: Record<UnitGlyphRole, string> = {
   'cavalry-archer': CAVALRY_ARCHER_GLYPH,
   siege: SIEGE_GLYPH,
   monk: MONK_GLYPH,
+  ship: SHIP_GLYPH,
 };
 
 // Exhaustive, selection-owned mapping of every UnitType to its visual role.
@@ -168,6 +176,8 @@ const UNIT_GLYPH_ROLES = {
   'siege-ram': 'siege',
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
+  // M5 naval.
+  'fishing-ship': 'ship',
   // Monk.
   monk: 'monk',
 } as const satisfies Record<UnitType, UnitGlyphRole>;

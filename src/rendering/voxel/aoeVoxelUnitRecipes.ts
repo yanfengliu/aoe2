@@ -12,6 +12,7 @@ import { addHumanoidUnitParts } from './aoeVoxelUnitHumanoidRecipes';
 import { addMonkUnitParts } from './aoeVoxelUnitMonkRecipe';
 import { addMountedUnitParts } from './aoeVoxelUnitMountedRecipes';
 import { type UnitRecipeContext } from './aoeVoxelUnitRecipeContext';
+import { addShipUnitParts } from './aoeVoxelUnitShipRecipes';
 import { addSiegeUnitParts } from './aoeVoxelUnitSiegeRecipes';
 import { unitVisualProfile } from './aoeVoxelUnitVisualProfiles';
 
@@ -69,6 +70,8 @@ export function createUnitParts(
     addMountedUnitParts(context, unitType, profile);
   } else if (profile.role === 'siege') {
     addSiegeUnitParts(context, unitType, profile);
+  } else if (profile.role === 'ship') {
+    addShipUnitParts(context, unitType, profile);
   } else {
     addMonkUnitParts(context);
   }

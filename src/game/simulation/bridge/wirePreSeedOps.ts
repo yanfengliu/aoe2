@@ -168,6 +168,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   const {
     buildingOccupiesCell,
     isTerrainPassableForUnit,
+    isTerrainPassableForUnitId,
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForSpawn,
@@ -242,6 +243,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     addResourceEntity,
     buildingOccupiesCell,
     isTerrainPassableForUnit,
+    isTerrainPassableForUnitId,
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForUnit,

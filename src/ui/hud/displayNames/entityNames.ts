@@ -78,6 +78,7 @@ const ENTITY_NAMES = {
   'siege-ram': 'Siege Ram',
   'bombard-cannon': 'Bombard Cannon',
   'trebuchet': 'Trebuchet',
+  'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'man-at-arms': ['Man-at-Arms', 'Men-at-Arms'],
   'long-swordsman': ['Long Swordsman', 'Long Swordsmen'],
   'two-handed-swordsman': ['Two-Handed Swordsman', 'Two-Handed Swordsmen'],

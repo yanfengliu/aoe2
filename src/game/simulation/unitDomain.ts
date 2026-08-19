@@ -1,0 +1,36 @@
+// Land vs water domains (spec §13, M5 naval).
+//
+// Before ships existed, "passable terrain" was one hardcoded predicate:
+// anything that is not water and not forest. A ship needs the complement, so
+// passability became a function of the unit's DOMAIN. Everything else about
+// naval play falls out of this one rule — a ship cannot be reached by land
+// units, a land unit cannot chase one, and a shoreline is a real boundary —
+// without any of those being special-cased.
+
+import type { TerrainKind, UnitType } from './types';
+
+export type UnitDomain = 'land' | 'water';
+
+// Every ship. Exhaustively checked against UnitType by `unitDomain` below:
+// a new unit is land unless it is named here.
+const WATER_UNITS = new Set<UnitType>(['fishing-ship']);
+
+export function unitDomain(unitType: UnitType): UnitDomain {
+  return WATER_UNITS.has(unitType) ? 'water' : 'land';
+}
+
+export function isWaterUnit(unitType: UnitType): boolean {
+  return WATER_UNITS.has(unitType);
+}
+
+/**
+ * Whether a unit of this domain can occupy this terrain. The two domains are
+ * complementary: no cell admits both, and water admits only ships.
+ */
+export function terrainPassableForDomain(
+  kind: TerrainKind,
+  domain: UnitDomain,
+): boolean {
+  if (domain === 'water') return kind === 'water';
+  return kind !== 'water' && kind !== 'forest';
+}

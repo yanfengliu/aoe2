@@ -20,7 +20,9 @@ export type UnitWeapon =
   | 'ram'
   | 'cannon'
   | 'trebuchet'
-  | 'staff';
+  | 'staff'
+  // M5 naval: a net is the Fishing Ship's working prop, not a weapon.
+  | 'net';
 
 export type UnitArmor = 'cloth' | 'leather' | 'mail' | 'plate' | 'timber';
 export type UnitHeadgear =
@@ -87,6 +89,7 @@ const UNIT_VISUAL_PROFILES = {
   'bombard-cannon': { role: 'siege', weapon: 'cannon', armor: 'plate', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'powder-chest' },
   trebuchet: { role: 'siege', weapon: 'trebuchet', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-sling' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
+  'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
 } as const satisfies Record<UnitType, UnitVisualProfile>;
 
 export function unitVisualProfile(unitType: UnitType): UnitVisualProfile | undefined {

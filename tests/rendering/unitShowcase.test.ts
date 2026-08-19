@@ -25,8 +25,8 @@ describe('unit visual showcase', () => {
     ));
 
     expect(units.map(({ kind }) => kind).sort()).toEqual([...UNIT_TYPES].sort());
-    expect(units).toHaveLength(34);
-    expect(new Set(units.map(({ x, y }) => `${String(x)}:${String(y)}`)).size).toBe(34);
+    expect(units).toHaveLength(35);
+    expect(new Set(units.map(({ x, y }) => `${String(x)}:${String(y)}`)).size).toBe(35);
     for (const [unitType, expectedRoot] of Object.entries(ORIGINAL_ROOTS)) {
       expect(units.find(({ kind }) => kind === unitType)).toMatchObject(expectedRoot);
     }

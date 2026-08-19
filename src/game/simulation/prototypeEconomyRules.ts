@@ -108,6 +108,8 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   'siege-ram': { wood: 160, gold: 75 },
   'bombard-cannon': { wood: 225, gold: 225 },
   trebuchet: { wood: 200, gold: 200 },
+  // M5 naval: units.csv Fishing Ship — 75 wood, 40 s.
+  'fishing-ship': { wood: 75 },
   'man-at-arms': { food: 60, gold: 20 },
   'long-swordsman': { food: 60, gold: 20 },
   'two-handed-swordsman': { food: 60, gold: 20 },
@@ -168,6 +170,7 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   'siege-ram': 360,
   'bombard-cannon': 560,
   trebuchet: 500,
+  'fishing-ship': 400,
   'man-at-arms': 210,
   'long-swordsman': 210,
   'two-handed-swordsman': 210,

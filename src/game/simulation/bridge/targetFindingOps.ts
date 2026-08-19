@@ -118,10 +118,10 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   // siege is gone. Monks follow because they convert and heal and also
   // need to be silenced early. Ranged units sit above melee / cavalry
   // since hitting the archer line usually wins the engagement, and
-  // villagers / scouts sit last — they are low-value kills compared to
-  // losing the tower or a key army unit to siege fire.
+  // villagers / scouts sit last — low-value next to losing the tower to siege.
   function targetPriority(unitType: UnitType): number {
     switch (unitType) {
+      case 'fishing-ship': return 0; // M5 naval: lowest-value kill.
       // Slice 7A: the Imperial-tier siege units slot into the same top-of-
       // target-priority bucket as their Castle-Age predecessors. Bombard
       // Cannon and Trebuchet are Imperial-only newcomers but still count

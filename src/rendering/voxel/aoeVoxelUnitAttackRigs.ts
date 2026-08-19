@@ -157,6 +157,9 @@ const ROLE_ATTACK_RIGS = {
   'cavalry-archer': MOUNTED_BOW_RIG,
   siege: STONE_RIG,
   monk: MONK_RIG,
+  // A Fishing Ship has no attack; armed ships get their own rig with the
+  // warship slice.
+  ship: MONK_RIG,
 } as const satisfies Record<UnitRole, UnitAttackRig>;
 
 const UNIT_ATTACK_RIGS = {
@@ -194,6 +197,7 @@ const UNIT_ATTACK_RIGS = {
   'bombard-cannon': CANNON_RIG,
   trebuchet: TREBUCHET_RIG,
   monk: MONK_RIG,
+  'fishing-ship': MONK_RIG,
 } as const satisfies Record<UnitType, UnitAttackRig>;
 
 export function unitAttackRig(unitType: UnitType): UnitAttackRig {

@@ -38,6 +38,7 @@ const ALL_ROLES: UnitGlyphRole[] = [
   'cavalry-archer',
   'siege',
   'monk',
+  'ship',
 ];
 
 const ALL_BUILDINGS: BuildableBuildingType[] = [

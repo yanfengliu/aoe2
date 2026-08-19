@@ -7,7 +7,8 @@ export type UnitRole =
   | 'cavalry'
   | 'cavalry-archer'
   | 'siege'
-  | 'monk';
+  | 'monk'
+  | 'ship'; // M5 naval: hull + mast, sharing nothing with a land silhouette.
 
 // Render-owned, exhaustive visual grouping used by voxel recipes and DOM
 // glyphs. It deliberately stays independent from combat classifications.
@@ -45,6 +46,7 @@ const UNIT_ROLES = {
   'siege-ram': 'siege',
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
+  'fishing-ship': 'ship',
   monk: 'monk',
 } as const satisfies Record<UnitType, UnitRole>;
 

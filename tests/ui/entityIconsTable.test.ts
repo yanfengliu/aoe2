@@ -76,6 +76,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [icon: string, accent: string]>
   'siege-ram': ['SR', '#6e4e33'],
   'bombard-cannon': ['BC', '#3a3a42'],
   'trebuchet': ['Tr', '#6a4f2e'],
+  'fishing-ship': ['Fs', '#7fb4c4'],
   'man-at-arms': ['MA', '#c78a5e'],
   'long-swordsman': ['LS', '#b87548'],
   'two-handed-swordsman': ['TH', '#b66b48'],

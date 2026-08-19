@@ -9,11 +9,13 @@ import type {
   BuildingType,
   ResourceComponent,
   TerrainComponent,
+  UnitComponent,
 } from '../types';
 import {
   buildingFootprint,
   type GameWorld,
 } from './pureHelpers';
+import { terrainPassableForDomain, unitDomain } from '../unitDomain';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -66,6 +68,14 @@ export interface CellPassability {
     activeWorld?: CivWorld,
   ): boolean;
   isTerrainPassableForUnit(x: number, y: number, activeWorld?: CivWorld): boolean;
+  /** Terrain-only check honouring the unit's domain (M5 naval). Excludes
+   *  occupancy, so callers that allow stacking can use it on its own. */
+  isTerrainPassableForUnitId(
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld?: CivWorld,
+  ): boolean;
   isCellBlockedByBuilding(x: number, y: number): boolean;
   isCellBlockedByResource(
     x: number,
@@ -148,15 +158,40 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     );
   }
 
+  function terrainKindAt(
+    x: number,
+    y: number,
+    activeWorld: CivWorld,
+  ): TerrainComponent['kind'] | null {
+    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return null;
+    const tile = tiles[y]?.[x];
+    const terrain = tile === undefined
+      ? null
+      : activeWorld.getComponent<TerrainComponent>(tile, 'terrain');
+    return terrain ? terrain.kind : null;
+  }
+
   function isTerrainPassableForUnit(
     x: number,
     y: number,
     activeWorld: CivWorld = world,
   ): boolean {
-    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return false;
-    const tile = tiles[y]?.[x];
-    const terrain = tile === undefined ? null : activeWorld.getComponent<TerrainComponent>(tile, 'terrain');
-    return terrain ? terrain.kind !== 'water' && terrain.kind !== 'forest' : false;
+    const kind = terrainKindAt(x, y, activeWorld);
+    return kind ? terrainPassableForDomain(kind, 'land') : false;
+  }
+
+  /** Terrain check for a specific unit, honouring its domain (M5 naval). */
+  function isTerrainPassableForUnitId(
+    unitId: number,
+    x: number,
+    y: number,
+    activeWorld: CivWorld = world,
+  ): boolean {
+    const kind = terrainKindAt(x, y, activeWorld);
+    if (!kind) return false;
+    const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
+    const domain = unit ? unitDomain(unit.unitType) : 'land';
+    return terrainPassableForDomain(kind, domain);
   }
 
   function isCellBlockedByBuilding(x: number, y: number): boolean {
@@ -181,8 +216,16 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     y: number,
     activeWorld: CivWorld = world,
   ): boolean {
-    void unitId;
-    void activeWorld;
+    // A ship and a villager disagree about every cell on the map, so the
+    // occupancy answer (buildings, resources, bounds) is shared but the
+    // TERRAIN answer is per-domain.
+    if (!isTerrainPassableForUnitId(unitId, x, y, activeWorld)) return false;
+    const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
+    if (unit && unitDomain(unit.unitType) === 'water') {
+      // Water cells hold no buildings or land resources, so open water is
+      // clear; the shared spawn check would reject it for being water.
+      return true;
+    }
     return isCellPassableForSpawn(x, y);
   }
 
@@ -339,6 +382,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
   return {
     buildingOccupiesCell,
     isTerrainPassableForUnit,
+    isTerrainPassableForUnitId,
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForSpawn,

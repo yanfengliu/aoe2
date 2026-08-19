@@ -59,6 +59,9 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
 
   function isAiMilitaryUnit(unitType: UnitType): boolean {
     switch (unitType) {
+      // M5 naval: a Fishing Ship is an economy unit — never counted as army.
+      case 'fishing-ship':
+        return false;
       case 'militia':
       case 'champion':
       case 'spearman':

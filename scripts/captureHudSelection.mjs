@@ -13,6 +13,8 @@ const label = process.env.LABEL ?? 'hud-selection';
 const seed = process.env.SEED ?? 'aoe2-prototype';
 const unitType = process.env.UNIT ?? 'villager';
 const openMenu = process.env.MENU === '1';
+// CLEAR=1 drops the selection panel after framing, so the unit itself is visible.
+const clearAfter = process.env.CLEAR === '1';
 
 const outputPath = `docs/devlog/artifacts/2026-04-23-default-map-${label}.png`;
 await mkdir(dirname(outputPath), { recursive: true });
@@ -40,11 +42,17 @@ try {
     if (!api.selectEntityAtCell(unit.x, unit.y)) {
       return { ok: false, reason: `nothing selectable at ${unit.x},${unit.y}` };
     }
+    // Frame the unit — the default camera sits on the Town Center.
+    api.centerCameraOnWorldPosition(unit.x, unit.y);
     return { ok: true, at: `${unit.x},${unit.y}` };
   }, unitType);
 
   if (!selected.ok) throw new Error(`Could not select a ${unitType}: ${selected.reason}`);
   console.log(`selected ${unitType} at ${selected.at}`);
+
+  if (clearAfter) {
+    await page.evaluate(() => { window.__AOE2_TEST__.clearSelection(); });
+  }
 
   if (openMenu) {
     await page.locator('[data-hud="menu-button"]').click();

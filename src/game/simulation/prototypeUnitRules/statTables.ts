@@ -64,6 +64,7 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   'two-handed-swordsman': 65,
   paladin: 160,
   'heavy-camel': 120,
+  'fishing-ship': 60,
 };
 
 export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
@@ -101,6 +102,7 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   'two-handed-swordsman': 11,
   paladin: 14,
   'heavy-camel': 7,
+  'fishing-ship': 0,
 };
 
 // Base PIERCE armor per unit, from design/stats/units.csv (the `melee/pierce`
@@ -145,6 +147,7 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   'two-handed-swordsman': 1,
   paladin: 3,
   'heavy-camel': 0,
+  'fishing-ship': 6,
 };
 
 // Base MELEE armor per unit, from design/stats/units.csv (the `melee/pierce`
@@ -187,6 +190,7 @@ export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
   'two-handed-swordsman': 0,
   paladin: 2,
   'heavy-camel': 0,
+  'fishing-ship': 0,
 };
 
 export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
@@ -224,6 +228,7 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   'two-handed-swordsman': 20,
   paladin: 18,
   'heavy-camel': 20,
+  'fishing-ship': 20,
 };
 
 export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
@@ -261,6 +266,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   'two-handed-swordsman': MELEE_ATTACK_RANGE,
   paladin: MELEE_ATTACK_RANGE,
   'heavy-camel': MELEE_ATTACK_RANGE,
+  'fishing-ship': MELEE_ATTACK_RANGE,
 };
 
 export const UNIT_MIN_ATTACK_RANGE = new Map<UnitType, number>([
@@ -304,6 +310,7 @@ export const UNIT_TINTS: Record<UnitType, UnitTintPalette> = {
   'two-handed-swordsman': { human: 0xae7140, enemy: 0xb95e55 },
   paladin: { human: 0x7e7a68, enemy: 0x88584a },
   'heavy-camel': { human: 0xbfa874, enemy: 0xae7f64 },
+  'fishing-ship': { human: 0x8a6f4a, enemy: 0x7d5148 },
 };
 
 export const UNIT_SIZES: Record<UnitType, number> = {
@@ -341,6 +348,7 @@ export const UNIT_SIZES: Record<UnitType, number> = {
   'two-handed-swordsman': 0.52,
   paladin: 0.62,
   'heavy-camel': 0.58,
+  'fishing-ship': 0.78,
 };
 
 export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
@@ -378,6 +386,7 @@ export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
   'two-handed-swordsman': 3,
   paladin: 5,
   'heavy-camel': 4,
+  'fishing-ship': 5,
 };
 
 export const ARCHER_LINE_UNITS = new Set<UnitType>([
