@@ -87,6 +87,8 @@ export interface SimulationBridge {
   getInFlightProjectiles(): readonly ProjectileState[];
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
+  /** M6 control: walk the selection to a cell, engaging anything met en route. */
+  issueAttackMoveCommand(x: number, y: number): boolean;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   // FU4: probe an entity's current/max HP. Reads the canonical combat
   // (unit) or building-health side-map directly so vitest cases can
@@ -237,6 +239,7 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
+    issueAttackMoveCommand,
     getSelectionState,
     getPlacementPreview,
     getAgentBuildingOptions,
@@ -439,6 +442,7 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
+    issueAttackMoveCommand,
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,

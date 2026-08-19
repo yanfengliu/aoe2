@@ -120,6 +120,16 @@ export class AoeVoxelGameView {
         this.issueContextCommandAtWorldPosition(x, y)
       ),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
+      // M6 control: attack-move arming lives on the view so the A hotkey and
+      // the pointer share one piece of state.
+      isAttackMoveArmed: () => this.attackMoveArmed,
+      disarmAttackMove: () => { this.attackMoveArmed = false; },
+      // `worldCellAt` can hand back a fractional cell, and the engine rejects
+      // non-integer grid coordinates outright — floor before ordering.
+      issueAttackMoveCommand: (cellX, cellY) => this.bridge?.issueAttackMoveCommand(
+        Math.floor(cellX),
+        Math.floor(cellY),
+      ) ?? false,
       });
       pointerToDispose = this.pointer;
       this.presentation = createAoeVoxelPresentationCoordinator({
@@ -240,6 +250,18 @@ export class AoeVoxelGameView {
     this.assertActive();
     this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
     return this.renderer.captureWorld();
+  }
+
+  /** M6 control: true between pressing A and the click that spends it. */
+  private attackMoveArmed = false;
+
+  /** Arms attack-move; the next left click becomes the destination. */
+  armAttackMove(): void {
+    this.attackMoveArmed = true;
+  }
+
+  isAttackMoveArmed(): boolean {
+    return this.attackMoveArmed;
   }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {

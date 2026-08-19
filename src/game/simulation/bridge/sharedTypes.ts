@@ -11,7 +11,10 @@ export interface UnitCommand {
   // 'build' constructs an in-progress building; 'repair' restores a COMPLETE
   // damaged one (spec §8.1). They are distinct so a stale builder command left
   // over after a building completes clears instead of becoming a free repair.
-  type: 'move' | 'build' | 'attack' | 'repair';
+  // 'attack-move' walks to `target` like 'move', but engages anything met on
+  // the way REGARDLESS of the unit's stance, then resumes. It is the order
+  // that says "go there and fight what you find" (spec §12.4.2).
+  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair';
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;

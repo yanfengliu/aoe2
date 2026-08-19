@@ -25,6 +25,7 @@ function assertNever(cmd: never): never {
 function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
   switch (cmd.type) {
     case 'unit.move':
+    case 'unit.attackMove':
     case 'unit.attack':
     case 'unit.gather':
     case 'unit.autoGather':

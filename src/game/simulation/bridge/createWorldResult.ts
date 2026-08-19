@@ -81,6 +81,7 @@ export interface CreateWorldResult {
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;
   setSelectionStance: (stance: import('../unitStance').UnitStance) => boolean;
+  issueAttackMoveCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
   issueMarketAction: (actionType: MarketActionType) => boolean;

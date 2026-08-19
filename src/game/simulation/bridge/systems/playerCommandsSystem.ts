@@ -366,7 +366,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           continue;
         }
 
-        if (command.type === 'move') {
+        if (command.type === 'move' || command.type === 'attack-move') { // §12.4.2
           if (unit.unitType === 'trebuchet') {
             if (advanceTrebuchetTransition(id)) {
               continue;

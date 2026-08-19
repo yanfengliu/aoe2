@@ -43,6 +43,8 @@ export type GameCommands = {
   // channel because it changes what the unit does on later ticks, so a replay
   // that skipped it would diverge.
   'unit.stance': { unitIds: number[]; stance: UnitStance };
+  // M6 control: "go here and fight what you meet". Same shape as unit.move.
+  'unit.attackMove': { unitId: number; target: Position };
   // Spec §6.2 automatic post-construction mining: queued at Mining Camp
   // completion for each active builder; validator refuses to preempt any
   // explicit order that landed in the same drain window.

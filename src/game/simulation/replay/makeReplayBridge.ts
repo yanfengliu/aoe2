@@ -134,6 +134,10 @@ export function makeReplayBridge(
     getInFlightProjectiles() {
       return api.getInFlightProjectiles();
     },
+    issueAttackMoveCommand() {
+      // Replay is playback: orders come from the recorded stream.
+      return false;
+    },
     setSelectionStance() {
       // Replay is playback: stance changes come from the recorded stream, not
       // from the viewer.

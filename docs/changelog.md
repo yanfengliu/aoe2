@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.19 - 2026-08-18
+
+### Added
+
+- **Attack-move.** Press **A**, then click where you want to go: your units walk there and fight whatever they meet on the way, instead of marching past an enemy to reach the spot. It overrides the stance for the duration of the order — even units told to hold fire will fight while executing one. Right-click to cancel before you commit.
+
 ## 0.3.18 - 2026-08-18
 
 ### Added

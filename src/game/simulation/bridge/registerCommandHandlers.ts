@@ -26,6 +26,10 @@
 
 import type { Position } from 'civ-engine';
 import {
+  makeUnitAttackMoveHandler,
+  makeUnitAttackMoveValidator,
+} from '../handlers/unit/unitAttackMoveHandler';
+import {
   makeUnitStanceHandler,
   makeUnitStanceValidator,
 } from '../handlers/unit/unitStanceHandler';
@@ -101,6 +105,7 @@ export interface CommandHandlerDeps {
   // M6 control (unit.stance): who is issuing, and the direct writer.
   humanPlayerId: number;
   setUnitStance: (unitId: number, stance: import('../unitStance').UnitStance) => void;
+  setUnitAttackMoveCommandDirect: (unitId: number, target: Position) => boolean;
   // Phase 1B (unit.attack): same pattern.
   setUnitAttackCommandDirect: (
     unitId: number,
@@ -201,6 +206,13 @@ export function registerCommandHandlers(
   world.registerValidator('unit.gather', unitGatherValidator);
   world.registerHandler('unit.gather', makeUnitGatherHandler({
     setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
+  }));
+  // M6 control — unit.attackMove
+  world.registerValidator('unit.attackMove', makeUnitAttackMoveValidator({
+    humanPlayerId: deps.humanPlayerId,
+  }));
+  world.registerHandler('unit.attackMove', makeUnitAttackMoveHandler({
+    setUnitAttackMoveCommandDirect: deps.setUnitAttackMoveCommandDirect,
   }));
   // M6 control — unit.stance
   world.registerValidator('unit.stance', makeUnitStanceValidator({

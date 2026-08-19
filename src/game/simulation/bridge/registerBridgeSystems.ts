@@ -94,6 +94,7 @@ export interface RegisterBridgeSystemsDeps {
   pushUnitAttackIntention: RegisterAllSystemsArg['pushUnitAttackIntention'];
   hasPendingUnitCommand: RegisterAllSystemsArg['hasPendingUnitCommand'];
   issueUnitMoveCommand: RegisterAllSystemsArg['issueUnitMoveCommand'];
+  issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
   setUnitMoveCommandDirect: RegisterAllSystemsArg['setUnitMoveCommandDirect'];
   pushUnitMoveIntention: RegisterAllSystemsArg['pushUnitMoveIntention'];
   distanceToBuilding: RegisterAllSystemsArg['distanceToBuilding'];
@@ -130,6 +131,7 @@ export interface RegisterBridgeSystemsResult {
   queueResearch: CreateWorldResult['queueResearch'];
   issueAction: CreateWorldResult['issueAction'];
   setSelectionStance: CreateWorldResult['setSelectionStance'];
+  issueAttackMoveCommand: CreateWorldResult['issueAttackMoveCommand'];
   issueMarketAction: CreateWorldResult['issueMarketAction'];
 }
 
@@ -180,6 +182,7 @@ export function registerBridgeSystems(
     pushUnitAttackIntention,
     hasPendingUnitCommand,
     issueUnitMoveCommand,
+    issueUnitAttackMoveCommand,
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
     distanceToBuilding,
@@ -275,6 +278,7 @@ export function registerBridgeSystems(
     queueResearch,
     issueAction,
     setSelectionStance,
+    issueAttackMoveCommand,
     issueMarketAction,
   } = createHumanInputOps({
     world,
@@ -292,6 +296,7 @@ export function registerBridgeSystems(
     isEntityVisibleToHuman,
     enqueueRejection,
     issueUnitMoveCommand,
+    issueUnitAttackMoveCommand,
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
@@ -340,6 +345,7 @@ export function registerBridgeSystems(
     queueResearch,
     issueAction,
     setSelectionStance,
+    issueAttackMoveCommand,
     issueMarketAction,
   };
 }

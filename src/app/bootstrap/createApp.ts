@@ -351,6 +351,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     gateAnnotationHotkeyOnReplayMode(replayController, () => stack?.annotationController.onHotkey()),
   );
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack?.markerListPanel.toggleVisibility());
+  // M6 control: A arms attack-move; the next left click is its destination
+  // (AoE2's own interaction). Right-click or Esc cancels.
+  hotkeyRegistry.register({ key: 'a' }, () => {
+    view.armAttackMove();
+  });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc
   // has prior claimants: in replay mode it EXITS replay, and while a modal

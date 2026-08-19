@@ -37,6 +37,8 @@ export interface BrowserTestBridge {
   getEconomyState(): EconomyState;
   /** Spec §10.4: shots in the air, for projectile capture/inspection. */
   getInFlightProjectiles(): readonly ProjectileState[];
+  /** Standing orders per unit, for asserting what an interaction produced. */
+  getDebugSnapshot(): import('../../game/simulation/types').SimulationDebugSnapshot;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   confirmBuildingPlacement(x: number, y: number): boolean;
@@ -52,6 +54,7 @@ export interface BrowserTestBridge {
   clearSelection(): void;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueMoveCommand(x: number, y: number): boolean;
+  issueAttackMoveCommand(x: number, y: number): boolean;
   // LLM-agent harness needs the in-place pendingCommands queue so
   // dispatchAgentCommand can shape-validate + push. `agentIssued` tags
   // agent submissions so the dispatch observer can scope its log.
@@ -131,6 +134,8 @@ export interface BrowserTestApi {
   getEconomyState(): EconomyState;
   /** Spec §10.4: shots in the air, for projectile capture/inspection. */
   getInFlightProjectiles(): readonly ProjectileState[];
+  /** Standing orders per unit, for asserting what an interaction produced. */
+  getDebugSnapshot(): import('../../game/simulation/types').SimulationDebugSnapshot;
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
   getWorldRendererState(): BrowserWorldRendererState;
@@ -176,6 +181,7 @@ export interface BrowserTestApi {
   issueContextCommand(cellX: number, cellY: number, garrison?: boolean): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
   issueMoveCommand(cellX: number, cellY: number): boolean;
+  issueAttackMoveCommand(cellX: number, cellY: number): boolean;
   getSnapshot(): BrowserTestSnapshot;
   advanceTicks(count: number, deltaMs?: number): BrowserTestSnapshot;
   /** playtest-fixes C: manual-pause pass-through (`bridge.setPaused`).
@@ -267,6 +273,7 @@ export function installBrowserTestApi(
     getRenderState: () => getBridge().getRenderState(),
     getEconomyState: () => getBridge().getEconomyState(),
     getInFlightProjectiles: () => getBridge().getInFlightProjectiles(),
+    getDebugSnapshot: () => getBridge().getDebugSnapshot(),
     getSelectionState: () => getBridge().getSelectionState(),
     getCameraState: () => {
       view.syncFromBridge(true);
@@ -373,6 +380,11 @@ export function installBrowserTestApi(
     },
     issueContextCommandAtWorldPosition: (worldX: number, worldY: number) => {
       const didIssue = view.issueContextCommandAtWorldPosition(worldX, worldY);
+      view.syncFromBridge(true);
+      return didIssue;
+    },
+    issueAttackMoveCommand: (cellX: number, cellY: number) => {
+      const didIssue = getBridge().issueAttackMoveCommand(cellX, cellY);
       view.syncFromBridge(true);
       return didIssue;
     },

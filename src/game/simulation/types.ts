@@ -453,7 +453,7 @@ export interface SimulationDebugSnapshot {
     fromY: number;
     toX: number;
     toY: number;
-    commandType: 'move' | 'build' | 'attack' | 'repair';
+    commandType: 'move' | 'attack-move' | 'build' | 'attack' | 'repair';
   }>;
   aiSummaries: Array<{
     owner: number;

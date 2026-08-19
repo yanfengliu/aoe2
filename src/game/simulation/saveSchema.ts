@@ -54,7 +54,7 @@ export type SerializedEntityKeyedSideMap<V> = SerializedMap<number, V>;
 export interface SerializedUnitCommand {
   // 'repair' added in v0.1.51 (villager repair). Additive/back-compatible: a
   // save with a repair in progress persists it; older saves never carry it.
-  type: 'move' | 'build' | 'attack' | 'repair';
+  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair';
   target: { x: number; y: number };
   buildingRef?: SerializedEntityRef;
   targetEntityRef?: SerializedEntityRef;

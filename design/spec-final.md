@@ -1235,6 +1235,12 @@ Defaults: anything that fights starts Aggressive; anything that gathers (village
 
 A stance change rides the recorded command channel (`unit.stance`), because it changes what the unit does on later ticks and a replay that skipped it would diverge. Only units whose stance DIFFERS from their type's default are stored, so an untouched match serializes nothing extra. The command is rejected as a whole if any addressed unit is missing or not owned by the commanding player — a stance order is a real order, not a hint, so a partially-valid batch is not silently narrowed.
 
+### 12.4.2 Attack-move
+
+**Attack-move** is the order that says "go there and fight what you find". It walks to its destination exactly like a move, but for its duration the unit engages anything it meets **regardless of its stance** — including No Attack, which is what makes it an order rather than a suggestion. It is the one case where a standing order does not silence auto-aggression.
+
+The player arms it with **A** and spends it on the next left click, AoE2's own interaction; a right-click cancels the armed state. Group orders spiral-allocate their destinations exactly like a plain move, so a band of units spreads out rather than stacking.
+
 ### 12.5 Movement Rates and Modifiers
 
 Every commanded mover advances on the fine subgrid through the single step executor (`moveUnitOneSubgridStep`), which by default grants `UNIT_SUBGRID_STEP_PER_TICK = 2` fine units per tick; herdables are the explicit exception (sheep pass a slower step that bypasses the speed model). Movement paths are issued as per-CELL waypoint legs (4 fine units), and each tick's step is clamped to the remaining leg.

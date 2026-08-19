@@ -6,6 +6,7 @@
 // reads/writes go through the same shared selection refs.
 
 import type { EntityRef, Position } from 'civ-engine';
+import { createContextRouter } from './contextRouter';
 import type {
   BuildingComponent,
   GathererComponent,
@@ -15,7 +16,6 @@ import type {
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
-import { gathersResources } from '../unitDomain';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import { createBuildRepairCommandOps } from './buildRepairCommandOps';
 import type { MonkTask, UnitCommand } from './sharedTypes';
@@ -96,6 +96,8 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // context. NOT for AI-decision systems (those use pendingCommands
   // intentions per §6.5).
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
+  setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean;
+  issueUnitAttackMoveCommand(unitId: number, target: Position): boolean;
   // Phase 1B (DESIGN v17 §6.4): direct-mutation helper for unit.attack —
   // same role as setUnitMoveCommandDirect but for attack commands.
   setUnitAttackCommandDirect(
@@ -187,7 +189,11 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   // Direct-mutation helper. Same body as the pre-Phase-1B `issueUnitMoveCommand`.
   // Used by deterministic-resolution systems and by the `unit.move` handler.
-  function setUnitMoveCommandDirect(unitId: number, target: Position): boolean {
+  function setWalkCommandDirect(
+    unitId: number,
+    target: Position,
+    type: 'move' | 'attack-move',
+  ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) return false;
 
@@ -197,13 +203,27 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
       accessor.markDirty(monkTasksCodec);
     }
     setUnitCommand(unitId, {
-      type: 'move',
+      type,
       target: {
         x: clamp(target.x, 0, mapWidth - 1),
         y: clamp(target.y, 0, mapHeight - 1),
       },
     });
     return true;
+  }
+
+  function setUnitMoveCommandDirect(unitId: number, target: Position): boolean {
+    return setWalkCommandDirect(unitId, target, 'move');
+  }
+
+  // M6 control: identical walk, different order type — auto-aggression reads
+  // the type and engages regardless of stance while it is active.
+  function setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean {
+    return setWalkCommandDirect(unitId, target, 'attack-move');
+  }
+
+  function issueUnitAttackMoveCommand(unitId: number, target: Position): boolean {
+    return world.submitWithResult('unit.attackMove', { unitId, target }).accepted;
   }
 
   // Bridge facade. HUD / hotkey handlers call this; it routes through
@@ -317,49 +337,19 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     return result.accepted;
   }
 
-  // Direct-mutation routing helper. Reads world state to dispatch to
-  // garrison / attack / gather / move via the corresponding direct
-  // helpers. Used by the `unit.context` handler so live + replay paths
-  // execute identical routing logic against identical world state.
-  function routeUnitContextCommandDirect(unitId: number, target: Position, allowGarrison: boolean): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    if (!unit) return false;
-    // Monk routing is handled by the bridge facade BEFORE submission
-    // (HUD-side fast path). The validator rejects monk units so this
-    // branch only runs for non-monks.
-
-    const resourceId = gathersResources(unit.unitType)
-      ? findResourceAtCell(target.x, target.y) : null;
-    // Spec §9.3: without explicit intent an owned building is not a garrison
-    // target, so routing falls through to move at the click's own ground cell
-    // — that is what makes "base = walk to it, roof = walk behind it" free.
-    const ownedGarrisonBuildingId = allowGarrison
-      ? findOwnedGarrisonBuildingAtCell(target.x, target.y, unit.owner, unit.unitType)
-      : null;
-    const hostileUnitId = findHostileUnitAtCell(target.x, target.y, unit.owner);
-    const hostileBuildingId = findHostileBuildingAtCell(target.x, target.y, unit.owner);
-    const hostileWildlifeId = findHostileWildlifeAtCell(target.x, target.y);
-
-    if (ownedGarrisonBuildingId !== null) {
-      return garrisonUnit(unitId, ownedGarrisonBuildingId);
-    }
-    if (hostileUnitId !== null) {
-      return setUnitAttackCommandDirect(unitId, hostileUnitId, 'unit');
-    }
-    if (hostileBuildingId !== null) {
-      return setUnitAttackCommandDirect(unitId, hostileBuildingId, 'building');
-    }
-    if (hostileWildlifeId !== null) {
-      return setUnitAttackCommandDirect(unitId, hostileWildlifeId, 'resource');
-    }
-    if (resourceId === null) {
-      return setUnitMoveCommandDirect(unitId, target);
-    }
-    if (!setUnitGatherCommandDirect(unitId, resourceId)) {
-      return setUnitMoveCommandDirect(unitId, target);
-    }
-    return true;
-  }
+  // Right-click routing lives in contextRouter.ts (extracted for the LOC budget).
+  const routeUnitContextCommandDirect = createContextRouter({
+    world,
+    findResourceAtCell,
+    findOwnedGarrisonBuildingAtCell,
+    findHostileUnitAtCell,
+    findHostileBuildingAtCell,
+    findHostileWildlifeAtCell,
+    garrisonUnit,
+    setUnitAttackCommandDirect,
+    setUnitGatherCommandDirect,
+    setUnitMoveCommandDirect,
+  });
 
   // Bridge facade. HUD context-click. Monk path delegates to
   // `issueMonkContextCommandAtEntity` which submits `monk.contextAtEntity`;
@@ -495,6 +485,8 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     issueUnitAttackCommand,
     issueUnitContextCommand,
     issueUnitGatherCommand,
+    issueUnitAttackMoveCommand,
+    setUnitAttackMoveCommandDirect,
     issueUnitContextCommandAtEntity,
   };
 }

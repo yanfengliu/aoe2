@@ -245,6 +245,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const {
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
+    setUnitAttackMoveCommandDirect,
+    issueUnitAttackMoveCommand,
     issueSheepMoveCommand,
     getSelectedOwnedSheepIds,
     issueUnitAttackCommand,
@@ -308,6 +310,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     ...createAiIntentionPushers({ state }),
     issueUnitAttackCommand,
     issueUnitMoveCommand,
+    issueUnitAttackMoveCommand,
     setUnitMoveCommandDirect,
     distanceToBuilding,
     findBuildingSpawnPosition,
@@ -364,6 +367,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       });
     },
     setUnitMoveCommandDirect,
+    setUnitAttackMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,

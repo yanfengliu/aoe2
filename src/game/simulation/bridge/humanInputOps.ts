@@ -44,6 +44,7 @@ export interface HumanInputOpsDeps {
   isEntityVisibleToHuman: (id: number) => boolean;
   enqueueRejection: (reason: string) => void;
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
+  issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommand: (unitId: number, target: Position, garrison?: boolean) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number, garrison?: boolean) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
@@ -64,6 +65,7 @@ export interface HumanInputOps {
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueAction(actionType: ActionType): boolean;
   setSelectionStance(stance: UnitStance): boolean;
+  issueAttackMoveCommand(x: number, y: number): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
 }
 
@@ -84,6 +86,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     isEntityVisibleToHuman,
     enqueueRejection,
     issueUnitMoveCommand,
+    issueUnitAttackMoveCommand,
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
@@ -322,6 +325,27 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   // ownership guards (validator can't see humanPlayerId), then submits
   // building.action via submitWithResult. Handler delegates to the
   // action-specific direct helper.
+  // M6 control: "go here and fight what you meet" for the whole selection.
+  // Group targets are spiral-allocated exactly like a plain move, so a band
+  // of units spreads out at the destination instead of stacking.
+  function issueAttackMoveCommand(x: number, y: number): boolean {
+    if (!isMatchRunning()) return false;
+    const selectedUnitIds = getSelectedHumanUnitIds();
+    if (selectedUnitIds.length === 0) return false;
+    const targetCenter: Position = {
+      x: clamp(x, 0, mapWidth - 1),
+      y: clamp(y, 0, mapHeight - 1),
+    };
+    const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
+    let didIssue = false;
+    for (let i = 0; i < selectedUnitIds.length; i += 1) {
+      const id = selectedUnitIds[i]!;
+      const target = allocations[i] ?? targetCenter;
+      didIssue = supersedeAutoAggression(id, issueUnitAttackMoveCommand(id, target)) || didIssue;
+    }
+    return didIssue;
+  }
+
   // M6 control: set the stance of every owned unit in the selection. Routes
   // through the recorded command channel so a replay reproduces the change.
   function setSelectionStance(stance: UnitStance): boolean {
@@ -398,6 +422,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     queueResearch,
     issueAction,
     setSelectionStance,
+    issueAttackMoveCommand,
     issueMarketAction,
   };
 }

@@ -34,6 +34,11 @@ export interface VoxelPointerInputControllerDeps {
     isoX: number,
     isoY: number,
   ) => boolean;
+  // M6 control: attack-move arming state, owned by the app so the HUD and the
+  // hotkey can both drive it. Optional so existing callers/tests are unaffected.
+  readonly isAttackMoveArmed?: () => boolean;
+  readonly disarmAttackMove?: () => void;
+  readonly issueAttackMoveCommand?: (cellX: number, cellY: number) => boolean;
   readonly issueContextCommandAtWorldPosition: (
     worldX: number,
     worldY: number,
@@ -137,8 +142,20 @@ export function createVoxelPointerInputController(
     } catch {
       // Pointer capture can fail when the browser has already canceled it.
     }
+    if (event.button === 0 && deps.isAttackMoveArmed?.()) {
+      // M6 control: attack-move is armed (the player pressed A) and consumes
+      // this left click as its destination, exactly like AoE2. Disarm first so
+      // a rejected order cannot leave the cursor stuck in attack-move mode.
+      event.preventDefault();
+      const cell = worldCellAt(point.x, point.y);
+      deps.disarmAttackMove?.();
+      deps.issueAttackMoveCommand?.(cell.x, cell.y);
+      return;
+    }
     if (event.button === 2) {
       event.preventDefault();
+      // A right-click cancels an armed attack-move rather than issuing one.
+      deps.disarmAttackMove?.();
       deps.clearRecentSelectionClicks();
       const cell = worldCellAt(point.x, point.y);
       // Alt+right-click = garrison; a plain right-click always moves (§9.3).

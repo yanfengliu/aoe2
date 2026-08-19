@@ -86,7 +86,12 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     execute(activeWorld) {
       const unitCommands = accessor.get(unitCommandsCodec);
       for (const id of activeWorld.query('position', 'unit')) {
-        if (unitCommands.has(id)) {
+        // A unit executing an ATTACK-MOVE is the one case where a standing
+        // order does not silence auto-aggression: the order is precisely
+        // "go there and fight what you meet".
+        const activeCommand = unitCommands.get(id);
+        const onAttackMove = activeCommand?.type === 'attack-move';
+        if (activeCommand && !onAttackMove) {
           continue;
         }
         // Phase 1B unit.attack (post review-impl-3): if aiSystem already
@@ -131,7 +136,12 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
         // and whether it starts one with a building. The old hardcoded
         // behaviour (military scans its vision, villagers scan their own cell)
         // is exactly what the default stances reproduce.
-        const stance = accessor.get(unitStancesCodec).get(id) ?? defaultStanceFor(unit.unitType);
+        // An attack-move overrides the standing stance for its duration —
+        // including No Attack, which is what makes it an ORDER rather than a
+        // suggestion.
+        const stance = onAttackMove
+          ? 'aggressive'
+          : accessor.get(unitStancesCodec).get(id) ?? defaultStanceFor(unit.unitType);
         const visionSource = activeWorld.getComponent<VisionSourceComponent>(id, 'visionSource');
         const radius = autoEngageRadius(
           stance,
