@@ -9,6 +9,8 @@ const label = process.env.LABEL ?? 'hud-building';
 const seed = process.env.SEED ?? 'aoe2-prototype';
 const buildingType = process.env.BUILDING ?? 'town-center';
 const queueTicks = Number(process.env.TICKS ?? '25');
+// CLEAR=1 drops the selection panel after framing, so the building is visible.
+const clearAfter = process.env.CLEAR === '1';
 
 const outputPath = `docs/devlog/artifacts/2026-04-23-default-map-${label}.png`;
 await mkdir(dirname(outputPath), { recursive: true });
@@ -56,6 +58,10 @@ try {
     await page.evaluate(({ x, y }) => {
       window.__AOE2_TEST__.selectEntityAtCell(x, y);
     }, { x: result.x, y: result.y });
+  }
+
+  if (clearAfter) {
+    await page.evaluate(() => { window.__AOE2_TEST__.clearSelection(); });
   }
 
   await page.waitForTimeout(600);

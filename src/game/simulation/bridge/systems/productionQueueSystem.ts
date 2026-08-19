@@ -5,6 +5,7 @@
 // fans out the side-effects.
 
 import type { Position } from 'civ-engine';
+import { unitDomain } from '../../unitDomain';
 import type {
   BuildingComponent,
   BuildingType,
@@ -69,6 +70,8 @@ export interface ProductionQueueSystemDeps {
   findBuildingSpawnPosition: (
     buildingPosition: Position,
     buildingType: BuildingType,
+    preferForeground?: boolean,
+    domain?: import('../../unitDomain').UnitDomain,
   ) => Position | null;
   addUnitEntity: (
     owner: number,
@@ -162,7 +165,15 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
         }
 
         if (entry.kind === 'unit' && entry.unitType) {
-          const spawnPosition = findBuildingSpawnPosition(position, building.buildingType);
+          // M5 naval: a ship must appear on WATER. A Dock stands on the
+          // shore, so its perimeter includes both, and the domain picks the
+          // right half of it.
+          const spawnPosition = findBuildingSpawnPosition(
+            position,
+            building.buildingType,
+            false,
+            unitDomain(entry.unitType),
+          );
           if (!spawnPosition) {
             entry.isBlocked = true;
             entry.remainingTicks = 0;

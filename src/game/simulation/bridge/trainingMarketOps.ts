@@ -77,7 +77,13 @@ export interface TrainingMarketOpsDeps {
   ) => ResearchableTechnologyType[];
   getMarketOptions: (owner: number, buildingType: BuildingType) => MarketActionType[];
   getBuildOptions: (owner: number, unitType: UnitType) => BuildableBuildingType[];
-  isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
+  isPlacementBlocked: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    buildingType?: BuildingType,
+  ) => boolean;
   isGarrisonedUnit: (id: number) => boolean;
   clearGathererOrder: (id: number) => void;
   clearUnitCommand: (id: number) => void;
@@ -422,7 +428,13 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       y: clamp(anchor.y, 0, mapHeight - 1),
     };
     const footprint = buildingFootprint(buildingType);
-    if (isPlacementBlocked(clampedAnchor.x, clampedAnchor.y, footprint.width, footprint.height)) {
+    if (isPlacementBlocked(
+      clampedAnchor.x,
+      clampedAnchor.y,
+      footprint.width,
+      footprint.height,
+      buildingType,
+    )) {
       return false;
     }
 

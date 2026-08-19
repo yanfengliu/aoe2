@@ -36,7 +36,13 @@ export interface CommandValidatorDepsInputs {
   // bridge-local collaborators
   inFlightTechSetFor: (owner: number) => Set<ResearchableTechnologyType>;
   playerOwnsCompletedMarket: (owner: number) => boolean;
-  isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
+  isPlacementBlocked: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    buildingType?: BuildingType,
+  ) => boolean;
   describePlacementBlockers: (
     x: number,
     y: number,

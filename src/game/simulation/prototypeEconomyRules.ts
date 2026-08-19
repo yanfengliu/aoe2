@@ -132,6 +132,7 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   'siege-workshop': { wood: 200 },
   monastery: { wood: 175 },
   university: { wood: 200 }, // structures.csv: Castle Age, 200 wood.
+  dock: { wood: 150 }, // structures.csv: Dark Age, 150 wood.
   castle: { stone: 650 },
   wonder: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
   'stone-wall': { stone: 5 },

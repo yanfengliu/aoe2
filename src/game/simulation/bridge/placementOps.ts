@@ -21,6 +21,7 @@
 
 import type {
   BuildableBuildingType,
+  BuildingType,
   PlacementPreviewState,
   UnitComponent,
 } from '../types';
@@ -57,7 +58,13 @@ export interface PlacementDeps {
   // occupancy / construction state stay centralized in createWorld.
   isMatchRunning: () => boolean;
   getSelectedHumanVillagerIds: () => number[];
-  isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
+  isPlacementBlocked: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    buildingType?: BuildingType,
+  ) => boolean;
   enqueueRejection: (reason: string) => void;
   // Constants passed through as deps so tests could tweak them without
   // rewiring the module-level scenario-config imports here.
@@ -115,7 +122,13 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       cellY: anchor.y,
       width: footprint.width,
       height: footprint.height,
-      isValid: !isPlacementBlocked(anchor.x, anchor.y, footprint.width, footprint.height),
+      isValid: !isPlacementBlocked(
+        anchor.x,
+        anchor.y,
+        footprint.width,
+        footprint.height,
+        placementMode.current,
+      ),
     };
   }
 

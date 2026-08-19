@@ -117,7 +117,10 @@ export type BuildableBuildingType =
   | 'stone-wall'
   | 'palisade-wall'
   // M1 Farms: a built Farm is a building+resource HYBRID (also in ResourceKind).
-  | 'farm';
+  | 'farm'
+  // M5 naval: trains ships and receives fish. The only building that must be
+  // placed against water (see shorePlacement.ts).
+  | 'dock';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'

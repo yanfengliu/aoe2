@@ -15,7 +15,12 @@ import {
   buildingFootprint,
   type GameWorld,
 } from './pureHelpers';
-import { terrainPassableForDomain, unitDomain } from '../unitDomain';
+import {
+  terrainPassableForDomain,
+  unitDomain,
+  type UnitDomain,
+} from '../unitDomain';
+import { requiresShorePlacement, touchesWater } from '../shorePlacement';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -31,7 +36,13 @@ interface WorldOccupancyLike {
   isCellBlockedByResource(x: number, y: number, ignoredResourceId?: number | null): boolean;
   isCellPassableForSpawn(x: number, y: number): boolean;
   isCellPassableForWildlife(resourceId: number, x: number, y: number): boolean;
-  isPlacementBlocked(x: number, y: number, width: number, height: number): boolean;
+  isPlacementBlocked(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    buildingType?: BuildingType,
+  ): boolean;
   getCellStatus(x: number, y: number, ignoredEntityId?: number | null): OccupancyCellStatus;
 }
 
@@ -83,6 +94,9 @@ export interface CellPassability {
     ignoredResourceId?: number | null,
   ): boolean;
   isCellPassableForSpawn(x: number, y: number): boolean;
+  /** Spawn passability for a DOMAIN (M5 naval): a ship needs open water, a
+   *  land unit needs the ordinary land answer. */
+  isCellPassableForSpawnInDomain(x: number, y: number, domain: UnitDomain): boolean;
   isCellPassableForUnit(
     unitId: number,
     x: number,
@@ -194,6 +208,18 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     return terrainPassableForDomain(kind, domain);
   }
 
+  function isCellPassableForSpawnInDomain(
+    x: number,
+    y: number,
+    domain: UnitDomain,
+  ): boolean {
+    const kind = terrainKindAt(x, y, world);
+    if (!kind || !terrainPassableForDomain(kind, domain)) return false;
+    // Water carries no buildings or land resources, so a passable water cell
+    // is spawnable; land keeps the existing occupancy answer.
+    return domain === 'water' ? true : isCellPassableForSpawn(x, y);
+  }
+
   function isCellBlockedByBuilding(x: number, y: number): boolean {
     return worldOccupancy.isCellBlockedByBuilding(x, y);
   }
@@ -255,8 +281,19 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     y: number,
     width: number,
     height: number,
+    buildingType?: BuildingType,
   ): boolean {
-    return worldOccupancy.isPlacementBlocked(x, y, width, height);
+    if (worldOccupancy.isPlacementBlocked(x, y, width, height)) return true;
+    // M5 naval: a Dock must stand on land AND touch water. Checked here rather
+    // than at the call sites so the placement PREVIEW and the confirm share
+    // one answer — a preview that says valid and a confirm that refuses is
+    // the worst possible pairing.
+    if (buildingType && requiresShorePlacement(buildingType)) {
+      return !touchesWater(x, y, width, height, (cellX, cellY) => (
+        terrainKindAt(cellX, cellY, world)
+      ));
+    }
+    return false;
   }
 
   // Mirrors worldOccupancy.isPlacementBlocked's per-cell predicate:
@@ -386,6 +423,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForSpawn,
+    isCellPassableForSpawnInDomain,
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,

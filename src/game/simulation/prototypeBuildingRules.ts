@@ -46,6 +46,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   'stone-wall': 0,
   'palisade-wall': 0,
   farm: 0,
+  dock: 0,
 };
 
 const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
@@ -69,6 +70,7 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   'palisade-wall': 40,
   // M1 Farms: structures.csv build_time 15 seconds × 10 TPS = 150 ticks.
   farm: 150,
+  dock: 350, // structures.csv: 35 s x 10 TPS.
 };
 
 const BUILDING_SIZES: Record<BuildingType, number> = {
@@ -92,6 +94,7 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   'palisade-wall': 1,
   // M1 Farms: a 1x1 footprint; size 1 fills its single cell like the walls.
   farm: 1,
+  dock: 1.2,
 };
 
 const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
@@ -148,6 +151,12 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     humanIncomplete: 0x4f4034,
     enemyComplete: 0x8b6660,
     enemyIncomplete: 0x5a433d,
+  },
+  dock: {
+    humanComplete: 0x8d7a5c,
+    humanIncomplete: 0x574c39,
+    enemyComplete: 0x8a6a63,
+    enemyIncomplete: 0x56423e,
   },
   university: {
     humanComplete: 0x8a8467,
@@ -234,9 +243,11 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   'palisade-wall': 250,
   // M1 Farms: structures.csv hit_points 480.
   farm: 480,
+  dock: 1800,
 };
 
 const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
+  ['dock', 5], // structures.csv line_of_sight.
   ['town-center', 7],
   ['watch-tower', 8],
   ['castle', 11],
@@ -250,6 +261,7 @@ const BUILDING_COMBAT_STATES = new Map<BuildingType, BuildingCombatProfile>([
 ]);
 
 const BUILDING_GARRISON_CAPACITY = new Map<BuildingType, number>([
+  ['dock', 10], // structures.csv: "Garrison: 10 created units".
   ['town-center', 5],
   ['watch-tower', 5],
   ['castle', 20],
@@ -262,6 +274,8 @@ const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnit
   ['archery-range', ['archer', 'skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer']],
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon']],
   ['monastery', ['monk']],
+  // M5 naval: the Dock is where every ship comes from.
+  ['dock', ['fishing-ship']],
   ['castle', ['longbowman', 'elite-longbowman', 'trebuchet']],
 ]);
 

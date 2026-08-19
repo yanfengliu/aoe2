@@ -23,7 +23,8 @@ export type BuildingRole =
   | 'market' // open-air stall with an awning
   | 'monastery' // chapel with a cross
   | 'tower' // tall narrow watch tower
-  | 'wall'; // low battlement segment (stone / palisade)
+  | 'wall' // low battlement segment (stone / palisade)
+  | 'dock'; // M5 naval: a pier and boathouse at the waterline
 
 // Exhaustive, render-OWNED mapping. The `satisfies Record<BuildingType,
 // BuildingRole>` makes a newly-added BuildingType a compile error here (same
@@ -48,6 +49,7 @@ const BUILDING_ROLES = {
   // A lecture hall reads as the same chapel-scale mass; its own tint and
   // detail props distinguish it from the monastery.
   university: 'monastery',
+  dock: 'dock',
   'watch-tower': 'tower',
   'stone-wall': 'wall',
   'palisade-wall': 'wall',

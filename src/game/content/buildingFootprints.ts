@@ -23,6 +23,7 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   'siege-workshop': { width: 3, height: 3 },
   monastery: { width: 2, height: 2 },
   university: { width: 2, height: 2 },
+  dock: { width: 3, height: 3 },
   castle: { width: 4, height: 4 },
   wonder: { width: 4, height: 4 },
   'stone-wall': { width: 1, height: 1 },

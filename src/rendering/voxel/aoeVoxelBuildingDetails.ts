@@ -143,6 +143,13 @@ function university(context: DetailContext): void {
   add(context, 'university-scroll-rack-right', 'matte', VOXEL_COLORS.plaster, 0.76, 0.3, 0.79, 0.11, 0.4, 0.09);
 }
 
+// Dock: the working clutter of a working quay.
+function dock(context: DetailContext): void {
+  add(context, 'dock-net-rack', 'matte', VOXEL_COLORS.cloth, 0.22, 0.14, 0.5, 0.12, 0.26, 0.05);
+  add(context, 'dock-fish-crate', 'matte', VOXEL_COLORS.timberDark, 0.78, 0.06, 0.62, 0.16, 0.14, 0.16);
+  add(context, 'dock-lantern', 'matte', VOXEL_COLORS.gold, 0.7, 0.42, 0.95, 0.06, 0.08, 0.06);
+}
+
 function castle(context: DetailContext): void {
   add(context, 'castle-portcullis-bar-left', 'metal', VOXEL_COLORS.steelDark, 0.46, 0.24, 0.802, 0.018, 0.78, 0.02);
   add(context, 'castle-portcullis-bar-right', 'metal', VOXEL_COLORS.steelDark, 0.54, 0.24, 0.802, 0.018, 0.78, 0.02);
@@ -205,6 +212,7 @@ export function createBuildingDetailParts(
     case 'siege-workshop': siegeWorkshop(context); break;
     case 'monastery': monastery(context); break;
     case 'university': university(context); break;
+    case 'dock': dock(context); break;
     case 'castle': castle(context); break;
     case 'wonder': wonder(context); break;
     case 'stone-wall': stoneWall(context); break;

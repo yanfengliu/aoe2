@@ -107,6 +107,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         }
         return [scoutLine];
       }
+      // M5 naval: the Dock trains ships from the Dark Age. Warships arrive
+      // with the rest of the naval roster; for now it is the Fishing Ship.
+      case 'dock':
+        return ['fishing-ship'];
       case 'archery-range': {
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
@@ -416,6 +420,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       // Palisade Wall: Dark-Age defensive option (no prereq) — the early wall vs a Dark-Age rush (campaign-7).
       'palisade-wall',
       'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
+      // M5 naval: Dark Age, like AoE2. Placement still requires a shore, so on
+      // a landlocked map it is offered but never placeable.
+      'dock',
     ];
 
     if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {

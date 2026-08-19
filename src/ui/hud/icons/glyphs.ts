@@ -271,6 +271,14 @@ const UNIVERSITY_GLYPH =
   '<path d="M12 9.5v8"/>' +
   '<path d="M9 19.5h6"/>';
 
+// Dock: a pier over water with a mooring post.
+const DOCK_GLYPH =
+  '<path d="M3 15h18"/>' +
+  '<path d="M7 15v5"/>' +
+  '<path d="M17 15v5"/>' +
+  '<path d="M12 15V6"/>' +
+  '<path d="M12 7h5l-2 2.5L17 12h-5"/>';
+
 // Castle: a battlemented keep with two towers.
 const CASTLE_GLYPH =
   '<path d="M5 19V9l1.6 1V8h1.6v2H10V7h1.5l.5-1 .5 1H14v3h1.2V8h1.6v2L18 9v10z"/>' +
@@ -317,6 +325,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   'siege-workshop': SIEGE_WORKSHOP_GLYPH,
   monastery: MONASTERY_GLYPH,
   university: UNIVERSITY_GLYPH,
+  dock: DOCK_GLYPH,
   castle: CASTLE_GLYPH,
   wonder: WONDER_GLYPH,
   'stone-wall': STONE_WALL_GLYPH,

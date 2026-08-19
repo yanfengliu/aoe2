@@ -4,6 +4,19 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import { createGrassFixtureTerrain, ownedSpawn } from './common';
+import { createTerrainCell } from '../mapGeneration/sharedTerrainHelpers';
+
+// Grass, plus a pool for the Dock — which is the one building that must be
+// placed against water (shorePlacement.ts).
+function showcaseTerrain() {
+  const terrain = createGrassFixtureTerrain();
+  for (let y = 21; y <= 24; y += 1) {
+    for (let x = 8; x <= 16; x += 1) {
+      terrain[y]![x] = createTerrainCell(x, y, 'water');
+    }
+  }
+  return terrain;
+}
 
 // Visual-only showcase scenario (M7 building-visuals). Places one COMPLETED
 // human-owned building of every concrete BuildingType in a tidy grid, so the
@@ -19,7 +32,7 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
     seed,
     width: MAP_WIDTH,
     height: MAP_HEIGHT,
-    terrain: createGrassFixtureTerrain(),
+    terrain: showcaseTerrain(),
     starts: [
       {
         owner: 1,
@@ -62,6 +75,7 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('palisade-wall', 1, 29, 16, { vision: 6 }),
       // Row 4 — research halls added after the original three rows were laid out.
       ownedSpawn('university', 1, 2, 22, { vision: 8 }),
+      ownedSpawn('dock', 1, 5, 25, { vision: 8 }),
       // Inert, fog-hidden conquest presence keeps capture frames free of the
       // victory card without adding motion or another visible showcase type.
       ownedSpawn('town-center', 2, 27, 27, { vision: 1 }),

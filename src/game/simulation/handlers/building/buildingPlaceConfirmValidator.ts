@@ -6,6 +6,7 @@ import type { Position, World } from 'civ-engine';
 
 import type {
   BuildableBuildingType,
+  BuildingType,
   UnitComponent,
   UnitType,
 } from '../../types';
@@ -20,7 +21,13 @@ export interface BuildingPlaceConfirmValidatorDeps {
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
-  isPlacementBlocked: (x: number, y: number, width: number, height: number) => boolean;
+  isPlacementBlocked: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    buildingType?: BuildingType,
+  ) => boolean;
   // agent-affordances A3: name the blocking cause + cell and suggest the
   // nearest open anchor the acting owner can see. The suggestion is
   // fog-gated through isCellVisibleToOwner so a rejection never reveals
@@ -101,7 +108,13 @@ export function makeBuildingPlaceConfirmValidator(
       return { code: 'out_of_bounds', message: 'Position is out of map bounds.' };
     }
     const footprint = buildingFootprint(data.buildingType);
-    if (deps.isPlacementBlocked(data.position.x, data.position.y, footprint.width, footprint.height)) {
+    if (deps.isPlacementBlocked(
+      data.position.x,
+      data.position.y,
+      footprint.width,
+      footprint.height,
+      data.buildingType,
+    )) {
       const report = deps.describePlacementBlockers(
         data.position.x,
         data.position.y,

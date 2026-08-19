@@ -172,6 +172,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     isCellPassableForSpawn,
+    isCellPassableForSpawnInDomain,
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
@@ -209,6 +210,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getApproachCellsForFootprint,
     getNearestMoveCandidates,
     isCellPassableForSpawn,
+    isCellPassableForSpawnInDomain,
     buildingFootprint,
   });
   const { clearGathererOrder } = createGathererOrderOps({ world, state, accessor });

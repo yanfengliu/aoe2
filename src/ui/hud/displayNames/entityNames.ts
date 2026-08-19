@@ -61,6 +61,7 @@ const ENTITY_NAMES = {
   'siege-workshop': 'Siege Workshop',
   'monastery': ['Monastery', 'Monasteries'],
   'university': ['University', 'Universities'],
+  'dock': ['Dock', 'Docks'],
   'monk': 'Monk',
   'relic': 'Relic',
   'castle': 'Castle',

@@ -306,6 +306,31 @@ function market(context: BuildingContext): void {
   add(context, 'market-banner', 'matte', context.team, 0.54, 1.14, 0.25, 0.11, 0.22, 0.025);
 }
 
+// M5 naval: a boathouse set back on the land side with a plank pier running
+// out toward the water, plus mooring posts and a hull under repair. The pier
+// deliberately reaches to the footprint edge so the building reads as
+// belonging to the waterline it must be built against.
+function dock(context: BuildingContext): void {
+  // Boathouse: an open-fronted shed at the landward end.
+  add(context, 'dock-house', 'matte', VOXEL_COLORS.timber, 0.5, 0, 0.26, 0.62, 0.5, 0.4);
+  add(context, 'dock-house-roof', 'matte', VOXEL_COLORS.thatch, 0.5, 0.5, 0.26, 0.7, 0.14, 0.48);
+  add(context, 'dock-house-post-left', 'matte', VOXEL_COLORS.timberDark, 0.23, 0, 0.44, 0.06, 0.5, 0.06);
+  add(context, 'dock-house-post-right', 'matte', VOXEL_COLORS.timberDark, 0.77, 0, 0.44, 0.06, 0.5, 0.06);
+  // Pier decking, running out over the water side.
+  add(context, 'dock-pier', 'matte', shade(VOXEL_COLORS.timber, 0.88), 0.5, 0.04, 0.72, 0.46, 0.08, 0.56);
+  for (const [name, z] of [['near', 0.6], ['far', 0.92]] as const) {
+    add(context, `dock-pier-plank-${name}`, 'matte', VOXEL_COLORS.timberDark, 0.5, 0.12, z, 0.46, 0.02, 0.03);
+  }
+  // Mooring posts at the seaward corners, with a coil of rope on one.
+  add(context, 'dock-mooring-left', 'matte', VOXEL_COLORS.timberDark, 0.3, 0.12, 0.95, 0.07, 0.28, 0.07);
+  add(context, 'dock-mooring-right', 'matte', VOXEL_COLORS.timberDark, 0.7, 0.12, 0.95, 0.07, 0.28, 0.07);
+  add(context, 'dock-rope-coil', 'matte', VOXEL_COLORS.cloth, 0.7, 0.38, 0.95, 0.11, 0.05, 0.11);
+  // A hull on the slipway, and the owner's pennant over the boathouse.
+  add(context, 'dock-hull', 'matte', shade(VOXEL_COLORS.timber, 1.1), 0.24, 0.1, 0.74, 0.16, 0.12, 0.34);
+  add(context, 'dock-banner-pole', 'metal', VOXEL_COLORS.steelDark, 0.5, 0.64, 0.1, 0.018, 0.5, 0.018);
+  add(context, 'dock-banner', 'matte', context.team, 0.54, 0.94, 0.1, 0.1, 0.18, 0.024);
+}
+
 function blacksmith(context: BuildingContext): void {
   house(context);
   add(context, 'blacksmith-forge', 'matte', VOXEL_COLORS.stoneDark, 0.2, 0.12, 0.78, 0.22, 0.42, 0.16);
@@ -383,6 +408,7 @@ export function createBuildingParts(
     case 'monastery': monastery(context); break;
     case 'tower': tower(context); break;
     case 'wall': wall(context); break;
+    case 'dock': dock(context); break;
   }
   context.parts.push(...createBuildingDetailParts(entity, identity, ground));
   return context.parts;

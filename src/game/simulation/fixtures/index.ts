@@ -388,3 +388,4 @@ export {
 export {
   createFeedbackShowcaseFixture,
 } from './feedbackShowcase';
+export { createNavalFixture } from './naval';

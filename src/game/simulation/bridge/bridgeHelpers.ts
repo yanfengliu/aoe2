@@ -197,6 +197,11 @@ export function createSpawnFinders(deps: {
   ) => Position[];
   getNearestMoveCandidates: (target: Position) => Position[];
   isCellPassableForSpawn: (x: number, y: number) => boolean;
+  isCellPassableForSpawnInDomain: (
+    x: number,
+    y: number,
+    domain: import('../unitDomain').UnitDomain,
+  ) => boolean;
   buildingFootprint: (buildingType: import('../types').BuildingType) => {
     width: number;
     height: number;
@@ -208,6 +213,7 @@ export function createSpawnFinders(deps: {
     anchor: Position,
     buildingType: import('../types').BuildingType,
     preferForeground?: boolean,
+    domain?: import('../unitDomain').UnitDomain,
   ) => Position | null;
 } {
   const {
@@ -215,13 +221,19 @@ export function createSpawnFinders(deps: {
     getApproachCellsForFootprint,
     getNearestMoveCandidates,
     isCellPassableForSpawn,
+    isCellPassableForSpawnInDomain,
     buildingFootprint,
   } = deps;
 
-  function findSafeSpawnPosition(candidates: Position[]): Position | null {
+  function findSafeSpawnPosition(
+    candidates: Position[],
+    domain: import('../unitDomain').UnitDomain = 'land',
+  ): Position | null {
     return findSafeSpawnWithEgress({
       candidates: uniquePositions(candidates),
-      isCellPassable: (x, y) => isCellPassableForSpawn(x, y),
+      isCellPassable: (x, y) => (domain === 'land'
+        ? isCellPassableForSpawn(x, y)
+        : isCellPassableForSpawnInDomain(x, y, domain)),
       neighborOffsets: CARDINAL_NEIGHBOR_OFFSETS,
     });
   }
@@ -234,6 +246,7 @@ export function createSpawnFinders(deps: {
     anchor: Position,
     buildingType: import('../types').BuildingType,
     preferForeground = false,
+    domain: import('../unitDomain').UnitDomain = 'land',
   ): Position | null {
     const footprint = buildingFootprint(buildingType);
     const perimeter = getApproachCellsForFootprint(
@@ -249,9 +262,7 @@ export function createSpawnFinders(deps: {
         (right.x + right.y) - (left.x + left.y) || right.y - left.y || right.x - left.x,
       );
     }
-    return findSafeSpawnPosition(
-      perimeter,
-    );
+    return findSafeSpawnPosition(perimeter, domain);
   }
 
   return {

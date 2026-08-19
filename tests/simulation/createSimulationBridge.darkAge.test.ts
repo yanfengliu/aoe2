@@ -44,7 +44,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       selectedEntityType: 'villager',
       // palisade-wall is a Dark-Age defensive building (AoE2; no prerequisite);
       // farm is the Dark-Age renewable food source (M1 Farms slice 1).
-      buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks', 'palisade-wall', 'farm'],
+      buildOptions: ['house', 'mill', 'lumber-camp', 'mining-camp', 'barracks', 'palisade-wall', 'farm', 'dock'],
     });
     const housePosition = placeBuildingNearTownCenter(bridge, 'house');
     expect(bridge.getHudState().playerResources.wood).toBe(175);
