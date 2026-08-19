@@ -249,7 +249,11 @@ export function canDropOffAt(
 ): boolean {
   switch (resourceKind) {
     case 'food':
-      return buildingType === 'town-center' || buildingType === 'mill';
+      // M5 naval: the Dock is where a Fishing Ship lands its catch. Fish are
+      // food, so this is the food case rather than a naval special case.
+      return buildingType === 'town-center'
+        || buildingType === 'mill'
+        || buildingType === 'dock';
     case 'wood':
       return buildingType === 'town-center' || buildingType === 'lumber-camp';
     case 'gold':

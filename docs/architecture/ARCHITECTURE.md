@@ -267,6 +267,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
   gaps, rewinds, and generation changes snap instead of extrapolating across
   unrelated state. Click hit-testing prefers the displayed entity so the player's
   perceived target matches the authoritative target.
+- Units belong to a **domain** (`src/game/simulation/unitDomain.ts`): land or water, and the two are complementary — no cell admits both, and water admits only ships. Terrain passability, pathing, trained-unit spawn placement, and scenario spawn validation all read the domain rather than testing for specific unit types. A new water unit needs no naval branch anywhere; it needs an entry in `WATER_UNITS`.
 - Randomness is **counter-based, never a stored stream.** The only chance in the simulation is the projectile to-hit roll (spec §10.4), and it is a pure hash of the shot's identity — launch tick, attacker id, target id, projectile id. There is no seeded RNG object and no RNG state in saves. Any future chance mechanic must follow the same rule: derive it from already-serialized facts, because a stateful stream desynchronises replays the moment the number or order of draws changes.
 - Fine-grid transforms remain authoritative simulation components. Systems must publish replacements through `World.setComponent`; modifying a retrieved component object in place is outside the diff/render/replay contract and is prohibited.
 

@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.16 - 2026-08-18
+
+### Added
+
+- **Water is part of the game now.** Ships sail on it, land units cannot enter it, and ships cannot leave it — so a coastline finally means something.
+- **The Dock** (Dark Age, 150 wood): the one building that must be placed against water. It trains ships and is where fish come ashore.
+- **The Fishing Ship** (75 wood): send it to a fish shoal and it will fish, fill up, carry the catch back to your Dock, unload, and go straight back out — the same way a villager works a berry bush.
+
 ## 0.3.15 - 2026-08-18
 
 ### Added

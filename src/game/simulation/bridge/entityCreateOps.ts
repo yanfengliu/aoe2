@@ -183,6 +183,24 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       monkSet.add(entity);
     }
 
+    if (unitType === 'fishing-ship') {
+      // M5 naval: a Fishing Ship is an economy unit and reuses the villager
+      // gather -> carry -> deposit loop wholesale. It only ever wants food,
+      // and only ever from fish, because those are the only harvestable
+      // resources it can reach across water.
+      world.addComponent(entity, 'gatherer', {
+        desiredResource: 'food',
+        hasExplicitGatherOrder: false,
+        task: 'idle',
+        targetResourceId: null,
+        dropOffBuildingId: null,
+        carriedResource: null,
+        carriedAmount: 0,
+        carryCapacity: 15,
+        gatherProgressTicks: 0,
+      });
+    }
+
     if (unitType === 'villager') {
       // Phase 2D — villagerOrdinals routes through accessor.mutate.
       // Read+increment+write the per-owner counter via the cached Map; the

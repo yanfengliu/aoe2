@@ -1,9 +1,9 @@
-// Villager economy state machine. Each idle villager gets routed to its
-// owner's nearest matching resource; once at the resource the gather loop
-// accumulates the owner's gather-rate multiplier each tick toward the base
-// per-cycle cadence (gather-rate techs speed it) and drops carried
-// resources at the nearest drop-off building. Drop-off retries are
-// throttled so a stuck villager doesn't re-plan every tick.
+// Gatherer economy state machine — villagers on land, Fishing Ships on water
+// (see `gathersResources`). Each idle gatherer routes to its owner's nearest
+// matching resource; the gather loop accumulates the owner's gather-rate
+// multiplier each tick toward the base per-cycle cadence (gather-rate techs
+// speed it) and drops the carried resource at the nearest valid drop-off.
+// Retries are throttled so a stuck gatherer does not re-plan every tick.
 
 import type { Position } from 'civ-engine';
 import type {
@@ -12,9 +12,8 @@ import type {
   ResourceComponent,
   UnitComponent, EconomyResourceKind,
 } from '../../types';
-import {
-  type GameWorld,
-} from '../pureHelpers';
+import { type GameWorld } from '../pureHelpers';
+import { gathersResources } from '../../unitDomain';
 import {
   gatherAmountFor,
   gatherTicksFor,
@@ -216,7 +215,8 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
         const position = activeWorld.getComponent<Position>(id, 'position');
         const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
-        if (!unit || !position || !gatherer || unit.unitType !== 'villager') {
+        // M5 naval: Fishing Ships run this loop too (gathersResources).
+        if (!unit || !position || !gatherer || !gathersResources(unit.unitType)) {
           continue;
         }
 

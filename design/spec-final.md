@@ -1206,11 +1206,19 @@ Requirements:
 
 ### 12.4 Terrain and Movement Interactions
 
-Movement rules must distinguish:
+Every unit belongs to exactly one **domain**, and the domains are complementary: no cell admits both, and water admits only ships.
 
-- land-only movement
-- naval-only movement
+- **land** — anything that is not water and not forest. Every non-ship unit.
+- **water** — water cells only. Every ship.
+
+This single rule is the whole of naval movement: a land unit cannot chase a ship, a ship cannot beach itself, and a shoreline is a real boundary — none of which is special-cased anywhere. It applies uniformly to pathing, to the spawn search that places a newly trained unit (a ship trained at a Dock appears on the water side of its perimeter), and to scenario spawn validation, whose error names the domain it expected rather than reporting a bare "impassable".
+
+The **Dock** is the one building that straddles the boundary: it stands entirely on land but must TOUCH water, counting diagonals. The rule is checked inside the shared placement predicate, so the placement preview and the confirm can never disagree. Docks are Dark Age, 150 wood, 1800 HP, 3x3, garrison 10; they train every ship and accept fish as a food drop-off.
+
+Still to come as the naval roster grows:
+
 - shallow-water exceptions if supported by the map system
+- transport ships carrying land units across water (a land unit inside a water-domain hull)
 - forest as impassable except to tree-cutting siege where appropriate
 - no special movement speed gain simply for roads unless explicitly added later
 

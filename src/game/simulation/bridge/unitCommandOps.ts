@@ -13,12 +13,12 @@ import type {
   UnitComponent,
   UnitType, EconomyResourceKind,
 } from '../types';
-import type { MonkTask } from './sharedTypes';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
+import { gathersResources } from '../unitDomain';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import { createBuildRepairCommandOps } from './buildRepairCommandOps';
-import type { UnitCommand } from './sharedTypes';
+import type { MonkTask, UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -328,8 +328,8 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     // (HUD-side fast path). The validator rejects monk units so this
     // branch only runs for non-monks.
 
-    const resourceId =
-      unit.unitType === 'villager' ? findResourceAtCell(target.x, target.y) : null;
+    const resourceId = gathersResources(unit.unitType)
+      ? findResourceAtCell(target.x, target.y) : null;
     // Spec §9.3: without explicit intent an owned building is not a garrison
     // target, so routing falls through to move at the click's own ground cell
     // — that is what makes "base = walk to it, roof = walk behind it" free.

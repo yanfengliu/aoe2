@@ -34,3 +34,12 @@ export function terrainPassableForDomain(
   if (domain === 'water') return kind === 'water';
   return kind !== 'water' && kind !== 'forest';
 }
+
+/**
+ * Whether this unit runs the gather -> carry -> deposit economy loop.
+ * Villagers on land, Fishing Ships on water; both key off the same `gatherer`
+ * component, so the loop itself needs no other unit-type knowledge.
+ */
+export function gathersResources(unitType: UnitType): boolean {
+  return unitType === 'villager' || unitType === 'fishing-ship';
+}
