@@ -50,6 +50,15 @@ const WEAPONS = {
   monk: { kind: 'staff', parts: ['monk-staff', 'monk-staff-crossbar'] },
   // M5 naval: a Fishing Ship's identifying prop is its net, not a weapon.
   'fishing-ship': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },
+  'galley': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
+  'war-galley': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
+  'galleon': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
+  'fire-ship': { kind: 'ship-fire', parts: ['ship-fire-siphon', 'ship-fire-flame'] },
+  'fast-fire-ship': { kind: 'ship-fire', parts: ['ship-fire-siphon', 'ship-fire-flame'] },
+  'demolition-ship': { kind: 'ship-powder', parts: ['ship-powder-keg', 'ship-powder-fuse'] },
+  'heavy-demolition-ship': { kind: 'ship-powder', parts: ['ship-powder-keg', 'ship-powder-fuse'] },
+  'cannon-galleon': { kind: 'ship-cannon', parts: ['ship-cannon-barrel', 'ship-cannon-muzzle'] },
+  'elite-cannon-galleon': { kind: 'ship-cannon', parts: ['ship-cannon-barrel', 'ship-cannon-muzzle'] },
 } as const satisfies Record<UnitType, WeaponExpectation>;
 
 const UNIT_TYPES = Object.keys(ALL_UNIT_TYPES) as UnitType[];

@@ -10,8 +10,8 @@ import { createTerrainCell } from '../mapGeneration/sharedTerrainHelpers';
 // units (see unitDomain.ts) and cannot occupy a land cell at all.
 function showcaseTerrain() {
   const terrain = createGrassFixtureTerrain();
-  for (let y = 25; y <= 28; y += 1) {
-    for (let x = 4; x <= 12; x += 1) {
+  for (let y = 25; y <= 29; y += 1) {
+    for (let x = 2; x <= 26; x += 1) {
       terrain[y]![x] = createTerrainCell(x, y, 'water');
     }
   }
@@ -83,7 +83,16 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('heavy-camel', 1, 21, 22, { vision: 3 }),
       // M5 naval: ships can only exist on water, so the showcase has a small
       // pool for them rather than a ship parked implausibly on grass.
-      ownedSpawn('fishing-ship', 1, 6, 26, { vision: 3 }),
+      ownedSpawn('fishing-ship', 1, 24, 26, { vision: 3 }),
+      ownedSpawn('galley', 1, 4, 26, { vision: 3 }),
+      ownedSpawn('war-galley', 1, 8, 26, { vision: 3 }),
+      ownedSpawn('galleon', 1, 12, 26, { vision: 3 }),
+      ownedSpawn('fire-ship', 1, 16, 26, { vision: 3 }),
+      ownedSpawn('fast-fire-ship', 1, 20, 26, { vision: 3 }),
+      ownedSpawn('demolition-ship', 1, 4, 29, { vision: 3 }),
+      ownedSpawn('heavy-demolition-ship', 1, 8, 29, { vision: 3 }),
+      ownedSpawn('cannon-galleon', 1, 12, 29, { vision: 3 }),
+      ownedSpawn('elite-cannon-galleon', 1, 16, 29, { vision: 3 }),
       ownedSpawn('town-center', 2, 53, 29, { vision: 4 }),
     ],
   };

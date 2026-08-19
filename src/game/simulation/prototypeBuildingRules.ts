@@ -275,7 +275,7 @@ const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnit
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon']],
   ['monastery', ['monk']],
   // M5 naval: the Dock is where every ship comes from.
-  ['dock', ['fishing-ship']],
+  ['dock', ['fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon']],
   ['castle', ['longbowman', 'elite-longbowman', 'trebuchet']],
 ]);
 

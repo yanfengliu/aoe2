@@ -40,7 +40,16 @@ export type UnitType =
   | 'heavy-camel'
   // M5 naval: the first WATER-domain unit. Water units path over water cells
   // and never over land (see unitDomain.ts).
-  | 'fishing-ship';
+  | 'fishing-ship'
+  | 'galley'
+  | 'war-galley'
+  | 'galleon'
+  | 'fire-ship'
+  | 'fast-fire-ship'
+  | 'demolition-ship'
+  | 'heavy-demolition-ship'
+  | 'cannon-galleon'
+  | 'elite-cannon-galleon';
 export type TrainableUnitType =
   | 'villager'
   | 'scout'
@@ -77,7 +86,16 @@ export type TrainableUnitType =
   | 'two-handed-swordsman'
   | 'paladin'
   | 'heavy-camel'
-  | 'fishing-ship';
+  | 'fishing-ship'
+  | 'galley'
+  | 'war-galley'
+  | 'galleon'
+  | 'fire-ship'
+  | 'fast-fire-ship'
+  | 'demolition-ship'
+  | 'heavy-demolition-ship'
+  | 'cannon-galleon'
+  | 'elite-cannon-galleon';
 // ResearchableTechnologyType lives in ./technologyTypes (extracted to keep this
 // file under the 500-LOC budget); imported for internal use and re-exported so
 // existing `from './types'` imports keep working.

@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.17 - 2026-08-18
+
+### Added
+
+- **A war fleet.** Nine new ships, all trained at the Dock: the **Galley → War Galley → Galleon** gun line, the **Fire Ship** and **Fast Fire Ship**, the **Demolition Ship** and **Heavy Demolition Ship**, and the **Cannon Galleon** and **Elite Cannon Galleon**. Each class carries visibly different armament on deck — shield racks and a bow stave, a bronze flame siphon, a lashed powder keg, or a gun run out over the rail.
+- Warships shoot the way land units do: their shots travel, can miss, and are improved by Ballistics. The demolition ships instead carry the widest blast in the game — 2.5 tiles, or 3.5 for the heavy — and take everything nearby with them, friend included.
+- Enemy towers and Town Centers now treat warships as priority targets, and the AI counts them as part of its army.
+
 ## 0.3.16 - 2026-08-18
 
 ### Added

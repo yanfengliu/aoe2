@@ -11,9 +11,21 @@ import type { TerrainKind, UnitType } from './types';
 
 export type UnitDomain = 'land' | 'water';
 
-// Every ship. Exhaustively checked against UnitType by `unitDomain` below:
-// a new unit is land unless it is named here.
-const WATER_UNITS = new Set<UnitType>(['fishing-ship']);
+// Every ship. A new unit is LAND unless it is named here, which is the safe
+// default: a mistakenly-land ship fails loudly at scenario validation, whereas
+// a mistakenly-water land unit would be silently unable to leave the coast.
+const WATER_UNITS = new Set<UnitType>([
+  'fishing-ship',
+  'galley',
+  'war-galley',
+  'galleon',
+  'fire-ship',
+  'fast-fire-ship',
+  'demolition-ship',
+  'heavy-demolition-ship',
+  'cannon-galleon',
+  'elite-cannon-galleon',
+]);
 
 export function unitDomain(unitType: UnitType): UnitDomain {
   return WATER_UNITS.has(unitType) ? 'water' : 'land';

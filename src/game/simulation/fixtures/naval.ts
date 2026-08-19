@@ -51,6 +51,10 @@ export function createNavalFixture(seed: string): PrototypeScenario {
       gaiaSpawn('fish', 16, 8, { amount: 200 }),
       gaiaSpawn('fish', 17, 10, { amount: 200 }),
       ownedSpawn('town-center', 2, 30, 24, { vision: 4 }),
+      // A player-1 Galley and an enemy Galley facing each other across the
+      // bay, for naval combat tests.
+      ownedSpawn('galley', 1, 16, 5, { vision: 7 }),
+      ownedSpawn('galley', 2, 20, 5, { vision: 7 }),
     ],
   };
 }

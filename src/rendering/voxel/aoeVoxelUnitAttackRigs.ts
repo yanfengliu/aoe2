@@ -198,6 +198,15 @@ const UNIT_ATTACK_RIGS = {
   trebuchet: TREBUCHET_RIG,
   monk: MONK_RIG,
   'fishing-ship': MONK_RIG,
+  'galley': MONK_RIG,
+  'war-galley': MONK_RIG,
+  'galleon': MONK_RIG,
+  'fire-ship': MONK_RIG,
+  'fast-fire-ship': MONK_RIG,
+  'demolition-ship': MONK_RIG,
+  'heavy-demolition-ship': MONK_RIG,
+  'cannon-galleon': MONK_RIG,
+  'elite-cannon-galleon': MONK_RIG,
 } as const satisfies Record<UnitType, UnitAttackRig>;
 
 export function unitAttackRig(unitType: UnitType): UnitAttackRig {

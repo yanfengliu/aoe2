@@ -22,7 +22,11 @@ export type UnitWeapon =
   | 'trebuchet'
   | 'staff'
   // M5 naval: a net is the Fishing Ship's working prop, not a weapon.
-  | 'net';
+  | 'net'
+  | 'ship-bow'
+  | 'ship-fire'
+  | 'ship-powder'
+  | 'ship-cannon';
 
 export type UnitArmor = 'cloth' | 'leather' | 'mail' | 'plate' | 'timber';
 export type UnitHeadgear =
@@ -90,6 +94,15 @@ const UNIT_VISUAL_PROFILES = {
   trebuchet: { role: 'siege', weapon: 'trebuchet', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-sling' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
+  'galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
+  'war-galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
+  'galleon': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
+  'fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-fire' },
+  'fast-fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-fire' },
+  'demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-powder' },
+  'heavy-demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-powder' },
+  'cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
+  'elite-cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
 } as const satisfies Record<UnitType, UnitVisualProfile>;
 
 export function unitVisualProfile(unitType: UnitType): UnitVisualProfile | undefined {

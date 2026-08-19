@@ -21,12 +21,14 @@ import {
   UNIT_PIERCE_ARMOR,
   UNIT_MIN_ATTACK_RANGE,
   UNIT_RELOAD_TICKS,
-  UNIT_SIZES,
-  UNIT_TINTS,
-  UNIT_VISION_RADIUS,
   WILDLIFE_PROFILES,
   type WildlifeProfile,
 } from './prototypeUnitRules/statTables';
+import {
+  UNIT_SIZES,
+  UNIT_TINTS,
+  UNIT_VISION_RADIUS,
+} from './prototypeUnitRules/presentationTables';
 
 export type { WildlifeProfile } from './prototypeUnitRules/statTables';
 
@@ -218,6 +220,10 @@ export function attackBonusAgainstBuilding(attackerType: UnitType): number {
 // scorpion blast is a LINE attack (empty CSV radius) — both deferred. Absent
 // attackers have no blast.
 const UNIT_BLAST_RADIUS: Partial<Record<UnitType, number>> = {
+  // M5 naval: the demolition line is a floating bomb — its whole purpose
+  // is the blast, and units.csv gives it the widest radii in the game.
+  'demolition-ship': 2.5,
+  'heavy-demolition-ship': 3.5,
   mangonel: 1,
   onager: 1.25,
 };

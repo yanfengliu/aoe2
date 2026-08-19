@@ -178,6 +178,15 @@ const UNIT_GLYPH_ROLES = {
   trebuchet: 'siege',
   // M5 naval.
   'fishing-ship': 'ship',
+  'galley': 'ship',
+  'war-galley': 'ship',
+  'galleon': 'ship',
+  'fire-ship': 'ship',
+  'fast-fire-ship': 'ship',
+  'demolition-ship': 'ship',
+  'heavy-demolition-ship': 'ship',
+  'cannon-galleon': 'ship',
+  'elite-cannon-galleon': 'ship',
   // Monk.
   monk: 'monk',
 } as const satisfies Record<UnitType, UnitGlyphRole>;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { UnitType } from '../../src/game/simulation/types';
+import { UNIT_MAX_HP } from '../../src/game/simulation/prototypeUnitRules/statTables';
 import {
   isWaterUnit,
   terrainPassableForDomain,
@@ -17,14 +18,31 @@ const LAND_UNITS: readonly UnitType[] = [
   'paladin', 'heavy-camel',
 ];
 
+const WATER_UNITS: readonly UnitType[] = [
+  'fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship',
+  'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship',
+  'cannon-galleon', 'elite-cannon-galleon',
+];
+
 describe('unit domains', () => {
-  it('puts every land unit on land and ships on water', () => {
+  it('puts every land unit on land and every ship on water', () => {
     for (const unitType of LAND_UNITS) {
       expect(unitDomain(unitType)).toBe('land');
       expect(isWaterUnit(unitType)).toBe(false);
     }
-    expect(unitDomain('fishing-ship')).toBe('water');
-    expect(isWaterUnit('fishing-ship')).toBe(true);
+    for (const unitType of WATER_UNITS) {
+      expect(unitDomain(unitType)).toBe('water');
+      expect(isWaterUnit(unitType)).toBe(true);
+    }
+  });
+
+  it('assigns every unit in the roster to exactly one domain', () => {
+    // A unit missing from both lists is a unit nobody decided about — and the
+    // default is land, which for a ship means it can never leave the coast.
+    const named = new Set<UnitType>([...LAND_UNITS, ...WATER_UNITS]);
+    for (const unitType of Object.keys(UNIT_MAX_HP) as UnitType[]) {
+      expect(named.has(unitType)).toBe(true);
+    }
   });
 });
 
