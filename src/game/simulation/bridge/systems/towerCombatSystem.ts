@@ -7,8 +7,7 @@ import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
-import { combatDamageAfterArmor, effectivePierceArmor, isArcherLineUnit } from '../../prototypeUnitRules';
-import { pierceArmorTechBonus } from '../../armorTechBonuses';
+import { isArcherLineUnit } from '../../prototypeUnitRules';
 import { towerAttackBonus, towerRangeBonus } from '../../towerTechEffects';
 import { buildingArrowAttackBonus, buildingArrowRangeBonus } from '../../buildingArrowTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
@@ -18,8 +17,12 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
+  projectilesCodec,
   researchedTechnologiesCodec,
+  unitCommandsCodec,
 } from '../bridgeStateSerialize';
+import { launchProjectile } from '../projectileOps';
+import { ballisticsLeadsShots } from '../../projectileTechEffects';
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;
@@ -47,10 +50,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     world,
     accessor,
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
-    destroyUnitEntity,
-    refreshVisibilityAfterCombat,
     markOutOfBandRenderChange,
-    ensurePlayerScoreCounters,
   } = deps;
 
   world.registerSystem({
@@ -58,7 +58,9 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     phase: 'update',
     after: ['prototypeVisibility'],
     execute(activeWorld) {
-      let destroyedAnyUnit = false;
+      // No kills happen here any more: a tower launches projectiles and the
+      // projectile system applies the damage, counts the kill, and refreshes
+      // visibility when something dies.
       for (const id of activeWorld.query('position', 'building')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -126,45 +128,46 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         }
 
         const targetCombat = accessor.get(combatStatesCodec).get(targetId);
-        if (!targetCombat) {
+        const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+        if (!targetCombat || !targetPosition) {
           continue;
         }
-        // Tower / Town Center / castle arrows are PIERCE: reduced by the
-        // target's pierce armor (base + its armor-tech bonus), not melee armor,
-        // so skirmishers/rams shrug off building fire and teched units keep
-        // their arrow mitigation.
-        const targetUnitForArrows = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
-        const targetArrowPierceArmor = targetUnitForArrows
-          ? effectivePierceArmor(targetUnitForArrows.unitType, pierceArmorTechBonus(targetCombat))
-          : 0;
+        // Arrows are PIERCE; the target's pierce armor is applied when the
+        // shot LANDS (projectileOps), against the target as it is then.
 
+        // Spec §10.4: a building's arrows FLY. Each shot in the volley is
+        // launched toward the target's current cell and resolves on its own
+        // impact tick, so a unit that keeps moving can be out from under the
+        // volley when it lands — unless the owner has Ballistics, which aims
+        // where the target is heading (technologies.csv scopes Ballistics to
+        // buildings as well as units).
+        const targetCommand = accessor.get(unitCommandsCodec).get(targetId);
+        const projectiles = accessor.get(projectilesCodec);
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
-          const activeTargetCombat = accessor.get(combatStatesCodec).get(targetId);
-          if (!activeTargetCombat) {
-            break;
-          }
-
-          activeTargetCombat.currentHp -= combatDamageAfterArmor(
-            effectiveAttackDamage,
-            'pierce',
-            activeTargetCombat.armor,
-            targetArrowPierceArmor,
-          );
-          accessor.markDirty(combatStatesCodec);
-          markOutOfBandRenderChange();
-          if (activeTargetCombat.currentHp <= 0) {
-            ensurePlayerScoreCounters(building.owner).unitsKilled += 1;
-            destroyedAnyUnit = true;
-            destroyUnitEntity(targetId);
-            break;
-          }
+          launchProjectile({
+            slot: projectiles,
+            tick: activeWorld.tick,
+            attacker: {
+              id,
+              owner: building.owner,
+              unitType: null,
+              position,
+              baseDamage: effectiveAttackDamage,
+            },
+            target: {
+              id: targetId,
+              kind: 'unit',
+              position: targetPosition,
+              destination: targetCommand?.target ?? null,
+            },
+            leads: ballisticsLeadsShots(ownerTechs),
+          });
         }
+        accessor.markDirty(projectilesCodec);
+        markOutOfBandRenderChange();
 
         buildingCombat.cooldownTicks = buildingCombat.reloadTicks;
         accessor.markDirty(buildingCombatStatesCodec);
-      }
-      if (destroyedAnyUnit) {
-        refreshVisibilityAfterCombat();
       }
     },
   });

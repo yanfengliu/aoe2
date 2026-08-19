@@ -40,6 +40,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   market: 0,
   'siege-workshop': 0,
   monastery: 0,
+  university: 0,
   castle: 20,
   wonder: 0,
   'stone-wall': 0,
@@ -61,6 +62,7 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   market: 200,
   'siege-workshop': 260,
   monastery: 280,
+  university: 600,
   castle: 560,
   wonder: 1200,
   'stone-wall': 80,
@@ -83,6 +85,7 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   market: 1.2,
   'siege-workshop': 1.2,
   monastery: 1.2,
+  university: 1.2,
   castle: 1.5,
   wonder: 1.6,
   'stone-wall': 1,
@@ -145,6 +148,12 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     humanIncomplete: 0x4f4034,
     enemyComplete: 0x8b6660,
     enemyIncomplete: 0x5a433d,
+  },
+  university: {
+    humanComplete: 0x8a8467,
+    humanIncomplete: 0x565341,
+    enemyComplete: 0x8b7566,
+    enemyIncomplete: 0x594b42,
   },
   blacksmith: {
     humanComplete: 0x6f7682,
@@ -218,6 +227,7 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   market: 175,
   'siege-workshop': 2000,
   monastery: 2100,
+  university: 2100,
   castle: 4800,
   wonder: 4800,
   'stone-wall': 2000,
@@ -258,7 +268,7 @@ const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnit
 const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
   ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom', 'town-watch', 'town-patrol']],
   ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry', 'sappers']],
-  ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade']],
+  ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'thumb-ring']],
   ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
   ['castle', ['elite-longbowman-upgrade', 'conscription']],
@@ -268,6 +278,8 @@ const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechno
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
   ['watch-tower', ['guard-tower', 'keep']],
   ['monastery', ['block-printing', 'sanctity', 'faith', 'herbal-medicine', 'heresy']],
+  // University: Ballistics (spec §10.4). Research-only — trains nothing.
+  ['university', ['ballistics']],
 ]);
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
@@ -285,6 +297,7 @@ const FEUDAL_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
 ]);
 
 const CASTLE_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
+  'university',
   'siege-workshop',
   'monastery',
   'castle',

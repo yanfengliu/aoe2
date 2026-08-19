@@ -432,6 +432,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     destroyUnitEntity,
     ensurePlayerScoreCounters,
     markOutOfBandRenderChange,
+    refreshVisibilityAfterCombat: syncCurrentVisibility,
     isMatchRunning,
   });
 

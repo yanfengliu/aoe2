@@ -17,6 +17,8 @@ import {
   townCenterLosResearchOptions,
   townCenterLosVisibleOptions,
 } from './losTechOptions';
+import { blacksmithResearchOptions } from './blacksmithTechOptions';
+import { projectileTechOptions } from './projectileTechOptions';
 
 export interface OptionsRulesDeps {
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
@@ -207,64 +209,8 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
-    if (buildingType === 'blacksmith' && getPlayerAge(owner) !== 'dark-age') {
-      const options: ResearchableTechnologyType[] = [];
-      if (!hasTechnology(owner, 'fletching')) {
-        options.push('fletching');
-      }
-      if (!hasTechnology(owner, 'forging')) {
-        options.push('forging');
-      }
-      if (!hasTechnology(owner, 'scale-mail-armor')) {
-        options.push('scale-mail-armor');
-      }
-      if (!hasTechnology(owner, 'scale-barding-armor')) {
-        options.push('scale-barding-armor');
-      }
-      if (!hasTechnology(owner, 'padded-archer-armor')) {
-        options.push('padded-archer-armor');
-      }
-      if (isAtLeastAge(owner, 'castle-age')) {
-        if (!hasTechnology(owner, 'iron-casting')) {
-          options.push('iron-casting');
-        }
-        if (!hasTechnology(owner, 'chain-mail-armor')) {
-          options.push('chain-mail-armor');
-        }
-        if (!hasTechnology(owner, 'chain-barding-armor')) {
-          options.push('chain-barding-armor');
-        }
-        if (!hasTechnology(owner, 'leather-archer-armor')) {
-          options.push('leather-archer-armor');
-        }
-        if (!hasTechnology(owner, 'bodkin-arrow')) {
-          options.push('bodkin-arrow');
-        }
-      }
-      if (isAtLeastAge(owner, 'imperial-age')) {
-        if (!hasTechnology(owner, 'bracer')) {
-          options.push('bracer');
-        }
-        if (!hasTechnology(owner, 'blast-furnace')) {
-          options.push('blast-furnace');
-        }
-        if (!hasTechnology(owner, 'plate-mail-armor')) {
-          options.push('plate-mail-armor');
-        }
-        if (!hasTechnology(owner, 'plate-barding')) {
-          options.push('plate-barding');
-        }
-        if (!hasTechnology(owner, 'ring-archer-armor')) {
-          options.push('ring-archer-armor');
-        }
-        if (!hasTechnology(owner, 'chemistry')) {
-          options.push('chemistry');
-        }
-        // Sappers: +15 infantry attack vs buildings (AoE2 University; hosted at the Blacksmith here); Imperial, drops once researched.
-        if (!hasTechnology(owner, 'sappers')) {
-          options.push('sappers');
-        }
-      }
+    if (buildingType === 'blacksmith') {
+      const options = blacksmithResearchOptions(owner, getPlayerAge, isAtLeastAge, hasTechnology);
       if (options.length > 0) {
         return options;
       }
@@ -275,6 +221,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'crossbowman-upgrade')) {
         options.push('crossbowman-upgrade');
       }
+      options.push(...projectileTechOptions('archery-range', owner, isAtLeastAge, hasTechnology));
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'arbalest-upgrade')) {
           options.push('arbalest-upgrade');
@@ -358,6 +305,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (options.length > 0) {
         return options;
       }
+    }
+
+    if (buildingType === 'university') {
+      return projectileTechOptions('university', owner, isAtLeastAge, hasTechnology);
     }
 
     if (buildingType === 'castle' && isAtLeastAge(owner, 'imperial-age')) {
@@ -479,6 +430,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       options.push('town-center');
       options.push('siege-workshop');
       options.push('monastery');
+      options.push('university'); // Castle Age (structures.csv); researches Ballistics.
       options.push('castle');
       options.push('stone-wall');
     }

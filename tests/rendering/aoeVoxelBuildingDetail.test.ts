@@ -50,7 +50,7 @@ function suffixes(entityType: BuildingType): string[] {
 // Buildings whose walls should read as built material rather than flat slabs.
 const WALLED: readonly BuildingType[] = [
   'town-center', 'house', 'mill', 'lumber-camp', 'mining-camp',
-  'barracks', 'blacksmith', 'market', 'monastery', 'castle',
+  'barracks', 'blacksmith', 'market', 'monastery', 'university', 'castle',
 ];
 
 const TYPE_DETAIL_SIGNATURES = {
@@ -67,6 +67,7 @@ const TYPE_DETAIL_SIGNATURES = {
   market: ['detail-market-pot-left', 'detail-market-counter-goods'],
   'siege-workshop': ['detail-siege-workshop-spare-wheel', 'detail-siege-workshop-axle'],
   monastery: ['detail-monastery-rose-window', 'detail-monastery-buttress-left'],
+  university: ['detail-university-quadrant-arc', 'detail-university-scroll-rack-left'],
   castle: ['detail-castle-portcullis-bar-left', 'detail-castle-arrow-slit'],
   wonder: ['detail-wonder-relief-left', 'detail-wonder-finial'],
   'stone-wall': ['detail-stone-wall-course-low', 'detail-stone-wall-cap'],

@@ -36,6 +36,8 @@ try {
     if (!api.selectEntityAtCell(building.x, building.y)) {
       return { ok: false, reason: `nothing selectable at ${building.x},${building.y}` };
     }
+    // Frame the building itself — the default camera sits on the Town Center.
+    api.centerCameraOnWorldPosition(building.x, building.y);
     return { ok: true, at: `${building.x},${building.y}`, x: building.x, y: building.y };
   }, { wanted: buildingType, ticks: queueTicks });
 

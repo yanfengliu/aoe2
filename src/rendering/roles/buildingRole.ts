@@ -45,6 +45,9 @@ const BUILDING_ROLES = {
   blacksmith: 'blacksmith',
   market: 'market',
   monastery: 'monastery',
+  // A lecture hall reads as the same chapel-scale mass; its own tint and
+  // detail props distinguish it from the monastery.
+  university: 'monastery',
   'watch-tower': 'tower',
   'stone-wall': 'wall',
   'palisade-wall': 'wall',

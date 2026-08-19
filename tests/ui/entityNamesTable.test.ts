@@ -59,6 +59,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'battering-ram': ['Battering Ram', 'Battering Rams'],
   'siege-workshop': ['Siege Workshop', 'Siege Workshops'],
   'monastery': ['Monastery', 'Monasteries'],
+  'university': ['University', 'Universities'],
   'monk': ['Monk', 'Monks'],
   'relic': ['Relic', 'Relics'],
   'castle': ['Castle', 'Castles'],

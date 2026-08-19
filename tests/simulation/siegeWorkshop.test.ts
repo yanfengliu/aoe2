@@ -276,10 +276,14 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     const mangonelIdBefore = mangonel!.id;
     const militiaIdBefore = militia!.id;
 
-    // Step exactly one tower tick so exactly one arrow has flown. Watch
-    // Tower starts with cooldownTicks = 0 and fires on its first tick, so a
-    // single 100ms step lands the first shot.
-    bridge.step(100);
+    // The Watch Tower starts with cooldownTicks = 0 and looses its first arrow
+    // on tick 1, but the arrow now FLIES (spec §10.4) — step until it lands.
+    // Reload is 12 ticks, so this window contains exactly one volley.
+    expect(stepBridgeUntil(
+      bridge,
+      () => bridge.getEntityHealth(mangonelIdBefore)?.currentHp !== 50,
+      { maxSteps: 10 },
+    )).toBe(true);
 
     const economy = bridge.getEconomyState();
     const mangonelAfter = economy.units.find((u) => u.id === mangonelIdBefore);

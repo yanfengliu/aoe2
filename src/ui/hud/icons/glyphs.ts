@@ -264,6 +264,13 @@ const MONASTERY_GLYPH =
   '<path d="M7.5 10.5V19h9v-8.5"/>' +
   '<path d="M10.5 19v-3.5a1.5 1.5 0 0 1 3 0V19"/>';
 
+// University: an open book on a lectern.
+const UNIVERSITY_GLYPH =
+  '<path d="M4 7.5h6a2 2 0 0 1 2 2v8a2 2 0 0 0-2-2H4z"/>' +
+  '<path d="M20 7.5h-6a2 2 0 0 0-2 2v8a2 2 0 0 1 2-2h6z"/>' +
+  '<path d="M12 9.5v8"/>' +
+  '<path d="M9 19.5h6"/>';
+
 // Castle: a battlemented keep with two towers.
 const CASTLE_GLYPH =
   '<path d="M5 19V9l1.6 1V8h1.6v2H10V7h1.5l.5-1 .5 1H14v3h1.2V8h1.6v2L18 9v10z"/>' +
@@ -309,6 +316,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   market: MARKET_GLYPH,
   'siege-workshop': SIEGE_WORKSHOP_GLYPH,
   monastery: MONASTERY_GLYPH,
+  university: UNIVERSITY_GLYPH,
   castle: CASTLE_GLYPH,
   wonder: WONDER_GLYPH,
   'stone-wall': STONE_WALL_GLYPH,

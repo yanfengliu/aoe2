@@ -58,6 +58,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [icon: string, accent: string]>
   'battering-ram': ['Rm', '#8f6a4a'],
   'siege-workshop': ['SW', '#98856a'],
   'monastery': ['My', '#cfc3a8'],
+  'university': ['Un', '#c8bd93'],
   'monk': ['Mn', '#e3d9b5'],
   'relic': ['Rl', '#f5d680'],
   'castle': ['Ct', '#a09f9c'],

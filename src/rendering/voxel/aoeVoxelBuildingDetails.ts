@@ -134,6 +134,15 @@ function monastery(context: DetailContext): void {
   add(context, 'monastery-buttress-right', 'matte', VOXEL_COLORS.stone, 0.8, 0.12, 0.8, 0.09, 0.68, 0.1);
 }
 
+// University: a lecture hall marked as a place of study — an astronomer's
+// quadrant angled at the sky above the door, flanked by scroll racks.
+function university(context: DetailContext): void {
+  add(context, 'university-quadrant-arc', 'metal', VOXEL_COLORS.gold, 0.5, 1.66, 0.62, 0.26, 0.035, 0.025, { roll: Math.PI / 5 });
+  add(context, 'university-quadrant-mast', 'matte', VOXEL_COLORS.timberDark, 0.5, 1.5, 0.618, 0.03, 0.34, 0.025);
+  add(context, 'university-scroll-rack-left', 'matte', VOXEL_COLORS.plaster, 0.24, 0.3, 0.79, 0.11, 0.4, 0.09);
+  add(context, 'university-scroll-rack-right', 'matte', VOXEL_COLORS.plaster, 0.76, 0.3, 0.79, 0.11, 0.4, 0.09);
+}
+
 function castle(context: DetailContext): void {
   add(context, 'castle-portcullis-bar-left', 'metal', VOXEL_COLORS.steelDark, 0.46, 0.24, 0.802, 0.018, 0.78, 0.02);
   add(context, 'castle-portcullis-bar-right', 'metal', VOXEL_COLORS.steelDark, 0.54, 0.24, 0.802, 0.018, 0.78, 0.02);
@@ -195,6 +204,7 @@ export function createBuildingDetailParts(
     case 'market': market(context); break;
     case 'siege-workshop': siegeWorkshop(context); break;
     case 'monastery': monastery(context); break;
+    case 'university': university(context); break;
     case 'castle': castle(context); break;
     case 'wonder': wonder(context); break;
     case 'stone-wall': stoneWall(context); break;

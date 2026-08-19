@@ -215,6 +215,11 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               combatStates: accessor.get(combatStatesCodec),
               projectiles: accessor.get(projectilesCodec),
               tick: activeWorld.tick,
+              // Ballistics/Thumb Ring derive from these at the launch site (§10.4).
+              attackerTechs:
+                accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
+              targetDestination:
+                accessor.get(unitCommandsCodec).get(targetId)?.target ?? null,
               attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
               target: {
                 id: targetId,

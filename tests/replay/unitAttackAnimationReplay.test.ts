@@ -92,11 +92,15 @@ describe('unit attack animation replay snapshots', () => {
     const seeded = createReplayWorldOnly(structuredClone(base.world.serialize()));
     const victim = seeded.runMaintenance(() => {
       const id = seeded.createEntity();
-      seeded.setPosition(id, { x: 20, y: 8 });
+      // Spec §10.4 made Castle arrows fly. The witness sits close to the
+      // Castle at (14, 6) so the shot lands in a few ticks — well inside the
+      // 10-tick attack-feed window this test asserts on — and carries a wider
+      // vision radius so it still covers the attack's source and target cells.
+      seeded.setPosition(id, { x: 16, y: 7 });
       seeded.addComponent(id, 'unit', { owner: 2, unitType: 'spearman' });
       seeded.addComponent(id, 'unitTransform', {
-        fineX: 82,
-        fineY: 32,
+        fineX: 66,
+        fineY: 28,
         occupancySlotX: 0.5,
         occupancySlotY: 0,
       });
@@ -109,7 +113,7 @@ describe('unit attack animation replay snapshots', () => {
         footprintHeight: 1,
         visualVariant: 'default',
       });
-      seeded.addComponent(id, 'visionSource', { playerId: 2, radius: 4 });
+      seeded.addComponent(id, 'visionSource', { playerId: 2, radius: 6 });
       return id;
     });
     const combatStates = structuredClone(
@@ -152,8 +156,14 @@ describe('unit attack animation replay snapshots', () => {
     expect(
       getReplayWorldContext(hiddenTickWorld)?.visibility.isVisible(2, 20, 10),
     ).toBe(true);
-    hiddenTickWorld.step();
-    expect(hiddenTickWorld.getEntityRef(victim)).toBeNull();
+    // Spec §10.4: the tower launches an arrow and the kill lands a few ticks
+    // later, still well inside the 10-tick attack-feed window this asserts on.
+    let victimGone = false;
+    for (let step = 0; step < 30 && !victimGone; step += 1) {
+      hiddenTickWorld.step();
+      victimGone = hiddenTickWorld.getEntityRef(victim) === null;
+    }
+    expect(victimGone).toBe(true);
     expect(
       getReplayWorldContext(hiddenTickWorld)?.visibility.isVisible(2, 20, 10),
     ).toBe(false);

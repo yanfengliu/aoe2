@@ -29,20 +29,24 @@ import {
   projectileLaunchDelayTicks,
   projectileMissAimPoint,
   projectileRoll,
+  targetLeadVelocity,
   unitAccuracy,
 } from '../projectileRules';
 import { applyUnitBlast } from './blastDamage';
-import type { GameWorld } from './pureHelpers';
+import {
+  UNIT_SUBGRID_RESOLUTION,
+  UNIT_SUBGRID_STEP_PER_TICK,
+  type GameWorld,
+} from './pureHelpers';
 import type { ProjectileSlotState, ProjectileState } from './projectileTypes';
 import type { CombatState } from './systems/systemTypes';
 
 export { firesProjectile };
 
-/** Per-tick movement of a unit, used to lead a shot when Ballistics applies. */
-export interface TargetMotion {
-  readonly x: number;
-  readonly y: number;
-}
+// Every unit in this game shares one base ground speed (there is a single
+// UNIT_SUBGRID_STEP_PER_TICK), so leading uses one constant rather than a
+// per-unit lookup. Measured against a walking villager: 0.4 tiles/tick.
+const UNIT_TILES_PER_TICK = UNIT_SUBGRID_STEP_PER_TICK / UNIT_SUBGRID_RESOLUTION;
 
 export interface LaunchProjectileParams {
   slot: ProjectileSlotState;
@@ -61,8 +65,9 @@ export interface LaunchProjectileParams {
     id: number;
     kind: 'unit' | 'building';
     position: Position;
-    /** Tiles per tick; zero for anything that is not moving. */
-    motion?: TargetMotion;
+    /** Where the target is walking to, or null if it is not going anywhere.
+     *  Only consulted when the attacker leads (Ballistics). */
+    destination?: Position | null;
   };
   /** Whether the attacker leads moving targets (Ballistics). */
   leads: boolean;
@@ -93,7 +98,14 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
   const rolls = target.kind === 'unit' && !isArea && accuracy < 1;
   const willHit = !rolls || projectileRoll(tick, attacker.id, target.id, id) < accuracy;
 
-  const motion = target.motion ?? { x: 0, y: 0 };
+  const motion = params.leads
+    ? targetLeadVelocity(
+        target.position,
+        target.destination ?? null,
+        UNIT_TILES_PER_TICK,
+        flightTicks,
+      )
+    : { x: 0, y: 0 };
   const aim = willHit
     ? projectileAimPoint(target.position, motion, flightTicks, params.leads)
     : projectileMissAimPoint(target.position, tick, attacker.id, target.id, id);
@@ -140,25 +152,35 @@ export interface ResolveProjectilesDeps {
  * Land every projectile whose impact tick has arrived. A shot resolves exactly
  * once and always leaves the air, including when its target died mid-flight —
  * an unresolvable shot is a spent shot, not a stuck one.
+ *
+ * Returns true when a unit died, so the caller can refresh visibility once for
+ * the whole pass. Deaths matter to fog: a killed unit stops seeing, and
+ * projectiles are now the ONLY way tower/Town Center arrows kill.
  */
-export function resolveDueProjectiles(deps: ResolveProjectilesDeps): void {
+export function resolveDueProjectiles(deps: ResolveProjectilesDeps): boolean {
   const { slot, tick } = deps;
-  if (slot.inFlight.length === 0) return;
+  if (slot.inFlight.length === 0) return false;
 
   const due = slot.inFlight.filter((shot) => shot.impactTick <= tick);
-  if (due.length === 0) return;
+  if (due.length === 0) return false;
   slot.inFlight = slot.inFlight.filter((shot) => shot.impactTick > tick);
 
   // Ascending id keeps resolution order deterministic when several shots land
   // on the same tick.
   due.sort((a, b) => a.id - b.id);
-  for (const shot of due) resolveOne(deps, shot);
+  let killedAnyUnit = false;
+  for (const shot of due) {
+    if (resolveOne(deps, shot)) killedAnyUnit = true;
+  }
   deps.markRender();
+  return killedAnyUnit;
 }
 
-function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): void {
+/** Resolves one shot. Returns true if it killed a unit. */
+function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolean {
   const { world, combatStates } = deps;
   const impact: Position = { x: shot.aimX, y: shot.aimY };
+  let killed = false;
 
   if (shot.targetKind === 'building') {
     if (shot.willHit) {
@@ -196,6 +218,7 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): void {
       if (targetCombat.currentHp <= 0) {
         if (targetUnit.owner !== shot.attackerOwner) deps.addKill(shot.attackerOwner);
         deps.destroyUnit(shot.targetId);
+        killed = true;
       }
     }
   }
@@ -214,9 +237,13 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): void {
       },
       impact,
       primaryTargetId: -1,
-      destroyUnit: deps.destroyUnit,
+      destroyUnit: (id) => {
+        killed = true;
+        deps.destroyUnit(id);
+      },
       addKill: deps.addKill,
       markDirty: deps.markCombatDirty,
     });
   }
+  return killed;
 }

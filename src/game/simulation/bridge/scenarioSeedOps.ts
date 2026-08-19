@@ -8,6 +8,7 @@
 // createSimulationBridge stays readable.
 
 import type { Position } from 'civ-engine';
+import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -209,30 +210,18 @@ export function seedTerrain(deps: ScenarioSeedDeps): void {
   }
 }
 
-const BUILDING_KINDS = new Set<string>([
-  'town-center',
-  'house',
-  'mill',
-  'lumber-camp',
-  'mining-camp',
-  'barracks',
-  'watch-tower',
-  'stable',
-  'archery-range',
-  'blacksmith',
-  'market',
-  'siege-workshop',
-  'monastery',
-  'castle',
-  'wonder',
-  'stone-wall',
-  'palisade-wall',
-  // M1 Farms: a Farm spawns as a building; when spawned complete it gains its
-  // gatherable food resource via onBuildingConstructionComplete (a
-  // building+resource hybrid). Fixtures can override the seeded food with
-  // `farmFood` (see seedScenarioEntities below).
-  'farm',
-]);
+// DERIVED from the authoritative footprint table rather than hand-listed. A
+// hand-maintained copy silently routed any newly-added BuildingType down the
+// RESOURCE branch below, which surfaced as an opaque "component N.tint must not
+// be undefined" from the engine rather than as a missing-building error. Deriving
+// it means a new building type is a building here the moment it has a footprint.
+//
+// (Farm is a building+resource hybrid: it spawns as a building and gains its
+// gatherable food on construction-complete. Fixtures override the seeded food
+// with `farmFood` — see seedScenarioEntities below.)
+const BUILDING_KINDS: ReadonlySet<string> = new Set(
+  Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS),
+);
 
 const UNIT_KINDS = new Set<string>([
   'villager',

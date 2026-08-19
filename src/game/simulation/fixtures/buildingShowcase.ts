@@ -60,6 +60,8 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('farm', 1, 25, 16, { vision: 6 }),
       ownedSpawn('stone-wall', 1, 27, 16, { vision: 6 }),
       ownedSpawn('palisade-wall', 1, 29, 16, { vision: 6 }),
+      // Row 4 — research halls added after the original three rows were laid out.
+      ownedSpawn('university', 1, 2, 22, { vision: 8 }),
       // Inert, fog-hidden conquest presence keeps capture frames free of the
       // victory card without adding motion or another visible showcase type.
       ownedSpawn('town-center', 2, 27, 27, { vision: 1 }),

@@ -19,6 +19,7 @@ describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
       market: { width: 4, height: 4 },
       'siege-workshop': { width: 3, height: 3 },
       monastery: { width: 2, height: 2 },
+      university: { width: 2, height: 2 },
       castle: { width: 4, height: 4 },
       wonder: { width: 4, height: 4 },
       'stone-wall': { width: 1, height: 1 },

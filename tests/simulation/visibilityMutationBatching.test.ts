@@ -16,13 +16,18 @@ import {
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   populationCodec,
+  projectilesCodec,
   researchedTechnologiesCodec,
+  unitCommandsCodec,
 } from "../../src/game/simulation/bridge/bridgeStateSerialize";
 import type {
   BuildingCombatState,
   CombatState,
 } from "../../src/game/simulation/bridge/systems/systemTypes";
 import { registerTowerCombatSystem } from "../../src/game/simulation/bridge/systems/towerCombatSystem";
+import { registerProjectileSystem } from "../../src/game/simulation/bridge/systems/projectileSystem";
+import { launchProjectile } from "../../src/game/simulation/bridge/projectileOps";
+import { createEmptyProjectileSlot } from "../../src/game/simulation/bridge/projectileTypes";
 import { createReplayWorldOnly } from "../../src/game/simulation/replay/createReplayWorldOnly";
 import { getReplayWorldContext } from "../../src/game/simulation/replay/replayWorldContext";
 
@@ -39,77 +44,59 @@ function stateAccessor(
 }
 
 describe("visibility mutation batching", () => {
-  it("keeps one visibility snapshot for a tower combat pass and refreshes once after kills", () => {
+  it("targets every tower in a pass from one frozen snapshot and kills nothing itself", () => {
+    // Spec §10.4: a tower launches projectiles rather than dealing damage, so
+    // the pass cannot mutate visibility partway through — tower 2 still sees
+    // its target even though tower 1's shot is (later) fatal to the spotter.
     const buildingCombatStates = new Map([
-      [
-        1,
-        { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 },
-      ],
-      [
-        2,
-        { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 },
-      ],
+      [1, { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 }],
+      [2, { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 }],
     ]);
     const combatStates = new Map([
-      [
-        101,
-        {
-          currentHp: 5,
-          maxHp: 5,
-          attackDamage: 1,
-          attackRange: 1,
-          reloadTicks: 1,
-          cooldownTicks: 0,
-          armor: 0,
-          pierceArmorBonus: 0,
-        },
-      ],
-      [
-        102,
-        {
-          currentHp: 5,
-          maxHp: 5,
-          attackDamage: 1,
-          attackRange: 1,
-          reloadTicks: 1,
-          cooldownTicks: 0,
-          armor: 0,
-          pierceArmorBonus: 0,
-        },
-      ],
+      [101, {
+        currentHp: 5, maxHp: 5, attackDamage: 1, attackRange: 1,
+        reloadTicks: 1, cooldownTicks: 0, armor: 0, pierceArmorBonus: 0,
+      }],
+      [102, {
+        currentHp: 5, maxHp: 5, attackDamage: 1, attackRange: 1,
+        reloadTicks: 1, cooldownTicks: 0, armor: 0, pierceArmorBonus: 0,
+      }],
     ]);
+    const projectiles = createEmptyProjectileSlot();
     const states = new Map<string, unknown>([
       [buildingCombatStatesCodec.slot, buildingCombatStates],
       [combatStatesCodec.slot, combatStates],
       [constructionStatesCodec.slot, new Map()],
       [garrisonedByBuildingCodec.slot, new Map()],
       [researchedTechnologiesCodec.slot, new Map()],
+      [unitCommandsCodec.slot, new Map()],
+      [projectilesCodec.slot, projectiles],
     ]);
     const components = new Map<string, unknown>([
       ["1:position", { x: 2, y: 2 }],
       ["1:building", { owner: 1, buildingType: "watch-tower" }],
       ["2:position", { x: 10, y: 2 }],
       ["2:building", { owner: 2, buildingType: "watch-tower" }],
+      ["101:position", { x: 4, y: 2 }],
       ["101:unit", { owner: 2, unitType: "villager" }],
+      ["102:position", { x: 8, y: 2 }],
       ["102:unit", { owner: 1, unitType: "villager" }],
     ]);
     let execute: ((activeWorld: GameWorld) => void) | undefined;
     const world = {
-      registerSystem: (system: {
-        execute: (activeWorld: GameWorld) => void;
-      }) => {
+      registerSystem: (system: { execute: (activeWorld: GameWorld) => void }) => {
         execute = system.execute;
       },
       query: () => [1, 2],
+      tick: 40,
       getComponent: (id: number, component: string) =>
         components.get(`${id}:${component}`),
     } as unknown as GameWorld;
+    // If the pass ever mutated visibility mid-flight, this would flip and
+    // tower 2 would lose its target.
     let frozenVisibilityShowsPlayerOneTarget = true;
-    let playerTwoSpotterAlive = true;
     const destroyed: number[] = [];
-    const refreshVisibilityAfterCombat = vi.fn(() => {
-      frozenVisibilityShowsPlayerOneTarget = playerTwoSpotterAlive;
-    });
+    const refreshVisibilityAfterCombat = vi.fn();
     const deps = {
       world,
       accessor: stateAccessor(states),
@@ -120,7 +107,7 @@ describe("visibility mutation batching", () => {
       destroyUnitEntity: (id: number) => {
         destroyed.push(id);
         combatStates.delete(id);
-        if (id === 101) playerTwoSpotterAlive = false;
+        frozenVisibilityShowsPlayerOneTarget = false;
       },
       markOutOfBandRenderChange: vi.fn(),
       ensurePlayerScoreCounters: () => ({ unitsKilled: 0 }),
@@ -133,9 +120,87 @@ describe("visibility mutation batching", () => {
     expect(execute).toBeTypeOf("function");
     execute!(world);
 
+    // Both towers fired, from the same snapshot, and neither killed anything
+    // during the pass — the shots are still in the air.
+    expect(destroyed).toEqual([]);
+    expect(refreshVisibilityAfterCombat).not.toHaveBeenCalled();
+    const targets = projectiles.inFlight.map((shot) => shot.targetId).sort();
+    expect(targets).toEqual([101, 102]);
+    for (const shot of projectiles.inFlight) {
+      expect(shot.impactTick).toBeGreaterThan(world.tick);
+      expect(shot.attackerUnitType).toBeNull();
+    }
+  });
+
+  it("refreshes visibility exactly once when landing shots kill", () => {
+    // The other half of the relocated contract: the single post-kill refresh
+    // now belongs to the projectile pass, and fires once for the whole pass
+    // however many shots land.
+    const combatStates = new Map<number, CombatState>([
+      [101, {
+        currentHp: 4, maxHp: 4, attackDamage: 1, attackRange: 1,
+        reloadTicks: 1, cooldownTicks: 0, armor: 0, pierceArmorBonus: 0,
+      }],
+      [102, {
+        currentHp: 4, maxHp: 4, attackDamage: 1, attackRange: 1,
+        reloadTicks: 1, cooldownTicks: 0, armor: 0, pierceArmorBonus: 0,
+      }],
+    ]);
+    const projectiles = createEmptyProjectileSlot();
+    for (const targetId of [101, 102]) {
+      launchProjectile({
+        slot: projectiles,
+        tick: 0,
+        attacker: {
+          id: 1, owner: 1, unitType: null,
+          position: { x: 0, y: 0 }, baseDamage: 50,
+        },
+        target: { id: targetId, kind: "unit", position: { x: 1, y: 0 } },
+        leads: false,
+      });
+    }
+    const components = new Map<string, unknown>([
+      ["101:position", { x: 1, y: 0 }],
+      ["101:unit", { owner: 2, unitType: "villager" }],
+      ["102:position", { x: 1, y: 0 }],
+      ["102:unit", { owner: 2, unitType: "villager" }],
+    ]);
+    const states = new Map<string, unknown>([
+      [combatStatesCodec.slot, combatStates],
+      [projectilesCodec.slot, projectiles],
+    ]);
+    let execute: ((activeWorld: GameWorld) => void) | undefined;
+    const world = {
+      registerSystem: (system: { execute: (activeWorld: GameWorld) => void }) => {
+        execute = system.execute;
+      },
+      query: () => [],
+      tick: 99,
+      getComponent: (id: number, component: string) =>
+        components.get(`${id}:${component}`),
+    } as unknown as GameWorld;
+    const destroyed: number[] = [];
+    const refreshVisibilityAfterCombat = vi.fn();
+
+    registerProjectileSystem({
+      world,
+      accessor: stateAccessor(states),
+      damageBuilding: () => false,
+      destroyUnitEntity: (id: number) => {
+        destroyed.push(id);
+        combatStates.delete(id);
+      },
+      ensurePlayerScoreCounters: () => ({ unitsKilled: 0 }),
+      markOutOfBandRenderChange: vi.fn(),
+      refreshVisibilityAfterCombat,
+      isMatchRunning: () => true,
+    });
+    expect(execute).toBeTypeOf("function");
+    execute!(world);
+
     expect(destroyed).toEqual([101, 102]);
     expect(refreshVisibilityAfterCombat).toHaveBeenCalledOnce();
-    expect(frozenVisibilityShowsPlayerOneTarget).toBe(false);
+    expect(projectiles.inFlight).toEqual([]);
   });
 
   it("keeps tower targeting on the pass-start snapshot, then publishes final LOS", () => {
@@ -233,9 +298,39 @@ describe("visibility mutation batching", () => {
       true,
     );
 
+    // Firing and dying are now separate ticks (spec §10.4): this step launches
+    // the volley and starts the reload, but nothing has been hit yet.
     world.step();
 
-    expect(world.getEntityRef(spotter)).toBeNull();
+    expect(world.getEntityRef(spotter)).not.toBeNull();
+    const firedBuildingStates = world.getState(
+      buildingCombatStatesCodec.slot,
+    ) as Array<[number, BuildingCombatState]>;
+    expect(
+      firedBuildingStates.find(([id]) => id === townCenter!.id)?.[1]
+        .cooldownTicks,
+    ).toBe(12);
+
+    // Let the arrows land. The contract under test is unchanged: the pass
+    // targeted from the pass-start snapshot, and once the kill lands the final
+    // LOS is published — the spotter's vision is gone.
+    const targetHp = () => {
+      const rows = world.getState(combatStatesCodec.slot) as Array<
+        [number, CombatState]
+      >;
+      return rows.find(([id]) => id === target)?.[1].currentHp;
+    };
+    // The two buildings are different distances away, so their shots land on
+    // different ticks; wait for both rather than for whichever is first.
+    let spotterGone = false;
+    let targetHit = false;
+    for (let step = 0; step < 40 && !(spotterGone && targetHit); step += 1) {
+      world.step();
+      spotterGone = world.getEntityRef(spotter) === null;
+      targetHit = targetHp() !== 45;
+    }
+    expect(spotterGone).toBe(true);
+    expect(targetHit).toBe(true);
     expect(getReplayWorldContext(world)?.visibility.isVisible(2, 29, 20)).toBe(
       false,
     );
@@ -245,13 +340,6 @@ describe("visibility mutation batching", () => {
     expect(finalCombatStates.find(([id]) => id === target)?.[1].currentHp).toBe(
       40,
     );
-    const finalBuildingStates = world.getState(
-      buildingCombatStatesCodec.slot,
-    ) as Array<[number, BuildingCombatState]>;
-    expect(
-      finalBuildingStates.find(([id]) => id === townCenter!.id)?.[1]
-        .cooldownTicks,
-    ).toBe(12);
   });
 
   it("invalidates only when one of the bounded entities actually changes vision", () => {

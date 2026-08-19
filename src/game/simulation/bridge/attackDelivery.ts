@@ -17,8 +17,13 @@ import type { ResearchableTechnologyType, UnitType } from '../types';
 import { attackBonusAgainstBuilding } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { civBuildingAttackBonus } from '../civBonusEffects';
+import {
+  ballisticsLeadsShots,
+  thumbRingAccuracy,
+} from '../projectileTechEffects';
 import { applyUnitBlast, resolveUnitAttackOnUnit } from './blastDamage';
-import { firesProjectile, launchProjectile, type TargetMotion } from './projectileOps';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
+import { firesProjectile, launchProjectile } from './projectileOps';
 import type { GameWorld } from './pureHelpers';
 import type { ProjectileSlotState } from './projectileTypes';
 import type { CombatState } from './systems/systemTypes';
@@ -32,10 +37,11 @@ export interface DeliverAttackShared {
   addKill: (owner: number) => void;
   markCombatDirty: () => void;
   markRender: () => void;
-  /** Ballistics: aim where the target is heading. */
-  leads?: boolean;
-  /** Target's tiles-per-tick motion, used only when `leads`. */
-  targetMotion?: TargetMotion;
+  /** The attacker owner's researched set — Ballistics and Thumb Ring are
+   *  derived from it here rather than stored per unit. */
+  attackerTechs?: ReadonlySet<ResearchableTechnologyType>;
+  /** Where the target is walking to, for Ballistics leading. */
+  targetDestination?: Position | null;
 }
 
 export interface DeliverUnitAttackParams extends DeliverAttackShared {
@@ -64,6 +70,8 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
   }
 
   const attackerPosition = params.world.getComponent<Position>(attacker.id, 'position');
+  const techs = params.attackerTechs ?? EMPTY_TECH_SET;
+  const accuracy = thumbRingAccuracy(techs, attacker.unitType);
   launchProjectile({
     slot: params.projectiles,
     tick: params.tick,
@@ -78,9 +86,10 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
       id: target.id,
       kind: 'unit',
       position: target.position,
-      motion: params.targetMotion,
+      destination: params.targetDestination ?? null,
     },
-    leads: params.leads ?? false,
+    leads: ballisticsLeadsShots(techs),
+    ...(accuracy === null ? {} : { accuracy }),
   });
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
   params.markCombatDirty();
@@ -130,7 +139,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
         buildingDamage: damage,
       },
       target: { id: target.id, kind: 'building', position: target.position },
-      leads: params.leads ?? false,
+      leads: ballisticsLeadsShots(params.attackerTechs ?? EMPTY_TECH_SET),
     });
     return;
   }

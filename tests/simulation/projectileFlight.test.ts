@@ -161,14 +161,18 @@ describe('projectiles fly instead of landing instantly', () => {
     }
   });
 
-  it('leaves melee attacks instant — no projectile for a militia brawl', () => {
+  it('leaves melee attacks instant — a militia brawl launches nothing', () => {
+    // Arrow-firing BUILDINGS in the fixture legitimately put shots in the air,
+    // so the contract is per-attacker: no melee unit ever launches one.
     const bridge = createSimulationBridge('militia-combat-fixture');
     expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
     const enemy = findFirstOwnedUnit(bridge, 2, 'militia');
     if (enemy) bridge.issueContextCommand(enemy.x, enemy.y);
     for (let step = 0; step < 120; step += 1) {
       bridge.step(TICK_MS);
-      expect(bridge.getInFlightProjectiles()).toEqual([]);
+      for (const shot of bridge.getInFlightProjectiles()) {
+        expect(shot.attackerUnitType).toBeNull(); // building arrow, not a militia
+      }
     }
   });
 

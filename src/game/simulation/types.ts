@@ -102,6 +102,9 @@ export type BuildableBuildingType =
   | 'market'
   | 'siege-workshop'
   | 'monastery'
+  // University (Castle Age): the research home for Ballistics. Research-only —
+  // it trains no units.
+  | 'university'
   | 'castle'
   | 'wonder'
   // FU3: real wall buildings. Stone Wall is Castle-Age, 1x1, HP 2000,

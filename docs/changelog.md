@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.15 - 2026-08-18
+
+### Added
+
+- **The University**, a Castle-Age building (200 wood) that researches Ballistics. It trains nothing and counts toward the buildings you need to reach the Imperial Age.
+- **Ballistics** (University, Castle Age): your shots aim where an enemy is *going* instead of where it stands — for your units and your towers alike. Against units that keep moving this is the difference between missing and hitting, and it is the answer to the evasion that arrived with projectiles.
+- **Thumb Ring** (Archery Range, Castle Age): your Archers, Crossbowmen, Arbalests, Longbowmen and Cavalry Archers stop missing entirely. Cavalry Archers gain the most — they go from 50% accuracy to never missing.
+
+### Changed
+
+- **Tower, Town Center and Castle arrows now fly like every other projectile.** Their volleys travel and land a moment later, so a unit sprinting past a tower can outrun the arrows aimed at where it was — until you research Ballistics.
+
 ## 0.3.14 - 2026-08-18
 
 ### Changed

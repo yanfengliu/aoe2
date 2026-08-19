@@ -68,6 +68,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Tracking';
     case 'conscription':
       return 'Conscription';
+    case 'ballistics':
+      return 'Ballistics';
+    case 'thumb-ring':
+      return 'Thumb Ring';
     case 'bracer':
       return 'Bracer';
     case 'blast-furnace':

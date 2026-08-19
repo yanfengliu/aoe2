@@ -28,6 +28,8 @@ export interface ProjectileSystemDeps {
   destroyUnitEntity: (id: number) => void;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
   markOutOfBandRenderChange: () => void;
+  /** Called once per pass if any unit died — a dead unit stops seeing. */
+  refreshVisibilityAfterCombat: () => void;
   isMatchRunning: () => boolean;
 }
 
@@ -39,6 +41,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
     destroyUnitEntity,
     ensurePlayerScoreCounters,
     markOutOfBandRenderChange,
+    refreshVisibilityAfterCombat,
     isMatchRunning,
   } = deps;
 
@@ -52,7 +55,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
       if (slot.inFlight.length === 0) return;
 
       const before = slot.inFlight.length;
-      resolveDueProjectiles({
+      const killedAnyUnit = resolveDueProjectiles({
         world: activeWorld,
         slot,
         tick: activeWorld.tick,
@@ -64,6 +67,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
         markRender: markOutOfBandRenderChange,
       });
       if (slot.inFlight.length !== before) accessor.markDirty(projectilesCodec);
+      if (killedAnyUnit) refreshVisibilityAfterCombat();
     },
   });
 }

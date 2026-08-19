@@ -186,3 +186,32 @@ export function projectileMissAimPoint(
     y: target.y + Math.sin(angle) * distance,
   };
 }
+
+/**
+ * The velocity to lead a target by, derived from where it is walking rather
+ * than from a stored last-position. technologies.csv describes Ballistics as
+ * "aim at the spot an enemy unit is moving towards", which is exactly this:
+ * head along the target's path at its movement speed, but never further than
+ * the destination it is actually walking to — leading past a unit that is
+ * about to stop is how a "smart" shot misses a stationary target.
+ *
+ * `destination` is null for a target with no move order, which yields a zero
+ * velocity and therefore an un-led shot.
+ */
+export function targetLeadVelocity(
+  target: Position,
+  destination: Position | null,
+  speedTilesPerTick: number,
+  flightTicks: number,
+): { x: number; y: number } {
+  if (!destination || flightTicks <= 0) return { x: 0, y: 0 };
+  const deltaX = destination.x - target.x;
+  const deltaY = destination.y - target.y;
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance <= 0) return { x: 0, y: 0 };
+  // Cap the lead at the destination: travel no further than the target can,
+  // and no further than it intends to.
+  const travel = Math.min(speedTilesPerTick * flightTicks, distance);
+  const perTick = travel / flightTicks;
+  return { x: (deltaX / distance) * perTick, y: (deltaY / distance) * perTick };
+}

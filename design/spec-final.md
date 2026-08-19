@@ -927,13 +927,15 @@ Determinism: the to-hit roll is a pure hash of the shot's identity (launch tick,
 
 In-flight projectiles are simulation state and persist in saves. They are fog-gated for display on their current position: a shot crossing into your vision becomes visible and leaves again if it exits, and a projectile has no memory state — you either watch it fly or never knew it was fired.
 
-Ballistics:
+**Ballistics** (University, Castle Age, 300 wood + 175 gold, 60s):
 
-- causes many projectile units and towers to lead moving targets — aiming where the target will be after the flight rather than where it stands, which is what makes fire connect against moving units
+- every shot the owner fires — units AND building arrows alike — aims at the spot its target is moving towards instead of where it stands. The lead runs along the target's current move order at unit movement speed, and is capped at that destination: leading past a unit that is about to stop is how a "smart" shot would miss a stationary target. A target with no move order is not led. This is a per-OWNER property derived at the launch site, matching technologies.csv's "Arrow/Bolt-firing units; Buildings; Bombard Towers" scope.
 
-Thumb Ring:
+**Thumb Ring** (Archery Range, Castle Age, 300 food + 250 wood, 45s):
 
-- improves effective projectile reliability for the intended unit classes
+- 100% accuracy for the archer line (Archer/Crossbowman/Arbalest, plus Longbowman) and the cavalry-archer line. Skirmishers, siege, and gunpowder are deliberately outside its scope, matching technologies.csv's "Archer;Cavalry Archer".
+
+The **University** (Castle Age, 200 wood, 60s build, 2100 HP, 2x2) exists to host Ballistics. It trains no units, and it counts toward the Castle-Age building requirement for advancing to Imperial.
 
 ### 10.5 Elevation
 
