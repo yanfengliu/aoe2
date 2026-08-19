@@ -1222,6 +1222,19 @@ Still to come as the naval roster grows:
 - forest as impassable except to tree-cutting siege where appropriate
 - no special movement speed gain simply for roads unless explicitly added later
 
+### 12.4.1 Stances
+
+Every unit carries a **stance**, which decides what it does when nothing has been ordered. It is a per-unit property the player commands, not a fact about the unit's type.
+
+- **Aggressive** — engages anything within its line of sight, and will move to the fight. It is the only stance that starts fights with BUILDINGS unprompted.
+- **Defensive** — engages only within its own weapon reach, and does not go looking. For a villager (reach 1) this is "counter-attack whoever is adjacent".
+- **Stand Ground** — same reach as Defensive, but never gives up its cell. Looking further than it can shoot would only produce orders it cannot act on.
+- **No Attack** — never engages, whatever walks past.
+
+Defaults: anything that fights starts Aggressive; anything that gathers (villagers, Fishing Ships) starts Defensive, so it keeps working instead of chasing a scout across the map. An explicit attack order always overrides the stance — the stance governs UNPROMPTED behaviour only.
+
+A stance change rides the recorded command channel (`unit.stance`), because it changes what the unit does on later ticks and a replay that skipped it would diverge. Only units whose stance DIFFERS from their type's default are stored, so an untouched match serializes nothing extra. The command is rejected as a whole if any addressed unit is missing or not owned by the commanding player — a stance order is a real order, not a hint, so a partially-valid batch is not silently narrowed.
+
 ### 12.5 Movement Rates and Modifiers
 
 Every commanded mover advances on the fine subgrid through the single step executor (`moveUnitOneSubgridStep`), which by default grants `UNIT_SUBGRID_STEP_PER_TICK = 2` fine units per tick; herdables are the explicit exception (sheep pass a slower step that bypasses the speed model). Movement paths are issued as per-CELL waypoint legs (4 fine units), and each tick's step is clamped to the remaining leg.

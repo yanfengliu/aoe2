@@ -2,6 +2,7 @@
 // command-button rebind. Render helpers live in `selectionPanel/render.ts`
 // to keep this file under 500 LOC.
 
+import type { UnitStance } from '../../game/simulation/unitStance';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -34,6 +35,7 @@ import {
   formatTrainTooltip,
 } from './tooltips';
 import {
+  renderStanceButtons,
   renderSelectionActivity,
   renderSelectionDetails,
   renderSelectionIcons,
@@ -145,7 +147,7 @@ export function renderBuildButtons(
     .join('');
 }
 
-type CommandGroupKind = 'action' | 'train' | 'market' | 'research' | 'build';
+type CommandGroupKind = 'action' | 'stance' | 'train' | 'market' | 'research' | 'build';
 
 function renderCommandGroup(
   kind: CommandGroupKind,
@@ -269,6 +271,7 @@ export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
   issueAction(actionType: ActionType): boolean;
+  setSelectionStance(stance: UnitStance): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -366,6 +369,12 @@ export function createSelectionPanel(
 
     const commandGroups = [
       renderCommandGroup('action', 'Orders', actionButtons, selectionState.actionOptions.length),
+      renderCommandGroup(
+        'stance',
+        'Stance',
+        renderStanceButtons(selectionState.stanceOptions, selectionState.stance),
+        selectionState.stanceOptions.length,
+      ),
       renderCommandGroup('train', 'Train', trainButtons, selectionState.trainOptions.length),
       renderCommandGroup('market', 'Trade', marketButtons, selectionState.marketOptions.length),
       renderCommandGroup(
@@ -406,6 +415,15 @@ export function createSelectionPanel(
       }
       button.addEventListener('click', () => {
         deps.issueAction(actionType);
+      });
+    });
+    el.querySelectorAll<HTMLButtonElement>('[data-command^="stance-"]').forEach((button) => {
+      const stance = button.dataset.command?.replace('stance-', '') as UnitStance | undefined;
+      if (!stance) {
+        return;
+      }
+      button.addEventListener('click', () => {
+        deps.setSelectionStance(stance);
       });
     });
     el.querySelectorAll<HTMLButtonElement>('[data-command^="market-"]').forEach((button) => {

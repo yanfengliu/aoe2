@@ -19,11 +19,17 @@ import type {
   VisionSourceComponent,
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
-import { unitVisionRadius } from '../../prototypeUnitRules';
+import { unitAttackRange, unitVisionRadius } from '../../prototypeUnitRules';
+import {
+  autoEngageRadius,
+  defaultStanceFor,
+  engagesBuildings,
+} from '../../unitStance';
 import {
   aiStatesCodec,
   combatStatesCodec,
   unitCommandsCodec,
+  unitStancesCodec,
 } from '../bridgeStateSerialize';
 
 export interface AutoAggressionSystemDeps {
@@ -121,11 +127,20 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           }
         }
 
+        // M6 control: the stance decides how far this unit looks for a fight
+        // and whether it starts one with a building. The old hardcoded
+        // behaviour (military scans its vision, villagers scan their own cell)
+        // is exactly what the default stances reproduce.
+        const stance = accessor.get(unitStancesCodec).get(id) ?? defaultStanceFor(unit.unitType);
         const visionSource = activeWorld.getComponent<VisionSourceComponent>(id, 'visionSource');
-        const radius =
-          unit.unitType === 'villager'
-            ? 1
-            : visionSource?.radius ?? unitVisionRadius(unit.unitType);
+        const radius = autoEngageRadius(
+          stance,
+          visionSource?.radius ?? unitVisionRadius(unit.unitType),
+          unitAttackRange(unit.unitType),
+        );
+        if (radius <= 0) {
+          continue;
+        }
 
         const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
         if (enemyUnitId !== null) {
@@ -133,7 +148,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           continue;
         }
 
-        if (unit.unitType === 'villager') {
+        if (!engagesBuildings(stance)) {
           continue;
         }
 

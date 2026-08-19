@@ -41,6 +41,8 @@ function villagerSelection(overrides: Partial<SelectionState> = {}): SelectionSt
     resourceAmount: null,
     resourceMaxAmount: null,
     actionOptions: [],
+    stanceOptions: [],
+    stance: null,
     buildOptions: ['house', 'barracks'],
     marketOptions: [],
     trainOptions: [],
@@ -107,6 +109,7 @@ describe('villager build palette', () => {
     const panel = createSelectionPanel(host, {
       getEconomyState: () => economy,
       issueAction: vi.fn(() => true),
+    setSelectionStance: vi.fn(() => true),
       queueTrainUnit: vi.fn(() => true),
       queueResearch: vi.fn(() => true),
       issueMarketAction: vi.fn(() => true),

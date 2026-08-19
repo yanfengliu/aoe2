@@ -41,6 +41,7 @@ import {
   createEmptyProjectileSlot,
   type ProjectileSlotState,
 } from './projectileTypes';
+import type { UnitStance } from '../unitStance';
 import { createInitialMarketRates } from './pureHelpers';
 import { deriveCap } from './bridgeConstants';
 
@@ -185,6 +186,9 @@ export const aiStatesCodec = flatMapCodec<number, AiState>('aoe2.aiStates');
 
 // Unit-keyed.
 export const unitCommandsCodec = flatMapCodec<number, UnitCommand>('aoe2.unitCommands');
+// M6 control: per-unit stance. Only units whose stance DIFFERS from their
+// type's default are stored, so an untouched match serializes nothing extra.
+export const unitStancesCodec = flatMapCodec<number, UnitStance>('aoe2.unitStances');
 export const sheepMoveOrdersCodec = flatMapCodec<number, Position>('aoe2.sheepMoveOrders');
 export const monkTasksCodec = flatMapCodec<number, MonkTask>('aoe2.monkTasks');
 export const monkCarriedRelicCodec = flatMapCodec<number, number>('aoe2.monkCarriedRelic');
@@ -259,7 +263,7 @@ export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotStat
 
 // ---- Codec registry ---------------------------------------------------------
 
-// Authoritative list of all 36 Tier-1 codecs (DESIGN §3 inventory). Used by
+// Authoritative list of all 37 Tier-1 codecs (DESIGN §3 inventory). Used by
 // `BridgeStateAccessor.flush` to look up codecs by slot key, and by the
 // equivalence test (Phase 2G) to iterate every slot for round-trip verification.
 //
@@ -280,6 +284,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   playerScoreCountersCodec,
   aiStatesCodec,
   unitCommandsCodec,
+  unitStancesCodec,
   sheepMoveOrdersCodec,
   monkTasksCodec,
   monkCarriedRelicCodec,

@@ -49,6 +49,7 @@ const EXPECTED_TIER_1_SLOTS = [
   'aoe2.playerScoreCounters',
   'aoe2.aiStates',
   'aoe2.unitCommands',
+  'aoe2.unitStances',
   'aoe2.sheepMoveOrders',
   'aoe2.monkTasks',
   'aoe2.monkCarriedRelic',

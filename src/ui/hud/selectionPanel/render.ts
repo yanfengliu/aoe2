@@ -3,6 +3,7 @@
 // renderSelectionIcons, renderSelectionActivity, renderSelectionDetails;
 // the rest is private to this module.
 
+import type { UnitStance } from '../../../game/simulation/unitStance';
 import type {
   EconomyState,
   ResearchableTechnologyType,
@@ -291,4 +292,42 @@ export function renderSelectionDetails(selectionState: SelectionState): string {
   }
 
   return `<div class="hud-selection-details" data-selection-details>${details.join('')}</div>`;
+}
+
+// M6 control: the four AoE2 stances as a toggle row. The unit's CURRENT
+// stance is marked pressed rather than hidden, so the row answers "what is
+// this unit doing" as well as offering the change.
+const STANCE_LABELS: Record<UnitStance, string> = {
+  aggressive: 'Aggressive',
+  defensive: 'Defensive',
+  'stand-ground': 'Stand Ground',
+  'no-attack': 'No Attack',
+};
+
+const STANCE_TOOLTIPS: Record<UnitStance, string> = {
+  aggressive: 'Aggressive — attack anything that comes into view, and give chase.',
+  defensive: 'Defensive — fight back against whatever comes within weapon reach, but do not go looking.',
+  'stand-ground': 'Stand Ground — hold this cell and shoot what comes in range; never move.',
+  'no-attack': 'No Attack — never attack on its own, whatever walks past.',
+};
+
+export function renderStanceButtons(
+  stanceOptions: UnitStance[],
+  current: UnitStance | null,
+): string {
+  return stanceOptions
+    .map(
+      (stance) => `
+          <button
+            class="hud-command-button hud-command-button--stance"
+            data-command="stance-${stance}"
+            data-tooltip="${STANCE_TOOLTIPS[stance]}"
+            aria-pressed="${String(stance === current)}"
+            type="button"
+          >
+            <span class="hud-command-label">${STANCE_LABELS[stance]}</span>
+          </button>
+        `,
+    )
+    .join('');
 }

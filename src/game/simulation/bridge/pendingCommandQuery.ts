@@ -42,6 +42,9 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
     // The following commands don't take a unit-id field that overwrites
     // unitCommand[id], so they don't conflict — but they're enumerated
     // explicitly so the exhaustiveness guard fires on a new variant.
+    // A stance order changes a unit's standing behaviour rather than its
+    // current order, so it never conflicts with a pending unitCommand.
+    case 'unit.stance':
     case 'queue.train':
     case 'queue.research':
     case 'market.action':

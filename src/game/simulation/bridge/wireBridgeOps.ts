@@ -1,4 +1,6 @@
 import { currentEntityId } from './pureHelpers';
+import { defaultStanceFor } from '../unitStance';
+import { unitStancesCodec } from './bridgeStateSerialize';
 import type { UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
 import { hydrateFromSavedGame, seedFreshScenario } from './scenarioSeedOps';
@@ -350,6 +352,17 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   });
   registerCommandHandlers(world, {
     accessor,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    // M6 control: a unit's stance is stored only when it DIFFERS from its
+    // type's default, so an untouched match writes nothing to the slot.
+    setUnitStance: (unitId, stance) => {
+      const unit = world.getComponent<import('../types').UnitComponent>(unitId, 'unit');
+      const isDefault = unit ? stance === defaultStanceFor(unit.unitType) : false;
+      accessor.mutate(unitStancesCodec, (stances) => {
+        if (isDefault) stances.delete(unitId);
+        else stances.set(unitId, stance);
+      });
+    },
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,

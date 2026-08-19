@@ -129,6 +129,7 @@ export interface RegisterBridgeSystemsResult {
   queueTrainUnit: CreateWorldResult['queueTrainUnit'];
   queueResearch: CreateWorldResult['queueResearch'];
   issueAction: CreateWorldResult['issueAction'];
+  setSelectionStance: CreateWorldResult['setSelectionStance'];
   issueMarketAction: CreateWorldResult['issueMarketAction'];
 }
 
@@ -273,6 +274,7 @@ export function registerBridgeSystems(
     queueTrainUnit,
     queueResearch,
     issueAction,
+    setSelectionStance,
     issueMarketAction,
   } = createHumanInputOps({
     world,
@@ -337,6 +339,7 @@ export function registerBridgeSystems(
     queueTrainUnit,
     queueResearch,
     issueAction,
+    setSelectionStance,
     issueMarketAction,
   };
 }

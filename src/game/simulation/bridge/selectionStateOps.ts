@@ -4,6 +4,8 @@
 // bridge's side maps; the bridge owns the maps and passes them in.
 
 import type { Position } from 'civ-engine';
+import { UNIT_STANCES, defaultStanceFor, type UnitStance } from '../unitStance';
+import { unitStancesCodec } from './bridgeStateSerialize';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -315,6 +317,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         resourceAmount: null,
         resourceMaxAmount: null,
         actionOptions: [],
+        stanceOptions: [],
+        stance: null,
         buildOptions: [],
         marketOptions: [],
         trainOptions: [],
@@ -384,6 +388,19 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       building?.owner === humanPlayerId
         ? getMarketOptions(building.owner, building.buildingType)
         : [];
+    // M6 control: stances apply to the player's OWN units. The shared stance
+    // is null for a mixed selection, so the HUD highlights nothing rather
+    // than lying about one of them.
+    const ownedSelectedUnits = selectedUnits.filter(
+      (entry) => entry.unit.owner === humanPlayerId,
+    );
+    const stanceOptions: UnitStance[] = ownedSelectedUnits.length > 0 ? [...UNIT_STANCES] : [];
+    const stancesInSelection = new Set(ownedSelectedUnits.map((entry) => (
+      accessor.get(unitStancesCodec).get(entry.id) ?? defaultStanceFor(entry.unit.unitType)
+    )));
+    const stance = stancesInSelection.size === 1
+      ? [...stancesInSelection][0] ?? null
+      : null;
     const buildOptions: BuildableBuildingType[] =
       allSelectedUnitsAreHumanVillagers
         ? getBuildOptions(humanPlayerId, 'villager')
@@ -456,6 +473,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       resourceAmount: resource?.amount ?? null,
       resourceMaxAmount: resource?.maxAmount ?? null,
       actionOptions,
+      stanceOptions,
+      stance,
       buildOptions,
       marketOptions,
       trainOptions,

@@ -25,6 +25,10 @@
 //  - `{ executed: false, code: 'missing_handler' | ... }`: handler failed.
 
 import type { Position } from 'civ-engine';
+import {
+  makeUnitStanceHandler,
+  makeUnitStanceValidator,
+} from '../handlers/unit/unitStanceHandler';
 
 import type { GameWorld } from './pureHelpers';
 import type {
@@ -94,6 +98,9 @@ export interface CommandHandlerDeps {
   // handler so live + replay + deterministic-system paths all execute
   // identical code (per DESIGN v17 §6.4 B1 fix).
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  // M6 control (unit.stance): who is issuing, and the direct writer.
+  humanPlayerId: number;
+  setUnitStance: (unitId: number, stance: import('../unitStance').UnitStance) => void;
   // Phase 1B (unit.attack): same pattern.
   setUnitAttackCommandDirect: (
     unitId: number,
@@ -194,6 +201,13 @@ export function registerCommandHandlers(
   world.registerValidator('unit.gather', unitGatherValidator);
   world.registerHandler('unit.gather', makeUnitGatherHandler({
     setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
+  }));
+  // M6 control — unit.stance
+  world.registerValidator('unit.stance', makeUnitStanceValidator({
+    humanPlayerId: deps.humanPlayerId,
+  }));
+  world.registerHandler('unit.stance', makeUnitStanceHandler({
+    setUnitStance: deps.setUnitStance,
   }));
   // Spec §6.2 — unit.autoGather (post-construction auto-mine): same handler
   // as an explicit gather, stricter never-preempt validator.

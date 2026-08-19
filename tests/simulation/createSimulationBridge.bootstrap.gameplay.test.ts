@@ -61,6 +61,8 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
       x: sheep?.x,
       y: sheep?.y,
       actionOptions: [],
+      stanceOptions: [],
+      stance: null,
       buildOptions: [],
       marketOptions: [],
       trainOptions: [],

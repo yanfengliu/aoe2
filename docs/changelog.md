@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.18 - 2026-08-18
+
+### Added
+
+- **Unit stances.** Select any of your units and set how they behave when you are not watching: **Aggressive** (chase anything they see), **Defensive** (fight back at arm's length but stay put), **Stand Ground** (hold the spot and shoot what comes in range), or **No Attack** (never start anything). The panel shows which stance is active, so it answers "what is this unit doing" as well as changing it.
+- Military units still default to Aggressive and villagers and fishing ships to Defensive, so nothing changes until you say so. Your stance choices are saved with the game.
+
 ## 0.3.17 - 2026-08-18
 
 ### Added

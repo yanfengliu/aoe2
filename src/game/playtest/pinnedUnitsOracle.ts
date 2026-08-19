@@ -137,6 +137,9 @@ const COMMAND_ACTOR_KEYS: { [K in keyof GameCommands]: readonly string[] } = {
   'unit.move': ['unitId', 'unitIds'],
   'unit.attack': [],
   'unit.gather': ['unitId', 'unitIds'],
+  // A stance order is a real player instruction addressed at named units, so
+  // it counts as driving them.
+  'unit.stance': ['unitIds'],
   // unit.autoGather is SYSTEM-issued at Mining Camp completion (spec §6.2) on
   // behalf of any owner — like unit.attack's auto-aggression, it is not
   // evidence that the owner is driving units, so it carries no actor keys.

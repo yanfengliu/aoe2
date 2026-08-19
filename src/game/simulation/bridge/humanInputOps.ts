@@ -6,6 +6,7 @@
 // and the per-action affordability rejection messages.
 
 import type { Position } from 'civ-engine';
+import type { UnitStance } from '../unitStance';
 import type {
   ActionType,
   BuildingComponent,
@@ -62,6 +63,7 @@ export interface HumanInputOps {
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueAction(actionType: ActionType): boolean;
+  setSelectionStance(stance: UnitStance): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
 }
 
@@ -320,6 +322,15 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   // ownership guards (validator can't see humanPlayerId), then submits
   // building.action via submitWithResult. Handler delegates to the
   // action-specific direct helper.
+  // M6 control: set the stance of every owned unit in the selection. Routes
+  // through the recorded command channel so a replay reproduces the change.
+  function setSelectionStance(stance: UnitStance): boolean {
+    if (!isMatchRunning()) return false;
+    const unitIds = getSelectedHumanUnitIds();
+    if (unitIds.length === 0) return false;
+    return world.submitWithResult('unit.stance', { unitIds, stance }).accepted;
+  }
+
   function issueAction(actionType: ActionType): boolean {
     if (!isMatchRunning()) return false;
 
@@ -386,6 +397,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     queueTrainUnit,
     queueResearch,
     issueAction,
+    setSelectionStance,
     issueMarketAction,
   };
 }

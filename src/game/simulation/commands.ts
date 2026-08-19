@@ -10,6 +10,7 @@
 // re-check for the batched-same-frame case — see §6.2 B2 fix).
 
 import type { Position } from 'civ-engine';
+import type { UnitStance } from './unitStance';
 
 import type {
   BuildableBuildingType,
@@ -38,6 +39,10 @@ export type GameCommands = {
     targetEntityKind: 'unit' | 'building' | 'resource';
   };
   'unit.gather': { unitId: number; resourceId: number };
+  // M6 control: the player sets a unit's stance. It rides the recorded command
+  // channel because it changes what the unit does on later ticks, so a replay
+  // that skipped it would diverge.
+  'unit.stance': { unitIds: number[]; stance: UnitStance };
   // Spec §6.2 automatic post-construction mining: queued at Mining Camp
   // completion for each active builder; validator refuses to preempt any
   // explicit order that landed in the same drain window.

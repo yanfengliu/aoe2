@@ -203,6 +203,8 @@ function baseSelectionState(overrides: Partial<SelectionState>): SelectionState 
     resourceAmount: null,
     resourceMaxAmount: null,
     actionOptions: [],
+    stanceOptions: [],
+    stance: null,
     buildOptions: [],
     marketOptions: [],
     trainOptions: [],

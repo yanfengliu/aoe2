@@ -134,6 +134,11 @@ export function makeReplayBridge(
     getInFlightProjectiles() {
       return api.getInFlightProjectiles();
     },
+    setSelectionStance() {
+      // Replay is playback: stance changes come from the recorded stream, not
+      // from the viewer.
+      return false;
+    },
     select(refs: readonly EntityRef[]) {
       api.selectByRefs(refs);
       flushOutOfBandRenderChange();

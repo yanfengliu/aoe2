@@ -6,6 +6,7 @@ import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import type { ProjectileState } from './bridge/projectileTypes';
+import type { UnitStance } from './unitStance';
 import { visibilityStateFromSave } from './saveBlobReaders';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
@@ -84,6 +85,8 @@ export interface SimulationBridge {
   getMatchState(): MatchState;
   /** Shots currently in the air (spec §10.4). Read-only view for render + tests. */
   getInFlightProjectiles(): readonly ProjectileState[];
+  /** M6 control: set the stance of every owned unit in the selection. */
+  setSelectionStance(stance: UnitStance): boolean;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   // FU4: probe an entity's current/max HP. Reads the canonical combat
   // (unit) or building-health side-map directly so vitest cases can
@@ -233,6 +236,7 @@ export function createSimulationBridge(
     getPlayerResources,
     getMatchState,
     getInFlightProjectiles,
+    setSelectionStance,
     getSelectionState,
     getPlacementPreview,
     getAgentBuildingOptions,
@@ -434,6 +438,7 @@ export function createSimulationBridge(
     getSelectionState,
     getMatchState,
     getInFlightProjectiles,
+    setSelectionStance,
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,

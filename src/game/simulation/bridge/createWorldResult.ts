@@ -80,6 +80,7 @@ export interface CreateWorldResult {
   issueContextCommandAtEntity: (entityId: number, garrison?: boolean) => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;
+  setSelectionStance: (stance: import('../unitStance').UnitStance) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
   issueMarketAction: (actionType: MarketActionType) => boolean;

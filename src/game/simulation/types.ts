@@ -100,6 +100,7 @@ export type TrainableUnitType =
 // file under the 500-LOC budget); imported for internal use and re-exported so
 // existing `from './types'` imports keep working.
 import type { ResearchableTechnologyType } from './technologyTypes';
+import type { UnitStance } from './unitStance';
 export type { ResearchableTechnologyType };
 export type { ProjectedUnitAttackAnimationView, ProjectedUnitAttackView } from './attackAnimationTypes';
 export type ActionType = 'ungarrison';
@@ -390,6 +391,12 @@ export interface SelectionState {
   resourceAmount: number | null;
   resourceMaxAmount: number | null;
   actionOptions: UnitOrBuildingActionType[];
+  // M6 control: the stances offerable for this selection (empty unless the
+  // player has their OWN units selected), and the one they currently share —
+  // null for a mixed selection, so the HUD highlights nothing rather than
+  // lying about one of them.
+  stanceOptions: UnitStance[];
+  stance: UnitStance | null;
   buildOptions: BuildableBuildingType[];
   marketOptions: MarketActionType[];
   trainOptions: TrainableUnitType[];

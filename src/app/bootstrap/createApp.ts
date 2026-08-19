@@ -285,6 +285,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
       view.centerCameraOnWorldPosition(worldX, worldY);
     },
     issueAction: (actionType) => bridge.issueAction(actionType),
+    setSelectionStance: (stance) => bridge.setSelectionStance(stance),
     queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),

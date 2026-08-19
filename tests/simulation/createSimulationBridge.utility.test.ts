@@ -160,6 +160,8 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
       actionOptions: ['ungarrison'],
+      stanceOptions: [],
+      stance: null,
     });
     expect(bridge.issueAction('ungarrison')).toBe(true);
     // Phase 1B building.action: handler runs at start of next step's
@@ -225,6 +227,8 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'watch-tower',
       actionOptions: ['ungarrison'],
+      stanceOptions: [],
+      stance: null,
     });
     expect(bridge.issueAction('ungarrison')).toBe(true);
     // Phase 1B building.action: ungarrison mutation lands at next step.
