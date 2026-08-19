@@ -2,13 +2,23 @@
    This sheet owns only inner HUD information architecture and interaction
    states; hudChrome.css remains the panel-chassis authority. */
 
+/* v0.3.14: chips lost their individual outlined boxes. Seven boxed
+   rectangles in a row read as a toolbar from a decade ago; spacing and
+   type hierarchy separate them just as clearly, and the bar reads as one
+   surface instead of a fence. The hover surface is what confirms a chip is
+   an interactive (tooltip-bearing) target. */
 .hud-bar .hud-chip {
-  min-height: 48px;
-  padding: 6px 8px;
-  border: 1px solid rgba(221, 196, 145, 0.14);
-  border-radius: 6px;
-  background: linear-gradient(180deg, rgba(12, 18, 19, 0.5), rgba(28, 24, 19, 0.34));
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
+  min-height: 44px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--hud-radius-md, 11px);
+  background: transparent;
+  box-shadow: none;
+  transition: background-color 140ms ease;
+}
+
+.hud-bar .hud-chip:hover {
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .hud-panel--selection {
@@ -24,7 +34,7 @@
   display: grid;
   gap: 2px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(221, 196, 145, 0.18);
+  border-bottom: 1px solid var(--hud-hairline);
 }
 
 .hud-selection-heading .hud-selection-activity {
@@ -52,11 +62,11 @@
   justify-content: space-between;
   min-height: 20px;
   padding: 0 2px 4px;
-  border-bottom: 1px solid rgba(221, 196, 145, 0.15);
+  border-bottom: 1px solid var(--hud-hairline);
 }
 
 .hud-command-group__title {
-  color: #d7c28c;
+  color: var(--hud-text-muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -66,9 +76,9 @@
 .hud-command-group__count {
   min-width: 20px;
   padding: 1px 6px;
-  border: 1px solid rgba(221, 196, 145, 0.2);
+  border: 1px solid var(--hud-hairline);
   border-radius: 999px;
-  color: rgba(244, 234, 209, 0.72);
+  color: var(--hud-text-muted);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -110,7 +120,7 @@
   place-items: center;
   width: 30px;
   height: 30px;
-  border: 1px solid rgba(221, 196, 145, 0.18);
+  border: 1px solid var(--hud-hairline);
   border-radius: 6px;
   background: rgba(9, 14, 15, 0.36);
 }
@@ -150,7 +160,7 @@
   gap: 3px;
   min-height: 18px;
   padding-top: 3px;
-  border-top: 1px solid rgba(221, 196, 145, 0.12);
+  border-top: 1px solid var(--hud-hairline);
 }
 
 .hud-build-cost {
@@ -169,7 +179,7 @@
 .hud-build-cost__glyph {
   width: 11px;
   height: 11px;
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
 }
 
 .hud-build-cost[data-build-cost-covered="false"] {
@@ -179,7 +189,7 @@
 
 .hud-build-card[data-command-affordable="false"] {
   border-color: rgba(224, 139, 94, 0.58);
-  background: linear-gradient(180deg, rgba(91, 55, 38, 0.94), rgba(54, 33, 26, 0.96));
+  background: linear-gradient(180deg, var(--hud-surface-raised), var(--hud-surface));
 }
 
 .hud-build-card[data-command-affordable="false"] .hud-build-card__readiness {
@@ -202,7 +212,7 @@
   padding: 7px 9px;
   border: 1px solid rgba(237, 207, 131, 0.52);
   border-radius: 7px;
-  background: rgba(82, 61, 31, 0.72);
+  background: var(--hud-hairline);
 }
 
 .hud-placement-status .hud-selection-meta {
@@ -263,4 +273,128 @@
   .hud-build-card {
     min-height: 68px;
   }
+}
+
+/* =====================================================================
+ * v0.3.14 — inner components brought onto the modern chassis.
+ *
+ * The panels became glass in hudChrome.css, but everything INSIDE them was
+ * still wearing the old treatment: gold-on-brown outlined cards, gradient
+ * wooden buttons. Tokens come from hudChrome.css so there is one palette.
+ * ===================================================================== */
+
+/* Stat cards: a quiet raised surface, no outline. The label/value contrast
+   carries the hierarchy, exactly as it does in the top bar. */
+.hud-selection-detail {
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--hud-radius-md, 11px);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.hud-selection-detail-label {
+  color: var(--hud-text-muted, rgba(226, 234, 243, 0.56));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.hud-selection-detail-value {
+  color: var(--hud-text, #f1f4f8);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The selected-unit row matches the stat cards so the panel reads as one
+   stack of surfaces rather than two competing card styles. */
+.hud-selection-unit-chip {
+  border: 1px solid transparent;
+  border-radius: var(--hud-radius-md, 11px);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.hud-selection-heading {
+  border-bottom-color: var(--hud-hairline, rgba(255, 255, 255, 0.09));
+}
+
+/* Command buttons: a flat surface that lifts on hover, replacing the wooden
+   vertical gradient. Disabled state drops to a barely-there face so an
+   unaffordable option reads as unavailable without going invisible. */
+.hud-command-button {
+  border: 1px solid var(--hud-hairline, rgba(255, 255, 255, 0.09));
+  border-radius: var(--hud-radius-md, 11px);
+  background: var(--hud-surface-raised, rgba(30, 37, 47, 0.72));
+  color: var(--hud-text, #f1f4f8);
+  font-weight: 600;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 100ms ease;
+}
+
+.hud-command-button:hover:not(:disabled) {
+  background: var(--hud-surface-hover, rgba(46, 56, 70, 0.78));
+  border-color: var(--hud-hairline-strong, rgba(255, 255, 255, 0.16));
+}
+
+.hud-command-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.hud-command-button:disabled {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(226, 234, 243, 0.34);
+}
+
+/* Production progress: the one place the accent earns a solid fill, because
+   it is the only continuously-changing quantity on the panel. */
+.hud-queue-progress {
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.hud-queue-progress-fill {
+  border-radius: 999px;
+  background: var(--hud-accent, #e9b949);
+}
+
+/* Menu items share the command-button surface so the menu is recognisably
+   the same interface as the panel behind it. */
+.hud-menu-item {
+  border: 1px solid var(--hud-hairline, rgba(255, 255, 255, 0.09));
+  border-radius: var(--hud-radius-md, 11px);
+  background: var(--hud-surface-raised, rgba(30, 37, 47, 0.72));
+  color: var(--hud-text, #f1f4f8);
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.hud-menu-item:hover {
+  background: var(--hud-surface-hover, rgba(46, 56, 70, 0.78));
+  border-color: var(--hud-hairline-strong, rgba(255, 255, 255, 0.16));
+}
+
+.hud-menu-item--danger:hover {
+  border-color: var(--hud-danger, #e2685f);
+  color: var(--hud-danger, #e2685f);
+}
+
+/* The selection panel scrolls when a unit has more options than fit. A hard
+   cut at the panel edge reads as a rendering bug; a short fade at the bottom
+   reads as "there is more below". Bottom edge only — masking the top would
+   soften the panel's own upper rim, which is the edge that separates it from
+   the world behind. */
+.hud-panel--selection {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 20px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 20px),
+    transparent 100%
+  );
 }

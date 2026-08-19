@@ -1,6 +1,33 @@
 :root {
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'Courier New', monospace;
+  /* --- HUD design tokens (v0.3.14) -------------------------------------
+     One palette for every HUD surface. `hudChrome.css` paints the chassis
+     from these and `hudCommandPanel.css` the components inside it; nothing
+     should reintroduce a raw colour literal. */
+  --hud-surface: rgba(15, 19, 25, 0.74);
+  --hud-surface-raised: rgba(30, 37, 47, 0.72);
+  --hud-surface-hover: rgba(46, 56, 70, 0.78);
+  --hud-surface-sunken: rgba(8, 11, 15, 0.55);
+  --hud-hairline: rgba(255, 255, 255, 0.09);
+  --hud-hairline-strong: rgba(255, 255, 255, 0.16);
+  --hud-rim-light: rgba(255, 255, 255, 0.1);
+  --hud-text: #f1f4f8;
+  --hud-text-muted: rgba(226, 234, 243, 0.56);
+  --hud-text-faint: rgba(226, 234, 243, 0.38);
+  --hud-accent: #e9b949;
+  --hud-accent-dim: rgba(233, 185, 73, 0.22);
+  --hud-food: #79c46b;
+  --hud-wood: #c08a55;
+  --hud-gold: #e9c46a;
+  --hud-stone: #9fb0c0;
+  --hud-danger: #e2685f;
+  --hud-radius-lg: 16px;
+  --hud-radius-md: 11px;
+  --hud-radius-sm: 8px;
+  --hud-elevation: 0 1px 2px rgba(0, 0, 0, 0.34), 0 10px 30px rgba(0, 0, 0, 0.38);
+  --hud-elevation-high: 0 2px 6px rgba(0, 0, 0, 0.4), 0 22px 60px rgba(0, 0, 0, 0.5);
+
   color: #f0e7d8;
   background:
     radial-gradient(circle at top, #30494a 0%, #162123 55%, #0c1213 100%);
@@ -83,7 +110,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   gap: 10px;
   max-width: 100%;
   padding: 10px 14px;
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 10px;
   background: rgba(17, 24, 26, 0.86);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
@@ -116,9 +143,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   place-items: center;
   font-size: 20px;
   line-height: 1;
-  color: #f4ead1;
-  background: rgba(37, 48, 51, 0.9);
-  border: 1px solid rgba(221, 196, 145, 0.45);
+  color: var(--hud-text);
+  background: var(--hud-surface-raised);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 8px;
   cursor: pointer;
   pointer-events: auto;
@@ -126,8 +153,8 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .hud-menu-button:hover {
-  background: rgba(58, 74, 78, 0.95);
-  border-color: rgba(221, 196, 145, 0.75);
+  background: var(--hud-surface-hover);
+  border-color: var(--hud-hairline-strong);
 }
 
 /* v0.1.95: reserve the countdown chip's slot so it never reflows the bar — the
@@ -169,13 +196,13 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
 }
 
 .hud-value {
   font-size: 16px;
   font-weight: 700;
-  color: #f4ead1;
+  color: var(--hud-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -196,7 +223,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-panel {
   padding: 10px 12px 12px;
-  border: 1px solid rgba(221, 196, 145, 0.25);
+  border: 1px solid var(--hud-hairline);
   border-radius: 10px;
   background: rgba(17, 24, 26, 0.82);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
@@ -227,7 +254,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-selection-name {
   font-size: 20px;
   font-weight: 700;
-  color: #f4ead1;
+  color: var(--hud-text);
 }
 
 .hud-selection-unit-list {
@@ -248,9 +275,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid rgba(221, 196, 145, 0.18);
+  border: 1px solid var(--hud-hairline);
   border-radius: 8px;
-  background: rgba(31, 22, 16, 0.58);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .hud-selection-unit-chip--compact {
@@ -270,10 +297,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--unit-icon-accent) 75%, #f4ead1 25%);
+  border: 1px solid color-mix(in srgb, var(--unit-icon-accent) 75%, var(--hud-text) 25%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--unit-icon-accent) 24%, #172124 76%);
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -294,13 +321,13 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .hud-selection-unit-label {
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 13px;
   font-weight: 700;
 }
 
 .hud-selection-unit-count {
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -314,7 +341,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .hud-selection-meta {
-  color: #d9d0bd;
+  color: var(--hud-text-muted);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -335,15 +362,15 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   display: grid;
   gap: 3px;
   padding: 8px 10px;
-  border: 1px solid rgba(221, 196, 145, 0.2);
+  border: 1px solid var(--hud-hairline);
   border-radius: 8px;
-  background: rgba(31, 22, 16, 0.58);
+  background: rgba(255, 255, 255, 0.045);
   /* Slice 11: tooltip hover requires pointer-events. */
   pointer-events: auto;
 }
 
 .hud-selection-detail-label {
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -351,7 +378,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .hud-selection-detail-value {
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
@@ -366,19 +393,19 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   display: grid;
   gap: 4px;
   padding: 8px 10px;
-  border: 1px solid rgba(221, 196, 145, 0.22);
+  border: 1px solid var(--hud-hairline);
   border-radius: 8px;
   background: rgba(38, 28, 20, 0.65);
 }
 
 .hud-queue-name {
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 13px;
   font-weight: 700;
 }
 
 .hud-queue-meta {
-  color: #d9d0bd;
+  color: var(--hud-text-muted);
   font-size: 12px;
 }
 
@@ -393,7 +420,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-queue-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #c4ae7a 0%, #f0d89a 100%);
+  background: var(--hud-accent);
 }
 
 .hud-command-list {
@@ -404,10 +431,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-command-button {
   pointer-events: auto;
-  border: 1px solid rgba(221, 196, 145, 0.28);
+  border: 1px solid var(--hud-hairline);
   border-radius: 8px;
   background: linear-gradient(180deg, #5b4633 0%, #3b2d22 100%);
-  color: #f4ead1;
+  color: var(--hud-text);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -430,7 +457,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   display: block;
   width: 220px;
   height: 160px;
-  border: 1px solid rgba(221, 196, 145, 0.24);
+  border: 1px solid var(--hud-hairline);
   border-radius: 8px;
   background: rgba(8, 16, 18, 0.85);
   cursor: pointer;
@@ -440,10 +467,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-footer {
   max-width: 420px;
   padding: 10px 14px;
-  border: 1px solid rgba(221, 196, 145, 0.25);
+  border: 1px solid var(--hud-hairline);
   border-radius: 10px;
   background: rgba(17, 24, 26, 0.8);
-  color: #d9d0bd;
+  color: var(--hud-text-muted);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -454,10 +481,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   top: 0;
   max-width: 260px;
   padding: 8px 10px;
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 8px;
   background: rgba(15, 20, 22, 0.96);
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 12px;
   line-height: 1.4;
   pointer-events: none;
@@ -532,10 +559,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-save-load__button {
   padding: 6px 12px;
-  border: 1px solid rgba(221, 196, 145, 0.45);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   background: rgba(28, 40, 44, 0.9);
-  color: #f4ead1;
+  color: var(--hud-text);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -545,7 +572,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-save-load__button:hover {
   background: rgba(52, 70, 76, 0.92);
-  border-color: rgba(221, 196, 145, 0.75);
+  border-color: var(--hud-hairline-strong);
 }
 
 .hud-save-load__button:disabled {
@@ -555,7 +582,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-save-load__button--ghost {
   background: transparent;
-  border-color: rgba(221, 196, 145, 0.3);
+  border-color: var(--hud-hairline);
 }
 
 .hud-load-panel {
@@ -563,10 +590,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   padding: 10px 14px;
   display: grid;
   gap: 8px;
-  border: 1px solid rgba(221, 196, 145, 0.4);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 8px;
   background: rgba(17, 24, 26, 0.95);
-  color: #f4ead1;
+  color: var(--hud-text);
   pointer-events: auto;
   max-width: 360px;
 }
@@ -580,7 +607,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
 }
 
 .hud-load-panel__option {
@@ -600,10 +627,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   resize: vertical;
   min-height: 64px;
   padding: 6px 8px;
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   background: rgba(10, 16, 18, 0.9);
-  color: #f4ead1;
+  color: var(--hud-text);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.4;
@@ -660,13 +687,13 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   transform: translate(-50%, -50%);
   width: min(420px, calc(100% - 32px));
   background: rgba(17, 24, 26, 0.96);
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 10px;
   padding: 18px 20px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   pointer-events: auto;
   z-index: 10;
-  color: rgba(243, 232, 207, 0.95);
+  color: var(--hud-text);
   font-size: 13px;
 }
 
@@ -698,14 +725,14 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   font-size: 13px;
   background: rgba(8, 14, 16, 0.7);
   color: inherit;
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   padding: 6px 8px;
   resize: vertical;
 }
 
 .annotation-form__severity {
-  border: 1px solid rgba(221, 196, 145, 0.2);
+  border: 1px solid var(--hud-hairline);
   border-radius: 6px;
   padding: 6px 10px 8px;
   display: flex;
@@ -731,7 +758,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   width: 100%;
   background: rgba(8, 14, 16, 0.7);
   color: inherit;
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   padding: 4px 6px;
 }
@@ -756,9 +783,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .annotation-form__buttons button {
   pointer-events: auto;
-  background: rgba(221, 196, 145, 0.15);
+  background: rgba(255, 255, 255, 0.09);
   color: inherit;
-  border: 1px solid rgba(221, 196, 145, 0.4);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   padding: 6px 14px;
   font-size: 12px;
@@ -766,7 +793,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .annotation-form__buttons button:hover {
-  background: rgba(221, 196, 145, 0.25);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .marker-list-panel {
@@ -777,13 +804,13 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   max-height: 60vh;
   overflow: auto;
   background: rgba(17, 24, 26, 0.94);
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 10px;
   padding: 12px 14px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   pointer-events: auto;
   z-index: 8;
-  color: rgba(243, 232, 207, 0.95);
+  color: var(--hud-text);
   font-size: 12px;
 }
 
@@ -799,7 +826,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .marker-list-panel__empty {
   font-size: 11px;
-  color: rgba(243, 232, 207, 0.55);
+  color: var(--hud-text-muted);
   padding: 6px 0;
 }
 
@@ -814,7 +841,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .marker-list-panel__row:hover {
-  background: rgba(221, 196, 145, 0.1);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .marker-list-panel__tick {
@@ -849,12 +876,12 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: rgba(243, 232, 207, 0.55);
+  color: var(--hud-text-muted);
 }
 
 .marker-list-panel__prior {
   margin-top: 12px;
-  border-top: 1px solid rgba(221, 196, 145, 0.2);
+  border-top: 1px solid var(--hud-hairline);
   padding-top: 10px;
 }
 
@@ -890,7 +917,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .marker-list-panel__prior-when {
   font-variant-numeric: tabular-nums;
-  color: rgba(243, 232, 207, 0.55);
+  color: var(--hud-text-muted);
 }
 
 .marker-list-panel__prior-id {
@@ -904,9 +931,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .marker-list-panel__prior-row button {
-  background: rgba(221, 196, 145, 0.15);
+  background: rgba(255, 255, 255, 0.09);
   color: inherit;
-  border: 1px solid rgba(221, 196, 145, 0.4);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 11px;
@@ -930,10 +957,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(221, 196, 145, 0.38);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 8px;
   background: rgba(13, 20, 22, 0.94);
-  color: #f4ead1;
+  color: var(--hud-text);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
   pointer-events: auto;
   z-index: 12;
@@ -954,10 +981,10 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   min-width: 40px;
   height: 30px;
   padding: 0 10px;
-  border: 1px solid rgba(221, 196, 145, 0.36);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 6px;
   background: rgba(28, 40, 44, 0.95);
-  color: #f4ead1;
+  color: var(--hud-text);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -965,7 +992,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .timeline-panel__button:hover {
-  border-color: rgba(221, 196, 145, 0.72);
+  border-color: var(--hud-hairline-strong);
   background: rgba(50, 66, 70, 0.95);
 }
 
@@ -976,7 +1003,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .timeline-panel__button--primary {
   min-width: 58px;
-  background: rgba(91, 70, 51, 0.95);
+  background: var(--hud-surface-raised);
 }
 
 .timeline-panel__button--exit {
@@ -1266,11 +1293,11 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   flex-direction: column;
   gap: 14px;
   padding: 22px 22px 24px;
-  border: 1px solid rgba(221, 196, 145, 0.4);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 12px;
   background: rgba(20, 28, 30, 0.97);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  color: #f4ead1;
+  color: var(--hud-text);
 }
 
 .hud-game-menu__title {
@@ -1278,7 +1305,7 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #ddc491;
+  color: var(--hud-text-muted);
   text-align: center;
 }
 
@@ -1296,9 +1323,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   padding: 10px 14px;
   font: inherit;
   font-size: 14px;
-  color: #f4ead1;
-  background: rgba(37, 48, 51, 0.9);
-  border: 1px solid rgba(221, 196, 145, 0.35);
+  color: var(--hud-text);
+  background: var(--hud-surface-raised);
+  border: 1px solid var(--hud-hairline-strong);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -1306,8 +1333,8 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 .hud-menu-item:hover {
-  background: rgba(58, 74, 78, 0.95);
-  border-color: rgba(221, 196, 145, 0.7);
+  background: var(--hud-surface-hover);
+  border-color: var(--hud-hairline-strong);
 }
 
 .hud-menu-item--primary {
@@ -1330,17 +1357,17 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid rgba(221, 196, 145, 0.2);
+  border-top: 1px solid var(--hud-hairline);
 }
 
 .hud-game-menu__section-title {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #c4ae7a;
+  color: var(--hud-text-muted);
 }
 
 .hud-menu-item__state {
   font-variant-numeric: tabular-nums;
-  color: #ddc491;
+  color: var(--hud-text-muted);
 }

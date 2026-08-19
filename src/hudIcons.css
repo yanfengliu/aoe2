@@ -27,13 +27,12 @@
 
 .hud-chip-glyph {
   flex: 0 0 auto;
-  width: 15px;
-  height: 15px;
-  /* Match the gold of `.hud-label` so the glyph reads as part of the
-     label, not a louder element. */
-  color: #c4ae7a;
-  /* The value below is the loud element; keep the glyph a touch calmer. */
-  opacity: 0.92;
+  width: 16px;
+  height: 16px;
+  /* v0.3.14: the glyph is now the chip's one coloured element and carries a
+     per-resource hue from hudChrome.css, so it no longer inherits the old
+     uniform gold. Full opacity — the hue is the signal. */
+  opacity: 1;
 }
 
 /* Build-command buttons: glyph sits left of the text label. The button
@@ -79,8 +78,8 @@
      back to the gold label tone when no accent is set. */
   color: color-mix(
     in srgb,
-    var(--unit-icon-accent, #c4ae7a) 78%,
-    #f4ead1 22%
+    var(--unit-icon-accent, var(--hud-text-muted)) 78%,
+    var(--hud-text) 22%
   );
 }
 

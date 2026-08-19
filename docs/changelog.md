@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.14 - 2026-08-18
+
+### Changed
+
+- **The interface has been rebuilt with a modern look.** Panels are now translucent dark glass over a background blur, with a single hairline edge and a soft shadow, instead of framed wood planks with carved bevels. At the size the HUD actually renders, that plank grain had turned into a faint plaid; the new surfaces read as clean glass sitting above the world.
+- **The resource bar lost its row of boxes.** Food, wood, gold, stone, age, population and time are separated by spacing and type weight rather than seven outlined rectangles, so the bar reads as one surface. Each resource glyph now carries its own colour — green for food, warm brown for wood, amber for gold, cool grey for stone — so the bar can be read at a glance before it is read word by word.
+- **One consistent type scale everywhere.** Labels are small, spaced-out and muted; values are large, tight and near-white. The same hierarchy now applies in the top bar, the selection panel's stat cards, and the command deck, which previously each had their own sizes and colours.
+- **Buttons, menu items and dialogs share one surface style**, lifting on hover and pressing down on click, with a clear amber focus ring for keyboard users. The game menu, tooltips, and the replay timeline all match the rest of the interface instead of looking like separate applications.
+- **The selection panel fades out at its bottom edge** when there is more content below, so a long command list reads as scrollable rather than cut off.
+- **Turning down transparency turns off the glass.** If your system asks for reduced transparency, panels render solid with no blur — which is also the cheaper path to draw.
+
 ## 0.3.13 - 2026-08-18
 
 ### Changed

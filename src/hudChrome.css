@@ -1,144 +1,229 @@
 /*
- * M7 "HUD chrome" (v0.1.38) — procedural wood/stone framed-panel surfaces.
+ * HUD chassis — modern dark-glass surfaces (v0.3.14).
  *
- * Restyles ONLY the surface of the major HUD container panels (the top
- * resource bar, the command/selection panel, the minimap frame, and the
- * match-summary footer) toward AoE2's framed wood-and-stone look, using
- * 100% PROCEDURAL CSS: layered gradients for plank/grain + stone-fleck
- * texture, layered box-shadows for a beveled raised edge (light top-left,
- * dark bottom-right), and an inset shadow so each panel reads as a framed
- * physical surface. NO image assets, NO external fonts, NO copyrighted
- * Age of Empires art — the look is evoked, nothing is reproduced.
+ * Supersedes the v0.1.38 wood-and-stone treatment. That sheet painted every
+ * panel with repeating plank/grain gradients and a carved bevel stack; at the
+ * sizes the HUD actually renders, the grain read as a plaid moiré and the
+ * bevels as muddy outlines. The look here is built from the three things
+ * modern interface chrome actually uses — translucency, a single hairline, and
+ * soft elevation — so panels read as glass sitting above the world rather than
+ * as carved boards.
  *
- * This sheet only paints the panel CHASSIS. It deliberately does NOT touch
- * layout/position/size, the warm-gold-on-dark-teal palette, button/chip/
- * icon styling, or anything inside the world renderer (the change is DOM/CSS
- * only). Every colour below is derived from the existing palette
- * (gold `#c4ae7a` / `rgba(221,196,145,…)` over dark teal
- * `rgba(17,24,26,…)`); no new hues are introduced. Loaded after
- * `styles.css` in `main.ts`, so these rules layer on top of the base panel
- * rules they enrich (same specificity, later source order wins).
- *
- * The frame accents (bevel/grain/inner/drop) are tokenized in `:root` below;
- * the per-panel wood/stone base, fleck, and lit-gradient stops are inline
- * `rgba()` literals from the same gold/teal family — palette-faithful, but
- * not all `var()` tokens (a palette move touches the tokens AND those stops).
+ * Still 100% procedural CSS: no image assets, no external art. This sheet owns
+ * the panel CHASSIS and the shared design tokens; `hudCommandPanel.css` owns
+ * inner information architecture and `hudIcons.css` owns glyph sizing. Loaded
+ * after `styles.css`, so these rules layer over the base panel rules.
  */
+
 :root {
-  /* Plank/grain accents — the warm gold at very low alpha so the wood
-     striping reads as a tint on the existing dark base, never a recolour. */
-  --hud-grain-light: rgba(221, 196, 145, 0.05);
-  --hud-grain-dark: rgba(8, 12, 13, 0.32);
-  /* Beveled edge: a light top-left highlight + a dark bottom-right shade,
-     both inset, give the raised carved-frame read. */
-  --hud-bevel-light: rgba(244, 234, 209, 0.16);
-  --hud-bevel-dark: rgba(0, 0, 0, 0.42);
-  /* Inner recess so the panel face sits inside its frame. */
-  --hud-inner-shadow: rgba(0, 0, 0, 0.34);
-  /* Outer drop shadow — matches the base panels' existing depth. */
-  --hud-drop-shadow: rgba(0, 0, 0, 0.32);
+  /* The palette itself lives in styles.css:root (the base sheet). These are
+     compatibility aliases for rules that still name the old chrome slots. */
+  --hud-grain-light: transparent;
+  --hud-grain-dark: transparent;
+  --hud-bevel-light: var(--hud-rim-light);
+  --hud-bevel-dark: rgba(0, 0, 0, 0.28);
+  --hud-inner-shadow: rgba(0, 0, 0, 0.22);
+  --hud-drop-shadow: rgba(0, 0, 0, 0.38);
 }
 
 /*
- * WOOD-PLANK surface — applied to the wood-framed panels (top resource
- * bar, command/selection panel, match-summary footer). The background is a
- * stack (top layer first):
- *   1. a hairline plank-seam striping (repeating-linear-gradient, vertical)
- *      that gives a subtle "boards" grain,
- *   2. a fine diagonal grain fleck for tooth,
- *   3. a soft top-down highlight→shade so the surface looks domed/lit,
- *   4. the existing flat dark-teal base (kept opaque-ish for legibility).
- * The box-shadow stack is the frame: outer drop + inset bevel (light TL /
- * dark BR) + inner recess.
+ * GLASS SURFACE — the top bar, every floating panel, and the summary footer.
+ * `background-image: none` is explicit because `styles.css` and the former
+ * chrome sheet both set gradient stacks here; clearing it is what removes the
+ * plank grain rather than layering something opaque over it.
  */
 .hud-bar,
 .hud-panel,
 .hud-footer {
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      var(--hud-grain-dark) 0,
-      var(--hud-grain-dark) 1px,
-      transparent 1px,
-      transparent 9px,
-      var(--hud-grain-light) 9px,
-      var(--hud-grain-light) 10px,
-      transparent 10px,
-      transparent 18px
-    ),
-    repeating-linear-gradient(
-      24deg,
-      rgba(0, 0, 0, 0.06) 0,
-      rgba(0, 0, 0, 0.06) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    linear-gradient(
-      180deg,
-      rgba(244, 234, 209, 0.07) 0%,
-      rgba(17, 24, 26, 0) 22%,
-      rgba(0, 0, 0, 0.16) 100%
-    ),
-    linear-gradient(180deg, rgba(36, 30, 23, 0.9) 0%, rgba(20, 24, 24, 0.92) 100%);
-  border-color: rgba(221, 196, 145, 0.42);
+  background-image: none;
+  background-color: var(--hud-surface);
+  border: 1px solid var(--hud-hairline);
+  border-radius: var(--hud-radius-lg);
   box-shadow:
-    0 12px 30px var(--hud-drop-shadow),
-    inset 1px 1px 0 var(--hud-bevel-light),
-    inset -1px -1px 0 var(--hud-bevel-dark),
-    inset 0 0 18px var(--hud-inner-shadow);
+    var(--hud-elevation),
+    inset 0 1px 0 var(--hud-rim-light);
+  /* Progressive enhancement: without backdrop-filter the panels are simply
+     flat translucent slate, which is still legible. */
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
 }
 
-/* The selection/command panel scrolls, so its inner recess uses a slightly
-   tighter glow that doesn't smear across the scroll region. The wood face
-   is inherited from the rule above. */
-.hud-panel--selection {
-  box-shadow:
-    0 12px 30px var(--hud-drop-shadow),
-    inset 1px 1px 0 var(--hud-bevel-light),
-    inset -1px -1px 0 var(--hud-bevel-dark),
-    inset 0 0 14px var(--hud-inner-shadow);
+.hud-bar {
+  padding: 8px 10px;
+  gap: 2px;
 }
 
-/*
- * STONE surface — the minimap frame reads as a chiselled stone block rather
- * than wood: a cooler grey fleck (radial speckle + crosshatch) over the
- * dark base, with the same beveled frame. The minimap CANVAS itself is
- * untouched (its own `.hud-minimap` rule owns the inset map face).
- */
+.hud-panel {
+  padding: 14px;
+}
+
+/* The minimap is a viewport into the world, so it gets a sunken well rather
+   than a raised face — the opposite treatment to the panels around it. */
 .hud-panel--map {
-  background-image:
-    radial-gradient(circle at 30% 25%, rgba(221, 196, 145, 0.06) 0, transparent 1.2px),
-    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.22) 0, transparent 1.4px),
-    radial-gradient(circle at 45% 80%, rgba(244, 234, 209, 0.05) 0, transparent 1px),
-    linear-gradient(
-      180deg,
-      rgba(244, 234, 209, 0.06) 0%,
-      rgba(0, 0, 0, 0) 30%,
-      rgba(0, 0, 0, 0.18) 100%
-    ),
-    linear-gradient(150deg, rgba(33, 38, 40, 0.92) 0%, rgba(20, 26, 27, 0.94) 100%);
-  background-size:
-    7px 7px,
-    9px 9px,
-    11px 11px,
-    100% 100%,
-    100% 100%;
-  border-color: rgba(221, 196, 145, 0.4);
+  padding: 12px;
+}
+
+.hud-minimap {
+  border-radius: var(--hud-radius-md);
+  background-color: var(--hud-surface-sunken);
   box-shadow:
-    0 12px 30px var(--hud-drop-shadow),
-    inset 1px 1px 0 var(--hud-bevel-light),
-    inset -1px -1px 0 var(--hud-bevel-dark),
-    inset 0 0 16px var(--hud-inner-shadow);
+    inset 0 0 0 1px var(--hud-hairline),
+    inset 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 /*
- * The minimap canvas keeps its own dark map face but gains a carved inset
- * so it reads as set INTO the stone frame (sunken, opposite of the raised
- * panels). Layout/size unchanged — only the framing shadow + border tone.
+ * TYPOGRAPHY — one scale shared by every panel. Labels are small, tracked
+ * out, and muted; values are large, tight, and near-white. The contrast
+ * between those two is what carries the hierarchy, so neither needs a box.
  */
-.hud-minimap {
-  border-color: rgba(221, 196, 145, 0.34);
+.hud-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* Muted, not faint: these sit on a translucent panel that can end up over
+     bright grass, so the label needs headroom the 0.38 tint does not have. */
+  color: var(--hud-text-muted);
+}
+
+.hud-value {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--hud-text);
+}
+
+.hud-selection-name {
+  letter-spacing: -0.015em;
+  color: var(--hud-text);
+}
+
+/*
+ * RESOURCE GLYPHS — each resource carries its own hue so the bar is scannable
+ * at a glance. The glyph is the only coloured thing in the chip; the label
+ * and value stay neutral, which stops the row turning into a rainbow.
+ */
+.hud-chip[data-hud-chip="food"] .hud-chip-glyph { color: var(--hud-food); }
+.hud-chip[data-hud-chip="wood"] .hud-chip-glyph { color: var(--hud-wood); }
+.hud-chip[data-hud-chip="gold"] .hud-chip-glyph { color: var(--hud-gold); }
+.hud-chip[data-hud-chip="stone"] .hud-chip-glyph { color: var(--hud-stone); }
+.hud-chip[data-hud-chip="age"] .hud-chip-glyph,
+.hud-chip[data-hud-chip="pop"] .hud-chip-glyph,
+.hud-chip[data-hud-chip="time"] .hud-chip-glyph { color: var(--hud-text-faint); }
+
+/*
+ * MENU BUTTON — a ghost control: no chrome at rest, a surface on hover, and
+ * an accent ring on focus.
+ */
+.hud-menu-button {
+  width: 38px;
+  height: 38px;
+  color: var(--hud-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--hud-radius-md);
+  font-size: 17px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.hud-menu-button:hover {
+  color: var(--hud-text);
+  background: var(--hud-surface-hover);
+  border-color: var(--hud-hairline);
+}
+
+.hud-menu-button:active {
+  background: var(--hud-surface-raised);
+}
+
+/*
+ * FOCUS — one visible ring everywhere, drawn outside the element so it never
+ * shifts layout. Browser tests assert a non-zero outline width on focused
+ * menu items, so this must stay a real outline rather than a box-shadow.
+ */
+.hud-menu-button:focus-visible,
+.hud-command-button:focus-visible,
+.hud-menu-item:focus-visible {
+  outline: 2px solid var(--hud-accent);
+  outline-offset: 2px;
+}
+
+/*
+ * MODAL SURFACES — the game menu and dialogs sit above everything, so they
+ * take the higher elevation and a slightly more opaque face for legibility
+ * over a busy map.
+ */
+.hud-game-menu__panel,
+.hud-load-panel,
+.replay-load-dialog,
+.annotation-form,
+.marker-list-panel {
+  background-image: none;
+  background-color: rgba(18, 23, 30, 0.9);
+  border: 1px solid var(--hud-hairline);
+  border-radius: var(--hud-radius-lg);
   box-shadow:
-    inset 1px 1px 3px rgba(0, 0, 0, 0.6),
-    inset -1px -1px 0 rgba(244, 234, 209, 0.08);
+    var(--hud-elevation-high),
+    inset 0 1px 0 var(--hud-rim-light);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+}
+
+.hud-game-menu__backdrop {
+  background: rgba(6, 9, 12, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/*
+ * TOOLTIP — small, dark, and quiet; it explains, it does not announce.
+ */
+.hud-tooltip {
+  background-image: none;
+  background-color: rgba(12, 16, 21, 0.95);
+  border: 1px solid var(--hud-hairline);
+  border-radius: var(--hud-radius-sm);
+  box-shadow: var(--hud-elevation);
+  color: var(--hud-text);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/*
+ * TIMELINE — the replay strip is chrome too, and shares the chassis so replay
+ * mode does not look like a different application.
+ */
+.timeline-panel {
+  background-image: none;
+  background-color: var(--hud-surface);
+  border: 1px solid var(--hud-hairline);
+  border-radius: var(--hud-radius-lg);
+  box-shadow:
+    var(--hud-elevation),
+    inset 0 1px 0 var(--hud-rim-light);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+
+/*
+ * REDUCED TRANSPARENCY — a viewer who has asked for less motion/transparency
+ * gets solid panels instead of glass. Blur is also the most expensive part of
+ * this sheet, so this doubles as the low-power path.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .hud-bar,
+  .hud-panel,
+  .hud-footer,
+  .hud-tooltip,
+  .timeline-panel,
+  .hud-game-menu__panel,
+  .hud-load-panel,
+  .replay-load-dialog {
+    background-color: rgb(17, 22, 28);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
