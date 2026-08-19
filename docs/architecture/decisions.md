@@ -549,3 +549,16 @@ Consequences:
 **Why Painted is the absence of the pass.** A "neutral" configuration would still cost a second scene render, a fullscreen resolve, and two offscreen targets every frame. `artStyleById('painted').resolve` is `null` and the option is omitted entirely, so the previous look costs exactly what it did before.
 
 **Consequence.** An engine update can change how this game looks. The tuning in `artStyles.ts` records what each value was measured against and what the frame's mean luminance was, so a regression is checkable rather than arguable, and `scripts/captureMapScreenshot.mjs` plus `scripts/diffMapScreenshots.mjs` retake it.
+
+
+## 2026-08-18 — Projectile to-hit rolls are counter-based hashes, not a seeded RNG stream
+
+**Context.** Spec §10.4 requires accuracy rolls, which would be the simulation's first source of randomness. The simulation had none: every prior mechanic was deterministic by construction.
+
+**Decision.** Derive each roll as a pure hash of `(launchTick, attackerId, targetId, projectileId)` rather than drawing from a seeded generator.
+
+**Why.** A stateful stream must serialize its state into every save, and — worse — it couples correctness to the exact number and order of draws across the whole simulation. Adding a unit type, reordering a system, or skipping a roll in a new branch would silently change every subsequent outcome and break replay compatibility. A counter-based hash has no state to persist, reproduces identically on load, and is unaffected by unrelated changes elsewhere in the tick.
+
+**Consequence.** Two matches with the same fixture and inputs produce the same rolls, which is desirable here (deterministic replays) but means the roll is not a source of match-to-match variety on its own; variety comes from differing positions, ticks, and entity ids. Any future chance mechanic must use the same pattern rather than introducing a stream.
+
+**Also decided:** a projectile's outcome (roll result and aim point) is fixed at launch, not recomputed at impact, so a save taken mid-flight reloads to the same result without persisting anything about the pending outcome.

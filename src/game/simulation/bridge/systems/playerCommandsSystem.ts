@@ -13,14 +13,12 @@ import type {
 } from '../../types';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import { buildingBuildTimeTicks } from '../../prototypeBuildingRules';
-import {
-  attackBonusAgainstBuilding,
-  unitMinAttackRange,
-} from '../../prototypeUnitRules';
-import { sappersBuildingAttackBonus } from '../../sappersTechEffects';
-import { civBuildingAttackBonus } from '../../civBonusEffects';
+import { unitMinAttackRange } from '../../prototypeUnitRules';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
-import { applyUnitBlast, resolveUnitAttackOnUnit } from '../blastDamage';
+import {
+  deliverUnitAttackOnBuilding,
+  deliverUnitAttackOnUnit,
+} from '../attackDelivery';
 import { finalizeBuildingConstruction } from '../finalizeBuildingConstruction';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
@@ -29,6 +27,7 @@ import {
   combatStatesCodec,
   constructionStatesCodec,
   playerCivilizationsCodec,
+  projectilesCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
@@ -211,9 +210,11 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             // Primary melee/pierce hit + mangonel-line blast/splash (spec
             // §10.2/§10.7). Splash hits enemy AND friendly units in the radius.
             recordUnitAttack(id, targetId);
-            const primaryDied = resolveUnitAttackOnUnit({
+            const primaryDied = deliverUnitAttackOnUnit({
               world: activeWorld,
               combatStates: accessor.get(combatStatesCodec),
+              projectiles: accessor.get(projectilesCodec),
+              tick: activeWorld.tick,
               attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
               target: {
                 id: targetId,
@@ -223,7 +224,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
               },
               destroyUnit: destroyUnitEntity,
               addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
-              markDirty: () => accessor.markDirty(combatStatesCodec),
+              markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
               markRender: markOutOfBandRenderChange,
             });
             if (primaryDied) clearUnitCommand(id);
@@ -334,29 +335,23 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
           const attackerCiv = accessor.get(playerCivilizationsCodec).get(unit.owner);
           recordUnitAttack(id, targetId);
-          targetHealth.currentHp -= Math.max(
-            0,
-            attackerCombat.attackDamage
-              + attackBonusAgainstBuilding(unit.unitType)
-              + sappersBuildingAttackBonus(attackerTechs, unit.unitType)
-              + civBuildingAttackBonus(attackerCiv, unit.unitType),
-          );
-          accessor.markDirty(buildingHealthStatesCodec);
-          attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-          accessor.markDirty(combatStatesCodec);
-          markOutOfBandRenderChange();
-
-          // Blast/splash (spec §10.7): a mangonel-line shot at a building also
-          // splashes units clustered around the impact (enemy AND friendly).
-          applyUnitBlast({
+          deliverUnitAttackOnBuilding({
             world: activeWorld,
             combatStates: accessor.get(combatStatesCodec),
-            attacker: { id, unitType: unit.unitType, owner: unit.owner, baseDamage: attackerCombat.attackDamage },
-            impact: targetPosition,
-            primaryTargetId: targetId,
+            projectiles: accessor.get(projectilesCodec),
+            tick: activeWorld.tick,
+            attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
+            attackerTechs,
+            attackerCivilization: attackerCiv,
+            target: { id: targetId, position: targetPosition },
+            applyBuildingDamage: (_buildingId, damage) => {
+              targetHealth.currentHp -= damage;
+              accessor.markDirty(buildingHealthStatesCodec);
+            },
             destroyUnit: destroyUnitEntity,
             addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
-            markDirty: () => accessor.markDirty(combatStatesCodec),
+            markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
+            markRender: markOutOfBandRenderChange,
           });
 
           if (targetHealth.currentHp <= 0) {

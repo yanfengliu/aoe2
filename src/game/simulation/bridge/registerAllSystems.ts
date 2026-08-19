@@ -4,6 +4,7 @@
 // only the side-map closures + factory wirings, not the per-system noise.
 
 import type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
+import { buildingHealthStatesCodec } from './bridgeStateSerialize';
 import { queuePostConstructionAutoGather } from './postConstructionAutoGather';
 export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 
@@ -21,6 +22,7 @@ import { registerProductionQueueSystem } from './systems/productionQueueSystem';
 import { registerRelicCountdownSystem } from './systems/relicCountdownSystem';
 import { registerRelicGoldSystem } from './systems/relicGoldSystem';
 import { registerScoutMovementSystem } from './systems/scoutMovementSystem';
+import { registerProjectileSystem } from './systems/projectileSystem';
 import { registerTowerCombatSystem } from './systems/towerCombatSystem';
 import { registerVillagerEconomySystem } from './systems/villagerEconomySystem';
 import { registerVisibilitySystem } from './systems/visibilitySystem';
@@ -406,6 +408,31 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     refreshVisibilityAfterCombat: syncCurrentVisibility,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
+  });
+
+  // Projectiles land AFTER every system that can launch one this tick, so a
+  // shot always spends at least one tick in the air (spec §10.4).
+  registerProjectileSystem({
+    world,
+    accessor,
+    damageBuilding: (buildingId, damage) => {
+      const health = accessor.get(buildingHealthStatesCodec).get(buildingId);
+      if (!health) return false;
+      health.currentHp -= damage;
+      accessor.markDirty(buildingHealthStatesCodec);
+      if (health.currentHp > 0) return false;
+      runBuildingDestructionVisibilityMutation(
+        playerCommandVisibilityRevision,
+        accessor,
+        buildingId,
+        () => destroyBuildingEntity(buildingId),
+      );
+      return true;
+    },
+    destroyUnitEntity,
+    ensurePlayerScoreCounters,
+    markOutOfBandRenderChange,
+    isMatchRunning,
   });
 
   registerWonderCountdownSystem({ world, accessor, isMatchRunning });

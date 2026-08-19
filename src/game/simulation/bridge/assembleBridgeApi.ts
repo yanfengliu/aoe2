@@ -8,6 +8,7 @@ import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
 import {
   playerResourcesCodec,
   populationCodec,
+  projectilesCodec,
 } from './bridgeStateSerialize';
 import {
   getUnitAttackFeedEntries,
@@ -28,6 +29,7 @@ export interface AssembleBridgeApiDeps
     | 'selectByRefs'
     | 'getRecentUnitDeaths'
     | 'getRecentUnitAttacks'
+    | 'getInFlightProjectiles'
   > {
   world: GameWorld;
   state: BridgeState;
@@ -95,6 +97,11 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getRecentUnitAttacks() {
       pruneUnitAttackFeed(state.unitAttackFeed, rest.world.tick);
       return getUnitAttackFeedEntries(state.unitAttackFeed);
+    },
+    // Spec §10.4: shots in the air, straight from the authoritative slot — a
+    // caller can never observe a projectile the simulation already resolved.
+    getInFlightProjectiles() {
+      return accessor.get(projectilesCodec).inFlight;
     },
   };
 }

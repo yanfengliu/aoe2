@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.13 - 2026-08-18
+
+### Changed
+
+- **Ranged attacks now fire real projectiles instead of subtracting health instantly.** Archers, skirmishers, cavalry archers, scorpions, mangonels, bombard cannons and trebuchets each loose a shot that winds up, travels, and lands — and you can watch it go. Damage arrives when the projectile arrives, not when the order is given.
+- **Shots can miss.** Every ranged unit uses its real accuracy: Cavalry Archers spray at 50%, Archers land 80%, Scorpions never miss, and a Trebuchet is nearly useless against anything that moves. A missed shot scatters to a nearby point rather than silently vanishing.
+- **Moving units now evade fire.** A shot flies to where its target stood when it was loosed, so a unit that keeps moving can be out from under it by the time it lands. Standing still to shoot back is now a real decision — and it is exactly the weakness the Ballistics technology exists to fix.
+- **Siege stones land where they land.** The mangonel line no longer rolls to hit: its stone always comes down at the aimed point and damages by blast, so a shot that "misses" still catches whatever is standing there — including your own units.
+- **Projectiles are visible in flight**, drawn as arrows, bolts, stones, boulders, or cannonballs on an arc scaled to the weapon, pointed along their travel, and only where you can actually see them — a shot fired outside your vision appears as it crosses into it.
+- Saving mid-battle keeps shots in the air: a save made while arrows are flying reloads with those same arrows still in flight and landing the same way.
+
 ## 0.3.12 - 2026-08-17
 
 ### Changed

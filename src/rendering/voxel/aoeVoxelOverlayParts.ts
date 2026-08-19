@@ -2,6 +2,7 @@ import type {
   ProjectedEntityView,
   ProjectedFrameView,
 } from '../../game/simulation/types';
+import { createProjectileParts } from './aoeVoxelProjectileParts';
 import type { PlacementPreviewViewState } from '../viewTypes';
 import { ISO_TILE_HEIGHT } from '../isometricProjection';
 import { VOXEL_VERTICAL_PIXELS_PER_WORLD_UNIT } from './aoeVoxelGeometry';
@@ -242,5 +243,7 @@ export function createAoeVoxelOverlayParts(
     ...placementParts(input.placementPreview),
     ...hitParts(entities, input.hitEntityIdentities ?? []),
     ...deathParts(input.frame),
+    // Spec §10.4: shots in the air, positioned for this frame's tick.
+    ...createProjectileParts(input.frame),
   ];
 }

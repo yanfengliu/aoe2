@@ -28,6 +28,8 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import { trackedVisibilitySourcesCodec } from './bridgeStateSerialize';
+import { visibleProjectiles } from './projectileProjection';
+import type { ProjectileState } from './projectileTypes';
 import {
   ATTACK_FEED_TICKS,
   indexVisibleUnitAttackAnimations,
@@ -74,6 +76,7 @@ export function createProjector(
   getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[],
   getWildlifeAlive: (id: number) => boolean | undefined,
   getUnitActiveVerb: (id: number) => 'building' | undefined,
+  getInFlightProjectiles: () => readonly ProjectileState[],
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -185,6 +188,11 @@ export function createProjector(
           getRecentUnitDeaths(),
           world.tick,
           playerId,
+        ),
+        projectiles: visibleProjectiles(
+          getInFlightProjectiles(),
+          world.tick,
+          (x, y) => visibility.isVisible(playerId, x, y),
         ),
       };
     },

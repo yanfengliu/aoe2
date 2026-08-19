@@ -909,17 +909,27 @@ Deferred (documented, not yet wired): the scout line's +vs-monk bonus (and the `
 
 ### 10.4 Accuracy and Projectiles
 
-Projectile combat must support:
+A ranged attack does not subtract HP where it is ordered. It launches a projectile that travels, and resolves where and when that projectile lands.
 
-- accuracy rolls
-- missed shots that land elsewhere
-- projectile travel time
-- attack wind-up delay
-- ballistic leading where the relevant tech applies
+Who fires one: every non-melee attacker whose attack range exceeds 1 — the archer line, skirmishers, cavalry archers, the mangonel line, scorpions, bombard cannons, trebuchets, and arrow-firing buildings. Melee attacks (infantry, cavalry, rams) resolve instantly as before, and a Monk's range is conversion, not an attack.
+
+A shot carries these, all fixed at launch:
+
+- **wind-up** — `attack_delay` seconds x TPS, rounded to whole ticks. The projectile exists in the simulation immediately but does not leave the attacker (and is not drawn) until the wind-up elapses. A Cavalry Archer's full second of wind-up is why it feels sluggish despite a short reload.
+- **travel time** — Euclidean distance divided by the weapon's speed in tiles per tick, at least 1 tick, so a shot is always observable in the air. Arrows fly at roughly AoE2's 7 tiles/second; siege stones are slower, a trebuchet boulder slower still, and a cannonball is the fastest thing on the field.
+- **to-hit** — one roll against the attacker's `accuracy` from `units.csv` (Archer 80%, Crossbowman 85%, Arbalest/Skirmisher 90%, Cavalry Archer 50%, Longbowman 70%, Bombard Cannon 92%, Scorpion 100%, Trebuchet 15%). Buildings do not dodge, so a shot at a building always connects; the mangonel line never rolls at all, because its damage comes from the blast at the impact point.
+- **aim point** — where the shot is going. A truly-aimed shot without ballistic leading aims at the cell the target occupies at launch; a shot that fails its roll aims at a scattered point past hit tolerance but still in the target's neighbourhood, so misses land elsewhere rather than vanishing.
+- **damage** — the attacker's attack stat. A building-targeted shot additionally carries its anti-building total; that total must never reach units, or a siege weapon's anti-building bonus would leak into its own blast.
+
+The shot resolves on its impact tick, whatever has become of the attacker in the meantime — a loosed projectile is a committed event, and an attacker that dies mid-flight still lands its shot. A direct hit requires a live target still standing at the aim point; the target's armor and class bonuses are applied then, against the target as it is at impact. **This is what makes a moving target evade fire: the shot went where the target was, and the target is no longer there.** Blast weapons splash at the impact point regardless of whether anything was hit, so a stray siege stone is still dangerous — to both sides.
+
+Determinism: the to-hit roll is a pure hash of the shot's identity (launch tick, attacker id, target id, and the projectile's own id), not a draw from a stored random stream. Nothing extra is serialized, a match saved with shots in the air reloads with those same shots and the same outcomes, and replays match by construction. A stateful stream would instead desynchronise the moment the number or order of rolls changed.
+
+In-flight projectiles are simulation state and persist in saves. They are fog-gated for display on their current position: a shot crossing into your vision becomes visible and leaves again if it exits, and a projectile has no memory state — you either watch it fly or never knew it was fired.
 
 Ballistics:
 
-- causes many projectile units and towers to lead moving targets
+- causes many projectile units and towers to lead moving targets — aiming where the target will be after the flight rather than where it stands, which is what makes fire connect against moving units
 
 Thumb Ring:
 

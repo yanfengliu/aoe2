@@ -37,6 +37,10 @@ import type {
   TrebuchetPackState,
   UnitCommand,
 } from './sharedTypes';
+import {
+  createEmptyProjectileSlot,
+  type ProjectileSlotState,
+} from './projectileTypes';
 import { createInitialMarketRates } from './pureHelpers';
 import { deriveCap } from './bridgeConstants';
 
@@ -242,9 +246,20 @@ export const lastSeenStaticCodec = mapOfMapCodec<number, number, MemoryEntry>(
   'aoe2.lastSeenStatic',
 );
 
+// In-flight projectiles (spec §10.4). Already a plain object of plain arrays,
+// so the codec only has to defend the empty/missing case: a save written
+// before projectiles existed hydrates to an empty sky rather than throwing.
+export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotState> = {
+  slot: 'aoe2.projectiles',
+  serialize: (native) => ({ nextId: native.nextId, inFlight: [...native.inFlight] }),
+  deserialize: (json) => (json
+    ? { nextId: json.nextId, inFlight: [...json.inFlight] }
+    : createEmptyProjectileSlot()),
+};
+
 // ---- Codec registry ---------------------------------------------------------
 
-// Authoritative list of all 35 Tier-1 codecs (DESIGN §3 inventory). Used by
+// Authoritative list of all 36 Tier-1 codecs (DESIGN §3 inventory). Used by
 // `BridgeStateAccessor.flush` to look up codecs by slot key, and by the
 // equivalence test (Phase 2G) to iterate every slot for round-trip verification.
 //
@@ -288,6 +303,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   combatStatesCodec,
   wildlifeStatesCodec,
   lastSeenStaticCodec,
+  projectilesCodec,
 ] as Array<SlotCodec<unknown, unknown>>;
 
 // Lookup table for `BridgeStateAccessor.flush()` to find a codec by slot key.

@@ -72,6 +72,7 @@ describe('AoeVoxelAdapter world feedback projection', () => {
           mapHeight: 1,
           visibleCells: [1],
           exploredCells: [1, 1],
+          projectiles: [],
           recentUnitDeaths: [{
             id: 9,
             tick: 9,
@@ -253,5 +254,40 @@ describe('AoeVoxelAdapter world feedback projection', () => {
       const matrix = partMatrix(hit, `ui:hit:9:4:${suffix}`);
       expect(matrix[13]! - Math.abs(matrix[5]!) / 2).toBeGreaterThan(authoredTop);
     }
+  });
+
+  it('draws in-flight projectiles as real instances in the snapshot', () => {
+    // End-to-end through the adapter: a projectile on the frame must survive
+    // fog handling, part building and batching to become a drawn instance.
+    const snapshot = new AoeVoxelAdapter().createSnapshot(
+      [view({ id: 1 }), view({ id: 2, x: 1 })],
+      1_000,
+      {
+        frame: {
+          tick: 12,
+          playerId: 1,
+          seed: 'voxel-only',
+          mapWidth: 2,
+          mapHeight: 1,
+          visibleCells: [0, 1],
+          exploredCells: [0, 1],
+          recentUnitDeaths: [],
+          projectiles: [{
+            id: 4,
+            originX: 0,
+            originY: 0,
+            aimX: 1,
+            aimY: 0,
+            launchTick: 10,
+            impactTick: 14,
+            visual: 'arrow',
+          }],
+        },
+        placementPreview: null,
+        selectionPreviewEntityIds: [],
+      },
+    );
+
+    expect(allInstanceKeys(snapshot)).toContain('ui:projectile:4');
   });
 });

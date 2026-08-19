@@ -68,6 +68,7 @@ export type WireBridgeOpsResult = Omit<
   // v0.1.129: implemented by assembleBridgeApi directly off BridgeState.
   | 'getRecentUnitDeaths'
   | 'getRecentUnitAttacks'
+  | 'getInFlightProjectiles'
 > & {
   getHumanWonderCountdownTicks: () => number | null;
   getHumanRelicCountdownTicks: () => number | null;

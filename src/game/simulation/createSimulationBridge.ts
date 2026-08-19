@@ -1,15 +1,12 @@
-import {
-  RenderAdapter,
-  VisibilityMap,
-  type VisibilityMapState,
-} from 'civ-engine';
+import { RenderAdapter, VisibilityMap } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
-import { TIER_3_SLOTS } from './bridge/bridgeStateSerialize';
+import type { ProjectileState } from './bridge/projectileTypes';
+import { visibilityStateFromSave } from './saveBlobReaders';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { drainPendingCommands } from './dispatcher';
@@ -18,7 +15,6 @@ import { RenderStore } from './renderStore';
 import { createRenderMetricsCapture } from './renderMetricsCapture';
 import {
   SAVE_SCHEMA_VERSION,
-  isSaveBlobV1,
   isSupportedSaveSchema,
   type SaveBlob,
 } from './saveSchema';
@@ -86,6 +82,8 @@ export interface SimulationBridge {
   getSelectedEntityRefs(): readonly EntityRef[];
   select(refs: readonly EntityRef[]): void;
   getMatchState(): MatchState;
+  /** Shots currently in the air (spec §10.4). Read-only view for render + tests. */
+  getInFlightProjectiles(): readonly ProjectileState[];
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   // FU4: probe an entity's current/max HP. Reads the canonical combat
   // (unit) or building-health side-map directly so vitest cases can
@@ -185,25 +183,6 @@ export type {
 // shapes live in `bridge/systems/systemTypes` (shared with the per-system
 // factories). CachedMovePath shape lives in `bridge/bridgeState`.
 
-function worldSnapshotState(savedGame: SaveBlob): Record<string, unknown> {
-  const snapshot = savedGame.worldSnapshot as { state?: Record<string, unknown> };
-  if (!snapshot.state) {
-    throw new Error(`Save schema ${savedGame.schema} is missing worldSnapshot.state.`);
-  }
-  return snapshot.state;
-}
-
-function visibilityStateFromSave(savedGame: SaveBlob): VisibilityMapState {
-  if (isSaveBlobV1(savedGame)) {
-    return savedGame.visibility;
-  }
-  const visibility = worldSnapshotState(savedGame)[TIER_3_SLOTS.visibility];
-  if (!visibility) {
-    throw new Error(`Save schema ${savedGame.schema} is missing ${TIER_3_SLOTS.visibility}.`);
-  }
-  return visibility as VisibilityMapState;
-}
-
 export interface CreateSimulationBridgeOptions {
   // Slice 9: when present, hydrate the new bridge from this save blob
   // instead of running the normal scenario bootstrap. The blob's
@@ -253,6 +232,7 @@ export function createSimulationBridge(
     getPlayerAge,
     getPlayerResources,
     getMatchState,
+    getInFlightProjectiles,
     getSelectionState,
     getPlacementPreview,
     getAgentBuildingOptions,
@@ -293,7 +273,7 @@ export function createSimulationBridge(
   const renderStore = new RenderStore();
   const renderAdapter = new RenderAdapter({
     world: toEngineWorld(world),
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb),
+    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb, getInFlightProjectiles),
     debug: createRenderMetricsCapture(world),
     send(message) {
       renderStore.apply(message);
@@ -453,6 +433,7 @@ export function createSimulationBridge(
     getPopulationState,
     getSelectionState,
     getMatchState,
+    getInFlightProjectiles,
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,

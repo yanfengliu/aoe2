@@ -410,6 +410,7 @@ describe('AoE voxel terrain surface detail', () => {
         visibleCells: [],
         exploredCells: Array.from({ length: 64 }, (_, index) => index),
         recentUnitDeaths: [],
+        projectiles: [],
       },
       placementPreview: null,
       selectionPreviewEntityIds: [],

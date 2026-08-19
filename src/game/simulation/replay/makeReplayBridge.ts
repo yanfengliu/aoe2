@@ -71,6 +71,7 @@ export function makeReplayBridge(
       api.getRecentUnitAttacks,
       api.getWildlifeAlive,
       api.getUnitActiveVerb,
+      api.getInFlightProjectiles,
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {
@@ -129,6 +130,9 @@ export function makeReplayBridge(
     },
     getSelectedEntityRefs() {
       return api.getSelectedEntityRefs();
+    },
+    getInFlightProjectiles() {
+      return api.getInFlightProjectiles();
     },
     select(refs: readonly EntityRef[]) {
       api.selectByRefs(refs);

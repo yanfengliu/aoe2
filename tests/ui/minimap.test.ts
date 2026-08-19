@@ -113,6 +113,7 @@ function visibleFrame(width = 10, height = 10): RenderState['frame'] {
     visibleCells: cells,
     exploredCells: cells,
     recentUnitDeaths: [],
+    projectiles: [],
   };
 }
 

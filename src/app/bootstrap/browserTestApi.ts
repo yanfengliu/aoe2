@@ -8,6 +8,7 @@ import type {
   RenderState,
   SelectionState,
 } from '../../game/simulation/types';
+import type { ProjectileState } from '../../game/simulation/bridge/projectileTypes';
 import type {
   BuildingVisualState,
   DisplayedEntityState,
@@ -34,6 +35,8 @@ export interface BrowserTestBridge {
   getRenderState(): RenderState;
   getRenderInterpolationAlpha(): number;
   getEconomyState(): EconomyState;
+  /** Spec §10.4: shots in the air, for projectile capture/inspection. */
+  getInFlightProjectiles(): readonly ProjectileState[];
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   confirmBuildingPlacement(x: number, y: number): boolean;
@@ -126,6 +129,8 @@ export interface BrowserTestApi {
   getHudState(): HudState;
   getRenderState(): RenderState;
   getEconomyState(): EconomyState;
+  /** Spec §10.4: shots in the air, for projectile capture/inspection. */
+  getInFlightProjectiles(): readonly ProjectileState[];
   getSelectionState(): SelectionState;
   getCameraState(): CameraState | null;
   getWorldRendererState(): BrowserWorldRendererState;
@@ -166,6 +171,8 @@ export interface BrowserTestApi {
   ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
+  /** Center the camera on a world cell — lets a capture frame off-center action. */
+  centerCameraOnWorldPosition(worldX: number, worldY: number): void;
   issueContextCommand(cellX: number, cellY: number, garrison?: boolean): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
   issueMoveCommand(cellX: number, cellY: number): boolean;
@@ -259,6 +266,7 @@ export function installBrowserTestApi(
     getHudState: () => getBridge().getHudState(),
     getRenderState: () => getBridge().getRenderState(),
     getEconomyState: () => getBridge().getEconomyState(),
+    getInFlightProjectiles: () => getBridge().getInFlightProjectiles(),
     getSelectionState: () => getBridge().getSelectionState(),
     getCameraState: () => {
       view.syncFromBridge(true);
@@ -352,6 +360,10 @@ export function installBrowserTestApi(
     },
     clearSelection: () => {
       getBridge().clearSelection();
+      view.syncFromBridge(true);
+    },
+    centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
+      view.centerCameraOnWorldPosition(worldX, worldY);
       view.syncFromBridge(true);
     },
     issueContextCommand: (cellX: number, cellY: number, garrison?: boolean) => {

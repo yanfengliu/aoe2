@@ -23,6 +23,7 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
 import {
   marketExchangeRatesCodec,
+  projectilesCodec,
   monkTasksCodec,
   TIER_1_CODECS,
   TIER_3_SLOTS,
@@ -71,6 +72,7 @@ const EXPECTED_TIER_1_SLOTS = [
   'aoe2.combatStates',
   'aoe2.wildlifeStates',
   'aoe2.lastSeenStatic',
+  'aoe2.projectiles',
 ] as const;
 
 type EconomyUnit = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['units'][number];
@@ -258,14 +260,14 @@ describe('Phase 2G — Tier-1/Tier-3 snapshot equivalence', () => {
     ) as unknown as GameWorld;
     const accessor = new BridgeStateAccessor(() => restoredWorld);
 
-    // marketExchangeRatesCodec is the ONE record-shaped codec — its
-    // serialize/deserialize uses a plain object, not a Map.
-    const RECORD_CODECS = new Set([marketExchangeRatesCodec]);
+    // Two codecs are record-shaped rather than Map-shaped: market rates, and
+    // the projectile slot (an id counter plus the in-flight list).
+    const RECORD_CODECS = new Set<unknown>([marketExchangeRatesCodec, projectilesCodec]);
 
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
     for (const codec of TIER_1_CODECS) {
       const value = accessor.get(codec as unknown as AnyCodec);
-      if (RECORD_CODECS.has(codec as unknown as typeof marketExchangeRatesCodec)) {
+      if (RECORD_CODECS.has(codec)) {
         expect(value).not.toBeInstanceOf(Map);
         expect(typeof value).toBe('object');
         expect(value).not.toBeNull();

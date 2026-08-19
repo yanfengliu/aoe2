@@ -47,6 +47,7 @@ function frame(tick: number, visibleCells: number[]): ProjectedFrameView {
     visibleCells,
     exploredCells: visibleCells,
     recentUnitDeaths: [],
+    projectiles: [],
   };
 }
 
@@ -94,6 +95,7 @@ describe('unit attack animation visibility lifetime', () => {
       () => [],
       () => undefined,
       () => undefined,
+      () => [],
     );
 
     expect(projector.projectEntity(
