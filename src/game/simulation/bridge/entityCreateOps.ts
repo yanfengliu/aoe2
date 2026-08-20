@@ -5,6 +5,7 @@
 // implementation byte-for-byte; the only change is the dependency
 // surface is explicit instead of closure-captured.
 
+import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingType,
@@ -301,7 +302,13 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       footprintHeight: footprint.height,
       visualVariant: isComplete ? 'complete' : 'construction',
     });
-    const fullHp = buildingMaxHp(buildingType);
+    // Masonry / Architecture raise the hit points of everything this owner
+    // builds; the buildings already standing are bumped at research time
+    // (buildingHpTechEffect). Both halves are needed, exactly like Loom.
+    const fullHp = buildingMaxHpWithTechnologies(
+      buildingMaxHp(buildingType),
+      accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
+    );
     accessor.mutate(buildingHealthStatesCodec, (m) =>
       m.set(entity, {
         currentHp: isComplete ? fullHp : Math.max(1, Math.floor(fullHp * 0.1)),

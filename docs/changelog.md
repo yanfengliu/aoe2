@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.26 - 2026-08-19
+
+### Added
+
+- **University defensive technologies.** **Masonry** and **Architecture** each make every one of your buildings 10% tougher — the ones already standing and everything you build afterwards. **Treadmill Crane** makes your villagers build 20% faster. **Heated Shot** more than doubles what your towers and Town Centres do to ships and camels, which is what makes a shoreline tower worth putting up.
+- Architecture needs Masonry first, and is Imperial Age.
+
 ## 0.3.25 - 2026-08-19
 
 ### Added

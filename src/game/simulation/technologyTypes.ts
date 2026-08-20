@@ -133,4 +133,9 @@ export type ResearchableTechnologyType =
   | 'elite-janissary-upgrade'
   | 'elite-berserk-upgrade'
   | 'elite-turtle-ship-upgrade'
-  | 'elite-longboat-upgrade';
+  | 'elite-longboat-upgrade'
+  // University (spec §8.4): the building-defence technologies.
+  | 'masonry'
+  | 'architecture'
+  | 'treadmill-crane'
+  | 'heated-shot';

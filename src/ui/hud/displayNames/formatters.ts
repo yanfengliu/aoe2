@@ -22,6 +22,14 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fletching';
     case 'crossbowman-upgrade':
       return 'Crossbowman';
+    case 'masonry':
+      return 'Masonry';
+    case 'architecture':
+      return 'Architecture';
+    case 'treadmill-crane':
+      return 'Treadmill Crane';
+    case 'heated-shot':
+      return 'Heated Shot';
     case 'elite-jaguar-warrior-upgrade':
       return 'Elite Jaguar Warrior';
     case 'elite-cataphract-upgrade':

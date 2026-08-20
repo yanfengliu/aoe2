@@ -393,3 +393,11 @@ export {
   createNavalFixture,
   createNavalImperialFixture,
 } from './naval';
+export {
+  createUniversityFixture,
+  createUniversityImperialFixture,
+} from './university';
+export {
+  createHeatedShotFixture,
+  createHeatedShotResearchedFixture,
+} from './heatedShot';

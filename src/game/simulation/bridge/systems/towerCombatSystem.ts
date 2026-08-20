@@ -3,6 +3,7 @@
 // the highest-priority visible enemy unit in range. Arrow count scales
 // with garrisoned units (Castle gets +2 per archer-line garrisoned).
 
+import { heatedShotMultiplier } from '../../buildingTechEffects';
 import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
@@ -143,6 +144,15 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         // buildings as well as units).
         const targetCommand = accessor.get(unitCommandsCodec).get(targetId);
         const projectiles = accessor.get(projectilesCodec);
+        // Heated Shot: a defensive building's arrows burn, which matters
+        // against a WOODEN HULL. Applied at launch rather than at impact so
+        // the multiplier is fixed by what was aimed at, not by whatever the
+        // shot happens to land on.
+        const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
+        const shotDamage = targetUnit
+          ? Math.round(effectiveAttackDamage
+            * heatedShotMultiplier(ownerTechs, targetUnit.unitType))
+          : effectiveAttackDamage;
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
           launchProjectile({
             slot: projectiles,
@@ -152,7 +162,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
               owner: building.owner,
               unitType: null,
               position,
-              baseDamage: effectiveAttackDamage,
+              baseDamage: shotDamage,
             },
             target: {
               id: targetId,

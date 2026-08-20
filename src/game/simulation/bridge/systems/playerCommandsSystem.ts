@@ -4,15 +4,14 @@
 // then ticks the construction counter. Trebuchets get pack / unpack
 // transitions woven through the attack and move branches.
 
+import { runBuilderWorkStep } from './builderWorkStep';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
-  RenderableComponent,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
-import { buildingBuildTimeTicks } from '../../prototypeBuildingRules';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import {
@@ -425,65 +424,23 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           continue;
         }
 
-        // REPAIR (spec §8.1): only a COMPLETE building (not under construction);
-        // resources were charged up front at command issue. Walk adjacent and
-        // restore HP over time at the build rate; finish at full HP. A stale
-        // BUILD command on a now-complete building instead clears below, so it
-        // never becomes a free repair.
-        if (command.type === 'repair') {
-          if (construction && !construction.isComplete) {
-            clearUnitCommand(id);
-            continue;
-          }
-          const health = accessor.get(buildingHealthStatesCodec).get(buildingId);
-          if (!health || health.currentHp >= health.maxHp) {
-            clearUnitCommand(id);
-            continue;
-          }
-          if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
-            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
-            continue;
-          }
-          const buildTicks = buildingBuildTimeTicks(building.buildingType);
-          const repairPerTick = buildTicks > 0 ? health.maxHp / buildTicks : health.maxHp;
-          health.currentHp = Math.min(health.maxHp, health.currentHp + repairPerTick);
-          accessor.markDirty(buildingHealthStatesCodec);
-          activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
-          if (health.currentHp >= health.maxHp) {
-            health.currentHp = health.maxHp;
-            clearUnitCommand(id);
-          }
-          continue;
-        }
+        const advanced = runBuilderWorkStep({
+          world: activeWorld,
+          accessor,
+          id,
+          unit,
+          command,
+          buildingId,
+          building,
+          construction,
+          approachPlan: buildingApproachPlan,
+          isUnitAtTarget,
+          moveUnitOneSubgridStep,
+          clearUnitCommand,
+        });
+        if (!advanced) continue;
 
-        // CONSTRUCTION (command.type === 'build'): a complete or absent
-        // construction state clears (an over-assigned builder after completion
-        // does NOT continue as a free repair).
-        if (!construction || construction.isComplete) {
-          clearUnitCommand(id);
-          continue;
-        }
-        if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
-          moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
-          continue;
-        }
-
-        construction.buildProgressTicks += 1;
-        accessor.markDirty(constructionStatesCodec);
-        const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);
-        if (buildingHealth && construction.totalBuildTicks > 0) {
-          const startHp = Math.max(1, Math.floor(buildingHealth.maxHp * 0.1));
-          const hpPerTick = (buildingHealth.maxHp - startHp) / construction.totalBuildTicks;
-          buildingHealth.currentHp = Math.min(
-            buildingHealth.maxHp,
-            buildingHealth.currentHp + hpPerTick,
-          );
-          accessor.markDirty(buildingHealthStatesCodec);
-        }
-        // Side-map mutations don't mark the entity dirty; patchComponent in
-        // strict mode does, so the projector re-runs and the HP bar fills.
-        activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
-        if (construction.buildProgressTicks >= construction.totalBuildTicks) {
+        if (advanced.buildProgressTicks >= advanced.totalBuildTicks) {
           finalizeBuildingConstruction({
             world: activeWorld,
             accessor,

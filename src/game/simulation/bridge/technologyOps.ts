@@ -10,6 +10,7 @@
 // the other ~80 touches of these maps in the bridge keep using the same
 // references.
 
+import { applyBuildingHpTechnology } from './buildingHpTechEffect';
 import { UNIT_LINE_UPGRADES } from './unitLineUpgrades';
 import type {
   RenderableComponent,
@@ -391,6 +392,19 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // createCombatState). Mirrors Loom/Sanctity.
         applyBloodlinesToOwnedCavalry(world, accessor, owner);
         markOutOfBandRenderChange();
+        break;
+      case 'masonry':
+      case 'architecture':
+        // Buildings already standing get the bump here; everything built after
+        // this derives it at creation (entityCreateOps).
+        applyBuildingHpTechnology(world, accessor, owner, technologyType);
+        markOutOfBandRenderChange();
+        break;
+      case 'treadmill-crane':
+      case 'heated-shot':
+        // Both are DERIVED at the point of use — the build loop reads
+        // buildRateMultiplier, tower fire reads heatedShotMultiplier — so
+        // researching them writes nothing.
         break;
       case 'town-watch':
         // Town Watch / Town Patrol: +4 LoS to every owned building; new ones

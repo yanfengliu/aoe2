@@ -104,6 +104,11 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'elite-berserk-upgrade': { food: 1300, gold: 550 },
   'elite-turtle-ship-upgrade': { food: 1000, gold: 800 },
   'elite-longboat-upgrade': { food: 750, gold: 475 },
+  // University building-defence technologies (technologies.csv).
+  'masonry': { food: 150, wood: 175 },
+  'architecture': { food: 300, wood: 200 },
+  'treadmill-crane': { food: 300, wood: 200 },
+  'heated-shot': { food: 350, gold: 100 },
 };
 
 export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
@@ -203,4 +208,9 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'elite-berserk-upgrade': 450,
   'elite-turtle-ship-upgrade': 650,
   'elite-longboat-upgrade': 600,
+  // University building-defence technologies (technologies.csv).
+  'masonry': 500,
+  'architecture': 700,
+  'treadmill-crane': 400,
+  'heated-shot': 300,
 };

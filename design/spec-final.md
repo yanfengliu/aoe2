@@ -972,7 +972,20 @@ In-flight projectiles are simulation state and persist in saves. They are fog-ga
 
 - 100% accuracy for the archer line (Archer/Crossbowman/Arbalest, plus Longbowman) and the cavalry-archer line. Skirmishers, siege, and gunpowder are deliberately outside its scope, matching technologies.csv's "Archer;Cavalry Archer".
 
-The **University** (Castle Age, 200 wood, 60s build, 2100 HP, 2x2) exists to host Ballistics. It trains no units, and it counts toward the Castle-Age building requirement for advancing to Imperial.
+The **University** (Castle Age, 200 wood, 60s build, 2100 HP, 2x2) trains no units and counts toward the Castle-Age building requirement for advancing to Imperial. It hosts Ballistics plus the building-defence technologies:
+
+| Technology | Age | Cost | Effect |
+| --- | --- | --- | --- |
+| Masonry | Castle | 150 food, 175 wood | Building hit points x1.1 |
+| Architecture | Imperial | 300 food, 200 wood | Another x1.1, so x1.21 with Masonry (requires Masonry) |
+| Treadmill Crane | Castle | 300 food, 200 wood | Builders work 20% faster |
+| Heated Shot | Castle | 350 food, 100 gold | Defensive-building fire x2.25 against ships and camels |
+
+Masonry and Architecture apply BOTH ways, like Loom: the buildings already standing are raised when the research completes, and everything built afterwards is created at the higher figure. A damaged building keeps its damage — the upgrade raises the ceiling, it does not repair. Their AoE2 armour halves (+1/+1 unit armour, +3 building armour) are pending because buildings carry no armour value at all today; adding one is a combat-model change rather than a technology.
+
+Treadmill Crane advances the build counter by a FRACTIONAL amount rather than rounding the multiplier to a whole tick, which would be a silent no-op. Heated Shot is applied at the moment a shot is launched, so the multiplier is fixed by what the tower aimed at rather than by whatever the arrow lands on.
+
+Still pending at the University: Fortified Wall (needs a wall upgrade path), Murder Holes (removes a MINIMUM range that buildings do not have yet), and Bombard Tower (a new building type).
 
 ### 10.5 Elevation
 
