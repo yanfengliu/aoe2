@@ -70,7 +70,28 @@ export type UnitType =
   | 'janissary'
   | 'berserk'
   | 'turtle-ship'
-  | 'longboat';
+  | 'longboat'
+  // The ELITE tier of each unique unit, unlocked by an Imperial Castle
+  // technology. Stats from design/stats/units.csv `Elite <name>` rows.
+  | 'elite-jaguar-warrior'
+  | 'elite-cataphract'
+  | 'elite-woad-raider'
+  | 'elite-chu-ko-nu'
+  | 'elite-throwing-axeman'
+  | 'elite-huskarl'
+  | 'elite-tarkan'
+  | 'elite-samurai'
+  | 'elite-war-wagon'
+  | 'elite-plumed-archer'
+  | 'elite-mangudai'
+  | 'elite-war-elephant'
+  | 'elite-mameluke'
+  | 'elite-conquistador'
+  | 'elite-teutonic-knight'
+  | 'elite-janissary'
+  | 'elite-berserk'
+  | 'elite-turtle-ship'
+  | 'elite-longboat';
 
 // Every unit on the roster is trainable somewhere, so this is an ALIAS rather
 // than a second 44-member list. It previously was a byte-identical copy of

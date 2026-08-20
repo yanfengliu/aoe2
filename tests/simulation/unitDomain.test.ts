@@ -34,6 +34,24 @@ const LAND_UNITS: readonly UnitType[] = [
   'teutonic-knight',
   'janissary',
   'berserk',
+  // The elite tier of each Castle-trained unique unit.
+  'elite-jaguar-warrior',
+  'elite-cataphract',
+  'elite-woad-raider',
+  'elite-chu-ko-nu',
+  'elite-throwing-axeman',
+  'elite-huskarl',
+  'elite-tarkan',
+  'elite-samurai',
+  'elite-war-wagon',
+  'elite-plumed-archer',
+  'elite-mangudai',
+  'elite-war-elephant',
+  'elite-mameluke',
+  'elite-conquistador',
+  'elite-teutonic-knight',
+  'elite-janissary',
+  'elite-berserk',
 ];
 
 const WATER_UNITS: readonly UnitType[] = [
@@ -42,6 +60,7 @@ const WATER_UNITS: readonly UnitType[] = [
   'cannon-galleon', 'elite-cannon-galleon',
   // M4: the two naval unique units.
   'turtle-ship', 'longboat',
+  'elite-turtle-ship', 'elite-longboat',
 ];
 
 describe('unit domains', () => {

@@ -60,6 +60,14 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   'conquistador': 0.65,
   'janissary': 0.5,
   'longboat': 1,
+  // Elite tier.
+  'elite-chu-ko-nu': 0.85,
+  'elite-war-wagon': 1.0,
+  'elite-plumed-archer': 0.8,
+  'elite-mangudai': 0.95,
+  'elite-conquistador': 0.7,
+  'elite-janissary': 0.5,
+  'elite-longboat': 1.0,
 };
 
 // Wind-up before the projectile actually leaves the attacker, in seconds
@@ -90,6 +98,26 @@ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   'conquistador': 0.4,
   'janissary': 0.28,
   'longboat': 0.35,
+  // Elite tier.
+  'elite-jaguar-warrior': 0.0,
+  'elite-cataphract': 0.0,
+  'elite-woad-raider': 0.0,
+  'elite-chu-ko-nu': 0.21,
+  'elite-throwing-axeman': 0.8,
+  'elite-huskarl': 0.0,
+  'elite-tarkan': 0.0,
+  'elite-samurai': 0.0,
+  'elite-war-wagon': 1.0,
+  'elite-plumed-archer': 0.5,
+  'elite-mangudai': 0.0,
+  'elite-war-elephant': 0.0,
+  'elite-mameluke': 0.0,
+  'elite-conquistador': 0.4,
+  'elite-teutonic-knight': 0.0,
+  'elite-janissary': 0.0,
+  'elite-berserk': 0.0,
+  'elite-turtle-ship': 0.0,
+  'elite-longboat': 0.0,
 };
 
 // The mangonel line does its damage with a blast at the impact point, so it

@@ -98,6 +98,14 @@ export function createImperialCastleFixture(seed: string): PrototypeScenario {
         townCenter: { x: 8, y: 8 },
         startingAge: 'imperial-age',
         civilization: 'Britons',
+        // Enough to actually BUY an Imperial Castle technology; the elite
+        // unique-unit upgrades run to 1600 food + 1200 gold.
+        startingResources: {
+          food: 3000,
+          wood: 1500,
+          gold: 2500,
+          stone: 800,
+        },
       },
       {
         owner: 2,

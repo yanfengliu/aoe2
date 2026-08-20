@@ -113,6 +113,26 @@ export const UNIT_ARMOR_CLASSES = {
   'berserk': new Set<ArmorClass>(['infantry', 'unique-unit']),
   'turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit']),
   'longboat': new Set<ArmorClass>(['ship', 'unique-unit']),
+  // Elites carry exactly their base unit classes.
+  'elite-jaguar-warrior': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-cataphract': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'elite-woad-raider': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-chu-ko-nu': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'elite-throwing-axeman': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-huskarl': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-tarkan': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'elite-samurai': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'elite-plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'elite-mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'elite-war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'elite-mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
+  'elite-conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'elite-teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-janissary': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'elite-berserk': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'elite-turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit']),
+  'elite-longboat': new Set<ArmorClass>(['ship', 'unique-unit']),
 } satisfies Record<UnitType, ReadonlySet<ArmorClass>>;
 
 /** Attacker → the class bonuses it applies, SUMMED over the target's classes.
@@ -163,6 +183,17 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'conquistador': [{ targetClass: 'ram', bonus: 4 }],
   'janissary': [{ targetClass: 'ram', bonus: 2 }],
   'longboat': [{ targetClass: 'ship', bonus: 9 }, { targetClass: 'ram', bonus: 4 }],
+  // Elite rows from the same CSV column; off-roster classes stay deferred.
+  'elite-jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }],
+  'elite-cataphract': [{ targetClass: 'infantry', bonus: 12 }],
+  'elite-chu-ko-nu': [{ targetClass: 'spearman', bonus: 2 }],
+  'elite-samurai': [{ targetClass: 'unique-unit', bonus: 12 }],
+  'elite-plumed-archer': [{ targetClass: 'infantry', bonus: 2 }, { targetClass: 'spearman', bonus: 2 }],
+  'elite-mangudai': [{ targetClass: 'spearman', bonus: 1 }, { targetClass: 'siege', bonus: 5 }],
+  'elite-mameluke': [{ targetClass: 'cavalry', bonus: 12 }],
+  'elite-conquistador': [{ targetClass: 'ram', bonus: 6 }],
+  'elite-janissary': [{ targetClass: 'ram', bonus: 3 }],
+  'elite-longboat': [{ targetClass: 'ship', bonus: 11 }, { targetClass: 'ram', bonus: 4 }],
 };
 
 /** Sum of the attacker's class bonuses over every armor class the target is in

@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.23 - 2026-08-19
+
+### Added
+
+- **The elite tier.** Every unique unit now has an Elite version — Elite Jaguar Warrior, Elite Cataphract, Elite Mangudai, Elite War Elephant, and the rest. Research it at Imperial Age and your existing units upgrade in place, the same as any other line. Seventeen are researched at the Castle; the Elite Turtle Ship and Elite Longboat are researched at the Dock, where those ships are built.
+- Elites carry their real stats: an Elite War Elephant has 600 HP and 20 attack, an Elite Teutonic Knight has 10 melee armour, and an Elite Janissary hits for 22.
+
 ## 0.3.22 - 2026-08-19
 
 ### Changed

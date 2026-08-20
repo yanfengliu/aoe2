@@ -1,7 +1,8 @@
 // Building option lookups (train/research/market/build menus, read by HUD + AI). Pure over the player's age/civ/researched set; the bridge passes predicates in.
 
+import { buildOptionsFor } from './buildOptions';
 import { dockResearchOptions } from './dockTechOptions';
-import { uniqueUnitsFor, uniqueUnitsTrainedAt } from '../uniqueUnits';
+import { uniqueUnitsTrainedAt } from '../uniqueUnits';
 import type {
   BuildableBuildingType,
   BuildingType,
@@ -217,6 +218,18 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     }
   }
 
+  /** The elite upgrades this civilization may research at this building. */
+  function eliteUpgradeOptions(
+    civilization: string,
+    trainedAt: 'castle' | 'dock',
+    hasTechnology: (owner: number, tech: ResearchableTechnologyType) => boolean,
+    owner: number,
+  ): ResearchableTechnologyType[] {
+    return uniqueUnitsTrainedAt(civilization, trainedAt)
+      .filter((entry) => entry.elite && !hasTechnology(owner, entry.elite[1]))
+      .map((entry) => entry.elite![1]);
+  }
+
   function getResearchOptions(
     owner: number,
     buildingType: BuildingType,
@@ -348,7 +361,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     }
 
     if (buildingType === 'dock') {
-      return dockResearchOptions(owner, isAtLeastAge, hasTechnology);
+      const options = dockResearchOptions(owner, isAtLeastAge, hasTechnology);
+      if (isAtLeastAge(owner, 'imperial-age')) {
+        options.push(...eliteUpgradeOptions(getPlayerCivilization(owner), 'dock', hasTechnology, owner));
+      }
+      return options;
     }
 
     if (buildingType === 'university') {
@@ -357,11 +374,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
 
     if (buildingType === 'castle' && isAtLeastAge(owner, 'imperial-age')) {
       const options: ResearchableTechnologyType[] = [];
-      for (const entry of uniqueUnitsFor(getPlayerCivilization(owner))) {
-        if (entry.elite && !hasTechnology(owner, entry.elite[1])) {
-          options.push(entry.elite[1]);
-        }
-      }
+      // An elite upgrade is researched where its unit is TRAINED, so the two
+      // naval unique units upgrade at the Dock and never appear here.
+      options.push(...eliteUpgradeOptions(getPlayerCivilization(owner), 'castle', hasTechnology, owner));
       if (!hasTechnology(owner, 'conscription')) { // Conscription: military +25% train speed (any civ, Imperial Castle).
         options.push('conscription');
       }
@@ -446,46 +461,13 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
   }
 
   function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
-    if (unitType !== 'villager') {
-      return [];
-    }
-
-    const options: BuildableBuildingType[] = [
-      'house',
-      'mill',
-      'lumber-camp',
-      'mining-camp',
-      'barracks',
-      // Palisade Wall: Dark-Age defensive option (no prereq) — the early wall vs a Dark-Age rush (campaign-7).
-      'palisade-wall',
-      'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
-      // M5 naval: Dark Age, like AoE2. Placement still requires a shore, so on
-      // a landlocked map it is offered but never placeable.
-      'dock',
-    ];
-
-    if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
-      options.push('stable');
-      options.push('archery-range');
-      options.push('blacksmith');
-      options.push('market');
-      options.push('watch-tower');
-    }
-
-    if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
-      options.push('town-center');
-      options.push('siege-workshop');
-      options.push('monastery');
-      options.push('university'); // Castle Age (structures.csv); researches Ballistics.
-      options.push('castle');
-      options.push('stone-wall');
-    }
-
-    if (getPlayerAge(owner) === 'imperial-age' && !hasOwnedWonder(owner)) {
-      options.push('wonder');
-    }
-
-    return options;
+    return buildOptionsFor(
+      owner,
+      unitType,
+      getPlayerAge,
+      hasCompletedBuilding,
+      hasOwnedWonder,
+    );
   }
 
   return {

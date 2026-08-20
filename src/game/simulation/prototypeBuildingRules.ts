@@ -267,41 +267,12 @@ const BUILDING_GARRISON_CAPACITY = new Map<BuildingType, number>([
   ['castle', 20],
 ]);
 
-const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnitType[]>([
-  ['town-center', ['villager']],
-  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman']],
-  ['stable', ['scout', 'knight', 'light-cavalry', 'hussar', 'cavalier', 'camel', 'paladin', 'heavy-camel']],
-  ['archery-range', ['archer', 'skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer']],
-  ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon']],
-  ['monastery', ['monk']],
-  // M5 naval: the Dock is where every ship comes from.
-  ['dock', ['fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat']],
-  ['castle', ['longbowman', 'elite-longbowman', 'trebuchet',
-    // M4 unique units — the civ gate is in uniqueUnits.ts; this list only
-    // says the Castle is where they come from.
-    'jaguar-warrior', 'cataphract', 'woad-raider', 'chu-ko-nu',
-    'throwing-axeman', 'huskarl', 'tarkan', 'samurai', 'war-wagon',
-    'plumed-archer', 'mangudai', 'war-elephant', 'mameluke', 'conquistador',
-    'teutonic-knight', 'janissary', 'berserk']],
-]);
-
-const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
-  ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom', 'town-watch', 'town-patrol']],
-  ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry', 'sappers']],
-  ['dock', ['war-galley-upgrade', 'galleon-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade']],
-  ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'thumb-ring']],
-  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
-  ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
-  ['castle', ['elite-longbowman-upgrade', 'conscription']],
-  ['siege-workshop', ['onager-upgrade', 'heavy-scorpion-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
-  ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
-  ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
-  ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
-  ['watch-tower', ['guard-tower', 'keep']],
-  ['monastery', ['block-printing', 'sanctity', 'faith', 'herbal-medicine', 'heresy']],
-  // University: Ballistics (spec §10.4). Research-only — trains nothing.
-  ['university', ['ballistics']],
-]);
+// The production tables live in ./buildingProductionTables (extracted for the
+// 500-LOC budget).
+import {
+  RESEARCHES_BY_BUILDING,
+  TRAINABLE_UNITS_BY_BUILDING,
+} from './buildingProductionTables';
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
   'mill',

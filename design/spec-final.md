@@ -811,9 +811,13 @@ Implemented (stats from `design/stats/units.csv`, availability from `design/stat
 | Vikings | Berserk | Castle |
 | Vikings | Longboat | Dock |
 
-Every unique unit belongs to the `unique-unit` armor class in addition to the class of the line it replaces, which is what gives the Samurai's +10 vs unique units something to bite on (§10.3). Elite upgrades exist as an optional field on each table row; only the Britons' Elite Longbowman is wired so far, and the rest are pending (§14).
+Every unique unit belongs to the `unique-unit` armor class in addition to the class of the line it replaces, which is what gives the Samurai's +12 vs unique units something to bite on (§10.3).
 
-Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese), the Spanish Missionary (a mounted monk, which needs the conversion mechanics to move onto a mount), and the elite tier for the other eighteen.
+Every one of them also has an **elite** version, unlocked by an Imperial-age technology and researched at the building that TRAINS the unit — the Castle for seventeen of them and the **Dock** for the Turtle Ship and the Longboat. Researching it replaces the base unit in the train menu and converts the ones already standing, exactly like the stock upgrade lines. The elite chain is an optional field on the same table row, so a unique unit without one is representable and nothing has to special-case its absence.
+
+An elite is never worse than its base on any of HP, attack, melee armour, or pierce armour, and is better on at least one — but not on all: the Elite Mangudai keeps 60 HP and buys attack and pierce armour instead, which is faithful to AoE2 and is why the invariant is stated that way rather than as "strictly tougher".
+
+Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese), the Spanish Missionary (a mounted monk, which needs the conversion mechanics to move onto a mount).
 
 ### 9.3 Required Orders
 

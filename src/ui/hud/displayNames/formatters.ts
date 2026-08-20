@@ -22,6 +22,44 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fletching';
     case 'crossbowman-upgrade':
       return 'Crossbowman';
+    case 'elite-jaguar-warrior-upgrade':
+      return 'Elite Jaguar Warrior';
+    case 'elite-cataphract-upgrade':
+      return 'Elite Cataphract';
+    case 'elite-woad-raider-upgrade':
+      return 'Elite Woad Raider';
+    case 'elite-chu-ko-nu-upgrade':
+      return 'Elite Chu Ko Nu';
+    case 'elite-throwing-axeman-upgrade':
+      return 'Elite Throwing Axeman';
+    case 'elite-huskarl-upgrade':
+      return 'Elite Huskarl';
+    case 'elite-tarkan-upgrade':
+      return 'Elite Tarkan';
+    case 'elite-samurai-upgrade':
+      return 'Elite Samurai';
+    case 'elite-war-wagon-upgrade':
+      return 'Elite War Wagon';
+    case 'elite-plumed-archer-upgrade':
+      return 'Elite Plumed Archer';
+    case 'elite-mangudai-upgrade':
+      return 'Elite Mangudai';
+    case 'elite-war-elephant-upgrade':
+      return 'Elite War Elephant';
+    case 'elite-mameluke-upgrade':
+      return 'Elite Mameluke';
+    case 'elite-conquistador-upgrade':
+      return 'Elite Conquistador';
+    case 'elite-teutonic-knight-upgrade':
+      return 'Elite Teutonic Knight';
+    case 'elite-janissary-upgrade':
+      return 'Elite Janissary';
+    case 'elite-berserk-upgrade':
+      return 'Elite Berserk';
+    case 'elite-turtle-ship-upgrade':
+      return 'Elite Turtle Ship';
+    case 'elite-longboat-upgrade':
+      return 'Elite Longboat';
     case 'war-galley-upgrade':
       return 'War Galley';
     case 'galleon-upgrade':

@@ -88,6 +88,25 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'berserk': 131, // 1.05
   'turtle-ship': 112, // 0.9
   'longboat': 192, // 1.54
+  'elite-jaguar-warrior': 125, // 1.0
+  'elite-cataphract': 169, // 1.35
+  'elite-woad-raider': 172, // 1.38
+  'elite-chu-ko-nu': 120, // 0.96
+  'elite-throwing-axeman': 112, // 0.9
+  'elite-huskarl': 131, // 1.05
+  'elite-tarkan': 169, // 1.35
+  'elite-samurai': 125, // 1.0
+  'elite-war-wagon': 150, // 1.2
+  'elite-plumed-archer': 150, // 1.2
+  'elite-mangudai': 181, // 1.45
+  'elite-war-elephant': 75, // 0.6
+  'elite-mameluke': 175, // 1.4
+  'elite-conquistador': 162, // 1.3
+  'elite-teutonic-knight': 81, // 0.65
+  'elite-janissary': 120, // 0.96
+  'elite-berserk': 131, // 1.05
+  'elite-turtle-ship': 112, // 0.9
+  'elite-longboat': 192, // 1.54
 };
 
 /** This unit's base speed as a percent of a villager's. */

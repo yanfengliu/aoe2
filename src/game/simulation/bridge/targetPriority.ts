@@ -23,7 +23,9 @@ export function targetPriority(unitType: UnitType): number {
     case 'demolition-ship': case 'heavy-demolition-ship':
     case 'cannon-galleon': case 'elite-cannon-galleon':
     case 'turtle-ship':
+    case 'elite-turtle-ship':
     case 'longboat':
+    case 'elite-longboat':
       return 4;
     // Slice 7A: the Imperial-tier siege units slot into the same top-of-
     // target-priority bucket as their Castle-Age predecessors. Bombard
@@ -51,13 +53,21 @@ export function targetPriority(unitType: UnitType): number {
     case 'heavy-cavalry-archer':
     case 'elite-longbowman':
     case 'chu-ko-nu':
+    case 'elite-chu-ko-nu':
     case 'throwing-axeman':
+    case 'elite-throwing-axeman':
     case 'war-wagon':
+    case 'elite-war-wagon':
     case 'plumed-archer':
+    case 'elite-plumed-archer':
     case 'mangudai':
+    case 'elite-mangudai':
     case 'mameluke':
+    case 'elite-mameluke':
     case 'conquistador':
+    case 'elite-conquistador':
     case 'janissary':
+    case 'elite-janissary':
       return 2;
     case 'militia':
     case 'spearman':
@@ -76,14 +86,23 @@ export function targetPriority(unitType: UnitType): number {
     case 'paladin':
     case 'heavy-camel':
     case 'jaguar-warrior':
+    case 'elite-jaguar-warrior':
     case 'cataphract':
+    case 'elite-cataphract':
     case 'woad-raider':
+    case 'elite-woad-raider':
     case 'huskarl':
+    case 'elite-huskarl':
     case 'tarkan':
+    case 'elite-tarkan':
     case 'samurai':
+    case 'elite-samurai':
     case 'war-elephant':
+    case 'elite-war-elephant':
     case 'teutonic-knight':
+    case 'elite-teutonic-knight':
     case 'berserk':
+    case 'elite-berserk':
       return 3;
     case 'villager':
       return 4;

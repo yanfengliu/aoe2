@@ -115,14 +115,14 @@ describe('AoE voxel unit recipe characterization', () => {
       })),
       memory: digestParts(state(), true),
     }).toEqual({
-      idle: 'fcd8d3072ed4dba145a7a0f333bfec65ce29043fba521727498933575172ba1e',
-      locomotion: '65a46d6ad419250fe477e04edfb7fce8039105d6ac2ca784c41163fa0a03551d',
-      builderWork: 'b7df6efdbaf0f9dc74f56436606b57fe9b5387dc6094ca54e2bc4e874841d282',
-      attackCoil: '804753d2096e93105269efe26f8c68d287cc5e52efce1b37f7d8f2a7900d3547',
-      attackImpact: '58b99549d4569047db2cf10ee596bd2ed26621b2b5bdb46179314ebe49ac3599',
-      attackSnap: '2ce6497311ee7fe1706ac0419e5176177d8bc727308d6ac151bef241fc06d152',
-      attackRecovery: '96d9ca559d3876fcb84cf9ca76b451df89c32e28625c3fa4858c17643d903b46',
-      memory: 'ee77d8c50f71eda77ae3e01e6e301265ff2a276a9128cf29299face6be98cf48',
+      idle: '7ec41a131cdf5d70045370561a8470ab5224a7bbfca998e18f94659ee9444397',
+      locomotion: '5b7acb66c1427754bdaaf8d10aa2fa5ba49aeb4f253e7dba7523ef6a4fd9e724',
+      builderWork: '11801534d99481cb93dfe36670125a1204e2e254b069e5498874462119963b56',
+      attackCoil: 'b703ec1fb2f6fe1b29db3fe0c499dddd0a151b59cff3804731cb45234f7427d6',
+      attackImpact: '8a5b843135389298a3c9935f3b96359008cfb8d0aa99464f77b4b440c8f7f1b1',
+      attackSnap: '031ed58fb9691b4737f3ed116aeb57d1324c7633225d8e67b2c7dfeb78ed0ff6',
+      attackRecovery: '4f27bacf80ce07a7d03a51a4805ece1fcc49e91cb580ddba5907f764eb5eb2cb',
+      memory: '051462321ffbbeacb01a23aeef0328f3dc1547d2145de82f2d43606dcc370e84',
     });
   });
 });

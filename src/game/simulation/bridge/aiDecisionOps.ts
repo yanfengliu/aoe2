@@ -105,24 +105,43 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'paladin':
       case 'heavy-camel':
       case 'jaguar-warrior':
+      case 'elite-jaguar-warrior':
       case 'cataphract':
+      case 'elite-cataphract':
       case 'woad-raider':
+      case 'elite-woad-raider':
       case 'chu-ko-nu':
+      case 'elite-chu-ko-nu':
       case 'throwing-axeman':
+      case 'elite-throwing-axeman':
       case 'huskarl':
+      case 'elite-huskarl':
       case 'tarkan':
+      case 'elite-tarkan':
       case 'samurai':
+      case 'elite-samurai':
       case 'war-wagon':
+      case 'elite-war-wagon':
       case 'plumed-archer':
+      case 'elite-plumed-archer':
       case 'mangudai':
+      case 'elite-mangudai':
       case 'war-elephant':
+      case 'elite-war-elephant':
       case 'mameluke':
+      case 'elite-mameluke':
       case 'conquistador':
+      case 'elite-conquistador':
       case 'teutonic-knight':
+      case 'elite-teutonic-knight':
       case 'janissary':
+      case 'elite-janissary':
       case 'berserk':
+      case 'elite-berserk':
       case 'turtle-ship':
+      case 'elite-turtle-ship':
       case 'longboat':
+      case 'elite-longboat':
         return true;
       case 'villager':
       case 'scout':
