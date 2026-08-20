@@ -56,6 +56,11 @@ export interface GatherAssignmentDeps {
   ) => UnitMovementPlan | null;
 }
 
+// How far from its drop-off a villager will be sent to gather on its own. Wide
+// enough to cover a base's whole resource neighbourhood, short enough that it
+// never reaches another player's territory on the maps this game ships.
+const HOME_GATHER_RANGE = 24;
+
 export interface AssignNearestResourceOptions {
   // When true, fan out: prefer resources with FEWER than `spreadCap` gatherers.
   preferUnsaturated: boolean;
@@ -150,6 +155,23 @@ export function assignNearestResource(
     ? undefined
     : activeWorld.getComponent<Position>(referenceDropOffId, 'position');
 
+  // Home range. Ranking alone only ORDERS candidates, so once the nodes beside
+  // the base are saturated or unreachable the list runs on to the far side of
+  // the map: AI villagers were assigned resources forty cells away, walked into
+  // the enemy's base, and were killed there — twenty of them over one match,
+  // which is what emptied the AI's economy. A villager gathers near home, and
+  // the whole map is still available when home has nothing left.
+  const everyMatch = [...matchingResources];
+  if (referenceDropOff) {
+    const withinHomeRange = matchingResources.filter((candidate) => (
+      manhattanDistance(candidate.position, referenceDropOff) <= HOME_GATHER_RANGE
+    ));
+    if (withinHomeRange.length > 0) {
+      matchingResources.length = 0;
+      matchingResources.push(...withinHomeRange);
+    }
+  }
+
   // Shared comparator. `useDropOffLocality` picks the primary distance key:
   // the STEADY-STATE assignment ranks by proximity to the reference drop-off
   // (round-trip cost); the requireReachable RECOVERY probe ranks by villager
@@ -226,17 +248,28 @@ export function assignNearestResource(
   // requireReachable recovery path, never on the hot default path.
   let target: { id: number; position: Position; resource: ResourceComponent } | undefined;
   if (options.requireReachable) {
-    const probeOrder = [...matchingResources].sort((l, r) => compareCandidates(l, r, false));
-    let probes = 0;
-    for (const candidate of probeOrder) {
-      if (candidate.id === excludeId) continue;
-      if (probes >= MAX_REACHABILITY_PROBES) break;
-      probes += 1;
-      if (deps.findResourceApproachPlan(villagerId, candidate.id, activeWorld) !== null) {
-        target = candidate;
-        break;
+    const probeFrom = (
+      candidates: ReadonlyArray<{ id: number; position: Position; resource: ResourceComponent }>,
+    ): typeof target => {
+      const probeOrder = [...candidates].sort((l, r) => compareCandidates(l, r, false));
+      let probes = 0;
+      for (const candidate of probeOrder) {
+        if (candidate.id === excludeId) continue;
+        if (probes >= MAX_REACHABILITY_PROBES) break;
+        probes += 1;
+        if (deps.findResourceApproachPlan(villagerId, candidate.id, activeWorld) !== null) {
+          return candidate;
+        }
       }
-    }
+      return undefined;
+    };
+    // Home first. Widening only when nothing at home can be reached is what
+    // keeps a villager beside a reachable resource from starving behind a
+    // walled pocket next to its drop-off, without turning the ordinary
+    // fan-out into a walk across the map.
+    target = probeFrom(matchingResources) ?? (
+      matchingResources.length === everyMatch.length ? undefined : probeFrom(everyMatch)
+    );
   } else {
     target = matchingResources[0];
   }

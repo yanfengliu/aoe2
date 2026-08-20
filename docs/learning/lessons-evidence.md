@@ -598,3 +598,27 @@ The rule has two halves, and the second is the one that is easy to skip. Play th
 It also caught a fix going the wrong way: marking a villager stuck when its step does not land reads as obviously correct and moved the AI from Feudal back to DARK age.
 
 Anchor: `tests/simulation/gatherDomain.test.ts`; devlog 2026-08-20.
+
+## Equal values across stuck entities are not evidence of a shared allocator — they are equally consistent with nothing having happened (2026-08-20)
+
+A previous session traced four wedged carriers in cell (52,23) sharing one identical fine transform (210, 92), concluded that sub-cell slot allocation was broken, and wrote that conclusion into `dropOffStep.ts` as the lead for the next attempt. It was wrong. A later dump of every stuck villager showed each holding a distinct slot — `[0.25,0]`, `[0.5,0.75]`, `[0.75,0.75]`, `[0,0]` — and the real cause was in traffic arbitration, three modules away. The transforms looked identical because none of those units had moved since they were last placed. Before inferring a shared writer from equal values, check whether the writer ran at all.
+
+Anchor: `tests/simulation/movementTrafficGridlock.test.ts` (the defects the wrong lead delayed), and the corrected note now in `src/game/simulation/bridge/systems/dropOffStep.ts`.
+
+## When a unit will not move, count the DECISION per unit per tick before reading any code (2026-08-20)
+
+Three attempts inside the drop-off loop failed over two sessions, each measured and reverted. A per-unit counter wrapped around the traffic decision answered it in a single 300-tick run: all 18 villagers, `wait` 300/300, `moved` 0 — and a second run labelling each wait rule named the rule (17 of 18 on one). A third dumping who-steps-where-and-who-occupies-it made all three defects readable at once. The counter took minutes to write and was decisive where reading the code was not.
+
+Anchor: `tests/simulation/movementTrafficGridlock.test.ts::a head-on jam where several units share one cell > admits exactly one of the six, not none of them`.
+
+## A global election followed by a local veto is a deadlock, not a safety check (2026-08-20)
+
+`movementTrafficOps` resolves a head-on jam by computing the closed set of mutually blocking units and admitting its lowest id. Execution then fell through to the co-located rules, which judge one cell and refused that elected unit for standing behind a better-placed neighbour — a neighbour waiting on the election the winner had just won. Two wood carriers sat one step from their lumber camp for ten thousand ticks that way. When one rule is the only one with global information and it names a unique winner, that decision has to be final; any later rule with a narrower view can only unmake it.
+
+Anchor: `tests/simulation/movementTrafficGridlock.test.ts::the unit a head-on jam elects to go first > is not then refused for sharing its cell with a better-placed peer`.
+
+## An egress test one neighbour deep passes a two-cell pocket (2026-08-20)
+
+`hasSpawnEgress` accepted any cell with at least one passable cardinal neighbour. The AI closed a two-cell pocket at (48,23)–(49,23) with its own house, mill, barracks, farm and Town Center; (48,23) is on the Town Center's spawn perimeter, so every villager trained afterwards was placed there and never left — seven of eleven units. Each passed the check, because the pocket's other cell is a passable neighbour. Depth-one reachability answers "is there a step" and the question is "is there a way out"; the fix walks the free region to a bounded size.
+
+Anchor: `tests/simulation/spawnEgress.test.ts::where a building puts the unit it just trained > rejects a cell whose only way out is a dead end`.

@@ -2,6 +2,19 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.30 - 2026-08-20
+
+### Fixed
+
+- **The AI plays a real economy instead of standing still.** Its villagers had been refused permission to move on every tick by the game's own traffic arbitration: in a one-cell-wide gap between buildings, a group facing each other head-on could elect a unit to go first and then refuse that very unit, and everyone waited indefinitely. Three separate rules each admitted nobody in that situation. On the default map the AI's food at thirty minutes goes from 139 to 1010, and it keeps twenty-one working villagers where it previously had twenty standing still.
+- **Units trained in a crowded base are no longer stranded.** A building would place a new unit on a cell whose only neighbour was a dead end — a two-cell pocket closed off by other buildings. Seven of the AI's eleven units ended up in one such pocket, each holding a job it had no way of reaching. A spawn cell must now open onto ground a unit can actually cross.
+- **Villagers gather near home.** Auto-assignment would send a villager forty to sixty cells away once the nearby resources were crowded, straight through an opponent's base. It now prefers work near its drop-off, and only ranges further when there is genuinely nothing of that kind left at home.
+- **A villager with nothing to gather takes different work.** Previously it would stand idle waiting for a resource that no longer existed anywhere it could reach, while the resource its player actually needed went ungathered.
+
+### Changed
+
+- The simulation runs about twice as fast in long matches. A pathfinding retry for units that cannot reach their target was running every tick for every such unit; it is now spread across ticks.
+
 ## 0.3.29 - 2026-08-20
 
 ### Fixed

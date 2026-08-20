@@ -11,8 +11,12 @@
 //   - Ungarrison: when units exit a building, they need a legal, non-wedged
 //     cell on the building's perimeter.
 //
-// Extracting the shared body keeps the egress rule ("at least one cardinal
-// neighbor is also passable") uniform across every caller.
+// Extracting the shared body keeps the egress rule uniform across every caller.
+// That rule used to be "at least one cardinal neighbor is also passable", which
+// a dead end satisfies: the AI closed a two-cell pocket between its own house,
+// mill, barracks, farm and Town Center, and every villager it trained after
+// that was spawned into the pocket and never left. The rule is now that the
+// cell belongs to a walkable region of a workable size.
 //
 // This is plain, side-effect-free logic. It does not import from
 // `createSimulationBridge`; callers pass their own passability predicate so
@@ -31,31 +35,47 @@ export interface SpawnSearchOptions {
   // Cardinal neighbor offsets. Callers pass in a reusable module-level
   // constant so the helper does not allocate per call.
   neighborOffsets: ReadonlyArray<Position>;
+  // How much connected walkable ground a spawn cell must belong to. The search
+  // stops counting here, so the cost stays a couple of dozen cells per
+  // candidate however open the map is.
+  minEgressCells?: number;
 }
 
-// Returns true if the candidate cell is itself passable AND at least one
-// of its cardinal neighbors is passable. A spawn with no passable neighbor
-// is considered wedged — the unit could sit there but could never leave.
+// Small enough that an ordinary gap between two buildings still qualifies, and
+// large enough that a unit landing there can reach the world outside the base.
+const DEFAULT_MIN_EGRESS_CELLS = 8;
+
+// Returns true if the candidate cell is itself passable AND belongs to a
+// walkable region of at least `minEgressCells` cells. A cell whose only exit
+// is a dead end is wedged just as surely as one with no exit at all.
 export function hasSpawnEgress(
   candidate: Position,
-  options: Pick<SpawnSearchOptions, 'isCellPassable' | 'neighborOffsets'>,
+  options: Pick<SpawnSearchOptions, 'isCellPassable' | 'neighborOffsets' | 'minEgressCells'>,
 ): boolean {
   if (!options.isCellPassable(candidate.x, candidate.y)) {
     return false;
   }
 
-  for (const offset of options.neighborOffsets) {
-    if (options.isCellPassable(candidate.x + offset.x, candidate.y + offset.y)) {
-      return true;
+  const minCells = options.minEgressCells ?? DEFAULT_MIN_EGRESS_CELLS;
+  const seen = new Set<string>([`${String(candidate.x)},${String(candidate.y)}`]);
+  const queue: Position[] = [candidate];
+  while (queue.length > 0 && seen.size < minCells) {
+    const cell = queue.shift();
+    if (!cell) break;
+    for (const offset of options.neighborOffsets) {
+      const next = { x: cell.x + offset.x, y: cell.y + offset.y };
+      const key = `${String(next.x)},${String(next.y)}`;
+      if (seen.has(key) || !options.isCellPassable(next.x, next.y)) continue;
+      seen.add(key);
+      queue.push(next);
     }
   }
-
-  return false;
+  return seen.size >= minCells;
 }
 
-// Walks the caller-supplied candidate list and returns the first one whose
-// cell is passable AND has at least one passable cardinal neighbor.
-// Returns null when every candidate is wedged.
+// Walks the caller-supplied candidate list and returns the first one whose cell
+// is passable AND sits in a walkable region of workable size. Returns null when
+// every candidate is wedged.
 export function findSafeSpawnWithEgress(options: SpawnSearchOptions): Position | null {
   for (const candidate of options.candidates) {
     if (hasSpawnEgress(candidate, options)) {

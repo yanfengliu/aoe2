@@ -6,6 +6,7 @@
 // Retries are throttled so a stuck gatherer does not re-plan every tick.
 
 import { runDropOffStep } from './dropOffStep';
+import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssignment';
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
@@ -68,6 +69,7 @@ const GATHER_APPROACH_TIMEOUT_TICKS = 80;
 // machinery that already existed and was only ever reachable through the
 // over-subscription branch.
 const GATHER_UNREACHABLE_TIMEOUT_TICKS = 600;
+
 // Loop 1 follow-up (campaign-5 replay: 15 of 16 woodcutters STILL re-piled
 // on the nearest tree because the give-up path freed them but idle→assign
 // re-picked nearest). idle→assign now also fans out, but at a GENEROUS cap
@@ -75,6 +77,7 @@ const GATHER_UNREACHABLE_TIMEOUT_TICKS = 600;
 // clustering is below this, so its tuned economy is unchanged (a cap of 2
 // here over-spread the AI and broke its age-up; 4 clears normal clustering).
 const IDLE_ASSIGN_SPREAD_CAP = 4;
+
 // Stable empty-set sentinel for owners with no researched techs, so the
 // per-gather-tick gatherRateMultiplierForKind lookup never allocates.
 const NO_RESEARCHED_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
@@ -232,9 +235,11 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
-          assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-            preferUnsaturated: true,
-            spreadCap: IDLE_ASSIGN_SPREAD_CAP,
+          assignIdleGatherer(gatherer, () => {
+            assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+              preferUnsaturated: true,
+              spreadCap: IDLE_ASSIGN_SPREAD_CAP,
+            });
           });
         }
 
@@ -284,12 +289,14 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   Math.max(0, (gatherTargetCounts.get(unreachableTarget) ?? 1) - 1),
                 );
               }
-              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-                preferUnsaturated: true,
-                spreadCap: MAX_GATHERERS_PER_RESOURCE,
-                requireReachable: true,
-                excludeResourceId: unreachableTarget,
-              });
+              if (shouldRetryReachability(activeWorld.tick, id)) {
+                assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+                  preferUnsaturated: true,
+                  spreadCap: MAX_GATHERERS_PER_RESOURCE,
+                  requireReachable: true,
+                  excludeResourceId: unreachableTarget,
+                });
+              }
             }
           } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
             gatherer.task = 'gathering';

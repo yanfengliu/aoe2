@@ -562,3 +562,14 @@ Consequences:
 **Consequence.** Two matches with the same fixture and inputs produce the same rolls, which is desirable here (deterministic replays) but means the roll is not a source of match-to-match variety on its own; variety comes from differing positions, ticks, and entity ids. Any future chance mechanic must use the same pattern rather than introducing a stream.
 
 **Also decided:** a projectile's outcome (roll result and aim point) is fixed at launch, not recomputed at impact, so a save taken mid-flight reloads to the same result without persisting anything about the pending outcome.
+
+## Traffic arbitration: the jam election outranks the per-cell rules (2026-08-20)
+
+**Decision.** In `movementTrafficOps`, when the dependency closure elects a caller (it is the lowest id of a closed mutually-blocking set), that caller returns `proceed` immediately. The co-located cross-flow and same-flow priority rules below it are not consulted.
+
+**Why.** Those rules judge a single cell; the election is the only rule in the layer with the whole jam in view, and it names exactly one winner that every member of the set computes identically. Letting a narrower rule re-judge the winner produced a circular refusal — the elected unit was refused for standing behind a better-placed neighbour, and that neighbour was waiting on the election the winner had just won. Measured: two wood carriers and two villagers refused 200 ticks out of 200, one step from their own lumber camp, for the last fifteen thousand ticks of a match.
+
+**Consequence.** A unit admitted by the election may step into a cell that still holds a peer for that tick; sub-cell occupancy absorbs it and the peer moves out on a following tick. That transient overlap is deliberate and is the cost of the jam resolving at all. The per-cell rules still govern every caller the election does not admit, which is the common case (an ordinary queue behind a leader with free ground ahead never enters the cycle branch at all).
+
+**Also decided:** yielding to a co-located peer requires that peer to be able to take the turn — its own next cell passable and unoccupied. Deferring to a permanently blocked peer stalls both, which is how a villager with an empty cell ahead of it stood still for a whole match.
+

@@ -280,7 +280,11 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
           if (occupant.id === mover.id) continue;
           // A side loop or shared occupant that does not close back through the
           // caller is not releasable by admitting the caller.
-          if (visited.has(occupant.id)) return null;
+          // Already part of the set being closed. Aborting here is what made
+          // a multi-unit head-on jam unsolvable: with several units sharing a
+          // cell, every member's exploration reached a peer it had already
+          // seen, so no member could ever close the set and none was admitted.
+          if (visited.has(occupant.id)) continue;
           const branch = closeDependencies(
             occupant,
             new Set([...visited, occupant.id]),
@@ -297,6 +301,14 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
       if (!cycle || mover.id !== Math.min(...cycle)) {
         return { kind: 'wait' };
       }
+      // The election is final. It is the only rule here that weighs the whole
+      // jam, and it names exactly one winner; the co-located rules below judge
+      // a single cell and would veto that winner for standing behind a
+      // better-placed neighbour — which is a deadlock, because the neighbour is
+      // waiting on the election the winner just won. Two wood carriers and two
+      // villagers sat one step from their lumber camp for ten thousand ticks
+      // that way, with the AI's wood income stuck at seven.
+      return { kind: 'proceed', laneAxis };
     }
 
     const coLocated = trafficPeers.filter((unit) => samePosition(unit.position, mover.position));
@@ -305,7 +317,25 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
       return peerDirection !== null
         && (peerDirection.x !== direction.x || peerDirection.y !== direction.y);
     });
-    if (crossFlow.some((unit) => unit.id < mover.id)) return { kind: 'wait' };
+    // Yielding is only meaningful to a peer that can actually take the turn it
+    // is being given. Deferring to a co-located peer that is itself blocked
+    // stalls both of them forever, which is how a villager with an empty cell
+    // ahead of it stood still for the last ten thousand ticks of a match.
+    const canTakeATurn = (unit: TrafficUnitSnapshot): boolean => {
+      const unitDirection = directionFor(unit);
+      if (!unitDirection) return false;
+      const ahead = {
+        x: unit.position.x + unitDirection.x,
+        y: unit.position.y + unitDirection.y,
+      };
+      if (!isCellPassableForUnit(unit.id, ahead.x, ahead.y, activeWorld)) return false;
+      return ![mover, ...trafficPeers].some((other) => (
+        other.id !== unit.id && samePosition(other.position, ahead)
+      ));
+    };
+    if (crossFlow.some((unit) => unit.id < mover.id && canTakeATurn(unit))) {
+      return { kind: 'wait' };
+    }
     const sameFlow = coLocated.filter((unit) => !crossFlow.includes(unit));
     const moverProjection = projection(mover, direction);
     const anotherHasPriority = sameFlow.some((unit) => {

@@ -11,16 +11,25 @@ const CARDINALS: ReadonlyArray<Position> = [
   { x: 0, y: -1 },
 ];
 
+// A run of walkable cells long enough to count as somewhere a unit can go.
+// A spawn cell must belong to a region of workable size, not merely have one
+// passable neighbour: a two-cell pocket satisfies "has a neighbour" and still
+// traps forever, which is how the AI stranded seven villagers beside its own
+// Town Center (see the note in spawn.ts).
+function roomAlongRow(y: number, fromX: number, toX: number): string[] {
+  const cells: string[] = [];
+  for (let x = fromX; x <= toX; x += 1) cells.push(`${String(x)},${String(y)}`);
+  return cells;
+}
+
 describe('findSafeSpawnWithEgress', () => {
-  it('returns the first candidate that is passable and has a passable neighbor', () => {
-    // A 3x3 world where only (1,1) and (2,1) are passable. (1,1) is a
-    // legal spawn because (2,1) is a passable neighbor.
-    const passable = new Set<string>(['1,1', '2,1']);
+  it('returns the first candidate that is passable and opens onto real room', () => {
+    const passable = new Set<string>(roomAlongRow(1, 1, 10));
     const result = findSafeSpawnWithEgress({
       candidates: [
         { x: 0, y: 0 }, // blocked
-        { x: 1, y: 1 }, // passable, (2,1) is a passable cardinal neighbor
-        { x: 2, y: 1 }, // passable, (1,1) is a passable cardinal neighbor
+        { x: 1, y: 1 }, // passable, and the row it sits in leads somewhere
+        { x: 2, y: 1 }, // likewise, but the first match wins
       ],
       isCellPassable: (x, y) => passable.has(`${x},${y}`),
       neighborOffsets: CARDINALS,
@@ -29,21 +38,22 @@ describe('findSafeSpawnWithEgress', () => {
     expect(result).toEqual({ x: 1, y: 1 });
   });
 
-  it('skips candidates that are passable but have no passable neighbor', () => {
-    // (1,1) is passable but completely surrounded by blocked cells; (3,3)
-    // is passable and has a passable neighbor (4,3). The helper must
-    // skip the wedged candidate.
-    const passable = new Set<string>(['1,1', '3,3', '4,3']);
+  it('skips candidates that are passable but wedged', () => {
+    // (1,1) is passable but completely surrounded by blocked cells, and the
+    // (3,3)-(4,3) pair is a pocket that traps just as surely. Only the row at
+    // y=6 is somewhere a unit can actually leave from.
+    const passable = new Set<string>(['1,1', '3,3', '4,3', ...roomAlongRow(6, 1, 10)]);
     const result = findSafeSpawnWithEgress({
       candidates: [
-        { x: 1, y: 1 }, // wedged
-        { x: 3, y: 3 }, // has neighbor (4,3)
+        { x: 1, y: 1 }, // wedged with no neighbour at all
+        { x: 3, y: 3 }, // a two-cell pocket — a neighbour, but nowhere to go
+        { x: 3, y: 6 }, // real room
       ],
       isCellPassable: (x, y) => passable.has(`${x},${y}`),
       neighborOffsets: CARDINALS,
     });
 
-    expect(result).toEqual({ x: 3, y: 3 });
+    expect(result).toEqual({ x: 3, y: 6 });
   });
 
   it('returns null when every candidate is blocked or wedged', () => {
@@ -86,7 +96,7 @@ describe('hasSpawnEgress', () => {
     expect(result).toBe(false);
   });
 
-  it('returns false when passable but no cardinal neighbor is passable', () => {
+  it('returns false when passable but nothing adjoins it', () => {
     const passable = new Set<string>(['1,1']);
     const result = hasSpawnEgress(
       { x: 1, y: 1 },
@@ -99,8 +109,21 @@ describe('hasSpawnEgress', () => {
     expect(result).toBe(false);
   });
 
-  it('returns true when passable and at least one cardinal neighbor is passable', () => {
+  it('returns false when its only neighbour is a dead end', () => {
     const passable = new Set<string>(['1,1', '0,1']);
+    const result = hasSpawnEgress(
+      { x: 1, y: 1 },
+      {
+        isCellPassable: (x, y) => passable.has(`${x},${y}`),
+        neighborOffsets: CARDINALS,
+      },
+    );
+
+    expect(result).toBe(false);
+  });
+
+  it('returns true when it belongs to a region a unit can leave by', () => {
+    const passable = new Set<string>(roomAlongRow(1, 0, 10));
     const result = hasSpawnEgress(
       { x: 1, y: 1 },
       {

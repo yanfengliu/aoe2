@@ -126,40 +126,21 @@ export interface DropOffStepContext {
       gatherer.gatherProgressTicks = 0;
       clearStuck(id);
     } else {
-      // TWO ATTEMPTS HAVE FAILED HERE — do not try a third of the same shape.
+      // SOLVED 2026-08-20, and NOT here — three attempts in this loop failed
+      // because the defect was never in it. A movement plan existing is not the
+      // same as the step landing, and the refusals were coming from traffic
+      // arbitration: every wedged carrier was told to wait on every tick, by
+      // `movementTrafficOps`, forever. Three separate rules there each admitted
+      // nobody in a head-on jam (see that file). The three fixes tried here —
+      // `setStuck` on a single non-moving step, a consecutive-miss count, and
+      // wiring `resolveArrivalRedirect` — are recorded in
+      // `docs/devlog/detailed/2026-08-17_2026-08-20.md` with their numbers.
       //
-      // A movement plan EXISTING is not the same as the step LANDING, so a
-      // carrier whose next step is refused every tick is invisible to the
-      // reachability reroute below, which only ever fires when no plan can be
-      // found at all. That diagnosis is solid: traced at tick 20000, carriers
-      // sit here with ten resources one cell from their own camp, indefinitely.
-      //
-      // What does NOT work, both measured on the default map against a baseline
-      // of 18 villagers / gold climbing past 2400:
-      //   1. setStuck on a single non-moving step  -> 10 villagers, Dark Age.
-      //      One refused step latches the 30-tick retry skip, and transient
-      //      crowding is constant, so every villager idles a third of its life.
-      //   2. A CONSECUTIVE-miss count (150 ticks) in gatherProgressTicks, which
-      //      is otherwise unused on this leg -> 9 villagers, gold frozen at 490.
-      //      Still net-negative; gatherProgressTicks is also the gather timer,
-      //      and a villager can re-enter `gathering` from here without
-      //      depositing (the depleted-resource path), so the counter leaks into
-      //      it.
-      //
-      //   3. Wiring `resolveArrivalRedirect` (spec §12.7 lazy redirect) into
-      //      this path, which had only ever been called from
-      //      playerCommandsSystem -> completely INERT here. Identical numbers
-      //      to the baseline, to the resource.
-      //
-      // The evidence the next attempt should start from, traced at tick 20000:
-      // FOUR wedged carriers in cell (52,23) share ONE identical fine transform
-      // (210, 92). Units are supposed to hold distinct sub-cell slots, so that
-      // alone is wrong. `moveUnitOneSubgridStep` never refuses on occupancy —
-      // it steps toward the target transform — so a unit that does not move is
-      // one whose target transform already equals its current one. That points
-      // at slot allocation (`getUnitTargetTransformForPosition` /
-      // `worldOccupancy.getUnitSlotOffset`), not at this loop and not at the
-      // gather logic, which is why three fixes here have all missed.
+      // The lead they left behind was wrong: four carriers appearing to share
+      // one fine transform read as broken slot allocation, and slot allocation
+      // was fine. What made them look identical is that none of them had moved.
+      // The instrument to reach for first is a per-unit count of the traffic
+      // DECISION, not the transform.
       clearStuck(id);
       moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
     }
