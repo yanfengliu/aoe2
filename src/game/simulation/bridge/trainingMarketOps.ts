@@ -51,7 +51,10 @@ import {
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import { civTrainTimeMultiplier, effectiveTrainingCost } from '../civBonusEffects';
-import { conscriptionTrainTimeMultiplier } from '../productionTechEffects';
+import {
+  conscriptionTrainTimeMultiplier,
+  uniqueTechTrainTimeMultiplier,
+} from '../productionTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface TrainingMarketOpsDeps {
@@ -202,7 +205,8 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
       Math.round(
         trainingTimeTicks(unitType)
           * civTrainTimeMultiplier(ownerCiv, unitType)
-          * conscriptionTrainTimeMultiplier(ownerTechs, building.buildingType),
+          * conscriptionTrainTimeMultiplier(ownerTechs, building.buildingType)
+          * uniqueTechTrainTimeMultiplier(ownerTechs, building.buildingType),
       ),
     );
     accessor.mutate(productionQueuesCodec, (m) => {

@@ -138,4 +138,21 @@ export type ResearchableTechnologyType =
   | 'masonry'
   | 'architecture'
   | 'treadmill-crane'
-  | 'heated-shot';
+  | 'heated-shot'
+  // Civilization unique technologies (spec §9.2.2), all at the Castle.
+  | 'garland-wars'
+  | 'yeomen'
+  | 'logistica'
+  | 'furor-celtica'
+  | 'rocketry'
+  | 'bearded-axe'
+  | 'anarchy'
+  | 'perfusion'
+  | 'kataparuto'
+  | 'shinkichon'
+  | 'drill'
+  | 'mahouts'
+  | 'zealotry'
+  | 'supremacy'
+  | 'crenellations'
+  | 'artillery';

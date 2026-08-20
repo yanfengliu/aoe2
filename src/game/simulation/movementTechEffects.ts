@@ -18,6 +18,14 @@
 import type { ResearchableTechnologyType, UnitType } from './types';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 import { unitBaseSpeedPercent } from './prototypeUnitRules/unitBaseSpeed';
+import { unitEffectsOf } from './uniqueTechnologies';
+
+// The unique technologies that carry a speed multiplier. Naming them keeps
+// this loop off the whole table on every movement step.
+const SPEED_UNIQUE_TECHNOLOGIES: readonly ResearchableTechnologyType[] = [
+  'drill',
+  'mahouts',
+];
 
 // AoE2 Husbandry (technologies.csv:79): mounted units move 10% faster.
 export const HUSBANDRY_SPEED_PERCENT = 110;
@@ -62,6 +70,18 @@ export function movementSpeedPercent(
   // is slow whether or not anyone researched anything, and Husbandry makes a
   // knight 10% faster than a KNIGHT rather than 10% faster than a villager.
   let percent = unitBaseSpeedPercent(unitType);
+  // Civilization unique technologies that move a unit faster (Drill, Mahouts)
+  // multiply the base like any other modifier. They are read from the researched
+  // set alone rather than from the owner's civilization, because a technology
+  // can only BE in that set if its civilization researched it.
+  for (const technology of SPEED_UNIQUE_TECHNOLOGIES) {
+    if (!researchedTechnologies.has(technology)) continue;
+    for (const effect of unitEffectsOf(technology)) {
+      if (effect.speedMultiplier !== undefined && effect.applies(unitType)) {
+        percent = Math.round(percent * effect.speedMultiplier);
+      }
+    }
+  }
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
     percent = Math.round((percent * HUSBANDRY_SPEED_PERCENT) / 100);
   } else if (researchedTechnologies.has('squires') && isInfantryUnit(unitType)) {

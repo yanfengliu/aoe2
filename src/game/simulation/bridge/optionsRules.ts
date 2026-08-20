@@ -3,6 +3,8 @@
 import { buildOptionsFor } from './buildOptions';
 import { dockResearchOptions } from './dockTechOptions';
 import { uniqueUnitsTrainedAt } from '../uniqueUnits';
+import { unlockedTrainingFor } from '../uniqueTechnologyUnlocks';
+import { castleResearchOptions } from './castleTechOptions';
 import type {
   BuildableBuildingType,
   BuildingType,
@@ -85,6 +87,14 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
           ]);
           options.push(spearmanLine);
         }
+        // A unique technology can open a unit somewhere it is not normally
+        // trained — the Goths' Anarchy puts the Huskarl in the Barracks. Read
+        // from the same table the research menu uses, so the two cannot drift.
+        options.push(...unlockedTrainingFor(
+          getPlayerCivilization(owner),
+          'barracks',
+          (technology) => hasTechnology(owner, technology),
+        ));
         return options;
       }
       case 'stable': {
@@ -372,15 +382,16 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       return projectileTechOptions('university', owner, isAtLeastAge, hasTechnology);
     }
 
-    if (buildingType === 'castle' && isAtLeastAge(owner, 'imperial-age')) {
-      const options: ResearchableTechnologyType[] = [];
-      // An elite upgrade is researched where its unit is TRAINED, so the two
-      // naval unique units upgrade at the Dock and never appear here.
-      options.push(...eliteUpgradeOptions(getPlayerCivilization(owner), 'castle', hasTechnology, owner));
-      if (!hasTechnology(owner, 'conscription')) { // Conscription: military +25% train speed (any civ, Imperial Castle).
-        options.push('conscription');
-      }
-      return options;
+    if (buildingType === 'castle' && isAtLeastAge(owner, 'castle-age')) {
+      return castleResearchOptions({
+        owner,
+        civilization: getPlayerCivilization(owner),
+        isAtLeastAge,
+        hasTechnology,
+        eliteUpgradeOptions: () => eliteUpgradeOptions(
+          getPlayerCivilization(owner), 'castle', hasTechnology, owner,
+        ),
+      });
     }
 
     if (buildingType === 'siege-workshop' && isAtLeastAge(owner, 'imperial-age')) {

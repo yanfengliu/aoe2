@@ -3,6 +3,11 @@
 // stats. Called from entity-creation paths and from the technology pipeline
 // when an upgrade triggers a per-unit re-build.
 
+import {
+  uniqueTechnologiesFor,
+  unitEffectsOf,
+  type UniqueUnitEffect,
+} from '../uniqueTechnologies';
 import type { CombatState } from './systems/systemTypes';
 import type { ResearchableTechnologyType, UnitType } from '../types';
 import { applyArmorTech } from '../armorTechBonuses';
@@ -24,6 +29,40 @@ import {
 export interface CombatStateFactoryDeps {
   hasTechnology: (owner: number, technologyType: ResearchableTechnologyType) => boolean;
   getCivilization: (owner: number) => string;
+}
+
+/**
+ * Fold one declared unique-technology effect into a combat state.
+ *
+ * Multipliers are applied to the value as it stands, so a unit that is already
+ * carrying flat bonuses keeps them scaled — Furor Celtica on a Ram that has
+ * been through the blacksmith raises the total, not the base.
+ */
+export function applyUniqueUnitEffect(
+  state: CombatState,
+  effect: UniqueUnitEffect,
+  unitType: UnitType,
+): void {
+  if (!effect.applies(unitType)) return;
+  if (effect.maxHpMultiplier !== undefined) {
+    const wasFull = state.currentHp >= state.maxHp;
+    state.maxHp = Math.round(state.maxHp * effect.maxHpMultiplier);
+    if (wasFull) state.currentHp = state.maxHp;
+  }
+  if (effect.maxHp !== undefined) {
+    const wasFull = state.currentHp >= state.maxHp;
+    state.maxHp += effect.maxHp;
+    // A flat hit-point grant fills a unit that was already full, and leaves a
+    // damaged one damaged — the same rule Loom follows.
+    state.currentHp = wasFull ? state.maxHp : state.currentHp + effect.maxHp;
+  }
+  if (effect.attackDamage !== undefined) state.attackDamage += effect.attackDamage;
+  if (effect.attackRange !== undefined) state.attackRange += effect.attackRange;
+  if (effect.armor !== undefined) state.armor += effect.armor;
+  if (effect.pierceArmor !== undefined) state.pierceArmorBonus += effect.pierceArmor;
+  if (effect.reloadMultiplier !== undefined) {
+    state.reloadTicks = Math.max(1, Math.round(state.reloadTicks * effect.reloadMultiplier));
+  }
 }
 
 export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
@@ -137,6 +176,17 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     // applied (no double stacking).
     if (isSiegeUnit(unitType) && hasTechnology(owner, 'siege-engineers')) {
       state.attackRange += 1;
+    }
+
+    // Civilization unique technologies, applied from their declarations rather
+    // than as another sixteen branches (see uniqueTechnologies.ts). Only the
+    // owner's OWN civilization's technologies are considered, so a researched-
+    // set that somehow carried another civ's id still cannot apply it.
+    for (const technology of uniqueTechnologiesFor(getCivilization(owner))) {
+      if (!hasTechnology(owner, technology.id)) continue;
+      for (const effect of unitEffectsOf(technology.id)) {
+        applyUniqueUnitEffect(state, effect, unitType);
+      }
     }
 
     return state;

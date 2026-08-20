@@ -4,6 +4,7 @@
 // with garrisoned units (Castle gets +2 per archer-line garrisoned).
 
 import { heatedShotMultiplier } from '../../buildingTechEffects';
+import { uniqueBuildingBonus } from '../../uniqueTechnologies';
 import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
@@ -111,10 +112,16 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         // boost Watch Towers only.
         const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
         const towerTechs = building.buildingType === 'watch-tower' ? ownerTechs : EMPTY_TECH_SET;
+        // Civilization unique technologies that reach defensive buildings
+        // (Britons' Yeomen, Teutons' Crenellations) add here, derived from the
+        // researched set at the fire site like every other building bonus.
+        const uniqueBonus = uniqueBuildingBonus(ownerTechs, building.buildingType);
         const effectiveRange =
-          buildingCombat.attackRange + buildingArrowRangeBonus(ownerTechs) + towerRangeBonus(towerTechs);
+          buildingCombat.attackRange + buildingArrowRangeBonus(ownerTechs)
+          + towerRangeBonus(towerTechs) + uniqueBonus.attackRange;
         const effectiveAttackDamage =
-          buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs) + towerAttackBonus(towerTechs);
+          buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs)
+          + towerAttackBonus(towerTechs) + uniqueBonus.attackDamage;
         const footprint = buildingFootprint(building.buildingType);
         const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
           building.owner,

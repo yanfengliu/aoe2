@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.27 - 2026-08-19
+
+### Added
+
+- **Unique technologies.** Sixteen civilization signature technologies, researched at your Castle and offered only to the civilization they belong to: Aztec **Garland Wars**, Briton **Yeomen**, Byzantine **Logistica**, Celtic **Furor Celtica**, Chinese **Rocketry**, Frankish **Bearded Axe**, Gothic **Anarchy** and **Perfusion**, Japanese **Kataparuto**, Korean **Shinkichon**, Mongol **Drill**, Persian **Mahouts**, Saracen **Zealotry**, Spanish **Supremacy**, Teutonic **Crenellations**, and Turkish **Artillery**.
+- They reach what you already have, not just what you build next: research Yeomen and the archers standing in your base get their extra range immediately.
+- Your Castle's research list now opens in Castle Age rather than Imperial, because Anarchy is a Castle-Age technology.
+
 ## 0.3.26 - 2026-08-19
 
 ### Added

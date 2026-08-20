@@ -819,6 +819,39 @@ An elite is never worse than its base on any of HP, attack, melee armour, or pie
 
 Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese), the Spanish Missionary (a mounted monk, which needs the conversion mechanics to move onto a mount).
 
+### 9.2.2 Unique Technologies
+
+Each civilization has one or two signature technologies, researched at its **Castle**. Sixteen of the nineteen in `design/stats/technologies.csv` are implemented; the rest are listed below with the mechanic each is waiting on, because a technology that costs 750 food and silently does nothing is worse than one that is honestly absent.
+
+They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`). Each names which units or buildings it touches and what it adds, and one loop applies them all — the alternative was sixteen more branches on a combat-state factory that was already a forty-line ladder, each harder to read than the CSV line it came from. The same declarations drive both halves: the units already on the field are bumped when the research completes, and everything trained afterwards derives it at creation.
+
+| Civilization | Technology | Age | Effect |
+| --- | --- | --- | --- |
+| Aztecs | Garland Wars | Imperial | Infantry +4 attack |
+| Britons | Yeomen | Imperial | Foot archers +1 range; Watch Towers +2 attack |
+| Byzantines | Logistica | Imperial | Cataphracts +6 attack |
+| Celts | Furor Celtica | Imperial | Siege Workshop units +50% hit points |
+| Chinese | Rocketry | Imperial | Chu Ko Nu +2 attack, Scorpion line +4 |
+| Franks | Bearded Axe | Imperial | Throwing Axemen +1 range |
+| Goths | Anarchy | Castle | Huskarls trainable at the Barracks |
+| Goths | Perfusion | Imperial | Barracks train twice as fast |
+| Japanese | Kataparuto | Imperial | Trebuchets reload 25% faster |
+| Koreans | Shinkichon | Imperial | Mangonel line +1 range |
+| Mongols | Drill | Imperial | Siege Workshop units move 50% faster |
+| Persians | Mahouts | Imperial | War Elephants move 30% faster |
+| Saracens | Zealotry | Imperial | Mamelukes and camels +30 hit points |
+| Spanish | Supremacy | Imperial | Villagers +6 attack, +40 hit points, +2/+2 armour |
+| Teutons | Crenellations | Imperial | Castles +3 range |
+| Turks | Artillery | Imperial | Bombard units +2 range |
+
+The Castle research menu opens in CASTLE age rather than Imperial, because Anarchy is a Castle-age technology; every other entry still carries its own age, so nothing else moved earlier.
+
+A flat hit-point grant fills a unit that was already at full health and leaves a damaged one damaged, the same rule Loom follows. A multiplier applies to the value as it stands, so a technology stacks on top of blacksmith upgrades rather than replacing them.
+
+Not implemented, and why: **El Dorado** (Mayans) adds hit points to Eagle Warriors, which are not on the roster; **Berserkergang** (Vikings) doubles Berserk regeneration and no unit regenerates; **Atheism** (Huns) changes Wonder/Relic victory timers and the cost of Spies/Treason, none of which exists. Partial where noted: Logistica's trample blast, and Crenellations' garrisoned infantry firing their own arrows, are both absent — the range and attack halves are live.
+
+The twelve expansion civilizations have no technology rows in the dataset at all, the same gap as their unique units (§9.2.1).
+
 ### 9.3 Required Orders
 
 The input system must support:

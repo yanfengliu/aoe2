@@ -10,6 +10,7 @@
 // the other ~80 touches of these maps in the bridge keep using the same
 // references.
 
+import { applyUniqueTechnologyToOwnedUnits } from './uniqueTechEffect';
 import { applyBuildingHpTechnology } from './buildingHpTechEffect';
 import { UNIT_LINE_UPGRADES } from './unitLineUpgrades';
 import type {
@@ -391,6 +392,29 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // (cavalry + cavalry archers, csv:78; new ones get it via
         // createCombatState). Mirrors Loom/Sanctity.
         applyBloodlinesToOwnedCavalry(world, accessor, owner);
+        markOutOfBandRenderChange();
+        break;
+      // Civilization unique technologies: the units already on the field are
+      // bumped here, everything trained after derives it in createCombatState.
+      // A technology with no unit effect (Anarchy, Perfusion, and the building
+      // ones) falls through this harmlessly and is read where it is used.
+      case 'garland-wars':
+      case 'yeomen':
+      case 'logistica':
+      case 'furor-celtica':
+      case 'rocketry':
+      case 'bearded-axe':
+      case 'anarchy':
+      case 'perfusion':
+      case 'kataparuto':
+      case 'shinkichon':
+      case 'drill':
+      case 'mahouts':
+      case 'zealotry':
+      case 'supremacy':
+      case 'crenellations':
+      case 'artillery':
+        applyUniqueTechnologyToOwnedUnits(world, accessor, owner, technologyType);
         markOutOfBandRenderChange();
         break;
       case 'masonry':

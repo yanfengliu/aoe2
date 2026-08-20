@@ -56,6 +56,24 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
   ['castle', ['elite-longbowman-upgrade', 'conscription',
+    // Civilization unique technologies; which one an owner may see is
+    // decided by uniqueTechnologies.ts.
+    'garland-wars',
+    'yeomen',
+    'logistica',
+    'furor-celtica',
+    'rocketry',
+    'bearded-axe',
+    'anarchy',
+    'perfusion',
+    'kataparuto',
+    'shinkichon',
+    'drill',
+    'mahouts',
+    'zealotry',
+    'supremacy',
+    'crenellations',
+    'artillery',
     // The elite upgrade of each civilization unique unit; which one a given
     // owner may actually see is decided by uniqueUnits.ts.
     'elite-jaguar-warrior-upgrade',

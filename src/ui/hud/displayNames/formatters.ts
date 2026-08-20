@@ -22,6 +22,38 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fletching';
     case 'crossbowman-upgrade':
       return 'Crossbowman';
+    case 'garland-wars':
+      return 'Garland Wars';
+    case 'yeomen':
+      return 'Yeomen';
+    case 'logistica':
+      return 'Logistica';
+    case 'furor-celtica':
+      return 'Furor Celtica';
+    case 'rocketry':
+      return 'Rocketry';
+    case 'bearded-axe':
+      return 'Bearded Axe';
+    case 'anarchy':
+      return 'Anarchy';
+    case 'perfusion':
+      return 'Perfusion';
+    case 'kataparuto':
+      return 'Kataparuto';
+    case 'shinkichon':
+      return 'Shinkichon';
+    case 'drill':
+      return 'Drill';
+    case 'mahouts':
+      return 'Mahouts';
+    case 'zealotry':
+      return 'Zealotry';
+    case 'supremacy':
+      return 'Supremacy';
+    case 'crenellations':
+      return 'Crenellations';
+    case 'artillery':
+      return 'Artillery';
     case 'masonry':
       return 'Masonry';
     case 'architecture':
