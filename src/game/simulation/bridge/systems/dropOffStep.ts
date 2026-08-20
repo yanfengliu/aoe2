@@ -146,9 +146,20 @@ export interface DropOffStepContext {
       //      depositing (the depleted-resource path), so the counter leaks into
       //      it.
       //
-      // The next attempt should come from the TRAFFIC layer instead
-      // (movementTrafficOps already builds a per-tick intent snapshot and knows
-      // which movers are contending), not from another timer in this loop.
+      //   3. Wiring `resolveArrivalRedirect` (spec §12.7 lazy redirect) into
+      //      this path, which had only ever been called from
+      //      playerCommandsSystem -> completely INERT here. Identical numbers
+      //      to the baseline, to the resource.
+      //
+      // The evidence the next attempt should start from, traced at tick 20000:
+      // FOUR wedged carriers in cell (52,23) share ONE identical fine transform
+      // (210, 92). Units are supposed to hold distinct sub-cell slots, so that
+      // alone is wrong. `moveUnitOneSubgridStep` never refuses on occupancy —
+      // it steps toward the target transform — so a unit that does not move is
+      // one whose target transform already equals its current one. That points
+      // at slot allocation (`getUnitTargetTransformForPosition` /
+      // `worldOccupancy.getUnitSlotOffset`), not at this loop and not at the
+      // gather logic, which is why three fixes here have all missed.
       clearStuck(id);
       moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
     }
