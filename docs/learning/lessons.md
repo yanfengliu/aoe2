@@ -10,6 +10,7 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- An expectation derived from the same constant the code renders from moves WITH it — state the claim literally, then mutate ([evidence](lessons-evidence.md#an-expectation-derived-from-the-same-constant-the-code-renders-from-moves-with-it-state-the-claim-literally-then-mutate-2026-08-19))
 - A whole-population characterization hash detects change but cannot LOCALISE it — a slice that legitimately moves it must bring a per-item digest ([evidence](lessons-evidence.md#a-whole-population-characterization-hash-detects-change-but-cannot-localise-it-a-slice-that-legitimately-moves-it-must-bring-a-per-item-digest-2026-08-19))
 - A feature can pass every fixture test and still be UNREACHABLE from its menu — assert the player-facing options list ([evidence](lessons-evidence.md#a-feature-can-pass-every-fixture-test-and-still-be-unreachable-from-its-menu-assert-the-player-facing-options-list-2026-08-19))
 - Verify graphics on the REAL default view (with fog + a real base), not a full-vision showcase fixture ([evidence](lessons-evidence.md#verify-graphics-on-the-real-default-view-with-fog-a-real-base-not-a-full-vision-showcase-fixture-2026-07-05))

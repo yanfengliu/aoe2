@@ -564,3 +564,15 @@ The nine warships shipped in v0.3.17 had correct stats, were listed in `TRAINABL
 The rule: for anything a player acquires, one test must read the same list the HUD reads. Same shape as the v0.3.15 finding where a green test on `deliverUnitAttackOnUnit` said nothing about whether its caller passed the techs.
 
 Anchor: `tests/simulation/dock.test.ts > the Dock train menu reaches the warships > offers the Galley line once out of the Dark Age`.
+
+## An expectation derived from the same constant the code renders from moves WITH it — state the claim literally, then mutate (2026-08-19)
+
+Three slices in one day, same shape:
+
+1. `unitSpeedEndToEnd` asserted `measured / villager ≈ unitBaseSpeedPercent(type)`. Mutating the TABLE to all-100s left it green — both sides moved together. It only bites when the CONSUMER is mutated, and even then a 12-cell walk hid a 12% error inside the tolerance until the walk was lengthened to 24 cells and the tolerance tightened to 8%.
+2. `voxel-occlusion-outline.spec.ts` counted pixels near `OCCLUSION_SILHOUETTE_TINT_OWN`, imported from the module it tests. Reverting that constant to white left the test green.
+3. The roster characterization hash re-records itself by construction whenever the roster changes, so "update the pin" proves nothing about the units that were already there.
+
+The rule has two halves. Write the expectation as an independent description of the claim — "bright and blue-dominant, and not white" rather than "within 34 of THE_TINT". And prove it by mutating the source of truth, not by reading the test.
+
+Anchor: `tests/browser/voxel-occlusion-outline.spec.ts > voxel behind-building unit silhouette > cues exactly the hidden villager in the owner colour and stays stable under pause` (fails when `OCCLUSION_SILHOUETTE_TINT_OWN` is set to `0xffffff`).
