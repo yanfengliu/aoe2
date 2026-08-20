@@ -1,3 +1,5 @@
+import { ArmedGroundOrder } from './armedGroundOrder';
+import { clamp, isCameraKey, isEditableTarget } from './voxelGameViewHelpers';
 import type { EntityRef, Position } from 'civ-engine';
 import type { ThreeCaptureResult } from 'voxel/three';
 
@@ -122,11 +124,15 @@ export class AoeVoxelGameView {
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
       // M6 control: attack-move arming lives on the view so the A hotkey and
       // the pointer share one piece of state.
-      isAttackMoveArmed: () => this.attackMoveArmed,
-      disarmAttackMove: () => { this.attackMoveArmed = false; },
+      armedGroundOrder: () => this.groundOrder.get(),
+      disarmGroundOrder: () => { this.groundOrder.disarm(); },
       // `worldCellAt` can hand back a fractional cell, and the engine rejects
       // non-integer grid coordinates outright — floor before ordering.
       issueAttackMoveCommand: (cellX, cellY) => this.bridge?.issueAttackMoveCommand(
+        Math.floor(cellX),
+        Math.floor(cellY),
+      ) ?? false,
+      issuePatrolCommand: (cellX, cellY) => this.bridge?.issuePatrolCommand(
         Math.floor(cellX),
         Math.floor(cellY),
       ) ?? false,
@@ -252,16 +258,21 @@ export class AoeVoxelGameView {
     return this.renderer.captureWorld();
   }
 
-  /** M6 control: true between pressing A and the click that spends it. */
-  private attackMoveArmed = false;
+  /** M6 control: see armedGroundOrder.ts. */
+  private readonly groundOrder = new ArmedGroundOrder();
 
   /** Arms attack-move; the next left click becomes the destination. */
   armAttackMove(): void {
-    this.attackMoveArmed = true;
+    this.groundOrder.arm('attack-move');
+  }
+
+  /** Arms patrol; the next left click becomes the far end of the route. */
+  armPatrol(): void {
+    this.groundOrder.arm('patrol');
   }
 
   isAttackMoveArmed(): boolean {
-    return this.attackMoveArmed;
+    return this.groundOrder.get() === 'attack-move';
   }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
@@ -477,24 +488,4 @@ export class AoeVoxelGameView {
   private assertActive(): void {
     if (!this.isBooted()) throw new Error('AoeVoxelGameView is disposed.');
   }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function isCameraKey(code: string): boolean {
-  return code === 'ArrowLeft'
-    || code === 'ArrowRight'
-    || code === 'ArrowUp'
-    || code === 'ArrowDown'
-    || code === 'KeyW'
-    || code === 'KeyA'
-    || code === 'KeyS'
-    || code === 'KeyD';
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement
-    && (target.isContentEditable || Boolean(target.closest('input, textarea, select')));
 }

@@ -1286,6 +1286,16 @@ A fractional percent is made real by a per-unit carry accumulator (`moveCarryHun
 
 The autonomous scout WANDER path writes the fine transform directly rather than going through the step executor, so it applies the base speed itself, as a whole number of fine units. Two consequences the implementation has to handle and which are easy to get wrong: a wanderer hemmed in by impassable neighbours makes progress by moving within its own cell, so a step that jumps the cell boundary must fall back to a shorter one rather than freeze; and a shortened step must still re-pick the heading, because publishing a sub-cell wiggle as "movement" skips the escape logic and produces an in-cell orbit.
 
+### 12.4.0 Patrol
+
+A **patrol** is a standing ROUTE between two cells, not an order. Press **P**, then click: the unit paces between where it stood and where you clicked, engaging what it meets the way an attack-move does, until you give it something else to do.
+
+The distinction from attack-move is the point of the design. Auto-aggression takes a unit off its walk to fight, which clears its command — so an attack-move is finished the first time it works. Modelling the patrol as its own per-unit state (`aoe2.patrolRoutes`) means the walk is re-issued whenever the unit falls idle, so a patrolling unit fights, wins, and goes back to pacing. It turns around only when it actually reaches the end it was walking toward; a unit that stopped anywhere else resumes toward the SAME end rather than doubling back.
+
+Any order the player gives ends the patrol. The route survives its own legs because the system re-issues them through a path that deliberately does not clear it.
+
+Only patrolling units are stored, so an ordinary match serializes nothing extra. P and A share one armed-order slot, so pressing one after the other replaces rather than stacks.
+
 ### 12.4.1 Stances
 
 Every unit carries a **stance**, which decides what it does when nothing has been ordered. It is a per-unit property the player commands, not a fact about the unit's type.

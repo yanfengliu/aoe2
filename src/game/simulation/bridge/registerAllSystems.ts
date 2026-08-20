@@ -22,6 +22,7 @@ import { registerProductionQueueSystem } from './systems/productionQueueSystem';
 import { registerRelicCountdownSystem } from './systems/relicCountdownSystem';
 import { registerRelicGoldSystem } from './systems/relicGoldSystem';
 import { registerScoutMovementSystem } from './systems/scoutMovementSystem';
+import { registerPatrolSystem } from './systems/patrolSystem';
 import { registerProjectileSystem } from './systems/projectileSystem';
 import { registerTowerCombatSystem } from './systems/towerCombatSystem';
 import { registerVillagerEconomySystem } from './systems/villagerEconomySystem';
@@ -91,6 +92,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
     clearUnitCommand,
+    resumePatrolLeg,
     distanceToBuilding,
     advanceTrebuchetTransition,
     isTrebuchetStationary,
@@ -408,6 +410,14 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     refreshVisibilityAfterCombat: syncCurrentVisibility,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
+  });
+
+  // A patrol re-issues its next leg AFTER the command system cleared the last
+  // one, so an arrival and a finished fight look the same from here.
+  registerPatrolSystem({
+    world,
+    accessor,
+    resumePatrolLeg,
   });
 
   // Projectiles land AFTER every system that can launch one this tick, so a

@@ -36,9 +36,10 @@ export interface VoxelPointerInputControllerDeps {
   ) => boolean;
   // M6 control: attack-move arming state, owned by the app so the HUD and the
   // hotkey can both drive it. Optional so existing callers/tests are unaffected.
-  readonly isAttackMoveArmed?: () => boolean;
-  readonly disarmAttackMove?: () => void;
+  readonly armedGroundOrder?: () => 'attack-move' | 'patrol' | null;
+  readonly disarmGroundOrder?: () => void;
   readonly issueAttackMoveCommand?: (cellX: number, cellY: number) => boolean;
+  readonly issuePatrolCommand?: (cellX: number, cellY: number) => boolean;
   readonly issueContextCommandAtWorldPosition: (
     worldX: number,
     worldY: number,
@@ -142,20 +143,22 @@ export function createVoxelPointerInputController(
     } catch {
       // Pointer capture can fail when the browser has already canceled it.
     }
-    if (event.button === 0 && deps.isAttackMoveArmed?.()) {
-      // M6 control: attack-move is armed (the player pressed A) and consumes
-      // this left click as its destination, exactly like AoE2. Disarm first so
-      // a rejected order cannot leave the cursor stuck in attack-move mode.
+    const armedOrder = event.button === 0 ? deps.armedGroundOrder?.() : null;
+    if (armedOrder) {
+      // M6 control: the player armed a ground order (A for attack-move, P for
+      // patrol) and this left click is its destination, exactly like AoE2.
+      // Disarm FIRST so a rejected order cannot leave the cursor stuck.
       event.preventDefault();
       const cell = worldCellAt(point.x, point.y);
-      deps.disarmAttackMove?.();
-      deps.issueAttackMoveCommand?.(cell.x, cell.y);
+      deps.disarmGroundOrder?.();
+      if (armedOrder === 'patrol') deps.issuePatrolCommand?.(cell.x, cell.y);
+      else deps.issueAttackMoveCommand?.(cell.x, cell.y);
       return;
     }
     if (event.button === 2) {
       event.preventDefault();
-      // A right-click cancels an armed attack-move rather than issuing one.
-      deps.disarmAttackMove?.();
+      // A right-click cancels an armed ground order rather than issuing one.
+      deps.disarmGroundOrder?.();
       deps.clearRecentSelectionClicks();
       const cell = worldCellAt(point.x, point.y);
       // Alt+right-click = garrison; a plain right-click always moves (§9.3).

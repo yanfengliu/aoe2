@@ -356,6 +356,12 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   hotkeyRegistry.register({ key: 'a' }, () => {
     view.armAttackMove();
   });
+  // M6 control: P arms patrol. Same interaction as attack-move — the next left
+  // click is the far end — but the route stands, so the unit paces it until
+  // ordered elsewhere.
+  hotkeyRegistry.register({ key: 'p' }, () => {
+    view.armPatrol();
+  });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc
   // has prior claimants: in replay mode it EXITS replay, and while a modal

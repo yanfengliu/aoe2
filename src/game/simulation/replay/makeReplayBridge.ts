@@ -138,6 +138,10 @@ export function makeReplayBridge(
       // Replay is playback: orders come from the recorded stream.
       return false;
     },
+    issuePatrolCommand() {
+      // Replay is playback: orders come from the recorded stream.
+      return false;
+    },
     setSelectionStance() {
       // Replay is playback: stance changes come from the recorded stream, not
       // from the viewer.

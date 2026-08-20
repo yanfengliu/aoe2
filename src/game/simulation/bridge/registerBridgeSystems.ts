@@ -95,6 +95,8 @@ export interface RegisterBridgeSystemsDeps {
   hasPendingUnitCommand: RegisterAllSystemsArg['hasPendingUnitCommand'];
   issueUnitMoveCommand: RegisterAllSystemsArg['issueUnitMoveCommand'];
   issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
+  issueUnitPatrolCommand: (unitId: number, target: Position) => boolean;
+  resumePatrolLeg: (unitId: number, target: Position) => boolean;
   setUnitMoveCommandDirect: RegisterAllSystemsArg['setUnitMoveCommandDirect'];
   pushUnitMoveIntention: RegisterAllSystemsArg['pushUnitMoveIntention'];
   distanceToBuilding: RegisterAllSystemsArg['distanceToBuilding'];
@@ -132,6 +134,7 @@ export interface RegisterBridgeSystemsResult {
   issueAction: CreateWorldResult['issueAction'];
   setSelectionStance: CreateWorldResult['setSelectionStance'];
   issueAttackMoveCommand: CreateWorldResult['issueAttackMoveCommand'];
+  issuePatrolCommand: CreateWorldResult['issuePatrolCommand'];
   issueMarketAction: CreateWorldResult['issueMarketAction'];
 }
 
@@ -183,6 +186,8 @@ export function registerBridgeSystems(
     hasPendingUnitCommand,
     issueUnitMoveCommand,
     issueUnitAttackMoveCommand,
+    issueUnitPatrolCommand,
+    resumePatrolLeg,
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
     distanceToBuilding,
@@ -247,6 +252,7 @@ export function registerBridgeSystems(
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
     clearUnitCommand,
+    resumePatrolLeg,
     distanceToBuilding,
     markOutOfBandRenderChange,
     ensurePlayerScoreCounters,
@@ -279,6 +285,7 @@ export function registerBridgeSystems(
     issueAction,
     setSelectionStance,
     issueAttackMoveCommand,
+    issuePatrolCommand,
     issueMarketAction,
   } = createHumanInputOps({
     world,
@@ -297,6 +304,7 @@ export function registerBridgeSystems(
     enqueueRejection,
     issueUnitMoveCommand,
     issueUnitAttackMoveCommand,
+    issueUnitPatrolCommand,
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
     issueSheepMoveCommand,
@@ -346,6 +354,7 @@ export function registerBridgeSystems(
     issueAction,
     setSelectionStance,
     issueAttackMoveCommand,
+    issuePatrolCommand,
     issueMarketAction,
   };
 }

@@ -20,6 +20,7 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import type { AiState } from '../ai';
+import type { PatrolRoute } from '../patrolRoute';
 import type { MemoryEntry } from './memoryTypes';
 import type {
   RelicCountdownEntry,
@@ -189,6 +190,12 @@ export const unitCommandsCodec = flatMapCodec<number, UnitCommand>('aoe2.unitCom
 // M6 control: per-unit stance. Only units whose stance DIFFERS from their
 // type's default are stored, so an untouched match serializes nothing extra.
 export const unitStancesCodec = flatMapCodec<number, UnitStance>('aoe2.unitStances');
+// M6 control: a standing patrol route, `a` <-> `b`. A patrol is NOT a command
+// — it outlives the walk it issues, which is the whole difference from an
+// attack-move: auto-aggression takes a unit off its walk to fight, and an
+// attack-move is gone at that point while a patrol resumes. Only patrolling
+// units appear here.
+export const patrolRoutesCodec = flatMapCodec<number, PatrolRoute>('aoe2.patrolRoutes');
 export const sheepMoveOrdersCodec = flatMapCodec<number, Position>('aoe2.sheepMoveOrders');
 export const monkTasksCodec = flatMapCodec<number, MonkTask>('aoe2.monkTasks');
 export const monkCarriedRelicCodec = flatMapCodec<number, number>('aoe2.monkCarriedRelic');
@@ -285,6 +292,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   aiStatesCodec,
   unitCommandsCodec,
   unitStancesCodec,
+  patrolRoutesCodec,
   sheepMoveOrdersCodec,
   monkTasksCodec,
   monkCarriedRelicCodec,

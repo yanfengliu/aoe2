@@ -26,6 +26,7 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
   switch (cmd.type) {
     case 'unit.move':
     case 'unit.attackMove':
+    case 'unit.patrol':
     case 'unit.attack':
     case 'unit.gather':
     case 'unit.autoGather':

@@ -9,14 +9,12 @@ import type { EntityRef, Position } from 'civ-engine';
 import { createContextRouter } from './contextRouter';
 import type {
   BuildingComponent,
-  GathererComponent,
   ResourceComponent,
   UnitComponent,
   UnitType, EconomyResourceKind,
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
 import { canGarrisonAt } from '../prototypeBuildingRules';
-import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import { createBuildRepairCommandOps } from './buildRepairCommandOps';
 import type { MonkTask, UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
@@ -26,6 +24,8 @@ import {
   monkTasksCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
+import { createGatherCommandOps } from './gatherCommandOps';
+import { createPatrolCommandOps } from './patrolCommandOps';
 import { createSheepCommandOps, type SheepCommandOps } from './sheepCommandOps';
 import { createUnitSelectionOps, type UnitSelectionOps } from './unitSelectionOps';
 import {
@@ -98,6 +98,10 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
   setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean;
   issueUnitAttackMoveCommand(unitId: number, target: Position): boolean;
+  issueUnitPatrolCommand(unitId: number, target: Position): boolean;
+  setUnitPatrolCommandDirect(unitId: number, target: Position): boolean;
+  clearPatrolRoute(unitId: number): void;
+  resumePatrolLeg(unitId: number, target: Position): boolean;
   // Phase 1B (DESIGN v17 §6.4): direct-mutation helper for unit.attack —
   // same role as setUnitMoveCommandDirect but for attack commands.
   setUnitAttackCommandDirect(
@@ -193,10 +197,14 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     unitId: number,
     target: Position,
     type: 'move' | 'attack-move',
+    { keepPatrol = false }: { keepPatrol?: boolean } = {},
   ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit) return false;
 
+    // Any order the PLAYER gives ends a patrol. The patrol system re-issues
+    // its own walks with keepPatrol, so the route survives its own legs.
+    if (!keepPatrol) clearPatrolRoute(unitId);
     clearGathererOrder(unitId);
     const monkTasks = accessor.get(monkTasksCodec);
     if (monkTasks.delete(unitId)) {
@@ -221,6 +229,22 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   function setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean {
     return setWalkCommandDirect(unitId, target, 'attack-move');
   }
+
+  const {
+    clearPatrolRoute,
+    setUnitPatrolCommandDirect,
+    resumePatrolLeg,
+    issueUnitPatrolCommand,
+  } = createPatrolCommandOps({
+    world,
+    accessor,
+    mapWidth,
+    mapHeight,
+    setWalkCommandDirect,
+    submitPatrol: (unitId, target) => (
+      world.submitWithResult('unit.patrol', { unitId, target }).accepted
+    ),
+  });
 
   function issueUnitAttackMoveCommand(unitId: number, target: Position): boolean {
     return world.submitWithResult('unit.attackMove', { unitId, target }).accepted;
@@ -288,54 +312,13 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // `issueUnitGatherCommand`. Used by the `unit.gather` handler (no
   // deterministic-system or AI call sites today — gather goes through
   // the HUD context-command fallthrough only).
-  function setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const gatherer = world.getComponent<GathererComponent>(unitId, 'gatherer');
-    const resource = world.getComponent<ResourceComponent>(resourceId, 'resource');
-    const targetPosition = world.getComponent<Position>(resourceId, 'position');
-    if (!unit || !gatherer || !resource || !targetPosition) return false;
-
-    const economyResource = resourceKindToEconomyResource(resource.resourceType);
-    if (economyResource === null || !isHarvestableResource(resourceId, resource)) {
-      return false;
-    }
-    // M1 Farms: a farm (resource + building hybrid) is owner-only. Reject an
-    // explicit gather order on another player's farm so a manual/context
-    // command can't steal food from it. Neutral resources are unaffected.
-    if (
-      !canGatherResource(
-        unit.owner,
-        world.getComponent<BuildingComponent>(resourceId, 'building') !== undefined,
-        resource.baseOwner,
-      )
-    ) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    gatherer.hasExplicitGatherOrder = true;
-    clearUnitCommand(unitId);
-    gatherer.desiredResource = economyResource;
-    gatherer.task = 'to-resource';
-    gatherer.targetResourceId = resourceId;
-    gatherer.dropOffBuildingId = findNearestDropOffBuilding(
-      world,
-      unit.owner,
-      economyResource,
-      targetPosition,
-    );
-    gatherer.gatherProgressTicks = 0;
-    return true;
-  }
-
-  // Bridge facade. HUD-time context-command fallthrough calls this; routes
-  // through civ-engine's command channel so the recorder captures gather
-  // intent. Handler delegates to setUnitGatherCommandDirect at start of
-  // next step.
-  function issueUnitGatherCommand(unitId: number, resourceId: number): boolean {
-    const result = world.submitWithResult('unit.gather', { unitId, resourceId });
-    return result.accepted;
-  }
+  const { setUnitGatherCommandDirect, issueUnitGatherCommand } = createGatherCommandOps({
+    world,
+    isHarvestableResource,
+    clearGathererOrder,
+    clearUnitCommand,
+    findNearestDropOffBuilding,
+  });
 
   // Right-click routing lives in contextRouter.ts (extracted for the LOC budget).
   const routeUnitContextCommandDirect = createContextRouter({
@@ -487,6 +470,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     issueUnitGatherCommand,
     issueUnitAttackMoveCommand,
     setUnitAttackMoveCommandDirect,
+    issueUnitPatrolCommand,
+    setUnitPatrolCommandDirect,
+    clearPatrolRoute,
+    resumePatrolLeg,
     issueUnitContextCommandAtEntity,
   };
 }

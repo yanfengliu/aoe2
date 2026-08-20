@@ -30,6 +30,10 @@ import {
   makeUnitAttackMoveValidator,
 } from '../handlers/unit/unitAttackMoveHandler';
 import {
+  makeUnitPatrolHandler,
+  makeUnitPatrolValidator,
+} from '../handlers/unit/unitPatrolHandler';
+import {
   makeUnitStanceHandler,
   makeUnitStanceValidator,
 } from '../handlers/unit/unitStanceHandler';
@@ -106,6 +110,7 @@ export interface CommandHandlerDeps {
   humanPlayerId: number;
   setUnitStance: (unitId: number, stance: import('../unitStance').UnitStance) => void;
   setUnitAttackMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  setUnitPatrolCommandDirect: (unitId: number, target: Position) => boolean;
   // Phase 1B (unit.attack): same pattern.
   setUnitAttackCommandDirect: (
     unitId: number,
@@ -213,6 +218,13 @@ export function registerCommandHandlers(
   }));
   world.registerHandler('unit.attackMove', makeUnitAttackMoveHandler({
     setUnitAttackMoveCommandDirect: deps.setUnitAttackMoveCommandDirect,
+  }));
+  // M6 control — unit.patrol
+  world.registerValidator('unit.patrol', makeUnitPatrolValidator({
+    humanPlayerId: deps.humanPlayerId,
+  }));
+  world.registerHandler('unit.patrol', makeUnitPatrolHandler({
+    setUnitPatrolCommandDirect: deps.setUnitPatrolCommandDirect,
   }));
   // M6 control — unit.stance
   world.registerValidator('unit.stance', makeUnitStanceValidator({
