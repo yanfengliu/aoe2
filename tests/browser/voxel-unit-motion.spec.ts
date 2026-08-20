@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { unitBaseSpeedPercent } from '../../src/game/simulation/prototypeUnitRules/unitBaseSpeed';
+import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
 import * as game from './helpers/gameTestHelpers';
 
 test.describe('voxel unit motion', () => {
@@ -81,7 +83,16 @@ test.describe('voxel unit motion', () => {
       Math.abs(x * 4 - Math.round(x * 4)) > 1e-4
       || Math.abs(y * 4 - Math.round(y * 4)) > 1e-4
     )).length).toBeGreaterThan(20);
-    expect(Math.max(...moving.map(({ distance }) => distance))).toBeLessThanOrEqual(0.1);
+    // The smoothness bound has to track the unit's speed: a Scout covers 0.75
+    // cells a tick (150% of a villager) where every unit used to cover 0.5, so
+    // the flat 0.1 this asserted was really "a quarter of a tick's travel" —
+    // i.e. at least four rendered frames per simulation tick. Stated that way
+    // it stays a real interpolation claim instead of a number tied to one
+    // speed.
+    const scoutTickTravel = (UNIT_SUBGRID_STEP_PER_TICK
+      * (unitBaseSpeedPercent('scout') / 100)) / UNIT_SUBGRID_RESOLUTION;
+    expect(Math.max(...moving.map(({ distance }) => distance)))
+      .toBeLessThanOrEqual(scoutTickTravel / 4);
     expect(Math.max(...deltas.map(({ headingDelta }) => headingDelta))).toBeLessThanOrEqual(0.25);
     expect(moving.every(({ speed }) => speed > 0)).toBe(true);
     const facingDots = moving.map(({ facingDot }) => facingDot!);

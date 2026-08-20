@@ -10,7 +10,16 @@ import {
   movementSpeedPercent,
   settleMovementCarry,
 } from '../../src/game/simulation/movementTechEffects';
+import { unitBaseSpeedPercent } from '../../src/game/simulation/prototypeUnitRules/unitBaseSpeed';
 import type { ResearchableTechnologyType, UnitType } from '../../src/game/simulation/types';
+
+// v0.3.21 turned every assertion here from an ABSOLUTE percent into a ratio
+// against the unit's own base speed. A tech does not set a unit's speed, it
+// multiplies it, so `boosted(knight) === base(knight) * 1.1` is the real
+// contract and it also proves the base survived the tech path.
+function boosted(unitType: UnitType, techPercent: number): number {
+  return Math.round((unitBaseSpeedPercent(unitType) * techPercent) / 100);
+}
 
 // Husbandry (v0.1.66): the first movement-speed tech. movementSpeedPercent
 // derives a whole-percent multiplier from the owner's researched set + the
@@ -57,21 +66,22 @@ const UNMOUNTED_TYPES: UnitType[] = [
 describe('movementSpeedPercent — Husbandry scope (technologies.csv:79 Cavalry;Cavalry Archer)', () => {
   it('grants 110% to every mounted unit when husbandry is researched', () => {
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(HUSBANDRY_SPEED_PERCENT);
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(110);
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType))
+        .toBe(boosted(unitType, HUSBANDRY_SPEED_PERCENT));
     }
   });
 
-  it('leaves every non-mounted unit at 100% even with husbandry researched', () => {
+  it('leaves every non-mounted unit at its own base even with husbandry researched', () => {
     for (const unitType of UNMOUNTED_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(100);
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType))
+        .toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
-  it('leaves mounted units at 100% without husbandry (none / unrelated tech)', () => {
+  it('leaves mounted units at their base without husbandry (none / unrelated tech)', () => {
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(NO_TECHS, unitType)).toBe(100);
-      expect(movementSpeedPercent(UNRELATED_TECH, unitType)).toBe(100);
+      expect(movementSpeedPercent(NO_TECHS, unitType)).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(UNRELATED_TECH, unitType)).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 });
@@ -98,31 +108,33 @@ const INFANTRY_TYPES: UnitType[] = [
 describe('movementSpeedPercent — Squires scope (technologies.csv:12 Infantry) + independence from Husbandry', () => {
   it('grants 110% to every infantry unit when squires is researched', () => {
     for (const unitType of INFANTRY_TYPES) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(SQUIRES_SPEED_PERCENT);
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(110);
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType))
+        .toBe(boosted(unitType, SQUIRES_SPEED_PERCENT));
     }
   });
 
-  it('leaves non-infantry (mounted / villager / archer / monk / siege) at 100% with squires', () => {
+  it('leaves non-infantry (mounted / villager / archer / monk / siege) at its base with squires', () => {
     for (const unitType of [...MOUNTED_TYPES, 'villager', 'archer', 'monk', 'mangonel'] as UnitType[]) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(100);
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
   it('does not cross the wires: Husbandry never speeds infantry, Squires never speeds mounted', () => {
     for (const unitType of INFANTRY_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(100);
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
     }
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(100);
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
   it('with BOTH techs researched, each unit gets its own +10% (no double-count)', () => {
-    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight')).toBe(110);
-    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia')).toBe(110);
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight'))
+      .toBe(boosted('knight', HUSBANDRY_SPEED_PERCENT));
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia'))
+      .toBe(boosted('militia', SQUIRES_SPEED_PERCENT));
     // A villager gets neither Husbandry nor Squires — only the carry techs
-    // (below) touch it.
+    // (below) touch it, and a villager IS the 100% reference.
     expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'villager')).toBe(100);
   });
 });
@@ -156,7 +168,8 @@ describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKIN
       'monk',
       'mangonel',
     ] as UnitType[]) {
-      expect(movementSpeedPercent(BOTH_CARRY_TECHS, unitType)).toBe(100);
+      expect(movementSpeedPercent(BOTH_CARRY_TECHS, unitType))
+        .toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
@@ -167,10 +180,13 @@ describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKIN
       'wheelbarrow',
       'hand-cart',
     ] as ResearchableTechnologyType[]);
-    expect(movementSpeedPercent(allSpeed, 'knight')).toBe(110); // Husbandry
-    expect(movementSpeedPercent(allSpeed, 'militia')).toBe(110); // Squires
+    expect(movementSpeedPercent(allSpeed, 'knight'))
+      .toBe(boosted('knight', HUSBANDRY_SPEED_PERCENT));
+    expect(movementSpeedPercent(allSpeed, 'militia'))
+      .toBe(boosted('militia', SQUIRES_SPEED_PERCENT));
     expect(movementSpeedPercent(allSpeed, 'villager')).toBe(121); // Wheelbarrow × Hand Cart
-    expect(movementSpeedPercent(allSpeed, 'archer')).toBe(100); // none
+    // The archer line has no movement tech at all, so it keeps exactly its base.
+    expect(movementSpeedPercent(allSpeed, 'archer')).toBe(unitBaseSpeedPercent('archer'));
   });
 });
 

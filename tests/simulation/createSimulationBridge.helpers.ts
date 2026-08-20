@@ -1,3 +1,6 @@
+import { UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
+import { unitBaseSpeedPercent } from '../../src/game/simulation/prototypeUnitRules/unitBaseSpeed';
+import type { UnitType } from '../../src/game/simulation/types';
 import { expect } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -128,4 +131,18 @@ export function stepBridgeUntil(
   }
 
   return false;
+}
+
+/**
+ * The most fine units a unit of this type can advance in one tick.
+ *
+ * Before per-unit base speeds every unit moved exactly UNIT_SUBGRID_STEP_PER_TICK
+ * and tests could hard-code it. Now a Scout covers 3 and a Knight 4 while a
+ * Mangonel covers 1, so a smooth-motion assertion has to ask what THIS unit is
+ * entitled to. The ceiling is right because the fractional carry hands out
+ * floor-or-floor+1 in a steady walk (the leftover after a consumed step is
+ * always under one whole fine unit).
+ */
+export function maxFineStepPerTick(unitType: UnitType): number {
+  return Math.ceil((UNIT_SUBGRID_STEP_PER_TICK * unitBaseSpeedPercent(unitType)) / 100);
 }

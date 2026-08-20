@@ -19,11 +19,57 @@ import {
   type GameWorld,
 } from '../pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../pureHelpers';
+import { unitBaseSpeedPercent } from '../../prototypeUnitRules/unitBaseSpeed';
 import { aiStatesCodec, unitCommandsCodec } from '../bridgeStateSerialize';
 import type { UnitAttackFeedRuntime } from '../bridgeState';
 import { markUnitAttackMovementStartedForEntity } from '../unitAttackAnimationFeed';
 
 type CivWorld = GameWorld;
+
+/**
+ * Turn the wanderer away from whatever just refused it.
+ *
+ * Shared by both refusal paths. A blind 90-degree rotation is not enough: at a
+ * wander-box edge the bounds reflection flips the rotated heading straight back
+ * into the wall it just hit — a two-state livelock that froze the canary-seed
+ * scout at (38,18) for 2502 ticks beside its own forward house
+ * (docs/debugging/2026-07-09-pinned-units-oracle.md). When even the escape
+ * probe finds nothing, keep rotating so the scout re-probes as soon as the box
+ * opens (a unit steps away, a building falls).
+ */
+function repickHeading(
+  id: number,
+  velocity: VelocityComponent,
+  slottedPosition: { fineX: number; fineY: number },
+  position: Position,
+  bounds: WanderBoundsComponent,
+  activeWorld: CivWorld,
+  isCellPassableForUnit: (
+    entityId: number,
+    x: number,
+    y: number,
+    world: CivWorld,
+  ) => boolean,
+): void {
+  const escape = pickEscapeHeading(
+    {
+      fineX: slottedPosition.fineX,
+      fineY: slottedPosition.fineY,
+      position,
+      bounds,
+    },
+    velocity,
+    (x, y) => isCellPassableForUnit(id, x, y, activeWorld),
+  );
+  if (escape) {
+    velocity.dx = escape.dx;
+    velocity.dy = escape.dy;
+    return;
+  }
+  const rotatedDx = -velocity.dy;
+  velocity.dy = velocity.dx;
+  velocity.dx = rotatedDx;
+}
 
 export interface ScoutMovementSystemDeps {
   world: GameWorld;
@@ -98,6 +144,17 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         // 90/180/270) breaks any such cycle while keeping runs replayable.
         applyWanderKick(velocity, activeWorld.tick, id);
 
+        // Wander moves the fine transform DIRECTLY rather than through the
+        // step executor, so the per-unit base speed has to be applied here too
+        // — otherwise an AI scout patrols at a villager's pace while the same
+        // scout under a move order travels at 150%. A whole-fine-unit step
+        // rather than the fractional carry: the bounce reflection recomputes
+        // this step three times in one tick and a carry banked across a
+        // reflection has no meaning. Rounding is exact for the scout (2 x 150%
+        // = 3) and at worst a few percent off for any future wanderer.
+        const wanderStepUnits = Math.max(1, Math.round(
+          (UNIT_SUBGRID_STEP_PER_TICK * unitBaseSpeedPercent(unit.unitType)) / 100,
+        ));
         const slottedPosition = getUnitTargetTransformForPosition(id, position);
         const currentFineX = transform?.fineX ?? slottedPosition.fineX;
         const currentFineY = transform?.fineY ?? slottedPosition.fineY;
@@ -122,8 +179,8 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           maxY: Math.max(bounds.maxY, position.y),
         };
 
-        const nextX = currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK;
-        const nextY = currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK;
+        const nextX = currentFineX + velocity.dx * wanderStepUnits;
+        const nextY = currentFineY + velocity.dy * wanderStepUnits;
 
         if (
           nextX < effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION
@@ -139,26 +196,64 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         }
 
         if (transform) {
-          const candidateTransform = {
+          // Try the full step first, then shorter ones. A wanderer hemmed in by
+          // impassable neighbours makes progress by moving WITHIN its own cell
+          // until the heading kick turns it, and a step that jumps straight
+          // over the cell boundary never gets that chance — a Scout at 3 fine
+          // units froze solid against a wall that a 2-unit step walked away
+          // from, purely because 2 happened to leave it inside the cell.
+          const candidateFor = (stepUnits: number) => ({
             ...transform,
             fineX: clamp(
-              currentFineX + velocity.dx * UNIT_SUBGRID_STEP_PER_TICK,
+              currentFineX + velocity.dx * stepUnits,
               effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION,
               effectiveBounds.maxX * UNIT_SUBGRID_RESOLUTION,
             ),
             fineY: clamp(
-              currentFineY + velocity.dy * UNIT_SUBGRID_STEP_PER_TICK,
+              currentFineY + velocity.dy * stepUnits,
               effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION,
               effectiveBounds.maxY * UNIT_SUBGRID_RESOLUTION,
             ),
-          };
-          const nextGridPosition = gridPositionFromUnitTransform(candidateTransform);
-          if (nextGridPosition.x === position.x && nextGridPosition.y === position.y) {
+          });
+          const staysInCell = (grid: { x: number; y: number }) => (
+            grid.x === position.x && grid.y === position.y
+          );
+          let candidateTransform = candidateFor(wanderStepUnits);
+          let nextGridPosition = gridPositionFromUnitTransform(candidateTransform);
+          // Whether the FULL step was refused. A shortened step can still make
+          // progress, but the heading must be re-picked either way: publishing
+          // a sub-cell wiggle and calling it movement is what lets a hemmed-in
+          // scout orbit inside one cell forever (canary scout 2257, block 3).
+          const blockedAtFullStep = !staysInCell(nextGridPosition)
+            && !isCellPassableForUnit(id, nextGridPosition.x, nextGridPosition.y, activeWorld);
+          if (blockedAtFullStep) {
+            for (let stepUnits = wanderStepUnits - 1; stepUnits >= 1; stepUnits -= 1) {
+              const shorter = candidateFor(stepUnits);
+              const grid = gridPositionFromUnitTransform(shorter);
+              if (staysInCell(grid) || isCellPassableForUnit(id, grid.x, grid.y, activeWorld)) {
+                candidateTransform = shorter;
+                nextGridPosition = grid;
+                break;
+              }
+            }
+          }
+          if (staysInCell(nextGridPosition)) {
             activeWorld.setComponent(id, 'unitTransform', candidateTransform);
             if (
               candidateTransform.fineX !== transform.fineX
               || candidateTransform.fineY !== transform.fineY
             ) markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
+            if (blockedAtFullStep) {
+              repickHeading(
+              id,
+              velocity,
+              slottedPosition,
+              position,
+              effectiveBounds,
+              activeWorld,
+              isCellPassableForUnit,
+            );
+            }
           } else if (isCellPassableForUnit(
             id,
             nextGridPosition.x,
@@ -180,7 +275,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
             const recenteredTransform = stepUnitTransformToward(
               transform,
               slottedPosition,
-              UNIT_SUBGRID_STEP_PER_TICK,
+              wanderStepUnits,
             );
             if (
               recenteredTransform.fineX !== transform.fineX
@@ -199,27 +294,15 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
             // wall it just hit — a two-state livelock that froze the
             // canary-seed scout at (38,18) for 2502 ticks beside its own
             // forward house (docs/debugging/2026-07-09-pinned-units-oracle.md).
-            const escape = pickEscapeHeading(
-              {
-                fineX: slottedPosition.fineX,
-                fineY: slottedPosition.fineY,
-                position,
-                bounds: effectiveBounds,
-              },
+            repickHeading(
+              id,
               velocity,
-              (x, y) => isCellPassableForUnit(id, x, y, activeWorld),
+              slottedPosition,
+              position,
+              effectiveBounds,
+              activeWorld,
+              isCellPassableForUnit,
             );
-            if (escape) {
-              velocity.dx = escape.dx;
-              velocity.dy = escape.dy;
-            } else {
-              // Genuinely boxed in right now: keep rotating so the scout
-              // re-probes a different heading as soon as the box opens
-              // (a unit steps away, a building falls).
-              const rotatedDx = -velocity.dy;
-              velocity.dy = velocity.dx;
-              velocity.dx = rotatedDx;
-            }
           }
           continue;
         }

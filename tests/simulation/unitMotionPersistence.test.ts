@@ -4,14 +4,13 @@ import {
   playerResourcesCodec,
   populationCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
-import { UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type {
   PlayerResources,
   PopulationState,
   UnitTransformComponent,
 } from '../../src/game/simulation/types';
-import { stepBridgeUntil } from './createSimulationBridge.helpers';
+import { maxFineStepPerTick, stepBridgeUntil } from './createSimulationBridge.helpers';
 import { worldStateOf } from './saveBlobTestUtils';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -164,7 +163,7 @@ describe('unit motion persistence', () => {
         expect(Math.hypot(
           restored.fineX - previous.fineX,
           restored.fineY - previous.fineY,
-        )).toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+        )).toBeLessThanOrEqual(maxFineStepPerTick('scout'));
       }
       previous = restored;
       if (restoredTask === 'idle') {

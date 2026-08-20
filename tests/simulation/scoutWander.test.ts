@@ -6,7 +6,7 @@ import {
   headingEscapes,
   pickEscapeHeading,
 } from '../../src/game/simulation/bridge/systems/scoutMovementSystem';
-import { UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
+import { maxFineStepPerTick } from './createSimulationBridge.helpers';
 import type { UnitTransformComponent } from '../../src/game/simulation/types';
 
 // Scout wander behavior (2026-07-09 canary-drill fix,
@@ -68,9 +68,9 @@ describe('scout wander', () => {
         const prior = previous.get(id)!;
         const current = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
         expect(Math.abs(current.fineX - prior.fineX), `scout ${id} x jump at tick ${tick}`)
-          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+          .toBeLessThanOrEqual(maxFineStepPerTick('scout'));
         expect(Math.abs(current.fineY - prior.fineY), `scout ${id} y jump at tick ${tick}`)
-          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+          .toBeLessThanOrEqual(maxFineStepPerTick('scout'));
         previous.set(id, { fineX: current.fineX, fineY: current.fineY });
       }
     }
@@ -134,9 +134,9 @@ describe('scout wander', () => {
         const prior = previous.get(id)!;
         const transform = bridge.world.getComponent<UnitTransformComponent>(id, 'unitTransform')!;
         expect(Math.abs(transform.fineX - prior.fineX), `scout ${id} x jump at tick ${i}`)
-          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+          .toBeLessThanOrEqual(maxFineStepPerTick('scout'));
         expect(Math.abs(transform.fineY - prior.fineY), `scout ${id} y jump at tick ${i}`)
-          .toBeLessThanOrEqual(UNIT_SUBGRID_STEP_PER_TICK);
+          .toBeLessThanOrEqual(maxFineStepPerTick('scout'));
         previous.set(id, { fineX: transform.fineX, fineY: transform.fineY });
         const pos = (bridge.world as { getComponent<T>(id: number, name: string): T | null })
           .getComponent<{ x: number; y: number }>(id, 'position');

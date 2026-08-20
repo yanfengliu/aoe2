@@ -17,6 +17,7 @@
 
 import type { ResearchableTechnologyType, UnitType } from './types';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
+import { unitBaseSpeedPercent } from './prototypeUnitRules/unitBaseSpeed';
 
 // AoE2 Husbandry (technologies.csv:79): mounted units move 10% faster.
 export const HUSBANDRY_SPEED_PERCENT = 110;
@@ -33,9 +34,16 @@ export const WHEELBARROW_SPEED_PERCENT = 110;
 export const HAND_CART_SPEED_PERCENT = 110;
 
 // Bound on the banked entitlement so a long-clamped unit cannot burst-move
-// later: grant ≤ floor((cap + 220)/100) = 5 fine units, and consumption is
-// further clamped to the current waypoint leg anyway. In normal unobstructed
-// motion the carry stays < 200.
+// later; consumption is further clamped to the current waypoint leg anyway.
+//
+// Per-unit base speeds (v0.3.21) raised the top per-tick entitlement from 242
+// (a villager with both carry techs) to 400 (a Heavy Demolition Ship at 200%),
+// which sits above this cap — so it is worth being explicit that the cap does
+// NOT cost a fast unit speed while it is actually moving. The bank self-
+// regulates: a knight at 169% earns 338 a tick and settles to 38 / 276 / 214 /
+// 152 / 90 over an unobstructed run of 4-fine-unit legs, never reaching 300.
+// The cap only bites on a unit that is BLOCKED for several ticks, which is
+// exactly what it is for. Measured end-to-end in unitSpeedEndToEnd.test.ts.
 export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
 
 // Whole-percent speed multiplier for a unit derived from the owner's researched
@@ -44,28 +52,29 @@ export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
 // branch. Within a class the modifiers STACK multiplicatively (the villager
 // branch below — Wheelbarrow × Hand Cart = 121); across the single-tech classes
 // a flat return is correct because each has one applicable tech. 100 = no
-// modifier (the executor's byte-identical fast path).
+// modifier (the executor's byte-identical fast path) — which after the
+// per-unit base-speed table means a VILLAGER with no techs, and nothing else.
 export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
 ): number {
+  // The unit's own rate is the STARTING point, not a special case: a Mangonel
+  // is slow whether or not anyone researched anything, and Husbandry makes a
+  // knight 10% faster than a KNIGHT rather than 10% faster than a villager.
+  let percent = unitBaseSpeedPercent(unitType);
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
-    return HUSBANDRY_SPEED_PERCENT;
-  }
-  if (researchedTechnologies.has('squires') && isInfantryUnit(unitType)) {
-    return SQUIRES_SPEED_PERCENT;
-  }
-  if (unitType === 'villager') {
-    let percent = 100;
+    percent = Math.round((percent * HUSBANDRY_SPEED_PERCENT) / 100);
+  } else if (researchedTechnologies.has('squires') && isInfantryUnit(unitType)) {
+    percent = Math.round((percent * SQUIRES_SPEED_PERCENT) / 100);
+  } else if (unitType === 'villager') {
     if (researchedTechnologies.has('wheelbarrow')) {
       percent = Math.round((percent * WHEELBARROW_SPEED_PERCENT) / 100);
     }
     if (researchedTechnologies.has('hand-cart')) {
       percent = Math.round((percent * HAND_CART_SPEED_PERCENT) / 100);
     }
-    return percent;
   }
-  return 100;
+  return percent;
 }
 
 // Phase 1 (entitle): add this tick's earned distance (base × percent, in

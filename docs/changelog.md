@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.21 - 2026-08-19
+
+### Changed
+
+- **Units move at their own speeds.** Cavalry is fast, infantry is steady, archers are a little quicker than infantry, and siege crawls — instead of everything on the map travelling at one shared pace. A Hussar now covers nearly twice the ground a villager does in the same time, and a Battering Ram barely half, so raiding, kiting, and escorting siege all play differently.
+- Husbandry, Squires, Wheelbarrow, and Hand Cart still give their +10%, but now on top of the unit's own speed rather than replacing it.
+- AI scouts patrol at scout speed. They were pacing villagers.
+
+### Fixed
+
+- A patrolling scout hemmed in by buildings or terrain no longer gets stuck against the obstacle: it turns away as soon as it is refused, whether or not it managed a short step first.
+
 ## 0.3.20 - 2026-08-19
 
 ### Added

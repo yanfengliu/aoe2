@@ -6,10 +6,7 @@ import {
   playerResourcesCodec,
   populationCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
-import {
-  UNIT_SUBGRID_RESOLUTION,
-  UNIT_SUBGRID_STEP_PER_TICK,
-} from '../../src/game/simulation/bridge/pureHelpers';
+import { UNIT_SUBGRID_RESOLUTION } from '../../src/game/simulation/bridge/pureHelpers';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import type {
   PlayerResources,
@@ -17,6 +14,7 @@ import type {
   UnitTransformComponent,
 } from '../../src/game/simulation/types';
 import {
+  maxFineStepPerTick,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 import { worldStateOf } from './saveBlobTestUtils';
@@ -43,7 +41,7 @@ describe('createSimulationBridge core systems', () => {
       'unitTransform',
     );
     expect(moved?.fineX).toBe(initial?.fineX);
-    expect((initial?.fineY ?? 0) - (moved?.fineY ?? 0)).toBe(UNIT_SUBGRID_STEP_PER_TICK);
+    expect((initial?.fineY ?? 0) - (moved?.fineY ?? 0)).toBe(maxFineStepPerTick('scout'));
   });
 
   it('restores a saved fine-grid slot before the first loaded cardinal move', () => {
@@ -90,7 +88,7 @@ describe('createSimulationBridge core systems', () => {
     );
     expect(loadedMoved?.fineX).toBe(loadedStart?.fineX);
     expect((loadedStart?.fineY ?? 0) - (loadedMoved?.fineY ?? 0))
-      .toBe(UNIT_SUBGRID_STEP_PER_TICK);
+      .toBe(maxFineStepPerTick('scout'));
   });
 
   it('continues toward the same crowded-cell slot after a mid-movement save/load', () => {
@@ -323,10 +321,14 @@ describe('createSimulationBridge core systems', () => {
         .toBeCloseTo((transform?.fineX ?? 0) / UNIT_SUBGRID_RESOLUTION);
       expect(steppedRenderedScout?.y)
         .toBeCloseTo((transform?.fineY ?? 0) / UNIT_SUBGRID_RESOLUTION);
+      // A Scout covers 3 fine units a tick (150% of a villager), so its
+      // per-tick render displacement is 0.75 cells, not the flat 0.5 every unit
+      // shared before per-unit base speeds.
+      const scoutCellStep = maxFineStepPerTick('scout') / UNIT_SUBGRID_RESOLUTION;
       expect(Math.abs((steppedRenderedScout?.x ?? 0) - (previousRenderedScout?.x ?? 0)))
-        .toBeLessThanOrEqual(0.5);
+        .toBeLessThanOrEqual(scoutCellStep);
       expect(Math.abs((steppedRenderedScout?.y ?? 0) - (previousRenderedScout?.y ?? 0)))
-        .toBeLessThanOrEqual(0.5);
+        .toBeLessThanOrEqual(scoutCellStep);
       previousRenderedScout = steppedRenderedScout;
     }
 
@@ -435,7 +437,7 @@ describe('createSimulationBridge core systems', () => {
         (rendered?.y ?? 0) - (previousRoot?.y ?? 0),
       );
       expect(rootStep).toBeLessThanOrEqual(
-        UNIT_SUBGRID_STEP_PER_TICK / UNIT_SUBGRID_RESOLUTION,
+        maxFineStepPerTick(movingUnit?.unitType ?? 'villager') / UNIT_SUBGRID_RESOLUTION,
       );
       previousRoot = rendered;
 

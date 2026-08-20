@@ -1,3 +1,5 @@
+import { unitBaseSpeedPercent } from '../../src/game/simulation/prototypeUnitRules/unitBaseSpeed';
+import type { UnitType } from '../../src/game/simulation/types';
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -166,7 +168,12 @@ describe('Husbandry — +10% mounted movement speed (per-unit carry accumulator)
 });
 
 describe('Husbandry — carry-field hygiene + in-flight research', () => {
-  it('never materializes moveCarryHundredths at 100% and banks it only on boosted movers', () => {
+  it('materializes moveCarryHundredths for anything off the 100% path, and only there', () => {
+    // Before per-unit base speeds (v0.3.21) the 100% fast path covered every
+    // un-teched unit, so this asserted the field NEVER appeared in an un-teched
+    // world. Now 100% means "moves exactly like a villager", which is the
+    // villager alone — a knight banks carry whether or not anyone researched
+    // anything, because 169% is not a whole number of fine units per tick.
     const baseline: Bridge = createSimulationBridge('husbandry-movement-baseline-fixture');
     const researched: Bridge = createSimulationBridge('husbandry-movement-researched-fixture');
 
@@ -178,38 +185,43 @@ describe('Husbandry — carry-field hygiene + in-flight research', () => {
       researched.step(100);
     }
 
-    // The un-teched world must never materialize the field — the changelog's
-    // "only boosted units persist the counter" promise.
     for (const id of baseline.world.query('unit', 'unitTransform')) {
+      const unit = baseline.world.getComponent<{ unitType: UnitType }>(id, 'unit');
       const transform = baseline.world.getComponent<{ moveCarryHundredths?: number }>(id, 'unitTransform');
-      expect(transform?.moveCarryHundredths).toBeUndefined();
+      if (unit && unitBaseSpeedPercent(unit.unitType) === 100) {
+        expect(transform?.moveCarryHundredths, unit.unitType).toBeUndefined();
+      }
     }
 
-    // On the researched twin only the BOOSTED mover banks carry; the moving
-    // militia (percent 100) stays clean.
     const boostedKnight = getOwnedUnit(researched, 1, 'knight');
-    const unboostedMilitia = getOwnedUnit(researched, 1, 'militia');
     expect(boostedKnight).toBeDefined();
-    expect(unboostedMilitia).toBeDefined();
     const knightTransform = researched.world.getComponent<{ moveCarryHundredths?: number }>(
       boostedKnight!.id,
       'unitTransform',
     );
-    const militiaTransform = researched.world.getComponent<{ moveCarryHundredths?: number }>(
-      unboostedMilitia!.id,
-      'unitTransform',
-    );
     expect(typeof knightTransform?.moveCarryHundredths).toBe('number');
-    expect(militiaTransform?.moveCarryHundredths).toBeUndefined();
+
+    // A villager IS the reference, so an un-teched one still never materializes
+    // the field — the "no cost when there is no modifier" promise survives for
+    // the units that make up most of a match.
+    const villager = getOwnedUnit(baseline, 1, 'villager');
+    if (villager) {
+      const villagerTransform = baseline.world.getComponent<{ moveCarryHundredths?: number }>(
+        villager.id,
+        'unitTransform',
+      );
+      expect(villagerTransform?.moveCarryHundredths).toBeUndefined();
+    }
   }, 30_000);
 
   it('research completing MID-WALK accelerates the remainder of the walk', () => {
-    // 30 cells east of the knight; research (500 ticks) is queued at t0 and
-    // the walk starts at t460, so completion lands ~2/3 into the ~60-tick
-    // walk and only the remainder runs at 110% — still strictly earlier than
-    // the never-researched control walking the same lane from the same tick.
+    // 30 cells east of the knight; research (500 ticks) is queued at t0.
+    // Per-unit base speeds cut this walk from ~60 ticks to ~35 (a knight is
+    // 169% of a villager), so the old t460 start had the knight ARRIVING before
+    // the research landed and the boost never applied at all. Starting at t490
+    // puts completion ~10 ticks into the walk, leaving most of it boosted.
     const FAR_TARGET = { x: 40, y: 13 };
-    const PRE_TICKS = 460;
+    const PRE_TICKS = 490;
 
     const live: Bridge = createSimulationBridge('husbandry-movement-baseline-fixture');
     expect(selectOwnedBuildingDirect(live, 1, 'stable')).toBe(true);

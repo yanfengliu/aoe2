@@ -1270,6 +1270,18 @@ Still to come as the naval roster grows:
 - forest as impassable except to tree-cutting siege where appropriate
 - no special movement speed gain simply for roads unless explicitly added later
 
+### 12.4.2 Movement Speed
+
+Every unit has a BASE speed from the `movement_rate` column of `design/stats/units.csv`, expressed as a percent of a **villager** (0.8, the 100% reference). Speed is therefore part of a unit's identity: a Hussar covers 188% of a villager's ground and a Battering Ram 63%, so raiding, kiting, and escorting siege are different problems rather than the same walk.
+
+Two rates the CSV cannot supply: `scout` has no row and takes AoE2's Scout Cavalry 1.2; `trebuchet` reads 0.0, which describes an UNPACKED trebuchet, and takes the packed 0.8 because there is no pack/unpack cycle here.
+
+The movement TECHNOLOGIES multiply that base rather than replacing it — Husbandry makes a knight 10% faster than a knight, not 10% faster than a villager. Villager is the only unit whose base is exactly 100, which is also the executor's byte-identical fast path (a unit at 100% never reads or writes the fractional carry).
+
+A fractional percent is made real by a per-unit carry accumulator (`moveCarryHundredths`) that banks the unconsumed entitlement across ticks and per-cell waypoint clamps; rounding the step instead would silently drop everything under a whole fine unit. The carry is bounded so a long-blocked unit cannot burst-move; in an unobstructed walk it self-regulates well below that bound.
+
+The autonomous scout WANDER path writes the fine transform directly rather than going through the step executor, so it applies the base speed itself, as a whole number of fine units. Two consequences the implementation has to handle and which are easy to get wrong: a wanderer hemmed in by impassable neighbours makes progress by moving within its own cell, so a step that jumps the cell boundary must fall back to a shorter one rather than freeze; and a shortened step must still re-pick the heading, because publishing a sub-cell wiggle as "movement" skips the escape logic and produces an in-cell orbit.
+
 ### 12.4.1 Stances
 
 Every unit carries a **stance**, which decides what it does when nothing has been ordered. It is a per-unit property the player commands, not a fact about the unit's type.
