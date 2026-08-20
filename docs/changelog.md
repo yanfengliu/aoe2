@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.33 - 2026-08-20
+
+### Changed
+
+- **The selection panel is a command bar along the bottom of the screen instead of a column down the middle of it.** It used to stand up to 620 pixels tall over the centre of the map — which on the default map is exactly where your own base is — with the build palette below the fold, reachable only by scrolling inside the panel. Now the world is clear above it: who is selected sits on the left, then stance, formation, and the build palette across to the minimap. Stance and formation each hold four options and now share the same compact 2x2 block. On narrower windows the sections wrap onto a second line and the minimap gives up some size, rather than the palette disappearing behind it.
+
 ## 0.3.32 - 2026-08-20
 
 ### Added

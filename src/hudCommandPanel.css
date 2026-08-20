@@ -21,13 +21,94 @@
   background: rgba(255, 255, 255, 0.045);
 }
 
+/* A command BAR, not a column. Docked along the bottom edge and laid out left to
+   right, it leaves the world above it clear. The previous vertical stack stood
+   620px tall over the middle of the map with the build palette below the fold,
+   reachable only by scrolling inside the panel — on the default map that is
+   exactly where the player's own base is. Sections flow along the bar; the bar
+   scrolls sideways only if a selection needs more room than the screen has. */
 .hud-panel--selection {
-  width: min(390px, calc(100vw - 282px));
-  max-width: 390px;
-  max-height: min(calc(100vh - 104px), 620px);
-  gap: 10px;
+  width: auto;
+  max-width: none;
+  max-height: 208px;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-color: rgba(196, 174, 122, 0.65) rgba(8, 12, 13, 0.35);
   scrollbar-width: thin;
+}
+
+/* Every section keeps its own vertical stack; the bar arranges them in a row. */
+.hud-panel--selection > * {
+  flex: 0 0 auto;
+  min-width: 0;
+  align-self: start;
+}
+
+/* Who is selected and what they are, stacked into one leading block at a fixed
+   width, so the deck beside it neither shifts about as names change length nor
+   gets squeezed out of the bar. */
+.hud-panel--selection > .hud-selection-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 264px;
+  max-height: 186px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.hud-panel--selection .hud-selection-heading {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* The deck runs left to right too, with the build palette taking what is left. */
+.hud-panel--selection > .hud-command-deck {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Groups are separated by a hairline rather than by space alone, so the bar
+   reads as distinct groups at a glance the way a command card should. */
+.hud-panel--selection .hud-command-deck > .hud-command-group {
+  flex: 0 0 auto;
+  align-content: start;
+  padding-left: 14px;
+  border-left: 1px solid var(--hud-hairline);
+}
+
+.hud-panel--selection .hud-command-deck > .hud-command-group:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.hud-panel--selection .hud-command-deck > .hud-command-group--build {
+  flex: 1 1 auto;
+  min-width: 250px;
+}
+
+.hud-panel--selection .hud-command-group--build .hud-build-menu {
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  max-height: 152px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Stance and formation both hold four options, so both sit as a 2x2 block of a
+   set width. Formation laid out as one row of four spent 290px of the bar and
+   left the build palette a single narrow column. */
+.hud-panel--selection .hud-command-group--stance .hud-command-list,
+.hud-panel--selection .hud-command-group--formation .hud-command-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 194px;
+  gap: 7px;
 }
 
 .hud-selection-heading {
@@ -41,9 +122,14 @@
   margin-top: 1px;
 }
 
+/* Compact chips that wrap within the bar's height, rather than wide columns
+   that force the panel taller than the screen. */
 .hud-panel--selection .hud-selection-details {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
   gap: 6px;
+  width: auto;
 }
 
 .hud-command-deck {
@@ -240,25 +326,59 @@
   );
 }
 
-@media (max-width: 820px) {
+/* Below this the bar and the minimap cannot share a line: the minimap takes a
+   quarter of an 800px window and the build palette ends up behind it, off the
+   screen with nothing to say so. The minimap moves onto its own line above the
+   bar, the bar takes the full width, and its sections wrap. */
+@media (max-width: 1120px) {
+  /* The bar's sections wrap onto a second line rather than running off the
+     side, and the minimap gives up some of its size to pay for it. Below this
+     width the two cannot both have what they want: at 800px the minimap alone
+     took a quarter of the window and the build palette ended up behind it, off
+     the screen with nothing to say so. */
   .hud-panel--selection {
-    width: min(350px, calc(100vw - 252px));
-    max-width: 350px;
+    flex-wrap: wrap;
+    max-height: min(44vh, 268px);
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
-  .hud-build-menu {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .hud-panel--map .hud-minimap {
+    width: 164px;
+    height: 120px;
+  }
+
+  /* Each wrapped line has to fit inside the bar, so the sections that can
+     scroll internally do, rather than pushing the line below off the bottom. */
+  .hud-panel--selection > .hud-selection-summary {
+    max-height: 122px;
+  }
+
+  .hud-panel--selection .hud-command-group--build .hud-build-menu {
+    max-height: 108px;
+  }
+
+  .hud-panel--selection > .hud-command-deck {
+    flex-wrap: wrap;
+  }
+
+  .hud-panel--selection .hud-command-deck > .hud-command-group--build {
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 820px) {
+  .hud-panel--selection > .hud-selection-summary {
+    width: 232px;
   }
 
   .hud-panel--selection .hud-selection-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 232px;
   }
 }
 
 @media (max-width: 700px) {
   .hud-panel--selection {
-    width: min(100%, 390px);
-    max-width: min(100%, 390px);
     max-height: min(48vh, 360px);
   }
 

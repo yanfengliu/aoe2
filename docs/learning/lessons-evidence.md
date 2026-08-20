@@ -622,3 +622,10 @@ Anchor: `tests/simulation/movementTrafficGridlock.test.ts::the unit a head-on ja
 `hasSpawnEgress` accepted any cell with at least one passable cardinal neighbour. The AI closed a two-cell pocket at (48,23)–(49,23) with its own house, mill, barracks, farm and Town Center; (48,23) is on the Town Center's spawn perimeter, so every villager trained afterwards was placed there and never left — seven of eleven units. Each passed the check, because the pocket's other cell is a passable neighbour. Depth-one reachability answers "is there a step" and the question is "is there a way out"; the fix walks the free region to a bounded size.
 
 Anchor: `tests/simulation/spawnEgress.test.ts::where a building puts the unit it just trained > rejects a cell whose only way out is a dead end`.
+
+## This game's screenshot diff has a ~1% animated noise floor; read every diff against it, not against zero (2026-08-20)
+
+A CSS-only HUD change diffed at 16.8% of an 800x600 frame, with red specks scattered across the world well away from the panel — which reads as a rendering regression. Capturing the SAME build twice and diffing gave 1.01% changed in exactly those places: the wandering sheep and boar at the top left, units mid-stride, and the animated waterline surf. `captureMapScreenshot.mjs` waits a fixed 1500ms after boot and the world keeps animating, so no two captures agree. A visual diff here answers "is the delta confined to the region I touched", and the answer has to be read against that floor. When in doubt, diff a build against itself first — it costs one capture pair and tells you what zero actually looks like.
+
+Anchor: `scripts/diffMapScreenshots.mjs` run twice over `LABEL=noise-before` / `LABEL=noise-after` captures of one build.
+

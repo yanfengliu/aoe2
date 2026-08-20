@@ -210,8 +210,11 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-bottom {
   justify-self: stretch;
   align-self: end;
-  display: flex;
-  justify-content: end;
+  /* The selection panel takes the free width and the minimap keeps its own, so
+     the command deck lays out ACROSS the bottom of the screen instead of piling
+     into a tall column over the middle of the map. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 10px;
   transition: margin-bottom 120ms ease;
@@ -235,14 +238,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   pointer-events: auto;
 }
 
+/* The panel is a docked command BAR — see hudCommandPanel.css, which owns its
+   width and its internal layout. Only the pointer-events gate lives here. */
 .hud-panel--selection {
-  margin-left: auto;
-  min-width: 240px;
-  max-width: 320px;
-  max-height: min(72vh, 620px);
-  display: grid;
-  gap: 8px;
-  overflow-y: auto;
   pointer-events: none;
 }
 
@@ -352,10 +350,14 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   opacity: 0.85;
 }
 
+/* Compact chips that wrap into the bar's height rather than two wide columns
+   that force the panel taller than the screen. */
 .hud-selection-details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 6px;
+  max-width: 268px;
 }
 
 .hud-selection-detail {

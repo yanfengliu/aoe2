@@ -25,7 +25,14 @@ const browser = await chromium.launch({
 });
 
 try {
-  const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  // VIEWPORT="WxH" captures at a different window size. The HUD has to work at
+  // the small end as well as the large, and a panel that overflows only at 800
+  // wide is still a panel a player cannot use.
+  const [viewportWidth, viewportHeight] = (process.env.VIEWPORT ?? '800x600')
+    .split('x').map(Number);
+  const context = await browser.newContext({
+    viewport: { width: viewportWidth, height: viewportHeight },
+  });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:4173/?seed=${seed}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {

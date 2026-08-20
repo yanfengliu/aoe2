@@ -67,3 +67,4 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 - When a unit will not move, count the DECISION per unit per tick before reading any code ([evidence](lessons-evidence.md#when-a-unit-will-not-move-count-the-decision-per-unit-per-tick-before-reading-any-code-2026-08-20))
 - A global election followed by a local veto is a deadlock, not a safety check ([evidence](lessons-evidence.md#a-global-election-followed-by-a-local-veto-is-a-deadlock-not-a-safety-check-2026-08-20))
 - An egress test one neighbour deep passes a two-cell pocket ([evidence](lessons-evidence.md#an-egress-test-one-neighbour-deep-passes-a-two-cell-pocket-2026-08-20))
+- This game's screenshot diff has a ~1% animated noise floor; read every diff against it, not against zero ([evidence](lessons-evidence.md#this-games-screenshot-diff-has-a-1-animated-noise-floor-read-every-diff-against-it-not-against-zero-2026-08-20))

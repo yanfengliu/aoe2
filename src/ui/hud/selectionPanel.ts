@@ -402,14 +402,19 @@ export function createSelectionPanel(
       renderCommandGroup('build', 'Build', buildButtons, selectionState.buildOptions.length),
     ].join('');
 
+    // Who is selected and what they are — one block, so the command deck beside
+    // it gets the rest of the bar. Grouping these three was what let the build
+    // palette fit on screen at all once the panel became a bottom bar.
     el.innerHTML = `
-      <div class="hud-selection-heading">
-        <div class="hud-label">Selection</div>
-        <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
-        ${renderSelectionActivity(selectionState)}
+      <div class="hud-selection-summary">
+        <div class="hud-selection-heading">
+          <div class="hud-label">Selection</div>
+          <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
+          ${renderSelectionActivity(selectionState)}
+        </div>
+        ${selectionIcons}
+        ${selectionDetails}
       </div>
-      ${selectionIcons}
-      ${selectionDetails}
       ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
       ${placementMarkup}
       ${commandGroups ? `<div class="hud-command-deck" data-command-deck>${commandGroups}</div>` : ''}
