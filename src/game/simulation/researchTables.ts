@@ -70,6 +70,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'herbal-medicine': { gold: 350 },
   heresy: { gold: 1000 },
   // technologies.csv rows 63/64/67: Atonement 325g, Fervor 140g, Redemption 475g.
+  'murder-holes': { food: 200, stone: 200 }, // technologies.csv row: 200f/200s.
   redemption: { gold: 475 },
   atonement: { gold: 325 },
   fervor: { gold: 140 },
@@ -199,6 +200,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   faith: 600,
   'herbal-medicine': 350,
   heresy: 600,
+  'murder-holes': 600, // CSV 60 s x 10 TPS.
   redemption: 500, // CSV 50 s / 40 s / 50 s x 10 TPS.
   atonement: 400,
   fervor: 500,

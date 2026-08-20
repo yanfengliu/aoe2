@@ -126,6 +126,9 @@ export interface RegisterAllSystemsDeps {
     position: Position,
     footprint: { width: number; height: number },
     range: number,
+    // Cells the building cannot reach because they are too CLOSE: an
+    // attacker pressed against a Tower or Castle is under its arrow slits.
+    minimumRange?: number,
   ) => number | null;
   findNearestHostileWildlifeTarget: (
     position: Position,

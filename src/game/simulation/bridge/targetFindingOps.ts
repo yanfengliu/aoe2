@@ -184,6 +184,11 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     buildingAnchor: Position,
     footprint: { width: number; height: number },
     range: number,
+    // Cells from the footprint the building CANNOT reach: a Tower or Castle
+    // shoots down from arrow slits, so an attacker pressed against the wall is
+    // underneath them. 0 for everything else, and 0 once the owner researches
+    // Murder Holes. See buildingMinimumRange.ts.
+    minimumRange = 0,
   ): number | null {
     // The queryInRadius hook uses Manhattan distance from the anchor
     // cell; expand the query radius by the building's max span so targets
@@ -217,7 +222,10 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
           if (!visibility.isVisible(viewerOwner, entry.position.x, entry.position.y)) {
             return false;
           }
-          return distanceFromBuildingFootprint(buildingAnchor, footprint, entry.position) <= range;
+          const distance = distanceFromBuildingFootprint(
+            buildingAnchor, footprint, entry.position,
+          );
+          return distance <= range && distance > minimumRange;
         },
       )
       .sort((left, right) => {

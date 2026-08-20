@@ -4,6 +4,7 @@
 // with garrisoned units (Castle gets +2 per archer-line garrisoned).
 
 import { heatedShotMultiplier } from '../../buildingTechEffects';
+import { buildingMinimumRange } from '../../buildingMinimumRange';
 import { uniqueBuildingBonus } from '../../uniqueTechnologies';
 import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
@@ -40,6 +41,9 @@ export interface TowerCombatSystemDeps {
     position: Position,
     footprint: { width: number; height: number },
     range: number,
+    // Cells too CLOSE to reach: an attacker pressed against a Tower or Castle
+    // is under its arrow slits until Murder Holes is researched.
+    minimumRange?: number,
   ) => number | null;
   destroyUnitEntity: (id: number) => void;
   refreshVisibilityAfterCombat: () => void;
@@ -128,6 +132,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           position,
           footprint,
           effectiveRange,
+          buildingMinimumRange(building.buildingType, ownerTechs),
         );
         // cooldownTicks is guaranteed 0 here (the hoisted M11 guard above
         // `continue`d while reloading), so it no longer needs re-checking.

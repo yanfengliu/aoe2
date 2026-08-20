@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.35 - 2026-08-20
+
+### Added
+
+- **Murder Holes**, and the minimum range it removes. A Watch Tower, Bombard Tower, or Castle shoots down from arrow slits and cannot hit a unit standing right against it — so walking infantry up to a tower is now a real tactic rather than a mistake. Murder Holes (University, Castle Age, 200 food and 200 stone) takes that blind spot away for all of your defensive buildings. Town Centers are deliberately exempt with or without it: under a Town Center is exactly where your villagers gather and garrison from, and one that could not defend them would be a trap.
+
 ## 0.3.34 - 2026-08-20
 
 ### Changed

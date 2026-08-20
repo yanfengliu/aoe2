@@ -12,6 +12,8 @@ import { formatEntityName } from './entityNames';
 
 export function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
   switch (technologyType) {
+    case 'murder-holes':
+      return 'Murder Holes';
     case 'redemption':
       return 'Redemption';
     case 'atonement':

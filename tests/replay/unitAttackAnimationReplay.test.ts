@@ -96,10 +96,14 @@ describe('unit attack animation replay snapshots', () => {
       // Castle at (14, 6) so the shot lands in a few ticks — well inside the
       // 10-tick attack-feed window this test asserts on — and carries a wider
       // vision radius so it still covers the attack's source and target cells.
-      seeded.setPosition(id, { x: 16, y: 7 });
+      // It stands two cells OUT from the Castle's 4x4 footprint (14,6)-(17,9):
+      // defensive buildings gained a minimum range, so a witness inside or
+      // against the footprint is under the arrow slits and never gets shot at
+      // all, which is the event this test is about.
+      seeded.setPosition(id, { x: 19, y: 7 });
       seeded.addComponent(id, 'unit', { owner: 2, unitType: 'spearman' });
       seeded.addComponent(id, 'unitTransform', {
-        fineX: 66,
+        fineX: 78,
         fineY: 28,
         occupancySlotX: 0.5,
         occupancySlotY: 0,

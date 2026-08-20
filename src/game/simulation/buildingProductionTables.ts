@@ -107,5 +107,6 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ]],
   // University: Ballistics (spec §10.4). Research-only — trains nothing.
   ['university', ['ballistics', 'masonry', 'architecture', 'treadmill-crane', 'heated-shot',
+    'murder-holes',
     'bombard-tower-unlock', 'fortified-wall']],
 ]);

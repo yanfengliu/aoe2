@@ -33,6 +33,8 @@ export function projectileTechOptions(
     if (!hasTechnology(owner, 'treadmill-crane')) options.push('treadmill-crane');
     if (!hasTechnology(owner, 'heated-shot')) options.push('heated-shot');
     if (!hasTechnology(owner, 'fortified-wall')) options.push('fortified-wall');
+    // Murder Holes: lets a Tower or Castle shoot what is pressed against it.
+    if (!hasTechnology(owner, 'murder-holes')) options.push('murder-holes');
     // Architecture is the Imperial half of Masonry and needs it first, which
     // is why it is not simply a second entry in the list above.
     if (
