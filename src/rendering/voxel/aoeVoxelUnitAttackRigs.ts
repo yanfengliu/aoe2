@@ -147,6 +147,18 @@ const TREBUCHET_RIG: UnitAttackRig = {
   controlledPartPattern: /(?:siege-(trebuchet-(arm|sling|counterweight)|chassis|deck)|detail-trebuchet-stone-sling)/u,
   pivot: { kind: 'center', suffix: 'siege-trebuchet-axle' },
 };
+const HAND_CANNON_RIG: UnitAttackRig = {
+  style: 'crossbow-fire',
+  controlledPartPattern: /archer-(cannon|arm-left|arm-right|tunic)/u,
+  bodyGroup: 'archer',
+  pivot: { kind: 'center', suffix: 'archer-cannon-barrel' },
+};
+const MOUNTED_GUN_RIG: UnitAttackRig = {
+  style: 'mounted-bow-draw',
+  controlledPartPattern: /cavalry-(gun|rider-(arm-left|arm-right|tunic))/u,
+  bodyGroup: 'mounted-rider',
+  pivot: { kind: 'center', suffix: 'cavalry-gun-barrel' },
+};
 const MONK_RIG: UnitAttackRig = { style: 'none' };
 
 const ROLE_ATTACK_RIGS = {
@@ -207,6 +219,25 @@ const UNIT_ATTACK_RIGS = {
   'heavy-demolition-ship': MONK_RIG,
   'cannon-galleon': MONK_RIG,
   'elite-cannon-galleon': MONK_RIG,
+  'jaguar-warrior': SWORD_RIG,
+  'cataphract': MOUNTED_SWORD_RIG,
+  'woad-raider': SWORD_RIG,
+  'chu-ko-nu': CROSSBOW_RIG,
+  'throwing-axeman': JAVELIN_RIG,
+  'huskarl': SWORD_RIG,
+  'tarkan': MOUNTED_SWORD_RIG,
+  'samurai': SWORD_RIG,
+  'war-wagon': MOUNTED_BOW_RIG,
+  'plumed-archer': BOW_RIG,
+  'mangudai': MOUNTED_BOW_RIG,
+  'war-elephant': LANCE_RIG,
+  'mameluke': MOUNTED_BOW_RIG,
+  'conquistador': MOUNTED_GUN_RIG,
+  'teutonic-knight': SWORD_RIG,
+  'janissary': HAND_CANNON_RIG,
+  'berserk': GREATSWORD_RIG,
+  'turtle-ship': MONK_RIG,
+  'longboat': MONK_RIG,
 } as const satisfies Record<UnitType, UnitAttackRig>;
 
 export function unitAttackRig(unitType: UnitType): UnitAttackRig {

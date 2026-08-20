@@ -21,6 +21,10 @@ export type UnitWeapon =
   | 'cannon'
   | 'trebuchet'
   | 'staff'
+  // M4 unique units: gunpowder, on foot (Janissary) and mounted
+  // (Conquistador). Both draw a barrel rather than a bow.
+  | 'hand-cannon'
+  | 'mounted-gun'
   // M5 naval: a net is the Fishing Ship's working prop, not a weapon.
   | 'net'
   | 'ship-bow'
@@ -41,7 +45,9 @@ export type UnitHeadgear =
   | 'cowl'
   | 'none';
 export type UnitShield = 'none' | 'round' | 'kite' | 'heater' | 'pavise';
-export type UnitMount = 'none' | 'horse' | 'camel';
+// M4: the War Elephant needs a mount that is not horse-shaped at all —
+// heavier body, columnar legs, trunk and tusks (see mountBody).
+export type UnitMount = 'none' | 'horse' | 'camel' | 'elephant';
 
 /**
  * Render-only art direction for one concrete UnitType. Combat classification
@@ -103,6 +109,25 @@ const UNIT_VISUAL_PROFILES = {
   'heavy-demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-powder' },
   'cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
   'elite-cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
+  'jaguar-warrior': { role: 'infantry', weapon: 'sword', armor: 'leather', headgear: 'headband', shield: 'none', mount: 'none', tier: 2, signature: 'jaguar-pelt' },
+  'cataphract': { role: 'cavalry', weapon: 'mounted-sword', armor: 'plate', headgear: 'crested-helmet', shield: 'round', mount: 'horse', tier: 3, signature: 'lamellar-skirt' },
+  'woad-raider': { role: 'infantry', weapon: 'sword', armor: 'cloth', headgear: 'hair', shield: 'none', mount: 'none', tier: 1, signature: 'woad-paint' },
+  'chu-ko-nu': { role: 'archer', weapon: 'crossbow', armor: 'leather', headgear: 'hood', shield: 'none', mount: 'none', tier: 2, signature: 'bolt-magazine' },
+  'throwing-axeman': { role: 'archer', weapon: 'javelin', armor: 'mail', headgear: 'nasal-helmet', shield: 'round', mount: 'none', tier: 2, signature: 'axe-bundle' },
+  'huskarl': { role: 'infantry', weapon: 'sword', armor: 'leather', headgear: 'nasal-helmet', shield: 'round', mount: 'none', tier: 2, signature: 'shield-boss' },
+  'tarkan': { role: 'cavalry', weapon: 'mounted-sword', armor: 'mail', headgear: 'headband', shield: 'none', mount: 'horse', tier: 2, signature: 'raider-torch' },
+  'samurai': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'kettle-helmet', shield: 'none', mount: 'none', tier: 3, signature: 'sashimono-banner' },
+  'war-wagon': { role: 'cavalry-archer', weapon: 'mounted-bow', armor: 'timber', headgear: 'leather-cap', shield: 'none', mount: 'horse', tier: 2, signature: 'wagon-plating' },
+  'plumed-archer': { role: 'archer', weapon: 'bow', armor: 'cloth', headgear: 'headband', shield: 'none', mount: 'none', tier: 2, signature: 'feather-plume' },
+  'mangudai': { role: 'cavalry-archer', weapon: 'mounted-bow', armor: 'leather', headgear: 'headband', shield: 'none', mount: 'horse', tier: 3, signature: 'horsehair-tassel' },
+  'war-elephant': { role: 'cavalry', weapon: 'lance', armor: 'mail', headgear: 'headband', shield: 'none', mount: 'elephant', tier: 2, signature: 'howdah' },
+  'mameluke': { role: 'cavalry', weapon: 'mounted-sword', armor: 'leather', headgear: 'headband', shield: 'none', mount: 'camel', tier: 3, signature: 'thrown-scimitar' },
+  'conquistador': { role: 'cavalry-archer', weapon: 'mounted-gun', armor: 'plate', headgear: 'sallet', shield: 'none', mount: 'horse', tier: 3, signature: 'powder-flask' },
+  'teutonic-knight': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'kettle-helmet', shield: 'heater', mount: 'none', tier: 3, signature: 'teuton-cross' },
+  'janissary': { role: 'archer', weapon: 'hand-cannon', armor: 'cloth', headgear: 'hood', shield: 'none', mount: 'none', tier: 3, signature: 'powder-horn' },
+  'berserk': { role: 'infantry', weapon: 'greatsword', armor: 'leather', headgear: 'hair', shield: 'none', mount: 'none', tier: 2, signature: 'wolf-pelt' },
+  'turtle-ship': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'turtle-shell' },
+  'longboat': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'dragon-prow' },
 } as const satisfies Record<UnitType, UnitVisualProfile>;
 
 export function unitVisualProfile(unitType: UnitType): UnitVisualProfile | undefined {

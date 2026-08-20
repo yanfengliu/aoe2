@@ -22,6 +22,8 @@ export function targetPriority(unitType: UnitType): number {
     case 'fire-ship': case 'fast-fire-ship':
     case 'demolition-ship': case 'heavy-demolition-ship':
     case 'cannon-galleon': case 'elite-cannon-galleon':
+    case 'turtle-ship':
+    case 'longboat':
       return 4;
     // Slice 7A: the Imperial-tier siege units slot into the same top-of-
     // target-priority bucket as their Castle-Age predecessors. Bombard
@@ -38,6 +40,8 @@ export function targetPriority(unitType: UnitType): number {
       return 0;
     case 'monk':
       return 1;
+    // M4 unique units join the bucket of the stock line they replace: they
+    // outrange or out-damage it, so they are worth killing on the same terms.
     case 'archer':
     case 'crossbowman':
     case 'cavalry-archer':
@@ -46,6 +50,14 @@ export function targetPriority(unitType: UnitType): number {
     case 'arbalest':
     case 'heavy-cavalry-archer':
     case 'elite-longbowman':
+    case 'chu-ko-nu':
+    case 'throwing-axeman':
+    case 'war-wagon':
+    case 'plumed-archer':
+    case 'mangudai':
+    case 'mameluke':
+    case 'conquistador':
+    case 'janissary':
       return 2;
     case 'militia':
     case 'spearman':
@@ -63,6 +75,15 @@ export function targetPriority(unitType: UnitType): number {
     case 'two-handed-swordsman':
     case 'paladin':
     case 'heavy-camel':
+    case 'jaguar-warrior':
+    case 'cataphract':
+    case 'woad-raider':
+    case 'huskarl':
+    case 'tarkan':
+    case 'samurai':
+    case 'war-elephant':
+    case 'teutonic-knight':
+    case 'berserk':
       return 3;
     case 'villager':
       return 4;

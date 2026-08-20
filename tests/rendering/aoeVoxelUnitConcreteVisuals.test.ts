@@ -59,6 +59,27 @@ const WEAPONS = {
   'heavy-demolition-ship': { kind: 'ship-powder', parts: ['ship-powder-keg', 'ship-powder-fuse'] },
   'cannon-galleon': { kind: 'ship-cannon', parts: ['ship-cannon-barrel', 'ship-cannon-muzzle'] },
   'elite-cannon-galleon': { kind: 'ship-cannon', parts: ['ship-cannon-barrel', 'ship-cannon-muzzle'] },
+  // M4 unique units. Two new weapon looks arrive with them: the Janissary
+  // carries a matchlock on foot and the Conquistador one from the saddle.
+  'jaguar-warrior': { kind: 'sword', parts: ['infantry-sword', 'infantry-sword-hilt'] },
+  'cataphract': { kind: 'mounted-sword', parts: ['cavalry-sword', 'cavalry-sword-hilt'] },
+  'woad-raider': { kind: 'sword', parts: ['infantry-sword', 'infantry-sword-hilt'] },
+  'chu-ko-nu': { kind: 'crossbow', parts: ['archer-crossbow-stock', 'archer-crossbow-bow', 'archer-crossbow-bolt'] },
+  'throwing-axeman': { kind: 'javelin', parts: ['archer-javelin-shaft', 'archer-javelin-head'] },
+  'huskarl': { kind: 'sword', parts: ['infantry-sword', 'infantry-sword-hilt'] },
+  'tarkan': { kind: 'mounted-sword', parts: ['cavalry-sword', 'cavalry-sword-hilt'] },
+  'samurai': { kind: 'sword', parts: ['infantry-sword', 'infantry-sword-hilt'] },
+  'war-wagon': { kind: 'mounted-bow', parts: ['cavalry-archer-bow-upper', 'cavalry-archer-bow-lower', 'cavalry-archer-bow-grip'] },
+  'plumed-archer': { kind: 'bow', parts: ['archer-bow-upper', 'archer-bow-lower', 'archer-bow-grip'] },
+  'mangudai': { kind: 'mounted-bow', parts: ['cavalry-archer-bow-upper', 'cavalry-archer-bow-lower', 'cavalry-archer-bow-grip'] },
+  'war-elephant': { kind: 'lance', parts: ['cavalry-lance', 'cavalry-lance-tip'] },
+  'mameluke': { kind: 'mounted-sword', parts: ['cavalry-sword', 'cavalry-sword-hilt'] },
+  'conquistador': { kind: 'mounted-gun', parts: ['cavalry-gun-stock', 'cavalry-gun-barrel', 'cavalry-gun-muzzle'] },
+  'teutonic-knight': { kind: 'sword', parts: ['infantry-sword', 'infantry-sword-hilt'] },
+  'janissary': { kind: 'hand-cannon', parts: ['archer-cannon-stock', 'archer-cannon-barrel', 'archer-cannon-muzzle'] },
+  'berserk': { kind: 'greatsword', parts: ['infantry-greatsword', 'infantry-greatsword-hilt'] },
+  'turtle-ship': { kind: 'ship-cannon', parts: ['ship-cannon-barrel', 'ship-cannon-muzzle'] },
+  'longboat': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
 } as const satisfies Record<UnitType, WeaponExpectation>;
 
 const UNIT_TYPES = Object.keys(ALL_UNIT_TYPES) as UnitType[];

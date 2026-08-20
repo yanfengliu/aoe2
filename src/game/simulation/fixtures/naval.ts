@@ -23,7 +23,10 @@ function navalTerrain() {
   return terrain;
 }
 
-export function createNavalFixture(seed: string): PrototypeScenario {
+export function createNavalFixture(
+  seed: string,
+  startingAge?: 'castle-age' | 'imperial-age',
+): PrototypeScenario {
   return {
     seed,
     width: MAP_WIDTH,
@@ -33,7 +36,8 @@ export function createNavalFixture(seed: string): PrototypeScenario {
       {
         owner: 1,
         townCenter: { x: 5, y: 8 },
-        startingResources: { food: 500, wood: 1000, gold: 300, stone: 200 },
+        startingResources: { food: 2000, wood: 2000, gold: 2000, stone: 1000 },
+        startingAge,
       },
       {
         owner: 2,
@@ -57,4 +61,16 @@ export function createNavalFixture(seed: string): PrototypeScenario {
       ownedSpawn('galley', 2, 20, 5, { vision: 7 }),
     ],
   };
+}
+
+// The same bay, with the owner already in Castle Age — the age at which the
+// Fire Ship and Demolition Ship lines open at the Dock.
+export function createNavalCastleAgeFixture(seed: string): PrototypeScenario {
+  return createNavalFixture(seed, 'castle-age');
+}
+
+// ...and in Imperial Age, where the Cannon Galleon and every ship upgrade is
+// available to research.
+export function createNavalImperialFixture(seed: string): PrototypeScenario {
+  return createNavalFixture(seed, 'imperial-age');
 }

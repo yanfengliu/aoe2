@@ -548,3 +548,19 @@ Lesson: presentation privacy cannot be repaired after coordinates have entered a
 | Second finding, same session | Contours alone still left the frame *below* its Painted baseline (L=86.8), because quantising luminance does nothing to chroma — a scene lit for realism stays muted however flat its tones become. Flat colour in this idiom is *saturated* colour, and no amount of edge or band tuning could have produced it. `saturation` and `brightness` were added to the pass in `voxel` (gamut-safe and hue-preserving) and took the frame to **L=96.9**, brighter than the original despite the ink it adds. |
 
 Lesson: an edge detector's discriminating power is a property of the geometry it is pointed at, not of the detector. Before porting a stylization constant between projects, ask what the signal it keys on actually looks like in the new content — a source that is informative in smooth geometry can be a constant in blocky geometry, where it stops being a detector and becomes a uniform darkening. When a whole-frame effect looks wrong, configure it to identity first and compare against the baseline: that single capture separates "the pipeline is broken" from "the numbers are wrong", and they need completely different work. And when a look depends on a channel the effect does not touch at all — here chroma — no amount of tuning the channels it does touch will reach it.
+
+## A whole-population characterization hash detects change but cannot LOCALISE it — a slice that legitimately moves it must bring a per-item digest (2026-08-19)
+
+`tests/rendering/aoeVoxelUnitRecipeCharacterization.test.ts` hashes every unit in the roster into eight state-bucket digests. That is a good change detector while the roster is fixed, and useless the moment a slice adds units: all eight move by construction, and re-recording them cannot distinguish "19 new units" from "19 new units and a regression in the knight". v0.3.20 added 19 units and edited three shared recipe functions (`mountBody`, `mountedWeapon`, `hull`), any of which could have leaked into the existing 44.
+
+What worked: a throwaway probe that wrote a PER-UNIT digest with a FIXED id (the real test derives the id from the roster index, so an insertion alone perturbs it) over six animation states. Run on the working tree, then at HEAD via `git stash push --include-untracked`, then diffed: all 44 pre-existing units byte-identical, both before and after the geometry fixes. Only then was the roster pin re-recorded.
+
+Anchor: commit for v0.3.20; `tests/rendering/aoeVoxelUnitRecipeCharacterization.test.ts > AoE voxel unit recipe characterization > pins every unit type across the recipe and attack-animation state space`.
+
+## A feature can pass every fixture test and still be UNREACHABLE from its menu — assert the player-facing options list (2026-08-19)
+
+The nine warships shipped in v0.3.17 had correct stats, were listed in `TRAINABLE_UNITS_BY_BUILDING` so `queueTraining` accepted them, and won a suite of naval combat tests. The Dock's train MENU still returned `['fishing-ship']`, so no player could build any of them. Every naval test spawned its ships from a fixture, so nothing ever asked the menu. The stale comment in `optionsRules` even said "for now it is the Fishing Ship".
+
+The rule: for anything a player acquires, one test must read the same list the HUD reads. Same shape as the v0.3.15 finding where a green test on `deliverUnitAttackOnUnit` said nothing about whether its caller passed the techs.
+
+Anchor: `tests/simulation/dock.test.ts > the Dock train menu reaches the warships > offers the Galley line once out of the Dark Age`.

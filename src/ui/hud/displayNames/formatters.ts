@@ -22,6 +22,18 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fletching';
     case 'crossbowman-upgrade':
       return 'Crossbowman';
+    case 'war-galley-upgrade':
+      return 'War Galley';
+    case 'galleon-upgrade':
+      return 'Galleon';
+    case 'fast-fire-ship-upgrade':
+      return 'Fast Fire Ship';
+    case 'heavy-demolition-ship-upgrade':
+      return 'Heavy Demolition Ship';
+    case 'cannon-galleon-unlock':
+      return 'Cannon Galleon';
+    case 'elite-cannon-galleon-upgrade':
+      return 'Elite Cannon Galleon';
     case 'pikeman-upgrade':
       return 'Pikeman';
     case 'light-cavalry-upgrade':

@@ -2,6 +2,20 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.20 - 2026-08-19
+
+### Added
+
+- **Unique units for nineteen civilizations.** Your Castle now trains your civilization's signature unit — Jaguar Warrior, Cataphract, Woad Raider, Chu Ko Nu, Throwing Axeman, Huskarl, Tarkan, Samurai, War Wagon, Plumed Archer, Mangudai, War Elephant, Mameluke, Conquistador, Teutonic Knight, Janissary, Berserk, and the Longbowman that was already there. Each has its real stats, its own look, and its own counter-role; you only ever see your own.
+- **Naval unique units.** Koreans build the **Turtle Ship** and Vikings the **Longboat** at the Dock from Castle Age. Both are unmistakable on the water: the Turtle Ship is roofed in spiked iron, the Longboat carries a dragon prow and a shield wall.
+- **Warships are buildable.** The Galley, Fire Ship, Demolition Ship, and Cannon Galleon lines shipped with the naval roster but never appeared in the Dock's train menu, so there was no way to build one. The Dock now offers each line, gated by age.
+- **Dock technologies.** War Galley, Galleon, Fast Fire Ship, Heavy Demolition Ship, Cannon Galleon, and Elite Cannon Galleon are researchable at the Dock. Each upgrades the ships you already have and anything still in the queue.
+- The **Samurai** does bonus damage to other civilizations' unique units, as it should.
+
+### Fixed
+
+- Ships in the unit showcase no longer render half-beached on the shoreline.
+
 ## 0.3.19 - 2026-08-18
 
 ### Added

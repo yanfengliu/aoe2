@@ -63,16 +63,17 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(trainOptions).toEqual(['longbowman']);
   });
 
-  it('Castle under a non-Britons owner exposes no trainable units', () => {
-    // castle-non-britons-fixture sets the HUMAN player's civilization
-    // to Franks with a completed Castle, so the human-owned Castle
-    // offers no trainable units in v1 (only Britons ship a unique unit
-    // yet). This is the flip of the prior Britons test.
+  it('Castle under a non-Britons owner exposes that civ unique unit, not the Longbowman', () => {
+    // castle-non-britons-fixture sets the HUMAN player's civilization to Franks
+    // with a completed Castle. Before v0.3.20 only the Britons had a unique
+    // unit and this asserted an EMPTY menu; the Franks now train the Throwing
+    // Axeman, so the contract is that a Castle shows its OWN civ's unit and
+    // never another's.
     const bridge = createSimulationBridge('castle-non-britons-fixture');
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
-    expect(trainOptions).toEqual([]);
+    expect(trainOptions).toEqual(['throwing-axeman']);
   });
 
   it('Longbowman hits a target at range 6 without closing', () => {

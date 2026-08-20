@@ -16,6 +16,9 @@ import type { UnitVisualProfile } from './aoeVoxelUnitVisualProfiles';
  * partly submerged rather than parked on the surface.
  */
 function hull(context: UnitRecipeContext, profile: UnitVisualProfile): void {
+  // A Turtle Ship is roofed over, so it supplies its own top structure and
+  // the mast/sail/pennant would only poke through the shell.
+  const covered = profile.signature === 'turtle-shell';
   const timber = shade(VOXEL_COLORS.timber, 1.05);
   const timberDark = VOXEL_COLORS.timberDark;
 
@@ -27,6 +30,7 @@ function hull(context: UnitRecipeContext, profile: UnitVisualProfile): void {
   // Prow and stern blocks taper the ends.
   addUnitPart(context, 'ship-prow', 'matte', timber, 0, 0.02, 0.46, 0.2, 0.2, 0.16);
   addUnitPart(context, 'ship-stern', 'matte', timberDark, 0, 0.04, -0.44, 0.28, 0.18, 0.12);
+  if (covered) return;
   // Mast with a crossyard.
   addUnitPart(context, 'ship-mast', 'matte', timberDark, 0, 0.14, 0.04, 0.055, 0.62, 0.055);
   addUnitPart(context, 'ship-yard', 'matte', timberDark, 0, 0.6, 0.04, 0.05, 0.045, 0.44);
@@ -34,7 +38,6 @@ function hull(context: UnitRecipeContext, profile: UnitVisualProfile): void {
   // slab, so ownership rides on the hull tint and a pennant instead.
   addUnitPart(context, 'ship-sail', 'matte', VOXEL_COLORS.plasterLight, 0, 0.28, 0.02, 0.03, 0.32, 0.42);
   addUnitPart(context, 'ship-pennant', 'matte', context.team, 0, 0.66, 0.1, 0.02, 0.06, 0.16);
-  void profile;
 }
 
 /** Galley line: archers' shield rack along the rail and a bow on the deck. */
@@ -64,6 +67,38 @@ function cannonArmament(context: UnitRecipeContext): void {
   addUnitPart(context, 'ship-cannon-carriage', 'matte', VOXEL_COLORS.timberDark, 0.16, 0.12, 0.14, 0.14, 0.1, 0.16);
 }
 
+/**
+ * Turtle Ship (Koreans): an iron-plated roof clamped over the whole deck with
+ * spikes along the ridge, and a dragon's head at the prow that the cannon fires
+ * through. Nothing else afloat has a closed top, so the silhouette reads at a
+ * glance even at default zoom.
+ */
+function turtleShell(context: UnitRecipeContext): void {
+  const iron = shade(VOXEL_COLORS.steelDark, 0.92);
+  addUnitPart(context, 'ship-turtle-shell', 'metal', iron, 0, 0.2, 0, 0.44, 0.24, 0.78);
+  addUnitPart(context, 'ship-turtle-ridge', 'metal', VOXEL_COLORS.steel, 0, 0.34, 0, 0.16, 0.1, 0.7);
+  for (const [name, z] of [['fore', 0.24], ['mid', 0], ['aft', -0.24]] as const) {
+    addUnitPart(context, `ship-turtle-spike-${name}`, 'metal', VOXEL_COLORS.steel, 0, 0.42, z, 0.05, 0.1, 0.05);
+  }
+  addUnitPart(context, 'ship-turtle-head', 'matte', context.team, 0, 0.2, 0.5, 0.16, 0.18, 0.18);
+  addUnitPart(context, 'ship-turtle-jaw', 'metal', VOXEL_COLORS.gold, 0, 0.14, 0.6, 0.1, 0.08, 0.1);
+}
+
+/**
+ * Longboat (Vikings): a carved dragon prow and a shield wall down the rail —
+ * the two things that make a longship recognisable from any angle.
+ */
+function dragonProw(context: UnitRecipeContext): void {
+  addUnitPart(context, 'ship-dragon-neck', 'matte', VOXEL_COLORS.timberDark, 0, 0.22, 0.48, 0.08, 0.4, 0.1, { roll: -0.22 });
+  addUnitPart(context, 'ship-dragon-head', 'matte', shade(VOXEL_COLORS.timber, 0.9), 0, 0.44, 0.56, 0.12, 0.12, 0.2);
+  addUnitPart(context, 'ship-dragon-crest', 'matte', context.team, 0, 0.52, 0.52, 0.04, 0.1, 0.14);
+  for (const [name, z] of [['fore', 0.26], ['mid', 0.02], ['aft', -0.22]] as const) {
+    for (const [side, x] of [['left', -0.22], ['right', 0.22]] as const) {
+      addUnitPart(context, `ship-shield-${side}-${name}`, 'matte', shade(context.team, 0.78), x, 0.18, z, 0.05, 0.2, 0.2);
+    }
+  }
+}
+
 /** A Fishing Ship's working prop: a net slung over the stern rail. */
 function fishingNet(context: UnitRecipeContext): void {
   addUnitPart(context, 'ship-fishing-net', 'matte', VOXEL_COLORS.cloth, 0, 0.06, -0.5, 0.24, 0.22, 0.08);
@@ -76,6 +111,10 @@ export function addShipUnitParts(
   profile: UnitVisualProfile,
 ): void {
   hull(context, profile);
+  // The two unique hulls are chosen by SIGNATURE: both share an ordinary
+  // warship's weapon, and what makes them recognisable is the hull itself.
+  if (profile.signature === 'turtle-shell') turtleShell(context);
+  else if (profile.signature === 'dragon-prow') dragonProw(context);
   if (profile.weapon === 'net') fishingNet(context);
   else if (profile.weapon === 'ship-bow') bowArmament(context);
   else if (profile.weapon === 'ship-fire') fireArmament(context);

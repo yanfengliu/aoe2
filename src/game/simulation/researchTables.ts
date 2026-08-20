@@ -77,6 +77,13 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Thumb Ring (Archery Range, Castle).
   ballistics: { wood: 300, gold: 175 },
   'thumb-ring': { food: 300, wood: 250 },
+  // M5 naval, Dock (technologies.csv): the ship upgrade lines.
+  'war-galley-upgrade': { food: 230, gold: 100 },
+  'galleon-upgrade': { food: 400, wood: 315 },
+  'fast-fire-ship-upgrade': { wood: 280, gold: 250 },
+  'heavy-demolition-ship-upgrade': { wood: 200, gold: 300 },
+  'cannon-galleon-unlock': { food: 400, wood: 500 },
+  'elite-cannon-galleon-upgrade': { wood: 525, gold: 500 },
 };
 
 export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
@@ -149,4 +156,11 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   conscription: 600, // Castle, Imperial: 60 s × 10 TPS.
   ballistics: 600, // 60 s × 10 TPS.
   'thumb-ring': 450, // 45 s × 10 TPS.
+  // M5 naval, Dock (technologies.csv): the ship upgrade lines.
+  'war-galley-upgrade': 500,
+  'galleon-upgrade': 650,
+  'fast-fire-ship-upgrade': 500,
+  'heavy-demolition-ship-upgrade': 500,
+  'cannon-galleon-unlock': 500,
+  'elite-cannon-galleon-upgrade': 300,
 };

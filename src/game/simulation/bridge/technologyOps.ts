@@ -10,6 +10,7 @@
 // the other ~80 touches of these maps in the bridge keep using the same
 // references.
 
+import { UNIT_LINE_UPGRADES } from './unitLineUpgrades';
 import type {
   RenderableComponent,
   ResearchableTechnologyType,
@@ -194,6 +195,13 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       accessor.markDirty(researchedTechnologiesCodec);
     }
 
+    // Unit-line upgrades are a table (unitLineUpgrades.ts), not control flow.
+    const lineUpgrade = UNIT_LINE_UPGRADES[technologyType];
+    for (const from of lineUpgrade?.from ?? []) {
+      upgradeOwnedUnits(owner, from, lineUpgrade!.to);
+      rewriteQueuedPredecessorUnits(owner, from, lineUpgrade!.to);
+    }
+
     switch (technologyType) {
       case 'feudal-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'feudal-age'));
@@ -219,109 +227,28 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
           combat.attackRange = unitAttackRange(unit.unitType) + 1;
         }
         break;
-      case 'crossbowman-upgrade':
-        upgradeOwnedUnits(owner, 'archer', 'crossbowman');
-        rewriteQueuedPredecessorUnits(owner, 'archer', 'crossbowman');
-        break;
-      case 'pikeman-upgrade':
-        upgradeOwnedUnits(owner, 'spearman', 'pikeman');
-        rewriteQueuedPredecessorUnits(owner, 'spearman', 'pikeman');
-        break;
-      case 'light-cavalry-upgrade':
-        upgradeOwnedUnits(owner, 'scout', 'light-cavalry');
-        rewriteQueuedPredecessorUnits(owner, 'scout', 'light-cavalry');
+      // M5 naval, Dock: the ship upgrade lines. Cannon Galleon has no
+      // predecessor to convert — its technology only UNLOCKS training.
+      case 'cannon-galleon-unlock':
         break;
       // Slice 7B: Archery Range Imperial upgrades. Each mutates the
       // predecessor line in place and rewrites any queued predecessor
       // training entries so the research swap is effectively instant.
-      case 'arbalest-upgrade':
-        upgradeOwnedUnits(owner, 'crossbowman', 'arbalest');
-        rewriteQueuedPredecessorUnits(owner, 'crossbowman', 'arbalest');
-        break;
-      case 'heavy-cavalry-archer-upgrade':
-        upgradeOwnedUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
-        rewriteQueuedPredecessorUnits(owner, 'cavalry-archer', 'heavy-cavalry-archer');
-        break;
       // Slice 7B: Barracks Imperial upgrades. Halberdier replaces Pikeman;
       // FU2 reinstated the intermediate Man-at-Arms / Long Swordsman /
       // Two-Handed tiers between Militia and Champion.
-      case 'halberdier-upgrade':
-        upgradeOwnedUnits(owner, 'pikeman', 'halberdier');
-        rewriteQueuedPredecessorUnits(owner, 'pikeman', 'halberdier');
-        break;
       // FU2 Feudal Barracks: Militia → Man-at-Arms.
-      case 'man-at-arms-upgrade':
-        upgradeOwnedUnits(owner, 'militia', 'man-at-arms');
-        rewriteQueuedPredecessorUnits(owner, 'militia', 'man-at-arms');
-        break;
       // FU2 Castle Barracks: Man-at-Arms → Long Swordsman.
-      case 'long-swordsman-upgrade':
-        upgradeOwnedUnits(owner, 'man-at-arms', 'long-swordsman');
-        rewriteQueuedPredecessorUnits(owner, 'man-at-arms', 'long-swordsman');
-        break;
       // FU2 Imperial Barracks: Long Swordsman → Two-Handed Swordsman.
-      case 'two-handed-swordsman-upgrade':
-        upgradeOwnedUnits(owner, 'long-swordsman', 'two-handed-swordsman');
-        rewriteQueuedPredecessorUnits(
-          owner,
-          'long-swordsman',
-          'two-handed-swordsman',
-        );
-        break;
-      case 'champion-upgrade':
-        // FU2: the owner may hold any militia-line tier when Champion is
-        // researched — walk every predecessor (incl. the Slice 7 direct
-        // Militia → Champion path) so all tiers mutate to Champion.
-        upgradeOwnedUnits(owner, 'militia', 'champion');
-        upgradeOwnedUnits(owner, 'man-at-arms', 'champion');
-        upgradeOwnedUnits(owner, 'long-swordsman', 'champion');
-        upgradeOwnedUnits(owner, 'two-handed-swordsman', 'champion');
-        rewriteQueuedPredecessorUnits(owner, 'militia', 'champion');
-        rewriteQueuedPredecessorUnits(owner, 'man-at-arms', 'champion');
-        rewriteQueuedPredecessorUnits(owner, 'long-swordsman', 'champion');
-        rewriteQueuedPredecessorUnits(owner, 'two-handed-swordsman', 'champion');
-        break;
       // Slice 7C: Stable Imperial upgrades. Hussar replaces Light Cavalry
       // (the scout-line tail) and Cavalier replaces Knight. FU2 extends
       // the Knight line to Paladin and the Camel line to Heavy Camel.
-      case 'hussar-upgrade':
-        upgradeOwnedUnits(owner, 'light-cavalry', 'hussar');
-        rewriteQueuedPredecessorUnits(owner, 'light-cavalry', 'hussar');
-        break;
-      case 'cavalier-upgrade':
-        upgradeOwnedUnits(owner, 'knight', 'cavalier');
-        rewriteQueuedPredecessorUnits(owner, 'knight', 'cavalier');
-        break;
-      case 'paladin-upgrade':
-        upgradeOwnedUnits(owner, 'cavalier', 'paladin');
-        rewriteQueuedPredecessorUnits(owner, 'cavalier', 'paladin');
-        break;
-      case 'heavy-camel-upgrade':
-        upgradeOwnedUnits(owner, 'camel', 'heavy-camel');
-        rewriteQueuedPredecessorUnits(owner, 'camel', 'heavy-camel');
-        break;
       // Slice 7C: Castle Imperial upgrade. Britons-gated Elite Longbowman
       // replaces the Longbowman. The research option is civ-filtered in
       // getResearchOptions so this branch only fires for Britons owners.
-      case 'elite-longbowman-upgrade':
-        upgradeOwnedUnits(owner, 'longbowman', 'elite-longbowman');
-        rewriteQueuedPredecessorUnits(owner, 'longbowman', 'elite-longbowman');
-        break;
       // Slice 7D: Siege Workshop Imperial upgrades. Each mutates the
       // predecessor siege line in place and rewrites any queued predecessor
       // training entries so the research swap is effectively instant.
-      case 'onager-upgrade':
-        upgradeOwnedUnits(owner, 'mangonel', 'onager');
-        rewriteQueuedPredecessorUnits(owner, 'mangonel', 'onager');
-        break;
-      case 'heavy-scorpion-upgrade':
-        upgradeOwnedUnits(owner, 'scorpion', 'heavy-scorpion');
-        rewriteQueuedPredecessorUnits(owner, 'scorpion', 'heavy-scorpion');
-        break;
-      case 'siege-ram-upgrade':
-        upgradeOwnedUnits(owner, 'battering-ram', 'siege-ram');
-        rewriteQueuedPredecessorUnits(owner, 'battering-ram', 'siege-ram');
-        break;
       // Siege Engineers: +1 attack range to every owned SIEGE unit. New siege
       // units get it via createCombatState (Fletching pattern). The already-
       // researched guard at the top of applyTechnology keeps this single-

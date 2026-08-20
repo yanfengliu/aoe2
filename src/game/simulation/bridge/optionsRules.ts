@@ -1,5 +1,7 @@
 // Building option lookups (train/research/market/build menus, read by HUD + AI). Pure over the player's age/civ/researched set; the bridge passes predicates in.
 
+import { dockResearchOptions } from './dockTechOptions';
+import { uniqueUnitsFor, uniqueUnitsTrainedAt } from '../uniqueUnits';
 import type {
   BuildableBuildingType,
   BuildingType,
@@ -107,10 +109,44 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         }
         return [scoutLine];
       }
-      // M5 naval: the Dock trains ships from the Dark Age. Warships arrive
-      // with the rest of the naval roster; for now it is the Fishing Ship.
-      case 'dock':
-        return ['fishing-ship'];
+      // M5 naval: the Dock trains ships from the Dark Age. v0.3.20 wired the
+      // warship LINES in — until then the ships existed and fought but the menu
+      // still only offered the Fishing Ship, so no player could build one.
+      case 'dock': {
+        const options: TrainableUnitType[] = ['fishing-ship'];
+        if (getPlayerAge(owner) === 'dark-age') {
+          return options;
+        }
+        options.push(latestResearchedInChain(owner, [
+          'galley',
+          ['war-galley', 'war-galley-upgrade'],
+          ['galleon', 'galleon-upgrade'],
+        ]));
+        if (isAtLeastAge(owner, 'castle-age')) {
+          options.push(latestResearchedInChain(owner, [
+            'fire-ship',
+            ['fast-fire-ship', 'fast-fire-ship-upgrade'],
+          ]));
+          options.push(latestResearchedInChain(owner, [
+            'demolition-ship',
+            ['heavy-demolition-ship', 'heavy-demolition-ship-upgrade'],
+          ]));
+          for (const entry of uniqueUnitsTrainedAt(getPlayerCivilization(owner), 'dock')) {
+            options.push(entry.elite
+              ? latestResearchedInChain(owner, [entry.unitType, entry.elite])
+              : entry.unitType);
+          }
+        }
+        // The Cannon Galleon is UNLOCKED by research rather than upgraded into,
+        // so it only joins the menu once that technology is done.
+        if (hasTechnology(owner, 'cannon-galleon-unlock')) {
+          options.push(latestResearchedInChain(owner, [
+            'cannon-galleon',
+            ['elite-cannon-galleon', 'elite-cannon-galleon-upgrade'],
+          ]));
+        }
+        return options;
+      }
       case 'archery-range': {
         if (getPlayerAge(owner) === 'dark-age') {
           return [];
@@ -163,13 +199,13 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
           return [];
         }
         const options: TrainableUnitType[] = [];
-        if (getPlayerCivilization(owner) === 'Britons') {
-          options.push(
-            latestResearchedInChain(owner, [
-              'longbowman',
-              ['elite-longbowman', 'elite-longbowman-upgrade'],
-            ]),
-          );
+        // M4: the civ gate lives entirely in uniqueUnits.ts, so a Castle offers
+        // exactly the unique units its owner's civilization has — nothing here
+        // knows any civilization by name.
+        for (const entry of uniqueUnitsTrainedAt(getPlayerCivilization(owner), 'castle')) {
+          options.push(entry.elite
+            ? latestResearchedInChain(owner, [entry.unitType, entry.elite])
+            : entry.unitType);
         }
         if (isAtLeastAge(owner, 'imperial-age')) {
           options.push('trebuchet');
@@ -311,17 +347,20 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       }
     }
 
+    if (buildingType === 'dock') {
+      return dockResearchOptions(owner, isAtLeastAge, hasTechnology);
+    }
+
     if (buildingType === 'university') {
       return projectileTechOptions('university', owner, isAtLeastAge, hasTechnology);
     }
 
     if (buildingType === 'castle' && isAtLeastAge(owner, 'imperial-age')) {
       const options: ResearchableTechnologyType[] = [];
-      if (
-        getPlayerCivilization(owner) === 'Britons'
-        && !hasTechnology(owner, 'elite-longbowman-upgrade')
-      ) {
-        options.push('elite-longbowman-upgrade');
+      for (const entry of uniqueUnitsFor(getPlayerCivilization(owner))) {
+        if (entry.elite && !hasTechnology(owner, entry.elite[1])) {
+          options.push(entry.elite[1]);
+        }
       }
       if (!hasTechnology(owner, 'conscription')) { // Conscription: military +25% train speed (any civ, Imperial Castle).
         options.push('conscription');

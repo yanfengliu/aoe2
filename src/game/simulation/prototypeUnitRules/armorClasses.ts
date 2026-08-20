@@ -37,7 +37,11 @@ export type ArmorClass =
   | 'siege'
   | 'ram'
   // M5 naval: ships are their own armour class (anti-ship bonuses target it).
-  | 'ship';
+  | 'ship'
+  // M4: AoE2's `unique unit` class. It was deferred as off-roster when the
+  // taxonomy was written and only the Longbowman existed; the Samurai's +10
+  // vs unique units now has 19 civilization units to bite on.
+  | 'unique-unit';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -88,6 +92,27 @@ export const UNIT_ARMOR_CLASSES = {
   'two-handed-swordsman': new Set<ArmorClass>(['infantry']),
   paladin: new Set<ArmorClass>(['cavalry']),
   'heavy-camel': new Set<ArmorClass>(['camel']),
+  // M4 unique units. Each carries the class of the line it replaces PLUS
+  // `unique-unit`, so anti-UU bonuses reach all of them.
+  'jaguar-warrior': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'cataphract': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'woad-raider': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'chu-ko-nu': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'throwing-axeman': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'huskarl': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'tarkan': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'samurai': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
+  'conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'janissary': new Set<ArmorClass>(['archer', 'unique-unit']),
+  'berserk': new Set<ArmorClass>(['infantry', 'unique-unit']),
+  'turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit']),
+  'longboat': new Set<ArmorClass>(['ship', 'unique-unit']),
 } satisfies Record<UnitType, ReadonlySet<ArmorClass>>;
 
 /** Attacker → the class bonuses it applies, SUMMED over the target's classes.
@@ -124,6 +149,20 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   // the off-roster stone-defense bonus are DEFERRED (real AoE2 bombards are not
   // a notable anti-camel counter). Its +200 vs buildings is in BUILDING_ATTACK_BONUS.
   'bombard-cannon': [{ targetClass: 'siege', bonus: 40 }],
+  // M4 unique units, from units.csv `attack_bonus`. Off-roster target
+  // classes in that column (eagles, buildings, castles, stone defense,
+  // walls) stay deferred with the rest of them.
+  'jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }],
+  'cataphract': [{ targetClass: 'infantry', bonus: 9 }],
+  'chu-ko-nu': [{ targetClass: 'spearman', bonus: 2 }],
+  'huskarl': [{ targetClass: 'archer', bonus: 6 }],
+  'samurai': [{ targetClass: 'unique-unit', bonus: 10 }],
+  'plumed-archer': [{ targetClass: 'infantry', bonus: 1 }, { targetClass: 'spearman', bonus: 2 }],
+  'mangudai': [{ targetClass: 'spearman', bonus: 1 }, { targetClass: 'siege', bonus: 3 }],
+  'mameluke': [{ targetClass: 'cavalry', bonus: 9 }],
+  'conquistador': [{ targetClass: 'ram', bonus: 4 }],
+  'janissary': [{ targetClass: 'ram', bonus: 2 }],
+  'longboat': [{ targetClass: 'ship', bonus: 9 }, { targetClass: 'ram', bonus: 4 }],
 };
 
 /** Sum of the attacker's class bonuses over every armor class the target is in

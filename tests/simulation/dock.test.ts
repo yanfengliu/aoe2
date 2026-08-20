@@ -132,3 +132,32 @@ describe('the Dock trains ships onto the water', () => {
     expect(moved).toBe(true);
   }, 90_000);
 });
+
+// v0.3.20: the nine warships shipped with the naval roster were trainable by
+// the validator and fought correctly in fixtures, but the Dock train MENU still
+// returned only the Fishing Ship — so no player could ever build one. Every
+// naval test until now spawned its ships from a fixture, which is exactly why
+// nothing caught it. These pin the menu itself.
+describe('the Dock train menu reaches the warships', () => {
+  it('offers the Galley line once out of the Dark Age', () => {
+    const bridge = createSimulationBridge('naval-castle-age-fixture');
+    expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+    const options = bridge.getSelectionState().trainOptions;
+    expect(options).toContain('fishing-ship');
+    expect(options).toContain('galley');
+  });
+
+  it('offers the Castle-Age warships once the owner reaches Castle Age', () => {
+    const bridge = createSimulationBridge('naval-castle-age-fixture');
+    expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+    const options = bridge.getSelectionState().trainOptions;
+    expect(options).toContain('fire-ship');
+    expect(options).toContain('demolition-ship');
+  });
+
+  it('keeps the Imperial-only Cannon Galleon out of a Castle-Age Dock', () => {
+    const bridge = createSimulationBridge('naval-castle-age-fixture');
+    expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+    expect(bridge.getSelectionState().trainOptions).not.toContain('cannon-galleon');
+  });
+});

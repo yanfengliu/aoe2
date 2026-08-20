@@ -25,6 +25,9 @@ const WATER_UNITS = new Set<UnitType>([
   'heavy-demolition-ship',
   'cannon-galleon',
   'elite-cannon-galleon',
+  // M4: the naval unique units are ships like any other.
+  'turtle-ship',
+  'longboat',
 ]);
 
 export function unitDomain(unitType: UnitType): UnitDomain {

@@ -10,6 +10,8 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A whole-population characterization hash detects change but cannot LOCALISE it — a slice that legitimately moves it must bring a per-item digest ([evidence](lessons-evidence.md#a-whole-population-characterization-hash-detects-change-but-cannot-localise-it-a-slice-that-legitimately-moves-it-must-bring-a-per-item-digest-2026-08-19))
+- A feature can pass every fixture test and still be UNREACHABLE from its menu — assert the player-facing options list ([evidence](lessons-evidence.md#a-feature-can-pass-every-fixture-test-and-still-be-unreachable-from-its-menu-assert-the-player-facing-options-list-2026-08-19))
 - Verify graphics on the REAL default view (with fog + a real base), not a full-vision showcase fixture ([evidence](lessons-evidence.md#verify-graphics-on-the-real-default-view-with-fog-a-real-base-not-a-full-vision-showcase-fixture-2026-07-05))
 - Read engine-tool output by LABEL, never by column position — a transposed food/gold column misdirected 3 increments ([evidence](lessons-evidence.md#read-engine-tool-output-by-label-never-by-column-position-a-transposed-foodgold-column-misdirected-3-increments-2026-07-04))
 - Adversarial reviewer subagents can spawn nested grandchildren that orphan as stale "running" chips — tell them not to ([evidence](lessons-evidence.md#adversarial-reviewer-subagents-can-spawn-nested-grandchildren-that-orphan-as-stale-running-chips-tell-them-not-to-2026-07-04))

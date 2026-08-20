@@ -2,7 +2,7 @@
 // under 500 LOC. Pure data + small constant helpers; the accessor
 // functions stay in the parent file and read from these exports.
 
-import type { ResourceKind, UnitType } from '../types';
+import type { UnitType } from '../unitTypes';
 
 export interface WildlifeProfile {
   currentHp: number;
@@ -74,6 +74,25 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   'heavy-demolition-ship': 60,
   'cannon-galleon': 120,
   'elite-cannon-galleon': 150,
+  'jaguar-warrior': 50,
+  'cataphract': 110,
+  'woad-raider': 65,
+  'chu-ko-nu': 45,
+  'throwing-axeman': 50,
+  'huskarl': 60,
+  'tarkan': 90,
+  'samurai': 60,
+  'war-wagon': 150,
+  'plumed-archer': 50,
+  'mangudai': 60,
+  'war-elephant': 450,
+  'mameluke': 65,
+  'conquistador': 55,
+  'teutonic-knight': 70,
+  'janissary': 44,
+  'berserk': 55,
+  'turtle-ship': 200,
+  'longboat': 130,
 };
 
 export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
@@ -121,6 +140,25 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   'heavy-demolition-ship': 140,
   'cannon-galleon': 35,
   'elite-cannon-galleon': 45,
+  'jaguar-warrior': 10,
+  'cataphract': 9,
+  'woad-raider': 8,
+  'chu-ko-nu': 8,
+  'throwing-axeman': 7,
+  'huskarl': 10,
+  'tarkan': 7,
+  'samurai': 8,
+  'war-wagon': 9,
+  'plumed-archer': 5,
+  'mangudai': 6,
+  'war-elephant': 15,
+  'mameluke': 7,
+  'conquistador': 16,
+  'teutonic-knight': 12,
+  'janissary': 17,
+  'berserk': 9,
+  'turtle-ship': 50,
+  'longboat': 7,
 };
 
 // Base PIERCE armor per unit, from design/stats/units.csv (the `melee/pierce`
@@ -175,6 +213,25 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   'heavy-demolition-ship': 3,
   'cannon-galleon': 6,
   'elite-cannon-galleon': 8,
+  'jaguar-warrior': 0,
+  'cataphract': 1,
+  'woad-raider': 1,
+  'chu-ko-nu': 0,
+  'throwing-axeman': 0,
+  'huskarl': 6,
+  'tarkan': 2,
+  'samurai': 1,
+  'war-wagon': 3,
+  'plumed-archer': 1,
+  'mangudai': 0,
+  'war-elephant': 2,
+  'mameluke': 0,
+  'conquistador': 2,
+  'teutonic-knight': 2,
+  'janissary': 0,
+  'berserk': 1,
+  'turtle-ship': 5,
+  'longboat': 6,
 };
 
 // Base MELEE armor per unit, from design/stats/units.csv (the `melee/pierce`
@@ -227,6 +284,25 @@ export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
   'heavy-demolition-ship': 0,
   'cannon-galleon': 0,
   'elite-cannon-galleon': 0,
+  'jaguar-warrior': 1,
+  'cataphract': 2,
+  'woad-raider': 0,
+  'chu-ko-nu': 0,
+  'throwing-axeman': 0,
+  'huskarl': 0,
+  'tarkan': 1,
+  'samurai': 1,
+  'war-wagon': 0,
+  'plumed-archer': 0,
+  'mangudai': 0,
+  'war-elephant': 1,
+  'mameluke': 0,
+  'conquistador': 2,
+  'teutonic-knight': 5,
+  'janissary': 1,
+  'berserk': 0,
+  'turtle-ship': 6,
+  'longboat': 0,
 };
 
 export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
@@ -274,6 +350,25 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   'heavy-demolition-ship': 10,
   'cannon-galleon': 100,
   'elite-cannon-galleon': 100,
+  'jaguar-warrior': 20,
+  'cataphract': 18,
+  'woad-raider': 20,
+  'chu-ko-nu': 36,
+  'throwing-axeman': 20,
+  'huskarl': 20,
+  'tarkan': 21,
+  'samurai': 14,
+  'war-wagon': 25,
+  'plumed-archer': 19,
+  'mangudai': 17,
+  'war-elephant': 20,
+  'mameluke': 20,
+  'conquistador': 29,
+  'teutonic-knight': 20,
+  'janissary': 35,
+  'berserk': 20,
+  'turtle-ship': 60,
+  'longboat': 30,
 };
 
 export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
@@ -321,102 +416,37 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   'heavy-demolition-ship': 1,
   'cannon-galleon': 13,
   'elite-cannon-galleon': 15,
+  'jaguar-warrior': MELEE_ATTACK_RANGE,
+  'cataphract': MELEE_ATTACK_RANGE,
+  'woad-raider': MELEE_ATTACK_RANGE,
+  'chu-ko-nu': 4,
+  'throwing-axeman': 3,
+  'huskarl': MELEE_ATTACK_RANGE,
+  'tarkan': MELEE_ATTACK_RANGE,
+  'samurai': MELEE_ATTACK_RANGE,
+  'war-wagon': 4,
+  'plumed-archer': 4,
+  'mangudai': 4,
+  'war-elephant': MELEE_ATTACK_RANGE,
+  'mameluke': 3,
+  'conquistador': 6,
+  'teutonic-knight': MELEE_ATTACK_RANGE,
+  'janissary': 8,
+  'berserk': MELEE_ATTACK_RANGE,
+  'turtle-ship': 6,
+  'longboat': 6,
 };
 
-export const UNIT_MIN_ATTACK_RANGE = new Map<UnitType, number>([
-  ['mangonel', 3],
-  ['onager', 3],
-  ['bombard-cannon', 5],
-]);
-
-export const ARCHER_LINE_UNITS = new Set<UnitType>([
-  'archer',
-  'crossbowman',
-  'cavalry-archer',
-  'longbowman',
-  'arbalest',
-  'heavy-cavalry-archer',
-  'elite-longbowman',
-]);
-
-export const STATIC_MEMORABLE_RESOURCE_TYPES = new Set<ResourceKind>([
-  'tree',
-  'berry-bush',
-  'gold-mine',
-  'stone-mine',
-]);
-
-export const CAVALRY_UNITS = new Set<UnitType>([
-  'scout',
-  'light-cavalry',
-  'hussar',
-  'camel',
-  'knight',
-  'cavalier',
-  'paladin',
-  'heavy-camel',
-]);
-
-// Mounted units = cavalry + the mounted-archer line — the scope of BOTH
-// Stable rider techs (Husbandry csv:79, Bloodlines csv:78; applies-to
-// "Cavalry;Cavalry Archer;Conquistador" — conquistador is not in the roster).
-// Spread from CAVALRY_UNITS so the sets cannot drift. The barding ARMOR techs
-// stay on CAVALRY_UNITS (mounted archers take the archer armor line instead).
-export const MOUNTED_UNITS = new Set<UnitType>([
-  ...CAVALRY_UNITS,
-  'cavalry-archer',
-  'heavy-cavalry-archer',
-]);
-
-export const INFANTRY_UNITS = new Set<UnitType>([
-  'militia',
-  'champion',
-  'spearman',
-  'pikeman',
-  'halberdier',
-  'man-at-arms',
-  'long-swordsman',
-  'two-handed-swordsman',
-]);
-
-export const MELEE_UNITS = new Set<UnitType>([
-  'militia',
-  'champion',
-  'spearman',
-  'pikeman',
-  'halberdier',
-  'scout',
-  'light-cavalry',
-  'hussar',
-  'camel',
-  'knight',
-  'cavalier',
-  'villager',
-  'battering-ram',
-  'siege-ram',
-  'man-at-arms',
-  'long-swordsman',
-  'two-handed-swordsman',
-  'paladin',
-  'heavy-camel',
-]);
-
-export const WILDLIFE_PROFILES = {
-  boar: {
-    maxHp: 75,
-    attackDamage: 7,
-    reloadTicks: 14,
-    autoAggro: false,
-    corpsePersists: true,
-    aggroRange: 3,
-  },
-  wolf: {
-    maxHp: 25,
-    attackDamage: 3,
-    reloadTicks: 12,
-    autoAggro: true,
-    corpsePersists: false,
-    aggroRange: 5,
-  },
-} as const;
-
+// Classification sets + wildlife profiles live in ./unitClassSets (extracted to
+// keep this file under the 500-LOC budget); re-exported so existing imports of
+// `from './statTables'` keep working.
+export {
+  ARCHER_LINE_UNITS,
+  CAVALRY_UNITS,
+  INFANTRY_UNITS,
+  MELEE_UNITS,
+  MOUNTED_UNITS,
+  STATIC_MEMORABLE_RESOURCE_TYPES,
+  UNIT_MIN_ATTACK_RANGE,
+  WILDLIFE_PROFILES,
+} from './unitClassSets';

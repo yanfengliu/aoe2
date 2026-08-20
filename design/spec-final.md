@@ -782,6 +782,39 @@ Representative generic lines include:
 
 Exact availability comes from the data.
 
+### 9.2.1 Unique Units
+
+Every civilization has one signature unit trained at its **Castle**, and a handful have a second one trained at the **Dock**. A unique unit is an ordinary roster member in every mechanical respect — the same stat tables, the same armor classes, the same projectile rules — that happens to be gated on the owner's civilization. Nothing about the gate is special-cased per civilization: one table (`src/game/simulation/uniqueUnits.ts`) maps civilization to unit and to the building that trains it, and both the Castle and the Dock train menus read it. A civilization therefore cannot be offered another's unit, and a unit cannot be added and then offered to nobody.
+
+Implemented (stats from `design/stats/units.csv`, availability from `design/stats/civilizations.csv`):
+
+| Civilization | Unique unit | Trained at |
+| --- | --- | --- |
+| Aztecs | Jaguar Warrior | Castle |
+| Britons | Longbowman -> Elite Longbowman | Castle |
+| Byzantines | Cataphract | Castle |
+| Celts | Woad Raider | Castle |
+| Chinese | Chu Ko Nu | Castle |
+| Franks | Throwing Axeman | Castle |
+| Goths | Huskarl | Castle |
+| Huns | Tarkan | Castle |
+| Japanese | Samurai | Castle |
+| Koreans | War Wagon | Castle |
+| Koreans | Turtle Ship | Dock |
+| Mayans | Plumed Archer | Castle |
+| Mongols | Mangudai | Castle |
+| Persians | War Elephant | Castle |
+| Saracens | Mameluke | Castle |
+| Spanish | Conquistador | Castle |
+| Teutons | Teutonic Knight | Castle |
+| Turks | Janissary | Castle |
+| Vikings | Berserk | Castle |
+| Vikings | Longboat | Dock |
+
+Every unique unit belongs to the `unique-unit` armor class in addition to the class of the line it replaces, which is what gives the Samurai's +10 vs unique units something to bite on (§10.3). Elite upgrades exist as an optional field on each table row; only the Britons' Elite Longbowman is wired so far, and the rest are pending (§14).
+
+Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese), the Spanish Missionary (a mounted monk, which needs the conversion mechanics to move onto a mount), and the elite tier for the other eighteen.
+
 ### 9.3 Required Orders
 
 The input system must support:
@@ -1214,6 +1247,21 @@ Every unit belongs to exactly one **domain**, and the domains are complementary:
 This single rule is the whole of naval movement: a land unit cannot chase a ship, a ship cannot beach itself, and a shoreline is a real boundary — none of which is special-cased anywhere. It applies uniformly to pathing, to the spawn search that places a newly trained unit (a ship trained at a Dock appears on the water side of its perimeter), and to scenario spawn validation, whose error names the domain it expected rather than reporting a bare "impassable".
 
 The **Dock** is the one building that straddles the boundary: it stands entirely on land but must TOUCH water, counting diagonals. The rule is checked inside the shared placement predicate, so the placement preview and the confirm can never disagree. Docks are Dark Age, 150 wood, 1800 HP, 3x3, garrison 10; they train every ship and accept fish as a food drop-off.
+
+The Dock's train menu follows the ship UPGRADE LINES rather than listing hulls: Galley -> War Galley -> Galleon, Fire Ship -> Fast Fire Ship, Demolition Ship -> Heavy Demolition Ship, and (once unlocked) Cannon Galleon -> Elite Cannon Galleon. Fishing Ships are available from the Dark Age; the Galley line opens in Feudal; the Fire Ship and Demolition Ship lines and the naval unique units open in Castle Age. Each upgrade mutates the owner's existing ships in place and rewrites anything of the predecessor type still in a production queue, exactly like the land lines.
+
+Dock technologies (`develops_in: Dock` in technologies.csv), all researched at the Dock:
+
+| Technology | Age | Cost | Effect |
+| --- | --- | --- | --- |
+| War Galley | Castle | 230 food, 100 gold | Galley -> War Galley |
+| Galleon | Imperial | 400 food, 315 wood | War Galley -> Galleon (requires War Galley) |
+| Fast Fire Ship | Imperial | 280 wood, 250 gold | Fire Ship -> Fast Fire Ship |
+| Heavy Demolition Ship | Imperial | 200 wood, 300 gold | Demolition Ship -> Heavy Demolition Ship |
+| Cannon Galleon | Imperial | 400 food, 500 wood | Unlocks Cannon Galleon training |
+| Elite Cannon Galleon | Imperial | 525 wood, 500 gold | Cannon Galleon -> Elite Cannon Galleon (requires Cannon Galleon) |
+
+Careening, Dry Dock, and Shipwright are the remaining Dock technologies; they are effect techs (armour, movement rate, wood cost) rather than upgrade lines and are pending.
 
 Still to come as the naval roster grows:
 

@@ -105,4 +105,12 @@ export type ResearchableTechnologyType =
   // Thumb Ring (Archery Range, Castle): 100%% accuracy for the archer and
   // cavalry-archer lines.
   | 'ballistics'
-  | 'thumb-ring';
+  | 'thumb-ring'
+  // M5 naval, Dock: the ship upgrade lines. Without these the warships
+  // shipped with the naval roster had no way into the train menu.
+  | 'war-galley-upgrade'
+  | 'galleon-upgrade'
+  | 'fast-fire-ship-upgrade'
+  | 'heavy-demolition-ship-upgrade'
+  | 'cannon-galleon-unlock'
+  | 'elite-cannon-galleon-upgrade';

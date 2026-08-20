@@ -16,12 +16,32 @@ const LAND_UNITS: readonly UnitType[] = [
   'elite-longbowman', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon',
   'trebuchet', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman',
   'paladin', 'heavy-camel',
+  // M4 unique units: every Castle-trained one is a land unit.
+  'jaguar-warrior',
+  'cataphract',
+  'woad-raider',
+  'chu-ko-nu',
+  'throwing-axeman',
+  'huskarl',
+  'tarkan',
+  'samurai',
+  'war-wagon',
+  'plumed-archer',
+  'mangudai',
+  'war-elephant',
+  'mameluke',
+  'conquistador',
+  'teutonic-knight',
+  'janissary',
+  'berserk',
 ];
 
 const WATER_UNITS: readonly UnitType[] = [
   'fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship',
   'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship',
   'cannon-galleon', 'elite-cannon-galleon',
+  // M4: the two naval unique units.
+  'turtle-ship', 'longboat',
 ];
 
 describe('unit domains', () => {

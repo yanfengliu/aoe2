@@ -25,8 +25,13 @@ describe('unit visual showcase', () => {
     ));
 
     expect(units.map(({ kind }) => kind).sort()).toEqual([...UNIT_TYPES].sort());
-    expect(units).toHaveLength(44);
-    expect(new Set(units.map(({ x, y }) => `${String(x)}:${String(y)}`)).size).toBe(44);
+    // Derived from the roster: a frozen count here just becomes a chore
+    // every time a unit ships, and the sorted-equality above already
+    // proves the SET matches. What this adds is that no two units share
+    // a cell, which is what makes the capture readable.
+    expect(units).toHaveLength(UNIT_TYPES.length);
+    expect(new Set(units.map(({ x, y }) => `${String(x)}:${String(y)}`)).size)
+      .toBe(UNIT_TYPES.length);
     for (const [unitType, expectedRoot] of Object.entries(ORIGINAL_ROOTS)) {
       expect(units.find(({ kind }) => kind === unitType)).toMatchObject(expectedRoot);
     }

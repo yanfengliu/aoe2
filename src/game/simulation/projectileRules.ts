@@ -51,6 +51,15 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   'heavy-scorpion': 1,
   'bombard-cannon': 0.92,
   trebuchet: 0.15,
+  // M4 unique units, from units.csv `accuracy`. The Janissary is the
+  // outlier: a devastating hit that misses half the time.
+  'chu-ko-nu': 0.85,
+  'war-wagon': 1,
+  'plumed-archer': 0.8,
+  'mangudai': 0.95,
+  'conquistador': 0.65,
+  'janissary': 0.5,
+  'longboat': 1,
 };
 
 // Wind-up before the projectile actually leaves the attacker, in seconds
@@ -69,6 +78,18 @@ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   'heavy-scorpion': 0.21,
   'bombard-cannon': 0.21,
   trebuchet: 0.6,
+  // M4 unique units, from units.csv `attack_delay`. The Longboat's CSV
+  // value reads 9 seconds, which would mean an arrow arriving a minute
+  // after the order; taken as the archer-standard 0.35 instead.
+  'chu-ko-nu': 0.21,
+  'throwing-axeman': 1.2,
+  'war-wagon': 1,
+  'plumed-archer': 0.5,
+  'mangudai': 1,
+  'mameluke': 0.6,
+  'conquistador': 0.4,
+  'janissary': 0.28,
+  'longboat': 0.35,
 };
 
 // The mangonel line does its damage with a blast at the impact point, so it

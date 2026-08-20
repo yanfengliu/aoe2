@@ -72,6 +72,7 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'cannon-galleon':
       case 'elite-cannon-galleon':
         return true;
+      // Every M4 civilization unique unit is a military unit too.
       case 'militia':
       case 'champion':
       case 'spearman':
@@ -103,6 +104,25 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'two-handed-swordsman':
       case 'paladin':
       case 'heavy-camel':
+      case 'jaguar-warrior':
+      case 'cataphract':
+      case 'woad-raider':
+      case 'chu-ko-nu':
+      case 'throwing-axeman':
+      case 'huskarl':
+      case 'tarkan':
+      case 'samurai':
+      case 'war-wagon':
+      case 'plumed-archer':
+      case 'mangudai':
+      case 'war-elephant':
+      case 'mameluke':
+      case 'conquistador':
+      case 'teutonic-knight':
+      case 'janissary':
+      case 'berserk':
+      case 'turtle-ship':
+      case 'longboat':
         return true;
       case 'villager':
       case 'scout':

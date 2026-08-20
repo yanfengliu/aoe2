@@ -136,6 +136,15 @@ function archerWeapon(context: UnitRecipeContext, profile: UnitVisualProfile): v
     add(context, `${prefix}-grip`, 'matte', VOXEL_COLORS.leather, 0.48, 0.65, 0.18, 0.1, 0.25, 0.09);
     return;
   }
+  if (profile.weapon === 'hand-cannon') {
+    // A matchlock: a long dark barrel over a stubby stock, held level rather
+    // than drawn back, plus the smouldering cord that names the weapon.
+    add(context, 'archer-cannon-stock', 'matte', VOXEL_COLORS.timberDark, 0.36, 0.72, 0.12, 0.13, 0.52, 0.14, { roll: -0.62 });
+    add(context, 'archer-cannon-barrel', 'metal', VOXEL_COLORS.steelDark, 0.62, 1.0, 0.14, 0.92, 0.11, 0.11, { yaw: -0.06 });
+    add(context, 'archer-cannon-muzzle', 'metal', VOXEL_COLORS.steel, 1.06, 1.0, 0.14, 0.14, 0.15, 0.15);
+    add(context, 'archer-cannon-match', 'matte', 0xc25a2a, 0.38, 1.06, 0.2, 0.06, 0.18, 0.06);
+    return;
+  }
   if (profile.weapon === 'crossbow') {
     add(context, 'archer-crossbow-stock', 'matte', VOXEL_COLORS.timberDark, 0.43, 0.58, 0.08, 0.12, 0.83, 0.12, { roll: -0.43 });
     add(context, 'archer-crossbow-bow', 'metal', VOXEL_COLORS.steelDark, 0.55, 1.04, 0.09, 0.68, 0.08, 0.1, { yaw: -0.08 });
