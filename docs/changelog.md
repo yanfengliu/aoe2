@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.34 - 2026-08-20
+
+### Changed
+
+- **The camera starts closer to the ground.** The game used to open showing the entire map at once — a small diorama in a field of black, with the map's own edges in frame. It now opens on your base at a distance where the world fills the screen, the way an Age of Empires game looks. Zooming out to the old overview still works.
+
 ## 0.3.33 - 2026-08-20
 
 ### Changed

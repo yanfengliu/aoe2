@@ -6,7 +6,7 @@ const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
 const EDGE_PAN_HOVER_DELAY_MS = 500;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 2.4;
-const INITIAL_CAMERA_ZOOM = 1.4;
+const INITIAL_CAMERA_ZOOM = 2.0;
 const KEYBOARD_SCROLL_SPEED_PX_PER_SECOND = 420;
 
 export interface VoxelPointerState {

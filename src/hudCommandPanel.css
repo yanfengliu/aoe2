@@ -338,7 +338,7 @@
      the screen with nothing to say so. */
   .hud-panel--selection {
     flex-wrap: wrap;
-    max-height: min(44vh, 268px);
+    max-height: min(34vh, 224px);
     overflow-x: hidden;
     overflow-y: auto;
   }
@@ -351,11 +351,11 @@
   /* Each wrapped line has to fit inside the bar, so the sections that can
      scroll internally do, rather than pushing the line below off the bottom. */
   .hud-panel--selection > .hud-selection-summary {
-    max-height: 122px;
+    max-height: 104px;
   }
 
   .hud-panel--selection .hud-command-group--build .hud-build-menu {
-    max-height: 108px;
+    max-height: 92px;
   }
 
   .hud-panel--selection > .hud-command-deck {

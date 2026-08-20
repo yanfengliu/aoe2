@@ -303,35 +303,47 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     const selectedSnapshot = await game.getSnapshot(page);
     expect(selectedSnapshot.selectionState.selectedCount).toBe(renderedVillagers.length);
 
-    // The expanded multi-selection command card intentionally covers the old
-    // (10, 12) screen point at the 800x600 browser-test viewport. Exercise a
-    // genuinely player-clickable terrain destination instead of dispatching
-    // through the HUD.
-    const destination = { x: 14, y: 7 };
-    const destinationPoint = await game.getScreenPointForCell(
-      page,
-      destination.x,
-      destination.y,
-    );
-    expect(
-      await page.evaluate(
+    // A genuinely player-clickable terrain destination: on screen, and not under
+    // the HUD. Which cells qualify depends on the camera and on the HUD's
+    // shape, so the test FINDS one near the villagers rather than naming a cell
+    // — a hardcoded (14, 7) stopped being visible the moment the default camera
+    // moved closer in. The arrival assertion below is what actually has teeth.
+    // Clear of the player's own Town Center, whose 4x4 footprint at (8, 8)
+    // covers x 8-11 / y 8-11 — right-clicking inside it garrisons instead of
+    // moving, which is exactly what the first attempt at this list did.
+    const candidates = [
+      { x: 10, y: 7 }, { x: 7, y: 7 }, { x: 11, y: 6 },
+      { x: 6, y: 8 }, { x: 9, y: 6 }, { x: 12, y: 7 },
+    ];
+    let destination: { x: number; y: number } | null = null;
+    let destinationPoint: { x: number; y: number } | null = null;
+    for (const candidate of candidates) {
+      const point = await game.getScreenPointForCell(page, candidate.x, candidate.y);
+      const onCanvas = await page.evaluate(
         ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains('voxel-world-canvas'),
-        destinationPoint,
-      ),
-    ).toBe(true);
-    await game.clickCell(page, destination.x, destination.y, 'right');
+        point,
+      );
+      if (onCanvas === true) {
+        destination = candidate;
+        destinationPoint = point;
+        break;
+      }
+    }
+    expect(destination, 'no candidate destination cell was clickable terrain').not.toBeNull();
+    expect(destinationPoint).not.toBeNull();
+    await game.clickCell(page, destination!.x, destination!.y, 'right');
 
     const movedSnapshot = await page.evaluate((target) => {
       const api = window.__AOE2_TEST__!;
       let snapshot = api.getSnapshot();
 
-      for (let index = 0; index < 80; index += 1) {
+      for (let index = 0; index < 160; index += 1) {
         snapshot = api.advanceTicks(1, 100);
         const arrivedCount = snapshot.economyState.units.filter(
           (unit) => unit.owner === 1
             && unit.unitType === 'villager'
-            && unit.x >= target.x - 1
-            && unit.y <= target.y + 1,
+            && Math.abs(unit.x - target.x) <= 2
+            && Math.abs(unit.y - target.y) <= 2,
         ).length;
         if (arrivedCount === 3) {
           break;
@@ -339,14 +351,17 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
       }
 
       return snapshot;
-    }, destination);
+    }, destination!);
 
+    // Every villager ends up AT the destination, whichever way it lay from
+    // them. The previous half-open box (east of x, north of y) only described
+    // arrival for a destination up and to the right of the cluster.
     expect(
       movedSnapshot.economyState.units.filter(
         (unit) => unit.owner === 1
           && unit.unitType === 'villager'
-          && unit.x >= destination.x - 1
-          && unit.y <= destination.y + 1,
+          && Math.abs(unit.x - destination!.x) <= 2
+          && Math.abs(unit.y - destination!.y) <= 2,
       ),
     ).toHaveLength(renderedVillagers.length);
   });
