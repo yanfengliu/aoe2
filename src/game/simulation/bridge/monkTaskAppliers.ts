@@ -26,7 +26,9 @@ import {
   researchedTechnologiesCodec,
   unitCommandsCodec,
 } from './bridgeStateSerialize';
-import { convertedUnitDies, monkConvertProgressMultiplier } from '../monasteryTechEffects';
+import {
+  convertedUnitDies, monkConvertProgressMultiplier, monkMayConvert,
+} from '../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface MonkTaskAppliersDeps {
@@ -137,6 +139,19 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
     const conversionState = accessor.get(conversionStateCodec);
     if (!targetUnit || targetUnit.owner === monkUnit.owner) {
+      clearMonkTask(monkId);
+      conversionState.delete(targetId);
+      accessor.markDirty(conversionStateCodec);
+      return;
+    }
+    // Redemption and Atonement widen what a monk may take: without Atonement an
+    // enemy MONK is not a valid target, and without Redemption neither is a
+    // siege engine. Abandoning the task rather than stalling on it means the
+    // monk is free for something it can actually do.
+    if (!monkMayConvert(
+      { kind: 'unit', unitType: targetUnit.unitType },
+      accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET,
+    )) {
       clearMonkTask(monkId);
       conversionState.delete(targetId);
       accessor.markDirty(conversionStateCodec);

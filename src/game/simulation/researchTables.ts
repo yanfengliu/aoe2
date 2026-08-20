@@ -69,6 +69,10 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   faith: { food: 750, gold: 1000 },
   'herbal-medicine': { gold: 350 },
   heresy: { gold: 1000 },
+  // technologies.csv rows 63/64/67: Atonement 325g, Fervor 140g, Redemption 475g.
+  redemption: { gold: 475 },
+  atonement: { gold: 325 },
+  fervor: { gold: 140 },
   'town-watch': { food: 75 }, // LoS techs (technologies.csv rows 88/92/9).
   'town-patrol': { food: 300, gold: 200 },
   tracking: { food: 75 },
@@ -195,6 +199,9 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   faith: 600,
   'herbal-medicine': 350,
   heresy: 600,
+  redemption: 500, // CSV 50 s / 40 s / 50 s x 10 TPS.
+  atonement: 400,
+  fervor: 500,
   'town-watch': 250, // LoS techs — 25/40/35 s × 10 TPS (technologies.csv 88/92/9).
   'town-patrol': 400,
   tracking: 350,

@@ -28,6 +28,8 @@ const SPEED_UNIQUE_TECHNOLOGIES: readonly ResearchableTechnologyType[] = [
 ];
 
 // AoE2 Husbandry (technologies.csv:79): mounted units move 10% faster.
+// technologies.csv row 64: Monks have +15% speed.
+export const FERVOR_SPEED_PERCENT = 115;
 export const HUSBANDRY_SPEED_PERCENT = 110;
 
 // AoE2 Squires (technologies.csv:12): infantry move 10% faster.
@@ -81,6 +83,12 @@ export function movementSpeedPercent(
         percent = Math.round(percent * effect.speedMultiplier);
       }
     }
+  }
+  // Fervor (Monastery, Castle): monks move faster. It stands apart from the
+  // branches below because a monk is neither mounted, infantry, nor a villager,
+  // so none of them would ever reach it.
+  if (unitType === 'monk' && researchedTechnologies.has('fervor')) {
+    percent = Math.round((percent * FERVOR_SPEED_PERCENT) / 100);
   }
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
     percent = Math.round((percent * HUSBANDRY_SPEED_PERCENT) / 100);

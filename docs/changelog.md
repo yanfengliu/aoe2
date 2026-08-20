@@ -2,6 +2,20 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.32 - 2026-08-20
+
+### Added
+
+- **Three Monastery technologies: Atonement, Redemption, and Fervor.** Atonement lets your monks convert enemy monks, Redemption lets them convert siege engines, and Fervor makes monks 15% faster.
+
+### Fixed
+
+- **Monks could convert enemy monks without researching Atonement.** Converting another monk is the specific thing that technology buys; until now any monk could do it from the start. What a monk may convert is now checked properly: an ordinary enemy unit needs nothing, an enemy monk needs Atonement, and a siege engine needs Redemption. A monk ordered at something it cannot take gives up the order instead of standing over it.
+
+### Known limitations
+
+- Redemption's effect on **buildings** is not in yet — only siege engines. Converting a building means handing over its production queue, population, garrison, and vision with it, which is its own piece of work.
+
 ## 0.3.31 - 2026-08-20
 
 ### Added

@@ -101,7 +101,10 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
   ['watch-tower', ['guard-tower', 'keep']],
-  ['monastery', ['block-printing', 'sanctity', 'faith', 'herbal-medicine', 'heresy']],
+  ['monastery', [
+    'block-printing', 'sanctity', 'faith', 'herbal-medicine', 'heresy',
+    'redemption', 'atonement', 'fervor',
+  ]],
   // University: Ballistics (spec §10.4). Research-only — trains nothing.
   ['university', ['ballistics', 'masonry', 'architecture', 'treadmill-crane', 'heated-shot',
     'bombard-tower-unlock', 'fortified-wall']],

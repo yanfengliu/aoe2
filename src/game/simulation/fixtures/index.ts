@@ -172,6 +172,8 @@ export {
 export {
   createMonkConvertFixture,
   createMonkConvertHeresyFixture,
+  createMonkConvertMonkFixture,
+  createMonkConvertMonkAtonementFixture,
   createMonkDoubleConvertFixture,
   createMonkFlipFlopFixture,
   createMonkConvertCleanupFixture,

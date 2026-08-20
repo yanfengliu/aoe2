@@ -73,16 +73,25 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
       'sanctity',
       'herbal-medicine',
       'heresy',
+      'redemption',
+      'atonement',
+      'fervor',
     ]);
     expect(optionsFor('castle-age', ['block-printing'])).toEqual([
       'sanctity',
       'herbal-medicine',
       'heresy',
+      'redemption',
+      'atonement',
+      'fervor',
     ]);
     // Faith is Imperial-gated; Herbal Medicine (v0.1.70) and Heresy (v0.1.71)
     // are Castle techs that stay offered through Imperial until researched.
     expect(
-      optionsFor('imperial-age', ['block-printing', 'sanctity', 'herbal-medicine', 'heresy']),
+      optionsFor('imperial-age', [
+        'block-printing', 'sanctity', 'herbal-medicine', 'heresy',
+        'redemption', 'atonement', 'fervor',
+      ]),
     ).toEqual(['faith']);
     expect(
       optionsFor('imperial-age', [
@@ -90,6 +99,9 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
         'sanctity',
         'herbal-medicine',
         'heresy',
+        'redemption',
+        'atonement',
+        'fervor',
         'faith',
       ]),
     ).toEqual([]);

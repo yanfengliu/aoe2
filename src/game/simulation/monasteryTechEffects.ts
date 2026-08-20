@@ -8,7 +8,9 @@
 // Modeled deterministically as a flat +2 to the monk action range for convert
 // tasks (no probability — the sim is replay-deterministic). See spec §12.
 
-import type { ResearchableTechnologyType } from './types';
+import type { BuildingType, ResearchableTechnologyType, UnitType } from './types';
+import { isSiegeUnit } from './prototypeUnitRules';
+import { isWallLineBuilding } from './gates';
 
 // Cells added to a monk's conversion range per researched Monastery range tech.
 const MONK_CONVERT_RANGE_TECH_BONUSES: Partial<Record<ResearchableTechnologyType, number>> = {
@@ -64,4 +66,39 @@ export function convertedUnitDies(
   targetOwnerResearched: ReadonlySet<ResearchableTechnologyType>,
 ): boolean {
   return targetOwnerResearched.has('heresy');
+}
+
+// What a monk may point at, for the conversion rule below.
+export type ConversionTarget =
+  | { readonly kind: 'unit'; readonly unitType: UnitType }
+  | { readonly kind: 'building'; readonly buildingType: BuildingType };
+
+// Buildings no monk converts, whatever it has researched. AoE2 puts the
+// player's irreplaceable structures out of reach — losing a Town Center or a
+// Castle to a single monk would decide a game outright — and a wall line and a
+// farm are not things a monk talks round either.
+const NEVER_CONVERTIBLE_BUILDINGS = new Set<BuildingType>([
+  'town-center', 'castle', 'wonder', 'farm',
+]);
+
+/**
+ * Whether a monk whose owner has researched `researchedTechnologies` may convert
+ * this target.
+ *
+ * An ordinary enemy unit needs no technology. An enemy MONK needs Atonement, and
+ * a building or a siege engine needs Redemption — without them a monk simply
+ * cannot take that target, which is the whole content of both technologies.
+ */
+export function monkMayConvert(
+  target: ConversionTarget,
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+): boolean {
+  if (target.kind === 'building') {
+    if (NEVER_CONVERTIBLE_BUILDINGS.has(target.buildingType)) return false;
+    if (isWallLineBuilding(target.buildingType)) return false;
+    return researchedTechnologies.has('redemption');
+  }
+  if (target.unitType === 'monk') return researchedTechnologies.has('atonement');
+  if (isSiegeUnit(target.unitType)) return researchedTechnologies.has('redemption');
+  return true;
 }

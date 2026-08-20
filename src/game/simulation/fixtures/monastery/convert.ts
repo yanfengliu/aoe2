@@ -34,6 +34,40 @@ export function createMonkConvertFixture(seed: string): PrototypeScenario {
   };
 }
 
+// Atonement fixtures: a Monk facing an ENEMY MONK rather than a militia. AoE2
+// makes converting another monk the specific thing Atonement buys, so without it
+// the conversion must never start. The two fixtures differ only in whether the
+// CONVERTING owner has the technology.
+function createMonkVersusMonkFixture(
+  seed: string,
+  converterTechnologies: readonly string[],
+): PrototypeScenario {
+  const base = createMonkConvertFixture(seed);
+  return {
+    ...base,
+    starts: base.starts.map((start) => (
+      start.owner === 1
+        ? {
+          ...start,
+          disableAi: true,
+          startingResearchedTechnologies: [...converterTechnologies],
+        }
+        : { ...start, disableAi: true }
+    )) as PrototypeScenario['starts'],
+    spawns: base.spawns.map((spawn) => (
+      spawn.owner === 2 && spawn.kind === 'militia' ? { ...spawn, kind: 'monk' } : spawn
+    )),
+  };
+}
+
+export function createMonkConvertMonkFixture(seed: string): PrototypeScenario {
+  return createMonkVersusMonkFixture(seed, []);
+}
+
+export function createMonkConvertMonkAtonementFixture(seed: string): PrototypeScenario {
+  return createMonkVersusMonkFixture(seed, ['atonement']);
+}
+
 // Heresy (v0.1.71) fixture: same as the convert fixture, but the TARGET owner
 // (player 2) has researched Heresy, so instead of flipping to player 1 the
 // Militia DIES when the conversion completes.

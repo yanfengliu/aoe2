@@ -39,6 +39,20 @@ export function monasteryTechResearchOptions(
   if (!hasTechnology(owner, 'heresy')) {
     options.push('heresy');
   }
+  // Redemption (Castle): monks may convert buildings and siege engines.
+  if (!hasTechnology(owner, 'redemption')) {
+    options.push('redemption');
+  }
+  // Atonement (Castle): monks may convert enemy MONKS. Without it they
+  // cannot, which is why the rule lives in monasteryTechEffects rather than
+  // being assumed at the target-picking site.
+  if (!hasTechnology(owner, 'atonement')) {
+    options.push('atonement');
+  }
+  // Fervor (Castle): monks move faster, on the ordinary speed seam.
+  if (!hasTechnology(owner, 'fervor')) {
+    options.push('fervor');
+  }
   // Faith is an Imperial-Age tech (conversion resistance).
   if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {
     options.push('faith');

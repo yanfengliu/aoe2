@@ -89,6 +89,12 @@ export type ResearchableTechnologyType =
   | 'block-printing'
   | 'sanctity'
   | 'faith'
+  // The rest of the Castle-Age Monastery tier. Redemption and Atonement widen
+  // what a monk may convert (buildings and siege; enemy monks); Fervor makes
+  // monks faster on the ordinary movement-speed seam. Spec §10.9.
+  | 'redemption'
+  | 'atonement'
+  | 'fervor'
   // Herbal Medicine (Monastery, Castle): garrisoned units of the owner heal 4× faster. DERIVED multiplier on the garrison-heal rate (monasteryTechEffects) at the garrisonHealSystem site; no per-unit state. Spec §10.9.
   | 'herbal-medicine'
   // Heresy (Monastery, Castle): a unit whose owner has Heresy DIES instead of converting. DERIVED at the conversion flip site (applyMonkConvert) — destroyUnitEntity instead of flipConvertedUnit. Spec §10.9.
