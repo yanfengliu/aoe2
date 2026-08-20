@@ -1,4 +1,5 @@
 import type { UnitStance } from '../../game/simulation/unitStance';
+import type { UnitFormation } from '../../game/simulation/unitFormation';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -59,6 +60,7 @@ interface HudBridge {
   centerCameraOnWorldPosition(worldX: number, worldY: number): void;
   issueAction(actionType: ActionType): boolean;
   setSelectionStance(stance: UnitStance): boolean;
+  setSelectionFormation(formation: UnitFormation): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -290,6 +292,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     getEconomyState: () => bridge.getEconomyState(),
     issueAction: (actionType) => bridge.issueAction(actionType),
     setSelectionStance: (stance) => bridge.setSelectionStance(stance),
+    setSelectionFormation: (formation) => bridge.setSelectionFormation(formation),
     queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),

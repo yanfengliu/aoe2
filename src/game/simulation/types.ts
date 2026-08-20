@@ -307,6 +307,9 @@ export interface SelectionState {
   // lying about one of them.
   stanceOptions: UnitStance[];
   stance: UnitStance | null;
+  formationOptions: import('./unitFormation').UnitFormation[];
+  /** The whole selection's formation, or null when it disagrees. */
+  formation: import('./unitFormation').UnitFormation | null;
   buildOptions: BuildableBuildingType[];
   marketOptions: MarketActionType[];
   trainOptions: TrainableUnitType[];

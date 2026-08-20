@@ -4,6 +4,7 @@
 // the rest is private to this module.
 
 import type { UnitStance } from '../../../game/simulation/unitStance';
+import type { UnitFormation } from '../../../game/simulation/unitFormation';
 import type {
   EconomyState,
   ResearchableTechnologyType,
@@ -310,6 +311,41 @@ const STANCE_TOOLTIPS: Record<UnitStance, string> = {
   'stand-ground': 'Stand Ground — hold this cell and shoot what comes in range; never move.',
   'no-attack': 'No Attack — never attack on its own, whatever walks past.',
 };
+
+const FORMATION_LABELS: Record<UnitFormation, string> = {
+  line: 'Line',
+  staggered: 'Staggered',
+  box: 'Box',
+  flank: 'Flank',
+};
+
+const FORMATION_TOOLTIPS: Record<UnitFormation, string> = {
+  line: 'Line — a wide rank across the march, melee in front of the shooters.',
+  staggered: 'Staggered — the same order spread wide and loose, so one blast cannot cover the group.',
+  box: 'Box — a compact square, with the fragile units in the middle of it.',
+  flank: 'Flank — two wings with a gap between them, to part around what you are walking into.',
+};
+
+export function renderFormationButtons(
+  formationOptions: UnitFormation[],
+  current: UnitFormation | null,
+): string {
+  return formationOptions
+    .map(
+      (formation) => `
+          <button
+            class="hud-command-button hud-command-button--stance"
+            data-command="formation-${formation}"
+            data-tooltip="${FORMATION_TOOLTIPS[formation]}"
+            aria-pressed="${String(formation === current)}"
+            type="button"
+          >
+            <span class="hud-command-label">${FORMATION_LABELS[formation]}</span>
+          </button>
+        `,
+    )
+    .join('');
+}
 
 export function renderStanceButtons(
   stanceOptions: UnitStance[],

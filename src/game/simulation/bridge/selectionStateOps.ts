@@ -3,9 +3,19 @@
 // armor / inventory / option menus / activity. Pure read-only over the
 // bridge's side maps; the bridge owns the maps and passes them in.
 
+import {
+  getSelectionArmor as selectionArmor,
+  getSelectionAttack as selectionAttack,
+  getSelectionPierceArmor as selectionPierceArmor,
+} from './selectionCombatStats';
 import type { Position } from 'civ-engine';
 import { UNIT_STANCES, defaultStanceFor, type UnitStance } from '../unitStance';
-import { unitStancesCodec } from './bridgeStateSerialize';
+import {
+  DEFAULT_FORMATION,
+  UNIT_FORMATIONS,
+  type UnitFormation,
+} from '../unitFormation';
+import { unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -30,10 +40,7 @@ import {
 import {
   buildingGarrisonCapacity,
 } from '../prototypeBuildingRules';
-import { unitAttackDamage } from '../prototypeUnitRules';
-import { pierceArmorTechBonus } from '../armorTechBonuses';
 import {
-  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
@@ -180,65 +187,24 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     return { current: health.currentHp, max: health.maxHp };
   }
 
-  function getSelectionAttack(
+  const getSelectionAttack = (
     id: number,
     unit: UnitComponent | undefined,
     building: BuildingComponent | undefined,
     resource: ResourceComponent | undefined,
-  ): number | null {
-    if (unit) {
-      return accessor.get(combatStatesCodec).get(id)?.attackDamage ?? unitAttackDamage(unit.unitType);
-    }
-    if (building) {
-      return accessor.get(buildingCombatStatesCodec).get(id)?.attackDamage ?? null;
-    }
-    if (resource) {
-      const wildlife = accessor.get(wildlifeStatesCodec).get(id);
-      return wildlife?.isAlive ? wildlife.attackDamage : null;
-    }
-    return null;
-  }
-
-  function getSelectionArmor(
+  ) => selectionAttack(accessor, id, unit, building, resource);
+  const getSelectionArmor = (
     unit: UnitComponent | undefined,
     building: BuildingComponent | undefined,
     resource: ResourceComponent | undefined,
     id: number,
-  ): number | null {
-    if (unit) {
-      return accessor.get(combatStatesCodec).get(id)?.armor ?? 0;
-    }
-    if (building) {
-      return 0;
-    }
-    if (resource) {
-      return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;
-    }
-    return null;
-  }
-
-  // Pierce armor-tech bonus (= melee `armor` + the asymmetric pierce-only
-  // bonus). Mirrors getSelectionArmor so the panel can show the melee/pierce
-  // split (spec §11.8) — same value semantics as the melee side (tech bonus,
-  // not base+bonus effective armor).
-  function getSelectionPierceArmor(
+  ) => selectionArmor(accessor, unit, building, resource, id);
+  const getSelectionPierceArmor = (
     unit: UnitComponent | undefined,
     building: BuildingComponent | undefined,
     resource: ResourceComponent | undefined,
     id: number,
-  ): number | null {
-    if (unit) {
-      const combat = accessor.get(combatStatesCodec).get(id);
-      return combat ? pierceArmorTechBonus(combat) : 0;
-    }
-    if (building) {
-      return 0;
-    }
-    if (resource) {
-      return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;
-    }
-    return null;
-  }
+  ) => selectionPierceArmor(accessor, unit, building, resource, id);
 
   function getSelectionCiv(
     owner: number | null,
@@ -318,6 +284,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         resourceMaxAmount: null,
         actionOptions: [],
         stanceOptions: [],
+        formationOptions: [],
+        formation: null,
         stance: null,
         buildOptions: [],
         marketOptions: [],
@@ -401,6 +369,17 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     const stance = stancesInSelection.size === 1
       ? [...stancesInSelection][0] ?? null
       : null;
+    // Same shape for formations: a single value when the whole selection
+    // agrees, null when it does not, so the panel can show "mixed" honestly.
+    const formationOptions: UnitFormation[] = ownedSelectedUnits.length > 0
+      ? [...UNIT_FORMATIONS]
+      : [];
+    const formationsInSelection = new Set(ownedSelectedUnits.map((entry) => (
+      accessor.get(unitFormationsCodec).get(entry.id) ?? DEFAULT_FORMATION
+    )));
+    const formation = formationsInSelection.size === 1
+      ? [...formationsInSelection][0] ?? null
+      : null;
     const buildOptions: BuildableBuildingType[] =
       allSelectedUnitsAreHumanVillagers
         ? getBuildOptions(humanPlayerId, 'villager')
@@ -474,6 +453,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       resourceMaxAmount: resource?.maxAmount ?? null,
       actionOptions,
       stanceOptions,
+      formationOptions,
+      formation,
       stance,
       buildOptions,
       marketOptions,

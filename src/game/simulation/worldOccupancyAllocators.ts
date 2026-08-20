@@ -128,14 +128,34 @@ export function allocateGroupMoveTargets(
   ctx: GroupMoveAllocatorContext,
   unitIds: ReadonlyArray<EntityId>,
   targetCenter: Position,
+  preferredCells?: ReadonlyArray<Position> | null,
 ): Position[] {
   const { worldWidth, worldHeight, getCellStatus } = ctx;
   const targets: Position[] = [];
   const assignedThisCall = new Map<string, number>();
   const spiralCells = generateSpiralCells(targetCenter, worldWidth, worldHeight);
 
-  for (const unitId of unitIds) {
+  // A formation supplies one PREFERRED cell per unit, in the same order as
+  // `unitIds` (spec §9.5). It is a preference, never a placement: if the cell
+  // is blocked or full the unit falls through to the ordinary spiral, so a
+  // shape pressed against a cliff degrades into a blob rather than stacking
+  // units on rock. Off-map preferences are dropped for the same reason.
+  const inBounds = (cell: Position) => (
+    cell.x >= 0 && cell.y >= 0 && cell.x < worldWidth && cell.y < worldHeight
+  );
+
+  for (const [index, unitId] of unitIds.entries()) {
     let assigned: Position | null = null;
+    const preferred = preferredCells?.[index];
+    if (preferred && inBounds(preferred)) {
+      const status = getCellStatus(preferred.x, preferred.y, unitId);
+      const used = assignedThisCall.get(positionKey(preferred.x, preferred.y)) ?? 0;
+      if (!isWholeCellBlocker(status) && (status.freeSubcellSlots ?? 0) - used > 0) {
+        assignedThisCall.set(positionKey(preferred.x, preferred.y), used + 1);
+        targets.push(preferred);
+        continue;
+      }
+    }
     for (const cell of spiralCells) {
       const status = getCellStatus(cell.x, cell.y, unitId);
       if (isWholeCellBlocker(status)) continue;

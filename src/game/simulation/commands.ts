@@ -43,6 +43,7 @@ export type GameCommands = {
   // channel because it changes what the unit does on later ticks, so a replay
   // that skipped it would diverge.
   'unit.stance': { unitIds: number[]; stance: UnitStance };
+  'unit.formation': { unitIds: number[]; formation: import('./unitFormation').UnitFormation };
   // M6 control: "go here and fight what you meet". Same shape as unit.move.
   'unit.attackMove': { unitId: number; target: Position };
   'unit.patrol': { unitId: number; target: Position };

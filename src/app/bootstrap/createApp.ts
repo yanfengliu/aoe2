@@ -286,6 +286,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     },
     issueAction: (actionType) => bridge.issueAction(actionType),
     setSelectionStance: (stance) => bridge.setSelectionStance(stance),
+    setSelectionFormation: (formation: import('../../game/simulation/unitFormation').UnitFormation) =>
+      bridge.setSelectionFormation(formation),
     queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),

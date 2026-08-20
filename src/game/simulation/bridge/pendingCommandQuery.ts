@@ -47,6 +47,7 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
     // A stance order changes a unit's standing behaviour rather than its
     // current order, so it never conflicts with a pending unitCommand.
     case 'unit.stance':
+    case 'unit.formation':
     case 'queue.train':
     case 'queue.research':
     case 'market.action':

@@ -3,6 +3,7 @@
 // to keep this file under 500 LOC.
 
 import type { UnitStance } from '../../game/simulation/unitStance';
+import type { UnitFormation } from '../../game/simulation/unitFormation';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -35,6 +36,7 @@ import {
   formatTrainTooltip,
 } from './tooltips';
 import {
+  renderFormationButtons,
   renderStanceButtons,
   renderSelectionActivity,
   renderSelectionDetails,
@@ -147,7 +149,14 @@ export function renderBuildButtons(
     .join('');
 }
 
-type CommandGroupKind = 'action' | 'stance' | 'train' | 'market' | 'research' | 'build';
+type CommandGroupKind =
+  | 'action'
+  | 'stance'
+  | 'formation'
+  | 'train'
+  | 'market'
+  | 'research'
+  | 'build';
 
 function renderCommandGroup(
   kind: CommandGroupKind,
@@ -272,6 +281,7 @@ export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
   issueAction(actionType: ActionType): boolean;
   setSelectionStance(stance: UnitStance): boolean;
+  setSelectionFormation(formation: UnitFormation): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -375,6 +385,12 @@ export function createSelectionPanel(
         renderStanceButtons(selectionState.stanceOptions, selectionState.stance),
         selectionState.stanceOptions.length,
       ),
+      renderCommandGroup(
+        'formation',
+        'Formation',
+        renderFormationButtons(selectionState.formationOptions, selectionState.formation),
+        selectionState.formationOptions.length,
+      ),
       renderCommandGroup('train', 'Train', trainButtons, selectionState.trainOptions.length),
       renderCommandGroup('market', 'Trade', marketButtons, selectionState.marketOptions.length),
       renderCommandGroup(
@@ -424,6 +440,16 @@ export function createSelectionPanel(
       }
       button.addEventListener('click', () => {
         deps.setSelectionStance(stance);
+      });
+    });
+    el.querySelectorAll<HTMLButtonElement>('[data-command^="formation-"]').forEach((button) => {
+      const formation = button.dataset.command
+        ?.replace('formation-', '') as UnitFormation | undefined;
+      if (!formation) {
+        return;
+      }
+      button.addEventListener('click', () => {
+        deps.setSelectionFormation(formation);
       });
     });
     el.querySelectorAll<HTMLButtonElement>('[data-command^="market-"]').forEach((button) => {

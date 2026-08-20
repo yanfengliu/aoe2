@@ -30,6 +30,8 @@ function selection(overrides: Partial<SelectionState>): SelectionState {
     resourceMaxAmount: null,
     actionOptions: [],
     stanceOptions: [],
+    formationOptions: [],
+    formation: null,
     stance: null,
     buildOptions: [],
     marketOptions: [],

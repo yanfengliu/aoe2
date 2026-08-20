@@ -25,7 +25,16 @@ export async function findValidPlacementNearTownCenter(
       ({ anchorX, anchorY }) => window.__AOE2_TEST__!.getPlacementPreviewAt(anchorX, anchorY),
       { anchorX: x, anchorY: y },
     );
-    return preview?.isValid === true;
+    if (preview?.isValid !== true) return false;
+    // The anchor also has to be REACHABLE BY THE MOUSE. A cell whose screen
+    // point sits under a HUD panel gets no pointermove on the canvas, so the
+    // preview keeps its previous cell and the caller sees a stale, invalid
+    // state that looks exactly like a broken feature. The selection panel grows
+    // with the command groups it shows, so which cells are covered changes as
+    // the game gains commands — this check is what stops that from silently
+    // re-breaking placement tests (it did, when Formation was added in
+    // v0.3.25).
+    return isPointerReachableCell(page, x, y);
   };
 
   for (const anchor of preferredAnchors) {
@@ -51,4 +60,28 @@ export async function findValidPlacementNearTownCenter(
   }
 
   throw new Error(`Expected a valid ${buildingType} placement near player ${owner}'s Town Center.`);
+}
+
+/**
+ * Whether the screen point for this cell is on the world canvas and not
+ * covered by a HUD panel. `document.elementFromPoint` answers exactly the
+ * question that matters: which element would receive the pointer event.
+ */
+async function isPointerReachableCell(
+  page: Page,
+  cellX: number,
+  cellY: number,
+): Promise<boolean> {
+  const point = await page.evaluate(
+    ([x, y]) => window.__AOE2_TEST__!.worldToScreen(x, y),
+    [cellX, cellY],
+  );
+  if (!point) return false;
+  return page.evaluate(
+    ([x, y]) => {
+      const target = document.elementFromPoint(x, y);
+      return target instanceof HTMLCanvasElement;
+    },
+    [point.x, point.y],
+  );
 }

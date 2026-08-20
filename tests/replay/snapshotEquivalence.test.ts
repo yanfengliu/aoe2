@@ -50,6 +50,7 @@ const EXPECTED_TIER_1_SLOTS = [
   'aoe2.aiStates',
   'aoe2.unitCommands',
   'aoe2.unitStances',
+  'aoe2.unitFormations',
   'aoe2.patrolRoutes',
   'aoe2.sheepMoveOrders',
   'aoe2.monkTasks',

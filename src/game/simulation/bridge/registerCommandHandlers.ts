@@ -37,6 +37,10 @@ import {
   makeUnitStanceHandler,
   makeUnitStanceValidator,
 } from '../handlers/unit/unitStanceHandler';
+import {
+  makeUnitFormationHandler,
+  makeUnitFormationValidator,
+} from '../handlers/unit/unitFormationHandler';
 
 import type { GameWorld } from './pureHelpers';
 import type {
@@ -109,6 +113,10 @@ export interface CommandHandlerDeps {
   // M6 control (unit.stance): who is issuing, and the direct writer.
   humanPlayerId: number;
   setUnitStance: (unitId: number, stance: import('../unitStance').UnitStance) => void;
+  setUnitFormation: (
+    unitId: number,
+    formation: import('../unitFormation').UnitFormation,
+  ) => void;
   setUnitAttackMoveCommandDirect: (unitId: number, target: Position) => boolean;
   setUnitPatrolCommandDirect: (unitId: number, target: Position) => boolean;
   // Phase 1B (unit.attack): same pattern.
@@ -232,6 +240,13 @@ export function registerCommandHandlers(
   }));
   world.registerHandler('unit.stance', makeUnitStanceHandler({
     setUnitStance: deps.setUnitStance,
+  }));
+  // M6 control — unit.formation
+  world.registerValidator('unit.formation', makeUnitFormationValidator({
+    humanPlayerId: deps.humanPlayerId,
+  }));
+  world.registerHandler('unit.formation', makeUnitFormationHandler({
+    setUnitFormation: deps.setUnitFormation,
   }));
   // Spec §6.2 — unit.autoGather (post-construction auto-mine): same handler
   // as an explicit gather, stricter never-preempt validator.

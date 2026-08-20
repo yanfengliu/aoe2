@@ -1286,6 +1286,18 @@ A fractional percent is made real by a per-unit carry accumulator (`moveCarryHun
 
 The autonomous scout WANDER path writes the fine transform directly rather than going through the step executor, so it applies the base speed itself, as a whole number of fine units. Two consequences the implementation has to handle and which are easy to get wrong: a wanderer hemmed in by impassable neighbours makes progress by moving within its own cell, so a step that jumps the cell boundary must fall back to a shorter one rather than freeze; and a shortened step must still re-pick the heading, because publishing a sub-cell wiggle as "movement" skips the escape logic and produces an in-cell orbit.
 
+### 12.4.-1 Formations
+
+A **formation** decides where a group stands when it arrives, and in what order it is placed. Four ship, matching AoE2: **Line** (the default — a wide rank across the march), **Staggered** (the same order spread wide and loose, so one blast cannot cover the group), **Box** (a compact square), and **Flank** (two wings with a gap between them).
+
+The ORDERING matters as much as the shape: melee stands in front, shooters behind it, and the units that die instantly and cost the most — siege, monks, villagers — at the back. Without it a group arrives as a blob and the archers are in front as often as behind.
+
+The shape is always a PREFERENCE, never a placement. The formation supplies one candidate cell per unit and the existing group allocator takes it only if the cell is in bounds, unblocked, and has room; otherwise that unit falls through to the ordinary spiral. A formation pressed against a cliff or a map edge therefore degrades into a blob rather than stacking units on rock.
+
+The formation is per-unit, stored only when it differs from Line, and set through the recorded command channel exactly like a stance — it changes where a unit stands on later orders, so a replay that skipped it would put the group in the wrong shape. Because it is a recorded command it lands on the NEXT tick: a caller that sets a formation and orders a move in the same tick gets the previous formation. That is invisible to a player (a click is many ticks later) but matters to scripted callers.
+
+A group whose members disagree uses the formation MOST of them are set to, so a mixed selection still has a single shape rather than fragments of four.
+
 ### 12.4.0 Patrol
 
 A **patrol** is a standing ROUTE between two cells, not an order. Press **P**, then click: the unit paces between where it stood and where you clicked, engaging what it meets the way an attack-move does, until you give it something else to do.

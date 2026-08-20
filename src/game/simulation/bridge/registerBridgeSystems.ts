@@ -133,6 +133,7 @@ export interface RegisterBridgeSystemsResult {
   queueResearch: CreateWorldResult['queueResearch'];
   issueAction: CreateWorldResult['issueAction'];
   setSelectionStance: CreateWorldResult['setSelectionStance'];
+  setSelectionFormation: CreateWorldResult['setSelectionFormation'];
   issueAttackMoveCommand: CreateWorldResult['issueAttackMoveCommand'];
   issuePatrolCommand: CreateWorldResult['issuePatrolCommand'];
   issueMarketAction: CreateWorldResult['issueMarketAction'];
@@ -284,6 +285,7 @@ export function registerBridgeSystems(
     queueResearch,
     issueAction,
     setSelectionStance,
+    setSelectionFormation,
     issueAttackMoveCommand,
     issuePatrolCommand,
     issueMarketAction,
@@ -353,6 +355,7 @@ export function registerBridgeSystems(
     queueResearch,
     issueAction,
     setSelectionStance,
+    setSelectionFormation,
     issueAttackMoveCommand,
     issuePatrolCommand,
     issueMarketAction,

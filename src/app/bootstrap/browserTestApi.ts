@@ -51,6 +51,10 @@ export interface BrowserTestBridge {
     maxY: number,
   ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
+  /** M6 formations: lets a capture script show each shape (spec §9.5). */
+  setSelectionFormation(
+    formation: import('../../game/simulation/unitFormation').UnitFormation,
+  ): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueMoveCommand(x: number, y: number): boolean;
@@ -175,6 +179,10 @@ export interface BrowserTestApi {
     maxY: number,
   ): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
+  /** M6 formations: lets a capture script show each shape (spec §9.5). */
+  setSelectionFormation(
+    formation: import('../../game/simulation/unitFormation').UnitFormation,
+  ): boolean;
   clearSelection(): void;
   /** Center the camera on a world cell — lets a capture frame off-center action. */
   centerCameraOnWorldPosition(worldX: number, worldY: number): void;
@@ -360,6 +368,7 @@ export function installBrowserTestApi(
       view.syncFromBridge(true);
       return didSelect;
     },
+    setSelectionFormation: (formation) => getBridge().setSelectionFormation(formation),
     confirmBuildingPlacement: (cellX: number, cellY: number) => {
       const didPlace = getBridge().confirmBuildingPlacement(cellX, cellY);
       view.syncFromBridge(true);

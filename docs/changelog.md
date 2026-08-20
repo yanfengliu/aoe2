@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.25 - 2026-08-19
+
+### Added
+
+- **Formations.** Select a group and pick **Line**, **Staggered**, **Box**, or **Flank** in the selection panel. Your units arrive in that shape instead of piling onto the cell you clicked — melee in front, archers behind them, siege and villagers at the back. Staggered spreads the group loose so one mangonel shot cannot catch all of it; Flank parts around what you are walking into.
+- Line is the default, so nothing changes until you pick something else.
+
+### Changed
+
+- A group ordered anywhere — move, attack-move, or patrol — now spreads into its formation rather than converging on one cell.
+
 ## 0.3.24 - 2026-08-19
 
 ### Added

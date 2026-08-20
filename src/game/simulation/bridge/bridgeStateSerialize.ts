@@ -42,6 +42,7 @@ import {
   createEmptyProjectileSlot,
   type ProjectileSlotState,
 } from './projectileTypes';
+import type { UnitFormation } from '../unitFormation';
 import type { UnitStance } from '../unitStance';
 import { createInitialMarketRates } from './pureHelpers';
 import { deriveCap } from './bridgeConstants';
@@ -190,6 +191,8 @@ export const unitCommandsCodec = flatMapCodec<number, UnitCommand>('aoe2.unitCom
 // M6 control: per-unit stance. Only units whose stance DIFFERS from their
 // type's default are stored, so an untouched match serializes nothing extra.
 export const unitStancesCodec = flatMapCodec<number, UnitStance>('aoe2.unitStances');
+// M6 control: per-unit formation, same only-if-non-default storage as stance.
+export const unitFormationsCodec = flatMapCodec<number, UnitFormation>('aoe2.unitFormations');
 // M6 control: a standing patrol route, `a` <-> `b`. A patrol is NOT a command
 // — it outlives the walk it issues, which is the whole difference from an
 // attack-move: auto-aggression takes a unit off its walk to fight, and an
@@ -292,6 +295,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   aiStatesCodec,
   unitCommandsCodec,
   unitStancesCodec,
+  unitFormationsCodec,
   patrolRoutesCodec,
   sheepMoveOrdersCodec,
   monkTasksCodec,

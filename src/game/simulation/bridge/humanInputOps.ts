@@ -7,6 +7,9 @@
 
 import type { Position } from 'civ-engine';
 import type { UnitStance } from '../unitStance';
+import type { UnitFormation } from '../unitFormation';
+import { createFormationPlanner } from './formationPlanning';
+import { unitFormationsCodec } from './bridgeStateSerialize';
 import type {
   ActionType,
   BuildingComponent,
@@ -55,6 +58,8 @@ export interface HumanInputOpsDeps {
   allocateGroupMoveTargets: (
     unitIds: ReadonlyArray<number>,
     targetCenter: Position,
+    /** M6 formations (spec §9.5): one preferred cell per unit, same order. */
+    preferredCells?: ReadonlyArray<Position> | null,
   ) => Position[];
 }
 
@@ -66,6 +71,7 @@ export interface HumanInputOps {
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueAction(actionType: ActionType): boolean;
   setSelectionStance(stance: UnitStance): boolean;
+  setSelectionFormation(formation: UnitFormation): boolean;
   issueAttackMoveCommand(x: number, y: number): boolean;
   issuePatrolCommand(x: number, y: number): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
@@ -136,10 +142,11 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         x: clamp(x, 0, mapWidth - 1),
         y: clamp(y, 0, mapHeight - 1),
       };
-      const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
-      for (let i = 0; i < selectedUnitIds.length; i += 1) {
+      const { orderedIds, preferredCells } = planFormation(selectedUnitIds, targetCenter);
+      const allocations = allocateGroupMoveTargets(orderedIds, targetCenter, preferredCells);
+      for (let i = 0; i < orderedIds.length; i += 1) {
         const target = allocations[i] ?? targetCenter;
-        const id = selectedUnitIds[i]!;
+        const id = orderedIds[i]!;
         didIssue = supersedeAutoAggression(id, issueUnitMoveCommand(id, target)) || didIssue;
       }
     }
@@ -342,10 +349,11 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       x: clamp(x, 0, mapWidth - 1),
       y: clamp(y, 0, mapHeight - 1),
     };
-    const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
+    const { orderedIds, preferredCells } = planFormation(selectedUnitIds, targetCenter);
+    const allocations = allocateGroupMoveTargets(orderedIds, targetCenter, preferredCells);
     let didIssue = false;
-    for (let i = 0; i < selectedUnitIds.length; i += 1) {
-      const id = selectedUnitIds[i]!;
+    for (let i = 0; i < orderedIds.length; i += 1) {
+      const id = orderedIds[i]!;
       const target = allocations[i] ?? targetCenter;
       didIssue = supersedeAutoAggression(id, issueUnitPatrolCommand(id, target)) || didIssue;
     }
@@ -360,15 +368,21 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       x: clamp(x, 0, mapWidth - 1),
       y: clamp(y, 0, mapHeight - 1),
     };
-    const allocations = allocateGroupMoveTargets(selectedUnitIds, targetCenter);
+    const { orderedIds, preferredCells } = planFormation(selectedUnitIds, targetCenter);
+    const allocations = allocateGroupMoveTargets(orderedIds, targetCenter, preferredCells);
     let didIssue = false;
-    for (let i = 0; i < selectedUnitIds.length; i += 1) {
-      const id = selectedUnitIds[i]!;
+    for (let i = 0; i < orderedIds.length; i += 1) {
+      const id = orderedIds[i]!;
       const target = allocations[i] ?? targetCenter;
       didIssue = supersedeAutoAggression(id, issueUnitAttackMoveCommand(id, target)) || didIssue;
     }
     return didIssue;
   }
+
+  const planFormation = createFormationPlanner({
+    world,
+    formationOf: (unitId) => accessor.get(unitFormationsCodec).get(unitId),
+  });
 
   // M6 control: set the stance of every owned unit in the selection. Routes
   // through the recorded command channel so a replay reproduces the change.
@@ -377,6 +391,16 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     const unitIds = getSelectedHumanUnitIds();
     if (unitIds.length === 0) return false;
     return world.submitWithResult('unit.stance', { unitIds, stance }).accepted;
+  }
+
+  // M6 control: set the formation of every owned unit in the selection. Same
+  // recorded-command path as stance, for the same reason — it changes where
+  // the unit stands on later orders, so a replay must see it.
+  function setSelectionFormation(formation: UnitFormation): boolean {
+    if (!isMatchRunning()) return false;
+    const unitIds = getSelectedHumanUnitIds();
+    if (unitIds.length === 0) return false;
+    return world.submitWithResult('unit.formation', { unitIds, formation }).accepted;
   }
 
   function issueAction(actionType: ActionType): boolean {
@@ -446,6 +470,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     queueResearch,
     issueAction,
     setSelectionStance,
+    setSelectionFormation,
     issueAttackMoveCommand,
     issuePatrolCommand,
     issueMarketAction,

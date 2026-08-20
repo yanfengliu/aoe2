@@ -10,6 +10,7 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A cell whose screen point sits under a HUD panel gets no pointermove — a browser test must pick mouse-REACHABLE cells ([evidence](lessons-evidence.md#a-cell-whose-screen-point-sits-under-a-hud-panel-gets-no-pointermove-a-browser-test-must-pick-mouse-reachable-cells-2026-08-19))
 - An expectation derived from the same constant the code renders from moves WITH it — state the claim literally, then mutate ([evidence](lessons-evidence.md#an-expectation-derived-from-the-same-constant-the-code-renders-from-moves-with-it-state-the-claim-literally-then-mutate-2026-08-19))
 - A whole-population characterization hash detects change but cannot LOCALISE it — a slice that legitimately moves it must bring a per-item digest ([evidence](lessons-evidence.md#a-whole-population-characterization-hash-detects-change-but-cannot-localise-it-a-slice-that-legitimately-moves-it-must-bring-a-per-item-digest-2026-08-19))
 - A feature can pass every fixture test and still be UNREACHABLE from its menu — assert the player-facing options list ([evidence](lessons-evidence.md#a-feature-can-pass-every-fixture-test-and-still-be-unreachable-from-its-menu-assert-the-player-facing-options-list-2026-08-19))

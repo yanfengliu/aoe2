@@ -231,19 +231,32 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
 
     // Pick any resource cell on the map — a 2x2 house anchored there
     // must overlap the resource and therefore be invalid.
+    // Nearest resource to the Town Center whose screen point is on the CANVAS.
+    // A cell hidden behind a HUD panel gets no pointermove, so the preview
+    // keeps its previous cell and the assertion below reads a stale state that
+    // looks exactly like a broken feature. Which cells are covered changes as
+    // the selection panel gains command groups.
     const invalidAnchor = await page.evaluate(() => {
-      const resources = window.__AOE2_TEST__!.getSnapshot().economyState.resources;
-      const humanTc = window.__AOE2_TEST__!
-        .getSnapshot()
-        .economyState.buildings.find(
-          (building) => building.owner === 1 && building.buildingType === 'town-center',
-        );
+      const api = window.__AOE2_TEST__!;
+      const snapshot = api.getSnapshot();
+      const humanTc = snapshot.economyState.buildings.find(
+        (building) => building.owner === 1 && building.buildingType === 'town-center',
+      );
       if (!humanTc) {
         throw new Error('Expected human Town Center.');
       }
+      const reachable = (x: number, y: number) => {
+        try {
+          const point = api.worldToScreen(x, y);
+          return document.elementFromPoint(point.x, point.y) instanceof HTMLCanvasElement;
+        } catch {
+          return false;
+        }
+      };
       let closest: { x: number; y: number } | null = null;
       let closestDist = Infinity;
-      for (const resource of resources) {
+      for (const resource of snapshot.economyState.resources) {
+        if (!reachable(resource.x, resource.y)) continue;
         const dx = resource.x - humanTc.x;
         const dy = resource.y - humanTc.y;
         const dist = dx * dx + dy * dy;
@@ -253,7 +266,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
         }
       }
       if (!closest) {
-        throw new Error('Expected at least one resource near the Town Center.');
+        throw new Error('Expected a mouse-reachable resource near the Town Center.');
       }
       return closest;
     });

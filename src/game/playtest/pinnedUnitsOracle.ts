@@ -140,6 +140,8 @@ const COMMAND_ACTOR_KEYS: { [K in keyof GameCommands]: readonly string[] } = {
   // A stance order is a real player instruction addressed at named units, so
   // it counts as driving them.
   'unit.stance': ['unitIds'],
+  // A formation order is likewise addressed at named units.
+  'unit.formation': ['unitIds'],
   // An attack-move is a direct order at a named unit, and so is a patrol.
   'unit.attackMove': ['unitId'],
   'unit.patrol': ['unitId'],

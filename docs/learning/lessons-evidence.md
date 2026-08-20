@@ -576,3 +576,13 @@ Three slices in one day, same shape:
 The rule has two halves. Write the expectation as an independent description of the claim — "bright and blue-dominant, and not white" rather than "within 34 of THE_TINT". And prove it by mutating the source of truth, not by reading the test.
 
 Anchor: `tests/browser/voxel-occlusion-outline.spec.ts > voxel behind-building unit silhouette > cues exactly the hidden villager in the owner colour and stays stable under pause` (fails when `OCCLUSION_SILHOUETTE_TINT_OWN` is set to `0xffffff`).
+
+## A cell whose screen point sits under a HUD panel gets no pointermove — a browser test must pick mouse-REACHABLE cells (2026-08-19)
+
+Adding the Formation command group to the selection panel broke a placement-preview browser test that has nothing to do with formations. `findValidPlacementNearTownCenter` returned cell (7,6); the preview reported (0,9) and invalid. The panel is `pointer-events: none` but its BUTTONS are not, and the extra row of them now covers the screen point for that cell — so `page.mouse.move` landed on a button, the canvas never saw a pointermove, and `getPlacementPreviewState` kept reading the pointer's previous position.
+
+The failure mode is what makes this worth a rule: a stale preview is indistinguishable from a broken one, and the breakage arrives from a change in a completely different feature. Which cells are covered shifts every time the HUD gains a control.
+
+The fix is a reachability check the anchor helpers now apply: project the cell to a screen point and ask `document.elementFromPoint` whether a canvas would receive the event. Same family as the v0.3.19 finding where a click at 60%/55% landed on the selection panel and produced no order.
+
+Anchor: `tests/browser/game-rendering-and-world.spec.ts > browser gameplay smoke tests - rendering and world interactions > shows valid and invalid building placement preview feedback before construction`; helper `tests/browser/helpers/gameTestHelpers/placement.ts` (`isPointerReachableCell`).

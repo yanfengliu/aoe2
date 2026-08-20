@@ -401,6 +401,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     allocateGroupMoveTargets(
       unitIds: ReadonlyArray<EntityId>,
       targetCenter: Position,
+      preferredCells?: ReadonlyArray<Position> | null,
     ): Position[] {
       return allocateGroupMoveTargetsImpl(
         {
@@ -410,6 +411,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
         },
         unitIds,
         targetCenter,
+        preferredCells,
       );
     },
 

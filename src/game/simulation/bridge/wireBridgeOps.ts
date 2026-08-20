@@ -1,6 +1,7 @@
 import { currentEntityId } from './pureHelpers';
 import { defaultStanceFor } from '../unitStance';
-import { unitStancesCodec } from './bridgeStateSerialize';
+import { DEFAULT_FORMATION } from '../unitFormation';
+import { unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
 import type { UnitTaskState } from '../types';
 import { DEFAULT_DIFFICULTY } from '../ai';
 import { hydrateFromSavedGame, seedFreshScenario } from './scenarioSeedOps';
@@ -369,6 +370,13 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       accessor.mutate(unitStancesCodec, (stances) => {
         if (isDefault) stances.delete(unitId);
         else stances.set(unitId, stance);
+      });
+    },
+    // Same only-if-non-default storage: an untouched match writes nothing.
+    setUnitFormation: (unitId, formation) => {
+      accessor.mutate(unitFormationsCodec, (formations) => {
+        if (formation === DEFAULT_FORMATION) formations.delete(unitId);
+        else formations.set(unitId, formation);
       });
     },
     setUnitMoveCommandDirect,

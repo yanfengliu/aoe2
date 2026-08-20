@@ -87,6 +87,9 @@ export interface SimulationBridge {
   getInFlightProjectiles(): readonly ProjectileState[];
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
+  setSelectionFormation(
+    formation: import('./unitFormation').UnitFormation,
+  ): boolean;
   /** M6 control: walk the selection to a cell, engaging anything met en route. */
   issueAttackMoveCommand(x: number, y: number): boolean;
   issuePatrolCommand(x: number, y: number): boolean;
@@ -240,6 +243,7 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
+    setSelectionFormation,
     issueAttackMoveCommand,
     issuePatrolCommand,
     getSelectionState,
@@ -444,6 +448,7 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
+    setSelectionFormation,
     issueAttackMoveCommand,
     issuePatrolCommand,
     getPlacementPreview,

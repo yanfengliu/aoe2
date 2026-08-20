@@ -178,11 +178,20 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     const initialUnits = initialSnapshot.economyState.units.filter((unit) => unit.owner === 1);
     expect(initialUnits).toHaveLength(2);
 
+    // Ordered INDIVIDUALLY rather than as a drag selection. Since v0.3.25 a
+    // GROUP order arrives in formation, which deliberately spreads its units
+    // across neighbouring cells — the opposite of what this test is about.
+    // Two separate orders to the same cell still exercise sub-grid sharing.
+    for (const unit of initialUnits) {
+      expect(await page.evaluate(
+        ([x, y]) => window.__AOE2_TEST__!.selectEntityAtCell(x, y),
+        [unit.x, unit.y],
+      )).toBe(true);
+      expect(await page.evaluate(
+        () => window.__AOE2_TEST__!.issueMoveCommand(7, 10),
+      )).toBe(true);
+    }
     expect(await page.evaluate(() => window.__AOE2_TEST__!.clearSelection())).toBeUndefined();
-    await game.dragSelectCells(page, 5, 9, 8, 11);
-    await page.mouse.up({ button: 'left' });
-    await expect(page.locator('[data-selection-name]')).toHaveText('2 Units Selected');
-    expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(7, 10))).toBe(true);
 
     await expect.poll(async () => {
       const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
