@@ -9,6 +9,7 @@ import {
   SCREEN_LOCKED_DEPTH_OFFSET,
   type VoxelOverlayEntity,
 } from './aoeVoxelOverlayParts';
+import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 
 export interface OccludedUnitState {
@@ -23,7 +24,34 @@ export interface OcclusionSilhouetteResult {
   readonly parts: readonly VoxelPart[];
 }
 
-export const OCCLUSION_SILHOUETTE_TINT = 0xffffff;
+// The flat colours a hidden unit is drawn in. Two of them, keyed on ownership.
+//
+// This was a flat WHITE mirror, which had two problems that only showed up on
+// the real default map rather than in the showcase fixture: a fully opaque
+// white body over a dark roof reads as a GHOST standing in front of the
+// building, and it says nothing about whose unit is hidden — which is most of
+// what the cue is for, since watching a wall to see whether the shapes behind
+// it are yours is the whole reason AoE2 draws one.
+//
+// Deriving the colour from the unit's own tint does not work: the tints are
+// already pale (a villager is 0xf3e2b7 cream for the human owner and 0xf0b8b8
+// pink for an enemy), so any lightening lands back at white and the two owners
+// stay indistinguishable. These are deliberately flat, saturated, and unlike
+// any material colour in the world, so the shape reads as a CUE rather than as
+// a unit that happens to be standing in front of a building. They are also
+// distinct from the yellow selection outline and the cyan drag rectangle.
+export const OCCLUSION_SILHOUETTE_TINT_OWN = 0x6fc8ff;
+export const OCCLUSION_SILHOUETTE_TINT_ENEMY = 0xff7a6a;
+
+/** The flat colour a hidden unit is drawn in, by ownership. */
+export function occlusionSilhouetteTint(owner: number | null): number {
+  // A unit with no owner is gaia wildlife, which is nobody's — it takes the
+  // not-yours colour rather than claiming to be the player's.
+  return owner === HUMAN_PLAYER_ID
+    ? OCCLUSION_SILHOUETTE_TINT_OWN
+    : OCCLUSION_SILHOUETTE_TINT_ENEMY;
+}
+
 const MIN_OCCLUDER_HORIZONTAL_EXTENT = 0.15;
 // Fraction of the unit's own visual top where the cover test samples. A
 // ground-pixel anchor let ankle-high geometry that merely PAINTS at the feet
@@ -100,7 +128,7 @@ function isCovered(anchor: VoxelIsoPoint, depth: number, regions: readonly Occlu
   return false;
 }
 
-function mirrorSilhouetteParts(parts: readonly VoxelPart[]): VoxelPart[] {
+function mirrorSilhouetteParts(parts: readonly VoxelPart[], tint: number): VoxelPart[] {
   return parts
     .filter((part) => part.surface !== 'shadow')
     .map((part) => {
@@ -112,7 +140,7 @@ function mirrorSilhouetteParts(parts: readonly VoxelPart[]): VoxelPart[] {
         ...posed,
         key: `ui:occlusion:${part.key}`,
         surface: 'ui' as const,
-        tint: OCCLUSION_SILHOUETTE_TINT,
+        tint,
         centerX: part.centerX + SCREEN_LOCKED_DEPTH_OFFSET,
         centerY: part.centerY + SILHOUETTE_LIFT,
         centerZ: part.centerZ + SCREEN_LOCKED_DEPTH_OFFSET,
@@ -151,7 +179,10 @@ export function computeOcclusionSilhouettes(
       y: entity.y,
       entityType: entity.entityType,
     });
-    parts.push(...mirrorSilhouetteParts(candidate.parts));
+    parts.push(...mirrorSilhouetteParts(
+      candidate.parts,
+      occlusionSilhouetteTint(entity.owner),
+    ));
   }
   return { occluded, parts };
 }

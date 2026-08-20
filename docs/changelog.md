@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.22 - 2026-08-19
+
+### Changed
+
+- **Units hidden behind a building now show in your colour, not white.** The cue was a flat white body, which read as a ghost standing in front of the building and told you nothing about whose unit was back there. Your units silhouette in blue and everyone else's in coral, so a glance at a wall tells you who is behind it.
+
 ## 0.3.21 - 2026-08-19
 
 ### Changed

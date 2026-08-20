@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
-import { computeOcclusionSilhouettes } from '../../src/rendering/voxel/aoeVoxelOcclusionSilhouettes';
+import {
+  computeOcclusionSilhouettes,
+  occlusionSilhouetteTint,
+} from '../../src/rendering/voxel/aoeVoxelOcclusionSilhouettes';
 import type { VoxelOverlayEntity } from '../../src/rendering/voxel/aoeVoxelOverlayParts';
 import {
   staticVoxelPartsForEntity,
@@ -102,8 +106,30 @@ function villager(id: number, x: number, y: number, overrides: Partial<Projected
   }));
 }
 
+describe('occlusionSilhouetteTint', () => {
+  it('tells your units from everyone else’s', () => {
+    const own = occlusionSilhouetteTint(HUMAN_PLAYER_ID);
+    const enemy = occlusionSilhouetteTint(HUMAN_PLAYER_ID + 1);
+    expect(own).not.toBe(enemy);
+    // Blue for yours, warm for theirs — the reading has to survive a glance at
+    // a wall with shapes moving behind it.
+    expect(own & 0xff).toBeGreaterThan((own >> 16) & 0xff);
+    expect((enemy >> 16) & 0xff).toBeGreaterThan(enemy & 0xff);
+  });
+
+  it('is bright enough to read against a dark building, and never white', () => {
+    for (const owner of [HUMAN_PLAYER_ID, HUMAN_PLAYER_ID + 1, null]) {
+      const tinted = occlusionSilhouetteTint(owner);
+      const channels = [(tinted >> 16) & 0xff, (tinted >> 8) & 0xff, tinted & 0xff];
+      expect(Math.max(...channels)).toBeGreaterThan(200);
+      expect(Math.min(...channels)).toBeLessThan(200);
+      expect(tinted).not.toBe(0xffffff);
+    }
+  });
+});
+
 describe('computeOcclusionSilhouettes', () => {
-  it('flags a unit behind the town center and mirrors its non-shadow parts as white ui silhouettes', () => {
+  it('flags a unit behind the town center and mirrors its parts in the owner colour', () => {
     const unit = villager(7, 7, 7);
     const result = computeOcclusionSilhouettes([unit, townCenter(20, 8, 8)]);
 
@@ -115,7 +141,12 @@ describe('computeOcclusionSilhouettes', () => {
       const source = mirrored[index]!;
       expect(part.key).toBe(`ui:occlusion:${source.key}`);
       expect(part.surface).toBe('ui');
-      expect(part.tint).toBe(0xffffff);
+      // A flat WHITE body over a dark building reads as a ghost standing in
+      // front of it, and says nothing about whose unit it is. AoE2 silhouettes
+      // a hidden unit in its owner's colour, lightened enough to stay legible
+      // against whatever it is behind.
+      expect(part.tint).toBe(occlusionSilhouetteTint(unit.entity.owner));
+      expect(part.tint).not.toBe(0xffffff);
       expect(part.centerX).toBeCloseTo(source.centerX + SCREEN_LOCKED_DEPTH_OFFSET, 10);
       expect(part.centerY).toBeCloseTo(source.centerY + SILHOUETTE_LIFT, 10);
       expect(part.centerZ).toBeCloseTo(source.centerZ + SCREEN_LOCKED_DEPTH_OFFSET, 10);

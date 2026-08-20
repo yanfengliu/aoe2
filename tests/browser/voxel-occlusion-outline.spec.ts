@@ -11,7 +11,7 @@ async function waitForPresentedSnapshot(page: Page): Promise<void> {
 }
 
 test.describe('voxel behind-building unit silhouette', () => {
-  test('cues exactly the hidden villager with white pixels and stays stable under pause', async ({
+  test('cues exactly the hidden villager in the owner colour and stays stable under pause', async ({
     page,
   }) => {
     await game.waitForPausedBootWithSeed(page, 'occlusion-showcase-fixture');
@@ -42,7 +42,16 @@ test.describe('voxel behind-building unit silhouette', () => {
     expect(states.occluded[0]!.entityType).toBe('villager');
     expect(states.batches).toBeLessThanOrEqual(9);
 
-    const whitePixels = await page.evaluate(async (screen) => {
+    // The cue is the owner's silhouette colour, not white — a flat white body
+    // read as a ghost standing in FRONT of the building and said nothing about
+    // whose unit it was.
+    //
+    // The colour is described here LITERALLY rather than imported from the
+    // constant it renders from: deriving the expectation from the same value
+    // the renderer uses makes the two move together, and reverting the tint to
+    // white left this green. The claim is "bright and blue-dominant", which a
+    // white silhouette fails.
+    const cuePixels = await page.evaluate(async (screen) => {
       const api = window.__AOE2_TEST__!;
       const frame = api.captureWorldFrame();
       const image = new Image();
@@ -63,14 +72,21 @@ test.describe('voxel behind-building unit silhouette', () => {
       const originX = Math.max(0, Math.round(screen.x * scale) - width / 2);
       const originY = Math.max(0, Math.round(screen.y * scale) - height + Math.round(12 * scale));
       const data = context.getImageData(originX, originY, width, height).data;
+      let matches = 0;
       let white = 0;
       for (let index = 0; index < data.length; index += 4) {
-        if (data[index]! > 235 && data[index + 1]! > 235 && data[index + 2]! > 235) white += 1;
+        const red = data[index]!;
+        const green = data[index + 1]!;
+        const blue = data[index + 2]!;
+        if (blue > 200 && blue - red > 50 && green > red) matches += 1;
+        if (red > 235 && green > 235 && blue > 235) white += 1;
       }
-      return white;
+      return { matches, white };
     }, states.screen);
 
-    expect(whitePixels).toBeGreaterThan(20);
+    expect(cuePixels.matches).toBeGreaterThan(20);
+    // And the cue is not a white blob any more.
+    expect(cuePixels.white).toBeLessThan(cuePixels.matches / 4);
 
     const stability = await page.evaluate(async () => {
       const api = window.__AOE2_TEST__!;
