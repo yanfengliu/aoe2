@@ -121,6 +121,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   function buildingTargetPriority(buildingType: BuildingType): number {
     switch (buildingType) {
       case 'watch-tower':
+      case 'bombard-tower':
         return 2;
       case 'wonder':
         // Slice 8: a Wonder with an active countdown is the single most

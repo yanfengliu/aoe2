@@ -417,8 +417,15 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         applyUniqueTechnologyToOwnedUnits(world, accessor, owner, technologyType);
         markOutOfBandRenderChange();
         break;
+      // Guard Tower and Keep already raised a Watch Tower's ATTACK and RANGE at
+      // the fire site; structures.csv also gives each tier more hit points
+      // (1020 -> 1500 -> 2250), and Fortified Wall takes a Stone Wall from
+      // 1800 to 3000 — all of which is this seam.
       case 'masonry':
       case 'architecture':
+      case 'fortified-wall':
+      case 'guard-tower':
+      case 'keep':
         // Buildings already standing get the bump here; everything built after
         // this derives it at creation (entityCreateOps).
         applyBuildingHpTechnology(world, accessor, owner, technologyType);
@@ -426,8 +433,10 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         break;
       case 'treadmill-crane':
       case 'heated-shot':
-        // Both are DERIVED at the point of use — the build loop reads
-        // buildRateMultiplier, tower fire reads heatedShotMultiplier — so
+      case 'bombard-tower-unlock':
+        // All three are DERIVED at the point of use — the build loop reads
+        // buildRateMultiplier, tower fire reads heatedShotMultiplier, and the
+        // Bombard Tower unlock is read by the villager build menu — so
         // researching them writes nothing.
         break;
       case 'town-watch':

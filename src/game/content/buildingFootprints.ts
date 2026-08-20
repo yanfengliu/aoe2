@@ -16,6 +16,7 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   'mining-camp': { width: 2, height: 2 },
   barracks: { width: 3, height: 3 },
   'watch-tower': { width: 1, height: 1 },
+  'bombard-tower': { width: 1, height: 1 },
   stable: { width: 3, height: 3 },
   'archery-range': { width: 3, height: 3 },
   blacksmith: { width: 3, height: 3 },

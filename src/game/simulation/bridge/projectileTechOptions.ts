@@ -32,6 +32,7 @@ export function projectileTechOptions(
     if (!hasTechnology(owner, 'masonry')) options.push('masonry');
     if (!hasTechnology(owner, 'treadmill-crane')) options.push('treadmill-crane');
     if (!hasTechnology(owner, 'heated-shot')) options.push('heated-shot');
+    if (!hasTechnology(owner, 'fortified-wall')) options.push('fortified-wall');
     // Architecture is the Imperial half of Masonry and needs it first, which
     // is why it is not simply a second entry in the list above.
     if (
@@ -40,6 +41,12 @@ export function projectileTechOptions(
       && !hasTechnology(owner, 'architecture')
     ) {
       options.push('architecture');
+    }
+    if (
+      isAtLeastAge(owner, 'imperial-age')
+      && !hasTechnology(owner, 'bombard-tower-unlock')
+    ) {
+      options.push('bombard-tower-unlock');
     }
     return options;
   }

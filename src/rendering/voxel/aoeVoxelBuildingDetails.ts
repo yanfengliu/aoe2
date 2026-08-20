@@ -97,6 +97,21 @@ function watchTower(context: DetailContext): void {
   add(context, 'watch-tower-brace', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.28, 0.77, 0.04, 0.54, 0.025, { roll: Math.PI / 4 });
 }
 
+function bombardTower(context: DetailContext): void {
+  // A Bombard Tower is a Watch Tower with a gun in it, so it shares the
+  // silhouette and adds the barrel — that is the whole visual difference, and
+  // it is enough to tell them apart at default zoom.
+  // Near-black cast iron, NOT steelDark: the tower's own stone is close enough
+  // to steelDark that the first version of this barrel was invisible against
+  // it in the showcase capture. The brass band at the muzzle is the other half
+  // of making it read at default zoom, and it does the work that the barrel
+  // length cannot — every part has to stay inside the 1x1 footprint, because
+  // hit testing and selection are built from these parts.
+  add(context, 'bombard-tower-barrel', 'metal', 0x201f22, 0.66, 1.5, 0.66, 0.46, 0.18, 0.18, { yaw: -0.78 });
+  add(context, 'bombard-tower-muzzle', 'metal', 0xc9a227, 0.86, 1.5, 0.86, 0.2, 0.24, 0.24);
+  add(context, 'bombard-tower-powder-keg', 'matte', 0x4a3524, 0.24, 0.18, 0.82, 0.2, 0.24, 0.2);
+}
+
 function stable(context: DetailContext): void {
   add(context, 'stable-hitch-post-left', 'matte', VOXEL_COLORS.timberDark, 0.22, 0.14, 0.89, 0.035, 0.48, 0.035);
   add(context, 'stable-hitch-post-right', 'matte', VOXEL_COLORS.timberDark, 0.78, 0.14, 0.89, 0.035, 0.48, 0.035);
@@ -205,6 +220,7 @@ export function createBuildingDetailParts(
     case 'mining-camp': miningCamp(context); break;
     case 'barracks': barracks(context); break;
     case 'watch-tower': watchTower(context); break;
+    case 'bombard-tower': watchTower(context); bombardTower(context); break;
     case 'stable': stable(context); break;
     case 'archery-range': archeryRange(context); break;
     case 'blacksmith': blacksmith(context); break;

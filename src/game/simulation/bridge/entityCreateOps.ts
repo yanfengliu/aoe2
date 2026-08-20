@@ -308,6 +308,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     const fullHp = buildingMaxHpWithTechnologies(
       buildingMaxHp(buildingType),
       accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
+      buildingType,
     );
     accessor.mutate(buildingHealthStatesCodec, (m) =>
       m.set(entity, {

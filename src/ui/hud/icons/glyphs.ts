@@ -318,6 +318,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   'mining-camp': MINING_CAMP_GLYPH,
   barracks: BARRACKS_GLYPH,
   'watch-tower': WATCH_TOWER_GLYPH,
+  'bombard-tower': WATCH_TOWER_GLYPH,
   stable: STABLE_GLYPH,
   'archery-range': ARCHERY_RANGE_GLYPH,
   blacksmith: BLACKSMITH_GLYPH,

@@ -7,7 +7,15 @@ import {
   heatedShotMultiplier,
 } from '../../src/game/simulation/buildingTechEffects';
 import type { ResearchableTechnologyType } from '../../src/game/simulation/types';
-import { selectOwnedBuildingDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
+import {
+  buildingMaxHp,
+  createBuildingCombatState as buildingCombatProfile,
+} from '../../src/game/simulation/prototypeBuildingRules';
+import {
+  selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
+  stepBridgeUntil,
+} from './createSimulationBridge.helpers';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -125,4 +133,75 @@ describe('Heated Shot on the water', () => {
     // ...and it left the land unit exactly as it was.
     expect(burnedLand).toBe(plainLand);
   }, 90_000);
+});
+
+describe('Fortified Wall and the tower hit-point upgrades', () => {
+  it('toughen only the building they name', () => {
+    const walls = set('fortified-wall');
+    expect(buildingHitPointMultiplier(walls, 'stone-wall')).toBeCloseTo(3000 / 1800, 5);
+    expect(buildingHitPointMultiplier(walls, 'watch-tower')).toBe(1);
+    expect(buildingHitPointMultiplier(walls, 'town-center')).toBe(1);
+
+    const keep = set('guard-tower', 'keep');
+    expect(buildingHitPointMultiplier(keep, 'watch-tower'))
+      .toBeCloseTo((1500 / 1020) * (2250 / 1500), 5);
+    expect(buildingHitPointMultiplier(keep, 'stone-wall')).toBe(1);
+  });
+
+  it('stack with Masonry rather than replacing it', () => {
+    expect(buildingHitPointMultiplier(set('masonry', 'fortified-wall'), 'stone-wall'))
+      .toBeCloseTo(1.1 * (3000 / 1800), 5);
+  });
+
+  it('raises a Stone Wall that is already standing', () => {
+    const bridge: Bridge = createSimulationBridge('university-fixture');
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
+    const tower = bridge.getEconomyState().buildings
+      .find((entry) => entry.owner === 1 && entry.buildingType === 'watch-tower');
+    expect(tower).toBeDefined();
+    const before = bridge.getEntityHealth(tower!.id)!.maxHp;
+
+    // Fortified Wall must leave the TOWER alone; that is the point of a
+    // per-building technology.
+    expect(bridge.queueResearch('fortified-wall')).toBe(true);
+    expect(stepBridgeUntil(
+      bridge,
+      () => bridge.getDebugSnapshot().tick > 520,
+      { maxSteps: 700 },
+    )).toBe(true);
+    expect(bridge.getEntityHealth(tower!.id)!.maxHp).toBe(before);
+  }, 60_000);
+});
+
+describe('the Bombard Tower', () => {
+  it('is offered to a villager only once the technology is researched', () => {
+    const bridge: Bridge = createSimulationBridge('university-imperial-fixture');
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).not.toContain('bombard-tower');
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('bombard-tower-unlock');
+    expect(bridge.queueResearch('bombard-tower-unlock')).toBe(true);
+
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        selectOwnedUnitDirect(bridge, 1, 'villager');
+        return bridge.getSelectionState().buildOptions.includes('bombard-tower');
+      },
+      { maxSteps: 900 },
+    ), 'the Bombard Tower never opened').toBe(true);
+  }, 60_000);
+
+  it('hits far harder than a Watch Tower, and much more slowly', () => {
+    // structures.csv: 120 damage on a 6-second reload against the Watch
+    // Tower's 5 on 2 seconds. A single shot is the whole character of it.
+    const bombard = buildingCombatProfile('bombard-tower');
+    const watch = buildingCombatProfile('watch-tower');
+    expect(bombard).not.toBeNull();
+    expect(watch).not.toBeNull();
+    expect(bombard!.attackDamage).toBeGreaterThan(watch!.attackDamage * 10);
+    expect(bombard!.reloadTicks).toBeGreaterThan(watch!.reloadTicks * 2);
+    expect(buildingMaxHp('bombard-tower')).toBeGreaterThan(buildingMaxHp('watch-tower'));
+  });
 });

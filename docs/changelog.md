@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.28 - 2026-08-19
+
+### Added
+
+- **The Bombard Tower.** Research it at the University in Imperial Age and your villagers can build it: 120 damage a shot at range 8, against a Watch Tower's 5. It is the heaviest thing you can put up short of a Castle, and it looks the part — a brass gun muzzle set into the tower face.
+- **Fortified Wall** at the University takes your stone walls from 1800 hit points to 3000.
+- **Guard Tower and Keep now toughen your towers as well as arming them** — 1020 hit points, then 1500, then 2250. They only ever raised attack and range before.
+
 ## 0.3.27 - 2026-08-19
 
 ### Added

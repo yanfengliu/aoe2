@@ -31,6 +31,7 @@ const ENTITY_NAMES = {
   'mining-camp': 'Mining Camp',
   'barracks': ['Barracks', 'Barracks'],
   'watch-tower': 'Watch Tower',
+  'bombard-tower': 'Bombard Tower',
   'stable': 'Stable',
   'archery-range': 'Archery Range',
   'blacksmith': 'Blacksmith',

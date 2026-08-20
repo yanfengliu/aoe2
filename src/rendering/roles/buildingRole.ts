@@ -51,6 +51,7 @@ const BUILDING_ROLES = {
   university: 'monastery',
   dock: 'dock',
   'watch-tower': 'tower',
+  'bombard-tower': 'tower',
   'stone-wall': 'wall',
   'palisade-wall': 'wall',
 } as const satisfies Record<BuildingType, BuildingRole>;

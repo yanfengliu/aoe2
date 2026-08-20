@@ -30,6 +30,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'mining-camp': ['Mining Camp', 'Mining Camps'],
   'barracks': ['Barracks', 'Barracks'],
   'watch-tower': ['Watch Tower', 'Watch Towers'],
+  'bombard-tower': ['Bombard Tower', 'Bombard Towers'],
   'stable': ['Stable', 'Stables'],
   'archery-range': ['Archery Range', 'Archery Ranges'],
   'blacksmith': ['Blacksmith', 'Blacksmiths'],

@@ -29,6 +29,9 @@ export type BuildableBuildingType =
   | 'mining-camp'
   | 'barracks'
   | 'watch-tower'
+  // Imperial defensive tower, unlocked by the University's Bombard Tower
+  // technology. Fires a cannon: 120 damage on a 6-second reload.
+  | 'bombard-tower'
   | 'stable'
   | 'archery-range'
   | 'blacksmith'

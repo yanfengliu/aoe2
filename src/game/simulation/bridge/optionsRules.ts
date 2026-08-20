@@ -478,6 +478,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       getPlayerAge,
       hasCompletedBuilding,
       hasOwnedWonder,
+      hasTechnology,
     );
   }
 

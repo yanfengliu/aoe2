@@ -7,6 +7,7 @@ import type {
   AgeType,
   BuildableBuildingType,
   BuildingType,
+  ResearchableTechnologyType,
   UnitType,
 } from '../types';
 
@@ -15,11 +16,12 @@ import type {
  * are passed in as predicates so this stays pure; the bridge owns the maps.
  */
 export function buildOptionsFor(
-owner: number,
-unitType: UnitType,
-getPlayerAge: (owner: number) => AgeType,
-hasCompletedBuilding: (owner: number, buildingType: BuildingType) => boolean,
-hasOwnedWonder: (owner: number) => boolean,
+  owner: number,
+  unitType: UnitType,
+  getPlayerAge: (owner: number) => AgeType,
+  hasCompletedBuilding: (owner: number, buildingType: BuildingType) => boolean,
+  hasOwnedWonder: (owner: number) => boolean,
+  hasTechnology: (owner: number, tech: ResearchableTechnologyType) => boolean,
 ): BuildableBuildingType[] {
   if (unitType !== 'villager') {
     return [];
@@ -58,6 +60,12 @@ hasOwnedWonder: (owner: number) => boolean,
 
   if (getPlayerAge(owner) === 'imperial-age' && !hasOwnedWonder(owner)) {
     options.push('wonder');
+  }
+
+  // The Bombard Tower is UNLOCKED by research rather than by age alone, so it
+  // is the one entry here that asks about a technology.
+  if (hasTechnology(owner, 'bombard-tower-unlock')) {
+    options.push('bombard-tower');
   }
 
   return options;

@@ -155,4 +155,7 @@ export type ResearchableTechnologyType =
   | 'zealotry'
   | 'supremacy'
   | 'crenellations'
-  | 'artillery';
+  | 'artillery'
+  // University defensive completion (spec §8.4).
+  | 'bombard-tower-unlock'
+  | 'fortified-wall';

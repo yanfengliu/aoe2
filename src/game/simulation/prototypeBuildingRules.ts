@@ -34,6 +34,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   'mining-camp': 0,
   barracks: 0,
   'watch-tower': 0,
+  'bombard-tower': 0,
   stable: 0,
   'archery-range': 0,
   blacksmith: 0,
@@ -57,6 +58,7 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   'mining-camp': 180,
   barracks: 240,
   'watch-tower': 220,
+  'bombard-tower': 800, // structures.csv build_time 80s
   stable: 240,
   'archery-range': 240,
   blacksmith: 200,
@@ -81,6 +83,7 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   'mining-camp': 1.15,
   barracks: 1.2,
   'watch-tower': 1.2,
+  'bombard-tower': 1.35,
   stable: 1.2,
   'archery-range': 1.2,
   blacksmith: 1.2,
@@ -139,6 +142,14 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     humanIncomplete: 0x56606a,
     enemyComplete: 0xa3848f,
     enemyIncomplete: 0x654e58,
+  },
+  // Darker stone than a Watch Tower, so the two read apart in a base that has
+  // both — the barrel is the other half of the difference.
+  'bombard-tower': {
+    humanComplete: 0x6f7c88,
+    humanIncomplete: 0x454e56,
+    enemyComplete: 0x846a74,
+    enemyIncomplete: 0x513f47,
   },
   stable: {
     humanComplete: 0xa07b4f,
@@ -230,6 +241,7 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   'mining-camp': 100,
   barracks: 175,
   'watch-tower': 175,
+  'bombard-tower': 2220, // structures.csv hit_points
   stable: 175,
   'archery-range': 175,
   blacksmith: 175,
@@ -250,6 +262,7 @@ const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
   ['dock', 5], // structures.csv line_of_sight.
   ['town-center', 7],
   ['watch-tower', 8],
+  ['bombard-tower', 10], // structures.csv line_of_sight
   ['castle', 11],
   ['wonder', 7],
 ]);
@@ -257,6 +270,8 @@ const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
 const BUILDING_COMBAT_STATES = new Map<BuildingType, BuildingCombatProfile>([
   ['town-center', { attackDamage: 5, attackRange: 6, reloadTicks: 12, cooldownTicks: 0 }],
   ['watch-tower', { attackDamage: 5, attackRange: 7, reloadTicks: 12, cooldownTicks: 0 }],
+  // structures.csv: attack 120, range 8, reload 6.0s. One shot, enormous.
+  ['bombard-tower', { attackDamage: 120, attackRange: 8, reloadTicks: 60, cooldownTicks: 0 }],
   ['castle', { attackDamage: 11, attackRange: 8, reloadTicks: 20, cooldownTicks: 0 }],
 ]);
 
@@ -264,6 +279,7 @@ const BUILDING_GARRISON_CAPACITY = new Map<BuildingType, number>([
   ['dock', 10], // structures.csv: "Garrison: 10 created units".
   ['town-center', 5],
   ['watch-tower', 5],
+  ['bombard-tower', 5],
   ['castle', 20],
 ]);
 
@@ -361,6 +377,7 @@ export function buildingArrowCount(
       // Castle's empty-fire of 1. Gives a TC passive economy-phase defense.
       return 1 + Math.min(garrisonedUnitsTotal, 4);
     case 'watch-tower':
+    case 'bombard-tower':
       return 1;
     case 'castle':
       return Math.min(5, 1 + garrisonedArchers);

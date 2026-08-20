@@ -61,6 +61,7 @@ const TYPE_DETAIL_SIGNATURES = {
   'mining-camp': ['detail-mining-camp-ore-bin', 'detail-mining-camp-ore-glint'],
   barracks: ['detail-barracks-shield', 'detail-barracks-spear-head'],
   'watch-tower': ['detail-watch-tower-arrow-slit-front', 'detail-watch-tower-brace'],
+  'bombard-tower': ['detail-bombard-tower-barrel', 'detail-bombard-tower-muzzle'],
   stable: ['detail-stable-hitch-rail', 'detail-stable-hay-bale'],
   'archery-range': ['detail-archery-range-bow-rack', 'detail-archery-range-arrow-head'],
   blacksmith: ['detail-blacksmith-chimney-band', 'detail-blacksmith-tongs-left'],

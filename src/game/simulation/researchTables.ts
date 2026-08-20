@@ -126,6 +126,9 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'supremacy': { food: 400, gold: 250 },
   'crenellations': { food: 600, gold: 400 },
   'artillery': { food: 500, gold: 450 },
+  // University defensive completion (technologies.csv).
+  'bombard-tower-unlock': { food: 800, wood: 400 },
+  'fortified-wall': { wood: 100, food: 200 },
 };
 
 export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
@@ -247,4 +250,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'supremacy': 600,
   'crenellations': 600,
   'artillery': 400,
+  // University defensive completion (technologies.csv).
+  'bombard-tower-unlock': 600,
+  'fortified-wall': 500,
 };

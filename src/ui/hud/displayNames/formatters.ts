@@ -22,6 +22,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fletching';
     case 'crossbowman-upgrade':
       return 'Crossbowman';
+    case 'bombard-tower-unlock':
+      return 'Bombard Tower';
+    case 'fortified-wall':
+      return 'Fortified Wall';
     case 'garland-wars':
       return 'Garland Wars';
     case 'yeomen':

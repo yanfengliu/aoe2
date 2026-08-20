@@ -38,6 +38,7 @@ const ENTITY_ICONS = {
   'mining-camp': ['MC', '#9daabd'],
   'barracks': ['BA', '#b78363'],
   'watch-tower': ['WT', '#b6a7be'],
+  'bombard-tower': ['BT', '#9e8fa8'],
   'stable': ['ST', '#bf9463'],
   'archery-range': ['AR', '#a6866f'],
   'blacksmith': ['BS', '#8f98aa'],

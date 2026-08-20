@@ -172,6 +172,7 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   'mining-camp': { wood: 100 },
   barracks: { wood: 175 },
   'watch-tower': { stone: 125 },
+  'bombard-tower': { wood: 25, stone: 125 },
   stable: { wood: 175 },
   'archery-range': { wood: 175 },
   blacksmith: { wood: 150 },

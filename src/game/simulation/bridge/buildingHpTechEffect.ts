@@ -8,7 +8,10 @@
 // ceiling, it does not repair. A building at full health stays at full health,
 // which is what makes the tech feel like an upgrade rather than a heal.
 
-import { buildingHitPointMultiplier } from '../buildingTechEffects';
+import {
+  buildingHitPointMultiplier,
+  singleBuildingHpMultiplier,
+} from '../buildingTechEffects';
 import type { BuildingComponent } from '../types';
 import type { ResearchableTechnologyType } from '../technologyTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -19,11 +22,13 @@ export function applyBuildingHpTechnology(
   world: GameWorld,
   accessor: BridgeStateAccessor,
   owner: number,
-  technology: 'masonry' | 'architecture',
+  technology: ResearchableTechnologyType,
 ): void {
-  // The multiplier for THIS technology alone: the owner's other one, if
-  // researched, is already baked into the stored maxHp.
-  const multiplier = buildingHitPointMultiplier(
+  // The multiplier for THIS technology alone: the owner's others, if
+  // researched, are already baked into the stored maxHp. A technology that
+  // toughens only ONE kind of building (Fortified Wall, the tower upgrades)
+  // contributes 1 to everything else, so the loop below leaves them untouched.
+  const generalMultiplier = buildingHitPointMultiplier(
     new Set<ResearchableTechnologyType>([technology]),
   );
   accessor.mutate(buildingHealthStatesCodec, (healths) => {
@@ -32,6 +37,9 @@ export function applyBuildingHpTechnology(
       if (!building || building.owner !== owner) continue;
       const health = healths.get(id);
       if (!health) continue;
+      const multiplier = generalMultiplier
+        * singleBuildingHpMultiplier(technology, building.buildingType);
+      if (multiplier === 1) continue;
       const wasFull = health.currentHp >= health.maxHp;
       const maxHp = Math.round(health.maxHp * multiplier);
       healths.set(id, {

@@ -70,6 +70,7 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('mining-camp', 1, 14, 16, { vision: 8 }),
       ownedSpawn('monastery', 1, 18, 16, { vision: 8 }),
       ownedSpawn('watch-tower', 1, 22, 16, { vision: 8 }),
+      ownedSpawn('bombard-tower', 1, 26, 16, { vision: 8 }),
       ownedSpawn('farm', 1, 25, 16, { vision: 6 }),
       ownedSpawn('stone-wall', 1, 27, 16, { vision: 6 }),
       ownedSpawn('palisade-wall', 1, 29, 16, { vision: 6 }),

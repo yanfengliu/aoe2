@@ -1018,7 +1018,11 @@ Masonry and Architecture apply BOTH ways, like Loom: the buildings already stand
 
 Treadmill Crane advances the build counter by a FRACTIONAL amount rather than rounding the multiplier to a whole tick, which would be a silent no-op. Heated Shot is applied at the moment a shot is launched, so the multiplier is fixed by what the tower aimed at rather than by whatever the arrow lands on.
 
-Still pending at the University: Fortified Wall (needs a wall upgrade path), Murder Holes (removes a MINIMUM range that buildings do not have yet), and Bombard Tower (a new building type).
+**Fortified Wall** (Castle, 100 wood + 200 food) takes a Stone Wall from 1800 hit points to 3000, and **Bombard Tower** (Imperial, 800 food + 400 wood) unlocks the building of the same name. Both ride the same per-building hit-point seam as Masonry, which also finally carries the hit-point half of the tower upgrades: Guard Tower takes a Watch Tower from 1020 to 1500 and Keep on to 2250, alongside the attack and range they already gave.
+
+The **Bombard Tower** (Imperial, 25 wood + 125 stone, 1x1, 2220 HP) is the heaviest defensive building short of a Castle: 120 damage on a six-second reload at range 8, against a Watch Tower's 5 on two seconds. It is not offered by age alone — a villager sees it only once the University technology is researched, which is the only entry in the build menu that asks about a technology rather than an age or a prerequisite building.
+
+Still pending at the University: Murder Holes, which removes a MINIMUM range that buildings do not have yet.
 
 ### 10.5 Elevation
 

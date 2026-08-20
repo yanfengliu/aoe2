@@ -5,6 +5,7 @@
 // tech set it already carried.
 
 import { isWaterUnit } from './unitDomain';
+import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitType } from './unitTypes';
 
@@ -16,22 +17,67 @@ import type { UnitType } from './unitTypes';
 export const MASONRY_HP_MULTIPLIER = 1.1;
 export const ARCHITECTURE_HP_MULTIPLIER = 1.1;
 
-/** How much tougher this owner's buildings are than their base hit points. */
+/**
+ * Technologies that toughen ONE kind of building rather than all of them:
+ * Fortified Wall takes a Stone Wall from 1800 to 3000 hit points, and the tower
+ * upgrades take a Watch Tower from 1020 to a Guard Tower's 1500 and on to a
+ * Keep's. All from structures.csv.
+ */
+const PER_BUILDING_HP: ReadonlyArray<{
+  readonly technology: ResearchableTechnologyType;
+  readonly buildingType: BuildingType;
+  readonly multiplier: number;
+}> = [
+  { technology: 'fortified-wall', buildingType: 'stone-wall', multiplier: 3000 / 1800 },
+  { technology: 'guard-tower', buildingType: 'watch-tower', multiplier: 1500 / 1020 },
+  { technology: 'keep', buildingType: 'watch-tower', multiplier: 2250 / 1500 },
+];
+
+/**
+ * How much tougher this owner's buildings are than their base hit points.
+ *
+ * `buildingType` is optional because the caller that raises everything already
+ * standing walks one building at a time and knows it, while the pure test of
+ * the general multipliers does not care.
+ */
 export function buildingHitPointMultiplier(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  buildingType?: BuildingType,
 ): number {
   let multiplier = 1;
   if (researchedTechnologies.has('masonry')) multiplier *= MASONRY_HP_MULTIPLIER;
   if (researchedTechnologies.has('architecture')) multiplier *= ARCHITECTURE_HP_MULTIPLIER;
+  if (buildingType === undefined) return multiplier;
+  for (const entry of PER_BUILDING_HP) {
+    if (entry.buildingType !== buildingType) continue;
+    if (!researchedTechnologies.has(entry.technology)) continue;
+    multiplier *= entry.multiplier;
+  }
   return multiplier;
+}
+
+/** The per-building technologies, for the appliers that walk one at a time. */
+export const PER_BUILDING_HP_TECHNOLOGIES: ReadonlySet<ResearchableTechnologyType> =
+  new Set(PER_BUILDING_HP.map((entry) => entry.technology));
+
+/** The multiplier ONE technology contributes to ONE building type. */
+export function singleBuildingHpMultiplier(
+  technology: ResearchableTechnologyType,
+  buildingType: BuildingType,
+): number {
+  const entry = PER_BUILDING_HP.find(
+    (candidate) => candidate.technology === technology && candidate.buildingType === buildingType,
+  );
+  return entry?.multiplier ?? 1;
 }
 
 /** A building's hit points under this owner's technologies. */
 export function buildingMaxHpWithTechnologies(
   baseMaxHp: number,
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  buildingType?: BuildingType,
 ): number {
-  return Math.round(baseMaxHp * buildingHitPointMultiplier(researchedTechnologies));
+  return Math.round(baseMaxHp * buildingHitPointMultiplier(researchedTechnologies, buildingType));
 }
 
 // Treadmill Crane (Castle): "Builders work rate x 1.2".
