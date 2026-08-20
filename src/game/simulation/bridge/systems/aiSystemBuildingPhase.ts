@@ -71,6 +71,17 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       }
     }
 
+    // Farms are the one build target the AI wants SEVERAL of, so it needs a
+    // count rather than the missing/present question the rest of the list asks.
+    const countOwnedFarms = (): number => {
+      let farms = 0;
+      for (const id of activeWorld.query('building')) {
+        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+        if (building?.owner === owner && building.buildingType === 'farm') farms += 1;
+      }
+      return farms;
+    };
+
     const missing = (buildingType: BuildableBuildingType): boolean => {
       if (buildingType === 'house') {
         if (populationBlocked) {
@@ -123,7 +134,10 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       }
     }
 
-    const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked);
+    const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked, {
+      owned: countOwnedFarms(),
+      villagerCount: countOwnedUnits(owner, 'villager'),
+    });
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);
       const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);

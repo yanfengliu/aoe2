@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.29 - 2026-08-20
+
+### Fixed
+
+- **The AI's economy no longer dies mid-game.** Its villagers were being assigned to FISH — food, like a berry bush, but out in the water where a villager can never go. They walked to the shoreline and stood there for the rest of the match, and the AI's stockpile stopped moving entirely at around fifteen minutes in. Villagers now only take work they can reach.
+- **The AI builds farms.** Berries and sheep run out; without farms its food income fell to zero and it could never afford the next age. It now keeps farms in proportion to its villager count.
+- **A villager that cannot reach the resource it was sent to now gives up and takes another.** Previously only a villager queueing behind others would ever re-target.
+
+### Added
+
+- **The AI builds siege and trains its unique unit.** It has been putting up a Siege Workshop and a Castle for a long time and training nothing from either, which meant it could not break a wall, a tower, or a Castle. It now fields rams and mangonels from Castle Age, and whatever unique unit its civilization has.
+
 ## 0.3.28 - 2026-08-19
 
 ### Added

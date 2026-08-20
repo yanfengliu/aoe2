@@ -401,3 +401,4 @@ export {
   createHeatedShotFixture,
   createHeatedShotResearchedFixture,
 } from './heatedShot';
+export { createAiCastleAgeMilitaryFixture } from './aiCastleAgeMilitary';

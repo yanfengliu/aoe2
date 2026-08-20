@@ -16,7 +16,6 @@ import type {
   ResearchableTechnologyType,
   TrainableUnitType,
 } from './types';
-import { canAfford, researchCost } from './prototypeEconomyRules';
 
 // Difficulty knob. Affects gather-rate multiplier (higher = more
 // resources per drop-off) and decision interval (lower = more frequent
@@ -171,12 +170,20 @@ export function pickUnitMix(age: AgeType): UnitMixEntry[] {
         { unitType: 'pikeman', producer: 'barracks' },
         { unitType: 'crossbowman', producer: 'archery-range' },
         { unitType: 'knight', producer: 'stable' },
+        // The AI has built a Siege Workshop since FU4 and trained NOTHING from
+        // it, which meant it could not break a wall, a tower, or a Castle — it
+        // would batter a stone wall with knights until they died. A ram opens
+        // the buildings and a mangonel answers a massed line.
+        { unitType: 'battering-ram', producer: 'siege-workshop' },
+        { unitType: 'mangonel', producer: 'siege-workshop' },
       ];
     case 'imperial-age':
       return [
         { unitType: 'halberdier', producer: 'barracks' },
         { unitType: 'arbalest', producer: 'archery-range' },
         { unitType: 'cavalier', producer: 'stable' },
+        { unitType: 'siege-ram', producer: 'siege-workshop' },
+        { unitType: 'onager', producer: 'siege-workshop' },
       ];
   }
 }
@@ -196,10 +203,28 @@ export function pickUnitMix(age: AgeType): UnitMixEntry[] {
 // prerequisites and their absence shouldn't delay the Castle-Age gate.
 // Feudal-prereq buildings (Blacksmith / Archery Range / Stable / Market)
 // are always a priority for age-up gating.
+/**
+ * How many farms an AI of this age should be keeping, given its villager count.
+ *
+ * Berries, sheep, and boar are FINITE. Without farms the AI's food income falls
+ * to zero the moment its opening patch is eaten, and it can then never afford
+ * the 800 food for Castle Age — which is exactly where every observed match
+ * stalled: Feudal Age, food 14, forever, with a Barracks it could not use.
+ *
+ * Roughly a third of the villager force on farms is the AoE2 shape, floored so
+ * that a small early economy still puts two down and capped so the AI does not
+ * spend its whole wood income on soil.
+ */
+export function targetFarmCount(age: AgeType, villagerCount: number): number {
+  if (age === 'dark-age') return 0;
+  return Math.max(2, Math.min(8, Math.floor(villagerCount / 3)));
+}
+
 export function pickNextBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   populationBlocked: boolean,
+  farms: { owned: number; villagerCount: number } | null = null,
 ): BuildableBuildingType | null {
   // Pop block pre-empts everything: no production of any kind can
   // resume until the AI has headroom. A fresh House is the fastest fix.
@@ -221,6 +246,13 @@ export function pickNextBuildTarget(
     if (missing('lumber-camp')) return 'lumber-camp';
     if (missing('mining-camp')) return 'mining-camp';
     return null;
+  }
+
+  // Farms come BEFORE the age-up prerequisite buildings: those cost wood and
+  // the age-up itself costs food, so an AI that puts up an Archery Range while
+  // its food income is dead has spent wood to get no closer to Castle Age.
+  if (farms && farms.owned < targetFarmCount(age, farms.villagerCount)) {
+    return 'farm';
   }
 
   const feudalOrder: BuildableBuildingType[] = [
@@ -359,64 +391,13 @@ export function militaryGrowthPausedForAgeUp(
   return age === 'feudal-age' && !qualifiesForNextAge && militaryCount >= attackGroupSize(age);
 }
 
-// Resources-on-hand threshold for age-up "safety buffer". The AI
-// prefers to age up only when it has enough extra resources to keep
-// producing after the research commits — otherwise the production
-// lines stall for the full research duration. Returns a minimum budget
-// in food + gold (the two most-used costs); the bridge compares this
-// to the current stockpile. Kept small so deterministic fixtures can
-// reach Imperial Age within a reasonable tick budget — the main
-// benefit of the buffer is "don't starve the economy", not "wait for
-// a big cushion".
-export function ageUpResourceBuffer(
-  age: AgeType,
-): Partial<PlayerResources> {
-  switch (age) {
-    case 'dark-age':
-      return { food: 50 };
-    case 'feudal-age':
-      return { food: 50 };
-    case 'castle-age':
-      return { food: 100, gold: 50 };
-    case 'imperial-age':
-      return {};
-  }
-}
-
-// campaign-11 finding (c): the next age-up's research cost, to be RESERVED
-// from discretionary military spending so a freshly-trained unit's cost can't
-// drain the stockpile below the age-up cost and starve the (FIFO-later) age-up
-// research — the AI used to mass Dark-Age Militia on ~500 food and never
-// advance. Empty unless the AI already QUALIFIES for the next age (its
-// `canAdvanceTo*Age` prerequisite check passes), so a not-yet-eligible AI
-// still trains military freely.
-export function ageUpReserveCost(
-  age: AgeType,
-  canAdvanceToNextAge: boolean,
-): Partial<PlayerResources> {
-  const next: ResearchableTechnologyType | null =
-    age === 'dark-age' ? 'feudal-age'
-    : age === 'feudal-age' ? 'castle-age'
-    : age === 'castle-age' ? 'imperial-age'
-    : null;
-  return next && canAdvanceToNextAge ? researchCost(next) : {};
-}
-
-// True when `stockpile` covers `cost` ON TOP OF `reserve` — i.e. the spend
-// draws only from the surplus above the reserved age-up cost. Used to gate AI
-// military training so a unit can't consume resources earmarked for an age-up.
-export function canAffordWithReserve(
-  stockpile: PlayerResources,
-  cost: Partial<PlayerResources>,
-  reserve: Partial<PlayerResources>,
-): boolean {
-  return canAfford(stockpile, {
-    food: (cost.food ?? 0) + (reserve.food ?? 0),
-    wood: (cost.wood ?? 0) + (reserve.wood ?? 0),
-    gold: (cost.gold ?? 0) + (reserve.gold ?? 0),
-    stone: (cost.stone ?? 0) + (reserve.stone ?? 0),
-  });
-}
+// The age-up reserve lives in ./aiResourceReserve (extracted for the 500-LOC
+// budget); re-exported so existing `from './ai'` imports keep working.
+export {
+  ageUpReserveCost,
+  ageUpResourceBuffer,
+  canAffordWithReserve,
+} from './aiResourceReserve';
 
 // Vision radius the AI considers as "near base" for scouting-response
 // logic. If an enemy unit is visible within this radius of the AI's

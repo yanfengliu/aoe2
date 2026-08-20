@@ -111,6 +111,30 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         (pendingTrainsByBuilding.get(producerId) ?? 0) + 1,
       );
     }
+
+    // The Castle is the most expensive thing the AI builds and it trained
+    // nothing from it. Its unique unit is not in `pickUnitMix` because that
+    // function knows only the age: the right unit depends on the owner's
+    // CIVILIZATION and on whether the elite upgrade is done. Reading the
+    // Castle's own train options answers both, and keeps the AI's choice
+    // identical to what a player would be offered.
+    const castleId = findIdleProducerLocal('castle');
+    if (castleId !== null && stockpile) {
+      // Trebuchets are a siege weapon for a specific job, not a standing army —
+      // the AI would otherwise fill its population with them.
+      const castleUnit = getTrainOptions(owner, 'castle')
+        .find((option) => option !== 'trebuchet');
+      if (
+        castleUnit !== undefined
+        && canAffordWithReserve(stockpile, trainingCost(castleUnit), ageUpReserve)
+      ) {
+        pushQueueTrainIntention(castleId, castleUnit);
+        pendingTrainsByBuilding.set(
+          castleId,
+          (pendingTrainsByBuilding.get(castleId) ?? 0) + 1,
+        );
+      }
+    }
   }
 
   if (ownerTownCenterId !== null) {

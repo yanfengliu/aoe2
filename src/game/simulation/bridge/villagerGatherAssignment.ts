@@ -18,12 +18,14 @@
 import type { Position } from 'civ-engine';
 import type {
   BuildingComponent,
+  UnitComponent,
   GathererComponent,
   ResourceComponent,
   EconomyResourceKind,
 } from '../types';
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
+import { canGathererHarvest } from '../gatherDomain';
 import type { UnitMovementPlan } from './movementTypes';
 
 // Cap on how many candidates the reachability-aware reroute pathfinds against
@@ -82,6 +84,9 @@ export function assignNearestResource(
 ): void {
   const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
   if (!villagerPosition) return;
+  const gathererUnit = activeWorld.getComponent<UnitComponent>(villagerId, 'unit');
+  if (!gathererUnit) return;
+  const gathererUnitType = gathererUnit.unitType;
 
   const { preferUnsaturated, spreadCap } = options;
   const excludeId = options.excludeResourceId ?? null;
@@ -99,6 +104,9 @@ export function assignNearestResource(
     if (!position || !resource) continue;
     if (!deps.isHarvestableResource(id, resource)) continue;
     if (resourceKindToEconomyResource(resource.resourceType) !== gatherer.desiredResource) continue;
+    // A fish is FOOD, so the kind filter above lets a land villager pick one —
+    // and it then walks to the shoreline and never arrives. Domain first.
+    if (!canGathererHarvest(gathererUnitType, resource.resourceType)) continue;
     // M1 Farms: a farm (resource+building hybrid) is owner-only — exclude it
     // from another player's matching set. Neutral resources are unaffected.
     const isOwnedStructure =

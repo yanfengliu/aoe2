@@ -49,7 +49,12 @@ function scenarioWorld(): GameWorld {
   const berry = (owner: number | null, baseOwner: number | null, amount: number): ResourceComponent =>
     ({ resourceType: 'berry-bush', owner, baseOwner, amount } as ResourceComponent);
   return makeWorld({
-    [VILLAGER]: { position: { x: 0, y: 0 } satisfies Position },
+    [VILLAGER]: {
+      position: { x: 0, y: 0 } satisfies Position,
+      // The assignment reads the gatherer's TYPE: a land unit can never
+      // work a water resource, and a fish is FOOD like any berry.
+      unit: { owner: 1, unitType: 'villager' },
+    },
     [UNREACHABLE_NEAR]: { position: { x: 1, y: 1 }, resource: berry(null, 1, 100) },
     [REACHABLE_FAR]: { position: { x: 5, y: 5 }, resource: berry(null, 1, 100) },
   });
@@ -129,7 +134,12 @@ describe('assignNearestResource reachability-aware reroute', () => {
     const berry = (amount: number): ResourceComponent =>
       ({ resourceType: 'berry-bush', owner: null, baseOwner: 1, amount } as ResourceComponent);
     const world = makeWorld({
-      [VILLAGER]: { position: { x: 20, y: 20 } satisfies Position },
+      [VILLAGER]: {
+      position: { x: 20, y: 20 } satisfies Position,
+      // The assignment reads the gatherer's TYPE: a land unit can never
+      // work a water resource, and a fish is FOOD like any berry.
+      unit: { owner: 1, unitType: 'villager' },
+    },
       [DROP_OFF]: { position: { x: 5, y: 5 }, building: {} },
       [NEAR_BASE]: { position: { x: 6, y: 6 }, resource: berry(100) },
       [NEAR_VILLAGER]: { position: { x: 19, y: 19 }, resource: berry(100) },
@@ -172,7 +182,10 @@ describe('assignNearestResource reachability-aware reroute', () => {
     const DROP = 900;
     const REACHABLE_ADJACENT = 800; // next to the villager, far from the drop-off
     const entities: Record<number, Record<string, unknown>> = {
-      [VILLAGER]: { position: { x: 30, y: 30 } },
+      [VILLAGER]: {
+        position: { x: 30, y: 30 },
+        unit: { owner: 1, unitType: 'villager' },
+      },
       [DROP]: { position: { x: 0, y: 0 }, building: {} },
       [REACHABLE_ADJACENT]: {
         position: { x: 31, y: 30 },
@@ -230,7 +243,10 @@ describe('assignNearestResource reachability-aware reroute', () => {
     // villager does a BOUNDED amount of pathfinding per tick, not one BFS per
     // resource on the map (the campaign-11 review's per-tick-BFS-storm finding).
     const entities: Record<number, Record<string, unknown>> = {
-      [VILLAGER]: { position: { x: 0, y: 0 } },
+      [VILLAGER]: {
+        position: { x: 0, y: 0 },
+        unit: { owner: 1, unitType: 'villager' },
+      },
     };
     for (let i = 0; i < 20; i += 1) {
       entities[100 + i] = {

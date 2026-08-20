@@ -5,6 +5,7 @@
 // speed it) and drops the carried resource at the nearest valid drop-off.
 // Retries are throttled so a stuck gatherer does not re-plan every tick.
 
+import { runDropOffStep } from './dropOffStep';
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
@@ -25,7 +26,6 @@ import {
   type GatherAssignmentDeps,
 } from '../villagerGatherAssignment';
 import {
-  findReachableDropOff,
   type DropOffAssignmentDeps,
 } from '../villagerDropOffAssignment';
 import {
@@ -33,13 +33,11 @@ import {
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
 import { civGatherRateMultiplier } from '../../civBonusEffects';
-import { gatherMultiplier } from '../../ai';
 import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
   playerCivilizationsCodec,
-  playerResourcesCodec,
   researchedTechnologiesCodec,
   sheepMoveOrdersCodec,
   unitCommandsCodec,
@@ -48,7 +46,6 @@ import type { UnitMovementPlan } from '../movementTypes';
 
 type CivWorld = GameWorld;
 
-const GATHER_DROPOFF_RETRY_INTERVAL = 30;
 // Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
 // (14/18 stuck) and to-resource had no give-up path, jamming forever. Fix: a
 // villager stuck walking to an OVER-SUBSCRIBED resource for
@@ -57,6 +54,20 @@ const GATHER_DROPOFF_RETRY_INTERVAL = 30;
 // untouched); the approach timer reuses gatherProgressTicks (no new save state).
 const MAX_GATHERERS_PER_RESOURCE = 2;
 const GATHER_APPROACH_TIMEOUT_TICKS = 80;
+// The over-subscription timeout above only rescues a villager that is queueing
+// behind others. A villager walking ALONE to a target it never reaches waited
+// forever, because "a long walk to an uncontended resource is NOT abandoned"
+// was written for a legitimately distant tree — and a blocked one looks exactly
+// the same from here. Measured on the default map: the AI's whole economy froze
+// at around tick 6000 with every villager holding a target it never arrived at,
+// several of them marching forty cells toward the OTHER player's berries.
+//
+// This is the unconditional backstop. It is much longer than the fan-out
+// timeout, so a genuinely long walk finishes first, and it reassigns with
+// `requireReachable` while EXCLUDING the target it gave up on — which is the
+// machinery that already existed and was only ever reachable through the
+// over-subscription branch.
+const GATHER_UNREACHABLE_TIMEOUT_TICKS = 600;
 // Loop 1 follow-up (campaign-5 replay: 15 of 16 woodcutters STILL re-piled
 // on the nearest tree because the give-up path freed them but idle→assign
 // re-picked nearest). idle→assign now also fans out, but at a GENEROUS cap
@@ -307,7 +318,27 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             const overSubscribed =
               (gatherTargetCounts.get(gatherer.targetResourceId ?? -1) ?? 0)
               > MAX_GATHERERS_PER_RESOURCE;
-            if (overSubscribed && gatherer.gatherProgressTicks >= GATHER_APPROACH_TIMEOUT_TICKS) {
+            const givenUp =
+              gatherer.gatherProgressTicks >= GATHER_UNREACHABLE_TIMEOUT_TICKS;
+            if (givenUp) {
+              // Give up on THIS target and take the nearest one we can prove a
+              // path to. Excluding the old target is what stops it being picked
+              // straight back.
+              const abandoned = gatherer.targetResourceId;
+              if (abandoned !== null) {
+                gatherTargetCounts.set(
+                  abandoned,
+                  Math.max(0, (gatherTargetCounts.get(abandoned) ?? 1) - 1),
+                );
+              }
+              gatherer.gatherProgressTicks = 0;
+              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+                preferUnsaturated: true,
+                spreadCap: MAX_GATHERERS_PER_RESOURCE,
+                requireReachable: true,
+                excludeResourceId: abandoned,
+              });
+            } else if (overSubscribed && gatherer.gatherProgressTicks >= GATHER_APPROACH_TIMEOUT_TICKS) {
               // Reservation MOVE: release this villager's slot on the
               // over-subscribed target BEFORE reassigning. Once the excess
               // has left, the target is no longer over-subscribed, so the
@@ -418,67 +449,25 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'to-dropoff') {
-          const carriedResource = gatherer.carriedResource;
-          if (carriedResource === null || gatherer.carriedAmount <= 0) {
-            gatherer.task = 'idle';
-            gatherer.carriedAmount = 0;
-            gatherer.carriedResource = null;
-            clearStuck(id);
-            continue;
-          }
-
-          const stuckSince = stuckMap.get(id);
-          const shouldRetry = stuckSince === undefined
-            || (activeWorld.tick - stuckSince) >= GATHER_DROPOFF_RETRY_INTERVAL;
-          if (!shouldRetry) {
-            continue;
-          }
-
-          // Hot path: head for the nearest drop-off by distance (unchanged).
-          const nearestId = findNearestDropOffBuilding(activeWorld, unit.owner, carriedResource, position);
-          let dropOffBuildingId = nearestId;
-          let dropOffPlan = nearestId === null ? null : findBuildingApproachPlan(id, nearestId, 1, activeWorld);
-
-          // Reachability reroute (recovery path only): if the nearest drop-off
-          // is unreachable AND the villager has been stuck a full retry interval
-          // on it (stuckSince set → a retry, not the first block), look past it
-          // for the nearest REACHABLE drop-off so a persistently boxed-in
-          // villager isn't latched forever (AI-vs-AI grounding regression — the
-          // symmetric twin of the v0.1.47 resource reroute). Transient blocking
-          // (< one interval) still just waits → hot path byte-identical.
-          if (!dropOffPlan && stuckSince !== undefined) {
-            const reachable = findReachableDropOff(
-              dropOffDeps, activeWorld, unit.owner, carriedResource, id, position,
-            );
-            if (reachable) {
-              dropOffBuildingId = reachable.buildingId;
-              dropOffPlan = reachable.plan;
-            }
-          }
-          gatherer.dropOffBuildingId = dropOffBuildingId;
-
-          if (!dropOffPlan) {
-            setStuck(id, activeWorld.tick);
-          } else if (isUnitAtTarget(id, dropOffPlan.destination, activeWorld)) {
-            const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
-            const aiState = aiStates.get(unit.owner);
-            const multiplier = aiState ? gatherMultiplier(aiState.difficulty) : 1;
-            const deposited = Math.round(gatherer.carriedAmount * multiplier);
-            if (stockpile) {
-              stockpile[carriedResource] += deposited;
-              accessor.markDirty(playerResourcesCodec);
-            }
-            ensurePlayerScoreCounters(unit.owner).resourcesGathered += deposited;
-            gatherer.task = 'idle';
-            gatherer.carriedAmount = 0;
-            gatherer.carriedResource = null;
-            gatherer.targetResourceId = null;
-            gatherer.gatherProgressTicks = 0;
-            clearStuck(id);
-          } else {
-            clearStuck(id);
-            moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
-          }
+          const result = runDropOffStep({
+            world: activeWorld,
+            accessor,
+            id,
+            unit,
+            gatherer,
+            position,
+            aiStates,
+            stuckMap,
+            setStuck,
+            clearStuck,
+            dropOffDeps,
+            findNearestDropOffBuilding,
+            findBuildingApproachPlan,
+            isUnitAtTarget,
+            moveUnitOneSubgridStep,
+            ensurePlayerScoreCounters,
+          });
+          if (result === 'handled') continue;
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {

@@ -1336,6 +1336,14 @@ A fractional percent is made real by a per-unit carry accumulator (`moveCarryHun
 
 The autonomous scout WANDER path writes the fine transform directly rather than going through the step executor, so it applies the base speed itself, as a whole number of fine units. Two consequences the implementation has to handle and which are easy to get wrong: a wanderer hemmed in by impassable neighbours makes progress by moving within its own cell, so a step that jumps the cell boundary must fall back to a shorter one rather than freeze; and a shortened step must still re-pick the heading, because publishing a sub-cell wiggle as "movement" skips the escape logic and produces an in-cell orbit.
 
+### 12.3.1 Who Can Gather What
+
+A gatherer can only work a resource in its OWN domain (§12.4). A fish sits in water and can only be worked from a boat; everything else can only be worked from land.
+
+This is not the same question as the resource KIND. A fish is FOOD, exactly like a berry bush, so a filter that matches only on kind lets a land villager pick a fish — and it then walks to the shoreline and stands there forever, because it cannot enter a water cell. Measured on the default map: that alone froze the AI's entire stockpile at around tick 6000, with its food villagers pinned at the coast, which looked like a pathing bug and was really a mis-assignment.
+
+The rule is expressed as domains rather than a list of pairs, so a new water resource or a new ship is covered without anyone remembering to add a case — which matters because the failure is silent.
+
 ### 12.4.-1 Formations
 
 A **formation** decides where a group stands when it arrives, and in what order it is placed. Four ship, matching AoE2: **Line** (the default — a wide rank across the march), **Staggered** (the same order spread wide and loose, so one blast cannot cover the group), **Box** (a compact square), and **Flank** (two wings with a gap between them).

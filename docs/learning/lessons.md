@@ -10,6 +10,7 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- Adding to a system does not prove it RUNS — play a real match and measure before and after ([evidence](lessons-evidence.md#adding-to-a-system-does-not-prove-it-runs-play-a-real-match-and-measure-before-and-after-2026-08-20))
 - A cell whose screen point sits under a HUD panel gets no pointermove — a browser test must pick mouse-REACHABLE cells ([evidence](lessons-evidence.md#a-cell-whose-screen-point-sits-under-a-hud-panel-gets-no-pointermove-a-browser-test-must-pick-mouse-reachable-cells-2026-08-19))
 - An expectation derived from the same constant the code renders from moves WITH it — state the claim literally, then mutate ([evidence](lessons-evidence.md#an-expectation-derived-from-the-same-constant-the-code-renders-from-moves-with-it-state-the-claim-literally-then-mutate-2026-08-19))
 - A whole-population characterization hash detects change but cannot LOCALISE it — a slice that legitimately moves it must bring a per-item digest ([evidence](lessons-evidence.md#a-whole-population-characterization-hash-detects-change-but-cannot-localise-it-a-slice-that-legitimately-moves-it-must-bring-a-per-item-digest-2026-08-19))

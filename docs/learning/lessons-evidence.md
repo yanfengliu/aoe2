@@ -586,3 +586,15 @@ The failure mode is what makes this worth a rule: a stale preview is indistingui
 The fix is a reachability check the anchor helpers now apply: project the cell to a screen point and ask `document.elementFromPoint` whether a canvas would receive the event. Same family as the v0.3.19 finding where a click at 60%/55% landed on the selection panel and produced no order.
 
 Anchor: `tests/browser/game-rendering-and-world.spec.ts > browser gameplay smoke tests - rendering and world interactions > shows valid and invalid building placement preview feedback before construction`; helper `tests/browser/helpers/gameTestHelpers/placement.ts` (`isPointerReachableCell`).
+
+## Adding to a system does not prove it RUNS — play a real match and measure before and after (2026-08-20)
+
+Giving the AI siege units and its unique unit took ten minutes and passed its tests immediately: the fixture put an AI in Castle Age with a Siege Workshop already up, and it duly trained a ram. Then a throwaway probe ran the DEFAULT map for 9000 ticks and printed the AI's stockpile, units, and buildings — and again at 26000. The two were identical. The AI reaches Feudal Age and stops: same ten villagers, same seven buildings, same 518 food, forever. It would never have reached the code I had just written.
+
+Tracing one pinned villager (rather than re-reading the assignment logic) found the cause in a minute: it was assigned to a FISH, which is food exactly like a berry bush, and a land villager can never enter a water cell. Two more defects fell out of the same trace.
+
+The rule has two halves, and the second is the one that is easy to skip. Play the real thing, not the fixture that was built to make the feature observable. And take the measurement BEFORE and AFTER on the same seed, because "the AI seems better" is not a finding — "villagers 10 falling to 4 → 18, gold frozen at 513 → climbing past 2400" is.
+
+It also caught a fix going the wrong way: marking a villager stuck when its step does not land reads as obviously correct and moved the AI from Feudal back to DARK age.
+
+Anchor: `tests/simulation/gatherDomain.test.ts`; devlog 2026-08-20.
