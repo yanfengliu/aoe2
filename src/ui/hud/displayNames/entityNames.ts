@@ -135,6 +135,8 @@ const ENTITY_NAMES = {
   'heavy-camel': 'Heavy Camel',
   'stone-wall': 'Stone Wall',
   'palisade-wall': 'Palisade Wall',
+  'stone-gate': 'Gate',
+  'palisade-gate': 'Palisade Gate',
   'farm': 'Farm',
 } as const satisfies Record<EntityType, EntityName>;
 

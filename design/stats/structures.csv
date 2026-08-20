@@ -51,6 +51,7 @@ University, Age of Kings, Imperial, {"Wood": 200}, 60, 2100, 4, 3/10,,,,
 Wonder, Age of Kings, Imperial, {"Wood": 1000; "Stone": 1000; "Gold": 1000}, 3503 ,4800, 6, 3/10,,,,
 Outpost, Age of Kings, Dark, {"Wood": 25; "Stone": 10}, 15, 500, 6, 0/0,,,,+2 Line of sight per age
 Palisade Wall, Age of Kings, Dark, {"Wood": 2}, 5, 250, 2, 2/5,,,,
+Palisade Gate, Age of Kings, Dark, {"Wood": 30}, 20, 250, 5, 2/5,,,,Opens for its owner; blocks everyone else
 Gate, Age of Kings, Feudal,  {"Stone": 30}, 70, 2750, 6, 6/6,,,,+1250 HP with Fortified Wall (Gates parallel to the bottom right edge have 0:30 bt)
 Stone Wall, Age of Kings, Feudal,  {"Stone": 5}, 8, 1800,2,  8/10,,,,
 Watch Tower, Age of Kings, Feudal,  {"Wood": 25; "Stone": 125}, 80, 1020, 10, 1/7,1-8,2.0,5,Garrison 5 units;+2 vs spearmen line;+7 damage vs ships/camels;Max 5 arrows

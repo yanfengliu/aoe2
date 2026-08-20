@@ -48,6 +48,13 @@ export type BuildableBuildingType =
   // Palisade Wall is its Feudal-Age cheaper cousin (HP 250, cost 2 wood).
   | 'stone-wall'
   | 'palisade-wall'
+  // Gates. A wall you cannot open is a wall you have to demolish to leave, so
+  // a walled base is only playable with these: a gate blocks the enemy exactly
+  // as its wall does, and its owner's units walk through it. Each sits in the
+  // wall line it belongs to — Palisade Gate with Palisade Wall, Gate with
+  // Stone Wall (structures.csv "Gate": 30 stone, 2750 HP, Feudal).
+  | 'stone-gate'
+  | 'palisade-gate'
   // M1 Farms: a built Farm is a building+resource HYBRID (also in ResourceKind).
   | 'farm'
   // M5 naval: trains ships and receives fish. The only building that must be

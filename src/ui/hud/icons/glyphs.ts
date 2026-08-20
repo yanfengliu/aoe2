@@ -304,6 +304,20 @@ const PALISADE_WALL_GLYPH =
   '<path d="M15 19V8l1.5-2L18 8v11"/>' +
   '<path d="M6 12.5h13"/>';
 
+// Gate: two posts with a lintel across them and the road running through.
+const STONE_GATE_GLYPH =
+  '<rect x="4" y="7" width="4" height="12"/>' +
+  '<rect x="16" y="7" width="4" height="12"/>' +
+  '<path d="M4 7h16"/>' +
+  '<path d="M9 19v-5h6v5"/>';
+
+// Palisade Gate: the same opening cut into a timber line.
+const PALISADE_GATE_GLYPH =
+  '<path d="M5 19V8l1.5-2L8 8v11"/>' +
+  '<path d="M16 19V8l1.5-2L19 8v11"/>' +
+  '<path d="M5 9h14"/>' +
+  '<path d="M10 19v-6h4v6"/>';
+
 // Farm: a tilled field — a bordered plot with furrow rows.
 const FARM_GLYPH =
   '<rect x="4" y="6" width="16" height="12" rx="1.5"/>' +
@@ -331,6 +345,8 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   wonder: WONDER_GLYPH,
   'stone-wall': STONE_WALL_GLYPH,
   'palisade-wall': PALISADE_WALL_GLYPH,
+  'stone-gate': STONE_GATE_GLYPH,
+  'palisade-gate': PALISADE_GATE_GLYPH,
   farm: FARM_GLYPH,
 };
 

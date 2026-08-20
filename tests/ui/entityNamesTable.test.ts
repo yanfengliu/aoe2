@@ -134,6 +134,8 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'heavy-camel': ['Heavy Camel', 'Heavy Camels'],
   'stone-wall': ['Stone Wall', 'Stone Walls'],
   'palisade-wall': ['Palisade Wall', 'Palisade Walls'],
+  'stone-gate': ['Gate', 'Gates'],
+  'palisade-gate': ['Palisade Gate', 'Palisade Gates'],
   'farm': ['Farm', 'Farms'],
 };
 

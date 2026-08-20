@@ -23,6 +23,7 @@ export type BuildingRole =
   | 'market' // open-air stall with an awning
   | 'monastery' // chapel with a cross
   | 'tower' // tall narrow watch tower
+  | 'gate' // a wall opening framed by two towers
   | 'wall' // low battlement segment (stone / palisade)
   | 'dock'; // M5 naval: a pier and boathouse at the waterline
 
@@ -54,6 +55,10 @@ const BUILDING_ROLES = {
   'bombard-tower': 'tower',
   'stone-wall': 'wall',
   'palisade-wall': 'wall',
+  // A gate needs its own mass: the point of the building is that you can
+  // SEE where the wall opens, which a wall silhouette cannot say.
+  'stone-gate': 'gate',
+  'palisade-gate': 'gate',
 } as const satisfies Record<BuildingType, BuildingRole>;
 
 export function buildingRole(buildingType: BuildingType): BuildingRole {

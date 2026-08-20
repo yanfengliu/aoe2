@@ -142,6 +142,8 @@ const ENTITY_ICONS = {
   'heavy-camel': ['HCm', '#ccb37d'],
   'stone-wall': ['Wl', '#9aa0a8'],
   'palisade-wall': ['Pl', '#a88555'],
+  'stone-gate': ['Gt', '#b4bac2'],
+  'palisade-gate': ['Pg', '#c09a63'],
   'farm': ['Fm', '#d9b84a'],
 } as const satisfies Record<EntityType, IconRow>;
 

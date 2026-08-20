@@ -702,7 +702,9 @@ Wall and Gate lines:
 - Palisade (Dark Age; no prerequisite)
 - Stone Wall (Castle Age)
 - Fortified Wall
-- gates
+- Palisade Gate (Dark Age, 30 wood, 250 hit points) and Gate (Castle Age, 30 stone, 2750 hit points) — implemented v0.3.31
+
+**Gates (implemented v0.3.31).** A gate is a wall with a door. It occupies one cell and stands in a wall line exactly as a wall segment does, is placed and built the same way, and is offered wherever its own wall is — Palisade Gate with Palisade Wall in the Dark Age, Gate with Stone Wall in the Castle Age. What makes it a gate is the passability rule: **the cell is passable for units of the gate's OWNER and impassable for everyone else**, so a walled base can be left and entered by the player who walled it while an attacker must still break through. Three cases are deliberately closed: a gate under construction admits nobody, including its builder — an unfinished gate is a hole in the wall that has not been closed yet, not a door, and admitting units through a construction site would make a half-built wall line meaningless; the wall segments beside a gate stay impassable to their owner like any wall; and a gate never admits an unowned mover (wildlife). A gate costs far more than the wall segment it replaces (30 versus 2 or 5), which is what stops a player gating a whole perimeter, and it carries more hit points than its own wall because it is the obvious place to attack. Allied passage is deferred with the rest of team play; today "owner" means exactly the one player.
 
 Wonder:
 
@@ -718,7 +720,7 @@ The building graph must preserve AoE2 dependency logic:
 - University gates certain advanced defensive and projectile techs
 - Castle is not mandatory for every strategy but can satisfy part of the Imperial Age path
 
-Building availability by age (implemented; one source, `getBuildOptions`, which also gates placement validation): Dark Age — House, Mill, Lumber Camp, Mining Camp, Barracks, Palisade Wall, and Farm (the Palisade Wall has no prerequisite, matching AoE2: it is the only Dark-Age wall and the early defensive option against a Dark-Age military rush; the Farm is the Dark-Age renewable food source, buildable from the start). Feudal Age (with a completed Barracks) adds Stable, Archery Range, Blacksmith, Market, and Watch Tower. Castle/Imperial Age adds Town Center, Siege Workshop, Monastery, Castle, Stone Wall (and the Wonder in Imperial). (Note: Watch Tower currently also requires a Barracks, a minor divergence from AoE2 where it needs only Feudal Age.)
+Building availability by age (implemented; one source, `getBuildOptions`, which also gates placement validation): Dark Age — House, Mill, Lumber Camp, Mining Camp, Barracks, Palisade Wall, Palisade Gate, and Farm (the Palisade Wall has no prerequisite, matching AoE2: it is the only Dark-Age wall and the early defensive option against a Dark-Age military rush; the Farm is the Dark-Age renewable food source, buildable from the start). Feudal Age (with a completed Barracks) adds Stable, Archery Range, Blacksmith, Market, and Watch Tower. Castle/Imperial Age adds Town Center, Siege Workshop, Monastery, Castle, Stone Wall, Gate (and the Wonder in Imperial). (Note: Watch Tower currently also requires a Barracks, a minor divergence from AoE2 where it needs only Feudal Age.)
 
 ### 8.6 Exact Lists
 

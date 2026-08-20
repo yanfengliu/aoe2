@@ -185,6 +185,11 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   wonder: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
   'stone-wall': { stone: 5 },
   'palisade-wall': { wood: 2 },
+  // structures.csv "Gate": 30 stone. The Palisade Gate is its wooden
+  // counterpart at 30 wood — a gate costs far more than the wall segment it
+  // replaces, which is what stops a player gating an entire perimeter.
+  'stone-gate': { stone: 30 },
+  'palisade-gate': { wood: 30 },
   // M1 Farms: structures.csv cost {Wood: 60}.
   farm: { wood: 60 },
 };

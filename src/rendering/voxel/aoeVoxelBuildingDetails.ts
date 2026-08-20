@@ -189,6 +189,18 @@ function palisadeWall(context: DetailContext): void {
   add(context, 'palisade-wall-brace', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.2, 0.66, 0.055, 0.72, 0.04, { roll: Math.PI / 4 });
 }
 
+// The two things that say "this opens": iron hinges on the doors, and the road
+// worn through the threshold.
+function stoneGate(context: DetailContext): void {
+  add(context, 'stone-gate-hinge-band', 'matte', VOXEL_COLORS.steelDark, 0.5, 0.56, 0.58, 0.5, 0.05, 0.03);
+  add(context, 'stone-gate-track', 'matte', VOXEL_COLORS.stoneDark, 0.5, 0.01, 0.5, 0.46, 0.02, 0.66);
+}
+
+function palisadeGate(context: DetailContext): void {
+  add(context, 'palisade-gate-lashing', 'matte', VOXEL_COLORS.thatch, 0.5, 0.72, 0.58, 0.66, 0.06, 0.035);
+  add(context, 'palisade-gate-track', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.01, 0.5, 0.42, 0.02, 0.62);
+}
+
 function farm(context: DetailContext): void {
   add(context, 'farm-scarecrow-post', 'matte', VOXEL_COLORS.timberDark, 0.78, 0.08, 0.78, 0.035, 0.78, 0.035);
   add(context, 'farm-scarecrow-arms', 'matte', context.team, 0.78, 0.62, 0.78, 0.34, 0.08, 0.035);
@@ -233,6 +245,8 @@ export function createBuildingDetailParts(
     case 'wonder': wonder(context); break;
     case 'stone-wall': stoneWall(context); break;
     case 'palisade-wall': palisadeWall(context); break;
+    case 'stone-gate': stoneGate(context); break;
+    case 'palisade-gate': palisadeGate(context); break;
     case 'farm': farm(context); break;
   }
   return context.parts;

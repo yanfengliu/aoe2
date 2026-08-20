@@ -46,6 +46,8 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   wonder: 0,
   'stone-wall': 0,
   'palisade-wall': 0,
+  'stone-gate': 0,
+  'palisade-gate': 0,
   farm: 0,
   dock: 0,
 };
@@ -70,6 +72,10 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   wonder: 1200,
   'stone-wall': 80,
   'palisade-wall': 40,
+  // structures.csv "Gate": 70 s. The Palisade Gate matches its own wall's
+  // pace, scaled for a far larger structure.
+  'stone-gate': 700,
+  'palisade-gate': 200,
   // M1 Farms: structures.csv build_time 15 seconds × 10 TPS = 150 ticks.
   farm: 150,
   dock: 350, // structures.csv: 35 s x 10 TPS.
@@ -95,6 +101,9 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   wonder: 1.6,
   'stone-wall': 1,
   'palisade-wall': 1,
+  // A gate reads slightly taller than its wall — it is the thing you aim at.
+  'stone-gate': 1.15,
+  'palisade-gate': 1.05,
   // M1 Farms: a 1x1 footprint; size 1 fills its single cell like the walls.
   farm: 1,
   dock: 1.2,
@@ -223,6 +232,20 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     enemyComplete: 0xa17066,
     enemyIncomplete: 0x604540,
   },
+  // A gate is stone or timber like its wall, lifted a shade brighter so the
+  // opening in a long wall line is findable at a glance.
+  'stone-gate': {
+    humanComplete: 0xb4bac2,
+    humanIncomplete: 0x6b6e78,
+    enemyComplete: 0xbc8484,
+    enemyIncomplete: 0x6b4d4d,
+  },
+  'palisade-gate': {
+    humanComplete: 0xc09a63,
+    humanIncomplete: 0x746043,
+    enemyComplete: 0xb58176,
+    enemyIncomplete: 0x6b4c45,
+  },
   // M1 Farms: golden wheat tones for a complete farm; muddy tilled-soil
   // tones while under construction.
   farm: {
@@ -253,6 +276,10 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   wonder: 4800,
   'stone-wall': 2000,
   'palisade-wall': 250,
+  // structures.csv "Gate": 2750 HP — tougher than the wall it stands in,
+  // because it is the obvious place to attack.
+  'stone-gate': 2750,
+  'palisade-gate': 250,
   // M1 Farms: structures.csv hit_points 480.
   farm: 480,
   dock: 1800,

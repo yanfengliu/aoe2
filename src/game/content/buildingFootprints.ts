@@ -29,6 +29,9 @@ export const AUTHORITATIVE_BUILDING_FOOTPRINTS: Record<BuildingType, BuildingFoo
   wonder: { width: 4, height: 4 },
   'stone-wall': { width: 1, height: 1 },
   'palisade-wall': { width: 1, height: 1 },
+  // A gate stands in a wall line, so it is the same single cell.
+  'stone-gate': { width: 1, height: 1 },
+  'palisade-gate': { width: 1, height: 1 },
   // M1 Farms: a 1x1 plot. Villagers stand on an adjacent cell to gather it,
   // exactly like a 1x1 resource node (berry bush / mine).
   farm: { width: 1, height: 1 },

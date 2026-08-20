@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.31 - 2026-08-20
+
+### Added
+
+- **Gates.** A Palisade Gate (Dark Age, 30 wood) and a Gate (Castle Age, 30 stone) can be built anywhere their own wall can. Your units walk through your gates; everyone else has to break them down. A gate under construction is closed to everyone, including the player building it, and the wall segments beside it stay solid as always. Both stand taller than the wall they interrupt, with pale stone or timber caps, so the way through a long wall line is findable at a glance.
+
 ## 0.3.30 - 2026-08-20
 
 ### Fixed

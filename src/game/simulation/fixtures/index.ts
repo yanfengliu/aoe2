@@ -322,6 +322,7 @@ export {
 export { createLosTechsFixture } from './losTechs';
 
 export { createConscriptionFixture } from './conscription';
+export { createGatesFixture } from './gates';
 
 export {
   createCivShepherdBritonsFixture,

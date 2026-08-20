@@ -3,6 +3,7 @@
 // subsystem owns the answer. Pure read-only.
 
 import type { OccupancyCellStatus, Position } from 'civ-engine';
+import { gateAdmits } from '../gates';
 import type {
   ActionType,
   BuildingComponent,
@@ -252,7 +253,29 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
       // clear; the shared spawn check would reject it for being water.
       return true;
     }
-    return isCellPassableForSpawn(x, y);
+    if (isCellPassableForSpawn(x, y)) return true;
+    // The cell is blocked — but a gate is a wall with a door, and the door is
+    // open to the player who built it. Everything else stays blocked, including
+    // the gate's own wall segments and an unfinished gate.
+    return admitsThroughGate(unit?.owner ?? null, x, y, activeWorld);
+  }
+
+  // Whether whatever blocks this cell is a finished gate belonging to `owner`.
+  function admitsThroughGate(
+    owner: number | null,
+    x: number,
+    y: number,
+    activeWorld: CivWorld,
+  ): boolean {
+    if (owner === null) return false;
+    for (const claim of worldOccupancy.getCellStatus(x, y).blockedBy) {
+      if (claim.entity === null) continue;
+      const building = activeWorld.getComponent<BuildingComponent>(claim.entity, 'building');
+      if (!building) continue;
+      const isComplete = !accessor.get(constructionStatesCodec).has(claim.entity);
+      if (gateAdmits(building.buildingType, building.owner, isComplete, owner)) return true;
+    }
+    return false;
   }
 
   function isCellPassableForWildlife(

@@ -372,6 +372,33 @@ function wall(context: BuildingContext): void {
   add(context, 'wall-team-shield', 'matte', context.team, 0.5, 0.34, 0.77, 0.18, 0.28, 0.035);
 }
 
+// A gate reads as a wall with a way through it: two piers carrying a lintel,
+// with the road left open between them. The piers are taller and heavier than
+// the wall's own mass so a long line's opening is findable at a glance, which is
+// the whole point of building one.
+function gate(context: BuildingContext): void {
+  const timber = context.entity.entityType === 'palisade-gate';
+  const pier = timber ? VOXEL_COLORS.timberDark : VOXEL_COLORS.stone;
+  const cap = timber ? VOXEL_COLORS.timber : VOXEL_COLORS.stoneLight;
+  // Two piers carrying a lintel, with one door hung between them. The piers
+  // stand taller than the wall they interrupt and the lintel bridges them, so
+  // the opening in a long line reads as a portal from across the map — which is
+  // the only reason to look for a gate in the first place. A first attempt hung
+  // two half-doors and read as two dark slots instead of one way through.
+  // Every part stays inside the 1x1 footprint: the caps are the widest thing
+  // here, so they set the pier centres rather than the other way round.
+  for (const [side, centerX] of [['left', 0.15], ['right', 0.85]] as const) {
+    add(context, `gate-pier-${side}`, 'matte', pier, centerX, 0, 0.5, 0.26, 1.12, 0.62);
+    add(context, `gate-pier-cap-${side}`, 'matte', cap, centerX, 1.12, 0.5, 0.3, 0.14, 0.68);
+  }
+  add(context, 'gate-lintel', 'matte', cap, 0.5, 1.0, 0.5, 0.78, 0.16, 0.56);
+  // The door sits back from the piers' faces so the opening keeps a visible
+  // depth rather than reading as one flat wall.
+  add(context, 'gate-door', 'matte', VOXEL_COLORS.timber, 0.5, 0.04, 0.5, 0.5, 0.96, 0.2);
+  add(context, 'gate-door-band', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.5, 0.52, 0.08, 0.24);
+  add(context, 'gate-team-banner', 'matte', context.team, 0.5, 1.02, 0.79, 0.26, 0.22, 0.04);
+}
+
 export function createBuildingParts(
   entity: ProjectedEntityView,
   identity: string,
@@ -408,6 +435,7 @@ export function createBuildingParts(
     case 'monastery': monastery(context); break;
     case 'tower': tower(context); break;
     case 'wall': wall(context); break;
+    case 'gate': gate(context); break;
     case 'dock': dock(context); break;
   }
   context.parts.push(...createBuildingDetailParts(entity, identity, ground));

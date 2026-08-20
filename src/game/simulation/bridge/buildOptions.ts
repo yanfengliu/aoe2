@@ -35,6 +35,9 @@ export function buildOptionsFor(
     'barracks',
     // Palisade Wall: Dark-Age defensive option (no prereq) — the early wall vs a Dark-Age rush (campaign-7).
     'palisade-wall',
+    // A wall you cannot open is a wall you have to demolish to leave, so the
+    // gate is offered wherever its wall is.
+    'palisade-gate',
     'farm', // M1 Farms: Dark-Age renewable food (60 wood, no prerequisite).
     // M5 naval: Dark Age, like AoE2. Placement still requires a shore, so on
     // a landlocked map it is offered but never placeable.
@@ -56,6 +59,7 @@ export function buildOptionsFor(
     options.push('university'); // Castle Age (structures.csv); researches Ballistics.
     options.push('castle');
     options.push('stone-wall');
+    options.push('stone-gate');
   }
 
   if (getPlayerAge(owner) === 'imperial-age' && !hasOwnedWonder(owner)) {

@@ -74,6 +74,8 @@ const TYPE_DETAIL_SIGNATURES = {
   wonder: ['detail-wonder-relief-left', 'detail-wonder-finial'],
   'stone-wall': ['detail-stone-wall-course-low', 'detail-stone-wall-cap'],
   'palisade-wall': ['detail-palisade-wall-lashing', 'detail-palisade-wall-brace'],
+  'stone-gate': ['detail-stone-gate-hinge-band', 'detail-stone-gate-track'],
+  'palisade-gate': ['detail-palisade-gate-lashing', 'detail-palisade-gate-track'],
   farm: ['detail-farm-scarecrow-post', 'detail-farm-scarecrow-head'],
 } as const satisfies Record<BuildingType, readonly string[]>;
 
