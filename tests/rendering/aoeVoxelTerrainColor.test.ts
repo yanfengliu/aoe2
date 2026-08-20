@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { TERRAIN_TINTS } from '../../src/game/simulation/terrainTints';
+
 import type { ProjectedEntityView, TerrainKind } from '../../src/game/simulation/types';
 import { terrainCells } from '../../src/rendering/voxel/aoeVoxelTerrain';
 
@@ -14,7 +16,9 @@ function terrain(kind: TerrainKind, x: number, z: number): ProjectedEntityView {
     x,
     y: z,
     elevation: 0,
-    tint: kind === 'water' ? 0x39788a : kind === 'hill' ? 0x817460 : 0x587f4e,
+    // The tints the simulation actually seeds, so this judges the colours the
+    // game shows rather than a hypothetical palette.
+    tint: TERRAIN_TINTS[kind],
     size: 1,
     footprintWidth: 1,
     footprintHeight: 1,
@@ -132,7 +136,21 @@ describe('terrain cell colour fields', () => {
     };
     const interiorContrast = Math.abs(average('grass', 2) - average('hill', 13));
     const boundaryContrast = Math.abs(average('grass', 7) - average('hill', 8));
-    expect(boundaryContrast).toBeLessThan(interiorContrast * 0.8);
+    // Half, not four fifths. At 0.8 the seam is still a visible cut on the real
+    // map: the two cells either side of it differ by nearly as much as cells
+    // from the middle of each field do, which is exactly the "awkward and
+    // clearcut" meeting the softening exists to remove.
+    expect(boundaryContrast).toBeLessThan(interiorContrast * 0.5);
+  });
+
+  it('keeps hills in the same ground family as the grass around them', () => {
+    // Hills render at the same height as everything else until raised terrain
+    // ships, so a hill painted like bare dirt reads as an arbitrary tan blotch
+    // rather than as high ground. Whatever the seam softening does, the two
+    // kinds have to start close enough that the transition CAN be gentle.
+    const grassInterior = brightness(terrainCells([terrain('grass', 2, 2)])[0]!.tint);
+    const hillInterior = brightness(terrainCells([terrain('hill', 2, 2)])[0]!.tint);
+    expect(Math.abs(grassInterior - hillInterior)).toBeLessThan(26);
   });
 
   it('warms grass at the waterline toward a sandy wet edge', () => {

@@ -85,7 +85,11 @@ function patchColour(baseTint: number, kind: TerrainKind, x: number, z: number):
   if (kind === 'water') {
     const p = patchField(x, z, 419, 421);
     const accent = matchLuma(mixTint(WATER_DEEP, WATER_LIGHT, p), baseTint);
-    return shade(mixTint(baseTint, accent, 0.45), 0.92 + 0.14 * p);
+    // The brightness span is wider than the other kinds' because the water
+    // base tint is the darkest of them: the same proportional shade on a dark
+    // blue moves fewer absolute levels, and open water was ending up flatter
+    // than the grass beside it rather than the other way round.
+    return shade(mixTint(baseTint, accent, 0.45), 0.90 + 0.19 * p);
   }
   if (kind === 'forest') {
     const p = patchField(x, z, 431, 433);

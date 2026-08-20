@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.36 - 2026-08-20
+
+### Changed
+
+- **Hills look like high ground instead of bare dirt.** They were painted khaki against green grass — a big jump in colour for terrain the game currently draws at the same height as everything around it, so a hill read as an arbitrary tan blotch with a hard edge rather than as part of the landscape. Hills are now a drier, sun-caught green in the same family, and the ground reads as one continuous field.
+- **Open water varies a little more.** Its patch shading was tuned against a lighter blue than the game actually uses, so in practice the sea came out flatter than the grass beside it.
+
 ## 0.3.35 - 2026-08-20
 
 ### Added

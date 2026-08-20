@@ -9,6 +9,7 @@
 
 import type { Position } from 'civ-engine';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
+import { TERRAIN_TINTS } from '../terrainTints';
 import { UNIT_MAX_HP } from '../prototypeUnitRules/statTables';
 import { unitDomain } from '../unitDomain';
 import type {
@@ -192,12 +193,7 @@ export function seedTerrain(deps: ScenarioSeedDeps): void {
   for (const row of scenario.terrain) {
     for (const cell of row) {
       const tile = tiles[cell.y][cell.x];
-      const tintByKind: Record<TerrainComponent['kind'], number> = {
-        grass: 0x587f4e,
-        forest: 0x2f5e34,
-        water: 0x295a75,
-        hill: 0x8c7d5a,
-      };
+      const tintByKind = TERRAIN_TINTS;
 
       world.addComponent(tile, 'terrain', {
         kind: cell.kind,
