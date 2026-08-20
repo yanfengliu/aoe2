@@ -126,13 +126,29 @@ export interface DropOffStepContext {
       gatherer.gatherProgressTicks = 0;
       clearStuck(id);
     } else {
-      // NOTE (2026-08-19): marking stuck when the step does not LAND was
-      // tried here and made the AI strictly worse — it fell from Feudal
-      // back to Dark Age. Transient blocking is completely normal (units
-      // crowd constantly), and one refused step latching the
-      // GATHER_DROPOFF_RETRY_INTERVAL skip costs 30 idle ticks every
-      // time. A real no-progress detector needs a CONSECUTIVE-miss count,
-      // which is per-unit state this loop does not have.
+      // TWO ATTEMPTS HAVE FAILED HERE — do not try a third of the same shape.
+      //
+      // A movement plan EXISTING is not the same as the step LANDING, so a
+      // carrier whose next step is refused every tick is invisible to the
+      // reachability reroute below, which only ever fires when no plan can be
+      // found at all. That diagnosis is solid: traced at tick 20000, carriers
+      // sit here with ten resources one cell from their own camp, indefinitely.
+      //
+      // What does NOT work, both measured on the default map against a baseline
+      // of 18 villagers / gold climbing past 2400:
+      //   1. setStuck on a single non-moving step  -> 10 villagers, Dark Age.
+      //      One refused step latches the 30-tick retry skip, and transient
+      //      crowding is constant, so every villager idles a third of its life.
+      //   2. A CONSECUTIVE-miss count (150 ticks) in gatherProgressTicks, which
+      //      is otherwise unused on this leg -> 9 villagers, gold frozen at 490.
+      //      Still net-negative; gatherProgressTicks is also the gather timer,
+      //      and a villager can re-enter `gathering` from here without
+      //      depositing (the depleted-resource path), so the counter leaks into
+      //      it.
+      //
+      // The next attempt should come from the TRAFFIC layer instead
+      // (movementTrafficOps already builds a per-tick intent snapshot and knows
+      // which movers are contending), not from another timer in this loop.
       clearStuck(id);
       moveUnitOneSubgridStep(id, dropOffPlan.nextStep, activeWorld);
     }
