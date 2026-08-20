@@ -128,6 +128,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (getPlayerAge(owner) === 'dark-age') {
           return options;
         }
+        // units.csv: the Transport Ship is Feudal, and it is the only way a
+        // land army crosses water — so it comes before the warships.
+        options.push('transport-ship');
         options.push(latestResearchedInChain(owner, [
           'galley',
           ['war-galley', 'war-galley-upgrade'],

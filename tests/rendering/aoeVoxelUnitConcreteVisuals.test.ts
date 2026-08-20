@@ -50,6 +50,10 @@ const WEAPONS = {
   monk: { kind: 'staff', parts: ['monk-staff', 'monk-staff-crossbar'] },
   // M5 naval: a Fishing Ship's identifying prop is its net, not a weapon.
   'fishing-ship': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },
+  'transport-ship': {
+    kind: 'boarding-ramp',
+    parts: ['ship-boarding-ramp', 'ship-hold-rail-left', 'ship-hold-rail-right'],
+  },
   'galley': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
   'war-galley': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },
   'galleon': { kind: 'ship-bow', parts: ['ship-bow-stave', 'ship-bow-rack-left'] },

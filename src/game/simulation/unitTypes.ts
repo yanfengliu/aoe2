@@ -48,6 +48,7 @@ export type UnitType =
   | 'fast-fire-ship'
   | 'demolition-ship'
   | 'heavy-demolition-ship'
+  | 'transport-ship'
   | 'cannon-galleon'
   | 'elite-cannon-galleon'
   // M4 unique units: one per civilization, Castle-trained unless the

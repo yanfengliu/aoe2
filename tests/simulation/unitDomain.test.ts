@@ -55,7 +55,7 @@ const LAND_UNITS: readonly UnitType[] = [
 ];
 
 const WATER_UNITS: readonly UnitType[] = [
-  'fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship',
+  'fishing-ship', 'transport-ship', 'galley', 'war-galley', 'galleon', 'fire-ship',
   'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship',
   'cannon-galleon', 'elite-cannon-galleon',
   // M4: the two naval unique units.

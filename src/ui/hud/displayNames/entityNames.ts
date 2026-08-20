@@ -81,6 +81,7 @@ const ENTITY_NAMES = {
   'bombard-cannon': 'Bombard Cannon',
   'trebuchet': 'Trebuchet',
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
+  'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],
   'war-galley': ['War Galley', 'War Galleys'],
   'galleon': ['Galleon', 'Galleons'],

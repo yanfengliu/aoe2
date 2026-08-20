@@ -78,6 +78,7 @@ export const UNIT_ARMOR_CLASSES = {
   'bombard-cannon': new Set<ArmorClass>(['siege']),
   trebuchet: new Set<ArmorClass>(['siege']),
   'fishing-ship': new Set<ArmorClass>(['ship']),
+  'transport-ship': new Set<ArmorClass>(['ship']),
   'galley': new Set<ArmorClass>(['ship']),
   'war-galley': new Set<ArmorClass>(['ship']),
   'galleon': new Set<ArmorClass>(['ship']),

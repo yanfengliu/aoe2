@@ -27,6 +27,9 @@ export type UnitWeapon =
   | 'mounted-gun'
   // M5 naval: a net is the Fishing Ship's working prop, not a weapon.
   | 'net'
+  // Nor is a boarding ramp: the Transport Ship carries a company and fights
+  // nothing, so the prop that says what it is for is the way on and off it.
+  | 'boarding-ramp'
   | 'ship-bow'
   | 'ship-fire'
   | 'ship-powder'
@@ -100,6 +103,7 @@ const UNIT_VISUAL_PROFILES = {
   trebuchet: { role: 'siege', weapon: 'trebuchet', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-sling' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
+  'transport-ship': { role: 'ship', weapon: 'boarding-ramp', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   'galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
   'war-galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
   'galleon': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },

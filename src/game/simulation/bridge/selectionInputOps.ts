@@ -100,6 +100,8 @@ export interface SelectionInputOps {
     owner: number,
     unitType: UnitType,
   ): number | null;
+  /** An owned Transport Ship on this cell, for right-click boarding. */
+  findOwnedTransportAtCell(x: number, y: number, owner: number): number | null;
   distanceToBuilding(id: number, position: Position): number;
 }
 

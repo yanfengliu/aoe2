@@ -48,6 +48,7 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   paladin: 3,
   'heavy-camel': 0,
   'fishing-ship': 6,
+  'transport-ship': 8, // units.csv armor 4/8: pierce.
   'galley': 6,
   'war-galley': 6,
   'galleon': 8,
@@ -138,6 +139,7 @@ export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
   paladin: 2,
   'heavy-camel': 0,
   'fishing-ship': 0,
+  'transport-ship': 4, // units.csv armor 4/8: melee.
   'galley': 0,
   'war-galley': 0,
   'galleon': 0,

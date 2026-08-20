@@ -110,6 +110,7 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   trebuchet: { wood: 200, gold: 200 },
   // M5 naval: units.csv Fishing Ship — 75 wood, 40 s.
   'fishing-ship': { wood: 75 },
+  'transport-ship': { wood: 125 }, // units.csv.
   'galley': { wood: 90, gold: 30 },
   'war-galley': { wood: 90, gold: 30 },
   'galleon': { wood: 90, gold: 30 },
@@ -225,6 +226,7 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   'bombard-cannon': 560,
   trebuchet: 500,
   'fishing-ship': 400,
+  'transport-ship': 450, // units.csv: 45 s x 10 TPS.
   'galley': 600,
   'war-galley': 360,
   'galleon': 360,

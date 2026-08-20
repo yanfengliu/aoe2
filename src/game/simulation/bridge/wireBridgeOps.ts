@@ -197,6 +197,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     clearPositionAndSyncOccupancy,
     addBuildingEntity,
     addResourceEntity,
+    findScenarioSpawnPosition,
     findBuildingSpawnPosition,
     clearGathererOrder,
     getTrainOptions,

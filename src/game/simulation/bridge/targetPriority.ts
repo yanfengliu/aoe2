@@ -17,6 +17,9 @@ import type { UnitType } from '../types';
 export function targetPriority(unitType: UnitType): number {
   switch (unitType) {
     case 'fishing-ship': return 0; // M5 naval: lowest-value kill.
+    // A loaded transport is a fat target, but killing it is worth the same
+    // as killing a fishing ship until the cargo can be seen from outside.
+    case 'transport-ship': return 0;
     // M5 naval: warships out-range everything afloat; kill them first.
     case 'galley': case 'war-galley': case 'galleon':
     case 'fire-ship': case 'fast-fire-ship':

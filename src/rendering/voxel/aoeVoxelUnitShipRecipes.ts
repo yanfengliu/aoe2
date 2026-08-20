@@ -105,6 +105,14 @@ function fishingNet(context: UnitRecipeContext): void {
   addUnitPart(context, 'ship-net-float', 'matte', VOXEL_COLORS.plasterLight, 0.14, 0.2, -0.5, 0.07, 0.07, 0.07);
 }
 
+/** A Transport Ship's working prop: the ramp its cargo walks down, hinged at
+ *  the bow and resting on the deck, with a low rail along the open hold. */
+function boardingRamp(context: UnitRecipeContext): void {
+  addUnitPart(context, 'ship-boarding-ramp', 'matte', VOXEL_COLORS.timber, 0, 0.13, 0.46, 0.3, 0.05, 0.34, { pitch: -0.42 });
+  addUnitPart(context, 'ship-hold-rail-left', 'matte', VOXEL_COLORS.timberDark, -0.2, 0.17, 0, 0.05, 0.07, 0.5);
+  addUnitPart(context, 'ship-hold-rail-right', 'matte', VOXEL_COLORS.timberDark, 0.2, 0.17, 0, 0.05, 0.07, 0.5);
+}
+
 export function addShipUnitParts(
   context: UnitRecipeContext,
   unitType: UnitType,
@@ -116,6 +124,7 @@ export function addShipUnitParts(
   if (profile.signature === 'turtle-shell') turtleShell(context);
   else if (profile.signature === 'dragon-prow') dragonProw(context);
   if (profile.weapon === 'net') fishingNet(context);
+  else if (profile.weapon === 'boarding-ramp') boardingRamp(context);
   else if (profile.weapon === 'ship-bow') bowArmament(context);
   else if (profile.weapon === 'ship-fire') fireArmament(context);
   else if (profile.weapon === 'ship-powder') powderArmament(context);

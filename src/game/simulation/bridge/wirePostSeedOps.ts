@@ -83,6 +83,7 @@ export interface WirePostSeedDeps {
   clearPositionAndSyncOccupancy: Parameters<typeof createTrainingMarketOps>[0]['clearPositionAndSyncOccupancy'];
   addBuildingEntity: Parameters<typeof createTrainingMarketOps>[0]['addBuildingEntity'];
   addResourceEntity: Parameters<typeof createEntityDestroyOps>[0]['addResourceEntity'];
+  findScenarioSpawnPosition: (origin: Position) => Position | null;
   findBuildingSpawnPosition: (
     anchor: Position,
     buildingType: BuildingType,
@@ -158,6 +159,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     clearPositionAndSyncOccupancy,
     addBuildingEntity,
     addResourceEntity,
+    findScenarioSpawnPosition,
     findBuildingSpawnPosition,
     clearGathererOrder,
     getTrainOptions,
@@ -203,6 +205,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
     findOwnedGarrisonBuildingAtCell,
+    findOwnedTransportAtCell,
   } = selectionInputOps;
 
   const entityDestroyOps = createEntityDestroyOps({
@@ -250,6 +253,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     },
     setUnitCommand,
     addBuildingEntity,
+    findScenarioSpawnPosition,
     findBuildingSpawnPosition,
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
@@ -347,6 +351,10 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     issueMonkContextCommandAtEntity,
     clearMonkTask,
     setMonkTask,
+    findOwnedTransportAtCell,
+    boardTransport: trainingMarketOps.boardTransport,
+    unloadTransport: trainingMarketOps.unloadTransport,
+    isLandCell: (x: number, y: number) => isTerrainPassableForUnit(x, y),
     garrisonUnit,
     isHarvestableResource,
     findNearestDropOffBuilding,

@@ -47,6 +47,7 @@ const UNIT_ROLES = {
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
   'fishing-ship': 'ship',
+  'transport-ship': 'ship',
   'galley': 'ship',
   'war-galley': 'ship',
   'galleon': 'ship',

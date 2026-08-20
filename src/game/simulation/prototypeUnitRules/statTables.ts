@@ -65,6 +65,7 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   paladin: 160,
   'heavy-camel': 120,
   'fishing-ship': 60,
+  'transport-ship': 100, // units.csv: 100 HP.
   'galley': 120,
   'war-galley': 135,
   'galleon': 165,
@@ -150,6 +151,7 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   paladin: 14,
   'heavy-camel': 7,
   'fishing-ship': 0,
+  'transport-ship': 0, // Carries units; it does not fight.
   'galley': 6,
   'war-galley': 7,
   'galleon': 8,
@@ -239,6 +241,7 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   paladin: 18,
   'heavy-camel': 20,
   'fishing-ship': 20,
+  'transport-ship': 20,
   'galley': 30,
   'war-galley': 30,
   'galleon': 30,
@@ -324,6 +327,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   paladin: MELEE_ATTACK_RANGE,
   'heavy-camel': MELEE_ATTACK_RANGE,
   'fishing-ship': MELEE_ATTACK_RANGE,
+  'transport-ship': MELEE_ATTACK_RANGE,
   'galley': 5,
   'war-galley': 6,
   'galleon': 7,

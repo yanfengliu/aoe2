@@ -17,11 +17,10 @@ import type {
   UnitType,
   VisionSourceComponent,
 } from '../types';
+import { createGarrisonOps } from './garrisonOps';
 import { buildingFootprint, clamp, type GameWorld } from './pureHelpers';
 import { findPlacementAnchorNear } from './placementSearch';
 import {
-  buildingGarrisonCapacity,
-  canGarrisonAt,
   canResearchAt,
   canTrainAt,
 } from '../prototypeBuildingRules';
@@ -40,9 +39,6 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   constructionStatesCodec,
-  garrisonedByBuildingCodec,
-  garrisonedUnitToBuildingCodec,
-  garrisonedUnitVisionSourcesCodec,
   marketExchangeRatesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
@@ -106,6 +102,10 @@ export interface TrainingMarketOpsDeps {
     isComplete: boolean,
     vision?: VisionSourceComponent,
   ) => number;
+  // Where a disembarking unit can stand: the nearest legal LAND cell to the
+  // shore the transport was ordered to. Same helper the scenario loader uses
+  // for a unit spawned onto a blocked cell.
+  findScenarioSpawnPosition: (origin: Position) => Position | null;
   findBuildingSpawnPosition: (
     anchor: Position,
     buildingType: BuildingType,
@@ -126,6 +126,10 @@ export interface TrainingMarketOps {
   // Validator helper — re-checked at handler time too (B2 fix).
   playerOwnsCompletedMarket(playerId: number): boolean;
   garrisonUnit(unitId: number, buildingId: number): boolean;
+  /** Load a land unit onto a Transport Ship. */
+  boardTransport(unitId: number, transportId: number): boolean;
+  /** Put a Transport Ship's cargo ashore near `target`. */
+  unloadTransport(transportId: number, target: Position): boolean;
   ungarrisonBuilding(buildingId: number): boolean;
   // Multi-villager construction: spend resources once, create the building
   // once, then set a `build` command on each id in the list. Stale or
@@ -163,12 +167,30 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     clearSelection,
     setUnitCommand,
     addBuildingEntity,
+    findScenarioSpawnPosition,
     findBuildingSpawnPosition,
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
     getEntityRef,
     markOutOfBandRenderChange,
   } = deps;
+
+  // Transport loading/unloading lives in its own module; it shares this file's
+  // garrison side maps and spawn helpers but nothing else.
+  const garrisonOps = createGarrisonOps({
+    world,
+    accessor,
+    isGarrisonedUnit,
+    clearGathererOrder,
+    clearUnitCommand,
+    clearPositionAndSyncOccupancy,
+    placeFreshSpawnUnit,
+    findScenarioSpawnPosition,
+    findBuildingSpawnPosition,
+    clearSelection,
+    placementMode,
+    markOutOfBandRenderChange,
+  });
 
   function enqueueTraining(buildingId: number, unitType: TrainableUnitType): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
@@ -320,100 +342,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return false;
   }
 
-  function garrisonUnit(unitId: number, buildingId: number): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    const capacity = building ? buildingGarrisonCapacity(building.buildingType) : 0;
-    if (
-      !unit
-      || !building
-      || unit.owner !== building.owner
-      || !canGarrisonAt(building.buildingType, unit.unitType)
-    ) {
-      return false;
-    }
-
-    const currentUnits = accessor.get(garrisonedByBuildingCodec).get(buildingId) ?? [];
-    if (currentUnits.length >= capacity || isGarrisonedUnit(unitId)) {
-      return false;
-    }
-
-    clearGathererOrder(unitId);
-    clearUnitCommand(unitId);
-
-    const visionSource = world.getComponent<VisionSourceComponent>(unitId, 'visionSource');
-    if (visionSource) {
-      accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) =>
-        m.set(unitId, { ...visionSource }),
-      );
-      world.removeComponent(unitId, 'visionSource');
-    }
-
-    clearPositionAndSyncOccupancy(unitId);
-    accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.set(unitId, buildingId));
-    accessor.mutate(garrisonedByBuildingCodec, (m) => {
-      const list = m.get(buildingId) ?? [];
-      list.push(unitId);
-      m.set(buildingId, list);
-    });
-    clearSelection();
-    placementMode.current = null;
-    markOutOfBandRenderChange();
-    return true;
-  }
-
-  function ungarrisonBuilding(buildingId: number): boolean {
-    const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    const buildingPosition = world.getComponent<Position>(buildingId, 'position');
-    const garrisonedUnits = accessor.get(garrisonedByBuildingCodec).get(buildingId) ?? [];
-    if (!building || !buildingPosition || garrisonedUnits.length === 0) {
-      return false;
-    }
-
-    const remainingGarrisonedUnits: number[] = [];
-    let didUngarrisonUnit = false;
-
-    for (const unitId of garrisonedUnits) {
-      const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-      if (!unit) continue;
-
-      const spawnPosition = findBuildingSpawnPosition(
-        buildingPosition,
-        building.buildingType,
-        true,
-      );
-      if (!spawnPosition) {
-        remainingGarrisonedUnits.push(unitId);
-        continue;
-      }
-
-      if (!placeFreshSpawnUnit(unitId, spawnPosition)) {
-        remainingGarrisonedUnits.push(unitId);
-        continue;
-      }
-      const storedVisionSource = accessor.get(garrisonedUnitVisionSourcesCodec).get(unitId);
-      if (storedVisionSource) {
-        world.addComponent(unitId, 'visionSource', storedVisionSource);
-        accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => m.delete(unitId));
-      }
-      accessor.mutate(garrisonedUnitToBuildingCodec, (m) => m.delete(unitId));
-      clearGathererOrder(unitId);
-      didUngarrisonUnit = true;
-    }
-
-    accessor.mutate(garrisonedByBuildingCodec, (m) => {
-      if (remainingGarrisonedUnits.length > 0) {
-        m.set(buildingId, remainingGarrisonedUnits);
-      } else {
-        m.delete(buildingId);
-      }
-    });
-
-    if (didUngarrisonUnit) {
-      markOutOfBandRenderChange();
-    }
-    return didUngarrisonUnit;
-  }
 
   function startConstructionWithBuildersDirect(
     builderIds: readonly number[],
@@ -492,8 +420,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     enqueueResearch,
     executeMarketActionDirect,
     playerOwnsCompletedMarket,
-    garrisonUnit,
-    ungarrisonBuilding,
+    ...garrisonOps,
     startConstructionWithBuildersDirect,
     findBuildPlacementNear,
   };

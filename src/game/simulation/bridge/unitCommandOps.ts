@@ -65,6 +65,12 @@ export interface UnitCommandOpsDeps {
   // handler).
   setMonkTask: (monkId: number, kind: MonkTask['kind'], targetEntityRef: EntityRef) => boolean;
   garrisonUnit: (unitId: number, buildingId: number) => boolean;
+  // Transport Ship loading and unloading, both routed from the ordinary
+  // right-click (see contextRouter).
+  findOwnedTransportAtCell: (x: number, y: number, owner: number) => number | null;
+  boardTransport: (unitId: number, transportId: number) => boolean;
+  unloadTransport: (transportId: number, target: Position) => boolean;
+  isLandCell: (x: number, y: number) => boolean;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
   findNearestDropOffBuilding: (
     activeWorld: GameWorld,
@@ -165,6 +171,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     clearMonkTask,
     setMonkTask,
     garrisonUnit,
+    findOwnedTransportAtCell,
+    boardTransport,
+    unloadTransport,
+    isLandCell,
     isHarvestableResource,
     findNearestDropOffBuilding,
     clearGathererOrder,
@@ -329,6 +339,10 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
     garrisonUnit,
+    findOwnedTransportAtCell,
+    boardTransport,
+    unloadTransport,
+    isLandCell,
     setUnitAttackCommandDirect,
     setUnitGatherCommandDirect,
     setUnitMoveCommandDirect,

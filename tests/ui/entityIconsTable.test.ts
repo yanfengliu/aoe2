@@ -79,6 +79,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [icon: string, accent: string]>
   'bombard-cannon': ['BC', '#3a3a42'],
   'trebuchet': ['Tr', '#6a4f2e'],
   'fishing-ship': ['Fs', '#7fb4c4'],
+  'transport-ship': ['Tr', '#a98a5c'],
   'galley': ['Ga', '#8a7a58'],
   'war-galley': ['WG', '#93805a'],
   'galleon': ['Gn', '#9c8a60'],

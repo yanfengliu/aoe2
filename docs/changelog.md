@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.37 - 2026-08-20
+
+### Added
+
+- **Transport Ships.** Built at the Dock from the Feudal Age, they carry five land units and are the only way an army crosses water. Right-click a transport with land units to send them aboard; right-click land with the loaded transport to put them ashore — a transport ordered onto a crowded beach lands what fits and keeps the rest. Ships cannot board a transport; they can already swim.
+
 ## 0.3.36 - 2026-08-20
 
 ### Changed

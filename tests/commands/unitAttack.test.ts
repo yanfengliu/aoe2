@@ -313,6 +313,11 @@ describe('unit attack semantic boundary', () => {
       clearMonkTask: vi.fn(),
       setMonkTask: () => false,
       garrisonUnit: () => false,
+      // This double is about attack routing; the transport hooks are inert here.
+      findOwnedTransportAtCell: () => null,
+      boardTransport: () => false,
+      unloadTransport: () => false,
+      isLandCell: () => true,
       isHarvestableResource: () => false,
       findNearestDropOffBuilding: () => null,
       clearGathererOrder,

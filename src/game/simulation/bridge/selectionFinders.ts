@@ -28,6 +28,7 @@ export interface SelectionFindersDeps {
 export interface SelectionFinders {
   findResourceAtCell(x: number, y: number): number | null;
   findHostileUnitAtCell(x: number, y: number, attackerOwner: number): number | null;
+  findOwnedTransportAtCell(x: number, y: number, owner: number): number | null;
   findHostileBuildingAtCell(x: number, y: number, attackerOwner: number): number | null;
   findHostileWildlifeAtCell(x: number, y: number): number | null;
   findOwnedGarrisonBuildingAtCell(
@@ -69,6 +70,23 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         && unit
         && unit.owner !== attackerOwner
         && visibility.isVisible(humanPlayerId, x, y)
+      ) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  /** An owned, ready Transport Ship standing on this cell, if any. */
+  function findOwnedTransportAtCell(x: number, y: number, owner: number): number | null {
+    for (const id of world.query('position', 'unit')) {
+      const position = world.getComponent<Position>(id, 'position');
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (
+        position?.x === x
+        && position.y === y
+        && unit?.unitType === 'transport-ship'
+        && unit.owner === owner
       ) {
         return id;
       }
@@ -165,6 +183,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
   return {
     findResourceAtCell,
     findHostileUnitAtCell,
+    findOwnedTransportAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
     findOwnedGarrisonBuildingAtCell,

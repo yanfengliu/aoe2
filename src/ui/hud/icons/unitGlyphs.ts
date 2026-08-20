@@ -178,6 +178,7 @@ const UNIT_GLYPH_ROLES = {
   trebuchet: 'siege',
   // M5 naval.
   'fishing-ship': 'ship',
+  'transport-ship': 'ship',
   'galley': 'ship',
   'war-galley': 'ship',
   'galleon': 'ship',

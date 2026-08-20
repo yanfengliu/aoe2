@@ -38,6 +38,7 @@ export const ALL_UNIT_TYPES = {
   'bombard-cannon': true,
   trebuchet: true,
   'fishing-ship': true,
+  'transport-ship': true,
   'galley': true,
   'war-galley': true,
   'galleon': true,

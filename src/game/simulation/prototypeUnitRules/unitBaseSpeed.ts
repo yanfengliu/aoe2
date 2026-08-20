@@ -60,6 +60,7 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'paladin': 169, // 1.35
   'heavy-camel': 181, // 1.45
   'fishing-ship': 158, // 1.26
+  'transport-ship': 181, // 1.45 — the fastest thing on the water.
   'galley': 179, // 1.43
   'war-galley': 179, // 1.43
   'galleon': 179, // 1.43

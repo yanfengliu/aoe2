@@ -210,6 +210,9 @@ const UNIT_ATTACK_RIGS = {
   trebuchet: TREBUCHET_RIG,
   monk: MONK_RIG,
   'fishing-ship': MONK_RIG,
+  // It has no attack, so it never plays this; it takes the same do-nothing
+  // rig the Fishing Ship does.
+  'transport-ship': MONK_RIG,
   'galley': MONK_RIG,
   'war-galley': MONK_RIG,
   'galleon': MONK_RIG,

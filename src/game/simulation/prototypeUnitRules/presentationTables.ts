@@ -47,6 +47,7 @@ export const UNIT_TINTS: Record<UnitType, UnitTintPalette> = {
   paladin: { human: 0x7e7a68, enemy: 0x88584a },
   'heavy-camel': { human: 0xbfa874, enemy: 0xae7f64 },
   'fishing-ship': { human: 0x8a6f4a, enemy: 0x7d5148 },
+  'transport-ship': { human: 0x9c8354, enemy: 0x8e5c52 },
   'galley': { human: 0x7a6a4c, enemy: 0x7d5148 },
   'war-galley': { human: 0x82714f, enemy: 0x82554a },
   'galleon': { human: 0x8b7853, enemy: 0x8a5a4d },
@@ -132,6 +133,7 @@ export const UNIT_SIZES: Record<UnitType, number> = {
   paladin: 0.62,
   'heavy-camel': 0.58,
   'fishing-ship': 0.78,
+  'transport-ship': 0.92, // Broad in the beam — it is built to hold a company.
   'galley': 0.82,
   'war-galley': 0.86,
   'galleon': 0.92,
@@ -217,6 +219,7 @@ export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
   paladin: 5,
   'heavy-camel': 4,
   'fishing-ship': 5,
+  'transport-ship': 5, // units.csv line of sight 5.
   'galley': 7,
   'war-galley': 8,
   'galleon': 9,
