@@ -83,6 +83,12 @@ export interface TrainingMarketOpsDeps {
     height: number,
     buildingType?: BuildingType,
   ) => boolean;
+  // The three together answer "could a land unit stand here", which is what the
+  // AI's placement connectivity guard needs — it asks about ground rather than
+  // about a particular unit.
+  isTerrainPassableForUnit: (x: number, y: number) => boolean;
+  isCellBlockedByBuilding: (x: number, y: number) => boolean;
+  isCellBlockedByResource: (x: number, y: number) => boolean;
   isGarrisonedUnit: (id: number) => boolean;
   clearGathererOrder: (id: number) => void;
   clearUnitCommand: (id: number) => void;
@@ -161,6 +167,9 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     getMarketOptions,
     getBuildOptions,
     isPlacementBlocked,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,
@@ -399,6 +408,12 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     return true;
   }
 
+  function isGroundWalkable(x: number, y: number): boolean {
+    return isTerrainPassableForUnit(x, y)
+      && !isCellBlockedByBuilding(x, y)
+      && !isCellBlockedByResource(x, y);
+  }
+
   function findBuildPlacementNear(
     origin: Position,
     buildingType: BuildableBuildingType,
@@ -406,12 +421,24 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     // Ring-search out to radius 12 (default) so a 4x4 building (market / castle /
     // wonder) can find a gap past a base's packed inner rings — a radius-6 cap
     // left the AI unable to ever place one (v0.1.93 FIND). See placementSearch.
+    //
+    // The `isFree` guard is what stops the AI walling ITSELF in: it packed its
+    // buildings into a solid mass ten cells wide on the default map and sealed
+    // its own sheep, boar and forest into a pocket its villagers could not
+    // reach. A gate or wall is excluded from the guard — sealing ground is the
+    // whole point of building one.
+    const sealsDeliberately = buildingType === 'palisade-wall'
+      || buildingType === 'stone-wall'
+      || buildingType === 'palisade-gate'
+      || buildingType === 'stone-gate';
     return findPlacementAnchorNear(
       origin,
       buildingFootprint(buildingType),
       mapWidth,
       mapHeight,
       isPlacementBlocked,
+      undefined,
+      sealsDeliberately ? undefined : isGroundWalkable,
     );
   }
 

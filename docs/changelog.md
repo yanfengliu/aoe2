@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.38 - 2026-08-23
+
+### Changed
+
+- **A forest is now made of trees you can cut through.** Every forest tile on the standard map carries a tree, and felling one leaves open ground behind — so a woodline is consumed from its edge inward until it is gone, the way Age of Empires II works. Before this the map painted stretches of forest that held no wood at all and could never be cleared, so once the trees on a woodline's rim were cut, everything behind them was walled off forever. On the standard map that left 18 of the 27 surviving trees with no tile a villager could stand on.
+- **The computer opponent no longer walls itself in.** It had been packing its buildings into a solid block — ten tiles across on the standard map — that shut its own sheep, boar and woodline into a pocket its villagers could not walk into. It now refuses a spot that would cut the ground beside it in two, unless there is nowhere else at all to build. Walls and gates are exempt, since closing ground is what they are for.
+
+### Fixed
+
+- **A villager that cannot reach any of the resource it wants now takes other work** instead of standing still. Six of the computer opponent's villagers had been holding one unreachable sheep for the last thirteen thousand ticks of a match while its stockpile sat unchanged: giving up on the sheep left the villager idle, and the ordinary idle assignment handed the same sheep straight back on the next tick.
+
 ## 0.3.37 - 2026-08-20
 
 ### Added

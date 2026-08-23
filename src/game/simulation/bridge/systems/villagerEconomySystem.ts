@@ -6,7 +6,8 @@
 // Retries are throttled so a stuck gatherer does not re-plan every tick.
 
 import { runDropOffStep } from './dropOffStep';
-import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssignment';
+import { runToResourceStep } from './toResourceStep';
+import { assignIdleGatherer } from '../idleGatherAssignment';
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
@@ -40,35 +41,13 @@ import {
   gathererDropOffStuckSinceTickCodec,
   playerCivilizationsCodec,
   researchedTechnologiesCodec,
-  sheepMoveOrdersCodec,
   unitCommandsCodec,
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 
 type CivWorld = GameWorld;
 
-// Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
-// (14/18 stuck) and to-resource had no give-up path, jamming forever. Fix: a
-// villager stuck walking to an OVER-SUBSCRIBED resource for
-// GATHER_APPROACH_TIMEOUT_TICKS reassigns to the nearest UNsaturated resource
-// (fan-out). Surgical — normal idle→assign stays nearest-first (AI economy
-// untouched); the approach timer reuses gatherProgressTicks (no new save state).
-const MAX_GATHERERS_PER_RESOURCE = 2;
-const GATHER_APPROACH_TIMEOUT_TICKS = 80;
-// The over-subscription timeout above only rescues a villager that is queueing
-// behind others. A villager walking ALONE to a target it never reaches waited
-// forever, because "a long walk to an uncontended resource is NOT abandoned"
-// was written for a legitimately distant tree — and a blocked one looks exactly
-// the same from here. Measured on the default map: the AI's whole economy froze
-// at around tick 6000 with every villager holding a target it never arrived at,
-// several of them marching forty cells toward the OTHER player's berries.
-//
-// This is the unconditional backstop. It is much longer than the fan-out
-// timeout, so a genuinely long walk finishes first, and it reassigns with
-// `requireReachable` while EXCLUDING the target it gave up on — which is the
-// machinery that already existed and was only ever reachable through the
-// over-subscription branch.
-const GATHER_UNREACHABLE_TIMEOUT_TICKS = 600;
+// The `to-resource` leg and its timeouts live in `toResourceStep`.
 
 // Loop 1 follow-up (campaign-5 replay: 15 of 16 woodcutters STILL re-piled
 // on the nearest tree because the give-up path freed them but idle→assign
@@ -244,129 +223,19 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'to-resource') {
-          const targetResource = gatherer.targetResourceId === null
-            ? null
-            : activeWorld.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
-          const resourceApproachPlan = gatherer.targetResourceId === null
-            ? null
-            : findResourceApproachPlan(id, gatherer.targetResourceId, activeWorld);
-
-          if (
-            !targetResource
-            || !isHarvestableResource(gatherer.targetResourceId ?? -1, targetResource)
-          ) {
-            gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-            gatherer.targetResourceId = null;
-          } else if (!resourceApproachPlan) {
-            // Unreachable target (campaign-11 gridlock): the resource exists and
-            // is harvestable, but every approach cell is blocked (e.g. a sheep
-            // boxed in by berries + buildings), so there is no path to it.
-            // Pre-fix this fell to `idle`, then the bottom-of-loop idle→assign
-            // re-picked the same nearest unreachable resource every tick —
-            // never trying the reachable resources, so food income stayed 0.
-            if (gatherer.carriedAmount > 0) {
-              // Deposit a carry first (mirrors the depleted/gone branch above —
-              // a villager CAN reach `to-resource` carrying, via an explicit
-              // gather order issued mid-carry); the next idle→assign reroutes
-              // from empty.
-              gatherer.task = 'to-dropoff';
-              gatherer.targetResourceId = null;
-            } else {
-              // Re-target the nearest REACHABLE resource, excluding this one, so
-              // the villager falls through to a gatherable resource. Release the
-              // slot first so the count stays honest; the reachability scan is
-              // bounded (MAX_REACHABILITY_PROBES) and also skips any OTHER
-              // unreachable candidate. If no resource of this kind is reachable
-              // at all (a genuinely fully-boxed villager — pathological: it
-              // would need every nearby resource walled off), the assignment
-              // leaves it idle. The bottom idle→assign re-arms this branch next
-              // tick, but the bounded probe count caps the per-tick pathfinding
-              // cost so it never scans the whole map.
-              const unreachableTarget = gatherer.targetResourceId;
-              if (unreachableTarget !== null) {
-                gatherTargetCounts.set(
-                  unreachableTarget,
-                  Math.max(0, (gatherTargetCounts.get(unreachableTarget) ?? 1) - 1),
-                );
-              }
-              if (shouldRetryReachability(activeWorld.tick, id)) {
-                assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-                  preferUnsaturated: true,
-                  spreadCap: MAX_GATHERERS_PER_RESOURCE,
-                  requireReachable: true,
-                  excludeResourceId: unreachableTarget,
-                });
-              }
-            }
-          } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
-            gatherer.task = 'gathering';
-            gatherer.gatherProgressTicks = 0;
-            // A villager that has reached a sheep to harvest pins the sheep in
-            // place. Any outstanding player move order on that sheep would
-            // otherwise keep walking the sheep away each tick.
-            if (
-              gatherer.targetResourceId !== null
-              && targetResource.resourceType === 'sheep'
-            ) {
-              const tid = gatherer.targetResourceId;
-              accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(tid));
-            }
-          } else {
-            // Approach timer (reuses gatherProgressTicks, which is otherwise
-            // 0 during to-resource). Redistribute ONLY when this target is
-            // over-subscribed (more gatherers than the per-resource cap) AND
-            // we've waited a while — i.e. a genuine pile-up where this
-            // villager is an extra that cannot get an approach cell. It is
-            // then reassigned to the nearest UNsaturated resource (fan-out).
-            // A long walk to an UNcontended resource is NOT abandoned, and
-            // normal idle→assign is untouched — so the AI's tuned economy is
-            // unaffected; only piled-up extras spread out.
-            gatherer.gatherProgressTicks += 1;
-            const overSubscribed =
-              (gatherTargetCounts.get(gatherer.targetResourceId ?? -1) ?? 0)
-              > MAX_GATHERERS_PER_RESOURCE;
-            const givenUp =
-              gatherer.gatherProgressTicks >= GATHER_UNREACHABLE_TIMEOUT_TICKS;
-            if (givenUp) {
-              // Give up on THIS target and take the nearest one we can prove a
-              // path to. Excluding the old target is what stops it being picked
-              // straight back.
-              const abandoned = gatherer.targetResourceId;
-              if (abandoned !== null) {
-                gatherTargetCounts.set(
-                  abandoned,
-                  Math.max(0, (gatherTargetCounts.get(abandoned) ?? 1) - 1),
-                );
-              }
-              gatherer.gatherProgressTicks = 0;
-              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-                preferUnsaturated: true,
-                spreadCap: MAX_GATHERERS_PER_RESOURCE,
-                requireReachable: true,
-                excludeResourceId: abandoned,
-              });
-            } else if (overSubscribed && gatherer.gatherProgressTicks >= GATHER_APPROACH_TIMEOUT_TICKS) {
-              // Reservation MOVE: release this villager's slot on the
-              // over-subscribed target BEFORE reassigning. Once the excess
-              // has left, the target is no longer over-subscribed, so the
-              // remaining (within-cap) gatherers stay put — only the extras
-              // redistribute (Codex gather-stall iter-1 MEDIUM).
-              const previousTarget = gatherer.targetResourceId;
-              if (previousTarget !== null) {
-                gatherTargetCounts.set(
-                  previousTarget,
-                  Math.max(0, (gatherTargetCounts.get(previousTarget) ?? 1) - 1),
-                );
-              }
-              gatherer.gatherProgressTicks = 0;
-              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-                preferUnsaturated: true,
-                spreadCap: MAX_GATHERERS_PER_RESOURCE,
-              });
-            } else {
-              moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
-            }
-          }
+          runToResourceStep({
+            activeWorld,
+            accessor,
+            id,
+            unit,
+            gatherer,
+            gatherTargetCounts,
+            findResourceApproachPlan,
+            isHarvestableResource,
+            isUnitAtTarget,
+            moveUnitOneSubgridStep,
+            assignResource,
+          });
         }
 
         if (gatherer.task === 'gathering') {

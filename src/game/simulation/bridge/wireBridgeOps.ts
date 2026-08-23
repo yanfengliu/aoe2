@@ -171,6 +171,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
 
   const postSeed = wirePostSeedOps({
     world,
+    tiles,
+    worldOccupancy,
     state,
     accessor,
     visibility,

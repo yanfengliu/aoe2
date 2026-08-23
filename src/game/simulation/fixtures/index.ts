@@ -40,6 +40,14 @@ export {
 } from './economyBasics/gatherReroute';
 
 export {
+  createGatherIslandFoodFixture,
+} from './economyBasics/gatherIsland';
+
+export {
+  createWoodlineClearingFixture,
+} from './economyBasics/woodlineClearing';
+
+export {
   createDropOffUnreachableRerouteFixture,
 } from './economyBasics/dropOffReroute';
 

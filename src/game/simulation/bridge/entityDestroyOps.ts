@@ -75,6 +75,11 @@ export interface EntityDestroyOpsDeps {
     amount: number,
     baseOwner: number | null,
   ) => number;
+  // AoE2's forest IS its trees, so an exhausted tree leaves open ground behind
+  // and the woodline is cut from the outside in. Without this a tree standing
+  // on a forest tile left the tile impassable forever, and everything behind
+  // the rim of a woodline could never be reached.
+  clearForestTerrainAt: (position: Position) => void;
   markOutOfBandRenderChange: () => void;
 }
 
@@ -100,6 +105,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     addResourceEntity,
+    clearForestTerrainAt,
     markOutOfBandRenderChange,
   } = deps;
   const { monksByOwner } = state;
@@ -376,6 +382,11 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
   }
 
   function destroyResourceEntity(id: number): void {
+    const felled = world.getComponent<ResourceComponent>(id, 'resource');
+    const felledAt = world.getComponent<Position>(id, 'position');
+    if (felled?.resourceType === 'tree' && felledAt) {
+      clearForestTerrainAt(felledAt);
+    }
     removeSelectedEntity(id);
     accessor.mutate(wildlifeStatesCodec, (m) => m.delete(id));
     accessor.mutate(sheepMoveOrdersCodec, (m) => m.delete(id));

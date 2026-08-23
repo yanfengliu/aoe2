@@ -14,6 +14,7 @@ import type {
   BuildingType,
   ResearchableTechnologyType,
   ResourceComponent,
+  TerrainComponent,
   UnitType,
 } from '../types';
 import { inFlightTechByOwnerCodec } from './bridgeStateSerialize';
@@ -72,6 +73,9 @@ export interface WirePostSeedDeps {
   createCombatState: CreateCombatState;
   buildingOccupiesCell: (id: number, x: number, y: number) => boolean;
   isTerrainPassableForUnit: (x: number, y: number) => boolean;
+  // Tile-entity lookup grid, so felling a tree can open its forest tile.
+  tiles: number[][];
+  worldOccupancy: import('../worldOccupancy').WorldOccupancy;
   isCellBlockedByBuilding: (x: number, y: number) => boolean;
   isCellBlockedByResource: (x: number, y: number) => boolean;
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
@@ -159,6 +163,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     clearPositionAndSyncOccupancy,
     addBuildingEntity,
     addResourceEntity,
+    tiles,
+    worldOccupancy,
     findScenarioSpawnPosition,
     findBuildingSpawnPosition,
     clearGathererOrder,
@@ -208,6 +214,21 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     findOwnedTransportAtCell,
   } = selectionInputOps;
 
+  // AoE2's forest IS its trees: an exhausted tree leaves open ground, so a
+  // woodline is cut from its rim inward until it is gone. `buildable` follows
+  // the same rule the terrain factory uses, so the cleared tile can be built on.
+  const clearForestTerrainAt = (position: Position): void => {
+    const tile = tiles[position.y]?.[position.x];
+    if (tile === undefined) return;
+    const terrain = world.getComponent<TerrainComponent>(tile, 'terrain');
+    if (!terrain || terrain.kind !== 'forest') return;
+    world.setComponent(tile, 'terrain', { ...terrain, kind: 'grass', buildable: true });
+    // The occupancy grid holds a static terrain blocker per forest cell, and it
+    // is not entity-keyed, so changing the component alone leaves the cell
+    // impassable — the felled tree's ground stayed a wall.
+    worldOccupancy.unblockTerrain([position]);
+  };
+
   const entityDestroyOps = createEntityDestroyOps({
     world,
     mapWidth: MAP_WIDTH,
@@ -222,6 +243,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     isCellBlockedByBuilding,
     isCellBlockedByResource,
     addResourceEntity,
+    clearForestTerrainAt,
     markOutOfBandRenderChange,
   });
 
@@ -244,6 +266,9 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getMarketOptions,
     getBuildOptions,
     isPlacementBlocked,
+    isTerrainPassableForUnit,
+    isCellBlockedByBuilding,
+    isCellBlockedByResource,
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,

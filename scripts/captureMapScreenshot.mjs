@@ -20,6 +20,10 @@ const zoom = process.env.ZOOM ?? '';
 // SIZE="WxH" captures at a different viewport, because a HUD that fits at
 // 1280x800 can cover the world at 800x600.
 const size = process.env.SIZE ?? '800x600';
+// TICKS advances the simulation before the shot, so a capture can show what a
+// mechanic looks like once it has run — a cut woodline, a finished building —
+// rather than only the opening frame.
+const ticks = Number(process.env.TICKS ?? 0);
 // Captures are task-run EVIDENCE, so they default under the gitignored `tmp/`
 // tree rather than into tracked docs; set OUT_DIR to promote one deliberately.
 const outputDir = process.env.OUT_DIR ?? 'tmp/captures';
@@ -71,6 +75,21 @@ try {
     if (applied !== zoomValue) {
       console.log(`ZOOM ${zoomValue} clamped to ${applied} by the camera`);
     }
+  }
+  if (ticks > 0) {
+    if (!Number.isInteger(ticks)) {
+      throw new Error(`TICKS must be a whole number of simulation ticks; got "${process.env.TICKS}"`);
+    }
+    // advanceTicks is atomic (unpause -> step N -> repause) inside the page, so
+    // it is exact; chunked so a long advance does not exceed the call timeout.
+    await page.evaluate((count) => { window.__AOE2_TEST__?.setPaused(true); }, ticks);
+    let done = 0;
+    while (done < ticks) {
+      const chunk = Math.min(500, ticks - done);
+      await page.evaluate((count) => { window.__AOE2_TEST__?.advanceTicks(count); }, chunk);
+      done += chunk;
+    }
+    await page.evaluate(() => { window.__AOE2_TEST__?.setPaused(false); });
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath, fullPage: false });

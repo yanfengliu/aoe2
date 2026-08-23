@@ -11,94 +11,19 @@ import {
   allocateGroupMoveTargets as allocateGroupMoveTargetsImpl,
   findNearestFreeUnitCellInSpiral,
 } from './worldOccupancyAllocators';
+import {
+  positionKey,
+  removeClaimFromCellMap,
+  syntheticOutOfBoundsStatus,
+  toFootprintCells,
+  UNIT_OCCUPANCY_SLOTS,
+  type Footprint,
+  type OverflowBlockedState,
+  type OverflowCrowdedState,
+} from './worldOccupancyCells';
 
-export interface Footprint {
-  width: number;
-  height: number;
-}
+export type { Footprint } from './worldOccupancyCells';
 
-interface OverflowBlockedState {
-  positions: Position[];
-  claim: OccupancyCellClaim;
-}
-
-interface OverflowCrowdedState {
-  position: Position;
-  claim: OccupancyCellClaim;
-}
-
-const UNIT_OCCUPANCY_SLOTS: ReadonlyArray<SubcellSlotOffset> = [
-  { x: 0, y: 0 },
-  { x: 0.25, y: 0 },
-  { x: 0.5, y: 0 },
-  { x: 0.75, y: 0 },
-  { x: 0, y: 0.25 },
-  { x: 0.25, y: 0.25 },
-  { x: 0.5, y: 0.25 },
-  { x: 0.75, y: 0.25 },
-  { x: 0, y: 0.5 },
-  { x: 0.25, y: 0.5 },
-  { x: 0.5, y: 0.5 },
-  { x: 0.75, y: 0.5 },
-  { x: 0, y: 0.75 },
-  { x: 0.25, y: 0.75 },
-  { x: 0.5, y: 0.75 },
-  { x: 0.75, y: 0.75 },
-];
-
-function positionKey(x: number, y: number): string {
-  return `${x},${y}`;
-}
-
-function toFootprintCells(anchor: Position, footprint: Footprint): Position[] {
-  const cells: Position[] = [];
-
-  for (let y = anchor.y; y < anchor.y + footprint.height; y += 1) {
-    for (let x = anchor.x; x < anchor.x + footprint.width; x += 1) {
-      cells.push({ x, y });
-    }
-  }
-
-  return cells;
-}
-
-function removeClaimFromCellMap(
-  cellMap: Map<string, OccupancyCellClaim[]>,
-  positions: ReadonlyArray<Position>,
-  entity: EntityId,
-): void {
-  for (const position of positions) {
-    const key = positionKey(position.x, position.y);
-    const existing = cellMap.get(key);
-    if (!existing) {
-      continue;
-    }
-
-    const filtered = existing.filter((claim) => claim.entity !== entity);
-    if (filtered.length === 0) {
-      cellMap.delete(key);
-      continue;
-    }
-
-    cellMap.set(key, filtered);
-  }
-}
-
-function syntheticOutOfBoundsStatus(x: number, y: number): OccupancyCellStatus {
-  return {
-    position: { x, y },
-    blocked: true,
-    blockedBy: [{ entity: null, kind: 'bounds', claim: 'blocked' }],
-    crowdedBy: [],
-    freeSubcellSlots: null,
-  };
-}
-
-// Spec §12.6 contract: `syncUnit` records the requested coarse cell and
-// returns the visual slot assigned by the engine's SubcellOccupancyGrid;
-// `slotOffset === null` means that cell was full. `placeUnitForSpawn` builds
-// on that primitive, returning a nearby-cell result after its bounded search
-// or outer null when no legal fresh-placement slot exists.
 export interface SyncUnitResult {
   placedAt: Position;
   slotOffset: SubcellSlotOffset | null;
@@ -108,6 +33,8 @@ export interface WorldOccupancy {
   attachWorld(world: OccupancyBindingWorldHooks): void;
   reset(): void;
   blockTerrain(cells: ReadonlyArray<Position>): void;
+  /** Releases a terrain blocker — a felled tree leaves open ground behind. */
+  unblockTerrain(cells: ReadonlyArray<Position>): void;
   syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void;
   syncResource(entity: EntityId, position: Position): void;
   syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow?: boolean): SyncUnitResult;
@@ -290,6 +217,14 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       binding.block(cells, {
         metadata: { kind: 'terrain' },
       });
+    },
+
+    unblockTerrain(cells: ReadonlyArray<Position>): void {
+      if (cells.length === 0) {
+        return;
+      }
+
+      binding.unblock(cells);
     },
 
     syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void {
