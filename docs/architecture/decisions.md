@@ -573,3 +573,13 @@ Consequences:
 
 **Also decided:** yielding to a co-located peer requires that peer to be able to take the turn — its own next cell passable and unoccupied. Deferring to a permanently blocked peer stalls both, which is how a villager with an empty cell ahead of it stood still for a whole match.
 
+
+## Screen captures default to the ignored tree, not to tracked docs (2026-08-23)
+
+**Decision.** `scripts/captureMapScreenshot.mjs` and `scripts/diffMapScreenshots.mjs` write to `tmp/captures/<LABEL>.png` by default; `OUT_DIR` overrides it, and the diff script now REQUIRES `LABEL` instead of falling back to a bare `before`/`after`/`diff` set.
+
+**Why.** The old default wrote into `docs/devlog/artifacts/`, which is tracked — so the ordinary act of checking a change put evidence into Git, against the fleet rule that task-run evidence lives under ignored paths and enters the repository only when review promotes it. The old no-LABEL fallback made it worse: it silently overwrote committed baseline artifacts.
+
+**Consequence.** The 57 artifacts already tracked under `docs/devlog/artifacts/` stay where they are and keep their names; nothing regenerates them by accident, because a capture no longer lands there without `OUT_DIR`. Any command line copied from a devlog entry older than this date now writes to a different place than the entry describes, which is the intended trade — the entry's conclusion is the durable part, not its file path.
+
+**Also decided:** the same capture script grew `ZOOM` and `SIZE` (and the `setCameraZoom` browser-test hook behind it), so the multi-view sweep the local rules require comes from the maintained pair rather than from a one-off script per view.

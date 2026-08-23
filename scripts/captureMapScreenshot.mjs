@@ -13,7 +13,25 @@ const seed = process.env.SEED ?? 'aoe2-prototype';
 // camera stays exactly where the game opens — which is the honest framing for
 // anything a player sees at boot.
 const focus = process.env.FOCUS ?? '';
-const outputPath = `docs/devlog/artifacts/2026-04-23-default-map-${label}.png`;
+// ZOOM sets the camera zoom before the shot (the camera clamps to 0.7-2.4;
+// the game opens at 2.0). The renderer's isometric angle is fixed, so a
+// multi-view sweep varies FOCUS, ZOOM and SIZE rather than rotating.
+const zoom = process.env.ZOOM ?? '';
+// SIZE="WxH" captures at a different viewport, because a HUD that fits at
+// 1280x800 can cover the world at 800x600.
+const size = process.env.SIZE ?? '800x600';
+// Captures are task-run EVIDENCE, so they default under the gitignored `tmp/`
+// tree rather than into tracked docs; set OUT_DIR to promote one deliberately.
+const outputDir = process.env.OUT_DIR ?? 'tmp/captures';
+const outputPath = `${outputDir}/${label}.png`;
+
+function parseSize(value) {
+  const match = /^(\d+)x(\d+)$/.exec(value.trim());
+  if (!match) {
+    throw new Error(`SIZE must be "WIDTHxHEIGHT" in pixels, e.g. "1280x800"; got "${value}"`);
+  }
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
 
 await mkdir(dirname(outputPath), { recursive: true });
 
@@ -24,7 +42,7 @@ const browser = await chromium.launch({
 
 try {
   const context = await browser.newContext({
-    viewport: { width: 800, height: 600 },
+    viewport: parseSize(size),
   });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:4173/?seed=${seed}`);
@@ -40,6 +58,19 @@ try {
       ([x, y]) => { window.__AOE2_TEST__?.centerCameraOnWorldPosition(x, y); },
       [focusX, focusY],
     );
+  }
+  if (zoom) {
+    const zoomValue = Number(zoom);
+    if (!Number.isFinite(zoomValue) || zoomValue <= 0) {
+      throw new Error(`ZOOM must be a positive number; got "${zoom}"`);
+    }
+    const applied = await page.evaluate(
+      (value) => window.__AOE2_TEST__?.setCameraZoom(value),
+      zoomValue,
+    );
+    if (applied !== zoomValue) {
+      console.log(`ZOOM ${zoomValue} clamped to ${applied} by the camera`);
+    }
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath, fullPage: false });

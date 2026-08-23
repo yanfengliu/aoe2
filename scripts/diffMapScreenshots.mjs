@@ -14,17 +14,24 @@ function readPng(path) {
 
 // LABEL selects a named screenshot set. NOTE the two scripts use LABEL
 // differently: in captureMapScreenshot.mjs LABEL is the FULL suffix
-// (`LABEL=m7-terrain-before` -> one file `...-m7-terrain-before.png`),
-// whereas here LABEL is the STEM and `-before`/`-after`/`-diff` are appended.
-// So capture twice with `LABEL=<stem>-before` and `LABEL=<stem>-after`, then
-// diff with `LABEL=<stem>`. Without a LABEL this falls back to the bare
-// `before`/`after`/`diff` names — but those collide with committed baseline
-// artifacts, so always pass a LABEL for a new change (else it overwrites a
-// tracked baseline).
+// (`LABEL=m7-terrain-before` -> one file `m7-terrain-before.png`), whereas
+// here LABEL is the STEM and `-before`/`-after`/`-diff` are appended. So
+// capture twice with `LABEL=<stem>-before` and `LABEL=<stem>-after`, then
+// diff with `LABEL=<stem>`.
+//
+// OUT_DIR must match the one the captures were taken with; both scripts
+// default to the gitignored `tmp/captures` because a capture is task-run
+// evidence, not a repository input.
 const label = process.env.LABEL;
-const stem = label
-  ? `docs/devlog/artifacts/2026-04-23-default-map-${label}`
-  : 'docs/devlog/artifacts/2026-04-23-default-map';
+if (!label) {
+  throw new Error(
+    'LABEL is required and is the STEM of a capture set: it reads '
+    + '<OUT_DIR>/<LABEL>-before.png and <OUT_DIR>/<LABEL>-after.png. '
+    + 'Capture both with LABEL=<stem>-before and LABEL=<stem>-after first.',
+  );
+}
+const outputDir = process.env.OUT_DIR ?? 'tmp/captures';
+const stem = `${outputDir}/${label}`;
 const before = `${stem}-before.png`;
 const after = `${stem}-after.png`;
 const diffPath = `${stem}-diff.png`;

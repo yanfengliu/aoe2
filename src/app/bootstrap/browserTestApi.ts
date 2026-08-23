@@ -186,6 +186,10 @@ export interface BrowserTestApi {
   clearSelection(): void;
   /** Center the camera on a world cell — lets a capture frame off-center action. */
   centerCameraOnWorldPosition(worldX: number, worldY: number): void;
+  /** Zoom the camera, so one capture run can sweep several zoom levels.
+   *  Returns the zoom the camera's own clamp accepted, which is not the
+   *  requested one past the 0.7–2.4 range. */
+  setCameraZoom(zoom: number): number;
   issueContextCommand(cellX: number, cellY: number, garrison?: boolean): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
   issueMoveCommand(cellX: number, cellY: number): boolean;
@@ -381,6 +385,11 @@ export function installBrowserTestApi(
     centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
       view.centerCameraOnWorldPosition(worldX, worldY);
       view.syncFromBridge(true);
+    },
+    setCameraZoom: (zoom: number) => {
+      const applied = view.setCameraZoom(zoom);
+      view.syncFromBridge(true);
+      return applied;
     },
     issueContextCommand: (cellX: number, cellY: number, garrison?: boolean) => {
       const didIssue = getBridge().issueContextCommand(cellX, cellY, garrison);

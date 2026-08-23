@@ -4,6 +4,8 @@
 
 An AoE2-style RTS in TypeScript, built on the sibling `civ-engine` repo. Spec-driven: `design/spec-final.md` plus `design/stats/` is the authoritative game definition — kept complete enough that an agent can implement and iterate the whole game from it without further user clarification.
 
+This repo's own rules live in [docs/policies/local-rules.md](docs/policies/local-rules.md). They bind alongside the fleet canon below and win where they overlap.
+
 <!-- FLEET-CANON:BEGIN sha=5364da321722 generated from ../fleet/FLEET.md by `npm run sync-canon` — do not edit inside this block; this repo's own rules go in docs/policies/local-rules.md -->
 ## Fleet constitution
 

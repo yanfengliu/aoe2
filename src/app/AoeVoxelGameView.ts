@@ -279,6 +279,12 @@ export class AoeVoxelGameView {
     this.camera.centerOnWorldPosition(worldX, worldY);
   }
 
+  /** Zoom for a capture sweep; returns the zoom the camera's clamp accepted. */
+  setCameraZoom(zoom: number): number {
+    this.camera.setZoom(zoom);
+    return this.camera.getState().zoom;
+  }
+
   panCameraTo(target: EntityRef | Position): void {
     if ('id' in target && 'generation' in target) {
       const ref = target as EntityRef;
