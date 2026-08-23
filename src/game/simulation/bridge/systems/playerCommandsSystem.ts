@@ -45,6 +45,9 @@ export interface PlayerCommandsSystemDeps {
   accessor: BridgeStateAccessor;
   // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   clearUnitCommand: (unitId: number) => void;
+  // Puts a unit INSIDE a building. The garrison command walks it there first;
+  // this is the arrival half.
+  garrisonUnit: (unitId: number, buildingId: number) => boolean;
   currentEntityId: (activeWorld: CivWorld, ref: EntityRef | null | undefined) => number | null;
   distanceToBuilding: (id: number, position: Position) => number;
   advanceTrebuchetTransition: (id: number) => boolean;
@@ -108,6 +111,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     world,
     accessor,
     clearUnitCommand,
+    garrisonUnit,
     currentEntityId,
     distanceToBuilding,
     advanceTrebuchetTransition,
@@ -421,6 +425,18 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
         if (!building || !buildingApproachPlan) {
           clearUnitCommand(id);
+          continue;
+        }
+
+        if (command.type === 'garrison') {
+          // Walk to the building, then go in — AoE2's behaviour, and the reason
+          // garrison is a command at all rather than an instant effect.
+          if (isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
+            garrisonUnit(id, buildingId);
+            clearUnitCommand(id);
+          } else {
+            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
+          }
           continue;
         }
 

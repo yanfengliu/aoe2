@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEATH_FEED_TICKS, visibleUnitDeaths } from '../../src/game/simulation/bridge/visibility';
 import type { ProjectedUnitDeathView } from '../../src/game/simulation/types';
-import { selectOwnedUnitDirect } from './createSimulationBridge.helpers';
+import { selectOwnedUnitDirect,
+  stepUntilGarrisoned,
+} from './createSimulationBridge.helpers';
 
 // v0.1.129 death feedback: unit deaths surface on the projected frame as a
 // fog-filtered, ticks-bounded feed (ProjectedFrameView.recentUnitDeaths) so the
@@ -117,7 +119,8 @@ describe('unit death feed — live bridge (heresy kill fixture)', () => {
 
     expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
     expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
-    for (let i = 0; i < 5; i += 1) bridge.step(100);
+    // v0.3.42: garrisoning is an order — the villager walks in first.
+    expect(stepUntilGarrisoned(bridge, villagerId)).toBe(true);
 
     // Garrisoned: gone from the live units list…
     expect(bridge.getEconomyState().units.find((u) => u.id === villagerId)).toBeUndefined();

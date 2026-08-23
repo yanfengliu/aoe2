@@ -122,6 +122,7 @@ export interface RegisterBridgeSystemsDeps {
     owner: number,
     unitType: import('../types').UnitType,
   ) => readonly import('../types').BuildableBuildingType[];
+  garrisonUnit: (unitId: number, buildingId: number) => boolean;
 }
 
 export interface RegisterBridgeSystemsResult {
@@ -202,6 +203,7 @@ export function registerBridgeSystems(
     isCellPassableForWildlife,
     isHarvestableResource,
     isGarrisonedUnit,
+    garrisonUnit,
     isPlacementBlocked,
     getOrCreateMemoryMap,
     getSelectedEntityId,
@@ -270,6 +272,7 @@ export function registerBridgeSystems(
     isHarvestableResource,
     shouldMaintainGatheringOrder,
     isGarrisonedUnit,
+    garrisonUnit,
     isMatchRunning,
     getOrCreateMemoryMap,
   });

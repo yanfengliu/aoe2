@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { stepBridgeUntil } from './createSimulationBridge.helpers';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { GathererComponent, UnitComponent } from '../../src/game/simulation/types';
 
@@ -56,9 +57,10 @@ describe('right-click never garrisons (spec §9.3)', () => {
 
     expect(bridge.selectUnitsByIds([villager.id])).toBe(true);
     expect(bridge.issueContextCommandAtEntity(castle.id, { garrison: true })).toBe(true);
-    bridge.step(100);
-
-    expect(garrisonedCount(bridge, castle.id)).toBe(1);
+    // v0.3.42: garrisoning is an order — the villager walks in.
+    expect(
+      stepBridgeUntil(bridge, () => garrisonedCount(bridge, castle.id) === 1, { maxSteps: 400 }),
+    ).toBe(true);
   });
 
   it('still gathers, attacks, and repairs on a plain right-click', () => {

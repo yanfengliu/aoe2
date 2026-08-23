@@ -14,7 +14,11 @@ export interface UnitCommand {
   // 'attack-move' walks to `target` like 'move', but engages anything met on
   // the way REGARDLESS of the unit's stance, then resumes. It is the order
   // that says "go there and fight what you find" (spec §12.4.2).
-  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair';
+  // 'garrison' walks to a friendly building and goes IN on arrival, which is
+  // what AoE2 does; garrisoning used to happen on the spot from any distance,
+  // so a villager six cells from its Town Center escaped anything chasing it
+  // the instant the order was given.
+  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison';
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;

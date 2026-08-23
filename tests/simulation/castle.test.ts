@@ -5,6 +5,7 @@ import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
   stepBridgeUntil,
+  stepUntilGarrisoned,
 } from './createSimulationBridge.helpers';
 
 type ScenarioBuilding = ReturnType<ReturnType<typeof createSimulationBridge>['getEconomyState']>['buildings'][number];
@@ -202,11 +203,10 @@ describe('Slice 6 Castle + Longbowman', () => {
 
   it('Castle accepts up to 20 villagers as garrisoned units (well above the 5-cap of TC / Watch Tower)', () => {
     // castle-garrison-fixture spawns a completed Castle plus 20 villagers
-    // under the human player (Britons). Villager garrison is instantaneous
-    // in v1 (no closing / move required), so iterating all 20 with
-    // `issueContextCommandAtEntity` on the Castle id should fill the
-    // capacity without rejection. Then selecting the Castle should read
-    // "20 / 20 garrisoned" via its inventory line.
+    // under the human player (Britons). Since v0.3.42 garrisoning is an ORDER
+    // — the villager walks to the building and goes in on arrival — so each
+    // one is ordered and then given time to get there. Selecting the Castle
+    // afterwards should read "15 / 20 garrisoned" via its inventory line.
     const bridge = createSimulationBridge('castle-garrison-fixture');
 
     const castle = findOwnedBuilding(bridge, 1, 'castle');
@@ -231,7 +231,7 @@ describe('Slice 6 Castle + Longbowman', () => {
       expect(villager).toBeDefined();
       expect(bridge.selectEntityAtCell(villager!.x, villager!.y)).toBe(true);
       expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
-      bridge.step(100);
+      expect(stepUntilGarrisoned(bridge, id!)).toBe(true);
     }
 
     // Re-select the Castle via direct bridge and read garrison count.
@@ -260,7 +260,8 @@ describe('Slice 6 Castle + Longbowman', () => {
     for (const villagerId of villagerIds) {
       expect(bridge.selectEntityById(villagerId)).toBe(true);
       expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
-      bridge.step(100);
+      // v0.3.42: the villager walks to the Castle and goes in on arrival.
+      expect(stepUntilGarrisoned(bridge, villagerId)).toBe(true);
     }
     expect(
       bridge.getEconomyState().units.filter((unit) => villagerIds.includes(unit.id)),

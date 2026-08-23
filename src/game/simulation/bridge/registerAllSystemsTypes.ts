@@ -304,6 +304,9 @@ export interface RegisterAllSystemsDeps {
   ) => UnitMovementPlan | null;
   getNearestMoveCandidates: (target: Position) => Position[];
   isGarrisonedUnit: (id: number) => boolean;
+  // Arrival half of the garrison command: the walk is the command, this is the
+  // step that puts the unit inside once it gets there.
+  garrisonUnit: (unitId: number, buildingId: number) => boolean;
   isMatchRunning: () => boolean;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
   currentRelicHoldingOwner: () => number | null;

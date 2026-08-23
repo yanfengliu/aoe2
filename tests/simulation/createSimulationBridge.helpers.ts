@@ -134,6 +134,24 @@ export function stepBridgeUntil(
 }
 
 /**
+ * Steps until `unitId` is inside a building. Garrisoning is an ORDER since
+ * v0.3.42 — the unit walks to the building and goes in on arrival — so a test
+ * that garrisons from any distance has to let it get there. A garrisoned unit
+ * has no position, so it drops out of the economy snapshot entirely.
+ */
+export function stepUntilGarrisoned(
+  bridge: Bridge,
+  unitId: number,
+  maxSteps = 400,
+): boolean {
+  return stepBridgeUntil(
+    bridge,
+    () => !bridge.getEconomyState().units.some((unit) => unit.id === unitId),
+    { maxSteps },
+  );
+}
+
+/**
  * The most fine units a unit of this type can advance in one tick.
  *
  * Before per-unit base speeds every unit moved exactly UNIT_SUBGRID_STEP_PER_TICK

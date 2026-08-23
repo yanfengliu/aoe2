@@ -6,6 +6,7 @@ import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
   stepBridgeUntil,
+  stepUntilGarrisoned,
 } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge utility progression', () => {
@@ -144,9 +145,10 @@ describe('createSimulationBridge utility progression', () => {
 
     expect(bridge.selectEntityAtCell(6, 8)).toBe(true);
     expect(bridge.issueContextCommand(8, 8, true)).toBe(true);
-    // Phase 1B unit.context: handler routes to garrisonUnit at start of next
-    // step's processCommands. Step once so the garrison mutation lands.
-    bridge.step(100);
+    // v0.3.42: garrisoning is an ORDER — the villager walks to the Town Center
+    // and goes in when it arrives, so this waits for the walk rather than for
+    // one tick of command processing.
+    expect(stepUntilGarrisoned(bridge, garrisonedVillager!.id)).toBe(true);
     expect(
       bridge.getEconomyState().units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',

@@ -65,11 +65,13 @@ export function createFu3CastleThreeArchersFixture(seed: string): PrototypeScena
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 6),
-      // 3 archers adjacent to the Castle's south edge — ready to garrison
-      // via the issueContextCommandAtEntity(castle) flow.
-      ownedSpawn('archer', 1, 14, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 15, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 16, 11, { vision: 5 }),
+      // 3 archers against the Castle's south edge — the footprint runs to
+      // y=9, so y=10 is genuinely adjacent and the garrison order lands
+      // immediately instead of spending ticks walking (v0.3.42 made
+      // garrisoning a walk-there-then-enter order).
+      ownedSpawn('archer', 1, 14, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 15, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 16, 10, { vision: 5 }),
       ownedSpawn('champion', 2, 20, 8),
       ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],
@@ -100,11 +102,11 @@ export function createFu3CastleFiveArchersFixture(seed: string): PrototypeScenar
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 6),
-      ownedSpawn('archer', 1, 14, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 15, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 16, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 17, 11, { vision: 5 }),
-      ownedSpawn('archer', 1, 18, 11, { vision: 5 }),
+      ownedSpawn('archer', 1, 14, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 15, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 16, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 17, 10, { vision: 5 }),
+      ownedSpawn('archer', 1, 18, 10, { vision: 5 }),
       ownedSpawn('champion', 2, 20, 8),
       ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],

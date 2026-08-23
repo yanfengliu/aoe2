@@ -52,9 +52,11 @@ export type SerializedEntityKeyedSideMap<V> = SerializedMap<number, V>;
 // `buildingRef` (if present) preserve `EntityRef` shape so the load
 // path can reconstruct them via `world.getEntityRef`.
 export interface SerializedUnitCommand {
-  // 'repair' added in v0.1.51 (villager repair). Additive/back-compatible: a
-  // save with a repair in progress persists it; older saves never carry it.
-  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair';
+  // 'repair' added in v0.1.51 (villager repair), 'garrison' in v0.3.42 (a unit
+  // walks to the building instead of entering from any distance). Additive and
+  // back-compatible both times: a save mid-order persists it; older saves never
+  // carry the newer kinds.
+  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison';
   target: { x: number; y: number };
   buildingRef?: SerializedEntityRef;
   targetEntityRef?: SerializedEntityRef;

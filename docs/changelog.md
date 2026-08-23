@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.42 - 2026-08-23
+
+### Changed
+
+- **Garrisoning means walking there.** A unit told to take shelter now walks to the building and goes in when it arrives, the way it does in Age of Empires II. It used to step inside from anywhere on the map the instant you gave the order, which made garrison a free escape from anything chasing it. A unit already standing against the building still enters immediately.
+
 ## 0.3.41 - 2026-08-23
 
 ### Changed

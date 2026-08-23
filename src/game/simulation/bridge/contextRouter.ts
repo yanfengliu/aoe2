@@ -23,7 +23,9 @@ export interface ContextRouterDeps {
   findHostileUnitAtCell: (x: number, y: number, owner: number) => number | null;
   findHostileBuildingAtCell: (x: number, y: number, owner: number) => number | null;
   findHostileWildlifeAtCell: (x: number, y: number) => number | null;
-  garrisonUnit: (unitId: number, buildingId: number) => boolean;
+  // Orders a unit to garrison: it walks to the building and goes in when it
+  // arrives, or enters immediately if it is already standing against it.
+  orderGarrison: (unitId: number, buildingId: number) => boolean;
   // A Transport Ship is a garrison host that moves. Boarding and unloading both
   // ride the ordinary right-click, which is how Age of Empires does it: click
   // the ship to get on, click land to get off.
@@ -48,7 +50,7 @@ export function createContextRouter(deps: ContextRouterDeps) {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
-    garrisonUnit,
+    orderGarrison,
     findOwnedTransportAtCell,
     boardTransport,
     unloadTransport,
@@ -93,7 +95,9 @@ export function createContextRouter(deps: ContextRouterDeps) {
     const hostileWildlifeId = findHostileWildlifeAtCell(target.x, target.y);
 
     if (ownedGarrisonBuildingId !== null) {
-      return garrisonUnit(unitId, ownedGarrisonBuildingId);
+      // The unit WALKS there and goes in on arrival (AoE2). Entering from any
+      // distance made garrison a free escape from anything chasing it.
+      return orderGarrison(unitId, ownedGarrisonBuildingId);
     }
     if (hostileUnitId !== null) {
       return setUnitAttackCommandDirect(unitId, hostileUnitId, 'unit');

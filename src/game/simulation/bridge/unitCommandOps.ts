@@ -14,13 +14,13 @@ import type {
   UnitType, EconomyResourceKind,
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
-import { canGarrisonAt } from '../prototypeBuildingRules';
 import { createBuildRepairCommandOps } from './buildRepairCommandOps';
+import { createGarrisonOrderOps } from './garrisonOrderOps';
+import { createContextAtEntityRouter } from './contextAtEntityRouter';
 import type { MonkTask, UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
-  constructionStatesCodec,
   monkTasksCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
@@ -336,6 +336,14 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findNearestDropOffBuilding,
   });
 
+  const { orderGarrison } = createGarrisonOrderOps({
+    world,
+    garrisonUnit,
+    getEntityRef,
+    clearGathererOrder,
+    setUnitCommand,
+  });
+
   // Right-click routing lives in contextRouter.ts (extracted for the LOC budget).
   const routeUnitContextCommandDirect = createContextRouter({
     world,
@@ -344,7 +352,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
-    garrisonUnit,
+    orderGarrison,
     findOwnedTransportAtCell,
     boardTransport,
     unloadTransport,
@@ -390,62 +398,16 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.
-  function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean {
-    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
-    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || !targetPosition) return false;
-
-    const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
-    if (targetUnit && targetUnit.owner !== unit.owner) {
-      return setUnitAttackCommandDirect(unitId, targetEntityId, 'unit');
-    }
-
-    const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
-    if (targetBuilding) {
-      if (targetBuilding.owner !== unit.owner) {
-        return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');
-      }
-
-      const construction = accessor.get(constructionStatesCodec).get(targetEntityId);
-      if (
-        construction
-        && !construction.isComplete
-        && unit.unitType === 'villager'
-        && buildRepairOps.setUnitBuildCommandDirect(unitId, targetEntityId)
-      ) {
-        return true;
-      }
-
-      // Repair a friendly, complete, damaged building (spec §8.1) — charges up
-      // front + queues the repair. Precedes garrison so right-clicking a damaged
-      // garrisonable building repairs it (AoE2-faithful).
-      if (buildRepairOps.tryRepairCharge(unitId, targetEntityId, targetBuilding)) {
-        return true;
-      }
-
-      // Spec §9.3: garrison only on explicit intent; a plain right-click falls
-      // through to the move below and walks up to the building.
-      if (
-        allowGarrison
-        && canGarrisonAt(targetBuilding.buildingType, unit.unitType)
-        && (!construction || construction.isComplete)
-      ) {
-        return garrisonUnit(unitId, targetEntityId);
-      }
-    }
-
-    const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
-    const wildlife = accessor.get(wildlifeStatesCodec).get(targetEntityId);
-    if (targetResource && wildlife?.isAlive) {
-      return setUnitAttackCommandDirect(unitId, targetEntityId, 'resource');
-    }
-
-    if (unit.unitType === 'villager' && setUnitGatherCommandDirect(unitId, targetEntityId)) {
-      return true;
-    }
-
-    return setUnitMoveCommandDirect(unitId, targetPosition);
-  }
+  const routeUnitContextAtEntityCommandDirect = createContextAtEntityRouter({
+    world,
+    accessor,
+    setUnitAttackCommandDirect,
+    setUnitBuildCommandDirect: buildRepairOps.setUnitBuildCommandDirect,
+    tryRepairCharge: buildRepairOps.tryRepairCharge,
+    orderGarrison,
+    setUnitGatherCommandDirect,
+    setUnitMoveCommandDirect,
+  });
 
   const monkContextOps = createMonkContextOps({
     world,
