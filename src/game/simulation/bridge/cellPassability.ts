@@ -21,7 +21,12 @@ import {
   unitDomain,
   type UnitDomain,
 } from '../unitDomain';
-import { requiresShorePlacement, touchesWater } from '../shorePlacement';
+import {
+  requiresShorePlacement,
+  requiresWaterPlacement,
+  sitsOnWater,
+  touchesWater,
+} from '../shorePlacement';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -306,6 +311,22 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     height: number,
     buildingType?: BuildingType,
   ): boolean {
+    // A Fish Trap goes ON the water, so the occupancy grid's static terrain
+    // blocker for a water cell is exactly what it must be allowed past — while
+    // every OTHER claim on that cell (a ship, another trap) still refuses it.
+    if (buildingType && requiresWaterPlacement(buildingType)) {
+      if (!sitsOnWater(x, y, width, height, (cellX, cellY) => terrainKindAt(cellX, cellY, world))) {
+        return true;
+      }
+      for (let cellY = y; cellY < y + height; cellY += 1) {
+        for (let cellX = x; cellX < x + width; cellX += 1) {
+          const status = worldOccupancy.getCellStatus(cellX, cellY);
+          if (status.blockedBy.some((claim) => claim.kind !== 'terrain')) return true;
+          if (status.crowdedBy.some((claim) => claim.kind === 'unit')) return true;
+        }
+      }
+      return false;
+    }
     if (worldOccupancy.isPlacementBlocked(x, y, width, height)) return true;
     // M5 naval: a Dock must stand on land AND touch water. Checked here rather
     // than at the call sites so the placement PREVIEW and the confirm share

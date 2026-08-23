@@ -355,6 +355,23 @@ function outpost(context: BuildingContext): void {
   add(context, 'outpost-watchman', 'matte', context.team, 0.5, 1.14, 0.42, 0.16, 0.28, 0.16);
 }
 
+// A Fish Trap is a ring of stakes with netting slung between them, standing in
+// the water — low and dark, so it reads as tackle rather than as a structure.
+function fishTrap(context: BuildingContext): void {
+  for (const [name, x, z] of [
+    ['nw', 0.24, 0.24], ['ne', 0.76, 0.24], ['sw', 0.24, 0.76], ['se', 0.76, 0.76],
+  ] as const) {
+    add(context, `fish-trap-stake-${name}`, 'matte', VOXEL_COLORS.timberDark, x, 0, z, 0.06, 0.46, 0.06);
+  }
+  // Netting: four low panels between the stakes.
+  add(context, 'fish-trap-net-north', 'matte', VOXEL_COLORS.cloth, 0.5, 0.18, 0.24, 0.52, 0.2, 0.02);
+  add(context, 'fish-trap-net-south', 'matte', VOXEL_COLORS.cloth, 0.5, 0.18, 0.76, 0.52, 0.2, 0.02);
+  add(context, 'fish-trap-net-west', 'matte', VOXEL_COLORS.cloth, 0.24, 0.18, 0.5, 0.02, 0.2, 0.52);
+  add(context, 'fish-trap-net-east', 'matte', VOXEL_COLORS.cloth, 0.76, 0.18, 0.5, 0.02, 0.2, 0.52);
+  // A marker float in the owner's colour, so whose trap it is reads at a glance.
+  add(context, 'fish-trap-marker', 'matte', context.team, 0.5, 0.4, 0.5, 0.14, 0.14, 0.14);
+}
+
 function blacksmith(context: BuildingContext): void {
   house(context);
   add(context, 'blacksmith-forge', 'matte', VOXEL_COLORS.stoneDark, 0.2, 0.12, 0.78, 0.22, 0.42, 0.16);
@@ -462,6 +479,7 @@ export function createBuildingParts(
     case 'gate': gate(context); break;
     case 'dock': dock(context); break;
     case 'outpost': outpost(context); break;
+    case 'fish-trap': fishTrap(context); break;
   }
   context.parts.push(...createBuildingDetailParts(entity, identity, ground));
   return context.parts;

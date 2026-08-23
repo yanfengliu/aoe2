@@ -293,6 +293,7 @@ describe('unit attack semantic boundary', () => {
     const ops = createUnitCommandOps({
       world,
       humanPlayerId: 1,
+      getBuildOptions: () => [],
       mapWidth: 16,
       mapHeight: 16,
       state: createBridgeState(),

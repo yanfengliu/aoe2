@@ -360,9 +360,24 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (builderIds.length === 0) return false;
     const primaryId = builderIds[0];
     const primary = world.getComponent<UnitComponent>(primaryId, 'unit');
-    if (!primary || primary.unitType !== 'villager') return false;
+    if (!primary) return false;
 
-    if (!getBuildOptions(primary.owner, primary.unitType).includes(buildingType)) return false;
+    // What a unit may build is the build MENU's answer, not a unit-type test —
+    // a Fishing Ship builds Fish Traps out on the water, where no villager can
+    // stand. The menu already refuses everything else.
+    //
+    // Every builder is decided HERE, before the site exists, because putting the
+    // building down CHANGES the menu: `wonder` leaves it the moment the owner
+    // has one, so re-asking after `addBuildingEntity` rejected every builder for
+    // the Wonder they had just started and left it standing at zero progress
+    // forever (the AI wonder-victory test hung on exactly that).
+    const eligibleBuilderIds = builderIds.filter((id) => {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      return unit !== undefined
+        && unit.owner === primary.owner
+        && getBuildOptions(unit.owner, unit.unitType).includes(buildingType);
+    });
+    if (eligibleBuilderIds.length === 0) return false;
 
     const clampedAnchor = {
       x: clamp(anchor.x, 0, mapWidth - 1),
@@ -392,11 +407,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!buildingRef) {
       throw new Error(`Expected a current EntityRef for new ${buildingType} construction.`);
     }
-    for (const id of builderIds) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (!unit || unit.unitType !== 'villager' || unit.owner !== primary.owner) {
-        continue;
-      }
+    for (const id of eligibleBuilderIds) {
       clearGathererOrder(id);
       setUnitCommand(id, {
         type: 'build',

@@ -80,6 +80,8 @@ export function createBuildingShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('university', 1, 2, 22, { vision: 8 }),
       ownedSpawn('dock', 1, 5, 25, { vision: 8 }),
       ownedSpawn('outpost', 1, 19, 22, { vision: 8 }),
+      // On the Dock's pool, because a Fish Trap only exists on water.
+      ownedSpawn('fish-trap', 1, 12, 22, { vision: 3 }),
       // Inert, fog-hidden conquest presence keeps capture frames free of the
       // victory card without adding motion or another visible showcase type.
       ownedSpawn('town-center', 2, 27, 27, { vision: 1 }),

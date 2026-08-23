@@ -82,6 +82,10 @@ export interface UnitCommandOpsDeps {
   clearUnitCommand: (id: number) => void;
   setUnitCommand: (unitId: number, command: UnitCommand) => void;
   getEntityRef: (id: number) => EntityRef | null;
+  getBuildOptions: (
+    owner: number,
+    unitType: UnitType,
+  ) => readonly import('../types').BuildableBuildingType[];
 }
 
 export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
@@ -181,6 +185,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     clearUnitCommand,
     setUnitCommand,
     getEntityRef,
+    getBuildOptions,
   } = deps;
   const selectionOps = createUnitSelectionOps({
     world,
@@ -192,6 +197,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     getSelectedEntityIds,
     getSelectableEntitiesAtCell,
     getEntityRef,
+    getBuildOptions,
   });
   const sheepOps = createSheepCommandOps({
     world,

@@ -64,6 +64,7 @@ const ENTITY_NAMES = {
   'university': ['University', 'Universities'],
   'dock': ['Dock', 'Docks'],
   'outpost': ['Outpost', 'Outposts'],
+  'fish-trap': ['Fish Trap', 'Fish Traps'],
   'monk': 'Monk',
   'relic': 'Relic',
   'castle': 'Castle',

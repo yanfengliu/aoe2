@@ -23,6 +23,11 @@ export function buildOptionsFor(
   hasOwnedWonder: (owner: number) => boolean,
   hasTechnology: (owner: number, tech: ResearchableTechnologyType) => boolean,
 ): BuildableBuildingType[] {
+  if (unitType === 'fishing-ship') {
+    // The one build that is not a villager's: a Fish Trap goes on open water,
+    // where no villager can stand. Dark Age, like AoE2 and structures.csv.
+    return ['fish-trap'];
+  }
   if (unitType !== 'villager') {
     return [];
   }

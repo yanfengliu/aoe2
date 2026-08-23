@@ -113,11 +113,15 @@ export interface RegisterBridgeSystemsDeps {
   getSelectedEntityIds: () => number[];
   getSelectedOwnedSheepIds: () => number[];
   getSelectedHumanUnitIds: () => number[];
-  getSelectedHumanVillagerIds: () => number[];
+  getSelectedHumanBuilderIds: () => number[];
   isEntityVisibleToHuman: (id: number) => boolean;
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
+  getBuildOptions: (
+    owner: number,
+    unitType: import('../types').UnitType,
+  ) => readonly import('../types').BuildableBuildingType[];
 }
 
 export interface RegisterBridgeSystemsResult {
@@ -204,7 +208,8 @@ export function registerBridgeSystems(
     getSelectedEntityIds,
     getSelectedOwnedSheepIds,
     getSelectedHumanUnitIds,
-    getSelectedHumanVillagerIds,
+    getSelectedHumanBuilderIds,
+    getBuildOptions,
     isEntityVisibleToHuman,
     issueUnitContextCommand,
     issueUnitContextCommandAtEntity,
@@ -323,7 +328,8 @@ export function registerBridgeSystems(
     accessor,
     placementMode,
     isMatchRunning,
-    getSelectedHumanVillagerIds,
+    getSelectedHumanBuilderIds,
+    getBuildOptions,
     isPlacementBlocked,
     enqueueRejection,
     humanPlayerId: HUMAN_PLAYER_ID,

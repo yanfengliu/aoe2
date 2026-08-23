@@ -63,7 +63,11 @@ export type BuildableBuildingType =
   // Dark-Age eye: 25 wood + 10 stone for a 1x1 post that sees a long way and
   // fights not at all (structures.csv "Outpost": 500 HP, line of sight 6).
   // Its whole job is to watch ground you do not hold.
-  | 'outpost';
+  | 'outpost'
+  // The naval Farm: a building+resource HYBRID like the Farm, but on WATER and
+  // built by a Fishing Ship (structures.csv "Fish Trap": Dark Age, 100 wood,
+  // 50 HP, "Gives 715 Food"). It is the only renewable food at sea.
+  | 'fish-trap';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'

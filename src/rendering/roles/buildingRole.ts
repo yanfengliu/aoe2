@@ -26,7 +26,8 @@ export type BuildingRole =
   | 'gate' // a wall opening framed by two towers
   | 'wall' // low battlement segment (stone / palisade)
   | 'dock' // M5 naval: a pier and boathouse at the waterline
-  | 'outpost'; // a ladder, a platform and a lookout — no walls, no arrows
+  | 'outpost' // a ladder, a platform and a lookout — no walls, no arrows
+  | 'fish-trap'; // stakes and netting standing in the water
 
 // Exhaustive, render-OWNED mapping. The `satisfies Record<BuildingType,
 // BuildingRole>` makes a newly-added BuildingType a compile error here (same
@@ -53,6 +54,7 @@ const BUILDING_ROLES = {
   university: 'monastery',
   dock: 'dock',
   outpost: 'outpost',
+  'fish-trap': 'fish-trap',
   'watch-tower': 'tower',
   'bombard-tower': 'tower',
   'stone-wall': 'wall',

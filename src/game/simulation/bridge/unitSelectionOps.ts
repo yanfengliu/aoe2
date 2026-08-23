@@ -3,6 +3,7 @@ import type {
   BuildableBuildingType,
   ResourceComponent,
   UnitComponent,
+  UnitType,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 
@@ -16,12 +17,13 @@ export interface UnitSelectionOpsDeps {
   getSelectedEntityIds: () => number[];
   getSelectableEntitiesAtCell: (x: number, y: number) => Array<{ id: number }>;
   getEntityRef: (id: number) => EntityRef | null;
+  getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
 }
 
 export interface UnitSelectionOps {
   getSelectedOwnedSheepIds(): number[];
   getSelectedHumanUnitIds(): number[];
-  getSelectedHumanVillagerIds(): number[];
+  getSelectedHumanBuilderIds(): number[];
   selectEntityAtCell(x: number, y: number): boolean;
   selectEntityById(id: number): boolean;
   clearSelection(): void;
@@ -38,6 +40,7 @@ export function createUnitSelectionOps(deps: UnitSelectionOpsDeps): UnitSelectio
     getSelectedEntityIds,
     getSelectableEntitiesAtCell,
     getEntityRef,
+    getBuildOptions,
   } = deps;
 
   function getSelectedOwnedSheepIds(): number[] {
@@ -59,10 +62,14 @@ export function createUnitSelectionOps(deps: UnitSelectionOpsDeps): UnitSelectio
     });
   }
 
-  function getSelectedHumanVillagerIds(): number[] {
+  // Every selected human unit that can put a building up. Derived from the
+  // build MENU rather than from a unit-type test, because a Fishing Ship builds
+  // Fish Traps out on the water where no villager can stand — and because a
+  // second builder type must not mean a second copy of this rule.
+  function getSelectedHumanBuilderIds(): number[] {
     return getSelectedHumanUnitIds().filter((id) => {
       const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit?.unitType === 'villager';
+      return unit !== undefined && getBuildOptions(unit.owner, unit.unitType).length > 0;
     });
   }
 
@@ -123,7 +130,7 @@ export function createUnitSelectionOps(deps: UnitSelectionOpsDeps): UnitSelectio
   return {
     getSelectedOwnedSheepIds,
     getSelectedHumanUnitIds,
-    getSelectedHumanVillagerIds,
+    getSelectedHumanBuilderIds,
     selectEntityAtCell,
     selectEntityById,
     clearSelection,

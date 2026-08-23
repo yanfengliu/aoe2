@@ -173,6 +173,12 @@ function outpost(context: DetailContext): void {
   add(context, 'outpost-horn', 'metal', VOXEL_COLORS.gold, 0.34, 1.14, 0.62, 0.06, 0.06, 0.06);
 }
 
+// Fish Trap: the slack of the net and a cork float riding the surface.
+function fishTrap(context: DetailContext): void {
+  add(context, 'fish-trap-net', 'matte', VOXEL_COLORS.cloth, 0.5, 0.1, 0.5, 0.42, 0.02, 0.42);
+  add(context, 'fish-trap-float', 'matte', VOXEL_COLORS.thatch, 0.32, 0.12, 0.66, 0.08, 0.05, 0.08);
+}
+
 function castle(context: DetailContext): void {
   add(context, 'castle-portcullis-bar-left', 'metal', VOXEL_COLORS.steelDark, 0.46, 0.24, 0.802, 0.018, 0.78, 0.02);
   add(context, 'castle-portcullis-bar-right', 'metal', VOXEL_COLORS.steelDark, 0.54, 0.24, 0.802, 0.018, 0.78, 0.02);
@@ -250,6 +256,7 @@ export function createBuildingDetailParts(
     case 'university': university(context); break;
     case 'dock': dock(context); break;
     case 'outpost': outpost(context); break;
+    case 'fish-trap': fishTrap(context); break;
     case 'castle': castle(context); break;
     case 'wonder': wonder(context); break;
     case 'stone-wall': stoneWall(context); break;

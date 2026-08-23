@@ -21,6 +21,9 @@ import {
 // farm-food module that uses it) so the bridge create/reseed sites import it
 // one-way, with no bridge↔sim import cycle.
 export const FARM_FOOD_AMOUNT = 175;
+// structures.csv "Fish Trap": "Gives 715 Food". Unlike a Farm it does not
+// reseed — an emptied trap is gone and the player builds another.
+export const FISH_TRAP_FOOD_AMOUNT = 715;
 
 // Shared empty researched-tech set for the owner-has-no-techs path, so the
 // capacity derivation never allocates a throwaway Set per farm.

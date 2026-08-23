@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.40 - 2026-08-23
+
+### Added
+
+- **The Fish Trap** — and with it, every building in the game's stat data is now in the game. 100 wood from the Dark Age for renewable food out on the water, and the only building a villager cannot put up: a **Fishing Ship** builds it, out where it goes. Once finished it holds 715 food and your ships fish it like any shoal. It does not reseed, so an emptied trap is gone and you build another. A trap blocks ships the way any building blocks movement, so where you put it matters.
+
+### Changed
+
+- **What a unit can build now comes from its own build menu.** Trying to build with something that cannot now tells you what can: "a militia cannot construct buildings; villagers build on land and Fishing Ships build Fish Traps". And when a mixed group is selected, only the units that can actually build the thing are sent to work on it — a villager is never marched at a trap out at sea.
+
 ## 0.3.39 - 2026-08-23
 
 ### Added

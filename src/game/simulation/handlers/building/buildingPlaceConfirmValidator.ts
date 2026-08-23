@@ -89,8 +89,15 @@ export function makeBuildingPlaceConfirmValidator(
     if (!unit) {
       return { code: 'not_a_unit', message: 'Entity is not a unit.' };
     }
-    if (unit.unitType !== 'villager') {
-      return { code: 'not_a_villager', message: 'Only villagers can construct buildings.' };
+    // What a unit may build is the build MENU's answer, not a unit-type test:
+    // a Fishing Ship builds Fish Traps and nothing else, and a militia builds
+    // nothing. Keeping the "builds nothing at all" case separate keeps the
+    // message useful — "cannot build that" would be misleading for a soldier.
+    if (deps.getBuildOptions(unit.owner, unit.unitType).length === 0) {
+      return {
+        code: 'not_a_builder',
+        message: `A ${unit.unitType} cannot construct buildings; villagers build on land and Fishing Ships build Fish Traps.`,
+      };
     }
     if (!deps.getBuildOptions(unit.owner, unit.unitType).includes(data.buildingType)) {
       return { code: 'cannot_build', message: 'Cannot construct that building here.' };

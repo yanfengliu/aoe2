@@ -387,6 +387,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     clearUnitCommand,
     setUnitCommand,
     getEntityRef,
+    getBuildOptions,
   });
 
   // agent-affordances B/C: agent-snapshot read surfaces. Pure read-side;

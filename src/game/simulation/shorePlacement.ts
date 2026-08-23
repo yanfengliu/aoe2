@@ -15,6 +15,29 @@ export function requiresShorePlacement(buildingType: BuildingType): boolean {
   return SHORE_BUILDINGS.has(buildingType);
 }
 
+/** Buildings that must be built ON water — the Fish Trap is the only one. */
+const WATER_BUILDINGS = new Set<BuildingType>(['fish-trap']);
+
+export function requiresWaterPlacement(buildingType: BuildingType): boolean {
+  return WATER_BUILDINGS.has(buildingType);
+}
+
+/** Whether every cell of a footprint is open water. */
+export function sitsOnWater(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  terrainAt: (x: number, y: number) => TerrainKind | null,
+): boolean {
+  for (let cellY = y; cellY < y + height; cellY += 1) {
+    for (let cellX = x; cellX < x + width; cellX += 1) {
+      if (terrainAt(cellX, cellY) !== 'water') return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Whether a footprint sits entirely on land AND touches at least one water
  * cell, counting diagonals — an AoE2 dock may sit on a corner of a bay.

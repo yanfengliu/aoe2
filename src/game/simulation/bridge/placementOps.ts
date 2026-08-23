@@ -24,6 +24,7 @@ import type {
   BuildingType,
   PlacementPreviewState,
   UnitComponent,
+  UnitType,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import {
@@ -57,7 +58,8 @@ export interface PlacementDeps {
   // factory defers to them so selection, match-running, and
   // occupancy / construction state stay centralized in createWorld.
   isMatchRunning: () => boolean;
-  getSelectedHumanVillagerIds: () => number[];
+  getSelectedHumanBuilderIds: () => number[];
+  getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
   isPlacementBlocked: (
     x: number,
     y: number,
@@ -86,7 +88,8 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     state,
     placementMode,
     isMatchRunning,
-    getSelectedHumanVillagerIds,
+    getSelectedHumanBuilderIds,
+    getBuildOptions,
     isPlacementBlocked,
     enqueueRejection,
     humanPlayerId,
@@ -94,18 +97,24 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     mapHeight,
   } = deps;
 
+  function canBuild(unitId: number, buildingType: BuildableBuildingType): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!unit || unit.owner !== humanPlayerId) return false;
+    return getBuildOptions(unit.owner, unit.unitType).includes(buildingType);
+  }
+
+  /** The first selected unit that can build `buildingType`, or null. */
+  function builderForPendingType(buildingType: BuildableBuildingType): number | null {
+    return getSelectedHumanBuilderIds().find((id) => canBuild(id, buildingType)) ?? null;
+  }
+
   function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
     if (placementMode.current === null) {
       return null;
     }
 
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (selectedVillagerId === null) {
-      return null;
-    }
-
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
-    if (!unit || unit.owner !== humanPlayerId || unit.unitType !== 'villager') {
+    const builderId = builderForPendingType(placementMode.current);
+    if (builderId === null) {
       return null;
     }
 
@@ -137,15 +146,12 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       return false;
     }
 
-    const selectedVillagerId = getSelectedHumanVillagerIds()[0] ?? null;
-    if (selectedVillagerId === null) {
+    if (getSelectedHumanBuilderIds().length === 0) {
       enqueueRejection('Select a villager first.');
       return false;
     }
-
-    const unit = world.getComponent<UnitComponent>(selectedVillagerId, 'unit');
-    if (!unit || unit.owner !== humanPlayerId || unit.unitType !== 'villager') {
-      enqueueRejection('Only villagers can build.');
+    if (builderForPendingType(buildingType) === null) {
+      enqueueRejection(`None of the selected units can build a ${buildingType}.`);
       return false;
     }
 
@@ -163,16 +169,18 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       return false;
     }
 
-    const selectedVillagerIds = getSelectedHumanVillagerIds();
-    const primaryId = selectedVillagerIds[0] ?? null;
-    if (placementMode.current === null || primaryId === null) {
+    if (placementMode.current === null) {
       return false;
     }
-
-    const unit = world.getComponent<UnitComponent>(primaryId, 'unit');
-    if (!unit || unit.owner !== humanPlayerId || unit.unitType !== 'villager') {
+    const primaryId = builderForPendingType(placementMode.current);
+    if (primaryId === null) {
       return false;
     }
+    // Only builders that can put up THIS building help with it: a villager in a
+    // mixed selection must not be enlisted onto a Fish Trap out at sea.
+    const selectedVillagerIds = getSelectedHumanBuilderIds().filter(
+      (id) => canBuild(id, placementMode.current as BuildableBuildingType),
+    );
 
     const anchor = {
       x: clamp(x, 0, mapWidth - 1),

@@ -63,6 +63,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'university': ['University', 'Universities'],
   'dock': ['Dock', 'Docks'],
   'outpost': ['Outpost', 'Outposts'],
+  'fish-trap': ['Fish Trap', 'Fish Traps'],
   'monk': ['Monk', 'Monks'],
   'relic': ['Relic', 'Relics'],
   'castle': ['Castle', 'Castles'],

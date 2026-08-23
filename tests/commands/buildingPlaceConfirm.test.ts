@@ -120,20 +120,29 @@ describe('buildingPlaceConfirmValidator', () => {
     expect(result).toEqual({ code: 'not_a_unit', message: expect.any(String) });
   });
 
-  it('rejects when unit is not a villager', () => {
+  it('rejects a unit that builds nothing at all, and says which units do', () => {
+    // Eligibility is the build MENU's answer, not a unit-type test, because a
+    // Fishing Ship builds Fish Traps. A unit with an EMPTY menu gets its own
+    // code, so an archer is not told "cannot build that here".
     const world = freshWorld();
     const id = world.createEntity();
     world.addComponent(id, 'unit', { unitType: 'archer', owner: 1 });
-    const validator = makeValidator(world);
+    const validator = makeValidator(world, { getBuildOptions: () => [] });
     const result = validator({ builderId: id, buildingType: 'house', position: { x: 0, y: 0 } }, world);
-    expect(result).toEqual({ code: 'not_a_villager', message: expect.any(String) });
+    expect(result).toEqual({
+      code: 'not_a_builder',
+      message: expect.stringContaining('Fishing Ships build Fish Traps'),
+    });
   });
 
   it('rejects when build options does not include the building type', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world);
+    // A menu that is non-empty but does not offer THIS building — the villager
+    // can build, just not a House yet. An empty menu is the separate
+    // `not_a_builder` case above.
     const validator = makeValidator(world, {
-      getBuildOptions: () => [] as readonly BuildableBuildingType[],
+      getBuildOptions: () => ['mill'] as readonly BuildableBuildingType[],
     });
     const result = validator(
       { builderId: villagerId, buildingType: 'house', position: { x: 0, y: 0 } },

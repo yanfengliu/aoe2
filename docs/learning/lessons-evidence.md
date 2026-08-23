@@ -20,6 +20,37 @@ Pointer: devlog entry, file, or test that illustrates it.
 
 ---
 
+## A menu derived from world state ANSWERS DIFFERENTLY after you mutate that state — 2026-08-23
+
+| Field | Value |
+|---|---|
+| Surfaced by | Making a Fishing Ship able to build a Fish Trap. "Only villagers build" was replaced everywhere by "does this unit's build MENU offer it", which is the right rule — but `startConstructionWithBuildersDirect` asked the menu AFTER `addBuildingEntity`. |
+| What broke | `buildOptionsFor` offers `wonder` only while `!hasOwnedWonder(owner)`. The instant the Wonder's entity exists the menu no longer contains it, so every builder — including the one who ordered it — was rejected for the building they had just started. The Wonder stood at zero progress forever. |
+| Why it cost so much to find | The AI wonder-victory test HUNG rather than failed: it steps the bridge in a synchronous `for` loop, and a Vitest per-test timeout cannot interrupt synchronous code. The whole suite stalled with no failure message, which reads exactly like the machine's known worker-RPC flake — three full-suite runs were spent on the wrong hypothesis before bisecting with `git stash` proved the change was at fault. |
+| Fix | Eligibility for every builder is computed once, BEFORE the site is created, and the assignment loop walks that list. |
+| Test | `tests/simulation/aiPlayer.test.ts` "builds a Wonder and wins via Wonder victory in Imperial Age" — it already covered this; it just could not say so. |
+| Transfers as | When a check reads a derived view of the world (a menu, an options list, an affordability answer), take it before the mutation, not after — and when a test HANGS instead of failing, suspect a synchronous loop waiting on a condition your change made unreachable. |
+
+## Ask what a REGION can work, not whether one resource is reachable — 2026-08-23
+
+| Field | Value |
+|---|---|
+| Surfaced by | The AI economy stall that had defeated six attempts across earlier sessions. Every one of them asked a per-unit or per-target question — is THIS villager stuck, is THAT sheep reachable — and each answer was true but local. Devlog: [2026-08-17_2026-08-20.md](../devlog/detailed/2026-08-17_2026-08-20.md) ("The forest had no wood in it"). |
+| The instrument | A flood fill over walkable ground, labelling regions, then for each region listing the resource kinds with at least one approach cell in it. One run, one line of output: the region holding all 15 of the AI's villagers could work `boar, gold-mine, stone-mine, fish` — and NO TREES. |
+| What it found that the others could not | All 27 live trees stood on impassable forest terrain; 18 had no walkable neighbour at all; 83 of their blocked faces were bare forest tiles. The standard map painted 197 forest cells and put trees on 48, so a woodline was harvestable only at its rim. The defect was in map generation, two levels below the gather loop every previous attempt had searched. |
+| Fix commit | `0749b6d` — every forest cell carries a tree; an exhausted tree clears its tile to grass (plus `unblockTerrain`, because the occupancy grid's terrain blocker is not entity-keyed). |
+| Test added | `tests/simulation/woodlineClearing.test.ts` (a tree walled in by forest becomes workable once the tree in front of it is felled, and the cleared ground survives a save/load). |
+| Transfers as | When a per-item reachability check keeps saying "unreachable" and you are about to fix the ranking, the ordering, or the probe budget, first ask what the searcher's whole REGION contains. A budget fix cannot help when the answer is zero. |
+
+## A success metric written for a FROZEN system reads a decided match as a frozen one — 2026-08-23
+
+| Field | Value |
+|---|---|
+| Surfaced by | The intermediate build in the same session scored 9 of 29 "windows that changed" against a baseline's 17 of 29 — apparently a big regression. It was the opposite: the economy now worked well enough that the match was DECIDED by tick 10000, and a finished match has nothing left to change. |
+| Lesson | A metric built to detect a stall ("did anything change since the last sample?") cannot distinguish a frozen system from a resolved one. Both look still. |
+| Fix | The probe now samples every owner and reports which owners are still on the map at the end, so "nothing changed" is read alongside "because one side was wiped out". |
+| Transfers as | Before trusting a change-detection metric, ask what ELSE produces stillness. If the answer is "success", the metric needs a second signal. |
+
 ## Verify graphics on the REAL default view (with fog + a real base), not a full-vision showcase fixture — 2026-07-05
 
 | Field | Value |

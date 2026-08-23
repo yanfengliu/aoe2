@@ -183,6 +183,7 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   university: { wood: 200 }, // structures.csv: Castle Age, 200 wood.
   dock: { wood: 150 }, // structures.csv: Dark Age, 150 wood.
   outpost: { wood: 25, stone: 10 }, // structures.csv: Dark Age.
+  'fish-trap': { wood: 100 }, // structures.csv: Dark Age.
   castle: { stone: 650 },
   wonder: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
   'stone-wall': { stone: 5 },

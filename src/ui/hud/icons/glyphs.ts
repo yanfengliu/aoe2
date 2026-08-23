@@ -288,6 +288,13 @@ const OUTPOST_GLYPH =
   '<path d="M9 11V8h6v3"/>' +
   '<path d="M12 8V5"/>';
 
+// Fish Trap: stakes in the water with netting slung between them, and a fish.
+const FISH_TRAP_GLYPH =
+  '<path d="M5 17h14"/>' +
+  '<path d="M7 17V9M12 17V8M17 17V9"/>' +
+  '<path d="M7 11h10M7 14h10"/>' +
+  '<path d="M9.5 20.5c1.5-1.5 4-1.5 5.5 0"/>';
+
 // Castle: a battlemented keep with two towers.
 const CASTLE_GLYPH =
   '<path d="M5 19V9l1.6 1V8h1.6v2H10V7h1.5l.5-1 .5 1H14v3h1.2V8h1.6v2L18 9v10z"/>' +
@@ -351,6 +358,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   university: UNIVERSITY_GLYPH,
   dock: DOCK_GLYPH,
   outpost: OUTPOST_GLYPH,
+  'fish-trap': FISH_TRAP_GLYPH,
   castle: CASTLE_GLYPH,
   wonder: WONDER_GLYPH,
   'stone-wall': STONE_WALL_GLYPH,

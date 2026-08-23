@@ -71,6 +71,7 @@ const ENTITY_ICONS = {
   'university': ['Un', '#c8bd93'],
   'dock': ['Dk', '#8fb0c0'],
   'outpost': ['Op', '#c0a878'],
+  'fish-trap': ['FT', '#7fb8c0'],
   'monk': ['Mn', '#e3d9b5'],
   'relic': ['Rl', '#f5d680'],
   'castle': ['Ct', '#a09f9c'],

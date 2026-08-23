@@ -51,7 +51,11 @@ import {
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
-import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
+import {
+  farmFoodCapacity,
+  EMPTY_TECH_SET,
+  FISH_TRAP_FOOD_AMOUNT,
+} from '../economyTechEffects';
 import { outpostVisionRadiusForAge } from '../visionTechEffects';
 
 interface PlayerScoreCountersLike {
@@ -278,6 +282,21 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
         resourceType: 'farm',
         amount: farmCapacity,
         maxAmount: farmCapacity,
+        owner: null,
+        baseOwner: owner,
+      });
+    }
+    if (buildingType === 'fish-trap') {
+      // The naval Farm, on the same hybrid seam: a completed Fish Trap gains a
+      // `resource` component of kind FISH, so the gather loop routes a Fishing
+      // Ship to it exactly as it would to a wild shoal — a Fishing Ship is a
+      // gatherer whose domain is water, and it already fishes. 715 food is
+      // structures.csv's "Gives 715 Food". No reseed: an emptied trap is gone,
+      // and the player builds another.
+      world.addComponent(buildingId, 'resource', {
+        resourceType: 'fish',
+        amount: FISH_TRAP_FOOD_AMOUNT,
+        maxAmount: FISH_TRAP_FOOD_AMOUNT,
         owner: null,
         baseOwner: owner,
       });

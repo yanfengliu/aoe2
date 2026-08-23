@@ -52,6 +52,10 @@ export {
 } from './economyBasics/outpostVision';
 
 export {
+  createFishTrapFixture,
+} from './economyBasics/fishTrap';
+
+export {
   createDropOffUnreachableRerouteFixture,
 } from './economyBasics/dropOffReroute';
 

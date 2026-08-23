@@ -254,6 +254,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['gather-island-food-fixture', fixtures.createGatherIslandFoodFixture],
   ['woodline-clearing-fixture', fixtures.createWoodlineClearingFixture],
   ['outpost-vision-fixture', fixtures.createOutpostVisionFixture],
+  ['fish-trap-fixture', fixtures.createFishTrapFixture],
   ['dropoff-unreachable-reroute-fixture', fixtures.createDropOffUnreachableRerouteFixture],
   ['fog-memory-fixture', fixtures.createFogMemoryFixture],
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],
