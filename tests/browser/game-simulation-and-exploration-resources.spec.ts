@@ -13,7 +13,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     await game.expectSelectionDetail(page, 'armor', '0');
     await game.expectSelectionDetail(page, 'faction', 'Player');
     await game.expectSelectionDetail(page, 'civ', 'Britons');
-    await game.expectSelectionDetail(page, 'inventory', '0 / 5 garrisoned');
+    await game.expectSelectionDetail(page, 'inventory', '0 / 15 garrisoned');
     await expect(page.locator('[data-selection-position]')).toHaveCount(0);
     await expect(page.locator('[data-selection-cycle]')).toHaveCount(0);
     await expect(page.locator('[data-selection-resource]')).toHaveCount(0);

@@ -181,7 +181,7 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
       armor: 0,
       faction: 'Player',
       civ: 'Britons',
-      inventory: '0 / 5 garrisoned',
+      inventory: '0 / 15 garrisoned',
     });
   });
 

@@ -936,6 +936,8 @@ The rules framework must support:
 - ram or building garrison mechanics where present
 - packed and unpacked simulation states for trebuchets and similar units
 
+**Town Center shelter (corrected 2026-08-23).** A Town Center holds **15 units** and fires **one arrow per sheltered unit to a ceiling of 10** — `structures.csv`'s "15 units (supports 5 population)" and "max 10 arrows". It had held 5 and fired at most 5, which let a base under raid shelter about a quarter of its villagers. The empty Town Center's single base arrow (§10.8) is this game's deliberate departure from AoE2, where an empty Town Center does not shoot at all, and it stays: it is what gives a Dark-Age economy any passive defence.
+
 Garrison healing: a unit garrisoned inside a building passively regenerates HP each tick toward its maximum. Healing is a fixed, deterministic rate — 0.4 HP per tick (4 HP per second at 10 ticks per second) — applied to every garrisoned unit whose current HP is between 1 and its maximum. The heal never exceeds the unit's maximum HP (no overheal) and never revives a unit already at 0 HP. It draws no resources and requires no research (distinct from the Monastery monk-heal, which heals units on the field). A unit released from garrison keeps whatever HP it healed to. There is no random component, so the heal is fully reproducible across replays.
 
 ## 10. Combat System

@@ -163,7 +163,7 @@ const BUILDING_COMBAT_STATES = new Map<BuildingType, BuildingCombatProfile>([
 
 const BUILDING_GARRISON_CAPACITY = new Map<BuildingType, number>([
   ['dock', 10], // structures.csv: "Garrison: 10 created units".
-  ['town-center', 5],
+  ['town-center', 15], // structures.csv: "15 units (supports 5 population)".
   ['watch-tower', 5],
   ['bombard-tower', 5],
   ['castle', 20],
@@ -259,9 +259,10 @@ export function buildingArrowCount(
   switch (buildingType) {
     case 'town-center':
       // Spec §10.8: a completed Town Center provides a base attack even when
-      // empty (1 arrow), plus one per garrisoned unit up to 4 — mirroring the
-      // Castle's empty-fire of 1. Gives a TC passive economy-phase defense.
-      return 1 + Math.min(garrisonedUnitsTotal, 4);
+      // empty (1 arrow) — this game's deliberate departure, which gives a
+      // Town Center passive economy-phase defence. Every sheltered unit adds
+      // one more, to structures.csv's ceiling of "max 10 arrows".
+      return Math.min(10, 1 + garrisonedUnitsTotal);
     case 'watch-tower':
     case 'bombard-tower':
       return 1;

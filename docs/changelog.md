@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.41 - 2026-08-23
+
+### Changed
+
+- **A Town Center shelters fifteen villagers, not five, and a full one shoots ten arrows.** Those are the numbers in the game's own stat data; the smaller ones meant a base under raid could only take in about a quarter of its workers, and a packed Town Center fought at half strength.
+
 ## 0.3.40 - 2026-08-23
 
 ### Added
