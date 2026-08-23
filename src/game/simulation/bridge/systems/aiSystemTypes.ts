@@ -104,6 +104,12 @@ export interface AiSystemDeps {
     targetKind: 'unit' | 'building' | 'resource',
   ) => boolean;
   submitUnitMoveIntention: (unitId: number, target: Position) => boolean;
+  pushUnitContextAtEntityIntention: (
+    unitId: number,
+    targetEntityId: number,
+    garrison: boolean,
+  ) => void;
+  pushBuildingActionIntention: (buildingId: number, actionType: 'ungarrison') => void;
 }
 
 // Per-owner, per-decision-tick context threaded into each decision phase. Bundles

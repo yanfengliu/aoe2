@@ -104,6 +104,12 @@ export interface RegisterAllSystemsDeps {
     owner: number,
     buildingType: BuildingComponent['buildingType'],
   ) => ResearchableTechnologyType[];
+  pushUnitContextAtEntityIntention: (
+    unitId: number,
+    targetEntityId: number,
+    garrison: boolean,
+  ) => void;
+  pushBuildingActionIntention: (buildingId: number, actionType: 'ungarrison') => void;
   pushAiMonkTaskIntentions: (
     owner: number,
     pushMonkContextAtEntityIntention: (

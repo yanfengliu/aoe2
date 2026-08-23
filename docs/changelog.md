@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.43 - 2026-08-23
+
+### Added
+
+- **The computer opponent rings the town bell.** When enemies reach its base, its villagers stop working and take cover in the Town Center until the raid passes, then go back to what they were doing. It used to keep gathering while its workers were cut down one by one — in a measured match between two computer players, one side went from 23 villagers to none without ever taking shelter.
+
 ## 0.3.42 - 2026-08-23
 
 ### Changed

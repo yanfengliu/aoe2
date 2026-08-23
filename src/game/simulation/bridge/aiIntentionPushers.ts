@@ -49,6 +49,27 @@ export function createAiIntentionPushers({ state }: AiIntentionPushersDeps) {
         data: { builderId, buildingType, position: anchor },
       });
     },
+    // The AI's raid response (spec §13.3): send a villager into a building.
+    // Rides the ordinary right-click-on-an-entity channel, so it is recorded,
+    // validated and replayed exactly like a player's own garrison order — and
+    // since v0.3.42 that means the villager WALKS there.
+    pushUnitContextAtEntityIntention: (
+      unitId: number,
+      targetEntityId: number,
+      garrison: boolean,
+    ) => {
+      state.pendingCommands.push({
+        type: 'unit.contextAtEntity',
+        data: { unitId, targetEntityId, garrison },
+      });
+    },
+    // Empties a building of everyone sheltering in it — the AI's "all clear".
+    pushBuildingActionIntention: (buildingId: number, actionType: 'ungarrison') => {
+      state.pendingCommands.push({
+        type: 'building.action',
+        data: { buildingId, actionType },
+      });
+    },
     pushMonkContextAtEntityIntention: (
       monkId: number,
       targetEntityId: number,

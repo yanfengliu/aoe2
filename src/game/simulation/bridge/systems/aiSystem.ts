@@ -20,6 +20,7 @@ import {
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 import { buildPendingIntentionMaps, createOwnerProducerHelpers } from './aiSystemGating';
 import { runBuildingPhase } from './aiSystemBuildingPhase';
+import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
 
@@ -157,6 +158,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           pendingBuildsByOwner,
         };
 
+        runDefensePhase(deps, ctx);
         runBuildingPhase(deps, ctx);
         runProductionPhase(deps, ctx);
         runAttackPhase(deps, ctx);

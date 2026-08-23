@@ -56,6 +56,10 @@ export {
 } from './economyBasics/fishTrap';
 
 export {
+  createAiUnderRaidFixture,
+} from './ai/underRaid';
+
+export {
   createDropOffUnreachableRerouteFixture,
 } from './economyBasics/dropOffReroute';
 

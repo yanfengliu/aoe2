@@ -255,6 +255,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['woodline-clearing-fixture', fixtures.createWoodlineClearingFixture],
   ['outpost-vision-fixture', fixtures.createOutpostVisionFixture],
   ['fish-trap-fixture', fixtures.createFishTrapFixture],
+  ['ai-under-raid-fixture', fixtures.createAiUnderRaidFixture],
   ['dropoff-unreachable-reroute-fixture', fixtures.createDropOffUnreachableRerouteFixture],
   ['fog-memory-fixture', fixtures.createFogMemoryFixture],
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],

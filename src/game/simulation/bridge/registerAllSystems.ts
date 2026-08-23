@@ -10,16 +10,14 @@ export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 
 import { registerAiSystem } from './systems/aiSystem';
 import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
-import { registerConquestOutcomeSystem } from './systems/conquestOutcomeSystem';
-import { registerScoreTimerSystem } from './systems/scoreTimerSystem';
 import { registerFogMemorySystem } from './systems/fogMemorySystem';
 import { registerGarrisonHealSystem } from './systems/garrisonHealSystem';
 import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
+import { registerMatchResolutionSystems } from './registerMatchResolutionSystems';
 import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
 import { registerMonkBehaviorSystem } from './systems/monkBehaviorSystem';
 import { registerPlayerCommandsSystem } from './systems/playerCommandsSystem';
 import { registerProductionQueueSystem } from './systems/productionQueueSystem';
-import { registerRelicCountdownSystem } from './systems/relicCountdownSystem';
 import { registerRelicGoldSystem } from './systems/relicGoldSystem';
 import { registerScoutMovementSystem } from './systems/scoutMovementSystem';
 import { registerPatrolSystem } from './systems/patrolSystem';
@@ -28,8 +26,6 @@ import { registerTowerCombatSystem } from './systems/towerCombatSystem';
 import { registerVillagerEconomySystem } from './systems/villagerEconomySystem';
 import { registerVisibilitySystem } from './systems/visibilitySystem';
 import { registerWildlifeCombatSystem } from './systems/wildlifeCombatSystem';
-import { registerWinConditionResolverSystem } from './systems/winConditionResolverSystem';
-import { registerWonderCountdownSystem } from './systems/wonderCountdownSystem';
 import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
 import { createMovementTrafficOps } from './movementTrafficOps';
 import { syncVisibilitySources } from './visibility';
@@ -74,6 +70,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getResearchOptions,
     pushAiMonkTaskIntentions,
     pushMonkContextAtEntityIntention,
+    pushUnitContextAtEntityIntention,
+    pushBuildingActionIntention,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
     findPreferredEnemyUnitInRadius,
@@ -216,6 +214,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getResearchOptions,
     pushAiMonkTaskIntentions,
     pushMonkContextAtEntityIntention,
+    pushUnitContextAtEntityIntention,
+    pushBuildingActionIntention,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
     // AI-decision system — uses the intention pushers per DESIGN v17 §6.5.
@@ -448,39 +448,15 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     isMatchRunning,
   });
 
-  registerWonderCountdownSystem({ world, accessor, isMatchRunning });
-
-  registerRelicCountdownSystem({
+  registerMatchResolutionSystems({
     world,
+    humanPlayerId,
     accessor,
+    isMatchRunning,
+    finalizeMatchEnd,
     currentRelicHoldingOwner,
     defaultRelicCountdownTicks,
-    isMatchRunning,
-  });
-
-  registerWinConditionResolverSystem({
-    world,
-    humanPlayerId,
-    accessor,
-    isMatchRunning,
-    finalizeMatchEnd,
-  });
-
-  registerConquestOutcomeSystem({
-    world,
-    humanPlayerId,
-    accessor,
-    isMatchRunning,
-    finalizeMatchEnd,
-  });
-
-  registerScoreTimerSystem({
-    world,
-    humanPlayerId,
-    accessor,
-    isMatchRunning,
     computePlayerScore,
-    finalizeMatchEnd,
     gameLength,
   });
 }
