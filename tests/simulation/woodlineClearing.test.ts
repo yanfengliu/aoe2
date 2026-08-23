@@ -47,4 +47,26 @@ describe('an exhausted tree clears its forest tile', () => {
     const farAfter = after.resources.find((r) => r.x === 11 && r.y === 10);
     expect(farAfter?.amount ?? 0).toBeLessThan(100);
   }, 60_000);
+
+  it('the cleared ground survives a save and a load', () => {
+    const bridge = createSimulationBridge('woodline-clearing-fixture');
+    // Long enough to fell the near tree, short enough that the far one still
+    // has wood left to prove the reload with.
+    for (let i = 0; i < 400; i += 1) bridge.step(100);
+    expect(terrainKindAt(bridge, 10, 10)).toBe('grass');
+    const farAtSave = bridge.getEconomyState().resources.find((r) => r.x === 11 && r.y === 10);
+    expect(farAtSave?.amount ?? 0).toBeGreaterThan(0);
+
+    const loaded = createSimulationBridge('woodline-clearing-fixture', {
+      savedGame: JSON.parse(JSON.stringify(bridge.saveGame())) as ReturnType<typeof bridge.saveGame>,
+    });
+    // The terrain component rides the saved world...
+    expect(terrainKindAt(loaded, 10, 10)).toBe('grass');
+    // ...and the occupancy grid, which is rebuilt from that world on load and
+    // holds its own static terrain blockers, agrees: the far tree is still
+    // workable, so the cleared ground is not silently a wall again.
+    const woodBefore = loaded.getEconomyState().playerResources[2]?.wood ?? 0;
+    for (let i = 0; i < 300; i += 1) loaded.step(100);
+    expect(loaded.getEconomyState().playerResources[2]?.wood ?? 0).toBeGreaterThan(woodBefore);
+  }, 60_000);
 });
