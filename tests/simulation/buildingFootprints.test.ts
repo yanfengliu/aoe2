@@ -22,6 +22,7 @@ describe('AUTHORITATIVE_BUILDING_FOOTPRINTS', () => {
       monastery: { width: 2, height: 2 },
       university: { width: 2, height: 2 },
       dock: { width: 3, height: 3 },
+      outpost: { width: 1, height: 1 },
       castle: { width: 4, height: 4 },
       wonder: { width: 4, height: 4 },
       'stone-wall': { width: 1, height: 1 },

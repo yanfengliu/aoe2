@@ -27,8 +27,13 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
 import { applySanctityToOwnedMonks } from './sanctityEffect';
 import { applyBloodlinesToOwnedCavalry } from './bloodlinesEffect';
-import { applyBuildingVisionDelta, applyInfantryVisionDelta } from './losTechEffect';
 import {
+  applyBuildingVisionDelta,
+  applyInfantryVisionDelta,
+  applyOutpostVisionDelta,
+} from './losTechEffect';
+import {
+  OUTPOST_VISION_PER_AGE,
   TOWN_WATCH_BUILDING_VISION_BONUS,
   TOWN_PATROL_BUILDING_VISION_BONUS,
   TRACKING_INFANTRY_VISION_BONUS,
@@ -207,15 +212,23 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     switch (technologyType) {
       case 'feudal-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'feudal-age'));
+        // structures.csv "Outpost": +2 line of sight per age, for the posts
+        // already standing. One built afterwards derives the same total.
+        applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
+        markOutOfBandRenderChange();
         break;
       case 'castle-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'castle-age'));
+        applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
+        markOutOfBandRenderChange();
         break;
       case 'imperial-age':
         // Slice 7A: flip the player to Imperial Age. Individual unit-line
         // upgrade callbacks (Arbalest / Halberdier / Hussar / etc.) land in
         // Slices 7B–7D; 7A only wires the age flip so the gate tests pass.
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'imperial-age'));
+        applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
+        markOutOfBandRenderChange();
         break;
       case 'fletching':
         for (const id of world.query('unit')) {

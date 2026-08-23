@@ -6,7 +6,7 @@ As of 2026-06-15 the north-star also covers VISUAL fidelity and UI polish toward
 
 ## Current state (audit headline)
 
-A complete but **shallow** land-only 1v1 vertical slice: Dark → Feudal → Castle → Imperial all work, with a working economy, blacksmith + unit-upgrade tech, abstracted combat, monks, four win conditions, and a competent AI. Breadth coverage vs. the full game: **units 34/104, technologies 66/140, buildings 18/27, five civilizations with active bonuses (all 30 selectable), naval 0, victory 4/4.** The slice is real and playable — it is depth and breadth that are missing.
+A complete but **shallow** land-only 1v1 vertical slice: Dark → Feudal → Castle → Imperial all work, with a working economy, blacksmith + unit-upgrade tech, abstracted combat, monks, four win conditions, and a competent AI. Breadth coverage vs. the full game: **units 34/104, technologies 66/140, buildings 18/27, five civilizations with active bonuses (all 30 selectable), naval 0, victory 4/4.** (Building count re-derived 2026-08-23 against `structures.csv` itself: 24 of its 28 names are shipped, and of the four differences, Fortified Wall / Guard Tower / Keep / Gate are UPGRADES of existing buildings that shipped as technologies — so the real roster gap is **Fish Trap only**, after the Outpost landed in v0.3.39. A roster count that reads an upgrade row as a missing building overstates the work.) The slice is real and playable — it is depth and breadth that are missing.
 
 ## Playtest findings log
 

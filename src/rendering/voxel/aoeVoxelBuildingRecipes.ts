@@ -331,6 +331,30 @@ function dock(context: BuildingContext): void {
   add(context, 'dock-banner', 'matte', context.team, 0.54, 0.94, 0.1, 0.1, 0.18, 0.024);
 }
 
+// An Outpost is four legs, a ladder and a railed platform with a lookout on it
+// — deliberately open, because the one thing a player must read at a glance is
+// that this is NOT a tower and will not shoot back.
+function outpost(context: BuildingContext): void {
+  for (const [name, x, z] of [
+    ['front-left', 0.3, 0.3], ['front-right', 0.7, 0.3],
+    ['back-left', 0.3, 0.7], ['back-right', 0.7, 0.7],
+  ] as const) {
+    add(context, `outpost-leg-${name}`, 'matte', VOXEL_COLORS.timberDark, x, 0, z, 0.07, 0.9, 0.07);
+  }
+  // Cross-brace, so the legs read as a frame rather than four separate posts.
+  add(context, 'outpost-brace', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.42, 0.3, 0.5, 0.04, 0.04);
+  add(context, 'outpost-platform', 'matte', VOXEL_COLORS.timber, 0.5, 0.9, 0.5, 0.62, 0.09, 0.62);
+  // Rail on three sides; the fourth is where the ladder comes up.
+  add(context, 'outpost-rail-back', 'matte', VOXEL_COLORS.timber, 0.5, 1.12, 0.78, 0.62, 0.16, 0.05);
+  add(context, 'outpost-rail-left', 'matte', VOXEL_COLORS.timber, 0.22, 1.12, 0.5, 0.05, 0.16, 0.62);
+  add(context, 'outpost-rail-right', 'matte', VOXEL_COLORS.timber, 0.78, 1.12, 0.5, 0.05, 0.16, 0.62);
+  // Ladder up the open face.
+  add(context, 'outpost-ladder', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.45, 0.2, 0.22, 0.9, 0.03);
+  // The lookout, in the owner's colour — the only team-coloured part, so
+  // ownership reads from the one thing that moves the eye.
+  add(context, 'outpost-watchman', 'matte', context.team, 0.5, 1.14, 0.42, 0.16, 0.28, 0.16);
+}
+
 function blacksmith(context: BuildingContext): void {
   house(context);
   add(context, 'blacksmith-forge', 'matte', VOXEL_COLORS.stoneDark, 0.2, 0.12, 0.78, 0.22, 0.42, 0.16);
@@ -437,6 +461,7 @@ export function createBuildingParts(
     case 'wall': wall(context); break;
     case 'gate': gate(context); break;
     case 'dock': dock(context); break;
+    case 'outpost': outpost(context); break;
   }
   context.parts.push(...createBuildingDetailParts(entity, identity, ground));
   return context.parts;

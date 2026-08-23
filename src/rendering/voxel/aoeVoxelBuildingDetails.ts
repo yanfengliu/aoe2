@@ -165,6 +165,14 @@ function dock(context: DetailContext): void {
   add(context, 'dock-lantern', 'matte', VOXEL_COLORS.gold, 0.7, 0.42, 0.95, 0.06, 0.08, 0.06);
 }
 
+// Outpost: the rungs of the ladder and the rail the lookout leans on — the two
+// parts that say "someone climbs up here and watches" rather than "this shoots".
+function outpost(context: DetailContext): void {
+  add(context, 'outpost-ladder', 'matte', VOXEL_COLORS.timber, 0.5, 0.62, 0.185, 0.2, 0.02, 0.012);
+  add(context, 'outpost-rail', 'matte', VOXEL_COLORS.timberDark, 0.5, 1.2, 0.79, 0.6, 0.02, 0.02);
+  add(context, 'outpost-horn', 'metal', VOXEL_COLORS.gold, 0.34, 1.14, 0.62, 0.06, 0.06, 0.06);
+}
+
 function castle(context: DetailContext): void {
   add(context, 'castle-portcullis-bar-left', 'metal', VOXEL_COLORS.steelDark, 0.46, 0.24, 0.802, 0.018, 0.78, 0.02);
   add(context, 'castle-portcullis-bar-right', 'metal', VOXEL_COLORS.steelDark, 0.54, 0.24, 0.802, 0.018, 0.78, 0.02);
@@ -241,6 +249,7 @@ export function createBuildingDetailParts(
     case 'monastery': monastery(context); break;
     case 'university': university(context); break;
     case 'dock': dock(context); break;
+    case 'outpost': outpost(context); break;
     case 'castle': castle(context); break;
     case 'wonder': wonder(context); break;
     case 'stone-wall': stoneWall(context); break;

@@ -40,6 +40,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  playerAgesCodec,
   populationCodec,
   productionQueuesCodec,
   researchedTechnologiesCodec,
@@ -51,6 +52,7 @@ import {
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
+import { outpostVisionRadiusForAge } from '../visionTechEffects';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -348,7 +350,15 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     } else if (isComplete && defaultVisionRadius !== null) {
       world.addComponent(entity, 'visionSource', {
         playerId: owner,
-        radius: defaultVisionRadius,
+        // The Outpost's "+2 per age" (structures.csv): a fixture that seeds one
+        // into a Castle-Age game gets the same radius the age-up bumps would
+        // have produced.
+        radius: buildingType === 'outpost'
+          ? outpostVisionRadiusForAge(
+            accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
+            defaultVisionRadius,
+          )
+          : defaultVisionRadius,
       });
     }
 

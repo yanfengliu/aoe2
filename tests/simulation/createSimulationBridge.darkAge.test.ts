@@ -48,7 +48,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       // (M1 Farms slice 1).
       buildOptions: [
         'house', 'mill', 'lumber-camp', 'mining-camp', 'barracks',
-        'palisade-wall', 'palisade-gate', 'farm', 'dock',
+        'palisade-wall', 'palisade-gate', 'farm', 'dock', 'outpost',
       ],
     });
     const housePosition = placeBuildingNearTownCenter(bridge, 'house');

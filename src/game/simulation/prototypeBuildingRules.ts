@@ -50,6 +50,7 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   'palisade-gate': 0,
   farm: 0,
   dock: 0,
+  outpost: 0,
 };
 
 const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
@@ -79,6 +80,7 @@ const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
   // M1 Farms: structures.csv build_time 15 seconds × 10 TPS = 150 ticks.
   farm: 150,
   dock: 350, // structures.csv: 35 s x 10 TPS.
+  outpost: 150, // structures.csv: 15 s x 10 TPS.
 };
 
 const BUILDING_SIZES: Record<BuildingType, number> = {
@@ -107,6 +109,7 @@ const BUILDING_SIZES: Record<BuildingType, number> = {
   // M1 Farms: a 1x1 footprint; size 1 fills its single cell like the walls.
   farm: 1,
   dock: 1.2,
+  outpost: 0.5,
 };
 
 const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
@@ -177,6 +180,14 @@ const BUILDING_TINTS: Record<BuildingType, BuildingTintPalette> = {
     humanIncomplete: 0x574c39,
     enemyComplete: 0x8a6a63,
     enemyIncomplete: 0x56423e,
+  },
+  // Bare timber, paler than a Watch Tower's stone so the eye reads "post, not
+  // tower" at a glance — which is the whole difference between them.
+  outpost: {
+    humanComplete: 0xa08a63,
+    humanIncomplete: 0x63563e,
+    enemyComplete: 0xa07f74,
+    enemyIncomplete: 0x634e47,
   },
   university: {
     humanComplete: 0x8a8467,
@@ -283,10 +294,12 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   // M1 Farms: structures.csv hit_points 480.
   farm: 480,
   dock: 1800,
+  outpost: 500, // structures.csv: Outpost hit points.
 };
 
 const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
   ['dock', 5], // structures.csv line_of_sight.
+  ['outpost', 6], // structures.csv line_of_sight — its entire reason to exist.
   ['town-center', 7],
   ['watch-tower', 8],
   ['bombard-tower', 10], // structures.csv line_of_sight

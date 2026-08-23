@@ -59,7 +59,11 @@ export type BuildableBuildingType =
   | 'farm'
   // M5 naval: trains ships and receives fish. The only building that must be
   // placed against water (see shorePlacement.ts).
-  | 'dock';
+  | 'dock'
+  // Dark-Age eye: 25 wood + 10 stone for a 1x1 post that sees a long way and
+  // fights not at all (structures.csv "Outpost": 500 HP, line of sight 6).
+  // Its whole job is to watch ground you do not hold.
+  | 'outpost';
 export type BuildingType = 'town-center' | BuildableBuildingType;
 export type ResourceKind =
   | 'berry-bush'

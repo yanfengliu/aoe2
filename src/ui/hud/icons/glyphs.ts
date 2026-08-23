@@ -279,6 +279,15 @@ const DOCK_GLYPH =
   '<path d="M12 15V6"/>' +
   '<path d="M12 7h5l-2 2.5L17 12h-5"/>';
 
+// Outpost: a ladder up to a small railed lookout platform on four legs — no
+// walls and no arrow slits, so it cannot be mistaken for the Watch Tower.
+const OUTPOST_GLYPH =
+  '<path d="M8 20l1.6-9M16 20l-1.6-9"/>' +
+  '<path d="M9 15h6"/>' +
+  '<path d="M7.5 11h9"/>' +
+  '<path d="M9 11V8h6v3"/>' +
+  '<path d="M12 8V5"/>';
+
 // Castle: a battlemented keep with two towers.
 const CASTLE_GLYPH =
   '<path d="M5 19V9l1.6 1V8h1.6v2H10V7h1.5l.5-1 .5 1H14v3h1.2V8h1.6v2L18 9v10z"/>' +
@@ -341,6 +350,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   monastery: MONASTERY_GLYPH,
   university: UNIVERSITY_GLYPH,
   dock: DOCK_GLYPH,
+  outpost: OUTPOST_GLYPH,
   castle: CASTLE_GLYPH,
   wonder: WONDER_GLYPH,
   'stone-wall': STONE_WALL_GLYPH,

@@ -15,10 +15,11 @@ import {
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   constructionStatesCodec,
+  playerAgesCodec,
   populationCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import { buildingVisionBonus } from '../visionTechEffects';
+import { buildingVisionBonus, outpostVisionRadiusForAge } from '../visionTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { GameWorld } from './pureHelpers';
@@ -68,9 +69,18 @@ export function finalizeBuildingConstruction(params: {
     const losBonus = buildingVisionBonus(
       accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET,
     );
+    // The Outpost's "+2 per age" is derived the same way: a post built in the
+    // Castle Age sees as far as one that has been standing since the Dark Age
+    // and was bumped twice on the way.
+    const baseRadius = building.buildingType === 'outpost'
+      ? outpostVisionRadiusForAge(
+        accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
+        defaultVisionRadius,
+      )
+      : defaultVisionRadius;
     world.addComponent(buildingId, 'visionSource', {
       playerId: building.owner,
-      radius: defaultVisionRadius + losBonus,
+      radius: baseRadius + losBonus,
     });
     visionSourceAdded = true;
   }

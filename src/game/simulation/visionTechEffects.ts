@@ -10,12 +10,25 @@
 // in the already-persisted visionSource component, and replay re-applies the
 // research commands deterministically from tick 0.
 
-import type { ResearchableTechnologyType, UnitType } from './types';
+import type { AgeType, ResearchableTechnologyType, UnitType } from './types';
 import { isInfantryUnit } from './prototypeUnitRules';
 
 export const TOWN_WATCH_BUILDING_VISION_BONUS = 4;
 export const TOWN_PATROL_BUILDING_VISION_BONUS = 4;
 export const TRACKING_INFANTRY_VISION_BONUS = 2;
+
+// The Outpost's whole purpose is to see, and structures.csv gives it
+// "+2 Line of sight per age" on a base of 6 — so it stays worth its 25 wood and
+// 10 stone in the Imperial Age instead of being out-seen by everything else.
+// Applied the same two ways as the LoS technologies: bumped in place when the
+// owner advances (technologyOps) and derived at the creation site for one built
+// afterwards.
+export const OUTPOST_VISION_PER_AGE = 2;
+const AGE_ORDER: readonly AgeType[] = ['dark-age', 'feudal-age', 'castle-age', 'imperial-age'];
+
+export function outpostVisionRadiusForAge(age: AgeType, baseRadius = 6): number {
+  return baseRadius + OUTPOST_VISION_PER_AGE * Math.max(0, AGE_ORDER.indexOf(age));
+}
 
 // Total building LoS bonus for an owner's researched set (technologies.csv
 // rows 88/92: Town Watch +4, Town Patrol +4 — Buildings;Towers).

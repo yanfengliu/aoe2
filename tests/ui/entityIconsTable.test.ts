@@ -61,6 +61,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [icon: string, accent: string]>
   'monastery': ['My', '#cfc3a8'],
   'university': ['Un', '#c8bd93'],
   'dock': ['Dk', '#8fb0c0'],
+  'outpost': ['Op', '#c0a878'],
   'monk': ['Mn', '#e3d9b5'],
   'relic': ['Rl', '#f5d680'],
   'castle': ['Ct', '#a09f9c'],

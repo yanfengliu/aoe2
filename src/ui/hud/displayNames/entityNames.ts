@@ -63,6 +63,7 @@ const ENTITY_NAMES = {
   'monastery': ['Monastery', 'Monasteries'],
   'university': ['University', 'Universities'],
   'dock': ['Dock', 'Docks'],
+  'outpost': ['Outpost', 'Outposts'],
   'monk': 'Monk',
   'relic': 'Relic',
   'castle': 'Castle',

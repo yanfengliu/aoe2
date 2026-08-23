@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.39 - 2026-08-23
+
+### Added
+
+- **The Outpost.** 25 wood and 10 stone from the Dark Age for a small timber lookout that sees a long way and cannot shoot at all — the cheap way to watch a chokepoint, a relic, or the path an attack will come down. Its line of sight grows by 2 with every age you advance, whether it is already standing or you put it up later, and the Town Watch technologies stack on top. It is deliberately unmistakable for a Watch Tower: an open platform on legs with a ladder and a lookout, not a stone shaft.
+
 ## 0.3.38 - 2026-08-23
 
 ### Changed

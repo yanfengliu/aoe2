@@ -714,6 +714,8 @@ Wonder:
 
 - alternate victory building
 
+**Outpost (implemented 2026-08-23).** Dark Age, 25 wood + 10 stone, 1x1, 500 hit points, 15-second build, line of sight 6 — and no attack of any kind. It is the cheapest way to see ground you do not hold, and it is deliberately not a Watch Tower: a player must be able to tell the two apart at a glance, so its silhouette is an open timber platform on legs with a ladder and a railed lookout rather than a stone shaft. structures.csv's "+2 Line of sight per age" is implemented on the same two-sided seam as the line-of-sight technologies (§11): advancing an age bumps every Outpost already standing, and one built afterwards derives the same total at construction-complete, so 6 / 8 / 10 / 12 across the four ages. Town Watch and Town Patrol stack on top of that. It provides no population, garrisons nobody, and trains and researches nothing.
+
 ### 8.5 Building Prerequisites
 
 The building graph must preserve AoE2 dependency logic:

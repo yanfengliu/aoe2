@@ -48,6 +48,10 @@ export {
 } from './economyBasics/woodlineClearing';
 
 export {
+  createOutpostVisionFixture,
+} from './economyBasics/outpostVision';
+
+export {
   createDropOffUnreachableRerouteFixture,
 } from './economyBasics/dropOffReroute';
 

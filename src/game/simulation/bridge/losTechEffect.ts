@@ -31,6 +31,24 @@ export function applyBuildingVisionDelta(
   }
 }
 
+// The Outpost's "+2 Line of sight per age": add `delta` to every OUTPOST owned
+// by `owner`. Same shape as the technology bump above, but keyed on the
+// building type rather than on a researched set, because the trigger is
+// advancing an age rather than researching something.
+export function applyOutpostVisionDelta(
+  world: GameWorld,
+  owner: number,
+  delta: number,
+): void {
+  for (const id of world.query('building', 'visionSource')) {
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    const vision = world.getComponent<VisionSourceComponent>(id, 'visionSource');
+    if (!building || !vision || building.owner !== owner) continue;
+    if (building.buildingType !== 'outpost') continue;
+    vision.radius += delta;
+  }
+}
+
 // Tracking: add `delta` to every INFANTRY unit owned by `owner`.
 export function applyInfantryVisionDelta(
   world: GameWorld,

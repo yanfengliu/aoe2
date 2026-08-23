@@ -42,6 +42,9 @@ export function buildOptionsFor(
     // M5 naval: Dark Age, like AoE2. Placement still requires a shore, so on
     // a landlocked map it is offered but never placeable.
     'dock',
+    // The Outpost is Dark Age (structures.csv) and the only cheap way to see
+    // ground you do not hold: 25 wood + 10 stone, no attack.
+    'outpost',
   ];
 
   if (getPlayerAge(owner) !== 'dark-age' && hasCompletedBuilding(owner, 'barracks')) {
