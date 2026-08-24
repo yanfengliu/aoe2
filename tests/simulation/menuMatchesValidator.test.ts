@@ -5,6 +5,7 @@ import { createOptionsRules } from '../../src/game/simulation/bridge/optionsRule
 import { createTrainOptions } from '../../src/game/simulation/bridge/trainOptions';
 import { CIVILIZATION_NAMES } from '../../src/game/simulation/civilizationNames';
 import { canResearchAt, canTrainAt } from '../../src/game/simulation/prototypeBuildingRules';
+import { RESEARCHES_BY_BUILDING } from '../../src/game/simulation/buildingProductionTables';
 import { RESEARCH_COSTS } from '../../src/game/simulation/researchTables';
 import { ALL_UNIT_TYPES } from '../../src/input/unitTypeMap';
 import type {
@@ -168,5 +169,61 @@ describe('every technology a building offers is one it can research', () => {
       }
     }
     expect([...new Set(wrong)].sort()).toEqual([]);
+  });
+});
+
+// And the OTHER direction, which is where the loose version of this check hid
+// two more defects: a technology the table hosts but no card ever offers is
+// unreachable content — it has a cost, a research time and a home, and no
+// player can start it. The Elite Skirmisher upgrade shipped that way in
+// v0.3.45: every table had it, no card offered it, and the browser test passed
+// because the fixture PRE-RESEARCHED it.
+describe('every technology a building hosts is one it can actually offer', () => {
+  it('leaves nothing in the tables that no card can reach', () => {
+    const unreachable: string[] = [];
+    for (const buildingType of BUILDING_TYPES) {
+      for (const technologyType of RESEARCHES_BY_BUILDING.get(buildingType) ?? []) {
+        let offered = false;
+        for (const civilization of CIVILIZATION_NAMES) {
+          for (const age of AGES) {
+            // Everything researched EXCEPT this one, so its prerequisites are
+            // satisfied — then nothing researched, for entries a later tech in
+            // the same line would suppress.
+            for (const isResearched of [
+              (tech: ResearchableTechnologyType) => tech !== technologyType,
+              () => false,
+            ]) {
+              const rules = createOptionsRules({
+                latestResearchedInChain: (_owner, chain) => {
+                  const flat = chain.map((entry) => (Array.isArray(entry) ? entry[0] : entry));
+                  return flat[flat.length - 1] as TrainableUnitType;
+                },
+                hasTechnology: (_owner, tech) => isResearched(tech),
+                getPlayerAge: () => age,
+                isAtLeastAge: (_owner, minAge) => AGES.indexOf(age) >= AGES.indexOf(minAge),
+                getPlayerCivilization: () => civilization,
+                canAdvanceToFeudalAge: () => true,
+                canAdvanceToCastleAge: () => true,
+                canAdvanceToImperialAge: () => true,
+                hasCompletedBuilding: () => true,
+                hasOwnedWonder: () => false,
+              });
+              const list = [
+                ...rules.getResearchOptions(1, buildingType),
+                ...rules.getVisibleResearchOptions(1, buildingType),
+              ];
+              if (list.includes(technologyType)) {
+                offered = true;
+                break;
+              }
+            }
+            if (offered) break;
+          }
+          if (offered) break;
+        }
+        if (!offered) unreachable.push(`${buildingType}: ${technologyType}`);
+      }
+    }
+    expect(unreachable.sort()).toEqual([]);
   });
 });

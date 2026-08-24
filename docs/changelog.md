@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.53 - 2026-08-23
+
+### Fixed
+
+- **The Elite Skirmisher upgrade could not be researched, so the Skirmisher line still never improved.** v0.3.53 is the other half of v0.3.45: the unit, its stats, its upgrade entry and its place in the Archery Range's research table all shipped, and no command card ever offered the research — the one thing that made the tier reachable. It is now offered at the Archery Range from the Castle Age, where units.csv puts the unit. The Castle also stopped listing the two unique SHIPS' elite upgrades, which belong to the Dock; they were entries no card could offer.
+
 ## 0.3.52 - 2026-08-23
 
 ### Fixed

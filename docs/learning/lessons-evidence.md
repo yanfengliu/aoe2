@@ -691,3 +691,11 @@ The check that generalises: before believing an AI defect that only a new fixtur
 The war story: `tests/browser/new-tech-reach.spec.ts` failed on `[data-command="research-parthian-tactics"]` with "element(s) not found", while a simulation probe on the very same fixture printed `researchOptions` = `["crossbowman-upgrade","thumb-ring","parthian-tactics","arbalest-upgrade","heavy-cavalry-archer-upgrade"]`. Playwright's captured page context listed exactly four research buttons — Crossbowman, Thumb Ring, Arbalest, Heavy Cavalry Archer — which reads as a UI-side filter silently dropping a technology the command card does not know, the same defect class the spec file exists to catch. It was the pre-change build. `npm run build`, then the same spec, unchanged: passed in 5.5 s.
 
 The check that generalises: a browser failure that contradicts a simulation probe on the same fixture is a STALE BUILD until proven otherwise. Run `npm run build` before `npx playwright test`, and treat a page-context screenshot as evidence about whatever build the preview server is holding — not about the working tree.
+
+## A fixture that pre-grants the thing under test (2026-08-23)
+
+**Rule:** a fixture that PRE-GRANTS the thing under test cannot test how that thing is obtained.
+
+`new-unit-reach-fixture` starts its owner with `startingResearchedTechnologies: ['chemistry', 'capped-ram-upgrade', 'onager-upgrade', 'elite-skirmisher-upgrade']` so each new unit is one click away. The browser test that "proved the Elite Skirmisher reachable with a mouse" asserted `[data-command="train-elite-skirmisher"]` was visible — which it was, because the fixture had already granted the upgrade that resolves the line's menu entry to that tier. The research itself was never offered by any card, in any age, for any civilization: `optionsRules`' archery-range block had no line for it. So the tier shipped in v0.3.45, the test passed, and the Skirmisher line still never improved for a real player. Caught six versions later by a table ⊆ menu gate, not by the test written for it.
+
+The check that generalises: read a fixture's `startingResearchedTechnologies` (and its pre-built buildings, and its pre-spawned units) as the list of things the test using it CANNOT check. If the thing under test is on that list, the test is asserting the consequence, not the mechanism.

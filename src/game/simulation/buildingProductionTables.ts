@@ -102,8 +102,9 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     'elite-teutonic-knight-upgrade',
     'elite-janissary-upgrade',
     'elite-berserk-upgrade',
-    'elite-turtle-ship-upgrade',
-    'elite-longboat-upgrade',
+    // The two unique SHIPS' elite upgrades belong to the Dock, not here: they
+    // are researched where the ship is trained (spec §9.2.1), and leaving them
+    // in this list made two entries no card can ever offer.
   ]],
   ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],

@@ -130,6 +130,15 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'crossbowman-upgrade')) {
         options.push('crossbowman-upgrade');
       }
+      // The Skirmisher line's only upgrade. units.csv puts the Elite Skirmisher
+      // in the Castle Age (spec §1 ranks the unit row above technologies.csv's
+      // Imperial, since a technology cannot be later than the unit it unlocks),
+      // so it is offered alongside the Crossbowman. Without this the line never
+      // improved: v0.3.45 added the unit and its upgrade to every table but no
+      // card ever offered the research.
+      if (!hasTechnology(owner, 'elite-skirmisher-upgrade')) {
+        options.push('elite-skirmisher-upgrade');
+      }
       options.push(...projectileTechOptions('archery-range', owner, isAtLeastAge, hasTechnology));
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'arbalest-upgrade')) {
