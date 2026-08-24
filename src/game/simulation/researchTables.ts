@@ -92,7 +92,11 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Parthian Tactics (Archery Range, Imperial): the cavalry archer's armor +
   // anti-spearman technology.
   'parthian-tactics': { food: 200, gold: 250 },
-  // M5 naval, Dock (technologies.csv): the ship upgrade lines.
+  // M5 naval, Dock (technologies.csv): the three that act on every ship at
+  // once, then the ship upgrade lines.
+  careening: { food: 250, gold: 150 },
+  'dry-dock': { food: 600, gold: 400 },
+  shipwright: { wood: 200, food: 1000 },
   'war-galley-upgrade': { food: 230, gold: 100 },
   'galleon-upgrade': { food: 400, wood: 315 },
   'fast-fire-ship-upgrade': { wood: 280, gold: 250 },
@@ -227,7 +231,11 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   ballistics: 600, // 60 s × 10 TPS.
   'thumb-ring': 450, // 45 s × 10 TPS.
   'parthian-tactics': 650, // 65 s × 10 TPS.
-  // M5 naval, Dock (technologies.csv): the ship upgrade lines.
+  // M5 naval, Dock (technologies.csv): the three that act on every ship at
+  // once, then the ship upgrade lines.
+  careening: 500, // 50 s x 10 TPS.
+  'dry-dock': 600,
+  shipwright: 600,
   'war-galley-upgrade': 500,
   'galleon-upgrade': 650,
   'fast-fire-ship-upgrade': 500,

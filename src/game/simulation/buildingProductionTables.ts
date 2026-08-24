@@ -12,13 +12,18 @@ import type { BuildingType, ResearchableTechnologyType, TrainableUnitType } from
 
 export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnitType[]>([
   ['town-center', ['villager']],
-  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman', 'eagle-warrior', 'elite-eagle-warrior']],
+  // 'huskarl' / 'elite-huskarl': the Goths' Anarchy moves the Huskarl out of
+  // the Castle and into the Barracks (uniqueTechnologyUnlocks). This table is
+  // the VALIDATOR's superset — the civ-and-technology gate lives in the train
+  // MENU, which is what the validator consults for eligibility — so listing
+  // them here does not open them to anyone else.
+  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman', 'eagle-warrior', 'elite-eagle-warrior', 'huskarl', 'elite-huskarl']],
   ['stable', ['scout', 'knight', 'light-cavalry', 'hussar', 'cavalier', 'camel', 'paladin', 'heavy-camel']],
   ['archery-range', ['archer', 'skirmisher', 'elite-skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer', 'hand-cannoneer']],
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'siege-onager', 'heavy-scorpion', 'capped-ram', 'siege-ram', 'bombard-cannon']],
   ['monastery', ['monk']],
   // M5 naval: the Dock is where every ship comes from.
-  ['dock', ['fishing-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
+  ['dock', ['fishing-ship', 'transport-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
     'elite-turtle-ship', 'elite-longboat']],
   ['castle', ['longbowman', 'elite-longbowman', 'trebuchet',
     // M4 unique units — the civ gate is in uniqueUnits.ts; this list only
@@ -51,7 +56,7 @@ export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly Traina
 export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
   ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom', 'town-watch', 'town-patrol']],
   ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry', 'sappers']],
-  ['dock', ['war-galley-upgrade', 'galleon-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade']],
+  ['dock', ['careening', 'dry-dock', 'shipwright', 'war-galley-upgrade', 'galleon-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade']],
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'elite-skirmisher-upgrade', 'thumb-ring', 'parthian-tactics']],
   ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking', 'elite-eagle-warrior-upgrade']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],

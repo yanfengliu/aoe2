@@ -50,10 +50,13 @@ import {
   monkTasksCodec,
   playerCivilizationsCodec,
   productionQueuesCodec,
+  researchedTechnologiesCodec,
   trebuchetPackStatesCodec,
   unitCommandsCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
+import { transportCapacity } from '../transportShip';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
 import {
   computeUnitActivity,
   getBuildingActivity,
@@ -234,6 +237,14 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     }
 
     if (unit) {
+      // A transport's cargo is its inventory. Without this the number is
+      // invisible, which matters more now that Careening and Dry Dock raise the
+      // capacity: a player cannot see what a technology bought them.
+      if (unit.unitType === 'transport-ship') {
+        const aboard = accessor.get(garrisonedByBuildingCodec).get(id)?.length ?? 0;
+        const techs = accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
+        return `${aboard} / ${transportCapacity(techs)} aboard`;
+      }
       const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
       if (!gatherer) {
         return null;

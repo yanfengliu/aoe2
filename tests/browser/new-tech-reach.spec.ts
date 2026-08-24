@@ -113,4 +113,48 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
     await expect(page.locator('[data-selection-activity]')).toContainText('Resting');
   });
+
+  test('the Dock researches Careening, then Dry Dock, then Shipwright', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'naval-imperial-fixture');
+
+    // The three are CHAINED in AoE2 DE, so each one only appears once the one
+    // before it is done — which makes the order of these clicks the assertion.
+    for (const tech of ['careening', 'dry-dock', 'shipwright'] as const) {
+      expect(await game.selectOwnedBuildingDirect(page, 1, 'dock')).toBe(true);
+      await expect(page.locator('[data-selection-name]')).toHaveText('Dock');
+      const button = page.locator(`[data-command="research-${tech}"]`);
+      await expect(button).toBeVisible();
+      await button.click();
+      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(700, 100));
+
+      expect(await game.selectOwnedBuildingDirect(page, 1, 'dock')).toBe(true);
+      await expect(page.locator(`[data-command="research-${tech}"]`)).toHaveCount(0);
+    }
+
+    // Shipwright is done, so the Dock's own prices have changed: a Transport
+    // Ship is 125 wood in units.csv and must now cost 100. Training one is
+    // also the only way to check the capacity the other two bought.
+    expect(await game.selectOwnedBuildingDirect(page, 1, 'dock')).toBe(true);
+    const woodBefore = (await game.getSnapshot(page)).economyState.playerResources[1]!.wood;
+    await page.locator('[data-command="train-transport-ship"]').click();
+    // The click QUEUES a command; the charge lands when the next tick processes
+    // it, so reading the stockpile immediately would read it unspent.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
+    const woodAfter = (await game.getSnapshot(page)).economyState.playerResources[1]!.wood;
+    expect(woodBefore - woodAfter).toBe(100);
+
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(600, 100));
+    const transport = (await game.getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 1 && unit.unitType === 'transport-ship',
+    );
+    expect(transport).toBeDefined();
+    await page.evaluate(
+      ([x, y]) => window.__AOE2_TEST__!.centerCameraOnWorldPosition(x!, y!),
+      [transport!.x, transport!.y],
+    );
+    await game.clickCell(page, transport!.x, transport!.y, 'left');
+    await expect(page.locator('[data-selection-name]')).toHaveText('Transport Ship');
+    // Careening +5 and Dry Dock +10 on the base 5.
+    await expect(page.locator('[data-selection-detail-value="inventory"]')).toHaveText('0 / 20 aboard');
+  });
 });

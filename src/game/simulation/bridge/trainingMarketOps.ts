@@ -47,6 +47,7 @@ import {
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import { civTrainTimeMultiplier, effectiveTrainingCost } from '../civBonusEffects';
+import { shipwrightTrainTimeMultiplier } from '../dockTechEffects';
 import {
   conscriptionTrainTimeMultiplier,
   uniqueTechTrainTimeMultiplier,
@@ -219,23 +220,25 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!stockpile) return false;
 
     // Cost + train time both read the owner's persisted civ (+ age/tech) state.
-    // Goths infantry cost 35% less from Feudal (effectiveTrainingCost); Aztecs
+    // Goths infantry cost 35% less from Feudal and Shipwright takes 20% off a
+    // ship's wood (effectiveTrainingCost); Aztecs
     // ×0.85 train + Conscription ×0.75 at military buildings. The SAME effective
     // cost gates and charges here — the affordability checks elsewhere (AI /
     // human / validator) use effectiveTrainingCost too, so they agree.
     const ownerCiv = accessor.get(playerCivilizationsCodec).get(building.owner);
     const ownerAge = accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
-    const cost = effectiveTrainingCost(ownerCiv, ownerAge, unitType);
+    const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
+    const cost = effectiveTrainingCost(ownerCiv, ownerAge, unitType, ownerTechs);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
     accessor.markDirty(playerResourcesCodec);
-    const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
     const totalTicks = Math.max(
       1,
       Math.round(
         trainingTimeTicks(unitType)
           * civTrainTimeMultiplier(ownerCiv, unitType)
+          * shipwrightTrainTimeMultiplier(ownerTechs, unitType)
           * conscriptionTrainTimeMultiplier(ownerTechs, building.buildingType)
           * uniqueTechTrainTimeMultiplier(ownerTechs, building.buildingType),
       ),

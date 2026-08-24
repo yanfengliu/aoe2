@@ -11,6 +11,8 @@ import {
 import type { CombatState } from './systems/systemTypes';
 import type { ResearchableTechnologyType, UnitType } from '../types';
 import { applyArmorTech } from '../armorTechBonuses';
+import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
+import { isWaterUnit } from '../unitDomain';
 import { civUnitHpMultiplier } from '../civBonusEffects';
 import {
   isArcherLineUnit,
@@ -168,6 +170,11 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     // line above deliberately does not cover.
     if (isCavalryArcherUnit(unitType) && hasTechnology(owner, 'parthian-tactics')) {
       applyArmorTech(state, 'parthian-tactics');
+    }
+    // Careening: the only armour technology with no melee half, so it bumps the
+    // pierce-only accumulator rather than going through applyArmorTech.
+    if (isWaterUnit(unitType) && hasTechnology(owner, 'careening')) {
+      state.pierceArmorBonus += CAREENING_SHIP_PIERCE_ARMOR;
     }
     if (
       (isArcherLineUnit(unitType) || isGunpowderUnit(unitType))

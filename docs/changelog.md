@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.51 - 2026-08-23
+
+### Added
+
+- **The Dock's three technologies, which finishes its menu.** **Careening** (Castle, 250 food + 150 gold) gives every ship +1 pierce armour — the one armour technology with no melee half — and lets a Transport Ship carry 10 instead of 5. **Dry Dock** (Imperial, 600 food + 400 gold) makes every ship 15% faster and takes the transport to 20. **Shipwright** (Imperial, 200 wood + 1000 food) takes 20% off a ship's wood and 35% off its build time. The three are chained the way Age of Empires II chains them, and a selected Transport Ship now shows its cargo — `3 / 20 aboard` — because otherwise the capacity two of these technologies buy is invisible.
+
+### Fixed
+
+- **The Transport Ship could not be built. At all.** Clicking `Train Transport Ship` at a Dock spent nothing, queued nothing and produced nothing: the command card offered it while the production table the command validator reads did not list it, so every click was silently refused. Since the Transport Ship is the only way a land army crosses water, that removed a whole mechanic from the game — the only transports that ever existed were the ones scenarios spawned. The same defect hid a second button: the Goths' Anarchy is supposed to move the Huskarl into the Barracks, and that button did nothing either. Both are fixed, and a new test enumerates every unit the menu can offer across every building, age, civilization and tech state and fails if the validator would refuse it.
+
 ## 0.3.50 - 2026-08-23
 
 ### Added

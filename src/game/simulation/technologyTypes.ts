@@ -131,6 +131,9 @@ export type ResearchableTechnologyType =
   | 'galleon-upgrade'
   | 'fast-fire-ship-upgrade'
   | 'heavy-demolition-ship-upgrade'
+  | 'careening'
+  | 'dry-dock'
+  | 'shipwright'
   | 'cannon-galleon-unlock'
   | 'elite-cannon-galleon-upgrade'
   // The elite tier of each civilization unique unit (Castle, Imperial).

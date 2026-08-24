@@ -11,19 +11,16 @@
 // references.
 
 import { applyUniqueTechnologyToOwnedUnits } from './uniqueTechEffect';
+import { createTechnologyUnitSweeps } from './technologyUnitSweeps';
 import { applyBuildingHpTechnology } from './buildingHpTechEffect';
 import { UNIT_LINE_UPGRADES } from './unitLineUpgrades';
 import type {
-  RenderableComponent,
   ResearchableTechnologyType,
   TrainableUnitType,
   UnitComponent,
   UnitType,
-  VisionSourceComponent,
 } from '../types';
-import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
-import { applyArmorTech } from '../armorTechBonuses';
 import { applyLoomToOwnedVillagers } from './loomEffect';
 import { applySanctityToOwnedMonks } from './sanctityEffect';
 import { applyBloodlinesToOwnedCavalry } from './bloodlinesEffect';
@@ -41,7 +38,6 @@ import {
 import {
   combatStatesCodec,
   playerAgesCodec,
-  productionQueuesCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import {
@@ -54,9 +50,6 @@ import {
   isSiegeUnit,
   unitAttackDamage,
   unitAttackRange,
-  unitSize,
-  unitTint,
-  unitVisionRadius,
 } from '../prototypeUnitRules';
 
 interface CombatStateLike {
@@ -107,87 +100,20 @@ export interface TechnologyOps {
 export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
   const { world, accessor, createCombatState, markOutOfBandRenderChange } = deps;
 
-  function upgradeOwnedUnits(owner: number, from: UnitType, to: UnitType): void {
-    let didUpgrade = false;
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (!unit || unit.owner !== owner || unit.unitType !== from) {
-        continue;
-      }
-
-      const combat = accessor.get(combatStatesCodec).get(id);
-      const hpRatio = combat && combat.maxHp > 0 ? combat.currentHp / combat.maxHp : 1;
-      unit.unitType = to;
-
-      const renderable = world.getComponent<RenderableComponent>(id, 'renderable');
-      if (renderable) {
-        renderable.tint = unitTint(to, owner);
-        renderable.size = unitSize(to);
-      }
-
-      const vision = world.getComponent<VisionSourceComponent>(id, 'visionSource');
-      if (vision) {
-        vision.radius = unitVisionRadius(to);
-      }
-
-      const nextCombat = createCombatState(owner, to);
-      if (combat) {
-        nextCombat.cooldownTicks = combat.cooldownTicks;
-      }
-      nextCombat.currentHp = Math.max(
-        1,
-        Math.min(nextCombat.maxHp, Math.round(nextCombat.maxHp * hpRatio)),
-      );
-      accessor.mutate(combatStatesCodec, (m) => m.set(id, nextCombat));
-      didUpgrade = true;
-    }
-    if (didUpgrade) {
-      markOutOfBandRenderChange();
-    }
-  }
-
-  // Apply an armor tech's bonus to every owned unit whose class matches. Shared
-  // by all nine blacksmith armor cases so the per-unit iteration lives once;
-  // `applyArmorTech` routes the symmetric vs asymmetric (pierce) split.
-  function applyArmorTechToOwnedUnits(
-    owner: number,
-    tech: ResearchableTechnologyType,
-    matchesClass: (unitType: UnitType) => boolean,
-  ): void {
-    for (const id of world.query('unit')) {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      const combat = accessor.get(combatStatesCodec).get(id);
-      if (!unit || !combat || unit.owner !== owner || !matchesClass(unit.unitType)) {
-        continue;
-      }
-      applyArmorTech(combat, tech);
-    }
-  }
-
-  function rewriteQueuedPredecessorUnits(
-    owner: number,
-    from: TrainableUnitType,
-    to: TrainableUnitType,
-  ): void {
-    const productionQueues = accessor.get(productionQueuesCodec);
-    let dirty = false;
-    for (const [buildingId, queue] of productionQueues.entries()) {
-      const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-      if (!building || building.owner !== owner) {
-        continue;
-      }
-      for (const entry of queue) {
-        if (entry.kind === 'unit' && entry.unitType === from) {
-          entry.unitType = to;
-          entry.label = to;
-          dirty = true;
-        }
-      }
-    }
-    if (dirty) {
-      accessor.markDirty(productionQueuesCodec);
-    }
-  }
+  // The owner-wide unit sweeps (line upgrades, armour bonuses, queue
+  // rewrites) live in technologyUnitSweeps so this file stays a switch of
+  // DECISIONS rather than a file of loops.
+  const {
+    upgradeOwnedUnits,
+    applyArmorTechToOwnedUnits,
+    applyCareeningToOwnedShips,
+    rewriteQueuedPredecessorUnits,
+  } = createTechnologyUnitSweeps({
+    world,
+    accessor,
+    createCombatState,
+    markOutOfBandRenderChange,
+  });
 
   function applyTechnology(owner: number, technologyType: ResearchableTechnologyType): void {
     // Idempotency guard (iter-2 H2-1): two producer buildings can race-queue
@@ -373,6 +299,9 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       // Parthian Tactics' armor half. Its ATTACK half is derived at the damage
       // site (parthianTechEffects) rather than stored here, because the bonus
       // depends on the target's armor class.
+      case 'careening':
+        applyCareeningToOwnedShips(owner);
+        break;
       case 'parthian-tactics':
         applyArmorTechToOwnedUnits(owner, 'parthian-tactics', isCavalryArcherUnit);
         break;

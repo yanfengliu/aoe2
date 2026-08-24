@@ -24,6 +24,12 @@ interface DockTech {
 }
 
 const DOCK_TECHS: readonly DockTech[] = [
+  // The three that act on every ship rather than on one line. AoE2 DE chains
+  // them - Dry Dock needs Careening, Shipwright needs Dry Dock - which
+  // technologies.csv does not state but the game does.
+  { tech: 'careening', age: 'castle-age' },
+  { tech: 'dry-dock', age: 'imperial-age', requires: 'careening' },
+  { tech: 'shipwright', age: 'imperial-age', requires: 'dry-dock' },
   { tech: 'war-galley-upgrade', age: 'castle-age' },
   { tech: 'galleon-upgrade', age: 'imperial-age', requires: 'war-galley-upgrade' },
   { tech: 'fast-fire-ship-upgrade', age: 'imperial-age' },

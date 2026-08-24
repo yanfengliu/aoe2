@@ -16,6 +16,7 @@
 // movement stays byte-identical and never materializes the field.
 
 import type { ResearchableTechnologyType, UnitType } from './types';
+import { DRY_DOCK_SPEED_PERCENT, dryDockSpeedsUp } from './dockTechEffects';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 import { unitBaseSpeedPercent } from './prototypeUnitRules/unitBaseSpeed';
 import { unitEffectsOf } from './uniqueTechnologies';
@@ -89,6 +90,12 @@ export function movementSpeedPercent(
   // so none of them would ever reach it.
   if (unitType === 'monk' && researchedTechnologies.has('fervor')) {
     percent = Math.round((percent * FERVOR_SPEED_PERCENT) / 100);
+  }
+  // Dry Dock (Dock, Imperial): every SHIP moves 15% faster. It sits with the
+  // class branches below rather than in them, because a ship is none of
+  // mounted, infantry or villager and would never reach any of them.
+  if (dryDockSpeedsUp(researchedTechnologies, unitType)) {
+    percent = Math.round((percent * DRY_DOCK_SPEED_PERCENT) / 100);
   }
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
     percent = Math.round((percent * HUSBANDRY_SPEED_PERCENT) / 100);

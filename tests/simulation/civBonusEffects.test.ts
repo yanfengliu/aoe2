@@ -32,6 +32,8 @@ function ownerOneHarvested(bridge: ReturnType<typeof createSimulationBridge>): n
   return depositedDelta + (villager?.carriedAmount ?? 0);
 }
 
+const NO_TECHS: ReadonlySet<import('../../src/game/simulation/types').ResearchableTechnologyType> = new Set();
+
 describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
   it('gives Britons +25% ONLY on sheep', () => {
     expect(civGatherRateMultiplier('Britons', 'sheep')).toBe(BRITONS_SHEEP_GATHER_MULTIPLIER);
@@ -224,25 +226,25 @@ describe('Mongols scout-line bonus — live twin-fixture HP', () => {
 describe('effectiveTrainingCost — Goths infantry −35% cost (Feudal+)', () => {
   it('discounts Goths infantry by 35% from the Feudal Age (each resource rounded)', () => {
     // Militia base 60 food / 20 gold → ×0.65 = 39 / 13.
-    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia')).toEqual({ food: 39, gold: 13 });
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NO_TECHS)).toEqual({ food: 39, gold: 13 });
     // Spearman base 35 food / 25 wood → ×0.65 = 23 / 16.
-    expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman')).toEqual({ food: 23, wood: 16 });
+    expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman', NO_TECHS)).toEqual({ food: 23, wood: 16 });
     expect(GOTHS_INFANTRY_COST_MULTIPLIER).toBe(0.65);
   });
 
   it('does NOT discount in the Dark Age (bonus starts in Feudal)', () => {
-    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia')).toEqual(trainingCost('militia'));
+    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NO_TECHS)).toEqual(trainingCost('militia'));
   });
 
   it('does NOT discount Goths non-infantry (archers, cavalry, siege, villagers)', () => {
-    expect(effectiveTrainingCost('Goths', 'imperial-age', 'archer')).toEqual(trainingCost('archer'));
-    expect(effectiveTrainingCost('Goths', 'imperial-age', 'knight')).toEqual(trainingCost('knight'));
-    expect(effectiveTrainingCost('Goths', 'feudal-age', 'villager')).toEqual(trainingCost('villager'));
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'archer', NO_TECHS)).toEqual(trainingCost('archer'));
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'knight', NO_TECHS)).toEqual(trainingCost('knight'));
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'villager', NO_TECHS)).toEqual(trainingCost('villager'));
   });
 
   it('returns the base cost for any other civilization or an unknown civ', () => {
-    expect(effectiveTrainingCost('Franks', 'feudal-age', 'militia')).toEqual(trainingCost('militia'));
-    expect(effectiveTrainingCost(undefined, 'castle-age', 'spearman')).toEqual(trainingCost('spearman'));
+    expect(effectiveTrainingCost('Franks', 'feudal-age', 'militia', NO_TECHS)).toEqual(trainingCost('militia'));
+    expect(effectiveTrainingCost(undefined, 'castle-age', 'spearman', NO_TECHS)).toEqual(trainingCost('spearman'));
   });
 });
 

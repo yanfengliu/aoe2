@@ -18,7 +18,14 @@ import {
   playerAgesCodec,
   playerCivilizationsCodec,
   playerResourcesCodec,
+  researchedTechnologiesCodec,
 } from '../../bridge/bridgeStateSerialize';
+
+// An owner with nothing researched. Shared constant so the lookup below reads
+// the same as every other researched-set read in the bridge.
+const EMPTY_VALIDATOR_TECH_SET: ReadonlySet<
+  import('../../types').ResearchableTechnologyType
+> = new Set();
 
 export interface QueueTrainValidatorDeps {
   // Phase 2D: constructionStates + playerResources migrated to
@@ -70,11 +77,14 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    // Effective cost (Goths infantry −35% from Feudal) MUST match the charge
+    // Effective cost (Goths infantry −35% from Feudal, Shipwright −20% ship
+    // wood) MUST match the charge
     // in trainingMarketOps, so this gate and that charge stay consistent.
     const civ = deps.accessor.get(playerCivilizationsCodec).get(building.owner);
     const age = deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
-    const cost = effectiveTrainingCost(civ, age, data.unitType);
+    const techs = deps.accessor.get(researchedTechnologiesCodec).get(building.owner)
+      ?? EMPTY_VALIDATOR_TECH_SET;
+    const cost = effectiveTrainingCost(civ, age, data.unitType, techs);
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {

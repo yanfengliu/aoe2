@@ -15,12 +15,14 @@
 import type {
   AgeType,
   PlayerResources,
+  ResearchableTechnologyType,
   ResourceKind,
   TrainableUnitType,
   UnitType,
 } from './types';
 import { isInfantryUnit } from './prototypeUnitRules';
 import { trainingCost } from './prototypeEconomyRules';
+import { shipwrightWoodCost } from './dockTechEffects';
 
 // Britons shepherds gather sheep 25% faster.
 export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
@@ -109,7 +111,8 @@ export function civTrainTimeMultiplier(
   return 1;
 }
 
-// The owner's effective training cost for a unit, after civ cost bonuses.
+// The owner's effective training cost for a unit, after civ cost bonuses and
+// the Shipwright discount.
 // Goths infantry cost 35% less from the Feudal Age; otherwise the base cost.
 // Returns a NEW object when discounted (the base table is never mutated), and
 // the shared base reference otherwise. This MUST be used at every training-cost
@@ -118,8 +121,13 @@ export function effectiveTrainingCost(
   civilization: string | undefined,
   age: AgeType,
   unitType: TrainableUnitType,
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
 ): Partial<PlayerResources> {
-  const base = trainingCost(unitType);
+  // Shipwright discounts a ship's wood 20%. It is a TECHNOLOGY rather than a
+  // civilization bonus, but it belongs at this seam for the reason the comment
+  // above gives: every site that charges or checks a training cost must agree,
+  // and they all come through here.
+  const base = shipwrightWoodCost(researchedTechnologies, unitType, trainingCost(unitType));
   if (civilization === 'Goths' && age !== 'dark-age' && isInfantryUnit(unitType)) {
     const scaled: Partial<PlayerResources> = {};
     for (const key of Object.keys(base) as (keyof PlayerResources)[]) {

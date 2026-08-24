@@ -22,7 +22,7 @@ describe('the Transport Ship', () => {
 
   it('carries a company', () => {
     // units.csv: "Ship to carry units. Garrison inside 5".
-    expect(transportCapacity()).toBe(5);
+    expect(transportCapacity(new Set())).toBe(5);
     expect(TRANSPORT_CAPACITY).toBe(5);
   });
 });

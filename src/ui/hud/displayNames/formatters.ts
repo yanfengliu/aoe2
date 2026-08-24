@@ -22,6 +22,12 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Atonement';
     case 'fervor':
       return 'Fervor';
+    case 'careening':
+      return 'Careening';
+    case 'dry-dock':
+      return 'Dry Dock';
+    case 'shipwright':
+      return 'Shipwright';
     case 'illumination':
       return 'Illumination';
     case 'theocracy':

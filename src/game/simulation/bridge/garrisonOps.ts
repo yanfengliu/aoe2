@@ -14,10 +14,17 @@ import { canBoardTransport, transportCapacity } from '../transportShip';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   garrisonedByBuildingCodec,
+  researchedTechnologiesCodec,
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
 } from './bridgeStateSerialize';
 import type { GameWorld } from './pureHelpers';
+
+// An owner with nothing researched — Careening and Dry Dock raise a
+// transport's capacity, so the boarding check reads the owner's set.
+const EMPTY_GARRISON_TECH_SET: ReadonlySet<
+  import('../types').ResearchableTechnologyType
+> = new Set();
 
 export interface GarrisonOpsDeps {
   world: GameWorld;
@@ -79,7 +86,8 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
     }
 
     const aboard = accessor.get(garrisonedByBuildingCodec).get(transportId) ?? [];
-    if (aboard.length >= transportCapacity() || isGarrisonedUnit(unitId)) {
+    const ownerTechs = accessor.get(researchedTechnologiesCodec).get(transport.owner) ?? EMPTY_GARRISON_TECH_SET;
+    if (aboard.length >= transportCapacity(ownerTechs) || isGarrisonedUnit(unitId)) {
       return false;
     }
 
