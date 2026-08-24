@@ -252,6 +252,7 @@ export { createAiFeudalStoneFixture } from './ai/feudalStone';
 
 export { createNewUnitReachFixture } from './newUnitReach';
 export { createNewTechReachFixture } from './newTechReach';
+export { createAiVersusAiFixture } from './aiVersusAi';
 
 export {
   createWonderImperialFixture,

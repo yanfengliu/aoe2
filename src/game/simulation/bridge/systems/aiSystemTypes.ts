@@ -125,8 +125,11 @@ export interface AiOwnerContext {
   currentTick: number;
   ownerTownCenterId: number | null;
   ownerTownCenterPosition: Position | null | undefined;
-  humanTownCenterId: number | null;
-  humanTownCenterPosition: Position | null | undefined;
+  /** The enemy this AI is attacking: its nearest one. Null when it has no
+   *  enemy left with a Town Center. */
+  targetOwner: number | null;
+  targetTownCenterId: number | null;
+  targetTownCenterPosition: Position | null | undefined;
   currentAge: AgeType;
   stockpile: PlayerResources | undefined;
   populationBlocked: boolean;

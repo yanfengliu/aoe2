@@ -1,7 +1,11 @@
 // AI attack phase: maintains the owner's attack group (prunes dead units, adds
 // new military), and — once the group meets the age-scaled threshold — issues
-// attack/move intentions, preferring the human's villager, then visible enemy
-// units/buildings, then the human Town Center.
+// attack/move intentions, preferring the TARGET enemy's villager, then visible
+// enemy units/buildings, then that enemy's Town Center.
+//
+// The target is the owner's nearest enemy (aiSystem.pickAttackTarget), not the
+// human player. Looking it up on the human alone meant an AI occupying the
+// human slot had nobody to attack, and no AI ever attacked another AI.
 
 import { type Position } from 'civ-engine';
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../../types';
@@ -12,7 +16,6 @@ import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   const {
     accessor,
-    humanPlayerId,
     currentEntityId,
     findOwnedUnit,
     ownedMilitaryUnitIds,
@@ -28,8 +31,9 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     state,
     currentAge,
     unitCommands,
-    humanTownCenterId,
-    humanTownCenterPosition,
+    targetOwner,
+    targetTownCenterId,
+    targetTownCenterPosition,
   } = ctx;
 
   const liveMilitary = ownedMilitaryUnitIds(owner);
@@ -77,9 +81,10 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     // `&& submit(...)` early-out idiom relied on the facade returning
     // false when the target was stale; that contract no longer holds,
     // so the chain is split into separate clauses.
-    const humanVillagerId = findOwnedUnit(humanPlayerId, 'villager');
-    if (shouldPush && humanVillagerId !== null) {
-      submitUnitAttackIntention(id, humanVillagerId, 'unit');
+    const targetVillagerId =
+      targetOwner === null ? null : findOwnedUnit(targetOwner, 'villager');
+    if (shouldPush && targetVillagerId !== null) {
+      submitUnitAttackIntention(id, targetVillagerId, 'unit');
       continue;
     }
 
@@ -96,13 +101,13 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     }
 
     if (shouldPush) {
-      if (humanTownCenterId !== null) {
-        submitUnitAttackIntention(id, humanTownCenterId, 'building');
+      if (targetTownCenterId !== null) {
+        submitUnitAttackIntention(id, targetTownCenterId, 'building');
         continue;
       }
 
-      if (humanTownCenterPosition) {
-        submitUnitMoveIntention(id, humanTownCenterPosition);
+      if (targetTownCenterPosition) {
+        submitUnitMoveIntention(id, targetTownCenterPosition);
       }
     }
   }

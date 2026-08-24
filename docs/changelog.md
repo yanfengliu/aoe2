@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.54 - 2026-08-24
+
+### Fixed
+
+- **An AI now attacks its nearest enemy instead of only the human player.** Its target villager and its target Town Center were both looked up on the human player alone, so an AI that occupied the human slot had nobody to attack and no AI ever attacked another AI: two AI players would build up side by side forever and never fight. With two players the nearest enemy IS the human, so an ordinary match is unchanged — but a skirmish with more than one AI is now a war. A 14000-tick AI-versus-AI run goes from two untouched economies to armies trading (one side 19 units down to 5), buildings falling and villagers being run down.
+
 ## 0.3.53 - 2026-08-23
 
 ### Fixed

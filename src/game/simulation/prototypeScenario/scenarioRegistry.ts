@@ -210,6 +210,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-feudal-stone-fixture', fixtures.createAiFeudalStoneFixture],
   ['new-unit-reach-fixture', fixtures.createNewUnitReachFixture],
   ['new-tech-reach-fixture', fixtures.createNewTechReachFixture],
+  ['ai-versus-ai-fixture', fixtures.createAiVersusAiFixture],
   ['ai-difficulty-fixture', fixtures.createAiDifficultyFixture],
   ['ai-monk-fixture', fixtures.createAiMonkFixture],
   ['ai-monk-heal-fixture', fixtures.createAiMonkHealFixture],

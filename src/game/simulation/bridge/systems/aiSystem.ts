@@ -42,14 +42,21 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     name: 'prototypeAi',
     phase: 'update',
     execute(activeWorld) {
-      const humanTownCenterId = currentEntityId(
-        activeWorld,
-        accessor.get(townCenterRefsCodec).get(humanPlayerId),
-      );
-      const humanTownCenterPosition =
-        humanTownCenterId === null
-          ? null
-          : activeWorld.getComponent<Position>(humanTownCenterId, 'position');
+      // Every owner's Town Center, resolved once per tick. The AI attacks its
+      // NEAREST enemy, which for the ordinary two-player match is the human and
+      // so is byte-identical to the old humanPlayerId lookup — but gives an AI
+      // in the human slot, or a skirmish with several AI players, somebody to
+      // fight. Without it two AIs build up forever and never meet.
+      const townCentersByOwner = new Map<number, { id: number; position: Position | undefined }>();
+      for (const [refOwner, ref] of accessor.get(townCenterRefsCodec)) {
+        const id = currentEntityId(activeWorld, ref);
+        if (id === null) continue;
+        townCentersByOwner.set(refOwner, {
+          id,
+          position: activeWorld.getComponent<Position>(id, 'position'),
+        });
+      }
+      void humanPlayerId;
 
       const currentTick = activeWorld.tick;
       const unitCommands = accessor.get(unitCommandsCodec);
@@ -71,6 +78,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         state.lastDecisionTick = currentTick;
         accessor.markDirty(aiStatesCodec);
 
+        const { targetOwner, targetTownCenterId, targetTownCenterPosition } =
+          pickAttackTarget(owner, townCentersByOwner);
         const ownerTownCenterId = currentEntityId(activeWorld, accessor.get(townCenterRefsCodec).get(owner));
         const ownerTownCenterPosition =
           ownerTownCenterId === null
@@ -143,8 +152,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           currentTick,
           ownerTownCenterId,
           ownerTownCenterPosition,
-          humanTownCenterId,
-          humanTownCenterPosition,
+          targetOwner,
+          targetTownCenterId,
+          targetTownCenterPosition,
           currentAge,
           stockpile,
           populationBlocked,
@@ -165,4 +175,55 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       }
     },
   });
+}
+
+
+/**
+ * The enemy an AI attacks: the one whose Town Center is NEAREST its own, or —
+ * when it has no Town Center left to measure from — any enemy that still has
+ * one. Returns nulls when no enemy has a Town Center at all, which is the
+ * caller's signal that there is nothing to march at.
+ *
+ * Nearest-enemy is what makes a multi-player skirmish behave: with two owners
+ * it always picks the other one, so the ordinary human-versus-AI match is
+ * unchanged.
+ */
+export function pickAttackTarget(
+  owner: number,
+  townCentersByOwner: ReadonlyMap<number, { id: number; position: Position | undefined }>,
+): {
+  targetOwner: number | null;
+  targetTownCenterId: number | null;
+  targetTownCenterPosition: Position | null | undefined;
+} {
+  const own = townCentersByOwner.get(owner);
+  let best: { owner: number; id: number; position: Position | undefined } | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  // Sorted by owner id rather than map order, so the tie-break below is a
+  // property of the game state and not of insertion order — a replay must pick
+  // the same enemy every time it is played.
+  const candidates = [...townCentersByOwner.keys()].sort((a, b) => a - b);
+  for (const candidateOwner of candidates) {
+    const townCenter = townCentersByOwner.get(candidateOwner)!;
+    if (candidateOwner === owner) continue;
+    const distance =
+      own?.position && townCenter.position
+        ? Math.abs(own.position.x - townCenter.position.x)
+          + Math.abs(own.position.y - townCenter.position.y)
+        : Number.POSITIVE_INFINITY;
+    // Strictly-less keeps the FIRST of equal distances, which after the sort
+    // above is the lowest owner id.
+    if (best === null || distance < bestDistance) {
+      best = { owner: candidateOwner, ...townCenter };
+      bestDistance = distance;
+    }
+  }
+  if (best === null) {
+    return { targetOwner: null, targetTownCenterId: null, targetTownCenterPosition: null };
+  }
+  return {
+    targetOwner: best.owner,
+    targetTownCenterId: best.id,
+    targetTownCenterPosition: best.position,
+  };
 }
