@@ -43,6 +43,7 @@ export const ALL_UNIT_TYPES = {
   'hand-cannoneer': true,
   'bombard-cannon': true,
   trebuchet: true,
+  petard: true,
   'fishing-ship': true,
   'transport-ship': true,
   'galley': true,

@@ -51,6 +51,7 @@ export type UnitType =
   | 'siege-ram'
   | 'bombard-cannon'
   | 'trebuchet'
+  | 'petard'
   // FU2: Militia-line intermediates (Man-at-Arms/Long Swordsman/Two-Handed Swordsman) + Paladin + Heavy Camel.
   | 'man-at-arms'
   | 'long-swordsman'

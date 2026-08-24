@@ -53,6 +53,9 @@ const WEAPONS = {
   'capped-ram': { kind: 'ram', parts: ['siege-ram-beam', 'siege-ram-head'] },
   'bombard-cannon': { kind: 'cannon', parts: ['siege-cannon-barrel', 'siege-cannon-muzzle', 'siege-cannon-breech'] },
   trebuchet: { kind: 'trebuchet', parts: ['siege-trebuchet-arm', 'siege-trebuchet-sling', 'siege-trebuchet-counterweight'] },
+  // A Petard's identifying prop is the KEG it carries, not a weapon — the
+  // same shape as the Fishing Ship, whose prop is its net.
+  petard: { kind: 'powder-keg', parts: ['detail-petard-powder-keg'] },
   monk: { kind: 'staff', parts: ['monk-staff', 'monk-staff-crossbar'] },
   // M5 naval: a Fishing Ship's identifying prop is its net, not a weapon.
   'fishing-ship': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },

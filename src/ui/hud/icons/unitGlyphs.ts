@@ -182,6 +182,7 @@ const UNIT_GLYPH_ROLES = {
   'siege-onager': 'siege',
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
+  petard: 'infantry',
   // M5 naval.
   'fishing-ship': 'ship',
   'transport-ship': 'ship',

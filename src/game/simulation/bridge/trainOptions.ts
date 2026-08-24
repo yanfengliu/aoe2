@@ -207,6 +207,9 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
             ? latestResearchedInChain(owner, [entry.unitType, entry.elite])
             : entry.unitType);
         }
+        // units.csv puts the Petard in the CASTLE age, unlike the Trebuchet:
+        // it is the early answer to a wall, not a late siege engine.
+        options.push('petard');
         if (isAtLeastAge(owner, 'imperial-age')) {
           options.push('trebuchet');
         }

@@ -191,7 +191,12 @@ export function isSiegeUnit(unitType: UnitType): boolean {
 // the game, spent in one use. A demolition ship that survived its own blast
 // would be a repeating area weapon with no cost for firing, which is a
 // different unit from the one the data describes.
-const DETONATING_UNITS = new Set<UnitType>(['demolition-ship', 'heavy-demolition-ship']);
+const DETONATING_UNITS = new Set<UnitType>([
+  'demolition-ship',
+  'heavy-demolition-ship',
+  // The land half of the same idea: a man carrying a keg of powder.
+  'petard',
+]);
 
 /** Whether this unit is consumed by its own attack. */
 export function detonatesOnAttack(unitType: UnitType): boolean {
@@ -219,6 +224,11 @@ const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
   'siege-ram': 200,
   'bombard-cannon': 200,
   trebuchet: 250,
+  // units.csv: "+500 buildings;+100 castle;+60 siege;+900 walls & gates". The
+  // per-building-KIND halves (castle, walls) are off this table's shape, which
+  // is one number per attacker, so the base +500 is what lands — the whole
+  // point of the unit, and enough to take a gate down in one detonation.
+  petard: 500,
   mangonel: 35,
   onager: 45,
   scorpion: 2,

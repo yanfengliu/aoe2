@@ -87,4 +87,22 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
     await expect(page.locator('[data-command="research-siege-ram-upgrade"]')).toBeVisible();
     await expect(page.locator('[data-command="research-siege-onager-upgrade"]')).toBeVisible();
   });
+
+  test('the Castle trains a Petard, which is Castle-Age content', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'imperial-castle-fixture');
+
+    expect(await game.selectOwnedBuildingDirect(page, 1, 'castle')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Castle');
+
+    const train = page.locator('[data-command="train-petard"]');
+    await expect(train).toBeVisible();
+    await train.click();
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+
+    const snapshot = await game.getSnapshot(page);
+    const petards = snapshot.economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'petard',
+    );
+    expect(petards).toHaveLength(1);
+  });
 });

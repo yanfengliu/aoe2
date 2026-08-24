@@ -65,6 +65,7 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   'capped-ram': 200,
   'bombard-cannon': 80,
   trebuchet: 150,
+  petard: 50, // units.csv hit_points.
   'man-at-arms': 50,
   'long-swordsman': 60,
   'two-handed-swordsman': 65,
@@ -157,6 +158,7 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   'capped-ram': 3,
   'bombard-cannon': 40,
   trebuchet: 200,
+  petard: 25, // units.csv attack, before its enormous building bonus.
   'man-at-arms': 6,
   'long-swordsman': 9,
   'two-handed-swordsman': 11,
@@ -253,6 +255,9 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   'capped-ram': 50,
   'bombard-cannon': 70,
   trebuchet: 100,
+  // Reload is irrelevant to a unit consumed by its first attack; this is the
+  // value units.csv carries (0) raised to a legal cadence.
+  petard: 20,
   'man-at-arms': 20,
   'long-swordsman': 20,
   'two-handed-swordsman': 20,
@@ -345,6 +350,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   'capped-ram': MELEE_ATTACK_RANGE,
   'bombard-cannon': 12,
   trebuchet: 16,
+  petard: MELEE_ATTACK_RANGE, // units.csv range 0: it walks up to the wall.
   'man-at-arms': MELEE_ATTACK_RANGE,
   'long-swordsman': MELEE_ATTACK_RANGE,
   'two-handed-swordsman': MELEE_ATTACK_RANGE,

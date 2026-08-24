@@ -106,6 +106,7 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'siege-onager':
       case 'bombard-cannon':
       case 'trebuchet':
+      case 'petard':
       case 'man-at-arms':
       case 'long-swordsman':
       case 'two-handed-swordsman':

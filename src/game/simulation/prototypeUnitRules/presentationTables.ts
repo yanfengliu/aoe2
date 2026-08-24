@@ -49,6 +49,8 @@ export const UNIT_TINTS: Record<UnitType, UnitTintPalette> = {
   'capped-ram': { human: 0x65503c, enemy: 0x67453c },
   'bombard-cannon': { human: 0x2f2f34, enemy: 0x3d2a2a },
   trebuchet: { human: 0x6c553a, enemy: 0x6a3d31 },
+  // Powder-keg brown with a dark iron band, distinct from the siege timber.
+  petard: { human: 0x8a6b46, enemy: 0x7a4436 },
   'man-at-arms': { human: 0xc68955, enemy: 0xca7570 },
   'long-swordsman': { human: 0xba7e50, enemy: 0xc1685f },
   'two-handed-swordsman': { human: 0xae7140, enemy: 0xb95e55 },
@@ -141,6 +143,7 @@ export const UNIT_SIZES: Record<UnitType, number> = {
   'capped-ram': 0.8,
   'bombard-cannon': 0.72,
   trebuchet: 0.85,
+  petard: 0.5, // A keg on legs: smaller than any siege engine.
   'man-at-arms': 0.5,
   'long-swordsman': 0.51,
   'two-handed-swordsman': 0.52,
@@ -233,6 +236,7 @@ export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
   'capped-ram': 3,
   'bombard-cannon': 13,
   trebuchet: 16,
+  petard: 4, // units.csv line_of_sight.
   'man-at-arms': 3,
   'long-swordsman': 3,
   'two-handed-swordsman': 3,

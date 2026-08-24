@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.59 - 2026-08-24
+
+### Added
+
+- **The Petard.** Demolition infantry, trained at the Castle from the Castle Age for 80 food and 20 gold: 50 hit points, and +500 attack against buildings, which is twice what a Trebuchet does. It walks up to what you point it at and goes off, taking itself with it — the same mechanic the demolition ships got in v0.3.58, which is what made it a day's work rather than a week's. It is the answer to a wall you cannot afford to besiege.
+
 ## 0.3.58 - 2026-08-24
 
 ### Fixed

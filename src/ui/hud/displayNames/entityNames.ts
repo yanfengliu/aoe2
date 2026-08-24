@@ -88,6 +88,7 @@ const ENTITY_NAMES = {
   'capped-ram': 'Capped Ram',
   'bombard-cannon': 'Bombard Cannon',
   'trebuchet': 'Trebuchet',
+  'petard': 'Petard',
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],

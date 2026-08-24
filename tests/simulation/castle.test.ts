@@ -61,7 +61,7 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
-    expect(trainOptions).toEqual(['longbowman']);
+    expect(trainOptions).toEqual(['longbowman', 'petard']);
   });
 
   it('Castle under a non-Britons owner exposes that civ unique unit, not the Longbowman', () => {
@@ -74,7 +74,7 @@ describe('Slice 6 Castle + Longbowman', () => {
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
-    expect(trainOptions).toEqual(['throwing-axeman']);
+    expect(trainOptions).toEqual(['throwing-axeman', 'petard']);
   });
 
   it('Longbowman hits a target at range 6 without closing', () => {

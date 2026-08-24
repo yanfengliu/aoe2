@@ -52,6 +52,9 @@ const UNIT_ROLES = {
   'siege-onager': 'siege',
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
+  // A petard is a MAN carrying a keg of powder, not a wheeled engine: it takes
+  // the infantry silhouette even though its armour class counts as siege.
+  petard: 'infantry',
   'fishing-ship': 'ship',
   'transport-ship': 'ship',
   'galley': 'ship',

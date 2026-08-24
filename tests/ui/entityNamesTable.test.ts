@@ -87,6 +87,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'capped-ram': ['Capped Ram', 'Capped Rams'],
   'bombard-cannon': ['Bombard Cannon', 'Bombard Cannons'],
   'trebuchet': ['Trebuchet', 'Trebuchets'],
+  'petard': ['Petard', 'Petards'],
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],

@@ -44,6 +44,8 @@ export function targetPriority(unitType: UnitType): number {
     case 'siege-onager':
     case 'bombard-cannon':
     case 'trebuchet':
+    // A Petard is a walking bomb: kill it before it arrives.
+    case 'petard':
       return 0;
     case 'monk':
       return 1;

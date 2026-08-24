@@ -122,6 +122,9 @@ const UNIT_VISUAL_PROFILES = {
   'capped-ram': { role: 'siege', weapon: 'ram', armor: 'mail', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'iron-roof' },
   'bombard-cannon': { role: 'siege', weapon: 'cannon', armor: 'plate', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'powder-chest' },
   trebuchet: { role: 'siege', weapon: 'trebuchet', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-sling' },
+  // A keg of powder carried by a man: infantry-sized, siege-roled, and its
+  // signature is the barrel itself.
+  petard: { role: 'infantry', weapon: 'tool', armor: 'cloth', headgear: 'leather-cap', shield: 'none', mount: 'none', tier: 1, signature: 'powder-keg' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   'transport-ship': { role: 'ship', weapon: 'boarding-ramp', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
