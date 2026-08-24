@@ -4,6 +4,9 @@ import {
   findPlacementAnchorNear,
   placementKeepsGroundConnected,
 } from '../../src/game/simulation/bridge/placementSearch';
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
+import { selectOwnedUnitDirect } from './createSimulationBridge.helpers';
 
 // v0.1.93 FIND → v0.1.94 fix: the AI could never place a 4x4 building (market,
 // castle, wonder) in an established base — findBuildPlacementNear only scanned
@@ -119,4 +122,33 @@ describe('findPlacementAnchorNear — will not seal off ground', () => {
     );
     expect(anchor).toEqual({ x: 20, y: 20 });
   });
+});
+
+// The invariant that keeps every footprint-walking query safe: a building's
+// cells are all ON the map. `isFootprintVisible` and `isFootprintExplored` walk
+// from an anchor across the footprint and hand each cell to the engine's
+// visibility map, which THROWS on an out-of-range coordinate rather than
+// answering false — the same engine contract that let a stray arrow end a match
+// in v0.3.55. Nothing in those helpers checks the range, so this is what makes
+// them correct.
+describe('a footprint can never leave the map', () => {
+  it('refuses a 4x4 building anchored at every edge and corner', () => {
+    const bridge = createSimulationBridge('imperial-age-fixture');
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('town-center');
+
+    const offMap: Array<{ x: number; y: number }> = [
+      { x: MAP_WIDTH - 1, y: MAP_HEIGHT - 1 },
+      { x: MAP_WIDTH - 1, y: 10 },
+      { x: 10, y: MAP_HEIGHT - 1 },
+      { x: MAP_WIDTH - 2, y: MAP_HEIGHT - 2 },
+    ];
+    for (const anchor of offMap) {
+      expect(bridge.beginBuildingPlacement('town-center')).toBe(true);
+      // Refused, and refused WITHOUT throwing: an engine range error here would
+      // reach the player as a crashed game rather than a rejected click.
+      expect(() => bridge.confirmBuildingPlacement(anchor.x, anchor.y)).not.toThrow();
+      expect(bridge.confirmBuildingPlacement(anchor.x, anchor.y)).toBe(false);
+    }
+  }, 60_000);
 });
