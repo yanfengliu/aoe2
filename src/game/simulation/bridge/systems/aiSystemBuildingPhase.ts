@@ -137,6 +137,10 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked, {
       owned: countOwnedFarms(),
       villagerCount: countOwnedUnits(owner, 'villager'),
+      // Farms outrank the rest of the build order only while the food is
+      // actually short; a well-fed AI that keeps replacing depleted soil never
+      // reaches the halls it has the resources for.
+      food: stockpile?.food ?? 0,
     });
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);

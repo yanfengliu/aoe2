@@ -220,11 +220,23 @@ export function targetFarmCount(age: AgeType, villagerCount: number): number {
   return Math.max(2, Math.min(8, Math.floor(villagerCount / 3)));
 }
 
+// Below this much food, farms outrank everything else in the build order. It is
+// the Feudal age-up's own cost — the cheapest age — so the rule reads as "the AI
+// cannot afford the next age, and no hall it builds will change that". Above it
+// the AI is well enough fed that another farm is worth less than the building it
+// is displacing: measured on the default map, the AI sat in Castle Age with 3004
+// food, 866 unspent stone and no Castle, because two depleted farms put it back
+// under its farm target on every decision and the queue never got past them.
+const FARM_PRIORITY_FOOD = 500;
+// The farm count the AI keeps no matter how rich it is. A player with a full
+// stockpile and no farms is one raid away from no food income at all.
+const MINIMUM_FARMS = 2;
+
 export function pickNextBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   populationBlocked: boolean,
-  farms: { owned: number; villagerCount: number } | null = null,
+  farms: { owned: number; villagerCount: number; food?: number } | null = null,
 ): BuildableBuildingType | null {
   // Pop block pre-empts everything: no production of any kind can
   // resume until the AI has headroom. A fresh House is the fastest fix.
@@ -251,7 +263,13 @@ export function pickNextBuildTarget(
   // Farms come BEFORE the age-up prerequisite buildings: those cost wood and
   // the age-up itself costs food, so an AI that puts up an Archery Range while
   // its food income is dead has spent wood to get no closer to Castle Age.
-  if (farms && farms.owned < targetFarmCount(age, farms.villagerCount)) {
+  // That reasoning only holds while the food IS short — above the age-up's own
+  // cost the AI is well fed, and another farm is worth less than the hall it
+  // would displace. Below the floor it always farms, whatever the stockpile.
+  const farmsWanted = farms ? targetFarmCount(age, farms.villagerCount) : 0;
+  const farmsShort = farms !== null && farms.owned < farmsWanted;
+  const foodShort = farms === null || (farms.food ?? 0) < FARM_PRIORITY_FOOD;
+  if (farmsShort && (foodShort || farms.owned < MINIMUM_FARMS)) {
     return 'farm';
   }
 
@@ -268,7 +286,7 @@ export function pickNextBuildTarget(
   }
 
   if (age === 'feudal-age') {
-    return null;
+    return farmsShort ? 'farm' : null;
   }
 
   // FU4: Monastery slotted between Siege Workshop and Castle so the
@@ -283,7 +301,10 @@ export function pickNextBuildTarget(
     }
   }
 
-  return null;
+  // Everything it wants is standing, so the deferred farms come back around —
+  // this is what keeps a well-fed AI replacing depleted soil instead of
+  // building nothing at all.
+  return farmsShort ? 'farm' : null;
 }
 
 // Given the owner's age + player resources + research prerequisite

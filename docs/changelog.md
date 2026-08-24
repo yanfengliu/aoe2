@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.44 - 2026-08-23
+
+### Fixed
+
+- **The computer opponent builds something other than farms.** It was stuck replacing them forever: it wants about one farm per three villagers, farms get eaten, and the moment one ran out it asked for another instead of moving on. In a measured match it reached the Castle Age with 3004 food, 866 stone and 1271 gold banked and had never built a Castle, Stable, Market, Monastery, University or tower. Farms now come first only while it is genuinely short of food.
+
 ## 0.3.43 - 2026-08-23
 
 ### Added
