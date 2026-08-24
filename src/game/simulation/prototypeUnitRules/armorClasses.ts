@@ -41,7 +41,11 @@ export type ArmorClass =
   // M4: AoE2's `unique unit` class. It was deferred as off-roster when the
   // taxonomy was written and only the Longbowman existed; the Samurai's +10
   // vs unique units now has 19 civilization units to bite on.
-  | 'unique-unit';
+  | 'unique-unit'
+  // Deferred when this taxonomy was written because nothing targeted it.
+  // The Eagle Warrior line does: units.csv gives it +8 (+10 Elite) against
+  // Monks, and running down a Monk before it converts is the line's job.
+  | 'monk';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -55,6 +59,9 @@ export const UNIT_ARMOR_CLASSES = {
   archer: new Set<ArmorClass>(['archer']),
   skirmisher: new Set<ArmorClass>(['archer']),
   'elite-skirmisher': new Set<ArmorClass>(['archer']),
+  'eagle-warrior': new Set<ArmorClass>(['infantry']),
+  'elite-eagle-warrior': new Set<ArmorClass>(['infantry']),
+  'hand-cannoneer': new Set<ArmorClass>(['archer']),
   knight: new Set<ArmorClass>(['cavalry']),
   crossbowman: new Set<ArmorClass>(['archer']),
   pikeman: new Set<ArmorClass>(['infantry', 'spearman']),
@@ -64,7 +71,7 @@ export const UNIT_ARMOR_CLASSES = {
   mangonel: new Set<ArmorClass>(['siege']),
   scorpion: new Set<ArmorClass>(['siege']),
   'battering-ram': new Set<ArmorClass>(['siege', 'ram']),
-  monk: new Set<ArmorClass>(), // `monk` armor class deferred (see header)
+  monk: new Set<ArmorClass>(['monk']),
   longbowman: new Set<ArmorClass>(['archer']),
   arbalest: new Set<ArmorClass>(['archer']),
   halberdier: new Set<ArmorClass>(['infantry', 'spearman']),
@@ -153,6 +160,13 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   // Skirmishers: anti-archer + anti-spearman.
   skirmisher: [{ targetClass: 'archer', bonus: 3 }, { targetClass: 'spearman', bonus: 3 }],
   'elite-skirmisher': [{ targetClass: 'archer', bonus: 4 }, { targetClass: 'spearman', bonus: 3 }],
+  // units.csv: +8 monks, +3 siege at the Castle-Age tier. The Monk bonus is
+  // the line's whole point — nothing else on the field runs one down.
+  'eagle-warrior': [{ targetClass: 'monk', bonus: 8 }, { targetClass: 'siege', bonus: 3 }],
+  'elite-eagle-warrior': [{ targetClass: 'monk', bonus: 10 }, { targetClass: 'siege', bonus: 5 }],
+  // units.csv: +10 infantry (+1 spearman, folded into the infantry line
+  // it is the answer to), +2 rams.
+  'hand-cannoneer': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'siege', bonus: 2 }],
   // Archer line: anti-spearman.
   crossbowman: [{ targetClass: 'spearman', bonus: 3 }],
   arbalest: [{ targetClass: 'spearman', bonus: 3 }],

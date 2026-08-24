@@ -52,6 +52,15 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
           ]);
           options.push(spearmanLine);
         }
+        if (isAtLeastAge(owner, 'castle-age')) {
+          // units.csv puts the trainable Eagle Warrior in Castle Age. (Its
+          // Dark-Age row is the free starting unit the Aztecs and Mayans get,
+          // not something a Barracks builds.)
+          options.push(latestResearchedInChain(owner, [
+            'eagle-warrior',
+            ['elite-eagle-warrior', 'elite-eagle-warrior-upgrade'],
+          ]));
+        }
         // A unique technology can open a unit somewhere it is not normally
         // trained — the Goths' Anarchy puts the Huskarl in the Barracks. Read
         // from the same table the research menu uses, so the two cannot drift.
@@ -140,6 +149,12 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
           ['elite-skirmisher', 'elite-skirmisher-upgrade'],
         ]);
         const options: TrainableUnitType[] = [archerLine, skirmisherLine];
+        // Gunpowder waits for Chemistry, the same gate the Bombard Cannon
+        // uses. units.csv has no prerequisite column and says only Imperial;
+        // AoE2 puts every gunpowder unit behind Chemistry.
+        if (isAtLeastAge(owner, 'imperial-age') && hasTechnology(owner, 'chemistry')) {
+          options.push('hand-cannoneer');
+        }
         if (isAtLeastAge(owner, 'castle-age')) {
           const cavArcherLine = latestResearchedInChain(owner, [
             'cavalry-archer',

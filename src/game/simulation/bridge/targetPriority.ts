@@ -54,6 +54,7 @@ export function targetPriority(unitType: UnitType): number {
     case 'cavalry-archer':
     case 'skirmisher':
     case 'elite-skirmisher':
+    case 'hand-cannoneer':
     case 'longbowman':
     case 'arbalest':
     case 'heavy-cavalry-archer':
@@ -76,6 +77,8 @@ export function targetPriority(unitType: UnitType): number {
     case 'elite-janissary':
       return 2;
     case 'militia':
+    case 'eagle-warrior':
+    case 'elite-eagle-warrior':
     case 'spearman':
     case 'pikeman':
     case 'knight':

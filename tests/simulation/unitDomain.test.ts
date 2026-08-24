@@ -18,6 +18,7 @@ const LAND_UNITS: readonly UnitType[] = [
   'paladin', 'heavy-camel',
   // The three tiers that completed existing lines (v0.3.45).
   'capped-ram', 'siege-onager', 'elite-skirmisher',
+  'eagle-warrior', 'elite-eagle-warrior', 'hand-cannoneer',
   // M4 unique units: every Castle-trained one is a land unit.
   'jaguar-warrior',
   'cataphract',

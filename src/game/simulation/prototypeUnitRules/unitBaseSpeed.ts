@@ -32,6 +32,9 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'archer': 120, // 0.96
   'skirmisher': 120, // 0.96
   'elite-skirmisher': 120, // 0.96, units.csv
+  'eagle-warrior': 137, // 1.1, units.csv — faster than any other infantry
+  'elite-eagle-warrior': 162, // 1.3, units.csv
+  'hand-cannoneer': 120, // 0.96, units.csv
   'knight': 169, // 1.35
   'crossbowman': 120, // 0.96
   'pikeman': 125, // 1.0

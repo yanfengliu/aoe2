@@ -25,6 +25,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'capped-ram-upgrade': { food: 300 }, // technologies.csv
   'siege-onager-upgrade': { food: 1450, gold: 1000 }, // technologies.csv
   'elite-skirmisher-upgrade': { wood: 250, gold: 160 }, // technologies.csv
+  'elite-eagle-warrior-upgrade': { food: 800, gold: 500 }, // technologies.csv
   'siege-engineers': { food: 500, wood: 600 }, // Siege Workshop, Imperial: +1 siege range.
   sappers: { food: 400, gold: 200 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
@@ -160,6 +161,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'capped-ram-upgrade': 500, // technologies.csv 50 s
   'siege-onager-upgrade': 1500, // technologies.csv 150 s
   'elite-skirmisher-upgrade': 500, // technologies.csv 50 s
+  'elite-eagle-warrior-upgrade': 400, // technologies.csv 40 s
   'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
   sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
   bracer: 500,

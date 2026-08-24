@@ -37,6 +37,9 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   archer: 30,
   skirmisher: 30,
   'elite-skirmisher': 35,
+  'eagle-warrior': 50, // units.csv
+  'elite-eagle-warrior': 60, // units.csv
+  'hand-cannoneer': 35, // units.csv
   knight: 100,
   crossbowman: 35,
   pikeman: 55,
@@ -126,6 +129,9 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   archer: 4,
   skirmisher: 2,
   'elite-skirmisher': 3,
+  'eagle-warrior': 7, // units.csv (the Castle-Age row, the trainable one)
+  'elite-eagle-warrior': 9, // units.csv
+  'hand-cannoneer': 17, // units.csv — the hardest single hit any archer-role unit lands
   knight: 10,
   crossbowman: 5,
   pikeman: 4,
@@ -219,6 +225,9 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   archer: 20,
   skirmisher: 20,
   'elite-skirmisher': 22,
+  'eagle-warrior': 20, // units.csv 2.0 s
+  'elite-eagle-warrior': 20, // units.csv 2.0 s
+  'hand-cannoneer': 34, // units.csv 3.45 s — slow enough that the 17 damage is not oppressive
   knight: 18,
   crossbowman: 20,
   pikeman: 10,
@@ -308,6 +317,9 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   archer: 4,
   skirmisher: 4,
   'elite-skirmisher': 5,
+  'eagle-warrior': MELEE_ATTACK_RANGE,
+  'elite-eagle-warrior': MELEE_ATTACK_RANGE,
+  'hand-cannoneer': 7, // units.csv
   knight: MELEE_ATTACK_RANGE,
   crossbowman: 5,
   pikeman: MELEE_ATTACK_RANGE,

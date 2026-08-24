@@ -154,6 +154,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Siege Onager';
     case 'elite-skirmisher-upgrade':
       return 'Elite Skirmisher';
+    case 'elite-eagle-warrior-upgrade':
+      return 'Elite Eagle Warrior';
     case 'siege-engineers':
       return 'Siege Engineers';
     case 'sappers':

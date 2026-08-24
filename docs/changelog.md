@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.48 - 2026-08-23
+
+### Added
+
+- **Eagle Warrior, Elite Eagle Warrior and Hand Cannoneer.** The Eagle line is the Meso-American answer to having no cavalry at all — fast infantry that raids, catches siege, and runs down Monks (+8 against them, +10 Elite) — trained at the Barracks from Castle Age and upgraded at the Barracks in Imperial. The Hand Cannoneer is the Imperial gunpowder answer to massed infantry, at the Archery Range once Chemistry is researched, and the only archer-role unit whose 17 damage goes straight through Skirmisher pierce armour.
+
+### Fixed
+
+- **A headband is no longer drawn as a steel helmet.** Infantry headgear treated everything but a leather cap as metal, so the Jaguar Warrior's headband rendered as a bright steel slab across the crown. It is now cloth and sits low, which is also what let the Eagle line wear its feathered headdress.
+
 ## 0.3.47 - 2026-08-23
 
 ### Fixed

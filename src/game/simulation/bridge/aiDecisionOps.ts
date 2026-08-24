@@ -75,6 +75,9 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
         return true;
       // Every M4 civilization unique unit is a military unit too.
       case 'militia':
+      case 'eagle-warrior':
+      case 'elite-eagle-warrior':
+      case 'hand-cannoneer':
       case 'champion':
       case 'spearman':
       case 'pikeman':

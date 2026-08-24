@@ -173,6 +173,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         if (!hasTechnology(owner, 'champion-upgrade')) {
           options.push('champion-upgrade');
         }
+        // technologies.csv: Imperial, Barracks, applies to the Eagle Warrior.
+        if (!hasTechnology(owner, 'elite-eagle-warrior-upgrade')) {
+          options.push('elite-eagle-warrior-upgrade');
+        }
       }
       if (options.length > 0) {
         return options;

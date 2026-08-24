@@ -46,13 +46,20 @@ function villager(context: UnitRecipeContext): void {
 }
 
 function infantryHeadgear(context: UnitRecipeContext, profile: UnitVisualProfile): void {
-  const metal = profile.headgear !== 'leather-cap';
+  // A headband and a leather cap are both cloth-and-hide. Everything else on
+  // an infantry head is a helmet.
+  const metal = profile.headgear !== 'leather-cap' && profile.headgear !== 'headband';
   add(
     context,
     'infantry-helmet',
     metal ? 'metal' : 'matte',
     metal ? VOXEL_COLORS.steel : VOXEL_COLORS.leather,
-    0, 1.38, 0, profile.headgear === 'kettle-helmet' ? 0.5 : 0.42, 0.2, 0.38,
+    0,
+    profile.headgear === 'headband' ? 1.36 : 1.38,
+    0,
+    profile.headgear === 'kettle-helmet' ? 0.5 : 0.42,
+    profile.headgear === 'headband' ? 0.09 : 0.2,
+    0.38,
   );
   if (profile.headgear === 'nasal-helmet') {
     add(context, 'infantry-helmet-nasal', 'metal', VOXEL_COLORS.steelDark, 0, 1.24, 0.19, 0.07, 0.25, 0.07);
@@ -76,6 +83,20 @@ function infantryArmor(context: UnitRecipeContext, unitType: UnitType, profile: 
   }
   const signatureTint = profile.tier === 3 ? VOXEL_COLORS.gold : shade(context.team, 0.74);
   signature(context, unitType, profile.signature, signatureTint, -0.23 + profile.tier * 0.15, 0.87, 0.2, 0.16 + profile.tier * 0.03, 0.22, 0.07);
+}
+
+/** Quills standing off the headband — what makes an Eagle Warrior one. */
+function featherHeaddress(context: UnitRecipeContext, unitType: UnitType, profile: UnitVisualProfile): void {
+  if (profile.signature !== 'feather-headdress') return;
+  const plume = profile.tier >= 2 ? VOXEL_COLORS.gold : shade(context.team, 0.86);
+  for (const [name, offsetX, lean] of [
+    ['left', -0.13, -0.34], ['centre', 0, 0], ['right', 0.13, 0.34],
+  ] as const) {
+    add(
+      context, `detail-${unitType}-quill-${name}`, 'matte', plume,
+      offsetX, 1.44, -0.1, 0.06, 0.3, 0.06, { roll: lean },
+    );
+  }
 }
 
 function infantryShield(context: UnitRecipeContext, profile: UnitVisualProfile): void {
@@ -111,6 +132,7 @@ function infantry(context: UnitRecipeContext, unitType: UnitType, profile: UnitV
   humanoidBase(context, 'infantry', context.team);
   infantryHeadgear(context, profile);
   infantryArmor(context, unitType, profile);
+  featherHeaddress(context, unitType, profile);
   infantryShield(context, profile);
   infantryWeapon(context, profile);
 }
@@ -184,6 +206,9 @@ function archer(context: UnitRecipeContext, unitType: UnitType, profile: UnitVis
  */
 function elitePlume(context: UnitRecipeContext, profile: UnitVisualProfile): void {
   if (!profile.elite) return;
+  // A feathered headdress IS this unit's elite mark — its quills go gold at
+  // the Elite tier. Adding a plume on top of them stacks three hats.
+  if (profile.signature === 'feather-headdress') return;
   // Clear whichever headgear this unit wears: a crest already stands to 1.82.
   const bottom = profile.headgear === 'crested-helmet' ? 1.84 : 1.58;
   add(context, 'humanoid-elite-plume', 'metal', VOXEL_COLORS.gold, 0, bottom, -0.03, 0.1, 0.2, 0.1);

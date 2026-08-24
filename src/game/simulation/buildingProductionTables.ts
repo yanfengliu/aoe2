@@ -12,9 +12,9 @@ import type { BuildingType, ResearchableTechnologyType, TrainableUnitType } from
 
 export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly TrainableUnitType[]>([
   ['town-center', ['villager']],
-  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman']],
+  ['barracks', ['militia', 'spearman', 'pikeman', 'halberdier', 'champion', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman', 'eagle-warrior', 'elite-eagle-warrior']],
   ['stable', ['scout', 'knight', 'light-cavalry', 'hussar', 'cavalier', 'camel', 'paladin', 'heavy-camel']],
-  ['archery-range', ['archer', 'skirmisher', 'elite-skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer']],
+  ['archery-range', ['archer', 'skirmisher', 'elite-skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer', 'hand-cannoneer']],
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'siege-onager', 'heavy-scorpion', 'capped-ram', 'siege-ram', 'bombard-cannon']],
   ['monastery', ['monk']],
   // M5 naval: the Dock is where every ship comes from.
@@ -53,7 +53,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry', 'sappers']],
   ['dock', ['war-galley-upgrade', 'galleon-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade']],
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'elite-skirmisher-upgrade', 'thumb-ring']],
-  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking']],
+  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking', 'elite-eagle-warrior-upgrade']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
   ['castle', ['elite-longbowman-upgrade', 'conscription',
     // Civilization unique technologies; which one an owner may see is

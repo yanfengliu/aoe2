@@ -80,6 +80,14 @@ export type AuthoredUnitVisualProfile = Omit<UnitVisualProfile, 'elite'>;
 const UNIT_VISUAL_PROFILES = {
   villager: { role: 'villager', weapon: 'tool', armor: 'cloth', headgear: 'hair', shield: 'none', mount: 'none', tier: 0, signature: 'apron' },
   militia: { role: 'infantry', weapon: 'sword', armor: 'leather', headgear: 'leather-cap', shield: 'round', mount: 'none', tier: 0, signature: 'hide-vest' },
+  // No helmet and no shield: the Eagle line is light infantry that trades
+  // armour for the speed nothing else on foot has. The feathered headdress
+  // is its signature, and the Elite tier is plated and crested.
+  'eagle-warrior': { role: 'infantry', weapon: 'sword', armor: 'cloth', headgear: 'headband', shield: 'none', mount: 'none', tier: 1, signature: 'feather-headdress' },
+  'elite-eagle-warrior': { role: 'infantry', weapon: 'sword', armor: 'leather', headgear: 'headband', shield: 'none', mount: 'none', tier: 2, signature: 'feather-headdress' },
+  // Plate and a sallet, unlike the Janissary's cloth and hood — the same
+  // weapon on a very different soldier.
+  'hand-cannoneer': { role: 'archer', weapon: 'hand-cannon', armor: 'plate', headgear: 'sallet', shield: 'none', mount: 'none', tier: 2, signature: 'powder-bandolier' },
   'man-at-arms': { role: 'infantry', weapon: 'sword', armor: 'mail', headgear: 'nasal-helmet', shield: 'round', mount: 'none', tier: 1, signature: 'mail-collar' },
   'long-swordsman': { role: 'infantry', weapon: 'sword', armor: 'mail', headgear: 'kettle-helmet', shield: 'kite', mount: 'none', tier: 2, signature: 'mail-skirt' },
   'two-handed-swordsman': { role: 'infantry', weapon: 'greatsword', armor: 'plate', headgear: 'sallet', shield: 'none', mount: 'none', tier: 2, signature: 'shoulder-guard' },

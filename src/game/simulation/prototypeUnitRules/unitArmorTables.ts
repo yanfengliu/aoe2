@@ -20,6 +20,9 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   archer: 0,
   skirmisher: 3,
   'elite-skirmisher': 4,
+  'eagle-warrior': 2, // units.csv 0/2
+  'elite-eagle-warrior': 4, // units.csv 0/4
+  'hand-cannoneer': 0, // units.csv 1/0
   knight: 2,
   crossbowman: 0,
   pikeman: 0,
@@ -114,6 +117,9 @@ export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
   archer: 0,
   skirmisher: 0,
   'elite-skirmisher': 0,
+  'eagle-warrior': 0, // units.csv 0/2
+  'elite-eagle-warrior': 0, // units.csv 0/4
+  'hand-cannoneer': 1, // units.csv 1/0
   knight: 2,
   crossbowman: 0,
   pikeman: 0,

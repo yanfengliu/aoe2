@@ -27,6 +27,7 @@ export type ResearchableTechnologyType =
   | 'capped-ram-upgrade'
   | 'siege-onager-upgrade'
   | 'elite-skirmisher-upgrade'
+  | 'elite-eagle-warrior-upgrade'
   // Siege Engineers (Siege Workshop, Imperial): +1 attack range to every SIEGE
   // unit. DERIVED at createCombatState for new units + imperative per-unit loop
   // in applyTechnology for existing ones (Fletching pattern). Spec §10.7.1.

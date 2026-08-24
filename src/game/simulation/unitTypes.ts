@@ -13,6 +13,14 @@ export type UnitType =
   // skirmisher"). Without it the Skirmisher never improves, which in Age of
   // Empires II makes the whole line a Feudal-only answer to archers.
   | 'elite-skirmisher'
+  // The Meso-American civilizations have no cavalry at all, so the Eagle line
+  // is their only fast unit — the one that raids, catches siege, and runs down
+  // Monks (units.csv gives it +8 against them). Castle Age at the Barracks.
+  | 'eagle-warrior'
+  | 'elite-eagle-warrior'
+  // Imperial gunpowder at the Archery Range: the answer to massed infantry,
+  // and the only archer-role unit whose damage ignores Skirmisher armour.
+  | 'hand-cannoneer'
   | 'knight'
   | 'crossbowman'
   | 'pikeman'

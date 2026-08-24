@@ -154,6 +154,9 @@ const UNIT_GLYPH_ROLES = {
   arbalest: 'archer',
   skirmisher: 'archer',
   'elite-skirmisher': 'archer',
+  'eagle-warrior': 'infantry',
+  'elite-eagle-warrior': 'infantry',
+  'hand-cannoneer': 'archer',
   longbowman: 'archer',
   'elite-longbowman': 'archer',
   // Cavalry (mounted melee).

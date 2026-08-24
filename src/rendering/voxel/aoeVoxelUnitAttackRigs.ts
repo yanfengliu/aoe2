@@ -177,6 +177,10 @@ const ROLE_ATTACK_RIGS = {
 const UNIT_ATTACK_RIGS = {
   villager: VILLAGER_RIG,
   militia: SWORD_RIG,
+  'eagle-warrior': SWORD_RIG,
+  'elite-eagle-warrior': SWORD_RIG,
+  // The Janissary's rig already models a shouldered barrel and its recoil.
+  'hand-cannoneer': HAND_CANNON_RIG,
   'man-at-arms': SWORD_RIG,
   'long-swordsman': SWORD_RIG,
   'two-handed-swordsman': GREATSWORD_RIG,

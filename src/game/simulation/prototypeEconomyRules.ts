@@ -86,6 +86,9 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   archer: { wood: 25, gold: 45 },
   skirmisher: { food: 35, wood: 25 },
   'elite-skirmisher': { food: 25, wood: 35 }, // units.csv
+  'eagle-warrior': { food: 20, gold: 50 }, // units.csv
+  'elite-eagle-warrior': { food: 20, gold: 50 }, // units.csv — the Elite upgrade is the whole cost
+  'hand-cannoneer': { food: 45, gold: 50 }, // units.csv
   knight: { food: 60, gold: 75 },
   crossbowman: { wood: 25, gold: 45 },
   pikeman: { food: 35, wood: 25 },
@@ -208,6 +211,9 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   archer: 350,
   skirmisher: 220,
   'elite-skirmisher': 220, // units.csv 22 s
+  'eagle-warrior': 350, // units.csv 35 s
+  'elite-eagle-warrior': 200, // units.csv 20 s
+  'hand-cannoneer': 340, // units.csv 34 s
   knight: 300,
   crossbowman: 270,
   pikeman: 220,

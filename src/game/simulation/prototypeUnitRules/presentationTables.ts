@@ -21,6 +21,9 @@ export const UNIT_TINTS: Record<UnitType, UnitTintPalette> = {
   // A tier brighter than the base Skirmisher, the same way the elite units
   // in this table read against their base tier.
   'elite-skirmisher': { human: 0xa8dadb, enemy: 0xd9a8c0 },
+  'eagle-warrior': { human: 0x8fd6a8, enemy: 0xd6a88f },
+  'elite-eagle-warrior': { human: 0x7ec99a, enemy: 0xc99a7e },
+  'hand-cannoneer': { human: 0x9aa8bd, enemy: 0xbda89a },
   knight: { human: 0xa6a08d, enemy: 0xb27d67 },
   crossbowman: { human: 0x6fa0c7, enemy: 0x9e74c8 },
   pikeman: { human: 0x6f9c5a, enemy: 0xb76e58 },
@@ -110,6 +113,9 @@ export const UNIT_SIZES: Record<UnitType, number> = {
   archer: 0.48,
   skirmisher: 0.48,
   'elite-skirmisher': 0.5,
+  'eagle-warrior': 0.5,
+  'elite-eagle-warrior': 0.52,
+  'hand-cannoneer': 0.5,
   knight: 0.58,
   crossbowman: 0.48,
   pikeman: 0.5,
@@ -199,6 +205,9 @@ export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
   archer: 5,
   skirmisher: 5,
   'elite-skirmisher': 7,
+  'eagle-warrior': 6, // units.csv — "extensive sight" is the DE line's
+  'elite-eagle-warrior': 6, // scouting role; units.csv still says 6
+  'hand-cannoneer': 9, // units.csv
   knight: 4,
   crossbowman: 5,
   pikeman: 3,

@@ -42,6 +42,7 @@ export const UNIT_LINE_UPGRADES: Partial<
   'paladin-upgrade': { from: ['cavalier'], to: 'paladin' },
   'pikeman-upgrade': { from: ['spearman'], to: 'pikeman' },
   'elite-skirmisher-upgrade': { from: ['skirmisher'], to: 'elite-skirmisher' },
+  'elite-eagle-warrior-upgrade': { from: ['eagle-warrior'], to: 'elite-eagle-warrior' },
   // The line is Battering -> Capped -> Siege (units.csv: "Siege Ram: Upgraded
   // Capped Ram"), so the Siege upgrade now takes the middle tier as its input.
   'capped-ram-upgrade': { from: ['battering-ram'], to: 'capped-ram' },

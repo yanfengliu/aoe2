@@ -139,6 +139,9 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
       ownedSpawn('capped-ram', 1, 30, 32, { vision: 3 }),
       ownedSpawn('siege-onager', 1, 33, 32, { vision: 3 }),
       ownedSpawn('elite-skirmisher', 1, 36, 32, { vision: 3 }),
+      ownedSpawn('eagle-warrior', 1, 39, 32, { vision: 3 }),
+      ownedSpawn('elite-eagle-warrior', 1, 42, 32, { vision: 3 }),
+      ownedSpawn('hand-cannoneer', 1, 45, 32, { vision: 3 }),
       ownedSpawn('town-center', 2, 53, 29, { vision: 4 }),
     ],
   };
