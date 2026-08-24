@@ -19,9 +19,9 @@ import {
 } from './startingOffsets';
 import { orientationFor } from './sharedTerrainHelpers';
 
-export function createDefaultMap(seed: string): PrototypeScenario {
+export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenario {
   const terrain = createBaseTerrain(seed);
-  const starts = createPlayerStarts();
+  const starts = createPlayerStarts(playerCount);
   const spawns = createSpawnList();
 
   // Iter-3 V3-13: hand the static-landmark cells to each player's

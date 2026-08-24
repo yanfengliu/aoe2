@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.61 - 2026-08-24
+
+### Added
+
+- **Three- and four-player skirmishes.** `?players=3` (or 4) opens a match with that many players on the standard map — each with its own corner, its own civilization and its own colour. Two players remains the default and the two-player map is unchanged cell for cell, so nothing about an existing game moves. Four is the ceiling on this map size: more would start players inside each other's opening, and growing the map is its own piece of work.
+
 ## 0.3.60 - 2026-08-24
 
 ### Added

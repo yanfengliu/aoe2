@@ -157,9 +157,12 @@ export interface PrototypeScenario {
 // in `prototypeScenario/dispatch.ts` to keep this file under 500 LOC;
 // the `DEFAULT_SEED` short-circuit stays here so the procedural default
 // map doesn't pay the lookup cost on every fresh game.
-export function createPrototypeScenario(seed = DEFAULT_SEED): PrototypeScenario {
+export function createPrototypeScenario(
+  seed = DEFAULT_SEED,
+  playerCount = 2,
+): PrototypeScenario {
   if (seed === DEFAULT_SEED) {
-    return createDefaultMap(seed);
+    return createDefaultMap(seed, playerCount);
   }
-  return dispatchScenario(seed);
+  return dispatchScenario(seed, playerCount);
 }

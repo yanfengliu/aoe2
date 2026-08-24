@@ -38,6 +38,7 @@ import type {
 
 // MemoryEntry has moved to `bridge/memoryTypes` — re-export so external
 // consumers of this module's types still resolve.
+import type { CreateSimulationBridgeOptions } from './createSimulationBridgeOptions';
 export type { MemoryEntry } from './bridge/memoryTypes';
 
 // agent-affordances B: payload types for getAgentBuildingOptions,
@@ -192,30 +193,7 @@ export type {
 // shapes live in `bridge/systems/systemTypes` (shared with the per-system
 // factories). CachedMovePath shape lives in `bridge/bridgeState`.
 
-export interface CreateSimulationBridgeOptions {
-  // Slice 9: when present, hydrate the new bridge from this save blob
-  // instead of running the normal scenario bootstrap. The blob's
-  // `schema` must equal `SAVE_SCHEMA_VERSION` exactly — the loader
-  // throws on mismatch.
-  savedGame?: SaveBlob;
-  // LLM-agent harness: owners listed here have `disableAi: true`
-  // applied to their PlayerStartSpec at scenario seed time. The
-  // existing aiStates.has(owner) gate then skips them. Closure-local;
-  // never serialized into world.state.
-  disableAiForOwners?: ReadonlySet<number>;
-  // Headless AI-vs-AI harness: force an AI onto the listed owners even if one is
-  // the human slot, so a deterministic playtest runs a competitive match instead
-  // of AI-vs-inert. Closure-local; the real game never sets it.
-  forceAiForOwners?: ReadonlySet<number>;
-  // Playtest-harness override: force the score timer on (spec §4.3) with this
-  // game length, even for a scenario that bakes none. Used by the corpus to
-  // terminate an otherwise-stalemating deterministic match on score. Ignored
-  // on the save-load path (no fresh scenario is built).
-  gameLength?: number;
-  // Civ selection (?civ=): override the freshly-built scenario start's civ for
-  // the listed owners (closure-local; seeds playerCivilizations; ignored on load).
-  civilizationsByOwner?: ReadonlyMap<number, string>;
-}
+export type { CreateSimulationBridgeOptions };
 
 export function createSimulationBridge(
   seed = DEFAULT_SEED,
@@ -280,6 +258,7 @@ export function createSimulationBridge(
     createWorld(effectiveSeed, visibility, savedGame, 'live', {
       disableAiForOwners: options.disableAiForOwners,
       forceAiForOwners: options.forceAiForOwners,
+      playerCount: options.playerCount,
       gameLength: options.gameLength,
       civilizationsByOwner: options.civilizationsByOwner,
     });

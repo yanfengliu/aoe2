@@ -8,6 +8,7 @@ import { createHudController, type HudController } from '../../ui/hud/createHudC
 import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
 import { parseCivParam } from './civParam';
+import { parsePlayersParam } from './playersParam';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -74,6 +75,10 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   // are felt in a real game. Unknown/absent → the default (Britons).
   const civilizationsByOwner = parseCivParam(window.location.href);
 
+  // Player count: ?players=3 opens a three-player skirmish. §2.2 puts "AI
+  // opponents" in scope, so a 1v1 is the default rather than the only shape.
+  const playerCount = parsePlayersParam(window.location.href);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
@@ -81,6 +86,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   let bridge: SimulationBridge = createSimulationBridge(seed, {
     disableAiForOwners: disableAiForOwners.size > 0 ? disableAiForOwners : undefined,
     civilizationsByOwner: civilizationsByOwner.size > 0 ? civilizationsByOwner : undefined,
+    playerCount,
   });
   const bridgeRef = (): SimulationBridge => bridge;
 

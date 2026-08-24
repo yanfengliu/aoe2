@@ -87,7 +87,11 @@ try {
     viewport: parseSize(size),
   });
   const page = await context.newPage();
-  await page.goto(`http://127.0.0.1:4173/?seed=${seed}`);
+  // PLAYERS=n captures a multi-player skirmish (?players=), which is the only
+  // way to SEE that three players look like three players.
+  const players = process.env.PLAYERS;
+  const query = players ? `?seed=${seed}&players=${players}` : `?seed=${seed}`;
+  await page.goto(`http://127.0.0.1:4173/${query}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
   });

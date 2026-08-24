@@ -16,11 +16,42 @@ import {
 } from '../sharedTerrainHelpers';
 import { SHORE_FISH_AMOUNT } from '../startingOffsets';
 
-export function createPlayerStarts(): PlayerStartSpec[] {
-  return [
-    { owner: 1, townCenter: { x: 8, y: 8 }, civilization: 'Britons' },
-    { owner: 2, townCenter: { x: 48, y: 24 }, civilization: 'Franks' },
-  ];
+/** How many players a standard map can seat. AoE2 allows eight; this map is
+ *  60x36, which is a two-player size, so more than four would start players
+ *  inside each other's opening — the spec's own size ladder (§4) is what has to
+ *  grow before that changes. */
+export const MAX_STANDARD_PLAYERS = 4;
+
+// Where each player opens, by how many are playing. The two-player row is the
+// established 1v1, cell for cell, so every existing map, screenshot and test
+// that assumed it still holds; three and four spread into the corners the same
+// distance apart.
+const START_POSITIONS: Readonly<Record<number, ReadonlyArray<{ x: number; y: number }>>> = {
+  2: [{ x: 8, y: 8 }, { x: 48, y: 24 }],
+  3: [{ x: 8, y: 8 }, { x: 48, y: 8 }, { x: 28, y: 26 }],
+  4: [{ x: 8, y: 8 }, { x: 48, y: 8 }, { x: 8, y: 26 }, { x: 48, y: 26 }],
+};
+
+// One civilization per seat, in a fixed order so a match is reproducible from
+// its seed alone. The first two are the established pair.
+const START_CIVILIZATIONS = ['Britons', 'Franks', 'Byzantines', 'Japanese'] as const;
+
+/**
+ * The players a standard map opens with. Defaults to two, so every caller that
+ * has not been told otherwise generates exactly the map it always did.
+ *
+ * A count outside 2..MAX_STANDARD_PLAYERS is clamped rather than throwing: this
+ * runs during map generation, where refusing to build a map is a worse answer
+ * to a bad URL than building a playable one.
+ */
+export function createPlayerStarts(playerCount = 2): PlayerStartSpec[] {
+  const count = Math.max(2, Math.min(MAX_STANDARD_PLAYERS, Math.floor(playerCount)));
+  const positions = START_POSITIONS[count] ?? START_POSITIONS[2]!;
+  return positions.map((townCenter, index) => ({
+    owner: index + 1,
+    townCenter: { ...townCenter },
+    civilization: START_CIVILIZATIONS[index] ?? START_CIVILIZATIONS[0],
+  }));
 }
 
 export function applyResourcePatch(

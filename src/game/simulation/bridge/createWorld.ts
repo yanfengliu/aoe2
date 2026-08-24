@@ -44,6 +44,9 @@ import type { CreateWorldResult } from './createWorldResult';
 export interface CreateWorldOptions {
   disableAiForOwners?: ReadonlySet<number>;
   forceAiForOwners?: ReadonlySet<number>;
+  /** How many players the procedural map opens with (2..4; default 2).
+   *  Fixtures decide their own, so this only reaches the default map. */
+  playerCount?: number;
   // Playtest-harness override: force the score timer on (spec §4.3) by
   // stamping `gameLength` onto the freshly-built scenario, even when the
   // scenario bakes none. Lets the corpus terminate an otherwise-stalemating
@@ -127,7 +130,7 @@ export function createWorld(
   // V4-8: scenario generation is only consumed by the fresh-bootstrap
   // path; on save-load it's discarded. Skip the procedural map build to
   // avoid wasted CPU on every load.
-  const scenario = savedGame ? null : createPrototypeScenario(seed);
+  const scenario = savedGame ? null : createPrototypeScenario(seed, options.playerCount);
   // LLM-agent harness: ?disableAi=2,3 plumbs through createSimulationBridge
   // → here. We toggle the existing PlayerStartSpec.disableAi flag so the
   // existing aiStates.has(owner) gate (aiSystem + autoAggressionSystem)
