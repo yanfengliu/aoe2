@@ -56,3 +56,26 @@ export function parseTeamAssignment(raw: string, playerCount: number): Map<numbe
   parsed.forEach((team, index) => teams.set(index + 1, team));
   return teams;
 }
+
+/**
+ * The owners whose vision this owner also sees.
+ *
+ * Cartography (Market, Feudal — technologies.csv "See ally line of sight") is
+ * one-way: researching it shows you what your allies can see, and shows them
+ * nothing of yours. Without it, or without allies, the list is empty and every
+ * visibility question is answered exactly as it was before teams existed.
+ */
+export function sharedVisionOwners(
+  teams: ReadonlyMap<number, number>,
+  owner: number,
+  hasCartography: boolean,
+  allOwners: Iterable<number>,
+): number[] {
+  if (!hasCartography) return [];
+  const shared: number[] = [];
+  for (const candidate of allOwners) {
+    if (candidate === owner) continue;
+    if (areAllied(teams, owner, candidate)) shared.push(candidate);
+  }
+  return shared;
+}

@@ -1154,6 +1154,12 @@ The three are CHAINED as AoE2 DE chains them — Dry Dock requires Careening, Sh
 
 **El Dorado (implemented v0.3.57).** The Mayans' Imperial unique technology, Castle, 750 food + 450 gold, 50s: +40 hit points to the Eagle line. It was deferred with the note "Eagle Warriors are not on the roster" — true when written and false from v0.3.48, which is the argument for re-reading a deferral list whenever the roster grows rather than trusting it.
 
+**Cartography (implemented v0.3.63).** Market, Feudal Age, 100 food + 100 gold, 60s — technologies.csv's "See ally line of sight", and the first technology the Market has ever hosted here. The researcher's projected frame unions its allies' visible AND explored cells with its own, and a projectile over an ally's ground is drawn for the same reason. It is ONE-WAY: researching it tells you what your allies see and tells them nothing of yours, which is how AoE2 plays it.
+
+The owners whose vision is shared come from `sharedVisionOwners` — empty without the technology, empty without allies, so a match with neither projects exactly the cells it always did, in the same order. It is read per FRAME rather than cached, because researching it mid-match has to take effect on the next frame rather than the next reload.
+
+The Market's other four technologies (Coinage, Banking, Caravan, Guilds) are about tribute and trade, neither of which exists yet.
+
 **Teams (implemented v0.3.62).** §2.2 puts "optional AI allies" in scope, and until this there was no notion of a side anywhere in the simulation: every owner that was not you was an enemy. A team is a NUMBER PER OWNER (`playerTeams`), and an owner with no entry is its own team — so a free-for-all stores nothing at all, an existing save loads as one, and every match played before teams existed behaves identically.
 
 `areAllied` / `isEnemyOwner` (alliances.ts) are the single answer to "is this somebody I should be shooting at", and every enemy test in `targetFindingOps` goes through them — which is what makes an ally safe from auto-aggression, from tower fire, from the AI's chosen target and from a monk's conversion in one change rather than five. Conquest follows the same rule: the match is decided when every other SIDE is eliminated, not every other player, which is what makes an ally worth having rather than one more player to outlive. Defeat is still personal: your own units and buildings gone is a defeat whether or not your ally fights on.

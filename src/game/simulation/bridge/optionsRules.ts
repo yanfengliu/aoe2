@@ -237,6 +237,16 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       return options;
     }
 
+    if (buildingType === 'market') {
+      // Cartography: see what your allies see (technologies.csv, Feudal). The
+      // Market's other technologies are about tribute and trade, which do not
+      // exist yet, so this is the whole list for now.
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'cartography')) {
+        return ['cartography'];
+      }
+      return [];
+    }
+
     if (buildingType === 'university') {
       return projectileTechOptions('university', owner, isAtLeastAge, hasTechnology);
     }

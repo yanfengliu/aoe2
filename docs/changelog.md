@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.63 - 2026-08-24
+
+### Added
+
+- **Cartography, and the Market's first technology of any kind.** Researched at the Market from the Feudal Age for 100 food and 100 gold, it shows you everything your allies can see — their explored map and whatever is under their units right now, updated as they move. It is one-way, as in Age of Empires II: your allies learn nothing about your map from it. Without allies, or without the technology, nothing changes.
+
 ## 0.3.62 - 2026-08-24
 
 ### Added

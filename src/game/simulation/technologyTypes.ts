@@ -118,6 +118,7 @@ export type ResearchableTechnologyType =
   // Conscription (Castle, Imperial): units trained at Barracks/Archery Range/Stable/Castle are created 25% faster. DERIVED train-time multiplier (productionTechEffects) at the trainingMarketOps enqueue.
   | 'conscription'
   | 'hoardings'
+  | 'cartography'
   | 'el-dorado'
   // Projectile techs (spec §10.4), both DERIVED at the launch site via
   // projectileTechEffects. Ballistics (University, Castle): shots lead a moving

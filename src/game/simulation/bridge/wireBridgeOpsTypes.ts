@@ -61,6 +61,7 @@ export type WireBridgeOpsResult = Omit<
   | 'pendingCommands'
   | 'getPopulationState'
   | 'getPlayerResources'
+  | 'getSharedVisionOwners'
   | 'getMatchState'
   | 'isSelected'
   | 'consumeOutOfBandRenderChange'

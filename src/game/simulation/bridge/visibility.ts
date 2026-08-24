@@ -66,6 +66,30 @@ export function visibleUnitDeaths(
     && death.witnessedBy.includes(playerId));
 }
 
+/**
+ * One player's cells plus every shared owner's, de-duplicated.
+ *
+ * Returns the player's own list untouched when nothing is shared, which is the
+ * common case and keeps the frame byte-identical for a match without allies.
+ */
+function unionCells(
+  visibility: VisibilityMap,
+  playerId: number,
+  sharedOwners: readonly number[],
+  kind: 'visible' | 'explored',
+): number[] {
+  const read = (owner: number) => (
+    kind === 'visible' ? visibility.getVisibleCells(owner) : visibility.getExploredCells(owner)
+  );
+  const own = read(playerId).map((cell) => toCellIndex(cell.x, cell.y));
+  if (sharedOwners.length === 0) return own;
+  const merged = new Set(own);
+  for (const owner of sharedOwners) {
+    for (const cell of read(owner)) merged.add(toCellIndex(cell.x, cell.y));
+  }
+  return [...merged];
+}
+
 export function createProjector(
   visibility: VisibilityMap,
   playerId: number,
@@ -77,6 +101,9 @@ export function createProjector(
   getWildlifeAlive: (id: number) => boolean | undefined,
   getUnitActiveVerb: (id: number) => 'building' | undefined,
   getInFlightProjectiles: () => readonly ProjectileState[],
+  /** Owners whose vision this player ALSO sees — Cartography's allies.
+   *  Read per frame, because researching it mid-match must take effect. */
+  getSharedVisionOwners: () => readonly number[] = () => [],
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -178,12 +205,15 @@ export function createProjector(
         seed,
         mapWidth: MAP_WIDTH,
         mapHeight: MAP_HEIGHT,
-        visibleCells: visibility
-          .getVisibleCells(playerId)
-          .map((cell) => toCellIndex(cell.x, cell.y)),
-        exploredCells: visibility
-          .getExploredCells(playerId)
-          .map((cell) => toCellIndex(cell.x, cell.y)),
+        // Cartography: an ally's vision is added to your own. With nobody
+        // shared — the default, and every match before teams existed — these
+        // are exactly the player's own cells, in the same order.
+        visibleCells: unionCells(
+          visibility, playerId, getSharedVisionOwners(), 'visible',
+        ),
+        exploredCells: unionCells(
+          visibility, playerId, getSharedVisionOwners(), 'explored',
+        ),
         recentUnitDeaths: visibleUnitDeaths(
           getRecentUnitDeaths(),
           world.tick,
@@ -192,7 +222,8 @@ export function createProjector(
         projectiles: visibleProjectiles(
           getInFlightProjectiles(),
           world.tick,
-          (x, y) => visibility.isVisible(playerId, x, y),
+          (x, y) => visibility.isVisible(playerId, x, y)
+            || getSharedVisionOwners().some((ally) => visibility.isVisible(ally, x, y)),
         ),
       };
     },

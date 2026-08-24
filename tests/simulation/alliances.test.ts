@@ -4,11 +4,20 @@ import {
   areAllied,
   isEnemyOwner,
   parseTeamAssignment,
+  sharedVisionOwners,
   teamOf,
 } from '../../src/game/simulation/alliances';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { parseTeamsParam } from '../../src/app/bootstrap/teamsParam';
+import { researchedTechnologiesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
+import {
+  placeBuildingNearTownCenter,
+  selectOwnedBuildingDirect,
+  selectOwnedUnitDirect,
+  stepBridgeUntil,
+} from './createSimulationBridge.helpers';
 
 // §2.2 puts "optional AI allies" in scope, and there was no notion of a team
 // anywhere in the simulation — every owner that was not you was an enemy.
@@ -144,4 +153,80 @@ describe('teams reach a real match through the bridge', () => {
     // keeps an existing save and an existing match unchanged.
     expect(none).toEqual([]);
   }, 60_000);
+});
+
+// Cartography (Market, Feudal — technologies.csv "See ally line of sight").
+describe('sharedVisionOwners', () => {
+  const owners = [1, 2, 3];
+
+  it('is empty without the technology, however many allies there are', () => {
+    const teams = new Map([[1, 1], [2, 1], [3, 2]]);
+    expect(sharedVisionOwners(teams, 1, false, owners)).toEqual([]);
+  });
+
+  it('is empty with the technology and no allies', () => {
+    expect(sharedVisionOwners(new Map(), 1, true, owners)).toEqual([]);
+  });
+
+  it('is the allies, and never the owner itself or an enemy', () => {
+    const teams = new Map([[1, 1], [2, 1], [3, 2]]);
+    expect(sharedVisionOwners(teams, 1, true, owners)).toEqual([2]);
+    expect(sharedVisionOwners(teams, 2, true, owners)).toEqual([1]);
+    expect(sharedVisionOwners(teams, 3, true, owners)).toEqual([]);
+  });
+});
+
+describe('Cartography in a real match', () => {
+  it('is offered at a Market from the Feudal Age and shows the ally’s map', () => {
+    const bridge = createSimulationBridge('allied-three-player-fixture', {
+      teamsByOwner: new Map([[1, 1], [2, 1], [3, 2]]),
+    });
+    const before = bridge.getHudState().visibleCells;
+
+    // Grant it the way research does, then read the frame again: the human is
+    // allied with owner 2, whose base is thirty-odd cells away.
+    const blob = asSchema2Blob(bridge.saveGame());
+    worldStateOf(blob)[researchedTechnologiesCodec.slot] = [[1, ['cartography']]];
+    const withCartography = createSimulationBridge('allied-three-player-fixture', {
+      savedGame: blob,
+    });
+    const after = withCartography.getHudState().visibleCells;
+
+    // The ally's vision is added to the player's own, so strictly more of the
+    // map is visible — and it is the ALLY's cells, not the enemy's.
+    expect(after).toBeGreaterThan(before);
+  }, 60_000);
+});
+
+describe('Cartography is reachable at a Market', () => {
+  it('is offered from the Feudal Age and drops out once researched', () => {
+    // This fixture has the Barracks a Market needs, and no Market — so the
+    // test builds one, which is also how a player gets there.
+    const bridge = createSimulationBridge('new-tech-reach-fixture');
+    expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+    expect(bridge.getSelectionState().buildOptions).toContain('market');
+    placeBuildingNearTownCenter(bridge, 'market');
+    expect(stepBridgeUntil(
+      bridge,
+      () => bridge.getEconomyState().buildings.some(
+        (building) => building.owner === 1
+          && building.buildingType === 'market'
+          && building.isComplete,
+      ),
+      { maxSteps: 2_000 },
+    )).toBe(true);
+
+    expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('cartography');
+    expect(bridge.queueResearch('cartography')).toBe(true);
+
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        selectOwnedBuildingDirect(bridge, 1, 'market');
+        return !bridge.getSelectionState().researchOptions.includes('cartography');
+      },
+      { maxSteps: 1_500 },
+    )).toBe(true);
+  }, 120_000);
 });

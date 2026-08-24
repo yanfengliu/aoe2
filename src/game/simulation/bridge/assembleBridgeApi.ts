@@ -2,11 +2,18 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CreateWorldResult } from './createWorldResult';
 import type { GameWorld } from './pureHelpers';
+import { sharedVisionOwners } from '../alliances';
+import type { ResearchableTechnologyType } from '../types';
+
+const EMPTY_SHARED_VISION_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
+
 import { cloneResources } from './pureHelpers';
 import type { MatchState } from '../types';
 import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
 import {
   playerResourcesCodec,
+  playerTeamsCodec,
+  researchedTechnologiesCodec,
   populationCodec,
   projectilesCodec,
 } from './bridgeStateSerialize';
@@ -22,6 +29,7 @@ export interface AssembleBridgeApiDeps
     | 'pendingCommands'
     | 'getPopulationState'
     | 'getPlayerResources'
+    | 'getSharedVisionOwners'
     | 'getMatchState'
     | 'isSelected'
     | 'consumeOutOfBandRenderChange'
@@ -67,6 +75,17 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getPlayerResources(playerId: number) {
       return cloneResources(
         accessor.get(playerResourcesCodec).get(playerId) ?? STANDARD_STARTING_RESOURCES,
+      );
+    },
+    // Cartography: the owners whose vision this one also sees. Empty without
+    // the technology or without allies, which is every match before teams.
+    getSharedVisionOwners(playerId: number) {
+      return sharedVisionOwners(
+        accessor.get(playerTeamsCodec),
+        playerId,
+        (accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_SHARED_VISION_TECHS)
+          .has('cartography'),
+        accessor.get(playerResourcesCodec).keys(),
       );
     },
     getMatchState() {

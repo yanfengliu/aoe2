@@ -34,6 +34,8 @@ export interface CreateWorldResult {
   getPopulationState: (playerId: number) => PopulationState;
   getPlayerAge: (playerId: number) => AgeType;
   getPlayerResources: (playerId: number) => PlayerResources;
+  /** Owners whose vision this player also sees — Cartography's allies. */
+  getSharedVisionOwners: (playerId: number) => number[];
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;

@@ -218,6 +218,7 @@ export function createSimulationBridge(
     getPopulationState,
     getPlayerAge,
     getPlayerResources,
+    getSharedVisionOwners,
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
@@ -266,7 +267,14 @@ export function createSimulationBridge(
   const renderStore = new RenderStore();
   const renderAdapter = new RenderAdapter({
     world: toEngineWorld(world),
-    projector: createProjector(visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth, getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb, getInFlightProjectiles),
+    projector: createProjector(
+      visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth,
+      getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb,
+      getInFlightProjectiles,
+      // Cartography: the human sees its allies' vision once it is researched.
+      // Read per frame so researching it mid-match takes effect immediately.
+      () => getSharedVisionOwners(HUMAN_PLAYER_ID),
+    ),
     debug: createRenderMetricsCapture(world),
     send(message) {
       renderStore.apply(message);

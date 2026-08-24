@@ -45,6 +45,10 @@ export function createNewTechReachFixture(seed: string): PrototypeScenario {
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ownedSpawn('archery-range', 1, 14, 6),
       ownedSpawn('monastery', 1, 18, 6, { vision: 8 }),
+      // A Barracks and a villager, because the Market needs the first to be
+      // offered and the second to be built — and Cartography needs a Market.
+      ownedSpawn('barracks', 1, 22, 6),
+      ownedSpawn('villager', 1, 10, 12, { vision: 4 }),
       ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };
