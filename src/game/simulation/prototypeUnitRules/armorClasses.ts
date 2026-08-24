@@ -54,6 +54,7 @@ export const UNIT_ARMOR_CLASSES = {
   spearman: new Set<ArmorClass>(['infantry', 'spearman']),
   archer: new Set<ArmorClass>(['archer']),
   skirmisher: new Set<ArmorClass>(['archer']),
+  'elite-skirmisher': new Set<ArmorClass>(['archer']),
   knight: new Set<ArmorClass>(['cavalry']),
   crossbowman: new Set<ArmorClass>(['archer']),
   pikeman: new Set<ArmorClass>(['infantry', 'spearman']),
@@ -73,8 +74,10 @@ export const UNIT_ARMOR_CLASSES = {
   champion: new Set<ArmorClass>(['infantry']),
   'elite-longbowman': new Set<ArmorClass>(['archer']),
   onager: new Set<ArmorClass>(['siege']),
+  'siege-onager': new Set<ArmorClass>(['siege']),
   'heavy-scorpion': new Set<ArmorClass>(['siege']),
   'siege-ram': new Set<ArmorClass>(['siege', 'ram']),
+  'capped-ram': new Set<ArmorClass>(['siege', 'ram']),
   'bombard-cannon': new Set<ArmorClass>(['siege']),
   trebuchet: new Set<ArmorClass>(['siege']),
   'fishing-ship': new Set<ArmorClass>(['ship']),
@@ -149,6 +152,7 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'heavy-camel': [{ targetClass: 'cavalry', bonus: 18 }, { targetClass: 'camel', bonus: 9 }],
   // Skirmishers: anti-archer + anti-spearman.
   skirmisher: [{ targetClass: 'archer', bonus: 3 }, { targetClass: 'spearman', bonus: 3 }],
+  'elite-skirmisher': [{ targetClass: 'archer', bonus: 4 }, { targetClass: 'spearman', bonus: 3 }],
   // Archer line: anti-spearman.
   crossbowman: [{ targetClass: 'spearman', bonus: 3 }],
   arbalest: [{ targetClass: 'spearman', bonus: 3 }],
@@ -160,10 +164,12 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   // Siege: anti-siege / anti-ram (mangonel's anti-infantry is BLAST, deferred).
   mangonel: [{ targetClass: 'siege', bonus: 12 }],
   onager: [{ targetClass: 'siege', bonus: 12 }],
+  'siege-onager': [{ targetClass: 'siege', bonus: 12 }],
   scorpion: [{ targetClass: 'ram', bonus: 1 }],
   'heavy-scorpion': [{ targetClass: 'ram', bonus: 2 }],
   'battering-ram': [{ targetClass: 'siege', bonus: 40 }],
   'siege-ram': [{ targetClass: 'siege', bonus: 65 }],
+  'capped-ram': [{ targetClass: 'siege', bonus: 50 }],
   // Bombard Cannon's CSV attack_bonus is ambiguous free-text ("+40
   // siege/camels;+20 siege;+40 stone defense"). We take the clear anti-siege
   // value; the grouped anti-camel reading, the extra "+20 siege" fragment, and

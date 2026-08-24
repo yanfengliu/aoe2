@@ -38,9 +38,14 @@ export const UNIT_LINE_UPGRADES: Partial<
   'long-swordsman-upgrade': { from: ['man-at-arms'], to: 'long-swordsman' },
   'man-at-arms-upgrade': { from: ['militia'], to: 'man-at-arms' },
   'onager-upgrade': { from: ['mangonel'], to: 'onager' },
+  'siege-onager-upgrade': { from: ['onager'], to: 'siege-onager' },
   'paladin-upgrade': { from: ['cavalier'], to: 'paladin' },
   'pikeman-upgrade': { from: ['spearman'], to: 'pikeman' },
-  'siege-ram-upgrade': { from: ['battering-ram'], to: 'siege-ram' },
+  'elite-skirmisher-upgrade': { from: ['skirmisher'], to: 'elite-skirmisher' },
+  // The line is Battering -> Capped -> Siege (units.csv: "Siege Ram: Upgraded
+  // Capped Ram"), so the Siege upgrade now takes the middle tier as its input.
+  'capped-ram-upgrade': { from: ['battering-ram'], to: 'capped-ram' },
+  'siege-ram-upgrade': { from: ['capped-ram'], to: 'siege-ram' },
   'two-handed-swordsman-upgrade': { from: ['long-swordsman'], to: 'two-handed-swordsman' },
   'war-galley-upgrade': { from: ['galley'], to: 'war-galley' },
   'elite-berserk-upgrade': { from: ['berserk'], to: 'elite-berserk' },

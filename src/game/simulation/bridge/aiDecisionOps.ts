@@ -83,6 +83,7 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'crossbowman':
       case 'arbalest':
       case 'skirmisher':
+      case 'elite-skirmisher':
       case 'longbowman':
       case 'elite-longbowman':
       case 'knight':
@@ -98,6 +99,8 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'heavy-scorpion':
       case 'battering-ram':
       case 'siege-ram':
+      case 'capped-ram':
+      case 'siege-onager':
       case 'bombard-cannon':
       case 'trebuchet':
       case 'man-at-arms':

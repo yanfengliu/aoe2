@@ -796,6 +796,14 @@ Representative generic lines include:
 
 Exact availability comes from the data.
 
+**Three line tiers the roster was missing (implemented 2026-08-23).** Comparing the `UnitType` union against `units.csv` found twenty names the code did not carry; most are wildlife modelled as resources, out of scope (King is Regicide only, §2.3), renames (`Scout Cavalry` is `scout`), or a state rather than a unit (`Trebuchet (packed)`). Three were real gaps, each completing a line that already existed:
+
+- **Capped Ram** (Imperial, Siege Workshop, 200 HP, attack 3, +1 ram armour) — the ram line's middle tier. It was **Battering Ram → Siege Ram in one step**; `units.csv` says "Siege Ram: Upgraded Capped Ram", so the Siege upgrade now takes the Capped Ram as its input and the Siege Workshop offers it only once the Capped upgrade is in — a menu that offers an upgrade whose input unit the player cannot have is a menu that lies.
+- **Siege Onager** (Imperial, 70 HP, attack 75, blast 1.5) — the mangonel line's last tier, and the most expensive unit upgrade in the game at 1450 food + 1000 gold.
+- **Elite Skirmisher** (35 HP, attack 3, range 1-5, pierce armour 4) — without it the Skirmisher never improved, which makes the whole line a Feudal-only answer to archers.
+
+**A CSV-vs-CSV conflict, resolved and recorded:** `units.csv` puts the Elite Skirmisher in the **Castle** Age while `technologies.csv` puts its upgrade in **Imperial**. §1 ranks the CSVs above this document but says nothing about the two disagreeing with each other; the unit row wins on an internal-consistency argument — a technology that unlocks a unit cannot be later than the unit's own age, or the unit row's age is meaningless. The costs come from `technologies.csv` either way.
+
 ### 9.2.1 Unique Units
 
 Every civilization has one signature unit trained at its **Castle**, and a handful have a second one trained at the **Dock**. A unique unit is an ordinary roster member in every mechanical respect — the same stat tables, the same armor classes, the same projectile rules — that happens to be gated on the owner's civilization. Nothing about the gate is special-cased per civilization: one table (`src/game/simulation/uniqueUnits.ts`) maps civilization to unit and to the building that trains it, and both the Castle and the Dock train menus read it. A civilization therefore cannot be offered another's unit, and a unit cannot be added and then offered to nobody.

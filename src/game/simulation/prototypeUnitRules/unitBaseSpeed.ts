@@ -31,6 +31,7 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'spearman': 125, // 1.0
   'archer': 120, // 0.96
   'skirmisher': 120, // 0.96
+  'elite-skirmisher': 120, // 0.96, units.csv
   'knight': 169, // 1.35
   'crossbowman': 120, // 0.96
   'pikeman': 125, // 1.0
@@ -50,8 +51,10 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'champion': 112, // 0.9
   'elite-longbowman': 120, // 0.96
   'onager': 75, // 0.6
+  'siege-onager': 75, // 0.6, units.csv
   'heavy-scorpion': 81, // 0.65
   'siege-ram': 75, // 0.6
+  'capped-ram': 62, // 0.5, units.csv
   'bombard-cannon': 87, // 0.7
   'trebuchet': 100, // 0.8
   'man-at-arms': 112, // 0.9

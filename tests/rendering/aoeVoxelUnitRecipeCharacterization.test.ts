@@ -114,15 +114,23 @@ describe('AoE voxel unit recipe characterization', () => {
         targetDistance: 1.4,
       })),
       memory: digestParts(state(), true),
+      // Re-recorded 2026-08-23 for the three line tiers (Capped Ram, Siege
+      // Onager, Elite Skirmisher). A whole-population hash cannot say WHICH
+      // unit moved it, so before touching these the per-unit digest check was
+      // run with an identity keyed by TYPE rather than by list position: all 83
+      // pre-existing units were byte-identical and only the three new entries
+      // appeared. Keying by position — which this payload does — makes an
+      // insertion shift every later unit's identity, which is why 56 units
+      // first looked changed and none of them were.
     }).toEqual({
-      idle: 'f03f9ae8bfa7999e745392ac680acc2010bbbe16373faa1294c79b12f79ec59b',
-      locomotion: 'd050c59692d472b7bcbea4e4046243bd511daabb14f52ef0ae8d09c538631625',
-      builderWork: 'bf97b0f4869fd14678a25f07dfa427526dab3aab8c114f3a0972bace51072d5c',
-      attackCoil: '4831b85d135280012c3eae549716985c543bb9f58387877f9018150c90865d6c',
-      attackImpact: 'd9e5dfb9dc6c2ce9efb49d5ae7b9623182d3bc27c98e92c22a7ea18b543c813e',
-      attackSnap: 'e9b681a2863d0378a9b74667a38362e2d246caddebb3652d1675e2541fff0766',
-      attackRecovery: '2323f249cac2bbe90e38ba3f6f4055d77ca57268f517504e739f1a29b0e8d325',
-      memory: '6c6815ecc5109aaf871046842af2725894fe2da609167037b4d68ee020b55100',
+      idle: '46a65cbff423172182c08c6a3215d13330d04f1166d5e9d3704022328c92b4c1',
+      locomotion: 'd1009237883519cbbbc6f3ecea7f107ca17011a6eebfc383c34afc76a16adaf1',
+      builderWork: '5a2c4dc02ff299f27b5cc738c98490c01f7958cb000d1729f27c05173a4e2192',
+      attackCoil: 'fe6b7948f505f9569a52e037ac4d07dac516ef60b241775cddcfa0b83c256497',
+      attackImpact: '7a886c0c537991f8a16378335adcda1d8ced587978c6a29c28c74c2b1e702268',
+      attackSnap: 'f81719b0b179735a90649ea7a7241d148d2097754df2d65a81e053f943a0b6ca',
+      attackRecovery: 'c89e371eca4001ec8edab6c094ef69ac18507d6dbeaa4973ff8a4f26d8c80035',
+      memory: '8d648bba9963969ae1a9a31b5966574a5bbfef316cc1d21d169250e04c1529ba',
     });
   });
 });

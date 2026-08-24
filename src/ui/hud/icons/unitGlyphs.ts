@@ -153,6 +153,7 @@ const UNIT_GLYPH_ROLES = {
   crossbowman: 'archer',
   arbalest: 'archer',
   skirmisher: 'archer',
+  'elite-skirmisher': 'archer',
   longbowman: 'archer',
   'elite-longbowman': 'archer',
   // Cavalry (mounted melee).
@@ -174,6 +175,8 @@ const UNIT_GLYPH_ROLES = {
   'heavy-scorpion': 'siege',
   'battering-ram': 'siege',
   'siege-ram': 'siege',
+  'capped-ram': 'siege',
+  'siege-onager': 'siege',
   'bombard-cannon': 'siege',
   trebuchet: 'siege',
   // M5 naval.

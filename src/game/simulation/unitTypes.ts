@@ -9,6 +9,10 @@ export type UnitType =
   | 'spearman'
   | 'archer'
   | 'skirmisher'
+  // The Skirmisher's own upgrade (units.csv "Elite Skirmisher: Upgraded
+  // skirmisher"). Without it the Skirmisher never improves, which in Age of
+  // Empires II makes the whole line a Feudal-only answer to archers.
+  | 'elite-skirmisher'
   | 'knight'
   | 'crossbowman'
   | 'pikeman'
@@ -28,7 +32,14 @@ export type UnitType =
   | 'champion'
   | 'elite-longbowman'
   | 'onager'
+  // The mangonel line's Imperial tier (units.csv "Siege Onager: Upgraded
+  // Onager"), the most expensive unit upgrade in the game at 1450 food and
+  // 1000 gold.
+  | 'siege-onager'
   | 'heavy-scorpion'
+  // The ram line's middle tier (units.csv "Capped Ram: Upgraded Battering Ram",
+  // Imperial). Its absence made the line Battering -> Siege in one step.
+  | 'capped-ram'
   | 'siege-ram'
   | 'bombard-cannon'
   | 'trebuchet'

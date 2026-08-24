@@ -40,6 +40,8 @@ export function targetPriority(unitType: UnitType): number {
     case 'onager':
     case 'heavy-scorpion':
     case 'siege-ram':
+    case 'capped-ram':
+    case 'siege-onager':
     case 'bombard-cannon':
     case 'trebuchet':
       return 0;
@@ -51,6 +53,7 @@ export function targetPriority(unitType: UnitType): number {
     case 'crossbowman':
     case 'cavalry-archer':
     case 'skirmisher':
+    case 'elite-skirmisher':
     case 'longbowman':
     case 'arbalest':
     case 'heavy-cavalry-archer':

@@ -148,6 +148,12 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Heavy Scorpion';
     case 'siege-ram-upgrade':
       return 'Siege Ram';
+    case 'capped-ram-upgrade':
+      return 'Capped Ram';
+    case 'siege-onager-upgrade':
+      return 'Siege Onager';
+    case 'elite-skirmisher-upgrade':
+      return 'Elite Skirmisher';
     case 'siege-engineers':
       return 'Siege Engineers';
     case 'sappers':

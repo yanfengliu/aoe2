@@ -36,7 +36,11 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     const options = bridge.getSelectionState().researchOptions;
     expect(options).toContain('onager-upgrade');
     expect(options).toContain('heavy-scorpion-upgrade');
-    expect(options).toContain('siege-ram-upgrade');
+    // The ram line is three tiers (v0.3.45), so the Siege upgrade only appears
+    // once the Capped one is in — offering an upgrade whose input unit the
+    // player cannot have would be a menu that lies.
+    expect(options).toContain('capped-ram-upgrade');
+    expect(options).not.toContain('siege-ram-upgrade');
   });
 
   it('researches Onager at the Siege Workshop and swaps existing Mangonels to Onager', () => {
@@ -154,7 +158,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     expect(bridge.getSelectionState().trainOptions).not.toContain('scorpion');
   }, 30_000);
 
-  it('researches Siege Ram at the Siege Workshop and swaps existing Battering Rams', () => {
+  it('walks a Battering Ram up the whole line, one tier at a time', () => {
     const bridge = createSimulationBridge('imperial-siege-fixture');
 
     const startingRam = findFirstOwnedUnit(bridge, 1, 'battering-ram');
@@ -162,40 +166,52 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     const ramId = startingRam!.id;
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
-    expect(bridge.queueResearch('siege-ram-upgrade')).toBe(true);
+    expect(bridge.queueResearch('capped-ram-upgrade')).toBe(true);
+    expect(
+      stepBridgeUntil(
+        bridge,
+        () =>
+          countOwnedUnits(bridge, 1, 'capped-ram') === 1
+          && countOwnedUnits(bridge, 1, 'battering-ram') === 0,
+        { maxSteps: 1500 },
+      ),
+    ).toBe(true);
+    // Same entity throughout: an upgrade swaps the unit's type, it does not
+    // replace the unit.
+    expect(bridge.getEconomyState().units.find((u) => u.id === ramId)?.unitType).toBe('capped-ram');
 
+    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
+    expect(bridge.queueResearch('siege-ram-upgrade')).toBe(true);
     expect(
       stepBridgeUntil(
         bridge,
         () =>
           countOwnedUnits(bridge, 1, 'siege-ram') === 1
-          && countOwnedUnits(bridge, 1, 'battering-ram') === 0,
+          && countOwnedUnits(bridge, 1, 'capped-ram') === 0,
         { maxSteps: 1500 },
       ),
     ).toBe(true);
-
-    const upgraded = bridge.getEconomyState().units.find((unit) => unit.id === ramId);
-    expect(upgraded?.unitType).toBe('siege-ram');
-  }, 30_000);
+    expect(bridge.getEconomyState().units.find((u) => u.id === ramId)?.unitType).toBe('siege-ram');
+  }, 60_000);
 
   it('swaps the Battering Ram train option for Siege Ram after research', () => {
     const bridge = createSimulationBridge('imperial-siege-fixture');
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('battering-ram');
-    expect(bridge.getSelectionState().trainOptions).not.toContain('siege-ram');
+    expect(bridge.getSelectionState().trainOptions).not.toContain('capped-ram');
 
-    expect(bridge.queueResearch('siege-ram-upgrade')).toBe(true);
+    expect(bridge.queueResearch('capped-ram-upgrade')).toBe(true);
     expect(
       stepBridgeUntil(
         bridge,
-        () => countOwnedUnits(bridge, 1, 'siege-ram') >= 1,
+        () => countOwnedUnits(bridge, 1, 'capped-ram') >= 1,
         { maxSteps: 1500 },
       ),
     ).toBe(true);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
-    expect(bridge.getSelectionState().trainOptions).toContain('siege-ram');
+    expect(bridge.getSelectionState().trainOptions).toContain('capped-ram');
     expect(bridge.getSelectionState().trainOptions).not.toContain('battering-ram');
   }, 30_000);
 

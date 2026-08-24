@@ -85,6 +85,7 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   spearman: { food: 35, wood: 25 },
   archer: { wood: 25, gold: 45 },
   skirmisher: { food: 35, wood: 25 },
+  'elite-skirmisher': { food: 25, wood: 35 }, // units.csv
   knight: { food: 60, gold: 75 },
   crossbowman: { wood: 25, gold: 45 },
   pikeman: { food: 35, wood: 25 },
@@ -104,8 +105,10 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   champion: { food: 60, gold: 20 },
   'elite-longbowman': { food: 35, gold: 40 },
   onager: { wood: 160, gold: 135 },
+  'siege-onager': { wood: 160, gold: 135 }, // units.csv
   'heavy-scorpion': { wood: 80, gold: 60 },
   'siege-ram': { wood: 160, gold: 75 },
+  'capped-ram': { wood: 160, gold: 75 }, // units.csv
   'bombard-cannon': { wood: 225, gold: 225 },
   trebuchet: { wood: 200, gold: 200 },
   // M5 naval: units.csv Fishing Ship — 75 wood, 40 s.
@@ -204,6 +207,7 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   spearman: 220,
   archer: 350,
   skirmisher: 220,
+  'elite-skirmisher': 220, // units.csv 22 s
   knight: 300,
   crossbowman: 270,
   pikeman: 220,
@@ -223,8 +227,10 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   champion: 210,
   'elite-longbowman': 300,
   onager: 460,
+  'siege-onager': 460, // units.csv 46 s
   'heavy-scorpion': 300,
   'siege-ram': 360,
+  'capped-ram': 360, // units.csv 36 s
   'bombard-cannon': 560,
   trebuchet: 500,
   'fishing-ship': 400,

@@ -21,6 +21,12 @@ export type ResearchableTechnologyType =
   | 'onager-upgrade'
   | 'heavy-scorpion-upgrade'
   | 'siege-ram-upgrade'
+  // The ram line's middle tier and the mangonel line's last one, plus the
+  // Skirmisher's own upgrade — three upgrades whose target units the roster was
+  // missing entirely (technologies.csv).
+  | 'capped-ram-upgrade'
+  | 'siege-onager-upgrade'
+  | 'elite-skirmisher-upgrade'
   // Siege Engineers (Siege Workshop, Imperial): +1 attack range to every SIEGE
   // unit. DERIVED at createCombatState for new units + imperative per-unit loop
   // in applyTechnology for existing ones (Fletching pattern). Spec §10.7.1.

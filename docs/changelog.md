@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.45 - 2026-08-23
+
+### Added
+
+- **Capped Ram, Siege Onager and Elite Skirmisher** — three upgrades that finish lines the game already had. The ram line went straight from Battering Ram to Siege Ram, skipping a tier; the mangonel line stopped an upgrade short; and the Skirmisher never improved at all, which made it a Feudal-only answer to archers. The Siege Ram upgrade now needs the Capped Ram first, so it appears at the Siege Workshop only once you have one.
+
 ## 0.3.44 - 2026-08-23
 
 ### Fixed
