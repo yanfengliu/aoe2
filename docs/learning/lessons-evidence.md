@@ -699,3 +699,25 @@ The check that generalises: a browser failure that contradicts a simulation prob
 `new-unit-reach-fixture` starts its owner with `startingResearchedTechnologies: ['chemistry', 'capped-ram-upgrade', 'onager-upgrade', 'elite-skirmisher-upgrade']` so each new unit is one click away. The browser test that "proved the Elite Skirmisher reachable with a mouse" asserted `[data-command="train-elite-skirmisher"]` was visible — which it was, because the fixture had already granted the upgrade that resolves the line's menu entry to that tier. The research itself was never offered by any card, in any age, for any civilization: `optionsRules`' archery-range block had no line for it. So the tier shipped in v0.3.45, the test passed, and the Skirmisher line still never improved for a real player. Caught six versions later by a table ⊆ menu gate, not by the test written for it.
 
 The check that generalises: read a fixture's `startingResearchedTechnologies` (and its pre-built buildings, and its pre-spawned units) as the list of things the test using it CANNOT check. If the thing under test is on that list, the test is asserting the consequence, not the mechanism.
+
+## Reading a gate's output through `tail`/`grep` instead of its exit code hides the gate (2026-08-24)
+
+**Rule:** a gate reports through its EXIT CODE. Filtering its stdout and reading the tail is not running the gate.
+
+`npm run lint` was red on `main` for two commits — e576d00 ("Add the Petard") and 656e2b3 ("Add Hoardings and El Dorado") — with two `no-fallthrough` errors: `src/game/simulation/bridge/targetPriority.ts:48` and `src/game/simulation/bridge/technologyOps.ts:380`. Both commits had introduced the same innocent-looking pattern, a prose comment sitting as the only content of a `case` label:
+
+```ts
+    case 'trebuchet':
+    // A Petard is a walking bomb: kill it before it arrives.
+    case 'petard':
+      return 0;
+```
+
+ESLint reads the comment as the case's body, so the label above it is a fall-through. The comment moves one line down, inside the body it explains, and the rule is satisfied with the prose intact.
+
+It survived two commits because the gate was invoked as `npm run lint 2>&1 | tail -1`, and eslint's last line is blank — so the visible output was empty, which reads exactly like success. The `2>&1 | tail -N` and `| grep -E` habit that keeps test output short also discards the one thing a gate is for.
+
+And `$?` after a PIPE is the last command's status, not the gate's — writing this entry, `npx vitest ... | grep -E "Tests "` printed `No test files found, exiting with code 1` and then `VITEST=0`, because grep succeeded. The gate must be the last command on its line.
+
+The check that generalises: run each gate unpiped and print its own `$?`. `npm run lint; echo "LINT=$?"` costs one word and cannot be misread; `| tail -1` can, and `| grep ...; echo $?` reports the wrong process entirely. The same applies to `npm test` (whose summary line survives a tail, which is why this went unnoticed there) and to any future gate whose failure output is short.
+
