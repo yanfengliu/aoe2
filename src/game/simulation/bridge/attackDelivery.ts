@@ -16,6 +16,7 @@ import type { Position } from 'civ-engine';
 import type { ResearchableTechnologyType, UnitType } from '../types';
 import { attackBonusAgainstBuilding } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
+import { detonatesOnAttack } from '../prototypeUnitRules';
 import { civBuildingAttackBonus } from '../civBonusEffects';
 import {
   ballisticsLeadsShots,
@@ -162,4 +163,12 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
     addKill: params.addKill,
     markDirty: params.markCombatDirty,
   });
+
+  // A demolition ship is spent against a building exactly as it is against a
+  // ship (units.csv: "self-destructs when used") — and a dock or a tower is
+  // half of what it is for, given its +220 against buildings. After the blast,
+  // so the explosion still lands.
+  if (detonatesOnAttack(attacker.unitType)) {
+    params.destroyUnit(attacker.id);
+  }
 }

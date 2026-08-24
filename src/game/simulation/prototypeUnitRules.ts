@@ -186,6 +186,18 @@ export function isSiegeUnit(unitType: UnitType): boolean {
   return UNIT_ARMOR_CLASSES[unitType].has('siege');
 }
 
+// units.csv, Demolition Ship: "Filled with explosives. SELF-DESTRUCTS WHEN
+// USED." The demolition line is a floating bomb — the widest blast radius in
+// the game, spent in one use. A demolition ship that survived its own blast
+// would be a repeating area weapon with no cost for firing, which is a
+// different unit from the one the data describes.
+const DETONATING_UNITS = new Set<UnitType>(['demolition-ship', 'heavy-demolition-ship']);
+
+/** Whether this unit is consumed by its own attack. */
+export function detonatesOnAttack(unitType: UnitType): boolean {
+  return DETONATING_UNITS.has(unitType);
+}
+
 export function isMeleeUnit(unitType: UnitType): boolean {
   return MELEE_UNITS.has(unitType);
 }

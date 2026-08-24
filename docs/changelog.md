@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.58 - 2026-08-24
+
+### Fixed
+
+- **A Demolition Ship is spent when it detonates.** units.csv describes it in as many words — "Filled with explosives. Self-destructs when used" — and it did not: it blasted, survived, reloaded and blasted again, which made the widest area weapon in the game free to use and a completely different unit from the one its own data describes. It now dies with its explosion, against ships and against buildings alike, and the blast still lands first.
+
 ## 0.3.57 - 2026-08-24
 
 ### Added

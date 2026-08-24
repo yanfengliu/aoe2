@@ -8,6 +8,7 @@ import type { Position } from 'civ-engine';
 import type { UnitComponent, UnitType } from '../types';
 import {
   attackBonusAgainstUnit,
+  detonatesOnAttack,
   combatDamageAfterArmor,
   effectiveMeleeArmor,
   effectivePierceArmor,
@@ -165,10 +166,17 @@ export function resolveUnitAttackOnUnit(params: {
     markDirty: params.markDirty,
   });
 
-  if (target.combat.currentHp <= 0) {
+  const primaryDied = target.combat.currentHp <= 0;
+  if (primaryDied) {
     params.addKill(attacker.owner);
     params.destroyUnit(target.id);
-    return true;
   }
-  return false;
+
+  // The demolition line is spent by its own blast (units.csv: "self-destructs
+  // when used"), and it goes AFTER the blast so the explosion still lands. No
+  // kill is credited for it: nobody killed the bomb, its owner spent it.
+  if (detonatesOnAttack(attacker.unitType)) {
+    params.destroyUnit(attacker.id);
+  }
+  return primaryDied;
 }
