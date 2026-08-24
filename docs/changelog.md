@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.46 - 2026-08-23
+
+### Fixed
+
+- **Upgraded units now look upgraded.** Thirteen upgrade lines rendered every tier identically, so researching the upgrade bought nothing you could see on the field. The whole naval roster was one hull with swapped weapons — a Galleon was pixel-for-pixel a Galley — and five Elite unique units (Cataphract, Samurai, Conquistador, Teutonic Knight, Janissary) were their base tier exactly. Warships now grow with their tier and carry more of their armament, the Capped Ram is capped in iron, the Siege Onager rides a braced axle, and every Elite tier wears a gilded plume. Base tiers are unchanged — only the upgrades moved.
+
 ## 0.3.45 - 2026-08-23
 
 ### Added

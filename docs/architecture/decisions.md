@@ -583,3 +583,11 @@ Consequences:
 **Consequence.** The 57 artifacts already tracked under `docs/devlog/artifacts/` stay where they are and keep their names; nothing regenerates them by accident, because a capture no longer lands there without `OUT_DIR`. Any command line copied from a devlog entry older than this date now writes to a different place than the entry describes, which is the intended trade — the entry's conclusion is the durable part, not its file path.
 
 **Also decided:** the same capture script grew `ZOOM` and `SIZE` (and the `setCameraZoom` browser-test hook behind it), so the multi-view sweep the local rules require comes from the maintained pair rather than from a one-off script per view.
+
+## 2026-08-23 — Visual characterization hashes part NAMES; the tier gate hashes only pixels
+
+`aoeVoxelUnitRecipeCharacterization` hashes the whole `VoxelPart` record, part keys included. That is right for its job — it pins the entire recipe surface and catches any unintended drift — but it makes the hash sensitive to a difference that no player can see and blind to identity between two units whose parts differ only by the unitType baked into their keys. Every unit's key carries its own unitType, so two pixel-identical units always hash differently there.
+
+`unitTierVisualDistinction` therefore hashes a deliberately narrower record: surface, tint, centre, size and rotation, with the key dropped. The two tests are kept separate rather than merged because they answer different questions — "did anything about this recipe move?" versus "can a player tell these two units apart?" — and a single hash cannot answer both. The narrow one is the one that opened red on 13 of 36 upgrade lines.
+
+Consequence to remember: a rename inside a recipe changes the characterization hash and not the tier hash, and a colour or size change moves both. When only the characterization hash moves, the change was invisible on screen.

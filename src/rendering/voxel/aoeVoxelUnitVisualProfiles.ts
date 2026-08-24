@@ -65,7 +65,17 @@ export interface UnitVisualProfile {
   readonly mount: UnitMount;
   readonly tier: 0 | 1 | 2 | 3;
   readonly signature: string;
+  /**
+   * True for the Elite tier of a line. DERIVED from the unit type rather than
+   * authored, because an authored flag is one a new elite unit can be shipped
+   * without — and an elite that looks exactly like its base tier is the defect
+   * `unitTierVisualDistinction` exists to stop.
+   */
+  readonly elite: boolean;
 }
+
+/** A profile as AUTHORED — everything but the fields derived at lookup. */
+export type AuthoredUnitVisualProfile = Omit<UnitVisualProfile, 'elite'>;
 
 const UNIT_VISUAL_PROFILES = {
   villager: { role: 'villager', weapon: 'tool', armor: 'cloth', headgear: 'hair', shield: 'none', mount: 'none', tier: 0, signature: 'apron' },
@@ -95,7 +105,7 @@ const UNIT_VISUAL_PROFILES = {
   'cavalry-archer': { role: 'cavalry-archer', weapon: 'mounted-bow', armor: 'leather', headgear: 'leather-cap', shield: 'none', mount: 'horse', tier: 1, signature: 'saddle-quiver' },
   'heavy-cavalry-archer': { role: 'cavalry-archer', weapon: 'mounted-bow', armor: 'mail', headgear: 'kettle-helmet', shield: 'none', mount: 'horse', tier: 3, signature: 'scale-barding' },
   mangonel: { role: 'siege', weapon: 'stone-thrower', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'rope-bundle' },
-  onager: { role: 'siege', weapon: 'stone-thrower', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-payload' },
+  onager: { role: 'siege', weapon: 'stone-thrower', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'stone-payload' },
   'siege-onager': { role: 'siege', weapon: 'stone-thrower', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'stone-payload' },
   scorpion: { role: 'siege', weapon: 'bolt-thrower', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'bow-cable' },
   'heavy-scorpion': { role: 'siege', weapon: 'bolt-thrower', armor: 'plate', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'reinforced-prod' },
@@ -107,15 +117,15 @@ const UNIT_VISUAL_PROFILES = {
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   'transport-ship': { role: 'ship', weapon: 'boarding-ramp', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
-  'galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
-  'war-galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
-  'galleon': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-bow' },
-  'fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-fire' },
-  'fast-fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-fire' },
-  'demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-powder' },
-  'heavy-demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-powder' },
-  'cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
-  'elite-cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'ship-cannon' },
+  'galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'ship-bow' },
+  'war-galley': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'ship-bow' },
+  'galleon': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'ship-bow' },
+  'fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'ship-fire' },
+  'fast-fire-ship': { role: 'ship', weapon: 'ship-fire', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'ship-fire' },
+  'demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'ship-powder' },
+  'heavy-demolition-ship': { role: 'ship', weapon: 'ship-powder', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'ship-powder' },
+  'cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'ship-cannon' },
+  'elite-cannon-galleon': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'ship-cannon' },
   'jaguar-warrior': { role: 'infantry', weapon: 'sword', armor: 'leather', headgear: 'headband', shield: 'none', mount: 'none', tier: 2, signature: 'jaguar-pelt' },
   'cataphract': { role: 'cavalry', weapon: 'mounted-sword', armor: 'plate', headgear: 'crested-helmet', shield: 'round', mount: 'horse', tier: 3, signature: 'lamellar-skirt' },
   'woad-raider': { role: 'infantry', weapon: 'sword', armor: 'cloth', headgear: 'hair', shield: 'none', mount: 'none', tier: 1, signature: 'woad-paint' },
@@ -133,8 +143,8 @@ const UNIT_VISUAL_PROFILES = {
   'teutonic-knight': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'kettle-helmet', shield: 'heater', mount: 'none', tier: 3, signature: 'teuton-cross' },
   'janissary': { role: 'archer', weapon: 'hand-cannon', armor: 'cloth', headgear: 'hood', shield: 'none', mount: 'none', tier: 3, signature: 'powder-horn' },
   'berserk': { role: 'infantry', weapon: 'greatsword', armor: 'leather', headgear: 'hair', shield: 'none', mount: 'none', tier: 2, signature: 'wolf-pelt' },
-  'turtle-ship': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'turtle-shell' },
-  'longboat': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'dragon-prow' },
+  'turtle-ship': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'turtle-shell' },
+  'longboat': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 1, signature: 'dragon-prow' },
   'elite-jaguar-warrior': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'headband', shield: 'none', mount: 'none', tier: 3, signature: 'jaguar-pelt' },
   'elite-cataphract': { role: 'cavalry', weapon: 'mounted-sword', armor: 'plate', headgear: 'crested-helmet', shield: 'round', mount: 'horse', tier: 3, signature: 'lamellar-skirt' },
   'elite-woad-raider': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'hair', shield: 'none', mount: 'none', tier: 3, signature: 'woad-paint' },
@@ -152,16 +162,16 @@ const UNIT_VISUAL_PROFILES = {
   'elite-teutonic-knight': { role: 'infantry', weapon: 'sword', armor: 'plate', headgear: 'kettle-helmet', shield: 'heater', mount: 'none', tier: 3, signature: 'teuton-cross' },
   'elite-janissary': { role: 'archer', weapon: 'hand-cannon', armor: 'plate', headgear: 'hood', shield: 'none', mount: 'none', tier: 3, signature: 'powder-horn' },
   'elite-berserk': { role: 'infantry', weapon: 'greatsword', armor: 'plate', headgear: 'hair', shield: 'none', mount: 'none', tier: 3, signature: 'wolf-pelt' },
-  'elite-turtle-ship': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'turtle-shell' },
-  'elite-longboat': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 3, signature: 'dragon-prow' },
-} as const satisfies Record<UnitType, UnitVisualProfile>;
+  'elite-turtle-ship': { role: 'ship', weapon: 'ship-cannon', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'turtle-shell' },
+  'elite-longboat': { role: 'ship', weapon: 'ship-bow', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 2, signature: 'dragon-prow' },
+} as const satisfies Record<UnitType, AuthoredUnitVisualProfile>;
 
 export function unitVisualProfile(unitType: UnitType): UnitVisualProfile | undefined {
-  const profile = (UNIT_VISUAL_PROFILES as Partial<Record<string, UnitVisualProfile>>)[unitType];
+  const profile = (UNIT_VISUAL_PROFILES as Partial<Record<string, AuthoredUnitVisualProfile>>)[unitType];
   if (!profile) return undefined;
   const canonicalRole = unitRole(unitType);
   if (profile.role !== canonicalRole) {
     throw new Error(`Unit visual profile role drifted for ${unitType}: ${profile.role} != ${canonicalRole}`);
   }
-  return profile;
+  return { ...profile, elite: unitType.startsWith('elite-') };
 }

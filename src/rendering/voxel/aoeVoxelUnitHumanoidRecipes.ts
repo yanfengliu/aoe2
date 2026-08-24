@@ -174,6 +174,22 @@ function archer(context: UnitRecipeContext, unitType: UnitType, profile: UnitVis
   signature(context, unitType, profile.signature, profile.tier === 3 ? VOXEL_COLORS.gold : shade(context.team, 0.76), -0.25, 0.86, 0.22, 0.14 + profile.tier * 0.03, 0.25, 0.07);
 }
 
+/**
+ * The Elite tier's plume. Five Elite unique units — Cataphract, Samurai,
+ * Conquistador, Teutonic Knight, Janissary — had profiles byte-identical to
+ * their base tier, so researching the Elite upgrade changed nothing a player
+ * could see. Gilding is already this roster's word for "top tier" (the
+ * tier-3 pauldrons and signature tints), so the Elite mark extends it rather
+ * than inventing a rank badge AoE2 does not have.
+ */
+function elitePlume(context: UnitRecipeContext, profile: UnitVisualProfile): void {
+  if (!profile.elite) return;
+  // Clear whichever headgear this unit wears: a crest already stands to 1.82.
+  const bottom = profile.headgear === 'crested-helmet' ? 1.84 : 1.58;
+  add(context, 'humanoid-elite-plume', 'metal', VOXEL_COLORS.gold, 0, bottom, -0.03, 0.1, 0.2, 0.1);
+  add(context, 'humanoid-elite-collar', 'metal', VOXEL_COLORS.gold, 0, 1.02, 0, 0.46, 0.07, 0.36);
+}
+
 export function addHumanoidUnitParts(
   context: UnitRecipeContext,
   unitType: UnitType,
@@ -182,4 +198,5 @@ export function addHumanoidUnitParts(
   if (profile.role === 'villager') villager(context);
   else if (profile.role === 'infantry') infantry(context, unitType, profile);
   else archer(context, unitType, profile);
+  elitePlume(context, profile);
 }

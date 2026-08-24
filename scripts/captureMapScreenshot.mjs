@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readdir, stat } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
 const label = process.env.LABEL ?? 'screenshot';
 // SEED selects the scenario to capture. Defaults to the real default view
@@ -35,6 +35,44 @@ function parseSize(value) {
     throw new Error(`SIZE must be "WIDTHxHEIGHT" in pixels, e.g. "1280x800"; got "${value}"`);
   }
   return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+// The page under capture is vite PREVIEW on 4173, which serves the built
+// `dist/` rather than the working tree. A capture taken after a source edit
+// but before a rebuild silently shows the PREVIOUS build — a screenshot that
+// looks like evidence and proves the opposite. It cost a session once: three
+// "after" captures and their pixel diffs were all the stale bundle, and the
+// ~1% of pixels that did differ were only the renderer's own ambient
+// animation noise. So refuse to capture a build older than its sources.
+async function newestModification(directory) {
+  let newest = 0;
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const path = join(directory, entry.name);
+    newest = Math.max(newest, entry.isDirectory()
+      ? await newestModification(path)
+      : (await stat(path)).mtimeMs);
+  }
+  return newest;
+}
+
+const builtAt = await stat('dist/index.html').then(
+  (entry) => entry.mtimeMs,
+  () => {
+    throw new Error(
+      'No dist/ to capture. vite preview serves the BUILD, not the working '
+      + 'tree, so run `npm run build` before capturing.',
+    );
+  },
+);
+const sourceAt = Math.max(await newestModification('src'), await newestModification('scripts'));
+if (sourceAt > builtAt) {
+  throw new Error(
+    'dist/ is older than src/ (built ' + new Date(builtAt).toISOString()
+    + ', newest source ' + new Date(sourceAt).toISOString()
+    + '). vite preview serves the BUILD, so this capture would show the '
+    + 'PREVIOUS build. Run `npm run build` first.',
+  );
 }
 
 await mkdir(dirname(outputPath), { recursive: true });

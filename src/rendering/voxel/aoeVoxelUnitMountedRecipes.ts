@@ -132,6 +132,20 @@ function mountArmor(context: UnitRecipeContext, unitType: UnitType, profile: Uni
   }
 }
 
+/**
+ * The Elite tier's plume, matching the humanoid roster's. The Elite
+ * Cataphract and Elite Conquistador were byte-identical to their base tier
+ * until v0.3.46, so the upgrade bought nothing a player could see.
+ */
+function elitePlume(context: UnitRecipeContext, profile: UnitVisualProfile): void {
+  if (!profile.elite) return;
+  const lift = profile.mount === 'elephant' ? 0.5 : 0;
+  // Clear the helmet (top 1.83) or the crest that stands above it (top 2.09).
+  const bottom = (profile.headgear === 'crested-helmet' ? 2.1 : 1.85) + lift;
+  add(context, 'cavalry-elite-plume', 'metal', VOXEL_COLORS.gold, 0, bottom, -0.02, 0.09, 0.18, 0.09);
+  add(context, 'cavalry-elite-collar', 'metal', VOXEL_COLORS.gold, 0, 1.3 + lift, 0, 0.34, 0.06, 0.3);
+}
+
 export function addMountedUnitParts(
   context: UnitRecipeContext,
   unitType: UnitType,
@@ -142,4 +156,5 @@ export function addMountedUnitParts(
   mountArmor(context, unitType, profile);
   mountedShield(context, profile);
   mountedWeapon(context, profile);
+  elitePlume(context, profile);
 }
