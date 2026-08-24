@@ -23,6 +23,7 @@ import { runBuildingPhase } from './aiSystemBuildingPhase';
 import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
+import { runHuntPhase } from './aiSystemHuntPhase';
 
 export type { AiSystemDeps } from './aiSystemTypes';
 
@@ -171,6 +172,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         runDefensePhase(deps, ctx);
         runBuildingPhase(deps, ctx);
         runProductionPhase(deps, ctx);
+        // After production, because a villager trained this tick is not idle yet,
+        // and before the attack phase, which is about military rather than food.
+        runHuntPhase(deps, ctx);
         runAttackPhase(deps, ctx);
       }
     },

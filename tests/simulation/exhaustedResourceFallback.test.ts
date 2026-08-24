@@ -48,32 +48,33 @@ function runExhaustedBase(steps: number) {
 }
 
 describe('villagers fall back to what is left when their resource runs out', () => {
-  // SKIPPED — this is the harness for a capability the AI does not have yet,
-  // kept because measuring it cost a 36000-tick match and three probes.
-  //
-  // What was measured on 2026-08-24, on this fixture:
+  // What was measured on 2026-08-24, before the AI could hunt:
   //   t=200  berries being eaten, six villagers on food, all working
   //   t=800  berries GONE; the AI rebalances desires to gold and stone, which
   //          do not exist here, and all six go idle
-  //   t=1500 unchanged — and the fallback that already exists
+  //   t=1500 unchanged — the kind-fallback that already exists
   //          (`assignIdleGatherer` walks the other kinds) finds nothing,
-  //          because the only food left is a LIVE BOAR and a live boar is not
-  //          an auto-gatherable resource
+  //          because the only food left is a LIVE BOAR, which is not an
+  //          auto-gatherable resource
   //   then   a boar tasked the way a player does it accepts the order and
-  //          KILLS the villager: unit 2161 leaves the roster, the boar keeps
-  //          all 340 food
+  //          KILLS the lone villager: unit 2161 leaves the roster and the boar
+  //          keeps all 340 of its food
   //
-  // So the gap is not the fallback. It is that AoE2 hunts boar with a PARTY of
-  // four to eight villagers (or lures it under the Town Center), and this AI
-  // sends nobody. Fish, the other food left in the real match, needs a Dock,
-  // which needs wood nobody has. Un-skip this once the AI can hunt.
-  it.skip('puts them on the remaining food instead of leaving them idle', () => {
-    const { working, idle, bridge } = runExhaustedBase(1_500);
-    // Most of the six are still working at the end; the split between berries
-    // and boar is the assignment's business, not this test's.
-    expect({ working, idle }).toEqual({ working: expect.any(Number), idle: expect.any(Number) });
-    expect(working).toBeGreaterThanOrEqual(4);
-    // And the food keeps arriving, which is what an idle villager never does.
-    expect(bridge.getEconomyState().playerResources[1]!.food).toBeGreaterThan(500);
+  // v0.3.56 sends a PARTY instead, which is AoE2's answer to the same animal.
+  it('sends a hunting party at the boar and eats it', () => {
+    const { bridge } = runExhaustedBase(3_000);
+    const eco = bridge.getEconomyState();
+    // The boar is eaten: no live boar with food left on the map.
+    const boarLeft = (eco.resources ?? []).filter(
+      (resource) => resource.resourceType === 'boar' && (resource.amount ?? 0) > 0,
+    );
+    expect(boarLeft).toEqual([]);
+    // And its food arrived. The plateau without hunting was 900 — the berries
+    // and nothing else — so anything above that is the carcass.
+    expect(eco.playerResources[1]!.food).toBeGreaterThan(900);
+    // The party survives: a lone villager dies to a boar, which is the whole
+    // reason the party size exists.
+    expect(eco.units.filter((u) => u.owner === 1 && u.unitType === 'villager').length)
+      .toBeGreaterThanOrEqual(4);
   }, 60_000);
 });

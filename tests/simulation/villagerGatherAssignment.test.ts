@@ -63,6 +63,8 @@ function scenarioWorld(): GameWorld {
 // Deps whose `findResourceApproachPlan` returns a plan only for ids in `reach`.
 function deps(reach: ReadonlySet<number>): GatherAssignmentDeps {
   return {
+    // Every cell is land in these fakes: the shore test only matters for fish.
+    isLandCell: () => true,
     isHarvestableResource: (_id, resource) => resource.amount > 0,
     findNearestDropOffBuilding: () => 99,
     findResourceApproachPlan: (_villagerId, resourceId) =>
@@ -145,7 +147,8 @@ describe('assignNearestResource reachability-aware reroute', () => {
       [NEAR_VILLAGER]: { position: { x: 19, y: 19 }, resource: berry(100) },
     });
     const localityDeps: GatherAssignmentDeps = {
-      isHarvestableResource: (_id, resource) => resource.amount > 0,
+      isLandCell: () => true,
+    isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => DROP_OFF,
       findResourceApproachPlan: () =>
         ({ destination: { x: 5, y: 5 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan),
@@ -199,7 +202,8 @@ describe('assignNearestResource reachability-aware reroute', () => {
       };
     }
     const pocketDeps: GatherAssignmentDeps = {
-      isHarvestableResource: (_id, resource) => resource.amount > 0,
+      isLandCell: () => true,
+    isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => DROP,
       findResourceApproachPlan: (_v, resourceId) =>
         resourceId === REACHABLE_ADJACENT
@@ -220,7 +224,8 @@ describe('assignNearestResource reachability-aware reroute', () => {
   it('idles immediately (no drop-off lookup) when no matching resource exists', () => {
     let dropOffLookups = 0;
     const countingDeps: GatherAssignmentDeps = {
-      isHarvestableResource: () => false, // everything depleted
+      isLandCell: () => true,
+    isHarvestableResource: () => false, // everything depleted
       findNearestDropOffBuilding: () => {
         dropOffLookups += 1;
         return 99;
@@ -256,7 +261,8 @@ describe('assignNearestResource reachability-aware reroute', () => {
     }
     let probes = 0;
     const countingDeps: GatherAssignmentDeps = {
-      isHarvestableResource: (_id, resource) => resource.amount > 0,
+      isLandCell: () => true,
+    isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => 99,
       findResourceApproachPlan: () => {
         probes += 1;

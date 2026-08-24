@@ -280,6 +280,8 @@ export interface RegisterAllSystemsDeps {
     activeWorld?: CivWorld,
   ) => boolean;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
+  /** Whether a land unit can stand on this cell — the shore test for fish. */
+  isLandCell: (x: number, y: number) => boolean;
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent, isAiControlled: boolean) => boolean;
   findResourceApproachPlan: (
     villagerId: number,

@@ -26,6 +26,7 @@ import type {
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEconomyRules';
 import { canGathererHarvest } from '../gatherDomain';
+import { isShoreFish } from '../shoreFishing';
 import type { UnitMovementPlan } from './movementTypes';
 
 // Cap on how many candidates the reachability-aware reroute pathfinds against
@@ -41,6 +42,8 @@ const MAX_REACHABILITY_PROBES = 16;
 
 export interface GatherAssignmentDeps {
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
+  /** Whether a land unit can stand on this cell — the shore test for fish. */
+  isLandCell: (x: number, y: number) => boolean;
   findNearestDropOffBuilding: (
     activeWorld: GameWorld,
     owner: number,
@@ -111,7 +114,13 @@ export function assignNearestResource(
     if (resourceKindToEconomyResource(resource.resourceType) !== gatherer.desiredResource) continue;
     // A fish is FOOD, so the kind filter above lets a land villager pick one —
     // and it then walks to the shoreline and never arrives. Domain first.
-    if (!canGathererHarvest(gathererUnitType, resource.resourceType)) continue;
+    // AoE2 gathers SHORE fish with villagers standing on the land beside them
+    // and leaves open water to boats. A fish with land next to it is therefore
+    // ordinary villager work; one without is not, and assigning a villager to
+    // it is the walk-to-the-coast-forever failure the domain rule exists for.
+    if (!canGathererHarvest(gathererUnitType, resource.resourceType, {
+      onShore: resource.resourceType === 'fish' && isShoreFish(position, deps.isLandCell),
+    })) continue;
     // M1 Farms: a farm (resource+building hybrid) is owner-only — exclude it
     // from another player's matching set. Neutral resources are unaffected.
     const isOwnedStructure =

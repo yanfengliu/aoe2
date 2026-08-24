@@ -107,6 +107,7 @@ export interface RegisterBridgeSystemsDeps {
   isCellPassableForUnit: RegisterAllSystemsArg['isCellPassableForUnit'];
   isCellPassableForWildlife: RegisterAllSystemsArg['isCellPassableForWildlife'];
   isHarvestableResource: RegisterAllSystemsArg['isHarvestableResource'];
+  isLandCell: RegisterAllSystemsArg['isLandCell'];
   isGarrisonedUnit: RegisterAllSystemsArg['isGarrisonedUnit'];
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
   getOrCreateMemoryMap: RegisterAllSystemsArg['getOrCreateMemoryMap'];
@@ -206,6 +207,7 @@ export function registerBridgeSystems(
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
+    isLandCell,
     isGarrisonedUnit,
     garrisonUnit,
     isPlacementBlocked,
@@ -227,6 +229,7 @@ export function registerBridgeSystems(
   // the bulk of the fields; explicit fields below cover anything not
   // in a spread (constants, raw helpers).
   registerAllSystems({
+    isLandCell,
     ...playerQueries,
     ...aiDecisionOps,
     ...targetFindingOps,

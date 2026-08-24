@@ -83,6 +83,8 @@ export interface VillagerEconomySystemDeps {
     activeWorld: CivWorld,
   ) => UnitMovementPlan | null;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
+  /** Whether a land unit can stand on this cell — the shore test for fish. */
+  isLandCell: (x: number, y: number) => boolean;
   isUnitAtTarget: (
     unitId: number,
     target: Position,
@@ -118,6 +120,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,
+    isLandCell,
     isUnitAtTarget,
     moveUnitOneSubgridStep,
     destroyResourceEntity,
@@ -128,6 +131,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
 
   const assignmentDeps: GatherAssignmentDeps = {
     isHarvestableResource,
+    isLandCell,
     findNearestDropOffBuilding,
     findResourceApproachPlan,
   };

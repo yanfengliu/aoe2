@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.56 - 2026-08-24
+
+### Added
+
+- **Villagers fish the shore, the way they do in Age of Empires II.** Shore fish — the ones in the shallow water against the coast — are gathered by villagers standing on the land beside them, with no Dock and no Fishing Ship; open water stays fishing-ship work. A player could already order this by hand and it worked; what could not happen was the automatic half, so no AI and no un-tasked villager ever took one. Fourteen fish sat untouched beside the shore in the 36000-tick match that froze.
+- **The AI hunts boar with a party when there is nothing else left.** A lone villager sent at a boar dies to it, which is why AoE2 sends four to eight. The AI now does the same, and only when the map has genuinely run out of everything else — villagers with something to gather are left alone, so the early economy is untouched.
+
+### Changed
+
+- **AI-versus-AI matches now finish.** Between the two changes above and the nearest-enemy targeting in v0.3.54, a match that used to run 40000 ticks and freeze with two idle economies resolves by conquest instead.
+
 ## 0.3.55 - 2026-08-24
 
 ### Fixed

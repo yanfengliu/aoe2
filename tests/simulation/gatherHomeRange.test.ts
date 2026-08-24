@@ -38,6 +38,8 @@ function worldWith(farPosition: Position, nearPosition: Position | null): GameWo
 
 const deps: GatherAssignmentDeps = {
   isHarvestableResource: (_id, resource) => resource.amount > 0,
+  // Every cell is land in these fakes: the shore test only matters for fish.
+  isLandCell: () => true,
   findNearestDropOffBuilding: () => DROP_OFF,
   findResourceApproachPlan: () => (
     { destination: { x: 1, y: 1 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan

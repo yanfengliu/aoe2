@@ -330,6 +330,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
+    // The shore test for fish: a cell a land unit can stand on.
+    isLandCell: (x: number, y: number) => isTerrainPassableForUnit(x, y),
     isGarrisonedUnit,
     isPlacementBlocked,
     getOrCreateMemoryMap,

@@ -14,7 +14,8 @@
 import { isWaterUnit } from './unitDomain';
 import type { ResourceKind, UnitType } from './types';
 
-/** Resources that sit in water and can only be worked from a boat. */
+/** Resources that sit in water. Open water is boat-only; a fish against the
+ *  shore is villager work too (see `canGathererHarvest`). */
 const WATER_RESOURCES = new Set<ResourceKind>(['fish']);
 
 export function isWaterResource(resourceKind: ResourceKind): boolean {
@@ -29,6 +30,18 @@ export function isWaterResource(resourceKind: ResourceKind): boolean {
  * it prevents — a unit walking forever toward something it can never stand
  * beside — is silent, so it must not depend on anyone remembering to add a case.
  */
-export function canGathererHarvest(unitType: UnitType, resourceKind: ResourceKind): boolean {
+export function canGathererHarvest(
+  unitType: UnitType,
+  resourceKind: ResourceKind,
+  options?: { readonly onShore?: boolean },
+): boolean {
+  // AoE2's one exception, and it is not an exception to the rule above so much
+  // as a correction to what "water resource" means: SHORE fish are gathered by
+  // villagers standing on the land beside them, with no Dock and no Fishing
+  // Ship. Only open water is boat work. The caller decides whether this fish
+  // touches land (shoreFishing.isShoreFish) — a land gatherer with `onShore`
+  // has somewhere to stand, which is exactly what the domain rule was there to
+  // guarantee.
+  if (resourceKind === 'fish' && options?.onShore === true) return true;
   return isWaterUnit(unitType) === isWaterResource(resourceKind);
 }

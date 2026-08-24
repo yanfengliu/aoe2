@@ -124,6 +124,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
+    isLandCell,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     findNearestDropOffBuilding,
@@ -186,6 +187,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerAiSystem({
     world,
     humanPlayerId,
+    isLandCell,
     visibility,
     accessor,
     monksByOwner,
@@ -348,6 +350,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerVillagerEconomySystem({
     world,
     accessor,
+    isLandCell,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     isHarvestableResource,
