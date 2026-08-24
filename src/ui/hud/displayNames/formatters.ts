@@ -14,6 +14,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
   switch (technologyType) {
     case 'murder-holes':
       return 'Murder Holes';
+    case 'parthian-tactics':
+      return 'Parthian Tactics';
     case 'redemption':
       return 'Redemption';
     case 'atonement':

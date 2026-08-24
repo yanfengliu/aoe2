@@ -34,9 +34,11 @@ describe('armor-tech bonuses (spec §11.8 — asymmetric melee/pierce)', () => {
     expect(pierceArmorTechBonus(state)).toBe(4); // pierce: +1+1+2
   });
 
-  it('EXTRA_PIERCE_ARMOR_TECHS holds exactly the four asymmetric techs', () => {
+  it('EXTRA_PIERCE_ARMOR_TECHS holds exactly the asymmetric techs', () => {
+    // The three top-tier Blacksmith armour techs, Loom, and — since v0.3.49 —
+    // Parthian Tactics, whose technologies.csv row reads "+1/+2 AR" too.
     expect([...EXTRA_PIERCE_ARMOR_TECHS].sort()).toEqual(
-      ['loom', 'plate-barding', 'plate-mail-armor', 'ring-archer-armor'],
+      ['loom', 'parthian-tactics', 'plate-barding', 'plate-mail-armor', 'ring-archer-armor'],
     );
   });
 

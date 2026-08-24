@@ -86,6 +86,9 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Thumb Ring (Archery Range, Castle).
   ballistics: { wood: 300, gold: 175 },
   'thumb-ring': { food: 300, wood: 250 },
+  // Parthian Tactics (Archery Range, Imperial): the cavalry archer's armor +
+  // anti-spearman technology.
+  'parthian-tactics': { food: 200, gold: 250 },
   // M5 naval, Dock (technologies.csv): the ship upgrade lines.
   'war-galley-upgrade': { food: 230, gold: 100 },
   'galleon-upgrade': { food: 400, wood: 315 },
@@ -218,6 +221,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   conscription: 600, // Castle, Imperial: 60 s × 10 TPS.
   ballistics: 600, // 60 s × 10 TPS.
   'thumb-ring': 450, // 45 s × 10 TPS.
+  'parthian-tactics': 650, // 65 s × 10 TPS.
   // M5 naval, Dock (technologies.csv): the ship upgrade lines.
   'war-galley-upgrade': 500,
   'galleon-upgrade': 650,

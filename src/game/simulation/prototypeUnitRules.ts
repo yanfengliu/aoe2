@@ -8,6 +8,7 @@ import type { ResourceKind, UnitType } from './types';
 import { armorClassBonus, UNIT_ARMOR_CLASSES } from './prototypeUnitRules/armorClasses';
 import {
   ARCHER_LINE_UNITS,
+  CAVALRY_ARCHER_UNITS,
   CAVALRY_UNITS,
   INFANTRY_UNITS,
   MELEE_ATTACK_RANGE,
@@ -108,6 +109,11 @@ export function unitMinAttackRange(unitType: UnitType): number {
 
 export function isArcherLineUnit(unitType: UnitType): boolean {
   return ARCHER_LINE_UNITS.has(unitType);
+}
+
+// A CAVALRY ARCHER — the mounted archer class Parthian Tactics arms and armors.
+export function isCavalryArcherUnit(unitType: UnitType): boolean {
+  return CAVALRY_ARCHER_UNITS.has(unitType);
 }
 
 export function isWildlifeResourceType(

@@ -122,6 +122,7 @@ export type ResearchableTechnologyType =
   // cavalry-archer lines.
   | 'ballistics'
   | 'thumb-ring'
+  | 'parthian-tactics'
   // M5 naval, Dock: the ship upgrade lines. Without these the warships
   // shipped with the naval roster had no way into the train menu.
   | 'war-galley-upgrade'

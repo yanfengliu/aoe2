@@ -14,6 +14,7 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { civUnitHpMultiplier } from '../civBonusEffects';
 import {
   isArcherLineUnit,
+  isCavalryArcherUnit,
   isCavalryUnit,
   isGunpowderUnit,
   isInfantryUnit,
@@ -162,6 +163,11 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     }
     if (isArcherLineUnit(unitType) && hasTechnology(owner, 'ring-archer-armor')) {
       applyArmorTech(state, 'ring-archer-armor');
+    }
+    // Parthian Tactics armors the mounted archers, which the FOOT archer armor
+    // line above deliberately does not cover.
+    if (isCavalryArcherUnit(unitType) && hasTechnology(owner, 'parthian-tactics')) {
+      applyArmorTech(state, 'parthian-tactics');
     }
     if (
       (isArcherLineUnit(unitType) || isGunpowderUnit(unitType))

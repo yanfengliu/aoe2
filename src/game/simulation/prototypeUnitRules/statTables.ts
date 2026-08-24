@@ -406,6 +406,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
 // `from './statTables'` keep working.
 export {
   ARCHER_LINE_UNITS,
+  CAVALRY_ARCHER_UNITS,
   CAVALRY_UNITS,
   INFANTRY_UNITS,
   MELEE_UNITS,

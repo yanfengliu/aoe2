@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.49 - 2026-08-23
+
+### Added
+
+- **Parthian Tactics.** The Archery Range's Imperial technology, and the last one it was missing: 200 food + 250 gold buys the cavalry-archer class +1 melee / +2 pierce armour and a bigger anti-spearman bonus (+4 for the Cavalry Archer line, +2 for the Mangudai line). It armours the mounted archers the Blacksmith's foot-archer line deliberately skips, so a cavalry archer finally has an armour upgrade of its own — and it applies to the riders already on the field, not only to the ones trained afterwards.
+
 ## 0.3.48 - 2026-08-23
 
 ### Added

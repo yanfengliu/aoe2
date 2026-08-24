@@ -45,6 +45,21 @@ export const CAVALRY_UNITS = new Set<UnitType>([
 // "Cavalry;Cavalry Archer;Conquistador" — conquistador is not in the roster).
 // Spread from CAVALRY_UNITS so the sets cannot drift. The barding ARMOR techs
 // stay on CAVALRY_UNITS (mounted archers take the archer armor line instead).
+// The CAVALRY-ARCHER class: the scope of Parthian Tactics (technologies.csv,
+// applies-to "Cavalry Archer;Mangudai"). Wider than MOUNTED_UNITS' two stock
+// entries because the unique mounted archers are cavalry archers too — the
+// Mangudai by name in that CSV row, the War Wagon by being the same thing.
+// Kept separate from ARCHER_LINE_UNITS (the FOOT archer armor line) so the
+// blacksmith archer techs are unaffected by this set.
+export const CAVALRY_ARCHER_UNITS = new Set<UnitType>([
+  'cavalry-archer',
+  'heavy-cavalry-archer',
+  'mangudai',
+  'elite-mangudai',
+  'war-wagon',
+  'elite-war-wagon',
+]);
+
 export const MOUNTED_UNITS = new Set<UnitType>([
   ...CAVALRY_UNITS,
   'cavalry-archer',

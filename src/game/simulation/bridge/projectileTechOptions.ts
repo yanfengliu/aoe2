@@ -1,5 +1,6 @@
 // Research options for the University and Archery Range: the two projectile
-// technologies (spec §10.4) plus the University's building-defence set:
+// technologies (spec §10.4), the Archery Range's Imperial Parthian Tactics,
+// plus the University's building-defence set:
 // Ballistics at the University and Thumb Ring at the Archery Range, both
 // Castle Age. Extracted from optionsRules.ts to keep that file under the
 // 500-LOC budget, following the losTechOptions precedent. Pure: the age and
@@ -52,8 +53,15 @@ export function projectileTechOptions(
     }
     return options;
   }
-  if (buildingType === 'archery-range' && !hasTechnology(owner, 'thumb-ring')) {
-    return ['thumb-ring'];
+  if (buildingType === 'archery-range') {
+    const options: ResearchableTechnologyType[] = [];
+    if (!hasTechnology(owner, 'thumb-ring')) options.push('thumb-ring');
+    // Parthian Tactics is Imperial, so the Archery Range — unlike the two
+    // Castle-Age projectile techs — now has an age-gated second entry.
+    if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'parthian-tactics')) {
+      options.push('parthian-tactics');
+    }
+    return options;
   }
   return [];
 }

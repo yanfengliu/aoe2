@@ -46,6 +46,7 @@ import {
 } from './bridgeStateSerialize';
 import {
   isArcherLineUnit,
+  isCavalryArcherUnit,
   isCavalryUnit,
   isGunpowderUnit,
   isInfantryUnit,
@@ -368,6 +369,12 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       // FU1: Imperial Blacksmith tier additions.
       case 'ring-archer-armor':
         applyArmorTechToOwnedUnits(owner, 'ring-archer-armor', isArcherLineUnit);
+        break;
+      // Parthian Tactics' armor half. Its ATTACK half is derived at the damage
+      // site (parthianTechEffects) rather than stored here, because the bonus
+      // depends on the target's armor class.
+      case 'parthian-tactics':
+        applyArmorTechToOwnedUnits(owner, 'parthian-tactics', isCavalryArcherUnit);
         break;
       case 'chemistry':
         // Chemistry grants +1 attack to archer-line units AND to

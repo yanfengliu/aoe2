@@ -12,6 +12,8 @@
 import type { Position } from 'civ-engine';
 
 import type { UnitComponent, UnitType } from '../types';
+import type { ResearchableTechnologyType } from '../types';
+import { parthianSpearmanAttackBonus } from '../parthianTechEffects';
 import {
   attackBonusAgainstUnit,
   combatDamageAfterArmor,
@@ -146,6 +148,10 @@ export interface ResolveProjectilesDeps {
   addKill: (owner: number) => void;
   markCombatDirty: () => void;
   markRender: () => void;
+  /** The shooting owner's researched set. Parthian Tactics' anti-spearman
+   *  bonus is derived here rather than stored on the shot, because it depends
+   *  on the TARGET's armor class — known only once the arrow lands. */
+  technologiesFor: (owner: number) => ReadonlySet<ResearchableTechnologyType>;
 }
 
 /**
@@ -207,7 +213,13 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
     if (connects) {
       const raw = shot.attackerUnitType === null
         ? shot.baseDamage
-        : shot.baseDamage + attackBonusAgainstUnit(shot.attackerUnitType, targetUnit.unitType);
+        : shot.baseDamage
+          + attackBonusAgainstUnit(shot.attackerUnitType, targetUnit.unitType)
+          + parthianSpearmanAttackBonus(
+            deps.technologiesFor(shot.attackerOwner),
+            shot.attackerUnitType,
+            targetUnit.unitType,
+          );
       targetCombat.currentHp -= combatDamageAfterArmor(
         raw,
         shot.attackType,

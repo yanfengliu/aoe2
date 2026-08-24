@@ -1031,6 +1031,11 @@ In-flight projectiles are simulation state and persist in saves. They are fog-ga
 
 - 100% accuracy for the archer line (Archer/Crossbowman/Arbalest, plus Longbowman) and the cavalry-archer line. Skirmishers, siege, and gunpowder are deliberately outside its scope, matching technologies.csv's "Archer;Cavalry Archer".
 
+**Parthian Tactics** (Archery Range, Imperial Age, 200 food + 250 gold, 65s):
+
+- the cavalry-archer class gains +1 melee / +2 pierce armour, and its attack against the spearman armour class rises — +4 for the Cavalry Archer line, +2 for the Mangudai line, matching technologies.csv's "+1/+2 AR and Cavalry Archer +4 and Mangudai +2 against pikemen". The class is the MOUNTED archers (Cavalry Archer, Heavy Cavalry Archer, Mangudai, War Wagon and their elites), which is deliberately not the foot-archer set the Blacksmith's archer armour line covers: a cavalry archer takes its armour from this technology instead.
+- the two halves ride different seams for a reason. The armour is per-unit state, applied to the units already standing when the research completes and to every one created afterwards, exactly like the Blacksmith armour line. The attack bonus is DERIVED at the damage site from the owner's researched set, because it depends on the TARGET's armour class — which is known only when the arrow lands, not when it is loosed. The War Wagon takes the armour and no attack bonus: its own units.csv row carries no anti-spearman value.
+
 The **University** (Castle Age, 200 wood, 60s build, 2100 HP, 2x2) trains no units and counts toward the Castle-Age building requirement for advancing to Imperial. It hosts Ballistics plus the building-defence technologies:
 
 | Technology | Age | Cost | Effect |

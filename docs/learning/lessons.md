@@ -10,6 +10,7 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- The browser suite serves `dist/` — an unrebuilt run measures the PREVIOUS commit, and its screenshots look like a real UI defect ([evidence](lessons-evidence.md#the-browser-suite-serves-dist-2026-08-23))
 - A menu derived from world state ANSWERS DIFFERENTLY after you mutate that state — snapshot eligibility before the write ([evidence](lessons-evidence.md#a-menu-derived-from-world-state-answers-differently-after-you-mutate-that-state-2026-08-23))
 - Ask what a REGION can work, not whether one resource is reachable — a flood fill answered in one run what six per-target probes could not ([evidence](lessons-evidence.md#ask-what-a-region-can-work-not-whether-one-resource-is-reachable-2026-08-23))
 - A success metric written for a FROZEN system reads a decided match as a frozen one — measure every player, and whether the game ended ([evidence](lessons-evidence.md#a-success-metric-written-for-a-frozen-system-reads-a-decided-match-as-a-frozen-one-2026-08-23))

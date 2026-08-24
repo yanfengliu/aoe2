@@ -6,11 +6,17 @@
 // this tick is never resolved on the same tick it was launched — flight time
 // is always observable, and a point-blank shot still spends a tick in the air.
 
-import type { UnitType } from '../../types';
+import type { ResearchableTechnologyType, UnitType } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { combatStatesCodec, projectilesCodec } from '../bridgeStateSerialize';
+import {
+  combatStatesCodec,
+  projectilesCodec,
+  researchedTechnologiesCodec,
+} from '../bridgeStateSerialize';
 import { resolveDueProjectiles } from '../projectileOps';
 import type { GameWorld } from '../pureHelpers';
+
+const EMPTY_TECH_SET: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;
@@ -60,6 +66,8 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
         slot,
         tick: activeWorld.tick,
         combatStates: accessor.get(combatStatesCodec),
+        technologiesFor: (owner) =>
+          accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
         damageBuilding,
         destroyUnit: destroyUnitEntity,
         addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,

@@ -21,6 +21,9 @@ export const EXTRA_PIERCE_ARMOR_TECHS: ReadonlySet<ResearchableTechnologyType> =
   'plate-mail-armor',
   'plate-barding',
   'ring-archer-armor',
+  // Parthian Tactics is the cavalry archer's own armor tech, and technologies
+  // .csv gives it the same asymmetric "+1/+2 AR" as the top-tier armor lines.
+  'parthian-tactics',
 ]);
 
 export interface ArmorTechState {

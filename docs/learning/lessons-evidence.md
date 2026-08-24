@@ -681,3 +681,13 @@ Three separate "AI defects" found while building `ai-feudal-stone-fixture` were 
 3. **The theory that grew out of (2)** — that the AI orphans foundations when `villagerRebalance` pulls their builder, and never re-staffs them — was implemented (re-staff one orphan per decision tick via `pushUnitContextAtEntityIntention`, the same intention a human right-click produces) and then reverted. It made the fixture strictly worse: stone 0 and wood 815 at tick 4000 against 290 and 2710 without it. The real map completes 22 buildings by tick 10000, which is what should have been checked first.
 
 The check that generalises: before believing an AI defect that only a new fixture shows, look at whether the same behaviour appears on the default map. `npm run ai:trajectory` answers it in a few minutes and its `buildingKinds` column would have refuted (2) immediately.
+
+## The browser suite serves dist (2026-08-23)
+
+**Rule:** the browser suite serves `dist/` — an unrebuilt run measures the PREVIOUS commit, and its screenshots look like a real UI defect.
+
+`playwright.config.ts` runs `webServer: npm.cmd run preview`, and `vite preview` serves the last `npm run build`. Nothing in a Playwright run rebuilds.
+
+The war story: `tests/browser/new-tech-reach.spec.ts` failed on `[data-command="research-parthian-tactics"]` with "element(s) not found", while a simulation probe on the very same fixture printed `researchOptions` = `["crossbowman-upgrade","thumb-ring","parthian-tactics","arbalest-upgrade","heavy-cavalry-archer-upgrade"]`. Playwright's captured page context listed exactly four research buttons — Crossbowman, Thumb Ring, Arbalest, Heavy Cavalry Archer — which reads as a UI-side filter silently dropping a technology the command card does not know, the same defect class the spec file exists to catch. It was the pre-change build. `npm run build`, then the same spec, unchanged: passed in 5.5 s.
+
+The check that generalises: a browser failure that contradicts a simulation probe on the same fixture is a STALE BUILD until proven otherwise. Run `npm run build` before `npx playwright test`, and treat a page-context screenshot as evidence about whatever build the preview server is holding — not about the working tree.
