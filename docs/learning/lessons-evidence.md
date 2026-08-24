@@ -660,3 +660,24 @@ A CSS-only HUD change diffed at 16.8% of an 800x600 frame, with red specks scatt
 
 Anchor: `scripts/diffMapScreenshots.mjs` run twice over `LABEL=noise-before` / `LABEL=noise-after` captures of one build.
 
+## Run the typecheck gate before theorising about a test's numbers — vitest alone will happily run a call TypeScript would have rejected (2026-08-23)
+
+`stepBridgeUntil(bridge, predicate, maxSteps)` does not exist. The helper's third parameter is an OPTIONS OBJECT — `{ maxSteps?, stepMs? }` — so `stepBridgeUntil(bridge, () => stone >= 125, 6000)` silently fell back to the default `maxSteps: 1000`. Every measurement built on it ran a third as long as it read, and the resulting numbers drove two rounds of wrong theorising about why the AI's stone income looked broken: the AI was fine, the clock was short.
+
+TypeScript catches this exactly. Restoring the call and running `npx tsc --noEmit` gives:
+
+```
+tests/simulation/zztc.test.ts(6,39): error TS2559: Type '6000' has no properties in common with type '{ maxSteps?: number | undefined; stepMs?: number | undefined; }'.
+```
+
+`tsconfig.json` already includes `tests`, so the gate was never missing — it was never run. The whole loop had been `npx vitest run <file>`, which does not typecheck, with `npm run typecheck` saved for just before the commit. The rule that follows: when a measurement disagrees with what the code should do, `npm run typecheck` comes BEFORE the next hypothesis, not after the fix.
+
+## A fixture that parks villagers on the ground the AI builds on measures the fixture, not the AI (2026-08-23)
+
+Three separate "AI defects" found while building `ai-feudal-stone-fixture` were all the fixture:
+
+1. **Twelve villagers against a population cap of 5.** The AI is population-blocked from tick 0, places a house, and the economy never grows. Fixed by spawning the houses the population needs.
+2. **A Mill, a Barracks and two Farms at 0/180, 0/240, 0/150, 0/150 build progress from tick 1000 to 4000,** with four villagers reporting task `building`. The AI places those buildings in the open ground west and north of its Town Center — exactly where the fixture had parked its villagers, so the foundations went down ON them. The scenario loader's own footprint check cannot see this: it validates the spawns against the buildings the SCENARIO lists, not the ones the AI will choose later.
+3. **The theory that grew out of (2)** — that the AI orphans foundations when `villagerRebalance` pulls their builder, and never re-staffs them — was implemented (re-staff one orphan per decision tick via `pushUnitContextAtEntityIntention`, the same intention a human right-click produces) and then reverted. It made the fixture strictly worse: stone 0 and wood 815 at tick 4000 against 290 and 2710 without it. The real map completes 22 buildings by tick 10000, which is what should have been checked first.
+
+The check that generalises: before believing an AI defect that only a new fixture shows, look at whether the same behaviour appears on the default map. `npm run ai:trajectory` answers it in a few minutes and its `buildingKinds` column would have refuted (2) immediately.
