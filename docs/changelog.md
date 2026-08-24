@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.47 - 2026-08-23
+
+### Fixed
+
+- **The AI mines stone in Feudal Age, and defends itself with it.** Its villager split allocated zero workers to stone until Castle Age, so through the whole of Feudal it had no stone income at all — the starting 200 was everything it would ever have. It could not replace a Watch Tower it spent that on, could not put down a second Town Center, and arrived in Castle Age with nothing banked toward the 650-stone Castle it wants immediately. On the default map the AI now puts a villager on stone during Feudal and builds the Watch Tower it spots you for.
+- **Villagers are no longer pulled off a full load.** When the AI rebalanced its economy it moved whichever villager its entity query happened to list first, discarding that villager's carried resources, gather progress and walk. The waste fell hardest on whichever resource had the smallest share: it now donates the villager with the least work invested, which more than triples the stone a Feudal AI banks while costing about 3% of its food.
+
 ## 0.3.46 - 2026-08-23
 
 ### Fixed

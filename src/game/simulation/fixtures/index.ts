@@ -248,6 +248,8 @@ export {
   createAiMarketAgeUpFixture,
 } from './ai/scoutingAndRush';
 
+export { createAiFeudalStoneFixture } from './ai/feudalStone';
+
 export {
   createWonderImperialFixture,
   createWonderExistingFixture,
