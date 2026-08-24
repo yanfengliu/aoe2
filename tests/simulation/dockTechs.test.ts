@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { researchedTechnologiesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
+import {
+  selectOwnedBuildingDirect,
+  stepBridgeUntil,
+} from './createSimulationBridge.helpers';
 import { createCombatStateFactory } from '../../src/game/simulation/bridge/combatStateFactory';
 import { pierceArmorTechBonus } from '../../src/game/simulation/armorTechBonuses';
 import { dockResearchOptions } from '../../src/game/simulation/bridge/dockTechOptions';
@@ -213,4 +217,46 @@ describe('a transport reports its cargo against the teched capacity', () => {
     expect(teched.selectEntityAtCell(sameShip.x, sameShip.y)).toBe(true);
     expect(teched.getSelectionState().inventory).toBe('0 / 20 aboard');
   });
+});
+
+// The two unique ships are trained at the Dock, so their ELITE upgrades belong
+// there — and until v0.3.51 the Dock offered them while the validator refused
+// them, the same defect as the Transport Ship. Proved end to end here: a
+// Viking Dock offers it, researching it completes.
+describe('the unique ships’ elite upgrades are researchable at the Dock', () => {
+  it('lets a Viking research the Elite Longboat at its Dock', () => {
+    const bridge = createSimulationBridge('naval-imperial-fixture', {
+      civilizationsByOwner: new Map([[1, 'Vikings']]),
+    });
+    expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('elite-longboat-upgrade');
+    expect(bridge.queueResearch('elite-longboat-upgrade')).toBe(true);
+
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        selectOwnedBuildingDirect(bridge, 1, 'dock');
+        return !bridge.getSelectionState().researchOptions.includes('elite-longboat-upgrade');
+      },
+      { maxSteps: 1_500 },
+    )).toBe(true);
+  }, 60_000);
+
+  it('lets a Korean research the Elite Turtle Ship at its Dock', () => {
+    const bridge = createSimulationBridge('naval-imperial-fixture', {
+      civilizationsByOwner: new Map([[1, 'Koreans']]),
+    });
+    expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions).toContain('elite-turtle-ship-upgrade');
+    expect(bridge.queueResearch('elite-turtle-ship-upgrade')).toBe(true);
+
+    expect(stepBridgeUntil(
+      bridge,
+      () => {
+        selectOwnedBuildingDirect(bridge, 1, 'dock');
+        return !bridge.getSelectionState().researchOptions.includes('elite-turtle-ship-upgrade');
+      },
+      { maxSteps: 1_500 },
+    )).toBe(true);
+  }, 60_000);
 });

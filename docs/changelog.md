@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.52 - 2026-08-23
+
+### Fixed
+
+- **The Vikings' Elite Longboat and the Koreans' Elite Turtle Ship could not be researched.** Both buttons rendered at the Dock and both clicks were silently refused, because the Dock's research list did not carry them — the same defect that made the Transport Ship unbuildable, found by widening that fix's own gate to the research side. Two civilizations' naval identity was unreachable: their unique ship existed but never improved. The gate now checks, per BUILDING rather than per game, that every technology a command card offers is one that building accepts.
+
 ## 0.3.51 - 2026-08-23
 
 ### Added

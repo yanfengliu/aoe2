@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
+import { createOptionsRules } from '../../src/game/simulation/bridge/optionsRules';
 import { createTrainOptions } from '../../src/game/simulation/bridge/trainOptions';
 import { CIVILIZATION_NAMES } from '../../src/game/simulation/civilizationNames';
 import { canResearchAt, canTrainAt } from '../../src/game/simulation/prototypeBuildingRules';
@@ -110,5 +111,62 @@ describe('the tables agree with the roster', () => {
         }
       }
     }
+  });
+});
+
+// The same pair, on the research side: `getResearchOptions` builds the card and
+// `canResearchAt` decides whether the command is accepted, and they are two
+// separate tables. A technology offered at one building but listed under
+// another passes the "hosted somewhere" check above and is still a dead button,
+// so this is the tighter, per-BUILDING assertion.
+describe('every technology a building offers is one it can research', () => {
+  function optionsRulesFor(
+    age: AgeType,
+    civilization: string,
+    allResearched: boolean,
+  ) {
+    return createOptionsRules({
+      latestResearchedInChain: (_owner, chain) => {
+        const flat = chain.map((entry) => (Array.isArray(entry) ? entry[0] : entry));
+        return (allResearched ? flat[flat.length - 1] : flat[0]) as TrainableUnitType;
+      },
+      hasTechnology: () => allResearched,
+      getPlayerAge: () => age,
+      isAtLeastAge: (_owner, minAge) => AGES.indexOf(age) >= AGES.indexOf(minAge),
+      getPlayerCivilization: () => civilization,
+      canAdvanceToFeudalAge: () => true,
+      canAdvanceToCastleAge: () => true,
+      canAdvanceToImperialAge: () => true,
+      hasCompletedBuilding: () => true,
+      hasOwnedWonder: () => false,
+    });
+  }
+
+  it('holds for the researchable list and the visible list alike', () => {
+    const wrong: string[] = [];
+    for (const civilization of CIVILIZATION_NAMES) {
+      for (const age of AGES) {
+        for (const allResearched of [false, true]) {
+          const rules = optionsRulesFor(age, civilization, allResearched);
+          for (const buildingType of BUILDING_TYPES) {
+            const offered = [
+              ...rules.getResearchOptions(1, buildingType),
+              // The visible list is what the card DRAWS, including entries
+              // rendered locked, so a player can see it and click it.
+              ...rules.getVisibleResearchOptions(1, buildingType),
+            ];
+            for (const technologyType of offered) {
+              // The three age advances have their own command rather than
+              // going through `research`, so they are the allowed exception.
+              if (technologyType.endsWith('-age')) continue;
+              if (!canResearchAt(buildingType, technologyType)) {
+                wrong.push(`${buildingType} offers ${technologyType}`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect([...new Set(wrong)].sort()).toEqual([]);
   });
 });
