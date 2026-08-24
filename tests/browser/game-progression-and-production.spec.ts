@@ -124,7 +124,11 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8, true))).toBe(true);
 
-    let snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    // Garrisoning WALKS since v0.3.42 — the villager crosses the two cells to
+    // the Town Center before it goes inside, which takes about 26 ticks. This
+    // test still advanced ONE, so it had been asserting the instant garrison
+    // that the walk replaced.
+    let snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(60, 100));
     expect(
       snapshot.economyState.units.filter(
         (unit) => unit.owner === 1 && unit.unitType === 'villager',
@@ -162,8 +166,11 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(8, 8, true))).toBe(true);
 
+    // The villager spends about 26 of these ticks WALKING into the Town
+    // Center (v0.3.42) before its presence adds an arrow, so the budget has to
+    // cover the walk and the shooting rather than the shooting alone.
     const snapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(100, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(300, 100),
     );
 
     expect(
