@@ -22,6 +22,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Atonement';
     case 'fervor':
       return 'Fervor';
+    case 'illumination':
+      return 'Illumination';
+    case 'theocracy':
+      return 'Theocracy';
     case 'feudal-age':
       return 'Feudal Age';
     case 'castle-age':

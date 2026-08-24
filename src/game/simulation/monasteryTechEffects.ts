@@ -11,6 +11,7 @@
 import type { BuildingType, ResearchableTechnologyType, UnitType } from './types';
 import { isSiegeUnit } from './prototypeUnitRules';
 import { isWallLineBuilding } from './gates';
+import { MONK_FAITH_MAX, MONK_FAITH_RECHARGE_TICKS } from './bridge/bridgeConstants';
 
 // Cells added to a monk's conversion range per researched Monastery range tech.
 const MONK_CONVERT_RANGE_TECH_BONUSES: Partial<Record<ResearchableTechnologyType, number>> = {
@@ -66,6 +67,34 @@ export function convertedUnitDies(
   targetOwnerResearched: ReadonlySet<ResearchableTechnologyType>,
 ): boolean {
   return targetOwnerResearched.has('heresy');
+}
+
+// Illumination (AoE2 Monastery, Imperial — technologies.csv "Faith regain 50%
+// faster") and Theocracy ("Only one monk needs to rest in a group"). Both act
+// on the faith a monk spends when it completes a conversion (spec §12), and
+// both are DERIVED from the owner's researched set like the rest of this file:
+// researching Illumination mid-rest speeds up the rest already in progress,
+// which is what a per-tick rate rather than a duration stamped at rest-time
+// buys us.
+export const ILLUMINATION_FAITH_REGEN_MULTIPLIER = 1.5;
+
+/** Faith regained per tick by a monk of this owner: the base linear rate, 1.5x
+ *  with Illumination. */
+export function monkFaithRegenPerTick(
+  ownerResearched: ReadonlySet<ResearchableTechnologyType>,
+): number {
+  const base = MONK_FAITH_MAX / MONK_FAITH_RECHARGE_TICKS;
+  return ownerResearched.has('illumination') ? base * ILLUMINATION_FAITH_REGEN_MULTIPLIER : base;
+}
+
+/** Whether the OTHER monks converting the same target are spent along with the
+ *  one that completed it. True normally — send five monks at one unit and all
+ *  five rest; false with Theocracy, which is the whole content of that
+ *  technology. The monk that actually completed the conversion always rests. */
+export function monkGroupRestsOnConversion(
+  ownerResearched: ReadonlySet<ResearchableTechnologyType>,
+): boolean {
+  return !ownerResearched.has('theocracy');
 }
 
 // What a monk may point at, for the conversion rule below.

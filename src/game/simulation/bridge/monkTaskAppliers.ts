@@ -20,6 +20,7 @@ import {
   combatStatesCodec,
   conversionStateCodec,
   monkCarriedRelicCodec,
+  monkFaithCodec,
   monkHealCountersCodec,
   populationCodec,
   relicsInMonasteryCodec,
@@ -27,8 +28,13 @@ import {
   unitCommandsCodec,
 } from './bridgeStateSerialize';
 import {
-  convertedUnitDies, monkConvertProgressMultiplier, monkMayConvert,
+  convertedUnitDies,
+  monkConvertProgressMultiplier,
+  monkGroupRestsOnConversion,
+  monkMayConvert,
 } from '../monasteryTechEffects';
+import { MONK_FAITH_MAX } from './bridgeConstants';
+import { monkTasksCodec } from './bridgeStateSerialize';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
 export interface MonkTaskAppliersDeps {
@@ -130,6 +136,28 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     accessor.markDirty(monkHealCountersCodec);
   }
 
+  /**
+   * Empty the faith of the monk that just completed a conversion — and, unless
+   * its owner has Theocracy, of every other monk of the same owner that was
+   * converting the same target. That group is what Theocracy is about: five
+   * monks on one unit all rest without it, one rests with it.
+   */
+  function spendFaith(monkId: number, owner: number, targetId: number): void {
+    const faith = accessor.get(monkFaithCodec);
+    faith.set(monkId, 0);
+    const researched = accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET;
+    if (monkGroupRestsOnConversion(researched)) {
+      for (const [otherMonkId, task] of accessor.get(monkTasksCodec)) {
+        if (otherMonkId === monkId || task.kind !== 'convert') continue;
+        if (task.targetEntityRef?.id !== targetId) continue;
+        const otherUnit = world.getComponent<UnitComponent>(otherMonkId, 'unit');
+        if (!otherUnit || otherUnit.owner !== owner) continue;
+        faith.set(otherMonkId, 0);
+      }
+    }
+    accessor.markDirty(monkFaithCodec);
+  }
+
   function applyMonkConvert(
     monkId: number,
     targetId: number,
@@ -155,6 +183,13 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       clearMonkTask(monkId);
       conversionState.delete(targetId);
       accessor.markDirty(conversionStateCodec);
+      return;
+    }
+    // Faith: a monk that has already converted somebody is spent until it has
+    // rested (spec §12). It KEEPS the task and stands there — the same shape as
+    // the vision interrupt below — so it resumes the moment its faith is back
+    // rather than silently dropping the player's order.
+    if ((accessor.get(monkFaithCodec).get(monkId) ?? MONK_FAITH_MAX) < MONK_FAITH_MAX) {
       return;
     }
     // Iter-3 V3-7: vision/LOS interrupt. Moving the converting unit out
@@ -192,6 +227,9 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     const resistance = monkConvertProgressMultiplier(targetOwnerResearched);
     convState.progress += monkConvertProgressPerTick * resistance;
     if (convState.progress >= monkConvertFlipThreshold) {
+      // A completed conversion empties the monk's faith whichever way it ends —
+      // Heresy denies the converter the unit, not the effort.
+      spendFaith(monkId, monkUnit.owner, targetId);
       if (convertedUnitDies(targetOwnerResearched)) {
         // Heresy: deny the unit to the converter — it dies rather than flips.
         // destroyUnitEntity clears conversionState + population + all side maps.

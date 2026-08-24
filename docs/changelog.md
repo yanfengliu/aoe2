@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.50 - 2026-08-23
+
+### Added
+
+- **A monk that converts somebody now has to rest, and the two technologies about it.** Converting empties a monk's faith; it cannot convert again until the faith comes back over the next 62 seconds, and the selection panel reads **Resting** for it instead of claiming it is still converting. That is the AoE2 rule that stops five monks from walking through an army, and it is what the Monastery's last two technologies act on: **Illumination** (Imperial, 120 gold) brings faith back half again as fast, and **Theocracy** (Imperial, 200 gold) makes a GROUP of monks pay for a conversion once — send five at one unit and only the one that finished it rests. A save written before this loads with every monk rested.
+
 ## 0.3.49 - 2026-08-23
 
 ### Added

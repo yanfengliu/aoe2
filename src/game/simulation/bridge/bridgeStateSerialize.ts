@@ -203,6 +203,10 @@ export const sheepMoveOrdersCodec = flatMapCodec<number, Position>('aoe2.sheepMo
 export const monkTasksCodec = flatMapCodec<number, MonkTask>('aoe2.monkTasks');
 export const monkCarriedRelicCodec = flatMapCodec<number, number>('aoe2.monkCarriedRelic');
 export const monkHealCountersCodec = flatMapCodec<number, number>('aoe2.monkHealCounters');
+// Monk FAITH, monkId -> current faith. ABSENT means full: a monk at full faith
+// has no entry, so the map is empty in the common case and a save written
+// before v0.3.50 loads as every monk rested rather than needing a migration.
+export const monkFaithCodec = flatMapCodec<number, number>('aoe2.monkFaith');
 export const conversionStateCodec = flatMapCodec<number, { byOwner: number; progress: number }>(
   'aoe2.conversionState',
 );
@@ -301,6 +305,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   monkTasksCodec,
   monkCarriedRelicCodec,
   monkHealCountersCodec,
+  monkFaithCodec,
   conversionStateCodec,
   trebuchetPackStatesCodec,
   garrisonedUnitToBuildingCodec,

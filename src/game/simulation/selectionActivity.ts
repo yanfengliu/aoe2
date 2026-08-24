@@ -9,6 +9,7 @@
 import type { EntityRef, World } from 'civ-engine';
 
 import { resourceKindToEconomyResource } from './prototypeEconomyRules';
+import { MONK_FAITH_MAX } from './bridge/bridgeConstants';
 import type {
   BuildingComponent,
   GathererComponent,
@@ -39,6 +40,8 @@ export interface SelectionActivitySources {
   humanPlayerId: number;
   unitCommands: Map<number, UnitCommand>;
   monkTasks: Map<number, MonkTask>;
+  /** Monk faith, monkId -> current. Absent means full (see monkFaithCodec). */
+  monkFaith: Map<number, number>;
   monkCarriedRelic: Map<number, number>;
   trebuchetPackStates: Map<number, TrebuchetPackState>;
   productionQueues: Map<number, ProductionQueueEntry[]>;
@@ -101,6 +104,15 @@ export function computeUnitActivity(
   id: number,
   unit: UnitComponent,
 ): ActivityPayload {
+  // A monk below full faith is RESTING, and that outranks whatever task it is
+  // holding: a monk standing next to the enemy it cannot convert yet would
+  // otherwise report "Converting" while nothing happens (spec §12).
+  if (
+    unit.unitType === 'monk'
+    && (sources.monkFaith.get(id) ?? MONK_FAITH_MAX) < MONK_FAITH_MAX
+  ) {
+    return { verb: 'resting', target: null };
+  }
   const monkTask = sources.monkTasks.get(id);
   if (monkTask) {
     switch (monkTask.kind) {

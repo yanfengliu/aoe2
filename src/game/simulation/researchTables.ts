@@ -71,6 +71,9 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'block-printing': { food: 100, gold: 130 }, // Monastery techs (BP 100f/130g, Sanctity 120g, Faith 750f/1000g, Herbal 350g).
   sanctity: { gold: 120 },
   faith: { food: 750, gold: 1000 },
+  // The Monastery's two Imperial faith technologies (technologies.csv).
+  illumination: { gold: 120 },
+  theocracy: { gold: 200 },
   'herbal-medicine': { gold: 350 },
   heresy: { gold: 1000 },
   // technologies.csv rows 63/64/67: Atonement 325g, Fervor 140g, Redemption 475g.
@@ -209,6 +212,8 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'block-printing': 550, // Monastery techs (BP 55 s, Sanctity/Faith 60 s, Herbal 35 s × 10 TPS).
   sanctity: 600,
   faith: 600,
+  illumination: 650, // 65 s × 10 TPS.
+  theocracy: 750, // 75 s × 10 TPS.
   'herbal-medicine': 350,
   heresy: 600,
   'murder-holes': 600, // CSV 60 s x 10 TPS.

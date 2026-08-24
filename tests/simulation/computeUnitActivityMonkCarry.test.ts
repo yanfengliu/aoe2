@@ -37,6 +37,7 @@ function makeSources(overrides: Partial<SelectionActivitySources> = {}): Selecti
     humanPlayerId: 1,
     unitCommands: new Map(),
     monkTasks: new Map(),
+    monkFaith: new Map(),
     monkCarriedRelic: new Map(),
     trebuchetPackStates: new Map(),
     productionQueues: new Map(),
@@ -72,6 +73,7 @@ describe('computeUnitActivity — monk carry fallthrough precedence', () => {
     const sources = makeSources({
       monkCarriedRelic: new Map([[42, 99]]),
       monkTasks: new Map([[42, { kind: 'convert', targetEntityRef: { id: 7, generation: 0 } }]]),
+      monkFaith: new Map(),
     });
     expect(computeUnitActivity(sources, 42, makeMonk()).verb).toEqual('converting');
   });

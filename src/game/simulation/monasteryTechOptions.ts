@@ -57,5 +57,13 @@ export function monasteryTechResearchOptions(
   if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {
     options.push('faith');
   }
+  // The two Imperial faith technologies: Illumination speeds the rest a monk
+  // owes after a conversion, Theocracy makes a GROUP owe it once.
+  if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'illumination')) {
+    options.push('illumination');
+  }
+  if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'theocracy')) {
+    options.push('theocracy');
+  }
   return options;
 }

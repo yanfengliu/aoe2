@@ -13,7 +13,7 @@ import * as game from './helpers/gameTestHelpers';
 
 test.describe('technologies added since v0.3.48 are reachable with a mouse', () => {
   test('the Archery Range researches Parthian Tactics and it armors a cavalry archer', async ({ page }) => {
-    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture');
+    await game.waitForBootWithSeed(page, 'new-tech-reach-fixture');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
@@ -49,5 +49,68 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     // is done.
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-command="research-parthian-tactics"]')).toHaveCount(0);
+  });
+
+  test('the Monastery researches Illumination and Theocracy', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'new-tech-reach-fixture');
+
+    expect(await game.selectOwnedBuildingDirect(page, 1, 'monastery')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Monastery');
+
+    // Both are Imperial faith technologies, and the fixture is Imperial, so
+    // both buttons should be on the card at once.
+    for (const tech of ['illumination', 'theocracy'] as const) {
+      expect(await game.selectOwnedBuildingDirect(page, 1, 'monastery')).toBe(true);
+      const button = page.locator(`[data-command="research-${tech}"]`);
+      await expect(button).toBeVisible();
+      await button.click();
+      // 65 s and 75 s of research at 10 ticks per second, one after the other.
+      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+
+      expect(await game.selectOwnedBuildingDirect(page, 1, 'monastery')).toBe(true);
+      await expect(page.locator(`[data-command="research-${tech}"]`)).toHaveCount(0);
+    }
+  });
+
+  // The mechanic the two Monastery technologies act on, driven entirely with a
+  // mouse: select a monk, right-click an enemy, watch the villager change
+  // sides — and watch the monk report that it is now resting rather than
+  // silently being unable to convert anything else.
+  test('a monk converts an enemy with a right-click and then reads Resting', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'monk-faith-rest-fixture');
+
+    const monks = (await game.getSnapshot(page)).economyState.units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'monk',
+    );
+    const target = (await game.getSnapshot(page)).economyState.units.find(
+      (unit) => unit.owner === 2 && unit.unitType === 'villager',
+    )!;
+    expect(monks.length).toBeGreaterThanOrEqual(2);
+
+    // Put the camera on the monks — the fixture's town centre is elsewhere, and
+    // the clicks below are real mouse input on the canvas, so the cells have to
+    // be in frame.
+    await page.evaluate(
+      ([x, y]) => window.__AOE2_TEST__!.centerCameraOnWorldPosition(x!, y!),
+      [monks[0]!.x, monks[0]!.y],
+    );
+    expect(await game.selectOwnedUnitDirect(page, 1, 'monk')).toBe(true);
+    await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
+    const selectedId = (await game.getSnapshot(page)).selectionState.selectedEntityId;
+    await game.clickCell(page, target.x, target.y, 'right');
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(200, 100));
+
+    const converted = (await game.getSnapshot(page)).economyState.units.find(
+      (unit) => unit.id === target.id,
+    );
+    expect(converted?.owner).toBe(1);
+
+    // Re-select the monk that did it and read the panel.
+    const monk = (await game.getSnapshot(page)).economyState.units.find(
+      (unit) => unit.id === selectedId,
+    )!;
+    await game.clickCell(page, monk.x, monk.y, 'left');
+    await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
+    await expect(page.locator('[data-selection-activity]')).toContainText('Resting');
   });
 });

@@ -49,11 +49,20 @@ export const RELIC_COUNTDOWN_TICKS = 2000;
 // Deterministic per-tick increments for Monk conversion and heal (Slice 5).
 // Conversion flips target ownership at 50 progress; heal restores 1 HP per
 // 10 ticks. These values are intentionally v1 "easy-to-observe" rates — real
-// AoE2 uses per-tick conversion chance plus faith; out-of-scope here.
+// AoE2 rolls a per-tick conversion CHANCE, which a replay-deterministic sim
+// does not want. AoE2's other half, FAITH, is modelled (v0.3.50): a monk
+// that completes a conversion is spent and must rest before the next one.
 export const MONK_HEAL_TICK_INTERVAL = 10;
 export const MONK_HEAL_HP_PER_INTERVAL = 1;
 export const MONK_CONVERT_PROGRESS_PER_TICK = 1;
 export const MONK_CONVERT_FLIP_THRESHOLD = 50;
+// Monk FAITH (spec §12): full at MONK_FAITH_MAX, emptied by completing a
+// conversion, and regained linearly over MONK_FAITH_RECHARGE_TICKS — 62 s at
+// 10 TPS, AoE2's rest time. A monk below full faith cannot convert. The value
+// is not in design/stats (technologies.csv only describes Illumination's
+// "faith regain 50% faster" relative to it), so it is stated in the spec.
+export const MONK_FAITH_MAX = 100;
+export const MONK_FAITH_RECHARGE_TICKS = 620;
 export const MARKET_TRANSACTION_AMOUNT = 100;
 export const MARKET_FEE_RATE = 0.3;
 export const MARKET_RATE_STEP = 3;

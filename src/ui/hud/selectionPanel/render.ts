@@ -215,6 +215,7 @@ function formatActivityLabel(activity: NonNullable<SelectionState['activity']>):
     'building': 'Building',
     'healing': 'Healing',
     'converting': 'Converting',
+    'resting': 'Resting',
     'retrieving': 'Retrieving relic',
     'carrying': 'Carrying relic',
     'packing': 'Packing',

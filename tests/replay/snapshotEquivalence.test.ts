@@ -56,6 +56,7 @@ const EXPECTED_TIER_1_SLOTS = [
   'aoe2.monkTasks',
   'aoe2.monkCarriedRelic',
   'aoe2.monkHealCounters',
+  'aoe2.monkFaith',
   'aoe2.conversionState',
   'aoe2.trebuchetPackStates',
   'aoe2.garrisonedUnitToBuilding',

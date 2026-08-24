@@ -96,6 +96,8 @@ export type ResearchableTechnologyType =
   | 'block-printing'
   | 'sanctity'
   | 'faith'
+  | 'illumination'
+  | 'theocracy'
   // The rest of the Castle-Age Monastery tier. Redemption and Atonement widen
   // what a monk may convert (buildings and siege; enemy monks); Fervor makes
   // monks faster on the ordinary movement-speed seam. Spec §10.9.

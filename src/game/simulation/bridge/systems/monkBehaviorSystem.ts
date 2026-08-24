@@ -13,9 +13,15 @@ import {
 } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { monkCarriedRelicCodec, monkTasksCodec, researchedTechnologiesCodec } from '../bridgeStateSerialize';
-import { monkConvertRangeBonus } from '../../monasteryTechEffects';
+import {
+  monkCarriedRelicCodec,
+  monkFaithCodec,
+  monkTasksCodec,
+  researchedTechnologiesCodec,
+} from '../bridgeStateSerialize';
+import { monkFaithRegenPerTick, monkConvertRangeBonus } from '../../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
+import { MONK_FAITH_MAX } from '../bridgeConstants';
 
 type CivWorld = GameWorld;
 
@@ -89,6 +95,33 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
     applyMonkDeposit,
   } = deps;
 
+  /**
+   * Faith comes back linearly for every monk that has spent it (spec §12). An
+   * absent entry means full faith, so the map holds only the RESTING monks and
+   * an entry is deleted the moment it tops out — which is also why a save from
+   * before the mechanic existed loads as every monk rested.
+   */
+  function regainFaith(activeWorld: GameWorld): void {
+    const faith = accessor.get(monkFaithCodec);
+    if (faith.size === 0) return;
+    let dirty = false;
+    for (const [monkId, current] of [...faith.entries()]) {
+      const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
+      if (!monkUnit || monkUnit.unitType !== 'monk') {
+        faith.delete(monkId);
+        dirty = true;
+        continue;
+      }
+      const researched =
+        accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET;
+      const next = current + monkFaithRegenPerTick(researched);
+      if (next >= MONK_FAITH_MAX) faith.delete(monkId);
+      else faith.set(monkId, next);
+      dirty = true;
+    }
+    if (dirty) accessor.markDirty(monkFaithCodec);
+  }
+
   world.registerSystem({
     name: 'prototypeMonkBehavior',
     phase: 'update',
@@ -100,6 +133,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
       for (const [id, tick] of monkConvertProcessedThisTick) {
         if (tick !== activeWorld.tick) monkConvertProcessedThisTick.delete(id);
       }
+      regainFaith(activeWorld);
       const monkTasks = accessor.get(monkTasksCodec);
       let monkTasksDirty = false;
       const deleteMonkTask = (monkId: number): void => {

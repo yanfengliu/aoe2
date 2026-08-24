@@ -251,6 +251,7 @@ export {
 export { createAiFeudalStoneFixture } from './ai/feudalStone';
 
 export { createNewUnitReachFixture } from './newUnitReach';
+export { createNewTechReachFixture } from './newTechReach';
 
 export {
   createWonderImperialFixture,
@@ -398,6 +399,7 @@ export {
   createMonkSanctityFixture,
   createMonkFaithBaselineFixture,
   createMonkFaithDefendedFixture,
+  createMonkFaithRestFixture,
 } from './monasteryTechs';
 
 export {
