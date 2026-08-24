@@ -31,6 +31,8 @@ const PER_BUILDING_HP: ReadonlyArray<{
   { technology: 'fortified-wall', buildingType: 'stone-wall', multiplier: 3000 / 1800 },
   { technology: 'guard-tower', buildingType: 'watch-tower', multiplier: 1500 / 1020 },
   { technology: 'keep', buildingType: 'watch-tower', multiplier: 2250 / 1500 },
+  // Hoardings (technologies.csv "+21% HP"), the Castle's own toughening.
+  { technology: 'hoardings', buildingType: 'castle', multiplier: 1.21 },
 ];
 
 /**

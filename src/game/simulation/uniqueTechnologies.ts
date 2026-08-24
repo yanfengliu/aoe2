@@ -94,6 +94,16 @@ const is = (...types: UnitType[]) => {
 
 export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
   {
+    id: 'el-dorado',
+    name: 'El Dorado',
+    civilization: 'Mayans',
+    age: 'imperial-age',
+    cost: { food: 750, gold: 450 },
+    researchTicks: 500,
+    summary: 'Eagle Warriors +40 hit points.',
+    unitEffect: { applies: is('eagle-warrior', 'elite-eagle-warrior'), maxHp: 40 },
+  },
+  {
     id: 'garland-wars',
     name: 'Garland Wars',
     civilization: 'Aztecs',
@@ -300,12 +310,14 @@ export const EXTRA_UNIT_EFFECTS: Readonly<
  * The unique technologies not wired, and what each is waiting on. Listed here
  * rather than omitted so the gap is visible next to what did land.
  *
- * - El Dorado (Mayans): +40 HP to Eagle Warriors, which are not on the roster.
  * - Berserkergang (Vikings): doubles Berserk regeneration; no unit regenerates.
+ *   (El Dorado was here until v0.3.57, deferred because the Eagle line did not
+ *   exist. It shipped in v0.3.48, so the deferral had simply gone stale — worth
+ *   re-reading this list whenever the roster grows.)
  * - Atheism (Huns): +100 years to Wonder/Relic victory timers, and halves the
  *   cost of Spies/Treason, neither of which exists.
  */
-export const DEFERRED_UNIQUE_TECHNOLOGIES = ['el-dorado', 'berserkergang', 'atheism'] as const;
+export const DEFERRED_UNIQUE_TECHNOLOGIES = ['berserkergang', 'atheism'] as const;
 
 const BY_CIVILIZATION = new Map<string, UniqueTechnology[]>();
 for (const technology of UNIQUE_TECHNOLOGIES) {

@@ -375,6 +375,9 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'fortified-wall':
       case 'guard-tower':
       case 'keep':
+      // Hoardings takes a Castle from 4800 to 5808, which technologies.csv
+      // spells out as "+21% HP (HP*1.21 - 5808 HP)".
+      case 'hoardings':
         // Buildings already standing get the bump here; everything built after
         // this derives it at creation (entityCreateOps).
         applyBuildingHpTechnology(world, accessor, owner, technologyType);

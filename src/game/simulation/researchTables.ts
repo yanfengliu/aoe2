@@ -27,7 +27,11 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'elite-skirmisher-upgrade': { wood: 250, gold: 160 }, // technologies.csv
   'elite-eagle-warrior-upgrade': { food: 800, gold: 500 }, // technologies.csv
   'siege-engineers': { food: 500, wood: 600 }, // Siege Workshop, Imperial: +1 siege range.
-  sappers: { food: 400, gold: 200 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
+  sappers: { food: 400, gold: 200 },
+  // Castle (technologies.csv): Hoardings toughens castles, El Dorado is the
+  // Mayans' Imperial unique technology.
+  hoardings: { food: 400, gold: 400 },
+  'el-dorado': { food: 750, gold: 450 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -174,6 +178,8 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'elite-eagle-warrior-upgrade': 400, // technologies.csv 40 s
   'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
   sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
+  hoardings: 750, // Castle, Imperial: 75 s x 10 TPS.
+  'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,

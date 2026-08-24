@@ -64,9 +64,10 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'elite-skirmisher-upgrade', 'thumb-ring', 'parthian-tactics']],
   ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking', 'elite-eagle-warrior-upgrade']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
-  ['castle', ['elite-longbowman-upgrade', 'conscription',
+  ['castle', ['elite-longbowman-upgrade', 'conscription', 'hoardings',
     // Civilization unique technologies; which one an owner may see is
     // decided by uniqueTechnologies.ts.
+    'el-dorado',
     'garland-wars',
     'yeomen',
     'logistica',

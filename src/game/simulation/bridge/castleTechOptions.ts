@@ -36,6 +36,10 @@ export function castleResearchOptions(deps: CastleTechOptionsDeps): Researchable
       // Conscription: military +25% train speed (any civ, Imperial Castle).
       options.push('conscription');
     }
+    if (!hasTechnology(owner, 'hoardings')) {
+      // Hoardings: this castle's own hit points, +21% (any civ).
+      options.push('hoardings');
+    }
   }
 
   // Civilization unique technologies, gated exactly like the unique units: one

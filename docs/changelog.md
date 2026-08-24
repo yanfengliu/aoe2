@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.57 - 2026-08-24
+
+### Added
+
+- **Hoardings and El Dorado, at the Castle.** Hoardings (Imperial, 400 food + 400 gold) takes a Castle from 4800 hit points to 5808 — the castles already standing as well as the ones built afterwards. **El Dorado** (Mayans, Imperial, 750 food + 450 gold) gives the Eagle line +40 hit points; it had been recorded as impossible because Eagle Warriors were not in the game, and they arrived in v0.3.48, so the note was simply out of date.
+
 ## 0.3.56 - 2026-08-24
 
 ### Added
