@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.55 - 2026-08-24
+
+### Fixed
+
+- **A stray arrow could end the match.** A shot at a target standing on the map's edge could scatter OFF the map, and the moment the game asked whether that cell was visible the engine refused the coordinate and the match died — a 40000-tick game crashed at tick 24173 on grid (33, -1). Shots are now aimed inside the map, and the drawing pass skips anything outside it instead of asking. Misses still scatter; only the ones that would have left the board changed.
+
 ## 0.3.54 - 2026-08-24
 
 ### Fixed

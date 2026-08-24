@@ -1021,6 +1021,8 @@ The shot resolves on its impact tick, whatever has become of the attacker in the
 
 Determinism: the to-hit roll is a pure hash of the shot's identity (launch tick, attacker id, target id, and the projectile's own id), not a draw from a stored random stream. Nothing extra is serialized, a match saved with shots in the air reloads with those same shots and the same outcomes, and replays match by construction. A stateful stream would instead desynchronise the moment the number or order of rolls changed.
 
+A shot is always aimed INSIDE the map. The miss scatter is an offset in any direction from the target, so a target standing on an edge could otherwise be missed off the board; the aim point is clamped to the map at launch, which keeps every interpolated position between origin and aim on the map as well. Clamping cannot turn a miss into a hit — whether a shot connects is decided by its `willHit` roll before the aim point is chosen. The drawing pass additionally SKIPS any shot whose current position is off the map rather than asking whether that cell is visible, because the engine's visibility map treats an out-of-range coordinate as an error rather than answering false: a projectile restored from an older save must not be able to end a match.
+
 In-flight projectiles are simulation state and persist in saves. They are fog-gated for display on their current position: a shot crossing into your vision becomes visible and leaves again if it exits, and a projectile has no memory state — you either watch it fly or never knew it was fired.
 
 **Ballistics** (University, Castle Age, 300 wood + 175 gold, 60s):

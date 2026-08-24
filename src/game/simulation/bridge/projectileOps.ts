@@ -13,6 +13,7 @@ import type { Position } from 'civ-engine';
 
 import type { UnitComponent, UnitType } from '../types';
 import type { ResearchableTechnologyType } from '../types';
+import { MAP_HEIGHT, MAP_WIDTH } from '../mapGeneration/constants';
 import { parthianSpearmanAttackBonus } from '../parthianTechEffects';
 import {
   attackBonusAgainstUnit,
@@ -49,6 +50,14 @@ export { firesProjectile };
 // UNIT_SUBGRID_STEP_PER_TICK), so leading uses one constant rather than a
 // per-unit lookup. Measured against a walking villager: 0.4 tiles/tick.
 const UNIT_TILES_PER_TICK = UNIT_SUBGRID_STEP_PER_TICK / UNIT_SUBGRID_RESOLUTION;
+
+/** The same point, pulled back onto the map if it lies outside it. */
+function clampToMap(point: Position): Position {
+  return {
+    x: Math.min(MAP_WIDTH - 1, Math.max(0, point.x)),
+    y: Math.min(MAP_HEIGHT - 1, Math.max(0, point.y)),
+  };
+}
 
 export interface LaunchProjectileParams {
   slot: ProjectileSlotState;
@@ -112,6 +121,16 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
     ? projectileAimPoint(target.position, motion, flightTicks, params.leads)
     : projectileMissAimPoint(target.position, tick, attacker.id, target.id, id);
 
+  // A shot never leaves the map. The miss scatter is a hash-driven offset in
+  // any direction, so a target standing on an edge could be missed OFF the
+  // board — and a projectile off the board is a coordinate the engine's
+  // visibility map throws on rather than answering (it ended a 40000-tick
+  // match at tick 24173, at grid (33, -1)). Clamping the AIM keeps every
+  // interpolated position between origin and aim on the map too, since both
+  // ends are. It cannot turn a miss into a hit: whether the shot connects is
+  // `willHit`, decided above and untouched here.
+  const aimOnMap = clampToMap(aim);
+
   const projectile: ProjectileState = {
     id,
     attackerId: attacker.id,
@@ -121,8 +140,8 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
     targetKind: target.kind,
     originX: attacker.position.x,
     originY: attacker.position.y,
-    aimX: aim.x,
-    aimY: aim.y,
+    aimX: aimOnMap.x,
+    aimY: aimOnMap.y,
     // Wind-up delays the LOOSE, it does not slow the arrow: the shot appears
     // when it actually leaves the attacker and then flies at its own speed.
     launchTick: tick + windup,
