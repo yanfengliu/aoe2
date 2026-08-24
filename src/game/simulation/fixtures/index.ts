@@ -250,6 +250,8 @@ export {
 
 export { createAiFeudalStoneFixture } from './ai/feudalStone';
 
+export { createNewUnitReachFixture } from './newUnitReach';
+
 export {
   createWonderImperialFixture,
   createWonderExistingFixture,
