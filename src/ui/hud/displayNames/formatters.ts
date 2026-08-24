@@ -22,6 +22,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Atonement';
     case 'fervor':
       return 'Fervor';
+    case 'guilds':
+      return 'Guilds';
     case 'cartography':
       return 'Cartography';
     case 'hoardings':

@@ -1154,6 +1154,8 @@ The three are CHAINED as AoE2 DE chains them — Dry Dock requires Careening, Sh
 
 **El Dorado (implemented v0.3.57).** The Mayans' Imperial unique technology, Castle, 750 food + 450 gold, 50s: +40 hit points to the Eagle line. It was deferred with the note "Eagle Warriors are not on the roster" — true when written and false from v0.3.48, which is the argument for re-reading a deferral list whenever the roster grows rather than trusting it.
 
+**Guilds (implemented v0.3.64).** Market, Imperial Age, 300 food + 200 gold, 50s — technologies.csv's "Commodity trading fee - 15% (from 30%)". The Market's fee is the spread between what a buy costs (`rate x (1 + fee)`) and what a sell returns (`rate x (1 - fee)`), so halving it improves both directions at once, and it is worth more the more a player trades. Derived per owner at the transaction site from the researched set, so it applies to every Market that owner has and to none of anybody else's.
+
 **Cartography (implemented v0.3.63).** Market, Feudal Age, 100 food + 100 gold, 60s — technologies.csv's "See ally line of sight", and the first technology the Market has ever hosted here. The researcher's projected frame unions its allies' visible AND explored cells with its own, and a projectile over an ally's ground is drawn for the same reason. It is ONE-WAY: researching it tells you what your allies see and tells them nothing of yours, which is how AoE2 plays it.
 
 The owners whose vision is shared come from `sharedVisionOwners` — empty without the technology, empty without allies, so a match with neither projects exactly the cells it always did, in the same order. It is read per FRAME rather than cached, because researching it mid-match has to take effect on the next frame rather than the next reload.

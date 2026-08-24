@@ -241,10 +241,15 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       // Cartography: see what your allies see (technologies.csv, Feudal). The
       // Market's other technologies are about tribute and trade, which do not
       // exist yet, so this is the whole list for now.
+      const options: ResearchableTechnologyType[] = [];
       if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'cartography')) {
-        return ['cartography'];
+        options.push('cartography');
       }
-      return [];
+      // Guilds: the Market takes a smaller cut of every buy and sell.
+      if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'guilds')) {
+        options.push('guilds');
+      }
+      return options;
     }
 
     if (buildingType === 'university') {

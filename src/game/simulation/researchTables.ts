@@ -33,6 +33,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   hoardings: { food: 400, gold: 400 },
   // Market (technologies.csv): see what your allies see.
   cartography: { food: 100, gold: 100 },
+  guilds: { food: 300, gold: 200 },
   'el-dorado': { food: 750, gold: 450 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
@@ -182,6 +183,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
   hoardings: 750, // Castle, Imperial: 75 s x 10 TPS.
   cartography: 600, // Market, Feudal: 60 s x 10 TPS.
+  guilds: 500, // Market, Imperial: 50 s x 10 TPS.
   'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.
   bracer: 500,
   'blast-furnace': 600,

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.64 - 2026-08-24
+
+### Added
+
+- **Guilds.** The Market's Imperial technology, 300 food and 200 gold: its cut of every buy and sell drops from 30% to 15%, so the same wood fetches more gold and the same gold buys more food. Worth more the more you trade, which is why it costs what it does.
+
 ## 0.3.63 - 2026-08-24
 
 ### Added

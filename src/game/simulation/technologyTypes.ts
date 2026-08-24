@@ -119,6 +119,7 @@ export type ResearchableTechnologyType =
   | 'conscription'
   | 'hoardings'
   | 'cartography'
+  | 'guilds'
   | 'el-dorado'
   // Projectile techs (spec §10.4), both DERIVED at the launch site via
   // projectileTechEffects. Ballistics (University, Castle): shots lead a moving

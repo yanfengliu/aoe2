@@ -48,6 +48,7 @@ import {
 } from './bridgeStateSerialize';
 import { civTrainTimeMultiplier, effectiveTrainingCost } from '../civBonusEffects';
 import { shipwrightTrainTimeMultiplier } from '../dockTechEffects';
+import { marketFeeRateFor } from '../marketTechEffects';
 import {
   conscriptionTrainTimeMultiplier,
   uniqueTechTrainTimeMultiplier,
@@ -315,8 +316,14 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     const commodity = marketCommodityForAction(actionType);
     const rate = accessor.get(marketExchangeRatesCodec)[commodity];
+    // Guilds takes the Market's cut from 30% to 15% for this owner; the
+    // constant the bridge passes in is the un-teched rate.
+    const feeRate = marketFeeRateFor(
+      accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_TECH_SET,
+    );
+    void marketFeeRate;
     if (isBuyMarketAction(actionType)) {
-      const goldCost = Math.ceil(rate * (1 + marketFeeRate));
+      const goldCost = Math.ceil(rate * (1 + feeRate));
       if (stockpile.gold < goldCost) return false;
       stockpile.gold -= goldCost;
       accessor.markDirty(playerResourcesCodec);
@@ -329,7 +336,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     if (stockpile[commodity] < marketTransactionAmount) return false;
     stockpile[commodity] -= marketTransactionAmount;
-    stockpile.gold += Math.floor(rate * (1 - marketFeeRate));
+    stockpile.gold += Math.floor(rate * (1 - feeRate));
     accessor.markDirty(playerResourcesCodec);
     accessor.mutate(marketExchangeRatesCodec, (m) => {
       m[commodity] = Math.max(marketMinRate, rate - marketRateStep);
