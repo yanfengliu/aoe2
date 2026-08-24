@@ -257,6 +257,7 @@ export { createExhaustedResourcesFixture } from './exhaustedResources';
 export { createShoreFishingFixture } from './shoreFishing';
 export { createDemolitionShipFixture } from './demolitionShip';
 export { createPetardFixture } from './petard';
+export { createThreePlayerFixture } from './threePlayer';
 
 export {
   createWonderImperialFixture,

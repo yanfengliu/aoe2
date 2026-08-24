@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.60 - 2026-08-24
+
+### Added
+
+- **Player colours for more than two players.** Every tint in the game was a pair — yours and the enemy's — so a third player came out in exactly the same shade as the second, which is worse than having no third player at all. Each owner up to eight now has its own colour, following Age of Empires II's order (blue, red, green, yellow, cyan, purple, grey, orange), on units, buildings and the minimap alike. The first two players look exactly as they did.
+
 ## 0.3.59 - 2026-08-24
 
 ### Added

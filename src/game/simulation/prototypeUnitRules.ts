@@ -3,7 +3,6 @@
 // LOC; consumers continue to import from `prototypeUnitRules` since the
 // barrel re-exports everything they need.
 
-import { HUMAN_PLAYER_ID } from './prototypeScenario';
 import type { ResourceKind, UnitType } from './types';
 import { armorClassBonus, UNIT_ARMOR_CLASSES } from './prototypeUnitRules/armorClasses';
 import {
@@ -30,6 +29,7 @@ import {
   UNIT_TINTS,
   UNIT_VISION_RADIUS,
 } from './prototypeUnitRules/presentationTables';
+import { ownerTint } from './playerColors';
 
 export type { WildlifeProfile } from './prototypeUnitRules/statTables';
 
@@ -148,8 +148,9 @@ export function createWildlifeState(resourceType: 'boar' | 'wolf'): WildlifeProf
 }
 
 export function unitTint(unitType: UnitType, owner: number): number {
-  const palette = UNIT_TINTS[unitType];
-  return owner === HUMAN_PLAYER_ID ? palette.human : palette.enemy;
+  // Owners 1 and 2 take their authored shades untouched; every later owner
+  // takes the enemy shade under its own hue (playerColors).
+  return ownerTint(UNIT_TINTS[unitType], owner);
 }
 
 export function unitSize(unitType: UnitType): number {

@@ -1,4 +1,3 @@
-import { HUMAN_PLAYER_ID } from './prototypeScenario';
 import { isArcherLineUnit } from './prototypeUnitRules';
 import type {
   BuildingType,
@@ -175,6 +174,7 @@ import {
   RESEARCHES_BY_BUILDING,
   TRAINABLE_UNITS_BY_BUILDING,
 } from './buildingProductionTables';
+import { ownerTint } from './playerColors';
 
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
   'mill',
@@ -215,11 +215,16 @@ export function buildingTint(
   isComplete: boolean,
 ): number {
   const palette = BUILDING_TINTS[buildingType];
-  const isHuman = owner === HUMAN_PLAYER_ID;
-  if (isHuman) {
-    return isComplete ? palette.humanComplete : palette.humanIncomplete;
-  }
-  return isComplete ? palette.enemyComplete : palette.enemyIncomplete;
+  // Owners 1 and 2 take their authored shades untouched; every later owner
+  // takes the enemy shade under its own hue (playerColors), so a three-player
+  // skirmish has three readable sides rather than two identical ones.
+  return ownerTint(
+    {
+      human: isComplete ? palette.humanComplete : palette.humanIncomplete,
+      enemy: isComplete ? palette.enemyComplete : palette.enemyIncomplete,
+    },
+    owner,
+  );
 }
 
 export function buildingMaxHp(buildingType: BuildingType): number {
