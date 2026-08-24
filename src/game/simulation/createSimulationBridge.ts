@@ -261,6 +261,7 @@ export function createSimulationBridge(
       playerCount: options.playerCount,
       gameLength: options.gameLength,
       civilizationsByOwner: options.civilizationsByOwner,
+      teamsByOwner: options.teamsByOwner,
     });
   const renderStore = new RenderStore();
   const renderAdapter = new RenderAdapter({

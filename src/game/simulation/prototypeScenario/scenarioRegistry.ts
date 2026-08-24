@@ -216,6 +216,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['demolition-ship-fixture', fixtures.createDemolitionShipFixture],
   ['petard-fixture', fixtures.createPetardFixture],
   ['three-player-fixture', fixtures.createThreePlayerFixture],
+  ['allied-three-player-fixture', fixtures.createAlliedThreePlayerFixture],
   ['ai-difficulty-fixture', fixtures.createAiDifficultyFixture],
   ['ai-monk-fixture', fixtures.createAiMonkFixture],
   ['ai-monk-heal-fixture', fixtures.createAiMonkHealFixture],

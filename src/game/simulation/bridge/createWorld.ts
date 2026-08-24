@@ -56,6 +56,8 @@ export interface CreateWorldOptions {
   // civilization for the listed owners. Closure-local; the value flows into the
   // persisted playerCivilizations map via the normal seed path.
   civilizationsByOwner?: ReadonlyMap<number, string>;
+  /** Which side each owner is on (?teams=). Absent means a free-for-all. */
+  teamsByOwner?: ReadonlyMap<number, number>;
 }
 
 export function createWorld(
@@ -162,6 +164,17 @@ export function createWorld(
       const civ = options.civilizationsByOwner.get(start.owner);
       if (civ !== undefined) {
         start.civilization = civ;
+      }
+    }
+  }
+  // Team selection: ?teams=1,1,2 → createSimulationBridge → here. Same shape
+  // as the civ override above: it changes what seedFreshScenario seeds the
+  // persisted playerTeams map with, rather than being a save field itself.
+  if (scenario && options.teamsByOwner && options.teamsByOwner.size > 0) {
+    for (const start of scenario.starts) {
+      const team = options.teamsByOwner.get(start.owner);
+      if (team !== undefined) {
+        start.team = team;
       }
     }
   }

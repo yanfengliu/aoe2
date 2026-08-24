@@ -14,6 +14,7 @@ import {
   aiStatesCodec,
   playerResourcesCodec,
   populationCodec,
+  playerTeamsCodec,
   townCenterRefsCodec,
   unitCommandsCodec,
 } from '../bridgeStateSerialize';
@@ -24,6 +25,7 @@ import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
 import { runHuntPhase } from './aiSystemHuntPhase';
+import { isEnemyOwner } from '../../alliances';
 
 export type { AiSystemDeps } from './aiSystemTypes';
 
@@ -80,7 +82,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         accessor.markDirty(aiStatesCodec);
 
         const { targetOwner, targetTownCenterId, targetTownCenterPosition } =
-          pickAttackTarget(owner, townCentersByOwner);
+          pickAttackTarget(owner, townCentersByOwner, accessor.get(playerTeamsCodec));
         const ownerTownCenterId = currentEntityId(activeWorld, accessor.get(townCenterRefsCodec).get(owner));
         const ownerTownCenterPosition =
           ownerTownCenterId === null
@@ -195,6 +197,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
 export function pickAttackTarget(
   owner: number,
   townCentersByOwner: ReadonlyMap<number, { id: number; position: Position | undefined }>,
+  teams: ReadonlyMap<number, number> = new Map(),
 ): {
   targetOwner: number | null;
   targetTownCenterId: number | null;
@@ -209,7 +212,9 @@ export function pickAttackTarget(
   const candidates = [...townCentersByOwner.keys()].sort((a, b) => a - b);
   for (const candidateOwner of candidates) {
     const townCenter = townCentersByOwner.get(candidateOwner)!;
-    if (candidateOwner === owner) continue;
+    // An ally is not a target. With no teams recorded every owner is its own
+    // side, so a free-for-all is unchanged.
+    if (!isEnemyOwner(teams, owner, candidateOwner)) continue;
     const distance =
       own?.position && townCenter.position
         ? Math.abs(own.position.x - townCenter.position.x)

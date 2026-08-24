@@ -104,6 +104,8 @@ export interface PlayerStartSpec {
   owner: number;
   townCenter: Position;
   civilization?: string;
+  /** The side this player is on. Omitted means its own side (a free-for-all). */
+  team?: number;
   startingAge?: AgeType;
   startingResources?: PlayerResources;
   // Test-only override for the Wonder and Relic victory countdown.

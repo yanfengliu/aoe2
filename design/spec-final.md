@@ -1154,6 +1154,14 @@ The three are CHAINED as AoE2 DE chains them — Dry Dock requires Careening, Sh
 
 **El Dorado (implemented v0.3.57).** The Mayans' Imperial unique technology, Castle, 750 food + 450 gold, 50s: +40 hit points to the Eagle line. It was deferred with the note "Eagle Warriors are not on the roster" — true when written and false from v0.3.48, which is the argument for re-reading a deferral list whenever the roster grows rather than trusting it.
 
+**Teams (implemented v0.3.62).** §2.2 puts "optional AI allies" in scope, and until this there was no notion of a side anywhere in the simulation: every owner that was not you was an enemy. A team is a NUMBER PER OWNER (`playerTeams`), and an owner with no entry is its own team — so a free-for-all stores nothing at all, an existing save loads as one, and every match played before teams existed behaves identically.
+
+`areAllied` / `isEnemyOwner` (alliances.ts) are the single answer to "is this somebody I should be shooting at", and every enemy test in `targetFindingOps` goes through them — which is what makes an ally safe from auto-aggression, from tower fire, from the AI's chosen target and from a monk's conversion in one change rather than five. Conquest follows the same rule: the match is decided when every other SIDE is eliminated, not every other player, which is what makes an ally worth having rather than one more player to outlive. Defeat is still personal: your own units and buildings gone is a defeat whether or not your ally fights on.
+
+Teams are chosen with `?teams=1,1,2` — one number per player, in owner order, from 1. Anything unusable warns and leaves a free-for-all, including putting every player on one team, which would be a match nobody can win.
+
+Not yet team-aware, and deliberately listed rather than assumed: shared line of sight (Cartography), Market trade between allies, and ordering your own units to attack an ally.
+
 **Player count (implemented v0.3.61).** A standard map opens with 2 to `MAX_STANDARD_PLAYERS` players, chosen with `?players=n` and defaulting to 2. Each seat has a fixed start position and civilization for its count, so a match is reproducible from its seed and its count alone, and the two-player row is the established 1v1 cell for cell — every existing map, screenshot and test that assumed it still holds. `MAX_STANDARD_PLAYERS` is 4 rather than AoE2's 8 because this map is 60x36, a two-player size; §4's size ladder is what has to grow before more seats fit, and seating eight here would start players inside each other's openings. A count outside the range warns and opens the ordinary 1v1 rather than refusing to start: a bad URL should not stop a game.
 
 Fixtures are unaffected — a fixture's whole purpose is a fixed layout, so the count reaches only the procedural map.

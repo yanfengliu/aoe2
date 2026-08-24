@@ -37,6 +37,7 @@ import { updateSheepOwnership } from './visibility';
 import {
   playerAgesCodec,
   playerCivilizationsCodec,
+  playerTeamsCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   playerResourcesCodec,
@@ -144,6 +145,13 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   accessor.mutate(playerCivilizationsCodec, (m) => {
     for (const start of scenario.starts) {
       m.set(start.owner, start.civilization ?? defaultCivilizationName(start.owner));
+    }
+  });
+  // Teams: only the starts that HAVE one are recorded, so a free-for-all
+  // stores nothing and `teamOf` reads every owner as its own side.
+  accessor.mutate(playerTeamsCodec, (m) => {
+    for (const start of scenario.starts) {
+      if (start.team !== undefined) m.set(start.owner, start.team);
     }
   });
   accessor.mutate(playerResourcesCodec, (m) => {

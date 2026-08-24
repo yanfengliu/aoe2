@@ -11,6 +11,8 @@
 
 import type { Position } from 'civ-engine';
 import { targetPriority } from './targetPriority';
+import { isEnemyOwner } from '../alliances';
+import { playerTeamsCodec } from './bridgeStateSerialize';
 
 import type {
   BuildingComponent,
@@ -109,6 +111,11 @@ export interface TargetFindingOps {
 }
 
 export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOps {
+  // Every "is this an enemy" test in this module goes through the owner's TEAM
+  // rather than its id, so an ally is never shot at, never auto-engaged and
+  // never picked as an AI target. Read fresh per call: teams are scenario
+  // state, and a stale copy would have a unit firing on a new ally.
+  const teams = (): ReadonlyMap<number, number> => deps.accessor.get(playerTeamsCodec);
   const { world, visibility, accessor } = deps;
 
   // Per-buildingType targeting priority for AI / unit-vs-building target
@@ -157,7 +164,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
         ): entry is { id: number; position: Position; unit: UnitComponent } =>
           entry.position !== undefined
           && entry.unit !== undefined
-          && entry.unit.owner !== viewerOwner
+          && isEnemyOwner(teams(), viewerOwner, entry.unit.owner)
           && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
       )
       .sort((left, right) => {
@@ -215,7 +222,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
           if (
             entry.position === undefined
             || entry.unit === undefined
-            || entry.unit.owner === viewerOwner
+            || !isEnemyOwner(teams(), viewerOwner, entry.unit.owner)
           ) {
             return false;
           }
@@ -262,7 +269,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
           if (
             entry.position === undefined
             || entry.building === undefined
-            || entry.building.owner === viewerOwner
+            || !isEnemyOwner(teams(), viewerOwner, entry.building.owner)
           ) {
             return false;
           }
@@ -375,7 +382,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
-      if (!position || !unit || unit.owner === viewerOwner) {
+      if (!position || !unit || !isEnemyOwner(teams(), viewerOwner, unit.owner)) {
         continue;
       }
 
@@ -415,7 +422,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'building')) {
       const position = world.getComponent<Position>(id, 'position');
       const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!position || !building || building.owner === viewerOwner) {
+      if (!position || !building || !isEnemyOwner(teams(), viewerOwner, building.owner)) {
         continue;
       }
 

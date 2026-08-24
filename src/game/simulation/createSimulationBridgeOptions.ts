@@ -33,4 +33,6 @@ export interface CreateSimulationBridgeOptions {
   // Civ selection (?civ=): override the freshly-built scenario start's civ for
   // the listed owners (closure-local; seeds playerCivilizations; ignored on load).
   civilizationsByOwner?: ReadonlyMap<number, string>;
+  /** Which side each owner is on (?teams=). Absent means a free-for-all. */
+  teamsByOwner?: ReadonlyMap<number, number>;
 }

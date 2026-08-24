@@ -6,7 +6,8 @@
 import type { BuildingComponent, UnitComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { playerResourcesCodec } from '../bridgeStateSerialize';
+import { playerResourcesCodec, playerTeamsCodec } from '../bridgeStateSerialize';
+import { isEnemyOwner } from '../../alliances';
 
 export interface ConquestOutcomeSystemDeps {
   world: GameWorld;
@@ -66,9 +67,13 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
         }
       }
       const humanAlive = !remainingOwners.has(humanPlayerId);
+      // An ALLY still standing is not an enemy still standing: with teams, the
+      // match is decided when every other SIDE is gone, which is what makes an
+      // ally worth having rather than one more player to outlive.
+      const teams = accessor.get(playerTeamsCodec);
       let allEnemiesEliminated = true;
       for (const owner of accessor.get(playerResourcesCodec).keys()) {
-        if (owner === humanPlayerId) continue;
+        if (!isEnemyOwner(teams, humanPlayerId, owner)) continue;
         if (!remainingOwners.has(owner)) {
           allEnemiesEliminated = false;
           break;

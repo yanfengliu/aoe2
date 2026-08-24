@@ -9,6 +9,7 @@ import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
 import { parseCivParam } from './civParam';
 import { parsePlayersParam } from './playersParam';
+import { parseTeamsParam } from './teamsParam';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -79,6 +80,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   // opponents" in scope, so a 1v1 is the default rather than the only shape.
   const playerCount = parsePlayersParam(window.location.href);
 
+  // Teams: ?teams=1,1,2 puts owners 1 and 2 on a side against owner 3. §2.2
+  // puts "optional AI allies" in scope; without this every match is a
+  // free-for-all, which is also what an unusable value falls back to.
+  const teamsByOwner = parseTeamsParam(window.location.href, playerCount ?? 2);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
@@ -87,6 +93,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     disableAiForOwners: disableAiForOwners.size > 0 ? disableAiForOwners : undefined,
     civilizationsByOwner: civilizationsByOwner.size > 0 ? civilizationsByOwner : undefined,
     playerCount,
+    teamsByOwner: teamsByOwner.size > 0 ? teamsByOwner : undefined,
   });
   const bridgeRef = (): SimulationBridge => bridge;
 

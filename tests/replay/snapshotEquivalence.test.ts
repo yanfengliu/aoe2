@@ -39,6 +39,7 @@ import type {
 const EXPECTED_TIER_1_SLOTS = [
   'aoe2.playerAges',
   'aoe2.playerCivilizations',
+  'aoe2.playerTeams',
   'aoe2.playerResources',
   'aoe2.population',
   'aoe2.trackedVisibilitySources',

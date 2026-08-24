@@ -22,6 +22,7 @@ import {
   monkCarriedRelicCodec,
   monkFaithCodec,
   monkHealCountersCodec,
+  playerTeamsCodec,
   populationCodec,
   relicsInMonasteryCodec,
   researchedTechnologiesCodec,
@@ -34,6 +35,7 @@ import {
   monkMayConvert,
 } from '../monasteryTechEffects';
 import { MONK_FAITH_MAX } from './bridgeConstants';
+import { isEnemyOwner } from '../alliances';
 import { monkTasksCodec } from './bridgeStateSerialize';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
@@ -166,7 +168,13 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   ): void {
     const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
     const conversionState = accessor.get(conversionStateCodec);
-    if (!targetUnit || targetUnit.owner === monkUnit.owner) {
+    // An ALLY's unit is not a conversion target either: with teams, "not mine"
+    // stopped meaning "an enemy", and converting a teammate's knight would be
+    // the same defect as shooting at them.
+    if (
+      !targetUnit
+      || !isEnemyOwner(accessor.get(playerTeamsCodec), monkUnit.owner, targetUnit.owner)
+    ) {
       clearMonkTask(monkId);
       conversionState.delete(targetId);
       accessor.markDirty(conversionStateCodec);
