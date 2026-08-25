@@ -14,15 +14,17 @@ interface RoofPalette {
   readonly thatch: number;
   readonly tile: number;
   readonly tileDark: number;
+  readonly wall: number;
+  readonly wallLight: number;
 }
 
 const ROOF_PALETTES: Readonly<Record<ArchitectureStyle, RoofPalette>> = {
-  'western-european': { thatch: VOXEL_COLORS.thatch, tile: VOXEL_COLORS.roofTile, tileDark: VOXEL_COLORS.roofTileDark },
-  'central-european': { thatch: 0x8f7a55, tile: 0x6e4f3a, tileDark: 0x4d3728 },
-  'middle-eastern': { thatch: 0xd8c391, tile: 0xb98d4e, tileDark: 0x826236 },
-  'east-asian': { thatch: 0x5d7a72, tile: 0x3f5a56, tileDark: 0x2c3f3c },
-  mediterranean: { thatch: 0xcf8a55, tile: 0xa9502e, tileDark: 0x763820 },
-  mesoamerican: { thatch: 0xb59a62, tile: 0x8c6b46, tileDark: 0x624b31 },
+  'western-european': { thatch: VOXEL_COLORS.thatch, tile: VOXEL_COLORS.roofTile, tileDark: VOXEL_COLORS.roofTileDark, wall: VOXEL_COLORS.plaster, wallLight: VOXEL_COLORS.plasterLight },
+  'central-european': { thatch: 0x8f7a55, tile: 0x6e4f3a, tileDark: 0x4d3728, wall: 0xcbb28a, wallLight: 0xe0cda2 },
+  'middle-eastern': { thatch: 0xd8c391, tile: 0xb98d4e, tileDark: 0x826236, wall: 0xe9ddc2, wallLight: 0xf5eedb },
+  'east-asian': { thatch: 0x5d7a72, tile: 0x3f5a56, tileDark: 0x2c3f3c, wall: 0xcfc9b6, wallLight: 0xe1dccb },
+  mediterranean: { thatch: 0xcf8a55, tile: 0xa9502e, tileDark: 0x763820, wall: 0xe3d2ac, wallLight: 0xf0e4c4 },
+  mesoamerican: { thatch: 0xb59a62, tile: 0x8c6b46, tileDark: 0x624b31, wall: 0xccc09e, wallLight: 0xdcd3b4 },
 };
 
 /** Re-key one of the three canonical roof colours (thatch, tile, and the
@@ -38,5 +40,21 @@ export function architectureRoofTint(
   if (tint === VOXEL_COLORS.thatch) return palette.thatch;
   if (tint === VOXEL_COLORS.roofTile) return palette.tile;
   if (tint === VOXEL_COLORS.roofTileDark) return palette.tileDark;
+  return tint;
+}
+
+/** Re-key the two canonical WALL colours (plaster and its light course) into
+ *  the given set — whitewash for a middle-eastern town, honeyed infill for a
+ *  central-european one. Consulted centrally by the building part adder, so
+ *  every wall face and plaster-toned prop follows its set; stone and timber
+ *  stay universal (a castle is a castle). */
+export function architectureWallTint(
+  architecture: ArchitectureStyle | undefined,
+  tint: number,
+): number {
+  if (!architecture || architecture === 'western-european') return tint;
+  const palette = ROOF_PALETTES[architecture];
+  if (tint === VOXEL_COLORS.plaster) return palette.wall;
+  if (tint === VOXEL_COLORS.plasterLight) return palette.wallLight;
   return tint;
 }

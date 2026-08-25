@@ -1,7 +1,7 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
-import { architectureRoofTint } from './aoeVoxelArchitecture';
+import { architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
   makePart,
@@ -43,7 +43,9 @@ export function add(
     context.identity,
     suffix,
     surface,
-    tint,
+    // v0.3.108: wall plaster follows the building's architecture set; every
+    // other colour passes through (roofs re-key at their own sites).
+    architectureWallTint(context.architecture, tint),
     context.x + context.width * xFraction,
     context.ground + bottom + height / 2,
     context.z + context.depth * zFraction,

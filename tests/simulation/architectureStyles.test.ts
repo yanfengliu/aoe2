@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 
 import { architectureStyleFor } from '../../src/game/simulation/architectureStyles';
 import { CIVILIZATION_NAMES } from '../../src/game/simulation/civilizationNames';
-import { architectureRoofTint } from '../../src/rendering/voxel/aoeVoxelArchitecture';
+import { architectureRoofTint, architectureWallTint } from '../../src/rendering/voxel/aoeVoxelArchitecture';
 import { VOXEL_COLORS } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 
@@ -41,6 +41,21 @@ describe('architectureRoofTint', () => {
     const styles = ['western-european', 'central-european', 'middle-eastern', 'east-asian', 'mediterranean', 'mesoamerican'] as const;
     const thatches = new Set(styles.map((s) => architectureRoofTint(s, VOXEL_COLORS.thatch)));
     expect(thatches.size).toBe(styles.length);
+  });
+});
+
+describe('architectureWallTint', () => {
+  it('re-keys the two plaster slots, passes everything else, identity for the default', () => {
+    expect(architectureWallTint('western-european', VOXEL_COLORS.plaster)).toBe(VOXEL_COLORS.plaster);
+    expect(architectureWallTint(undefined, VOXEL_COLORS.plasterLight)).toBe(VOXEL_COLORS.plasterLight);
+    expect(architectureWallTint('middle-eastern', VOXEL_COLORS.plaster)).not.toBe(VOXEL_COLORS.plaster);
+    expect(architectureWallTint('middle-eastern', VOXEL_COLORS.plasterLight)).not.toBe(VOXEL_COLORS.plasterLight);
+    // Stone and timber are universal — a castle is a castle in every set.
+    expect(architectureWallTint('middle-eastern', VOXEL_COLORS.stone)).toBe(VOXEL_COLORS.stone);
+    expect(architectureWallTint('east-asian', VOXEL_COLORS.timber)).toBe(VOXEL_COLORS.timber);
+    const styles = ['western-european', 'central-european', 'middle-eastern', 'east-asian', 'mediterranean', 'mesoamerican'] as const;
+    const walls = new Set(styles.map((s) => architectureWallTint(s, VOXEL_COLORS.plaster)));
+    expect(walls.size).toBe(styles.length);
   });
 });
 

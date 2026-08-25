@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.108
+
+- Architecture sets now colour the walls too: whitewash for middle-eastern towns, honeyed half-timber infill for central-european, pale grey for east-asian, sun-cream for mediterranean, limestone for mesoamerican. Castles, towers, and timber stay universal.
+
 ## 0.3.107
 
 - Villagers repair siege engines and ships: right-click a damaged friendly ram, mangonel, trebuchet, or ship to mend it — half the training cost pro-rata the damage, charged up front, restored at the unit's training rate. Monks heal flesh; villagers mend machines.

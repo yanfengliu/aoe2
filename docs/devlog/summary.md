@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.108 architecture walls: plaster/plasterLight re-key per set centrally in the building part adder (roofs keep their site-level consult); default map 0.33% diff = shimmer only.
 - 2026-08-25 v0.3.107 mechanical-unit repair: villagers mend siege+ships (armor-class-derived predicate, building-repair economics, pursuit via findUnitRangePlan, 'repair' command with unit ref); test's 360-HP magic number was the wrong table — parameterize on getEntityHealth.
 - 2026-08-25 v0.3.106 allied gate passage (gateAdmits + teams map through cellPassability); gates fixture gained a third idle party after the allied 2-player variant ended by conquest on tick 1 and froze the walk test.
 - 2026-08-25 v0.3.105 per-civ architecture pass 1: six roof-material sets keyed off civ (sim projects `architecture`, fog memory + saves carry it, replay resolves real civs), renderer re-keys thatch/tile/ridge before owner blend; diff-proved delta confined to roofs.
