@@ -4,6 +4,7 @@ import { createBuildingDetailParts } from './aoeVoxelBuildingDetails';
 import {
   contactShadow,
   makePart,
+  mixTint,
   shade,
   VOXEL_COLORS,
   type VoxelPart,
@@ -62,6 +63,11 @@ function steppedRoof(
   tint: number = VOXEL_COLORS.roofTile,
   layers = 3,
 ): number {
+  // The AoE2 read: a building's ROOF carries its owner's colour, not just a
+  // flag and a band — three bases at a glance are three colours of skyline.
+  // Blending (rather than painting flat team colour) keeps the tile/thatch
+  // material identity underneath, so Briton blue thatch still reads as thatch.
+  const owned = mixTint(tint, context.team, 0.55);
   const layerHeight = 0.16;
   for (let layer = 0; layer < layers; layer += 1) {
     const inset = layer * 0.055;
@@ -69,7 +75,7 @@ function steppedRoof(
       context,
       `${prefix}-roof-${String(layer + 1)}`,
       'matte',
-      shade(tint, 1 - layer * 0.08),
+      shade(owned, 1 - layer * 0.08),
       xFraction,
       bottom + layer * layerHeight,
       zFraction,
@@ -117,7 +123,7 @@ function townCenter(context: BuildingContext): void {
   steppedRoof(context, 'town-center-left', 1.04, 0.22, 0.53, 0.24, 0.46, VOXEL_COLORS.thatch, 2);
   steppedRoof(context, 'town-center-right', 1.04, 0.78, 0.53, 0.24, 0.46, VOXEL_COLORS.thatch, 2);
   add(context, 'town-center-tower', 'matte', VOXEL_COLORS.stoneLight, 0.5, 1.94, 0.5, 0.18, 0.58, 0.18);
-  add(context, 'town-center-tower-roof', 'matte', VOXEL_COLORS.roofTileDark, 0.5, 2.52, 0.5, 0.24, 0.18, 0.24);
+  add(context, 'town-center-tower-roof', 'matte', mixTint(VOXEL_COLORS.roofTileDark, context.team, 0.55), 0.5, 2.52, 0.5, 0.24, 0.18, 0.24);
   add(context, 'town-center-flag-pole', 'metal', VOXEL_COLORS.steelDark, 0.5, 2.7, 0.5, 0.018, 0.58, 0.018);
   add(context, 'town-center-flag', 'matte', context.team, 0.535, 3.02, 0.5, 0.09, 0.22, 0.025);
   add(context, 'town-center-team-band', 'matte', context.team, 0.5, 1.32, 0.755, 0.42, 0.09, 0.025);
@@ -313,7 +319,7 @@ function market(context: BuildingContext): void {
 function dock(context: BuildingContext): void {
   // Boathouse: an open-fronted shed at the landward end.
   add(context, 'dock-house', 'matte', VOXEL_COLORS.timber, 0.5, 0, 0.26, 0.62, 0.5, 0.4);
-  add(context, 'dock-house-roof', 'matte', VOXEL_COLORS.thatch, 0.5, 0.5, 0.26, 0.7, 0.14, 0.48);
+  add(context, 'dock-house-roof', 'matte', mixTint(VOXEL_COLORS.thatch, context.team, 0.55), 0.5, 0.5, 0.26, 0.7, 0.14, 0.48);
   add(context, 'dock-house-post-left', 'matte', VOXEL_COLORS.timberDark, 0.23, 0, 0.44, 0.06, 0.5, 0.06);
   add(context, 'dock-house-post-right', 'matte', VOXEL_COLORS.timberDark, 0.77, 0, 0.44, 0.06, 0.5, 0.06);
   // Pier decking, running out over the water side.

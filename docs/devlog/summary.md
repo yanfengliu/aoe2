@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.83: building roofs carry owner colour (mixTint 55% toward owner tint in steppedRoof + TC-tower/dock-house roofs); before/after pixel diff confined to roofs, enemy/owner-3 discrimination frames captured; spec art-direction paragraph superseded (accents-only -> roof blend).
 - **Ten combat-stat lines, and the 500-line gate forced the right surgery.** LOS bonuses land at BOTH unit-vision sites (trained-unit creation and the upgrade sweep — one site alone would give upgraded knights the wrong eyes); ranges at the combat-state factory (a Korean mangonel is BORN outranging, proved in-match against a plain one); the class-attack extras (Saracen/Indian vs buildings, Persian knights vs archers) are computed by the command loop and threaded into the delivery params. Wiring them pushed `playerCommandsSystem` to 513, and the honest fix was the one that has been due for days: the 230-line ATTACK branch moved verbatim to `attackCommandStep.ts` (one role — advance an attack one tick), taking the system to 281 and the step to 311. Full suite + combat browser specs green on the extraction. Gates: 2798 tests, typecheck, lint, build.
 
 ## 2026-08-25 (team bonuses — the column comes alive, v0.3.81)

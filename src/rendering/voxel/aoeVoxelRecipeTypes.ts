@@ -83,6 +83,18 @@ function clampChannel(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
+/** Linear blend of two tints: `t` of `toward` over `1-t` of `base`. The
+ *  building recipes use it to pull roof materials toward the owner's colour
+ *  while keeping the material's own light-dark identity underneath. */
+export function mixTint(base: number, toward: number, t: number): number {
+  requireTint(base);
+  requireTint(toward);
+  const channel = (shift: number) => clampChannel(
+    ((base >>> shift) & 0xff) * (1 - t) + ((toward >>> shift) & 0xff) * t,
+  );
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
+
 export function shade(tint: number, multiplier: number): number {
   requireTint(tint);
   if (!Number.isFinite(multiplier) || multiplier < 0) {

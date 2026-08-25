@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.83 — 2026-08-25
+
+Buildings now wear their owner's colour on the roof, not just on flags and trim: every stepped roof blends toward the owner tint (your base keeps its warm thatch look; an enemy base reads as a red-roofed skyline, a third player's as olive, and so on through the palette). Walls stay neutral stone, so the building types remain as recognisable as before.
+
 ## 0.3.82 - 2026-08-25
 
 ### Added
