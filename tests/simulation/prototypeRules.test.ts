@@ -131,7 +131,16 @@ describe('prototype building rules', () => {
   it('preserves garrison and arrow-count behavior', () => {
     expect(canGarrisonAt('castle', 'elite-longbowman')).toBe(true);
     expect(canGarrisonAt('castle', 'crossbowman')).toBe(true);
-    expect(canGarrisonAt('watch-tower', 'elite-longbowman')).toBe(false);
+    // v0.3.84 widened garrison eligibility to the AoE2 DE rules: foot
+    // soldiers fit towers and Town Centers; mounted units only fit a Castle;
+    // siege and ships fit nothing.
+    expect(canGarrisonAt('watch-tower', 'elite-longbowman')).toBe(true);
+    expect(canGarrisonAt('watch-tower', 'militia')).toBe(true);
+    expect(canGarrisonAt('town-center', 'monk')).toBe(true);
+    expect(canGarrisonAt('watch-tower', 'knight')).toBe(false);
+    expect(canGarrisonAt('castle', 'knight')).toBe(true);
+    expect(canGarrisonAt('castle', 'battering-ram')).toBe(false);
+    expect(canGarrisonAt('watch-tower', 'trade-cart')).toBe(false);
     // Spec §10.8: an empty completed Town Center fires its base arrow (1),
     // like the Castle; garrisoned units add one each up to 4.
     expect(buildingArrowCount('town-center', 0, 0)).toBe(1);

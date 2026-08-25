@@ -40,6 +40,7 @@ import {
 import {
   buildingGarrisonCapacity,
 } from '../prototypeBuildingRules';
+import { civGarrisonCapacityMultiplier } from '../civBuildingBonuses';
 import {
   buildingHealthStatesCodec,
   combatStatesCodec,
@@ -256,7 +257,13 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     }
 
     if (building) {
-      const capacity = buildingGarrisonCapacity(building.buildingType);
+      // Same Teuton 2x-tower multiplier the entry check applies, so the HUD
+      // number is the number the garrison command actually enforces.
+      const capacity = buildingGarrisonCapacity(building.buildingType)
+        * civGarrisonCapacityMultiplier(
+          accessor.get(playerCivilizationsCodec).get(building.owner),
+          building.buildingType,
+        );
       if (capacity <= 0) {
         return null;
       }

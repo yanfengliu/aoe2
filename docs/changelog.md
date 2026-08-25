@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.84 — 2026-08-25
+
+Ethiopian teams' towers and Outposts now see +3 farther, and Teuton Town Centers gained their +1 attack and +5 line of sight, their towers hold twice the garrison, and their monks heal from twice the distance. Landing the tower line also brought garrisoning up to the real AoE2 rules: infantry, foot archers, and monks can now shelter in Town Centers and towers (and everything but siege, ships, and trade carts in a Castle) — previously only villagers, plus archers in Castles, could garrison at all.
+
 ## 0.3.83 — 2026-08-25
 
 Buildings now wear their owner's colour on the roof, not just on flags and trim: every stepped roof blends toward the owner tint (your base keeps its warm thatch look; an enemy base reads as a red-roofed skyline, a third player's as olive, and so on through the palette). Walls stay neutral stone, so the building types remain as recognisable as before.

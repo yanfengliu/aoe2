@@ -1,4 +1,12 @@
-import { isArcherLineUnit } from './prototypeUnitRules';
+import {
+  isInfantryUnit,
+  isMeleeUnit,
+  isMountedUnit,
+  isSiegeUnit,
+  unitAttackRange,
+} from './prototypeUnitRules';
+import { isMonasticUnit } from './monasticUnits';
+import { isWaterUnit } from './unitDomain';
 import type {
   BuildingType,
   ResearchableTechnologyType,
@@ -246,6 +254,12 @@ export function buildingGarrisonCapacity(buildingType: BuildingType): number {
   return BUILDING_GARRISON_CAPACITY.get(buildingType) ?? 0;
 }
 
+// AoE2 DE garrison rules: villagers shelter anywhere that garrisons; foot
+// soldiers (infantry, foot ranged units, monks) also fit Town Centers, towers,
+// and Castles; a Castle additionally takes mounted units. Siege, ships, and
+// trade carts never garrison. (Until v0.3.84 only villagers and castle
+// archers could - the Teuton "towers garrison 2x" line forced the honest
+// widening.)
 export function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
   if (buildingGarrisonCapacity(buildingType) <= 0) {
     return false;
@@ -253,7 +267,20 @@ export function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): b
   if (unitType === 'villager') {
     return true;
   }
-  return buildingType === 'castle' && isArcherLineUnit(unitType);
+  if (isSiegeUnit(unitType) || isWaterUnit(unitType) || unitType === 'trade-cart') {
+    return false;
+  }
+  if (buildingType === 'castle') {
+    return true;
+  }
+  const isFootSoldier = isInfantryUnit(unitType)
+    || isMonasticUnit(unitType)
+    || (!isMountedUnit(unitType) && !isMeleeUnit(unitType) && unitAttackRange(unitType) > 1);
+  return (
+    buildingType === 'town-center'
+    || buildingType === 'watch-tower'
+    || buildingType === 'bombard-tower'
+  ) && isFootSoldier;
 }
 
 export function buildingArrowCount(

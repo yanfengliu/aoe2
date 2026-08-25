@@ -17,9 +17,15 @@ import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
   playerAgesCodec,
+  playerCivilizationsCodec,
+  playerTeamsCodec,
   populationCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
+import {
+  civBuildingBaseAttackBonus,
+  teamBuildingVisionBonus,
+} from '../civBuildingBonuses';
 import { buildingVisionBonus, outpostVisionRadiusForAge } from '../visionTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -81,13 +87,24 @@ export function finalizeBuildingConstruction(params: {
       : defaultVisionRadius;
     world.addComponent(buildingId, 'visionSource', {
       playerId: building.owner,
-      radius: baseRadius + losBonus,
+      // Ethiopian towers/outposts and Teuton TCs — same bonus the seed path adds.
+      radius: baseRadius + losBonus + teamBuildingVisionBonus(
+        accessor.get(playerTeamsCodec),
+        accessor.get(playerCivilizationsCodec),
+        building.owner,
+        building.buildingType,
+      ),
     });
     visionSourceAdded = true;
   }
 
   const buildingCombatState = createBuildingCombatState(building.buildingType);
   if (buildingCombatState) {
+    // Teuton Town Centers hit for one more (civilizations.csv "+1 attack").
+    buildingCombatState.attackDamage += civBuildingBaseAttackBonus(
+      accessor.get(playerCivilizationsCodec).get(building.owner),
+      building.buildingType,
+    );
     accessor.mutate(buildingCombatStatesCodec, (m) => m.set(buildingId, buildingCombatState));
   }
 

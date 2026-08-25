@@ -14,10 +14,12 @@ import { canBoardTransport, transportCapacity } from '../transportShip';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   garrisonedByBuildingCodec,
+  playerCivilizationsCodec,
   researchedTechnologiesCodec,
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
 } from './bridgeStateSerialize';
+import { civGarrisonCapacityMultiplier } from '../civBuildingBonuses';
 import type { GameWorld } from './pureHelpers';
 
 // An owner with nothing researched — Careening and Dry Dock raise a
@@ -148,7 +150,13 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
   function garrisonUnit(unitId: number, buildingId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    const capacity = building ? buildingGarrisonCapacity(building.buildingType) : 0;
+    // Teuton towers shelter twice the table ("Towers can garrison 2x units").
+    const capacity = building
+      ? buildingGarrisonCapacity(building.buildingType) * civGarrisonCapacityMultiplier(
+        accessor.get(playerCivilizationsCodec).get(building.owner),
+        building.buildingType,
+      )
+      : 0;
     if (
       !unit
       || !building

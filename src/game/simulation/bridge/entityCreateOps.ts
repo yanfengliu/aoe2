@@ -28,8 +28,6 @@ import {
   buildingPopulationProvided,
   buildingSize,
   buildingTint,
-  buildingVisionRadius,
-  createBuildingCombatState,
 } from '../prototypeBuildingRules';
 import {
   createWildlifeState,
@@ -42,11 +40,9 @@ import { assignVillagerRole } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
-  buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
-  playerAgesCodec,
   populationCodec,
   productionQueuesCodec,
   researchedTechnologiesCodec,
@@ -62,7 +58,7 @@ import {
   EMPTY_TECH_SET,
   FISH_TRAP_FOOD_AMOUNT,
 } from '../economyTechEffects';
-import { outpostVisionRadiusForAge } from '../visionTechEffects';
+import { attachBuildingVisionAndCombat } from './buildingSeedVision';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -383,28 +379,12 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       });
     }
 
-    const defaultVisionRadius = buildingVisionRadius(buildingType);
-    if (vision) {
-      world.addComponent(entity, 'visionSource', vision);
-    } else if (isComplete && defaultVisionRadius !== null) {
-      world.addComponent(entity, 'visionSource', {
-        playerId: owner,
-        // The Outpost's "+2 per age" (structures.csv): a fixture that seeds one
-        // into a Castle-Age game gets the same radius the age-up bumps would
-        // have produced.
-        radius: buildingType === 'outpost'
-          ? outpostVisionRadiusForAge(
-            accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
-            defaultVisionRadius,
-          )
-          : defaultVisionRadius,
-      });
-    }
-
-    const buildingCombatState = createBuildingCombatState(buildingType);
-    if (isComplete && buildingCombatState) {
-      accessor.mutate(buildingCombatStatesCodec, (m) => m.set(entity, buildingCombatState));
-    }
+    // Vision (with the Ethiopian/Teuton LOS bonuses on BOTH branches) and the
+    // building's combat state (with the Teuton TC +1) — buildingSeedVision.
+    attachBuildingVisionAndCombat({
+      world, accessor, entity, owner, buildingType, isComplete,
+      ...(vision ? { vision } : {}),
+    });
 
     const populationState = accessor.get(populationCodec).get(owner);
     // Chinese Town Centers and Inca houses shelter more than the table says.

@@ -378,6 +378,8 @@ export {
   createCivMongolsScoutControlFixture,
 } from './civMongolsScout';
 
+export { createCivTeutonsFixture } from './civTeutons';
+
 export {
   createCivGothsInfantryFixture,
   createCivGothsInfantryControlFixture,

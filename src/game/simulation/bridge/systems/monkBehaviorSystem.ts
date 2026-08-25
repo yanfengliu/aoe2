@@ -18,8 +18,10 @@ import {
   monkCarriedRelicCodec,
   monkFaithCodec,
   monkTasksCodec,
+  playerCivilizationsCodec,
   researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
+import { civMonkHealRangeMultiplier } from '../../civBuildingBonuses';
 import { monkFaithRegenPerTick, monkConvertRangeBonus } from '../../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { MONK_FAITH_MAX } from '../bridgeConstants';
@@ -168,13 +170,19 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
         // Block Printing (Monastery, derived): +monk CONVERSION range for the
         // monk's owner. Applies only to convert tasks; heal/pickup/deposit keep
         // the base range. Un-teched owners read +0 → behaviour-identical.
+        // Teutons: "Monks have 2x healing range" — heal tasks only; convert,
+        // pickup, and deposit keep the base reach.
         const actionRange =
           task.kind === 'convert'
             ? MONK_ACTION_RANGE
               + monkConvertRangeBonus(
                 accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET,
               )
-            : MONK_ACTION_RANGE;
+            : task.kind === 'heal'
+              ? MONK_ACTION_RANGE * civMonkHealRangeMultiplier(
+                accessor.get(playerCivilizationsCodec).get(monkUnit.owner),
+              )
+              : MONK_ACTION_RANGE;
 
         if (distance > actionRange) {
           const plan =

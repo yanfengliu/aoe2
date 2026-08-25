@@ -15,6 +15,8 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  playerCivilizationsCodec,
+  playerTeamsCodec,
   garrisonedByBuildingCodec,
   populationCodec,
   projectilesCodec,
@@ -418,6 +420,9 @@ describe("visibility mutation batching", () => {
         [buildingCombatStatesCodec.slot, new Map()],
         [populationCodec.slot, new Map()],
         [researchedTechnologiesCodec.slot, new Map()],
+        // The civ/team building bonuses read these two at completion.
+        [playerTeamsCodec.slot, new Map()],
+        [playerCivilizationsCodec.slot, new Map()],
       ]);
       const components = new Map<string, unknown>();
       if (hasExplicitVision) {
