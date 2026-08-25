@@ -388,7 +388,7 @@ export interface SimulationDebugSnapshot {
     fromY: number;
     toX: number;
     toY: number;
-    commandType: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
+    commandType: 'move' | 'attack-move' | 'attack-ground' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   }>;
   aiSummaries: Array<{
     owner: number;

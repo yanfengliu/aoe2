@@ -51,6 +51,7 @@ import type {
 } from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
 import { entityDeleteValidator, makeEntityDeleteHandler } from '../handlers/entityDeleteHandler';
+import { unitAttackGroundValidator, makeUnitAttackGroundHandler } from '../handlers/unit/unitAttackGroundHandler';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
 import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
@@ -121,6 +122,7 @@ export interface CommandHandlerDeps {
     formation: import('../unitFormation').UnitFormation,
   ) => void;
   setUnitAttackMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  setUnitAttackGroundCommandDirect: (unitId: number, target: Position) => boolean;
   setUnitPatrolCommandDirect: (unitId: number, target: Position) => boolean;
   // Phase 1B (unit.attack): same pattern.
   setUnitAttackCommandDirect: (
@@ -223,6 +225,11 @@ export function registerCommandHandlers(
   world.registerValidator('unit.move', unitMoveValidator);
   // v0.3.114 Delete key.
   world.registerValidator('entity.delete', entityDeleteValidator);
+  // v0.3.117 attack-ground.
+  world.registerValidator('unit.attackGround', unitAttackGroundValidator);
+  world.registerHandler('unit.attackGround', makeUnitAttackGroundHandler({
+    setUnitAttackGroundCommandDirect: deps.setUnitAttackGroundCommandDirect,
+  }));
   world.registerHandler('entity.delete', makeEntityDeleteHandler({
     destroyUnitEntity: deps.destroyUnitEntity,
     destroyBuildingEntity: deps.destroyBuildingEntity,

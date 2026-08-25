@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.117 attack-ground (unit.attackGround command; dead-target isArea projectile = pure blast at the cell; G arming; order never self-clears); first bombard test was a FALSE POSITIVE off auto-aggression until the empty-cell test caught the missing executor branch; 500-cap compactions (formation-order helper, view wrappers).
 - 2026-08-25 v0.3.116 bell peal (live-facade ring tally as the audio observable — cosmetics never become sim state).
 - 2026-08-25 v0.3.115 town bell (ring/back-to-work as building.action; greedy nearest-shelter fill; ungarrisonBuilding gains a villager-only filter so soldiers hold the wall); v0.3.114 Delete key devlog folded here.
 - 2026-08-25 v0.3.114 Delete key (entity.delete command; ownership validator; one-per-press; routed through the combat destroy ops); two exhaustiveness guards (pinned-units oracle, pendingCommandQuery) fired on the new variant exactly as designed.

@@ -96,6 +96,7 @@ export interface CreateWorldResult {
     formation: import('../unitFormation').UnitFormation,
   ) => boolean;
   issueAttackMoveCommand: (x: number, y: number) => boolean;
+  issueAttackGroundCommand: (x: number, y: number) => boolean;
   issuePatrolCommand: (x: number, y: number) => boolean;
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;

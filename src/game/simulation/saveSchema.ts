@@ -54,9 +54,10 @@ export type SerializedEntityKeyedSideMap<V> = SerializedMap<number, V>;
 export interface SerializedUnitCommand {
   // 'repair' added in v0.1.51 (villager repair), 'garrison' in v0.3.42 (a unit
   // walks to the building instead of entering from any distance), 'trade' in
-  // v0.3.68 (a Trade Cart's route survives a save mid-leg). Additive and
+  // v0.3.68 (a Trade Cart's route survives a save mid-leg), 'attack-ground'
+  // in v0.3.117 (a bombardment order survives a save). Additive and
   // back-compatible each time: older saves never carry the newer kinds.
-  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
+  type: 'move' | 'attack-move' | 'attack-ground' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   target: { x: number; y: number };
   buildingRef?: SerializedEntityRef;
   targetEntityRef?: SerializedEntityRef;

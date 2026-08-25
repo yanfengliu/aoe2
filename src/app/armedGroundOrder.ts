@@ -6,7 +6,7 @@
 // has to arbitrate. Held here rather than in the view so the hotkey registry
 // and the pointer controller are looking at the same thing.
 
-export type GroundOrderKind = 'attack-move' | 'patrol';
+export type GroundOrderKind = 'attack-move' | 'patrol' | 'attack-ground';
 
 export class ArmedGroundOrder {
   private armed: GroundOrderKind | null = null;

@@ -8,6 +8,7 @@ import { runAttackCommandStep } from './attackCommandStep';
 import { isMonasticUnit } from '../../monasticUnits';
 import { runBuilderWorkStep } from './builderWorkStep';
 import { runRepairUnitStep } from './repairUnitStep';
+import { runAttackGroundStep } from './attackGroundStep';
 import { runTradeStep } from '../tradeCommandStep';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -198,6 +199,16 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           moveUnitOneSubgridStep(id, movePlan.nextStep, activeWorld);
+          continue;
+        }
+
+        // Attack-ground (spec §10.7, v0.3.117): bombard the ordered cell.
+        if (command.type === 'attack-ground') {
+          runAttackGroundStep({
+            world: activeWorld, accessor, id, unit, position, command,
+            findUnitRangePlan, moveUnitOneSubgridStep, clearUnitCommand,
+            markRender: markOutOfBandRenderChange,
+          });
           continue;
         }
 

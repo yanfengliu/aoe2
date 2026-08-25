@@ -415,6 +415,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   hotkeyRegistry.register({ key: 'p' }, () => {
     view.armPatrol();
   });
+  // Attack-ground (v0.3.117): G arms it; the next left click is the cell the
+  // mangonel line bombards, targets or no targets.
+  hotkeyRegistry.register({ key: 'g' }, () => {
+    view.armAttackGround();
+  });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc
   // has prior claimants: in replay mode it EXITS replay, and while a modal

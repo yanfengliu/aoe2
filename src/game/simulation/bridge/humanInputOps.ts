@@ -78,6 +78,7 @@ export interface HumanInputOps {
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(formation: UnitFormation): boolean;
   issueAttackMoveCommand(x: number, y: number): boolean;
+  issueAttackGroundCommand(x: number, y: number): boolean;
   issuePatrolCommand(x: number, y: number): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
 }
@@ -348,7 +349,14 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   // M6 control: "pace this line and fight what you meet". Unlike an
   // attack-move the ROUTE outlives the walk, so the unit keeps going after a
   // fight — see patrolRoute.ts.
-  function issuePatrolCommand(x: number, y: number): boolean {
+  // Patrol and attack-move share the formation-planned group shape; attack-
+  // ground converges every unit on the SAME cell (converging fire is the
+  // point) and lets the validator skip ineligible units in a mixed selection.
+  function issueFormationOrderToSelection(
+    x: number,
+    y: number,
+    perUnit: (id: number, target: Position) => boolean,
+  ): boolean {
     if (!isMatchRunning()) return false;
     const selectedUnitIds = getSelectedHumanUnitIds();
     if (selectedUnitIds.length === 0) return false;
@@ -362,29 +370,23 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     for (let i = 0; i < orderedIds.length; i += 1) {
       const id = orderedIds[i]!;
       const target = allocations[i] ?? targetCenter;
-      didIssue = supersedeAutoAggression(id, issueUnitPatrolCommand(id, target)) || didIssue;
+      didIssue = supersedeAutoAggression(id, perUnit(id, target)) || didIssue;
     }
     return didIssue;
   }
 
-  function issueAttackMoveCommand(x: number, y: number): boolean {
-    if (!isMatchRunning()) return false;
-    const selectedUnitIds = getSelectedHumanUnitIds();
-    if (selectedUnitIds.length === 0) return false;
-    const targetCenter: Position = {
-      x: clamp(x, 0, mapWidth - 1),
-      y: clamp(y, 0, mapHeight - 1),
-    };
-    const { orderedIds, preferredCells } = planFormation(selectedUnitIds, targetCenter);
-    const allocations = allocateGroupMoveTargets(orderedIds, targetCenter, preferredCells);
-    let didIssue = false;
-    for (let i = 0; i < orderedIds.length; i += 1) {
-      const id = orderedIds[i]!;
-      const target = allocations[i] ?? targetCenter;
-      didIssue = supersedeAutoAggression(id, issueUnitAttackMoveCommand(id, target)) || didIssue;
-    }
-    return didIssue;
-  }
+  const issuePatrolCommand = (x: number, y: number): boolean =>
+    issueFormationOrderToSelection(x, y, issueUnitPatrolCommand);
+
+  const issueAttackMoveCommand = (x: number, y: number): boolean =>
+    issueFormationOrderToSelection(x, y, issueUnitAttackMoveCommand);
+
+  const issueAttackGroundCommand = (x: number, y: number): boolean =>
+    issueFormationOrderToSelection(x, y, (id, _target) =>
+      world.submitWithResult('unit.attackGround', {
+        unitId: id,
+        target: { x: clamp(x, 0, mapWidth - 1), y: clamp(y, 0, mapHeight - 1) },
+      }).accepted);
 
   const planFormation = createFormationPlanner({
     world,
@@ -489,6 +491,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand,
+    issueAttackGroundCommand,
     issuePatrolCommand,
     issueMarketAction,
   };

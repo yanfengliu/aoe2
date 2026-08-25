@@ -130,14 +130,12 @@ export class AoeVoxelGameView {
       disarmGroundOrder: () => { this.groundOrder.disarm(); },
       // `worldCellAt` can hand back a fractional cell, and the engine rejects
       // non-integer grid coordinates outright — floor before ordering.
-      issueAttackMoveCommand: (cellX, cellY) => this.bridge?.issueAttackMoveCommand(
-        Math.floor(cellX),
-        Math.floor(cellY),
-      ) ?? false,
-      issuePatrolCommand: (cellX, cellY) => this.bridge?.issuePatrolCommand(
-        Math.floor(cellX),
-        Math.floor(cellY),
-      ) ?? false,
+      issueAttackMoveCommand: (cellX, cellY) =>
+        this.bridge?.issueAttackMoveCommand(Math.floor(cellX), Math.floor(cellY)) ?? false,
+      issuePatrolCommand: (cellX, cellY) =>
+        this.bridge?.issuePatrolCommand(Math.floor(cellX), Math.floor(cellY)) ?? false,
+      issueAttackGroundCommand: (cellX, cellY) =>
+        this.bridge?.issueAttackGroundCommand(Math.floor(cellX), Math.floor(cellY)) ?? false,
       });
       pointerToDispose = this.pointer;
       this.presentation = createAoeVoxelPresentationCoordinator({
@@ -263,15 +261,10 @@ export class AoeVoxelGameView {
   /** M6 control: see armedGroundOrder.ts. */
   private readonly groundOrder = new ArmedGroundOrder();
 
-  /** Arms attack-move; the next left click becomes the destination. */
-  armAttackMove(): void {
-    this.groundOrder.arm('attack-move');
-  }
-
-  /** Arms patrol; the next left click becomes the far end of the route. */
-  armPatrol(): void {
-    this.groundOrder.arm('patrol');
-  }
+  /** Arm a ground order; the next left click spends it (A/P/G hotkeys). */
+  armAttackMove(): void { this.groundOrder.arm('attack-move'); }
+  armPatrol(): void { this.groundOrder.arm('patrol'); }
+  armAttackGround(): void { this.groundOrder.arm('attack-ground'); }
 
   isAttackMoveArmed(): boolean {
     return this.groundOrder.get() === 'attack-move';

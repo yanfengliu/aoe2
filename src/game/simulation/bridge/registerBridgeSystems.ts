@@ -149,6 +149,7 @@ export interface RegisterBridgeSystemsResult {
   setSelectionStance: CreateWorldResult['setSelectionStance'];
   setSelectionFormation: CreateWorldResult['setSelectionFormation'];
   issueAttackMoveCommand: CreateWorldResult['issueAttackMoveCommand'];
+  issueAttackGroundCommand: CreateWorldResult['issueAttackGroundCommand'];
   issuePatrolCommand: CreateWorldResult['issuePatrolCommand'];
   issueMarketAction: CreateWorldResult['issueMarketAction'];
 }
@@ -319,6 +320,7 @@ export function registerBridgeSystems(
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand,
+    issueAttackGroundCommand,
     issuePatrolCommand,
     issueMarketAction,
   } = createHumanInputOps({
@@ -394,6 +396,7 @@ export function registerBridgeSystems(
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand,
+    issueAttackGroundCommand,
     issuePatrolCommand,
     issueMarketAction,
   };

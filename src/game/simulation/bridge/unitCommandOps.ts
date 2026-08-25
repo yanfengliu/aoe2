@@ -109,6 +109,7 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // intentions per §6.5).
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
   setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean;
+  setUnitAttackGroundCommandDirect(unitId: number, target: Position): boolean;
   issueUnitAttackMoveCommand(unitId: number, target: Position): boolean;
   issueUnitPatrolCommand(unitId: number, target: Position): boolean;
   setUnitPatrolCommandDirect(unitId: number, target: Position): boolean;
@@ -216,7 +217,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   function setWalkCommandDirect(
     unitId: number,
     target: Position,
-    type: 'move' | 'attack-move',
+    type: 'move' | 'attack-move' | 'attack-ground',
     { keepPatrol = false }: { keepPatrol?: boolean } = {},
   ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
@@ -248,6 +249,12 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // the type and engages regardless of stance while it is active.
   function setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean {
     return setWalkCommandDirect(unitId, target, 'attack-move');
+  }
+
+  // Attack-ground (v0.3.117): same walk toward the cell; the executor stops
+  // at firing range and bombards instead of arriving.
+  function setUnitAttackGroundCommandDirect(unitId: number, target: Position): boolean {
+    return setWalkCommandDirect(unitId, target, 'attack-ground');
   }
 
   const {
@@ -478,6 +485,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     issueUnitGatherCommand,
     issueUnitAttackMoveCommand,
     setUnitAttackMoveCommandDirect,
+    setUnitAttackGroundCommandDirect,
     issueUnitPatrolCommand,
     setUnitPatrolCommandDirect,
     clearPatrolRoute,

@@ -153,6 +153,7 @@ export function makeReplayBridge(
       // Replay is playback: orders come from the recorded stream.
       return false;
     },
+    issueAttackGroundCommand: () => false,
     issuePatrolCommand() {
       // Replay is playback: orders come from the recorded stream.
       return false;

@@ -34,10 +34,11 @@ export interface VoxelPointerInputControllerDeps {
   ) => boolean;
   // M6 control: attack-move arming state, owned by the app so the HUD and the
   // hotkey can both drive it. Optional so existing callers/tests are unaffected.
-  readonly armedGroundOrder?: () => 'attack-move' | 'patrol' | null;
+  readonly armedGroundOrder?: () => 'attack-move' | 'patrol' | 'attack-ground' | null;
   readonly disarmGroundOrder?: () => void;
   readonly issueAttackMoveCommand?: (cellX: number, cellY: number) => boolean;
   readonly issuePatrolCommand?: (cellX: number, cellY: number) => boolean;
+  readonly issueAttackGroundCommand?: (cellX: number, cellY: number) => boolean;
   readonly issueContextCommandAtWorldPosition: (
     worldX: number,
     worldY: number,
@@ -152,6 +153,7 @@ export function createVoxelPointerInputController(
       const cell = worldCellAt(point.x, point.y);
       deps.disarmGroundOrder?.();
       if (armedOrder === 'patrol') deps.issuePatrolCommand?.(cell.x, cell.y);
+      else if (armedOrder === 'attack-ground') deps.issueAttackGroundCommand?.(cell.x, cell.y);
       else deps.issueAttackMoveCommand?.(cell.x, cell.y);
       return;
     }

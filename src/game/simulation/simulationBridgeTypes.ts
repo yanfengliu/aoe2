@@ -93,6 +93,8 @@ export interface SimulationBridge {
   ): boolean;
   /** M6 control: walk the selection to a cell, engaging anything met en route. */
   issueAttackMoveCommand(x: number, y: number): boolean;
+  /** Attack-ground (v0.3.117): bombard a cell with every selected blast unit. */
+  issueAttackGroundCommand(x: number, y: number): boolean;
   issuePatrolCommand(x: number, y: number): boolean;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   // FU4: probe an entity's current/max HP. Reads the canonical combat

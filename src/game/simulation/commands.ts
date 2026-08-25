@@ -34,6 +34,9 @@ export type GameCommands = {
   // press, no refund. `requestedBy` is the deleting player; the validator
   // enforces ownership so a recorded stream cannot delete someone else's.
   'entity.delete': { entityId: number; requestedBy: number };
+  // v0.3.117 attack-ground: bombard a CELL (mangonel line) — no target
+  // entity; the blast at the aim point is the whole attack.
+  'unit.attackGround': { unitId: number; target: Position };
   'unit.attack': {
     unitId: number;
     targetEntityId: number;

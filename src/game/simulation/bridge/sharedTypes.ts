@@ -23,7 +23,7 @@ export interface UnitCommand {
   // the route's far end, and `tradeCarriedGold` is present only on the return
   // leg — the goods were loaded at the far Market, so the deposit pays even if
   // that Market has since burned down (AoE2's own behaviour).
-  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
+  type: 'move' | 'attack-move' | 'attack-ground' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
