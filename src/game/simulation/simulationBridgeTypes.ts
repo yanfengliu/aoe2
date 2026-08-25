@@ -82,6 +82,8 @@ export interface SimulationBridge {
   getInFlightProjectiles(): readonly ProjectileState[];
   /** The witnessed attack feed (v0.3.109 audio; same view the renderer sees). */
   getRecentUnitAttacks(): readonly import('./types').ProjectedUnitAttackView[];
+  /** Delete key (v0.3.114): remove the primary selected OWN unit/building. */
+  deleteSelectedEntity(): boolean;
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(

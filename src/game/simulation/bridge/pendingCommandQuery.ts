@@ -55,6 +55,9 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
     case 'building.action':
     case 'building.setRallyPoint':
       return false;
+    // A delete never queues a unitCommand; the entity is simply gone.
+    case 'entity.delete':
+      return false;
     default:
       return assertNever(cmd);
   }

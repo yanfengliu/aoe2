@@ -49,5 +49,10 @@ export function registerSelectionRecallHotkeys(
       lastRecall = { digit, atMs: now };
     });
   }
+  // The Delete key (v0.3.114): remove the primary selected own entity —
+  // AoE2's own affordance for freeing population or clearing a misbuild.
+  hotkeyRegistry.register({ key: 'Delete' }, () => {
+    bridgeRef().deleteSelectedEntity();
+  });
   return selectNextIdleVillagerAndCenter;
 }

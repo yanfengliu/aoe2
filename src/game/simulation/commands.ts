@@ -30,6 +30,10 @@ export type MonkContextTaskKind = 'heal' | 'convert' | 'pickup' | 'deposit';
 export type GameCommands = {
   // --- Unit orders (issued by human input directly OR by AI dispatcher post-step) ---
   'unit.move': { unitId: number; target: Position };
+  // v0.3.114 Delete key: remove your OWN unit or building — one entity per
+  // press, no refund. `requestedBy` is the deleting player; the validator
+  // enforces ownership so a recorded stream cannot delete someone else's.
+  'entity.delete': { entityId: number; requestedBy: number };
   'unit.attack': {
     unitId: number;
     targetEntityId: number;

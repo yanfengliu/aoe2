@@ -50,6 +50,7 @@ import type {
   TrainableUnitType,
 } from '../types';
 import { unitMoveValidator } from '../handlers/unit/unitMoveValidator';
+import { entityDeleteValidator, makeEntityDeleteHandler } from '../handlers/entityDeleteHandler';
 import { makeUnitMoveHandler } from '../handlers/unit/unitMoveHandler';
 import { unitAttackValidator } from '../handlers/unit/unitAttackValidator';
 import { makeUnitAttackHandler } from '../handlers/unit/unitAttackHandler';
@@ -110,6 +111,8 @@ export interface CommandHandlerDeps {
   // handler so live + replay + deterministic-system paths all execute
   // identical code (per DESIGN v17 §6.4 B1 fix).
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  destroyUnitEntity: (id: number) => void;
+  destroyBuildingEntity: (id: number) => void;
   // M6 control (unit.stance): who is issuing, and the direct writer.
   humanPlayerId: number;
   setUnitStance: (unitId: number, stance: import('../unitStance').UnitStance) => void;
@@ -216,6 +219,12 @@ export function registerCommandHandlers(
 ): void {
   // Phase 1B — unit.move
   world.registerValidator('unit.move', unitMoveValidator);
+  // v0.3.114 Delete key.
+  world.registerValidator('entity.delete', entityDeleteValidator);
+  world.registerHandler('entity.delete', makeEntityDeleteHandler({
+    destroyUnitEntity: deps.destroyUnitEntity,
+    destroyBuildingEntity: deps.destroyBuildingEntity,
+  }));
   world.registerHandler('unit.move', makeUnitMoveHandler({
     setUnitMoveCommandDirect: deps.setUnitMoveCommandDirect,
   }));

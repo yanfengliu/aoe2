@@ -135,6 +135,8 @@ function aiOwnersFromState(state: Record<string, unknown> | undefined, into: Set
 // batched multi-unit shape recorded by driver harnesses.
 const COMMAND_ACTOR_KEYS: { [K in keyof GameCommands]: readonly string[] } = {
   'unit.move': ['unitId', 'unitIds'],
+  // Deleting an own entity is a real player instruction addressed at it.
+  'entity.delete': ['entityId'],
   'unit.attack': [],
   'unit.gather': ['unitId', 'unitIds'],
   // A stance order is a real player instruction addressed at named units, so

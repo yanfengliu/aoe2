@@ -360,6 +360,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   registerCommandHandlers(world, {
     accessor,
     humanPlayerId: HUMAN_PLAYER_ID,
+    destroyUnitEntity: entityDestroyOps.destroyUnitEntity,
+    destroyBuildingEntity: entityDestroyOps.destroyBuildingEntity,
     // M6 control: a unit's stance is stored only when it DIFFERS from its
     // type's default, so an untouched match writes nothing to the slot.
     setUnitStance: (unitId, stance) => {

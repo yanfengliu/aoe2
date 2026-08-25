@@ -328,6 +328,17 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     getRecentUnitAttacks,
+    // Delete key (v0.3.114): one entity per press — the PRIMARY selection —
+    // and only your own; the validator re-enforces ownership at the door.
+    deleteSelectedEntity(): boolean {
+      const id = getSelectionState().selectedEntityId;
+      if (id === null) return false;
+      const result = world.submitWithResult('entity.delete', {
+        entityId: id,
+        requestedBy: HUMAN_PLAYER_ID,
+      });
+      return result.accepted;
+    },
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand,

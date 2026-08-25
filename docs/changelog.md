@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.114
+
+- The Delete key: remove your own selected unit or building — one per press, no refund — to free population space or clear a misplaced foundation.
+
 ## 0.3.113
 
 - Villagers visibly work: the hammer-swing loop now plays while gathering at trees, mines, and bushes — not only on construction sites. The swing starts exactly when the villager reaches the resource and stops for the hauling walk.

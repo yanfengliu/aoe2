@@ -146,6 +146,8 @@ export function makeReplayBridge(
     getRecentUnitAttacks() {
       return api.getRecentUnitAttacks();
     },
+    // Replay is playback: deletions come from the recorded stream.
+    deleteSelectedEntity: () => false,
     issueAttackMoveCommand() {
       // Replay is playback: orders come from the recorded stream.
       return false;
