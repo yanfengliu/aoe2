@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.103 — 2026-08-25
+
+The idle villager bell is here: a button by the minimap (and the classic `.` key) shows how many villagers are standing around and cycles through them, centring the camera on each.
+
 ## 0.3.102 — 2026-08-25
 
 Three input-and-teams fixes found by the browser suite and finished as one slice: an AI unit garrisoning anywhere on the map no longer wipes YOUR selection (and sending part of a selected group into a building keeps the rest selected); a plain right-click on an ally walks to them instead of attacking — Ctrl+right-click is the new deliberate attack order that CAN target an ally; and the Alt+garrison modifier now actually reaches the game from a live mouse click, which it silently never had.

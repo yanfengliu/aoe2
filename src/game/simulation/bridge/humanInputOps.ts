@@ -23,6 +23,7 @@ import {
   resourcesMissing,
   trainingCost,
 } from '../prototypeEconomyRules';
+import { createIdleVillagerOps } from './idleVillagerOps';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { removePendingUnitCommands } from './pendingCommandQuery';
 import {
@@ -42,6 +43,8 @@ export interface HumanInputOpsDeps {
   isMatchRunning: () => boolean;
   getSelectedEntityId: () => number | null;
   getSelectedEntityIds: () => number[];
+  selectUnitsByIds: (ids: number[]) => boolean;
+  isGarrisonedUnit: (id: number) => boolean;
   getSelectedOwnedSheepIds: () => number[];
   getSelectedHumanUnitIds: () => number[];
   isEntityVisibleToHuman: (id: number) => boolean;
@@ -64,6 +67,8 @@ export interface HumanInputOpsDeps {
 }
 
 export interface HumanInputOps {
+  countIdleVillagers(): number;
+  selectNextIdleVillager(): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean, forceAttack?: boolean): boolean;
@@ -89,6 +94,8 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     isMatchRunning,
     getSelectedEntityId,
     getSelectedEntityIds,
+    selectUnitsByIds,
+    isGarrisonedUnit,
     getSelectedOwnedSheepIds,
     getSelectedHumanUnitIds,
     isEntityVisibleToHuman,
@@ -462,7 +469,13 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return true;
   }
 
+  const { countIdleVillagers, selectNextIdleVillager } = createIdleVillagerOps({
+    world, accessor, humanPlayerId, isGarrisonedUnit, selectUnitsByIds,
+  });
+
   return {
+    countIdleVillagers,
+    selectNextIdleVillager,
     issueMoveCommand,
     issueContextCommand,
     issueContextCommandAtEntityInternal,

@@ -61,6 +61,10 @@ export interface SimulationBridge {
   /** The owner's real building price — civilization and team discounts in. */
   getConstructionCost(playerId: number, buildingType: BuildingType): Partial<PlayerResources>;
   getPopulationState(playerId: number): PopulationState;
+  /** The idle villager bell (v0.3.103): the standing-around count, and the
+   *  round-robin next-selection AoE2 binds to '.'. */
+  countIdleVillagers(): number;
+  selectNextIdleVillager(): boolean;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
   // setters that preserve EntityRef.generation. Used by AnnotationController

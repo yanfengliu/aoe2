@@ -85,6 +85,8 @@ export interface CreateWorldResult {
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number, garrison?: boolean) => boolean;
   issueContextCommandAtEntity: (entityId: number, garrison?: boolean, forceAttack?: boolean) => boolean;
+  countIdleVillagers: () => number;
+  selectNextIdleVillager: () => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;
   setSelectionStance: (stance: import('../unitStance').UnitStance) => boolean;

@@ -36,6 +36,7 @@ import {
   createReplayController,
 } from '../../game/replay/ReplayController';
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
+import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
@@ -396,6 +397,24 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   hotkeyRegistry.register({ key: 'a' }, () => {
     view.armAttackMove();
   });
+  // The idle villager bell (v0.3.103): '.' or the bottom-left button selects
+  // the next standing-around villager (round-robin) and centres the camera on
+  // them, AoE2's own affordance.
+  const selectNextIdleVillagerAndCenter = (): void => {
+    if (!bridge.selectNextIdleVillager()) return;
+    const id = bridge.getSelectionState().selectedEntityId;
+    const unit = id === null
+      ? undefined
+      : bridge.getEconomyState().units.find((candidate) => candidate.id === id);
+    if (unit) view.centerCameraOnWorldPosition(unit.x + 0.5, unit.y + 0.5);
+  };
+  hotkeyRegistry.register({ key: '.' }, selectNextIdleVillagerAndCenter);
+  const idleBell = createIdleVillagerBell({
+    countIdleVillagers: () => bridge.countIdleVillagers(),
+    selectNext: selectNextIdleVillagerAndCenter,
+  });
+  idleBell.mount(hudRoot);
+  cleanupCallbacks.push(() => idleBell.dispose());
   // M6 control: P arms patrol. Same interaction as attack-move — the next left
   // click is the far end — but the route stands, so the unit paces it until
   // ordered elsewhere.

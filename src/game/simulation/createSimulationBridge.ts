@@ -82,6 +82,8 @@ export function createSimulationBridge(
     saveGame,
     getEconomyState,
     getPopulationState,
+    countIdleVillagers,
+    selectNextIdleVillager,
     getPlayerAge,
     getPlayerResources,
     getSharedVisionOwners,
@@ -221,6 +223,8 @@ export function createSimulationBridge(
 
   return {
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
+    countIdleVillagers,
+    selectNextIdleVillager,
     getSharedVisionOwners,
     getPlayerCivilization,
     getConstructionCost,

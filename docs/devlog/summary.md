@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.103: idle villager bell (count + round-robin '.'-key/button select-and-centre; idleVillagerOps extraction at the 500 gate; pointer-events:auto opt-in — #hud-root is none; browser spec clicks the REAL DOM button per the unwatched-seam lesson).
 - 2026-08-25 v0.3.102: browser suite caught the day's one regression — garrisonUnit's unconditional clearSelection wiped the HUMAN selection whenever an AI garrisoned (visible only after v0.3.89's eligibility widening; setter-trap forensics) — fixed as removeSelectedEntity(unit); plus ally right-click=walk / Ctrl=explicit attack, and the pointer->view seam that had silently dropped iso+garrison args; two stale specs re-pinned (fragile house 40/900, Viking imperial berserk 66).
 - 2026-08-25 v0.3.101: Heavy Plow farmer-carry clause (+1 base carry on farms, composing with Wheelbarrow like the civ carry bonuses) — the last deferred CSV clause in the farm family.
 - 2026-08-25 v0.3.100: Redemption's building half — context routing asks eligibility AT THE CLICK; building lane shares faith/resistance/guards in monkBuildingConversion.ts (extracted at 550); flip moves population supply with civ-bonus fidelity both ways, clears the queue, stalls while garrisoned; red-check.

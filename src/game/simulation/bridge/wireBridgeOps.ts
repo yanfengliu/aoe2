@@ -260,6 +260,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   } = unitCommandOps;
 
   const finalize = registerBridgeSystems({
+    selectUnitsByIds,
     world,
     systemMode,
     state,

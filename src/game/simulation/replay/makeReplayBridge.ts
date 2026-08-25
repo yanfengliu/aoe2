@@ -194,6 +194,8 @@ export function makeReplayBridge(
     getEconomyState() {
       return api.getEconomyState();
     },
+    countIdleVillagers: () => 0,
+    selectNextIdleVillager: () => false,
     getPopulationState(playerId: number) {
       return api.getPopulationState(playerId);
     },

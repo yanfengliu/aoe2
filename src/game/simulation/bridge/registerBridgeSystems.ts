@@ -116,6 +116,7 @@ export interface RegisterBridgeSystemsDeps {
   getOrCreateMemoryMap: RegisterAllSystemsArg['getOrCreateMemoryMap'];
   // Post-register factory inputs
   getSelectedEntityId: () => number | null;
+  selectUnitsByIds: (ids: number[]) => boolean;
   getSelectedEntityIds: () => number[];
   getSelectedOwnedSheepIds: () => number[];
   getSelectedHumanUnitIds: () => number[];
@@ -132,6 +133,8 @@ export interface RegisterBridgeSystemsDeps {
 }
 
 export interface RegisterBridgeSystemsResult {
+  countIdleVillagers: () => number;
+  selectNextIdleVillager: () => boolean;
   saveGame: CreateWorldResult['saveGame'];
   getEconomyState: CreateWorldResult['getEconomyState'];
   getPlacementPreview: CreateWorldResult['getPlacementPreview'];
@@ -219,6 +222,7 @@ export function registerBridgeSystems(
     isPlacementBlocked,
     getOrCreateMemoryMap,
     getSelectedEntityId,
+    selectUnitsByIds,
     getSelectedEntityIds,
     getSelectedOwnedSheepIds,
     getSelectedHumanUnitIds,
@@ -307,6 +311,8 @@ export function registerBridgeSystems(
     issueMoveCommand,
     issueContextCommand,
     issueContextCommandAtEntityInternal,
+    countIdleVillagers,
+    selectNextIdleVillager,
     queueTrainUnit,
     queueResearch,
     issueAction,
@@ -317,6 +323,8 @@ export function registerBridgeSystems(
     issueMarketAction,
   } = createHumanInputOps({
     world,
+    selectUnitsByIds,
+    isGarrisonedUnit,
     humanPlayerId: HUMAN_PLAYER_ID,
     mapWidth: world.grid.width,
     mapHeight: world.grid.height,
@@ -378,6 +386,8 @@ export function registerBridgeSystems(
     issueMoveCommand,
     issueContextCommand,
     issueContextCommandAtEntity: issueContextCommandAtEntityInternal,
+    countIdleVillagers,
+    selectNextIdleVillager,
     queueTrainUnit,
     queueResearch,
     issueAction,

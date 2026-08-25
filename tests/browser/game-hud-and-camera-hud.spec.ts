@@ -295,4 +295,17 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     }
   });
 
+
+  test('the idle villager bell counts the idle and a REAL click selects one', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'aoe2-prototype');
+    const bell = page.locator('[data-hud="idle-villager-bell"]');
+    await expect(bell).toBeVisible();
+    await expect(bell.locator('[data-idle-count]')).toHaveText('3');
+    // A real mouse click through the DOM — the seam the modifier bug taught
+    // us to keep watched.
+    await bell.click();
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+    // Selecting one does not change the idle count (selection is not work).
+    await expect(bell.locator('[data-idle-count]')).toHaveText('3');
+  });
 });
