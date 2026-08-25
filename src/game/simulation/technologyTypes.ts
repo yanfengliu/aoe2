@@ -120,6 +120,8 @@ export type ResearchableTechnologyType =
   | 'hoardings'
   | 'cartography'
   | 'guilds'
+  | 'coinage'
+  | 'banking'
   | 'berserkergang'
   | 'el-dorado'
   // Projectile techs (spec §10.4), both DERIVED at the launch site via

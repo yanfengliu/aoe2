@@ -165,6 +165,15 @@ export interface CommandHandlerDeps {
   // ownership + affordability + applies the trade atomically. Silent no-op
   // on stale-state miss (same B2 trade-off as queue.train / queue.research).
   executeMarketActionDirect: (playerId: number, actionType: MarketActionType) => boolean;
+  // Tribute (spec §6.8): the executor IS the validator — it re-checks
+  // everything and moves nothing on a miss, so the command layer only needs
+  // the structural pre-screen submitWithResult gives every command.
+  executeTributeDirect: (
+    playerId: number,
+    toPlayerId: number,
+    resource: import('../types').EconomyResourceKind,
+    amount: number,
+  ) => boolean;
   marketActionValidatorDeps: MarketActionValidatorDeps;
   // Phase 1B (building.placeConfirm): authoritative-resolution helper.
   // Generalized for multi-villager construction (0.1.17): list-based so the
@@ -291,6 +300,26 @@ export function registerCommandHandlers(
   world.registerHandler('market.action', makeMarketActionHandler({
     executeMarketActionDirect: deps.executeMarketActionDirect,
   }));
+  // Tribute — the direct executor authoritatively re-checks market ownership,
+  // both stockpiles, and the fee at execution time (same-frame-batch safe).
+  world.registerValidator('tribute.send', (data) => {
+    if (!Number.isInteger(data.playerId) || !Number.isInteger(data.toPlayerId)) {
+      return { code: 'invalid_player_id', message: 'Tribute player ids must be integers.' };
+    }
+    if (data.playerId === data.toPlayerId) {
+      return { code: 'self_tribute', message: 'Cannot send tribute to yourself.' };
+    }
+    if (!Number.isInteger(data.amount) || data.amount <= 0) {
+      return {
+        code: 'invalid_amount',
+        message: `Tribute amount must be a positive whole number; got ${String(data.amount)}.`,
+      };
+    }
+    return true;
+  });
+  world.registerHandler('tribute.send', (data) => {
+    deps.executeTributeDirect(data.playerId, data.toPlayerId, data.resource, data.amount);
+  });
   // Phase 1B — building.placeConfirm
   world.registerValidator(
     'building.placeConfirm',

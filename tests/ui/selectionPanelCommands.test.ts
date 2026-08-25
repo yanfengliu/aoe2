@@ -116,6 +116,8 @@ describe('villager build palette', () => {
       queueTrainUnit: vi.fn(() => true),
       queueResearch: vi.fn(() => true),
       issueMarketAction: vi.fn(() => true),
+    sendTribute: vi.fn(() => true),
+    getTributeTargets: vi.fn(() => ({ owners: [2], feeRate: 0.3 })),
       beginBuildingPlacement,
     });
     const selection = villagerSelection();

@@ -24,6 +24,10 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Fervor';
     case 'berserkergang':
       return 'Berserkergang';
+    case 'coinage':
+      return 'Coinage';
+    case 'banking':
+      return 'Banking';
     case 'guilds':
       return 'Guilds';
     case 'cartography':

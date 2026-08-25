@@ -268,6 +268,12 @@ export function makeReplayBridge(
       void actionType;
       return replayCommandRejected();
     },
+    sendTribute(toPlayerId: number, resource: import('../types').EconomyResourceKind, amount: number) {
+      void toPlayerId; void resource; void amount;
+      return replayCommandRejected();
+    },
+    listTributeTargets: () => [],
+    humanTributeFeeRate: () => 0.3,
     beginBuildingPlacement(buildingType: BuildableBuildingType) {
       void buildingType;
       return replayCommandRejected();

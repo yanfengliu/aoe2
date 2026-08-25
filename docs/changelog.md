@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.67 - 2026-08-24
+
+### Added
+
+- **Tribute.** Select your Market and send 100 food, wood, gold or stone to any other player — one button per player per resource on the Market's command card, exactly as reachable in an eight-player match as in a 1v1. The sender pays a **30% fee** on top; the recipient receives exactly what was sent. No Market, no tribute — AoE2's own rule, and the buttons only exist while a completed Market is selected.
+- **Coinage** (Feudal, 150 food 50 gold) cuts the tribute fee to 20%, and **Banking** (Castle, 200 food 100 gold, needs Coinage) removes it entirely. Both researched at the Market; the tooltips always quote the true current cost.
+
 ## 0.3.66 - 2026-08-24
 
 ### Added

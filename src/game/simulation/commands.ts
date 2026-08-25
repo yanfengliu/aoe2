@@ -73,6 +73,15 @@ export type GameCommands = {
   'queue.train': { buildingId: number; unitType: TrainableUnitType };
   'queue.research': { buildingId: number; technologyType: ResearchableTechnologyType };
   'market.action': { playerId: number; actionType: MarketActionType };
+  // Tribute (spec §6.8): playerId sends `amount` of `resource` to
+  // `toPlayerId`, paying the fee its researched set implies on top. Rides the
+  // recorded channel because it moves gameplay state.
+  'tribute.send': {
+    playerId: number;
+    toPlayerId: number;
+    resource: import('./types').EconomyResourceKind;
+    amount: number;
+  };
   // --- Construction + building actions ---
   'building.placeConfirm': { builderId: number; buildingType: BuildableBuildingType; position: Position; additionalBuilderIds?: number[] };
   'building.setRallyPoint': { buildingId: number; target: Position };

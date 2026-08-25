@@ -238,12 +238,22 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     }
 
     if (buildingType === 'market') {
-      // Cartography: see what your allies see (technologies.csv, Feudal). The
-      // Market's other technologies are about tribute and trade, which do not
-      // exist yet, so this is the whole list for now.
       const options: ResearchableTechnologyType[] = [];
+      // Cartography: see what your allies see (technologies.csv, Feudal).
       if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'cartography')) {
         options.push('cartography');
+      }
+      // The tribute fee, 30% → 20% → 0: Coinage in Feudal, Banking in Castle
+      // once Coinage is in — the CSV prices Banking's step FROM Coinage's.
+      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'coinage')) {
+        options.push('coinage');
+      }
+      if (
+        isAtLeastAge(owner, 'castle-age')
+        && hasTechnology(owner, 'coinage')
+        && !hasTechnology(owner, 'banking')
+      ) {
+        options.push('banking');
       }
       // Guilds: the Market takes a smaller cut of every buy and sell.
       if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'guilds')) {

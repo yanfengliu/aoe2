@@ -484,6 +484,10 @@ The Market must support:
 - tribute fee reduction through technologies
 - civ-specific market-fee modifiers
 
+**Tribute (implemented v0.3.67).** A player with a **completed Market** — AoE2's own precondition — can send any of the four resources to any other player in the match, ally or not. The sender pays the amount plus a fee: **30%** base, **20%** once **Coinage** (Feudal, 150 food 50 gold) is researched, **0%** once **Banking** (Castle, 200 food 100 gold, requires Coinage) is — `technologies.csv`'s "Tribute inefficiency" rows, derived from the sender's researched set at execution time. The fee rounds up, so it can never be underpaid; the recipient always receives exactly the amount sent. The transfer is atomic and instantaneous, rides the recorded `tribute.send` command for replay fidelity, and moves nothing on any failed check (no Market, unknown recipient, self-tribute, non-positive or fractional amount, or a stockpile short of amount plus fee).
+
+In the HUD, tribute lives on the selected Market's command card: one button per other player per resource, each sending **100** (AoE2's per-click chunk), with the true cost — amount plus the sender's current fee — in the tooltip. The buttons exist only while a completed own Market is selected, which makes the no-Market rule visible rather than merely enforced.
+
 ### 6.9 Relics
 
 Relic rules:
@@ -1164,7 +1168,7 @@ The three are CHAINED as AoE2 DE chains them — Dry Dock requires Careening, Sh
 
 The owners whose vision is shared come from `sharedVisionOwners` — empty without the technology, empty without allies, so a match with neither projects exactly the cells it always did, in the same order. It is read per FRAME rather than cached, because researching it mid-match has to take effect on the next frame rather than the next reload.
 
-The Market's other four technologies (Coinage, Banking, Caravan, Guilds) are about tribute and trade, neither of which exists yet.
+Coinage and Banking arrived with tribute in v0.3.67 (§6.8); Guilds with commodity-fee reduction in v0.3.64. Caravan is the one Market technology still waiting, on trade routes (Trade Cart/Cog).
 
 **Teams (implemented v0.3.62).** §2.2 puts "optional AI allies" in scope, and until this there was no notion of a side anywhere in the simulation: every owner that was not you was an enemy. A team is a NUMBER PER OWNER (`playerTeams`), and an owner with no entry is its own team — so a free-for-all stores nothing at all, an existing save loads as one, and every match played before teams existed behaves identically.
 

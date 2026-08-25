@@ -2,44 +2,28 @@ import { RenderAdapter, VisibilityMap } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
-import type { GameWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
-import type { ProjectileState } from './bridge/projectileTypes';
-import type { UnitStance } from './unitStance';
 import { visibilityStateFromSave } from './saveBlobReaders';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { drainPendingCommands } from './dispatcher';
-import type { MapSize } from './mapGeneration/constants';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, TPS, createPrototypeScenario } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { createRenderMetricsCapture } from './renderMetricsCapture';
 import {
   SAVE_SCHEMA_VERSION,
   isSupportedSaveSchema,
-  type SaveBlob,
 } from './saveSchema';
-import type {
-  ActionType,
-  BuildableBuildingType,
-  EconomyState,
-  HudState,
-  MarketActionType,
-  MatchState,
-  PlacementPreviewState,
-  PopulationState,
-  ResearchableTechnologyType,
-  RenderState,
-  SelectionState,
-  SimulationDebugSnapshot,
-  TrainableUnitType,
-  UnitType,
-} from './types';
 
 // MemoryEntry has moved to `bridge/memoryTypes` — re-export so external
 // consumers of this module's types still resolve.
 import type { CreateSimulationBridgeOptions } from './createSimulationBridgeOptions';
+// The SimulationBridge contract lives in `simulationBridgeTypes.ts`; the
+// re-export keeps every existing `from './createSimulationBridge'` import.
+export type { SimulationBridge } from './simulationBridgeTypes';
+import type { SimulationBridge } from './simulationBridgeTypes';
+import type { ActionType } from './types';
 export type { MemoryEntry } from './bridge/memoryTypes';
 
 // agent-affordances B: payload types for getAgentBuildingOptions,
@@ -51,135 +35,7 @@ export type {
   AgentLockedResearch,
   AgentResearchOption,
 } from './bridge/buildingOptionsOps';
-import type { AgentBuildingOptions } from './bridge/buildingOptionsOps';
-import type { Position } from 'civ-engine';
 
-export interface SimulationBridge {
-  step(deltaMs: number): void;
-  // Spec 2 (annotation-ui v0.1.5) AO-2: read-only access to the engine
-  // World instance. Required by RecordingService (binds the SessionRecorder
-  // to this World) and AnnotationController.worldRef. Stable for THIS
-  // bridge's lifetime — the live bridge cell is reassigned on save/load,
-  // so consumers must call `bridgeRef().world` (or equivalent indirection)
-  // rather than capturing this reference once.
-  readonly world: GameWorld;
-  // Spec 2 (annotation-ui v0.1.5) AO-2: manual pause/resume gate. Toggles
-  // a NEW closure-local `pauseState.pausedManually` flag (NOT haltState).
-  // step() early-returns when pausedManually is true; render projections
-  // continue to flow because the pause gate is placed AFTER
-  // flushOutOfBandRenderChange. getHudState().engineHalted continues to
-  // reflect failure-halt only.
-  setPaused(paused: boolean): void;
-  getRenderState(): RenderState;
-  getRenderInterpolationAlpha(): number;
-  getHudState(): HudState;
-  getEconomyState(): EconomyState;
-  /** The map this match is played on, in tiles — a per-match answer since §4's
-   *  size ladder, so a camera or a click asks rather than assuming. */
-  getMapSize(): MapSize;
-  getPopulationState(playerId: number): PopulationState;
-  getSelectionState(): SelectionState;
-  // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
-  // setters that preserve EntityRef.generation. Used by AnnotationController
-  // to resolve the current selection to MarkerRefs.entities, and by
-  // MarkerListPanel row clicks to re-select previously-recorded entities.
-  // `select` returns void; callers pre-filter stale refs and don't need
-  // a "selected anything" signal.
-  getSelectedEntityRefs(): readonly EntityRef[];
-  select(refs: readonly EntityRef[]): void;
-  getMatchState(): MatchState;
-  /** Shots currently in the air (spec §10.4). Read-only view for render + tests. */
-  getInFlightProjectiles(): readonly ProjectileState[];
-  /** M6 control: set the stance of every owned unit in the selection. */
-  setSelectionStance(stance: UnitStance): boolean;
-  setSelectionFormation(
-    formation: import('./unitFormation').UnitFormation,
-  ): boolean;
-  /** M6 control: walk the selection to a cell, engaging anything met en route. */
-  issueAttackMoveCommand(x: number, y: number): boolean;
-  issuePatrolCommand(x: number, y: number): boolean;
-  getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
-  // FU4: probe an entity's current/max HP. Reads the canonical combat
-  // (unit) or building-health side-map directly so vitest cases can
-  // assert AI-side healing / damage without routing through fog
-  // visibility. Returns `null` when the entity has no associated
-  // health tracking (e.g., resources, terrain).
-  getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
-  selectEntityAtCell(x: number, y: number): boolean;
-  selectEntityById(id: number): boolean;
-  selectOwnedUnitsByTypeInRect(
-    unitType: UnitType | 'sheep',
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
-  ): boolean;
-  filterSelectableUnitIds(ids: number[]): number[];
-  selectUnitsByIds(ids: number[]): boolean;
-  selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
-  clearSelection(): void;
-  issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
-  issueContextCommandAtEntity(entityId: number, options?: { garrison?: boolean }): boolean;
-  issueMoveCommand(x: number, y: number): boolean;
-  issueAction(actionType: ActionType): boolean;
-  queueTrainUnit(unitType: TrainableUnitType): boolean;
-  queueResearch(technologyType: ResearchableTechnologyType): boolean;
-  issueMarketAction(actionType: MarketActionType): boolean;
-  beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
-  confirmBuildingPlacement(x: number, y: number): boolean;
-  // Slice 11: drain the oldest pending command-rejection reason, if any.
-  // The HUD polls this every update frame and renders a toast with the
-  // returned copy. Returns `null` when no rejection is pending.
-  consumeCommandRejection(): string | null;
-  // Phase-6.B: single-cell visibility probe for the LLM-agent harness.
-  // Returns true if cell (x,y) is currently visible to ownerId. Pure
-  // pass-through to the engine's VisibilityMap.isVisible. The agent
-  // snapshot composes this into a footprint walk for buildings (any
-  // cell in the building's footprint visible → building included)
-  // and a single-cell check for units, matching the renderer +
-  // target-selection any-cell convention.
-  isCellVisibleForOwner(ownerId: number, x: number, y: number): boolean;
-  // agent-affordances B (campaign-1 backlog #2): per-building-type
-  // research/train options for an owner, with locked research carrying
-  // the actionable WHY (shared reason engine with the queue.research
-  // validator). Read-side only; consumed by the agent snapshot.
-  getAgentBuildingOptions(ownerId: number): AgentBuildingOptions;
-  // agent-affordances C (campaign-1 backlog #3): deterministic open
-  // placement anchors near a point, fog-gated by the owner's visibility
-  // (every footprint cell must be currently visible). Consumed by the
-  // agent snapshot's placementHints.
-  findOpenPlacementAnchorsNear(
-    ownerId: number,
-    centerX: number,
-    centerY: number,
-    width: number,
-    height: number,
-    max: number,
-  ): Position[];
-  // LLM-agent harness (Phase 1.B): the in-place pendingCommands queue
-  // the in-game AI pushes intentions onto. Exposed publicly so
-  // `__AOE2_TEST__.agent.dispatchAgentCommand` can shape-validate +
-  // push without a parallel surface. Mutate-in-place semantics
-  // (push to enqueue; drain via dispatcher between ticks); never
-  // reassign the array reference.
-  readonly pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
-  // LLM-agent harness (Phase 1 impl-1 H1): subscribe to per-command
-  // dispatch results so the agent runner can correlate dispatched
-  // commands with semantic rejections WITHOUT competing with the
-  // HUD's `consumeCommandRejection` FIFO. The observer fires once per
-  // drained command (between ticks), with `accepted: false +
-  // rejectionReason` for rejections. Pass `null` to clear. Only one
-  // observer at a time; the agent harness owns this slot.
-  setAgentDispatchObserver(
-    observer: import('./dispatcher').AgentDispatchObserver | null,
-  ): void;
-  // Slice 11: snapshot for the F2 debug overlay. Returns the per-frame
-  // data the overlay draws: pathing targets keyed by unit id, AI plan
-  // summaries per owner, and tick-level perf metrics. Cheap to call; the
-  // overlay renderer pulls this every frame.
-  getDebugSnapshot(): SimulationDebugSnapshot;
-  saveGame(): SaveBlob;
-}
 
 // Bridge constants live in `bridge/bridgeConstants.ts`.
 
@@ -255,6 +111,9 @@ export function createSimulationBridge(
     queueTrainUnit,
     queueResearch,
     issueMarketAction,
+    sendTribute,
+    listTributeTargets,
+    humanTributeFeeRate,
     beginBuildingPlacement,
     confirmBuildingPlacement,
     isSelected,
@@ -481,6 +340,9 @@ export function createSimulationBridge(
     queueTrainUnit,
     queueResearch,
     issueMarketAction,
+    sendTribute,
+    listTributeTargets,
+    humanTributeFeeRate,
     beginBuildingPlacement,
     confirmBuildingPlacement(x: number, y: number) {
       const didConfirm = confirmBuildingPlacement(x, y);

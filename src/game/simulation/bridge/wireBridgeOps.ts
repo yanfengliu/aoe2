@@ -17,6 +17,7 @@ import { wirePostSeedOps } from './wirePostSeedOps';
 import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
+import { createTributeOps } from './tributeOps';
 import {
   MARKET_FEE_RATE,
   MARKET_TRANSACTION_AMOUNT,
@@ -246,6 +247,16 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     findBuildPlacementNear,
   } = trainingMarketOps;
   const { getEntityHealth, getWildlifeAlive, getUnitActiveVerb, getSelectionState } = selectionStateOps;
+  // Tribute (spec §6.8): needs the Market query from trainingMarketOps and the
+  // match gate, so it wires here rather than in registerBridgeSystems.
+  const tributeOps = createTributeOps({
+    world,
+    accessor,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    isMatchRunning,
+    playerOwnsCompletedMarket,
+    enqueueRejection,
+  });
   const { applyTechnology } = technologyOps;
   const {
     issueUnitMoveCommand,
@@ -399,6 +410,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     enqueueTrainingDirect: enqueueTraining,
     enqueueResearchDirect: enqueueResearch,
     executeMarketActionDirect,
+    executeTributeDirect: tributeOps.executeTributeDirect,
     startConstructionWithBuildersDirect,
     ungarrisonBuildingDirect: ungarrisonBuilding,
     beginTrebuchetPackDirect: trebuchetStateOps.beginTrebuchetPack,
@@ -450,6 +462,9 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   return {
     ...finalize,
     ...agentOptionsOps,
+    sendTribute: tributeOps.sendTribute,
+    listTributeTargets: tributeOps.listTributeTargets,
+    humanTributeFeeRate: tributeOps.humanTributeFeeRate,
     getPlayerAge,
     getSelectionState,
     getEntityHealth,

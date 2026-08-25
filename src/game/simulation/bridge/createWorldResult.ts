@@ -91,6 +91,16 @@ export interface CreateWorldResult {
   queueTrainUnit: (unitType: TrainableUnitType) => boolean;
   queueResearch: (technologyType: ResearchableTechnologyType) => boolean;
   issueMarketAction: (actionType: MarketActionType) => boolean;
+  // Tribute (spec §6.8): the human sends `amount` of a resource to another
+  // player, paying the fee their researched set implies on top.
+  sendTribute: (
+    toPlayerId: number,
+    resource: import('../types').EconomyResourceKind,
+    amount: number,
+  ) => boolean;
+  /** Every other player the human could tribute to, for the command card. */
+  listTributeTargets: () => number[];
+  humanTributeFeeRate: () => number;
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
   confirmBuildingPlacement: (x: number, y: number) => boolean;
   isSelected: (id: number) => boolean;

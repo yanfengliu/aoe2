@@ -51,6 +51,7 @@ function commandTargetsUnit(cmd: PendingCommand, unitId: number): boolean {
     case 'queue.train':
     case 'queue.research':
     case 'market.action':
+    case 'tribute.send':
     case 'building.action':
     case 'building.setRallyPoint':
       return false;

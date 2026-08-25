@@ -111,7 +111,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
   // The Market's first technology. Its others (Coinage, Banking, Caravan,
   // Guilds) are about tribute and trade, neither of which exists yet.
-  ['market', ['cartography', 'guilds']],
+  ['market', ['cartography', 'coinage', 'banking', 'guilds']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],

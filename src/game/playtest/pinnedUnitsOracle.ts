@@ -158,6 +158,9 @@ const COMMAND_ACTOR_KEYS: { [K in keyof GameCommands]: readonly string[] } = {
   'queue.train': ['buildingId'],
   'queue.research': ['buildingId'],
   'market.action': [],
+  // Tribute's playerId/toPlayerId are OWNER numbers, not entity ids — the
+  // same shape (and the same trap) as market.action.playerId above.
+  'tribute.send': [],
   'building.placeConfirm': ['builderId', 'additionalBuilderIds'],
   'building.setRallyPoint': ['buildingId'],
   'building.action': ['buildingId'],

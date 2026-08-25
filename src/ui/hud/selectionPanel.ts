@@ -7,6 +7,7 @@ import type { UnitFormation } from '../../game/simulation/unitFormation';
 import type {
   ActionType,
   BuildableBuildingType,
+  EconomyResourceKind,
   EconomyState,
   MarketActionType,
   PlayerResources,
@@ -19,21 +20,14 @@ import {
   constructionCost,
 } from '../../game/simulation/prototypeEconomyRules';
 import {
-  formatActionName,
   formatEntityName,
-  formatMarketActionName,
   formatQueueEntryName,
   formatQueueProgress,
   formatSelectionName,
-  formatTechnologyName,
 } from './displayNames';
 import {
-  formatActionTooltip,
   formatBuildTooltip,
-  formatMarketActionTooltip,
-  formatResearchTooltip,
   formatResourceCost,
-  formatTrainTooltip,
 } from './tooltips';
 import {
   renderFormationButtons,
@@ -42,17 +36,26 @@ import {
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
-import {
-  actionGlyph,
-  buildingGlyph,
-  marketActionGlyph,
-  researchGlyph,
-  resourceGlyph,
-} from './icons/glyphs';
-import { unitGlyphRole, unitRoleGlyph } from './icons/unitGlyphs';
+import { buildingGlyph, resourceGlyph } from './icons/glyphs';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
 export { renderSelectionIcons } from './selectionPanel/render';
+// The command-card button markup lives in `selectionPanel/buttons.ts`; the
+// re-exports keep the import path tests and callers already use.
+export {
+  renderActionButtons,
+  renderMarketButtons,
+  renderResearchButtons,
+  renderTrainButtons,
+  renderTributeButtons,
+} from './selectionPanel/buttons';
+import {
+  renderActionButtons,
+  renderMarketButtons,
+  renderResearchButtons,
+  renderTrainButtons,
+  renderTributeButtons,
+} from './selectionPanel/buttons';
 
 // M7 UI-icons slice 1 (v0.1.39): build a build-command button with an
 // original procedural glyph BEFORE its text label (icons augment, do not
@@ -155,6 +158,7 @@ type CommandGroupKind =
   | 'formation'
   | 'train'
   | 'market'
+  | 'tribute'
   | 'research'
   | 'build';
 
@@ -197,86 +201,6 @@ function renderCommandGroup(
 // prerequisites are met) are all preserved. `visibleResearchOptions` is the
 // full set of buttons to draw; `availableResearchOptions` is the subset that
 // is researchable right now (the rest render locked).
-export function renderResearchButtons(
-  visibleResearchOptions: ResearchableTechnologyType[],
-  availableResearchOptions: ResearchableTechnologyType[],
-): string {
-  return visibleResearchOptions
-    .map((technologyType) => {
-      const isAvailable = availableResearchOptions.includes(technologyType);
-      return `
-          <button
-            class="hud-command-button"
-            data-command="research-${technologyType}"
-            data-tooltip="${formatResearchTooltip(technologyType, formatTechnologyName(technologyType))}"
-            type="button"
-            ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
-          >
-            ${researchGlyph()}<span class="hud-command-label">Research ${formatTechnologyName(technologyType)}</span>
-          </button>
-        `;
-    })
-    .join('');
-}
-
-// M7 UI-icons (v0.1.76): the command-card "action" buttons (the Ungarrison
-// order) get a per-action glyph before the label. Augment-not-replace: the
-// `data-command="action-<type>"` hook + the action-name text are preserved.
-export function renderActionButtons(actionOptions: ActionType[]): string {
-  return actionOptions
-    .map(
-      (actionType) => `
-          <button
-            class="hud-command-button"
-            data-command="action-${actionType}"
-            data-tooltip="${formatActionTooltip(actionType)}"
-            type="button"
-          >
-            ${actionGlyph(actionType)}<span class="hud-command-label">${formatActionName(actionType)}</span>
-          </button>
-        `,
-    )
-    .join('');
-}
-
-// M7 UI-icons (v0.1.75): the command-card Buy/Sell "market" buttons get the
-// traded COMMODITY glyph (food/wood/stone) before the label, reusing the
-// top-bar `resourceGlyph` art at the command size. Augment-not-replace: the
-// `data-command="market-<action>"` hook + "Buy/Sell <Name>" text are preserved.
-export function renderMarketButtons(marketOptions: MarketActionType[]): string {
-  return marketOptions
-    .map(
-      (actionType) => `
-          <button
-            class="hud-command-button"
-            data-command="market-${actionType}"
-            data-tooltip="${formatMarketActionTooltip(actionType)}"
-            type="button"
-          >
-            ${marketActionGlyph(actionType)}<span class="hud-command-label">${formatMarketActionName(actionType)}</span>
-          </button>
-        `,
-    )
-    .join('');
-}
-
-export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
-  return trainOptions
-    .map(
-      (unitType) => `
-          <button
-            class="hud-command-button"
-            data-command="train-${unitType}"
-            data-tooltip="${formatTrainTooltip(unitType, formatEntityName(unitType))}"
-            type="button"
-          >
-            ${unitRoleGlyph(unitGlyphRole(unitType), 'hud-command-glyph')}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
-          </button>
-        `,
-    )
-    .join('');
-}
-
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
   issueAction(actionType: ActionType): boolean;
@@ -285,6 +209,10 @@ export interface SelectionPanelDeps {
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
+  /** Tribute (spec §6.8): send 100 of a resource to another player. */
+  sendTribute(toOwner: number, resource: EconomyResourceKind): boolean;
+  /** The other players a tribute could go to, and the human's current fee. */
+  getTributeTargets(): { owners: number[]; feeRate: number };
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
@@ -372,6 +300,13 @@ export function createSelectionPanel(
     const actionButtons = renderActionButtons(selectionState.actionOptions);
     const trainButtons = renderTrainButtons(selectionState.trainOptions);
     const marketButtons = renderMarketButtons(selectionState.marketOptions);
+    // Tribute rides the Market card: buttons exist only while a completed own
+    // Market is selected, which is exactly when marketOptions is non-empty.
+    const tribute = selectionState.marketOptions.length > 0
+      ? deps.getTributeTargets()
+      : { owners: [], feeRate: 0 };
+    const tributeTargetCount = tribute.owners.length * 4;
+    const tributeButtons = renderTributeButtons(tribute.owners, tribute.feeRate);
     const researchButtons = renderResearchButtons(
       selectionState.visibleResearchOptions,
       selectionState.researchOptions,
@@ -393,6 +328,7 @@ export function createSelectionPanel(
       ),
       renderCommandGroup('train', 'Train', trainButtons, selectionState.trainOptions.length),
       renderCommandGroup('market', 'Trade', marketButtons, selectionState.marketOptions.length),
+      renderCommandGroup('tribute', 'Tribute', tributeButtons, tributeTargetCount),
       renderCommandGroup(
         'research',
         'Research',
@@ -464,6 +400,16 @@ export function createSelectionPanel(
       }
       button.addEventListener('click', () => {
         deps.issueMarketAction(actionType);
+      });
+    });
+    el.querySelectorAll<HTMLButtonElement>('[data-command^="tribute-"]').forEach((button) => {
+      // data-command="tribute-<owner>-<resource>".
+      const parts = button.dataset.command?.split('-');
+      const toOwner = Number(parts?.[1]);
+      const resource = parts?.[2] as EconomyResourceKind | undefined;
+      if (!Number.isInteger(toOwner) || !resource) return;
+      button.addEventListener('click', () => {
+        deps.sendTribute(toOwner, resource);
       });
     });
     el.querySelectorAll<HTMLButtonElement>('[data-command^="research-"]').forEach((button) => {

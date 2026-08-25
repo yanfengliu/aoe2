@@ -1,3 +1,5 @@
+import { TRIBUTE_AMOUNT } from '../../game/simulation/tributeRules';
+import type { SimulationBridge } from '../../game/simulation/simulationBridgeTypes';
 import type { UnitStance } from '../../game/simulation/unitStance';
 import type { UnitFormation } from '../../game/simulation/unitFormation';
 import type {
@@ -64,16 +66,17 @@ interface HudBridge {
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueMarketAction(actionType: MarketActionType): boolean;
+  sendTribute: SimulationBridge['sendTribute'];
+  listTributeTargets(): number[];
+  humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
-  // Slice 11: drain the oldest pending command rejection so the HUD can
-  // show a toast. Returns null if no rejection is pending.
+  // Slice 11: drain the oldest pending rejection for a toast; null when none.
   consumeCommandRejection(): string | null;
   // Slice 11: snapshot for the F2 debug overlay. Every frame the HUD
   // requests this when the overlay is in anything other than 'off' mode.
   getDebugSnapshot(): SimulationDebugSnapshot;
-  // FU5: serialize the live simulation for the HUD Save button. The
-  // HUD writes the returned blob to localStorage and triggers a
-  // download.
+  // FU5: serialize the live simulation for the HUD Save button. The HUD
+  // writes the returned blob to localStorage and triggers a download.
   saveGame(): SaveBlob;
   // FU5 (widened in Spec 2 v0.1.5 AO-5): swap the running simulation with
   // one rehydrated from `blob`. `createApp` owns the bridge + scene
@@ -94,15 +97,13 @@ interface HudBridge {
   // can omit the subscription surface.
   isReplayMode?(): boolean;
   subscribeReplayModeChange?(listener: () => void): () => void;
-  // v0.1.95: game-menu wiring. Pause/resume the sim while the menu overlays it;
-  // restart the scenario or quit to a fresh start. All optional so tests and the
-  // headless HUD can omit them (the menu still opens/closes, just without pause).
+  // v0.1.95: game-menu wiring — pause while the menu overlays, restart, quit.
+  // All optional so tests and the headless HUD can omit them.
   setPaused?(paused: boolean): void;
   isPaused?(): boolean;
   onRestart?(): void;
   onQuit?(): void;
-  // Art style: cycle the frame's look and report the current one. Optional so
-  // tests and the headless HUD can omit them (the menu row stays inert).
+  // Art style: cycle the frame's look and report the current one; optional.
   cycleArtStyle?(): string;
   artStyleLabel?(): string;
 }
@@ -296,6 +297,10 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
+    sendTribute: (toOwner, resource) => bridge.sendTribute(toOwner, resource, TRIBUTE_AMOUNT),
+    getTributeTargets: () => (
+      { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
+    ),
     beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
   });
 
