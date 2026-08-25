@@ -122,6 +122,7 @@ export function makeReplayBridge(
     // A replay's map is whatever the recorded world was built at.
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     getSharedVisionOwners: () => [],
+    getPlayerCivilization: () => 'Britons',
     step() {
       flushOutOfBandRenderChange();
     },

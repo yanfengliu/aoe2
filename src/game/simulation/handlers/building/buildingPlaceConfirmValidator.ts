@@ -2,6 +2,7 @@
 // Best-effort placement + affordability checks. Handler re-checks
 // authoritatively at start of next step's processCommands.
 
+import { effectiveConstructionCost } from '../../civBonusEffects';
 import type { Position, World } from 'civ-engine';
 
 import type {
@@ -11,10 +12,10 @@ import type {
   UnitType,
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
-import { canAfford, constructionCost, describeMissingResources } from '../../prototypeEconomyRules';
+import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
 import { buildingFootprint } from '../../bridge/pureHelpers';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
-import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
+import { playerCivilizationsCodec, playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
 import type { PlacementBlockReport } from '../../bridge/cellPassability';
 
 export interface BuildingPlaceConfirmValidatorDeps {
@@ -158,7 +159,10 @@ export function makeBuildingPlaceConfirmValidator(
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    const cost = constructionCost(data.buildingType);
+    const cost = effectiveConstructionCost(
+      deps.accessor.get(playerCivilizationsCodec).get(unit.owner),
+      data.buildingType,
+    );
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {

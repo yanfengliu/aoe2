@@ -1,3 +1,4 @@
+import { defaultCivilizationName } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CreateWorldResult } from './createWorldResult';
@@ -10,7 +11,7 @@ const EMPTY_SHARED_VISION_TECHS: ReadonlySet<ResearchableTechnologyType> = new S
 import { cloneResources } from './pureHelpers';
 import type { MatchState } from '../types';
 import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
-import {
+import { playerCivilizationsCodec,
   playerResourcesCodec,
   playerTeamsCodec,
   researchedTechnologiesCodec,
@@ -30,6 +31,7 @@ export interface AssembleBridgeApiDeps
     | 'getPopulationState'
     | 'getPlayerResources'
     | 'getSharedVisionOwners'
+    | 'getPlayerCivilization'
     | 'getMatchState'
     | 'isSelected'
     | 'consumeOutOfBandRenderChange'
@@ -79,6 +81,10 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     },
     // Cartography: the owners whose vision this one also sees. Empty without
     // the technology or without allies, which is every match before teams.
+    getPlayerCivilization(playerId: number) {
+      return accessor.get(playerCivilizationsCodec).get(playerId)
+        ?? defaultCivilizationName(playerId);
+    },
     getSharedVisionOwners(playerId: number) {
       const researched = accessor.get(researchedTechnologiesCodec).get(playerId)
         ?? EMPTY_SHARED_VISION_TECHS;

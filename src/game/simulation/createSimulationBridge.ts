@@ -85,6 +85,7 @@ export function createSimulationBridge(
     getPlayerAge,
     getPlayerResources,
     getSharedVisionOwners,
+    getPlayerCivilization,
     getMatchState,
     getInFlightProjectiles,
     setSelectionStance,
@@ -218,6 +219,7 @@ export function createSimulationBridge(
   return {
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     getSharedVisionOwners,
+    getPlayerCivilization,
     step(deltaMs: number) {
       flushOutOfBandRenderChange();
       // Spec 2 AO-2: manual pause gate. Placed AFTER flushOutOfBandRenderChange

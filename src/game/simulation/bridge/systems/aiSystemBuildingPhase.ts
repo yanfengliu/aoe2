@@ -2,8 +2,10 @@
 // pursues a wonder or the next macro build target, honoring the concurrent-build
 // cap and pending-intention gates.
 
+import { playerCivilizationsCodec } from '../bridgeStateSerialize';
+import { effectiveConstructionCost } from '../../civBonusEffects';
 import type { BuildableBuildingType, BuildingComponent } from '../../types';
-import { canAfford, constructionCost } from '../../prototypeEconomyRules';
+import { canAfford } from '../../prototypeEconomyRules';
 import { pickNextBuildTarget, shouldPursueWonder } from '../../ai';
 import { playerResourcesCodec } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
@@ -35,6 +37,8 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     pendingBuildsByOwner,
     unitCommands,
   } = ctx;
+  // Civ-priced buildings: the AI pays the same discounted price a human does.
+  const civilization = accessor.get(playerCivilizationsCodec).get(owner);
 
   if (ownerTownCenterPosition) {
     const sightingFresh =
@@ -52,7 +56,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       );
       // Phase 1C: gate on raw stockpile affordability (symmetry with
       // wonder/nextBuild paths below).
-      const watchTowerCost = constructionCost('watch-tower');
+      const watchTowerCost = effectiveConstructionCost(civilization, 'watch-tower');
       if (
         builderId !== null
         && anchor
@@ -121,7 +125,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
       const builderId = findAvailableVillagerForBuild(owner);
       const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
-      const wonderCost = constructionCost('wonder');
+      const wonderCost = effectiveConstructionCost(civilization, 'wonder');
       if (
         builderId !== null
         && anchor
@@ -145,7 +149,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);
       const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
-      const buildCost = constructionCost(nextBuild);
+      const buildCost = effectiveConstructionCost(civilization, nextBuild);
       if (
         builderId !== null
         && anchor

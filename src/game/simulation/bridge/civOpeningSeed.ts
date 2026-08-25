@@ -9,8 +9,18 @@
 import type { PlayerStartSpec } from '../prototypeScenario';
 import type { PlayerResources } from '../types';
 import { civBonusesFor } from '../civBonusTable';
+import { civIgnoresHousing } from '../civBonusEffects';
 import { defaultCivilizationName } from './pureHelpers';
 import type { ScenarioSeedDeps } from './scenarioSeedOps';
+
+/** Huns: population is never limited by housing, so their raw supply opens
+ *  AT the cap — houses add nothing they need (and the cap clamp holds). */
+export function civOpeningRawSupplyFloor(
+  civilization: string | undefined,
+  hardCap: number,
+): number {
+  return civIgnoresHousing(civilization) ? hardCap : 0;
+}
 
 export function civOpeningResources(
   start: PlayerStartSpec,

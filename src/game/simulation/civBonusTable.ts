@@ -53,6 +53,20 @@ export interface CivBonusEntry {
     readonly multiplier: number;
   }>;
   readonly cost?: ReadonlyArray<CivCostRule>;
+  /** Building-cost rules: whole-cost or single-component multipliers. */
+  readonly buildingCost?: ReadonlyArray<{
+    readonly applies: (buildingType: string) => boolean;
+    readonly multiplier?: number;
+    readonly woodMultiplier?: number;
+    readonly stoneMultiplier?: number;
+  }>;
+  /** Building max-HP multipliers (Persians' Town Centers and Docks). */
+  readonly buildingHp?: ReadonlyArray<{
+    readonly applies: (buildingType: string) => boolean;
+    readonly multiplier: number;
+  }>;
+  /** True: population is never limited by housing (Huns). */
+  readonly houselessPopulation?: boolean;
 }
 
 const KNIGHT_LINE = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
@@ -129,6 +143,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Franks',
     unitHp: [{ applies: (unit) => KNIGHT_LINE.has(unit), multiplier: 1.2 }],
+    buildingCost: [{ applies: (building) => building === 'castle', multiplier: 0.75 }],
   },
   {
     civilization: 'Goths',
@@ -141,6 +156,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Huns',
+    houselessPopulation: true, // "Houses are not required to support population".
     startingResourcesDelta: { wood: -100 }, // "Start game with -100 Wood".
     cost: [{
       applies: (unit) => CAVALRY_ARCHER_LINE.has(unit),
@@ -168,10 +184,18 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Japanese',
     unitHp: [{ applies: (unit) => unit === 'fishing-ship', multiplier: 2 }],
+    buildingCost: [{
+      applies: (building) => building === 'mill' || building === 'lumber-camp' || building === 'mining-camp',
+      multiplier: 0.5,
+    }],
   },
   {
     civilization: 'Koreans',
     gatherRate: { 'stone-mine': 1.2 },
+  },
+  {
+    civilization: 'Malians',
+    buildingCost: [{ applies: () => true, woodMultiplier: 0.85 }],
   },
   {
     civilization: 'Magyars',
@@ -195,6 +219,14 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Persians',
     startingResourcesDelta: { wood: 50, food: 50 }, // "+50 wood and food".
+    buildingHp: [{
+      applies: (building) => building === 'town-center' || building === 'dock',
+      multiplier: 2,
+    }],
+  },
+  {
+    civilization: 'Teutons',
+    buildingCost: [{ applies: (building) => building === 'farm', multiplier: 0.67 }],
   },
   {
     civilization: 'Incas',
@@ -202,6 +234,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     // "Houses support 10 population".
     extraStartingUnits: [{ kind: 'sheep', count: 1 }],
     populationProvided: { house: 5 },
+    buildingCost: [{ applies: () => true, stoneMultiplier: 0.85 }],
   },
   {
     civilization: 'Portuguese',

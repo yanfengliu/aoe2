@@ -5,6 +5,7 @@
 // inline implementation byte-for-byte; the deps bag is the only structural
 // change.
 
+import { effectiveConstructionCost } from '../civBonusEffects';
 import { spiesCost } from '../spiesRules';
 import { countEnemyVillagers } from './countEnemyVillagers';
 import type { EntityRef, Position } from 'civ-engine';
@@ -28,7 +29,6 @@ import {
 } from '../prototypeBuildingRules';
 import {
   canAfford,
-  constructionCost,
   isBuyMarketAction,
   marketCommodityForAction,
   researchCost,
@@ -418,7 +418,10 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const stockpile = accessor.get(playerResourcesCodec).get(primary.owner);
     if (!stockpile) return false;
 
-    const cost = constructionCost(buildingType);
+    const cost = effectiveConstructionCost(
+      accessor.get(playerCivilizationsCodec).get(primary.owner),
+      buildingType,
+    );
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);

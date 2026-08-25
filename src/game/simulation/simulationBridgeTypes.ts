@@ -54,6 +54,8 @@ export interface SimulationBridge {
   /** The owners whose vision this player also sees — allies via Cartography,
    *  everyone via Spies. Empty without either technology. */
   getSharedVisionOwners(playerId: number): number[];
+  /** The owner's civilization name (default-filled for unseeded owners). */
+  getPlayerCivilization(playerId: number): string;
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /

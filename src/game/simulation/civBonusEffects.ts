@@ -14,13 +14,14 @@
 
 import type {
   AgeType,
+  BuildingType,
   PlayerResources,
   ResearchableTechnologyType,
   ResourceKind,
   TrainableUnitType,
   UnitType,
 } from './types';
-import { trainingCost } from './prototypeEconomyRules';
+import { constructionCost, trainingCost } from './prototypeEconomyRules';
 import { civBonusesFor } from './civBonusTable';
 import { shipwrightWoodCost } from './dockTechEffects';
 
@@ -125,6 +126,57 @@ export function civPopulationProvidedBonus(
   buildingType: string,
 ): number {
   return civBonusesFor(civilization)?.populationProvided?.[buildingType] ?? 0;
+}
+
+// The owner's effective BUILDING cost (Franks castles, Japanese camps,
+// Teutons farms, Inca stone, Malian wood). Must be used at every construction
+// charge/afford/display site so they agree — the effectiveTrainingCost rule.
+export function effectiveConstructionCost(
+  civilization: string | undefined,
+  buildingType: BuildingType,
+): Partial<PlayerResources> {
+  const base = constructionCost(buildingType);
+  const rules = civBonusesFor(civilization)?.buildingCost ?? [];
+  let cost: Partial<PlayerResources> | null = null;
+  const writable = (): Partial<PlayerResources> => {
+    if (!cost) cost = { ...base };
+    return cost;
+  };
+  for (const rule of rules) {
+    if (!rule.applies(buildingType)) continue;
+    if (rule.multiplier !== undefined) {
+      const target = writable();
+      for (const key of Object.keys(target) as (keyof PlayerResources)[]) {
+        target[key] = Math.round((target[key] ?? 0) * rule.multiplier);
+      }
+    }
+    if (rule.woodMultiplier !== undefined) {
+      const target = writable();
+      if (target.wood !== undefined) target.wood = Math.round(target.wood * rule.woodMultiplier);
+    }
+    if (rule.stoneMultiplier !== undefined) {
+      const target = writable();
+      if (target.stone !== undefined) target.stone = Math.round(target.stone * rule.stoneMultiplier);
+    }
+  }
+  return cost ?? base;
+}
+
+// Building max-HP multiplier (Persians' Town Centers and Docks), applied at
+// the building combat-state factory beside the tech HP multipliers.
+export function civBuildingHpMultiplier(
+  civilization: string | undefined,
+  buildingType: BuildingType,
+): number {
+  for (const rule of civBonusesFor(civilization)?.buildingHp ?? []) {
+    if (rule.applies(buildingType)) return rule.multiplier;
+  }
+  return 1;
+}
+
+/** Huns: population is never limited by housing. */
+export function civIgnoresHousing(civilization: string | undefined): boolean {
+  return civBonusesFor(civilization)?.houselessPopulation === true;
 }
 
 // The owner's effective training cost for a unit, after civ cost bonuses and

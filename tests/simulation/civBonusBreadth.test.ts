@@ -179,3 +179,52 @@ describe('opening bonuses in a real match', () => {
     expect(civCarryBonus('Britons', 'tree')).toBe(0);
   });
 });
+
+describe('building bonuses', () => {
+  it('prices buildings by civilization at every charge site', async () => {
+    const { effectiveConstructionCost } = await import('../../src/game/simulation/civBonusEffects');
+    const { constructionCost } = await import('../../src/game/simulation/prototypeEconomyRules');
+    const base = constructionCost('castle');
+    expect(effectiveConstructionCost('Franks', 'castle'))
+      .toEqual({ stone: Math.round((base.stone ?? 0) * 0.75) });
+    expect(effectiveConstructionCost('Japanese', 'mill').wood)
+      .toBe(Math.round((constructionCost('mill').wood ?? 0) * 0.5));
+    expect(effectiveConstructionCost('Teutons', 'farm').wood)
+      .toBe(Math.round((constructionCost('farm').wood ?? 0) * 0.67));
+    expect(effectiveConstructionCost('Malians', 'barracks').wood)
+      .toBe(Math.round((constructionCost('barracks').wood ?? 0) * 0.85));
+    expect(effectiveConstructionCost('Incas', 'castle').stone)
+      .toBe(Math.round((constructionCost('castle').stone ?? 0) * 0.85));
+    // Unmatched civs read the shared base reference untouched.
+    expect(effectiveConstructionCost('Britons', 'castle')).toBe(base);
+  });
+
+  it('doubles Persian Town Center hit points in a real match', async () => {
+    const { createSimulationBridge } = await import('../../src/game/simulation/createSimulationBridge');
+    const persians = createSimulationBridge(undefined, {
+      civilizationsByOwner: new Map([[1, 'Persians']]),
+    });
+    const plain = createSimulationBridge(undefined);
+    const hpOf = (bridge: typeof plain) => {
+      const townCenter = bridge.getEconomyState().buildings.find(
+        (building) => building.owner === 1 && building.buildingType === 'town-center',
+      )!;
+      return bridge.getEntityHealth(townCenter.id)!.maxHp;
+    };
+    expect(hpOf(persians)).toBe(hpOf(plain) * 2);
+  });
+
+  it('opens the Huns at the full population cap, houseless', async () => {
+    const { createSimulationBridge } = await import('../../src/game/simulation/createSimulationBridge');
+    const huns = createSimulationBridge(undefined, {
+      civilizationsByOwner: new Map([[1, 'Huns']]),
+    });
+    expect(huns.getPopulationState(1).cap).toBe(200);
+    // And a custom pop cap is still the ceiling.
+    const capped = createSimulationBridge(undefined, {
+      civilizationsByOwner: new Map([[1, 'Huns']]),
+      populationCap: 75,
+    });
+    expect(capped.getPopulationState(1).cap).toBe(75);
+  });
+});

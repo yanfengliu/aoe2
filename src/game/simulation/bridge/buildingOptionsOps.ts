@@ -10,6 +10,8 @@
 // Read-side only; composes existing optionsRules + playerQueries
 // surfaces. Exposed publicly as SimulationBridge.getAgentBuildingOptions.
 
+import { researchCost } from '../prototypeEconomyRules';
+import { effectiveConstructionCost } from '../civBonusEffects';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -20,7 +22,6 @@ import type {
   UnitType,
 } from '../types';
 import { buildingFootprint, type GameWorld } from './pureHelpers';
-import { constructionCost, researchCost } from '../prototypeEconomyRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { constructionStatesCodec } from './bridgeStateSerialize';
 
@@ -65,6 +66,8 @@ export interface BuildingOptionsDeps {
   ) => readonly ResearchableTechnologyType[];
   getTrainOptions: (owner: number, buildingType: BuildingType) => readonly TrainableUnitType[];
   getBuildOptions: (owner: number, unitType: UnitType) => readonly BuildableBuildingType[];
+  /** The owner's civilization, for civ-priced building costs. */
+  getPlayerCivilization?: (ownerId: number) => string;
   // Read-only probe (iter-1 Claude L2): unlike the command paths'
   // get-or-create inFlightTechSetFor, this must not insert an entry for
   // owners that have none — getAgentBuildingOptions is a pure read
@@ -123,6 +126,7 @@ export function createBuildingOptionsOps(deps: BuildingOptionsDeps): BuildingOpt
       if (research.length + researchLocked.length + train.length === 0) continue;
       byBuildingType.push({ buildingType, research, researchLocked, train });
     }
+    const civilization = deps.getPlayerCivilization?.(ownerId);
     const villagerCanBuild: AgentBuildOption[] = deps
       .getBuildOptions(ownerId, 'villager')
       .map((buildingType) => {
@@ -130,7 +134,7 @@ export function createBuildingOptionsOps(deps: BuildingOptionsDeps): BuildingOpt
         return {
           buildingType,
           footprint: `${footprint.width}x${footprint.height}`,
-          cost: { ...constructionCost(buildingType) },
+          cost: { ...effectiveConstructionCost(civilization, buildingType) },
         };
       });
     return { byBuildingType, villagerCanBuild };

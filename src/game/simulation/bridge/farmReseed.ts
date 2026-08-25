@@ -12,17 +12,19 @@
 // Extracted into its own module so villagerEconomySystem.ts stays under the
 // 500-LOC file ceiling.
 
+import { effectiveConstructionCost } from '../civBonusEffects';
 import type { BuildingComponent, ResourceComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { playerResourcesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
-import { canAfford, constructionCost, spendResources } from '../prototypeEconomyRules';
+import { playerCivilizationsCodec, playerResourcesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import { canAfford, spendResources } from '../prototypeEconomyRules';
 import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
 
 // The farm's build cost doubles as its reseed cost (AoE2 farm = a wood→food
 // converter you re-pay to maintain). Read from the same source the build
 // charges so the two never drift.
-const FARM_RESEED_COST = constructionCost('farm');
+// The reseed bill is the farm's construction cost, at the OWNER's civ price
+// (a Teuton farm reseeds at the same third-off it was built for).
 
 // Attempt to auto-reseed a depleted resource if it is a farm and its owner can
 // afford the wood. Returns true when the farm was reseeded (caller must NOT
@@ -47,9 +49,13 @@ export function tryReseedFarm(
   if (owner === null) return false;
 
   const stockpile = accessor.get(playerResourcesCodec).get(owner);
-  if (!stockpile || !canAfford(stockpile, FARM_RESEED_COST)) return false;
+  const reseedCost = effectiveConstructionCost(
+    accessor.get(playerCivilizationsCodec).get(owner),
+    'farm',
+  );
+  if (!stockpile || !canAfford(stockpile, reseedCost)) return false;
 
-  spendResources(stockpile, FARM_RESEED_COST);
+  spendResources(stockpile, reseedCost);
   accessor.markDirty(playerResourcesCodec);
   // Reset stored food to the farm's current capacity, DERIVED from the OWNER's
   // researched farm-food techs (Horse Collar / Heavy Plow / Crop Rotation):

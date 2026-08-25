@@ -6,7 +6,7 @@
 // surface is explicit instead of closure-captured.
 
 import { isMonasticUnit } from '../monasticUnits';
-import { civPopulationProvidedBonus } from '../civBonusEffects';
+import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
 import { matchSettingsCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
@@ -331,8 +331,16 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     // Masonry / Architecture raise the hit points of everything this owner
     // builds; the buildings already standing are bumped at research time
     // (buildingHpTechEffect). Both halves are needed, exactly like Loom.
+    // Persians: Town Centers and Docks at double HP — the civ multiplier
+    // applies to the BASE before the tech multipliers, like the unit-HP seam.
     const fullHp = buildingMaxHpWithTechnologies(
-      buildingMaxHp(buildingType),
+      Math.round(
+        buildingMaxHp(buildingType)
+        * civBuildingHpMultiplier(
+          accessor.get(playerCivilizationsCodec).get(owner),
+          buildingType,
+        ),
+      ),
       accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
       buildingType,
     );

@@ -19,6 +19,7 @@
 // Note: the move is strictly logic-preserving; behavior matches the
 // pre-extraction bridge byte-for-byte.
 
+import { effectiveConstructionCost } from '../civBonusEffects';
 import type {
   BuildableBuildingType,
   BuildingType,
@@ -32,11 +33,10 @@ import {
   clamp,
 } from './pureHelpers';
 import {
-  constructionCost,
   resourcesMissing,
 } from '../prototypeEconomyRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { playerResourcesCodec } from './bridgeStateSerialize';
+import { playerCivilizationsCodec, playerResourcesCodec } from './bridgeStateSerialize';
 import { removePendingUnitCommands } from './pendingCommandQuery';
 
 export interface PlacementModeHolder {
@@ -218,7 +218,8 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     } else if (result.code === 'insufficient_resources') {
       const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
       const missing = stockpile
-        ? resourcesMissing(stockpile, constructionCost(buildingType))
+        ? resourcesMissing(stockpile, effectiveConstructionCost(
+            accessor.get(playerCivilizationsCodec).get(humanPlayerId), buildingType))
         : null;
       enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot build here.');
     } else {

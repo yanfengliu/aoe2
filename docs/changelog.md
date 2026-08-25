@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.80 - 2026-08-24
+
+### Added
+
+- **Building bonuses.** Frankish Castles cost a quarter less, Japanese Mills and camps half, Teuton Farms a third less (reseeds too), Inca buildings save stone and Malian buildings wood — at every price you see and every price you pay, including the AI's. Persian Town Centers and Docks stand at double hit points. And the **Huns need no houses**: their population is never housing-limited, exactly as in AoE2.
+
 ## 0.3.79 - 2026-08-24
 
 ### Added

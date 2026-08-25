@@ -1,3 +1,4 @@
+import { effectiveConstructionCost } from '../../game/simulation/civBonusEffects';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -7,7 +8,6 @@ import type {
   TrainableUnitType,
 } from '../../game/simulation/types';
 import {
-  constructionCost,
   researchCost,
   researchTimeTicks,
   trainingCost,
@@ -105,8 +105,9 @@ export function formatResearchTooltip(
 export function formatBuildTooltip(
   buildingType: BuildableBuildingType,
   buildingDisplayName: string,
+  civilization?: string,
 ): string {
-  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(constructionCost(buildingType))}). The selected villager walks to the site and builds it.`;
+  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(effectiveConstructionCost(civilization, buildingType))}). The selected villager walks to the site and builds it.`;
 }
 
 export interface TooltipHandle {

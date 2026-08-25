@@ -17,12 +17,13 @@ import type {
   TerrainComponent,
   UnitType,
 } from '../types';
-import { inFlightTechByOwnerCodec } from './bridgeStateSerialize';
+import { playerCivilizationsCodec, inFlightTechByOwnerCodec } from './bridgeStateSerialize';
 import { unitTint } from '../prototypeUnitRules';
 import {
   AI_MONK_HEAL_HP_FRACTION,
   AI_WATCH_TOWER_FORWARD_STEP,
 } from '../ai';
+import { defaultCivilizationName } from './pureHelpers';
 import { createBuildingOptionsOps } from './buildingOptionsOps';
 import type { CellPassability } from './cellPassability';
 import { createMonkTaskOps } from './monkTaskOps';
@@ -404,6 +405,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getVisibleResearchOptions,
     getTrainOptions,
     getBuildOptions,
+    getPlayerCivilization: (owner) =>
+      accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner),
     inFlightTechsFor: (owner) =>
       accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
     researchUnavailableReason: deps.researchUnavailableReason,

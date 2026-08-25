@@ -7,7 +7,8 @@
 // module just bundles the long, sequential mutation lists so
 // createSimulationBridge stays readable.
 
-import { seedCivOpeningUnits, civOpeningResources } from './civOpeningSeed';
+import { deriveCap, POP_HARD_CAP } from './bridgeConstants';
+import { seedCivOpeningUnits, civOpeningResources, civOpeningRawSupplyFloor } from './civOpeningSeed';
 import type { Position } from 'civ-engine';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
 import { TERRAIN_TINTS } from '../terrainTints';
@@ -179,16 +180,21 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
     accessor.mutate(researchedTechnologiesCodec, (m) =>
       m.set(start.owner, new Set(start.startingResearchedTechnologies ?? [])),
     );
-    accessor.mutate(populationCodec, (m) =>
+    accessor.mutate(populationCodec, (m) => {
+      // rawSupply seeds at the base headroom (= 0) — building completion
+      // raises it and cap = deriveCap(rawSupply) follows — except for the
+      // Huns, whose §9.2 identity is a supply that opens AT the cap: houses
+      // are never required to support their population.
+      const rawSupply = standardPopulationCap + civOpeningRawSupplyFloor(
+        start.civilization ?? defaultCivilizationName(start.owner),
+        accessor.get(matchSettingsCodec).popCap ?? POP_HARD_CAP,
+      );
       m.set(start.owner, {
         current: 0,
-        // rawSupply seeds at the base headroom (= 0). Building completion
-        // (incl. the starting Town Center's +5 via the normal path) raises
-        // rawSupply, and cap = deriveCap(rawSupply) follows.
-        cap: standardPopulationCap,
-        rawSupply: standardPopulationCap,
-      }),
-    );
+        cap: deriveCap(rawSupply, accessor.get(matchSettingsCodec).popCap),
+        rawSupply,
+      });
+    });
     // Phase 2D — villagerOrdinals routes through the accessor.
     accessor.mutate(villagerOrdinalsCodec, (m) => m.set(start.owner, 0));
     if (typeof start.wonderCountdownOverrideTicks === 'number') {

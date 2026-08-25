@@ -36,6 +36,7 @@ export interface CreateWorldResult {
   getPlayerResources: (playerId: number) => PlayerResources;
   /** Owners whose vision this player also sees — Cartography's allies. */
   getSharedVisionOwners: (playerId: number) => number[];
+  getPlayerCivilization: (playerId: number) => string;
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;

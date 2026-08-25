@@ -68,12 +68,12 @@ interface HudBridge {
   issueMarketAction(actionType: MarketActionType): boolean;
   sendTribute: SimulationBridge['sendTribute'];
   listTributeTargets(): number[];
+  getPlayerCivilization(playerId: number): string;
   humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   // Slice 11: drain the oldest pending rejection for a toast; null when none.
   consumeCommandRejection(): string | null;
-  // Slice 11: snapshot for the F2 debug overlay. Every frame the HUD
-  // requests this when the overlay is in anything other than 'off' mode.
+  // Slice 11: F2 debug-overlay snapshot, read every frame while it is on.
   getDebugSnapshot(): SimulationDebugSnapshot;
   // FU5: serialize the live simulation for the HUD Save button. The HUD
   // writes the returned blob to localStorage and triggers a download.
@@ -87,9 +87,8 @@ interface HudBridge {
   // shows the success toast only after the promise resolves and a
   // failure toast on rejection. Throws / rejects on schema mismatch.
   loadGame(blob: SaveBlob): Promise<void>;
-  // Slice 5 (v0.1.12): the unified "Replay…" HUD button. Triggers the
-  // ReplayLoadDialog modal that consolidates the three load sources
-  // (live session / prior session / file import). Optional so pre-Slice-5
+  // Slice 5 (v0.1.12): the unified "Replay…" HUD button — opens the
+  // ReplayLoadDialog (live session / prior session / file). Optional so old
   // callers can omit the wiring (the button stays inert).
   openReplayLoadDialog?(): void;
   // Lets the HUD listen to enter/exit replay events; the unified button
@@ -298,6 +297,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
     sendTribute: (toOwner, resource) => bridge.sendTribute(toOwner, resource, TRIBUTE_AMOUNT),
+    getHumanCivilization: () => bridge.getPlayerCivilization(1),
     getTributeTargets: () => (
       { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
     ),
