@@ -212,3 +212,17 @@ describe('selection chirps', () => {
     expect(harness.played).toEqual(['select-villager', 'select-military', 'select-monk']);
   });
 });
+
+describe('the birdsong scheduler', () => {
+  it('spaces chirps 6-14 seconds apart, reproducibly', async () => {
+    const { nextBirdTimeMs } = await import('../../src/audio/proceduralAmbience');
+    let at = 0;
+    for (let i = 0; i < 20; i += 1) {
+      const next = nextBirdTimeMs(at);
+      expect(next - at).toBeGreaterThanOrEqual(6000);
+      expect(next - at).toBeLessThanOrEqual(14000);
+      expect(nextBirdTimeMs(at)).toBe(next);
+      at = next;
+    }
+  });
+});

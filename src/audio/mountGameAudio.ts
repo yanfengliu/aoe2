@@ -8,6 +8,7 @@ import type { SimulationBridge } from '../game/simulation/createSimulationBridge
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import { createGameAudioController } from './gameAudioController';
 import { playProceduralCue } from './proceduralVoices';
+import { startAmbience, type AmbienceHandle } from './proceduralAmbience';
 import { unitRole } from '../rendering/roles/unitRole';
 import type { UnitType } from '../game/simulation/types';
 
@@ -19,12 +20,22 @@ export interface MountedGameAudio {
 // captured reference would leave the horn listening to the dead world.
 export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLElement): MountedGameAudio {
   let context: AudioContext | null = null;
+  let ambience: AmbienceHandle | null = null;
   function ensureContext(): AudioContext | null {
     if (typeof AudioContext === 'undefined') return null;
-    context ??= new AudioContext();
+    if (!context) {
+      context = new AudioContext();
+      // The ambience bed starts with the context (i.e. on the first user
+      // gesture) and honours the same mute switch as the cues.
+      ambience = startAmbience(context);
+      ambience.setMuted(controllerMutedRef());
+    }
     if (context.state === 'suspended') void context.resume();
     return context;
   }
+  // ensureContext runs before the controller exists on the first gesture
+  // path, so the mute read is indirected through a ref set below.
+  let controllerMutedRef: () => boolean = () => false;
   // The first pointer or key gesture unlocks audio for the whole session.
   const unlock = (): void => {
     ensureContext();
@@ -101,8 +112,10 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       + '</svg>';
   }
   refreshButton();
+  controllerMutedRef = () => controller.isMuted();
   button.addEventListener('click', () => {
     controller.setMuted(!controller.isMuted());
+    ambience?.setMuted(controller.isMuted());
     refreshButton();
   });
   hudRoot.appendChild(button);
@@ -110,6 +123,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
   let rafHandle: number | null = null;
   function loop(): void {
     controller.poll();
+    ambience?.tick(performance.now());
     rafHandle = requestAnimationFrame(loop);
   }
   rafHandle = requestAnimationFrame(loop);
@@ -120,6 +134,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       button.remove();
+      ambience?.dispose();
       void context?.close();
     },
   };
