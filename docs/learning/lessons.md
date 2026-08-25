@@ -10,6 +10,7 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A cross-owner op must never touch another player's UI state; and a pointer→view seam no test crosses can silently drop its arguments for months. ([evidence](lessons-evidence.md#cross-owner-ui-state))
 - A fixture that PRE-GRANTS the thing under test cannot test how that thing is obtained ([evidence](lessons-evidence.md#a-fixture-that-pre-grants-the-thing-under-test-2026-08-23))
 - The browser suite serves `dist/` — an unrebuilt run measures the PREVIOUS commit, and its screenshots look like a real UI defect ([evidence](lessons-evidence.md#the-browser-suite-serves-dist-2026-08-23))
 - A menu derived from world state ANSWERS DIFFERENTLY after you mutate that state — snapshot eligibility before the write ([evidence](lessons-evidence.md#a-menu-derived-from-world-state-answers-differently-after-you-mutate-that-state-2026-08-23))

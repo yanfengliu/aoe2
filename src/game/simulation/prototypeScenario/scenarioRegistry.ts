@@ -167,6 +167,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-ferry-fixture', fixtures.createAiFerryFixture],
   ['ai-ferry-train-fixture', fixtures.createAiFerryTrainFixture],
   ['tower-arrows-fixture', fixtures.createTowerArrowsFixture],
+  ['attack-ally-fixture', fixtures.createAttackAllyFixture],
   ['damage-showcase-fixture', fixtures.createDamageShowcaseFixture],
   ['redemption-buildings-fixture', fixtures.createRedemptionBuildingsFixture],
   ['redemption-buildings-baseline-fixture', fixtures.createRedemptionBuildingsBaselineFixture],

@@ -443,7 +443,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // Bridge facade. Monk path submits `monk.contextAtEntity` (handler
   // re-routes via `routeMonkContextAtEntityCommandDirect`). Non-monk path
   // submits `unit.contextAtEntity`.
-  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number, garrison = false): boolean {
+  function issueUnitContextCommandAtEntity(unitId: number, targetEntityId: number, garrison = false, forceAttack = false): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
@@ -454,7 +454,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
     // Always explicit on the live path (§9.3); only a pre-rule RECORDING omits
     // `garrison`, which the handler reads as legacy.
-    const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId, garrison });
+    const result = world.submitWithResult('unit.contextAtEntity', { unitId, targetEntityId, garrison, forceAttack });
     return result.accepted;
   }
 

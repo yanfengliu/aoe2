@@ -58,7 +58,7 @@ export type GameCommands = {
   // right-click garrisoned — replaying those must preserve what the player saw,
   // so the handler treats absence as garrison-allowed. Live paths always set it.
   'unit.context': { unitId: number; target: Position; garrison?: boolean };
-  'unit.contextAtEntity': { unitId: number; targetEntityId: number; garrison?: boolean };
+  'unit.contextAtEntity': { unitId: number; targetEntityId: number; garrison?: boolean; forceAttack?: boolean };
   // --- Specialty unit orders ---
   'sheep.move': { sheepId: number; target: Position };
   'monk.contextAtEntity': {

@@ -45,6 +45,8 @@ export interface VoxelPointerInputControllerDeps {
     isoY: number,
     /** Alt held: the player explicitly asked to garrison (spec §9.3). */
     garrison?: boolean,
+    /** Ctrl held: explicit attack — the only way to target an ally. */
+    forceAttack?: boolean,
   ) => boolean;
   readonly clearRecentSelectionClicks: () => void;
 }
@@ -159,13 +161,15 @@ export function createVoxelPointerInputController(
       deps.disarmGroundOrder?.();
       deps.clearRecentSelectionClicks();
       const cell = worldCellAt(point.x, point.y);
-      // Alt+right-click = garrison; a plain right-click always moves (§9.3).
+      // Alt+right-click = garrison; Ctrl+right-click = explicit attack (the
+      // deliberate order that can hit an ALLY); plain right-click moves (§9.3).
       deps.issueContextCommandAtWorldPosition(
         cell.x,
         cell.y,
         cell.isoX,
         cell.isoY,
         event.altKey,
+        event.ctrlKey,
       );
       return;
     }

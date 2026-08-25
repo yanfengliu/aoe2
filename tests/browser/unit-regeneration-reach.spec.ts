@@ -22,7 +22,7 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
     // The wound the fixture starts with, as the player sees it in the panel.
     expect(await game.selectOwnedUnitDirect(page, 1, 'berserk')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Berserk');
-    await game.expectSelectionDetail(page, 'health', '10 / 55');
+    await game.expectSelectionDetail(page, 'health', '10 / 66'); // 55 x1.2: the Viking Imperial HP ladder (v0.3.86)
     // Not exactly 10: the match has been running while the page booted and
     // the selection landed, and the healing runs during that too.
     const wounded = await berserkHp(page);
@@ -59,6 +59,6 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(200, 100));
     const after = await berserkHp(page);
     expect(after - before).toBeGreaterThan(11);
-    expect(after).toBeLessThanOrEqual(55);
+    expect(after).toBeLessThanOrEqual(66);
   });
 });

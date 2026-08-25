@@ -42,7 +42,7 @@ export interface GarrisonOpsDeps {
     buildingType: BuildingComponent['buildingType'],
     preferForeground?: boolean,
   ) => Position | null;
-  clearSelection: () => void;
+  removeSelectedEntity: (id: number) => void;
   placementMode: { current: unknown };
   markOutOfBandRenderChange: () => void;
 }
@@ -69,7 +69,7 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
     placeFreshSpawnUnit,
     findScenarioSpawnPosition,
     findBuildingSpawnPosition,
-    clearSelection,
+    removeSelectedEntity,
     placementMode,
     markOutOfBandRenderChange,
   } = deps;
@@ -202,7 +202,14 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
       list.push(unitId);
       m.set(buildingId, list);
     });
-    clearSelection();
+    // Drop ONLY this unit from the selection (v0.3.102): it just vanished
+    // into the building, so a selection holding it would be a ghost — but the
+    // rest of the player's selection, or a selection belonging to a DIFFERENT
+    // player entirely, is none of this garrison's business. The old
+    // unconditional clearSelection() wiped the HUMAN's selection every time
+    // an AI unit garrisoned anywhere on the map — invisible until v0.3.89
+    // widened garrison eligibility and AI archers started sheltering.
+    removeSelectedEntity(unitId);
     placementMode.current = null;
     markOutOfBandRenderChange();
     return true;

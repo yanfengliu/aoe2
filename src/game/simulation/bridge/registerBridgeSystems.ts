@@ -122,7 +122,7 @@ export interface RegisterBridgeSystemsDeps {
   getSelectedHumanBuilderIds: () => number[];
   isEntityVisibleToHuman: (id: number) => boolean;
   issueUnitContextCommand: (unitId: number, target: Position) => boolean;
-  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number) => boolean;
+  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number, garrison?: boolean, forceAttack?: boolean) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
   getBuildOptions: (
     owner: number,

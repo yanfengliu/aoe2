@@ -13,7 +13,8 @@ import type {
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { constructionStatesCodec, playerCivilizationsCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
+import { constructionStatesCodec, playerCivilizationsCodec, playerTeamsCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
+import { isEnemyOwner } from '../alliances';
 
 export function createContextAtEntityRouter(deps: {
   world: GameWorld;
@@ -46,19 +47,34 @@ export function createContextAtEntityRouter(deps: {
     orderTradeRoute,
   } = deps;
 
-  function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean {
+  function routeUnitContextAtEntityCommandDirect(
+    unitId: number,
+    targetEntityId: number,
+    allowGarrison: boolean,
+    forceAttack = false,
+  ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || !targetPosition) return false;
 
     const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
     if (targetUnit && targetUnit.owner !== unit.owner) {
-      return setUnitAttackCommandDirect(unitId, targetEntityId, 'unit');
+      // Teams (v0.3.102): a plain right-click on an ALLY is a walk to them,
+      // never friendly fire — with Ctrl held it is the explicit attack AoE2
+      // reserves for deliberate treachery. Enemies attack either way.
+      const hostile = isEnemyOwner(accessor.get(playerTeamsCodec), unit.owner, targetUnit.owner);
+      if (hostile || forceAttack) {
+        return setUnitAttackCommandDirect(unitId, targetEntityId, 'unit');
+      }
+      return setUnitMoveCommandDirect(unitId, targetPosition);
     }
 
     const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
     if (targetBuilding) {
       if (targetBuilding.owner !== unit.owner) {
+        const hostileBuilding = isEnemyOwner(
+          accessor.get(playerTeamsCodec), unit.owner, targetBuilding.owner,
+        );
         // A Trade Cart right-clicked on another player's Market opens a trade
         // route (spec §6.7) — any other player's, ally or enemy, as in AoE2.
         // It has to precede the attack branch: an attack-0 cart "attacking" a
@@ -68,6 +84,7 @@ export function createContextAtEntityRouter(deps: {
         if (tradesHere && orderTradeRoute(unitId, targetEntityId)) {
           return true;
         }
+        if (!hostileBuilding && !forceAttack) return setUnitMoveCommandDirect(unitId, targetPosition);
         return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');
       }
 

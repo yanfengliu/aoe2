@@ -102,7 +102,7 @@ export interface SimulationBridge {
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
-  issueContextCommandAtEntity(entityId: number, options?: { garrison?: boolean }): boolean;
+  issueContextCommandAtEntity(entityId: number, options?: { garrison?: boolean; forceAttack?: boolean }): boolean;
   issueMoveCommand(x: number, y: number): boolean;
   issueAction(actionType: ActionType): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;

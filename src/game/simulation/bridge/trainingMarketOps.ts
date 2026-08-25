@@ -97,7 +97,7 @@ export interface TrainingMarketOpsDeps {
   isGarrisonedUnit: (id: number) => boolean;
   clearGathererOrder: (id: number) => void;
   clearUnitCommand: (id: number) => void;
-  clearSelection: () => void;
+  removeSelectedEntity: (id: number) => void;
   setUnitCommand: (
     unitId: number,
     command: {
@@ -178,7 +178,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,
-    clearSelection,
+    removeSelectedEntity,
     setUnitCommand,
     addBuildingEntity,
     findScenarioSpawnPosition,
@@ -201,7 +201,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     placeFreshSpawnUnit,
     findScenarioSpawnPosition,
     findBuildingSpawnPosition,
-    clearSelection,
+    removeSelectedEntity,
     placementMode,
     markOutOfBandRenderChange,
   });

@@ -274,10 +274,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,
-    clearSelection: () => {
-      selection.refs = [];
-      selection.focusCell = null;
-    },
+    removeSelectedEntity,
     setUnitCommand,
     addBuildingEntity,
     findScenarioSpawnPosition,

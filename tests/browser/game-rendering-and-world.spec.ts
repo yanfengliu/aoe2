@@ -104,10 +104,12 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
       fillRatio: 1,
     });
     expect(initialHouseBar).toMatchObject({
-      currentHp: 75,
-      maxHp: 75,
-      fillRatio: 1,
+      // The conquest fixture seeds its house FRAGILE (startHp 40) against the
+      // CSV's 900 max (v0.3.97), so the destruction flow stays quick.
+      currentHp: 40,
+      maxHp: 900,
     });
+    expect(initialHouseBar?.fillRatio ?? 1).toBeLessThan(0.1);
     expect(initialMilitiaBar?.barY ?? 0).toBeLessThan(initialMilitiaBar?.entityTopPx ?? 0);
     expect(initialHouseBar?.barY ?? 0).toBeLessThan(initialHouseBar?.entityTopPx ?? 0);
 
@@ -116,7 +118,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
 
     const damagedHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');
-    expect(damagedHouseBar?.currentHp).toBeLessThan(damagedHouseBar?.maxHp ?? 75);
+    expect(damagedHouseBar?.currentHp).toBeLessThan(40); // below the fragile seed
     expect(damagedHouseBar?.fillRatio ?? 1).toBeLessThan(1);
     expect(damagedHouseBar?.barY ?? 0).toBeLessThan(damagedHouseBar?.entityTopPx ?? 0);
   });

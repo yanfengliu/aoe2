@@ -9,6 +9,7 @@ export interface UnitContextAtEntityHandlerDeps {
     unitId: number,
     targetEntityId: number,
     allowGarrison: boolean,
+    forceAttack?: boolean,
   ) => boolean;
 }
 
@@ -25,6 +26,8 @@ export function makeUnitContextAtEntityHandler(deps: UnitContextAtEntityHandlerD
       data.unitId,
       data.targetEntityId,
       data.garrison ?? true,
+      // Absent = every older recording: no forced friendly fire.
+      data.forceAttack ?? false,
     );
   };
 }

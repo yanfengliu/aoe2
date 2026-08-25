@@ -208,8 +208,10 @@ export function createSimulationBridge(
   // LLM-agent harness observer slot (Phase 1 impl-1 H1).
   let agentDispatchObserver: import('./dispatcher').AgentDispatchObserver | null = null;
 
-  const issueContextCommandAtEntity = (entityId: number, options?: { garrison?: boolean }): boolean => {
-    const didIssue = issueContextCommandAtEntityInternal(entityId, options?.garrison ?? false);
+  const issueContextCommandAtEntity = (entityId: number, options?: { garrison?: boolean; forceAttack?: boolean }): boolean => {
+    const didIssue = issueContextCommandAtEntityInternal(
+      entityId, options?.garrison ?? false, options?.forceAttack ?? false,
+    );
     if (!didIssue) {
       return false;
     }

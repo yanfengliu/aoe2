@@ -56,6 +56,8 @@ export interface VoxelSelectionController {
     worldY: number,
     isoX?: number,
     isoY?: number,
+    garrison?: boolean,
+    forceAttack?: boolean,
   ): boolean;
   clearRecentSelectionClicks(): void;
 }
@@ -171,6 +173,7 @@ export function createVoxelSelectionController(
     isoX?: number,
     isoY?: number,
     garrison = false,
+    forceAttack = false,
   ): boolean {
     if (!isActive()) {
       return false;
@@ -201,7 +204,10 @@ export function createVoxelSelectionController(
       );
     const targetEntity = displayedTargetEntity ?? projectedTargetEntity;
 
-    if (targetEntity && getBridge().issueContextCommandAtEntity(targetEntity.id, { garrison })) {
+    if (
+      targetEntity
+      && getBridge().issueContextCommandAtEntity(targetEntity.id, { garrison, forceAttack })
+    ) {
       return true;
     }
 
