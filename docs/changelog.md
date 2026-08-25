@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.106
+
+- Allied gate passage: with teams in play, your gates open for your whole team (AoE2 DE rule). Enemies, wildlife, and unfinished gates stay shut; free-for-all matches are unchanged.
+
 ## 0.3.105
 
 - Per-civilization architecture, first pass: every civilization's buildings wear one of six regional roof-material sets (western-european, central-european, middle-eastern, east-asian, mediterranean, mesoamerican). Thatch, tile, and ridge colours re-key per set under the owner-colour blend; fog ghosts remember the set they saw; older saves render unchanged.

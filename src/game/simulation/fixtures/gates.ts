@@ -34,10 +34,21 @@ export function createGatesFixture(seed: string): PrototypeScenario {
         startingAge: 'castle-age',
         disableAi: true,
       },
+      // A third, idle party so an ALLIED 1+2 match still has an enemy: with
+      // only two owners, teaming them ends the match by conquest on tick 1
+      // and nobody gets to walk anywhere (the allied-gate test found this the
+      // hard way).
+      {
+        owner: 3,
+        townCenter: { x: 50, y: 4 },
+        startingAge: 'castle-age',
+        disableAi: true,
+      },
     ],
     spawns: [
       ownedSpawn('town-center', 1, 6, 12, { vision: 8 }),
       ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
+      ownedSpawn('town-center', 3, 50, 4, { vision: 7 }),
       // One unit each side of the line.
       ownedSpawn('scout', 1, 18, 12),
       ownedSpawn('scout', 2, 22, 12),

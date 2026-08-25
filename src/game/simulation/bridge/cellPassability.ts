@@ -36,6 +36,7 @@ import {
   garrisonedUnitToBuildingCodec,
   wildlifeStatesCodec,
   playerCivilizationsCodec,
+  playerTeamsCodec,
 } from './bridgeStateSerialize';
 type CivWorld = GameWorld;
 
@@ -280,7 +281,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
       const building = activeWorld.getComponent<BuildingComponent>(claim.entity, 'building');
       if (!building) continue;
       const isComplete = !accessor.get(constructionStatesCodec).has(claim.entity);
-      if (gateAdmits(building.buildingType, building.owner, isComplete, owner)) return true;
+      if (gateAdmits(building.buildingType, building.owner, isComplete, owner, accessor.get(playerTeamsCodec))) return true;
     }
     return false;
   }

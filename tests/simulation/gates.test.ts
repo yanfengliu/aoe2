@@ -92,6 +92,45 @@ describe('who may walk through a gate', () => {
   });
 });
 
+describe('an allied gate (v0.3.106)', () => {
+  // DE lets a team walk through each other's gates: a shared wall would
+  // otherwise lock your ally out of your own base. Enemies and wildlife
+  // stay shut out, and a free-for-all (no teams) behaves exactly as before.
+  it('opens for a teammate', () => {
+    const bridge = createSimulationBridge('gate-fixture', {
+      teamsByOwner: new Map([[1, 1], [2, 1]]),
+    });
+    const scout = bridge.getEconomyState().units.find(
+      (u) => u.owner === 2 && u.unitType === 'scout',
+    );
+    if (!scout) throw new Error('the gate fixture has no scout for owner 2');
+    const accepted = bridge.world.submitWithResult('unit.move', {
+      unitId: scout.id,
+      target: { x: 16, y: 12 },
+    });
+    expect(accepted.accepted).toBe(true);
+    const crossed = stepBridgeUntil(
+      bridge,
+      () => {
+        const now = bridge.getEconomyState().units.find((u) => u.id === scout.id);
+        return now ? now.x < 20 : false;
+      },
+      { maxSteps: 3000 },
+    );
+    expect(crossed, "an ally could not walk through a teammate's gate").toBe(true);
+  });
+
+  it('admits an ally by the pure rule, and still shuts out an enemy', () => {
+    const allied = new Map([[1, 1], [2, 1], [3, 3]]);
+    expect(gateAdmits('stone-gate', 1, true, 2, allied)).toBe(true);
+    expect(gateAdmits('stone-gate', 1, true, 3, allied)).toBe(false);
+    // Unfinished stays shut even to an ally.
+    expect(gateAdmits('stone-gate', 1, false, 2, allied)).toBe(false);
+    // No teams map = the free-for-all rule, owner only.
+    expect(gateAdmits('stone-gate', 1, true, 2)).toBe(false);
+  });
+});
+
 describe('the rule a gate opens by', () => {
   it('admits its owner once it is finished', () => {
     expect(gateAdmits('stone-gate', 1, true, 1)).toBe(true);

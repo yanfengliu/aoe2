@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.106 allied gate passage (gateAdmits + teams map through cellPassability); gates fixture gained a third idle party after the allied 2-player variant ended by conquest on tick 1 and froze the walk test.
 - 2026-08-25 v0.3.105 per-civ architecture pass 1: six roof-material sets keyed off civ (sim projects `architecture`, fog memory + saves carry it, replay resolves real civs), renderer re-keys thatch/tile/ridge before owner blend; diff-proved delta confined to roofs.
 - 2026-08-25 v0.3.104: control groups (Ctrl+digit bind / digit recall survivors / double-tap centre; refs-based, selectByRefs prunes the dead; session-transient scope spec-noted; real-key browser spec).
 - 2026-08-25 v0.3.103: idle villager bell (count + round-robin '.'-key/button select-and-centre; idleVillagerOps extraction at the 500 gate; pointer-events:auto opt-in — #hud-root is none; browser spec clicks the REAL DOM button per the unwatched-seam lesson).

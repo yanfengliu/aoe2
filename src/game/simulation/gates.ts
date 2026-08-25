@@ -6,6 +6,7 @@
 // applies to a gate unchanged, so this module only answers the two questions
 // that are specific to gates and leaves the rest to the wall tables.
 
+import { areAllied } from './alliances';
 import type { BuildingType } from './types';
 
 const GATE_WALLS: Partial<Record<BuildingType, BuildingType>> = {
@@ -39,19 +40,24 @@ export function gateWallCounterpart(buildingType: BuildingType): BuildingType | 
 /**
  * Whether a gate lets this player's unit through.
  *
- * Only the gate's own owner, and only once it is finished: an unbuilt gate is a
- * hole in the wall its builder has not closed yet, not a door, and letting
- * units through a construction site would make a half-built wall line
- * meaningless. Anything that is not a gate admits nobody — a wall is a wall.
+ * The gate's own team — its owner, and (v0.3.106, the DE rule) any ally when a
+ * teams map is given, because a shared wall would otherwise lock your ally out
+ * of your own base — and only once it is finished: an unbuilt gate is a hole in
+ * the wall its builder has not closed yet, not a door, and letting units
+ * through a construction site would make a half-built wall line meaningless.
+ * Without a teams map the rule is the free-for-all one, exact owner only.
+ * Anything that is not a gate admits nobody — a wall is a wall.
  */
 export function gateAdmits(
   buildingType: BuildingType,
   gateOwner: number | null,
   isComplete: boolean,
   unitOwner: number | null,
+  teams?: ReadonlyMap<number, number>,
 ): boolean {
   if (!isGateBuilding(buildingType)) return false;
   if (!isComplete) return false;
   if (gateOwner === null || unitOwner === null) return false;
-  return gateOwner === unitOwner;
+  if (gateOwner === unitOwner) return true;
+  return teams !== undefined && areAllied(teams, gateOwner, unitOwner);
 }
