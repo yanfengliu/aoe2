@@ -20,6 +20,7 @@ import {
   ageScaledBuildingHpFactor,
   ageScaledUnitHpFactor,
 } from '../../src/game/simulation/ageScaledHp';
+import { buildingMaxHpForAge } from '../../src/game/simulation/prototypeBuildingRules';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -124,5 +125,42 @@ describe('Byzantine building HP through the ages (in the world)', () => {
       .buildings.find((b) => b.owner === 1 && b.buildingType === 'outpost')!;
     // 500 base × 1.1 = 550.
     expect(bridge.getEntityHealth(outpost.id)?.maxHp).toBe(550);
+  });
+});
+
+describe('the generic military-building HP ladder (structures.csv rows by age)', () => {
+  it('walks Barracks 1200/1500/1800/2100 and the Feudal pair from 1500', () => {
+    expect(buildingMaxHpForAge('barracks', 'dark-age')).toBe(1200);
+    expect(buildingMaxHpForAge('barracks', 'feudal-age')).toBe(1500);
+    expect(buildingMaxHpForAge('barracks', 'castle-age')).toBe(1800);
+    expect(buildingMaxHpForAge('barracks', 'imperial-age')).toBe(2100);
+    expect(buildingMaxHpForAge('stable', 'feudal-age')).toBe(1500);
+    expect(buildingMaxHpForAge('archery-range', 'imperial-age')).toBe(2100);
+    // Everything else reads its flat table value in every age.
+    expect(buildingMaxHpForAge('house', 'imperial-age')).toBe(900);
+    expect(buildingMaxHpForAge('town-center', 'dark-age')).toBe(2400);
+    expect(buildingMaxHpForAge('blacksmith', 'feudal-age')).toBe(2100);
+  });
+
+  it('sweeps a standing Barracks up on age advance, for every civilization', () => {
+    // outpost-vision-fixture seeds a Dark-Age barracks and can afford Feudal.
+    const bridge = boot(); // no civ — the ladder is generic
+    const barracks = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 1 && b.buildingType === 'barracks')!;
+    expect(bridge.getEntityHealth(barracks.id)).toEqual({ currentHp: 1200, maxHp: 1200 });
+    advanceToFeudal(bridge);
+    expect(bridge.getEntityHealth(barracks.id)).toEqual({ currentHp: 1500, maxHp: 1500 });
+  });
+
+  it('composes with the Byzantine ladder: a Dark barracks at 1320 reaches 1800 in Feudal', () => {
+    const bridge = boot('Byzantines');
+    const barracks = bridge
+      .getEconomyState()
+      .buildings.find((b) => b.owner === 1 && b.buildingType === 'barracks')!;
+    expect(bridge.getEntityHealth(barracks.id)).toEqual({ currentHp: 1320, maxHp: 1320 }); // 1200 x 1.1
+    advanceToFeudal(bridge);
+    // 1500 x 1.2 — both ladders replace their own step, never compound.
+    expect(bridge.getEntityHealth(barracks.id)).toEqual({ currentHp: 1800, maxHp: 1800 });
   });
 });

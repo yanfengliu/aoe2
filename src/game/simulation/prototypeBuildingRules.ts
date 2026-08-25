@@ -8,6 +8,7 @@ import {
 import { isMonasticUnit } from './monasticUnits';
 import { isWaterUnit } from './unitDomain';
 import type {
+  AgeType,
   BuildingType,
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -242,6 +243,21 @@ export function buildingTint(
 
 export function buildingMaxHp(buildingType: BuildingType): number {
   return BUILDING_MAX_HP[buildingType];
+}
+
+// The three land military production buildings gain hit points per age
+// (structures.csv rows by age — Barracks 1200/1500/1800/2100; Stable and
+// Archery Range from their Feudal debut). Everything else reads its flat
+// table value. Creation derives the owner's current age; the age-up sweep
+// (ageScaledHpSweep) moves standing buildings by the ratio.
+const BUILDING_HP_BY_AGE: Partial<Record<BuildingType, Partial<Record<AgeType, number>>>> = {
+  barracks: { 'dark-age': 1200, 'feudal-age': 1500, 'castle-age': 1800, 'imperial-age': 2100 },
+  stable: { 'feudal-age': 1500, 'castle-age': 1800, 'imperial-age': 2100 },
+  'archery-range': { 'feudal-age': 1500, 'castle-age': 1800, 'imperial-age': 2100 },
+};
+
+export function buildingMaxHpForAge(buildingType: BuildingType, age: AgeType): number {
+  return BUILDING_HP_BY_AGE[buildingType]?.[age] ?? BUILDING_MAX_HP[buildingType];
 }
 
 export function buildingVisionRadius(buildingType: BuildingType): number | null {

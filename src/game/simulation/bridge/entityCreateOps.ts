@@ -24,8 +24,8 @@ import { buildingFootprint, getUnitTargetTransformForCell, type GameWorld } from
 import { deriveCap } from './bridgeConstants';
 import { ownerHardPopCap } from './ownerPopCap';
 import {
+  buildingMaxHpForAge,
   buildingBuildTimeTicks,
-  buildingMaxHp,
   buildingPopulationProvided,
   buildingSize,
   buildingTint,
@@ -342,7 +342,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     // multiplier; standing buildings are swept on age-up (ageScaledHpSweep).
     const fullHp = buildingMaxHpWithTechnologies(
       Math.round(
-        buildingMaxHp(buildingType)
+        buildingMaxHpForAge(buildingType, accessor.get(playerAgesCodec).get(owner) ?? 'dark-age')
         * civBuildingHpMultiplier(
           accessor.get(playerCivilizationsCodec).get(owner),
           buildingType,

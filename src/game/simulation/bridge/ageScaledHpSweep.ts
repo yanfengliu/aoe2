@@ -11,6 +11,7 @@ import {
   ageScaledBuildingHpFactor,
   ageScaledUnitHpFactor,
 } from '../ageScaledHp';
+import { buildingMaxHpForAge } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
@@ -27,13 +28,13 @@ export function applyAgeScaledHpSweep(
   toAge: AgeType,
 ): void {
   const civilization = accessor.get(playerCivilizationsCodec).get(owner);
-  if (!civilization) return;
 
   const combatStates = accessor.get(combatStatesCodec);
   let unitsTouched = false;
   for (const id of world.query('unit')) {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (!unit || unit.owner !== owner) continue;
+    if (!civilization) continue;
     const from = ageScaledUnitHpFactor(civilization, unit.unitType, fromAge);
     const to = ageScaledUnitHpFactor(civilization, unit.unitType, toAge);
     if (from === to) continue;
@@ -52,8 +53,13 @@ export function applyAgeScaledHpSweep(
     for (const id of world.query('building')) {
       const building = world.getComponent<BuildingComponent>(id, 'building');
       if (!building || building.owner !== owner) continue;
-      const from = ageScaledBuildingHpFactor(civilization, building.buildingType, fromAge);
-      const to = ageScaledBuildingHpFactor(civilization, building.buildingType, toAge);
+      // Two ladders compose: the generic military-building HP-by-age rows
+      // (structures.csv) and the Byzantine percentage — each as its own
+      // replaced-step ratio, so neither ever compounds on itself.
+      const from = ageScaledBuildingHpFactor(civilization, building.buildingType, fromAge)
+        * buildingMaxHpForAge(building.buildingType, fromAge);
+      const to = ageScaledBuildingHpFactor(civilization, building.buildingType, toAge)
+        * buildingMaxHpForAge(building.buildingType, toAge);
       if (from === to) continue;
       const health = healths.get(id);
       if (!health) continue;

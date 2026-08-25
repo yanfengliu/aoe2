@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.98 — 2026-08-25
+
+Military production buildings now toughen with each age, exactly as in AoE2: a Barracks stands at 1200 hit points in the Dark Age and 2100 by Imperial, with Stables and Archery Ranges on the same climb — buildings already standing included.
+
 ## 0.3.97 — 2026-08-25
 
 Wounded buildings now burn: drop under 40% hit points and flames with drifting smoke appear until you repair. And buildings finally have their real AoE2 toughness — houses stand at 900 hit points instead of a prototype-era 75, towers at 1020, military buildings 1200 and up.
