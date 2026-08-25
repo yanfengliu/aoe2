@@ -4,7 +4,6 @@ import {
   type RenderProjector,
 } from 'civ-engine';
 
-import { MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
 import { resourceTint } from '../prototypeEconomyRules';
 import {
   distanceSquared,
@@ -77,15 +76,16 @@ function unionCells(
   playerId: number,
   sharedOwners: readonly number[],
   kind: 'visible' | 'explored',
+  mapWidth: number,
 ): number[] {
   const read = (owner: number) => (
     kind === 'visible' ? visibility.getVisibleCells(owner) : visibility.getExploredCells(owner)
   );
-  const own = read(playerId).map((cell) => toCellIndex(cell.x, cell.y));
+  const own = read(playerId).map((cell) => toCellIndex(cell.x, cell.y, mapWidth));
   if (sharedOwners.length === 0) return own;
   const merged = new Set(own);
   for (const owner of sharedOwners) {
-    for (const cell of read(owner)) merged.add(toCellIndex(cell.x, cell.y));
+    for (const cell of read(owner)) merged.add(toCellIndex(cell.x, cell.y, mapWidth));
   }
   return [...merged];
 }
@@ -203,16 +203,16 @@ export function createProjector(
         tick: world.tick,
         playerId,
         seed,
-        mapWidth: MAP_WIDTH,
-        mapHeight: MAP_HEIGHT,
+        mapWidth: world.grid.width,
+        mapHeight: world.grid.height,
         // Cartography: an ally's vision is added to your own. With nobody
         // shared — the default, and every match before teams existed — these
         // are exactly the player's own cells, in the same order.
         visibleCells: unionCells(
-          visibility, playerId, getSharedVisionOwners(), 'visible',
+          visibility, playerId, getSharedVisionOwners(), 'visible', world.grid.width,
         ),
         exploredCells: unionCells(
-          visibility, playerId, getSharedVisionOwners(), 'explored',
+          visibility, playerId, getSharedVisionOwners(), 'explored', world.grid.width,
         ),
         recentUnitDeaths: visibleUnitDeaths(
           getRecentUnitDeaths(),
@@ -224,6 +224,7 @@ export function createProjector(
           world.tick,
           (x, y) => visibility.isVisible(playerId, x, y)
             || getSharedVisionOwners().some((ally) => visibility.isVisible(ally, x, y)),
+          world.grid,
         ),
       };
     },

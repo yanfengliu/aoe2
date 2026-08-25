@@ -1,3 +1,4 @@
+import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -129,6 +130,7 @@ describe('Ballistics wiring at the launch site', () => {
       getComponent: (id: number, component: string) =>
         (id === 1 && component === 'position' ? attackerPosition : undefined),
       query: () => [],
+      grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
 
     deliverUnitAttackOnUnit({
@@ -181,6 +183,7 @@ describe('Ballistics wiring at the launch site', () => {
       const world = {
         getComponent: () => ({ x: 0, y: 10 }),
         query: () => [],
+        grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
       } as unknown as GameWorld;
       deliverUnitAttackOnUnit({
         world,

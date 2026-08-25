@@ -15,6 +15,7 @@ import type {
 import {
   clamp,
   gridPositionFromUnitTransform,
+  mapSizeOf,
   stepUnitTransformToward,
   type GameWorld,
 } from '../pureHelpers';
@@ -219,7 +220,10 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
             grid.x === position.x && grid.y === position.y
           );
           let candidateTransform = candidateFor(wanderStepUnits);
-          let nextGridPosition = gridPositionFromUnitTransform(candidateTransform);
+          let nextGridPosition = gridPositionFromUnitTransform(
+            candidateTransform,
+            mapSizeOf(activeWorld),
+          );
           // Whether the FULL step was refused. A shortened step can still make
           // progress, but the heading must be re-picked either way: publishing
           // a sub-cell wiggle and calling it movement is what lets a hemmed-in
@@ -229,7 +233,7 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           if (blockedAtFullStep) {
             for (let stepUnits = wanderStepUnits - 1; stepUnits >= 1; stepUnits -= 1) {
               const shorter = candidateFor(stepUnits);
-              const grid = gridPositionFromUnitTransform(shorter);
+              const grid = gridPositionFromUnitTransform(shorter, mapSizeOf(activeWorld));
               if (staysInCell(grid) || isCellPassableForUnit(id, grid.x, grid.y, activeWorld)) {
                 candidateTransform = shorter;
                 nextGridPosition = grid;
@@ -419,7 +423,13 @@ export function headingEscapes(
     }
     fineX = clamp(fineX + dx * UNIT_SUBGRID_STEP_PER_TICK, minFineX, maxFineX);
     fineY = clamp(fineY + dy * UNIT_SUBGRID_STEP_PER_TICK, minFineY, maxFineY);
-    const cell = gridPositionFromUnitTransform({ fineX, fineY });
+    // No map clamp here: `fineX`/`fineY` were just clamped to the probe's own
+    // wander bounds, which are inside the map by construction, so the cell is
+    // already on it — and this helper is pure, with no world to ask.
+    const cell = {
+      x: Math.floor(fineX / UNIT_SUBGRID_RESOLUTION),
+      y: Math.floor(fineY / UNIT_SUBGRID_RESOLUTION),
+    };
     if (cell.x === probe.position.x && cell.y === probe.position.y) continue;
     return isPassable(cell.x, cell.y);
   }

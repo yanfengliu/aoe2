@@ -6,6 +6,7 @@ import {
   setTerrainKind,
   type TerrainCellSpec,
 } from '../sharedTerrainHelpers';
+import { sizeOfTerrain } from '../constants';
 
 export interface ClusterOptions {
   minRing: number;
@@ -44,7 +45,7 @@ export function placeResourceCluster(
         continue;
       }
       tried.add(key);
-      if (!isInBounds(x, y)) {
+      if (!isInBounds(x, y, sizeOfTerrain(terrain))) {
         continue;
       }
       if (isBlocked(x, y)) {
@@ -101,7 +102,7 @@ export function placeForestCluster(
         const theta = baseAngle + (step * 2 * Math.PI) / perimeter;
         const x = Math.round(start.townCenter.x + Math.cos(theta) * ring);
         const y = Math.round(start.townCenter.y + Math.sin(theta) * ring);
-        if (!isInBounds(x, y)) {
+        if (!isInBounds(x, y, sizeOfTerrain(terrain))) {
           continue;
         }
         if (isBlocked(x, y)) {

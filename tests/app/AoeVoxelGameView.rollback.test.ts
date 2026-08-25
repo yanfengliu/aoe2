@@ -97,7 +97,8 @@ describe('AoeVoxelGameView constructor rollback', () => {
 
     expect(() => new AoeVoxelGameView({
       host,
-      bridge: {} as SimulationBridge,
+      // The view asks the bridge how big the map is while it builds the camera.
+      bridge: { getMapSize: () => ({ width: 60, height: 36 }) } as SimulationBridge,
       pixelRatio: 1,
     })).toThrow('snapshot acceptance failed');
 

@@ -7,6 +7,7 @@ import type { Position } from 'civ-engine';
 import type { ResourceComponent, UnitTransformComponent } from '../../types';
 import {
   gridPositionFromUnitTransform,
+  mapSizeOf,
   isUnitTransformAtTarget,
   type GameWorld,
 } from '../pureHelpers';
@@ -87,7 +88,7 @@ export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps)
           continue;
         }
 
-        const start = gridPositionFromUnitTransform(transform);
+        const start = gridPositionFromUnitTransform(transform, mapSizeOf(activeWorld));
         const plan = findMovementPlan(
           sheepId,
           start,

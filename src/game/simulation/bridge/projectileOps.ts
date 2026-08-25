@@ -13,7 +13,7 @@ import type { Position } from 'civ-engine';
 
 import type { UnitComponent, UnitType } from '../types';
 import type { ResearchableTechnologyType } from '../types';
-import { MAP_HEIGHT, MAP_WIDTH } from '../mapGeneration/constants';
+import type { MapSize } from '../mapGeneration/constants';
 import { parthianSpearmanAttackBonus } from '../parthianTechEffects';
 import {
   attackBonusAgainstUnit,
@@ -52,10 +52,10 @@ export { firesProjectile };
 const UNIT_TILES_PER_TICK = UNIT_SUBGRID_STEP_PER_TICK / UNIT_SUBGRID_RESOLUTION;
 
 /** The same point, pulled back onto the map if it lies outside it. */
-function clampToMap(point: Position): Position {
+function clampToMap(point: Position, size: MapSize): Position {
   return {
-    x: Math.min(MAP_WIDTH - 1, Math.max(0, point.x)),
-    y: Math.min(MAP_HEIGHT - 1, Math.max(0, point.y)),
+    x: Math.min(size.width - 1, Math.max(0, point.x)),
+    y: Math.min(size.height - 1, Math.max(0, point.y)),
   };
 }
 
@@ -84,6 +84,9 @@ export interface LaunchProjectileParams {
   leads: boolean;
   /** Accuracy override in (0,1]; defaults to the attacker unit's own accuracy. */
   accuracy?: number;
+  /** The map this shot is fired on — a miss is clamped to it (§4's ladder
+   *  means the edges are not the same in every match). */
+  mapSize: MapSize;
 }
 
 /**
@@ -129,7 +132,7 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
   // interpolated position between origin and aim on the map too, since both
   // ends are. It cannot turn a miss into a hit: whether the shot connects is
   // `willHit`, decided above and untouched here.
-  const aimOnMap = clampToMap(aim);
+  const aimOnMap = clampToMap(aim, params.mapSize);
 
   const projectile: ProjectileState = {
     id,

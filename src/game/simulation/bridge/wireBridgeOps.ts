@@ -16,7 +16,7 @@ import { wirePreSeedOps } from './wirePreSeedOps';
 import { wirePostSeedOps } from './wirePostSeedOps';
 import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
-import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
+import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import {
   MARKET_FEE_RATE,
   MARKET_TRANSACTION_AMOUNT,
@@ -120,8 +120,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       scenario,
       tiles,
       humanPlayerId: HUMAN_PLAYER_ID,
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
+      mapWidth: world.grid.width,
+      mapHeight: world.grid.height,
       standardStartingResources: STANDARD_STARTING_RESOURCES,
       standardPopulationCap: STANDARD_POPULATION_CAP,
       defaultDifficulty: DEFAULT_DIFFICULTY,
@@ -364,8 +364,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isCellVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
     marketFeeRate: MARKET_FEE_RATE,
     marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
   });
   registerCommandHandlers(world, {
     accessor,
@@ -430,8 +430,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     pendingCommands: state.pendingCommands,
     unitAttackFeed: state.unitAttackFeed,
     syncReplayUnitAttacks,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
   });
 
   if (systemMode === 'replay') {

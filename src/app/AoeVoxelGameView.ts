@@ -16,7 +16,6 @@ import {
   type VoxelSelectionController,
 } from '../input/voxelSelectionController';
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
-import { MAP_HEIGHT, MAP_WIDTH } from '../game/simulation/prototypeScenario';
 import { isoToWorld, worldToIso } from '../rendering/isometricProjection';
 import {
   AoeVoxelWorldRenderer,
@@ -91,8 +90,8 @@ export class AoeVoxelGameView {
 
       this.camera = createVoxelCameraController({
       canvas: this.renderer.canvas,
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
+      mapWidth: this.bridge.getMapSize().width,
+      mapHeight: this.bridge.getMapSize().height,
       getPressedKeys: () => this.pressedKeys,
       getPointerState: () => this.pointer?.getPointerState()
         ?? { x: 0, y: 0, hasMoved: false, isDown: false },
@@ -344,8 +343,9 @@ export class AoeVoxelGameView {
     const pointer = this.pointer.getPointerState();
     const iso = this.camera.screenToIso(pointer.x, pointer.y);
     const cell = isoToWorld(iso.x, iso.y);
-    const cellX = clamp(Math.floor(cell.cellX), 0, MAP_WIDTH - 1);
-    const cellY = clamp(Math.floor(cell.cellY), 0, MAP_HEIGHT - 1);
+    const map = this.bridge.getMapSize();
+    const cellX = clamp(Math.floor(cell.cellX), 0, map.width - 1);
+    const cellY = clamp(Math.floor(cell.cellY), 0, map.height - 1);
     const preview = this.bridge.getPlacementPreview(cellX, cellY);
     return preview ? { ...preview } : null;
   }

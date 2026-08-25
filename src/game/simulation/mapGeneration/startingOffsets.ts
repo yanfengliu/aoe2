@@ -1,6 +1,6 @@
 import type { Position } from 'civ-engine';
 
-import { MAP_HEIGHT, MAP_WIDTH } from './constants';
+import { type MapSize, standardMapSize } from './constants';
 import {
   orientationFor,
   projectOffset,
@@ -112,12 +112,15 @@ export const DEFAULT_RELIC_POSITIONS: Position[] = [
 export const SCOUT_WANDER_HALF_X = 10;
 export const SCOUT_WANDER_HALF_Y = 8;
 
-export function scoutWanderBoundsAround(center: Position): WanderBoundsComponent {
+export function scoutWanderBoundsAround(
+  center: Position,
+  size: MapSize = standardMapSize(),
+): WanderBoundsComponent {
   return {
     minX: Math.max(0, center.x - SCOUT_WANDER_HALF_X),
-    maxX: Math.min(MAP_WIDTH - 1, center.x + SCOUT_WANDER_HALF_X),
+    maxX: Math.min(size.width - 1, center.x + SCOUT_WANDER_HALF_X),
     minY: Math.max(0, center.y - SCOUT_WANDER_HALF_Y),
-    maxY: Math.min(MAP_HEIGHT - 1, center.y + SCOUT_WANDER_HALF_Y),
+    maxY: Math.min(size.height - 1, center.y + SCOUT_WANDER_HALF_Y),
   };
 }
 
@@ -129,9 +132,10 @@ export function scoutWanderBoundsAround(center: Position): WanderBoundsComponent
 export function createStartingScoutSpawn(
   owner: number,
   townCenter: Position,
+  size: MapSize,
 ): ScenarioSpawnSpec {
-  const scoutPosition = projectOffset(townCenter, { x: 2, y: -1 });
-  const orientation = orientationFor(townCenter);
+  const scoutPosition = projectOffset(townCenter, { x: 2, y: -1 }, size);
+  const orientation = orientationFor(townCenter, size);
   return {
     kind: 'scout',
     x: scoutPosition.x,
@@ -139,7 +143,7 @@ export function createStartingScoutSpawn(
     owner,
     baseOwner: owner,
     velocity: { dx: orientation.x, dy: orientation.y },
-    wanderBounds: scoutWanderBoundsAround(townCenter),
+    wanderBounds: scoutWanderBoundsAround(townCenter, size),
     vision: { playerId: owner, radius: 6 },
     requiresSafeSpawn: true,
   };

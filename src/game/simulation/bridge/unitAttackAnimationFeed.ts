@@ -8,7 +8,7 @@ import type {
   UnitTransformComponent,
 } from '../types';
 import { UNIT_ATTACK_FEED_TICKS } from '../attackAnimationTypes';
-import { MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
+import type { MapSize } from '../mapGeneration/constants';
 import type { BridgeState, UnitAttackFeedRuntime } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { populationCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
@@ -155,6 +155,7 @@ export function hydrateUnitAttacks(
   value: unknown,
   currentTick: number,
   validPlayerIds: ReadonlySet<number>,
+  size: MapSize,
 ): ProjectedUnitAttackView[] {
   if (!Array.isArray(value)) return [];
   const attacks = new Map<string, ProjectedUnitAttackView>();
@@ -181,16 +182,16 @@ export function hydrateUnitAttacks(
       ))
       || !Number.isFinite(attack.sourceX)
       || (attack.sourceX ?? -1) < 0
-      || (attack.sourceX ?? MAP_WIDTH) >= MAP_WIDTH
+      || (attack.sourceX ?? size.width) >= size.width
       || !Number.isFinite(attack.sourceY)
       || (attack.sourceY ?? -1) < 0
-      || (attack.sourceY ?? MAP_HEIGHT) >= MAP_HEIGHT
+      || (attack.sourceY ?? size.height) >= size.height
       || !Number.isFinite(attack.targetX)
       || (attack.targetX ?? -1) < 0
-      || (attack.targetX ?? MAP_WIDTH) >= MAP_WIDTH
+      || (attack.targetX ?? size.width) >= size.width
       || !Number.isFinite(attack.targetY)
       || (attack.targetY ?? -1) < 0
-      || (attack.targetY ?? MAP_HEIGHT) >= MAP_HEIGHT
+      || (attack.targetY ?? size.height) >= size.height
       || !Array.isArray(attack.witnessedBy)
       || attack.witnessedBy.length === 0
       || attack.witnessedBy.length > MAX_ATTACK_PLAYER_ID

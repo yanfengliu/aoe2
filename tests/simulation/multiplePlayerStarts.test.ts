@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
+import { standardMapSize } from '../../src/game/simulation/mapGeneration/constants';
 import {
   MAX_STANDARD_PLAYERS,
   createPlayerStarts,
@@ -33,12 +33,15 @@ describe('createPlayerStarts', () => {
 
   it('keeps every town centre on the map with room for its footprint', () => {
     for (let count = 2; count <= MAX_STANDARD_PLAYERS; count += 1) {
+      // Each count is played on its own rung of §4's size ladder, so the map a
+      // seat has to fit inside is the one that count opens — not the 1v1's.
+      const { width, height } = standardMapSize(count);
       for (const start of createPlayerStarts(count)) {
         expect(start.townCenter.x).toBeGreaterThanOrEqual(4);
         expect(start.townCenter.y).toBeGreaterThanOrEqual(4);
         // A Town Center is 4x4 and its opening needs room around it.
-        expect(start.townCenter.x).toBeLessThanOrEqual(MAP_WIDTH - 8);
-        expect(start.townCenter.y).toBeLessThanOrEqual(MAP_HEIGHT - 8);
+        expect(start.townCenter.x).toBeLessThanOrEqual(width - 8);
+        expect(start.townCenter.y).toBeLessThanOrEqual(height - 8);
       }
     }
   });

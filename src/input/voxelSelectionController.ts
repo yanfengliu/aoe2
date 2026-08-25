@@ -5,8 +5,6 @@
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
 import {
   HUMAN_PLAYER_ID,
-  MAP_HEIGHT,
-  MAP_WIDTH,
 } from '../game/simulation/prototypeScenario';
 import type {
   ProjectedEntityView,
@@ -80,8 +78,9 @@ export function createVoxelSelectionController(
       return false;
     }
 
-    const clickCellX = clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
-    const clickCellY = clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
+    const map = deps.getBridge().getMapSize();
+    const clickCellX = clamp(Math.floor(worldX), 0, map.width - 1);
+    const clickCellY = clamp(Math.floor(worldY), 0, map.height - 1);
     const displayed = getDisplayedEntities();
     const groundTargets = findEntitiesAtWorldPointInEntities(
       displayed,
@@ -177,8 +176,9 @@ export function createVoxelSelectionController(
       return false;
     }
 
-    const clampedCellX = clamp(Math.floor(worldX), 0, MAP_WIDTH - 1);
-    const clampedCellY = clamp(Math.floor(worldY), 0, MAP_HEIGHT - 1);
+    const map = deps.getBridge().getMapSize();
+    const clampedCellX = clamp(Math.floor(worldX), 0, map.width - 1);
+    const clampedCellY = clamp(Math.floor(worldY), 0, map.height - 1);
     const displayed = getDisplayedEntities();
     const voxelTargets = isoX === undefined || isoY === undefined
       ? []
@@ -269,11 +269,12 @@ export function createVoxelSelectionController(
     // The isometric camera covers a diamond of cells; its AABB is a safe
     // conservative viewport for "select all of type on screen".
     const bounds = deps.getViewportCellBounds();
+    const map = deps.getBridge().getMapSize();
     return {
-      minX: clamp(Math.floor(bounds.minX), 0, MAP_WIDTH - 1),
-      minY: clamp(Math.floor(bounds.minY), 0, MAP_HEIGHT - 1),
-      maxX: clamp(Math.floor(bounds.maxX), 0, MAP_WIDTH - 1),
-      maxY: clamp(Math.floor(bounds.maxY), 0, MAP_HEIGHT - 1),
+      minX: clamp(Math.floor(bounds.minX), 0, map.width - 1),
+      minY: clamp(Math.floor(bounds.minY), 0, map.height - 1),
+      maxX: clamp(Math.floor(bounds.maxX), 0, map.width - 1),
+      maxY: clamp(Math.floor(bounds.maxY), 0, map.height - 1),
     };
   }
 

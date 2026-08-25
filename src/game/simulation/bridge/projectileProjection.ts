@@ -6,7 +6,7 @@
 // it leaves — the same rule your own eyes would apply.
 
 import type { ProjectedProjectileView } from '../types';
-import { MAP_HEIGHT, MAP_WIDTH } from '../mapGeneration/constants';
+import type { MapSize } from '../mapGeneration/constants';
 import type { ProjectileState } from './projectileTypes';
 
 /** Visual class, derived from what fired the shot. */
@@ -62,6 +62,7 @@ export function visibleProjectiles(
   shots: readonly ProjectileState[],
   tick: number,
   isCellVisible: (x: number, y: number) => boolean,
+  size: MapSize,
 ): ProjectedProjectileView[] {
   const views: ProjectedProjectileView[] = [];
   for (const shot of shots) {
@@ -75,7 +76,7 @@ export function visibleProjectiles(
     // an out-of-range coordinate rather than answering, so the check has to
     // come first. Shots are clamped to the map at launch; this is the guard
     // that keeps a shot restored from an older save from ending the match.
-    if (cellX < 0 || cellY < 0 || cellX >= MAP_WIDTH || cellY >= MAP_HEIGHT) continue;
+    if (cellX < 0 || cellY < 0 || cellX >= size.width || cellY >= size.height) continue;
     if (!isCellVisible(cellX, cellY)) continue;
     views.push({
       id: shot.id,

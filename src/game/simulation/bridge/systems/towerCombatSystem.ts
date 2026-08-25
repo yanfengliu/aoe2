@@ -183,6 +183,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
               destination: targetCommand?.target ?? null,
             },
             leads: ballisticsLeadsShots(ownerTechs),
+            mapSize: activeWorld.grid,
           });
         }
         accessor.markDirty(projectilesCodec);

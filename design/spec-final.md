@@ -142,7 +142,7 @@ Optional resource presets inside standard mode:
 
 ### 4.2 Match Participants and Teams
 
-- supported participants per match: 2 to 8
+- supported participants per match: 2 to 8 (all eight seatable since v0.3.66; the map grows with the count — §5.1's size ladder)
 - exactly 1 participant is human-controlled
 - all other participants are AI-controlled
 - team assignments can be free-for-all or team-based
@@ -256,6 +256,8 @@ Use AoE2-style sizes:
 - Ludicrous
 
 The implementation may map these to concrete tile dimensions, but the size ladder should preserve the expected relationship between player count, walking distance, and trade-route scale.
+
+**Implemented (v0.3.66):** the ladder is chosen by player count rather than named separately — the seven rungs and their tile dimensions are tabulated in §12's player-count section, from 60x36 for a 1v1 up to 116x72 for eight. Named sizes independent of the count (a "Giant" 1v1) are not offered yet; the count picks the map.
 
 ### 5.4 Supported Standard Map Types
 
@@ -1172,7 +1174,25 @@ Teams are chosen with `?teams=1,1,2` — one number per player, in owner order, 
 
 Not yet team-aware, and deliberately listed rather than assumed: shared line of sight (Cartography), Market trade between allies, and ordering your own units to attack an ally.
 
-**Player count (implemented v0.3.61).** A standard map opens with 2 to `MAX_STANDARD_PLAYERS` players, chosen with `?players=n` and defaulting to 2. Each seat has a fixed start position and civilization for its count, so a match is reproducible from its seed and its count alone, and the two-player row is the established 1v1 cell for cell — every existing map, screenshot and test that assumed it still holds. `MAX_STANDARD_PLAYERS` is 4 rather than AoE2's 8 because this map is 60x36, a two-player size; §4's size ladder is what has to grow before more seats fit, and seating eight here would start players inside each other's openings. A count outside the range warns and opens the ordinary 1v1 rather than refusing to start: a bad URL should not stop a game.
+**Player count (implemented v0.3.61, all eight seats v0.3.66).** A standard map opens with 2 to 8 players — §4.2's full range — chosen with `?players=n` and defaulting to 2. Each seat has a fixed start position and civilization for its count, so a match is reproducible from its seed and its count alone, and the two-player row is the established 1v1 cell for cell. A count outside the range warns and opens the ordinary 1v1 rather than refusing to start: a bad URL should not stop a game.
+
+**The map grows with the count — §4's size ladder (implemented v0.3.66).** Land per seat is held at roughly the two-player map's own figure (about 1050 tiles), and the 5:3 shape is kept at every rung, so a six-player game is the same game with more of it:
+
+| Players | Map | Tiles per seat |
+| --- | --- | --- |
+| 2 | 60 x 36 | 1080 |
+| 3 | 72 x 44 | 1056 |
+| 4 | 84 x 50 | 1050 |
+| 5 | 92 x 56 | 1030 |
+| 6 | 100 x 62 | 1033 |
+| 7 | 110 x 66 | 1037 |
+| 8 | 116 x 72 | 1044 |
+
+Three and four seats keep the shapes they had — a triangle and the four corners. Five and up walk the inset rectangle's perimeter at equal arc length, so eight players stand as far from each other as four do, nobody opens in the middle, and every seat is the same distance from the edge.
+
+The map size is therefore a per-match value, not a constant: the world grid, the fog map, every clamp that pulls a coordinate back onto the board (a click, a drag box, the camera's reach, a unit's position, a missed arrow's aim) and the cell indices in a projected frame all read it from the world being played rather than from a global. A stale constant there does not throw — it silently answers 59 for every cell past the two-player map's right edge, which is most of an eight-player one.
+
+**The forward outpost is a 1v1 landmark.** The default map stands a house and a scout for player 2 near the middle, for the human to find. With more than two seats that is a gift to exactly one opponent, so from three players up nobody gets it and every opening is identical.
 
 Fixtures are unaffected — a fixture's whole purpose is a fixed layout, so the count reaches only the procedural map.
 

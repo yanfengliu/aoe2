@@ -35,7 +35,7 @@ import { createTrainingMarketOps } from './trainingMarketOps';
 import { createUnitCommandOps } from './unitCommandOps';
 import { createTargetFindingOps } from './targetFindingOps';
 import { createSelectionStateOps } from './selectionStateOps';
-import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
+import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import {
   MARKET_FEE_RATE,
   MARKET_MIN_RATE,
@@ -186,8 +186,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const selectionInputOps = createSelectionInputOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     visibility,
     state,
     accessor,
@@ -231,8 +231,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
 
   const entityDestroyOps = createEntityDestroyOps({
     world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     state,
     accessor,
     visibility,
@@ -250,8 +250,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const trainingMarketOps = createTrainingMarketOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     marketFeeRate: MARKET_FEE_RATE,
     marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     marketRateStep: MARKET_RATE_STEP,
@@ -357,8 +357,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const unitCommandOps = createUnitCommandOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     state,
     accessor,
     selection,

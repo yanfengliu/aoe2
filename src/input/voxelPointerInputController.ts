@@ -1,8 +1,6 @@
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
 import {
   HUMAN_PLAYER_ID,
-  MAP_HEIGHT,
-  MAP_WIDTH,
 } from '../game/simulation/prototypeScenario';
 import type { ProjectedEntityView } from '../game/simulation/types';
 import { isoToWorld } from '../rendering/isometricProjection';
@@ -223,8 +221,9 @@ export function createVoxelPointerInputController(
     }
     if (event.button !== 0) return;
     const cell = worldCellAt(point.x, point.y);
-    const cellX = clamp(Math.floor(cell.x), 0, MAP_WIDTH - 1);
-    const cellY = clamp(Math.floor(cell.y), 0, MAP_HEIGHT - 1);
+    const map = deps.getBridge().getMapSize();
+    const cellX = clamp(Math.floor(cell.x), 0, map.width - 1);
+    const cellY = clamp(Math.floor(cell.y), 0, map.height - 1);
     if (deps.getBridge().getSelectionState().placementMode) {
       deps.clearRecentSelectionClicks();
       deps.getBridge().confirmBuildingPlacement(cellX, cellY);

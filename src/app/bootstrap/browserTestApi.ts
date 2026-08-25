@@ -35,6 +35,7 @@ export interface BrowserTestBridge {
   getRenderState(): RenderState;
   getRenderInterpolationAlpha(): number;
   getEconomyState(): EconomyState;
+  getMapSize(): { width: number; height: number };
   /** Spec §10.4: shots in the air, for projectile capture/inspection. */
   getInFlightProjectiles(): readonly ProjectileState[];
   /** Standing orders per unit, for asserting what an interaction produced. */
@@ -186,6 +187,9 @@ export interface BrowserTestApi {
   clearSelection(): void;
   /** Center the camera on a world cell — lets a capture frame off-center action. */
   centerCameraOnWorldPosition(worldX: number, worldY: number): void;
+  /** The map this match is on, in tiles — the browser suite asserts against a
+   *  size that §4's ladder chooses from the player count. */
+  getMapSize(): { width: number; height: number };
   /** Zoom the camera, so one capture run can sweep several zoom levels.
    *  Returns the zoom the camera's own clamp accepted, which is not the
    *  requested one past the 0.7–2.4 range. */
@@ -382,6 +386,7 @@ export function installBrowserTestApi(
       getBridge().clearSelection();
       view.syncFromBridge(true);
     },
+    getMapSize: () => getBridge().getMapSize(),
     centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
       view.centerCameraOnWorldPosition(worldX, worldY);
       view.syncFromBridge(true);

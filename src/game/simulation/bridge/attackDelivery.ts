@@ -90,6 +90,7 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
       destination: params.targetDestination ?? null,
     },
     leads: ballisticsLeadsShots(techs),
+    mapSize: params.world.grid,
     ...(accuracy === null ? {} : { accuracy }),
   });
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
@@ -141,6 +142,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
       },
       target: { id: target.id, kind: 'building', position: target.position },
       leads: ballisticsLeadsShots(params.attackerTechs ?? EMPTY_TECH_SET),
+      mapSize: params.world.grid,
     });
     return;
   }

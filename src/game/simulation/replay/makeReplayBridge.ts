@@ -8,7 +8,7 @@ import { createProjector } from '../bridge/visibility';
 import { createRenderStateOps } from '../bridge/renderStateOps';
 import type { GameWorld } from '../bridge/pureHelpers';
 import { toEngineWorld } from '../bridge/pureHelpers';
-import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from '../prototypeScenario';
+import { HUMAN_PLAYER_ID, TPS } from '../prototypeScenario';
 import { RenderStore } from '../renderStore';
 import { createRenderMetricsCapture } from '../renderMetricsCapture';
 import type {
@@ -119,6 +119,8 @@ export function makeReplayBridge(
   });
 
   return {
+    // A replay's map is whatever the recorded world was built at.
+    getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     step() {
       flushOutOfBandRenderChange();
     },
@@ -175,7 +177,7 @@ export function makeReplayBridge(
         exploredCells: frame?.exploredCells.length ?? 0,
         tickDurationMs: metrics?.durationMs.total ?? 0,
         fpsTarget: TPS,
-        worldSize: `${MAP_WIDTH}x${MAP_HEIGHT}`,
+        worldSize: `${String(world.grid.width)}x${String(world.grid.height)}`,
         seed: context.seed,
         currentAge: api.getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: api.getPlayerResources(HUMAN_PLAYER_ID),

@@ -11,7 +11,8 @@ import { visibilityStateFromSave } from './saveBlobReaders';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import { drainPendingCommands } from './dispatcher';
-import { DEFAULT_SEED, HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH, TPS } from './prototypeScenario';
+import type { MapSize } from './mapGeneration/constants';
+import { DEFAULT_SEED, HUMAN_PLAYER_ID, TPS, createPrototypeScenario } from './prototypeScenario';
 import { RenderStore } from './renderStore';
 import { createRenderMetricsCapture } from './renderMetricsCapture';
 import {
@@ -73,6 +74,9 @@ export interface SimulationBridge {
   getRenderInterpolationAlpha(): number;
   getHudState(): HudState;
   getEconomyState(): EconomyState;
+  /** The map this match is played on, in tiles — a per-match answer since §4's
+   *  size ladder, so a camera or a click asks rather than assuming. */
+  getMapSize(): MapSize;
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
@@ -208,9 +212,15 @@ export function createSimulationBridge(
   // When loading, the seed comes from the blob so the new World's
   // deterministic rng matches the original simulation byte-for-byte.
   const effectiveSeed = savedGame ? savedGame.seed : seed;
+  // Built here, not inside createWorld, because the fog map has to be the same
+  // size as the world — and both take it from THIS scenario, since generating
+  // the seed twice would be two maps that merely look alike.
+  const freshScenario = savedGame
+    ? null
+    : createPrototypeScenario(effectiveSeed, options.playerCount);
   const visibility = savedGame
     ? VisibilityMap.fromState(visibilityStateFromSave(savedGame))
-    : new VisibilityMap(MAP_WIDTH, MAP_HEIGHT);
+    : new VisibilityMap(freshScenario!.width, freshScenario!.height);
   const {
     world,
     saveGame,
@@ -263,6 +273,7 @@ export function createSimulationBridge(
       gameLength: options.gameLength,
       civilizationsByOwner: options.civilizationsByOwner,
       teamsByOwner: options.teamsByOwner,
+      scenario: freshScenario ?? undefined,
     });
   const renderStore = new RenderStore();
   const renderAdapter = new RenderAdapter({
@@ -342,6 +353,7 @@ export function createSimulationBridge(
   };
 
   return {
+    getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     step(deltaMs: number) {
       flushOutOfBandRenderChange();
       // Spec 2 AO-2: manual pause gate. Placed AFTER flushOutOfBandRenderChange
@@ -421,7 +433,7 @@ export function createSimulationBridge(
         exploredCells: frame?.exploredCells.length ?? 0,
         tickDurationMs,
         fpsTarget: TPS,
-        worldSize: `${MAP_WIDTH}x${MAP_HEIGHT}`,
+        worldSize: `${String(world.grid.width)}x${String(world.grid.height)}`,
         seed: effectiveSeed,
         currentAge: getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: getPlayerResources(HUMAN_PLAYER_ID),

@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.66 - 2026-08-24
+
+### Added
+
+- **Eight-player skirmishes.** `?players=n` now seats 2 to 8 — spec §4.2's full range, where the ceiling had been 4 — and the map grows with the count instead of crowding: 60x36 for a 1v1, up to 116x72 for eight, holding about 1050 tiles per seat at every rung. Three and four keep the shapes they had (a triangle, the four corners); five and up stand at equal spacing around the map's edge, so eight players are as far apart as four were. An eight-player free-for-all was measured to 12000 ticks with all eight seats alive and four of them in Castle Age.
+- Relics scale with the map, staying in the contested middle at every size, and the two-player map's terrain, openings and landmarks are unchanged cell for cell.
+
+### Fixed
+
+- **The forward enemy house is a 1v1 landmark again.** It and its scout were being handed to player 2 in every match, so in a three- or four-player game one opponent started with a free building and a free unit that nobody else got. From three players up, nobody gets it.
+- **Clicks, drags and the camera obey the map they are on.** Every clamp that pulls a coordinate back onto the board was written against the two-player map's 60x36 and answered 59 for anything past it. On a bigger map that meant a build preview 31 cells from the pointer, a camera that would not pan to the far corner, a drag-selection box that stopped mid-map, and units and arrows pinned to a right edge that was no longer there. None of it threw; it just quietly disobeyed.
+
 ## 0.3.65 - 2026-08-24
 
 ### Added

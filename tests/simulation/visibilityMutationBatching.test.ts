@@ -1,3 +1,4 @@
+import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
 import { describe, expect, it, vi } from "vitest";
 
 import type { BuildingComponent } from "../../src/game/simulation/types";
@@ -91,6 +92,7 @@ describe("visibility mutation batching", () => {
       tick: 40,
       getComponent: (id: number, component: string) =>
         components.get(`${id}:${component}`),
+      grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
     // If the pass ever mutated visibility mid-flight, this would flip and
     // tower 2 would lose its target.
@@ -157,6 +159,7 @@ describe("visibility mutation batching", () => {
         },
         target: { id: targetId, kind: "unit", position: { x: 1, y: 0 } },
         leads: false,
+        mapSize: { width: MAP_WIDTH, height: MAP_HEIGHT },
       });
     }
     const components = new Map<string, unknown>([
@@ -178,6 +181,7 @@ describe("visibility mutation batching", () => {
       tick: 99,
       getComponent: (id: number, component: string) =>
         components.get(`${id}:${component}`),
+      grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
     const destroyed: number[] = [];
     const refreshVisibilityAfterCombat = vi.fn();
@@ -359,6 +363,7 @@ describe("visibility mutation batching", () => {
         if (component === "visionSource") return sources.get(id);
         return undefined;
       },
+      grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
     const revision = createPlayerCommandVisibilityRevision(world);
     const accessor = stateAccessor(
@@ -424,6 +429,7 @@ describe("visibility mutation batching", () => {
         addComponent: (entityId: number, component: string, value: unknown) => {
           components.set(`${entityId}:${component}`, value);
         },
+        grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
       } as unknown as GameWorld;
       const onComplete = vi.fn();
 

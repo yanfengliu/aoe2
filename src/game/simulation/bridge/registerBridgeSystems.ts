@@ -30,7 +30,7 @@ import type { EntityCreateOps } from './entityCreateOps';
 import type { MonkTaskOps } from './monkTaskOps';
 import type { TransformOps } from './transformOps';
 import type { MatchEndOps } from './matchEndOps';
-import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
+import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import { RELIC_COUNTDOWN_TICKS } from './bridgeConstants';
 
 type RegisterAllSystemsArg = Parameters<typeof registerAllSystems>[0];
@@ -309,8 +309,8 @@ export function registerBridgeSystems(
   } = createHumanInputOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     state,
     accessor,
     placementMode,
@@ -345,8 +345,8 @@ export function registerBridgeSystems(
     isPlacementBlocked,
     enqueueRejection,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
   });
 
   const { saveGame } = createSaveGameOps({

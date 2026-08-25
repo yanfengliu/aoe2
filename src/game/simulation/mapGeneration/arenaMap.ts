@@ -83,6 +83,8 @@ export function createArenaMap(seed: string): PrototypeScenario {
 // Arena ring helper. Collects every cell whose distance from the center
 // sits between `innerRadius` and `outerRadius` inclusive. Iteration
 // order is deterministic (row-major) so the spawn list is stable.
+// Arena seats two, so its world is the two-player rung of the ladder — the
+// size travels with the call rather than being read from a global.
 function collectRingCells(
   center: Position,
   innerRadius: number,
@@ -93,7 +95,7 @@ function collectRingCells(
   const cells: Position[] = [];
   for (let y = center.y - outerRadius; y <= center.y + outerRadius; y += 1) {
     for (let x = center.x - outerRadius; x <= center.x + outerRadius; x += 1) {
-      if (!isInBounds(x, y)) {
+      if (!isInBounds(x, y, { width: MAP_WIDTH, height: MAP_HEIGHT })) {
         continue;
       }
       const dx = x - center.x;

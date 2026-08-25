@@ -5,10 +5,9 @@ import {
 } from 'civ-engine';
 
 import { getBuildingFootprint } from '../../content/buildingFootprints';
+import type { MapSize } from '../mapGeneration/constants';
 import {
   HUMAN_PLAYER_ID,
-  MAP_HEIGHT,
-  MAP_WIDTH,
 } from '../prototypeScenario';
 import type {
   BuildingComponent,
@@ -92,14 +91,16 @@ export function clamp(value: number, min: number, max: number): number {
 // by `isTerrainPassableForUnit` and other helpers that index `tiles[y][x]`
 // for fast terrain lookups.
 export function rebuildTileGridFromWorld(world: GameWorld): number[][] {
+  // The world knows how big it is — §4's ladder makes that a per-match answer.
+  const { width, height } = world.grid;
   const grid: number[][] = [];
-  for (let y = 0; y < MAP_HEIGHT; y += 1) {
-    grid.push(new Array<number>(MAP_WIDTH).fill(-1));
+  for (let y = 0; y < height; y += 1) {
+    grid.push(new Array<number>(width).fill(-1));
   }
   for (const id of world.query('position', 'terrain')) {
     const position = world.getComponent<Position>(id, 'position');
     if (!position) continue;
-    if (position.x < 0 || position.x >= MAP_WIDTH || position.y < 0 || position.y >= MAP_HEIGHT) {
+    if (position.x < 0 || position.x >= width || position.y < 0 || position.y >= height) {
       continue;
     }
     grid[position.y][position.x] = id;
@@ -107,8 +108,11 @@ export function rebuildTileGridFromWorld(world: GameWorld): number[][] {
   return grid;
 }
 
-export function toCellIndex(x: number, y: number): number {
-  return y * MAP_WIDTH + x;
+// A cell's index in the projected frame, which the engine decodes with the
+// frame's own `mapWidth` — so the stride is the map's width, not a free
+// choice, and the wrong one moves the fog rather than throwing.
+export function toCellIndex(x: number, y: number, mapWidth: number): number {
+  return y * mapWidth + x;
 }
 
 export function isSameEntity(
@@ -239,19 +243,29 @@ export function projectUnitTransformCoordinate(fineCoordinate: number): number {
   return fineCoordinate / UNIT_SUBGRID_RESOLUTION;
 }
 
-export function clampUnitTransformToMap(transform: UnitTransformComponent): UnitTransformComponent {
+// Both clamps take the map: the old constant pinned anything past x=59 to the
+// 1v1 map's right edge, which is most of an eight-player one.
+export function clampUnitTransformToMap(
+  transform: UnitTransformComponent,
+  size: MapSize,
+): UnitTransformComponent {
   return {
-    fineX: clamp(transform.fineX, 0, MAP_WIDTH * UNIT_SUBGRID_RESOLUTION - 1),
-    fineY: clamp(transform.fineY, 0, MAP_HEIGHT * UNIT_SUBGRID_RESOLUTION - 1),
+    fineX: clamp(transform.fineX, 0, size.width * UNIT_SUBGRID_RESOLUTION - 1),
+    fineY: clamp(transform.fineY, 0, size.height * UNIT_SUBGRID_RESOLUTION - 1),
   };
 }
 
-export function gridPositionFromUnitTransform(transform: UnitTransformComponent): Position {
+export function gridPositionFromUnitTransform(
+  transform: UnitTransformComponent,
+  size: MapSize,
+): Position {
   return {
-    x: clamp(Math.floor(transform.fineX / UNIT_SUBGRID_RESOLUTION), 0, MAP_WIDTH - 1),
-    y: clamp(Math.floor(transform.fineY / UNIT_SUBGRID_RESOLUTION), 0, MAP_HEIGHT - 1),
+    x: clamp(Math.floor(transform.fineX / UNIT_SUBGRID_RESOLUTION), 0, size.width - 1),
+    y: clamp(Math.floor(transform.fineY / UNIT_SUBGRID_RESOLUTION), 0, size.height - 1),
   };
 }
+/** The map a world is playing on. */
+export const mapSizeOf = (world: GameWorld): MapSize => world.grid;
 
 export function isUnitTransformAtTarget(
   transform: UnitTransformComponent,

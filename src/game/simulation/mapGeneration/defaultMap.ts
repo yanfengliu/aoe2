@@ -8,7 +8,7 @@ import {
   applyStandardPlayerOpeningProcedural,
   createPlayerStarts,
 } from './applyStandardPlayerOpening';
-import { MAP_HEIGHT, MAP_WIDTH } from './constants';
+import { type MapSize, standardMapSize } from './constants';
 import { createBaseTerrain, paintDisc } from './sharedTerrainHelpers';
 import { createSpawnList } from './spawnList';
 import {
@@ -20,9 +20,19 @@ import {
 import { orientationFor } from './sharedTerrainHelpers';
 
 export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenario {
-  const terrain = createBaseTerrain(seed);
+  // §4's size ladder: the world grows with the seat count, and the two-player
+  // rung is the 60x36 map every existing fixture and screenshot was made on.
+  const size = standardMapSize(playerCount);
+  const seats = Math.max(2, Math.min(8, Math.floor(playerCount)));
+  const terrain = createBaseTerrain(seed, size);
   const starts = createPlayerStarts(playerCount);
   const spawns = createSpawnList();
+  const relicPositions = relicPositionsFor(size);
+  // The forward enemy house and its scout are a landmark of the 1v1 map —
+  // player 2's outpost near the middle, for the human to find. On a map with
+  // more seats they are a gift to exactly one opponent, so they stay where
+  // they mean something.
+  const hasForwardOutpost = seats === 2;
 
   // Iter-3 V3-13: hand the static-landmark cells to each player's
   // procedural opening so its forest-cluster walker won't land a tree
@@ -32,16 +42,18 @@ export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenar
   // ALL cells of the 2x2 house are reserved, not just the anchor.
   const houseFootprint = getBuildingFootprint('house');
   const reservedCells: Array<{ x: number; y: number }> = [];
-  for (let dy = 0; dy < houseFootprint.height; dy += 1) {
-    for (let dx = 0; dx < houseFootprint.width; dx += 1) {
-      reservedCells.push({
-        x: FORWARD_ENEMY_HOUSE_POSITION.x + dx,
-        y: FORWARD_ENEMY_HOUSE_POSITION.y + dy,
-      });
+  if (hasForwardOutpost) {
+    for (let dy = 0; dy < houseFootprint.height; dy += 1) {
+      for (let dx = 0; dx < houseFootprint.width; dx += 1) {
+        reservedCells.push({
+          x: FORWARD_ENEMY_HOUSE_POSITION.x + dx,
+          y: FORWARD_ENEMY_HOUSE_POSITION.y + dy,
+        });
+      }
     }
+    reservedCells.push(FORWARD_ENEMY_SCOUT_POSITION);
   }
-  reservedCells.push(FORWARD_ENEMY_SCOUT_POSITION);
-  for (const relic of DEFAULT_RELIC_POSITIONS) {
+  for (const relic of relicPositions) {
     reservedCells.push(relic);
   }
 
@@ -49,34 +61,36 @@ export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenar
     applyStandardPlayerOpeningProcedural(terrain, start, spawns, seed, reservedCells);
   }
 
-  paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
-  paintDisc(terrain, FORWARD_ENEMY_HOUSE_POSITION, 2, 'grass');
+  if (hasForwardOutpost) {
+    paintDisc(terrain, FORWARD_ENEMY_SCOUT_POSITION, 1, 'grass');
+    paintDisc(terrain, FORWARD_ENEMY_HOUSE_POSITION, 2, 'grass');
 
-  spawns.addBuildingSpawn({
-    kind: 'house',
-    x: FORWARD_ENEMY_HOUSE_POSITION.x,
-    y: FORWARD_ENEMY_HOUSE_POSITION.y,
-    owner: 2,
-    baseOwner: 2,
-  });
-  // The forward scout patrols mid-map instead of standing on its anchor
-  // forever (it spawned without wander state until the 2026-07-09
-  // pinned-units fix, so it never moved for entire matches).
-  spawns.addUnitSpawn({
-    kind: 'scout',
-    x: FORWARD_ENEMY_SCOUT_POSITION.x,
-    y: FORWARD_ENEMY_SCOUT_POSITION.y,
-    owner: 2,
-    baseOwner: 2,
-    velocity: {
-      dx: orientationFor(FORWARD_ENEMY_SCOUT_POSITION).x,
-      dy: orientationFor(FORWARD_ENEMY_SCOUT_POSITION).y,
-    },
-    wanderBounds: scoutWanderBoundsAround(FORWARD_ENEMY_SCOUT_POSITION),
-    vision: { playerId: 2, radius: 6 },
-  });
+    spawns.addBuildingSpawn({
+      kind: 'house',
+      x: FORWARD_ENEMY_HOUSE_POSITION.x,
+      y: FORWARD_ENEMY_HOUSE_POSITION.y,
+      owner: 2,
+      baseOwner: 2,
+    });
+    // The forward scout patrols mid-map instead of standing on its anchor
+    // forever (it spawned without wander state until the 2026-07-09
+    // pinned-units fix, so it never moved for entire matches).
+    spawns.addUnitSpawn({
+      kind: 'scout',
+      x: FORWARD_ENEMY_SCOUT_POSITION.x,
+      y: FORWARD_ENEMY_SCOUT_POSITION.y,
+      owner: 2,
+      baseOwner: 2,
+      velocity: {
+        dx: orientationFor(FORWARD_ENEMY_SCOUT_POSITION, size).x,
+        dy: orientationFor(FORWARD_ENEMY_SCOUT_POSITION, size).y,
+      },
+      wanderBounds: scoutWanderBoundsAround(FORWARD_ENEMY_SCOUT_POSITION, size),
+      vision: { playerId: 2, radius: 6 },
+    });
+  }
 
-  for (const relicPosition of DEFAULT_RELIC_POSITIONS) {
+  for (const relicPosition of relicPositions) {
     paintDisc(terrain, relicPosition, 1, 'grass');
     spawns.addResourceSpawn({
       kind: 'relic',
@@ -110,8 +124,8 @@ export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenar
       }
     }
   }
-  for (let y = 0; y < MAP_HEIGHT; y += 1) {
-    for (let x = 0; x < MAP_WIDTH; x += 1) {
+  for (let y = 0; y < size.height; y += 1) {
+    for (let x = 0; x < size.width; x += 1) {
       if (terrain[y]?.[x]?.kind !== 'forest') continue;
       // A building spawn's footprint is not a resource claim, so first-write-
       // wins would happily drop a tree under a Town Center and fail the
@@ -130,10 +144,24 @@ export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenar
 
   return {
     seed,
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
+    width: size.width,
+    height: size.height,
     terrain,
     starts,
     spawns: spawns.toArray(),
   };
+}
+
+// The relics sit where they always sat on the two-player map, and at the same
+// share of the world on every larger one — near the middle, between the seats,
+// which is where a contested relic belongs.
+function relicPositionsFor(size: MapSize): Array<{ x: number; y: number }> {
+  const twoPlayer = standardMapSize(2);
+  if (size.width === twoPlayer.width && size.height === twoPlayer.height) {
+    return DEFAULT_RELIC_POSITIONS.map((position) => ({ ...position }));
+  }
+  return DEFAULT_RELIC_POSITIONS.map((position) => ({
+    x: Math.round((position.x / twoPlayer.width) * size.width),
+    y: Math.round((position.y / twoPlayer.height) * size.height),
+  }));
 }

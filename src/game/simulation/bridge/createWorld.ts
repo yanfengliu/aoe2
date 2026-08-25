@@ -27,6 +27,7 @@ import {
   MAP_WIDTH,
   TPS,
   createPrototypeScenario,
+  type PrototypeScenario,
 } from '../prototypeScenario';
 import type { SaveBlob } from '../saveSchema';
 import { createWorldOccupancy } from '../worldOccupancy';
@@ -44,9 +45,14 @@ import type { CreateWorldResult } from './createWorldResult';
 export interface CreateWorldOptions {
   disableAiForOwners?: ReadonlySet<number>;
   forceAiForOwners?: ReadonlySet<number>;
-  /** How many players the procedural map opens with (2..4; default 2).
-   *  Fixtures decide their own, so this only reaches the default map. */
+  /** How many players the procedural map opens with (2..8; default 2). §4's
+   *  size ladder picks the map to match. Fixtures decide their own, so this
+   *  only reaches the default map. */
   playerCount?: number;
+  /** The scenario to build the world from, when the caller has already built
+   *  it — the visibility map is sized from the same scenario, so it has to be
+   *  the SAME one rather than a second generation of the same seed. */
+  scenario?: PrototypeScenario;
   // Playtest-harness override: force the score timer on (spec §4.3) by
   // stamping `gameLength` onto the freshly-built scenario, even when the
   // scenario bakes none. Lets the corpus terminate an otherwise-stalemating
@@ -71,15 +77,28 @@ export function createWorld(
   // every component store, so EntityRefs captured by saved side maps
   // still resolve. We MUST skip registerComponent below in that branch
   // because duplicate registration throws.
+  // The scenario is built FIRST because it decides how big the world is:
+  // §4's size ladder grows the map with the player count, so a six-player
+  // skirmish needs a grid the two-player constants cannot describe. A load
+  // takes its dimensions from the snapshot instead, which already carries
+  // whatever size the match was saved at.
+  const freshScenario = savedGame
+    ? null
+    : options.scenario ?? createPrototypeScenario(seed, options.playerCount);
+  const gridWidth = freshScenario?.width ?? MAP_WIDTH;
+  const gridHeight = freshScenario?.height ?? MAP_HEIGHT;
   const world: GameWorld = savedGame
     ? World.deserialize<GameEvents, GameCommands, GameComponents>(savedGame.worldSnapshot)
     : new World<GameEvents, GameCommands, GameComponents>({
-        gridWidth: MAP_WIDTH,
-        gridHeight: MAP_HEIGHT,
+        gridWidth,
+        gridHeight,
         tps: TPS,
         seed,
       });
-  const worldOccupancy = createWorldOccupancy(MAP_WIDTH, MAP_HEIGHT);
+  const worldOccupancy = createWorldOccupancy(
+    savedGame ? world.grid.width : gridWidth,
+    savedGame ? world.grid.height : gridHeight,
+  );
   worldOccupancy.attachWorld(world);
 
   const state = createBridgeState();
@@ -95,6 +114,7 @@ export function createWorld(
       world.getState(TIER_3_SLOTS.replayUnitAttacks),
       world.tick,
       validAttackPlayerIds,
+      world.grid,
     ),
     world.tick,
   );
@@ -132,7 +152,7 @@ export function createWorld(
   // V4-8: scenario generation is only consumed by the fresh-bootstrap
   // path; on save-load it's discarded. Skip the procedural map build to
   // avoid wasted CPU on every load.
-  const scenario = savedGame ? null : createPrototypeScenario(seed, options.playerCount);
+  const scenario = freshScenario;
   // LLM-agent harness: ?disableAi=2,3 plumbs through createSimulationBridge
   // → here. We toggle the existing PlayerStartSpec.disableAi flag so the
   // existing aiStates.has(owner) gate (aiSystem + autoAggressionSystem)

@@ -721,3 +721,21 @@ And `$?` after a PIPE is the last command's status, not the gate's — writing t
 
 The check that generalises: run each gate unpiped and print its own `$?`. `npm run lint; echo "LINT=$?"` costs one word and cannot be misread; `| tail -1` can, and `| grep ...; echo $?` reports the wrong process entirely. The same applies to `npm test` (whose summary line survives a tail, which is why this went unnoticed there) and to any future gate whose failure output is short.
 
+
+## A cell index in a projected frame is a CONTRACT with the decoder, not a private key (2026-08-24)
+
+**Rule:** before "improving" an encoding, find the decoder. An index that crosses a module boundary is a shared format.
+
+Growing the map with the player count (§4's ladder) meant `toCellIndex`'s `y * MAP_WIDTH + x` could no longer read a constant. Switching it to a fixed 1024 stride looked strictly better — the encoding stops depending on the map at all, and every producer and consumer inside `visibility.ts` used the same function, so the Set-membership logic was consistent either way.
+
+It moved the fog. `projectFrame` puts those numbers in `visibleCells`, and the engine's projector decodes them with the frame's own `mapWidth`. The stride is therefore the map's width by contract. `losTechs.test.ts` ("Town Watch then Town Patrol each widen the Town Center fog reveal by +4") and `monastery.relic.test.ts` failed in the next full-suite run; nothing at the edit site looked wrong, and the typechecker had nothing to say — both sides are `number`.
+
+The check that generalises: when a value leaves the module that made it, grep for who reads it before changing how it is built. "Both ends use the same helper" is only true until one end is in another repo.
+
+## A `as unknown as` fake is invisible to the typechecker exactly where the code starts asking it new questions (2026-08-24)
+
+**Rule:** a cast-based test double silently stops modelling the real thing the moment production code reads a field the double never had.
+
+Four `{ ... } as unknown as GameWorld` fakes across `projectileTechs.test.ts` and `visibilityMutationBatching.test.ts` supplied `getComponent` and `query`. When the projectile launcher started clamping a miss to `world.grid` (the map is per-match now), all four threw `Cannot read properties of undefined (reading 'width')` — after a completely clean `npm run typecheck`, because the cast erases exactly the checking that would have caught it.
+
+The tests were right to fail and the fix is one line each (`grid: { width: MAP_WIDTH, height: MAP_HEIGHT }`), but the ORDER matters: typecheck passed, so the failure only surfaced in the full suite, three edits later. When a refactor gives production code a new question to ask of an interface, grep the tests for casts to that interface at the same time — they are the population the compiler cannot warn you about.

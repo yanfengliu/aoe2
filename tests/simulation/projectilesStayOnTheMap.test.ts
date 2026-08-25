@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
+
+// These tests are about the map's EDGES, so they name the map they are on.
+const MAP = { width: MAP_WIDTH, height: MAP_HEIGHT };
 import { projectileMissAimPoint } from '../../src/game/simulation/projectileRules';
 import { launchProjectile } from '../../src/game/simulation/bridge/projectileOps';
 import { createEmptyProjectileSlot } from '../../src/game/simulation/bridge/projectileTypes';
@@ -38,6 +41,7 @@ describe('a miss never scatters off the map', () => {
       },
       accuracy: 0,
       leads: false,
+      mapSize: MAP,
     });
   }
 
@@ -102,12 +106,12 @@ describe('the projection never asks about a cell off the map', () => {
 
   it('omits a shot that is off the map instead of throwing', () => {
     for (const off of [shotAt(33, -1), shotAt(-1, 10), shotAt(MAP_WIDTH, 5), shotAt(5, MAP_HEIGHT)]) {
-      expect(() => visibleProjectiles([off], 5, strictIsVisible)).not.toThrow();
-      expect(visibleProjectiles([off], 5, strictIsVisible)).toEqual([]);
+      expect(() => visibleProjectiles([off], 5, strictIsVisible, MAP)).not.toThrow();
+      expect(visibleProjectiles([off], 5, strictIsVisible, MAP)).toEqual([]);
     }
   });
 
   it('still shows a shot that is on the map', () => {
-    expect(visibleProjectiles([shotAt(10, 10)], 5, strictIsVisible)).toHaveLength(1);
+    expect(visibleProjectiles([shotAt(10, 10)], 5, strictIsVisible, MAP)).toHaveLength(1);
   });
 });

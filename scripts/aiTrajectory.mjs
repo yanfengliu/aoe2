@@ -18,10 +18,14 @@ import { HUMAN_PLAYER_ID } from '../src/game/simulation/prototypeScenario.ts';
 const seed = process.env.SEED ?? 'default-seed';
 const maxTicks = Number(process.env.MAX_TICKS ?? 30000);
 const sample = Number(process.env.SAMPLE ?? 1000);
-const owners = (process.env.OWNERS ?? (process.env.PLAYERS === '3' ? '1,2,3' : process.env.PLAYERS === '4' ? '1,2,3,4' : '1,2')).split(',').map(Number);
+const seatedOwners = process.env.PLAYERS
+  ? Array.from({ length: Number(process.env.PLAYERS) }, (_unused, index) => String(index + 1)).join(',')
+  : '1,2';
+const owners = (process.env.OWNERS ?? seatedOwners).split(',').map(Number);
 const out = process.env.OUT ?? 'tmp/ai-trajectory.json';
 
-// PLAYERS=n runs a three- or four-player free-for-all instead of the 1v1.
+// PLAYERS=n runs an n-player free-for-all instead of the 1v1, on the rung of
+// §4's size ladder that count is played on (2..8).
 const playerCount = process.env.PLAYERS ? Number(process.env.PLAYERS) : undefined;
 const bridge = createSimulationBridge(seed, {
   forceAiForOwners: new Set([HUMAN_PLAYER_ID]),

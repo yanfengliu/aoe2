@@ -1,6 +1,11 @@
 import type { VisibilityMap } from "civ-engine";
 import { describe, expect, it } from "vitest";
 
+import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
+
+// The feed rejects coordinates off the map, so the test names the map.
+const MAP = { width: MAP_WIDTH, height: MAP_HEIGHT };
+
 import { createBridgeState } from "../../src/game/simulation/bridge/bridgeState";
 import type { GameWorld } from "../../src/game/simulation/bridge/pureHelpers";
 import {
@@ -48,7 +53,7 @@ describe("unit attack animation feed persistence and projection", () => {
       extra: { retainedPayload: "must be stripped" },
     };
 
-    const [attack] = hydrateUnitAttacks(raw, 100, new Set([1, 2]));
+    const [attack] = hydrateUnitAttacks(raw, 100, new Set([1, 2]), MAP);
 
     expect(attack).toEqual({
       attackerId: 7,
@@ -98,7 +103,7 @@ describe("unit attack animation feed persistence and projection", () => {
       { ...valid, targetY: Number.POSITIVE_INFINITY },
       { ...valid, witnessedBy: Array.from({ length: 100 }, () => 1) },
       valid,
-    ], 100, new Set([1]));
+    ], 100, new Set([1]), MAP);
 
     expect(attacks).toEqual([valid]);
   });
@@ -114,7 +119,7 @@ describe("unit attack animation feed persistence and projection", () => {
       targetX: 13,
       targetY: 8,
       witnessedBy: [1],
-    }], 100, new Set([1]))[0]?.cancelTick).toBe(100);
+    }], 100, new Set([1]), MAP)[0]?.cancelTick).toBe(100);
   });
 
   it("surfaces only fresh, witnessed, unsuppressed attacks", () => {

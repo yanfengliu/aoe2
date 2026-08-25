@@ -330,13 +330,12 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         : targetTransform;
     const needsLaneAlignment = alignTarget.fineX !== transform.fineX
       || alignTarget.fineY !== transform.fineY;
-    const nextTransform = clampUnitTransformToMap(
-      stepUnitTransformToward(
-        transform,
-        needsLaneAlignment ? alignTarget : targetTransform,
-        resolvedStepUnits,
-      ),
+    const stepped = stepUnitTransformToward(
+      transform,
+      needsLaneAlignment ? alignTarget : targetTransform,
+      resolvedStepUnits,
     );
+    const nextTransform = clampUnitTransformToMap(stepped, activeWorld.grid);
     const moved = nextTransform.fineX !== transform.fineX
       || nextTransform.fineY !== transform.fineY;
     let nextMoveCarryHundredths = transform.moveCarryHundredths;
@@ -357,7 +356,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     });
     if (moved) markUnitAttackMovementStartedForEntity(unitAttackFeed, id, activeWorld);
 
-    const nextGridPosition = gridPositionFromUnitTransform(nextTransform);
+    const nextGridPosition = gridPositionFromUnitTransform(nextTransform, activeWorld.grid);
     const currentGridPosition = activeWorld.getComponent<Position>(id, 'position');
     if (
       !currentGridPosition

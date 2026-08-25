@@ -8,6 +8,7 @@ import {
   type Offset,
   type TerrainCellSpec,
 } from '../sharedTerrainHelpers';
+import { sizeOfTerrain } from '../constants';
 import {
   createStartingScoutSpawn,
   STARTING_BERRIES,
@@ -85,7 +86,7 @@ export function applyStandardPlayerOpening(
     );
 
     for (const offset of STARTING_VILLAGERS) {
-      const position = projectOffset(start.townCenter, offset);
+      const position = projectOffset(start.townCenter, offset, sizeOfTerrain(terrain));
       spawns.addUnitSpawn({
         kind: 'villager',
         x: position.x,
@@ -97,7 +98,9 @@ export function applyStandardPlayerOpening(
       });
     }
 
-    spawns.addUnitSpawn(createStartingScoutSpawn(start.owner, start.townCenter));
+    spawns.addUnitSpawn(
+      createStartingScoutSpawn(start.owner, start.townCenter, sizeOfTerrain(terrain)),
+    );
   }
 
   // Keep a hint of the seed in the output so two different seeds never
@@ -246,7 +249,7 @@ export function applyStandardPlayerOpeningProcedural(
     spawns,
   );
 
-  const orientation = orientationFor(start.townCenter);
+  const orientation = orientationFor(start.townCenter, sizeOfTerrain(terrain));
   const villagerOffsets: Offset[] = [
     { x: -2, y: 0 },
     { x: -2, y: 1 },
@@ -268,7 +271,9 @@ export function applyStandardPlayerOpeningProcedural(
     });
   }
 
-  spawns.addUnitSpawn(createStartingScoutSpawn(start.owner, start.townCenter));
+  spawns.addUnitSpawn(
+    createStartingScoutSpawn(start.owner, start.townCenter, sizeOfTerrain(terrain)),
+  );
 }
 
 function createSeedPerBaseRng(seed: string, owner: number): () => number {

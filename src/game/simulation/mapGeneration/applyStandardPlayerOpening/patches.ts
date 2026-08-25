@@ -2,7 +2,7 @@ import type { Position } from 'civ-engine';
 
 import type { ResourceKind } from '../../types';
 import type { PlayerStartSpec } from '../../prototypeScenario';
-import { MAP_HEIGHT, MAP_WIDTH } from '../constants';
+import { type MapSize, sizeOfTerrain, standardMapSize } from '../constants';
 import { type SpawnList } from '../spawnList';
 import {
   distanceSquared,
@@ -16,25 +16,85 @@ import {
 } from '../sharedTerrainHelpers';
 import { SHORE_FISH_AMOUNT } from '../startingOffsets';
 
-/** How many players a standard map can seat. AoE2 allows eight; this map is
- *  60x36, which is a two-player size, so more than four would start players
- *  inside each other's opening — the spec's own size ladder (§4) is what has to
- *  grow before that changes. */
-export const MAX_STANDARD_PLAYERS = 4;
-
-// Where each player opens, by how many are playing. The two-player row is the
-// established 1v1, cell for cell, so every existing map, screenshot and test
-// that assumed it still holds; three and four spread into the corners the same
-// distance apart.
-const START_POSITIONS: Readonly<Record<number, ReadonlyArray<{ x: number; y: number }>>> = {
-  2: [{ x: 8, y: 8 }, { x: 48, y: 24 }],
-  3: [{ x: 8, y: 8 }, { x: 48, y: 8 }, { x: 28, y: 26 }],
-  4: [{ x: 8, y: 8 }, { x: 48, y: 8 }, { x: 8, y: 26 }, { x: 48, y: 26 }],
-};
+/** How many players a standard map can seat — spec §4.2's own range, now that
+ *  §4's size ladder grows the map underneath them (`standardMapSize`). It was
+ *  4 while the map was fixed at 60x36, a two-player size on which a fifth seat
+ *  would have opened inside someone else's base. */
+export const MAX_STANDARD_PLAYERS = 8;
 
 // One civilization per seat, in a fixed order so a match is reproducible from
-// its seed alone. The first two are the established pair.
-const START_CIVILIZATIONS = ['Britons', 'Franks', 'Byzantines', 'Japanese'] as const;
+// its seed and its count alone. The first two are the established pair.
+const START_CIVILIZATIONS = [
+  'Britons', 'Franks', 'Byzantines', 'Japanese',
+  'Celts', 'Teutons', 'Chinese', 'Persians',
+] as const;
+
+// The established 1v1, cell for cell: every existing map, screenshot and test
+// that assumed these two openings still holds.
+const TWO_PLAYER_POSITIONS: ReadonlyArray<{ x: number; y: number }> = [
+  { x: 8, y: 8 },
+  { x: 48, y: 24 },
+];
+
+/** How far in from the edge a seat sits, as a share of the map. A Town Center
+ *  is 4x4 and its opening reaches about six cells past that, so the inset has
+ *  to grow with the map rather than stay a constant. */
+function insetFor(size: MapSize): { x: number; y: number } {
+  return { x: Math.round(size.width * 0.13), y: Math.round(size.height * 0.2) };
+}
+
+/**
+ * Where each seat opens, for a count and the map that count is played on.
+ *
+ * Three and four get the shapes they have always had — a triangle and the four
+ * corners. Five and up walk the inset rectangle's perimeter at equal arc
+ * length, which is what keeps eight players the same distance apart as four:
+ * evenly spaced around the edge, nobody in the middle, and every seat the same
+ * distance from the edge as every other.
+ */
+function seatPositions(count: number, size: MapSize): Array<{ x: number; y: number }> {
+  if (count <= 2) return TWO_PLAYER_POSITIONS.map((position) => ({ ...position }));
+
+  const inset = insetFor(size);
+  const left = inset.x;
+  const right = size.width - 1 - inset.x;
+  const top = inset.y;
+  const bottom = size.height - 1 - inset.y;
+
+  if (count === 3) {
+    return [
+      { x: left, y: top },
+      { x: right, y: top },
+      { x: Math.round(size.width / 2), y: bottom },
+    ];
+  }
+  if (count === 4) {
+    return [
+      { x: left, y: top },
+      { x: right, y: top },
+      { x: left, y: bottom },
+      { x: right, y: bottom },
+    ];
+  }
+
+  const spanX = right - left;
+  const spanY = bottom - top;
+  const perimeter = 2 * (spanX + spanY);
+  const positions: Array<{ x: number; y: number }> = [];
+  for (let seat = 0; seat < count; seat += 1) {
+    const walked = (perimeter * seat) / count;
+    if (walked <= spanX) {
+      positions.push({ x: Math.round(left + walked), y: top });
+    } else if (walked <= spanX + spanY) {
+      positions.push({ x: right, y: Math.round(top + (walked - spanX)) });
+    } else if (walked <= 2 * spanX + spanY) {
+      positions.push({ x: Math.round(right - (walked - spanX - spanY)), y: bottom });
+    } else {
+      positions.push({ x: left, y: Math.round(bottom - (walked - 2 * spanX - spanY)) });
+    }
+  }
+  return positions;
+}
 
 /**
  * The players a standard map opens with. Defaults to two, so every caller that
@@ -46,8 +106,7 @@ const START_CIVILIZATIONS = ['Britons', 'Franks', 'Byzantines', 'Japanese'] as c
  */
 export function createPlayerStarts(playerCount = 2): PlayerStartSpec[] {
   const count = Math.max(2, Math.min(MAX_STANDARD_PLAYERS, Math.floor(playerCount)));
-  const positions = START_POSITIONS[count] ?? START_POSITIONS[2]!;
-  return positions.map((townCenter, index) => ({
+  return seatPositions(count, standardMapSize(count)).map((townCenter, index) => ({
     owner: index + 1,
     townCenter: { ...townCenter },
     civilization: START_CIVILIZATIONS[index] ?? START_CIVILIZATIONS[0],
@@ -63,9 +122,10 @@ export function applyResourcePatch(
   baseOwner: number,
   spawns: SpawnList,
 ): void {
+  const size = sizeOfTerrain(terrain);
   for (const offset of offsets) {
-    const position = projectOffset(center, offset);
-    if (!isInBounds(position.x, position.y)) {
+    const position = projectOffset(center, offset, size);
+    if (!isInBounds(position.x, position.y, size)) {
       continue;
     }
 
@@ -88,10 +148,11 @@ export function applyForestPatch(
   baseOwner: number,
   spawns: SpawnList,
 ): void {
+  const size = sizeOfTerrain(terrain);
   for (const offset of offsets) {
-    const position = projectOffset(center, offset);
+    const position = projectOffset(center, offset, size);
     setTerrainKind(terrain, position.x, position.y, 'forest');
-    if (!isInBounds(position.x, position.y)) {
+    if (!isInBounds(position.x, position.y, size)) {
       continue;
     }
     spawns.addResourceSpawn({
@@ -112,8 +173,9 @@ export function applyShoreFishPatches(
   spawns: SpawnList,
 ): void {
   const candidates: Position[] = [];
-  for (let y = 0; y < MAP_HEIGHT; y += 1) {
-    for (let x = 0; x < MAP_WIDTH; x += 1) {
+  const size = sizeOfTerrain(terrain);
+  for (let y = 0; y < size.height; y += 1) {
+    for (let x = 0; x < size.width; x += 1) {
       if (!isAccessibleShorelineCell(terrain, x, y)) {
         continue;
       }

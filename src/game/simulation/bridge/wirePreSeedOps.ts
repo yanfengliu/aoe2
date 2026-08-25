@@ -20,7 +20,7 @@ import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { createResearchAvailability } from './researchAvailability';
 import { VisibilityCell } from './visibilityCell';
-import { HUMAN_PLAYER_ID, MAP_HEIGHT, MAP_WIDTH } from '../prototypeScenario';
+import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import { WONDER_COUNTDOWN_TICKS } from './bridgeConstants';
 import type { WireBridgeOpsDeps } from './wireBridgeOpsTypes';
 
@@ -94,8 +94,8 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
 
   const transformOps = createTransformOps({
     world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     worldOccupancy,
     tiles,
     accessor,
@@ -184,8 +184,8 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   } = createCellPassability({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     worldOccupancy,
     tiles,
     accessor,
@@ -193,8 +193,8 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
 
   const movementPlanOps = createMovementPlanOps({
     world,
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
     movePathCache,
     isCellPassableForUnit,
     isCellPassableForWildlife,

@@ -3,7 +3,8 @@
 // Mirrors parseCivParam: closure-local, never written into world.state, and it
 // reaches createSimulationBridge as a scenario override rather than save state.
 // §2.2 puts "AI opponents" in scope, so a skirmish is not a 1v1 — this is how a
-// player asks for the third and fourth.
+// player asks for the third through the eighth. §4's size ladder picks the map
+// each count is played on.
 //
 // An unusable value warns and yields undefined, which leaves the default of two
 // in place: a bad URL should open the ordinary game, not refuse to start.
@@ -21,7 +22,7 @@ export function parsePlayersParam(url: string): number | undefined {
   if (parsed < 2 || parsed > MAX_STANDARD_PLAYERS) {
     console.warn(
       `[aoe2] ?players= ${String(parsed)} is outside 2..${String(MAX_STANDARD_PLAYERS)}`
-      + ' on this map size; opening a 1v1.',
+      + ' (spec §4.2); opening a 1v1.',
     );
     return undefined;
   }
