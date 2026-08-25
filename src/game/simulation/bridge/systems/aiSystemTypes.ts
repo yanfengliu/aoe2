@@ -74,6 +74,12 @@ export interface AiSystemDeps {
   ) => void;
   pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
   pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
+  pushTributeIntention: (
+    playerId: number,
+    toPlayerId: number,
+    resource: import('../../types').EconomyResourceKind,
+    amount: number,
+  ) => void;
   // Phase 1C — read-only handle to the dispatcher's pending intention
   // queue. aiSystem inspects it each decision tick to compute "effective"
   // queue / in-flight counts: an intention pushed this tick won't appear in

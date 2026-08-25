@@ -383,6 +383,7 @@ export { createCivKoreansTowerFixture } from './civKoreansTower';
 export { createCivGothsPopFixture } from './civGothsPop';
 export { createCivKhmerHouseFixture } from './civKhmerHouse';
 export { createCivIncasArmorFixture } from './civIncasArmor';
+export { createAiTributeFixture } from './aiTribute';
 
 export {
   createCivGothsInfantryFixture,

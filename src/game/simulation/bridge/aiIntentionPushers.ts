@@ -30,6 +30,18 @@ export function createAiIntentionPushers({ state }: AiIntentionPushersDeps) {
     pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => {
       state.pendingCommands.push({ type: 'market.action', data: { playerId, actionType } });
     },
+    // v0.3.92: AI tribute to a poor ally — the direct executor re-validates.
+    pushTributeIntention: (
+      playerId: number,
+      toPlayerId: number,
+      resource: import('../types').EconomyResourceKind,
+      amount: number,
+    ) => {
+      state.pendingCommands.push({
+        type: 'tribute.send',
+        data: { playerId, toPlayerId, resource, amount },
+      });
+    },
     pushQueueResearchIntention: (
       buildingId: number,
       technologyType: ResearchableTechnologyType,

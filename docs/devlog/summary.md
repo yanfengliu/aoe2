@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.92: AI tribute phase (ally <150, sender >=1000, 100 chunk via recorded tribute.send intention; executor re-validates); enemy-never-topped-up differential; red-check.
 - 2026-08-25 v0.3.91: monk conversion range 4->9 (heal/pickup/deposit stay 4); Block Printing to CSV truth (Imperial, 200g, +3 -> reach 12); boxed-monk fixtures re-tuned to 9/10 with a TRADE CART target (the villager auto-gathered the box trees and wandered — a flaky baseline).
 - 2026-08-25 v0.3.90: Incas villager armor (infantry armor line reaches villagers at sweep + factory; attack line already universal — villagers are melee); armor-field assertions with the owned-militia research-done signal; technologyOps compacted back under 500.
 - 2026-08-25 v0.3.89: Khmer pair — prereq-free age advance (three canAdvance bypasses) + prereq-free build menu (hasCompletedBuilding => true) + villagers-in-houses (canGarrisonAt gains civ param; house capacity 0+5 via civHouseGarrisonCapacity at entry/HUD/ungarrison sites); red-check 3/3.
