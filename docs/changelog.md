@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.121
+
+- Villagers work differently per resource: the axe swings overhead at trees, the pick strikes fast at mines, hands reach low at bushes and farms.
+
 ## 0.3.120
 
 - Each architecture crowns its Town Center differently: a dome in the middle east, a pagoda finial in east asia, a spire in central europe, a terracotta cap on the mediterranean, a stone crest in mesoamerica.

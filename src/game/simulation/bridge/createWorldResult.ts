@@ -58,7 +58,7 @@ export interface CreateWorldResult {
   ) => Position[];
   getEntityHealth: (id: number) => { currentHp: number; maxHp: number } | null;
   getWildlifeAlive: (id: number) => boolean | undefined;
-  getUnitActiveVerb: (id: number) => 'building' | 'gathering' | undefined;
+  getUnitActiveVerb: (id: number) => import('../types').UnitActiveVerb | undefined;
   // v0.1.129 death feedback: raw (un-fog-filtered) death feed for the render
   // projector, which applies the per-player fog filter in projectFrame.
   getRecentUnitDeaths: () => readonly import('../types').ProjectedUnitDeathView[];

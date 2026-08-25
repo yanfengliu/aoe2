@@ -57,7 +57,7 @@ describe('builder activity projection (spec §14.5)', () => {
 });
 
 describe('gatherer activity projection (v0.3.113)', () => {
-  it('marks a villager gathering only while it works AT the resource', () => {
+  it('marks a villager CHOPPING only while it works AT the tree (v0.3.121 names the work)', () => {
     const bridge = createSimulationBridge('aoe2-prototype');
     // The default map auto-assigns nobody for the human; order one villager
     // onto the nearest tree and watch the verb follow the task states.
@@ -74,8 +74,8 @@ describe('gatherer activity projection (v0.3.113)', () => {
     for (let step = 0; step < 600 && !sawGathering; step += 1) {
       bridge.step(100);
       const view = villagers(bridge).find((entity) => entity.id === villager!.id);
-      if (view?.activeVerb === 'gathering') sawGathering = true;
+      if (view?.activeVerb === 'chopping') sawGathering = true;
     }
-    expect(sawGathering, 'the woodcutter never projected activeVerb gathering').toBe(true);
+    expect(sawGathering, 'the woodcutter never projected activeVerb chopping').toBe(true);
   });
 });

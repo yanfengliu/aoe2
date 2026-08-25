@@ -112,7 +112,7 @@ export interface SelectionStateOpsDeps {
 export interface SelectionStateOps {
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
   getWildlifeAlive(id: number): boolean | undefined;
-  getUnitActiveVerb(id: number): 'building' | 'gathering' | undefined;
+  getUnitActiveVerb(id: number): import('../types').UnitActiveVerb | undefined;
   getSelectionState(): SelectionState;
 }
 

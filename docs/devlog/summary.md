@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.121 per-verb work arcs (activeVerb names the work: chopping/mining/foraging; pick double-strikes shallow, forage reaches low).
 - 2026-08-25 v0.3.120 TC crowns per set (dome/finial/spire/cap/crest replace the square cap; crown fn lives in details to hold the recipes file under 500); deep playtest on v0.3.117 clean (43 cmds, 1 honest wood rejection).
 - 2026-08-25 v0.3.119 death collapse (corpse = unit's own recipe, ease-in topple, hashed heading, gear dropped) + capture-script exactness fix (pause at boot, screenshot paused — transients were structurally unphotographable before; three captures proved three successive diagnoses wrong until the clock was fixed).
 - 2026-08-25 v0.3.118 order-ack click (facade gesture counter, same live-only pattern as the bell tally).

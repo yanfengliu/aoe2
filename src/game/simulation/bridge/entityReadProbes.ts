@@ -8,6 +8,7 @@ import type {
   GathererComponent,
   ResourceComponent,
   UnitComponent,
+  UnitActiveVerb,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -66,12 +67,18 @@ export function createEntityReadProbes(deps: {
   // Spec §14.5 work animation: the smallest honest carrier for "this villager
   // is working". Build/repair from the SAME `unitCommands` predicate the HUD
   // reads; gathering (v0.3.113) from the gatherer task, which is true only AT
-  // the resource — not walking, not hauling.
-  function getUnitActiveVerb(id: number): 'building' | 'gathering' | undefined {
+  // the resource — not walking, not hauling. v0.3.121 names the WORK: the
+  // renderer swings a different arc for an axe, a pick, and a picking hand.
+  function getUnitActiveVerb(id: number): UnitActiveVerb | undefined {
     const type = accessor.get(unitCommandsCodec).get(id)?.type;
     if (type === 'build' || type === 'repair') return 'building';
     const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-    return gatherer?.task === 'gathering' ? 'gathering' : undefined;
+    if (gatherer?.task !== 'gathering' || gatherer.targetResourceId === null) return undefined;
+    const resource = world.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
+    if (!resource) return 'foraging';
+    if (resource.resourceType === 'tree') return 'chopping';
+    if (resource.resourceType === 'gold-mine' || resource.resourceType === 'stone-mine') return 'mining';
+    return 'foraging';
   }
 
   return { getEntityHealth, getWildlifeAlive, getUnitActiveVerb };

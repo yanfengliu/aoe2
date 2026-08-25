@@ -14,6 +14,9 @@ import type { UnitStance } from './unitStance';
 export type { ResearchableTechnologyType };
 export type { ProjectedUnitAttackAnimationView, ProjectedUnitAttackView } from './attackAnimationTypes';
 export type ActionType = 'ungarrison' | 'ring-town-bell' | 'back-to-work';
+// The work a unit is visibly doing (spec §14.5): drives the renderer's swing
+// arc. 'gathering' survives as the legacy alias no new code emits.
+export type UnitActiveVerb = 'building' | 'gathering' | 'chopping' | 'mining' | 'foraging';
 export type MarketActionType =
   | 'buy-food'
   | 'sell-food'
@@ -197,7 +200,7 @@ export interface ProjectedEntityView {
   wildlifeAlive?: boolean;
   // Active work verb (spec §14.5 construction animation). Derived, never
   // recorded: same predicate the HUD's selection panel reads.
-  activeVerb?: 'building' | 'gathering';
+  activeVerb?: UnitActiveVerb;
   // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
   // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;

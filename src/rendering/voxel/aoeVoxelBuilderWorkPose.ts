@@ -26,7 +26,7 @@ export function builderWorkWeight(
   attackWeight: number,
 ): number {
   if (moving || attackWeight > 0) return 0;
-  return entity.activeVerb === 'building' || entity.activeVerb === 'gathering' ? 1 : 0;
+  return entity.activeVerb !== undefined ? 1 : 0;
 }
 
 export interface BuilderWorkPoseState {
@@ -56,6 +56,24 @@ export function builderWorkArc(phase: number): number {
   return 0.9 * (1 - smoothstep((p - 0.62) / 0.38));
 }
 
+/**
+ * Per-verb arc (v0.3.121): the axe swings the full builder arc, the pick is a
+ * shorter faster strike, the picking hand a low gentle reach — three visibly
+ * different working silhouettes at default zoom. 'building'/'chopping' (and
+ * the legacy 'gathering' from older recordings) keep the classic arc.
+ */
+export function workArcForVerb(verb: string | undefined, phase: number): number {
+  if (verb === 'mining') {
+    // Two strikes per loop, shallower lift.
+    return builderWorkArc((phase * 2) % 1) * 0.62;
+  }
+  if (verb === 'foraging') {
+    // A slow low reach: gentle sine dip, no overhead load.
+    return Math.sin(phase * Math.PI * 2) * 0.38;
+  }
+  return builderWorkArc(phase);
+}
+
 const WORK_PART_PATTERN = /(tool|arm-left|arm-right|apron)/u;
 
 /**
@@ -69,13 +87,14 @@ export function poseBuilderWorkParts(
   parts: readonly VoxelPart[],
   state: BuilderWorkPoseState,
   scale: number,
+  verb?: string,
 ): VoxelPart[] {
   const weight = clamp01(state.workWeight);
   // Fail CLOSED: `>` is false for NaN and undefined, so a state built without
   // the work channel (older test fixtures, future callers) is a clean no-op
   // rather than a NaN-corrupted pose.
   if (!(weight > 0)) return [...parts];
-  const arc = builderWorkArc(state.workPhase) * weight;
+  const arc = workArcForVerb(verb, state.workPhase) * weight;
   if (!Number.isFinite(arc) || Math.abs(arc) < 1e-9) return [...parts];
   const drive = Math.max(0, arc);
   const lift = Math.max(0, -arc);

@@ -329,7 +329,7 @@ export function animateUnitParts(
   // The work loop runs before the attack pose so the attack — which owns the
   // same tool/arm parts and is weight-gated against it — always wins.
   const workedParts = role === 'villager'
-    ? poseBuilderWorkParts(locomotionParts, normalizedState, scale)
+    ? poseBuilderWorkParts(locomotionParts, normalizedState, scale, entity.activeVerb)
     : locomotionParts;
   return poseUnitAttackParts(
     workedParts,
