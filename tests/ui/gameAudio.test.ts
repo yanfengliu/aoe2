@@ -21,6 +21,8 @@ interface Deps {
   age: string;
   outcome: string | null;
   tick: number;
+  researched: number;
+  countdownActive: boolean;
 }
 
 function makeController(state: Deps) {
@@ -32,6 +34,8 @@ function makeController(state: Deps) {
     getMatchOutcome: () => state.outcome,
     getRecentAttacks: () => state.attacks,
     getOwnTownEntities: () => state.own,
+    getResearchedCount: () => state.researched,
+    getCountdownActive: () => state.countdownActive,
     playCue: (cue) => played.push(cue),
     storage: mapStorage(new Map<string, string>()),
   });
@@ -43,7 +47,7 @@ const HOME = { x: 10, y: 10, owner: 1, kind: 'building', entityType: 'town-cente
 describe('the attack horn', () => {
   let harness: ReturnType<typeof makeController>;
   beforeEach(() => {
-    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0 });
+    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
   });
 
   it('sounds when an attack lands on your town, once per throttle window', () => {
@@ -75,7 +79,7 @@ describe('the attack horn', () => {
 
 describe('the age-up fanfare and the match stings', () => {
   it('sounds once per age transition, never for the starting age', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.age = 'feudal-age';
@@ -85,7 +89,7 @@ describe('the age-up fanfare and the match stings', () => {
   });
 
   it('plays victory or defeat exactly once', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
     harness.state.outcome = 'victory';
     harness.controller.poll();
     harness.controller.poll();
@@ -97,7 +101,7 @@ describe('the mute switch', () => {
   it('silences every cue and persists the choice', () => {
     const storage = new Map<string, string>();
     const played: GameAudioCue[] = [];
-    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0 };
+    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false };
     const controller = createGameAudioController({
       humanPlayerId: 1,
       getTick: () => state.tick,
@@ -105,6 +109,8 @@ describe('the mute switch', () => {
       getMatchOutcome: () => state.outcome,
       getRecentAttacks: () => state.attacks,
       getOwnTownEntities: () => state.own,
+      getResearchedCount: () => state.researched,
+      getCountdownActive: () => state.countdownActive,
       playCue: (cue) => played.push(cue),
       storage: mapStorage(storage),
     });
@@ -123,5 +129,34 @@ describe('the mute switch', () => {
     state.tick = 900;
     controller.poll();
     expect(played).toEqual(['town-under-attack']);
+  });
+});
+
+describe('the research chime and the countdown bell', () => {
+  it('dings once per completed research, never for pre-seeded techs', () => {
+    const harness = makeController({ attacks: [], own: [], age: 'castle-age', outcome: null, tick: 0, researched: 12, countdownActive: false });
+    harness.controller.poll();
+    expect(harness.played).toEqual([]);
+    harness.state.researched = 13;
+    harness.controller.poll();
+    harness.controller.poll();
+    expect(harness.played).toEqual(['research-complete']);
+    harness.state.researched = 15;
+    harness.controller.poll();
+    expect(harness.played).toEqual(['research-complete', 'research-complete']);
+  });
+
+  it('rings when a wonder or relic countdown begins, once per activation', () => {
+    const harness = makeController({ attacks: [], own: [], age: 'imperial-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
+    harness.controller.poll();
+    harness.state.countdownActive = true;
+    harness.controller.poll();
+    harness.controller.poll();
+    expect(harness.played).toEqual(['countdown-started']);
+    harness.state.countdownActive = false;
+    harness.controller.poll();
+    harness.state.countdownActive = true;
+    harness.controller.poll();
+    expect(harness.played).toEqual(['countdown-started', 'countdown-started']);
   });
 });

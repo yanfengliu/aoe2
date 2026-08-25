@@ -5,7 +5,13 @@
 // constructs audio itself: the synth is injected, so the decision logic tests
 // without an AudioContext and the app wires the real voices in.
 
-export type GameAudioCue = 'town-under-attack' | 'age-up' | 'victory' | 'defeat';
+export type GameAudioCue =
+  | 'town-under-attack'
+  | 'age-up'
+  | 'victory'
+  | 'defeat'
+  | 'research-complete'
+  | 'countdown-started';
 
 // AoE2 spaces its "town under attack" horns well apart; ~20s at 20 TPS.
 const HORN_THROTTLE_TICKS = 400;
@@ -29,6 +35,10 @@ export interface GameAudioControllerDeps {
   getMatchOutcome: () => string | null;
   getRecentAttacks: () => readonly AttackViewLike[];
   getOwnTownEntities: () => readonly OwnEntityLike[];
+  /** How many technologies the human has completed (any monotonic count). */
+  getResearchedCount: () => number;
+  /** Whether a wonder or relic victory countdown is currently running. */
+  getCountdownActive: () => boolean;
   playCue: (cue: GameAudioCue) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
@@ -42,7 +52,8 @@ export interface GameAudioController {
 export function createGameAudioController(deps: GameAudioControllerDeps): GameAudioController {
   const {
     getTick, getCurrentAge, getMatchOutcome,
-    getRecentAttacks, getOwnTownEntities, playCue, storage,
+    getRecentAttacks, getOwnTownEntities,
+    getResearchedCount, getCountdownActive, playCue, storage,
   } = deps;
 
   let muted = readStoredMute(storage);
@@ -51,6 +62,10 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   // The age at first poll is the STARTING age, not a transition.
   let knownAge: string | null = null;
   let outcomePlayed = false;
+  // First poll snapshots pre-seeded techs (a castle-age start arrives with
+  // its age's research done) — only INCREASES after that ding.
+  let knownResearched: number | null = null;
+  let countdownWasActive = false;
 
   function cue(name: GameAudioCue): void {
     if (!muted) playCue(name);
@@ -93,11 +108,33 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     cue(outcome === 'victory' ? 'victory' : 'defeat');
   }
 
+  function pollResearch(): void {
+    const researched = getResearchedCount();
+    if (knownResearched === null) {
+      knownResearched = researched;
+      return;
+    }
+    if (researched > knownResearched) {
+      // One ding per poll, however many completed since — a chord of dings
+      // for a simultaneous batch would be noise, not information.
+      knownResearched = researched;
+      cue('research-complete');
+    }
+  }
+
+  function pollCountdown(): void {
+    const active = getCountdownActive();
+    if (active && !countdownWasActive) cue('countdown-started');
+    countdownWasActive = active;
+  }
+
   return {
     poll(): void {
       pollHorn();
       pollAge();
       pollOutcome();
+      pollResearch();
+      pollCountdown();
     },
     isMuted: () => muted,
     setMuted(next: boolean): void {

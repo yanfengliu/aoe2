@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.110
+
+- More sound: a ding when research completes and a bell when a wonder or relic countdown begins.
+
 ## 0.3.109
 
 - First sound: a horn when your town comes under attack, a fanfare when you advance an age, and a victory/defeat sting — all synthesized live (no audio samples), with a speaker toggle above the idle-villager bell that remembers your choice.

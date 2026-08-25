@@ -82,11 +82,29 @@ function defeat(context: AudioContext): void {
   ]);
 }
 
+// Research done: one bright, short ding — information, not ceremony.
+function researchComplete(context: AudioContext): void {
+  playNotes(context, [
+    { frequency: 880, startSeconds: 0, durationSeconds: 0.28, type: 'sine', peak: 0.8 },
+    { frequency: 1320, startSeconds: 0, durationSeconds: 0.2, type: 'sine', peak: 0.35 },
+  ]);
+}
+
+// Countdown begun: two solemn bell strikes.
+function countdownStarted(context: AudioContext): void {
+  playNotes(context, [
+    { frequency: 440, startSeconds: 0, durationSeconds: 0.5, type: 'triangle', peak: 0.9 },
+    { frequency: 554, startSeconds: 0.4, durationSeconds: 0.7, type: 'triangle', peak: 0.9 },
+  ]);
+}
+
 const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'town-under-attack': horn,
   'age-up': ageUp,
   victory,
   defeat,
+  'research-complete': researchComplete,
+  'countdown-started': countdownStarted,
 };
 
 /** Play one cue through the given context. */

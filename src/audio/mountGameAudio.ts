@@ -48,6 +48,16 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
           && !entity.isMemory
           && (entity.kind === 'building' || entity.entityType === 'villager'),
       ),
+    getResearchedCount: () => {
+      const rows = bridgeRef().world.getState('aoe2.researchedTechnologies') as
+        | ReadonlyArray<[number, string[]]>
+        | undefined;
+      return new Map(rows ?? []).get(HUMAN_PLAYER_ID)?.length ?? 0;
+    },
+    getCountdownActive: () => {
+      const match = bridgeRef().getMatchState();
+      return match.wonderCountdownTicks !== null || match.relicCountdownTicks !== null;
+    },
     playCue: (cue) => {
       const audio = ensureContext();
       if (audio) playProceduralCue(audio, cue);
