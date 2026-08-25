@@ -10,6 +10,8 @@ import { CIVILIZATION_NAMES } from '../../src/game/simulation/civilizationNames'
 import { architectureRoofTint, architectureWallTint } from '../../src/rendering/voxel/aoeVoxelArchitecture';
 import { VOXEL_COLORS } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { createBuildingParts } from '../../src/rendering/voxel/aoeVoxelBuildingRecipes';
+import type { ProjectedEntityView } from '../../src/game/simulation/types';
 
 describe('architectureStyleFor', () => {
   it('maps every roster civilization to a set, with sane anchors', () => {
@@ -81,5 +83,41 @@ describe('buildings project their architecture', () => {
       .getRenderState()
       .entities.find((e) => e.entityType === 'villager' && e.owner === 1);
     expect(villager?.architecture).toBeUndefined();
+  });
+});
+
+describe('per-set roof silhouettes (v0.3.111)', () => {
+  const HOUSE: ProjectedEntityView = {
+    id: 7, kind: 'building', entityType: 'house', owner: 1, x: 4, y: 4,
+    footprintWidth: 2, footprintHeight: 2, tint: 0x4477cc, size: 2,
+    currentHp: 550, maxHp: 550, selected: false, isMemory: false,
+  } as unknown as ProjectedEntityView;
+
+  function roofParts(architecture?: string) {
+    const entity = { ...HOUSE, ...(architecture ? { architecture } : {}) } as ProjectedEntityView;
+    return createBuildingParts(entity, 'p1', 0).filter((part) => part.key.includes('-roof-'));
+  }
+
+  it('shapes tiers per set: a pagoda gains a layer, a desert roof loses one', () => {
+    const plain = roofParts();
+    const pagoda = roofParts('east-asian');
+    const desert = roofParts('middle-eastern');
+    expect(pagoda.length).toBe(plain.length + 1);
+    expect(desert.length).toBe(plain.length - 1);
+    // Alpine roofs pitch steeper: each tier is taller than the default's.
+    const alpine = roofParts('central-european');
+    expect(alpine[0]!.height).toBeGreaterThan(plain[0]!.height);
+    // Desert roofs sit lower.
+    expect(desert[0]!.height).toBeLessThan(plain[0]!.height);
+  });
+
+  it('never grows outside the footprint the default roof uses', () => {
+    const plain = roofParts();
+    const maxPlainWidth = Math.max(...plain.map((part) => part.width));
+    for (const style of ['central-european', 'middle-eastern', 'east-asian', 'mediterranean', 'mesoamerican']) {
+      for (const part of roofParts(style)) {
+        expect(part.width, `${style} roof wider than the default base tier`).toBeLessThanOrEqual(maxPlainWidth + 1e-9);
+      }
+    }
   });
 });

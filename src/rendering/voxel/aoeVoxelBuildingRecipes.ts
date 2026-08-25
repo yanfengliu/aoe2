@@ -1,7 +1,7 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
-import { architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
+import { architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
   makePart,
@@ -74,9 +74,12 @@ function steppedRoof(
   // v0.3.105: the building SET re-keys the canonical roof material first;
   // the owner colour then blends on top as before.
   const owned = mixTint(architectureRoofTint(context.architecture, tint), context.team, 0.55);
-  const layerHeight = 0.16;
-  for (let layer = 0; layer < layers; layer += 1) {
-    const inset = layer * 0.055;
+  // v0.3.111: the set shapes the roof too — steepness, taper, and tier count.
+  const geometry = architectureRoofGeometry(context.architecture);
+  const shapedLayers = Math.max(2, layers + geometry.layerDelta);
+  const layerHeight = 0.16 * geometry.heightScale;
+  for (let layer = 0; layer < shapedLayers; layer += 1) {
+    const inset = layer * 0.055 * geometry.insetScale;
     add(
       context,
       `${prefix}-roof-${String(layer + 1)}`,
@@ -90,7 +93,7 @@ function steppedRoof(
       Math.max(0.08, depthFraction - inset * 2),
     );
   }
-  return bottom + layers * layerHeight;
+  return bottom + shapedLayers * layerHeight;
 }
 
 

@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.111 per-set roof silhouettes (RoofGeometry heightScale/insetScale/layerDelta in steppedRoof; insets only shrink so footprint invariants hold; accents ride the returned top); four-set capture sweep confirms distinct shapes.
 - 2026-08-25 v0.3.110 audio slice 2: research ding (monotonic count diff, pre-seed snapshot) + countdown bell (edge-trigger).
 - 2026-08-25 v0.3.109 procedural audio slice 1 (horn/age-up/match stings, WebAudio synth, lazy context on first gesture, mute persists); exposed getRecentUnitAttacks on both bridge facades; extracted selectionRecallHotkeys and caught the stale-bridge capture (pass bridgeRef, not bridge — createApp swaps bridges on load).
 - 2026-08-25 v0.3.108 architecture walls: plaster/plasterLight re-key per set centrally in the building part adder (roofs keep their site-level consult); default map 0.33% diff = shimmer only.

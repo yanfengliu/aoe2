@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.111
+
+- Roof shapes now follow the architecture set: steep alpine tiers for central Europe, low flat roofs for the middle east, pagoda tiers for east Asia, temple steps for mesoamerica.
+
 ## 0.3.110
 
 - More sound: a ding when research completes and a bell when a wonder or relic countdown begins.

@@ -58,3 +58,33 @@ export function architectureWallTint(
   if (tint === VOXEL_COLORS.plasterLight) return palette.wallLight;
   return tint;
 }
+
+// Per-set roof SILHOUETTES (v0.3.111): the sets differ in shape, not only in
+// material — the alpine sets pitch steeply, the desert sets sit low and flat,
+// the east-asian sets tier into a pagoda, the mesoamerican sets step like a
+// temple. Geometry stays INSIDE the recipe’s own footprint fractions (insets
+// only shrink), so selection rings, health bars, and hit regions are
+// untouched; roof accents anchor on the returned top, so they ride along.
+export interface RoofGeometry {
+  /** Multiplies the per-layer height (steepness). */
+  readonly heightScale: number;
+  /** Multiplies the per-layer inset (how fast the roof narrows). */
+  readonly insetScale: number;
+  /** Added to the call site’s layer count (clamped to at least 2). */
+  readonly layerDelta: number;
+}
+
+const ROOF_GEOMETRY: Readonly<Record<ArchitectureStyle, RoofGeometry>> = {
+  'western-european': { heightScale: 1, insetScale: 1, layerDelta: 0 },
+  'central-european': { heightScale: 1.25, insetScale: 1.35, layerDelta: 0 },
+  'middle-eastern': { heightScale: 0.7, insetScale: 0.8, layerDelta: -1 },
+  'east-asian': { heightScale: 0.95, insetScale: 1.7, layerDelta: 1 },
+  mediterranean: { heightScale: 0.8, insetScale: 1.1, layerDelta: 0 },
+  mesoamerican: { heightScale: 1.3, insetScale: 1.15, layerDelta: 1 },
+};
+
+export function architectureRoofGeometry(
+  architecture: ArchitectureStyle | undefined,
+): RoofGeometry {
+  return ROOF_GEOMETRY[architecture ?? 'western-european'];
+}
