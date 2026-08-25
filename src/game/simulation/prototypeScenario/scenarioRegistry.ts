@@ -163,6 +163,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // M7 units-beyond-circles: a visual-only showcase placing one P1 unit per
   // render role (capture target for the unit-silhouette change).
   ['unit-showcase-fixture', fixtures.createUnitShowcaseFixture],
+  ['vikings-regeneration-fixture', fixtures.createVikingsRegenerationFixture],
   // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED
   // building per render role (capture target for the building-silhouette change).
   ['building-showcase-fixture', fixtures.createBuildingShowcaseFixture],

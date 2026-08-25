@@ -65,7 +65,8 @@ describe('the unique-technology roster', () => {
         technology.unitEffect
         || technology.buildingEffect
         || technology.trainRate
-        || technology.unlocksTraining,
+        || technology.unlocksTraining
+        || technology.regenMultiplier,
       );
       expect(hasEffect, technology.id).toBe(true);
     }

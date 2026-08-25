@@ -56,6 +56,13 @@ export interface UniqueTechnology {
   readonly trainRate?: { readonly building: BuildingType; readonly multiplier: number };
   /** Makes a unit trainable somewhere it normally is not (Anarchy). */
   readonly unlocksTraining?: { readonly building: BuildingType; readonly unitType: UnitType };
+  /**
+   * Multiplies the owner's self-healing rate (Berserkergang). The effect is a
+   * RATE rather than a stat, so unitRegeneration reads this number rather than
+   * the combat-state applier — but it lives here, with the other effects, so
+   * that a technology's whole effect is still visible in one place.
+   */
+  readonly regenMultiplier?: number;
 }
 
 const isInfantry = (unitType: UnitType) => INFANTRY_UNITS.has(unitType)
@@ -93,6 +100,16 @@ const is = (...types: UnitType[]) => {
 };
 
 export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
+  {
+    id: 'berserkergang',
+    name: 'Berserkergang',
+    civilization: 'Vikings',
+    age: 'imperial-age',
+    cost: { food: 850, gold: 400 },
+    researchTicks: 400,
+    summary: 'Berserks regenerate twice as fast.',
+    regenMultiplier: 2,
+  },
   {
     id: 'el-dorado',
     name: 'El Dorado',
@@ -310,14 +327,15 @@ export const EXTRA_UNIT_EFFECTS: Readonly<
  * The unique technologies not wired, and what each is waiting on. Listed here
  * rather than omitted so the gap is visible next to what did land.
  *
- * - Berserkergang (Vikings): doubles Berserk regeneration; no unit regenerates.
- *   (El Dorado was here until v0.3.57, deferred because the Eagle line did not
- *   exist. It shipped in v0.3.48, so the deferral had simply gone stale — worth
- *   re-reading this list whenever the roster grows.)
+ * (El Dorado was here until v0.3.57, deferred because the Eagle line did not
+ * exist; it shipped in v0.3.48, so the deferral had gone stale. Berserkergang
+ * was here until v0.3.65, deferred because nothing regenerated — building the
+ * mechanic was the work, and the technology then cost two lines. Re-read this
+ * list whenever the roster or the mechanics grow.)
  * - Atheism (Huns): +100 years to Wonder/Relic victory timers, and halves the
  *   cost of Spies/Treason, neither of which exists.
  */
-export const DEFERRED_UNIQUE_TECHNOLOGIES = ['berserkergang', 'atheism'] as const;
+export const DEFERRED_UNIQUE_TECHNOLOGIES = ['atheism'] as const;
 
 const BY_CIVILIZATION = new Map<string, UniqueTechnology[]>();
 for (const technology of UNIQUE_TECHNOLOGIES) {

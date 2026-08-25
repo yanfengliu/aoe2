@@ -12,6 +12,7 @@ import { registerAiSystem } from './systems/aiSystem';
 import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
 import { registerFogMemorySystem } from './systems/fogMemorySystem';
 import { registerGarrisonHealSystem } from './systems/garrisonHealSystem';
+import { registerUnitRegenerationSystem } from './systems/unitRegenerationSystem';
 import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
 import { registerMatchResolutionSystems } from './registerMatchResolutionSystems';
 import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
@@ -320,6 +321,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   // Passive garrison heal: regenerates garrisoned units' HP each tick.
   // Update-phase, accessor-only (mirrors relicGoldSystem).
   registerGarrisonHealSystem({ world, accessor });
+  // Self-healing units: the Berserk line, doubled by Berserkergang.
+  registerUnitRegenerationSystem({ world, accessor, markOutOfBandRenderChange });
 
   registerProductionQueueSystem({
     world,

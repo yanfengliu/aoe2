@@ -67,6 +67,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['castle', ['elite-longbowman-upgrade', 'conscription', 'hoardings',
     // Civilization unique technologies; which one an owner may see is
     // decided by uniqueTechnologies.ts.
+    'berserkergang',
     'el-dorado',
     'garland-wars',
     'yeomen',

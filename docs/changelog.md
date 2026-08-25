@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.65 - 2026-08-24
+
+### Added
+
+- **Berserks heal themselves.** The Vikings' Berserk and Elite Berserk now regenerate **1 HP every 3 seconds** wherever they stand — no monk, no building, no research — so a Berserk army that wins a fight is worth more the next morning than the one that limped away. Nothing else in the game regenerates.
+- **Berserkergang**, the Vikings' Imperial Castle technology, 850 food and 400 gold: it doubles that rate to 2 HP every 3 seconds. It had been listed as deliberately absent since the unique technologies shipped, because the mechanic it multiplies did not exist; the mechanic was the work, and the technology cost two lines after it.
+
+### Fixed
+
+- A health bar now updates while its unit heals. Regeneration is the only change to a unit that happens with no command, no attack and no death behind it, and the renderer rebuilds its picture only when something tells it to — so the first version healed the unit correctly and left the bar sitting at the wounded value until the player clicked something else. Caught by the browser test, not by the simulation tests, which read the numbers rather than the screen.
+- §9.2.2 of the spec was missing El Dorado, which has been researchable since 0.3.57, and still claimed sixteen of the nineteen unique technologies were implemented when eighteen are. The table and the code are now checked against each other by a test.
+
 ## 0.3.64 - 2026-08-24
 
 ### Added

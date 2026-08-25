@@ -34,6 +34,8 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Market (technologies.csv): see what your allies see.
   cartography: { food: 100, gold: 100 },
   guilds: { food: 300, gold: 200 },
+  // Vikings, Castle (technologies.csv): Berserks regenerate twice as fast.
+  berserkergang: { food: 850, gold: 400 },
   'el-dorado': { food: 750, gold: 450 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
@@ -184,6 +186,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   hoardings: 750, // Castle, Imperial: 75 s x 10 TPS.
   cartography: 600, // Market, Feudal: 60 s x 10 TPS.
   guilds: 500, // Market, Imperial: 50 s x 10 TPS.
+  berserkergang: 400, // Castle, Imperial: 40 s x 10 TPS.
   'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.
   bracer: 500,
   'blast-furnace': 600,

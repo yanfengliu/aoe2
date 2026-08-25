@@ -843,7 +843,7 @@ Still to come: the multi-unit civilizations whose `units.csv` rows have no indiv
 
 ### 9.2.2 Unique Technologies
 
-Each civilization has one or two signature technologies, researched at its **Castle**. Sixteen of the nineteen in `design/stats/technologies.csv` are implemented; the rest are listed below with the mechanic each is waiting on, because a technology that costs 750 food and silently does nothing is worse than one that is honestly absent.
+Each civilization has one or two signature technologies, researched at its **Castle**. Eighteen of the nineteen in `design/stats/technologies.csv` are implemented; the rest are listed below with the mechanic each is waiting on, because a technology that costs 750 food and silently does nothing is worse than one that is honestly absent. The table below and `UNIQUE_TECHNOLOGIES` are checked against each other by `tests/architecture/specUniqueTechnologyTable.test.ts` — El Dorado shipped in v0.3.57 and this table did not learn about it for eight versions.
 
 They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`). Each names which units or buildings it touches and what it adds, and one loop applies them all — the alternative was sixteen more branches on a combat-state factory that was already a forty-line ladder, each harder to read than the CSV line it came from. The same declarations drive both halves: the units already on the field are bumped when the research completes, and everything trained afterwards derives it at creation.
 
@@ -859,18 +859,20 @@ They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`
 | Goths | Perfusion | Imperial | Barracks train twice as fast |
 | Japanese | Kataparuto | Imperial | Trebuchets reload 25% faster |
 | Koreans | Shinkichon | Imperial | Mangonel line +1 range |
+| Mayans | El Dorado | Imperial | Eagle Warriors +40 hit points |
 | Mongols | Drill | Imperial | Siege Workshop units move 50% faster |
 | Persians | Mahouts | Imperial | War Elephants move 30% faster |
 | Saracens | Zealotry | Imperial | Mamelukes and camels +30 hit points |
 | Spanish | Supremacy | Imperial | Villagers +6 attack, +40 hit points, +2/+2 armour |
 | Teutons | Crenellations | Imperial | Castles +3 range |
 | Turks | Artillery | Imperial | Bombard units +2 range |
+| Vikings | Berserkergang | Imperial | Berserks regenerate twice as fast |
 
 The Castle research menu opens in CASTLE age rather than Imperial, because Anarchy is a Castle-age technology; every other entry still carries its own age, so nothing else moved earlier.
 
 A flat hit-point grant fills a unit that was already at full health and leaves a damaged one damaged, the same rule Loom follows. A multiplier applies to the value as it stands, so a technology stacks on top of blacksmith upgrades rather than replacing them.
 
-Not implemented, and why: **El Dorado** (Mayans) adds hit points to Eagle Warriors, which are not on the roster; **Berserkergang** (Vikings) doubles Berserk regeneration and no unit regenerates; **Atheism** (Huns) changes Wonder/Relic victory timers and the cost of Spies/Treason, none of which exists. Partial where noted: Logistica's trample blast, and Crenellations' garrisoned infantry firing their own arrows, are both absent — the range and attack halves are live.
+Not implemented, and why: **Atheism** (Huns) changes Wonder/Relic victory timers and the cost of Spies/Treason, none of which exists. (**El Dorado** was here until v0.3.57, deferred against an Eagle line that had already shipped; **Berserkergang** until v0.3.65, deferred because nothing regenerated — self-healing landed as a mechanic and the technology then cost two lines. A deferral is a claim about the build, so it goes stale on its own.) Partial where noted: Logistica's trample blast, and Crenellations' garrisoned infantry firing their own arrows, are both absent — the range and attack halves are live.
 
 The twelve expansion civilizations have no technology rows in the dataset at all, the same gap as their unique units (§9.2.1).
 
@@ -1207,6 +1209,10 @@ Monks must support:
 - healing range modifiers
 - heal-rate modifiers
 - relic carrying constraints
+
+**Self-healing units.** One unit line heals itself with no monk, no building and no research: the Vikings' **Berserk** and **Elite Berserk**, at **1 HP every 3 seconds** (1/30 HP per tick at 10 ticks per second). **Berserkergang** doubles it to 2 HP every 3 seconds — `technologies.csv`'s figure is the TECHED rate, so the base is half of it. The heal follows the same three rules as the garrison heal it sits beside: it never exceeds the unit's maximum, never revives a unit at 0 HP, and has no random component, so a replay reproduces it exactly. It applies wherever the unit stands, including mid-fight, and no other unit in the game regenerates.
+
+A self-heal moves a health bar with no command, no attack and no death behind it, which is the only kind of change the renderer cannot infer: the regeneration system marks an out-of-band render change on any tick that heals someone, exactly as the damage sites do. Without that the bar sits at the wounded value until the player clicks something — the state is right and the screen is wrong.
 
 ## 11. Technology and Civilization System
 

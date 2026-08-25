@@ -414,6 +414,10 @@ export {
 } from './unitShowcase';
 
 export {
+  createVikingsRegenerationFixture,
+} from './vikingsRegeneration';
+
+export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
 
