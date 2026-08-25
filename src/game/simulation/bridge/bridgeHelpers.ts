@@ -165,6 +165,8 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
           return 'building';
         case 'attack':
           return 'attacking';
+        case 'trade':
+          return 'trading';
       }
     }
     const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');

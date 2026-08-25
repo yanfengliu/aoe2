@@ -96,6 +96,7 @@ const ENTITY_ICONS = {
   'bombard-cannon': ['BC', '#3a3a42'],
   'trebuchet': ['Tr', '#6a4f2e'],
   'petard': ['Pe', '#8a6b46'],
+  'trade-cart': ['Tr', '#b08d57'],
   'fishing-ship': ['Fs', '#7fb4c4'],
   'transport-ship': ['Tr', '#a98a5c'],
   'galley': ['Ga', '#8a7a58'],

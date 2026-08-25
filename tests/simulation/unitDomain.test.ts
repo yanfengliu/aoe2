@@ -14,7 +14,7 @@ const LAND_UNITS: readonly UnitType[] = [
   'mangonel', 'scorpion', 'battering-ram', 'monk', 'longbowman', 'arbalest',
   'halberdier', 'hussar', 'heavy-cavalry-archer', 'cavalier', 'champion',
   'elite-longbowman', 'onager', 'heavy-scorpion', 'siege-ram', 'bombard-cannon',
-  'trebuchet', 'petard', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman',
+  'trebuchet', 'petard', 'trade-cart', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman',
   'paladin', 'heavy-camel',
   // The three tiers that completed existing lines (v0.3.45).
   'capped-ram', 'siege-onager', 'elite-skirmisher',

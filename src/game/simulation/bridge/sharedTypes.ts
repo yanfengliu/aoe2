@@ -18,11 +18,18 @@ export interface UnitCommand {
   // what AoE2 does; garrisoning used to happen on the spot from any distance,
   // so a villager six cells from its Town Center escaped anything chasing it
   // the instant the order was given.
-  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison';
+  // 'trade' walks a Trade Cart to another player's Market and back to its own,
+  // forever: `buildingRef` is the CURRENT leg's destination, `tradeFarMarketRef`
+  // the route's far end, and `tradeCarriedGold` is present only on the return
+  // leg — the goods were loaded at the far Market, so the deposit pays even if
+  // that Market has since burned down (AoE2's own behaviour).
+  type: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   target: Position;
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';
+  tradeFarMarketRef?: EntityRef;
+  tradeCarriedGold?: number;
 }
 
 // Slice 5 Monk task. A Monk can heal a friendly wounded unit, convert an

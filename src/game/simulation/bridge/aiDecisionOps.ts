@@ -154,6 +154,8 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       case 'villager':
       case 'scout':
       case 'monk':
+      case 'trade-cart':
+        // The Trade Cart is economy on wheels, never army.
         return false;
     }
   }

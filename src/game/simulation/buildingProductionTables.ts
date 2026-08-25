@@ -21,6 +21,8 @@ export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly Traina
   ['stable', ['scout', 'knight', 'light-cavalry', 'hussar', 'cavalier', 'camel', 'paladin', 'heavy-camel']],
   ['archery-range', ['archer', 'skirmisher', 'elite-skirmisher', 'crossbowman', 'cavalry-archer', 'arbalest', 'heavy-cavalry-archer', 'hand-cannoneer']],
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'siege-onager', 'heavy-scorpion', 'capped-ram', 'siege-ram', 'bombard-cannon']],
+  // M-trade: the Market trains the Trade Cart (spec §6.7).
+  ['market', ['trade-cart']],
   ['monastery', ['monk']],
   // M5 naval: the Dock is where every ship comes from.
   ['dock', ['fishing-ship', 'transport-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
@@ -111,7 +113,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
   // The Market's first technology. Its others (Coinage, Banking, Caravan,
   // Guilds) are about tribute and trade, neither of which exists yet.
-  ['market', ['cartography', 'coinage', 'banking', 'guilds']],
+  ['market', ['cartography', 'coinage', 'banking', 'caravan', 'guilds']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],

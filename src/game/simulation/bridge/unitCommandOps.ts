@@ -23,6 +23,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   monkTasksCodec,
   wildlifeStatesCodec,
+  constructionStatesCodec,
 } from './bridgeStateSerialize';
 import { createGatherCommandOps } from './gatherCommandOps';
 import { createPatrolCommandOps } from './patrolCommandOps';
@@ -398,6 +399,25 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.
+  // A trade route is an order on the CART, stored as its unit command; the
+  // far Market must be another player's, standing, and complete.
+  function orderTradeRoute(unitId: number, marketId: number): boolean {
+    const marketPosition = world.getComponent<Position>(marketId, 'position');
+    const marketRef = getEntityRef(marketId);
+    const construction = accessor.get(constructionStatesCodec).get(marketId);
+    if (!marketPosition || !marketRef || (construction && !construction.isComplete)) {
+      return false;
+    }
+    clearGathererOrder(unitId);
+    setUnitCommand(unitId, {
+      type: 'trade',
+      target: { x: marketPosition.x, y: marketPosition.y },
+      buildingRef: marketRef,
+      tradeFarMarketRef: marketRef,
+    });
+    return true;
+  }
+
   const routeUnitContextAtEntityCommandDirect = createContextAtEntityRouter({
     world,
     accessor,
@@ -407,6 +427,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     orderGarrison,
     setUnitGatherCommandDirect,
     setUnitMoveCommandDirect,
+    orderTradeRoute,
   });
 
   const monkContextOps = createMonkContextOps({

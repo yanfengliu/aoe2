@@ -90,6 +90,7 @@ export const UNIT_ARMOR_CLASSES = {
   // AoE2 classes the Petard as demolition INFANTRY that also counts as a
   // siege weapon, which is why anti-siege units answer it.
   petard: new Set<ArmorClass>(['infantry', 'siege']),
+  'trade-cart': new Set<ArmorClass>([]), // units.csv: no armour classes.
   'fishing-ship': new Set<ArmorClass>(['ship']),
   'transport-ship': new Set<ArmorClass>(['ship']),
   'galley': new Set<ArmorClass>(['ship']),

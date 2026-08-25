@@ -32,6 +32,7 @@ export function createContextAtEntityRouter(deps: {
   orderGarrison: (unitId: number, buildingId: number) => boolean;
   setUnitGatherCommandDirect: (unitId: number, resourceId: number) => boolean;
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  orderTradeRoute: (unitId: number, marketId: number) => boolean;
 }) {
   const {
     world,
@@ -42,6 +43,7 @@ export function createContextAtEntityRouter(deps: {
     orderGarrison,
     setUnitGatherCommandDirect,
     setUnitMoveCommandDirect,
+    orderTradeRoute,
   } = deps;
 
   function routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean {
@@ -57,6 +59,17 @@ export function createContextAtEntityRouter(deps: {
     const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
     if (targetBuilding) {
       if (targetBuilding.owner !== unit.owner) {
+        // A Trade Cart right-clicked on another player's Market opens a trade
+        // route (spec §6.7) — any other player's, ally or enemy, as in AoE2.
+        // It has to precede the attack branch: an attack-0 cart "attacking" a
+        // Market is nonsense, and the enemy Market is the profitable target.
+        if (
+          unit.unitType === 'trade-cart'
+          && targetBuilding.buildingType === 'market'
+          && orderTradeRoute(unitId, targetEntityId)
+        ) {
+          return true;
+        }
         return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');
       }
 

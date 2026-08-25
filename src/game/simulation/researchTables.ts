@@ -36,6 +36,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   guilds: { food: 300, gold: 200 },
   // Market (technologies.csv): the tribute fee, 30% to 20% to nothing.
   coinage: { food: 150, gold: 50 },
+  caravan: { food: 200, gold: 200 }, // Market, Castle: Trade Carts 50% faster.
   banking: { food: 200, gold: 100 },
   // Vikings, Castle (technologies.csv): Berserks regenerate twice as fast.
   berserkergang: { food: 850, gold: 400 },
@@ -190,6 +191,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   cartography: 600, // Market, Feudal: 60 s x 10 TPS.
   guilds: 500, // Market, Imperial: 50 s x 10 TPS.
   coinage: 500, // Market, Feudal: 50 s x 10 TPS.
+  caravan: 400, // Market, Castle: 40 s x 10 TPS.
   banking: 500, // Market, Castle: 50 s x 10 TPS.
   berserkergang: 400, // Castle, Imperial: 40 s x 10 TPS.
   'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.

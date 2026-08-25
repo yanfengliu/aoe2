@@ -151,6 +151,10 @@ export function computeUnitActivity(
     if (cmd.type === 'move') {
       return { verb: 'moving', target: null };
     }
+    if (cmd.type === 'trade') {
+      const target = resolveTargetEntityRef(sources, cmd.buildingRef);
+      return { verb: 'trading', target };
+    }
   }
 
   // A monk that has picked up a relic but has no current task or active

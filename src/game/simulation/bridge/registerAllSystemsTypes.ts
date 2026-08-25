@@ -174,6 +174,7 @@ export interface RegisterAllSystemsDeps {
   pushUnitMoveIntention: (unitId: number, target: Position) => boolean;
   // Player-commands deps.
   clearUnitCommand: (id: number) => void;
+  setUnitCommand: (id: number, command: import('./sharedTypes').UnitCommand) => void;
   /** M6 control: the patrol system's own walk re-issue (keeps the route). */
   resumePatrolLeg: (unitId: number, target: import('civ-engine').Position) => boolean;
   distanceToBuilding: (id: number, position: Position) => number;

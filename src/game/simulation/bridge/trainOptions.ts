@@ -188,6 +188,13 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
         }
         return options;
       }
+      case 'market': {
+        // M-trade (spec §6.7): the Trade Cart, from Feudal — units.csv.
+        if (!isAtLeastAge(owner, 'feudal-age')) {
+          return [];
+        }
+        return ['trade-cart'];
+      }
       case 'monastery': {
         if (!isAtLeastAge(owner, 'castle-age')) {
           return [];

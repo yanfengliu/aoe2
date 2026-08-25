@@ -221,7 +221,7 @@ export interface PopulationState {
   rawSupply: number;
 }
 
-export type UnitTaskState = GatherTaskState | 'moving' | 'building' | 'attacking' | 'garrisoned';
+export type UnitTaskState = GatherTaskState | 'moving' | 'building' | 'attacking' | 'garrisoned' | 'trading';
 export type UnitOrBuildingActionType = ActionType;
 
 export interface ProductionQueueEntry {
@@ -384,7 +384,7 @@ export interface SimulationDebugSnapshot {
     fromY: number;
     toX: number;
     toY: number;
-    commandType: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison';
+    commandType: 'move' | 'attack-move' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   }>;
   aiSummaries: Array<{
     owner: number;

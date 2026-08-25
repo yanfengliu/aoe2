@@ -211,6 +211,7 @@ function formatActivityLabel(activity: NonNullable<SelectionState['activity']>):
     'gathering': 'Gathering',
     'dropping off': 'Dropping off',
     'moving': 'Moving',
+    'trading': 'Trading with',
     'attacking': 'Attacking',
     'building': 'Building',
     'healing': 'Healing',

@@ -52,6 +52,8 @@ export type UnitType =
   | 'bombard-cannon'
   | 'trebuchet'
   | 'petard'
+  // M-trade: land trade (spec §6.7) — carries goods between Markets for gold.
+  | 'trade-cart'
   // FU2: Militia-line intermediates (Man-at-Arms/Long Swordsman/Two-Handed Swordsman) + Paladin + Heavy Camel.
   | 'man-at-arms'
   | 'long-swordsman'

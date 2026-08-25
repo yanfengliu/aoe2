@@ -49,6 +49,9 @@ export function targetPriority(unitType: UnitType): number {
       return 0;
     case 'monk':
       return 1;
+    // A Trade Cart is a gold line on legs: worth killing like a villager.
+    case 'trade-cart':
+      return 2;
     // M4 unique units join the bucket of the stock line they replace: they
     // outrange or out-damage it, so they are worth killing on the same terms.
     case 'archer':

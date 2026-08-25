@@ -306,6 +306,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     garrisonUnit,
     ensurePlayerScoreCounters,
     clearUnitCommand,
+    setUnitCommand,
     markOutOfBandRenderChange,
     enqueueRejection,
     getSeed,

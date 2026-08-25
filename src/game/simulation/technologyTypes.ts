@@ -121,6 +121,7 @@ export type ResearchableTechnologyType =
   | 'cartography'
   | 'guilds'
   | 'coinage'
+  | 'caravan'
   | 'banking'
   | 'berserkergang'
   | 'el-dorado'

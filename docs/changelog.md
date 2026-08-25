@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.68 - 2026-08-24
+
+### Added
+
+- **Land trade.** The **Trade Cart** trains at the Market from Feudal Age (100 wood, 50 gold). Right-click any other player's Market — ally or enemy, as in AoE2 — and the cart cycles on its own: out to their Market, back to your nearest one, gold on every return, worth more the farther apart the Markets stand (0.46 gold per tile of distance). The route survives a save mid-leg, ends with the cart or with any other order, and once the goods are loaded they pay out even if the far Market burns down on the way home. The selection panel reads "Trading with Market" while a route runs.
+- **Caravan**, the Market's Castle Age technology (200 food, 200 gold): Trade Carts move 50% faster, so the same route pays half again as often. With it, all five of the Market's technologies are in the game.
+
+### Fixed
+
+- The Trade Cart rendered with a trebuchet's throwing arm — its cargo has no weapon branch in the siege recipe, so it fell through to the trebuchet. It now carries what it should: stacked crates under a lashed tarp.
+
 ## 0.3.67 - 2026-08-24
 
 ### Added

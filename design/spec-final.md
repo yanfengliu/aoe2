@@ -473,6 +473,12 @@ Required related systems:
 - route persistence
 - team-safe behavior for allied trade
 
+**Land trade (implemented v0.3.68).** The **Trade Cart** trains at the Market from Feudal Age (100 wood 50 gold, 50 s; HP 70, speed 1.0, no attack, 1 population). Right-clicking **another player's completed Market** with a cart opens a route — any other player's, ally or enemy, exactly as in AoE2, which is also what makes trade usable in a free-for-all. The cart then cycles unattended: walk to the far Market, load, walk back to the sender's **nearest own completed Market**, deposit gold, repeat. The route is the cart's unit command, so it survives a save mid-leg, ends when the cart dies or is given any other order, and needs no separate bookkeeping.
+
+**Profit** is `max(2, round(0.46 × d))` gold per round trip, where `d` is the straight-line distance between the two Markets' anchors — 0.46/tile is the community's measured AoE2 figure, and §5.1's size ladder makes long routes on big maps pay accordingly. The profit is fixed **at load time** from the two Markets as they stand: once loaded, the gold is on the cart, so a far Market razed during the walk home still pays out (AoE2's behaviour), and the route simply ends after that deposit. **Caravan** (Market, Castle Age, 200 food 200 gold, 40 s) makes Trade Carts move 50% faster through the movement-technology seam, which raises a route's income rate by the same half.
+
+Orders at unseen entities are refused by the fog contract, so a route needs the far Market scouted first — the selection panel shows **"Trading with Market"** once the order takes. Deliberately still open: the **Trade Cog** (§6.7's naval half), AI-initiated trading, and attack-move safety conventions for allied routes.
+
 ### 6.8 Market Exchange and Tribute
 
 The Market must support:
@@ -1168,7 +1174,7 @@ The three are CHAINED as AoE2 DE chains them — Dry Dock requires Careening, Sh
 
 The owners whose vision is shared come from `sharedVisionOwners` — empty without the technology, empty without allies, so a match with neither projects exactly the cells it always did, in the same order. It is read per FRAME rather than cached, because researching it mid-match has to take effect on the next frame rather than the next reload.
 
-Coinage and Banking arrived with tribute in v0.3.67 (§6.8); Guilds with commodity-fee reduction in v0.3.64. Caravan is the one Market technology still waiting, on trade routes (Trade Cart/Cog).
+Coinage and Banking arrived with tribute in v0.3.67 (§6.8), Guilds with commodity-fee reduction in v0.3.64, and Caravan with land trade in v0.3.68 (§6.7) — the Market's technology list is complete.
 
 **Teams (implemented v0.3.62).** §2.2 puts "optional AI allies" in scope, and until this there was no notion of a side anywhere in the simulation: every owner that was not you was an enemy. A team is a NUMBER PER OWNER (`playerTeams`), and an owner with no entry is its own team — so a free-for-all stores nothing at all, an existing save loads as one, and every match played before teams existed behaves identically.
 

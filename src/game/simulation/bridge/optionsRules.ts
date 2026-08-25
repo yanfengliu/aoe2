@@ -255,6 +255,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       ) {
         options.push('banking');
       }
+      // Caravan: Trade Carts move 50% faster (Castle).
+      if (isAtLeastAge(owner, 'castle-age') && !hasTechnology(owner, 'caravan')) {
+        options.push('caravan');
+      }
       // Guilds: the Market takes a smaller cut of every buy and sell.
       if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'guilds')) {
         options.push('guilds');

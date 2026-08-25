@@ -125,6 +125,8 @@ const UNIT_VISUAL_PROFILES = {
   // A keg of powder carried by a man: infantry-sized, siege-roled, and its
   // signature is the barrel itself.
   petard: { role: 'infantry', weapon: 'tool', armor: 'cloth', headgear: 'leather-cap', shield: 'none', mount: 'none', tier: 1, signature: 'powder-keg' },
+  // A loaded cart: wheeled timber mass with the goods lashed on top.
+  'trade-cart': { role: 'siege', weapon: 'tool', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'rope-bundle' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   'transport-ship': { role: 'ship', weapon: 'boarding-ramp', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },

@@ -5,6 +5,7 @@
 // transitions woven through the attack and move branches.
 
 import { runBuilderWorkStep } from './builderWorkStep';
+import { runTradeStep } from '../tradeCommandStep';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
@@ -45,6 +46,7 @@ export interface PlayerCommandsSystemDeps {
   accessor: BridgeStateAccessor;
   // Phase 2D: population migrated to world.state.aoe2.* via accessor.
   clearUnitCommand: (unitId: number) => void;
+  setUnitCommand: (unitId: number, command: import('../sharedTypes').UnitCommand) => void;
   // Puts a unit INSIDE a building. The garrison command walks it there first;
   // this is the arrival half.
   garrisonUnit: (unitId: number, buildingId: number) => boolean;
@@ -111,6 +113,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     world,
     accessor,
     clearUnitCommand,
+    setUnitCommand,
     garrisonUnit,
     currentEntityId,
     distanceToBuilding,
@@ -425,6 +428,28 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
         if (!building || !buildingApproachPlan) {
           clearUnitCommand(id);
+          continue;
+        }
+
+        if (command.type === 'trade') {
+          // Land trade (spec §6.7): the step module owns the whole cycle.
+          runTradeStep({
+            world: activeWorld,
+            accessor,
+            id,
+            owner: unit.owner,
+            command,
+            buildingId,
+            building,
+            approachDestination: buildingApproachPlan.destination,
+            approachStep: buildingApproachPlan.nextStep,
+            isUnitAtTarget,
+            moveUnitOneSubgridStep,
+            clearUnitCommand,
+            setUnitCommand,
+            currentEntityId,
+            getEntityRef,
+          });
           continue;
         }
 

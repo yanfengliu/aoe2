@@ -114,8 +114,14 @@ describe('AoE voxel unit recipe characterization', () => {
         targetDistance: 1.4,
       })),
       memory: digestParts(state(), true),
-      // Re-recorded 2026-08-23 for the three line tiers (Capped Ram, Siege
-      // Onager, Elite Skirmisher). A whole-population hash cannot say WHICH
+      // Re-recorded 2026-08-24 (twice) for the Trade Cart (v0.3.68): first the
+      // added unit, then its cargo branch replacing the trebuchet fallback its
+      // 'tool' weapon fell into — a cart with a throwing arm, caught by the
+      // close-zoom capture, not by any test. The rendering
+      // diff was three additive 'trade-cart' table rows and nothing else
+      // (git diff: 6 insertions, 0 deletions), so every other unit's recipe
+      // input is textually unchanged. Previously re-recorded 2026-08-23 for
+      // the three line tiers (Capped Ram, Siege Onager, Elite Skirmisher). A whole-population hash cannot say WHICH
       // unit moved it, so before touching these the per-unit digest check was
       // run with an identity keyed by TYPE rather than by list position: all 83
       // pre-existing units were byte-identical and only the three new entries
@@ -123,14 +129,14 @@ describe('AoE voxel unit recipe characterization', () => {
       // insertion shift every later unit's identity, which is why 56 units
       // first looked changed and none of them were.
     }).toEqual({
-      idle: 'd2b7534e72bf2259b28b6b8b0b5f2d3040c3e5627102cd99fd9af845a24d08da',
-      locomotion: '9112998a42bee1d7d3b657836dd4edec7708c8c674677c82de9976e803098384',
-      builderWork: 'b9acd3158b2f1a41fcc73c2b8f0274e8a8bd3937d37a08edd48bb1aacf2cb011',
-      attackCoil: 'f4b881cd4eb54b69c5b7da0418918bd0df1a2a2bf3e2d5d1fd62848ba698b908',
-      attackImpact: '47cb7f800df7fcbef708e4687cad6afeab2bc4533c5c355bdb82b5c4f2a9e194',
-      attackSnap: 'bd280be400d2ad64ae526e827a1b9d4af899368753410940413342b389970b46',
-      attackRecovery: 'e5752b7e35f8be3521cccb4b5c5565359bce0fe3a4840f975cc3708f3496b231',
-      memory: '5cc37ae8b5188c4427f4d8faaf31ae8fbfc1f909c77618b04d239d5ee4eeb223',
+      idle: 'bd88d6acb636e4912d1dfac57b1a693c5313b38d7b0abf68bf44f070cf643ef6',
+      locomotion: '8a03829d3e0ef3e2e60640219f380b7e07c7c9036b0561cc176131bf20f77a1b',
+      builderWork: '7345fd0c51869415915160307332d0c506d8debd5677fcd5850e40da0e4dd8e0',
+      attackCoil: 'bca1f7bd034a90f69daa1d314e0f4a62613a12a9a5ccb06941fb2f8edcfcdb44',
+      attackImpact: 'b33268a0c14dcda3ade2524cfac951589a037f5f82353b12f6e632de9dae82ad',
+      attackSnap: '5d5165cb2a67c4e038833882e98acad5d43e67f74c6b775d16775f3eb6fc8021',
+      attackRecovery: '02ecd2b1ab60dfac4bf1c02af17dc6d33df011fa1fe3c6e2dc739c7879fe8e49',
+      memory: 'ed2af949e9524bd14d759f0462cc71038b4d9b6c783f05080f96de0963ce10c8',
     });
   });
 });

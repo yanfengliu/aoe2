@@ -32,6 +32,8 @@ const SPEED_UNIQUE_TECHNOLOGIES: readonly ResearchableTechnologyType[] = [
 // technologies.csv row 64: Monks have +15% speed.
 export const FERVOR_SPEED_PERCENT = 115;
 export const HUSBANDRY_SPEED_PERCENT = 110;
+// Caravan (Market, Castle): Trade Carts move 50% faster — technologies.csv.
+export const CARAVAN_SPEED_PERCENT = 150;
 
 // AoE2 Squires (technologies.csv:12): infantry move 10% faster.
 export const SQUIRES_SPEED_PERCENT = 110;
@@ -96,6 +98,10 @@ export function movementSpeedPercent(
   // mounted, infantry or villager and would never reach any of them.
   if (dryDockSpeedsUp(researchedTechnologies, unitType)) {
     percent = Math.round((percent * DRY_DOCK_SPEED_PERCENT) / 100);
+  }
+  // Caravan reaches exactly the trade line, which no class branch covers.
+  if (unitType === 'trade-cart' && researchedTechnologies.has('caravan')) {
+    percent = Math.round((percent * CARAVAN_SPEED_PERCENT) / 100);
   }
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {
     percent = Math.round((percent * HUSBANDRY_SPEED_PERCENT) / 100);

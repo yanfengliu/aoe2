@@ -56,6 +56,7 @@ export interface RegisterBridgeSystemsDeps {
   getEntityRef: (id: number) => EntityRef | null;
   ensurePlayerScoreCounters: RegisterAllSystemsArg['ensurePlayerScoreCounters'];
   clearUnitCommand: (id: number) => void;
+  setUnitCommand: (id: number, command: import('./sharedTypes').UnitCommand) => void;
   markOutOfBandRenderChange: () => void;
   enqueueRejection: (reason: string) => void;
   getSeed: () => string;
@@ -165,6 +166,7 @@ export function registerBridgeSystems(
     getEntityRef,
     ensurePlayerScoreCounters,
     clearUnitCommand,
+    setUnitCommand,
     markOutOfBandRenderChange,
     enqueueRejection,
     getSeed,
@@ -269,6 +271,7 @@ export function registerBridgeSystems(
     setUnitMoveCommandDirect,
     pushUnitMoveIntention,
     clearUnitCommand,
+    setUnitCommand,
     resumePatrolLeg,
     distanceToBuilding,
     markOutOfBandRenderChange,

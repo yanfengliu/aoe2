@@ -418,6 +418,10 @@ export {
 } from './vikingsRegeneration';
 
 export {
+  createTradeRouteFixture,
+} from './tradeRoute';
+
+export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
 

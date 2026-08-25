@@ -164,6 +164,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // render role (capture target for the unit-silhouette change).
   ['unit-showcase-fixture', fixtures.createUnitShowcaseFixture],
   ['vikings-regeneration-fixture', fixtures.createVikingsRegenerationFixture],
+  ['trade-route-fixture', fixtures.createTradeRouteFixture],
   // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED
   // building per render role (capture target for the building-silhouette change).
   ['building-showcase-fixture', fixtures.createBuildingShowcaseFixture],

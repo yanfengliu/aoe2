@@ -55,6 +55,8 @@ const UNIT_ROLES = {
   // A petard is a MAN carrying a keg of powder, not a wheeled engine: it takes
   // the infantry silhouette even though its armour class counts as siege.
   petard: 'infantry',
+  // A loaded cart reads as a wheeled engine, not a walker.
+  'trade-cart': 'siege',
   'fishing-ship': 'ship',
   'transport-ship': 'ship',
   'galley': 'ship',

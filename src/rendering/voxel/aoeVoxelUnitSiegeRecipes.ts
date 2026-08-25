@@ -94,6 +94,17 @@ function trebuchet(context: UnitRecipeContext, unitType: UnitType, profile: Unit
   add(context, `detail-${unitType}-${profile.signature}`, 'matte', VOXEL_COLORS.stone, 0.51, 2.76, -0.24, 0.32, 0.32, 0.32);
 }
 
+// A Trade Cart is the one wheeled unit that carries GOODS, not a weapon: two
+// stacked crates, a tarp over the load, and the lashing rope as its signature.
+// Without this branch it fell through to the trebuchet arm — a cart with a
+// counterweighted throwing arm, caught by the close-zoom capture.
+function tradeCargo(context: UnitRecipeContext, unitType: UnitType, profile: UnitVisualProfile): void {
+  add(context, 'trade-cargo-crate-a', 'matte', VOXEL_COLORS.timber, -0.16, 0.82, 0.06, 0.44, 0.32, 0.4, { yaw: -0.42 });
+  add(context, 'trade-cargo-crate-b', 'matte', VOXEL_COLORS.leather, 0.22, 0.8, -0.14, 0.36, 0.28, 0.34, { yaw: -0.22 });
+  add(context, 'trade-cargo-tarp', 'matte', shade(context.team, 0.8), 0.02, 1.0, -0.03, 0.62, 0.14, 0.5, { yaw: -0.42 });
+  add(context, `detail-${unitType}-${profile.signature}`, 'matte', VOXEL_COLORS.leather, 0.02, 1.1, -0.03, 0.5, 0.08, 0.1, { yaw: -0.42 });
+}
+
 export function addSiegeUnitParts(
   context: UnitRecipeContext,
   unitType: UnitType,
@@ -104,5 +115,6 @@ export function addSiegeUnitParts(
   else if (profile.weapon === 'bolt-thrower') scorpion(context, unitType, profile);
   else if (profile.weapon === 'ram') ram(context, unitType, profile);
   else if (profile.weapon === 'cannon') cannon(context, unitType, profile);
+  else if (unitType === 'trade-cart') tradeCargo(context, unitType, profile);
   else trebuchet(context, unitType, profile);
 }
