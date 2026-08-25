@@ -7,7 +7,7 @@
 import type { BuildingComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { wonderCountdownsCodec } from '../bridgeStateSerialize';
+import { matchSettingsCodec, wonderCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface WonderCountdownSystemDeps {
   world: GameWorld;
@@ -24,6 +24,11 @@ export function registerWonderCountdownSystem(deps: WonderCountdownSystemDeps): 
     phase: 'postUpdate',
     execute() {
       if (!isMatchRunning()) {
+        return;
+      }
+      // §4.3 conquest-only: a completed Wonder still stands — it just never
+      // starts a victory clock.
+      if (accessor.get(matchSettingsCodec).conquestOnly) {
         return;
       }
       const wonderCountdowns = accessor.get(wonderCountdownsCodec);

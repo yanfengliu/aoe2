@@ -23,6 +23,7 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
 import {
   marketExchangeRatesCodec,
+  matchSettingsCodec,
   projectilesCodec,
   monkTasksCodec,
   TIER_1_CODECS,
@@ -46,6 +47,7 @@ const EXPECTED_TIER_1_SLOTS = [
   'aoe2.villagerOrdinals',
   'aoe2.researchedTechnologies',
   'aoe2.marketExchangeRates',
+      'aoe2.matchSettings',
   'aoe2.townCenterRefs',
   'aoe2.playerScoreCounters',
   'aoe2.aiStates',
@@ -265,9 +267,11 @@ describe('Phase 2G — Tier-1/Tier-3 snapshot equivalence', () => {
     ) as unknown as GameWorld;
     const accessor = new BridgeStateAccessor(() => restoredWorld);
 
-    // Two codecs are record-shaped rather than Map-shaped: market rates, and
-    // the projectile slot (an id counter plus the in-flight list).
-    const RECORD_CODECS = new Set<unknown>([marketExchangeRatesCodec, projectilesCodec]);
+    // Three codecs are record-shaped rather than Map-shaped: market rates,
+    // the projectile slot, and the match settings singleton (v0.3.74).
+    const RECORD_CODECS = new Set<unknown>([
+      marketExchangeRatesCodec, projectilesCodec, matchSettingsCodec,
+    ]);
 
     type AnyCodec = Parameters<BridgeStateAccessor['get']>[0];
     for (const codec of TIER_1_CODECS) {

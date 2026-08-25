@@ -38,4 +38,10 @@ export interface CreateSimulationBridgeOptions {
   /** AI difficulty for every AI seat (?difficulty=; §4.6). Absent = standard.
    *  Drives the decision interval: easy 60, standard 30, hard 15 ticks. */
   difficulty?: import('./ai').DifficultyLevel;
+  /** §4.3 victory configuration. 'conquest-only' disables Wonder and Relic
+   *  victories for the whole match; persisted, so a save stays what it was. */
+  victory?: 'standard' | 'conquest-only';
+  /** §4.1 starting-resource preset for every seat the scenario does not pin.
+   *  standard 200/200/100/200 · medium 500/500/300/400 · high 1000/1000/700/800. */
+  resourcePreset?: 'standard' | 'medium' | 'high';
 }

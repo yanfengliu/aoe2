@@ -40,6 +40,7 @@ import {
   playerTeamsCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
+  matchSettingsCodec,
   playerResourcesCodec,
   populationCodec,
   relicCountdownOverridesCodec,
@@ -63,6 +64,8 @@ export interface ScenarioSeedDeps {
   mapWidth: number;
   mapHeight: number;
   standardStartingResources: PlayerResources;
+  /** §4.3: seeds matchSettings — a conquest-only match persists as one. */
+  victory?: 'standard' | 'conquest-only';
   standardPopulationCap: number;
   defaultDifficulty: DifficultyLevel;
   state: import('./bridgeState').BridgeState;
@@ -162,6 +165,13 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       );
     }
   });
+  // §4.3: a conquest-only match records it in world state, so the setting
+  // survives a save and the countdown systems read one flag.
+  if (deps.victory === 'conquest-only') {
+    accessor.mutate(matchSettingsCodec, (settings) => {
+      settings.conquestOnly = true;
+    });
+  }
   for (const start of scenario.starts) {
     accessor.mutate(researchedTechnologiesCodec, (m) =>
       m.set(start.owner, new Set(start.startingResearchedTechnologies ?? [])),

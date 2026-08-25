@@ -133,6 +133,8 @@ export function createSimulationBridge(
       civilizationsByOwner: options.civilizationsByOwner,
       teamsByOwner: options.teamsByOwner,
       difficulty: options.difficulty,
+      victory: options.victory,
+      resourcePreset: options.resourcePreset,
       scenario: freshScenario ?? undefined,
     });
   const renderStore = new RenderStore();

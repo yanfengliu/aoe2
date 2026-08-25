@@ -17,6 +17,7 @@ import { wirePostSeedOps } from './wirePostSeedOps';
 import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
+import { RESOURCE_PRESETS } from '../matchOptions';
 import { createTributeOps } from './tributeOps';
 import {
   MARKET_FEE_RATE,
@@ -123,9 +124,12 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       humanPlayerId: HUMAN_PLAYER_ID,
       mapWidth: world.grid.width,
       mapHeight: world.grid.height,
-      standardStartingResources: STANDARD_STARTING_RESOURCES,
+      standardStartingResources: deps.resourcePreset
+        ? RESOURCE_PRESETS[deps.resourcePreset]
+        : STANDARD_STARTING_RESOURCES,
       standardPopulationCap: STANDARD_POPULATION_CAP,
       defaultDifficulty: deps.difficulty ?? DEFAULT_DIFFICULTY,
+      victory: deps.victory,
       state,
       accessor,
       ensureAiState,

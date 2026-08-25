@@ -140,6 +140,8 @@ Optional resource presets inside standard mode:
 - Medium: 500W / 500F / 300G / 400S
 - High: 1000W / 1000F / 700G / 800S
 
+Implemented v0.3.74 as `?resources=standard|medium|high` and the setup screen's row: the preset seeds every seat the scenario does not pin its own resources for. Ignored on the save-load path — a loaded match keeps the stockpiles it saved.
+
 ### 4.2 Match Participants and Teams
 
 - supported participants per match: 2 to 8 (all eight seatable since v0.3.66; the map grows with the count — §5.1's size ladder)
@@ -157,7 +159,7 @@ Supported victory logic is limited to the standard Random Map ruleset:
 - Relic victory
 - Score timer
 
-Default setup should be Conquest only unless the player enables additional victory conditions.
+Default setup is the AoE2 **Standard** victory set — Conquest, Wonder, and Relic all active — which is what the real game's Standard mode means; a **Conquest Only** option (v0.3.74, `?victory=conquest-only` and the setup screen's Victory row) disables the Wonder and Relic clocks for the whole match, and the choice persists through saves.
 
 Definitions:
 
@@ -191,6 +193,8 @@ Support these speed presets:
 
 All times in the spec and data should be interpreted relative to 1.0x unless explicitly stated otherwise.
 
+Implemented v0.3.74 as `?speed=slow|normal|fast` and the setup screen's row. The multiplier is presentation-side — each frame's simulation delta is scaled before stepping, so a fast match is the same deterministic match stepped more per frame; saves, replays, and every tick-counted datum are untouched. The default is Slow (1.0x), the rate the data is defined at.
+
 ### 4.6 Game Setup Options
 
 The standard setup flow should allow configuration of:
@@ -208,7 +212,7 @@ The standard setup flow should allow configuration of:
 
 No generic game-mode selector is required.
 
-**Setup screen (implemented v0.3.73).** A bare visit — a URL with no query parameters at all — lands on the match setup screen instead of a running game: map (Standard / Arena / Black Forest), players (2–8, seating §12's ladder), the human's civilization (all 30), teams (free-for-all, or two sides split evenly with the odd seat on the human's side), and AI difficulty (Easy / Standard / Hard — §12's decision interval at 60 / 30 / 15 ticks, surfaced as `?difficulty=`). Start writes the choices into the URL the app already reads and reloads, so the parameters stay the single source of configuration, a settings link stays shareable, and every visit WITH parameters — every test, harness, and shared link — boots straight into the match untouched. Still URL-only (no setup row yet): resource presets, population cap, game speed, and per-victory-condition toggles.
+**Setup screen (implemented v0.3.73).** A bare visit — a URL with no query parameters at all — lands on the match setup screen instead of a running game: map (Standard / Arena / Black Forest), players (2–8, seating §12's ladder), the human's civilization (all 30), teams (free-for-all, or two sides split evenly with the odd seat on the human's side), and AI difficulty (Easy / Standard / Hard — §12's decision interval at 60 / 30 / 15 ticks, surfaced as `?difficulty=`). Start writes the choices into the URL the app already reads and reloads, so the parameters stay the single source of configuration, a settings link stays shareable, and every visit WITH parameters — every test, harness, and shared link — boots straight into the match untouched. Resource presets, game speed, and the Conquest Only victory option gained rows in v0.3.74; the population cap is the one §4.6 option not yet configurable (the cap model's `deriveCap` seam is where it lands).
 
 ## 5. World and Map Generation
 

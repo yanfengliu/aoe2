@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.74 - 2026-08-24
+
+### Added
+
+- **Starting resources, victory set, and game speed are now match options**, on the setup screen and as URL parameters. Resources: Standard, Medium (500/500/300/400) or High (1000/1000/700/800) for every seat. Victory: the AoE2 Standard set, or **Conquest Only** — the Wonder and Relic clocks never open, and the choice survives a save. Speed: Slow (1.0x), Normal (1.5x) or Fast (2.0x) — the same match, stepped faster; saves and replays are untouched.
+
 ## 0.3.73 - 2026-08-24
 
 ### Added

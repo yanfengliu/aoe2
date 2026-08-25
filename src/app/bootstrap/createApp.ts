@@ -11,6 +11,7 @@ import { parseCivParam } from './civParam';
 import { parsePlayersParam } from './playersParam';
 import { parseTeamsParam } from './teamsParam';
 import { parseDifficultyParam } from './difficultyParam';
+import { parseResourcesParam, parseSpeedParam, parseVictoryParam } from './matchOptionParams';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -89,6 +90,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   // AI difficulty: ?difficulty=easy|standard|hard (§4.6) for every AI seat.
   const difficulty = parseDifficultyParam(window.location.href);
 
+  // Match options (§4.1/§4.3/§4.5): victory set, resource preset, game speed.
+  const victory = parseVictoryParam(window.location.href);
+  const resourcePreset = parseResourcesParam(window.location.href);
+  const simulationSpeedMultiplier = parseSpeedParam(window.location.href);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
@@ -98,6 +104,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     civilizationsByOwner: civilizationsByOwner.size > 0 ? civilizationsByOwner : undefined,
     playerCount,
     difficulty,
+    victory,
+    resourcePreset,
     teamsByOwner: teamsByOwner.size > 0 ? teamsByOwner : undefined,
   });
   const bridgeRef = (): SimulationBridge => bridge;
@@ -265,7 +273,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   }
 
   try {
-    view = new AoeVoxelGameView({ host: gameRoot, bridge });
+    view = new AoeVoxelGameView({ host: gameRoot, bridge, simulationSpeedMultiplier });
   } catch (error) {
     hotkeyRegistry.dispose();
     throw error;

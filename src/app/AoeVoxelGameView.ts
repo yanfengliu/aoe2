@@ -45,16 +45,15 @@ export interface AoeVoxelGameViewOptions {
   readonly host: HTMLElement;
   readonly bridge: SimulationBridge;
   readonly pixelRatio?: number;
+  /** §4.5 speed: multiplies the sim delta; presentation-only. */
+  readonly simulationSpeedMultiplier?: number;
 }
 
 const MAX_CAMERA_FRAME_DELTA_MS = 100;
 
-/**
- * Browser host for AoE's single voxel world canvas.
- *
- * Simulation state remains authoritative. This class owns only disposable
- * camera, input, presentation, animation-frame, and GPU resources.
- */
+/** Browser host for AoE's single voxel world canvas. Simulation state stays
+ *  authoritative; this class owns only disposable camera, input,
+ *  presentation, animation-frame, and GPU resources. */
 export class AoeVoxelGameView {
   private bridge: SimulationBridge;
   private readonly host: HTMLElement;
@@ -71,8 +70,10 @@ export class AoeVoxelGameView {
   private currentFrameTimeMs = 0;
   private booted = false;
   private disposed = false;
+  private readonly simulationSpeedMultiplier: number;
 
   constructor(options: AoeVoxelGameViewOptions) {
+    this.simulationSpeedMultiplier = options.simulationSpeedMultiplier ?? 1;
     this.host = options.host;
     this.bridge = options.bridge;
     const size = this.hostSize();
@@ -397,7 +398,7 @@ export class AoeVoxelGameView {
     const elapsedMs = this.lastFrameTimeMs === null
       ? 0
       : Math.max(0, timeMs - this.lastFrameTimeMs);
-    const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs);
+    const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs) * this.simulationSpeedMultiplier;
     const cameraDeltaMs = Math.min(MAX_CAMERA_FRAME_DELTA_MS, elapsedMs);
     this.lastFrameTimeMs = timeMs;
     this.currentFrameTimeMs = timeMs;

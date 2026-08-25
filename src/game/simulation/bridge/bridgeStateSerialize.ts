@@ -171,6 +171,20 @@ export const marketExchangeRatesCodec: SlotCodec<
   deserialize: (j) => (j === undefined ? createInitialMarketRates() : { food: j.food, wood: j.wood, stone: j.stone }),
 };
 
+// matchSettings: per-match victory configuration (spec §4.3/§4.6), chosen at
+// setup and PERSISTED — a match started conquest-only must stay conquest-only
+// through a save. Absent (every older save) means the standard defaults, so no
+// migration.
+export interface MatchSettings {
+  /** True disables Wonder and Relic victories for the whole match. */
+  conquestOnly?: boolean;
+}
+export const matchSettingsCodec: SlotCodec<MatchSettings, MatchSettings> = {
+  slot: 'aoe2.matchSettings',
+  serialize: (o) => ({ ...(o.conquestOnly ? { conquestOnly: true } : {}) }),
+  deserialize: (j) => (j === undefined ? {} : { ...(j.conquestOnly ? { conquestOnly: true } : {}) }),
+};
+
 // townCenterRefs: Map<ownerId, EntityRef>. EntityRef is `{id, generation}` — JSON-compatible.
 export const townCenterRefsCodec = flatMapCodec<number, EntityRef>('aoe2.townCenterRefs');
 
@@ -298,6 +312,7 @@ export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   villagerOrdinalsCodec,
   researchedTechnologiesCodec,
   marketExchangeRatesCodec,
+  matchSettingsCodec,
   townCenterRefsCodec,
   playerScoreCountersCodec,
   aiStatesCodec,

@@ -7,7 +7,7 @@
 import { atheismCountdownExtension } from '../atheismCountdowns';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { relicCountdownOverridesCodec, relicCountdownsCodec } from '../bridgeStateSerialize';
+import { matchSettingsCodec, relicCountdownOverridesCodec, relicCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface RelicCountdownSystemDeps {
   world: GameWorld;
@@ -33,6 +33,10 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
     after: ['prototypeWonderCountdown'],
     execute() {
       if (!isMatchRunning()) {
+        return;
+      }
+      // §4.3 conquest-only: the relic clock never opens.
+      if (accessor.get(matchSettingsCodec).conquestOnly) {
         return;
       }
       const holdingOwner = currentRelicHoldingOwner();

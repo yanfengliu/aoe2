@@ -53,6 +53,8 @@ export interface WireBridgeOpsDeps {
   enqueueRejection: (reason: string) => void;
   /** §4.6 AI difficulty for every seat the scenario does not pin. */
   difficulty?: import('../ai').DifficultyLevel;
+  victory?: 'standard' | 'conquest-only';
+  resourcePreset?: import('../matchOptions').ResourcePreset;
   markOutOfBandRenderChange: () => void;
   getSeed: () => string;
 }

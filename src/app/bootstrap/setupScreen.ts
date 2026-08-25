@@ -14,6 +14,9 @@ export interface SetupChoices {
   civilization: string;
   teams: 'ffa' | 'two-sides';
   difficulty: 'easy' | 'standard' | 'hard';
+  resources: 'standard' | 'medium' | 'high';
+  victory: 'standard' | 'conquest-only';
+  speed: 'slow' | 'normal' | 'fast';
 }
 
 /** True when this visit carries any configuration at all — those boot straight
@@ -36,6 +39,9 @@ export function setupQueryString(choices: SetupChoices): string {
     params.set('teams', sides.join(','));
   }
   if (choices.difficulty !== 'standard') params.set('difficulty', choices.difficulty);
+  if (choices.resources !== 'standard') params.set('resources', choices.resources);
+  if (choices.victory !== 'standard') params.set('victory', choices.victory);
+  if (choices.speed !== 'slow') params.set('speed', choices.speed);
   return params.toString();
 }
 
@@ -88,6 +94,26 @@ export function mountSetupScreen(root: HTMLElement): void {
           <option value="hard">Hard</option>
         </select>
       </label>
+      <label class="setup-row">Starting resources
+        <select data-setup="resources">
+          <option value="standard" selected>Standard (200/200/100/200)</option>
+          <option value="medium">Medium (500/500/300/400)</option>
+          <option value="high">High (1000/1000/700/800)</option>
+        </select>
+      </label>
+      <label class="setup-row">Victory
+        <select data-setup="victory">
+          <option value="standard" selected>Standard (conquest, wonder, relics)</option>
+          <option value="conquest-only">Conquest only</option>
+        </select>
+      </label>
+      <label class="setup-row">Game speed
+        <select data-setup="speed">
+          <option value="slow" selected>Slow (1.0x)</option>
+          <option value="normal">Normal (1.5x)</option>
+          <option value="fast">Fast (2.0x)</option>
+        </select>
+      </label>
       <button class="setup-start" data-setup="start" type="button">Start Match</button>
     </div>
   `;
@@ -102,6 +128,9 @@ export function mountSetupScreen(root: HTMLElement): void {
       civilization: read('civ'),
       teams: read('teams') as SetupChoices['teams'],
       difficulty: read('difficulty') as SetupChoices['difficulty'],
+      resources: read('resources') as SetupChoices['resources'],
+      victory: read('victory') as SetupChoices['victory'],
+      speed: read('speed') as SetupChoices['speed'],
     });
     window.location.assign(`${window.location.pathname}?${query}`);
   });

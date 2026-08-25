@@ -64,6 +64,8 @@ export interface CreateWorldOptions {
   civilizationsByOwner?: ReadonlyMap<number, string>;
   /** §4.6 AI difficulty for every AI seat (absent = standard). */
   difficulty?: import('../ai').DifficultyLevel;
+  victory?: 'standard' | 'conquest-only';
+  resourcePreset?: import('../matchOptions').ResourcePreset;
   /** Which side each owner is on (?teams=). Absent means a free-for-all. */
   teamsByOwner?: ReadonlyMap<number, number>;
 }
@@ -235,6 +237,8 @@ export function createWorld(
     // §4.6 AI difficulty: the option overrides the standard default for every
     // AI seat the scenario itself does not pin.
     difficulty: options.difficulty,
+    victory: options.victory,
+    resourcePreset: options.resourcePreset,
     ensurePlayerScoreCounters: helpers.ensurePlayerScoreCounters,
     ensureAiState: helpers.ensureAiState,
     inFlightTechSetFor: helpers.inFlightTechSetFor,
