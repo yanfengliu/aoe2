@@ -6,8 +6,9 @@
 //
 // AoE2 ladder is Watch Tower → Guard Tower → Keep (each +2 attack, Keep also
 // +1 range). Both stack ADDITIVELY on top of the base combat profile. The
-// AoE2 +25% tower-HP-per-upgrade clause is DEFERRED (needs building-HP
-// mutation with no prior art). See spec §10.8.
+// The tower-upgrade HP halves live in buildingTechEffects (guard-tower
+// 1020→1500, keep →2250 — CSV absolutes, not the folk +25%); this module
+// keeps only the attack/range halves.
 
 import type { ResearchableTechnologyType } from './types';
 
