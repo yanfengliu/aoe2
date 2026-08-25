@@ -23,6 +23,7 @@ import { buildPendingIntentionMaps, createOwnerProducerHelpers } from './aiSyste
 import { runBuildingPhase } from './aiSystemBuildingPhase';
 import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
+import { runTradePhase } from './aiTradePhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
 import { runHuntPhase } from './aiSystemHuntPhase';
 import { isEnemyOwner } from '../../alliances';
@@ -174,6 +175,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         runDefensePhase(deps, ctx);
         runBuildingPhase(deps, ctx);
         runProductionPhase(deps, ctx);
+        runTradePhase(deps, ctx);
         // After production, because a villager trained this tick is not idle yet,
         // and before the attack phase, which is about military rather than food.
         runHuntPhase(deps, ctx);

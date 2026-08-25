@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.72 - 2026-08-24
+
+### Added
+
+- **The AI trades.** An AI player with a Market now trains Trade Carts (up to two) once anyone else's Market stands, and routes them there on its own — the same recorded command channel your right-click uses. Watch an enemy's carts roll past your walls and you know exactly what their gold curve just did.
+
+### Fixed
+
+- **Trade units now default to the No Attack stance**, as in AoE2. On the old default a weaponless cart could be conscripted by auto-aggression, walk up to an enemy building, and stand there "attacking" for zero damage forever — which is precisely how the first AI cart spent its life instead of trading.
+
 ## 0.3.71 - 2026-08-24
 
 ### Added

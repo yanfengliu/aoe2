@@ -165,6 +165,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['unit-showcase-fixture', fixtures.createUnitShowcaseFixture],
   ['vikings-regeneration-fixture', fixtures.createVikingsRegenerationFixture],
   ['trade-route-fixture', fixtures.createTradeRouteFixture],
+  ['ai-trade-fixture', fixtures.createAiTradeFixture],
   ['naval-trade-fixture', fixtures.createNavalTradeFixture],
   ['missionary-fixture', fixtures.createMissionaryFixture],
   // M7 building-visuals: a visual-only showcase placing one P1 COMPLETED

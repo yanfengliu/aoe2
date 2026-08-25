@@ -26,6 +26,12 @@ export type UnitStance = (typeof UNIT_STANCES)[number];
  * map.
  */
 export function defaultStanceFor(unitType: UnitType): UnitStance {
+  // A weaponless unit on AGGRESSIVE walks up to an enemy and stands there
+  // "attacking" for zero forever — which is exactly what the first AI Trade
+  // Cart did: the attack phase conscripted it, it pinned itself to the enemy
+  // Market, and its route order never landed. AoE2 ships trade units on
+  // No Attack for the same reason.
+  if (unitType === 'trade-cart' || unitType === 'trade-cog') return 'no-attack';
   return gathersResources(unitType) ? 'defensive' : 'aggressive';
 }
 

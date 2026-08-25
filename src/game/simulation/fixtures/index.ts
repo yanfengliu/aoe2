@@ -418,6 +418,7 @@ export {
 } from './vikingsRegeneration';
 
 export {
+  createAiTradeFixture,
   createTradeRouteFixture,
 } from './tradeRoute';
 

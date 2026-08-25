@@ -14,6 +14,20 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
  * a round trip is long enough to measure and short enough to run twice.
  */
 export function createTradeRouteFixture(seed: string): PrototypeScenario {
+  return tradeRouteScenario(seed, { aiDrivesOwner2: false });
+}
+
+/** The same stage with player 2's AI LIVE — the AI-trading tests' fixture.
+ *  Separate because `disableAi` beats `forceAi` by design, so the passive
+ *  variant cannot be switched on from bridge options. */
+export function createAiTradeFixture(seed: string): PrototypeScenario {
+  return tradeRouteScenario(seed, { aiDrivesOwner2: true });
+}
+
+function tradeRouteScenario(
+  seed: string,
+  options: { aiDrivesOwner2: boolean },
+): PrototypeScenario {
   return {
     seed,
     width: MAP_WIDTH,
@@ -31,7 +45,10 @@ export function createTradeRouteFixture(seed: string): PrototypeScenario {
         owner: 2,
         townCenter: { x: 48, y: 26 },
         startingAge: 'castle-age',
-        disableAi: true,
+        // Rich enough to afford carts immediately when the AI drives.
+        ...(options.aiDrivesOwner2
+          ? { forceAi: true, startingResources: { food: 500, wood: 500, gold: 500, stone: 200 } }
+          : { disableAi: true }),
       },
     ],
     spawns: [
