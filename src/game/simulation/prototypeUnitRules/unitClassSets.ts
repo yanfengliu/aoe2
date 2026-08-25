@@ -64,6 +64,8 @@ export const MOUNTED_UNITS = new Set<UnitType>([
   ...CAVALRY_UNITS,
   'cavalry-archer',
   'heavy-cavalry-archer',
+  // The Spanish monk rides: Bloodlines and Husbandry reach it (AoE2).
+  'missionary',
 ]);
 
 export const INFANTRY_UNITS = new Set<UnitType>([

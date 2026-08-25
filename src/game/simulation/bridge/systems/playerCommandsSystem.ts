@@ -4,6 +4,7 @@
 // then ticks the construction counter. Trebuchets get pack / unpack
 // transitions woven through the attack and move branches.
 
+import { isMonasticUnit } from '../../monasticUnits';
 import { runBuilderWorkStep } from './builderWorkStep';
 import { runTradeStep } from '../tradeCommandStep';
 import type { EntityRef, Position } from 'civ-engine';
@@ -149,7 +150,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
       for (const [id, command] of unitCommands.entries()) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
-        if (!position || !unit || (command.type === 'attack' && unit.unitType === 'monk')) {
+        if (!position || !unit || (command.type === 'attack' && isMonasticUnit(unit.unitType))) {
           clearUnitCommand(id);
           continue;
         }

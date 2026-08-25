@@ -2,6 +2,7 @@
 // updates side-map state for the Monk and its target; the behavior system
 // invokes the right one once the Monk is within action range.
 
+import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 
 import type {
@@ -276,7 +277,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // Canonical AoE2 makes Monks immune to conversion, but the contract
     // must hold either way — without this update, a converted Monk would
     // remain in the old owner's set forever.
-    if (targetUnit.unitType === 'monk') {
+    if (isMonasticUnit(targetUnit.unitType)) {
       const previousSet = monksByOwner.get(previousOwner);
       if (previousSet) {
         previousSet.delete(targetId);

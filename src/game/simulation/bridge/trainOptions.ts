@@ -201,7 +201,12 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
         if (!isAtLeastAge(owner, 'castle-age')) {
           return [];
         }
-        return ['monk'];
+        const options: TrainableUnitType[] = ['monk'];
+        // The Spanish Missionary — the one Monastery unique unit.
+        for (const entry of uniqueUnitsTrainedAt(getPlayerCivilization(owner), 'monastery')) {
+          options.push(entry.unitType);
+        }
+        return options;
       }
       case 'castle': {
         if (!isAtLeastAge(owner, 'castle-age')) {

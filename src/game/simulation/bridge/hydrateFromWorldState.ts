@@ -1,3 +1,4 @@
+import { isMonasticUnit } from '../monasticUnits';
 import type {
   BuildingComponent,
   MatchState,
@@ -98,7 +99,7 @@ export function rebuildHydratedRuntimeState(deps: RuntimeHydrationDeps): void {
   state.monksByOwner.clear();
   for (const id of world.query('unit')) {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (!unit || unit.unitType !== 'monk') continue;
+    if (!unit || !isMonasticUnit(unit.unitType)) continue;
     let monkSet = state.monksByOwner.get(unit.owner);
     if (!monkSet) {
       monkSet = new Set();

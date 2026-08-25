@@ -46,6 +46,7 @@ export const ALL_UNIT_TYPES = {
   petard: true,
   'trade-cart': true,
   'trade-cog': true,
+  missionary: true,
   'fishing-ship': true,
   'transport-ship': true,
   'galley': true,

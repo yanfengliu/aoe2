@@ -15,6 +15,7 @@
 // carry is read/written ONLY when a unit's speed percent ≠ 100, so un-teched
 // movement stays byte-identical and never materializes the field.
 
+import { isMonasticUnit } from './monasticUnits';
 import type { ResearchableTechnologyType, UnitType } from './types';
 import { DRY_DOCK_SPEED_PERCENT, dryDockSpeedsUp } from './dockTechEffects';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
@@ -90,7 +91,7 @@ export function movementSpeedPercent(
   // Fervor (Monastery, Castle): monks move faster. It stands apart from the
   // branches below because a monk is neither mounted, infantry, nor a villager,
   // so none of them would ever reach it.
-  if (unitType === 'monk' && researchedTechnologies.has('fervor')) {
+  if (isMonasticUnit(unitType) && researchedTechnologies.has('fervor')) {
     percent = Math.round((percent * FERVOR_SPEED_PERCENT) / 100);
   }
   // Dry Dock (Dock, Imperial): every SHIP moves 15% faster. It sits with the

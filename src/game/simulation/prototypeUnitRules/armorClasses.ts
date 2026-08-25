@@ -92,6 +92,8 @@ export const UNIT_ARMOR_CLASSES = {
   petard: new Set<ArmorClass>(['infantry', 'siege']),
   'trade-cart': new Set<ArmorClass>([]), // units.csv: no armour classes.
   'trade-cog': new Set<ArmorClass>(['ship']),
+  // AoE2 gives the Missionary both the monk's and the horse's weaknesses.
+  missionary: new Set<ArmorClass>(['monk', 'cavalry']),
   'fishing-ship': new Set<ArmorClass>(['ship']),
   'transport-ship': new Set<ArmorClass>(['ship']),
   'galley': new Set<ArmorClass>(['ship']),

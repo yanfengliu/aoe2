@@ -5,6 +5,7 @@
 // implementation byte-for-byte; the only change is the dependency
 // surface is explicit instead of closure-captured.
 
+import { isMonasticUnit } from '../monasticUnits';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -182,7 +183,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       });
     }
 
-    if (unitType === 'monk') {
+    if (isMonasticUnit(unitType)) {
       let monkSet = monksByOwner.get(owner);
       if (!monkSet) {
         monkSet = new Set();

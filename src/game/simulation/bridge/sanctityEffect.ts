@@ -8,6 +8,7 @@
 // Sanctity. The caller (applyTechnology) guards against a double-bump via its
 // already-researched check.
 
+import { isMonasticUnit } from '../monasticUnits';
 import type { UnitComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -25,7 +26,7 @@ export function applySanctityToOwnedMonks(
   for (const id of world.query('unit')) {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     const combat = accessor.get(combatStatesCodec).get(id);
-    if (!unit || !combat || unit.owner !== owner || unit.unitType !== 'monk') {
+    if (!unit || !combat || unit.owner !== owner || !isMonasticUnit(unit.unitType)) {
       continue;
     }
     combat.maxHp += SANCTITY_BONUS_HP;

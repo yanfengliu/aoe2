@@ -3,6 +3,7 @@
 // stats. Called from entity-creation paths and from the technology pipeline
 // when an upgrade triggers a per-unit re-build.
 
+import { isMonasticUnit } from '../monasticUnits';
 import {
   uniqueTechnologiesFor,
   unitEffectsOf,
@@ -104,7 +105,7 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     // Sanctity: +15 monk HP (Monastery). A newly created monk is at full HP, so
     // current and max both gain 15. Existing monks get it on research in
     // technologyOps' `sanctity` case (via sanctityEffect).
-    if (unitType === 'monk' && hasTechnology(owner, 'sanctity')) {
+    if (isMonasticUnit(unitType) && hasTechnology(owner, 'sanctity')) {
       state.maxHp += 15;
       state.currentHp += 15;
     }

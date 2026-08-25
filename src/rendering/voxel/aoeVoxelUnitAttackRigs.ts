@@ -221,6 +221,7 @@ const UNIT_ATTACK_RIGS = {
   // Attack 0: the rigs never play, but the table is exhaustive on purpose.
   'trade-cart': RAM_RIG,
   'trade-cog': RAM_RIG,
+  missionary: RAM_RIG, // attack 0 — never plays.
   monk: MONK_RIG,
   'fishing-ship': MONK_RIG,
   // It has no attack, so it never plays this; it takes the same do-nothing

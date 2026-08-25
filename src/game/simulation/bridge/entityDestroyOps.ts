@@ -3,6 +3,7 @@
 // the pre-extraction inline implementation byte-for-byte; the only change
 // is the dependency surface is explicit instead of closure-captured.
 
+import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
@@ -200,7 +201,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         populationState.current = Math.max(0, populationState.current - 1);
         accessor.markDirty(populationCodec);
       }
-      if (unit.unitType === 'monk') {
+      if (isMonasticUnit(unit.unitType)) {
         const monkSet = monksByOwner.get(unit.owner);
         if (monkSet) {
           monkSet.delete(id);

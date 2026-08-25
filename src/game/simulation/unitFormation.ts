@@ -10,6 +10,7 @@
 // never places a unit somewhere it cannot stand — a shape pressed against a
 // cliff degrades to the spiral fallback rather than stacking units on rock.
 
+import { isMonasticUnit } from './monasticUnits';
 import type { Position } from 'civ-engine';
 
 import { isMeleeUnit, unitAttackRange } from './prototypeUnitRules';
@@ -34,7 +35,7 @@ export function isUnitFormation(value: string): value is UnitFormation {
  */
 export function formationRank(unitType: UnitType): number {
   if (unitType === 'villager') return 3;
-  if (unitType === 'monk') return 3;
+  if (isMonasticUnit(unitType)) return 3;
   const range = unitAttackRange(unitType);
   if (range >= 5) return 2; // siege and the long-range lines stay well back
   if (isMeleeUnit(unitType)) return 0;

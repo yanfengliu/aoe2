@@ -114,7 +114,9 @@ describe('AoE voxel unit recipe characterization', () => {
         targetDistance: 1.4,
       })),
       memory: digestParts(state(), true),
-      // Re-recorded 2026-08-24 again for the Trade Cog (v0.3.69, one additive
+      // Re-recorded 2026-08-24 for the Missionary (v0.3.71: one additive
+      // profile row plus the mounted-staff branch replacing its lance
+      // fallback). Before that for the Trade Cog (v0.3.69, one additive
       // ship-profile row). Before that, twice for the Trade Cart (v0.3.68): first the
       // added unit, then its cargo branch replacing the trebuchet fallback its
       // 'tool' weapon fell into — a cart with a throwing arm, caught by the
@@ -130,14 +132,14 @@ describe('AoE voxel unit recipe characterization', () => {
       // insertion shift every later unit's identity, which is why 56 units
       // first looked changed and none of them were.
     }).toEqual({
-      idle: '08af30cf23cf32396930f6bb37aac7fac860bd00ead4f895242a13478eccc49d',
-      locomotion: '5cac7985e10e32f106cf2bf974fa8e9a5adeb0f7c89d6e6d93303a79901a39b0',
-      builderWork: '9f7033468603138332ebb1ddef80bb82f96c08afa1b386a7b3c5dbf2e9449e90',
-      attackCoil: '9080a3f482d728e2564450aa1f12ae0bfd6de888ae92ad8e8c30374665118a10',
-      attackImpact: 'cf368e2e80dbf23f2b0b59224cb8d34031c596b962f98115982f24412e88254e',
-      attackSnap: 'd1a3a82957bdc6aba08e028040d59d598654ab0d3ce74b95788d0fe321ba0e3f',
-      attackRecovery: '69a2f9d4c6cbc3977f5ee133661cde8a4b0fb604e46d4af20d0b6a8541cd5dc0',
-      memory: '83e3734a59da1415507ec200dcd3ff5a9b7b70282009a5efd72a1ab49385914a',
+      idle: '1468e1ab4d1c2ec1d4805ed1fd78f7395b6a4348621d4d90068948c0aa763f25',
+      locomotion: 'f7d823e055efebfbd39a3d076b5c6865fd55eb6486fa9aac45127ee21420d229',
+      builderWork: 'ccaa34289e92019affa72a163b6f37fd5a936a9c1254521e8f2fedb6e8d6b6ff',
+      attackCoil: '9c344bb614ae08c46dcde3d20ce4b2752efdb81f72704c9b02640c194e0041bf',
+      attackImpact: 'de63e347508096e722fe6c8bce8a0b37eb07baef55c0428a347edb34f77021ea',
+      attackSnap: '0986c963bac16e3b7db583f4a88e84f912b4f8fdd953afc44a649a9629aa8951',
+      attackRecovery: 'e545e6a596b95cc255ae250d2d26cb8130a6529fd7de94472f581bd189a38bc9',
+      memory: 'd0f5d53c2ee044c3e80e7fff8250d58fbd49a2dd4f44bc606dc3fd04450ca46a',
     });
   });
 });

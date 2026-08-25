@@ -5,6 +5,7 @@
 // monk should never reach this command. The handler routes non-monk
 // units via the routeUnitContextCommandDirect helper.
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { World } from 'civ-engine';
 
 import type { UnitComponent } from '../../types';
@@ -29,7 +30,7 @@ export const unitContextValidator: UnitContextValidator = (data, world) => {
   if (!unit) {
     return { code: 'not_a_unit', message: 'Entity is not a unit.' };
   }
-  if (unit.unitType === 'monk') {
+  if (isMonasticUnit(unit.unitType)) {
     return { code: 'monk_should_route_via_facade', message: 'Monk routing must go through the HUD-side fast path.' };
   }
   return true;

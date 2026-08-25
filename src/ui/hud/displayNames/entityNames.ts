@@ -91,6 +91,7 @@ const ENTITY_NAMES = {
   'petard': 'Petard',
   'trade-cart': 'Trade Cart',
   'trade-cog': 'Trade Cog',
+  'missionary': ['Missionary', 'Missionaries'],
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],

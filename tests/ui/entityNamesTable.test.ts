@@ -90,6 +90,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'petard': ['Petard', 'Petards'],
   'trade-cart': ['Trade Cart', 'Trade Carts'],
   'trade-cog': ['Trade Cog', 'Trade Cogs'],
+  'missionary': ['Missionary', 'Missionaries'],
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],

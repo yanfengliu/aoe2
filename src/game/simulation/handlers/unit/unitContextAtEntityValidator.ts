@@ -1,5 +1,6 @@
 // Validator for `unit.contextAtEntity` command (DESIGN v17 §6.2 / §6.4).
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { World } from 'civ-engine';
 
 import type { UnitComponent } from '../../types';
@@ -21,7 +22,7 @@ export const unitContextAtEntityValidator: UnitContextAtEntityValidator = (data,
   if (!unit) {
     return { code: 'not_a_unit', message: 'Entity is not a unit.' };
   }
-  if (unit.unitType === 'monk') {
+  if (isMonasticUnit(unit.unitType)) {
     return { code: 'monk_should_route_via_facade', message: 'Monk routing must go through the HUD-side fast path.' };
   }
   if (!world.isAlive(data.targetEntityId)) {

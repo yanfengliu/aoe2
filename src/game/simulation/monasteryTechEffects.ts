@@ -8,6 +8,7 @@
 // Modeled deterministically as a flat +2 to the monk action range for convert
 // tasks (no probability — the sim is replay-deterministic). See spec §12.
 
+import { isMonasticUnit } from './monasticUnits';
 import type { BuildingType, ResearchableTechnologyType, UnitType } from './types';
 import { isSiegeUnit } from './prototypeUnitRules';
 import { isWallLineBuilding } from './gates';
@@ -127,7 +128,7 @@ export function monkMayConvert(
     if (isWallLineBuilding(target.buildingType)) return false;
     return researchedTechnologies.has('redemption');
   }
-  if (target.unitType === 'monk') return researchedTechnologies.has('atonement');
+  if (isMonasticUnit(target.unitType)) return researchedTechnologies.has('atonement');
   if (isSiegeUnit(target.unitType)) return researchedTechnologies.has('redemption');
   return true;
 }

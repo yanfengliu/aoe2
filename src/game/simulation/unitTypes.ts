@@ -55,6 +55,8 @@ export type UnitType =
   // M-trade: land trade (spec §6.7) — carries goods between Markets for gold.
   | 'trade-cart'
   | 'trade-cog'
+  // The Spanish unique monk-on-horseback, trained at the Monastery.
+  | 'missionary'
   // FU2: Militia-line intermediates (Man-at-Arms/Long Swordsman/Two-Handed Swordsman) + Paladin + Heavy Camel.
   | 'man-at-arms'
   | 'long-swordsman'

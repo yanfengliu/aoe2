@@ -5,6 +5,7 @@
 // `setUnitMoveCommandDirect` as a dep (callback) so the move-fallback branch
 // can stay inside the new file without circular imports.
 
+import { canCarryRelics } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../types';
 import type { GameCommands, GameWorld } from './pureHelpers';
@@ -87,6 +88,9 @@ export function createMonkContextOps(deps: MonkContextOpsDeps): MonkContextOps {
     if (
       targetResource
       && targetResource.resourceType === 'relic'
+      // The horse says no: only the Monk carries relics (units.csv on the
+      // Missionary), so a mounted monastic right-clicking one just rides over.
+      && canCarryRelics(monkUnit.unitType)
       && accessor.get(monkCarriedRelicCodec).get(monkId) === undefined
     ) {
       return matchesIntendedTask('pickup') ? setMonkTask(monkId, 'pickup', targetEntityRef) : false;

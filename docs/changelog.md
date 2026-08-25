@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.71 - 2026-08-24
+
+### Added
+
+- **The Missionary.** The Spanish second unique unit, trained at the Monastery for 100 gold: a monk on horseback that heals, converts, and rests its faith exactly like a Monk, rides faster than one (and faster still with Husbandry, like any mounted unit), and **cannot carry relics** — right-click a relic and it just rides over. No elite tier, because AoE2 has none. With it, every unit the dataset can express is in the game.
+
+### Fixed
+
+- The Missionary first rendered with a couched lance — the mounted recipe's fallback for a weapon it didn't know. It now holds the monk's staff upright, gold crossbar and all.
+
 ## 0.3.70 - 2026-08-24
 
 ### Added

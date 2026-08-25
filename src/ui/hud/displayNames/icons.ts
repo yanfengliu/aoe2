@@ -98,6 +98,7 @@ const ENTITY_ICONS = {
   'petard': ['Pe', '#8a6b46'],
   'trade-cart': ['Tr', '#b08d57'],
   'trade-cog': ['Tc', '#b08d57'],
+  'missionary': ['Ms', '#d8cfc0'],
   'fishing-ship': ['Fs', '#7fb4c4'],
   'transport-ship': ['Tr', '#a98a5c'],
   'galley': ['Ga', '#8a7a58'],

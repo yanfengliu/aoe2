@@ -23,7 +23,7 @@ export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly Traina
   ['siege-workshop', ['mangonel', 'scorpion', 'battering-ram', 'onager', 'siege-onager', 'heavy-scorpion', 'capped-ram', 'siege-ram', 'bombard-cannon']],
   // M-trade: the Market trains the Trade Cart (spec §6.7).
   ['market', ['trade-cart']],
-  ['monastery', ['monk']],
+  ['monastery', ['monk', 'missionary']],
   // M5 naval: the Dock is where every ship comes from.
   ['dock', ['fishing-ship', 'transport-ship', 'trade-cog', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
     'elite-turtle-ship', 'elite-longboat']],

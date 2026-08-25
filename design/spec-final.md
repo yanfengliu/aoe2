@@ -853,7 +853,9 @@ Every one of them also has an **elite** version, unlocked by an Imperial-age tec
 
 An elite is never worse than its base on any of HP, attack, melee armour, or pierce armour, and is better on at least one — but not on all: the Elite Mangudai keeps 60 HP and buys attack and pierce armour instead, which is faithful to AoE2 and is why the invariant is stated that way rather than as "strictly tougher".
 
-Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese), the Spanish Missionary (a mounted monk, which needs the conversion mechanics to move onto a mount).
+Still to come: the multi-unit civilizations whose `units.csv` rows have no individual stats (Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese) — with their rows absent from the dataset, every unit the dataset can express is now in the game.
+
+**The Missionary (implemented v0.3.71).** The Spanish second unique unit and the roster's one Monastery-trained one: a monk on horseback (100 gold, 51 s; HP 30, speed 1.1 — the monk at a canter — LOS 9, no attack, no elite tier, exactly as `units.csv` says). It heals, converts, and rests its faith like a Monk — the monastic behaviours key on the LINE (`isMonasticUnit`), not the one unit — and being mounted, Bloodlines and Husbandry reach it while anti-cavalry bonus damage finds it. The horse's price is the relic: **a Missionary cannot pick up or deposit relics** (`canCarryRelics` is the Monk alone); right-clicking one just rides it over. Monastery technologies (Sanctity, Fervor, Atonement targeting, Block Printing, Illumination, faith rest) apply to both monastics. Both convert at this build's 4-cell monastic action range — AoE2's 9-for-Monk / 7-for-Missionary split lands together with the monk-range fidelity work (§12's deviation note), where a 2-cell split on a 4-cell base would caricature it.
 
 ### 9.2.2 Unique Technologies
 

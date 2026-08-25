@@ -12,6 +12,7 @@
 // fixtures can spawn a fully-passive enemy without the planner OR
 // auto-aggression animating its units.
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
@@ -112,7 +113,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
         if (!unit || !position) {
           continue;
         }
-        if (unit.unitType === 'monk') {
+        if (isMonasticUnit(unit.unitType)) {
           continue;
         }
 

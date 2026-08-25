@@ -426,6 +426,10 @@ export {
 } from './navalTrade';
 
 export {
+  createMissionaryFixture,
+} from './missionary';
+
+export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
 

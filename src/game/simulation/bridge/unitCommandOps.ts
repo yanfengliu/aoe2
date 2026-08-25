@@ -5,6 +5,7 @@
 // ById}/clearSelection trio. Each closes over the bridge state holder so
 // reads/writes go through the same shared selection refs.
 
+import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import { createContextRouter } from './contextRouter';
 import type {
@@ -285,7 +286,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   ): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
-    if (!unit || unit.unitType === 'monk' || !targetPosition) return false;
+    if (!unit || isMonasticUnit(unit.unitType) || !targetPosition) return false;
 
     if (targetEntityKind === 'unit') {
       const targetUnit = world.getComponent<UnitComponent>(targetEntityId, 'unit');
@@ -372,7 +373,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit || unit.owner !== humanPlayerId) return false;
 
-    if (unit.unitType === 'monk') {
+    if (isMonasticUnit(unit.unitType)) {
       const monkTargetEntityId = findMonkContextTargetAtCell(target.x, target.y, unit.owner);
       if (monkTargetEntityId !== null) {
         return issueMonkContextCommandAtEntity(unitId, monkTargetEntityId);
@@ -447,7 +448,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
     if (!unit || unit.owner !== humanPlayerId || !targetPosition) return false;
 
-    if (unit.unitType === 'monk') {
+    if (isMonasticUnit(unit.unitType)) {
       return issueMonkContextCommandAtEntity(unitId, targetEntityId);
     }
 

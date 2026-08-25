@@ -6,6 +6,7 @@
 // a stale-state miss; recorder still captures `executed: true` because the
 // handler ran without throwing.
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { World } from 'civ-engine';
 
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../../types';
@@ -32,7 +33,7 @@ export const unitAttackValidator: UnitAttackValidator = (data, world) => {
   if (!unit) {
     return { code: 'not_a_unit', message: 'Attacker is not a unit.' };
   }
-  if (unit.unitType === 'monk') {
+  if (isMonasticUnit(unit.unitType)) {
     return { code: 'unit_cannot_attack', message: 'Monks cannot attack.' };
   }
   if (!world.isAlive(data.targetEntityId)) {

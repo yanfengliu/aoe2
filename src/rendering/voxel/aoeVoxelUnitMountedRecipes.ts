@@ -102,6 +102,14 @@ function mountedWeapon(context: UnitRecipeContext, profile: UnitVisualProfile): 
     add(context, 'cavalry-sword-hilt', 'metal', VOXEL_COLORS.gold, 0.27, 0.78 + lift, -0.12, 0.3, 0.09, 0.11, { roll: -0.43 });
     return;
   }
+  if (profile.weapon === 'staff') {
+    // The Missionary: a monk's staff held UPRIGHT with its gold crossbar —
+    // the fallback below is a couched lance, which turned the first capture's
+    // missionary into a charging knight in robes.
+    add(context, 'cavalry-staff', 'matte', VOXEL_COLORS.timberDark, 0.36, 0.86 + lift, -0.1, 0.07, 1.15, 0.07);
+    add(context, 'cavalry-staff-crossbar', 'metal', VOXEL_COLORS.gold, 0.36, 1.52 + lift, -0.1, 0.26, 0.09, 0.09);
+    return;
+  }
   if (profile.weapon === 'mounted-polearm') {
     add(context, 'cavalry-polearm-shaft', 'matte', VOXEL_COLORS.timber, 0.43, 0.6 + lift, -0.3, 0.08, 1.55, 0.08, { roll: -0.64 });
     add(context, 'cavalry-polearm-head', 'metal', VOXEL_COLORS.steel, 0.86, 1.78 + lift, -0.56, 0.17, 0.38, 0.1, { roll: -0.64 });

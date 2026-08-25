@@ -17,6 +17,7 @@
 // factories; the shape is named (`MonkTaskDeps`) so readers can navigate it
 // in one jump.
 
+import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 
 import type {
@@ -152,7 +153,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   ): void {
     for (const monkId of world.query('unit')) {
       const unit = world.getComponent<UnitComponent>(monkId, 'unit');
-      if (!unit || unit.owner !== owner || unit.unitType !== 'monk') {
+      if (!unit || unit.owner !== owner || !isMonasticUnit(unit.unitType)) {
         continue;
       }
       // Skip Monks already on a task — let the existing one finish so

@@ -185,6 +185,9 @@ const UNIT_GLYPH_ROLES = {
   petard: 'infantry',
   'trade-cart': 'siege',
   'trade-cog': 'ship',
+  // The drift guard keys the badge to the map silhouette, and the map shows
+  // a rider; the habit colours carry the monk identity instead.
+  missionary: 'cavalry',
   // M5 naval.
   'fishing-ship': 'ship',
   'transport-ship': 'ship',

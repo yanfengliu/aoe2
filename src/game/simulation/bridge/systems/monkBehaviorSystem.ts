@@ -4,6 +4,7 @@
 // per-target single-progress guard so multiple Monks in range don't
 // stack progress on the same enemy.
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { Position } from 'civ-engine';
 import type { UnitComponent } from '../../types';
 import {
@@ -107,7 +108,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
     let dirty = false;
     for (const [monkId, current] of [...faith.entries()]) {
       const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
-      if (!monkUnit || monkUnit.unitType !== 'monk') {
+      if (!monkUnit || !isMonasticUnit(monkUnit.unitType)) {
         faith.delete(monkId);
         dirty = true;
         continue;
@@ -142,7 +143,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
       for (const [monkId, task] of [...monkTasks.entries()]) {
         const monkUnit = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
         const monkPosition = activeWorld.getComponent<Position>(monkId, 'position');
-        if (!monkUnit || !monkPosition || monkUnit.unitType !== 'monk') {
+        if (!monkUnit || !monkPosition || !isMonasticUnit(monkUnit.unitType)) {
           deleteMonkTask(monkId);
           continue;
         }

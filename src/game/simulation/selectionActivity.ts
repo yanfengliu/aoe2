@@ -6,6 +6,7 @@
  * and preventing accidental coupling to the bridge's mutable state.
  */
 
+import { isMonasticUnit } from './monasticUnits';
 import type { EntityRef, World } from 'civ-engine';
 
 import { resourceKindToEconomyResource } from './prototypeEconomyRules';
@@ -108,7 +109,7 @@ export function computeUnitActivity(
   // holding: a monk standing next to the enemy it cannot convert yet would
   // otherwise report "Converting" while nothing happens (spec §12).
   if (
-    unit.unitType === 'monk'
+    isMonasticUnit(unit.unitType)
     && (sources.monkFaith.get(id) ?? MONK_FAITH_MAX) < MONK_FAITH_MAX
   ) {
     return { verb: 'resting', target: null };

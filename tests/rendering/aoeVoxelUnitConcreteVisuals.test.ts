@@ -62,6 +62,8 @@ const WEAPONS = {
   // The cog shares the fishing ship's identifying net prop over its stern.
   'trade-cog': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },
   monk: { kind: 'staff', parts: ['monk-staff', 'monk-staff-crossbar'] },
+  // The Missionary carries the monk's staff from the saddle, upright.
+  missionary: { kind: 'staff', parts: ['cavalry-staff', 'cavalry-staff-crossbar'] },
   // M5 naval: a Fishing Ship's identifying prop is its net, not a weapon.
   'fishing-ship': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },
   'transport-ship': {

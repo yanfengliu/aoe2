@@ -14,7 +14,7 @@ export interface UniqueUnitEntry {
   readonly civilization: string;
   readonly unitType: TrainableUnitType;
   /** Which building trains it. Naval unique units come from the Dock. */
-  readonly trainedAt: 'castle' | 'dock';
+  readonly trainedAt: 'castle' | 'dock' | 'monastery';
   /**
    * The Imperial elite version and the technology that unlocks it, where
    * that chain exists. The menu shows whichever end of the chain the owner
@@ -113,6 +113,13 @@ export const UNIQUE_UNITS_BY_CIVILIZATION: readonly UniqueUnitEntry[] = [
     unitType: 'conquistador',
     trainedAt: 'castle',
     elite: ['elite-conquistador', 'elite-conquistador-upgrade'],
+  },
+  // The Spanish SECOND unique unit — a monk on horseback, from the
+  // Monastery, with no elite tier (units.csv).
+  {
+    civilization: 'Spanish',
+    unitType: 'missionary',
+    trainedAt: 'monastery',
   },
   {
     civilization: 'Teutons',

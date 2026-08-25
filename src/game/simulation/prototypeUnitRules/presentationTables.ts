@@ -53,6 +53,7 @@ export const UNIT_TINTS: Record<UnitType, UnitTintPalette> = {
   petard: { human: 0x8a6b46, enemy: 0x7a4436 },
   'trade-cart': { human: 0xb08d57, enemy: 0x8f6a3d }, // wooden cart, goods-brown.
   'trade-cog': { human: 0xb08d57, enemy: 0x8f6a3d }, // the same goods-brown afloat.
+  missionary: { human: 0xd8cfc0, enemy: 0xb59f8e }, // the monk's habit, mounted.
   'man-at-arms': { human: 0xc68955, enemy: 0xca7570 },
   'long-swordsman': { human: 0xba7e50, enemy: 0xc1685f },
   'two-handed-swordsman': { human: 0xae7140, enemy: 0xb95e55 },
@@ -148,6 +149,7 @@ export const UNIT_SIZES: Record<UnitType, number> = {
   petard: 0.5, // A keg on legs: smaller than any siege engine.
   'trade-cart': 0.8, // A loaded cart: wider than a walker, lower than a ram.
   'trade-cog': 1.0, // A merchant hull, the size of a fishing ship.
+  missionary: 0.62, // A rider: taller than a monk, slighter than a knight.
   'man-at-arms': 0.5,
   'long-swordsman': 0.51,
   'two-handed-swordsman': 0.52,
@@ -243,6 +245,7 @@ export const UNIT_VISION_RADIUS: Record<UnitType, number> = {
   petard: 4, // units.csv line_of_sight.
   'trade-cart': 7, // units.csv line_of_sight.
   'trade-cog': 6, // units.csv line_of_sight.
+  missionary: 9, // units.csv line_of_sight.
   'man-at-arms': 3,
   'long-swordsman': 3,
   'two-handed-swordsman': 3,

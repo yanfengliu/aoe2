@@ -58,6 +58,8 @@ const UNIT_ROLES = {
   // A loaded cart reads as a wheeled engine, not a walker.
   'trade-cart': 'siege',
   'trade-cog': 'ship',
+  // A rider first: the mount drives the silhouette, the habit the palette.
+  missionary: 'cavalry',
   'fishing-ship': 'ship',
   'transport-ship': 'ship',
   'galley': 'ship',

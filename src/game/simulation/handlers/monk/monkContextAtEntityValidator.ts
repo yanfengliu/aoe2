@@ -1,5 +1,6 @@
 // Validator for `monk.contextAtEntity` command (DESIGN v17 §6.2 / §6.4).
 
+import { isMonasticUnit } from '../../monasticUnits';
 import type { World } from 'civ-engine';
 
 import type { UnitComponent } from '../../types';
@@ -32,7 +33,7 @@ export const monkContextAtEntityValidator: MonkContextAtEntityValidator = (data,
   if (!unit) {
     return { code: 'not_a_unit', message: 'Entity is not a unit.' };
   }
-  if (unit.unitType !== 'monk') {
+  if (!isMonasticUnit(unit.unitType)) {
     return { code: 'not_a_monk', message: 'Only monks can issue monk context commands.' };
   }
   if (data.expectedOwner !== undefined && unit.owner !== data.expectedOwner) {

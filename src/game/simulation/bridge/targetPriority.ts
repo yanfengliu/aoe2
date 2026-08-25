@@ -48,6 +48,7 @@ export function targetPriority(unitType: UnitType): number {
       // A Petard is a walking bomb: kill it before it arrives.
       return 0;
     case 'monk':
+    case 'missionary':
       return 1;
     // A trade unit is a gold line on legs: worth killing like a villager.
     case 'trade-cart':

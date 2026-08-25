@@ -22,8 +22,14 @@ function castleOptions(civilization: string, scenario: string) {
 }
 
 describe('the elite tier', () => {
-  it('gives every unique unit an elite version', () => {
+  it('gives every unique unit an elite version, except the one AoE2 does not', () => {
     for (const entry of UNIQUE_UNITS_BY_CIVILIZATION) {
+      // The Missionary is the roster's one elite-less unique unit — AoE2 has
+      // no Elite Missionary, so demanding one here would demand an invention.
+      if (entry.unitType === 'missionary') {
+        expect(entry.elite).toBeUndefined();
+        continue;
+      }
       expect(entry.elite, entry.unitType).toBeDefined();
     }
   });
@@ -35,7 +41,8 @@ describe('the elite tier', () => {
     // faithful. So: no axis regresses, and at least one improves. This still
     // catches a transcription slip that swapped a base and an elite row.
     for (const entry of UNIQUE_UNITS_BY_CIVILIZATION) {
-      const [elite] = entry.elite!;
+      if (!entry.elite) continue; // The Missionary has no elite tier.
+      const [elite] = entry.elite;
       const base = entry.unitType;
       const axes = [
         [UNIT_MAX_HP[elite], UNIT_MAX_HP[base]],
