@@ -7,6 +7,7 @@
 import { runAttackCommandStep } from './attackCommandStep';
 import { isMonasticUnit } from '../../monasticUnits';
 import { runBuilderWorkStep } from './builderWorkStep';
+import { runRepairUnitStep } from './repairUnitStep';
 import { runTradeStep } from '../tradeCommandStep';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -197,6 +198,17 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           moveUnitOneSubgridStep(id, movePlan.nextStep, activeWorld);
+          continue;
+        }
+
+        // Unit repair (spec §8.1, v0.3.107): 'repair' with a UNIT target ref is
+        // the mechanical-unit branch — pursue and mend, no buildingRef at all.
+        if (command.type === 'repair' && command.targetEntityKind === 'unit') {
+          runRepairUnitStep({
+            world: activeWorld, accessor, id, command,
+            currentEntityId, findUnitRangePlan, isUnitAtTarget,
+            moveUnitOneSubgridStep, clearUnitCommand,
+          });
           continue;
         }
 

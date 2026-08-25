@@ -425,6 +425,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitAttackCommandDirect,
     setUnitBuildCommandDirect: buildRepairOps.setUnitBuildCommandDirect,
     tryRepairCharge: buildRepairOps.tryRepairCharge,
+    tryRepairUnitCharge: buildRepairOps.tryRepairUnitCharge,
     orderGarrison,
     setUnitGatherCommandDirect,
     setUnitMoveCommandDirect,

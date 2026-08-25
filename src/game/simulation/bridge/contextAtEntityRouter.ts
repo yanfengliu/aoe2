@@ -30,6 +30,7 @@ export function createContextAtEntityRouter(deps: {
     targetEntityId: number,
     targetBuilding: BuildingComponent,
   ) => boolean;
+  tryRepairUnitCharge: (unitId: number, targetEntityId: number) => boolean;
   orderGarrison: (unitId: number, buildingId: number) => boolean;
   setUnitGatherCommandDirect: (unitId: number, resourceId: number) => boolean;
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
@@ -41,6 +42,7 @@ export function createContextAtEntityRouter(deps: {
     setUnitAttackCommandDirect,
     setUnitBuildCommandDirect,
     tryRepairCharge,
+    tryRepairUnitCharge,
     orderGarrison,
     setUnitGatherCommandDirect,
     setUnitMoveCommandDirect,
@@ -67,6 +69,14 @@ export function createContextAtEntityRouter(deps: {
         return setUnitAttackCommandDirect(unitId, targetEntityId, 'unit');
       }
       return setUnitMoveCommandDirect(unitId, targetPosition);
+    }
+
+    // A villager right-clicking a friendly damaged siege engine or ship
+    // repairs it (spec §8.1, v0.3.107) — the mechanical counterpart of the
+    // building-repair branch below. A full-HP or organic target falls
+    // through to the ordinary move.
+    if (targetUnit && tryRepairUnitCharge(unitId, targetEntityId)) {
+      return true;
     }
 
     const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');

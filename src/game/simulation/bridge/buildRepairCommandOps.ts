@@ -7,11 +7,14 @@
 import type { EntityRef, Position } from 'civ-engine';
 
 import type { BuildingComponent, UnitComponent } from '../types';
+import { isRepairableUnitType, unitRepairCost } from '../unitRepair';
+import type { TrainableUnitType } from '../types';
 import { canAfford, repairCost, spendResources } from '../prototypeEconomyRules';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
+  combatStatesCodec,
   constructionStatesCodec,
   playerResourcesCodec,
 } from './bridgeStateSerialize';
@@ -21,6 +24,7 @@ export interface BuildRepairCommandOps {
   setUnitBuildCommandDirect(unitId: number, buildingId: number): boolean;
   setUnitRepairCommandDirect(unitId: number, buildingId: number): boolean;
   tryRepairCharge(unitId: number, targetEntityId: number, targetBuilding: BuildingComponent): boolean;
+  tryRepairUnitCharge(unitId: number, targetEntityId: number): boolean;
 }
 
 export function createBuildRepairCommandOps(deps: {
@@ -82,5 +86,38 @@ export function createBuildRepairCommandOps(deps: {
     return true;
   }
 
-  return { setUnitBuildCommandDirect, setUnitRepairCommandDirect, tryRepairCharge };
+  // Unit repair (spec §8.1, v0.3.107): the same up-front economics applied to
+  // a friendly damaged siege engine or ship. The command reuses the 'repair'
+  // word with a UNIT target ref, so saves and replays carry it for free.
+  function tryRepairUnitCharge(unitId: number, targetEntityId: number): boolean {
+    const unit = world.getComponent<UnitComponent>(unitId, 'unit');
+    if (!unit || unit.unitType !== 'villager') return false;
+    const target = world.getComponent<UnitComponent>(targetEntityId, 'unit');
+    const targetPosition = world.getComponent<Position>(targetEntityId, 'position');
+    if (!target || !targetPosition || target.owner !== unit.owner) return false;
+    if (!isRepairableUnitType(target.unitType)) return false;
+    const combat = accessor.get(combatStatesCodec).get(targetEntityId);
+    if (!combat || combat.currentHp >= combat.maxHp) return false;
+    const cost = unitRepairCost(
+      target.unitType as TrainableUnitType,
+      combat.maxHp - combat.currentHp,
+      combat.maxHp,
+    );
+    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
+    if (!stockpile || !canAfford(stockpile, cost)) return false;
+    const targetRef = getEntityRef(targetEntityId);
+    if (!targetRef) return false;
+    clearGathererOrder(unitId);
+    setUnitCommand(unitId, {
+      type: 'repair',
+      target: { x: targetPosition.x, y: targetPosition.y },
+      targetEntityRef: targetRef,
+      targetEntityKind: 'unit',
+    });
+    spendResources(stockpile, cost);
+    accessor.markDirty(playerResourcesCodec);
+    return true;
+  }
+
+  return { setUnitBuildCommandDirect, setUnitRepairCommandDirect, tryRepairCharge, tryRepairUnitCharge };
 }
