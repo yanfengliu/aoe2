@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
+  selectOwnedBuildingDirect,
+  stepBridgeUntil,
+} from './createSimulationBridge.helpers';
+import {
+  civAgeAdvanceGrant,
   civGatherRateMultiplier,
   civUnitHpMultiplier,
   civBuildingAttackBonus,
@@ -226,5 +232,37 @@ describe('building bonuses', () => {
       populationCap: 75,
     });
     expect(capped.getPopulationState(1).cap).toBe(75);
+  });
+});
+
+describe('Ethiopian age-advance grant', () => {
+  it('pays +100 food and +100 gold, and only to Ethiopians', () => {
+    expect(civAgeAdvanceGrant('Ethiopians')).toEqual({ food: 100, gold: 100 });
+    expect(civAgeAdvanceGrant('Britons')).toBeNull();
+    expect(civAgeAdvanceGrant(undefined)).toBeNull();
+  });
+
+  it('lands in the stockpile the moment the advance completes', () => {
+    // outpost-vision-fixture banks 700 food / 200 gold with the Feudal
+    // prerequisites standing; the 500-food advance leaves 200/200 for a
+    // generic civ and 300/300 for Ethiopians.
+    for (const [civ, food, gold] of [
+      ['Ethiopians', 300, 300],
+      [undefined, 200, 200],
+    ] as const) {
+      const bridge = createSimulationBridge('outpost-vision-fixture', {
+        ...(civ ? { civilizationsByOwner: new Map([[1, civ]]) } : {}),
+      });
+      expect(selectOwnedBuildingDirect(bridge, 1, 'town-center')).toBe(true);
+      expect(bridge.queueResearch('feudal-age')).toBe(true);
+      expect(
+        stepBridgeUntil(
+          bridge,
+          () => bridge.getEconomyState().playerResources[1]!.food === food
+            && bridge.getEconomyState().playerResources[1]!.gold === gold,
+          { maxSteps: 2600 },
+        ),
+      ).toBe(true);
+    }
   });
 });

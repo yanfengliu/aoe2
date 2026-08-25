@@ -40,8 +40,11 @@ import {
 import {
   combatStatesCodec,
   playerAgesCodec,
+  playerCivilizationsCodec,
+  playerResourcesCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
+import { civAgeAdvanceGrant } from '../civBonusEffects';
 import {
   isArcherLineUnit,
   isCavalryArcherUnit,
@@ -138,9 +141,25 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       rewriteQueuedPredecessorUnits(owner, from, lineUpgrade!.to);
     }
 
+    // Ethiopians: "+100 gold and +100 food when advancing to the next age" —
+    // paid the moment the advance completes, into the same stockpile the
+    // advance was paid from.
+    const grantAgeAdvanceBonus = (): void => {
+      const grant = civAgeAdvanceGrant(accessor.get(playerCivilizationsCodec).get(owner));
+      if (!grant) return;
+      const stockpile = accessor.get(playerResourcesCodec).get(owner);
+      if (!stockpile) return;
+      stockpile.food += grant.food ?? 0;
+      stockpile.wood += grant.wood ?? 0;
+      stockpile.gold += grant.gold ?? 0;
+      stockpile.stone += grant.stone ?? 0;
+      accessor.markDirty(playerResourcesCodec);
+    };
+
     switch (technologyType) {
       case 'feudal-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'feudal-age'));
+        grantAgeAdvanceBonus();
         // structures.csv "Outpost": +2 line of sight per age, for the posts
         // already standing. One built afterwards derives the same total.
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
@@ -148,6 +167,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         break;
       case 'castle-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'castle-age'));
+        grantAgeAdvanceBonus();
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
         markOutOfBandRenderChange();
         break;
@@ -156,6 +176,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // upgrade callbacks (Arbalest / Halberdier / Hussar / etc.) land in
         // Slices 7B–7D; 7A only wires the age flip so the gate tests pass.
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'imperial-age'));
+        grantAgeAdvanceBonus();
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
         markOutOfBandRenderChange();
         break;

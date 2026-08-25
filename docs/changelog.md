@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.85 — 2026-08-25
+
+Ethiopians now receive their +100 food and +100 gold the moment each age advance completes.
+
 ## 0.3.84 — 2026-08-25
 
 Ethiopian teams' towers and Outposts now see +3 farther, and Teuton Town Centers gained their +1 attack and +5 line of sight, their towers hold twice the garrison, and their monks heal from twice the distance. Landing the tower line also brought garrisoning up to the real AoE2 rules: infantry, foot archers, and monks can now shelter in Town Centers and towers (and everything but siege, ships, and trade carts in a Castle) — previously only villagers, plus archers in Castles, could garrison at all.

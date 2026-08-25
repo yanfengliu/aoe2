@@ -179,6 +179,17 @@ export function civIgnoresHousing(civilization: string | undefined): boolean {
   return civBonusesFor(civilization)?.houselessPopulation === true;
 }
 
+/**
+ * Ethiopians: "+100 gold and +100 food when advancing to the next age" —
+ * paid into the stockpile when an age advance completes. Null for everyone
+ * else so the age cases skip the mutation entirely.
+ */
+export function civAgeAdvanceGrant(
+  civilization: string | undefined,
+): Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>> | null {
+  return civBonusesFor(civilization)?.ageAdvanceResourceGrant ?? null;
+}
+
 // The owner's effective training cost for a unit, after civ cost bonuses and
 // the Shipwright discount. Returns a NEW object when discounted (the base
 // table is never mutated), and the shared base reference otherwise. This MUST

@@ -33,6 +33,8 @@ export interface CivBonusEntry {
   /** Opening adjustments: resources added (may be negative) and extra
    *  starting units beside the Town Center. */
   readonly startingResourcesDelta?: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
+  /** Paid into the stockpile each time an age advance completes. */
+  readonly ageAdvanceResourceGrant?: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
   readonly extraStartingUnits?: ReadonlyArray<{ readonly kind: UnitType | 'sheep'; readonly count: number }>;
   /** Villager gather-rate multipliers by resource kind. */
   readonly gatherRate?: Readonly<Partial<Record<ResourceKind, number>>>;
@@ -139,6 +141,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Ethiopians',
     speed: [{ applies: (unit) => FOOT_ARCHER_LINE.has(unit) || unit === 'skirmisher' || unit === 'elite-skirmisher', multiplier: 1.15 }],
+    // "Receive +100 gold and +100 food when advancing to the next age."
+    ageAdvanceResourceGrant: { food: 100, gold: 100 },
   },
   {
     civilization: 'Franks',
