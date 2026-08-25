@@ -122,6 +122,8 @@ export type ResearchableTechnologyType =
   | 'guilds'
   | 'coinage'
   | 'caravan'
+  | 'spies'
+  | 'atheism'
   | 'banking'
   | 'berserkergang'
   | 'el-dorado'

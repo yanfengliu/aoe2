@@ -857,7 +857,7 @@ Still to come: the multi-unit civilizations whose `units.csv` rows have no indiv
 
 ### 9.2.2 Unique Technologies
 
-Each civilization has one or two signature technologies, researched at its **Castle**. Eighteen of the nineteen in `design/stats/technologies.csv` are implemented; the rest are listed below with the mechanic each is waiting on, because a technology that costs 750 food and silently does nothing is worse than one that is honestly absent. The table below and `UNIQUE_TECHNOLOGIES` are checked against each other by `tests/architecture/specUniqueTechnologyTable.test.ts` — El Dorado shipped in v0.3.57 and this table did not learn about it for eight versions.
+Each civilization has one or two signature technologies, researched at its **Castle**. Nineteen of the nineteen in `design/stats/technologies.csv` are implemented — the deferred list emptied in v0.3.70, when Atheism landed on the victory countdowns Spies made meaningful. The table below and `UNIQUE_TECHNOLOGIES` are checked against each other by `tests/architecture/specUniqueTechnologyTable.test.ts` — El Dorado shipped in v0.3.57 and this table did not learn about it for eight versions.
 
 They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`). Each names which units or buildings it touches and what it adds, and one loop applies them all — the alternative was sixteen more branches on a combat-state factory that was already a forty-line ladder, each harder to read than the CSV line it came from. The same declarations drive both halves: the units already on the field are bumped when the research completes, and everything trained afterwards derives it at creation.
 
@@ -870,6 +870,7 @@ They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`
 | Chinese | Rocketry | Imperial | Chu Ko Nu +2 attack, Scorpion line +4 |
 | Franks | Bearded Axe | Imperial | Throwing Axemen +1 range |
 | Goths | Anarchy | Castle | Huskarls trainable at the Barracks |
+| Huns | Atheism | Imperial | Wonder/Relic countdowns +100 years; Spies costs half |
 | Goths | Perfusion | Imperial | Barracks train twice as fast |
 | Japanese | Kataparuto | Imperial | Trebuchets reload 25% faster |
 | Koreans | Shinkichon | Imperial | Mangonel line +1 range |
@@ -886,7 +887,11 @@ The Castle research menu opens in CASTLE age rather than Imperial, because Anarc
 
 A flat hit-point grant fills a unit that was already at full health and leaves a damaged one damaged, the same rule Loom follows. A multiplier applies to the value as it stands, so a technology stacks on top of blacksmith upgrades rather than replacing them.
 
-Not implemented, and why: **Atheism** (Huns) changes Wonder/Relic victory timers and the cost of Spies/Treason, none of which exists. (**El Dorado** was here until v0.3.57, deferred against an Eagle line that had already shipped; **Berserkergang** until v0.3.65, deferred because nothing regenerated — self-healing landed as a mechanic and the technology then cost two lines. A deferral is a claim about the build, so it goes stale on its own.) Partial where noted: Logistica's trample blast, and Crenellations' garrisoned infantry firing their own arrows, are both absent — the range and attack halves are live.
+Not implemented, and why: nothing — the list is empty. (Its history: **El Dorado** sat here until v0.3.57, deferred against an Eagle line that had already shipped; **Berserkergang** until v0.3.65, waiting on regeneration; **Atheism** until v0.3.70, waiting on Spies and on countdowns worth delaying. A deferral is a claim about the build, so it goes stale on its own — this paragraph stays as the place any future dataset row will be explained.) Partial where noted: Logistica's trample blast, and Crenellations' garrisoned infantry firing their own arrows, are both absent — the range and attack halves are live.
+
+**Spies (v0.3.70)** is the Castle's any-civilization Imperial technology and the game's only dynamically priced one: **200 gold per living enemy villager** (floor 200 — never free), halved by Atheism, counted at the moment of purchase. Its effect is the rest of the map's eyes: the buyer permanently sees every other player's line of sight, ally and enemy alike — Cartography's rule with the team filter removed. The research itself takes one second; the price is the cost. The command-card tooltip quotes the per-villager rule rather than the table floor, so the button never costs more than it says.
+
+**Atheism (v0.3.70, Huns)** adds **+100 years (1000 ticks)** to every Wonder and Relic victory countdown in the match — the ones already running when it completes, and every one that starts while any owner has it. The delay belongs to the match, not the researcher: it buys everyone time against a Wonder rush, which is what the technology is for. It also halves the price of Spies for its owner.
 
 The twelve expansion civilizations have no technology rows in the dataset at all, the same gap as their unique units (§9.2.1).
 

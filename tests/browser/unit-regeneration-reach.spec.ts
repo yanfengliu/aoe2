@@ -40,6 +40,11 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Castle');
     const research = page.locator('[data-command="research-berserkergang"]');
     await expect(research).toBeVisible();
+    // The same card offers Spies and Atheism is Huns-only, so it must NOT be
+    // here — the Vikings card showing another civilization's technology is the
+    // menu-integrity defect the class gate exists for.
+    await expect(page.locator('[data-command="research-spies"]')).toBeVisible();
+    await expect(page.locator('[data-command="research-atheism"]')).toHaveCount(0);
     await research.click();
 
     // 40 s of research at 10 ticks per second, plus room for the queue to

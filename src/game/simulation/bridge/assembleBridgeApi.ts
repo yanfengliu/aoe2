@@ -80,12 +80,14 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     // Cartography: the owners whose vision this one also sees. Empty without
     // the technology or without allies, which is every match before teams.
     getSharedVisionOwners(playerId: number) {
+      const researched = accessor.get(researchedTechnologiesCodec).get(playerId)
+        ?? EMPTY_SHARED_VISION_TECHS;
       return sharedVisionOwners(
         accessor.get(playerTeamsCodec),
         playerId,
-        (accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_SHARED_VISION_TECHS)
-          .has('cartography'),
+        researched.has('cartography'),
         accessor.get(playerResourcesCodec).keys(),
+        researched.has('spies'),
       );
     },
     getMatchState() {

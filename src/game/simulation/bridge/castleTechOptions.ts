@@ -40,6 +40,11 @@ export function castleResearchOptions(deps: CastleTechOptionsDeps): Researchable
       // Hoardings: this castle's own hit points, +21% (any civ).
       options.push('hoardings');
     }
+    if (!hasTechnology(owner, 'spies')) {
+      // Spies: see every enemy's line of sight — priced per enemy villager,
+      // so the button's tooltip quotes the live figure (any civ).
+      options.push('spies');
+    }
   }
 
   // Civilization unique technologies, gated exactly like the unique units: one

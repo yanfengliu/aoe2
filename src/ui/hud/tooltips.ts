@@ -94,6 +94,11 @@ export function formatResearchTooltip(
   techDisplayName: string,
 ): string {
   const seconds = Math.round(researchTimeTicks(technologyType) / 10);
+  if (technologyType === 'spies') {
+    // The one dynamically-priced technology: the table's 200 gold is only the
+    // floor, so a static figure here would under-quote every real charge.
+    return `Research ${techDisplayName}. Cost: 200 gold per enemy villager (halved by Atheism); takes ${seconds}s.`;
+  }
   return `Research ${techDisplayName}. Cost: ${formatResourceCost(researchCost(technologyType))}; takes ${seconds}s.`;
 }
 

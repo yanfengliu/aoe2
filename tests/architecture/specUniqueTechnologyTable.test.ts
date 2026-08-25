@@ -65,7 +65,8 @@ describe('the spec\'s unique-technology table', () => {
 
   it('names every deferred technology in the paragraph below the table', () => {
     const deferredParagraph = /Not implemented, and why:[^\n]*/.exec(SPEC)?.[0] ?? '';
-    for (const id of DEFERRED_UNIQUE_TECHNOLOGIES) {
+    // Empty since v0.3.70 — the loop is the guard for any future dataset rows.
+    for (const id of DEFERRED_UNIQUE_TECHNOLOGIES as readonly string[]) {
       const name = id.charAt(0).toUpperCase() + id.slice(1);
       expect(deferredParagraph, `${id} is deferred in code but not explained in the spec`)
         .toContain(name);

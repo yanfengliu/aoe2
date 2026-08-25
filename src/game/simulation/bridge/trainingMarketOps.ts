@@ -5,6 +5,8 @@
 // inline implementation byte-for-byte; the deps bag is the only structural
 // change.
 
+import { spiesCost } from '../spiesRules';
+import { countEnemyVillagers } from './countEnemyVillagers';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildableBuildingType,
@@ -281,7 +283,16 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const stockpile = accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) return false;
 
-    const cost = researchCost(technologyType);
+    // Spies is the one technology whose price is a QUERY, not a table row:
+    // 200 gold per living enemy villager, halved by Atheism. Everything else
+    // reads the static table.
+    const cost = technologyType === 'spies'
+      ? spiesCost(
+          countEnemyVillagers(world, building.owner),
+          (accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET)
+            .has('atheism'),
+        )
+      : researchCost(technologyType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);

@@ -37,6 +37,10 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Market (technologies.csv): the tribute fee, 30% to 20% to nothing.
   coinage: { food: 150, gold: 50 },
   caravan: { food: 200, gold: 200 }, // Market, Castle: Trade Carts 50% faster.
+  // Castle, Imperial. The table holds the FLOOR; the real Spies charge is
+  // dynamic — 200 gold per living enemy villager (spiesRules.ts).
+  spies: { gold: 200 },
+  atheism: { food: 500, gold: 500 }, // Huns, Imperial (technologies.csv).
   banking: { food: 200, gold: 100 },
   // Vikings, Castle (technologies.csv): Berserks regenerate twice as fast.
   berserkergang: { food: 850, gold: 400 },
@@ -192,6 +196,8 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   guilds: 500, // Market, Imperial: 50 s x 10 TPS.
   coinage: 500, // Market, Feudal: 50 s x 10 TPS.
   caravan: 400, // Market, Castle: 40 s x 10 TPS.
+  spies: 10, // Castle, Imperial: 1 s x 10 TPS — the price is the cost, not the wait.
+  atheism: 600, // Castle, Imperial: 60 s x 10 TPS.
   banking: 500, // Market, Castle: 50 s x 10 TPS.
   berserkergang: 400, // Castle, Imperial: 40 s x 10 TPS.
   'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.

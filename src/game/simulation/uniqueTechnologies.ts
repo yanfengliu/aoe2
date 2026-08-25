@@ -63,6 +63,10 @@ export interface UniqueTechnology {
    * that a technology's whole effect is still visible in one place.
    */
   readonly regenMultiplier?: number;
+  /** Ticks added to every Wonder/Relic victory countdown in the match, in
+   *  flight and future (Atheism). Halving the Spies price rides the same
+   *  research through spiesRules. */
+  readonly countdownExtensionTicks?: number;
 }
 
 const isInfantry = (unitType: UnitType) => INFANTRY_UNITS.has(unitType)
@@ -99,7 +103,21 @@ const is = (...types: UnitType[]) => {
   return (unitType: UnitType) => set.has(unitType);
 };
 
+// Atheism's +100 years, in ticks: the 2000-tick countdown is spec §4.3's
+// "200 in-game years", so a year is 10 ticks.
+export const ATHEISM_COUNTDOWN_EXTENSION_TICKS = 1000;
+
 export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
+  {
+    id: 'atheism',
+    name: 'Atheism',
+    civilization: 'Huns',
+    age: 'imperial-age',
+    cost: { food: 500, gold: 500 },
+    researchTicks: 600,
+    summary: 'Wonder and Relic countdowns +100 years; Spies costs half.',
+    countdownExtensionTicks: ATHEISM_COUNTDOWN_EXTENSION_TICKS,
+  },
   {
     id: 'berserkergang',
     name: 'Berserkergang',
@@ -335,7 +353,9 @@ export const EXTRA_UNIT_EFFECTS: Readonly<
  * - Atheism (Huns): +100 years to Wonder/Relic victory timers, and halves the
  *   cost of Spies/Treason, neither of which exists.
  */
-export const DEFERRED_UNIQUE_TECHNOLOGIES = ['atheism'] as const;
+// Empty since v0.3.70 — every CSV row is in the game. The list stays so the
+// roster guard keeps its shape if a future dataset adds rows.
+export const DEFERRED_UNIQUE_TECHNOLOGIES = [] as const;
 
 const BY_CIVILIZATION = new Map<string, UniqueTechnology[]>();
 for (const technology of UNIQUE_TECHNOLOGIES) {

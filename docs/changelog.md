@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.70 - 2026-08-24
+
+### Added
+
+- **Spies.** The Castle's Imperial technology for every civilization, and the game's only dynamically priced one: **200 gold per living enemy villager**, counted the moment you click — never free, and never a flat fee. It buys the rest of the map's eyes: you permanently see every other player's line of sight, ally and enemy alike. The tooltip quotes the per-villager rule, so the button never costs more than it says.
+- **Atheism**, the Huns' unique technology (500 food, 500 gold): every Wonder and Relic victory countdown in the match — running or future, yours or anyone's — gains **+100 years**, and Spies costs you half. With these two, **all 140 technology rows of the dataset are in the game**; nothing is deferred any more.
+
 ## 0.3.69 - 2026-08-24
 
 ### Added

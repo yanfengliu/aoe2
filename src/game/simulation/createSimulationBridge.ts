@@ -213,6 +213,7 @@ export function createSimulationBridge(
 
   return {
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
+    getSharedVisionOwners,
     step(deltaMs: number) {
       flushOutOfBandRenderChange();
       // Spec 2 AO-2: manual pause gate. Placed AFTER flushOutOfBandRenderChange

@@ -70,6 +70,8 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     // Civilization unique technologies; which one an owner may see is
     // decided by uniqueTechnologies.ts.
     'berserkergang',
+    'spies',
+    'atheism',
     'el-dorado',
     'garland-wars',
     'yeomen',

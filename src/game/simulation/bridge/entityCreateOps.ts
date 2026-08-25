@@ -5,6 +5,7 @@
 // implementation byte-for-byte; the only change is the dependency
 // surface is explicit instead of closure-captured.
 
+import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -246,7 +247,8 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     counters.buildingsProduced += 1;
     if (buildingType === 'wonder') {
       counters.wonderCompleted = true;
-      const totalTicks = accessor.get(wonderCountdownOverridesCodec).get(owner) ?? wonderCountdownTicks;
+      const totalTicks = (accessor.get(wonderCountdownOverridesCodec).get(owner) ?? wonderCountdownTicks)
+        + atheismCountdownExtension(accessor);
       accessor.mutate(wonderCountdownsCodec, (m) => {
         m.set(buildingId, {
           remainingTicks: totalTicks,

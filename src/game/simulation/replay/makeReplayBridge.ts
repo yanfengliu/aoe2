@@ -121,6 +121,7 @@ export function makeReplayBridge(
   return {
     // A replay's map is whatever the recorded world was built at.
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
+    getSharedVisionOwners: () => [],
     step() {
       flushOutOfBandRenderChange();
     },

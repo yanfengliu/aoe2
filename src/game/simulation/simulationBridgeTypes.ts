@@ -51,6 +51,9 @@ export interface SimulationBridge {
   /** The map this match is played on, in tiles — a per-match answer since §4's
    *  size ladder, so a camera or a click asks rather than assuming. */
   getMapSize(): MapSize;
+  /** The owners whose vision this player also sees — allies via Cartography,
+   *  everyone via Spies. Empty without either technology. */
+  getSharedVisionOwners(playerId: number): number[];
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /

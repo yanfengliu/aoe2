@@ -54,6 +54,11 @@ export function createVikingsRegenerationFixture(seed: string): PrototypeScenari
       // regeneration moves its health bar.
       ownedSpawn('berserk', 1, 24, 16, { vision: 5, startHp: 10 }),
       ownedSpawn('town-center', 2, 44, 30, { vision: 7 }),
+      // Three enemy villagers: the Spies price is 200 gold per one of these,
+      // so a fixture with none cannot tell the dynamic charge from the table.
+      ownedSpawn('villager', 2, 48, 34, { vision: 4 }),
+      ownedSpawn('villager', 2, 50, 34, { vision: 4 }),
+      ownedSpawn('villager', 2, 52, 34, { vision: 4 }),
     ],
   };
 }

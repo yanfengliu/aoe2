@@ -11,6 +11,8 @@
 // references.
 
 import { applyUniqueTechnologyToOwnedUnits } from './uniqueTechEffect';
+import { ATHEISM_COUNTDOWN_EXTENSION_TICKS } from '../uniqueTechnologies';
+import { relicCountdownsCodec, wonderCountdownsCodec } from './bridgeStateSerialize';
 import { createTechnologyUnitSweeps } from './technologyUnitSweeps';
 import { applyBuildingHpTechnology } from './buildingHpTechEffect';
 import { UNIT_LINE_UPGRADES } from './unitLineUpgrades';
@@ -370,6 +372,23 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       // the fire site; structures.csv also gives each tier more hit points
       // (1020 -> 1500 -> 2250), and Fortified Wall takes a Stone Wall from
       // 1800 to 3000 — all of which is this seam.
+      case 'atheism':
+        // +100 years to every Wonder/Relic countdown IN FLIGHT; countdowns
+        // that start later read the any-owner-has-atheism rule at creation.
+        // The Spies discount rides the researched set through spiesRules.
+        accessor.mutate(wonderCountdownsCodec, (m) => {
+          for (const entry of m.values()) {
+            entry.remainingTicks += ATHEISM_COUNTDOWN_EXTENSION_TICKS;
+            entry.totalTicks += ATHEISM_COUNTDOWN_EXTENSION_TICKS;
+          }
+        });
+        accessor.mutate(relicCountdownsCodec, (m) => {
+          for (const entry of m.values()) {
+            entry.remainingTicks += ATHEISM_COUNTDOWN_EXTENSION_TICKS;
+            entry.totalTicks += ATHEISM_COUNTDOWN_EXTENSION_TICKS;
+          }
+        });
+        break;
       case 'masonry':
       case 'architecture':
       case 'fortified-wall':
