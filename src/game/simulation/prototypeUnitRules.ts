@@ -9,7 +9,6 @@ import {
   ARCHER_LINE_UNITS,
   CAVALRY_ARCHER_UNITS,
   CAVALRY_UNITS,
-  INFANTRY_UNITS,
   MELEE_ATTACK_RANGE,
   MELEE_UNITS,
   MOUNTED_UNITS,
@@ -162,7 +161,13 @@ export function unitVisionRadius(unitType: UnitType): number {
 }
 
 export function isCavalryUnit(unitType: UnitType): boolean {
-  return CAVALRY_UNITS.has(unitType);
+  // The curated stock set plus every MELEE unit with the cavalry armor class
+  // (Cataphract, Tarkan, War Elephant, Conquistador and elites) — mounted
+  // ARCHERS (War Wagon, Mangudai) take the archer armor line instead, and the
+  // Missionary is a monk, so both are excluded by their second class.
+  if (CAVALRY_UNITS.has(unitType)) return true;
+  const classes = UNIT_ARMOR_CLASSES[unitType];
+  return classes.has('cavalry') && !classes.has('archer') && !classes.has('monk');
 }
 
 // Cavalry + the mounted-archer line — the applies-to scope of the Stable
@@ -172,7 +177,20 @@ export function isMountedUnit(unitType: UnitType): boolean {
 }
 
 export function isInfantryUnit(unitType: UnitType): boolean {
-  return INFANTRY_UNITS.has(unitType);
+  // Derived from the armor-class taxonomy (v0.3.93): the militia and spear
+  // lines, the Eagle line, and every unique infantry — Berserk, Huskarl,
+  // Samurai, Jaguar Warrior, Teutonic Knight, Woad Raider, Throwing Axeman —
+  // so the blacksmith infantry techs, Squires, Tracking, Sappers, and the
+  // infantry civ bonuses reach all of them, as in AoE2. (INFANTRY_UNITS, the
+  // old hand list, covered only the stock lines.)
+  return UNIT_ARMOR_CLASSES[unitType].has('infantry');
+}
+
+/** The Forging line's scope (AoE2): infantry, cavalry, and villagers — NOT
+ *  siege. Rams rode the old isMeleeUnit gate and wrongly gained melee attack
+ *  techs until v0.3.93. */
+export function takesMeleeAttackTechs(unitType: UnitType): boolean {
+  return isInfantryUnit(unitType) || isCavalryUnit(unitType) || unitType === 'villager';
 }
 
 export function isGunpowderUnit(unitType: UnitType): boolean {

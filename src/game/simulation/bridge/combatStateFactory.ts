@@ -19,12 +19,12 @@ import { civUnitHpMultiplier } from '../civBonusEffects';
 import { ageScaledUnitHpFactor } from '../ageScaledHp';
 import { civVillagersTakeInfantryArmor } from '../civBonusEffects';
 import {
+  takesMeleeAttackTechs,
   isArcherLineUnit,
   isCavalryArcherUnit,
   isCavalryUnit,
   isGunpowderUnit,
   isInfantryUnit,
-  isMeleeUnit,
   isMountedUnit,
   isSiegeUnit,
   unitAttackDamage,
@@ -145,7 +145,7 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       state.attackDamage += 1;
       state.attackRange += 1;
     }
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'blast-furnace')) {
+    if (takesMeleeAttackTechs(unitType) && hasTechnology(owner, 'blast-furnace')) {
       state.attackDamage += 2;
     }
     // Incas: villagers wear the infantry armor line too.
@@ -157,10 +157,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
       applyArmorTech(state, 'plate-barding');
     }
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'forging')) {
+    if (takesMeleeAttackTechs(unitType) && hasTechnology(owner, 'forging')) {
       state.attackDamage += 1;
     }
-    if (isMeleeUnit(unitType) && hasTechnology(owner, 'iron-casting')) {
+    if (takesMeleeAttackTechs(unitType) && hasTechnology(owner, 'iron-casting')) {
       state.attackDamage += 1;
     }
     if (wearsInfantryArmor && hasTechnology(owner, 'scale-mail-armor')) {

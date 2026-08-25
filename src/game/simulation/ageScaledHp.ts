@@ -34,14 +34,9 @@ export function ageScaledUnitHpFactor(
   unitType: UnitType,
   age: AgeType,
 ): number {
-  // The Berserk is infantry in AoE2 even though INFANTRY_UNITS (the blacksmith
-  // armor scope) does not list the unique infantry — the Vikings' own unique
-  // unit must ride their own bonus. Widening the infantry CLASS is a separate
-  // armor-scope question.
-  if (
-    civilization === 'Vikings'
-    && (isInfantryUnit(unitType) || unitType === 'berserk' || unitType === 'elite-berserk')
-  ) {
+  // isInfantryUnit derives from the armor-class taxonomy (v0.3.93), so the
+  // Berserk and every other unique infantry ride the ladder with the lines.
+  if (civilization === 'Vikings' && isInfantryUnit(unitType)) {
     return UNIT_LADDER[AGE_INDEX[age]]!;
   }
   if (civilization === 'Vietnamese' && ARCHERY_RANGE_UNITS.has(unitType)) {

@@ -55,7 +55,7 @@ import {
   isCavalryUnit,
   isGunpowderUnit,
   isInfantryUnit,
-  isMeleeUnit,
+  takesMeleeAttackTechs,
   isSiegeUnit,
   unitAttackDamage,
   unitAttackRange,
@@ -273,7 +273,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
           const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+          if (!unit || !combat || unit.owner !== owner || !takesMeleeAttackTechs(unit.unitType)) {
             continue;
           }
 
@@ -291,7 +291,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
           const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+          if (!unit || !combat || unit.owner !== owner || !takesMeleeAttackTechs(unit.unitType)) {
             continue;
           }
 
@@ -312,7 +312,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         for (const id of world.query('unit')) {
           const unit = world.getComponent<UnitComponent>(id, 'unit');
           const combat = accessor.get(combatStatesCodec).get(id);
-          if (!unit || !combat || unit.owner !== owner || !isMeleeUnit(unit.unitType)) {
+          if (!unit || !combat || unit.owner !== owner || !takesMeleeAttackTechs(unit.unitType)) {
             continue;
           }
 

@@ -31,6 +31,9 @@ import {
   trainingTimeTicks,
 } from '../../src/game/simulation/prototypeEconomyRules';
 import {
+  isInfantryUnit,
+  isCavalryUnit,
+  takesMeleeAttackTechs,
   attackBonusAgainstBuilding,
   attackBonusAgainstUnit,
   createWildlifeState,
@@ -126,6 +129,30 @@ describe('prototype building rules', () => {
     expect(AGE_ADVANCE_REQUIRED_COUNT).toBe(2);
     expect(isAgeUpTechnology('feudal-age')).toBe(true);
     expect(isAgeUpTechnology('fletching')).toBe(false);
+  });
+
+  it('classes unique units with their lines (armor-class taxonomy, v0.3.93)', () => {
+    // Unique infantry ride the infantry techs and bonuses.
+    for (const unique of ['berserk', 'samurai', 'teutonic-knight', 'woad-raider', 'huskarl', 'jaguar-warrior', 'throwing-axeman', 'eagle-warrior'] as const) {
+      expect(isInfantryUnit(unique)).toBe(true);
+    }
+    expect(isInfantryUnit('villager')).toBe(false);
+    expect(isInfantryUnit('knight')).toBe(false);
+    // Unique MELEE cavalry join the barding line; mounted archers and the
+    // Missionary (a monk) do not.
+    for (const unique of ['cataphract', 'tarkan', 'war-elephant', 'conquistador'] as const) {
+      expect(isCavalryUnit(unique)).toBe(true);
+    }
+    expect(isCavalryUnit('war-wagon')).toBe(false);
+    expect(isCavalryUnit('mangudai')).toBe(false);
+    expect(isCavalryUnit('missionary')).toBe(false);
+    // The Forging line: infantry + cavalry + villagers — never rams.
+    expect(takesMeleeAttackTechs('militia')).toBe(true);
+    expect(takesMeleeAttackTechs('berserk')).toBe(true);
+    expect(takesMeleeAttackTechs('knight')).toBe(true);
+    expect(takesMeleeAttackTechs('villager')).toBe(true);
+    expect(takesMeleeAttackTechs('battering-ram')).toBe(false);
+    expect(takesMeleeAttackTechs('archer')).toBe(false);
   });
 
   it('preserves garrison and arrow-count behavior', () => {

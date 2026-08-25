@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.93 — 2026-08-25
+
+Unique units now train with their class: Berserks, Samurai, Teutonic Knights and the rest benefit from infantry blacksmith upgrades, Squires, and their civilizations' infantry bonuses; Cataphracts, Tarkans and War Elephants take cavalry armor upgrades. Rams no longer wrongly gain melee attack from the Forging line.
+
 ## 0.3.92 — 2026-08-25
 
 Allied AI players now send tribute: a rich AI with a Market tops up an ally running dry, paying the fee out of its own stockpile.

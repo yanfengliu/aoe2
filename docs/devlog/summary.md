@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.93: class predicates derive from armor-class taxonomy (unique infantry join infantry techs/bonuses; unique melee cavalry join barding; mounted archers/missionary excluded by second class); Forging scope = takesMeleeAttackTechs (infantry+cavalry+villagers) — rams' wrong melee-tech gain FIXED; Garland Wars hand list folded in.
 - 2026-08-25 v0.3.92: AI tribute phase (ally <150, sender >=1000, 100 chunk via recorded tribute.send intention; executor re-validates); enemy-never-topped-up differential; red-check.
 - 2026-08-25 v0.3.91: monk conversion range 4->9 (heal/pickup/deposit stay 4); Block Printing to CSV truth (Imperial, 200g, +3 -> reach 12); boxed-monk fixtures re-tuned to 9/10 with a TRADE CART target (the villager auto-gathered the box trees and wandered — a flaky baseline).
 - 2026-08-25 v0.3.90: Incas villager armor (infantry armor line reaches villagers at sweep + factory; attack line already universal — villagers are melee); armor-field assertions with the owned-militia research-done signal; technologyOps compacted back under 500.

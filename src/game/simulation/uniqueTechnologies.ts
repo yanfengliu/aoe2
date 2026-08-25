@@ -12,7 +12,7 @@
 // the CSV line it came from. Instead each technology names which units or
 // buildings it touches and what it adds, and one loop applies them all.
 
-import { INFANTRY_UNITS } from './prototypeUnitRules/unitClassSets';
+import { isInfantryUnit } from './prototypeUnitRules';
 import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitType } from './unitTypes';
@@ -69,15 +69,9 @@ export interface UniqueTechnology {
   readonly countdownExtensionTicks?: number;
 }
 
-const isInfantry = (unitType: UnitType) => INFANTRY_UNITS.has(unitType)
-  // The infantry-class unique units are infantry for Garland Wars too.
-  || unitType === 'jaguar-warrior' || unitType === 'elite-jaguar-warrior'
-  || unitType === 'woad-raider' || unitType === 'elite-woad-raider'
-  || unitType === 'huskarl' || unitType === 'elite-huskarl'
-  || unitType === 'samurai' || unitType === 'elite-samurai'
-  || unitType === 'teutonic-knight' || unitType === 'elite-teutonic-knight'
-  || unitType === 'berserk' || unitType === 'elite-berserk'
-  || unitType === 'throwing-axeman' || unitType === 'elite-throwing-axeman';
+// v0.3.93: isInfantryUnit now derives from the armor-class taxonomy, so the
+// hand-widened unique-infantry list this file carried is folded into it.
+const isInfantry = (unitType: UnitType) => isInfantryUnit(unitType);
 
 const SIEGE_WORKSHOP_UNITS = new Set<UnitType>([
   'mangonel', 'onager', 'scorpion', 'heavy-scorpion',
