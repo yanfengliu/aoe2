@@ -12,7 +12,8 @@ export type GameAudioCue =
   | 'defeat'
   | 'research-complete'
   | 'countdown-started'
-  | 'town-bell';
+  | 'town-bell'
+  | 'order-ack';
 
 // AoE2 spaces its "town under attack" horns well apart; ~20s at 20 TPS.
 const HORN_THROTTLE_TICKS = 400;
@@ -42,6 +43,8 @@ export interface GameAudioControllerDeps {
   getCountdownActive: () => boolean;
   /** Successful town-bell rings so far (monotonic; 0 where bells cannot ring). */
   getTownBellRings: () => number;
+  /** Successful order gestures so far (monotonic; the ack-click source). */
+  getOrderAcks: () => number;
   playCue: (cue: GameAudioCue) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
@@ -56,7 +59,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   const {
     getTick, getCurrentAge, getMatchOutcome,
     getRecentAttacks, getOwnTownEntities,
-    getResearchedCount, getCountdownActive, getTownBellRings, playCue, storage,
+    getResearchedCount, getCountdownActive, getTownBellRings, getOrderAcks, playCue, storage,
   } = deps;
 
   let muted = readStoredMute(storage);
@@ -70,6 +73,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   let knownResearched: number | null = null;
   let countdownWasActive = false;
   let knownBellRings: number | null = null;
+  let knownOrderAcks: number | null = null;
 
   function cue(name: GameAudioCue): void {
     if (!muted) playCue(name);
@@ -138,6 +142,20 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     }
   }
 
+  function pollAcks(): void {
+    const acks = getOrderAcks();
+    if (knownOrderAcks === null) {
+      knownOrderAcks = acks;
+      return;
+    }
+    if (acks > knownOrderAcks) {
+      // One click per poll however many gestures landed between frames — a
+      // machine-gun burst for queued clicks would be noise.
+      knownOrderAcks = acks;
+      cue('order-ack');
+    }
+  }
+
   function pollCountdown(): void {
     const active = getCountdownActive();
     if (active && !countdownWasActive) cue('countdown-started');
@@ -152,6 +170,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
       pollResearch();
       pollCountdown();
       pollBell();
+      pollAcks();
     },
     isMuted: () => muted,
     setMuted(next: boolean): void {

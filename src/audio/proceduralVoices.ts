@@ -108,6 +108,13 @@ function townBell(context: AudioContext): void {
   ]);
 }
 
+// Order acknowledged: one very soft, very short tick — felt, not heard.
+function orderAck(context: AudioContext): void {
+  playNotes(context, [
+    { frequency: 520, startSeconds: 0, durationSeconds: 0.06, type: 'square', peak: 0.16 },
+  ]);
+}
+
 const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'town-under-attack': horn,
   'age-up': ageUp,
@@ -116,6 +123,7 @@ const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'research-complete': researchComplete,
   'countdown-started': countdownStarted,
   'town-bell': townBell,
+  'order-ack': orderAck,
 };
 
 /** Play one cue through the given context. */

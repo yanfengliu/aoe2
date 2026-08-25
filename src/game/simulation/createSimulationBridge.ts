@@ -189,6 +189,13 @@ export function createSimulationBridge(
   // v0.3.116: live-facade tally of successful bell rings — audio-only, not
   // sim state, not persisted; replays return 0 and stay silent.
   let townBellRings = 0;
+  // v0.3.118: one ack per successful user ORDER GESTURE (not per unit) —
+  // the audio's soft click. Live-facade only, like the bell tally.
+  let orderAcks = 0;
+  const ack = (didIssue: boolean): boolean => {
+    if (didIssue) orderAcks += 1;
+    return didIssue;
+  };
   const { getRenderState: getRenderStateInternal } = createRenderStateOps({
     visibility,
     humanPlayerId: HUMAN_PLAYER_ID,
@@ -219,9 +226,9 @@ export function createSimulationBridge(
   let agentDispatchObserver: import('./dispatcher').AgentDispatchObserver | null = null;
 
   const issueContextCommandAtEntity = (entityId: number, options?: { garrison?: boolean; forceAttack?: boolean }): boolean => {
-    const didIssue = issueContextCommandAtEntityInternal(
+    const didIssue = ack(issueContextCommandAtEntityInternal(
       entityId, options?.garrison ?? false, options?.forceAttack ?? false,
-    );
+    ));
     if (!didIssue) {
       return false;
     }
@@ -345,9 +352,9 @@ export function createSimulationBridge(
     },
     setSelectionStance,
     setSelectionFormation,
-    issueAttackMoveCommand,
-    issueAttackGroundCommand,
-    issuePatrolCommand,
+    issueAttackMoveCommand: (x: number, y: number) => ack(issueAttackMoveCommand(x, y)),
+    issueAttackGroundCommand: (x: number, y: number) => ack(issueAttackGroundCommand(x, y)),
+    issuePatrolCommand: (x: number, y: number) => ack(issuePatrolCommand(x, y)),
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,
@@ -364,12 +371,12 @@ export function createSimulationBridge(
     selectUnitsInBox,
     clearSelection,
     issueContextCommand(x: number, y: number, garrison?: boolean) {
-      const didIssue = issueContextCommand(x, y, garrison);
+      const didIssue = ack(issueContextCommand(x, y, garrison));
       flushOutOfBandRenderChange();
       return didIssue;
     },
     issueContextCommandAtEntity,
-    issueMoveCommand,
+    issueMoveCommand: (x: number, y: number) => ack(issueMoveCommand(x, y)),
     issueAction(actionType: ActionType) {
       const didIssue = issueAction(actionType);
       if (didIssue && actionType === 'ring-town-bell') townBellRings += 1;
@@ -377,6 +384,7 @@ export function createSimulationBridge(
       return didIssue;
     },
     getTownBellRings: () => townBellRings,
+    getOrderAcks: () => orderAcks,
     queueTrainUnit,
     queueResearch,
     issueMarketAction,

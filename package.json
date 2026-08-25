@@ -1,6 +1,6 @@
 {
   "name": "aoe2",
-  "version": "0.3.117",
+  "version": "0.3.118",
   "private": true,
   "type": "module",
   "scripts": {

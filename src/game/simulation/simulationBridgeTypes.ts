@@ -86,6 +86,8 @@ export interface SimulationBridge {
   deleteSelectedEntity(): boolean;
   /** Successful town-bell rings this session (v0.3.116 audio observable). */
   getTownBellRings(): number;
+  /** Successful order gestures this session (v0.3.118 ack-click observable). */
+  getOrderAcks(): number;
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(

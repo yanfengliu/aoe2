@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.118
+
+- Orders now click softly when accepted — one tick per command, felt more than heard.
+
 ## 0.3.117
 
 - Attack-ground: press G and click a cell — your mangonels bombard the spot on their reload, targets or no targets, exactly as in AoE2. The order stands until you say otherwise.

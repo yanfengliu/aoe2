@@ -55,6 +55,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       return new Map(rows ?? []).get(HUMAN_PLAYER_ID)?.length ?? 0;
     },
     getTownBellRings: () => bridgeRef().getTownBellRings(),
+    getOrderAcks: () => bridgeRef().getOrderAcks(),
     getCountdownActive: () => {
       const match = bridgeRef().getMatchState();
       return match.wonderCountdownTicks !== null || match.relicCountdownTicks !== null;
