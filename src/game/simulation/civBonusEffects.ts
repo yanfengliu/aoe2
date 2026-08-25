@@ -20,8 +20,8 @@ import type {
   TrainableUnitType,
   UnitType,
 } from './types';
-import { isInfantryUnit } from './prototypeUnitRules';
 import { trainingCost } from './prototypeEconomyRules';
+import { civBonusesFor } from './civBonusTable';
 import { shipwrightWoodCost } from './dockTechEffects';
 
 // Britons shepherds gather sheep 25% faster.
@@ -45,78 +45,70 @@ export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.5;
 // Mongols Light Cavalry and Hussars have +30% HP.
 export const MONGOLS_SCOUT_HP_MULTIPLIER = 1.3;
 
-// The Knight LINE — the applies-to scope of the Franks HP bonus. Excludes the
-// Scout line, Camels, and Cavalry Archers (which are also mounted).
-const KNIGHT_LINE_UNITS = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
+// Every seam below reads the declared table (civBonusTable.ts) — the if-chain
+// era ended at five civilizations, and the table now carries every CSV line
+// these seams can express. An unknown/undefined civilization reads neutral.
 
-// The upgraded Scout line — the applies-to scope of the Mongols HP bonus. Per
-// the CSV ("Light Cavalry and Hussars") the base Scout Cavalry is excluded.
-const MONGOLS_SCOUT_HP_UNITS = new Set<UnitType>(['light-cavalry', 'hussar']);
-
-// The owner's civilization gather-rate multiplier for a concrete resource KIND.
-// 1.0 (no bonus) unless a civ bonus matches both the civ and the kind.
 export function civGatherRateMultiplier(
   civilization: string | undefined,
   kind: ResourceKind,
 ): number {
-  if (civilization === 'Britons' && kind === 'sheep') {
-    return BRITONS_SHEEP_GATHER_MULTIPLIER;
-  }
-  if (civilization === 'Mongols' && kind === 'boar') {
-    return MONGOLS_BOAR_GATHER_MULTIPLIER;
-  }
-  return 1;
+  return civBonusesFor(civilization)?.gatherRate?.[kind] ?? 1;
 }
 
-// The owner's civilization max-HP multiplier for a unit type. 1.0 (no bonus)
-// unless a civ bonus matches both the civ and the unit. Applied to the BASE HP
-// at combat-state creation, before flat tech bonuses (Bloodlines, Loom) add.
+// Applied to the BASE HP at combat-state creation, before flat tech bonuses
+// (Bloodlines, Loom) add.
 export function civUnitHpMultiplier(
   civilization: string | undefined,
   unitType: UnitType,
 ): number {
-  if (civilization === 'Franks' && KNIGHT_LINE_UNITS.has(unitType)) {
-    return FRANKS_KNIGHT_HP_MULTIPLIER;
-  }
-  if (civilization === 'Mongols' && MONGOLS_SCOUT_HP_UNITS.has(unitType)) {
-    return MONGOLS_SCOUT_HP_MULTIPLIER;
+  for (const rule of civBonusesFor(civilization)?.unitHp ?? []) {
+    if (rule.applies(unitType)) return rule.multiplier;
   }
   return 1;
 }
 
-// The owner's civilization ADDITIVE attack bonus against buildings for an
-// attacker unit. 0 unless a civ bonus matches. Read at the unit→building damage
+// ADDITIVE attack bonus against buildings, read at the unit→building damage
 // site alongside the Sappers tech bonus (which uses the same shape).
 export function civBuildingAttackBonus(
   civilization: string | undefined,
   attackerType: UnitType,
 ): number {
-  if (civilization === 'Goths' && isInfantryUnit(attackerType)) {
-    return GOTHS_INFANTRY_BUILDING_ATTACK_BONUS;
+  for (const rule of civBonusesFor(civilization)?.buildingAttack ?? []) {
+    if (rule.applies(attackerType)) return rule.bonus;
   }
   return 0;
 }
 
-// The owner's civilization train-TIME multiplier for a unit type. 1.0 (no
-// change) unless a civ bonus matches. Aztecs train MILITARY (every non-villager
-// trainable) 15% faster; villagers are unaffected. Applied to the unit's total
-// train ticks at the single enqueue site (trainingMarketOps).
+// Train-TIME multiplier, applied to the unit's total train ticks at the single
+// enqueue site (trainingMarketOps).
 export function civTrainTimeMultiplier(
   civilization: string | undefined,
   unitType: UnitType,
 ): number {
-  if (civilization === 'Aztecs' && unitType !== 'villager') {
-    return AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER;
+  for (const rule of civBonusesFor(civilization)?.trainTime ?? []) {
+    if (rule.applies(unitType)) return rule.multiplier;
+  }
+  return 1;
+}
+
+// Movement-speed multiplier, applied in the movement tech seam so it composes
+// with Squires/Husbandry/Caravan exactly as a technology would.
+export function civSpeedMultiplier(
+  civilization: string | undefined,
+  unitType: UnitType,
+): number {
+  for (const rule of civBonusesFor(civilization)?.speed ?? []) {
+    if (rule.applies(unitType)) return rule.multiplier;
   }
   return 1;
 }
 
 // The owner's effective training cost for a unit, after civ cost bonuses and
-// the Shipwright discount.
-// Goths infantry cost 35% less from the Feudal Age; otherwise the base cost.
-// Returns a NEW object when discounted (the base table is never mutated), and
-// the shared base reference otherwise. This MUST be used at every training-cost
-// site — the charge AND every affordability/validation check — so they agree.
+// the Shipwright discount. Returns a NEW object when discounted (the base
+// table is never mutated), and the shared base reference otherwise. This MUST
+// be used at every training-cost site — the charge AND every affordability or
+// validation check — so they agree.
 export function effectiveTrainingCost(
   civilization: string | undefined,
   age: AgeType,
@@ -124,16 +116,36 @@ export function effectiveTrainingCost(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
 ): Partial<PlayerResources> {
   // Shipwright discounts a ship's wood 20%. It is a TECHNOLOGY rather than a
-  // civilization bonus, but it belongs at this seam for the reason the comment
-  // above gives: every site that charges or checks a training cost must agree,
-  // and they all come through here.
+  // civilization bonus, but every site that charges or checks a training cost
+  // comes through here, so it belongs at this seam.
   const base = shipwrightWoodCost(researchedTechnologies, unitType, trainingCost(unitType));
-  if (civilization === 'Goths' && age !== 'dark-age' && isInfantryUnit(unitType)) {
-    const scaled: Partial<PlayerResources> = {};
-    for (const key of Object.keys(base) as (keyof PlayerResources)[]) {
-      scaled[key] = Math.round((base[key] ?? 0) * GOTHS_INFANTRY_COST_MULTIPLIER);
+  const rules = civBonusesFor(civilization)?.cost ?? [];
+  let cost: Partial<PlayerResources> | null = null;
+  const writable = (): Partial<PlayerResources> => {
+    if (!cost) cost = { ...base };
+    return cost;
+  };
+  for (const rule of rules) {
+    if (!rule.applies(unitType)) continue;
+    const multiplier = rule.multiplier ?? rule.multiplierByAge?.[age];
+    if (multiplier !== undefined && multiplier !== 1) {
+      const target = writable();
+      for (const key of Object.keys(target) as (keyof PlayerResources)[]) {
+        target[key] = Math.round((target[key] ?? 0) * multiplier);
+      }
     }
-    return scaled;
+    if (rule.goldMultiplier !== undefined) {
+      const target = writable();
+      if (target.gold !== undefined) {
+        target.gold = Math.round(target.gold * rule.goldMultiplier);
+      }
+    }
+    if (rule.woodDelta !== undefined) {
+      const target = writable();
+      if (target.wood !== undefined) {
+        target.wood = Math.max(0, target.wood + rule.woodDelta);
+      }
+    }
   }
-  return base;
+  return cost ?? base;
 }

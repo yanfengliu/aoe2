@@ -23,7 +23,11 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
-import { constructionStatesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import {
+  constructionStatesCodec,
+  playerCivilizationsCodec,
+  researchedTechnologiesCodec,
+} from './bridgeStateSerialize';
 import {
   movementEntitlement,
   movementSpeedPercent,
@@ -34,10 +38,9 @@ import { markUnitAttackMovementStartedForEntity } from './unitAttackAnimationFee
 
 type CivWorld = GameWorld;
 
-// Spec §12.6 contract surface — the worldOccupancy module returns this and
-// exposes `placeUnitForSpawn` / `getUnitSlotOffset` so future spawn / movement
-// layers can consume the engine-allocated visual slot. Production code paths
-// without a live occupancy context use the entity-id-derived fallback in
+// Spec §12.6 contract surface — worldOccupancy returns this and exposes
+// `placeUnitForSpawn` / `getUnitSlotOffset` so spawn/movement layers consume
+// the engine-allocated visual slot. Paths without live occupancy use the
 // pureHelpers.
 export interface TransformOpsDeps {
   world: GameWorld;
@@ -291,14 +294,11 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
 
     // Movement-speed model (spec §12.5): an explicitly-passed stepUnits (the
     // sheep site) bypasses the model; every other mover derives its per-tick
-    // step grant from its owner's researched techs via the per-unit carry
-    // accumulator (movementTechEffects — the gatherProgressTicks pattern). The
-    // carry banks whatever a waypoint/map clamp doesn't let through, because
-    // movement is issued as per-CELL waypoint legs and a stateless surge
-    // schedule loses its extra step to the leg clamp (every 4-fine-unit leg
-    // costs 2 ticks whether granted 2+2 or 3-clamped-to-2 + 2). The un-teched
-    // path (speed percent 100) never reads or writes the carry — byte-identical
-    // to the pre-speed-model behavior.
+    // grant from its owner's techs + civ via the per-unit carry accumulator
+    // (movementTechEffects). The carry banks whatever a waypoint/map clamp
+    // doesn't let through — legs are per-CELL, so a stateless surge loses its
+    // extra step to the leg clamp. The 100-percent path never touches the
+    // carry: byte-identical to the pre-speed-model behavior.
     let resolvedStepUnits = stepUnits ?? UNIT_SUBGRID_STEP_PER_TICK;
     let entitledHundredths: number | null = null;
     if (stepUnits === undefined) {
@@ -307,7 +307,8 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         ? accessor.get(researchedTechnologiesCodec).get(unit.owner)
         : undefined;
       const speedPercent = unit && researched
-        ? movementSpeedPercent(researched, unit.unitType)
+        ? movementSpeedPercent(researched, unit.unitType,
+            accessor.get(playerCivilizationsCodec).get(unit.owner))
         : 100;
       if (speedPercent !== 100) {
         const entitlement = movementEntitlement(

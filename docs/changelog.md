@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.77 - 2026-08-24
+
+### Added
+
+- **Seventeen more civilizations play differently.** Every `civilizations.csv` bonus the game's derived seams can express is now in: Celts infantry march 15% faster and their lumberjacks cut faster; Koreans mine stone faster and Turks gold; Slavs farm faster and Indians fish faster; Turkish gunpowder, Portuguese ships, Chinese demolition ships, Japanese fishing ships and Saracen transports are tougher; Saracen cavalry archers punish buildings; Berbers walk and sail faster with cheaper stables; Ethiopian archers outpace their rivals; and Byzantines, Huns, Mayans, Indians, Magyars, Vikings, Italians and Portuguese all pay their own prices at the recruitment queue. The five original identities are unchanged; the rest of the CSV (free technologies, starting bonuses, age-scaled HP and more) is listed in the spec as the open remainder.
+
 ## 0.3.76 - 2026-08-24
 
 ### Added

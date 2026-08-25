@@ -16,6 +16,7 @@
 // movement stays byte-identical and never materializes the field.
 
 import { isMonasticUnit } from './monasticUnits';
+import { civSpeedMultiplier } from './civBonusEffects';
 import type { ResearchableTechnologyType, UnitType } from './types';
 import { DRY_DOCK_SPEED_PERCENT, dryDockSpeedsUp } from './dockTechEffects';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
@@ -71,11 +72,19 @@ export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
 export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
+  civilization?: string,
 ): number {
   // The unit's own rate is the STARTING point, not a special case: a Mangonel
   // is slow whether or not anyone researched anything, and Husbandry makes a
   // knight 10% faster than a KNIGHT rather than 10% faster than a villager.
   let percent = unitBaseSpeedPercent(unitType);
+  // Civilization speed bonuses (Celts infantry, Berbers villagers and ships,
+  // Ethiopians archers) multiply first, so the tech ladder stacks on top of a
+  // civ's own rate exactly as it stacks on a unit's own rate.
+  const civMultiplier = civSpeedMultiplier(civilization, unitType);
+  if (civMultiplier !== 1) {
+    percent = Math.round(percent * civMultiplier);
+  }
   // Civilization unique technologies that move a unit faster (Drill, Mahouts)
   // multiply the base like any other modifier. They are read from the researched
   // set alone rather than from the owner's civilization, because a technology
