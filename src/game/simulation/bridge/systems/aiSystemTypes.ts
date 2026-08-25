@@ -74,6 +74,11 @@ export interface AiSystemDeps {
   ) => void;
   pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
   pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
+  pushUnitContextIntention: (
+    unitId: number,
+    target: { x: number; y: number },
+    garrison: boolean,
+  ) => void;
   pushTributeIntention: (
     playerId: number,
     toPlayerId: number,

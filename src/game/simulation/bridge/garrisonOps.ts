@@ -122,6 +122,16 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
     if (!transport || transport.unitType !== 'transport-ship' || aboard.length === 0) {
       return false;
     }
+    // The ship must actually BE at the shore it is unloading onto (v0.3.95):
+    // without this, pointing a loaded transport at a distant coast teleported
+    // the cargo across the map. The router turns a far click into a sail.
+    const transportPosition = world.getComponent<Position>(transportId, 'position');
+    if (
+      !transportPosition
+      || Math.abs(transportPosition.x - target.x) + Math.abs(transportPosition.y - target.y) > 3
+    ) {
+      return false;
+    }
 
     const remaining: number[] = [];
     let landed = 0;

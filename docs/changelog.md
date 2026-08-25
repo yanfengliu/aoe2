@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.95 — 2026-08-25
+
+All eight classic maps are now playable — Islands completes the roster. The AI has learned amphibious war: it trains a Transport Ship, loads its army, sails the channel, and lands on your shore. A loaded transport can also no longer teleport its cargo to a distant coast: the ship must actually be at the shore it unloads onto, and a far-off shore click sails it there instead.
+
 ## 0.3.94 — 2026-08-25
 
 The Nomad map is here — seven of AoE2's eight famous maps now playable. Every player begins as three villagers in the wilderness: build a lumber camp, bank 275 wood, and raise your Town Center where you choose. The AI does exactly that too.

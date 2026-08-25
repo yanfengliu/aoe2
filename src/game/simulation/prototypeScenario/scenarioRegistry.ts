@@ -17,6 +17,7 @@ import {
   createCoastalMap,
   createFortressMap,
   createGoldRushMap,
+  createIslandsMap,
   createNomadMap,
 } from '../mapGeneration/standardVariantMaps';
 import type { PrototypeScenario } from '../prototypeScenario';
@@ -163,6 +164,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-khmer-house-fixture', fixtures.createCivKhmerHouseFixture],
   ['civ-incas-armor-fixture', fixtures.createCivIncasArmorFixture],
   ['ai-tribute-fixture', fixtures.createAiTributeFixture],
+  ['ai-ferry-fixture', fixtures.createAiFerryFixture],
+  ['ai-ferry-train-fixture', fixtures.createAiFerryTrainFixture],
   ['civ-goths-infantry-fixture', fixtures.createCivGothsInfantryFixture],
   ['civ-goths-infantry-control-fixture', fixtures.createCivGothsInfantryControlFixture],
   ['civ-aztecs-train-fixture', fixtures.createCivAztecsTrainFixture],
@@ -303,6 +306,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['fortress', createFortressMap],
   ['gold-rush', createGoldRushMap],
   ['nomad', createNomadMap],
+  ['islands', createIslandsMap],
   // Slice 12 Task B: scenario-validation fixtures. Each seed exercises
   // one failure mode of the bridge-boot validation pass; the
   // `-ok-fixture` is the positive control.

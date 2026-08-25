@@ -109,4 +109,35 @@ describe('crossing a strait', () => {
       return landed !== null && landed.x > STRAIT.maxX;
     }, { maxSteps: 600 }), 'the militia never came ashore east of the strait').toBe(true);
   });
+
+  it('a FAR shore click sails the loaded ship instead of teleporting the cargo (v0.3.95)', () => {
+    const { bridge, militiaId, shipId } = transportRun();
+    const ship = cellOf(bridge, shipId)!;
+    bridge.world.submitWithResult('unit.context', {
+      unitId: militiaId, target: { x: ship.x, y: ship.y },
+    });
+    expect(stepBridgeUntil(bridge, () => cellOf(bridge, militiaId) === null,
+      { maxSteps: 600 })).toBe(true);
+
+    // Order the LOADED ship straight at the far shore from across the map.
+    const before = cellOf(bridge, shipId)!;
+    expect(bridge.world.submitWithResult('unit.context', {
+      unitId: shipId, target: { x: EAST_SHORE.x, y: EAST_SHORE.y },
+    }).accepted).toBe(true);
+    // The cargo must NOT appear ashore instantly; the ship sails instead.
+    for (let index = 0; index < 40; index += 1) bridge.step(100);
+    expect(cellOf(bridge, militiaId)).toBeNull();
+    const after = cellOf(bridge, shipId)!;
+    expect(after.x).toBeGreaterThan(before.x);
+    // And the same click DOES unload once the ship has crossed.
+    expect(stepBridgeUntil(bridge, () => (cellOf(bridge, shipId)?.x ?? 0) >= STRAIT.maxX,
+      { maxSteps: 900 })).toBe(true);
+    expect(bridge.world.submitWithResult('unit.context', {
+      unitId: shipId, target: { x: EAST_SHORE.x, y: EAST_SHORE.y },
+    }).accepted).toBe(true);
+    expect(stepBridgeUntil(bridge, () => {
+      const landed = cellOf(bridge, militiaId);
+      return landed !== null && landed.x > STRAIT.maxX;
+    }, { maxSteps: 600 })).toBe(true);
+  });
 });

@@ -42,6 +42,28 @@ export interface ContextRouterDeps {
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
 }
 
+
+// The nearest water cell to a shore target, ring-scanned outward (radius 4):
+// where a transport can actually stand to unload onto that land.
+function nearestWaterCellNear(
+  target: Position,
+  isLandCell: (x: number, y: number) => boolean,
+  grid: { width: number; height: number },
+): Position | null {
+  for (let radius = 1; radius <= 4; radius += 1) {
+    for (let dy = -radius; dy <= radius; dy += 1) {
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        if (Math.abs(dx) + Math.abs(dy) !== radius) continue;
+        const x = target.x + dx;
+        const y = target.y + dy;
+        if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) continue;
+        if (!isLandCell(x, y)) return { x, y };
+      }
+    }
+  }
+  return null;
+}
+
 export function createContextRouter(deps: ContextRouterDeps) {
   const {
     world,
@@ -70,11 +92,17 @@ export function createContextRouter(deps: ContextRouterDeps) {
     // (HUD-side fast path). The validator rejects monk units so this
     // branch only runs for non-monks.
 
-    // A transport ordered onto land puts its cargo ashore there. It cannot go
-    // there itself, so without this the order would be a move it can never
-    // complete — and unloading is the only reason to point a transport at land.
+    // A transport ordered onto land puts its cargo ashore there — when the
+    // ship is actually at that shore (unloadTransport's distance guard).
+    // From farther away the same click is a SAIL toward the nearest water
+    // beside that shore; the unload is a second click on arrival (v0.3.95 —
+    // the guard closed a cargo teleport, so the far click must do something
+    // useful instead of nothing).
     if (unit.unitType === 'transport-ship' && isLandCell(target.x, target.y)) {
-      return unloadTransport(unitId, target);
+      if (unloadTransport(unitId, target)) return true;
+      const shoreWater = nearestWaterCellNear(target, isLandCell, world.grid);
+      if (shoreWater) return setUnitMoveCommandDirect(unitId, shoreWater);
+      return false;
     }
     // A land unit ordered onto a friendly transport gets aboard.
     const transportId = findOwnedTransportAtCell(target.x, target.y, unit.owner);

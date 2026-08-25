@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.95: Islands map (8 of 8 — roster COMPLETE) + AI ferry (BFS-from-target island model; board/sail/unload via recorded channels; ferry pre-empts building phase after macro spending ate the boat's wood; hold counts toward army size after full boarding zeroed it) + unloadTransport distance guard closing a cargo-teleport hole (far click now sails).
 - 2026-08-25 v0.3.94: Nomad map (7 of 8) — nomadStart flag through matchSettings; first-TC-any-age build rule (injected predicate); AI lumber-camp-first opening gated on TC placeability (also enables castle-age TC rebuild); forest patches were the missing piece (villagers idled — no trees near start); visuals inspected; red-check 2+3.
 - 2026-08-25 v0.3.93: class predicates derive from armor-class taxonomy (unique infantry join infantry techs/bonuses; unique melee cavalry join barding; mounted archers/missionary excluded by second class); Forging scope = takesMeleeAttackTechs (infantry+cavalry+villagers) — rams' wrong melee-tech gain FIXED; Garland Wars hand list folded in.
 - 2026-08-25 v0.3.92: AI tribute phase (ally <150, sender >=1000, 100 chunk via recorded tribute.send intention; executor re-validates); enemy-never-topped-up differential; red-check.

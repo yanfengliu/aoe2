@@ -87,6 +87,7 @@ export interface RegisterBridgeSystemsDeps {
   pushQueueTrainIntention: RegisterAllSystemsArg['pushQueueTrainIntention'];
   pushMarketActionIntention: RegisterAllSystemsArg['pushMarketActionIntention'];
   pushTributeIntention: RegisterAllSystemsArg['pushTributeIntention'];
+  pushUnitContextIntention: RegisterAllSystemsArg['pushUnitContextIntention'];
   pushBuildingPlaceConfirmIntention: RegisterAllSystemsArg['pushBuildingPlaceConfirmIntention'];
   pushMonkContextAtEntityIntention: RegisterAllSystemsArg['pushMonkContextAtEntityIntention'];
   pushUnitContextAtEntityIntention: RegisterAllSystemsArg['pushUnitContextAtEntityIntention'];
@@ -189,6 +190,7 @@ export function registerBridgeSystems(
     pushQueueTrainIntention,
     pushMarketActionIntention,
     pushTributeIntention,
+    pushUnitContextIntention,
     pushBuildingPlaceConfirmIntention,
     pushMonkContextAtEntityIntention,
     pushUnitContextAtEntityIntention,
@@ -260,6 +262,7 @@ export function registerBridgeSystems(
     pushQueueTrainIntention,
     pushMarketActionIntention,
     pushTributeIntention,
+    pushUnitContextIntention,
     pushBuildingPlaceConfirmIntention,
     pushMonkContextAtEntityIntention,
     pushUnitContextAtEntityIntention,

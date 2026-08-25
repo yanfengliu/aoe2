@@ -384,6 +384,7 @@ export { createCivGothsPopFixture } from './civGothsPop';
 export { createCivKhmerHouseFixture } from './civKhmerHouse';
 export { createCivIncasArmorFixture } from './civIncasArmor';
 export { createAiTributeFixture } from './aiTribute';
+export { createAiFerryFixture, createAiFerryTrainFixture } from './aiFerry';
 
 export {
   createCivGothsInfantryFixture,

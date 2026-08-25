@@ -75,6 +75,18 @@ export function createAiIntentionPushers({ state }: AiIntentionPushersDeps) {
         data: { unitId, targetEntityId, garrison },
       });
     },
+    // v0.3.95 ferry: a raw cell-context — the router's own rules decide what
+    // it means (board at a transport's cell, unload at a shore, move else).
+    pushUnitContextIntention: (
+      unitId: number,
+      target: { x: number; y: number },
+      garrison: boolean,
+    ) => {
+      state.pendingCommands.push({
+        type: 'unit.context',
+        data: { unitId, target, garrison },
+      });
+    },
     // Empties a building of everyone sheltering in it — the AI's "all clear".
     pushBuildingActionIntention: (buildingId: number, actionType: 'ungarrison') => {
       state.pendingCommands.push({

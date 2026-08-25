@@ -25,6 +25,7 @@ import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
 import { runTradePhase } from './aiTradePhase';
 import { runTributePhase } from './aiTributePhase';
+import { runFerryPhase } from './aiFerryPhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
 import { runHuntPhase } from './aiSystemHuntPhase';
 import { isEnemyOwner } from '../../alliances';
@@ -173,15 +174,23 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           pendingBuildsByOwner,
         };
 
+        // Islands (v0.3.95): when the target is across open water, the ferry
+        // owns the military this tick — the ordinary march stands down, and
+        // so does discretionary BUILDING, because the macro list would spend
+        // the very wood the Transport Ship needs (observed: barracks + mill
+        // ate the bank while the dock queue stayed empty).
+        const ferrying = runFerryPhase(deps, ctx);
         runDefensePhase(deps, ctx);
-        runBuildingPhase(deps, ctx);
+        if (!ferrying) runBuildingPhase(deps, ctx);
         runProductionPhase(deps, ctx);
         runTradePhase(deps, ctx);
         runTributePhase(deps, ctx);
         // After production, because a villager trained this tick is not idle yet,
         // and before the attack phase, which is about military rather than food.
         runHuntPhase(deps, ctx);
-        runAttackPhase(deps, ctx);
+        if (!ferrying) {
+          runAttackPhase(deps, ctx);
+        }
       }
     },
   });

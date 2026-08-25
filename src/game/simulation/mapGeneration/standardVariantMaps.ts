@@ -190,3 +190,34 @@ export function createNomadMap(seed: string): PrototypeScenario {
     nomadStart: true,
   };
 }
+
+/** Islands: two land masses split by open sea — the map the AI could not play
+ *  until it learned to ferry (aiFerryPhase, v0.3.95). Each island carries the
+ *  full standard opening plus its forest; shore fish line the channel so
+ *  Docks are worth building early. */
+export function createIslandsMap(seed: string): PrototypeScenario {
+  const terrain: TerrainCellSpec[][] = Array.from({ length: MAP_HEIGHT }, (_, y) =>
+    Array.from({ length: MAP_WIDTH }, (_, x) => createTerrainCell(x, y, 'water')));
+  const WEST = { minX: 2, maxX: 24 };
+  const EAST = { minX: MAP_WIDTH - 25, maxX: MAP_WIDTH - 3 };
+  for (let y = 2; y < MAP_HEIGHT - 2; y += 1) {
+    for (let x = WEST.minX; x <= WEST.maxX; x += 1) {
+      terrain[y]![x] = createTerrainCell(x, y, 'grass');
+    }
+    for (let x = EAST.minX; x <= EAST.maxX; x += 1) {
+      terrain[y]![x] = createTerrainCell(x, y, 'grass');
+    }
+  }
+  const starts = createPlayerStarts();
+  const spawns = createSpawnList();
+  // Pin the two standard starts onto their islands.
+  if (starts[0]) starts[0].townCenter = { x: 12, y: Math.floor(MAP_HEIGHT / 2) };
+  if (starts[1]) starts[1].townCenter = { x: MAP_WIDTH - 13, y: Math.floor(MAP_HEIGHT / 2) };
+  applyStandardPlayerOpening(terrain, starts, spawns, seed);
+  for (const start of starts) {
+    for (const patch of FOREST_PATCHES) {
+      applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
+    }
+  }
+  return { seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain, starts, spawns: spawns.toArray() };
+}

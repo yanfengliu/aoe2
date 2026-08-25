@@ -90,6 +90,11 @@ export interface RegisterAllSystemsDeps {
   // v0.1.91: AI emits a market.action to cover an age-up shortfall (playerId
   // carried explicitly, like the human path); the validator gates ownership.
   pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
+  pushUnitContextIntention: (
+    unitId: number,
+    target: { x: number; y: number },
+    garrison: boolean,
+  ) => void;
   pushTributeIntention: (
     playerId: number,
     toPlayerId: number,
