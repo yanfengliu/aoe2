@@ -100,6 +100,14 @@ try {
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
   });
+  // Freeze the sim the moment it boots: the page otherwise free-runs in real
+  // time through staging (BUILD/FOCUS/ZOOM evaluates take real seconds), so a
+  // capture's tick was "TICKS plus however long the tooling took" — and any
+  // short-lived transient (a death collapse lives 10 ticks) was ALWAYS gone
+  // by screenshot time. TICKS advances are exact from tick ~0 now, and the
+  // screenshot is taken still paused; pause-frozen rendering is byte-identical
+  // by project invariant, so nothing else changes.
+  await page.evaluate(() => { window.__AOE2_TEST__?.setPaused(true); });
   // BUILD="house@10,16" places a building via a selected villager BEFORE the
   // TICKS run, so a capture can stage a real mid-construction site.
   const build = process.env.BUILD ?? '';
@@ -149,14 +157,13 @@ try {
     }
     // advanceTicks is atomic (unpause -> step N -> repause) inside the page, so
     // it is exact; chunked so a long advance does not exceed the call timeout.
-    await page.evaluate((count) => { window.__AOE2_TEST__?.setPaused(true); }, ticks);
+    // The sim STAYS paused afterwards — the screenshot is of exactly this tick.
     let done = 0;
     while (done < ticks) {
       const chunk = Math.min(500, ticks - done);
       await page.evaluate((count) => { window.__AOE2_TEST__?.advanceTicks(count); }, chunk);
       done += chunk;
     }
-    await page.evaluate(() => { window.__AOE2_TEST__?.setPaused(false); });
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath, fullPage: false });

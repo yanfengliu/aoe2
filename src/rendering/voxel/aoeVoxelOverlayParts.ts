@@ -5,7 +5,7 @@ import type {
 import { createProjectileParts } from './aoeVoxelProjectileParts';
 import type { PlacementPreviewViewState } from '../viewTypes';
 import { ISO_TILE_HEIGHT } from '../isometricProjection';
-import { VOXEL_VERTICAL_PIXELS_PER_WORLD_UNIT } from './aoeVoxelGeometry';
+import { VOXEL_VERTICAL_PIXELS_PER_WORLD_UNIT, staticVoxelPartsForEntity } from './aoeVoxelGeometry';
 import type { VoxelPart, VoxelSurface } from './aoeVoxelRecipeTypes';
 
 export interface VoxelOverlayEntity {
@@ -201,15 +201,66 @@ function placementParts(preview: PlacementPreviewViewState | null): VoxelPart[] 
   return parts;
 }
 
+// Death collapse (v0.3.119): rebuild the dead unit's OWN recipe as a corpse
+// that tips over and sinks across the feed window — a fall, not a debris
+// pile. Deterministic: progress comes from (frame.tick - death.tick), the
+// fall heading from a hash of the death id, so the same death always falls
+// the same way in replays and saves alike.
+const DEATH_FEED_WINDOW_TICKS = 10;
+
 function deathParts(frame: ProjectedFrameView | null): VoxelPart[] {
   if (!frame) return [];
   return frame.recentUnitDeaths.flatMap((death) => {
     const prefix = `ui:death:${String(death.id)}:${String(death.tick)}`;
-    return [
-      part(`${prefix}:debris-a`, 'ui', death.tint, death.x + 0.35, 0.18, death.y + 0.42, 0.22, 0.22, 0.22),
-      part(`${prefix}:debris-b`, 'ui', 0x6d4430, death.x + 0.58, 0.12, death.y + 0.58, 0.18, 0.16, 0.26),
-      part(`${prefix}:debris-c`, 'ui', 0xb9a889, death.x + 0.48, 0.1, death.y + 0.3, 0.14, 0.13, 0.14),
-    ];
+    const progress = Math.min(1, Math.max(0, (frame.tick - death.tick) / DEATH_FEED_WINDOW_TICKS));
+    // A hashed horizontal fall direction, stable per death.
+    const heading = ((death.id * 2654435761) >>> 16) % 628 / 100;
+    const fx = Math.sin(heading);
+    const fz = Math.cos(heading);
+    // Ease-in: most of the topple happens in the first half of the window,
+    // then the body lies flat and settles — a 23-degree lean reads as a
+    // standing unit, so a linear ramp hid the whole event (capture-proven).
+    const theta = Math.min(1, progress ** 0.55) * 1.45;
+    const sink = Math.max(0, progress - 0.6) / 0.4 * 0.35;
+    const corpseView = {
+      id: death.id,
+      kind: 'unit',
+      entityType: death.unitType,
+      owner: death.owner,
+      tint: death.tint,
+      size: death.size,
+      x: death.x - 0.5,
+      y: death.y - 0.5,
+      footprintWidth: 1,
+      footprintHeight: 1,
+      currentHp: 0,
+      maxHp: 1,
+      selected: false,
+      isMemory: false,
+    } as unknown as ProjectedEntityView;
+    const body = staticVoxelPartsForEntity(corpseView, prefix)
+      // The recipe's contact shadow makes no sense under a toppling body,
+      // and a dying soldier DROPS his gear — a spear riding the fall reads
+      // as a flying plank (the first capture proved it), so weapons, tools,
+      // and shields vanish with the killing blow.
+      .filter((bodyPart) => !/(?:shadow|spear|sword|bow|shield|tool|polearm|halberd|javelin|blade|banner|quiver|crest)/u.test(bodyPart.key))
+      .map((bodyPart) => ({
+        ...bodyPart,
+        // Tip: height leans into the fall direction, the body flattens.
+        centerX: bodyPart.centerX + Math.sin(theta) * bodyPart.centerY * fx,
+        centerZ: bodyPart.centerZ + Math.sin(theta) * bodyPart.centerY * fz,
+        centerY: Math.max(0.04, bodyPart.centerY * Math.cos(theta) - sink),
+        pitch: (bodyPart.pitch ?? 0) + theta,
+        pitchHeadingRadians: Math.atan2(fx, fz),
+      }));
+    // The old debris joins late, as the body settles into the ground.
+    const debris = progress > 0.5
+      ? [
+        part(`${prefix}:debris-a`, 'ui', death.tint, death.x + 0.35, 0.12, death.y + 0.42, 0.18, 0.14, 0.18),
+        part(`${prefix}:debris-b`, 'ui', 0x6d4430, death.x + 0.58, 0.08, death.y + 0.58, 0.14, 0.1, 0.2),
+      ]
+      : [];
+    return [...body, ...debris];
   });
 }
 

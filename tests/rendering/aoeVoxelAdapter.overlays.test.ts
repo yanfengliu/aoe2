@@ -104,7 +104,9 @@ describe('AoeVoxelAdapter world feedback projection', () => {
       'ui:health:7:3:fill',
       'ui:placement:house:0:0:cell:0:0',
       'ui:placement:house:0:0:blocked',
-      'ui:death:9:9:debris-a',
+      // v0.3.119 death collapse: the corpse is the unit's OWN recipe tipping
+      // over — a body part, not the old instant debris pile.
+      'ui:death:9:9:infantry-arm-left',
     ]));
     expect(snapshot.resources).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'material', key: 'aoe2:material:ui', shading: 'unlit' }),
