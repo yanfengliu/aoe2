@@ -86,6 +86,8 @@ export interface CreateWorldResult {
   issueContextCommand: (x: number, y: number, garrison?: boolean) => boolean;
   issueContextCommandAtEntity: (entityId: number, garrison?: boolean, forceAttack?: boolean) => boolean;
   countIdleVillagers: () => number;
+  assignControlGroup: (digit: number) => boolean;
+  recallControlGroup: (digit: number) => boolean;
   selectNextIdleVillager: () => boolean;
   issueMoveCommand: (x: number, y: number) => boolean;
   issueAction: (actionType: ActionType) => boolean;

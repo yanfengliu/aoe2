@@ -196,6 +196,8 @@ export function makeReplayBridge(
     },
     countIdleVillagers: () => 0,
     selectNextIdleVillager: () => false,
+    assignControlGroup: () => false,
+    recallControlGroup: () => false,
     getPopulationState(playerId: number) {
       return api.getPopulationState(playerId);
     },

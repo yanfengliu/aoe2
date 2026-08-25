@@ -308,4 +308,15 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     // Selecting one does not change the idle count (selection is not work).
     await expect(bell.locator('[data-idle-count]')).toHaveText('3');
   });
+
+  test('control groups bind with Ctrl+1 and recall with 1, through REAL keys', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'aoe2-prototype');
+    // Select a villager, bind it to group 1, clear, recall by key.
+    expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    await page.keyboard.press('Control+1');
+    await page.evaluate(() => window.__AOE2_TEST__!.clearSelection());
+    await expect(page.locator('[data-selection-name]')).toHaveText('No selection');
+    await page.keyboard.press('1');
+    await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
+  });
 });

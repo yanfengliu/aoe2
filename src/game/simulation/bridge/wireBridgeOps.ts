@@ -7,6 +7,7 @@ import {
 } from './bridgeStateSerialize';
 import type { UnitTaskState } from '../types';
 import { bootScenarioOrLoad } from './bootScenarioOrLoad';
+import { createControlGroupOps } from './controlGroupOps';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
 import { buildCommandValidatorDeps } from './commandValidatorDeps';
@@ -259,6 +260,11 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     clearSelection,
   } = unitCommandOps;
 
+  const { assignControlGroup, recallControlGroup } = createControlGroupOps({
+    getSelectedEntityRefs,
+    selectByRefs,
+  });
+
   const finalize = registerBridgeSystems({
     selectUnitsByIds,
     world,
@@ -433,6 +439,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
 
   return {
     ...finalize,
+    assignControlGroup,
+    recallControlGroup,
     ...agentOptionsOps,
     sendTribute: tributeOps.sendTribute,
     listTributeTargets: tributeOps.listTributeTargets,

@@ -65,6 +65,9 @@ export interface SimulationBridge {
    *  round-robin next-selection AoE2 binds to '.'. */
   countIdleVillagers(): number;
   selectNextIdleVillager(): boolean;
+  /** Control groups (v0.3.104): Ctrl+digit binds, digit recalls survivors. */
+  assignControlGroup(digit: number): boolean;
+  recallControlGroup(digit: number): boolean;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
   // setters that preserve EntityRef.generation. Used by AnnotationController

@@ -409,6 +409,27 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     if (unit) view.centerCameraOnWorldPosition(unit.x + 0.5, unit.y + 0.5);
   };
   hotkeyRegistry.register({ key: '.' }, selectNextIdleVillagerAndCenter);
+  // Control groups (v0.3.104): Ctrl+digit binds the current selection,
+  // digit recalls the survivors, and a quick second tap centres the camera
+  // on the group — AoE2's own three-part gesture.
+  let lastRecall = { digit: -1, atMs: 0 };
+  for (let digit = 1; digit <= 9; digit += 1) {
+    hotkeyRegistry.register({ key: String(digit), ctrl: true }, () => {
+      bridge.assignControlGroup(digit);
+    });
+    hotkeyRegistry.register({ key: String(digit) }, () => {
+      if (!bridge.recallControlGroup(digit)) return;
+      const now = performance.now();
+      if (lastRecall.digit === digit && now - lastRecall.atMs < 450) {
+        const id = bridge.getSelectionState().selectedEntityId;
+        const unit = id === null
+          ? undefined
+          : bridge.getEconomyState().units.find((candidate) => candidate.id === id);
+        if (unit) view.centerCameraOnWorldPosition(unit.x + 0.5, unit.y + 0.5);
+      }
+      lastRecall = { digit, atMs: now };
+    });
+  }
   const idleBell = createIdleVillagerBell({
     countIdleVillagers: () => bridge.countIdleVillagers(),
     selectNext: selectNextIdleVillagerAndCenter,
