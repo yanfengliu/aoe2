@@ -23,7 +23,7 @@ export function createConquestVictoryFixture(seed: string): PrototypeScenario {
     ],
     spawns: [
       ownedSpawn('militia', 1, 8, 8, { vision: 6 }),
-      ownedSpawn('house', 2, 10, 8, { vision: 4 }),
+      ownedSpawn('house', 2, 10, 8, { vision: 4, startHp: 40 }), // fragile: the contract is destruction -> outcome, not the chew (houses are 900 HP since v0.3.97)
     ],
   };
 }
@@ -43,7 +43,7 @@ export function createConquestDefeatFixture(seed: string): PrototypeScenario {
       { owner: 2, townCenter: { x: 14, y: 8 } },
     ],
     spawns: [
-      ownedSpawn('house', 1, 8, 8, { vision: 6 }),
+      ownedSpawn('house', 1, 8, 8, { vision: 6, startHp: 40 }),
       ownedSpawn('militia', 2, 11, 8, { vision: 5 }),
     ],
   };

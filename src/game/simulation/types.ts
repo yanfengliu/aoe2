@@ -86,7 +86,7 @@ export type GatherTaskState =
   | 'to-resource'
   | 'gathering'
   | 'to-dropoff';
-export type RenderVisualVariant = 'default' | 'construction' | 'complete';
+export type RenderVisualVariant = 'default' | 'construction' | 'complete' | 'damaged';
 
 export interface TerrainComponent {
   kind: TerrainKind;

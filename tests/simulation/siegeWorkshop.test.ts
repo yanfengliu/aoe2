@@ -113,8 +113,9 @@ describe('Slice 4 Siege Workshop + siege units', () => {
 
   it('deals +125 bonus damage when a Battering Ram attacks a building', () => {
     // Ram base attack is 2 + 125 anti-building bonus = 127 damage per hit. A
-    // House has 75 HP, so a single hit destroys it. The v1 combat model has
-    // no building-armor reduction (only unit armor for ranged/melee).
+    // House has 900 HP (structures.csv, v0.3.97), so eight hits raze it —
+    // ~5s of reload cycles. The v1 combat model has no building-armor
+    // reduction (only unit armor for ranged/melee).
     const bridge = createSimulationBridge('ram-vs-building-fixture');
 
     const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
@@ -130,7 +131,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
       stepBridgeUntil(
         bridge,
         () => bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house') === undefined,
-        { maxSteps: 200 },
+        { maxSteps: 1200 },
       ),
     ).toBe(true);
   }, 20_000);

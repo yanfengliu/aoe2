@@ -143,7 +143,7 @@ describe('createSimulationBridge dark age economy progression', () => {
 
     const initialHealth = bridge.getEntityHealth(placed!.id);
     expect(initialHealth).not.toBeNull();
-    expect(initialHealth!.maxHp).toBe(75);
+    expect(initialHealth!.maxHp).toBe(900); // house HP per structures.csv (v0.3.97)
     expect(initialHealth!.currentHp).toBeGreaterThan(0);
     expect(initialHealth!.currentHp).toBeLessThan(initialHealth!.maxHp * 0.2);
 
@@ -166,7 +166,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     ).toBe(true);
     const finishedHouse = findHouse()!;
     const finalHealth = bridge.getEntityHealth(finishedHouse.id);
-    expect(finalHealth).toEqual({ currentHp: 75, maxHp: 75 });
+    expect(finalHealth).toEqual({ currentHp: 900, maxHp: 900 });
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('preserves mid-construction HP across save/load round-trip', () => {
@@ -199,7 +199,7 @@ describe('createSimulationBridge dark age economy progression', () => {
     const midHouse = findHouseIn(original)!;
     const savedHealth = original.getEntityHealth(midHouse.id)!;
     expect(savedHealth.currentHp).toBeGreaterThan(7);
-    expect(savedHealth.currentHp).toBeLessThan(75);
+    expect(savedHealth.currentHp).toBeLessThan(900);
 
     const blob = original.saveGame();
     const restored = createSimulationBridge(DEFAULT_SEED, { savedGame: blob });

@@ -119,25 +119,30 @@ import { BUILDING_TINTS } from './buildingTintTable';
 
 export type { BuildingTintPalette } from './buildingTintTable';
 
+// structures.csv hit_points at each building's FIRST age (v0.3.97 — until
+// then houses had 75 HP and towers 175, prototype-era placeholders a damage
+// fixture finally tripped over). The CSV's later-age rows raise military
+// buildings further (1200/1500/1800/2100 for a Barracks) — that per-age
+// ladder is a follow-up; the base values below are the CSV's debut rows.
 const BUILDING_MAX_HP: Record<BuildingType, number> = {
   'town-center': 2400,
-  house: 75,
-  mill: 100,
-  'lumber-camp': 100,
-  'mining-camp': 100,
-  barracks: 175,
-  'watch-tower': 175,
+  house: 900,
+  mill: 1000,
+  'lumber-camp': 1000,
+  'mining-camp': 1000,
+  barracks: 1200,
+  'watch-tower': 1020,
   'bombard-tower': 2220, // structures.csv hit_points
-  stable: 175,
-  'archery-range': 175,
-  blacksmith: 175,
-  market: 175,
-  'siege-workshop': 2000,
+  stable: 1500,
+  'archery-range': 1500,
+  blacksmith: 2100,
+  market: 2100,
+  'siege-workshop': 2100,
   monastery: 2100,
   university: 2100,
   castle: 4800,
   wonder: 4800,
-  'stone-wall': 2000,
+  'stone-wall': 1800,
   'palisade-wall': 250,
   // structures.csv "Gate": 2750 HP — tougher than the wall it stands in,
   // because it is the obvious place to attack.

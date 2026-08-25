@@ -9,7 +9,7 @@ import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge
 
 describe('repairCost — a fraction of the build cost, scaled by missing HP', () => {
   it('charges ceil(0.5 * buildCost * missing/max) per resource, nothing at full HP', () => {
-    // House: 25 wood, maxHp 75. Missing 45 → 0.5*25*45/75 = 7.5 → ceil 8.
+    // House: 25 wood, maxHp 900 (v0.3.97). Missing 870 → 0.5*25*870/900 → ceil 13.
     expect(repairCost('house', 45, 75)).toEqual({ wood: 8 });
     // Full HP → no cost.
     expect(repairCost('house', 0, 75)).toEqual({});
@@ -32,18 +32,18 @@ describe('villager repair (spec §8.1)', () => {
     expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
     // Process the command (routing charges the repair cost up front).
     bridge.step(100);
-    // ceil(0.5 * 25 wood * 45/75) = 8 wood.
-    expect(woodBefore - bridge.getHudState().playerResources.wood).toBe(8);
+    // ceil(0.5 * 25 wood * 870/900) = 13 wood (house 900 HP since v0.3.97).
+    expect(woodBefore - bridge.getHudState().playerResources.wood).toBe(13);
 
     expect(
       stepBridgeUntil(
         bridge,
-        () => (bridge.getEntityHealth(house!.id)?.currentHp ?? 0) >= 75,
-        { maxSteps: 2000 },
+        () => (bridge.getEntityHealth(house!.id)?.currentHp ?? 0) >= 900,
+        { maxSteps: 8000 },
       ),
     ).toBe(true);
-    expect(bridge.getEntityHealth(house!.id)?.currentHp).toBe(75);
+    expect(bridge.getEntityHealth(house!.id)?.currentHp).toBe(900);
     // No further charge once the building is back to full HP.
-    expect(woodBefore - bridge.getHudState().playerResources.wood).toBe(8);
+    expect(woodBefore - bridge.getHudState().playerResources.wood).toBe(13);
   }, 20_000);
 });

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.97 — 2026-08-25
+
+Wounded buildings now burn: drop under 40% hit points and flames with drifting smoke appear until you repair. And buildings finally have their real AoE2 toughness — houses stand at 900 hit points instead of a prototype-era 75, towers at 1020, military buildings 1200 and up.
+
 ## 0.3.96 — 2026-08-25
 
 Watch towers now fire more arrows with a garrison aboard: each sheltered archer or villager adds an arrow up to the classic cap of five. Infantry keep their swords to themselves, and the Bombard Tower still fires its one great cannon.

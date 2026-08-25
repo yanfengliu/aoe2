@@ -1,6 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
-import { createBuildingDetailParts } from './aoeVoxelBuildingDetails';
+import { createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
 import {
   contactShadow,
   makePart,
@@ -469,6 +469,8 @@ export function createBuildingParts(
     return context.parts;
   }
   switch (buildingRole(entity.entityType as BuildingType)) {
+    // (role dispatch below; a 'damaged' building renders its normal body and
+    // then wears fire — see the flames appended after the switch.)
     case 'town-center': townCenter(context); break;
     case 'fortress': fortress(context); break;
     case 'wonder': wonder(context); break;
@@ -488,5 +490,9 @@ export function createBuildingParts(
     case 'fish-trap': fishTrap(context); break;
   }
   context.parts.push(...createBuildingDetailParts(entity, identity, ground));
+  if (entity.visualVariant === 'damaged') {
+    context.parts.push(...damageFlames(entity, identity, ground, width, depth));
+  }
   return context.parts;
 }
+

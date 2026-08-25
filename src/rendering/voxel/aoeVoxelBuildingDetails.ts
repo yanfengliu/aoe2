@@ -1,5 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import {
+  hash01,
   makePart,
   shade,
   VOXEL_COLORS,
@@ -266,4 +267,34 @@ export function createBuildingDetailParts(
     case 'farm': farm(context); break;
   }
   return context.parts;
+}
+
+// Fire on a wounded building (v0.3.97): two or three deterministic flame
+// tongues — a broad orange base, a red tip, and a smoke cube drifting above —
+// hashed off the building's cell so the same ruin always burns in the same
+// places, saves and replays included. Memory ghosts inherit the reduced
+// opacity automatically like every other part.
+export function damageFlames(
+  entity: ProjectedEntityView,
+  identity: string,
+  ground: number,
+  width: number,
+  depth: number,
+): VoxelPart[] {
+  const parts: VoxelPart[] = [];
+  const flameCount = 2 + Math.floor(hash01(entity.x, entity.y, 97) * 2); // 2..3
+  for (let index = 0; index < flameCount; index += 1) {
+    const fx = entity.x + 0.2 + hash01(entity.x + index, entity.y, 31) * (width - 0.4);
+    const fz = entity.y + 0.2 + hash01(entity.x, entity.y + index, 57) * (depth - 0.4);
+    const flameHeight = 0.7 + hash01(entity.x + index, entity.y + index, 73) * 0.5;
+    parts.push(
+      makePart(entity, identity, `flame-base-${index}`, 'matte', 0xe07818,
+        fx, ground + flameHeight * 0.35, fz, 0.3, flameHeight * 0.7, 0.3),
+      makePart(entity, identity, `flame-tip-${index}`, 'matte', 0xc23a1a,
+        fx, ground + flameHeight * 0.85, fz, 0.18, flameHeight * 0.5, 0.18),
+      makePart(entity, identity, `flame-smoke-${index}`, 'matte', 0x4a4642,
+        fx + 0.08, ground + flameHeight + 0.45, fz - 0.06, 0.26, 0.26, 0.26),
+    );
+  }
+  return parts;
 }

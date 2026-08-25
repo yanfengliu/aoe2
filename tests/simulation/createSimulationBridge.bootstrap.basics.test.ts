@@ -110,8 +110,10 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
       maxHp: 40,
     });
     expect(initialHouse).toMatchObject({
-      currentHp: 75,
-      maxHp: 75,
+      // The conquest fixture seeds its house FRAGILE (startHp 40) so the
+      // destruction tests stay quick; max is the CSV's 900 (v0.3.97).
+      currentHp: 40,
+      maxHp: 900,
     });
 
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
@@ -126,7 +128,7 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
             .entities.find(
               (entity) => entity.owner === 2 && entity.kind === 'building' && entity.entityType === 'house',
             );
-          return (damagedHouse?.currentHp ?? 75) < (damagedHouse?.maxHp ?? 75);
+          return (damagedHouse?.currentHp ?? 900) < (damagedHouse?.maxHp ?? 900);
         },
         { maxSteps: 220 },
       ),
@@ -137,7 +139,7 @@ describe('createSimulationBridge core systems — visibility/health/selection', 
       .entities.find(
         (entity) => entity.owner === 2 && entity.kind === 'building' && entity.entityType === 'house',
       );
-    expect(damagedHouse?.currentHp).toBeLessThan(damagedHouse?.maxHp ?? 75);
+    expect(damagedHouse?.currentHp).toBeLessThan(damagedHouse?.maxHp ?? 900);
   });
 
   it('projects player-facing unit selection details for the HUD', () => {
