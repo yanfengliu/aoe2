@@ -343,8 +343,9 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     // closure — moved here.)
     openReplayLoadDialog: () => { void replayLoadDialog.open(); },
     // v0.1.95: game-menu wiring. Pause the sim while the menu overlays it; Restart
-    // reloads the same scenario, Quit drops the URL params back to a fresh start
-    // (there is no separate title screen yet, so both are page reloads).
+    // reloads the same scenario. Quit drops the URL params — and a bare URL is
+    // exactly what shouldShowSetupScreen accepts, so since v0.3.79 Quit lands
+    // on the match setup screen (setupScreen.test.ts pins the composition).
     setPaused: (paused: boolean) => { if (paused) { pauseControl.pause(); } else { pauseControl.resume(); } },
     isPaused: () => pauseControl.isPaused(),
     onRestart: () => { window.location.reload(); },

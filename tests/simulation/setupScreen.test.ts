@@ -19,6 +19,10 @@ describe('when the setup screen shows', () => {
   it('shows on a bare URL and never on a configured one', () => {
     expect(shouldShowSetupScreen('http://localhost/')).toBe(true);
     expect(shouldShowSetupScreen('http://localhost/?seed=aoe2-prototype')).toBe(false);
+    // Quit to title (createApp onQuit) navigates to origin+pathname — the
+    // param-stripped form of any in-match URL must land on the setup screen.
+    const inMatch = new URL('http://localhost/?seed=aoe2-prototype&players=4&civ=Huns');
+    expect(shouldShowSetupScreen(inMatch.origin + inMatch.pathname)).toBe(true);
     expect(shouldShowSetupScreen('http://localhost/?players=4')).toBe(false);
     // ANY param counts — a harness flag must not open a menu over its run.
     expect(shouldShowSetupScreen('http://localhost/?disableAi=2')).toBe(false);
