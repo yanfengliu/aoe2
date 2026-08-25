@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.78 - 2026-08-24
+
+### Added
+
+- **Free civilization technologies.** Twelve civilizations now receive their "X free" grants the way AoE2 gives them: the technology researches itself at no cost the moment you could legally buy it. Aztec Loom arrives moments into the Dark Age; Viking Wheelbarrow with Feudal; Frankish farm upgrades as soon as a Mill stands; Turkish Chemistry with Imperial — and eight more.
+
 ## 0.3.77 - 2026-08-24
 
 ### Added

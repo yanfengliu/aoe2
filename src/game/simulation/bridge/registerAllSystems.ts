@@ -13,6 +13,7 @@ import { registerAutoAggressionSystem } from './systems/autoAggressionSystem';
 import { registerFogMemorySystem } from './systems/fogMemorySystem';
 import { registerGarrisonHealSystem } from './systems/garrisonHealSystem';
 import { registerUnitRegenerationSystem } from './systems/unitRegenerationSystem';
+import { registerFreeTechnologySystem } from './systems/freeTechnologySystem';
 import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
 import { registerMatchResolutionSystems } from './registerMatchResolutionSystems';
 import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
@@ -325,6 +326,9 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerGarrisonHealSystem({ world, accessor });
   // Self-healing units: the Berserk line, doubled by Berserkergang.
   registerUnitRegenerationSystem({ world, accessor, markOutOfBandRenderChange });
+  // Civilization free technologies (spec §9.2): grants ride the same menu and
+  // applier a paid research uses, just at zero cost the moment they open.
+  registerFreeTechnologySystem({ world, accessor, getResearchOptions, applyTechnology });
 
   registerProductionQueueSystem({
     world,

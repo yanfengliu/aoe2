@@ -194,6 +194,26 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
 ];
 
+// "X free" (spec §9.2): the technology researches ITSELF, instantly and at no
+// cost, the moment the owner could legally research it — its age reached and a
+// building standing whose menu offers it. AoE2's own rule (Franks farm
+// upgrades wait for a Mill; Viking carts arrive with the age), and the reason
+// the free-tech system checks the same research MENU a player would click.
+export const CIV_FREE_TECHNOLOGIES: Readonly<Record<string, readonly import('./technologyTypes').ResearchableTechnologyType[]>> = {
+  Aztecs: ['loom'],
+  Byzantines: ['town-watch'],
+  Franks: ['horse-collar', 'heavy-plow', 'crop-rotation'],
+  Koreans: ['guard-tower', 'keep'],
+  Teutons: ['murder-holes'],
+  Turks: ['chemistry', 'light-cavalry-upgrade', 'hussar-upgrade'],
+  Vikings: ['wheelbarrow', 'hand-cart'],
+  Burmese: ['double-bit-axe', 'bow-saw', 'two-man-saw'],
+  Ethiopians: ['pikeman-upgrade', 'halberdier-upgrade'],
+  Magyars: ['forging', 'iron-casting', 'blast-furnace'],
+  Malians: ['gold-mining', 'gold-shaft-mining'],
+  Slavs: ['tracking'],
+};
+
 export function civBonusesFor(civilization: string | undefined): CivBonusEntry | undefined {
   if (civilization === undefined) return undefined;
   return CIV_BONUSES.find((entry) => entry.civilization === civilization);
