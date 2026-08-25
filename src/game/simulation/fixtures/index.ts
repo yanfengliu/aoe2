@@ -422,6 +422,10 @@ export {
 } from './tradeRoute';
 
 export {
+  createNavalTradeFixture,
+} from './navalTrade';
+
+export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
 

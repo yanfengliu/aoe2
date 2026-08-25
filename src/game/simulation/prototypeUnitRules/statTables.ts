@@ -67,6 +67,7 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   trebuchet: 150,
   petard: 50, // units.csv hit_points.
   'trade-cart': 70, // units.csv hit_points.
+  'trade-cog': 80, // units.csv hit_points.
   'man-at-arms': 50,
   'long-swordsman': 60,
   'two-handed-swordsman': 65,
@@ -161,6 +162,7 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   trebuchet: 200,
   petard: 25, // units.csv attack, before its enormous building bonus.
   'trade-cart': 0, // units.csv attack 0: it carries goods, not weapons.
+  'trade-cog': 0, // units.csv attack 0.
   'man-at-arms': 6,
   'long-swordsman': 9,
   'two-handed-swordsman': 11,
@@ -261,6 +263,7 @@ export const UNIT_RELOAD_TICKS: Record<UnitType, number> = {
   // value units.csv carries (0) raised to a legal cadence.
   petard: 20,
   'trade-cart': 20, // never fires (attack 0); the reload is inert.
+  'trade-cog': 20, // never fires (attack 0); the reload is inert.
   'man-at-arms': 20,
   'long-swordsman': 20,
   'two-handed-swordsman': 20,
@@ -355,6 +358,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   trebuchet: 16,
   petard: MELEE_ATTACK_RANGE, // units.csv range 0: it walks up to the wall.
   'trade-cart': MELEE_ATTACK_RANGE, // attack 0 — the range is never used.
+  'trade-cog': MELEE_ATTACK_RANGE, // attack 0 — the range is never used.
   'man-at-arms': MELEE_ATTACK_RANGE,
   'long-swordsman': MELEE_ATTACK_RANGE,
   'two-handed-swordsman': MELEE_ATTACK_RANGE,

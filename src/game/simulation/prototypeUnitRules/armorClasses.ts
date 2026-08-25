@@ -91,6 +91,7 @@ export const UNIT_ARMOR_CLASSES = {
   // siege weapon, which is why anti-siege units answer it.
   petard: new Set<ArmorClass>(['infantry', 'siege']),
   'trade-cart': new Set<ArmorClass>([]), // units.csv: no armour classes.
+  'trade-cog': new Set<ArmorClass>(['ship']),
   'fishing-ship': new Set<ArmorClass>(['ship']),
   'transport-ship': new Set<ArmorClass>(['ship']),
   'galley': new Set<ArmorClass>(['ship']),

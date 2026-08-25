@@ -57,6 +57,7 @@ const UNIT_ROLES = {
   petard: 'infantry',
   // A loaded cart reads as a wheeled engine, not a walker.
   'trade-cart': 'siege',
+  'trade-cog': 'ship',
   'fishing-ship': 'ship',
   'transport-ship': 'ship',
   'galley': 'ship',

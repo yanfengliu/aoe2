@@ -16,6 +16,7 @@ export type UnitDomain = 'land' | 'water';
 // a mistakenly-water land unit would be silently unable to leave the coast.
 const WATER_UNITS = new Set<UnitType>([
   'fishing-ship',
+  'trade-cog',
   // Carries land units, but is itself a ship: it paths over water only.
   'transport-ship',
   'galley',

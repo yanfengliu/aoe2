@@ -89,6 +89,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'trebuchet': ['Trebuchet', 'Trebuchets'],
   'petard': ['Petard', 'Petards'],
   'trade-cart': ['Trade Cart', 'Trade Carts'],
+  'trade-cog': ['Trade Cog', 'Trade Cogs'],
   'fishing-ship': ['Fishing Ship', 'Fishing Ships'],
   'transport-ship': ['Transport Ship', 'Transport Ships'],
   'galley': ['Galley', 'Galleys'],
@@ -181,9 +182,9 @@ describe('entity display names', () => {
   it('falls back to the raw id for an unknown future type, pluralising with +s', () => {
     // Verified against the pre-table switches: the singular default returned
     // the bare id, the plural default appended 's'.
-    const unknown = 'trade-cog' as Entity;
-    expect(formatEntityName(unknown)).toBe('trade-cog');
-    expect(formatEntityPluralName(unknown)).toBe('trade-cogs');
+    const unknown = 'ox-wagon' as Entity;
+    expect(formatEntityName(unknown)).toBe('ox-wagon');
+    expect(formatEntityPluralName(unknown)).toBe('ox-wagons');
   });
 
   it('still classifies unit types', () => {

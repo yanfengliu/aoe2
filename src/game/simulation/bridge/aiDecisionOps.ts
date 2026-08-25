@@ -62,6 +62,7 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       // M5 naval: warships count as army; a Fishing Ship never does.
       case 'fishing-ship':
       case 'transport-ship':
+      case 'trade-cog':
         return false;
       case 'galley':
       case 'war-galley':

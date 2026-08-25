@@ -63,11 +63,9 @@ export function createContextAtEntityRouter(deps: {
         // route (spec §6.7) — any other player's, ally or enemy, as in AoE2.
         // It has to precede the attack branch: an attack-0 cart "attacking" a
         // Market is nonsense, and the enemy Market is the profitable target.
-        if (
-          unit.unitType === 'trade-cart'
-          && targetBuilding.buildingType === 'market'
-          && orderTradeRoute(unitId, targetEntityId)
-        ) {
+        const tradesHere = (unit.unitType === 'trade-cart' && targetBuilding.buildingType === 'market')
+          || (unit.unitType === 'trade-cog' && targetBuilding.buildingType === 'dock');
+        if (tradesHere && orderTradeRoute(unitId, targetEntityId)) {
           return true;
         }
         return setUnitAttackCommandDirect(unitId, targetEntityId, 'building');

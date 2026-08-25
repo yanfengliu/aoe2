@@ -59,6 +59,8 @@ const WEAPONS = {
   // A Trade Cart carries GOODS, not a weapon: the siege chassis gives it the
   // wheeled timber body, and there is deliberately no weapon compound.
   'trade-cart': { kind: 'tool', parts: [] },
+  // The cog shares the fishing ship's identifying net prop over its stern.
+  'trade-cog': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },
   monk: { kind: 'staff', parts: ['monk-staff', 'monk-staff-crossbar'] },
   // M5 naval: a Fishing Ship's identifying prop is its net, not a weapon.
   'fishing-ship': { kind: 'net', parts: ['ship-fishing-net', 'ship-net-float'] },

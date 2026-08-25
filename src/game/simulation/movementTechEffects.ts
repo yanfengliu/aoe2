@@ -100,7 +100,7 @@ export function movementSpeedPercent(
     percent = Math.round((percent * DRY_DOCK_SPEED_PERCENT) / 100);
   }
   // Caravan reaches exactly the trade line, which no class branch covers.
-  if (unitType === 'trade-cart' && researchedTechnologies.has('caravan')) {
+  if ((unitType === 'trade-cart' || unitType === 'trade-cog') && researchedTechnologies.has('caravan')) {
     percent = Math.round((percent * CARAVAN_SPEED_PERCENT) / 100);
   }
   if (researchedTechnologies.has('husbandry') && isMountedUnit(unitType)) {

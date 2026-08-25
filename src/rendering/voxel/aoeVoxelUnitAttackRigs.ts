@@ -218,8 +218,9 @@ const UNIT_ATTACK_RIGS = {
   // A Petard does not swing anything: it walks up and goes off, so it takes
   // the same still rig as the units with no weapon animation.
   petard: RAM_RIG,
-  // Attack 0: the rig never plays, but the table is exhaustive on purpose.
+  // Attack 0: the rigs never play, but the table is exhaustive on purpose.
   'trade-cart': RAM_RIG,
+  'trade-cog': RAM_RIG,
   monk: MONK_RIG,
   'fishing-ship': MONK_RIG,
   // It has no attack, so it never plays this; it takes the same do-nothing

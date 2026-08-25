@@ -103,8 +103,10 @@ export function createTrainOptions(deps: TrainOptionsDeps) {
           return options;
         }
         // units.csv: the Transport Ship is Feudal, and it is the only way a
-        // land army crosses water — so it comes before the warships.
+        // land army crosses water — so it comes before the warships. The Trade
+        // Cog (spec §6.7 naval trade) is Feudal too.
         options.push('transport-ship');
+        options.push('trade-cog');
         options.push(latestResearchedInChain(owner, [
           'galley',
           ['war-galley', 'war-galley-upgrade'],

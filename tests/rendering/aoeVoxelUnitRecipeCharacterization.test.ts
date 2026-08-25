@@ -114,7 +114,8 @@ describe('AoE voxel unit recipe characterization', () => {
         targetDistance: 1.4,
       })),
       memory: digestParts(state(), true),
-      // Re-recorded 2026-08-24 (twice) for the Trade Cart (v0.3.68): first the
+      // Re-recorded 2026-08-24 again for the Trade Cog (v0.3.69, one additive
+      // ship-profile row). Before that, twice for the Trade Cart (v0.3.68): first the
       // added unit, then its cargo branch replacing the trebuchet fallback its
       // 'tool' weapon fell into — a cart with a throwing arm, caught by the
       // close-zoom capture, not by any test. The rendering
@@ -129,14 +130,14 @@ describe('AoE voxel unit recipe characterization', () => {
       // insertion shift every later unit's identity, which is why 56 units
       // first looked changed and none of them were.
     }).toEqual({
-      idle: 'bd88d6acb636e4912d1dfac57b1a693c5313b38d7b0abf68bf44f070cf643ef6',
-      locomotion: '8a03829d3e0ef3e2e60640219f380b7e07c7c9036b0561cc176131bf20f77a1b',
-      builderWork: '7345fd0c51869415915160307332d0c506d8debd5677fcd5850e40da0e4dd8e0',
-      attackCoil: 'bca1f7bd034a90f69daa1d314e0f4a62613a12a9a5ccb06941fb2f8edcfcdb44',
-      attackImpact: 'b33268a0c14dcda3ade2524cfac951589a037f5f82353b12f6e632de9dae82ad',
-      attackSnap: '5d5165cb2a67c4e038833882e98acad5d43e67f74c6b775d16775f3eb6fc8021',
-      attackRecovery: '02ecd2b1ab60dfac4bf1c02af17dc6d33df011fa1fe3c6e2dc739c7879fe8e49',
-      memory: 'ed2af949e9524bd14d759f0462cc71038b4d9b6c783f05080f96de0963ce10c8',
+      idle: '08af30cf23cf32396930f6bb37aac7fac860bd00ead4f895242a13478eccc49d',
+      locomotion: '5cac7985e10e32f106cf2bf974fa8e9a5adeb0f7c89d6e6d93303a79901a39b0',
+      builderWork: '9f7033468603138332ebb1ddef80bb82f96c08afa1b386a7b3c5dbf2e9449e90',
+      attackCoil: '9080a3f482d728e2564450aa1f12ae0bfd6de888ae92ad8e8c30374665118a10',
+      attackImpact: 'cf368e2e80dbf23f2b0b59224cb8d34031c596b962f98115982f24412e88254e',
+      attackSnap: 'd1a3a82957bdc6aba08e028040d59d598654ab0d3ce74b95788d0fe321ba0e3f',
+      attackRecovery: '69a2f9d4c6cbc3977f5ee133661cde8a4b0fb604e46d4af20d0b6a8541cd5dc0',
+      memory: '83e3734a59da1415507ec200dcd3ff5a9b7b70282009a5efd72a1ab49385914a',
     });
   });
 });

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.69 - 2026-08-24
+
+### Added
+
+- **Naval trade.** The **Trade Cog** trains at the Dock from Feudal Age (100 wood, 50 gold) and runs the sea lane the Trade Cart runs on land: right-click any other player's Dock and it cycles unattended, gold on every return, distance-scaled. Six pierce armour makes it a tougher target than the cart, and Caravan speeds both — 1.32 to 2.0, the exact figure its own stat row names. Carts trade only at Markets and cogs only at Docks.
+
 ## 0.3.68 - 2026-08-24
 
 ### Added

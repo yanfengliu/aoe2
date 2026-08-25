@@ -25,7 +25,7 @@ export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly Traina
   ['market', ['trade-cart']],
   ['monastery', ['monk']],
   // M5 naval: the Dock is where every ship comes from.
-  ['dock', ['fishing-ship', 'transport-ship', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
+  ['dock', ['fishing-ship', 'transport-ship', 'trade-cog', 'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship', 'demolition-ship', 'heavy-demolition-ship', 'cannon-galleon', 'elite-cannon-galleon', 'turtle-ship', 'longboat',
     'elite-turtle-ship', 'elite-longboat']],
   ['castle', ['longbowman', 'elite-longbowman', 'trebuchet', 'petard',
     // M4 unique units — the civ gate is in uniqueUnits.ts; this list only

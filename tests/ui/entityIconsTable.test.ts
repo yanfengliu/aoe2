@@ -88,6 +88,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [icon: string, accent: string]>
   'trebuchet': ['Tr', '#6a4f2e'],
   'petard': ['Pe', '#8a6b46'],
   'trade-cart': ['Tr', '#b08d57'],
+  'trade-cog': ['Tc', '#b08d57'],
   'fishing-ship': ['Fs', '#7fb4c4'],
   'transport-ship': ['Tr', '#a98a5c'],
   'galley': ['Ga', '#8a7a58'],
@@ -170,13 +171,15 @@ describe('entity icons', () => {
     // so an unknown id reached the unit switch, matched no case, and fell out
     // as UNDEFINED from a `: string` signature. Its sibling accent arm DID
     // guard and returned the fallback. Probed on the pre-table code:
-    //   formatEntityIcon('trade-cog')       -> undefined
-    //   formatEntityIconAccent('trade-cog') -> '#c4ae7a'
+    //   formatEntityIcon('<unknown>')       -> undefined
+    //   formatEntityIconAccent('<unknown>') -> '#c4ae7a'
+    // (Probed with 'trade-cog' before v0.3.69 made that a REAL unit — the
+    // probe id must stay one the roster will never contain.)
     // Unreachable through the typed API (the 27 cases exhausted BuildingType
     // and ResourceKind, so TS narrowed the default arm to UnitType | null), so
     // this is the one deliberate delta of the table refactor: the icon now
     // honours its declared return type, matching the accent that never broke.
-    const unknown = 'trade-cog' as Entity;
+    const unknown = 'ox-wagon' as Entity;
     expect(formatEntityIcon(unknown)).toBe('?');
     expect(formatEntityIconAccent(unknown)).toBe('#c4ae7a');
   });

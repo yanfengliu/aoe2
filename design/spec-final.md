@@ -477,7 +477,9 @@ Required related systems:
 
 **Profit** is `max(2, round(0.46 × d))` gold per round trip, where `d` is the straight-line distance between the two Markets' anchors — 0.46/tile is the community's measured AoE2 figure, and §5.1's size ladder makes long routes on big maps pay accordingly. The profit is fixed **at load time** from the two Markets as they stand: once loaded, the gold is on the cart, so a far Market razed during the walk home still pays out (AoE2's behaviour), and the route simply ends after that deposit. **Caravan** (Market, Castle Age, 200 food 200 gold, 40 s) makes Trade Carts move 50% faster through the movement-technology seam, which raises a route's income rate by the same half.
 
-Orders at unseen entities are refused by the fog contract, so a route needs the far Market scouted first — the selection panel shows **"Trading with Market"** once the order takes. Deliberately still open: the **Trade Cog** (§6.7's naval half), AI-initiated trading, and attack-move safety conventions for allied routes.
+Orders at unseen entities are refused by the fog contract, so a route needs the far Market scouted first — the selection panel shows **"Trading with Market"** once the order takes.
+
+**Naval trade (implemented v0.3.69).** The **Trade Cog** trains at the Dock from Feudal Age (100 wood 50 gold, 36 s; HP 80, pierce armour 6, speed 1.32 — 2.0 with Caravan, exactly as its `units.csv` row says). It runs the same cycle as the cart with **Docks** in place of Markets: right-click another player's completed Dock, sail out, load, sail home to the nearest own Dock, deposit, repeat. The pairing is strict — a cart trades only at Markets, a cog only at Docks — and profit, load-time pricing, save persistence and cancellation are all the same machinery (`tradeCommandStep.ts` is parametric over the anchor building). Caravan speeds both trade units. Deliberately still open: AI-initiated trading, and attack-move safety conventions for allied routes.
 
 ### 6.8 Market Exchange and Tribute
 

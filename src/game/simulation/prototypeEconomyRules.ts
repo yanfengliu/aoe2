@@ -117,6 +117,7 @@ const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>> = {
   // units.csv: the Petard, demolition infantry - cheap, and spent in one use.
   petard: { food: 80, gold: 20 },
   'trade-cart': { wood: 100, gold: 50 }, // units.csv.
+  'trade-cog': { wood: 100, gold: 50 }, // units.csv.
   // M5 naval: units.csv Fishing Ship — 75 wood, 40 s.
   'fishing-ship': { wood: 75 },
   'transport-ship': { wood: 125 }, // units.csv.
@@ -244,6 +245,7 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   trebuchet: 500,
   petard: 250, // 25 s x 10 TPS.
   'trade-cart': 500, // units.csv 50 s x 10 TPS.
+  'trade-cog': 360, // units.csv 36 s x 10 TPS.
   'fishing-ship': 400,
   'transport-ship': 450, // units.csv: 45 s x 10 TPS.
   'galley': 600,

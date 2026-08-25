@@ -62,6 +62,7 @@ export const UNIT_BASE_SPEED_PERCENT: Record<UnitType, number> = {
   'trebuchet': 100, // 0.8
   'petard': 100, // units.csv 0.8, the same walk as a packed trebuchet.
   'trade-cart': 125, // units.csv 1.0 — Caravan multiplies this through the tech seam.
+  'trade-cog': 165, // units.csv 1.32 — 2.0 with Caravan, as its own row says.
   'man-at-arms': 112, // 0.9
   'long-swordsman': 112, // 0.9
   'two-handed-swordsman': 112, // 0.9

@@ -133,3 +133,51 @@ describe('Caravan', () => {
     expect(withCaravan).toBeLessThan(plain * 0.8);
   }, 120_000);
 });
+
+describe('naval trade — the Trade Cog', () => {
+  it('costs what units.csv says and trains at the Dock from Feudal', async () => {
+    const { trainingCost: cost, trainingTimeTicks: ticks } = await import('../../src/game/simulation/prototypeEconomyRules');
+    const { canTrainAt } = await import('../../src/game/simulation/prototypeBuildingRules');
+    expect(cost('trade-cog')).toEqual({ wood: 100, gold: 50 });
+    expect(ticks('trade-cog')).toBe(360);
+    expect(canTrainAt('dock', 'trade-cog')).toBe(true);
+  });
+
+  it('cycles between the Docks and pays gold every round trip', () => {
+    const bridge = createSimulationBridge('naval-trade-fixture');
+    const enemyDock = bridge.getEconomyState().buildings.find(
+      (building) => building.owner === 2 && building.buildingType === 'dock',
+    );
+    expect(enemyDock).toBeDefined();
+
+    expect(selectOwnedUnitDirect(bridge, 1, 'trade-cog')).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(enemyDock!.id)).toBe(true);
+
+    const goldAt = () => bridge.getEconomyState().playerResources[1]!.gold;
+    const before = goldAt();
+    expect(stepBridgeUntil(bridge, () => goldAt() > before, { maxSteps: 5_000 })).toBe(true);
+    const afterFirst = goldAt();
+    // The sea lane keeps paying with no further order.
+    expect(stepBridgeUntil(bridge, () => goldAt() > afterFirst, { maxSteps: 5_000 })).toBe(true);
+    expect(afterFirst - before).toBeGreaterThanOrEqual(2);
+    expect(goldAt() - afterFirst).toBe(afterFirst - before);
+  }, 120_000);
+
+  it('opens no route at a building that is not a Dock', () => {
+    // The pairing is cart↔Market, cog↔Dock. A cog ordered at some other enemy
+    // building falls through to the attack branch, so its task never reads
+    // 'trading' and no gold ever arrives.
+    const bridge = createSimulationBridge('naval-trade-fixture');
+    const enemyTownCenter = bridge.getEconomyState().buildings.find(
+      (building) => building.owner === 2 && building.buildingType === 'town-center',
+    );
+    expect(selectOwnedUnitDirect(bridge, 1, 'trade-cog')).toBe(true);
+    bridge.issueContextCommandAtEntity(enemyTownCenter!.id);
+    const cog = () => bridge.getEconomyState().units.find((unit) => unit.unitType === 'trade-cog');
+    const goldAt = () => bridge.getEconomyState().playerResources[1]!.gold;
+    const before = goldAt();
+    for (let step = 0; step < 400; step += 1) bridge.step(100);
+    expect(cog()?.task).not.toBe('trading');
+    expect(goldAt()).toBe(before);
+  }, 60_000);
+});

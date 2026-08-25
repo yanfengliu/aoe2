@@ -127,6 +127,8 @@ const UNIT_VISUAL_PROFILES = {
   petard: { role: 'infantry', weapon: 'tool', armor: 'cloth', headgear: 'leather-cap', shield: 'none', mount: 'none', tier: 1, signature: 'powder-keg' },
   // A loaded cart: wheeled timber mass with the goods lashed on top.
   'trade-cart': { role: 'siege', weapon: 'tool', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'rope-bundle' },
+  // A merchant hull: the fishing ship's shape with a cargo net for a prop.
+  'trade-cog': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   monk: { role: 'monk', weapon: 'staff', armor: 'cloth', headgear: 'cowl', shield: 'none', mount: 'none', tier: 0, signature: 'golden-cross' },
   'fishing-ship': { role: 'ship', weapon: 'net', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },
   'transport-ship': { role: 'ship', weapon: 'boarding-ramp', armor: 'timber', headgear: 'none', shield: 'none', mount: 'none', tier: 0, signature: 'fishing-net' },

@@ -32,18 +32,24 @@ export interface TradeStepDeps {
   approachStep: Position;
 }
 
-/** The cart's own complete Market nearest to `position`, or null. */
+/** Which building a trade unit trades BETWEEN: Markets by land, Docks by sea. */
+export function tradeAnchorBuildingType(unitType: string): 'market' | 'dock' {
+  return unitType === 'trade-cog' ? 'dock' : 'market';
+}
+
+/** The trader's own complete Market (or Dock) nearest to `position`. */
 export function nearestOwnMarket(
   world: GameWorld,
   accessor: BridgeStateAccessor,
   owner: number,
   position: Position,
+  buildingType: 'market' | 'dock' = 'market',
 ): { id: number; position: Position } | null {
   let best: { id: number; position: Position } | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
   for (const id of world.query('building', 'position')) {
     const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (!building || building.owner !== owner || building.buildingType !== 'market') continue;
+    if (!building || building.owner !== owner || building.buildingType !== buildingType) continue;
     const construction = accessor.get(constructionStatesCodec).get(id);
     if (construction && !construction.isComplete) continue;
     const marketPosition = world.getComponent<Position>(id, 'position');
@@ -82,7 +88,11 @@ export function runTradeStep(deps: TradeStepDeps): boolean {
     // is fixed here, from the two Markets as they stand — what the cart
     // carries no longer depends on either surviving the walk back.
     const farPosition = world.getComponent<Position>(buildingId, 'position');
-    const home = nearestOwnMarket(world, accessor, owner, cartPosition);
+    const unit = world.getComponent<{ unitType: string }>(id, 'unit');
+    const home = nearestOwnMarket(
+      world, accessor, owner, cartPosition,
+      tradeAnchorBuildingType(unit?.unitType ?? 'trade-cart'),
+    );
     if (!farPosition || !home) {
       // Nowhere to bring it home: the route cannot run.
       clearUnitCommand(id);

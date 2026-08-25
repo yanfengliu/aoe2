@@ -84,6 +84,7 @@ export function createUnitShowcaseFixture(seed: string): PrototypeScenario {
       // M5 naval: ships can only exist on water, so the showcase has a small
       // pool for them rather than a ship parked implausibly on grass.
       ownedSpawn('fishing-ship', 1, 24, 26, { vision: 3 }),
+      ownedSpawn('trade-cog', 1, 14, 27, { vision: 3 }),
       ownedSpawn('transport-ship', 1, 26, 26, { vision: 3 }),
       ownedSpawn('galley', 1, 4, 26, { vision: 3 }),
       ownedSpawn('war-galley', 1, 8, 26, { vision: 3 }),
