@@ -121,8 +121,8 @@ export class AoeVoxelGameView {
       // Full pass-through (v0.3.102): the old (x, y) wrapper silently dropped
       // the iso pick and the Alt-garrison flag — live Alt+garrison never
       // worked and no test crossed this seam.
-      issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack) =>
-        this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack),
+      issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack, queueMove) =>
+        this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack, queueMove),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
       // M6 control: attack-move arming lives on the view so the A hotkey and
       // the pointer share one piece of state.
@@ -316,7 +316,7 @@ export class AoeVoxelGameView {
 
   issueContextCommandAtWorldPosition(
     worldX: number, worldY: number, isoX?: number, isoY?: number,
-    garrison = false, forceAttack = false,
+    garrison = false, forceAttack = false, queueMove = false,
   ): boolean {
     this.syncFromBridge();
     this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
@@ -324,7 +324,7 @@ export class AoeVoxelGameView {
     const iso = isoX === undefined || isoY === undefined
       ? worldToIso(worldX, worldY)
       : { x: isoX, y: isoY };
-    return this.selection.issueContextCommandAtWorldPosition(worldX, worldY, iso.x, iso.y, garrison, forceAttack);
+    return this.selection.issueContextCommandAtWorldPosition(worldX, worldY, iso.x, iso.y, garrison, forceAttack, queueMove);
   }
 
   getSelectionBoxState(): SelectionBoxState | null {

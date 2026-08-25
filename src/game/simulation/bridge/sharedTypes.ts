@@ -25,6 +25,8 @@ export interface UnitCommand {
   // that Market has since burned down (AoE2's own behaviour).
   type: 'move' | 'attack-move' | 'attack-ground' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   target: Position;
+  // Shift-queued waypoints (v0.3.125): legs still to walk after `target`.
+  queuedTargets?: Position[];
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';

@@ -376,7 +376,7 @@ export function createSimulationBridge(
       return didIssue;
     },
     issueContextCommandAtEntity,
-    issueMoveCommand: (x: number, y: number) => ack(issueMoveCommand(x, y)),
+    issueMoveCommand: (x: number, y: number, options?: { queue?: boolean }) => ack(issueMoveCommand(x, y, options)),
     issueAction(actionType: ActionType) {
       const didIssue = issueAction(actionType);
       if (didIssue && actionType === 'ring-town-bell') townBellRings += 1;

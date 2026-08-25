@@ -9,12 +9,14 @@
 // handler) and replay (recorded submit → handler) AND deterministic-
 // system (helper directly) all execute identical code.
 
+import type { Position } from 'civ-engine';
 import type { World } from 'civ-engine';
 
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 
 export interface UnitMoveHandlerDeps {
-  setUnitMoveCommandDirect: (unitId: number, target: { x: number; y: number }) => boolean;
+  setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  appendMoveWaypointDirect: (unitId: number, target: Position) => boolean;
 }
 
 export type UnitMoveHandler = (
@@ -24,6 +26,13 @@ export type UnitMoveHandler = (
 
 export function makeUnitMoveHandler(deps: UnitMoveHandlerDeps): UnitMoveHandler {
   return (data) => {
+    // Shift-queue (v0.3.125): a queued move APPENDS a waypoint when a move is
+    // already standing (commands process in order, so the first click's move
+    // has landed by the time its shift-click follows); anyone without a
+    // standing move starts fresh. Replays reproduce chains for free.
+    if (data.queue && deps.appendMoveWaypointDirect(data.unitId, data.target)) {
+      return;
+    }
     deps.setUnitMoveCommandDirect(data.unitId, data.target);
   };
 }

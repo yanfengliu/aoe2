@@ -89,7 +89,7 @@ export interface CreateWorldResult {
   assignControlGroup: (digit: number) => boolean;
   recallControlGroup: (digit: number) => boolean;
   selectNextIdleVillager: () => boolean;
-  issueMoveCommand: (x: number, y: number) => boolean;
+  issueMoveCommand: (x: number, y: number, options?: { queue?: boolean }) => boolean;
   issueAction: (actionType: ActionType) => boolean;
   setSelectionStance: (stance: import('../unitStance').UnitStance) => boolean;
   setSelectionFormation: (

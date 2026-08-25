@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.125 shift-queued waypoints (queuedTargets on the move command; append rides the recorded unit.move stream — a direct codec write would have desynced replays; first red tests were vacuously green TWICE in one day → mechanism asserts added); trade-route order extracted for the 500 cap.
 - 2026-08-25 v0.3.124 ambience (wind bed + LCG birdsong; audio north-star line COMPLETE); Islands naval smoke on v0.3.122 clean (23 cmds, 0 rejections).
 - 2026-08-25 v0.3.123 selection chirps (role-family two-note figures; selection-id diff is the observable — no new facade state needed).
 - 2026-08-25 v0.3.122 continuous repair charging (repairAccrual codec, hundredths; charge-before-apply so a broke owner stalls; start free; Tier-1 44); Goths stale deferral note retired after teamProductionBonuses audit.

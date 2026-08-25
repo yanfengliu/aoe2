@@ -390,6 +390,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       });
     },
     setUnitMoveCommandDirect,
+    appendMoveWaypointDirect: unitCommandOps.appendMoveWaypointDirect,
     setUnitAttackMoveCommandDirect,
     setUnitAttackGroundCommandDirect,
     setUnitPatrolCommandDirect,

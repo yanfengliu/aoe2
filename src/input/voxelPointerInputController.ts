@@ -48,6 +48,8 @@ export interface VoxelPointerInputControllerDeps {
     garrison?: boolean,
     /** Ctrl held: explicit attack — the only way to target an ally. */
     forceAttack?: boolean,
+    /** Shift held: queue the ground click as a movement waypoint (v0.3.125). */
+    queueMove?: boolean,
   ) => boolean;
   readonly clearRecentSelectionClicks: () => void;
 }
@@ -172,6 +174,7 @@ export function createVoxelPointerInputController(
         cell.isoY,
         event.altKey,
         event.ctrlKey,
+        event.shiftKey,
       );
       return;
     }

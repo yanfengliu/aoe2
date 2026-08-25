@@ -112,6 +112,7 @@ export interface CommandHandlerDeps {
   // handler so live + replay + deterministic-system paths all execute
   // identical code (per DESIGN v17 §6.4 B1 fix).
   setUnitMoveCommandDirect: (unitId: number, target: Position) => boolean;
+  appendMoveWaypointDirect: (unitId: number, target: Position) => boolean;
   destroyUnitEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
   // M6 control (unit.stance): who is issuing, and the direct writer.
@@ -236,6 +237,7 @@ export function registerCommandHandlers(
   }));
   world.registerHandler('unit.move', makeUnitMoveHandler({
     setUnitMoveCommandDirect: deps.setUnitMoveCommandDirect,
+    appendMoveWaypointDirect: deps.appendMoveWaypointDirect,
   }));
   // Phase 1B — unit.attack
   world.registerValidator('unit.attack', unitAttackValidator);

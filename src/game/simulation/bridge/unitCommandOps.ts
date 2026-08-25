@@ -17,6 +17,7 @@ import type {
 import { clamp, type GameWorld } from './pureHelpers';
 import { createBuildRepairCommandOps } from './buildRepairCommandOps';
 import { createGarrisonOrderOps } from './garrisonOrderOps';
+import { createTradeRouteOrder } from './tradeRouteOrderOps';
 import { createContextAtEntityRouter } from './contextAtEntityRouter';
 import type { MonkTask, UnitCommand } from './sharedTypes';
 import type { BridgeState } from './bridgeState';
@@ -24,7 +25,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   monkTasksCodec,
   wildlifeStatesCodec,
-  constructionStatesCodec,
+  unitCommandsCodec,
 } from './bridgeStateSerialize';
 import { createGatherCommandOps } from './gatherCommandOps';
 import { createPatrolCommandOps } from './patrolCommandOps';
@@ -108,6 +109,7 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // context. NOT for AI-decision systems (those use pendingCommands
   // intentions per §6.5).
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
+  appendMoveWaypointDirect(unitId: number, target: Position): boolean;
   setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean;
   setUnitAttackGroundCommandDirect(unitId: number, target: Position): boolean;
   issueUnitAttackMoveCommand(unitId: number, target: Position): boolean;
@@ -243,6 +245,19 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
   function setUnitMoveCommandDirect(unitId: number, target: Position): boolean {
     return setWalkCommandDirect(unitId, target, 'move');
+  }
+
+  // Shift-queue (v0.3.125): append a waypoint to a STANDING move. Capped so a
+  // click storm cannot grow an unbounded save field.
+  function appendMoveWaypointDirect(unitId: number, target: Position): boolean {
+    const command = accessor.get(unitCommandsCodec).get(unitId);
+    if (command?.type !== 'move') return false;
+    const queued = command.queuedTargets ?? [];
+    if (queued.length < 8) {
+      command.queuedTargets = [...queued, { x: target.x, y: target.y }];
+      accessor.markDirty(unitCommandsCodec);
+    }
+    return true;
   }
 
   // M6 control: identical walk, different order type — auto-aggression reads
@@ -411,22 +426,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   // handler. Monk routing is hoisted to the bridge facade.
   // A trade route is an order on the CART, stored as its unit command; the
   // far Market must be another player's, standing, and complete.
-  function orderTradeRoute(unitId: number, marketId: number): boolean {
-    const marketPosition = world.getComponent<Position>(marketId, 'position');
-    const marketRef = getEntityRef(marketId);
-    const construction = accessor.get(constructionStatesCodec).get(marketId);
-    if (!marketPosition || !marketRef || (construction && !construction.isComplete)) {
-      return false;
-    }
-    clearGathererOrder(unitId);
-    setUnitCommand(unitId, {
-      type: 'trade',
-      target: { x: marketPosition.x, y: marketPosition.y },
-      buildingRef: marketRef,
-      tradeFarMarketRef: marketRef,
-    });
-    return true;
-  }
+  const orderTradeRoute = createTradeRouteOrder({ world, accessor, clearGathererOrder, setUnitCommand, getEntityRef });
 
   const routeUnitContextAtEntityCommandDirect = createContextAtEntityRouter({
     world,
@@ -472,6 +472,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     ...selectionOps,
     ...sheepOps,
     orderGarrison,
+    appendMoveWaypointDirect,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,

@@ -80,6 +80,7 @@ describe('unitMoveHandler', () => {
   it('delegates to setUnitMoveCommandDirect with the data payload', () => {
     const calls: Array<{ unitId: number; target: { x: number; y: number } }> = [];
     const handler = makeUnitMoveHandler({
+      appendMoveWaypointDirect: () => false,
       setUnitMoveCommandDirect: (unitId, target) => {
         calls.push({ unitId, target });
         return true;

@@ -58,6 +58,7 @@ export interface VoxelSelectionController {
     isoY?: number,
     garrison?: boolean,
     forceAttack?: boolean,
+    queueMove?: boolean,
   ): boolean;
   clearRecentSelectionClicks(): void;
 }
@@ -174,6 +175,7 @@ export function createVoxelSelectionController(
     isoY?: number,
     garrison = false,
     forceAttack = false,
+    queueMove = false,
   ): boolean {
     if (!isActive()) {
       return false;
@@ -216,6 +218,10 @@ export function createVoxelSelectionController(
     // building's base resolves to its footprint (walk up to it), clicking its
     // roof resolves to the cell behind it (walk behind it), because the iso
     // projection maps higher screen points to deeper ground.
+    // Shift (v0.3.125): a held Shift makes the ground click a QUEUED waypoint.
+    if (queueMove) {
+      return getBridge().issueMoveCommand(clampedCellX, clampedCellY, { queue: true });
+    }
     return getBridge().issueContextCommand(clampedCellX, clampedCellY, garrison);
   }
 

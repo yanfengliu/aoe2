@@ -59,6 +59,8 @@ export interface SerializedUnitCommand {
   // back-compatible each time: older saves never carry the newer kinds.
   type: 'move' | 'attack-move' | 'attack-ground' | 'build' | 'attack' | 'repair' | 'garrison' | 'trade';
   target: { x: number; y: number };
+  // v0.3.125 shift-queue: waypoints after `target`; absent on older saves.
+  queuedTargets?: { x: number; y: number }[];
   buildingRef?: SerializedEntityRef;
   targetEntityRef?: SerializedEntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';

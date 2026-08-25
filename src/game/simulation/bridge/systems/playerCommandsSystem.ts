@@ -182,6 +182,15 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
+            // Shift-queue (v0.3.125): an arrival with legs left starts the
+            // next leg instead of clearing — the waypoint chain in one line.
+            const nextLeg = command.queuedTargets?.[0];
+            if (command.type === 'move' && nextLeg) {
+              command.target = nextLeg;
+              command.queuedTargets = command.queuedTargets!.slice(1);
+              accessor.markDirty(unitCommandsCodec);
+              continue;
+            }
             // Spec §12.7 lazy redirect: an overflowed arrival rewrites the
             // move target to the nearest free-slot cell (never cleared) and
             // walks there next tick; nothing re-aims at the full cell.

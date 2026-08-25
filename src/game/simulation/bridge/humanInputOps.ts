@@ -69,7 +69,7 @@ export interface HumanInputOpsDeps {
 export interface HumanInputOps {
   countIdleVillagers(): number;
   selectNextIdleVillager(): boolean;
-  issueMoveCommand(x: number, y: number): boolean;
+  issueMoveCommand(x: number, y: number, options?: { queue?: boolean }): boolean;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean, forceAttack?: boolean): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
@@ -120,7 +120,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return accepted;
   }
 
-  function issueMoveCommand(x: number, y: number): boolean {
+  function issueMoveCommand(x: number, y: number, options?: { queue?: boolean }): boolean {
     if (!isMatchRunning()) return false;
 
     const ownedSheepIds = getSelectedOwnedSheepIds();
@@ -128,6 +128,19 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     if (ownedSheepIds.length === 0 && selectedUnitIds.length === 0) return false;
 
     placementMode.current = null;
+    if (options?.queue) {
+      // The append rides the RECORDED unit.move stream (queue flag): FIFO
+      // processing lands the plain click first; replays reproduce the chain.
+      const target: Position = { x: clamp(x, 0, mapWidth - 1), y: clamp(y, 0, mapHeight - 1) };
+      let didQueue = false;
+      for (const id of selectedUnitIds) {
+        const accepted = world.submitWithResult('unit.move', {
+          unitId: id, target, queue: true,
+        }).accepted;
+        didQueue = supersedeAutoAggression(id, accepted) || didQueue;
+      }
+      return didQueue;
+    }
     let didIssue = false;
     if (selectedUnitIds.length === 1) {
       // Spec §12.7 single-unit move: issue the move directly. Pathfinding
@@ -137,15 +150,10 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       const id = selectedUnitIds[0]!;
       didIssue = supersedeAutoAggression(id, issueUnitMoveCommand(id, { x, y })) || didIssue;
     } else if (selectedUnitIds.length > 1) {
-      // Spec §12.7 group pre-reservation: clamp the target into bounds, then
-      // allocate one distinct cell per unit by spiral fill from the target.
-      // Each unit's individual move command targets its allocated cell so
-      // multiple units commanded together don't all pile into the same cell
-      // and detour through lazy redirect. Spiral skips whole-cell-blocked
-      // tiles (buildings, resources, terrain), which intentionally redirects
-      // group members AWAY from a resource / building target — for
-      // gather-on-resource or attack-on-building the HUD's right-click
-      // routes through `issueContextCommand`, not this path.
+      // Spec §12.7 group pre-reservation: one distinct spiral-fill cell per
+      // unit, so a commanded band never piles into one cell and lazy-redirects.
+      // The spiral skips whole-cell-blocked tiles; resource/building targets
+      // route through `issueContextCommand`, never this path.
       const targetCenter: Position = {
         x: clamp(x, 0, mapWidth - 1),
         y: clamp(y, 0, mapHeight - 1),
@@ -420,18 +428,12 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
 
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!building || building.owner !== humanPlayerId) return false;
-
-    if (
-      actionType !== 'ungarrison'
-      && actionType !== 'ring-town-bell'
-      && actionType !== 'back-to-work'
-    ) return false;
-
-    const result = world.submitWithResult('building.action', {
+    const supported: ActionType[] = ['ungarrison', 'ring-town-bell', 'back-to-work'];
+    if (!supported.includes(actionType)) return false;
+    return world.submitWithResult('building.action', {
       buildingId: selectedEntityId,
       actionType,
-    });
-    return result.accepted;
+    }).accepted;
   }
 
   // Phase 1B (market.action): bridge facade. Submits `market.action`;
