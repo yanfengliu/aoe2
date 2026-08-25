@@ -28,8 +28,8 @@ function makeWorld(): GameWorld {
 
 describe('BridgeStateAccessor', () => {
   describe('codec table', () => {
-    it('registers exactly 42 Tier-1 codecs (DESIGN §3 inventory)', () => {
-      expect(TIER_1_CODECS.length).toBe(42);
+    it('registers exactly 43 Tier-1 codecs (DESIGN §3 inventory + controlGroups v0.3.112)', () => {
+      expect(TIER_1_CODECS.length).toBe(43);
     });
 
     it('every codec slot is unique', () => {

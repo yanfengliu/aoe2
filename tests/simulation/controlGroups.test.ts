@@ -1,6 +1,8 @@
 // Control groups (spec section 9, v0.3.104): Ctrl+digit binds the current
 // selection to that digit, digit recalls it, dead members prune on recall.
-// Session-transient by scope (not in saves) - noted in the spec.
+// v0.3.112: groups persist through save/load (the DE behaviour) - they live
+// in a codec, so the save carries them and generation-aware recall prunes
+// anyone who died before the save.
 
 import { describe, it, expect } from 'vitest';
 
@@ -44,5 +46,21 @@ describe('control groups', () => {
     expect(bridge.recallControlGroup(3)).toBe(true);
     expect(bridge.getSelectionState().selectedEntityType).toBe('monk');
     expect(bridge.getSelectionState().selectedCount).toBe(1);
+  });
+});
+
+describe('control groups persist through save/load (v0.3.112)', () => {
+  it('recalls the same units on the loaded bridge', () => {
+    const bridge = createSimulationBridge('civ-teutons-fixture');
+    expect(bridge.selectOwnedUnitsByTypeInRect('militia', 20, 18, 40, 30)).toBe(true);
+    const count = bridge.getSelectionState().selectedCount;
+    expect(bridge.assignControlGroup(4)).toBe(true);
+    bridge.clearSelection();
+
+    const blob = bridge.saveGame();
+    const loaded = createSimulationBridge(undefined, { savedGame: blob });
+    expect(loaded.recallControlGroup(4), 'the loaded game forgot control group 4').toBe(true);
+    expect(loaded.getSelectionState().selectedCount).toBe(count);
+    expect(loaded.getSelectionState().selectedEntityType).toBe('militia');
   });
 });

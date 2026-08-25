@@ -261,6 +261,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   } = unitCommandOps;
 
   const { assignControlGroup, recallControlGroup } = createControlGroupOps({
+    accessor,
     getSelectedEntityRefs,
     selectByRefs,
   });

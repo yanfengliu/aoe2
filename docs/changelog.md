@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.112
+
+- Control groups survive save/load: your digits recall the same groups in a loaded game, as in AoE2 DE.
+
 ## 0.3.111
 
 - Roof shapes now follow the architecture set: steep alpine tiers for central Europe, low flat roofs for the middle east, pagoda tiers for east Asia, temple steps for mesoamerica.

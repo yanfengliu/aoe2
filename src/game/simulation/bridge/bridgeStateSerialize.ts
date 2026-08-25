@@ -105,6 +105,9 @@ export const playerCivilizationsCodec = flatMapCodec<number, string>('aoe2.playe
 // Owner -> team. An owner with no entry is its own team, so a free-for-all
 // stores nothing at all and a save written before teams existed loads as one.
 export const playerTeamsCodec = flatMapCodec<number, number>('aoe2.playerTeams');
+// Control groups persist per save (v0.3.112, the DE behaviour): digit -> the
+// bound refs. Generation-aware recall prunes members who died pre-save.
+export const controlGroupsCodec = flatMapCodec<number, import('civ-engine').EntityRef[]>('aoe2.controlGroups');
 export const playerResourcesCodec = flatMapCodec<number, PlayerResources>('aoe2.playerResources');
 // Population is a bespoke (non-flatMap) codec because PopulationState gained
 // `rawSupply` (the honest unclamped housing sum) in v0.1.37 and the load path
@@ -317,6 +320,7 @@ export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotStat
 // via JSON without going through the accessor flush path.
 export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   playerAgesCodec,
+  controlGroupsCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
   playerResourcesCodec,
