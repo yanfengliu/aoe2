@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.82 - 2026-08-25
+
+### Added
+
+- **The combat team bonuses.** Frankish-team knights, Mongol-team scouts and Magyar-team foot archers see two tiles farther; Japanese-team galleys half again as far; Korean villagers three. Korean-team mangonels and Khmer-team scorpions outrange their peers by a cell. Saracen-team foot archers and Indian-team camels hit buildings harder, and Persian-team knights cut down archers with +2 attack.
+
 ## 0.3.81 - 2026-08-25
 
 ### Added

@@ -33,6 +33,8 @@ import {
 export interface CombatStateFactoryDeps {
   hasTechnology: (owner: number, technologyType: ResearchableTechnologyType) => boolean;
   getCivilization: (owner: number) => string;
+  /** Team-bonus weapon range (Korean mangonels, Khmer scorpions); 0 without. */
+  teamAttackRangeBonus?: (owner: number, unitType: UnitType) => number;
 }
 
 /**
@@ -84,7 +86,8 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       currentHp: baseHp,
       maxHp: baseHp,
       attackDamage: unitAttackDamage(unitType),
-      attackRange: unitAttackRange(unitType),
+      attackRange: unitAttackRange(unitType)
+        + (deps.teamAttackRangeBonus?.(owner, unitType) ?? 0),
       reloadTicks: unitReloadTicks(unitType),
       cooldownTicks: 0,
       armor: 0,

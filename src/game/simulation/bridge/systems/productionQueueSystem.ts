@@ -4,6 +4,7 @@
 // entry is a technology, `applyTechnology` (in `bridge/technologyOps`)
 // fans out the side-effects.
 
+import { bonusVisionRadius } from '../../teamCombatBonuses';
 import type { Position } from 'civ-engine';
 import { unitDomain } from '../../unitDomain';
 import type {
@@ -22,7 +23,7 @@ import { resourceKindToEconomyResource } from '../../prototypeEconomyRules';
 import { unitVisionBonus } from '../../visionTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import {
+import { playerCivilizationsCodec, playerTeamsCodec,
   inFlightTechByOwnerCodec,
   populationCodec,
   productionQueuesCodec,
@@ -186,7 +187,15 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
             playerId: building.owner,
             // Tracking (+2 infantry LoS) DERIVED at creation, mirroring the
             // live bump in applyTechnology for units already on the field.
-            radius: unitVisionRadius(entry.unitType) + unitVisionBonus(ownerTechs, entry.unitType),
+            radius: unitVisionRadius(entry.unitType)
+              + unitVisionBonus(ownerTechs, entry.unitType)
+              + bonusVisionRadius(
+                accessor.get(playerTeamsCodec),
+                accessor.get(playerCivilizationsCodec),
+                building.owner,
+                entry.unitType,
+                unitVisionRadius(entry.unitType),
+              ),
           });
           const rallyPoint = accessor.get(rallyPointsCodec).get(buildingId);
           if (rallyPoint) {

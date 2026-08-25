@@ -5,6 +5,8 @@
 // passability, movement plan, spawn finders, gatherer order). Keeps
 // wireBridgeOps thin by isolating the first-half wiring.
 
+import { bonusAttackRange } from '../teamCombatBonuses';
+import { playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
 import { buildingFootprint } from './pureHelpers';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
@@ -151,7 +153,16 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getResearchOptions,
   });
 
-  const createCombatState = createCombatStateFactory({ hasTechnology, getCivilization: getPlayerCivilization });
+  const createCombatState = createCombatStateFactory({
+    hasTechnology,
+    getCivilization: getPlayerCivilization,
+    teamAttackRangeBonus: (owner, unitType) => bonusAttackRange(
+      accessor.get(playerTeamsCodec),
+      accessor.get(playerCivilizationsCodec),
+      owner,
+      unitType,
+    ),
+  });
 
   const entityCreateOps = createEntityCreateOps({
     world,

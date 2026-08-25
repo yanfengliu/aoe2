@@ -79,3 +79,43 @@ describe('team bonuses in a real match', () => {
       .toBe(plain.getPopulationState(1).cap + 10);
   });
 });
+
+describe('combat-stat bonuses', () => {
+  it('adds line of sight, range, and class attacks by side', async () => {
+    const {
+      bonusVisionRadius, bonusAttackRange, teamBuildingAttackBonus, teamAntiArcherBonus,
+    } = await import('../../src/game/simulation/teamCombatBonuses');
+    const civs = new Map([[1, 'Franks'], [2, 'Persians']]);
+    const teams = new Map<number, number>();
+    // Frankish knights see two farther; a Korean VILLAGER three (civ line).
+    expect(bonusVisionRadius(teams, civs, 1, 'knight', 6)).toBe(2);
+    expect(bonusVisionRadius(teams, new Map([[1, 'Koreans']]), 1, 'villager', 4)).toBe(3);
+    expect(bonusVisionRadius(teams, new Map([[1, 'Japanese']]), 1, 'galley', 7)).toBe(4);
+    expect(bonusVisionRadius(teams, civs, 1, 'archer', 6)).toBe(0);
+    // Korean mangonels and Khmer scorpions reach one farther.
+    expect(bonusAttackRange(teams, new Map([[1, 'Koreans']]), 1, 'mangonel')).toBe(1);
+    expect(bonusAttackRange(teams, new Map([[1, 'Khmer']]), 1, 'scorpion')).toBe(1);
+    expect(bonusAttackRange(teams, new Map([[1, 'Koreans']]), 1, 'scorpion')).toBe(0);
+    // Saracen archers and Indian camels punish buildings; Persian knights
+    // punish archers.
+    expect(teamBuildingAttackBonus(teams, new Map([[1, 'Saracens']]), 1, 'archer')).toBe(2);
+    expect(teamBuildingAttackBonus(teams, new Map([[1, 'Indians']]), 1, 'camel')).toBe(5);
+    expect(teamAntiArcherBonus(teams, civs, 2, 'knight', 'archer')).toBe(2);
+    expect(teamAntiArcherBonus(teams, civs, 2, 'knight', 'militia')).toBe(0);
+    // And an ALLY carries it too.
+    const allied = new Map([[1, 1], [2, 1]]);
+    expect(teamAntiArcherBonus(allied, civs, 1, 'knight', 'archer')).toBe(2);
+  });
+
+  it('reaches a real match: a Korean mangonel outranges a plain one', async () => {
+    const { createSimulationBridge } = await import('../../src/game/simulation/createSimulationBridge');
+    const koreans = createSimulationBridge('unit-showcase-fixture', {
+      civilizationsByOwner: new Map([[1, 'Koreans']]),
+    });
+    const plain = createSimulationBridge('unit-showcase-fixture');
+    const rangeOf = (bridge: typeof plain) => bridge.getEconomyState().units.find(
+      (unit) => unit.unitType === 'mangonel',
+    )!.attackRange;
+    expect(rangeOf(koreans)).toBe(rangeOf(plain) + 1);
+  });
+});

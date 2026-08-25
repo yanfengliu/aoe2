@@ -48,6 +48,8 @@ export interface DeliverAttackShared {
 export interface DeliverUnitAttackParams extends DeliverAttackShared {
   attacker: { id: number; unitType: UnitType; owner: number; combat: CombatState };
   target: { id: number; unitType: UnitType; position: Position; combat: CombatState };
+  /** Team-bonus extra vs archer-class targets (Persian team knights). */
+  teamUnitBonus?: number;
 }
 
 /**
@@ -67,6 +69,7 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
       addKill: params.addKill,
       markDirty: params.markCombatDirty,
       markRender: params.markRender,
+      teamUnitBonus: params.teamUnitBonus,
     });
   }
 
@@ -103,6 +106,8 @@ export interface DeliverBuildingAttackParams extends DeliverAttackShared {
   attacker: { id: number; unitType: UnitType; owner: number; combat: CombatState };
   attackerTechs: ReadonlySet<ResearchableTechnologyType>;
   attackerCivilization: string | undefined;
+  /** Team-bonus extra vs buildings (Saracen archers, Indian camels). */
+  teamBuildingBonus?: number;
   target: { id: number; position: Position };
   applyBuildingDamage: (buildingId: number, damage: number) => void;
 }
@@ -118,7 +123,8 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
     attacker.combat.attackDamage
       + attackBonusAgainstBuilding(attacker.unitType)
       + sappersBuildingAttackBonus(params.attackerTechs, attacker.unitType)
-      + civBuildingAttackBonus(params.attackerCivilization, attacker.unitType),
+      + civBuildingAttackBonus(params.attackerCivilization, attacker.unitType)
+      + (params.teamBuildingBonus ?? 0),
   );
 
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;

@@ -8,6 +8,7 @@
 // mutate — which is why they belong together and why the switch-per-technology
 // that calls them reads as decisions rather than loops.
 
+import { bonusVisionRadius } from '../teamCombatBonuses';
 import type {
   BuildingComponent,
   RenderableComponent,
@@ -24,7 +25,7 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
 import { unitSize, unitTint, unitVisionRadius } from '../prototypeUnitRules';
-import {
+import { playerCivilizationsCodec, playerTeamsCodec,
   combatStatesCodec,
   productionQueuesCodec,
 } from './bridgeStateSerialize';
@@ -59,7 +60,14 @@ export function createTechnologyUnitSweeps(deps: TechnologyUnitSweepDeps) {
 
       const vision = world.getComponent<VisionSourceComponent>(id, 'visionSource');
       if (vision) {
-        vision.radius = unitVisionRadius(to);
+        vision.radius = unitVisionRadius(to)
+          + bonusVisionRadius(
+            accessor.get(playerTeamsCodec),
+            accessor.get(playerCivilizationsCodec),
+            owner,
+            to,
+            unitVisionRadius(to),
+          );
       }
 
       const nextCombat = createCombatState(owner, to);

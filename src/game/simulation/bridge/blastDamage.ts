@@ -142,9 +142,13 @@ export function resolveUnitAttackOnUnit(params: {
   addKill: (owner: number) => void;
   markDirty: () => void;
   markRender: () => void;
+  /** Caller-computed team extras (Persian knights vs archer-class). */
+  teamUnitBonus?: number;
 }): boolean {
   const { attacker, target } = params;
-  const raw = attacker.combat.attackDamage + attackBonusAgainstUnit(attacker.unitType, target.unitType);
+  const raw = attacker.combat.attackDamage
+    + attackBonusAgainstUnit(attacker.unitType, target.unitType)
+    + (params.teamUnitBonus ?? 0);
   target.combat.currentHp -= combatDamageAfterArmor(
     raw,
     unitAttackType(attacker.unitType),

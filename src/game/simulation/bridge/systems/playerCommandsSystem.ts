@@ -4,34 +4,22 @@
 // then ticks the construction counter. Trebuchets get pack / unpack
 // transitions woven through the attack and move branches.
 
+import { runAttackCommandStep } from './attackCommandStep';
 import { isMonasticUnit } from '../../monasticUnits';
 import { runBuilderWorkStep } from './builderWorkStep';
 import { runTradeStep } from '../tradeCommandStep';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
-  ResourceComponent,
   UnitComponent,
 } from '../../types';
-import { manhattanDistance, type GameWorld } from '../pureHelpers';
-import { unitMinAttackRange } from '../../prototypeUnitRules';
-import { EMPTY_TECH_SET } from '../../economyTechEffects';
-import {
-  deliverUnitAttackOnBuilding,
-  deliverUnitAttackOnUnit,
-} from '../attackDelivery';
+import { type GameWorld } from '../pureHelpers';
 import { finalizeBuildingConstruction } from '../finalizeBuildingConstruction';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
-  buildingHealthStatesCodec,
-  combatStatesCodec,
   constructionStatesCodec,
-  playerCivilizationsCodec,
-  projectilesCodec,
-  researchedTechnologiesCodec,
   unitCommandsCodec,
-  wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 
 type CivWorld = GameWorld;
@@ -145,8 +133,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     after: ['prototypeAi', 'prototypeAutoAggression'],
     execute(activeWorld) {
       const unitCommands = accessor.get(unitCommandsCodec);
-      // Map iteration is delete-during-iterate-safe per ECMAScript spec, so
-      // clearUnitCommand(id) inside the loop body does not need a snapshot.
+      // Map iteration is delete-safe per spec: clearUnitCommand needs no snapshot.
       for (const [id, command] of unitCommands.entries()) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
@@ -156,220 +143,18 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         }
 
         if (command.type === 'attack') {
-          const attackerCombat = accessor.get(combatStatesCodec).get(id);
-          const targetId = currentEntityId(activeWorld, command.targetEntityRef);
-          if (targetId === null || !attackerCombat || !command.targetEntityKind) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          if (attackerCombat.cooldownTicks > 0) {
-            attackerCombat.cooldownTicks -= 1;
-            accessor.markDirty(combatStatesCodec);
-          }
-
-          if (unit.unitType === 'trebuchet' && advanceTrebuchetTransition(id)) {
-            continue;
-          }
-
-          if (command.targetEntityKind === 'unit') {
-            const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-            const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
-            const targetCombat = accessor.get(combatStatesCodec).get(targetId);
-            if (!targetPosition || !targetUnit || !targetCombat || targetUnit.owner === unit.owner) {
-              clearUnitCommand(id);
-              continue;
-            }
-
-            if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              if (isTrebuchetStationary(id)) {
-                continue;
-              }
-              const unitRangePlan = findUnitRangePlan(
-                id,
-                targetPosition,
-                attackerCombat.attackRange,
-                activeWorld,
-              );
-              if (!unitRangePlan) {
-                clearUnitCommand(id);
-                continue;
-              }
-              moveUnitOneSubgridStep(id, unitRangePlan.nextStep, activeWorld);
-              continue;
-            }
-
-            if (
-              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
-            ) {
-              continue;
-            }
-
-            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-              beginTrebuchetUnpack(id);
-              continue;
-            }
-
-            if (attackerCombat.cooldownTicks > 0) {
-              continue;
-            }
-
-            // Primary melee/pierce hit + mangonel-line blast/splash (spec
-            // §10.2/§10.7). Splash hits enemy AND friendly units in the radius.
-            recordUnitAttack(id, targetId);
-            const primaryDied = deliverUnitAttackOnUnit({
-              world: activeWorld,
-              combatStates: accessor.get(combatStatesCodec),
-              projectiles: accessor.get(projectilesCodec),
-              tick: activeWorld.tick,
-              // Ballistics/Thumb Ring derive from these at the launch site (§10.4).
-              attackerTechs:
-                accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
-              targetDestination:
-                accessor.get(unitCommandsCodec).get(targetId)?.target ?? null,
-              attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
-              target: {
-                id: targetId,
-                unitType: targetUnit.unitType,
-                position: targetPosition,
-                combat: targetCombat,
-              },
-              destroyUnit: destroyUnitEntity,
-              addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
-              markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
-              markRender: markOutOfBandRenderChange,
-            });
-            if (primaryDied) clearUnitCommand(id);
-            continue;
-          }
-
-          if (command.targetEntityKind === 'resource') {
-            const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-            const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
-            const targetWildlife = accessor.get(wildlifeStatesCodec).get(targetId);
-            if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
-              clearUnitCommand(id);
-              continue;
-            }
-
-            if (manhattanDistance(position, targetPosition) > attackerCombat.attackRange) {
-              if (isTrebuchetStationary(id)) {
-                continue;
-              }
-              const wildlifeRangePlan = findUnitRangePlan(
-                id,
-                targetPosition,
-                attackerCombat.attackRange,
-                activeWorld,
-              );
-              if (!wildlifeRangePlan) {
-                clearUnitCommand(id);
-                continue;
-              }
-              moveUnitOneSubgridStep(id, wildlifeRangePlan.nextStep, activeWorld);
-              continue;
-            }
-
-            if (
-              manhattanDistance(position, targetPosition) < unitMinAttackRange(unit.unitType)
-            ) {
-              continue;
-            }
-
-            if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-              beginTrebuchetUnpack(id);
-              continue;
-            }
-
-            if (attackerCombat.cooldownTicks > 0) {
-              continue;
-            }
-
-            recordUnitAttack(id, targetId);
-            targetWildlife.currentHp -= attackerCombat.attackDamage;
-            targetWildlife.targetEntityRef = getEntityRef(id);
-            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-            accessor.markDirty(combatStatesCodec);
-            accessor.markDirty(wildlifeStatesCodec); // full-review H1: persist the wildlife HP mutation
-            markOutOfBandRenderChange();
-
-            if (targetWildlife.currentHp <= 0) {
-              killWildlifeEntity(targetId);
-              clearUnitCommand(id);
-            }
-            continue;
-          }
-
-          const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
-          const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
-          const targetHealth = accessor.get(buildingHealthStatesCodec).get(targetId);
-          if (!targetPosition || !targetBuilding || !targetHealth || targetBuilding.owner === unit.owner) {
-            clearUnitCommand(id);
-            continue;
-          }
-
-          if (distanceToBuilding(targetId, position) > attackerCombat.attackRange) {
-            if (isTrebuchetStationary(id)) {
-              continue;
-            }
-            const buildingApproachPlan = findBuildingApproachPlan(
-              id,
-              targetId,
-              attackerCombat.attackRange,
-              activeWorld,
-            );
-            if (!buildingApproachPlan) {
-              clearUnitCommand(id);
-              continue;
-            }
-            moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
-            continue;
-          }
-
-          if (
-            distanceToBuilding(targetId, position) < unitMinAttackRange(unit.unitType)
-          ) {
-            continue;
-          }
-
-          if (unit.unitType === 'trebuchet' && isTrebuchetSilent(id)) {
-            beginTrebuchetUnpack(id);
-            continue;
-          }
-
-          if (attackerCombat.cooldownTicks > 0) {
-            continue;
-          }
-
-          // DERIVED vs-building bonuses (no per-unit state): Sappers tech (+15
-          // infantry) + Goths civ (+1 infantry), read fresh from owner state.
-          const attackerTechs =
-            accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
-          const attackerCiv = accessor.get(playerCivilizationsCodec).get(unit.owner);
-          recordUnitAttack(id, targetId);
-          deliverUnitAttackOnBuilding({
-            world: activeWorld,
-            combatStates: accessor.get(combatStatesCodec),
-            projectiles: accessor.get(projectilesCodec),
-            tick: activeWorld.tick,
-            attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
-            attackerTechs,
-            attackerCivilization: attackerCiv,
-            target: { id: targetId, position: targetPosition },
-            applyBuildingDamage: (_buildingId, damage) => {
-              targetHealth.currentHp -= damage;
-              accessor.markDirty(buildingHealthStatesCodec);
-            },
-            destroyUnit: destroyUnitEntity,
-            addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
-            markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
-            markRender: markOutOfBandRenderChange,
+          const handled = runAttackCommandStep({
+            activeWorld, accessor, id, unit, position, command,
+            currentEntityId, getEntityRef, clearUnitCommand,
+            findUnitRangePlan, findBuildingApproachPlan, distanceToBuilding,
+            moveUnitOneSubgridStep,
+            advanceTrebuchetTransition, isTrebuchetStationary, isTrebuchetSilent,
+            beginTrebuchetUnpack,
+            recordUnitAttack, markOutOfBandRenderChange,
+            ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
+            destroyBuildingEntity,
           });
-
-          if (targetHealth.currentHp <= 0) {
-            destroyBuildingEntity(targetId);
-            clearUnitCommand(id);
-          }
+          void handled;
           continue;
         }
 
@@ -395,20 +180,17 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           }
 
           if (isUnitAtTarget(id, movePlan.destination, activeWorld)) {
-            // Spec §12.7 lazy redirect: a unit that arrived in a fully-packed
-            // cell and overflowed rewrites its move-command target to the
-            // nearest free-slot cell (not clearing it) and moves there next
-            // tick; the movement system never re-aims at the full target.
+            // Spec §12.7 lazy redirect: an overflowed arrival rewrites the
+            // move target to the nearest free-slot cell (never cleared) and
+            // walks there next tick; nothing re-aims at the full cell.
             const redirectTarget = resolveArrivalRedirect(id, movePlan.destination);
             if (redirectTarget) {
               command.target = redirectTarget;
               accessor.markDirty(unitCommandsCodec);
               continue;
             }
-            // Spec §12.6 arrival publication: isUnitAtTarget only succeeds
-            // after the fine transform has converged on the allocated slot.
-            // Republishing the same endpoint is therefore continuity-safe;
-            // it never introduces an arrival snap.
+            // Spec §12.6: isUnitAtTarget only succeeds after the fine
+            // transform converged, so republishing the endpoint never snaps.
             syncUnitTransformToPosition(id, movePlan.destination, activeWorld);
             clearUnitCommand(id);
             continue;
