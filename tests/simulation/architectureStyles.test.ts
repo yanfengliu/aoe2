@@ -146,3 +146,26 @@ describe('the town-center crown (v0.3.120)', () => {
     expect(crownKeys('middle-eastern').some((key) => key.includes('tower-roof'))).toBe(false);
   });
 });
+
+describe('the monastery finial (v0.3.127)', () => {
+  const MONASTERY: ProjectedEntityView = {
+    id: 9, kind: 'building', entityType: 'monastery', owner: 1, x: 4, y: 4,
+    footprintWidth: 3, footprintHeight: 3, tint: 0x4477cc, size: 3,
+    currentHp: 2100, maxHp: 2100, selected: false, isMemory: false,
+  } as unknown as ProjectedEntityView;
+
+  function finialKeys(architecture?: string) {
+    const entity = { ...MONASTERY, ...(architecture ? { architecture } : {}) } as ProjectedEntityView;
+    return createBuildingParts(entity, 'p1', 0)
+      .map((part) => part.key)
+      .filter((key) => key.includes('finial') || key.includes('cross'));
+  }
+
+  it('crowns each set differently; the default keeps the cross and a set REPLACES it', () => {
+    expect(finialKeys().some((key) => key.includes('cross-upright'))).toBe(true);
+    expect(finialKeys('middle-eastern').some((key) => key.includes('finial-dome'))).toBe(true);
+    expect(finialKeys('east-asian').some((key) => key.includes('finial-spike'))).toBe(true);
+    expect(finialKeys('mesoamerican').some((key) => key.includes('finial-crest'))).toBe(true);
+    expect(finialKeys('middle-eastern').some((key) => key.includes('cross'))).toBe(false);
+  });
+});

@@ -375,3 +375,36 @@ export function townCenterCrown(context: BuildingContext): void {
       addBuildingPart(context, 'town-center-tower-roof', 'matte', capTint, 0.5, 2.52, 0.5, 0.24, 0.18, 0.24);
   }
 }
+
+// The monastery finial follows the architecture set (v0.3.127): the default
+// keeps the cross; each other set crowns its temple in its own abstract
+// silhouette. Lives here (not recipes) purely for the 500-LOC budget, like
+// the town-center crown above it.
+export function monasteryFinial(context: BuildingContext): void {
+  switch (context.architecture) {
+      case 'middle-eastern':
+        add(context, 'monastery-finial-dome', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTileDark), context.team, 0.55), 0.5, 2.12, 0.5, 0.24, 0.16, 0.24);
+        add(context, 'monastery-finial-orb', 'metal', VOXEL_COLORS.gold, 0.5, 2.3, 0.5, 0.08, 0.14, 0.08);
+        return;
+      case 'east-asian':
+        add(context, 'monastery-finial-eave', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTile), context.team, 0.55), 0.5, 2.12, 0.5, 0.3, 0.06, 0.3);
+        add(context, 'monastery-finial-tier', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTile), context.team, 0.55), 0.5, 2.24, 0.5, 0.18, 0.06, 0.18);
+        add(context, 'monastery-finial-spike', 'metal', VOXEL_COLORS.gold, 0.5, 2.3, 0.5, 0.04, 0.2, 0.04);
+        return;
+      case 'mesoamerican':
+        add(context, 'monastery-finial-crest', 'matte', VOXEL_COLORS.stone, 0.5, 2.12, 0.5, 0.26, 0.12, 0.14);
+        add(context, 'monastery-finial-crest-top', 'metal', VOXEL_COLORS.gold, 0.5, 2.24, 0.5, 0.14, 0.1, 0.08);
+        return;
+      case 'central-european':
+        add(context, 'monastery-finial-spire', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTileDark), context.team, 0.55), 0.5, 2.12, 0.5, 0.16, 0.3, 0.16);
+        add(context, 'monastery-finial-point', 'metal', VOXEL_COLORS.gold, 0.5, 2.42, 0.5, 0.035, 0.22, 0.035);
+        return;
+      case 'mediterranean':
+        add(context, 'monastery-finial-dome', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTile), context.team, 0.55), 0.5, 2.12, 0.5, 0.22, 0.12, 0.22);
+        add(context, 'monastery-finial-lantern', 'metal', VOXEL_COLORS.gold, 0.5, 2.26, 0.5, 0.07, 0.12, 0.07);
+        return;
+      default:
+        add(context, 'monastery-cross-upright', 'metal', VOXEL_COLORS.gold, 0.5, 2.12, 0.5, 0.025, 0.54, 0.025);
+        add(context, 'monastery-crossbar', 'metal', VOXEL_COLORS.gold, 0.5, 2.42, 0.5, 0.14, 0.025, 0.025);
+    }
+}

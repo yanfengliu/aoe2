@@ -1,6 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
-import { construction, createBuildingDetailParts, damageFlames, townCenterCrown } from './aoeVoxelBuildingDetails';
+import { construction, createBuildingDetailParts, damageFlames, monasteryFinial, townCenterCrown } from './aoeVoxelBuildingDetails';
 import { architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
@@ -384,8 +384,7 @@ function blacksmith(context: BuildingContext): void {
 function monastery(context: BuildingContext): void {
   house(context);
   add(context, 'monastery-tower', 'matte', VOXEL_COLORS.stoneLight, 0.5, 1.5, 0.5, 0.22, 0.62, 0.22);
-  add(context, 'monastery-cross-upright', 'metal', VOXEL_COLORS.gold, 0.5, 2.12, 0.5, 0.025, 0.54, 0.025);
-  add(context, 'monastery-crossbar', 'metal', VOXEL_COLORS.gold, 0.5, 2.42, 0.5, 0.14, 0.025, 0.025);
+  monasteryFinial(context);
 }
 
 function tower(context: BuildingContext): void {
