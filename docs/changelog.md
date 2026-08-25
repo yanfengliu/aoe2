@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.79 - 2026-08-24
+
+### Added
+
+- **Opening bonuses.** The Chinese start with six villagers and a lean stockpile, the Mayans with four villagers, the Persians richer, the Huns short of wood, and the Incas with a llama beside the Town Center. Aztec villagers carry +5 of everything and Goth hunters +15 boar meat. Chinese Town Centers and Inca houses each shelter ten. Every fixture and test scenario is unaffected — the deltas apply only where a scenario does not pin its own numbers.
+
 ## 0.3.78 - 2026-08-24
 
 ### Added

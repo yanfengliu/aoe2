@@ -6,7 +6,8 @@
 // surface is explicit instead of closure-captured.
 
 import { isMonasticUnit } from '../monasticUnits';
-import { matchSettingsCodec } from './bridgeStateSerialize';
+import { civPopulationProvidedBonus } from '../civBonusEffects';
+import { matchSettingsCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -391,7 +392,12 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     }
 
     const populationState = accessor.get(populationCodec).get(owner);
-    const populationProvided = buildingPopulationProvided(buildingType);
+    // Chinese Town Centers and Inca houses shelter more than the table says.
+    const populationProvided = buildingPopulationProvided(buildingType)
+      + civPopulationProvidedBonus(
+        accessor.get(playerCivilizationsCodec).get(owner),
+        buildingType,
+      );
     if (isComplete && populationState && populationProvided > 0) {
       // Raise the honest raw supply; cap is the derived 200-clamp of it.
       populationState.rawSupply += populationProvided;
@@ -408,7 +414,11 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
           isComplete: false,
           buildProgressTicks: 0,
           totalBuildTicks: buildingBuildTimeTicks(buildingType),
-          populationProvided: buildingPopulationProvided(buildingType),
+          populationProvided: buildingPopulationProvided(buildingType)
+            + civPopulationProvidedBonus(
+              accessor.get(playerCivilizationsCodec).get(owner),
+              buildingType,
+            ),
           width: footprint.width,
           height: footprint.height,
         });

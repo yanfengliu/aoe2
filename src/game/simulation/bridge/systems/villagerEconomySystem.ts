@@ -34,7 +34,7 @@ import {
   effectiveCarryCapacity,
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
-import { civGatherRateMultiplier } from '../../civBonusEffects';
+import { civCarryBonus, civGatherRateMultiplier } from '../../civBonusEffects';
 import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
@@ -297,9 +297,14 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   gatherer.targetResourceId = null;
                   continue;
                 }
-                // Carry techs (Wheelbarrow / Hand Cart) raise effective carry,
-                // derived from the owner's researched-tech set.
-                const carryCapacity = effectiveCarryCapacity(ownerTechs, gatherer.carryCapacity);
+                // Carry techs (Wheelbarrow / Hand Cart) multiply; civilization
+                // carry bonuses (Aztecs +5, Goth hunters +15) add to the BASE
+                // first, AoE2's own order.
+                const carryCapacity = effectiveCarryCapacity(
+                  ownerTechs,
+                  gatherer.carryCapacity
+                    + civCarryBonus(playerCivilizations.get(unit.owner), targetResource.resourceType),
+                );
                 const gatherAmount = Math.min(
                   gatherAmountFor(targetResource.resourceType),
                   targetResource.amount,

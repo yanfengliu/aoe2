@@ -22,6 +22,18 @@ export interface CivCostRule {
 
 export interface CivBonusEntry {
   readonly civilization: string;
+  /** Flat carry-capacity bonus: all villagers, or one resource kind's
+   *  gatherers (Goths hunters). Composes with Wheelbarrow's multiplier. */
+  readonly carryBonus?: ReadonlyArray<{
+    readonly kind?: ResourceKind;
+    readonly bonus: number;
+  }>;
+  /** Extra population a building type supports (Chinese TCs, Inca houses). */
+  readonly populationProvided?: Readonly<Partial<Record<string, number>>>;
+  /** Opening adjustments: resources added (may be negative) and extra
+   *  starting units beside the Town Center. */
+  readonly startingResourcesDelta?: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
+  readonly extraStartingUnits?: ReadonlyArray<{ readonly kind: UnitType | 'sheep'; readonly count: number }>;
   /** Villager gather-rate multipliers by resource kind. */
   readonly gatherRate?: Readonly<Partial<Record<ResourceKind, number>>>;
   readonly unitHp?: ReadonlyArray<{
@@ -71,6 +83,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Aztecs',
     trainTime: [{ applies: (unit) => unit !== 'villager', multiplier: 0.85 }],
+    carryBonus: [{ bonus: 5 }], // "Villagers carry +5".
   },
   {
     civilization: 'Berbers',
@@ -103,6 +116,11 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Chinese',
     unitHp: [{ applies: (unit) => unit === 'demolition-ship' || unit === 'heavy-demolition-ship', multiplier: 1.5 }],
+    // "Start game with 3 extra villagers but -50 wood and -200 food" ·
+    // "Town Centers support 10 population instead of 5".
+    startingResourcesDelta: { wood: -50, food: -200 },
+    extraStartingUnits: [{ kind: 'villager', count: 3 }],
+    populationProvided: { 'town-center': 5 },
   },
   {
     civilization: 'Ethiopians',
@@ -114,6 +132,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Goths',
+    carryBonus: [{ kind: 'boar', bonus: 15 }], // "Hunters carry +15 meat".
     buildingAttack: [{ applies: (unit) => isInfantryUnit(unit), bonus: 1 }],
     cost: [{
       applies: (unit) => isInfantryUnit(unit),
@@ -122,6 +141,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Huns',
+    startingResourcesDelta: { wood: -100 }, // "Start game with -100 Wood".
     cost: [{
       applies: (unit) => CAVALRY_ARCHER_LINE.has(unit),
       multiplierByAge: { 'castle-age': 0.75, 'imperial-age': 0.7 },
@@ -159,6 +179,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Mayans',
+    // "Start game with 1 extra villager but -50 food".
+    startingResourcesDelta: { food: -50 },
+    extraStartingUnits: [{ kind: 'villager', count: 1 }],
     cost: [{
       applies: (unit) => FOOT_ARCHER_LINE.has(unit),
       multiplierByAge: { 'feudal-age': 0.9, 'castle-age': 0.8, 'imperial-age': 0.7 },
@@ -168,6 +191,17 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Mongols',
     gatherRate: { boar: 1.5 },
     unitHp: [{ applies: (unit) => unit === 'light-cavalry' || unit === 'hussar', multiplier: 1.3 }],
+  },
+  {
+    civilization: 'Persians',
+    startingResourcesDelta: { wood: 50, food: 50 }, // "+50 wood and food".
+  },
+  {
+    civilization: 'Incas',
+    // "Start with a free llama" (a herdable — this build's sheep) ·
+    // "Houses support 10 population".
+    extraStartingUnits: [{ kind: 'sheep', count: 1 }],
+    populationProvided: { house: 5 },
   },
   {
     civilization: 'Portuguese',

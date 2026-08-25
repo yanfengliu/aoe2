@@ -104,6 +104,29 @@ export function civSpeedMultiplier(
   return 1;
 }
 
+// Flat carry bonus for a villager gathering THIS resource kind. Adds to the
+// base carry BEFORE the Wheelbarrow multiplier, matching AoE2's math.
+export function civCarryBonus(
+  civilization: string | undefined,
+  kind: ResourceKind,
+): number {
+  let bonus = 0;
+  for (const rule of civBonusesFor(civilization)?.carryBonus ?? []) {
+    if (rule.kind === undefined || rule.kind === kind) bonus += rule.bonus;
+  }
+  return bonus;
+}
+
+// Extra population a building of this type supports for this civilization
+// (Chinese Town Centers, Inca houses). Adds to the base table at BOTH raw-
+// supply sites, so the cap math never disagrees with itself.
+export function civPopulationProvidedBonus(
+  civilization: string | undefined,
+  buildingType: string,
+): number {
+  return civBonusesFor(civilization)?.populationProvided?.[buildingType] ?? 0;
+}
+
 // The owner's effective training cost for a unit, after civ cost bonuses and
 // the Shipwright discount. Returns a NEW object when discounted (the base
 // table is never mutated), and the shared base reference otherwise. This MUST

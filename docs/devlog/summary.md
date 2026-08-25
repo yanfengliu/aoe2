@@ -1,3 +1,7 @@
+## 2026-08-24 (opening bonuses — deltas, carry, housing, v0.3.79)
+
+- **Three more §9.2 families, each guarded against fixture damage.** Starting deltas apply ONLY where `start.startingResources` is unset, so every fixture stays byte-identical (a fixture that pins 500 food keeps 500 food whatever civ it names); extra units (Chinese +3, Mayans +1, the Inca llama-as-sheep) spawn through the same safe-spawn search as the scenario roster; carry bonuses add BEFORE Wheelbarrow's multiplier (AoE2's order); housing bonuses land at BOTH raw-supply sites so the cap never disagrees with itself. The 500-line gate forced `scenarioSeedOps` (510) to shed the whole civ-opening concern into `civOpeningSeed.ts` — the split IS the feature's shape. Gates: 2788 tests, typecheck, lint, build.
+
 ## 2026-08-24 (free civilization technologies, v0.3.78)
 
 - **The grant asks the MENU, so the free path can never outrun a player.** `freeTechnologySystem` (every 25 ticks, cheap early-outs) checks each waiting free tech against `getResearchOptions` for the owner's standing completed buildings — the same function the HUD's buttons and the queue validator read — then applies through the same idempotent `applyTechnology` a paid research uses. Age gates, prerequisite chains (Bow Saw needs Double-Bit Axe), and building requirements (Franks farm upgrades wait for a Mill; Slavs Tracking waits for a Barracks — tested) all live ONCE. Twelve civs, 24 grants, zero new rules. Red-check: void the apply → Aztec Loom never lands. Gates: 2784 tests, typecheck, lint, build.

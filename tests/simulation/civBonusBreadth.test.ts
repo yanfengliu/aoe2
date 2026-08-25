@@ -130,3 +130,52 @@ describe('train-time bonuses', () => {
     expect(civTrainTimeMultiplier('Celts', 'militia')).toBe(1);
   });
 });
+
+describe('opening bonuses in a real match', () => {
+  async function bootAs(civilization: string) {
+    const { createSimulationBridge } = await import('../../src/game/simulation/createSimulationBridge');
+    return createSimulationBridge(undefined, {
+      civilizationsByOwner: new Map([[1, civilization]]),
+    });
+  }
+
+  it('opens the Chinese with three extra villagers and a lighter stockpile', async () => {
+    const bridge = await bootAs('Chinese');
+    const villagers = bridge.getEconomyState().units.filter(
+      (unit) => unit.owner === 1 && unit.unitType === 'villager',
+    );
+    expect(villagers).toHaveLength(6);
+    expect(bridge.getEconomyState().playerResources[1]).toMatchObject({ food: 0, wood: 150 });
+    // Their Town Center shelters ten: base cap 5 becomes 10.
+    expect(bridge.getPopulationState(1).cap).toBe(10);
+  });
+
+  it('opens the Persians richer and the Huns short of wood', async () => {
+    const persians = await bootAs('Persians');
+    expect(persians.getEconomyState().playerResources[1]).toMatchObject({ food: 250, wood: 250 });
+    const huns = await bootAs('Huns');
+    expect(huns.getEconomyState().playerResources[1]).toMatchObject({ wood: 100 });
+  });
+
+  it('opens the Incas with the llama', async () => {
+    const bridge = await bootAs('Incas');
+    const sheep = bridge.getEconomyState().resources.filter(
+      (resource) => resource.resourceType === 'sheep' && resource.baseOwner === 1,
+    );
+    // The opening's own flock plus the llama.
+    const plain = await bootAs('Britons');
+    const plainSheep = plain.getEconomyState().resources.filter(
+      (resource) => resource.resourceType === 'sheep' && resource.baseOwner === 1,
+    );
+    expect(sheep.length).toBe(plainSheep.length + 1);
+  });
+
+  it('lets Aztec villagers carry five more', async () => {
+    const { civCarryBonus } = await import('../../src/game/simulation/civBonusEffects');
+    expect(civCarryBonus('Aztecs', 'berry-bush')).toBe(5);
+    expect(civCarryBonus('Aztecs', 'tree')).toBe(5);
+    expect(civCarryBonus('Goths', 'boar')).toBe(15);
+    expect(civCarryBonus('Goths', 'tree')).toBe(0);
+    expect(civCarryBonus('Britons', 'tree')).toBe(0);
+  });
+});

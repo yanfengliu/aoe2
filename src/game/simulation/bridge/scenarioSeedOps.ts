@@ -7,6 +7,7 @@
 // module just bundles the long, sequential mutation lists so
 // createSimulationBridge stays readable.
 
+import { seedCivOpeningUnits, civOpeningResources } from './civOpeningSeed';
 import type { Position } from 'civ-engine';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
 import { TERRAIN_TINTS } from '../terrainTints';
@@ -160,10 +161,10 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   });
   accessor.mutate(playerResourcesCodec, (m) => {
     for (const start of scenario.starts) {
-      m.set(
-        start.owner,
+      m.set(start.owner, civOpeningResources(
+        start,
         cloneResources(start.startingResources ?? standardStartingResources),
-      );
+      ));
     }
   });
   // §4.3: a conquest-only match records it in world state, so the setting
@@ -256,7 +257,10 @@ export function seedFreshScenario(deps: ScenarioSeedDeps): void {
   seedPlayerStarts(deps);
   seedTerrain(deps);
   seedScenarioEntities(deps);
+  seedCivOpeningUnits(deps);
 }
+
+
 
 export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
   const {
