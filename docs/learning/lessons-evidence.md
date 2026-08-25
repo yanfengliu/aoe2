@@ -743,3 +743,9 @@ The tests were right to fail and the fix is one line each (`grid: { width: MAP_W
 ## cross-owner-ui-state
 
 **2026-08-25.** The browser camel spec started flaking "No selection" the day v0.3.89 widened garrison eligibility. A selection.refs setter-trap traced it to `garrisonUnit` calling `clearSelection()` UNCONDITIONALLY — the AI sheltering ITS OWN archer wiped the HUMAN's selection, invisible for months because before v0.3.89 no AI unit could garrison in the fixtures. The fix (`removeSelectedEntity(unitId)`) also repaired the sibling defect: garrisoning one of several selected units wiped the whole group. Gates: `tests/simulation/garrisonSelectionSurvives.test.ts` (both directions). Found en route: the pointer→view wrapper `(x, y) => issueContextCommandAtWorldPosition(x, y)` dropped the iso pick AND the Alt-garrison flag — live Alt+garrison had never worked; the vitest and browser helpers both drove the bridge directly, so no test ever crossed the real seam. Rule: when a UI feature is only ever exercised through a test API, the seam between the input layer and that API is unwatched — put at least one test through the REAL path.
+
+## Assert the mechanism, not the shared outcome (2026-08-25)
+
+Building attack-ground (v0.3.117), the first bombard test asserted "cluster HP drops after the order" — and went GREEN before the executor branch existed. The unrouted command was cleared on tick 1, auto-aggression re-engaged the mangonel, and its ORDINARY attack splashed the same cluster: the assertion could not distinguish the feature from the fallback that fires whenever the feature is absent. The empty-cell companion test (order still standing, type still 'attack-ground', after 80 ticks with nothing to aggro) failed honestly and exposed the gap.
+
+Anchor: `tests/simulation/attackGround.test.ts` > "keeps firing at the empty cell after everyone leaves — ground is the target" (the mechanism assertion), alongside the splash test it disambiguates.
