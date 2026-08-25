@@ -1,3 +1,4 @@
+import { architectureStyleFor } from '../architectureStyles';
 import {
   VisibilityMap,
   type Position,
@@ -104,6 +105,10 @@ export function createProjector(
   /** Owners whose vision this player ALSO sees — Cartography's allies.
    *  Read per frame, because researching it mid-match must take effect. */
   getSharedVisionOwners: () => readonly number[] = () => [],
+  /** Owner → civilization, for the per-civ building sets (v0.3.105).
+   *  Optional: replay/legacy callers omit it and every skyline reads the
+   *  western-european default. */
+  getCivilizationOf: (owner: number) => string | undefined = () => undefined,
 ): RenderProjector<
   GameEvents,
   GameCommands,
@@ -189,6 +194,9 @@ export function createProjector(
         footprintWidth: renderable.footprintWidth,
         footprintHeight: renderable.footprintHeight,
         visualVariant: renderable.visualVariant,
+        ...(building && owner !== null
+          ? { architecture: architectureStyleFor(getCivilizationOf(owner)) }
+          : {}),
         selected: isSelected(ref.id),
         currentHp: health?.currentHp ?? null,
         maxHp: health?.maxHp ?? null,

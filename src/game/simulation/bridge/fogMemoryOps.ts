@@ -111,6 +111,7 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
         footprintWidth: entry.footprintWidth,
         footprintHeight: entry.footprintHeight,
         visualVariant: entry.visualVariant,
+        ...(entry.architecture ? { architecture: entry.architecture } : {}),
         selected: false,
         currentHp: null,
         maxHp: null,

@@ -12,6 +12,7 @@ import type { Position } from 'civ-engine';
 
 import type { BuildingComponent, RenderableComponent } from '../types';
 import type { MemoryEntry } from './memoryTypes';
+import { architectureStyleFor } from '../architectureStyles';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -58,6 +59,7 @@ export function applyVietnameseReveal(
           const entry: MemoryEntry = {
             kind: 'building',
             entityType: 'town-center',
+            architecture: architectureStyleFor(civilizations.get(townCenter.owner)),
             generation: world.getEntityGeneration(townCenter.id),
             position: { x: townCenter.position.x, y: townCenter.position.y },
             footprintWidth: renderable.footprintWidth,

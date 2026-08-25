@@ -182,6 +182,10 @@ export interface ProjectedEntityView {
   footprintWidth: number;
   footprintHeight: number;
   visualVariant: RenderVisualVariant;
+  /** Building set the owner's civilization wears (v0.3.105); absent for
+   *  units/terrain/resources and for pre-architecture snapshots — the
+   *  renderer reads absent as the western-european default. */
+  architecture?: import('./architectureStyles').ArchitectureStyle;
   selected: boolean;
   currentHp: number | null;
   maxHp: number | null;

@@ -21,5 +21,7 @@ export interface MemoryEntry {
   owner: number | null;
   size: number;
   visualVariant: ProjectedEntityView['visualVariant'];
+  /** Building set at snapshot time (v0.3.105); absent = pre-architecture save. */
+  architecture?: ProjectedEntityView['architecture'];
   lastSeenTick: number;
 }

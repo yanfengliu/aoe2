@@ -12,16 +12,19 @@ import type {
 import { isFootprintVisible, type GameWorld } from '../pureHelpers';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
 import type { MemoryEntry } from '../memoryTypes';
+import { architectureStyleFor } from '../../architectureStyles';
 
 export interface FogMemorySystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
+  /** Owner → civilization, for the building-set snapshot (v0.3.105). */
+  getCivilizationOf: (owner: number) => string | undefined;
 }
 
 export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
-  const { world, humanPlayerId, visibility, getOrCreateMemoryMap } = deps;
+  const { world, humanPlayerId, visibility, getOrCreateMemoryMap, getCivilizationOf } = deps;
 
   world.registerSystem({
     name: 'prototypeFogMemory',
@@ -55,6 +58,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         humanMemory.set(id, {
           kind: 'building',
           entityType: building.buildingType,
+          architecture: architectureStyleFor(getCivilizationOf(building.owner)),
           generation: activeWorld.getEntityGeneration(id),
           position: { x: position.x, y: position.y },
           footprintWidth: renderable.footprintWidth,

@@ -4,7 +4,8 @@
 // only the side-map closures + factory wirings, not the per-system noise.
 
 import type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
-import { buildingHealthStatesCodec } from './bridgeStateSerialize';
+import {
+  playerCivilizationsCodec, buildingHealthStatesCodec } from './bridgeStateSerialize';
 import { queuePostConstructionAutoGather } from './postConstructionAutoGather';
 export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 
@@ -415,6 +416,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     world,
     humanPlayerId,
     visibility,
+    getCivilizationOf: (owner) => accessor.get(playerCivilizationsCodec).get(owner),
     getOrCreateMemoryMap,
   });
 

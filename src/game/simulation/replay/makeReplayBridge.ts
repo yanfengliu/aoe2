@@ -73,6 +73,8 @@ export function makeReplayBridge(
       api.getWildlifeAlive,
       api.getUnitActiveVerb,
       api.getInFlightProjectiles,
+      () => [],
+      (owner) => api.getPlayerCivilization?.(owner),
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {
@@ -123,7 +125,7 @@ export function makeReplayBridge(
     // A replay's map is whatever the recorded world was built at.
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     getSharedVisionOwners: () => [],
-    getPlayerCivilization: () => 'Britons',
+    getPlayerCivilization: (owner: number) => api.getPlayerCivilization?.(owner) ?? 'Britons',
     getConstructionCost: (_owner: number, buildingType: import('../types').BuildingType) =>
       constructionCost(buildingType),
     step() {

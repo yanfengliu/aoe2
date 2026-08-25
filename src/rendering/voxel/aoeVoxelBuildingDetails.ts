@@ -1,4 +1,5 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
+import { architectureRoofTint } from './aoeVoxelArchitecture';
 import { add as addBuildingPart, type BuildingContext } from './aoeVoxelBuildingRecipes';
 import {
   hash01,
@@ -57,7 +58,7 @@ function add(
 }
 
 function townCenter(context: DetailContext): void {
-  add(context, 'town-center-roof-ridge', 'matte', VOXEL_COLORS.roofTileDark, 0.5, 1.91, 0.5, 0.6, 0.08, 0.045);
+  add(context, 'town-center-roof-ridge', 'matte', architectureRoofTint(context.entity.architecture, VOXEL_COLORS.roofTileDark), 0.5, 1.91, 0.5, 0.6, 0.08, 0.045);
   add(context, 'town-center-bell', 'metal', VOXEL_COLORS.gold, 0.5, 2.15, 0.602, 0.055, 0.16, 0.035);
   add(context, 'town-center-bell-yoke', 'matte', VOXEL_COLORS.timberDark, 0.5, 2.31, 0.604, 0.12, 0.05, 0.03);
 }

@@ -154,6 +154,8 @@ export function createSimulationBridge(
       // Cartography: the human sees its allies' vision once it is researched.
       // Read per frame so researching it mid-match takes effect immediately.
       () => getSharedVisionOwners(HUMAN_PLAYER_ID),
+      // v0.3.105: buildings carry their owner's building set.
+      (owner) => getPlayerCivilization(owner),
     ),
     debug: createRenderMetricsCapture(world),
     send(message) {

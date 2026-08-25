@@ -182,6 +182,8 @@ export interface SerializedSideMaps {
         owner: number | null;
         size: number;
         visualVariant: string;
+        /** Building set at snapshot (v0.3.105); absent on older saves. */
+        architecture?: string;
         lastSeenTick: number;
       }
     >
