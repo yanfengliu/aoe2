@@ -45,6 +45,7 @@ import {
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import { civAgeAdvanceGrant } from '../civBonusEffects';
+import { applyAgeScaledHpSweep } from './ageScaledHpSweep';
 import {
   isArcherLineUnit,
   isCavalryArcherUnit,
@@ -160,6 +161,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'feudal-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'feudal-age'));
         grantAgeAdvanceBonus();
+        applyAgeScaledHpSweep(world, accessor, owner, 'dark-age', 'feudal-age');
         // structures.csv "Outpost": +2 line of sight per age, for the posts
         // already standing. One built afterwards derives the same total.
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
@@ -168,6 +170,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       case 'castle-age':
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'castle-age'));
         grantAgeAdvanceBonus();
+        applyAgeScaledHpSweep(world, accessor, owner, 'feudal-age', 'castle-age');
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
         markOutOfBandRenderChange();
         break;
@@ -177,6 +180,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         // Slices 7B–7D; 7A only wires the age flip so the gate tests pass.
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'imperial-age'));
         grantAgeAdvanceBonus();
+        applyAgeScaledHpSweep(world, accessor, owner, 'castle-age', 'imperial-age');
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
         markOutOfBandRenderChange();
         break;

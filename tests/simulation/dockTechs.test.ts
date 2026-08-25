@@ -97,6 +97,7 @@ describe('Careening — +0 melee / +1 pierce for ships', () => {
     const factory = createCombatStateFactory({
       hasTechnology: (_owner, tech) => researched.has(tech),
       getCivilization: () => 'Byzantines',
+    getAge: () => 'imperial-age',
     });
     const state = factory(1, unitType);
     return { melee: state.armor, pierce: pierceArmorTechBonus(state) };

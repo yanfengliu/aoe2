@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.86: age-scaled HP family (Viking infantry+berserks, Vietnamese archery units, Byzantine buildings) — age-aware combatStateFactory + building seam + ratio sweep in the three age cases; berserk not in INFANTRY_UNITS (armor-scope set) so named explicitly; red-check 5/6.
 - 2026-08-25 v0.3.85: Ethiopian age-advance grant (+100f/+100g on each advance) as a new civBonusTable family applied in technologyOps' three age cases; red-checked; Ethiopians civ column now fully live.
 - 2026-08-25 v0.3.84: Ethiopian team tower/outpost +3 LOS + all four remaining Teuton lines (TC +1 atk/+5 LOS, towers 2x garrison, monks 2x heal range) via new civBuildingBonuses seam on BOTH vision-creation branches; garrison eligibility widened to DE rules (foot soldiers in TCs/towers, mounted in castles); red-check 9/9; entityCreateOps re-split under 500.
 - 2026-08-25 v0.3.83: building roofs carry owner colour (mixTint 55% toward owner tint in steppedRoof + TC-tower/dock-house roofs); before/after pixel diff confined to roofs, enemy/owner-3 discrimination frames captured; spec art-direction paragraph superseded (accents-only -> roof blend).

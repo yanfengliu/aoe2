@@ -13,6 +13,7 @@ function techBonus(unitType: UnitType, ...techs: ResearchableTechnologyType[]) {
     hasTechnology: (_owner, tech) => set.has(tech),
     // Armor test — a non-Franks civ keeps HP (and thus every assertion) unchanged.
     getCivilization: () => 'Byzantines',
+    getAge: () => 'imperial-age',
   });
   const state = factory(1, unitType);
   return { melee: state.armor, pierce: pierceArmorTechBonus(state) };

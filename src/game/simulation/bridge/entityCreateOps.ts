@@ -9,7 +9,7 @@ import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuse
 import { slavsTeamMilitaryPop } from './teamPopulation';
 import { isMonasticUnit } from '../monasticUnits';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
-import { playerTeamsCodec, matchSettingsCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
+import { playerTeamsCodec, matchSettingsCodec, playerAgesCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -59,6 +59,7 @@ import {
   FISH_TRAP_FOOD_AMOUNT,
 } from '../economyTechEffects';
 import { attachBuildingVisionAndCombat } from './buildingSeedVision';
+import { ageScaledBuildingHpFactor } from '../ageScaledHp';
 
 interface PlayerScoreCountersLike {
   unitsProduced: number;
@@ -336,12 +337,19 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     // (buildingHpTechEffect). Both halves are needed, exactly like Loom.
     // Persians: Town Centers and Docks at double HP — the civ multiplier
     // applies to the BASE before the tech multipliers, like the unit-HP seam.
+    // The Byzantine per-age building ladder multiplies alongside the civ
+    // multiplier; standing buildings are swept on age-up (ageScaledHpSweep).
     const fullHp = buildingMaxHpWithTechnologies(
       Math.round(
         buildingMaxHp(buildingType)
         * civBuildingHpMultiplier(
           accessor.get(playerCivilizationsCodec).get(owner),
           buildingType,
+        )
+        * ageScaledBuildingHpFactor(
+          accessor.get(playerCivilizationsCodec).get(owner),
+          buildingType,
+          accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
         ),
       ),
       accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,

@@ -76,6 +76,7 @@ describe('Parthian Tactics — the armor half (+1 melee / +2 pierce)', () => {
     const factory = createCombatStateFactory({
       hasTechnology: (_owner, tech) => techs.has(tech),
       getCivilization: () => 'Byzantines',
+    getAge: () => 'imperial-age',
     });
     const state = factory(1, unitType);
     return { melee: state.armor, pierce: pierceArmorTechBonus(state) };

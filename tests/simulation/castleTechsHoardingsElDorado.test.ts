@@ -56,6 +56,7 @@ describe('El Dorado — the Eagle line with 40 more hit points', () => {
     const factory = createCombatStateFactory({
       hasTechnology: (_owner, tech) => researched.has(tech),
       getCivilization: () => 'Mayans',
+    getAge: () => 'imperial-age',
     });
     return factory(1, unitType).maxHp;
   }

@@ -10,11 +10,13 @@ import {
   type UniqueUnitEffect,
 } from '../uniqueTechnologies';
 import type { CombatState } from './systems/systemTypes';
-import type { ResearchableTechnologyType, UnitType } from '../types';
+import type {
+  AgeType, ResearchableTechnologyType, UnitType } from '../types';
 import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
 import { civUnitHpMultiplier } from '../civBonusEffects';
+import { ageScaledUnitHpFactor } from '../ageScaledHp';
 import {
   isArcherLineUnit,
   isCavalryArcherUnit,
@@ -33,6 +35,8 @@ import {
 export interface CombatStateFactoryDeps {
   hasTechnology: (owner: number, technologyType: ResearchableTechnologyType) => boolean;
   getCivilization: (owner: number) => string;
+  /** The owner's current age — the Viking/Vietnamese HP ladders read it. */
+  getAge: (owner: number) => AgeType;
   /** Team-bonus weapon range (Korean mangonels, Khmer scorpions); 0 without. */
   teamAttackRangeBonus?: (owner: number, unitType: UnitType) => number;
 }
@@ -75,13 +79,19 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
   owner: number,
   unitType: UnitType,
 ) => CombatState {
-  const { hasTechnology, getCivilization } = deps;
+  const { hasTechnology, getCivilization, getAge } = deps;
 
   return function createCombatState(owner: number, unitType: UnitType): CombatState {
     // Civ HP bonus (Franks Knights +20%) applies to the BASE HP before flat
     // tech bonuses (Bloodlines, Loom) add — AoE2: knight 100 → Franks 120 →
     // +20 Bloodlines = 140. A non-bonus civ multiplies by 1 (byte-identical).
-    const baseHp = Math.round(unitMaxHp(unitType) * civUnitHpMultiplier(getCivilization(owner), unitType));
+    // The Viking infantry / Vietnamese archery age ladders multiply here too;
+    // existing units are swept on age-up by the factor ratio (ageScaledHp).
+    const baseHp = Math.round(
+      unitMaxHp(unitType)
+      * civUnitHpMultiplier(getCivilization(owner), unitType)
+      * ageScaledUnitHpFactor(getCivilization(owner), unitType, getAge(owner)),
+    );
     const state: CombatState = {
       currentHp: baseHp,
       maxHp: baseHp,

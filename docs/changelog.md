@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.86 — 2026-08-25
+
+The age-scaled HP bonuses are in: Viking infantry and Vietnamese archery-range units toughen by +10/15/20% as their owner ages up (existing troops included), and Byzantine buildings stand +10% sturdier from the very start, climbing to +40% in Imperial.
+
 ## 0.3.85 — 2026-08-25
 
 Ethiopians now receive their +100 food and +100 gold the moment each age advance completes.

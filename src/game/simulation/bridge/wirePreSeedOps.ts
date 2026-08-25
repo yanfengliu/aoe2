@@ -156,6 +156,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   const createCombatState = createCombatStateFactory({
     hasTechnology,
     getCivilization: getPlayerCivilization,
+    getAge: getPlayerAge,
     teamAttackRangeBonus: (owner, unitType) => bonusAttackRange(
       accessor.get(playerTeamsCodec),
       accessor.get(playerCivilizationsCodec),
