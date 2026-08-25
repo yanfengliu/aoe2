@@ -184,6 +184,13 @@ export function civIgnoresHousing(civilization: string | undefined): boolean {
  * paid into the stockpile when an age advance completes. Null for everyone
  * else so the age cases skip the mutation entirely.
  */
+/** Incas: "Villagers affected by Blacksmith upgrades" — the infantry ARMOR
+ *  line reaches villagers (the melee ATTACK line already reaches every civ's
+ *  villagers, matching AoE2, because villagers are melee units). */
+export function civVillagersTakeInfantryArmor(civilization: string | undefined): boolean {
+  return civilization === 'Incas';
+}
+
 /** Goths: "+10 to population limit in Imperial Age" — raises the HARD cap. */
 export function civImperialPopulationBonus(
   civilization: string | undefined,

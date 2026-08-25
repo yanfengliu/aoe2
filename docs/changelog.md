@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.90 — 2026-08-25
+
+Inca villagers now benefit from the Blacksmith's infantry armor upgrades — Scale, Chain, and Plate Mail each harden every villager, current and future.
+
 ## 0.3.89 — 2026-08-25
 
 The Khmer now play by their own rules: ages and buildings unlock without prerequisite buildings, and their villagers can duck into houses (five per house) when raiders come.

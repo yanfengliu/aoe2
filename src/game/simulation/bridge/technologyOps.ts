@@ -45,7 +45,7 @@ import {
   populationCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import { civAgeAdvanceGrant } from '../civBonusEffects';
+import { civAgeAdvanceGrant, civVillagersTakeInfantryArmor } from '../civBonusEffects';
 import { applyAgeScaledHpSweep } from './ageScaledHpSweep';
 import { ownerHardPopCap } from './ownerPopCap';
 import { deriveCap } from './bridgeConstants';
@@ -144,6 +144,12 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
       upgradeOwnedUnits(owner, from, lineUpgrade!.to);
       rewriteQueuedPredecessorUnits(owner, from, lineUpgrade!.to);
     }
+
+    // Incas: villagers wear the infantry armor line ("Villagers affected by
+    // Blacksmith upgrades") — one scope shared by the three armor cases.
+    const infantryArmorScope = (u: UnitType): boolean => isInfantryUnit(u)
+      || (u === 'villager'
+        && civVillagersTakeInfantryArmor(accessor.get(playerCivilizationsCodec).get(owner)));
 
     // Ethiopians: "+100 gold and +100 food when advancing to the next age" —
     // paid the moment the advance completes, into the same stockpile the
@@ -275,7 +281,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'plate-mail-armor':
-        applyArmorTechToOwnedUnits(owner, 'plate-mail-armor', isInfantryUnit);
+        applyArmorTechToOwnedUnits(owner, 'plate-mail-armor', infantryArmorScope);
         break;
       case 'plate-barding':
         applyArmorTechToOwnedUnits(owner, 'plate-barding', isCavalryUnit);
@@ -293,7 +299,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'scale-mail-armor':
-        applyArmorTechToOwnedUnits(owner, 'scale-mail-armor', isInfantryUnit);
+        applyArmorTechToOwnedUnits(owner, 'scale-mail-armor', infantryArmorScope);
         break;
       case 'scale-barding-armor':
         applyArmorTechToOwnedUnits(owner, 'scale-barding-armor', isCavalryUnit);
@@ -314,7 +320,7 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         }
         break;
       case 'chain-mail-armor':
-        applyArmorTechToOwnedUnits(owner, 'chain-mail-armor', isInfantryUnit);
+        applyArmorTechToOwnedUnits(owner, 'chain-mail-armor', infantryArmorScope);
         break;
       case 'chain-barding-armor':
         applyArmorTechToOwnedUnits(owner, 'chain-barding-armor', isCavalryUnit);

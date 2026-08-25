@@ -17,6 +17,7 @@ import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
 import { civUnitHpMultiplier } from '../civBonusEffects';
 import { ageScaledUnitHpFactor } from '../ageScaledHp';
+import { civVillagersTakeInfantryArmor } from '../civBonusEffects';
 import {
   isArcherLineUnit,
   isCavalryArcherUnit,
@@ -147,7 +148,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     if (isMeleeUnit(unitType) && hasTechnology(owner, 'blast-furnace')) {
       state.attackDamage += 2;
     }
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'plate-mail-armor')) {
+    // Incas: villagers wear the infantry armor line too.
+    const wearsInfantryArmor = isInfantryUnit(unitType)
+      || (unitType === 'villager' && civVillagersTakeInfantryArmor(getCivilization(owner)));
+    if (wearsInfantryArmor && hasTechnology(owner, 'plate-mail-armor')) {
       applyArmorTech(state, 'plate-mail-armor');
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'plate-barding')) {
@@ -159,10 +163,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     if (isMeleeUnit(unitType) && hasTechnology(owner, 'iron-casting')) {
       state.attackDamage += 1;
     }
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'scale-mail-armor')) {
+    if (wearsInfantryArmor && hasTechnology(owner, 'scale-mail-armor')) {
       applyArmorTech(state, 'scale-mail-armor');
     }
-    if (isInfantryUnit(unitType) && hasTechnology(owner, 'chain-mail-armor')) {
+    if (wearsInfantryArmor && hasTechnology(owner, 'chain-mail-armor')) {
       applyArmorTech(state, 'chain-mail-armor');
     }
     if (isCavalryUnit(unitType) && hasTechnology(owner, 'scale-barding-armor')) {
