@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.109
+
+- First sound: a horn when your town comes under attack, a fanfare when you advance an age, and a victory/defeat sting — all synthesized live (no audio samples), with a speaker toggle above the idle-villager bell that remembers your choice.
+
 ## 0.3.108
 
 - Architecture sets now colour the walls too: whitewash for middle-eastern towns, honeyed half-timber infill for central-european, pale grey for east-asian, sun-cream for mediterranean, limestone for mesoamerican. Castles, towers, and timber stay universal.

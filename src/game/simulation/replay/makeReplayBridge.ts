@@ -143,6 +143,9 @@ export function makeReplayBridge(
     getInFlightProjectiles() {
       return api.getInFlightProjectiles();
     },
+    getRecentUnitAttacks() {
+      return api.getRecentUnitAttacks();
+    },
     issueAttackMoveCommand() {
       // Replay is playback: orders come from the recorded stream.
       return false;

@@ -327,6 +327,7 @@ export function createSimulationBridge(
     getSelectionState,
     getMatchState,
     getInFlightProjectiles,
+    getRecentUnitAttacks,
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand,

@@ -80,6 +80,8 @@ export interface SimulationBridge {
   getMatchState(): MatchState;
   /** Shots currently in the air (spec §10.4). Read-only view for render + tests. */
   getInFlightProjectiles(): readonly ProjectileState[];
+  /** The witnessed attack feed (v0.3.109 audio; same view the renderer sees). */
+  getRecentUnitAttacks(): readonly import('./types').ProjectedUnitAttackView[];
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(
