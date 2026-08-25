@@ -153,6 +153,12 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
         } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
           gatherer.task = 'gathering';
           gatherer.gatherProgressTicks = 0;
+          // v0.3.113: raise a component diff for the transition — the unit is
+          // STATIONARY from here, so without it the projector never re-reads
+          // `activeVerb` and the work swing stays invisible. (Leaving
+          // 'gathering' needs no mark: the unit moves, and movement diffs
+          // reproject every tick.)
+          activeWorld.setComponent(id, 'gatherer', gatherer);
           // A villager that has reached a sheep to harvest pins the sheep in
           // place. Any outstanding player move order on that sheep would
           // otherwise keep walking the sheep away each tick.

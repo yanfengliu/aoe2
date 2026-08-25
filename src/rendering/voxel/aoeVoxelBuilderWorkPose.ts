@@ -26,7 +26,7 @@ export function builderWorkWeight(
   attackWeight: number,
 ): number {
   if (moving || attackWeight > 0) return 0;
-  return entity.activeVerb === 'building' ? 1 : 0;
+  return entity.activeVerb === 'building' || entity.activeVerb === 'gathering' ? 1 : 0;
 }
 
 export interface BuilderWorkPoseState {

@@ -42,8 +42,6 @@ import {
 } from '../prototypeBuildingRules';
 import { civGarrisonCapacityMultiplier, civHouseGarrisonCapacity } from '../civBuildingBonuses';
 import {
-  buildingHealthStatesCodec,
-  combatStatesCodec,
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
@@ -54,9 +52,9 @@ import {
   researchedTechnologiesCodec,
   trebuchetPackStatesCodec,
   unitCommandsCodec,
-  wildlifeStatesCodec,
 } from './bridgeStateSerialize';
 import { transportCapacity } from '../transportShip';
+import { createEntityReadProbes } from './entityReadProbes';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 import {
   computeUnitActivity,
@@ -114,7 +112,7 @@ export interface SelectionStateOpsDeps {
 export interface SelectionStateOps {
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
   getWildlifeAlive(id: number): boolean | undefined;
-  getUnitActiveVerb(id: number): 'building' | undefined;
+  getUnitActiveVerb(id: number): 'building' | 'gathering' | undefined;
   getSelectionState(): SelectionState;
 }
 
@@ -136,56 +134,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getResearchOptions,
     getVisibleResearchOptions,
   } = deps;
-  function getEntityHealth(id: number): { currentHp: number; maxHp: number } | null {
-    const unit = world.getComponent<UnitComponent>(id, 'unit');
-    if (unit) {
-      const combat = accessor.get(combatStatesCodec).get(id);
-      if (!combat) {
-        return null;
-      }
-      return { currentHp: combat.currentHp, maxHp: combat.maxHp };
-    }
-
-    const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (building) {
-      const health = accessor.get(buildingHealthStatesCodec).get(id);
-      if (!health) {
-        return null;
-      }
-      return { currentHp: health.currentHp, maxHp: health.maxHp };
-    }
-
-    const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    if (resource) {
-      const wildlife = accessor.get(wildlifeStatesCodec).get(id);
-      if (!wildlife || !wildlife.isAlive) {
-        return null;
-      }
-      return { currentHp: wildlife.currentHp, maxHp: wildlife.maxHp };
-    }
-
-    return null;
-  }
-
-  // Spec §14.5 carcass: the renderer needs wildlife LIFE state explicitly.
-  // `getEntityHealth` deliberately returns null for a corpse (no HP bar), so
-  // it cannot answer "is this a carcass or a rock?" — this can.
-  function getWildlifeAlive(id: number): boolean | undefined {
-    if (!world.getComponent<ResourceComponent>(id, 'resource')) return undefined;
-    return accessor.get(wildlifeStatesCodec).get(id)?.isAlive;
-  }
-
-  // Spec §14.5 construction animation: the smallest honest carrier for "this
-  // villager is building" — the SAME `unitCommands` predicate the HUD's
-  // selection panel reads (computeUnitActivity), so nothing new is recorded
-  // or persisted and replay is identical by construction. The renderer gates
-  // the work loop on stationarity, so this stays true through the approach.
-  function getUnitActiveVerb(id: number): 'building' | undefined {
-    // Repair swings the same hammer as construction (both kinds — buildings
-    // and, from v0.3.107, siege/ships), so both project the builder pose.
-    const type = accessor.get(unitCommandsCodec).get(id)?.type;
-    return type === 'build' || type === 'repair' ? 'building' : undefined;
-  }
+  const { getEntityHealth, getWildlifeAlive, getUnitActiveVerb } =
+    createEntityReadProbes({ world, accessor });
 
   function getSelectionHealth(id: number): SelectionState['health'] {
     const health = getEntityHealth(id);

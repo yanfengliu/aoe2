@@ -197,7 +197,7 @@ export interface ProjectedEntityView {
   wildlifeAlive?: boolean;
   // Active work verb (spec §14.5 construction animation). Derived, never
   // recorded: same predicate the HUD's selection panel reads.
-  activeVerb?: 'building';
+  activeVerb?: 'building' | 'gathering';
   // Last-seen snapshot of a static building/resource in explored-but-not-visible fog:
   // renders at reduced opacity, excluded from selection and live HUD interactions.
   isMemory: boolean;

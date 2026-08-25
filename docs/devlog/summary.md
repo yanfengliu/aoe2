@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.113 gathering work animation: activeVerb widened to gathering (gatherer.task source); the stationary-start transition needed an explicit setComponent diff or the projector never re-read the verb; selectionStateOps split (entityReadProbes) for the 500 cap.
 - 2026-08-25 v0.3.112 control groups persist (controlGroupsCodec joins Tier-1, inventory pins 42→43); recall's generation prune covers pre-save deaths free.
 - 2026-08-25 v0.3.111 per-set roof silhouettes (RoofGeometry heightScale/insetScale/layerDelta in steppedRoof; insets only shrink so footprint invariants hold; accents ride the returned top); four-set capture sweep confirms distinct shapes.
 - 2026-08-25 v0.3.110 audio slice 2: research ding (monotonic count diff, pre-seed snapshot) + countdown bell (edge-trigger).

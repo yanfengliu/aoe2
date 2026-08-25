@@ -100,7 +100,7 @@ export function createProjector(
   getRecentUnitDeaths: () => readonly ProjectedUnitDeathView[],
   getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[],
   getWildlifeAlive: (id: number) => boolean | undefined,
-  getUnitActiveVerb: (id: number) => 'building' | undefined,
+  getUnitActiveVerb: (id: number) => 'building' | 'gathering' | undefined,
   getInFlightProjectiles: () => readonly ProjectileState[],
   /** Owners whose vision this player ALSO sees — Cartography's allies.
    *  Read per frame, because researching it mid-match must take effect. */
