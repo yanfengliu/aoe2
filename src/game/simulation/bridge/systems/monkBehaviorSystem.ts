@@ -29,6 +29,8 @@ import { MONK_FAITH_MAX } from '../bridgeConstants';
 type CivWorld = GameWorld;
 
 const MONK_ACTION_RANGE = 4;
+// Conversion reaches much farther than the hands-on actions (AoE2: 9 vs 4).
+const MONK_CONVERT_RANGE = 9;
 
 export type MonkTaskKind = 'heal' | 'convert' | 'pickup' | 'deposit';
 
@@ -174,7 +176,7 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
         // pickup, and deposit keep the base reach.
         const actionRange =
           task.kind === 'convert'
-            ? MONK_ACTION_RANGE
+            ? MONK_CONVERT_RANGE
               + monkConvertRangeBonus(
                 accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET,
               )

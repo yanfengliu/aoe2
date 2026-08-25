@@ -85,7 +85,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'horse-collar': { food: 75, wood: 75 },
   'heavy-plow': { food: 125, wood: 125 },
   'crop-rotation': { food: 250, wood: 250 },
-  'block-printing': { food: 100, gold: 130 }, // Monastery techs (BP 100f/130g, Sanctity 120g, Faith 750f/1000g, Herbal 350g).
+  'block-printing': { gold: 200 }, // technologies.csv:69 (Imperial, 200g). Sanctity 120g, Faith 750f/1000g, Herbal 350g.
   sanctity: { gold: 120 },
   faith: { food: 750, gold: 1000 },
   // The Monastery's two Imperial faith technologies (technologies.csv).

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.91 — 2026-08-25
+
+Monks now convert from nine tiles away, exactly as in AoE2 (healing and relic handling keep their close-up reach), and Block Printing is its real self: an Imperial technology costing 200 gold that stretches conversion to twelve tiles.
+
 ## 0.3.90 — 2026-08-25
 
 Inca villagers now benefit from the Blacksmith's infantry armor upgrades — Scale, Chain, and Plate Mail each harden every villager, current and future.

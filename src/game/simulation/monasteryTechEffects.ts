@@ -17,7 +17,7 @@ import { MONK_FAITH_MAX, MONK_FAITH_RECHARGE_TICKS } from './bridge/bridgeConsta
 
 // Cells added to a monk's conversion range per researched Monastery range tech.
 const MONK_CONVERT_RANGE_TECH_BONUSES: Partial<Record<ResearchableTechnologyType, number>> = {
-  'block-printing': 2,
+  'block-printing': 3, // technologies.csv: "+3 range".
 };
 
 // Sum of the conversion-range bonuses of every researched Monastery tech (0

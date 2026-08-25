@@ -127,6 +127,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['tower-fletching-fixture', fixtures.createTowerFletchingFixture],
   ['monk-block-printing-baseline-fixture', fixtures.createMonkBlockPrintingBaselineFixture],
   ['monk-block-printing-fixture', fixtures.createMonkBlockPrintingFixture],
+  ['monk-base-convert-range-fixture', fixtures.createMonkBaseConvertRangeFixture],
   ['monk-sanctity-baseline-fixture', fixtures.createMonkSanctityBaselineFixture],
   ['monk-sanctity-fixture', fixtures.createMonkSanctityFixture],
   ['monk-faith-baseline-fixture', fixtures.createMonkFaithBaselineFixture],

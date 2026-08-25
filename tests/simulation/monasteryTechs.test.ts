@@ -34,13 +34,13 @@ function optionsFor(age: AgeType, researched: ResearchableTechnologyType[] = [])
   );
 }
 
-// Boots a fixture, injects a convert task (monk → the enemy villager) via the
+// Boots a fixture, injects a convert task (monk → the enemy trade cart) via the
 // save/mutate/reload path, runs the loop, and reports whether the villager was
-// converted to player 1.
+// converted to player 1. (The target is a trade cart — it stands still.)
 function convertsEnemyIn(seed: string, steps: number): boolean {
   const boot = createSimulationBridge(seed);
   const monk = findUnit(boot, 1, 'monk')!;
-  const villager = findUnit(boot, 2, 'villager')!;
+  const villager = (findUnit(boot, 2, 'trade-cart') ?? findUnit(boot, 2, 'villager'))!;
   const blob = asSchema2Blob(boot.saveGame());
   worldStateOf(blob)[monkTasksCodec.slot] = [
     [monk.id, { kind: 'convert', targetEntityRef: { id: villager.id, generation: 0 } }],
@@ -56,9 +56,9 @@ function convertsEnemy(seed: string): boolean {
 }
 
 describe('monasteryTechEffects — derived monk conversion range bonus (pure)', () => {
-  it('is 0 without Block Printing and +2 with it', () => {
+  it('is 0 without Block Printing and +3 with it', () => {
     expect(monkConvertRangeBonus(new Set())).toBe(0);
-    expect(monkConvertRangeBonus(new Set(['block-printing']))).toBe(2);
+    expect(monkConvertRangeBonus(new Set(['block-printing']))).toBe(3); // technologies.csv: +3
   });
 });
 
@@ -67,9 +67,10 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
     expect(optionsFor('feudal-age')).toEqual([]);
     expect(optionsFor('dark-age')).toEqual([]);
   });
-  it('offers the Castle techs in Castle Age and Faith only in Imperial, dropping each once researched', () => {
+  it('offers the Castle techs in Castle Age and the Imperial four only in Imperial, dropping each once researched', () => {
+    // Block Printing moved to the Imperial gate in v0.3.91 (technologies.csv:
+    // Imperial, 200g, +3 range) — Castle Age no longer offers it.
     expect(optionsFor('castle-age')).toEqual([
-      'block-printing',
       'sanctity',
       'herbal-medicine',
       'heresy',
@@ -77,23 +78,22 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
       'atonement',
       'fervor',
     ]);
-    expect(optionsFor('castle-age', ['block-printing'])).toEqual([
-      'sanctity',
+    expect(optionsFor('castle-age', ['sanctity'])).toEqual([
       'herbal-medicine',
       'heresy',
       'redemption',
       'atonement',
       'fervor',
     ]);
-    // Faith, Illumination and Theocracy (v0.3.50) are the three Imperial-gated
-    // ones; Herbal Medicine (v0.1.70) and Heresy (v0.1.71) are Castle techs
+    // Block Printing, Faith, Illumination and Theocracy are the Imperial-gated
+    // four; Herbal Medicine (v0.1.70) and Heresy (v0.1.71) are Castle techs
     // that stay offered through Imperial until researched.
     expect(
       optionsFor('imperial-age', [
-        'block-printing', 'sanctity', 'herbal-medicine', 'heresy',
+        'sanctity', 'herbal-medicine', 'heresy',
         'redemption', 'atonement', 'fervor',
       ]),
-    ).toEqual(['faith', 'illumination', 'theocracy']);
+    ).toEqual(['block-printing', 'faith', 'illumination', 'theocracy']);
     expect(
       optionsFor('imperial-age', [
         'block-printing',
@@ -116,8 +116,9 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
 });
 
 describe('Monastery techs — cost / time / hosting', () => {
-  it('Block Printing costs 100f/130g / 550 ticks; Sanctity 120g / 600 ticks; both at the Monastery', () => {
-    expect(researchCost('block-printing')).toEqual({ food: 100, gold: 130 });
+  it('Block Printing costs 200g / 550 ticks; Sanctity 120g / 600 ticks; both at the Monastery', () => {
+    // technologies.csv:69 — Imperial, 200 gold, 55 s.
+    expect(researchCost('block-printing')).toEqual({ gold: 200 });
     expect(researchTimeTicks('block-printing')).toBe(550);
     expect(researchCost('sanctity')).toEqual({ gold: 120 });
     expect(researchTimeTicks('sanctity')).toBe(600);
@@ -157,14 +158,18 @@ describe('Sanctity — +15 monk HP (create path)', () => {
   });
 });
 
-describe('Block Printing — live monk conversion range', () => {
-  it('a boxed monk cannot convert an enemy at distance 5 without Block Printing', () => {
-    // Base action range 4 < distance 5, and the monk is boxed so it cannot
-    // move closer → the enemy is never converted.
+describe('Monk conversion range — AoE2-faithful base 9, Block Printing +3', () => {
+  it('a boxed monk converts an enemy at distance 9 with NO tech (base range 9)', () => {
+    expect(convertsEnemy('monk-base-convert-range-fixture')).toBe(true);
+  });
+
+  it('a boxed monk cannot convert an enemy at distance 10 without Block Printing', () => {
+    // Base conversion range 9 < distance 10, and the monk is boxed so it
+    // cannot move closer → the enemy is never converted.
     expect(convertsEnemy('monk-block-printing-baseline-fixture')).toBe(false);
   });
 
-  it('the SAME boxed monk converts the distance-5 enemy WITH Block Printing (range 6)', () => {
+  it('the SAME boxed monk converts the distance-10 enemy WITH Block Printing (range 12)', () => {
     expect(convertsEnemy('monk-block-printing-fixture')).toBe(true);
   });
-}, 30_000);
+}, 45_000);

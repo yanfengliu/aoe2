@@ -3,9 +3,10 @@
 // economyTechOptions.ts / towerTechOptions.ts. Pure: the age and tech
 // predicates are passed in (the bridge owns the underlying side maps).
 //
-// Block Printing (+2 monk conversion range) and Sanctity (+15 monk HP), both
-// Castle Age with no tech prereq. Each drops from the options list once
-// researched. Returns [] for any non-Monastery building.
+// Sanctity (+15 monk HP) and friends are Castle Age with no tech prereq;
+// Block Printing (+3 monk conversion range) is IMPERIAL per technologies.csv.
+// Each drops from the options list once researched. Returns [] for any
+// non-Monastery building.
 
 import type { BuildingType, ResearchableTechnologyType } from './types';
 
@@ -25,9 +26,6 @@ export function monasteryTechResearchOptions(
     return [];
   }
   const options: ResearchableTechnologyType[] = [];
-  if (!hasTechnology(owner, 'block-printing')) {
-    options.push('block-printing');
-  }
   if (!hasTechnology(owner, 'sanctity')) {
     options.push('sanctity');
   }
@@ -52,6 +50,10 @@ export function monasteryTechResearchOptions(
   // Fervor (Castle): monks move faster, on the ordinary speed seam.
   if (!hasTechnology(owner, 'fervor')) {
     options.push('fervor');
+  }
+  // Block Printing is IMPERIAL (technologies.csv:69) — +3 conversion range.
+  if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'block-printing')) {
+    options.push('block-printing');
   }
   // Faith is an Imperial-Age tech (conversion resistance).
   if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'faith')) {

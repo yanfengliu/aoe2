@@ -408,6 +408,7 @@ export {
 export {
   createMonkBlockPrintingBaselineFixture,
   createMonkBlockPrintingFixture,
+  createMonkBaseConvertRangeFixture,
   createMonkSanctityBaselineFixture,
   createMonkSanctityFixture,
   createMonkFaithBaselineFixture,
