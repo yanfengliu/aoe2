@@ -115,6 +115,22 @@ function orderAck(context: AudioContext): void {
   ]);
 }
 
+// Selection chirps: a short two-note figure per role family — bright and
+// rising for the villager, low and firm for a soldier, a soft fifth for the
+// monk, a wooden knock for siege, a hollow whistle for a ship. No speech,
+// just melody — the procedural equivalent of AoE2's voice lines.
+function chirp(context: AudioContext, a: number, b: number, type: OscillatorType, peak: number): void {
+  playNotes(context, [
+    { frequency: a, startSeconds: 0, durationSeconds: 0.09, type, peak },
+    { frequency: b, startSeconds: 0.08, durationSeconds: 0.12, type, peak },
+  ]);
+}
+const selectVillager = (context: AudioContext): void => chirp(context, 660, 880, 'triangle', 0.5);
+const selectMilitary = (context: AudioContext): void => chirp(context, 330, 262, 'square', 0.32);
+const selectMonk = (context: AudioContext): void => chirp(context, 392, 587, 'sine', 0.55);
+const selectSiege = (context: AudioContext): void => chirp(context, 180, 140, 'square', 0.4);
+const selectShip = (context: AudioContext): void => chirp(context, 494, 740, 'sine', 0.45);
+
 const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'town-under-attack': horn,
   'age-up': ageUp,
@@ -124,6 +140,11 @@ const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'countdown-started': countdownStarted,
   'town-bell': townBell,
   'order-ack': orderAck,
+  'select-villager': selectVillager,
+  'select-military': selectMilitary,
+  'select-monk': selectMonk,
+  'select-siege': selectSiege,
+  'select-ship': selectShip,
 };
 
 /** Play one cue through the given context. */

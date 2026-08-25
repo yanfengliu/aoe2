@@ -13,7 +13,12 @@ export type GameAudioCue =
   | 'research-complete'
   | 'countdown-started'
   | 'town-bell'
-  | 'order-ack';
+  | 'order-ack'
+  | 'select-villager'
+  | 'select-military'
+  | 'select-monk'
+  | 'select-siege'
+  | 'select-ship';
 
 // AoE2 spaces its "town under attack" horns well apart; ~20s at 20 TPS.
 const HORN_THROTTLE_TICKS = 400;
@@ -45,6 +50,8 @@ export interface GameAudioControllerDeps {
   getTownBellRings: () => number;
   /** Successful order gestures so far (monotonic; the ack-click source). */
   getOrderAcks: () => number;
+  /** The primary selected OWN unit and its role family, or null. */
+  getPrimarySelection: () => { id: number; role: string } | null;
   playCue: (cue: GameAudioCue) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
@@ -59,7 +66,8 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   const {
     getTick, getCurrentAge, getMatchOutcome,
     getRecentAttacks, getOwnTownEntities,
-    getResearchedCount, getCountdownActive, getTownBellRings, getOrderAcks, playCue, storage,
+    getResearchedCount, getCountdownActive, getTownBellRings, getOrderAcks,
+    getPrimarySelection, playCue, storage,
   } = deps;
 
   let muted = readStoredMute(storage);
@@ -74,6 +82,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   let countdownWasActive = false;
   let knownBellRings: number | null = null;
   let knownOrderAcks: number | null = null;
+  let knownSelectionId: number | null = null;
 
   function cue(name: GameAudioCue): void {
     if (!muted) playCue(name);
@@ -156,6 +165,23 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     }
   }
 
+  function pollSelection(): void {
+    const selection = getPrimarySelection();
+    if (!selection) {
+      knownSelectionId = null;
+      return;
+    }
+    if (selection.id === knownSelectionId) return;
+    knownSelectionId = selection.id;
+    const cueByRole: Record<string, GameAudioCue> = {
+      villager: 'select-villager',
+      monk: 'select-monk',
+      siege: 'select-siege',
+      ship: 'select-ship',
+    };
+    cue(cueByRole[selection.role] ?? 'select-military');
+  }
+
   function pollCountdown(): void {
     const active = getCountdownActive();
     if (active && !countdownWasActive) cue('countdown-started');
@@ -171,6 +197,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
       pollCountdown();
       pollBell();
       pollAcks();
+      pollSelection();
     },
     isMuted: () => muted,
     setMuted(next: boolean): void {

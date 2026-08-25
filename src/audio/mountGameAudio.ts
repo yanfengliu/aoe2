@@ -8,6 +8,8 @@ import type { SimulationBridge } from '../game/simulation/createSimulationBridge
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import { createGameAudioController } from './gameAudioController';
 import { playProceduralCue } from './proceduralVoices';
+import { unitRole } from '../rendering/roles/unitRole';
+import type { UnitType } from '../game/simulation/types';
 
 export interface MountedGameAudio {
   dispose(): void;
@@ -56,6 +58,13 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
     },
     getTownBellRings: () => bridgeRef().getTownBellRings(),
     getOrderAcks: () => bridgeRef().getOrderAcks(),
+    getPrimarySelection: () => {
+      const selection = bridgeRef().getSelectionState();
+      const id = selection.selectedEntityId;
+      if (id === null || selection.selectedKind !== 'unit') return null;
+      const role = unitRole(selection.selectedEntityType as UnitType);
+      return role ? { id, role } : null;
+    },
     getCountdownActive: () => {
       const match = bridgeRef().getMatchState();
       return match.wonderCountdownTicks !== null || match.relicCountdownTicks !== null;

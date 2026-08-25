@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.123 selection chirps (role-family two-note figures; selection-id diff is the observable — no new facade state needed).
 - 2026-08-25 v0.3.122 continuous repair charging (repairAccrual codec, hundredths; charge-before-apply so a broke owner stalls; start free; Tier-1 44); Goths stale deferral note retired after teamProductionBonuses audit.
 - 2026-08-25 v0.3.121 per-verb work arcs (activeVerb names the work: chopping/mining/foraging; pick double-strikes shallow, forage reaches low).
 - 2026-08-25 v0.3.120 TC crowns per set (dome/finial/spire/cap/crest replace the square cap; crown fn lives in details to hold the recipes file under 500); deep playtest on v0.3.117 clean (43 cmds, 1 honest wood rejection).

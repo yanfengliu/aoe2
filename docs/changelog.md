@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.123
+
+- Units answer when selected: a bright chirp from a villager, a firm note from a soldier, a soft chant from a monk, a wooden knock from siege, a whistle from a ship.
+
 ## 0.3.122
 
 - Repairs now charge as they heal, exactly like AoE2: starting is free, you pay for the hit points as they return, stopping early costs only what was mended, and a broke treasury stalls the repair until you can pay.

@@ -25,6 +25,7 @@ interface Deps {
   countdownActive: boolean;
   bellRings: number;
   orderAcks: number;
+  selection: { id: number; role: string } | null;
 }
 
 function makeController(state: Deps) {
@@ -40,6 +41,7 @@ function makeController(state: Deps) {
     getCountdownActive: () => state.countdownActive,
     getTownBellRings: () => state.bellRings,
     getOrderAcks: () => state.orderAcks,
+    getPrimarySelection: () => state.selection,
     playCue: (cue) => played.push(cue),
     storage: mapStorage(new Map<string, string>()),
   });
@@ -51,7 +53,7 @@ const HOME = { x: 10, y: 10, owner: 1, kind: 'building', entityType: 'town-cente
 describe('the attack horn', () => {
   let harness: ReturnType<typeof makeController>;
   beforeEach(() => {
-    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0 });
+    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
   });
 
   it('sounds when an attack lands on your town, once per throttle window', () => {
@@ -83,7 +85,7 @@ describe('the attack horn', () => {
 
 describe('the age-up fanfare and the match stings', () => {
   it('sounds once per age transition, never for the starting age', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.age = 'feudal-age';
@@ -93,7 +95,7 @@ describe('the age-up fanfare and the match stings', () => {
   });
 
   it('plays victory or defeat exactly once', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
     harness.state.outcome = 'victory';
     harness.controller.poll();
     harness.controller.poll();
@@ -105,7 +107,7 @@ describe('the mute switch', () => {
   it('silences every cue and persists the choice', () => {
     const storage = new Map<string, string>();
     const played: GameAudioCue[] = [];
-    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0 };
+    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null };
     const controller = createGameAudioController({
       humanPlayerId: 1,
       getTick: () => state.tick,
@@ -117,6 +119,7 @@ describe('the mute switch', () => {
       getCountdownActive: () => state.countdownActive,
       getTownBellRings: () => state.bellRings,
       getOrderAcks: () => state.orderAcks,
+      getPrimarySelection: () => state.selection,
       playCue: (cue) => played.push(cue),
       storage: mapStorage(storage),
     });
@@ -140,7 +143,7 @@ describe('the mute switch', () => {
 
 describe('the research chime and the countdown bell', () => {
   it('dings once per completed research, never for pre-seeded techs', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'castle-age', outcome: null, tick: 0, researched: 12, countdownActive: false, bellRings: 0, orderAcks: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'castle-age', outcome: null, tick: 0, researched: 12, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.researched = 13;
@@ -153,7 +156,7 @@ describe('the research chime and the countdown bell', () => {
   });
 
   it('rings when a wonder or relic countdown begins, once per activation', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'imperial-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'imperial-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
     harness.controller.poll();
     harness.state.countdownActive = true;
     harness.controller.poll();
@@ -169,7 +172,7 @@ describe('the research chime and the countdown bell', () => {
 
 describe('the town bell peal', () => {
   it('rings once per successful ring, never on boot', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'feudal-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 2, orderAcks: 0 });
+    const harness = makeController({ attacks: [], own: [], age: 'feudal-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 2, orderAcks: 0, selection: null });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.bellRings = 3;
@@ -181,12 +184,31 @@ describe('the town bell peal', () => {
 
 describe('the order ack', () => {
   it('clicks once per gesture batch, never on boot', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 5 });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 5, selection: null });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.orderAcks = 8;
     harness.controller.poll();
     harness.controller.poll();
     expect(harness.played).toEqual(['order-ack']);
+  });
+});
+
+describe('selection chirps', () => {
+  it('chirps the role once per NEW selection, silent on reselect and on clear', () => {
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
+    harness.controller.poll();
+    harness.state.selection = { id: 5, role: 'villager' };
+    harness.controller.poll();
+    harness.controller.poll();
+    expect(harness.played).toEqual(['select-villager']);
+    harness.state.selection = { id: 9, role: 'cavalry' };
+    harness.controller.poll();
+    expect(harness.played).toEqual(['select-villager', 'select-military']);
+    harness.state.selection = null;
+    harness.controller.poll();
+    harness.state.selection = { id: 9, role: 'monk' };
+    harness.controller.poll();
+    expect(harness.played).toEqual(['select-villager', 'select-military', 'select-monk']);
   });
 });
