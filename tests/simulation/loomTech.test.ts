@@ -59,6 +59,7 @@ function optionsAt(
     canAdvanceToImperialAge: () => canAdvanceTo === 'imperial-age',
     hasCompletedBuilding: () => true,
     hasOwnedWonder: () => false,
+    nomadFirstTownCenter: () => false,
   };
   return createOptionsRules(deps);
 }

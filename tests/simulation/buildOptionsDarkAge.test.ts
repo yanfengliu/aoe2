@@ -21,6 +21,7 @@ function rulesAt(age: AgeType, hasBarracks = true) {
     canAdvanceToImperialAge: () => false,
     hasCompletedBuilding: () => hasBarracks,
     hasOwnedWonder: () => false,
+    nomadFirstTownCenter: () => false,
   };
   return createOptionsRules(deps);
 }

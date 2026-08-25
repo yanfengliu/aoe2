@@ -49,6 +49,7 @@ function optionsAt(age: AgeType, researched: ResearchableTechnologyType[] = []) 
     canAdvanceToImperialAge: () => false,
     hasCompletedBuilding: () => true,
     hasOwnedWonder: () => false,
+    nomadFirstTownCenter: () => false,
   };
   return createOptionsRules(deps);
 }

@@ -180,16 +180,21 @@ export interface MatchSettings {
   conquestOnly?: boolean;
   /** §4.6 population cap for the match (absent = the standard 200). */
   popCap?: number;
+  /** §5.4 Nomad: players open without a Town Center and may place their
+   *  FIRST one in any age. Absent (every other map and older save) = off. */
+  nomadStart?: boolean;
 }
 export const matchSettingsCodec: SlotCodec<MatchSettings, MatchSettings> = {
   slot: 'aoe2.matchSettings',
   serialize: (o) => ({
     ...(o.conquestOnly ? { conquestOnly: true } : {}),
     ...(o.popCap !== undefined ? { popCap: o.popCap } : {}),
+    ...(o.nomadStart ? { nomadStart: true } : {}),
   }),
   deserialize: (j) => (j === undefined ? {} : {
     ...(j.conquestOnly ? { conquestOnly: true } : {}),
     ...(j.popCap !== undefined ? { popCap: j.popCap } : {}),
+    ...(j.nomadStart ? { nomadStart: true } : {}),
   }),
 };
 

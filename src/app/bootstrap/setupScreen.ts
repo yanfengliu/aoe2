@@ -55,6 +55,7 @@ const MAPS: ReadonlyArray<{ seed: string; label: string }> = [
   { seed: 'coastal', label: 'Coastal' },
   { seed: 'fortress', label: 'Fortress' },
   { seed: 'gold-rush', label: 'Gold Rush' },
+  { seed: 'nomad', label: 'Nomad' },
 ];
 
 function options(entries: ReadonlyArray<{ value: string; label: string }>, selected: string): string {

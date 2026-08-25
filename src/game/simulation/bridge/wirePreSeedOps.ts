@@ -1,3 +1,4 @@
+import type { BuildingComponent } from '../types';
 // Pre-seed factory wireup. Runs before the scenario has been seeded /
 // hydrated; constructs the read/query/geometry ops (trebuchet state, fog
 // memory, debug snapshot, match-end, transform, player queries, options
@@ -6,7 +7,7 @@
 // wireBridgeOps thin by isolating the first-half wiring.
 
 import { bonusAttackRange } from '../teamCombatBonuses';
-import { playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
+import { matchSettingsCodec, playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
 import { buildingFootprint } from './pureHelpers';
 import { createTrebuchetStateOps } from './trebuchetState';
 import { createFogMemoryOps } from './fogMemoryOps';
@@ -143,6 +144,18 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     canAdvanceToImperialAge,
     hasCompletedBuilding,
     hasOwnedWonder,
+    // Nomad (§5.4): the owner may place their FIRST Town Center in any age —
+    // only while they own none at all, standing or under construction.
+    nomadFirstTownCenter: (owner: number) => {
+      if (!accessor.get(matchSettingsCodec).nomadStart) return false;
+      for (const id of world.query('building')) {
+        const building = world.getComponent<BuildingComponent>(id, 'building');
+        if (building && building.owner === owner && building.buildingType === 'town-center') {
+          return false;
+        }
+      }
+      return true;
+    },
   });
 
   // agent-affordances A1: shared reason engine (validator messages + buildingOptionsOps).

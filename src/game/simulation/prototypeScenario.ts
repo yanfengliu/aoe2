@@ -149,6 +149,8 @@ export interface PrototypeScenario {
   terrain: TerrainCellSpec[][];
   starts: PlayerStartSpec[];
   spawns: ScenarioSpawnSpec[];
+  /** Nomad (§5.4): no starting Town Centers; the first TC builds in any age. */
+  nomadStart?: boolean;
   // Score-timer victory (spec §4.3): if set, the match ends at this tick with
   // the highest-score player winning — so a match can never stalemate. Opt-in
   // (unset = conquest/wonder/relic only, the AoE2 default). Ticks at TPS=10.

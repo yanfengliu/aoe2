@@ -1,3 +1,4 @@
+import type { Position } from 'civ-engine';
 // AI building phase: reacts to fresh enemy sightings with a watch tower, then
 // pursues a wonder or the next macro build target, honoring the concurrent-build
 // cap and pending-intention gates.
@@ -6,7 +7,7 @@ import { ownerConstructionCost } from '../ownerCosts';
 import type { BuildableBuildingType, BuildingComponent } from '../../types';
 import { canAfford } from '../../prototypeEconomyRules';
 import { pickNextBuildTarget, shouldPursueWonder } from '../../ai';
-import { playerResourcesCodec } from '../bridgeStateSerialize';
+import { matchSettingsCodec, playerResourcesCodec } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
 export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
@@ -35,7 +36,46 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     findAvailableVillagerForBuild,
     pendingBuildsByOwner,
     unitCommands,
+    ownerTownCenterId,
   } = ctx;
+
+  // Nomad opening (§5.4): with no Town Center at all, everything else waits.
+  // A wood DROPSITE is the only road to the TC's 275 wood, so the lumber camp
+  // comes first; the TC follows the moment it is affordable. Gated on the TC
+  // actually being PLACEABLE — the nomad flag, or Castle Age on any map (a
+  // TC-less Castle-Age AI rebuilds) — so an ordinary Dark-Age fixture without
+  // a TC keeps its old no-op behavior.
+  const townCenterPlaceable = Boolean(accessor.get(matchSettingsCodec).nomadStart)
+    || currentAge === 'castle-age' || currentAge === 'imperial-age';
+  if (ownerTownCenterId === null && townCenterPlaceable) {
+    if ((pendingBuildsByOwner.get(owner) ?? 0) > 0) return;
+    const builderId = findAvailableVillagerForBuild(owner);
+    if (builderId === null) return;
+    const builderPosition = activeWorld.getComponent<Position>(builderId, 'position');
+    if (!builderPosition) return;
+    const townCenterCost = ownerConstructionCost(accessor, owner, 'town-center');
+    if (stockpile && canAfford(stockpile, townCenterCost)) {
+      const anchor = findBuildPlacementNear(builderPosition, 'town-center');
+      if (anchor) {
+        pushBuildingPlaceConfirmIntention(builderId, 'town-center', anchor);
+        pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
+      }
+      return;
+    }
+    if (
+      !findOwnedBuilding(owner, 'lumber-camp')
+      && !isConstructingBuilding(owner, 'lumber-camp')
+      && stockpile
+      && canAfford(stockpile, ownerConstructionCost(accessor, owner, 'lumber-camp'))
+    ) {
+      const anchor = findBuildPlacementNear(builderPosition, 'lumber-camp');
+      if (anchor) {
+        pushBuildingPlaceConfirmIntention(builderId, 'lumber-camp', anchor);
+        pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
+      }
+    }
+    return;
+  }
 
   if (ownerTownCenterPosition) {
     const sightingFresh =

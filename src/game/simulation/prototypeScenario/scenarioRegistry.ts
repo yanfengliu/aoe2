@@ -17,6 +17,7 @@ import {
   createCoastalMap,
   createFortressMap,
   createGoldRushMap,
+  createNomadMap,
 } from '../mapGeneration/standardVariantMaps';
 import type { PrototypeScenario } from '../prototypeScenario';
 
@@ -301,6 +302,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['coastal', createCoastalMap],
   ['fortress', createFortressMap],
   ['gold-rush', createGoldRushMap],
+  ['nomad', createNomadMap],
   // Slice 12 Task B: scenario-validation fixtures. Each seed exercises
   // one failure mode of the bridge-boot validation pass; the
   // `-ok-fixture` is the positive control.

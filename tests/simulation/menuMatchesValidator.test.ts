@@ -140,6 +140,7 @@ describe('every technology a building offers is one it can research', () => {
       canAdvanceToImperialAge: () => true,
       hasCompletedBuilding: () => true,
       hasOwnedWonder: () => false,
+      nomadFirstTownCenter: () => false,
     });
   }
 
@@ -207,6 +208,7 @@ describe('every technology a building hosts is one it can actually offer', () =>
                 canAdvanceToImperialAge: () => true,
                 hasCompletedBuilding: () => true,
                 hasOwnedWonder: () => false,
+                nomadFirstTownCenter: () => false,
               });
               const list = [
                 ...rules.getResearchOptions(1, buildingType),

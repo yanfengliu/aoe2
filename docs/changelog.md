@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.94 — 2026-08-25
+
+The Nomad map is here — seven of AoE2's eight famous maps now playable. Every player begins as three villagers in the wilderness: build a lumber camp, bank 275 wood, and raise your Town Center where you choose. The AI does exactly that too.
+
 ## 0.3.93 — 2026-08-25
 
 Unique units now train with their class: Berserks, Samurai, Teutonic Knights and the rest benefit from infantry blacksmith upgrades, Squires, and their civilizations' infantry bonuses; Cataphracts, Tarkans and War Elephants take cavalry armor upgrades. Rams no longer wrongly gain melee attack from the Forging line.

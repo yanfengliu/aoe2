@@ -26,6 +26,8 @@ import { blacksmithResearchOptions } from './blacksmithTechOptions';
 import { projectileTechOptions } from './projectileTechOptions';
 
 export interface OptionsRulesDeps {
+  /** Nomad (§5.4): true while this owner may place their FIRST TC in any age. */
+  nomadFirstTownCenter: (owner: number) => boolean;
   latestResearchedInChain: (owner: number, chain: UpgradeChainEntry) => TrainableUnitType;
   hasTechnology: (owner: number, tech: ResearchableTechnologyType) => boolean;
   getPlayerAge: (owner: number) => 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
@@ -64,6 +66,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     canAdvanceToImperialAge,
     hasCompletedBuilding,
     hasOwnedWonder,
+    nomadFirstTownCenter,
   } = deps;
 
   const getTrainOptions = createTrainOptions({
@@ -367,6 +370,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     ];
   }
 
+
   function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
     return buildOptionsFor(
       owner,
@@ -379,6 +383,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         : hasCompletedBuilding,
       hasOwnedWonder,
       hasTechnology,
+      // Nomad: the FIRST Town Center builds in any age (computed by the
+      // bridge, which owns the match settings and the building index).
+      nomadFirstTownCenter(owner),
     );
   }
 

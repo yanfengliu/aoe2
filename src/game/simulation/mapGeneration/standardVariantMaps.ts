@@ -1,22 +1,34 @@
 // The §5.4 map roster beyond the three originals: Coastal, Fortress, and
 // Gold Rush — each the standard opening on a differently-shaped world, the
-// way AoE2's scripts differ. (Arabia is the standard map's own character and
-// ships as an alias; Islands and Nomad stay deferred — the AI can neither
-// cross open water with an army nor open without a Town Center yet, and a
-// map the AI cannot play is a screenshot, not a map.)
+// way AoE2's scripts differ, plus Nomad (v0.3.94 — the AI opens
+// lumber-camp-first and stands up its own Town Center). (Arabia is the
+// standard map's own character and ships as an alias; Islands stays deferred
+// — the AI cannot cross open water with an army, and a map the AI cannot
+// play is a screenshot, not a map.)
 
 import type { Position } from 'civ-engine';
 
 import type { PrototypeScenario } from '../prototypeScenario';
 import {
+  applyForestPatch,
+  applyResourcePatch,
   applyStandardPlayerOpening,
   createPlayerStarts,
 } from './applyStandardPlayerOpening';
+import {
+  STARTING_BERRIES,
+  FOREST_PATCHES,
+  STARTING_BOARS,
+  STARTING_GOLD,
+  STARTING_STONE,
+  STARTING_VILLAGERS,
+} from './startingOffsets';
 import { MAP_HEIGHT, MAP_WIDTH } from './constants';
 import { createSpawnList } from './spawnList';
 import {
   createBaseTerrain,
   createTerrainCell,
+  paintDisc,
   type TerrainCellSpec,
 } from './sharedTerrainHelpers';
 
@@ -134,4 +146,47 @@ export function createGoldRushMap(seed: string): PrototypeScenario {
     });
   }
   return { seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain, starts, spawns: spawns.toArray() };
+}
+
+/** Nomad: every player opens as three villagers on open ground — no Town
+ *  Center, no scout — with their resource patches scattered around the start
+ *  point exactly as the standard opening lays them (the TC-relative offsets
+ *  become start-point-relative). The first Town Center may be built in ANY
+ *  age (`nomadStart` — buildOptions + matchSettings), and the AI opens
+ *  lumber-camp-first to bank the 275 wood. Sheep are deliberately absent:
+ *  with no starting TC they would stand unclaimed on open ground. */
+export function createNomadMap(seed: string): PrototypeScenario {
+  const terrain = createBaseTerrain(seed, { width: MAP_WIDTH, height: MAP_HEIGHT });
+  const starts = createPlayerStarts();
+  const spawns = createSpawnList();
+  for (const start of starts) {
+    paintDisc(terrain, start.townCenter, 4, 'grass');
+    applyResourcePatch(terrain, start.townCenter, STARTING_BOARS, 'boar', 340, start.owner, spawns);
+    applyResourcePatch(terrain, start.townCenter, STARTING_BERRIES, 'berry-bush', 125, start.owner, spawns);
+    applyResourcePatch(terrain, start.townCenter, STARTING_GOLD, 'gold-mine', 800, start.owner, spawns);
+    applyResourcePatch(terrain, start.townCenter, STARTING_STONE, 'stone-mine', 350, start.owner, spawns);
+    for (const patch of FOREST_PATCHES) {
+      applyForestPatch(terrain, start.townCenter, patch, start.owner, spawns);
+    }
+    for (const offset of STARTING_VILLAGERS) {
+      spawns.addUnitSpawn({
+        kind: 'villager',
+        x: start.townCenter.x + offset.x,
+        y: start.townCenter.y + offset.y,
+        owner: start.owner,
+        baseOwner: start.owner,
+        vision: { playerId: start.owner, radius: 4 },
+        requiresSafeSpawn: true,
+      });
+    }
+  }
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain,
+    starts,
+    spawns: spawns.toArray(),
+    nomadStart: true,
+  };
 }

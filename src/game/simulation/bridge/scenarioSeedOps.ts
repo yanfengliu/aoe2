@@ -171,10 +171,11 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   });
   // §4.3: a conquest-only match records it in world state, so the setting
   // survives a save and the countdown systems read one flag.
-  if (deps.victory === 'conquest-only' || deps.populationCap !== undefined) {
+  if (deps.victory === 'conquest-only' || deps.populationCap !== undefined || scenario.nomadStart) {
     accessor.mutate(matchSettingsCodec, (settings) => {
       if (deps.victory === 'conquest-only') settings.conquestOnly = true;
       if (deps.populationCap !== undefined) settings.popCap = deps.populationCap;
+      if (scenario.nomadStart) settings.nomadStart = true;
     });
   }
   for (const start of scenario.starts) {

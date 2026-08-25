@@ -22,6 +22,8 @@ export function buildOptionsFor(
   hasCompletedBuilding: (owner: number, buildingType: BuildingType) => boolean,
   hasOwnedWonder: (owner: number) => boolean,
   hasTechnology: (owner: number, tech: ResearchableTechnologyType) => boolean,
+  /** Nomad (§5.4): the owner may place their FIRST Town Center in any age. */
+  nomadFirstTownCenter = false,
 ): BuildableBuildingType[] {
   if (unitType === 'fishing-ship') {
     // The one build that is not a villager's: a Fish Trap goes on open water,
@@ -60,8 +62,14 @@ export function buildOptionsFor(
     options.push('watch-tower');
   }
 
-  if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
+  // Nomad: the landless opening's one exception — the first Town Center is
+  // buildable from the Dark Age. Castle Age makes further ones ordinary.
+  if (nomadFirstTownCenter) {
     options.push('town-center');
+  }
+
+  if (getPlayerAge(owner) === 'castle-age' || getPlayerAge(owner) === 'imperial-age') {
+    if (!nomadFirstTownCenter) options.push('town-center');
     options.push('siege-workshop');
     options.push('monastery');
     options.push('university'); // Castle Age (structures.csv); researches Ballistics.
