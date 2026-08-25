@@ -215,7 +215,7 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
     return true;
   }
 
-  function ungarrisonBuilding(buildingId: number): boolean {
+  function ungarrisonBuilding(buildingId: number, onlyUnitType?: string): boolean {
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
     const buildingPosition = world.getComponent<Position>(buildingId, 'position');
     const garrisonedUnits = accessor.get(garrisonedByBuildingCodec).get(buildingId) ?? [];
@@ -229,6 +229,12 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
     for (const unitId of garrisonedUnits) {
       const unit = world.getComponent<UnitComponent>(unitId, 'unit');
       if (!unit) continue;
+      // Town bell's Back to Work (v0.3.115) releases villagers only; a
+      // deliberately-garrisoned soldier stays on the wall.
+      if (onlyUnitType !== undefined && unit.unitType !== onlyUnitType) {
+        remainingGarrisonedUnits.push(unitId);
+        continue;
+      }
 
       const spawnPosition = findBuildingSpawnPosition(
         buildingPosition,

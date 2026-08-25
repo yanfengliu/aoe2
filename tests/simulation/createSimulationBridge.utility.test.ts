@@ -161,7 +161,7 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.selectEntityAtCell(8, 8)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({
       selectedEntityType: 'town-center',
-      actionOptions: ['ungarrison'],
+      actionOptions: ['ungarrison', 'ring-town-bell', 'back-to-work'],
       stanceOptions: [],
       stance: null,
     });

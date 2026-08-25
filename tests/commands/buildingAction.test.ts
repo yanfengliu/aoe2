@@ -134,6 +134,8 @@ describe('buildingActionHandler', () => {
   it('delegates ungarrison to ungarrisonBuildingDirect', () => {
     const calls: number[] = [];
     const handler = makeBuildingActionHandler({
+      ringTownBellDirect: () => true,
+      backToWorkDirect: () => true,
       ungarrisonBuildingDirect: (buildingId) => {
         calls.push(buildingId);
         return true;

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.115
+
+- The town bell: ring it on the Town Center and every villager runs for the nearest shelter with room; Back to Work sends them out again, leaving garrisoned soldiers in place.
+
 ## 0.3.114
 
 - The Delete key: remove your own selected unit or building — one per press, no refund — to free population space or clear a misplaced foundation.

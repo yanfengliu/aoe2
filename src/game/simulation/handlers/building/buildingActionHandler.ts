@@ -7,6 +7,9 @@ import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pure
 
 export interface BuildingActionHandlerDeps {
   ungarrisonBuildingDirect: (buildingId: number) => boolean;
+  // The town bell (v0.3.115): both act on the OWNER of the rung building.
+  ringTownBellDirect: (owner: number) => boolean;
+  backToWorkDirect: (owner: number) => boolean;
 }
 
 export type BuildingActionHandler = (
@@ -17,11 +20,21 @@ export type BuildingActionHandler = (
 export function makeBuildingActionHandler(
   deps: BuildingActionHandlerDeps,
 ): BuildingActionHandler {
-  return (data) => {
+  return (data, world) => {
     switch (data.actionType) {
       case 'ungarrison':
         deps.ungarrisonBuildingDirect(data.buildingId);
         return;
+      case 'ring-town-bell': {
+        const building = world.getComponent<{ owner: number }>(data.buildingId, 'building');
+        if (building) deps.ringTownBellDirect(building.owner);
+        return;
+      }
+      case 'back-to-work': {
+        const building = world.getComponent<{ owner: number }>(data.buildingId, 'building');
+        if (building) deps.backToWorkDirect(building.owner);
+        return;
+      }
       default:
         // Compile-time exhaustiveness guard — adding a new BuildingActionType
         // value forces this branch to fail typecheck until the new case is

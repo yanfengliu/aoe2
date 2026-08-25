@@ -135,6 +135,8 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // Bridge facade dispatches monk routing BEFORE submission; this helper
   // is non-monk only.
   routeUnitContextCommandDirect(unitId: number, target: Position, allowGarrison: boolean): boolean;
+  /** Walk-then-enter garrison order (v0.3.115 town bell reuses it). */
+  orderGarrison(unitId: number, buildingId: number): boolean;
   // Phase 1B unit.contextAtEntity: routing helper by entity id.
   routeUnitContextAtEntityCommandDirect(unitId: number, targetEntityId: number, allowGarrison: boolean): boolean;
   // Phase 1B monk.contextAtEntity: reads monk + target afresh, then routes to
@@ -462,6 +464,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
   return {
     ...selectionOps,
     ...sheepOps,
+    orderGarrison,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,
     setUnitAttackCommandDirect,

@@ -419,7 +419,11 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     const building = world.getComponent<BuildingComponent>(selectedEntityId, 'building');
     if (!building || building.owner !== humanPlayerId) return false;
 
-    if (actionType !== 'ungarrison') return false;
+    if (
+      actionType !== 'ungarrison'
+      && actionType !== 'ring-town-bell'
+      && actionType !== 'back-to-work'
+    ) return false;
 
     const result = world.submitWithResult('building.action', {
       buildingId: selectedEntityId,

@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.115 town bell (ring/back-to-work as building.action; greedy nearest-shelter fill; ungarrisonBuilding gains a villager-only filter so soldiers hold the wall); v0.3.114 Delete key devlog folded here.
 - 2026-08-25 v0.3.114 Delete key (entity.delete command; ownership validator; one-per-press; routed through the combat destroy ops); two exhaustiveness guards (pinned-units oracle, pendingCommandQuery) fired on the new variant exactly as designed.
 - 2026-08-25 v0.3.113 gathering work animation: activeVerb widened to gathering (gatherer.task source); the stationary-start transition needed an explicit setComponent diff or the projector never re-read the verb; selectionStateOps split (entityReadProbes) for the 500 cap.
 - 2026-08-25 v0.3.112 control groups persist (controlGroupsCodec joins Tier-1, inventory pins 42→43); recall's generation prune covers pre-save deaths free.

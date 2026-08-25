@@ -8,6 +8,7 @@ import {
 import type { UnitTaskState } from '../types';
 import { bootScenarioOrLoad } from './bootScenarioOrLoad';
 import { createControlGroupOps } from './controlGroupOps';
+import { createTownBellOps } from './townBellOps';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
 import { buildCommandValidatorDeps } from './commandValidatorDeps';
@@ -357,11 +358,19 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     mapWidth: world.grid.width,
     mapHeight: world.grid.height,
   });
+  const townBellOps = createTownBellOps({
+    world,
+    accessor,
+    orderGarrison: unitCommandOps.orderGarrison,
+    ungarrisonBuilding,
+  });
   registerCommandHandlers(world, {
     accessor,
     humanPlayerId: HUMAN_PLAYER_ID,
     destroyUnitEntity: entityDestroyOps.destroyUnitEntity,
     destroyBuildingEntity: entityDestroyOps.destroyBuildingEntity,
+    ringTownBellDirect: townBellOps.ringTownBell,
+    backToWorkDirect: townBellOps.backToWork,
     // M6 control: a unit's stance is stored only when it DIFFERS from its
     // type's default, so an untouched match writes nothing to the slot.
     setUnitStance: (unitId, stance) => {

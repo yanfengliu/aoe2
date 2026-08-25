@@ -453,6 +453,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     buildingType: BuildingType,
     buildingId: number,
   ): ActionType[] {
+    const options: ActionType[] = [];
     if (
       owner === humanPlayerId
       && buildingGarrisonCapacity(buildingType)
@@ -462,9 +463,19 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
         ) > 0
       && (accessor.get(garrisonedByBuildingCodec).get(buildingId)?.length ?? 0) > 0
     ) {
-      return ['ungarrison'];
+      options.push('ungarrison');
     }
-    return [];
+    // The town bell (v0.3.115): the Town Center carries the alarm. Back to
+    // Work appears once anyone is sheltering anywhere of the owner's.
+    if (owner === humanPlayerId && buildingType === 'town-center') {
+      options.push('ring-town-bell');
+      let anySheltered = false;
+      for (const ids of accessor.get(garrisonedByBuildingCodec).values()) {
+        if (ids.length > 0) { anySheltered = true; break; }
+      }
+      if (anySheltered) options.push('back-to-work');
+    }
+    return options;
   }
 
   return {

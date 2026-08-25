@@ -297,6 +297,10 @@ export function formatActionName(actionType: ActionType): string {
   switch (actionType) {
     case 'ungarrison':
       return 'Ungarrison';
+    case 'ring-town-bell':
+      return 'Ring Town Bell';
+    case 'back-to-work':
+      return 'Back to Work';
   }
 }
 

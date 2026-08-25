@@ -195,6 +195,8 @@ export interface CommandHandlerDeps {
   // Phase 1B (building.action): action-specific direct helpers. Each
   // BuildingActionType maps to its own helper; today only 'ungarrison'.
   ungarrisonBuildingDirect: (buildingId: number) => boolean;
+  ringTownBellDirect: (owner: number) => boolean;
+  backToWorkDirect: (owner: number) => boolean;
   buildingActionValidatorDeps: BuildingActionValidatorDeps;
   // Phase 1B (trebuchet.pack / trebuchet.unpack): direct helpers wrap the
   // existing beginTrebuchetPack / beginTrebuchetUnpack — both are still
@@ -351,6 +353,8 @@ export function registerCommandHandlers(
     makeBuildingActionValidator(deps.buildingActionValidatorDeps),
   );
   world.registerHandler('building.action', makeBuildingActionHandler({
+    ringTownBellDirect: deps.ringTownBellDirect,
+    backToWorkDirect: deps.backToWorkDirect,
     ungarrisonBuildingDirect: deps.ungarrisonBuildingDirect,
   }));
   // Phase 1B — trebuchet.pack

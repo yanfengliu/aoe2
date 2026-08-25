@@ -13,6 +13,8 @@ import { constructionStatesCodec } from '../../bridge/bridgeStateSerialize';
 
 const SUPPORTED_ACTIONS: ReadonlySet<BuildingActionType> = new Set<BuildingActionType>([
   'ungarrison',
+  'ring-town-bell',
+  'back-to-work',
 ]);
 
 export interface BuildingActionValidatorDeps {

@@ -13,7 +13,7 @@ import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitStance } from './unitStance';
 export type { ResearchableTechnologyType };
 export type { ProjectedUnitAttackAnimationView, ProjectedUnitAttackView } from './attackAnimationTypes';
-export type ActionType = 'ungarrison';
+export type ActionType = 'ungarrison' | 'ring-town-bell' | 'back-to-work';
 export type MarketActionType =
   | 'buy-food'
   | 'sell-food'

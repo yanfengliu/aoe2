@@ -62,6 +62,10 @@ export function formatActionTooltip(actionType: ActionType): string {
   switch (actionType) {
     case 'ungarrison':
       return 'Empty the building of all garrisoned units.';
+    case 'ring-town-bell':
+      return 'Send every villager to the nearest shelter with room.';
+    case 'back-to-work':
+      return 'Release sheltering villagers back to their tasks.';
   }
 }
 

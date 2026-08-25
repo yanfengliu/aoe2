@@ -447,6 +447,15 @@ const ACTION_GLYPH_BODY: Record<ActionType, string> = {
     '<path d="M5 13v6h14v-6"/>' +
     '<path d="M12 16.5V5"/>' +
     '<path d="M8.5 8.5 12 5l3.5 3.5"/>',
+  // A bell with a clapper: the town alarm.
+  'ring-town-bell':
+    '<path d="M12 4a5 5 0 0 1 5 5v4l1.5 2.5H5.5L7 13V9a5 5 0 0 1 5-5z"/>' +
+    '<circle cx="12" cy="18.5" r="1.4"/>',
+  // A pick over a sheaf: down tools, back out the door.
+  'back-to-work':
+    '<path d="M6 18l6-6"/>' +
+    '<path d="M10 6c2.5-1.5 6-1 8 2-3 .5-5 .5-8-2z"/>' +
+    '<path d="M14 14l4 4"/>',
 };
 
 export function actionGlyph(
