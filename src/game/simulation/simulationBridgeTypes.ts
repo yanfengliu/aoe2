@@ -84,6 +84,8 @@ export interface SimulationBridge {
   getRecentUnitAttacks(): readonly import('./types').ProjectedUnitAttackView[];
   /** Delete key (v0.3.114): remove the primary selected OWN unit/building. */
   deleteSelectedEntity(): boolean;
+  /** Successful town-bell rings this session (v0.3.116 audio observable). */
+  getTownBellRings(): number;
   /** M6 control: set the stance of every owned unit in the selection. */
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(

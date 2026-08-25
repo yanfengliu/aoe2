@@ -11,7 +11,8 @@ export type GameAudioCue =
   | 'victory'
   | 'defeat'
   | 'research-complete'
-  | 'countdown-started';
+  | 'countdown-started'
+  | 'town-bell';
 
 // AoE2 spaces its "town under attack" horns well apart; ~20s at 20 TPS.
 const HORN_THROTTLE_TICKS = 400;
@@ -39,6 +40,8 @@ export interface GameAudioControllerDeps {
   getResearchedCount: () => number;
   /** Whether a wonder or relic victory countdown is currently running. */
   getCountdownActive: () => boolean;
+  /** Successful town-bell rings so far (monotonic; 0 where bells cannot ring). */
+  getTownBellRings: () => number;
   playCue: (cue: GameAudioCue) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
@@ -53,7 +56,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   const {
     getTick, getCurrentAge, getMatchOutcome,
     getRecentAttacks, getOwnTownEntities,
-    getResearchedCount, getCountdownActive, playCue, storage,
+    getResearchedCount, getCountdownActive, getTownBellRings, playCue, storage,
   } = deps;
 
   let muted = readStoredMute(storage);
@@ -66,6 +69,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   // its age's research done) — only INCREASES after that ding.
   let knownResearched: number | null = null;
   let countdownWasActive = false;
+  let knownBellRings: number | null = null;
 
   function cue(name: GameAudioCue): void {
     if (!muted) playCue(name);
@@ -122,6 +126,18 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     }
   }
 
+  function pollBell(): void {
+    const rings = getTownBellRings();
+    if (knownBellRings === null) {
+      knownBellRings = rings;
+      return;
+    }
+    if (rings > knownBellRings) {
+      knownBellRings = rings;
+      cue('town-bell');
+    }
+  }
+
   function pollCountdown(): void {
     const active = getCountdownActive();
     if (active && !countdownWasActive) cue('countdown-started');
@@ -135,6 +151,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
       pollOutcome();
       pollResearch();
       pollCountdown();
+      pollBell();
     },
     isMuted: () => muted,
     setMuted(next: boolean): void {

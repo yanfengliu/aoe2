@@ -148,6 +148,7 @@ export function makeReplayBridge(
     },
     // Replay is playback: deletions come from the recorded stream.
     deleteSelectedEntity: () => false,
+    getTownBellRings: () => 0,
     issueAttackMoveCommand() {
       // Replay is playback: orders come from the recorded stream.
       return false;

@@ -185,6 +185,9 @@ export function createSimulationBridge(
   }
 
   // Render-state assembly + per-tick memo lives in `bridge/renderStateOps`.
+  // v0.3.116: live-facade tally of successful bell rings — audio-only, not
+  // sim state, not persisted; replays return 0 and stay silent.
+  let townBellRings = 0;
   const { getRenderState: getRenderStateInternal } = createRenderStateOps({
     visibility,
     humanPlayerId: HUMAN_PLAYER_ID,
@@ -367,9 +370,11 @@ export function createSimulationBridge(
     issueMoveCommand,
     issueAction(actionType: ActionType) {
       const didIssue = issueAction(actionType);
+      if (didIssue && actionType === 'ring-town-bell') townBellRings += 1;
       flushOutOfBandRenderChange();
       return didIssue;
     },
+    getTownBellRings: () => townBellRings,
     queueTrainUnit,
     queueResearch,
     issueMarketAction,

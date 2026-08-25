@@ -23,6 +23,7 @@ interface Deps {
   tick: number;
   researched: number;
   countdownActive: boolean;
+  bellRings: number;
 }
 
 function makeController(state: Deps) {
@@ -36,6 +37,7 @@ function makeController(state: Deps) {
     getOwnTownEntities: () => state.own,
     getResearchedCount: () => state.researched,
     getCountdownActive: () => state.countdownActive,
+    getTownBellRings: () => state.bellRings,
     playCue: (cue) => played.push(cue),
     storage: mapStorage(new Map<string, string>()),
   });
@@ -47,7 +49,7 @@ const HOME = { x: 10, y: 10, owner: 1, kind: 'building', entityType: 'town-cente
 describe('the attack horn', () => {
   let harness: ReturnType<typeof makeController>;
   beforeEach(() => {
-    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
+    harness = makeController({ attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0 });
   });
 
   it('sounds when an attack lands on your town, once per throttle window', () => {
@@ -79,7 +81,7 @@ describe('the attack horn', () => {
 
 describe('the age-up fanfare and the match stings', () => {
   it('sounds once per age transition, never for the starting age', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0 });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.age = 'feudal-age';
@@ -89,7 +91,7 @@ describe('the age-up fanfare and the match stings', () => {
   });
 
   it('plays victory or defeat exactly once', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
+    const harness = makeController({ attacks: [], own: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0 });
     harness.state.outcome = 'victory';
     harness.controller.poll();
     harness.controller.poll();
@@ -101,7 +103,7 @@ describe('the mute switch', () => {
   it('silences every cue and persists the choice', () => {
     const storage = new Map<string, string>();
     const played: GameAudioCue[] = [];
-    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false };
+    const state: Deps = { attacks: [], own: [HOME], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0 };
     const controller = createGameAudioController({
       humanPlayerId: 1,
       getTick: () => state.tick,
@@ -111,6 +113,7 @@ describe('the mute switch', () => {
       getOwnTownEntities: () => state.own,
       getResearchedCount: () => state.researched,
       getCountdownActive: () => state.countdownActive,
+      getTownBellRings: () => state.bellRings,
       playCue: (cue) => played.push(cue),
       storage: mapStorage(storage),
     });
@@ -134,7 +137,7 @@ describe('the mute switch', () => {
 
 describe('the research chime and the countdown bell', () => {
   it('dings once per completed research, never for pre-seeded techs', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'castle-age', outcome: null, tick: 0, researched: 12, countdownActive: false });
+    const harness = makeController({ attacks: [], own: [], age: 'castle-age', outcome: null, tick: 0, researched: 12, countdownActive: false, bellRings: 0 });
     harness.controller.poll();
     expect(harness.played).toEqual([]);
     harness.state.researched = 13;
@@ -147,7 +150,7 @@ describe('the research chime and the countdown bell', () => {
   });
 
   it('rings when a wonder or relic countdown begins, once per activation', () => {
-    const harness = makeController({ attacks: [], own: [], age: 'imperial-age', outcome: null, tick: 0, researched: 0, countdownActive: false });
+    const harness = makeController({ attacks: [], own: [], age: 'imperial-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0 });
     harness.controller.poll();
     harness.state.countdownActive = true;
     harness.controller.poll();
@@ -158,5 +161,17 @@ describe('the research chime and the countdown bell', () => {
     harness.state.countdownActive = true;
     harness.controller.poll();
     expect(harness.played).toEqual(['countdown-started', 'countdown-started']);
+  });
+});
+
+describe('the town bell peal', () => {
+  it('rings once per successful ring, never on boot', () => {
+    const harness = makeController({ attacks: [], own: [], age: 'feudal-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 2 });
+    harness.controller.poll();
+    expect(harness.played).toEqual([]);
+    harness.state.bellRings = 3;
+    harness.controller.poll();
+    harness.controller.poll();
+    expect(harness.played).toEqual(['town-bell']);
   });
 });

@@ -98,6 +98,16 @@ function countdownStarted(context: AudioContext): void {
   ]);
 }
 
+// The town bell: three urgent strikes on one high bell.
+function townBell(context: AudioContext): void {
+  playNotes(context, [
+    { frequency: 660, startSeconds: 0, durationSeconds: 0.3, type: 'triangle', peak: 1.0 },
+    { frequency: 660, startSeconds: 0.28, durationSeconds: 0.3, type: 'triangle', peak: 1.0 },
+    { frequency: 660, startSeconds: 0.56, durationSeconds: 0.5, type: 'triangle', peak: 1.0 },
+    { frequency: 1320, startSeconds: 0, durationSeconds: 0.2, type: 'sine', peak: 0.3 },
+  ]);
+}
+
 const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   'town-under-attack': horn,
   'age-up': ageUp,
@@ -105,6 +115,7 @@ const VOICES: Record<GameAudioCue, (context: AudioContext) => void> = {
   defeat,
   'research-complete': researchComplete,
   'countdown-started': countdownStarted,
+  'town-bell': townBell,
 };
 
 /** Play one cue through the given context. */

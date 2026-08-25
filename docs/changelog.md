@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.116
+
+- The town bell now sounds: three urgent strikes when you ring it.
+
 ## 0.3.115
 
 - The town bell: ring it on the Town Center and every villager runs for the nearest shelter with room; Back to Work sends them out again, leaving garrisoned soldiers in place.
