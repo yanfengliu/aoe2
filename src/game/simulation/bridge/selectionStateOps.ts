@@ -181,7 +181,10 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
   // or persisted and replay is identical by construction. The renderer gates
   // the work loop on stationarity, so this stays true through the approach.
   function getUnitActiveVerb(id: number): 'building' | undefined {
-    return accessor.get(unitCommandsCodec).get(id)?.type === 'build' ? 'building' : undefined;
+    // Repair swings the same hammer as construction (both kinds — buildings
+    // and, from v0.3.107, siege/ships), so both project the builder pose.
+    const type = accessor.get(unitCommandsCodec).get(id)?.type;
+    return type === 'build' || type === 'repair' ? 'building' : undefined;
   }
 
   function getSelectionHealth(id: number): SelectionState['health'] {

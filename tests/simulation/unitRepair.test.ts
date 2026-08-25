@@ -63,6 +63,11 @@ describe('a villager repairing a ram', () => {
     expect(bridge.selectEntityById(villager.id)).toBe(true);
     expect(bridge.issueContextCommandAtEntity(ram.id)).toBe(true);
 
+    // Mid-repair the villager swings the hammer, exactly as on a build site.
+    for (let i = 0; i < 30; i += 1) bridge.step(100);
+    const view = bridge.getRenderState().entities.find((e) => e.id === villager.id);
+    expect(view?.activeVerb, 'the repairing villager should swing the hammer').toBe('building');
+
     const repaired = stepBridgeUntil(
       bridge,
       () => (bridge.getEntityHealth(ram.id)?.currentHp ?? 0) >= maxHp,
