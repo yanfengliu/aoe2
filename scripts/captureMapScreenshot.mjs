@@ -100,6 +100,26 @@ try {
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
   });
+  // BUILD="house@10,16" places a building via a selected villager BEFORE the
+  // TICKS run, so a capture can stage a real mid-construction site.
+  const build = process.env.BUILD ?? '';
+  if (build) {
+    const match = /^([a-z-]+)@(\d+),(\d+)$/.exec(build);
+    if (!match) throw new Error(`BUILD must look like house@10,16; got "${build}"`);
+    const [, buildingType, bx, by] = match;
+    const placed = await page.evaluate(([type, x, y]) => {
+      const api = window.__AOE2_TEST__;
+      const eco = api.getEconomyState();
+      const villager = eco.units.find((u) => u.owner === 1 && u.unitType === 'villager');
+      if (!villager) return 'no villager';
+      if (!api.selectEntityAtCell(villager.x, villager.y)) return 'select failed';
+      if (!api.beginBuildingPlacement(type)) return 'begin failed';
+      if (!api.confirmBuildingPlacement(Number(x), Number(y))) return 'confirm failed';
+      return 'ok';
+    }, [buildingType, bx, by]);
+    if (placed !== 'ok') throw new Error(`BUILD ${build} failed: ${placed}`);
+  }
+
   if (focus) {
     const [focusX, focusY] = focus.split(',').map(Number);
     if (!Number.isFinite(focusX) || !Number.isFinite(focusY)) {

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.99 — 2026-08-25
+
+Buildings now visibly rise as villagers work: the construction site starts as a foundation with corner posts, the walls climb with progress, and the scaffold rails appear near completion.
+
 ## 0.3.98 — 2026-08-25
 
 Military production buildings now toughen with each age, exactly as in AoE2: a Barracks stands at 1200 hit points in the Dark Age and 2100 by Imperial, with Stables and Archery Ranges on the same climb — buildings already standing included.

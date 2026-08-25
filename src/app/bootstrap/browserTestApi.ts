@@ -42,6 +42,9 @@ export interface BrowserTestBridge {
   getDebugSnapshot(): import('../../game/simulation/types').SimulationDebugSnapshot;
   getSelectionState(): SelectionState;
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
+  /** Arm placement mode for a building type — the build-menu half of the
+   *  placement pair, exposed so captures can stage real constructions. */
+  beginBuildingPlacement(buildingType: import('../../game/simulation/types').BuildableBuildingType): boolean;
   confirmBuildingPlacement(x: number, y: number): boolean;
   selectEntityAtCell(x: number, y: number): boolean;
   selectOwnedUnitsByTypeInRect(
@@ -169,6 +172,7 @@ export interface BrowserTestApi {
   getDisplayedEntities(): DisplayedEntityState[];
   getOccludedUnitStates(): readonly OccludedUnitState[];
   worldToScreen(cellX: number, cellY: number): { x: number; y: number };
+  beginBuildingPlacement(buildingType: import('../../game/simulation/types').BuildableBuildingType): boolean;
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtWorldPosition(worldX: number, worldY: number): boolean;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
@@ -377,6 +381,7 @@ export function installBrowserTestApi(
       return didSelect;
     },
     setSelectionFormation: (formation) => getBridge().setSelectionFormation(formation),
+    beginBuildingPlacement: (buildingType) => getBridge().beginBuildingPlacement(buildingType),
     confirmBuildingPlacement: (cellX: number, cellY: number) => {
       const didPlace = getBridge().confirmBuildingPlacement(cellX, cellY);
       view.syncFromBridge(true);

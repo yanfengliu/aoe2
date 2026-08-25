@@ -1,6 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
-import { createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
+import { construction, createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
 import {
   contactShadow,
   makePart,
@@ -11,7 +11,7 @@ import {
   type VoxelSurface,
 } from './aoeVoxelRecipeTypes';
 
-interface BuildingContext {
+export interface BuildingContext {
   readonly entity: ProjectedEntityView;
   readonly identity: string;
   readonly ground: number;
@@ -23,7 +23,7 @@ interface BuildingContext {
   readonly parts: VoxelPart[];
 }
 
-function add(
+export function add(
   context: BuildingContext,
   suffix: string,
   surface: VoxelSurface,
@@ -87,21 +87,6 @@ function steppedRoof(
   return bottom + layers * layerHeight;
 }
 
-function construction(context: BuildingContext): void {
-  add(context, 'construction-foundation', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.82, 0.14, 0.82);
-  add(context, 'construction-wall-course', 'matte', VOXEL_COLORS.plaster, 0.5, 0.14, 0.5, 0.66, 0.38, 0.66);
-  const posts = [
-    ['front-left', 0.16, 0.18],
-    ['front-right', 0.84, 0.18],
-    ['back-left', 0.16, 0.82],
-    ['back-right', 0.84, 0.82],
-  ] as const;
-  for (const [name, x, z] of posts) {
-    add(context, `construction-scaffold-${name}`, 'matte', VOXEL_COLORS.timber, x, 0.1, z, 0.045, 1.15, 0.045);
-  }
-  add(context, 'construction-scaffold-rail-front', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.18, 0.72, 0.07, 0.04);
-  add(context, 'construction-scaffold-rail-back', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.82, 0.72, 0.07, 0.04);
-}
 
 function townCenter(context: BuildingContext): void {
   add(context, 'town-center-plinth', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.86, 0.18, 0.82);

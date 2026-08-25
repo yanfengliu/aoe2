@@ -1,4 +1,5 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
+import { add as addBuildingPart, type BuildingContext } from './aoeVoxelBuildingRecipes';
 import {
   hash01,
   makePart,
@@ -297,4 +298,34 @@ export function damageFlames(
     );
   }
   return parts;
+}
+
+// The scaffold GROWS with build progress (v0.3.99): construction HP ramps
+// from ~10% at placement to full at completion, so currentHp/maxHp IS the
+// build fraction — no new projection field needed. Early: foundation and
+// corner posts. Middle: the wall course climbs. Late: the rough body nears
+// roof height and the rails appear. AoE2's rising build, in three reads.
+export function construction(context: BuildingContext): void {
+  const { currentHp, maxHp } = context.entity;
+  const progress = currentHp !== null && maxHp !== null && maxHp > 0
+    ? Math.max(0, Math.min(1, currentHp / maxHp))
+    : 1;
+  addBuildingPart(context, 'construction-foundation', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.82, 0.14, 0.82);
+  const posts = [
+    ['front-left', 0.16, 0.18],
+    ['front-right', 0.84, 0.18],
+    ['back-left', 0.16, 0.82],
+    ['back-right', 0.84, 0.82],
+  ] as const;
+  for (const [name, x, z] of posts) {
+    addBuildingPart(context, `construction-scaffold-${name}`, 'matte', VOXEL_COLORS.timber, x, 0.1, z, 0.045, 1.15, 0.045);
+  }
+  // The wall course rises with the work: knee-high early, near the scaffold
+  // rails when the build is almost done.
+  const courseHeight = 0.16 + progress * 0.72;
+  addBuildingPart(context, 'construction-wall-course', 'matte', VOXEL_COLORS.plaster, 0.5, 0.14, 0.5, 0.66, courseHeight, 0.66);
+  if (progress >= 0.66) {
+    addBuildingPart(context, 'construction-scaffold-rail-front', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.18, 0.72, 0.07, 0.04);
+    addBuildingPart(context, 'construction-scaffold-rail-back', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.82, 0.72, 0.07, 0.04);
+  }
 }

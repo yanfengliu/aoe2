@@ -172,3 +172,24 @@ describe('building detail pass (spec §14.5)', () => {
     }
   });
 });
+
+describe('construction scaffold grows with build progress (v0.3.99)', () => {
+  function scaffoldAt(progressHp: number): VoxelPart[] {
+    const entity = { ...building('house', 'construction'), currentHp: progressHp, maxHp: 100 };
+    return createBuildingParts(entity, '60:1', 0);
+  }
+
+  it('withholds the rails early and adds them past two-thirds', () => {
+    const early = scaffoldAt(10);
+    const late = scaffoldAt(80);
+    expect(early.some((part) => part.key.includes('scaffold-rail'))).toBe(false);
+    expect(late.some((part) => part.key.includes('scaffold-rail'))).toBe(true);
+  });
+
+  it('raises the wall course as the work advances', () => {
+    const course = (progressHp: number) => scaffoldAt(progressHp)
+      .find((part) => part.key.includes('wall-course'))!;
+    expect(course(10).height).toBeLessThan(course(50).height);
+    expect(course(50).height).toBeLessThan(course(95).height);
+  });
+});
