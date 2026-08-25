@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.73 - 2026-08-24
+
+### Added
+
+- **A match setup screen.** Visit the game with a bare URL and you get a menu, not a running match: map, players (2–8), your civilization (all 30), teams, and AI difficulty, then Start. The choices ride the URL, so a configured match is a shareable link — and any visit that already carries parameters boots straight in, exactly as before.
+- **AI difficulty is now selectable** (`?difficulty=easy|standard|hard`, and the setup screen's row): the tiers drive how often every AI thinks — every 6, 3, or 1.5 seconds.
+
 ## 0.3.72 - 2026-08-24
 
 ### Added

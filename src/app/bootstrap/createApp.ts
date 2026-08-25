@@ -10,6 +10,7 @@ import { parseDisableAiParam } from './disableAiParam';
 import { parseCivParam } from './civParam';
 import { parsePlayersParam } from './playersParam';
 import { parseTeamsParam } from './teamsParam';
+import { parseDifficultyParam } from './difficultyParam';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -85,6 +86,9 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   // free-for-all, which is also what an unusable value falls back to.
   const teamsByOwner = parseTeamsParam(window.location.href, playerCount ?? 2);
 
+  // AI difficulty: ?difficulty=easy|standard|hard (§4.6) for every AI seat.
+  const difficulty = parseDifficultyParam(window.location.href);
+
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
   // (PauseControl, AnnotationController, MarkerListPanel) continue to
@@ -93,6 +97,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     disableAiForOwners: disableAiForOwners.size > 0 ? disableAiForOwners : undefined,
     civilizationsByOwner: civilizationsByOwner.size > 0 ? civilizationsByOwner : undefined,
     playerCount,
+    difficulty,
     teamsByOwner: teamsByOwner.size > 0 ? teamsByOwner : undefined,
   });
   const bridgeRef = (): SimulationBridge => bridge;

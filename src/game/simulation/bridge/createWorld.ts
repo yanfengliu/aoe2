@@ -62,6 +62,8 @@ export interface CreateWorldOptions {
   // civilization for the listed owners. Closure-local; the value flows into the
   // persisted playerCivilizations map via the normal seed path.
   civilizationsByOwner?: ReadonlyMap<number, string>;
+  /** §4.6 AI difficulty for every AI seat (absent = standard). */
+  difficulty?: import('../ai').DifficultyLevel;
   /** Which side each owner is on (?teams=). Absent means a free-for-all. */
   teamsByOwner?: ReadonlyMap<number, number>;
 }
@@ -230,6 +232,9 @@ export function createWorld(
     selection,
     placementMode,
     isBootstrappingScenarioRef,
+    // §4.6 AI difficulty: the option overrides the standard default for every
+    // AI seat the scenario itself does not pin.
+    difficulty: options.difficulty,
     ensurePlayerScoreCounters: helpers.ensurePlayerScoreCounters,
     ensureAiState: helpers.ensureAiState,
     inFlightTechSetFor: helpers.inFlightTechSetFor,

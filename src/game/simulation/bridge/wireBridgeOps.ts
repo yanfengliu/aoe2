@@ -125,7 +125,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
       mapHeight: world.grid.height,
       standardStartingResources: STANDARD_STARTING_RESOURCES,
       standardPopulationCap: STANDARD_POPULATION_CAP,
-      defaultDifficulty: DEFAULT_DIFFICULTY,
+      defaultDifficulty: deps.difficulty ?? DEFAULT_DIFFICULTY,
       state,
       accessor,
       ensureAiState,

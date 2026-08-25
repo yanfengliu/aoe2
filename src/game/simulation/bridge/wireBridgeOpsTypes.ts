@@ -51,6 +51,8 @@ export interface WireBridgeOpsDeps {
   getEntityRef: (id: number) => EntityRef | null;
   getUnitTaskStateInternal: (id: number, isGarrisonedUnit: (id: number) => boolean) => UnitTaskState;
   enqueueRejection: (reason: string) => void;
+  /** §4.6 AI difficulty for every seat the scenario does not pin. */
+  difficulty?: import('../ai').DifficultyLevel;
   markOutOfBandRenderChange: () => void;
   getSeed: () => string;
 }

@@ -208,6 +208,8 @@ The standard setup flow should allow configuration of:
 
 No generic game-mode selector is required.
 
+**Setup screen (implemented v0.3.73).** A bare visit — a URL with no query parameters at all — lands on the match setup screen instead of a running game: map (Standard / Arena / Black Forest), players (2–8, seating §12's ladder), the human's civilization (all 30), teams (free-for-all, or two sides split evenly with the odd seat on the human's side), and AI difficulty (Easy / Standard / Hard — §12's decision interval at 60 / 30 / 15 ticks, surfaced as `?difficulty=`). Start writes the choices into the URL the app already reads and reloads, so the parameters stay the single source of configuration, a settings link stays shareable, and every visit WITH parameters — every test, harness, and shared link — boots straight into the match untouched. Still URL-only (no setup row yet): resource presets, population cap, game speed, and per-victory-condition toggles.
+
 ## 5. World and Map Generation
 
 ### 5.1 Map Representation

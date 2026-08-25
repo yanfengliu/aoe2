@@ -35,4 +35,7 @@ export interface CreateSimulationBridgeOptions {
   civilizationsByOwner?: ReadonlyMap<number, string>;
   /** Which side each owner is on (?teams=). Absent means a free-for-all. */
   teamsByOwner?: ReadonlyMap<number, number>;
+  /** AI difficulty for every AI seat (?difficulty=; §4.6). Absent = standard.
+   *  Drives the decision interval: easy 60, standard 30, hard 15 ticks. */
+  difficulty?: import('./ai').DifficultyLevel;
 }
