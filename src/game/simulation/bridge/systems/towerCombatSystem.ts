@@ -99,10 +99,14 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
 
         const garrisonIds = accessor.get(garrisonedByBuildingCodec).get(id) ?? [];
         let garrisonedArcherCount = 0;
+        let garrisonedVillagerCount = 0;
         for (const garrisonedId of garrisonIds) {
           const garrisonedUnit = activeWorld.getComponent<UnitComponent>(garrisonedId, 'unit');
           if (garrisonedUnit && isArcherLineUnit(garrisonedUnit.unitType)) {
             garrisonedArcherCount += 1;
+          }
+          if (garrisonedUnit?.unitType === 'villager') {
+            garrisonedVillagerCount += 1;
           }
         }
 
@@ -110,6 +114,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           building.buildingType,
           garrisonIds.length,
           garrisonedArcherCount,
+          garrisonedVillagerCount,
         );
         // Building fire bonuses are DERIVED from the owner's researched set at
         // the fire site — no per-building state; un-teched owners read 0 so

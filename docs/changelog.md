@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.96 — 2026-08-25
+
+Watch towers now fire more arrows with a garrison aboard: each sheltered archer or villager adds an arrow up to the classic cap of five. Infantry keep their swords to themselves, and the Bombard Tower still fires its one great cannon.
+
 ## 0.3.95 — 2026-08-25
 
 All eight classic maps are now playable — Islands completes the roster. The AI has learned amphibious war: it trains a Transport Ship, loads its army, sails the channel, and lands on your shore. A loaded transport can also no longer teleport its cargo to a distant coast: the ship must actually be at the shore it unloads onto, and a far-off shore click sails it there instead.

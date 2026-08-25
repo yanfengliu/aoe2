@@ -296,6 +296,7 @@ export function buildingArrowCount(
   buildingType: BuildingType,
   garrisonedUnitsTotal: number,
   garrisonedArchers: number,
+  garrisonedVillagers = 0,
 ): number {
   switch (buildingType) {
     case 'town-center':
@@ -305,7 +306,12 @@ export function buildingArrowCount(
       // one more, to structures.csv's ceiling of "max 10 arrows".
       return Math.min(10, 1 + garrisonedUnitsTotal);
     case 'watch-tower':
+      // structures.csv "Max 5 arrows" (v0.3.96): archers and villagers each
+      // add an arrow to the base one; sheltering infantry add none — which is
+      // what makes the Teuton doubled garrison "(more arrows)" real.
+      return Math.min(5, 1 + garrisonedArchers + garrisonedVillagers);
     case 'bombard-tower':
+      // One cannon, whoever shelters inside.
       return 1;
     case 'castle':
       return Math.min(5, 1 + garrisonedArchers);

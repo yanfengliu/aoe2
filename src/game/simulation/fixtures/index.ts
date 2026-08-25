@@ -385,6 +385,7 @@ export { createCivKhmerHouseFixture } from './civKhmerHouse';
 export { createCivIncasArmorFixture } from './civIncasArmor';
 export { createAiTributeFixture } from './aiTribute';
 export { createAiFerryFixture, createAiFerryTrainFixture } from './aiFerry';
+export { createTowerArrowsFixture } from './towerArrows';
 
 export {
   createCivGothsInfantryFixture,
